@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a5e7f1e7c338745e7bf175d2"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Keep repository knowledge queries available under scan byte budgets and report partial coverage."

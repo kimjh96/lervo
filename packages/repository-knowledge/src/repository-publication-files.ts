@@ -5,6 +5,12 @@ import { relative, resolve, sep } from "node:path";
 import { listKnowledgeArtifactPaths } from "./artifact-paths.js";
 import { legacyStructuralManifestPath, structuralManifestPath } from "./structural-projection.js";
 
+/** Whether a repository path lies inside the Git-ignored, rebuildable publication root. */
+export function isWithinPublicationRoot(path: string, publicationRoot: string): boolean {
+  const root = publicationRoot.replace(/^\.\//u, "").replace(/\/+$/u, "");
+  return path === root || path.startsWith(`${root}/`);
+}
+
 export async function generatedKnowledgePaths(root: string): Promise<Set<string>> {
   const result = new Set<string>();
   const groups = [

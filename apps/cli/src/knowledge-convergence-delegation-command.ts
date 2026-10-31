@@ -6,6 +6,7 @@ import {
   createConvergenceDelegationPlan,
   applyConvergenceDelegationPlan,
 } from "@lervo/repository-knowledge-runtime";
+import { runKnowledgeDocumentScopeResponseCommand } from "./knowledge-document-scope-response-command.js";
 import { runKnowledgeConvergenceRenewalPolicyCommand } from "./knowledge-convergence-renewal-policy-command.js";
 import { runKnowledgeConvergenceSeedCommand } from "./knowledge-convergence-seed-command.js";
 import type { CliIo } from "./types.js";
@@ -17,6 +18,8 @@ export async function runKnowledgeConvergenceDelegationCommand(
   args: readonly string[],
   io: CliIo,
 ): Promise<number> {
+  if (args[0] === "scope-response")
+    return runKnowledgeDocumentScopeResponseCommand(args.slice(1), io);
   if (args[0] === "renewal-policy")
     return runKnowledgeConvergenceRenewalPolicyCommand(args.slice(1), io);
   if (args[0] === "seed") return runKnowledgeConvergenceSeedCommand(args.slice(1), io);

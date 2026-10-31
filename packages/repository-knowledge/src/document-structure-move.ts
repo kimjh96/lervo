@@ -13,10 +13,11 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import {
   relocateRepositoryKnowledgeScanSource,
@@ -181,7 +182,7 @@ export async function createKnowledgeDocumentMovePlan(input: {
   await assertSafeDestinationParents(root, toPath);
   await assertDestinationAbsent(resolve(root, toPath));
   const [{ policy, scan }, storedConcepts, generatedPaths] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -218,6 +219,12 @@ export async function createKnowledgeDocumentMovePlan(input: {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "The move destination cannot be a previous Lervo-generated output path.",
+    );
+  }
+  if (isWithinPublicationRoot(toPath, policy.publicationRoot)) {
+    throw new RepositoryKnowledgeError(
+      "knowledge_reconciliation_conflict",
+      "The move destination cannot be inside the Git-ignored generated publication root.",
     );
   }
   if (storedConcepts.some((item) => item.value === null)) {
@@ -387,7 +394,7 @@ export async function createKnowledgeDocumentMovePlan(input: {
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     afterRegistryDigest,
     document: { fromPath, toPath, contentHash: source.contentHash, byteCount: source.byteCount },

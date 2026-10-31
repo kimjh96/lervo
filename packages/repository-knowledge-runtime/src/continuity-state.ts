@@ -1,5 +1,7 @@
+import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import { resolve } from "node:path";
 
+import type { DocumentRouteScopeProposal } from "./document-route-scope-proposal.js";
 import type {
   ContinuityFinding,
   ContinuityOwnerHostObservation,
@@ -10,7 +12,7 @@ import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.
 /**
  * ADR-0469 host-local continuity projection, rewritten after every reconciliation. It is
  * rebuildable: losing it costs one reconciliation. Attention and the doctor read it instead of
- * contacting the Hub. It holds hashes, closed codes, labels, and timestamps only.
+ * contacting the Hub. It holds hashes, closed codes, labels, timestamps, and the current exact-path scope proposal.
  */
 export const CONVERGENCE_CONTINUITY_STATE_PATH =
   ".lervo/state/knowledge/convergence-continuity.json";
@@ -19,6 +21,7 @@ export interface ContinuityPeerSummary extends ContinuityPeerObservation {
   hostHash: string;
   ownerRole: string | null;
   residentState: string | null;
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
 export interface ConvergenceContinuityState {
@@ -45,26 +48,56 @@ export interface ConvergenceContinuityState {
   } | null;
   hub: { status: "ok" | "unavailable" | "not_configured"; failureCode: string | null };
   peers: ContinuityPeerSummary[];
+  scopeChange?: DocumentRouteScopeProposal | null;
+  scopeResponse?: "accept" | "decline" | null;
   findings: ContinuityFinding[];
+  providerAdmission?: ProviderCliAdmissionProjection;
 }
 
-const MAXIMUM_STATE_BYTES = 64 * 1024;
+const MAXIMUM_STATE_BYTES = 16 * 1024 * 1024;
 
-export async function readConvergenceContinuityState(
+async function readRecordedContinuityState(
   root: string,
-): Promise<ConvergenceContinuityState | null> {
+): Promise<Partial<ConvergenceContinuityState> | null> {
   const file = await readPrivateJsonFile(
     resolve(root, CONVERGENCE_CONTINUITY_STATE_PATH),
     MAXIMUM_STATE_BYTES,
   );
-  if (file.status !== "read") return null;
-  const value = file.value as Partial<ConvergenceContinuityState> | null;
+  return file.status === "read" ? (file.value as Partial<ConvergenceContinuityState> | null) : null;
+}
+
+/** ADR-0540: a proposal recorded in an older shape reads as none, yet is still outstanding. */
+export async function convergenceScopeChangeRecorded(root: string): Promise<boolean> {
+  return (await readRecordedContinuityState(root))?.scopeChange != null;
+}
+
+export async function readConvergenceContinuityState(
+  root: string,
+): Promise<ConvergenceContinuityState | null> {
+  const value = await readRecordedContinuityState(root);
+  const proposal = value?.scopeChange;
+  const currentProposal =
+    proposal != null &&
+    typeof proposal.planId === "string" &&
+    Array.isArray(proposal.requiredPaths) &&
+    proposal.requiredPaths.every((path) => typeof path === "string") &&
+    Array.isArray(proposal.unsatisfiedPaths) &&
+    proposal.unsatisfiedPaths.every((path) => typeof path === "string")
+      ? proposal
+      : null;
   return value?.schemaVersion === 1 &&
     typeof value.observedAt === "string" &&
     typeof value.nextReconcileAt === "string" &&
     Array.isArray(value.findings) &&
     Array.isArray(value.peers)
-    ? (value as ConvergenceContinuityState)
+    ? {
+        ...(value as ConvergenceContinuityState),
+        scopeChange: currentProposal,
+        scopeResponse: currentProposal === null ? null : (value.scopeResponse ?? null),
+        findings: value.findings.filter(
+          (finding) => currentProposal !== null || finding.code !== "delegation_scope_change",
+        ),
+      }
     : null;
 }
 

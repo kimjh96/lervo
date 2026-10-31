@@ -10,6 +10,8 @@ export interface ConvergenceRuntimeContext {
   };
   provider: "codex" | "claude";
   executable?: string;
+  providerCliIdentityHash?: string;
+  providerCliIdentity?: import("./provider-cli-identity.js").ProviderCliIdentity;
   admissionDirectory?: string;
   signal: AbortSignal;
   liveWorkPending(): Promise<boolean>;

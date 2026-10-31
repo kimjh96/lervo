@@ -31,3 +31,5 @@ Focused regressions cover:
 - Preservation of manual divergence.
 
 An actual subprocess killed after canonical file apply but before materialization evidence append restarts as owned journal uncertainty, records no currency, and invokes no provider again. The [implementation evidence](../../evidence/quality/background-knowledge-convergence-implementation.md) records installed observations and remaining unobserved windows.
+
+- [Project CAS retention](recovery-and-retention/project-cas.md): exact artifact reachability, historical readers and bounded host-local collection.

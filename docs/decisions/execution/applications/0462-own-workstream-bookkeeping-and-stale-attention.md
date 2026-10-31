@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-05
+Amended by: [ADR-0526](../orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (each branch records its own HEAD)
 Amends: [ADR-0199](../../knowledge/repository/0199-structured-workstream-continuation-state.md), [ADR-0361](0361-project-operating-attention-without-new-authority.md), and [ADR-0451](../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
 
 ## Context

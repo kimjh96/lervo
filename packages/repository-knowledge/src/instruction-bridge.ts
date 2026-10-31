@@ -8,7 +8,7 @@ import { shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import {
   createKnowledgeMigrationPlanForScan,
   matchesRecordedStructuralGeneration,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
@@ -251,7 +251,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
   const root = resolve(input.repositoryRoot);
   const profile = instructionBridgeProfile(input.provider);
   const [{ policy, scan }, beforeRegistry] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(root, {
+    scanCompleteConfiguredRepositoryKnowledge(root, {
       ...(input.supplementalSources === undefined
         ? {}
         : { supplementalSources: input.supplementalSources }),
@@ -541,7 +541,7 @@ export async function createKnowledgeInstructionBridgePlan(input: {
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest: beforeRegistry.digest,
     afterRegistryDigest,
     profile,

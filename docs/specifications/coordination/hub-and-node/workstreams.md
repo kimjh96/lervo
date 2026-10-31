@@ -2,6 +2,8 @@
 
 ## Replication and divergence
 
+The replicated lineage is the workstream bound to the default branch. Node reads it from recorded history whatever branch the checkout projects, and an import rewrites the projection only when the checkout projects that lineage. Branch-bound workstreams stay local ([ADR-0526](../../../decisions/execution/orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md)).
+
 Workstream revisions are shared by project and repository identity across authorized destination registrations. Requests bind registration, repository identity, exact current and previous snapshot hashes, and bounded snapshot bytes.
 
 Node validates local ancestry and reads the Hub head set. When a local ancestry match is proved, Node publishes the missing suffix; otherwise, it republishes available ancestry idempotently.

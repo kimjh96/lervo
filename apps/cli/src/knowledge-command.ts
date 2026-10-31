@@ -1,3 +1,4 @@
+import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 import { runKnowledgeQuery } from "./knowledge-query-command.js";
 import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
@@ -6,21 +7,16 @@ import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { parseArgs } from "node:util";
 import {
   analyzeRepositoryKnowledgeImpact,
-  createKnowledgeReconciliationPlan,
   createKnowledgeRefreshReviewCandidate,
   lintRepositoryKnowledge,
   scanConfiguredRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
-import { runKnowledgeCompilationCommand } from "./knowledge-compilation-command.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
-import { runDevelopmentPatternCommand } from "./development-pattern-command.js";
-import { runImprovementEffectCommand } from "./improvement-effect-command.js";
 import type { CliIo, CliServices } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
-import { runKnowledgeSemanticMaterialize } from "./knowledge-materialization-command.js";
+import { runKnowledgeMaterializationRecovery } from "./knowledge-materialization-command.js";
 import { runKnowledgeOkfExchange } from "./knowledge-okf-command.js";
-import { runKnowledgeReview, runKnowledgeReviewPolicy } from "./knowledge-review-command.js";
 import { runKnowledgeStructure } from "./knowledge-structure-command.js";
 import { runKnowledgeFreshness } from "./knowledge-freshness-command.js";
 import { writeCommandError } from "./command-error-output.js";
@@ -51,13 +47,7 @@ export async function runKnowledgeCommand(
   args: string[],
   io: CliIo,
   services: Partial<
-    Pick<
-      CliServices,
-      | "createLocalImprovementObservationHost"
-      | "improvementObservationPort"
-      | "groundProductionRequest"
-      | "knowledgeMaterializationWait"
-    >
+    Pick<CliServices, "groundProductionRequest" | "knowledgeMaterializationWait">
   > = {},
 ): Promise<number> {
   const subcommand = args[0];
@@ -79,7 +69,7 @@ export async function runKnowledgeCommand(
   if (subcommand === "worker")
     return args.includes("--host")
       ? runHostKnowledgeResidentsCommand(args.slice(1), io)
-      : runKnowledgeWorkerCommand(args.slice(1), io);
+      : runKnowledgeWorkerCommand(args.slice(1), io, { refreshHealth: prefetchRepositoryHealth });
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
   if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);
@@ -142,27 +132,8 @@ export async function runKnowledgeCommand(
       return 1;
     }
   }
-  if (
-    subcommand === "compile" ||
-    subcommand === "compare" ||
-    subcommand === "stability" ||
-    subcommand === "merge-candidate" ||
-    subcommand === "fuzzy-merge-candidate"
-  ) {
-    return runKnowledgeCompilationCommand({
-      operation: subcommand,
-      args: args.slice(1),
-      io,
-      usage: knowledgeUsage,
-    });
-  }
   if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
-  if (subcommand === "pattern" && args[1] === "effect")
-    return runImprovementEffectCommand(args.slice(2), io, services);
-  if (subcommand === "pattern") return runDevelopmentPatternCommand(args.slice(1), io);
-  if (subcommand === "review-policy") return runKnowledgeReviewPolicy(args.slice(1), io);
-  if (subcommand === "review") return runKnowledgeReview(args.slice(1), io);
-  if (subcommand === "materialize") return runKnowledgeSemanticMaterialize(args.slice(1), io);
+  if (subcommand === "materialize") return runKnowledgeMaterializationRecovery(args.slice(1), io);
   if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io);
   if (subcommand === "freshness") return runKnowledgeFreshness(args.slice(1), io);
   if (subcommand === "instruction") {
@@ -173,37 +144,6 @@ export async function runKnowledgeCommand(
         ? undefined
         : { groundProductionRequest: services.groundProductionRequest },
     );
-  }
-  if (subcommand === "reconcile") {
-    try {
-      const parsed = parseArgs({
-        args: args.slice(1),
-        strict: true,
-        allowPositionals: true,
-        options: { root: { type: "string" }, json: { type: "boolean" } },
-      });
-      if (parsed.positionals.length !== 1)
-        throw new Error("reconcile requires one compilation ID.");
-      const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-      const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-      const plan = await createKnowledgeReconciliationPlan({
-        repositoryRoot,
-        compilationId: parsed.positionals[0] as string,
-        supplementalSources,
-      });
-      const counts = new Map<string, number>();
-      for (const item of plan.dispositions)
-        counts.set(item.action, (counts.get(item.action) ?? 0) + 1);
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(plan, null, 2)}\n`
-          : `Semantic candidate reconciliation: ${plan.status}\nplan: ${plan.reconciliationPlanId}\nregister existing ${counts.get("register_existing") ?? 0}, create generated ${counts.get("create_generated") ?? 0}, add relation ${counts.get("add_relation") ?? 0}, proposed user patch ${counts.get("propose_user_patch") ?? 0}, conflict ${counts.get("conflict") ?? 0}\nreview required ${plan.dispositions.filter((item) => item.review === "review_required").length}\nThis plan is read-only and did not change publications or candidate assurance.\n`,
-      );
-      return plan.status === "conflict" ? 1 : 0;
-    } catch (error) {
-      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
-      return 1;
-    }
   }
   if (subcommand === "lint") {
     let json = false;

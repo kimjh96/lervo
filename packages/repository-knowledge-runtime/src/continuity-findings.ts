@@ -1,6 +1,8 @@
 import type { ConvergenceContinuityPolicyReading } from "./continuity-policy-store.js";
 import type { DelegationRenewalDecision } from "./delegation-continuity-decision.js";
+import type { DocumentRouteScopeProposal } from "./document-route-scope-proposal.js";
 import type { ResidentHostObservation } from "./resident-host-observation.js";
+import type { ResidentCycleState } from "./resident-cycle-state.js";
 
 const HOUR_MS = 60 * 60_000;
 /** Without a policy, an expiring delegation is reported this long before it lapses. */
@@ -16,6 +18,7 @@ export const CONTINUITY_PEER_STALE_MS = 2 * HOUR_MS;
 export type ContinuityFindingSeverity = "info" | "attention" | "owner_decision";
 
 export type ContinuityFindingCode =
+  | "delegation_scope_change"
   | "delegation_missing"
   | "delegation_expiring"
   | "delegation_expired"
@@ -43,18 +46,29 @@ export type ContinuityFindingCode =
   | "continuity_unobserved"
   | "continuity_stale"
   | "resident_not_running"
-  | "hook_runtime_stale"
+  | "resident_cycle_failed"
+  | "hook_runtime_unavailable"
   | "replica_diverged"
   // ADR-0470 resident admission, observed from resident health and the host resident status.
   | "event_schema_outdated"
   | "continuity_pending"
-  | "host_resident_scan_stalled";
+  | "host_resident_scan_stalled"
+  // ADR-0530: the owner's resident stopped convergence for a closed cause the status names.
+  | "convergence_attention"
+  | "provider_cli_detected"
+  | "provider_cli_admitted"
+  | "provider_cli_rejected"
+  | "provider_detection_failed"
+  | "provider_not_admitted";
 
 export interface ContinuityFinding {
+  actor?: "provider admission";
   code: ContinuityFindingCode;
   severity: ContinuityFindingSeverity;
   /** A closed code or a host label, never a path, URL, or message. */
   detail: string | null;
+  /** Host-private evidence for the existing owner scope-change decision. Never exchanged with the Hub. */
+  scopeChange?: DocumentRouteScopeProposal;
 }
 
 export type ContinuityDelegationObservation =
@@ -80,6 +94,8 @@ export interface ContinuityPeerObservation {
 }
 
 export interface ContinuityFindingsInput {
+  scopeChange?: DocumentRouteScopeProposal | null;
+  scopeResponse?: "accept" | "decline" | null;
   now: number;
   delegation: ContinuityDelegationObservation;
   policy: ConvergenceContinuityPolicyReading;
@@ -224,6 +240,18 @@ export function continuityPeerFindings(
 /** Pure: every continuity gap this host can see, each with the narrowest needed severity. */
 export function continuityFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
   const findings = [
+    ...(input.scopeChange == null ||
+    input.scopeResponse === "accept" ||
+    input.scopeResponse === "decline"
+      ? []
+      : [
+          {
+            code: "delegation_scope_change" as const,
+            severity: "owner_decision" as const,
+            detail: null,
+            scopeChange: input.scopeChange,
+          },
+        ]),
     ...delegationFindings(input),
     ...(input.continuationFailure !== null && input.delegation.state !== "missing"
       ? [
@@ -270,13 +298,22 @@ export function localContinuityFindings(input: {
   expected: boolean;
   stateObservedAt: string | null;
   residentRunning: boolean | null;
-  hookRuntime: "current" | "stale" | "unknown";
+  hookRuntime: "current" | "unavailable" | "unknown";
   replicaDiverged: boolean;
   /** The reason a degraded resident heartbeat reports, such as `event_schema_outdated`. */
   residentHold?: string | null;
   residentHost?: ResidentHostObservation | null;
+  /** Whether this host owns convergence, so a degraded resident is a convergence stop. */
+  owner?: boolean;
+  residentCycle?: Pick<ResidentCycleState, "lastResult" | "lastFailure"> | null;
 }): ContinuityFinding[] {
   const findings: ContinuityFinding[] = [];
+  if (input.residentCycle?.lastResult === "failed")
+    findings.push({
+      code: "resident_cycle_failed",
+      severity: "attention",
+      detail: input.residentCycle.lastFailure?.code ?? "unclassified_failure",
+    });
   const host = input.residentHost ?? null;
   const held = input.residentHold === "event_schema_outdated" || host?.kind === "host_held";
   const detail = residentHostDetail(host);
@@ -302,9 +339,16 @@ export function localContinuityFindings(input: {
     findings.push({ code: "resident_not_running", severity: "attention", detail });
   if (host?.kind === "host_stalled")
     findings.push({ code: "host_resident_scan_stalled", severity: "attention", detail: null });
-  if (input.hookRuntime === "stale")
-    findings.push({ code: "hook_runtime_stale", severity: "attention", detail: null });
+  if (input.hookRuntime === "unavailable")
+    findings.push({ code: "hook_runtime_unavailable", severity: "attention", detail: null });
   if (input.replicaDiverged)
     findings.push({ code: "replica_diverged", severity: "attention", detail: null });
+  // A stop that only the owner's status names would otherwise stay silent until someone asks.
+  if (!held && input.owner === true && input.residentHold)
+    findings.push({
+      code: "convergence_attention",
+      severity: "attention",
+      detail: input.residentHold,
+    });
   return findings;
 }

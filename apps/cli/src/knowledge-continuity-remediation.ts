@@ -70,6 +70,19 @@ function hubFailure(detail: string | null): string {
 /** The exact next step for one continuity finding; the system retries everything else itself. */
 export function continuityRemediation(finding: ContinuityFinding): string {
   switch (finding.code) {
+    case "delegation_scope_change":
+      return `Accept the exact normalizationRoots additions ${finding.scopeChange?.requiredPaths.join(", ")} in ${finding.scopeChange?.proposalId}: ${finding.scopeChange?.paths.map((item) => `${item.path} (${item.classification}) -> ${item.destination}; classification ${item.evidence.classificationId}`).join("; ")}. Acceptance is recommended.${finding.scopeChange?.acceptanceBlocker === "scope_path_unavailable" ? ` Required paths cannot receive an exact file grant: ${finding.scopeChange.unsatisfiedPaths.join(", ")}. The move stays deferred.` : ""}${finding.scopeChange?.acceptanceBlocker === "normalization_root_limit" ? " The complete proposal exceeds the existing 32-root delegation limit. Scope acceptance requires a separately reviewed contract change; no partial or directory grant is proposed." : ""} Record acceptance or decline with lervo knowledge convergence delegation scope-response --proposal ${finding.scopeChange?.proposalId} --response <accept|decline> --evidence-hash <owner-turn-artifact-hash>. Review acceptance through ${REVIEW_DELEGATION}, then supply --from and --apply to scope-response.`;
+    case "provider_cli_detected":
+    case "provider_cli_admitted":
+      return "Provider admission follows the installed executable identity and rechecks changes before use.";
+    case "provider_cli_rejected":
+      return `The installed CLI failed its no-capability contract (${finding.detail}). Provider admission retries detection and uses an admitted allowed provider when available.`;
+    case "provider_detection_failed":
+      return `The login-shell lookup failed (${finding.detail}); provider admission continues with well-known install locations and retries detection.`;
+    case "provider_not_admitted":
+      if (finding.detail?.includes(":paused:"))
+        return "Provider admission re-probes a pause without a reset time after its backoff, when delegation allows that candidate. A known reset keeps its exact expiry.";
+      return "No allowed installed provider passes the no-capability contract. Provider admission retries detection; background work resumes when a provider is admitted.";
     case "delegation_missing":
       return finding.severity === "owner_decision"
         ? `Another host converges this repository, but this host has no delegation and no continuity policy to seed one. Install the host policy once from a repository with a reviewed delegation (${INSTALL_POLICY}); every resident on this host then seeds itself.`
@@ -125,15 +138,21 @@ export function continuityRemediation(finding: ContinuityFinding): string {
       return `Continuity was last reconciled more than two hours ago, so the resident for this checkout is not running. ${residentHost(finding.detail, "Run lervo knowledge convergence doctor again after the host resident's next scan.")}`;
     case "resident_not_running":
       return `No knowledge resident heartbeat exists for this checkout. ${residentHost(finding.detail, "Start its Node, or run lervo upgrade to install the host resident service.")}`;
+    case "resident_cycle_failed":
+      return `The latest knowledge resident cycle failed (${finding.detail ?? "unclassified_failure"}). Run ${DOCTOR} --json to inspect lastFailure. The resident retries automatically.`;
     case "host_resident_scan_stalled":
       return "The host knowledge resident keeps its heartbeat, but its repository scan has not finished for over ten minutes; knowledge-host-resident.json in the Lervo user state directory names the checkout it is opening. Restart the service (launchctl kickstart -k gui/$UID/com.lervo.knowledge.host, or systemctl --user restart lervo-knowledge-host.service) and report the named checkout if it recurs.";
     case "continuity_pending":
       return "The host knowledge resident serves this checkout and reconciles it on its next cycle; nothing is needed.";
     case "event_schema_outdated":
       return `This checkout's event writer is older than schema 4, so its knowledge resident is held. Run lervo upgrade and apply its plan: it backs up the event store and activates schema 4. The host resident activates local-only checkouts itself and retries every 30 minutes.${finding.detail === null ? "" : ` Current blocker (${finding.detail}): ${eventWriterBlocker({ code: finding.detail }).message}`}`;
-    case "hook_runtime_stale":
-      return "The generated terminal hook runtime is older than the installed Lervo. Run lervo upgrade, then apply its plan.";
+    case "hook_runtime_unavailable":
+      return "The host terminal hook runtime is unavailable. The host resident restores and verifies it on its next cycle. If repair keeps failing, restore write access to the host runtime store.";
     case "replica_diverged":
       return "The Mac–WSL replica of this repository diverged; see the repository_replica_divergence attention item.";
+    case "convergence_attention":
+      return finding.detail === "knowledge_sources_parked"
+        ? "Background knowledge finished everything except parked sources. lervo knowledge convergence status --json lists them: edit a parked source to readmit it; a target_diverged source is also readmitted when its integration-target bytes change."
+        : "Background knowledge convergence on this host stopped for this cause. lervo knowledge convergence status --json names the stage; the resident retries once the cause changes.";
   }
 }

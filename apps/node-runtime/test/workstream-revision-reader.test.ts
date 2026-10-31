@@ -192,6 +192,68 @@ describe("incremental workstream verification", () => {
     expect(JSON.parse(await readFile(f.projection, "utf8"))).toEqual(selected);
   });
 
+  it("replicates the default-branch lineage whatever the checkout projects", async () => {
+    const f = await fixture();
+    await f.append();
+    await f.append();
+    const repositoryWide = JSON.parse(await readFile(f.projection, "utf8")) as WorkstreamSnapshot;
+    await writeFile(
+      resolve(f.projection, "../bindings.json"),
+      `${JSON.stringify({
+        schemaVersion: 1,
+        defaultBranch: "main",
+        bindings: { main: repositoryWide.workstreamId, feature: `wks_${"d".repeat(24)}` },
+      })}\n`,
+    );
+    const expected = [1, 2];
+
+    // An unbound branch clears the projection.
+    await unlink(f.projection);
+    expect((await f.reader.readRevisionChain()).map((item) => item.snapshot.revision)).toEqual(
+      expected,
+    );
+
+    // A feature branch projects its own unrelated workstream.
+    const feature: WorkstreamSnapshot = {
+      ...repositoryWide,
+      workstreamId: `wks_${"d".repeat(24)}`,
+      revision: 1,
+      title: "Feature branch work",
+    };
+    const content = `${canonicalJson(feature)}\n`;
+    const artifact = await f.artifacts.put(content);
+    f.events.append({
+      eventId: `evt_${"d".repeat(32)}`,
+      projectId: nodeRuntimeProjectId,
+      runId: `run_${"d".repeat(32)}`,
+      sessionId: `ses_${"d".repeat(32)}`,
+      type: "workstream.snapshot.recorded",
+      occurredAt: feature.updatedAt,
+      actor: { kind: "agent", provider: "claude" },
+      schemaVersion: 1,
+      policyVersion: artifact.contentHash,
+      payload: {
+        workstreamId: feature.workstreamId,
+        revision: 1,
+        status: feature.status,
+        changeKind: "agent_start",
+        snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
+        snapshotContentHash: artifact.contentHash,
+        previousSnapshotContentHash: null,
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        recordedAt: feature.updatedAt,
+      },
+    });
+    await writeFile(f.projection, content);
+    const chain = await f.reader.readRevisionChain();
+    expect(chain.map((item) => item.snapshot.workstreamId)).toEqual([
+      repositoryWide.workstreamId,
+      repositoryWide.workstreamId,
+    ]);
+    expect(chain.map((item) => item.snapshot.revision)).toEqual(expected);
+  });
+
   it("reads each new artifact once, skips unchanged ancestry, and rebuilds after restart", async () => {
     const f = await fixture();
     for (let i = 0; i < 12; i += 1) await f.append();

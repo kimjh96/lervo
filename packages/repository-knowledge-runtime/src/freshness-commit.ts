@@ -35,11 +35,18 @@ export async function committedBlob(root: string, path: string): Promise<Buffer 
  * staged or unstaged work untouched. Returns null when committing is unsafe or a concurrent Git
  * operation wins; the written bytes stay and the event records `commitHash: null`.
  */
-export async function commitFreshnessPaths(input: {
+export async function commitKnowledgeOutputPaths(input: {
   repositoryRoot: string;
   paths: readonly string[];
   subject: string;
-  trailer: { key: "Lervo-Freshness-Candidate" | "Lervo-Freshness-Revert"; candidateId: string };
+  trailer: {
+    key:
+      | "Lervo-Freshness-Candidate"
+      | "Lervo-Freshness-Revert"
+      | "Lervo-Practice-Candidate"
+      | "Lervo-Practice-Retirement";
+    candidateId: string;
+  };
 }): Promise<string | null> {
   const root = input.repositoryRoot;
   if (input.paths.length === 0 || !(await knowledgeOutputCommitSafe(root))) return null;
@@ -65,3 +72,5 @@ export async function commitFreshnessPaths(input: {
     return null;
   }
 }
+
+export const commitFreshnessPaths = commitKnowledgeOutputPaths;

@@ -1,11 +1,6 @@
-import { createHash } from "node:crypto";
 import { posix } from "node:path";
 
-import {
-  ContextPreparationError,
-  discoverInstructionDocuments,
-  readRepositoryFile,
-} from "@lervo/context";
+import { discoverInstructionDocuments } from "@lervo/context";
 import { loadDocumentRegistry } from "@lervo/project";
 import {
   loadRepositoryKnowledgePolicy,
@@ -16,12 +11,19 @@ import {
 import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 import { contextQuery, pathTerms, sourceSpecificQueries } from "./knowledge-review-queries.js";
 
-export interface SemanticReviewContextDocument {
-  path: string;
-  role: "instruction" | "canonical_candidate";
-  contentHash: string;
-  content: string;
-}
+import {
+  KnowledgeReviewContextError,
+  loadReviewDocument,
+  optionalReviewDocuments,
+  type SemanticReviewContextDocument,
+  type ReviewContextSkip,
+} from "./knowledge-review-document.js";
+export {
+  KnowledgeReviewContextError,
+  type SemanticReviewContextDocument,
+  type ReviewContextSkip,
+  type ReviewContextSkipReason,
+} from "./knowledge-review-document.js";
 
 type CanonicalReviewQuery = (
   input: Parameters<typeof queryRepositoryKnowledge>[0],
@@ -31,7 +33,6 @@ const MAXIMUM_CONTEXT_DOCUMENTS = 20;
 const MAXIMUM_INSTRUCTION_DOCUMENTS = 8;
 const MAXIMUM_LINKED_DOCUMENTS = 8;
 const MAXIMUM_CONTEXT_BYTES = 1024 * 1024;
-const MAXIMUM_DOCUMENT_BYTES = 128 * 1024;
 const MAXIMUM_RECOMMENDATIONS = 32;
 const GENERIC_DIRECTORY_TERMS = new Set([
   "apps",
@@ -43,21 +44,6 @@ const GENERIC_DIRECTORY_TERMS = new Set([
   "tests",
   "workflows",
 ]);
-
-export class KnowledgeReviewContextError extends Error {
-  constructor(
-    readonly code:
-      "review_context_unavailable" | "review_context_limit_exceeded" | "review_context_stale",
-    options?: ErrorOptions,
-  ) {
-    super(`Conversation knowledge review context failed: ${code}.`, options);
-    this.name = "KnowledgeReviewContextError";
-  }
-}
-
-function hash(bytes: Uint8Array): string {
-  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-}
 
 function linkedRepositoryPaths(document: SemanticReviewContextDocument): string[] {
   if (!document.path.endsWith(".md")) return [];
@@ -74,23 +60,14 @@ function linkedRepositoryPaths(document: SemanticReviewContextDocument): string[
 async function linkedSourceDocuments(
   root: string,
   sourcePaths: readonly string[],
+  loadOptional: ReturnType<typeof optionalReviewDocuments>,
 ): Promise<string[]> {
   const links: string[] = [];
   for (const path of sourcePaths
     .filter((source) => source.endsWith(".md"))
     .sort((left, right) => right.split("/").length - left.split("/").length)) {
-    let source: SemanticReviewContextDocument;
-    try {
-      source = await loadDocument({ repositoryRoot: root, path, role: "canonical_candidate" });
-    } catch (error) {
-      if (
-        error instanceof KnowledgeReviewContextError &&
-        error.cause instanceof ContextPreparationError &&
-        error.cause.code === "document_missing"
-      )
-        continue;
-      throw error;
-    }
+    const source = await loadOptional({ repositoryRoot: root, path });
+    if (source === null) continue;
     for (const link of linkedRepositoryPaths(source))
       if (link.endsWith(".md") && !links.includes(link)) links.push(link);
   }
@@ -123,40 +100,16 @@ function sourceRelevantInstructionReferences(
   });
 }
 
-async function loadDocument(input: {
-  repositoryRoot: string;
-  path: string;
-  role: SemanticReviewContextDocument["role"];
-  expectedHash?: string;
-}): Promise<SemanticReviewContextDocument> {
-  let bytes: Uint8Array;
-  try {
-    bytes = await readRepositoryFile(input.repositoryRoot, input.path, MAXIMUM_DOCUMENT_BYTES);
-  } catch (error) {
-    throw new KnowledgeReviewContextError("review_context_unavailable", {
-      cause: error,
-    });
-  }
-  const contentHash = hash(bytes);
-  if (input.expectedHash !== undefined && input.expectedHash !== contentHash)
-    throw new KnowledgeReviewContextError("review_context_stale");
-  let content: string;
-  try {
-    content = new TextDecoder("utf8", { fatal: true }).decode(bytes);
-  } catch (error) {
-    throw new KnowledgeReviewContextError("review_context_unavailable", {
-      cause: error,
-    });
-  }
-  return { path: input.path, role: input.role, contentHash, content };
-}
-
 /** Loads exact source-adjacent instructions and bounded current knowledge recommendations. */
 export async function loadCanonicalReviewContext(input: {
   repositoryRoot: string;
   sourcePaths: readonly string[];
   queryKnowledge?: CanonicalReviewQuery;
+  onSkipped?: (skip: ReviewContextSkip) => void;
 }): Promise<SemanticReviewContextDocument[]> {
+  const loadOptional = optionalReviewDocuments(input.onSkipped);
+  const loadQuerySource = (path: string, maximumBytes: number) =>
+    loadOptional({ repositoryRoot: input.repositoryRoot, path, maximumBytes });
   let instructionPaths: string[];
   try {
     const registry = await loadDocumentRegistry(input.repositoryRoot);
@@ -179,7 +132,7 @@ export async function loadCanonicalReviewContext(input: {
   const documents: SemanticReviewContextDocument[] = [];
   for (const path of instructionPaths)
     documents.push(
-      await loadDocument({ repositoryRoot: input.repositoryRoot, path, role: "instruction" }),
+      await loadReviewDocument({ repositoryRoot: input.repositoryRoot, path, role: "instruction" }),
     );
 
   let policy: Awaited<ReturnType<typeof loadRepositoryKnowledgePolicy>>;
@@ -190,7 +143,11 @@ export async function loadCanonicalReviewContext(input: {
   }
   const excluded = new Set([...instructionPaths, ...input.sourcePaths]);
   const focusedPaths = new Set<string>();
-  for (const path of await linkedSourceDocuments(input.repositoryRoot, input.sourcePaths)) {
+  for (const path of await linkedSourceDocuments(
+    input.repositoryRoot,
+    input.sourcePaths,
+    loadOptional,
+  )) {
     if (documents.length === MAXIMUM_CONTEXT_DOCUMENTS) break;
     if (
       excluded.has(path) ||
@@ -199,13 +156,12 @@ export async function loadCanonicalReviewContext(input: {
       path.startsWith(`${policy.publicationRoot}/`)
     )
       continue;
-    documents.push(
-      await loadDocument({
-        repositoryRoot: input.repositoryRoot,
-        path,
-        role: "canonical_candidate",
-      }),
-    );
+    const document = await loadOptional({
+      repositoryRoot: input.repositoryRoot,
+      path,
+    });
+    if (document === null) continue;
+    documents.push(document);
     excluded.add(path);
   }
 
@@ -232,21 +188,24 @@ export async function loadCanonicalReviewContext(input: {
         !candidate.path.startsWith(`${policy.publicationRoot}/`),
     );
     if (hit === undefined) continue;
-    documents.push(
-      await loadDocument({
-        repositoryRoot: input.repositoryRoot,
-        path: hit.path,
-        role: "canonical_candidate",
-        expectedHash: hit.contentHash,
-      }),
-    );
+    const document = await loadOptional({
+      repositoryRoot: input.repositoryRoot,
+      path: hit.path,
+      expectedHash: hit.contentHash,
+    });
+    if (document === null) continue;
+    documents.push(document);
     excluded.add(hit.path);
     focusedPaths.add(hit.path);
   }
 
   let focusedQueries: Awaited<ReturnType<typeof sourceSpecificQueries>>;
   try {
-    focusedQueries = await sourceSpecificQueries(input.repositoryRoot, input.sourcePaths);
+    focusedQueries = await sourceSpecificQueries(
+      input.repositoryRoot,
+      input.sourcePaths,
+      loadQuerySource,
+    );
   } catch (error) {
     throw new KnowledgeReviewContextError("review_context_unavailable", { cause: error });
   }
@@ -271,14 +230,13 @@ export async function loadCanonicalReviewContext(input: {
         !candidate.path.startsWith(`${policy.publicationRoot}/`),
     );
     if (!hit) continue;
-    documents.push(
-      await loadDocument({
-        repositoryRoot: input.repositoryRoot,
-        path: hit.path,
-        role: "canonical_candidate",
-        expectedHash: hit.contentHash,
-      }),
-    );
+    const document = await loadOptional({
+      repositoryRoot: input.repositoryRoot,
+      path: hit.path,
+      expectedHash: hit.contentHash,
+    });
+    if (document === null) continue;
+    documents.push(document);
     excluded.add(hit.path);
     focusedPaths.add(hit.path);
   }
@@ -287,7 +245,7 @@ export async function loadCanonicalReviewContext(input: {
   try {
     recommendations = await (input.queryKnowledge ?? queryRepositoryKnowledge)({
       repositoryRoot: input.repositoryRoot,
-      query: await contextQuery(input.repositoryRoot, input.sourcePaths),
+      query: await contextQuery(input.repositoryRoot, input.sourcePaths, loadQuerySource),
       limit: MAXIMUM_RECOMMENDATIONS,
       ranker: productDefaultRepositoryKnowledgeRanker,
     });
@@ -321,14 +279,13 @@ export async function loadCanonicalReviewContext(input: {
       hit.path.startsWith(`${policy.publicationRoot}/`)
     )
       continue;
-    documents.push(
-      await loadDocument({
-        repositoryRoot: input.repositoryRoot,
-        path: hit.path,
-        role: "canonical_candidate",
-        expectedHash: hit.contentHash,
-      }),
-    );
+    const document = await loadOptional({
+      repositoryRoot: input.repositoryRoot,
+      path: hit.path,
+      expectedHash: hit.contentHash,
+    });
+    if (document === null) continue;
+    documents.push(document);
     excluded.add(hit.path);
   }
   const sourceTerms = new Set(
@@ -362,13 +319,12 @@ export async function loadCanonicalReviewContext(input: {
       path.startsWith(`${policy.publicationRoot}/`)
     )
       continue;
-    documents.push(
-      await loadDocument({
-        repositoryRoot: input.repositoryRoot,
-        path,
-        role: "canonical_candidate",
-      }),
-    );
+    const document = await loadOptional({
+      repositoryRoot: input.repositoryRoot,
+      path,
+    });
+    if (document === null) continue;
+    documents.push(document);
     excluded.add(path);
   }
   if (

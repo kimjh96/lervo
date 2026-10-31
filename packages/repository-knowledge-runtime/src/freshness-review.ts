@@ -233,18 +233,15 @@ export async function documentFreshnessAttentionSources(
     listFreshnessCandidates(root),
   ]);
   return {
-    awaiting: candidates
-      .filter((candidate) => documentFreshnessReviewStates.has(candidate.state))
-      .slice(0, 16),
-    applied: candidates
-      .filter(
-        (candidate) =>
-          (candidate.state === "applied" || candidate.state === "partially_applied") &&
-          candidate.acknowledgedAt === null &&
-          candidate.approval !== null &&
-          now.getTime() - Date.parse(candidate.approval.approvedAt) < APPLIED_NOTICE_MILLISECONDS,
-      )
-      .slice(0, 16),
+    // Authority classification and totals must precede the attention report's return cap.
+    awaiting: candidates.filter((candidate) => documentFreshnessReviewStates.has(candidate.state)),
+    applied: candidates.filter(
+      (candidate) =>
+        (candidate.state === "applied" || candidate.state === "partially_applied") &&
+        candidate.acknowledgedAt === null &&
+        candidate.approval !== null &&
+        now.getTime() - Date.parse(candidate.approval.approvedAt) < APPLIED_NOTICE_MILLISECONDS,
+    ),
     blocked: cycle.summary.blocked ? { attempts: cycle.budget.attempts } : null,
   };
 }

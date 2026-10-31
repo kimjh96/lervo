@@ -130,6 +130,7 @@ function policy(): ConvergenceContinuityPolicy {
 
 function continuity(host: Host, policyPath: string, hosts: FakeHub, label: string) {
   return new ConvergenceContinuity({
+    providerAdmission: async () => null,
     storage: host.storage as Fixture["storage"],
     policyPath,
     hubCandidates: async () => [{ source: "node_runtime" as const, hub }],

@@ -2,9 +2,12 @@
 
 import { fileURLToPath } from "node:url";
 
-import { runCli } from "./main.js";
+import { ensureStartupHostTerminalRuntime, runCli } from "./main.js";
 
 process.env.LERVO_CLI_ENTRY = fileURLToPath(import.meta.url);
+
+// ADR-0539: through the repository runtime, so the thin entry never bundles the CLI twice.
+await ensureStartupHostTerminalRuntime(process.env.LERVO_CLI_ENTRY, process.argv.slice(2));
 
 process.exitCode = await runCli(process.argv.slice(2), {
   cwd: process.cwd(),

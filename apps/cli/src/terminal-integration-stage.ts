@@ -9,7 +9,8 @@ import {
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 
-import { loadTerminalHookRuntime, loadTerminalHookRuntimeAssets } from "./terminal-runtime.js";
+import { loadTerminalHookLauncher } from "./terminal-runtime.js";
+import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 
 export interface PreparedTerminalIntegration {
   plan: TerminalIntegrationPlan;
@@ -37,8 +38,8 @@ function latestTerminalIntegrationApplicationEventId(
 export async function planTerminalIntegrationStage(
   repositoryRoot: string,
 ): Promise<PreparedTerminalIntegration> {
-  const runtimeContent = await loadTerminalHookRuntime();
-  const runtimeAssets = await loadTerminalHookRuntimeAssets();
+  const runtimeContent = await loadTerminalHookLauncher();
+  const runtimeAssets: TerminalRuntimeAsset[] = [];
   const historyStorage = await openProjectStorage(repositoryRoot);
   let priorApplicationEventId: string | null;
   try {
@@ -84,7 +85,7 @@ export async function applyTerminalIntegrationStage(input: {
     )
       throw new Error("The same terminal integration plan was already applied.");
     const identity = randomUUID().replaceAll("-", "");
-    return await applyTerminalIntegrationPlan({
+    const receipt = await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
       runtimeAssets,
@@ -121,6 +122,8 @@ export async function applyTerminalIntegrationStage(input: {
         });
       },
     });
+    await rememberTerminalWorkerEntry(input.repositoryRoot, process.env.LERVO_CLI_ENTRY);
+    return receipt;
   } finally {
     await storage.close();
   }

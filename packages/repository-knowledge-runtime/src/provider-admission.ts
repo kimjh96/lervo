@@ -9,15 +9,11 @@ import { sha256 } from "@lervo/repository-knowledge";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
-
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ESRCH";
-  }
-}
+import { providerPauseReprobeAt } from "./provider-pause-backoff.js";
+import {
+  admissionOwnerAlive as alive,
+  queryKnowledgeProviderAdmissionState,
+} from "./provider-admission-query.js";
 
 async function database(directory: string): Promise<DatabaseSync> {
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -56,6 +52,11 @@ async function database(directory: string): Promise<DatabaseSync> {
   db.exec(
     "CREATE TABLE IF NOT EXISTS provider_recoveries(provider TEXT PRIMARY KEY, observation_hash TEXT NOT NULL, observed_at INTEGER NOT NULL)",
   );
+  const pauseColumns = sqliteRows(db.prepare("PRAGMA table_info(provider_pauses)").all());
+  if (!pauseColumns.some((row) => row.name === "reprobe_attempts"))
+    db.exec("ALTER TABLE provider_pauses ADD COLUMN reprobe_attempts INTEGER NOT NULL DEFAULT 0");
+  if (!pauseColumns.some((row) => row.name === "last_reprobe_at"))
+    db.exec("ALTER TABLE provider_pauses ADD COLUMN last_reprobe_at INTEGER");
   return db;
 }
 
@@ -81,7 +82,7 @@ function rows(db: DatabaseSync): AdmissionRow[] {
 export async function acquireKnowledgeProviderAdmission(input: {
   repositoryRoot: string;
   provider: "codex" | "claude";
-  purpose?: "availability_probe";
+  purpose?: "availability_probe" | "pause_reprobe";
   liveWorkPending: () => Promise<boolean>;
   directory?: string;
   now?: () => Date;
@@ -111,7 +112,12 @@ export async function acquireKnowledgeProviderAdmission(input: {
     if (
       pause !== undefined &&
       (pause.reset_at === null || typeof pause.reset_at !== "number" || pause.reset_at > now) &&
-      input.purpose !== "availability_probe"
+      input.purpose !== "availability_probe" &&
+      !(
+        input.purpose === "pause_reprobe" &&
+        pause.reset_at === null &&
+        providerPauseReprobeAt(pause) <= now
+      )
     ) {
       db.prepare("DELETE FROM requests WHERE repository_hash = ? AND nonce IS NULL").run(
         repositoryHash,
@@ -159,18 +165,22 @@ export async function acquireKnowledgeProviderAdmission(input: {
     ).run(repositoryHash, process.pid, now, now, input.provider, input.purpose ?? null);
     const pending = rows(db);
     const active = pending.filter((row) => row.nonce !== null);
-    const paused = new Set(
+    const paused = new Map(
       sqliteRows(
-        db
-          .prepare("SELECT provider FROM provider_pauses WHERE reset_at IS NULL OR reset_at > ?")
-          .all(now),
-      ).map((row) => String(row.provider)),
+        db.prepare("SELECT * FROM provider_pauses WHERE reset_at IS NULL OR reset_at > ?").all(now),
+      ).map((row) => [String(row.provider), row]),
     );
-    const first = pending.find(
-      (row) =>
+    const first = pending.find((row) => {
+      const providerPause = paused.get(row.provider ?? "");
+      return (
         row.nonce === null &&
-        (!paused.has(row.provider ?? "") || row.purpose === "availability_probe"),
-    );
+        (providerPause === undefined ||
+          row.purpose === "availability_probe" ||
+          (row.purpose === "pause_reprobe" &&
+            providerPause.reset_at === null &&
+            providerPauseReprobeAt(providerPause) <= now))
+      );
+    });
     if (active.length >= 2 || first?.repository_hash !== repositoryHash) {
       db.exec("COMMIT");
       transactionOpen = false;
@@ -179,6 +189,10 @@ export async function acquireKnowledgeProviderAdmission(input: {
     db.prepare(
       "UPDATE requests SET nonce=?, acquired_at=?, expires_at=? WHERE repository_hash=? AND nonce IS NULL",
     ).run(nonce, now, now + 10 * 60_000, repositoryHash);
+    if (input.purpose === "pause_reprobe" && pause?.reset_at === null)
+      db.prepare(
+        "UPDATE provider_pauses SET reprobe_attempts=MIN(32,reprobe_attempts+1),last_reprobe_at=? WHERE provider=?",
+      ).run(now, input.provider);
     const observationHash = sha256(
       JSON.stringify({
         repositoryHash,
@@ -236,7 +250,9 @@ export async function pauseKnowledgeProvider(input: {
   try {
     db.prepare(
       `INSERT INTO provider_pauses(provider,reason,observation_hash,observed_at,reset_at) VALUES(?,?,?,?,?)
-      ON CONFLICT(provider) DO UPDATE SET reason=excluded.reason,observation_hash=excluded.observation_hash,observed_at=excluded.observed_at,reset_at=excluded.reset_at`,
+      ON CONFLICT(provider) DO UPDATE SET reason=excluded.reason,observation_hash=excluded.observation_hash,observed_at=excluded.observed_at,reset_at=excluded.reset_at,
+      reprobe_attempts=CASE WHEN provider_pauses.reset_at IS NULL AND excluded.reset_at IS NULL THEN provider_pauses.reprobe_attempts ELSE 0 END,
+      last_reprobe_at=CASE WHEN provider_pauses.reset_at IS NULL AND excluded.reset_at IS NULL THEN provider_pauses.last_reprobe_at ELSE NULL END`,
     ).run(
       input.provider,
       input.reason,
@@ -260,23 +276,14 @@ export async function knowledgeProviderAdmissionState(input: {
   resetAt: string | null;
   activeCalls: number;
   observedAt: string | null;
+  reason: "quota" | "authentication" | null;
+  nextReprobeAt: string | null;
 }> {
   const db = await database(
     input.directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission"),
   );
   try {
-    const pause = sqliteRow(
-      db.prepare("SELECT * FROM provider_pauses WHERE provider = ?").get(input.provider),
-    );
-    const now = (input.now ?? new Date()).getTime();
-    return {
-      paused: pause !== undefined && (pause.reset_at === null || Number(pause.reset_at) > now),
-      observationHash: typeof pause?.observation_hash === "string" ? pause.observation_hash : null,
-      resetAt: typeof pause?.reset_at === "number" ? new Date(pause.reset_at).toISOString() : null,
-      activeCalls: rows(db).filter((row) => row.nonce !== null && alive(row.owner_pid)).length,
-      observedAt:
-        typeof pause?.observed_at === "number" ? new Date(pause.observed_at).toISOString() : null,
-    };
+    return queryKnowledgeProviderAdmissionState(db, input.provider, input.now ?? new Date());
   } finally {
     db.close();
   }
@@ -318,3 +325,7 @@ export async function settleKnowledgeProviderProbe(input: {
     db.close();
   }
 }
+
+export type KnowledgeProviderAdmissionState = Awaited<
+  ReturnType<typeof knowledgeProviderAdmissionState>
+>;

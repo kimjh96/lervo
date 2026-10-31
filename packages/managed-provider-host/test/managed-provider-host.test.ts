@@ -503,6 +503,10 @@ describe("managed remote provider host", () => {
       source: "project",
       trustStatus: "untrusted",
     });
+    // ADR-0156: the host resolves skills but never delivers their bodies, so it claims no use.
+    expect(
+      events.filter((event) => event.type === "skill.invoked" || event.type === "skill.completed"),
+    ).toEqual([]);
     expect(events.find((event) => event.type === "run.completed")?.payload).toMatchObject({
       verificationStatus: "passed",
     });

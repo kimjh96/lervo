@@ -2,11 +2,19 @@ import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/pr
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
+import { RESIDENT_FAILURE_CODE } from "./resident-cycle-failure.js";
+
 export const RESIDENT_CYCLE_STATE_PATH = ".lervo/state/knowledge/resident-cycle.json";
 
 export type ResidentCycleResult = "idle" | "waiting" | "attention" | "processed" | "failed";
 
-/** Private rebuildable fence state: digests and timestamps only, never document currency. */
+export interface ResidentCycleFailure {
+  code: string;
+  detail: string | null;
+  at: string;
+}
+
+/** Private rebuildable fence and bounded failure diagnostic, never document currency. */
 export interface ResidentCycleState {
   schemaVersion: 1;
   fingerprint: string | null;
@@ -14,6 +22,7 @@ export interface ResidentCycleState {
   lastResult: ResidentCycleResult;
   idleStreak: number;
   nextReconcileAt: string | null;
+  lastFailure?: ResidentCycleFailure | null;
 }
 
 const RESULTS = new Set<string>(["idle", "waiting", "attention", "processed", "failed"]);
@@ -21,6 +30,22 @@ const HASH = /^sha256:[a-f0-9]{64}$/u;
 
 function timestamp(value: unknown): value is string | null {
   return value === null || (typeof value === "string" && Number.isFinite(Date.parse(value)));
+}
+
+function failure(value: unknown): boolean {
+  if (value === undefined || value === null) return true;
+  if (typeof value !== "object" || Array.isArray(value)) return false;
+  const item = value as Partial<ResidentCycleFailure>;
+  return (
+    typeof item.code === "string" &&
+    RESIDENT_FAILURE_CODE.test(item.code) &&
+    (item.detail === null ||
+      (typeof item.detail === "string" &&
+        item.detail.length <= 300 &&
+        !/[\r\n\0]/u.test(item.detail))) &&
+    typeof item.at === "string" &&
+    timestamp(item.at)
+  );
 }
 
 /** Missing, unreadable or invalid state yields null, so the next cycle runs in full. */
@@ -41,7 +66,8 @@ export async function readResidentCycleState(root: string): Promise<ResidentCycl
       typeof value.lastResult !== "string" ||
       !RESULTS.has(value.lastResult) ||
       !Number.isSafeInteger(value.idleStreak) ||
-      value.idleStreak! < 0
+      value.idleStreak! < 0 ||
+      !failure(value.lastFailure)
     )
       return null;
     return value as ResidentCycleState;
@@ -54,6 +80,8 @@ export async function writeResidentCycleState(
   root: string,
   state: ResidentCycleState,
 ): Promise<void> {
+  const content = `${JSON.stringify(state)}\n`;
+  if (Buffer.byteLength(content) > 4_096) throw new Error("Resident cycle state exceeds 4 KiB.");
   let directory = resolve(root);
   for (const part of [".lervo", "state", "knowledge"]) {
     directory = resolve(directory, part);
@@ -66,7 +94,7 @@ export async function writeResidentCycleState(
   }
   const temporary = resolve(directory, `.resident-cycle-${randomUUID()}.tmp`);
   try {
-    await writeFile(temporary, `${JSON.stringify(state)}\n`, { mode: 0o600, flag: "wx" });
+    await writeFile(temporary, content, { mode: 0o600, flag: "wx" });
     await chmod(temporary, 0o600);
     await rename(temporary, resolve(root, RESIDENT_CYCLE_STATE_PATH));
   } catch (error) {

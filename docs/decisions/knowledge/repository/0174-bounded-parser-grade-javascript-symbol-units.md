@@ -22,3 +22,7 @@ Parser dependencies are bundled into the CLI and recorded exactly in the release
 ## Consequences
 
 Fixtures cover modern TS and JS syntax, members, namespaces, destructuring, TSX and module modes, UTF-8 ranges, locator continuity, sibling isolation, limits, nonexecution, and built and packed isolated CLI behavior.
+
+## Amendment (2026-10-31)
+
+TypeScript declaration files (`.d.ts`, `.d.mts`, and `.d.cts`) are parsed as declarations. An ambient `export const X: T;` has no initializer, so parsing it as an implementation file failed. In `axli`, two such files failed `lervo knowledge lint` for the whole repository. Implementation files keep their strict parsing.

@@ -9,10 +9,7 @@ import {
   createKnowledgeMigrationPlan,
 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
-import { LocalLinkedEvidenceShadowStore } from "@lervo/search-local";
-import type { SearchRecommendationBatch } from "@lervo/search";
 
-import { observeManagedLinkedEvidenceShadow } from "../src/managed-linked-evidence-shadow.js";
 import { prepareManagedSearchContext } from "../src/repository-context.js";
 import { productDefaultSearchEngine } from "../src/product-default-search.js";
 import { createDeveloperRole } from "../src/developer-role.js";
@@ -24,7 +21,7 @@ afterEach(async () => {
 });
 
 describe("managed repository knowledge context", () => {
-  it("creates provider-context candidates without an ordinary linked shadow projection", async () => {
+  it("creates provider-context candidates for repository knowledge", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-managed-knowledge-"));
     roots.push(root);
     await writeFile(
@@ -79,8 +76,6 @@ describe("managed repository knowledge context", () => {
       ]),
     );
     expect(prepared.recommendationBatches[1]!.recommendations.length).toBeGreaterThan(0);
-    const shadow = await LocalLinkedEvidenceShadowStore.open(root);
-    expect(await shadow.list()).toEqual([]);
     expect(
       prepared.additionalCandidates.find((candidate) => candidate.path === "AGENTS.md"),
     ).toMatchObject({ documentId: documentIdForPath("AGENTS.md"), source: "knowledge" });
@@ -118,19 +113,5 @@ describe("managed repository knowledge context", () => {
         }),
       ]),
     );
-  });
-
-  it("isolates every shadow contract or storage failure from its caller", async () => {
-    await expect(
-      observeManagedLinkedEvidenceShadow({
-        repositoryRoot: "/missing/lervo-shadow-fixture",
-        projectId: "prj_shadow",
-        runId: "run_shadow",
-        observedAt: new Date("2026-08-28T00:00:00.000Z"),
-        operationalBatch: {} as SearchRecommendationBatch,
-        recommendationBatches: [],
-        graphRecommendations: [],
-      }),
-    ).resolves.toBeUndefined();
   });
 });

@@ -45,3 +45,5 @@ Verification covers release artifacts, the SBOM, installed and packed CLIs, subd
 - [Execution specification](../../../specifications/execution.md)
 
 [ADR-0502](../../distribution/0502-bind-native-sync-assets-to-standalone-runtime-distributions.md) extends generated runtimes with the exact native synchronization pair and schema-2 integrity inventory. Native-only changes bind new plan coordinates and use the same byte-preserving durable journal. Startup verifies all declared assets before input; schema-1 runtimes without assets remain readable. Provider commands, trust review and unmanaged assurance are unchanged.
+
+[ADR-0539](hooks/0539-keep-the-terminal-hook-runtime-host-local-behind-a-tracked-launcher.md) moves the runtime and native assets into a host-local store. The tracked `runtime-v2.mjs` becomes a version-stable launcher that verifies and starts the host runtime, so provider commands and Codex trust are unchanged and CLI releases no longer change tracked bytes.

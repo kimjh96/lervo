@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e49f74f5da6e0fb581a3c4c2"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Use one provider dispatch context, inspect continuity admission state read-only, and continue fallback after native re-probe failures."

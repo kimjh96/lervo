@@ -442,3 +442,32 @@ it("lets the host settle a stage before the pre-stage currency check rejects it"
     f.events.close();
   }
 });
+
+it("waits for provider admission without attempts and resumes the same stage when admitted", async () => {
+  const f = await fixture();
+  const run = f.host.runStage;
+  let admitted = false;
+  f.host.runStage = async (...args) => {
+    if (!admitted)
+      throw Object.assign(new Error("No admitted provider"), { code: "provider_not_admitted" });
+    return run(...args);
+  };
+  f.host.dependencyCurrent = async () => !admitted;
+  try {
+    expect(await f.cycle()).toMatchObject({
+      state: "waiting_authority",
+      reason: "provider_not_admitted",
+    });
+    const count = f.calls.length;
+    expect(await f.cycle()).toMatchObject({
+      state: "waiting_authority",
+      reason: "provider_not_admitted",
+    });
+    expect(f.calls).toHaveLength(count);
+    admitted = true;
+    expect(await f.cycle(8)).toMatchObject({ state: "idle", outstanding: 0 });
+    expect(f.calls[0]).toBe("assessment");
+  } finally {
+    f.events.close();
+  }
+});

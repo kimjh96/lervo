@@ -55,7 +55,7 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
-    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6,
+    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
     readonly readOnly = false,
@@ -97,14 +97,14 @@ export function createProjectStorageOpener(
       path: paths.eventDatabase,
       projectId: manifest.projectId,
       writableEventSchemaVersion: writerCoordinate.coordinate.selectedEventSchemaVersion,
-      ...(reportSelection.coordinate && writerCoordinate.coordinate.selectedEventSchemaVersion === 6
+      ...(reportSelection.coordinate && writerCoordinate.coordinate.selectedEventSchemaVersion >= 6
         ? { reportStorage: "sqlite_v1" as const }
         : {}),
     });
     try {
       if (
         reportSelection.coordinate &&
-        writerCoordinate.coordinate.selectedEventSchemaVersion === 6 &&
+        writerCoordinate.coordinate.selectedEventSchemaVersion >= 6 &&
         !events.reportWriter
       )
         throw new ProjectStorageError(
@@ -145,7 +145,7 @@ export const openPooledProjectStorage = createProjectStorageOpener({
     SQLiteEventStore.open({
       ...options,
       checkpointPolicy: "report_batches",
-      ...(!options.reportStorage && options.writableEventSchemaVersion === 6
+      ...(!options.reportStorage && options.writableEventSchemaVersion >= 6
         ? { reportStorage: "existing_sqlite_v1" as const }
         : {}),
     }),

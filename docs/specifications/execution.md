@@ -16,7 +16,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 
 - [Outcome supervision](execution/outcome-supervision.md): accountable continuation, autonomous staffing, artifact acceptance, and central escalation; implementation remains required.
 - [Typed semantic grounding](execution/semantic-grounding.md): precedes selection and effects.
-- [Managed linked evidence](execution/managed-linked-evidence-canary.md): default-off exact canary, E1–E4 separation, bounded records, historical activation evidence, later production retirement, rejected prompt-only attempt, typed boundary, claim eligibility, paired control, and retirement. Owns canary record bounds and privacy exclusions.
+- [Managed linked evidence](execution/managed-linked-evidence-canary.md): historical record of the default-off canary and shadow, removed by [ADR-0528](../decisions/search/activation/0528-remove-the-linked-evidence-canary-and-shadow.md).
 - [Capability packages](execution/capabilities.md): skills, MCP servers, plugins, and bundles.
 - [Provider adapters](execution/provider-adapters.md): provider-specific configuration, terminal integration, usage normalization, publication evaluation, and result projection. Codex and Claude share provider-neutral contracts without invented telemetry.
 - Repository assignments: [interactions](execution/assignment-interactions.md), [routines](execution/assignment-routines.md), and [connectors](execution/assignment-connectors.md).

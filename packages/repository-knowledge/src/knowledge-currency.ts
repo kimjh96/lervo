@@ -1,8 +1,12 @@
+import { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
 import { createHash } from "node:crypto";
 
 import { createKnowledgeInstructionBootstrapPlan } from "./instruction-bootstrap.js";
 import { createKnowledgeInstructionBridgePlan } from "./instruction-bridge.js";
-import { createKnowledgeMigrationPlan, scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import {
+  createKnowledgeMigrationPlan,
+  scanCompleteConfiguredRepositoryKnowledge,
+} from "./compiler.js";
 import { createRepositoryLayoutMigrationPlan } from "./repository-layout-migration.js";
 import { lintRepositoryKnowledge } from "./lint-query.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
@@ -35,7 +39,8 @@ export async function inspectRepositoryKnowledgeCurrency(
   await assertNoKnowledgeMaterializationTransaction({ repositoryRoot });
   // A caller-prepared scan saves one repository walk; the closing rescan still fences it.
   const scan =
-    options.preparedScan ?? (await scanConfiguredRepositoryKnowledge(repositoryRoot)).scan;
+    options.preparedScan ?? (await scanCompleteConfiguredRepositoryKnowledge(repositoryRoot)).scan;
+  assertCompleteRepositoryKnowledgeScan(repositoryRoot, scan);
   const shared = { preparedScan: scan };
   const [bootstrap, layout, migration, bridge, normalization] = await Promise.all([
     createKnowledgeInstructionBootstrapPlan({ repositoryRoot, ...shared }),
@@ -57,7 +62,7 @@ export async function inspectRepositoryKnowledgeCurrency(
     reasons.push("knowledge_migration_pending");
   if (bridge.status !== "current") reasons.push("instruction_bridge_pending");
   if (normalization.pendingDocuments.length > 0) reasons.push("normalization_pending");
-  if (!lint.valid) reasons.push("knowledge_lint_invalid");
+  if (lint.coverage !== "complete" || !lint.valid) reasons.push("knowledge_lint_invalid");
   const candidates = await listCanonicalizationCandidates(repositoryRoot);
   if (
     candidates.some((candidate) =>
@@ -65,7 +70,7 @@ export async function inspectRepositoryKnowledgeCurrency(
     )
   )
     reasons.push("canonicalization_pending");
-  const after = await scanConfiguredRepositoryKnowledge(repositoryRoot);
+  const after = await scanCompleteConfiguredRepositoryKnowledge(repositoryRoot);
   if (after.scan.snapshotId !== scan.snapshotId) reasons.push("knowledge_snapshot_changed");
   return {
     current: reasons.length === 0,

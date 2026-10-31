@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -12,6 +12,7 @@ import {
   applyEventWriterStage,
   inspectEventWriterStage,
   type EventWriterStagePorts,
+  defaultEventWriterStagePorts,
 } from "../src/event-writer-activation-stage.js";
 import { collectEventReaderActivationEvidence } from "../src/event-reader-inventory.js";
 import { EventReaderInventoryError } from "../src/event-reader-inventory.js";
@@ -55,14 +56,14 @@ function ports(overrides: Partial<EventWriterStagePorts> = {}): EventWriterStage
 }
 
 describe("event writer activation stage", () => {
-  it("plans a local-only activation, backs the store up, and applies schema 4", async () => {
+  it("plans a local-only activation, backs the store up, and applies schema 8", async () => {
     const root = await repository();
     const stage = await inspectEventWriterStage(root, ports());
     expect(stage).toMatchObject({
       disposition: "safe_apply",
       reason: "event_writer_activation_ready",
       currentSchemaVersion: 1,
-      targetSchemaVersion: 4,
+      targetSchemaVersion: 8,
       authority: "local",
       blockers: [],
     });
@@ -71,17 +72,17 @@ describe("event writer activation stage", () => {
     const outcome = await applyEventWriterStage(root, stage, ports());
     expect(outcome).toMatchObject({
       status: "activated",
-      receipt: { selectedEventSchemaVersion: 4 },
+      receipt: { selectedEventSchemaVersion: 8 },
       backup: {
-        path: ".lervo/data/event-writer-backups/schema-4",
+        path: ".lervo/data/event-writer-backups/schema-8",
         eventDatabase: "copied",
         coordinate: "absent",
       },
     });
     expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
-      4,
+      8,
     );
-    const backup = resolve(root, ".lervo/data/event-writer-backups/schema-4");
+    const backup = resolve(root, ".lervo/data/event-writer-backups/schema-8");
     expect((await stat(resolve(backup, "events.sqlite"))).mode & 0o777).toBe(0o600);
     const copy = new DatabaseSync(resolve(backup, "events.sqlite"), { readOnly: true });
     try {
@@ -93,11 +94,11 @@ describe("event writer activation stage", () => {
     }
     expect(JSON.parse(await readFile(resolve(backup, "backup.json"), "utf8"))).toMatchObject({
       kind: "event_writer_activation_backup",
-      targetEventSchemaVersion: 4,
+      targetEventSchemaVersion: 8,
     });
     expect(await inspectEventWriterStage(root, ports())).toMatchObject({
       disposition: "current",
-      currentSchemaVersion: 4,
+      currentSchemaVersion: 8,
     });
   });
 
@@ -181,4 +182,44 @@ describe("event writer activation stage", () => {
       (await inspectEventWriterCoordinate(distributed)).coordinate.selectedEventSchemaVersion,
     ).toBe(1);
   });
+});
+
+it("checks the host reader for schema-4 launchers and holds legacy repository readers", async () => {
+  const root = await repository();
+  const knowledge = await import("@lervo/repository-knowledge");
+  const { loadTerminalHookLauncher } = await import("../src/terminal-runtime.js");
+  const launcher = await loadTerminalHookLauncher();
+  const plan = await knowledge.createTerminalIntegrationPlan(root, launcher);
+  await knowledge.applyTerminalIntegrationPlan({
+    plan,
+    runtimeContent: launcher,
+    approvedOperationId: plan.operationId,
+    approvedHash: plan.approvalHash!,
+    now: new Date(),
+    recordApplied: () => undefined,
+  });
+  const runtime = await import("../src/terminal-runtime.js");
+  const host = vi.spyOn(runtime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
+  try {
+    expect(await defaultEventWriterStagePorts.hookReader(root)).toBe("current");
+    host.mockResolvedValue(false);
+    expect(await defaultEventWriterStagePorts.hookReader(root)).toBe("stale");
+    const content = "#!/usr/bin/env node\n";
+    await writeFile(resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.mjs"), content);
+    await writeFile(
+      resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        kind: "lervo_terminal_hook_runtime",
+        contractId: "lervo_terminal_hooks_v2",
+        runtimePath: ".lervo/generated/terminal-hooks/runtime-v2.mjs",
+        byteCount: Buffer.byteLength(content),
+        contentHash: knowledge.sha256(content),
+      }),
+    );
+    host.mockResolvedValue(true);
+    expect(await defaultEventWriterStagePorts.hookReader(root)).toBe("stale");
+  } finally {
+    host.mockRestore();
+  }
 });

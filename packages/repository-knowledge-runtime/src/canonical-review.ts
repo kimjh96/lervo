@@ -12,7 +12,7 @@ import type {
   CanonicalAssessment,
   CanonicalAssessmentSource,
 } from "./canonical-assessment-contract.js";
-import type { SemanticReviewContextDocument } from "./review-context.js";
+import type { SemanticReviewContextDocument, ReviewContextSkip } from "./review-context.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { retainedCanonicalRejection } from "./canonical-rejection.js";
 import { isolateRejectedCanonicalBatch } from "./canonical-isolation.js";
@@ -29,6 +29,10 @@ export interface CanonicalBatch {
       >[number]
   )[];
   context: SemanticReviewContextDocument[];
+  contextSkips?: ReviewContextSkip[];
+  documentLayout?: Awaited<
+    ReturnType<typeof import("./canonical-layout.js").canonicalDocumentLayout>
+  >["guidance"];
   batchId: string;
   generatorAgentId: string;
 }
@@ -123,6 +127,7 @@ export async function reviewCanonicalBaseline(
         task: "independent_canonical_review",
         schema,
         contextDocuments: batch.context,
+        contextSkips: batch.contextSkips ?? [],
         untrustedSourceData: {
           ...batch,
           assessmentHash,

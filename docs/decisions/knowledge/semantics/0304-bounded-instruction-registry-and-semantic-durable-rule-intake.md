@@ -12,6 +12,8 @@ Decision date: 2026-08-30
 
 ADR-0376 supersedes the automatic direct-hook materialization below with explicit candidate intake and exact review. The semantic gates and deterministic generated-document contract remain authoritative.
 
+Amended by: [ADR-0533](../repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 `AGENTS.md` listed every canonical instruction and portable skill, while development-pattern promotion added a per-pattern list. Both projections grew linearly, cluttered provider entrypoints, and caused unrelated branches to edit the same file. Repository-wide user rules also lacked a safe one-shot intake: conversation-only rules were lost, while copying arbitrary prompt prose into AGENTS created noise and unbounded memory.

@@ -7,7 +7,7 @@ import { dirname, resolve } from "node:path";
  * rename) with mode 0600 inside 0700 directories; symbolic links are refused at every level the
  * writer creates.
  */
-async function ensurePrivateDirectory(directory: string): Promise<void> {
+export async function ensurePrivateDirectory(directory: string): Promise<void> {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const stat = await lstat(directory);
   if (!stat.isDirectory() || stat.isSymbolicLink())

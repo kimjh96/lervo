@@ -238,12 +238,12 @@ export async function reviewPendingFreshnessAssessment(
     (await freshnessDependenciesCurrent(root, dependency)) &&
     (await documentCurrent(context, candidate));
   let next: DocumentFreshnessCandidateV1;
-  if (agrees && current)
+  if (result.status === "generated" && agrees && current)
     next = await settleFreshnessAssessment({
       context,
       candidate: { ...candidate, tokensObserved: candidate.tokensObserved + observed },
       revision: (await freshnessGit(root, ["rev-parse", "HEAD"])).trim(),
-      reviewerIdentity: `${context.provider}/no-capability/${generationId}`,
+      reviewerIdentity: `${result.provider}/no-capability/${generationId}`,
     });
   else {
     next = {

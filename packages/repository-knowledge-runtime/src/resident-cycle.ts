@@ -1,6 +1,7 @@
 import type { ConvergenceSourceFingerprint } from "./source-fingerprint.js";
 import type { ResidentCycleResult, ResidentCycleState } from "./resident-cycle-state.js";
 import type { runAutonomousKnowledgeWorker } from "./worker.js";
+import { residentCycleFailure } from "./resident-cycle-failure.js";
 
 export const RESIDENT_RECONCILE_BASE_MILLISECONDS = 60_000;
 export const RESIDENT_RECONCILE_CEILING_MILLISECONDS = 900_000;
@@ -94,6 +95,7 @@ export function nextIdleStreak(streak: number, outcome: ResidentCycleResult | "s
 
 /** Observe once, then either skip on an unchanged fence or run one full cycle. */
 export async function runResidentCycle(input: {
+  repositoryRoot: string;
   previous: ResidentCycleState | null;
   now: () => number;
   ceilingMilliseconds: number;
@@ -137,6 +139,7 @@ export async function runResidentCycle(input: {
         fingerprint: observed?.fingerprint ?? null,
         lastCycleAt,
         lastResult,
+        lastFailure: null,
         idleStreak: nextIdleStreak(previousStreak, lastResult),
       },
       earliestAvailableAt: observed?.earliestAvailableAt ?? null,
@@ -149,6 +152,10 @@ export async function runResidentCycle(input: {
         fingerprint: null,
         lastCycleAt,
         lastResult: "failed",
+        lastFailure: {
+          ...residentCycleFailure(error, input.repositoryRoot),
+          at: new Date(input.now()).toISOString(),
+        },
         idleStreak: nextIdleStreak(previousStreak, "failed"),
       },
       earliestAvailableAt: null,

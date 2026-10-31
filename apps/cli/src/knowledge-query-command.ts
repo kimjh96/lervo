@@ -2,7 +2,7 @@ import { observeKnowledgeQueryArtifact } from "./knowledge-query-verification.js
 import { projectTaskQuery } from "@lervo/context";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
+import { queryRepositoryKnowledge, repositoryKnowledgeBuilt } from "@lervo/repository-knowledge";
 import {
   withRetrievalPreparationBudget,
   type RepositoryQualityInput,
@@ -12,6 +12,8 @@ import {
 import { collectInteractiveLocalKnowledgeSources } from "./knowledge-sources.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import type { CliIo } from "./types.js";
+import { singleOpenTerminalTurn } from "./terminal-open-turns.js";
+import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
 
 export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<number> {
   try {
@@ -48,6 +50,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
         "Artifact verification requires --verify-artifact and --expected-plan together.",
       );
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    const turn = await singleOpenTerminalTurn(repositoryRoot);
     const supplementalSources = await collectInteractiveLocalKnowledgeSources(repositoryRoot);
     const projection = projectTaskQuery({
       intent: query,
@@ -111,11 +114,19 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
           requestedActions: parsed.values.action ?? [],
         },
       }));
+    const knowledgeBuild = (await repositoryKnowledgeBuilt(repositoryRoot)) ? "built" : "not_built";
+    await recordKnowledgeQueryTurnSelection({ root: repositoryRoot, turn, hits: result.hits });
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ ...result, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
+        ? `${JSON.stringify({ ...result, knowledgeBuild, query, projection, instructions, quality: quality.result, passages: quality.passages, recording: quality.recording, verification, verificationRecording }, null, 2)}\n`
         : [
             `Repository knowledge recommendations (${result.hits.length}; not evidence of loaded, injected, or used)`,
+            ...(knowledgeBuild === "built"
+              ? []
+              : [
+                  "Repository knowledge is not built in this checkout, so zero recommendations does not mean no source matches. Run `lervo migrate knowledge`; Git ignores the generated output.",
+                ]),
+            `Scan coverage: ${result.coverage}; skipped for budget: ${result.skippedForBudget.count} sources, ${result.skippedForBudget.bytes} bytes${result.skippedForBudget.classes.length ? `; classes: ${result.skippedForBudget.classes.join(", ")}` : ""}.`,
             ...result.hits.map(
               (hit) =>
                 `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`,

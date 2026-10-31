@@ -96,7 +96,10 @@ function placedRole(
         subject: "document",
         path: source.path,
         contentHash: source.contentHash,
-        reason: "semantic_classification_uncertain",
+        reason: "destination_conflict",
+        resolution: "destination_conflict",
+        basis: placement.classificationBasis,
+        destination: placement.toPath,
       },
     };
   return {

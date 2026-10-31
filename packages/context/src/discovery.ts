@@ -53,15 +53,20 @@ export async function discoverInstructionDocuments(input: {
     ...instructionPathsFor(input.expectedPaths),
     ...(await generatedInstructionPaths(input.repositoryRoot)),
   ]) {
-    if (!(await repositoryFileExists(input.repositoryRoot, path))) continue;
-    sources.push(
-      await readInstructionSource(
-        input.repositoryRoot,
-        path,
-        input.expectedPaths,
-        input.instructionTargets,
-      ),
-    );
+    try {
+      if (!(await repositoryFileExists(input.repositoryRoot, path))) continue;
+      sources.push(
+        await readInstructionSource(
+          input.repositoryRoot,
+          path,
+          input.expectedPaths,
+          input.instructionTargets,
+        ),
+      );
+    } catch (error) {
+      if (error instanceof Error) Object.assign(error, { documentPath: path });
+      throw error;
+    }
   }
   for (const source of resolveInstructionPrecedence(sources)) {
     const path = source.path;

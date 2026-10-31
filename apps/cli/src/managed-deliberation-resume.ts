@@ -193,7 +193,6 @@ export async function resumeManagedDeliberationWithStorage(
           {
             repositoryRoot: storage.paths.repositoryRoot,
             topic: originalRequest.topic,
-            documentRegistry: registry,
           },
         );
         await workspace.installTaskEvidence(evidence);

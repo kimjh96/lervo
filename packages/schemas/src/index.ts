@@ -1,3 +1,4 @@
+export * from "./practice-event.js";
 export * from "./assignment-amendment-event.js";
 export * from "./adapter.js";
 export * from "./adapter-process-observation.js";
@@ -94,6 +95,7 @@ export * from "./trace-capabilities-report.js";
 export * from "./terminal-coverage-report.js";
 export * from "./terminal-budget-report.js";
 export * from "./terminal-observation-event.js";
+export * from "./terminal-skill-event.js";
 export * from "./terminal-turn-declaration-event.js";
 export * from "./validate.js";
 export * from "./parse-event-writer-coordinate.js";
@@ -119,3 +121,5 @@ export * from "./instruction-preparation-report.js";
 export * from "./context-quality-verification.js";
 
 export * from "./context-quality-event.js";
+
+export * from "./provider-cli-event.js";

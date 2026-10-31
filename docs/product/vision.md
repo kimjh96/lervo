@@ -26,6 +26,7 @@ Discord is the current installed reference product surface, not the organization
 
 ## Core concepts
 
+- [Core outcomes](vision/core-outcomes.md): what Lervo must deliver, in order, with felt outcomes and live measures. It sets roadmap priority.
 - [Managed execution and evidence](vision/execution.md): adapters, direct terminals, evidence states, and revisioned continuation.
 - [Repository knowledge and lifecycle](vision/repository.md): discovery, reviewed migration, document routing, skills, and upgrades.
 - [Coordination and governed continuation](vision/coordination.md): optional Hub coordination, headless application contracts, and bounded scheduling.

@@ -11,6 +11,9 @@ describe("terminal coverage format", () => {
           provider: "codex",
           occurredAt: "2026-09-01T00:00:00.000Z",
           documents: [],
+          selectedCount: 2,
+          referenceCount: 1,
+          pathMentionCount: 1,
           coverage: {
             explicitReference: { numerator: 0, denominator: 0, value: null, reason: "unavailable" },
           },
@@ -38,5 +41,7 @@ describe("terminal coverage format", () => {
       "query-projection=8 tokens (partial: accounting_descriptor_unavailable)",
     );
     expect(formatted).toContain("not billed cost");
+    expect(formatted).toContain("selected=2; references=1; path-mentions=1 (proxy)");
+    expect(formatted).toContain("do not prove reading or reliance");
   });
 });

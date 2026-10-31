@@ -2,6 +2,7 @@
 
 - Status: accepted (amended 2026-08-24)
 - Decision date: 2026-08-24
+- Amended by: [ADR-0526](../../execution/orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (selection follows the checked-out branch)
 
 ## Context
 

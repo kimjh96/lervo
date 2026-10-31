@@ -1,3 +1,5 @@
+import { readKnowledgeProviderPauseStates } from "./provider-admission-inspection.js";
+import { readProviderCliProjection, providerCliFindings } from "./provider-cli-findings.js";
 import {
   continuityFindings,
   localContinuityFindings,
@@ -19,6 +21,7 @@ import { decideDelegationRenewal } from "./delegation-continuity-decision.js";
 import { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 import { inspectKnowledgeResidentHealth, type KnowledgeResidentHealth } from "./resident-health.js";
 import { observeResidentHost, type ResidentHostObservation } from "./resident-host-observation.js";
+import { readResidentCycleState, type ResidentCycleFailure } from "./resident-cycle-state.js";
 
 export interface ConvergenceContinuityInspection {
   delegation: ContinuityDelegationObservation;
@@ -27,6 +30,7 @@ export interface ConvergenceContinuityInspection {
   verdict: ConvergenceOwnerVerdict | null;
   publicationStatus: string | null;
   resident: KnowledgeResidentHealth | null;
+  lastFailure: ResidentCycleFailure | null;
   findings: ContinuityFinding[];
 }
 
@@ -39,7 +43,7 @@ export async function inspectConvergenceContinuity(input: {
   repositoryRoot: string;
   policyPath: string | null;
   now?: Date;
-  hookRuntime?: "current" | "stale" | "unknown";
+  hookRuntime?: "current" | "unavailable" | "unknown";
   replicaDiverged?: boolean;
   /** ADR-0470: which host runs the resident; observed from the fleet and host status if absent. */
   residentHost?: ResidentHostObservation | null;
@@ -67,7 +71,7 @@ export async function inspectConvergenceContinuity(input: {
   } catch {
     delegation = { state: "invalid" };
   }
-  const [state, fence, publication, resident, residentHost] = await Promise.all([
+  const [state, fence, publication, resident, residentHost, residentCycle] = await Promise.all([
     readConvergenceContinuityState(root),
     readConvergenceOwnerFence(root),
     readKnowledgePublicationState(root).catch(() => null),
@@ -75,11 +79,19 @@ export async function inspectConvergenceContinuity(input: {
     input.residentHost !== undefined
       ? Promise.resolve(input.residentHost)
       : observeResidentHost(root, new Date(now)).catch(() => null),
+    readResidentCycleState(root),
   ]);
   const policyActive = policy.status === "loaded" && policy.policy.state === "active";
   const expected = delegation.state !== "missing" || policyActive;
   const findings = [
+    ...providerCliFindings(
+      await readProviderCliProjection(root),
+      await readKnowledgeProviderPauseStates({ now: new Date(now) }),
+      new Date(now),
+    ),
     ...continuityFindings({
+      scopeChange: state?.scopeChange ?? null,
+      scopeResponse: state?.scopeResponse ?? null,
       now,
       delegation,
       policy,
@@ -103,6 +115,8 @@ export async function inspectConvergenceContinuity(input: {
       replicaDiverged: input.replicaDiverged ?? false,
       residentHold: resident?.status === "degraded" ? resident.reason : null,
       residentHost,
+      owner: fence?.verdict.role === "owner",
+      residentCycle,
     }),
   ];
   return {
@@ -112,6 +126,7 @@ export async function inspectConvergenceContinuity(input: {
     verdict: fence?.verdict ?? null,
     publicationStatus: publication?.status ?? null,
     resident,
+    lastFailure: residentCycle?.lastFailure ?? null,
     findings,
   };
 }

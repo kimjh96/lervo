@@ -243,7 +243,10 @@ describe("repository layout migration", () => {
     expect(plan.deferredDocuments).toContainEqual(
       expect.objectContaining({
         path: "EXAMPLE_VISION.md",
-        reason: "semantic_classification_uncertain",
+        reason: "destination_conflict",
+        resolution: "destination_conflict",
+        basis: "semantic_provider",
+        destination: "docs/product/vision.md",
       }),
     );
   });
@@ -455,6 +458,35 @@ describe("repository layout migration", () => {
         basis: "application_content",
         evidence: [expect.objectContaining({ kind: "source_reference", targetKind: "glob" })],
       }),
+    );
+  });
+
+  it("blocks a document destination inside the Git-ignored generated publication root", async () => {
+    const root = await repository();
+    const policyPath = resolve(root, ".lervo/knowledge/policy.yaml");
+    const policy = await readFile(policyPath, "utf8");
+    expect(policy).toContain("publicationRoot: docs/knowledge");
+    await writeFile(
+      policyPath,
+      policy.replace("publicationRoot: docs/knowledge", "publicationRoot: docs/delivery"),
+    );
+    await mkdir(resolve(root, "notes"), { recursive: true });
+    await writeFile(
+      resolve(root, "notes/release-notes.md"),
+      ["---", "lervo:", "  document:", "    route: delivery", "---", "# Notes", ""].join("\n"),
+    );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.status).toBe("blocked");
+    expect(plan.blockers).toContainEqual(
+      expect.objectContaining({
+        code: "destination_in_publication_root",
+        path: "notes/release-notes.md",
+      }),
+    );
+    expect(plan.moves).not.toContainEqual(
+      expect.objectContaining({ fromPath: "notes/release-notes.md" }),
     );
   });
 
@@ -741,7 +773,7 @@ describe("repository layout migration", () => {
     );
   });
 
-  it("migrates enumerated and promoted AGENTS routes to one fixed-size registry bootstrap", async () => {
+  it("migrates enumerated AGENTS routes while preserving historical pattern blocks", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/instructions/repository"), { recursive: true });
     await writeFile(
@@ -788,8 +820,8 @@ describe("repository layout migration", () => {
     expect(agents).toContain("Keep this user-owned preface.");
     expect(agents).toContain("block=repository_instruction_routes schema=2");
     expect(agents).toContain("lervo knowledge query");
-    expect(agents).not.toContain("development_pattern_routes");
-    expect(agents).not.toContain("commit-messages.md");
+    expect(agents).toContain("development_pattern_routes");
+    expect(agents).toContain("commit-messages.md");
     expect(Buffer.byteLength(agents)).toBeLessThan(4 * 1024);
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",

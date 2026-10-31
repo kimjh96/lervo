@@ -1,7 +1,9 @@
 # ADR-0368: Create portable-skill candidates from verified workflows
 
-Status: `accepted`  
+Status: `historical`
 Date: 2026-09-05
+
+Amended by: [ADR-0533](patterns/0533-remove-the-development-pattern-pipeline.md). The development-pattern pipeline is historical and its commands are removed.
 
 ## Context
 

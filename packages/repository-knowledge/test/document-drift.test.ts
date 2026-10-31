@@ -12,6 +12,8 @@ import type { DocumentStalenessGitPort } from "../src/document-staleness-git.js"
 import { documentStalenessStatePath } from "../src/document-staleness-state.js";
 import {
   documentDriftAttentionIssues,
+  observeDocumentFreshnessFindings,
+  scanConfiguredRepositoryKnowledge,
   lintRepositoryKnowledge,
   readRecordedDocumentStalenessReport,
   type KnowledgeLintIssue,
@@ -238,6 +240,7 @@ describe("document staleness evaluation", () => {
     { path: "docs/notes.md", content: "# Notes\n" },
   ];
   const common = {
+    coverage: "complete" as const,
     documents,
     normalizationRecords: [],
     ignored: () => false,
@@ -306,4 +309,38 @@ describe("document staleness evaluation", () => {
       counts: { current: 0, unevaluated: 2 },
     });
   });
+});
+
+it("keeps complete staleness state across partial observations and restores complete admission", async () => {
+  const root = await argoLikeRepository();
+  const { scan } = await scanConfiguredRepositoryKnowledge(root);
+  const options = { preparedScan: scan, documentStaleness: "evaluate_and_record" as const };
+  const complete = await lintRepositoryKnowledge(root, options);
+  const statePath = resolve(root, documentStalenessStatePath);
+  const recorded = await readFile(statePath, "utf8");
+  const partial = await lintRepositoryKnowledge(root, {
+    ...options,
+    preparedScan: {
+      ...scan,
+      coverage: "partial",
+      skippedForBudget: { count: 1, bytes: 64, classes: ["other_documents"] },
+    },
+  });
+  expect(partial.documentStaleness).toMatchObject({
+    coverage: "partial",
+    status: "unavailable",
+    current: 0,
+  });
+  expect(await readFile(statePath, "utf8")).toBe(recorded);
+  expect(
+    (
+      await observeDocumentFreshnessFindings({
+        repositoryRoot: root,
+        now: new Date(),
+        lint: partial,
+      })
+    ).stalenessReportCurrent,
+  ).toBe(false);
+  expect(await lintRepositoryKnowledge(root, options)).toEqual(complete);
+  expect((await readRecordedDocumentStalenessReport(root))?.coverage).toBe("complete");
 });

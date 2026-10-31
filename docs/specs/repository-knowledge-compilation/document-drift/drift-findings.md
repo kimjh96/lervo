@@ -12,12 +12,12 @@ All drift findings are warnings. Lervo reports them and never writes a document 
 
 Each finding carries only relative paths and reason names. Each code is limited to 64 findings, with deterministic ordering. Terminal lifecycle inspection derives at most four items from its lint call and returns them as advisories, separate from lifecycle issues. These advisories never change terminal lifecycle status or block a Stop, worker checkpoint, or turn declaration. Operating attention also projects drift findings as agent-owned, non-blocking items in `lervo application attention` and the cached prompt-path projection, within the twelve-item, 4 KiB terminal attention budget.
 
-The lint result's `documentStaleness` field reports coverage (`observed` or `unavailable`) and evaluated, current, stale, unknown, and unevaluated counts.
+The lint result's `documentStaleness` field reports observation status (`observed` or `unavailable`), scan coverage (`complete` or `partial`), and evaluated, current, stale, unknown, and unevaluated counts. A partial scan returns unavailable staleness with zero current documents.
 
 ## Staleness projection
 
 Repository knowledge currency, run by the background knowledge pass and lifecycle verification, uses `evaluate_and_record` to write the rebuildable projection `.lervo/state/knowledge/document-staleness.json`. Foreground lint evaluates staleness read-only and reuses matching projections. During transaction-plan validation, lint skips staleness because stage checks compare errors only.
 
-The projection key covers evaluator version, HEAD, UTC day, document path and content-hash set, and normalization outputs. The projection can be rebuilt from Git history.
+The projection key covers evaluator version, scan coverage, HEAD, UTC day, document path and content-hash set, and normalization outputs. Partial observations never replace a recorded complete projection. Older projections without explicit complete coverage are rebuilt. The projection can be rebuilt from Git history.
 
-The projection lists stale and unknown documents with their verified revision, reasons, connected paths, and changed paths. Later update planning consumes this list to turn stale documents into evidence-bound update candidates. Consumers must compare its `currentRevision` with the revision they act on. That planning is out of scope here.
+The projection lists stale and unknown documents with their verified revision, reasons, connected paths, and changed paths. Later update planning consumes this list to turn stale documents into evidence-bound update candidates. Consumers must require complete coverage on both their current lint observation and the recorded report, then compare its `currentRevision` with the revision they act on. That planning is out of scope here.

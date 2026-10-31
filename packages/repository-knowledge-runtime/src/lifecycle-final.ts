@@ -1,3 +1,4 @@
+import { scanCompleteConfiguredRepositoryKnowledge } from "@lervo/repository-knowledge";
 import { resolveConvergenceCandidates } from "./candidate-resolution.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
@@ -51,6 +52,7 @@ export async function verifyConvergenceLifecycle(
   assertLease: () => void,
 ): Promise<KnowledgeConvergenceStageResult> {
   const root = context.storage.paths.repositoryRoot;
+  await scanCompleteConfiguredRepositoryKnowledge(root);
   // A pre-ADR-0479 obligation retained a canonical rejection here; canonical isolation resumes it.
   if (state.stageData.canonicalRejection != null)
     return completeConvergenceStage({
@@ -148,7 +150,7 @@ export async function verifyConvergenceLifecycle(
             root,
             bridgePlan ? { allowTransactionPlanId: plan.planId } : {},
           );
-          if (!validation.valid)
+          if (validation.coverage !== "complete" || !validation.valid)
             throw new KnowledgeConvergenceRuntimeError("knowledge_lint_invalid");
           const verification = await verifyConvergenceEffect(
             context,
@@ -241,6 +243,7 @@ export async function verifyConvergenceLifecycle(
     );
   if (
     (!currency.current && !parkedOnly) ||
+    lint.coverage !== "complete" ||
     !lint.valid ||
     offset !== expectedSources.length ||
     !completeCoverage

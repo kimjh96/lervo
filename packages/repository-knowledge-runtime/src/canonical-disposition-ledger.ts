@@ -93,7 +93,15 @@ async function canonicalDispositionLedger(
         approval.policyHash !== prior.baseline.policyHash
       )
         continue;
+      // Parked batches settle other decisions, but never settle a candidate or an unapplied draft.
+      const result = await integratedInput(artifacts, event.payload.resultArtifactHash);
+      if (result === null) continue;
+      const parked = result?.stageData.canonicalTargetParked === approval.assessmentHash;
+      const hasCandidates = batch.assessment.decisions.some(
+        (decision) => decision.disposition === "candidate",
+      );
       for (const decision of batch.assessment.decisions) {
+        if (parked && (!hasCandidates || decision.disposition === "candidate")) continue;
         if (decision.disposition === "needs_review") continue;
         const source = batch.sources.find((item) => item.path === decision.path);
         if (source?.contentHash !== decision.contentHash) continue;
@@ -107,6 +115,7 @@ async function canonicalDispositionLedger(
           references: decision.canonicalReferences,
         });
       }
+      if (parked) continue;
       // An integrated draft is reviewed canonical output; assessing its own bytes is circular.
       for (const draft of batch.assessment.drafts) {
         const contentHash = sha256(draft.content);

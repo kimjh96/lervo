@@ -94,3 +94,5 @@ Ground-truth relevance labelling, monetary cost, and cross-repository usage aggr
 - [Linked-evidence measurement report](../../../../evidence/search/codex-claude-linked-evidence-measurement-report.md)
 - [ADR-0318 v20 qualification](../../../search/engines/0318-qualify-lexical-v2-after-v20-cross-provider-confirmation.md)
 - [Paperclip comparison: capabilities and gaps](../../../../research/paperclip-lervo-comparison/capabilities-and-gaps.md)
+
+[ADR-0541](../../grounding/0541-bind-agent-queries-to-the-turn-and-observe-path-references.md) binds agent-run `lervo knowledge query` selections to the single open turn and records `path_mention` references at `Stop` for hook pointers and agent query results.

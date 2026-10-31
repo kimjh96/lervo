@@ -1,0 +1,45 @@
+export const practicePayloadAllowlists = {
+  "learning.observation.recorded": [
+    "observationId",
+    "agentId",
+    "surface",
+    "kind",
+    "sourceEventId",
+    "verificationStatus",
+    "occurredAt",
+  ],
+  "knowledge.skill_candidate.proposed": [
+    "candidateId",
+    "practiceDigest",
+    "workDigests",
+    "overlap",
+    "targetSkill",
+    "draftHash",
+    "occurredAt",
+  ],
+  "knowledge.skill_candidate.resolved": [
+    "candidateId",
+    "decision",
+    "reasonCode",
+    "reviewerAgentId",
+    "reviewedDraftHash",
+    "catalogDigest",
+    "occurredAt",
+  ],
+  "knowledge.skill.usage_assessed": [
+    "skillName",
+    "versionHash",
+    "usageState",
+    "observedTurns",
+    "coverage",
+    "occurredAt",
+  ],
+  "knowledge.skill.retired": ["skillName", "versionHash", "retirementCommit", "occurredAt"],
+} as const;
+export const practicePayloadSchemas = {
+  "learning.observation.recorded": "learningObservationRecordedEventPayload",
+  "knowledge.skill_candidate.proposed": "knowledgeSkillCandidateProposedEventPayload",
+  "knowledge.skill_candidate.resolved": "knowledgeSkillCandidateResolvedEventPayload",
+  "knowledge.skill.usage_assessed": "knowledgeSkillUsageAssessedEventPayload",
+  "knowledge.skill.retired": "knowledgeSkillRetiredEventPayload",
+} as const;

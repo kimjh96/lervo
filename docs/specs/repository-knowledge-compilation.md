@@ -9,8 +9,8 @@ Lervo compiles bounded repository evidence with or without `docs/`. Portable Mar
 
 The compilation contract comprises:
 
-- [Sources, policy, and structural publication](repository-knowledge-compilation/structural-publication.md).
-- [Semantic compilation, review, and materialization](repository-knowledge-compilation/semantic-review.md).
+- [Sources, policy, and structural publication](repository-knowledge-compilation/structural-publication.md), including [priority scan admission and partial coverage](repository-knowledge-compilation/structural-publication/sources/discovery-and-units.md#total-byte-admission-and-coverage).
+- [Semantic compilation, review, and materialization](repository-knowledge-compilation/semantic-review.md): historical; removed by [ADR-0529](../decisions/knowledge/semantics/0529-remove-the-semantic-compilation-pipeline.md).
 - [Exchange, failures, and acceptance](repository-knowledge-compilation/validation-and-exchange.md).
 - [Document drift and historical documents](repository-knowledge-compilation/document-drift.md).
 
@@ -22,13 +22,13 @@ The compilation contract comprises:
 
 [Document content normalization](document-content-normalization.md) owns provider profiles, section coverage, split rules, protected material, exact per-source approval, lifecycle records, rollback, and stale-output handling. It uses the capability-free provider boundary after bootstrap, layout, and bridges are current.
 
-[Development-pattern lifecycle](repository-development-pattern-lifecycle.md) owns proposal evidence, state transitions, exact review and promotion, agent routing, and stale-source behavior. Repository-changing completion also follows the typed [canonicalization assessment](repository-knowledge-lifecycle-convergence.md#canonicalization-assessment). Neither workflow derives authority from request keywords or automatically promotes user-owned content.
+[Development-pattern lifecycle](repository-development-pattern-lifecycle.md) is historical under [ADR-0533](../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Instruction capture and the typed [canonicalization assessment](repository-knowledge-lifecycle-convergence.md#canonicalization-assessment) remain active. [Practice learning](../specifications/knowledge/practice-learning.md) is wired in the standalone resident. Hub typed exchange and installed acceptance remain open.
 
 [Background knowledge for every repository change](../decisions/knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md) queues one review job per changed terminal turn, managed run, or Discord repository-work turn. Change sources exclude Git-ignored untracked paths and Lervo projections (`.lervo/generated/`, `.lervo/state/`, `.lervo/data/`, `docs/knowledge/`). A canonical candidate is assigned to the next write-capable terminal or Discord turn, which updates the canonical document and promotes the candidate by exact hash. The legacy version-3 background path never writes user-owned documents itself.
 
 [Autonomous background convergence](background-knowledge-convergence/runtime.md) implements the version-4 successor: continuous baseline discovery, separately authorized review/integration, normalization, and ordered lifecycle verification. The [installed audit](../evidence/quality/background-knowledge-convergence-audit.md) distinguishes current queue settlement from unresolved repository debt. Private installed Codex acceptance verifies this implementation. Production background document writes still require reviewed reader/writer activation and exact per-project delegation.
 
-[Repository knowledge query](repository-knowledge-query.md) owns concept, claim, relation, impact, ranking, relevance-floor, reviewed one-hop projection, and query evidence semantics. User-authored Markdown and reviewed semantic sidecars remain canonical; structural records and query indexes are rebuildable. A recommendation never proves selection, loading, injection, reference, or use.
+[Repository knowledge query](repository-knowledge-query.md) owns concept, claim, relation, impact, ranking, relevance-floor, and query evidence semantics. User-authored Markdown and reviewed semantic sidecars remain canonical; structural records and query indexes are rebuildable. A recommendation never proves selection, loading, injection, reference, or use.
 
 [Repository agent surfaces](repository-agent-surfaces.md) defines recognized provider entrypoints, fixed-size instruction routing, upgrade migration, and tool-neutral rewrite protection. Behavioral instructions, portable skills, and reviewable workflows may be semantic sources; provider settings and local memory remain inventory-only.
 

@@ -8,10 +8,16 @@ import {
   inspectIntegrationTargetAbsorption,
   type IntegrationTargetAbsorption,
 } from "./integration-target-absorption.js";
+import { restoreDiscardedIntegratedDrafts } from "./integration-target-discard.js";
 
 const execute = promisify(execFile);
 
-async function blobHash(root: string, commit: string, path: string): Promise<string | null> {
+/** The SHA-256 of a committed path's bytes, or `null` when the commit has no such blob. */
+export async function integrationTargetBlobHash(
+  root: string,
+  commit: string,
+  path: string,
+): Promise<string | null> {
   try {
     const { stdout } = await execute("git", ["-C", root, "cat-file", "blob", `${commit}:${path}`], {
       encoding: "buffer",
@@ -61,6 +67,7 @@ async function createIntegrationTarget(root: string, ref: string): Promise<void>
  * drifts from `HEAD`. When every ref-only change is an integrated draft that already reached the
  * working tree, record a merge with `HEAD`'s exact tree. When a squash merge absorbed the ref
  * (ADR-0482), move it to `HEAD`; otherwise leave the ref untouched. An absent ref starts at `HEAD`.
+ * A ref ahead of `HEAD` returns integrated drafts the working branch discarded (ADR-0530).
  */
 export async function synchronizeIntegrationTarget(input: {
   repositoryRoot: string;
@@ -71,7 +78,7 @@ export async function synchronizeIntegrationTarget(input: {
   recordAbsorbed?: (
     absorption: IntegrationTargetAbsorption & { backupRef: string; pathSetHash: string },
   ) => void;
-}): Promise<"unchanged" | "synchronized" | "created" | "absorbed"> {
+}): Promise<"unchanged" | "synchronized" | "created" | "absorbed" | "restored"> {
   const root = input.repositoryRoot;
   const target = await resolveIntegrationTarget(root, input.ref);
   if (target === null) {
@@ -85,7 +92,17 @@ export async function synchronizeIntegrationTarget(input: {
       () => true,
       () => false,
     );
-  if (await isAncestor(head, target)) return "unchanged";
+  if (await isAncestor(head, target)) {
+    const restored = await restoreDiscardedIntegratedDrafts({
+      repositoryRoot: root,
+      ref: input.ref,
+      target,
+      head,
+      blobHash: (commit, path) => integrationTargetBlobHash(root, commit, path),
+      integrated: input.integrated,
+    });
+    return restored.length === 0 ? "unchanged" : "restored";
+  }
   if (await isAncestor(target, head)) {
     await convergenceGit(root, ["update-ref", input.ref, head, target]);
     return "synchronized";
@@ -95,7 +112,7 @@ export async function synchronizeIntegrationTarget(input: {
     .split("\0")
     .filter(Boolean);
   for (const path of changed) {
-    const hash = await blobHash(root, target, path);
+    const hash = await integrationTargetBlobHash(root, target, path);
     if (hash === null || !input.integrated(path, hash)) {
       const absorption = await inspectIntegrationTargetAbsorption(root, target, head);
       if (absorption === null) return "unchanged";

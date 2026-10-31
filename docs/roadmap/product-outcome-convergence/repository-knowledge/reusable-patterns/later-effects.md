@@ -1,6 +1,8 @@
 # Reviewed reusable patterns with observable later effects
 
-State: **implemented**.
+State: **historical**.
+
+Superseded by: [ADR-0533](../../../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. Background practice learning remains planned.
 
 Pattern proposal, review, promotion, and two bounded local metrics exist. Proposal and promotion are explicit; attribution remains unestablished by contract.
 

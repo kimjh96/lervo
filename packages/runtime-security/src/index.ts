@@ -10,3 +10,7 @@ export {
   type RuntimeModuleArtifact,
 } from "./runtime-module-artifact.js";
 export * from "./runtime-module-publication.js";
+
+export { bindInstalledRuntimeProcess } from "./runtime-process-binding.js";
+
+export { nodeRuntimesDirectory } from "./managed-node-runtime-paths.js";

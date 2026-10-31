@@ -49,8 +49,14 @@ vi.mock("../src/provider-call.js", () => ({
         classifications: request.documents.map((document) => ({
           path: document.path,
           contentHash: document.contentHash,
-          outcome: document.path.endsWith("runbook.md") ? "route" : "uncertain",
-          routeId: document.path.endsWith("runbook.md") ? "operations" : null,
+          outcome:
+            document.path.endsWith("runbook.md") || document.path === "TRACE.md"
+              ? "route"
+              : "uncertain",
+          routeId:
+            document.path.endsWith("runbook.md") || document.path === "TRACE.md"
+              ? "operations"
+              : null,
           roleId: null,
           rationale: "The runbook explains how operators recover the running service.",
         })),
@@ -73,7 +79,7 @@ afterEach(async () => {
   );
 });
 
-it("classifies in-scope deferred documents once and leaves the rest deferred", async () => {
+it("classifies outside delegation roots and never queries uncertain bytes twice", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-route-classification-"));
   roots.push(root);
   await applyInitPlan(await createInitPlan({ root, projectId: "prj_route_classification" }));
@@ -81,6 +87,7 @@ it("classifies in-scope deferred documents once and leaves the rest deferred", a
   await mkdir(resolve(root, "elsewhere"), { recursive: true });
   await writeFile(resolve(root, "notes/runbook.md"), "# Recovery runbook\n\nRestart steps.\n");
   await writeFile(resolve(root, "notes/zebra.md"), "# Purple zebra quorum\n\nNotes.\n");
+  await writeFile(resolve(root, "TRACE.md"), "# Trace\n\nOperator tracing.\n");
   await writeFile(resolve(root, "elsewhere/outside.md"), "# Outside\n\nOut of scope.\n");
   const context = {
     storage: { paths: { repositoryRoot: root } },
@@ -96,11 +103,14 @@ it("classifies in-scope deferred documents once and leaves the rest deferred", a
     "elsewhere/outside.md",
     "notes/runbook.md",
     "notes/zebra.md",
+    "TRACE.md",
   ]);
 
-  expect(await classifyDeferredDocumentRoutes(context, state, () => undefined, before)).toBe(2);
+  expect(await classifyDeferredDocumentRoutes(context, state, () => undefined, before)).toBe(4);
   expect(providerRequests.map((item) => item.task)).toEqual([DOCUMENT_ROUTE_CLASSIFICATION_TASK]);
-  expect(assignedPaths).toEqual([["notes/runbook.md", "notes/zebra.md"]]);
+  expect(assignedPaths).toEqual([
+    ["elsewhere/outside.md", "notes/runbook.md", "notes/zebra.md", "TRACE.md"],
+  ]);
 
   const records = [...(await loadDocumentRouteClassifications(root)).values()];
   expect(records.map((record) => [record.path, record.outcome, record.routeId])).toEqual(
@@ -124,12 +134,15 @@ it("classifies in-scope deferred documents once and leaves the rest deferred", a
       classificationBasis: "semantic_provider",
     }),
   );
+  expect(after.moves).toContainEqual(
+    expect.objectContaining({ fromPath: "TRACE.md", toPath: "docs/operations/TRACE.md" }),
+  );
   expect(after.deferredDocuments.map((item) => [item.path, item.reason])).toEqual([
-    ["elsewhere/outside.md", "semantic_classification_pending"],
+    ["elsewhere/outside.md", "semantic_classification_uncertain"],
     ["notes/zebra.md", "semantic_classification_uncertain"],
   ]);
 
-  // Uncertain and out-of-scope documents are never asked about again for the same bytes.
+  // Uncertain documents are never asked about again for the same bytes.
   expect(await classifyDeferredDocumentRoutes(context, state, () => undefined, after)).toBe(0);
   expect(providerRequests).toHaveLength(1);
 });

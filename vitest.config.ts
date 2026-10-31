@@ -7,6 +7,33 @@ const fromRoot = (path: string) => fileURLToPath(new URL(path, import.meta.url))
 export default defineConfig({
   resolve: {
     alias: {
+      "@lervo/agent-organization": fromRoot("./packages/agent-organization/src/index.ts"),
+      "@lervo/application-contract": fromRoot("./packages/application-contract/src/index.ts"),
+      "@lervo/assignment-connector-conformance": fromRoot(
+        "./packages/assignment-connector-conformance/src/index.ts",
+      ),
+      "@lervo/conversation-deliberation-contract": fromRoot(
+        "./packages/conversation-deliberation-contract/src/index.ts",
+      ),
+      "@lervo/discord-gateway": fromRoot("./packages/discord-gateway/src/index.ts"),
+      "@lervo/execution-reliability": fromRoot("./packages/execution-reliability/src/index.ts"),
+      "@lervo/filesystem-durability": fromRoot("./packages/filesystem-durability/src/index.ts"),
+      "@lervo/hub-runtime": fromRoot("./apps/hub-runtime/src/index.ts"),
+      "@lervo/identity-migration": fromRoot("./packages/identity-migration/src/index.ts"),
+      "@lervo/node-work-admission": fromRoot("./packages/node-work-admission/src/index.ts"),
+      "@lervo/organization-credential-source-file": fromRoot(
+        "./packages/organization-credential-source-file/src/index.ts",
+      ),
+      "@lervo/organization-deployment-contract": fromRoot(
+        "./packages/organization-deployment-contract/src/index.ts",
+      ),
+      "@lervo/organization-deployment-sqlite": fromRoot(
+        "./packages/organization-deployment-sqlite/src/index.ts",
+      ),
+      "@lervo/product-surface-projection": fromRoot(
+        "./packages/product-surface-projection/src/index.ts",
+      ),
+      "@lervo/request-grounding": fromRoot("./packages/request-grounding/src/index.ts"),
       "@lervo/agent-workforce": fromRoot("./packages/agent-workforce/src/index.ts"),
       "@lervo/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),
       "@lervo/adapter-claude": fromRoot("./packages/adapter-claude/src/index.ts"),

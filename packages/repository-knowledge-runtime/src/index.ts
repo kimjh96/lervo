@@ -1,4 +1,13 @@
+export { PRACTICE_EVENT_SCHEMA_VERSION } from "./practice-events.js";
+export { TERMINAL_SKILL_EVENT_SCHEMA_VERSION } from "./terminal-skill-events.js";
 export { runAutonomousKnowledgeWorker } from "./worker.js";
+export { readTerminalSkillUsage } from "./terminal-skill-usage-state.js";
+export {
+  enqueueTerminalSkillTurn,
+  terminalTranscriptPosition,
+  validTranscriptPosition,
+  type TranscriptPosition,
+} from "./terminal-skill-queue.js";
 export {
   convergenceDelegationPlanHash,
   loadConvergenceDelegation,
@@ -164,3 +173,18 @@ export {
   convergenceDelegationAgentIds,
   retireSupersededConvergenceAgents,
 } from "./convergence-roster.js";
+export { classifyForegroundDocumentRoutes } from "./foreground-document-route-classification.js";
+export {
+  observeDocumentDeferrals,
+  inspectDocumentDeferralHealth,
+} from "./document-deferral-health.js";
+export { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
+
+export { recordDocumentRouteScopeDecision } from "./document-route-scope-decision.js";
+export { residentCycleFailure } from "./resident-cycle-failure.js";
+
+export { createChangeReviewHost } from "./change-review-host.js";
+
+export { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
+
+export { createBackgroundNormalizationCompiler } from "./background-normalization-compiler.js";

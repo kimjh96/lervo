@@ -34,7 +34,7 @@ describe("shared search preparation normalization", () => {
   it("deduplicates exact versions while excluding receipt identity and private text", () => {
     const one = batch("a".repeat(32));
     const two = batch("b".repeat(32));
-    const base = { query: "runtime", sourceSnapshotId: "ksnap_current", graphRecommendations: [] };
+    const base = { query: "runtime", sourceSnapshotId: "ksnap_current" };
     const report = observeSearchPreparation({ ...base, recommendationBatches: [one, two] });
     expect(report).toEqual(observeSearchPreparation({ ...base, recommendationBatches: [one] }));
     expect(report).toMatchObject({
@@ -55,7 +55,6 @@ describe("shared search preparation normalization", () => {
         query: "runtime",
         sourceSnapshotId: null,
         recommendationBatches: [forged],
-        graphRecommendations: [],
       }),
     ).toThrow();
   });

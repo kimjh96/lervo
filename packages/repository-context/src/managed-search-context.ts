@@ -9,7 +9,6 @@ import {
   instructionPathsFor,
   readRepositoryFile,
   type ContextDocumentCandidate,
-  type GraphDocumentRecommendation,
 } from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
 import type { KnowledgeQueryResult } from "@lervo/repository-knowledge";
@@ -28,7 +27,6 @@ import type { ContextPreparationReport, DocumentRegistry } from "@lervo/schemas"
 import { observeSearchPreparation } from "./search-preparation-observation.js";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
-import { observeManagedLinkedEvidenceShadow } from "./managed-linked-evidence-shadow.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import { productDefaultRepositoryKnowledgeRanker } from "./repository-knowledge-ranker.js";
 
@@ -40,7 +38,6 @@ export interface PreparedManagedSearchContext {
   attempts: readonly SearchAttempt[];
   recommendationBatches: readonly SearchRecommendationBatch[];
   additionalCandidates: readonly ContextDocumentCandidate[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
   knowledgeAttempt: SearchAttempt;
 }
 
@@ -48,7 +45,6 @@ export type ManagedRepositoryKnowledgeQuery = (input: {
   repositoryRoot: string;
   query: string;
   limit: number;
-  documentRegistry?: DocumentRegistry;
 }) => Promise<KnowledgeQueryResult>;
 
 function digestBytes(bytes: Uint8Array): string {
@@ -78,7 +74,6 @@ export async function prepareManagedSearchContext(input: {
   productDefault?: ProductDefaultSearchEngine;
   documentRegistry?: DocumentRegistry;
   expectedPaths?: readonly string[];
-  runId?: string;
   recordingCoordinates?: { runId: string; sessionId: string };
   knowledgeQuery?: ManagedRepositoryKnowledgeQuery;
   continuation?: string;
@@ -127,7 +122,6 @@ export async function prepareManagedSearchContext(input: {
       repositoryRoot: input.repositoryRoot,
       query,
       limit: 20,
-      ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
     }),
   );
   const documentIdByPath = new Map(
@@ -199,69 +193,6 @@ export async function prepareManagedSearchContext(input: {
     recommendationLimit: 5,
     maximumSelections: 3,
   });
-  const graphRecommendations: GraphDocumentRecommendation[] = [];
-  for (const [index, recommendation] of knowledge.relationProjection.recommendations.entries()) {
-    const bytes = await readRepositoryFile(input.repositoryRoot, recommendation.path, 131_072);
-    if (digestBytes(bytes) !== recommendation.sourceContentHash) {
-      throw new TypeError(
-        `Publication bytes changed after relation projection: ${recommendation.path}`,
-      );
-    }
-    const existing = additionalCandidates.find(
-      (candidate) => candidate.documentId === recommendation.documentId,
-    );
-    if (
-      existing !== undefined &&
-      (existing.path !== recommendation.path ||
-        existing.knowledgeContext?.conceptId !== recommendation.targetConceptId)
-    ) {
-      throw new TypeError(
-        `A relation target conflicts with an existing knowledge document: ${recommendation.documentId}`,
-      );
-    }
-    if (existing === undefined) {
-      additionalCandidates.push({
-        documentId: recommendation.documentId,
-        path: recommendation.path,
-        connectedPaths: [],
-        source: "knowledge",
-        documentRole: "task_evidence",
-        referenceEligible: true,
-        knowledgeContext: {
-          conceptId: recommendation.targetConceptId,
-          assurance: "human_reviewed",
-          freshness: "current",
-          sourceSnapshotId: recommendation.sourceSnapshotId,
-          impactReportId: recommendation.impactReportId,
-        },
-      });
-    }
-    graphRecommendations.push({
-      schemaVersion: 1,
-      projectionId: knowledge.relationProjection.projectionId,
-      recommendationId: recommendation.recommendationId,
-      relationId: recommendation.relationId,
-      targetConceptId: recommendation.targetConceptId,
-      documentId: recommendation.documentId,
-      path: recommendation.path,
-      sourceContentHash: recommendation.sourceContentHash,
-      sourceSnapshotId: recommendation.sourceSnapshotId,
-      impactReportId: recommendation.impactReportId,
-      rank: index + 1,
-      selected: index < knowledge.relationProjection.limits.maximumSelections,
-    });
-  }
-  if (input.runId !== undefined) {
-    await observeManagedLinkedEvidenceShadow({
-      repositoryRoot: input.repositoryRoot,
-      projectId: input.projectId,
-      runId: input.runId,
-      observedAt: input.observedAt,
-      operationalBatch: recommendationBatch,
-      recommendationBatches: [recommendationBatch, knowledgeRecommendationBatch],
-      graphRecommendations,
-    });
-  }
   const quality = await prepareRepositoryQualityContext({
     recordObservation: true,
     ...(input.recordingCoordinates ? { recordingCoordinates: input.recordingCoordinates } : {}),
@@ -291,7 +222,6 @@ export async function prepareManagedSearchContext(input: {
       query,
       sourceSnapshotId: knowledge.sourceSnapshotId,
       recommendationBatches: [recommendationBatch, knowledgeRecommendationBatch],
-      graphRecommendations,
     }),
     attempt,
     recommendationBatch,
@@ -300,7 +230,6 @@ export async function prepareManagedSearchContext(input: {
     additionalCandidates: additionalCandidates.sort((left, right) =>
       left.path.localeCompare(right.path),
     ),
-    graphRecommendations,
     knowledgeAttempt,
   };
 }

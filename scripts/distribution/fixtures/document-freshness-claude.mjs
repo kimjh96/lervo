@@ -20,6 +20,28 @@ const logPath = resolve(directory, "document-freshness-calls.jsonl");
 let text = "";
 for await (const chunk of process.stdin) text += chunk;
 const request = JSON.parse(text);
+if (request.task === "provider_cli_admission_probe") {
+  console.log(
+    JSON.stringify({
+      is_error: false,
+      result: '{"ok":true}',
+      stop_reason: "end_turn",
+      num_turns: 1,
+      usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } },
+      modelUsage: {
+        fixture: {
+          inputTokens: 10,
+          cacheReadInputTokens: 0,
+          cacheCreationInputTokens: 0,
+          outputTokens: 5,
+          contextWindow: 200000,
+        },
+      },
+      permission_denials: [],
+    }),
+  );
+  process.exit(0);
+}
 appendFileSync(
   logPath,
   `${JSON.stringify({ task: request.task, document: request.untrustedSourceData?.document?.path ?? null })}\n`,

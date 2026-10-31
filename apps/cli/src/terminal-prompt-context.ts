@@ -53,6 +53,11 @@ export interface PreparedTerminalPromptContext {
   sourceSnapshotId: string;
   recommendationCount: number;
   documents: PreparedTerminalDocument[];
+  selectedPointers?: {
+    path: string;
+    contentHash: string;
+    kind: "skill" | "decision" | "instruction";
+  }[];
   repositoryRevision: string;
   repositoryFiles: RepositorySnapshot["files"];
   repositoryCommits?: RepositorySnapshot["commits"];
@@ -186,7 +191,9 @@ export async function prepareTerminalPromptContext(input: {
       preparedScan: preparedKnowledge.scan,
     }),
   );
-  const assembled = await input.timing.measure("context_assembly", async () => {
+  // The prompt hook measures and bounds the whole preparation as `context_assembly` (ADR-0531);
+  // measuring it again here would start a duplicate active stage.
+  const assembled = await (async () => {
     const workstream =
       currentWorkstream === null
         ? null
@@ -260,7 +267,7 @@ export async function prepareTerminalPromptContext(input: {
       quality: preparedEvidence.quality,
       instructions: instructions.report,
     };
-  });
+  })();
   return {
     quality: assembled.quality,
     preparationQuality: {

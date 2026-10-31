@@ -9,7 +9,7 @@ import { loadDecisionTaxonomy } from "@lervo/project";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import { planDecisionTaxonomyRefresh } from "./decision-taxonomy-refresh.js";
 import { createKnowledgeInstructionBridgePlan } from "./instruction-bridge.js";
@@ -36,7 +36,11 @@ import {
   repositoryInstructionPaths,
   type DocumentLayoutBlockerCode,
 } from "./document-layout.js";
-import type { DocumentRouteBasis, SemanticRouteEvidence } from "./document-route-resolution.js";
+import type {
+  DocumentRouteBasis,
+  SemanticRouteEvidence,
+  DocumentRouteResolutionContext,
+} from "./document-route-resolution.js";
 import {
   classifyRepositoryLayoutCandidates,
   type RepositoryLayoutCandidate,
@@ -53,7 +57,9 @@ import {
   type RepositorySource,
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
+import { accountRepositoryLayoutCandidates } from "./repository-layout-accounting.js";
 import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
 
@@ -140,6 +146,7 @@ export interface RepositoryLayoutMigrationPlan {
   userUpdates: RepositoryLayoutUserUpdate[];
   machineMoves: RepositoryLayoutMachineMove[];
   referenceUpdates: RepositoryLayoutReferenceUpdate[];
+  documentRouteContext?: DocumentRouteResolutionContext;
   /**
    * Documents awaiting a semantic route. They never block: the background resident classifies
    * them, and each one is a precise attention entry until then (ADR-0476).
@@ -154,6 +161,7 @@ export interface RepositoryLayoutMigrationPlan {
   blockers: Array<{
     code:
       | "destination_exists"
+      | "destination_in_publication_root"
       | "ambiguous_destination"
       | "invalid_markdown_reference"
       | DecisionLayoutBlockerCode
@@ -483,12 +491,13 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   repositoryRoot: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
+  documentRouteContext?: DocumentRouteResolutionContext;
 }): Promise<RepositoryLayoutMigrationPlan> {
   const root = resolve(input.repositoryRoot);
   const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
   const taxonomySource = await readFile(taxonomyPath, "utf8");
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(root, {
+    scanCompleteConfiguredRepositoryKnowledge(root, {
       ...(input.supplementalSources === undefined
         ? {}
         : { supplementalSources: input.supplementalSources }),
@@ -507,7 +516,14 @@ export async function createRepositoryLayoutMigrationPlan(input: {
         message: "The knowledge concept registry is incomplete.",
       },
     );
-  const classified = await classifyRepositoryLayoutCandidates({ root, scan, taxonomy });
+  const classified = await classifyRepositoryLayoutCandidates({
+    root,
+    scan,
+    taxonomy,
+    ...(input.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.documentRouteContext }),
+  });
   const candidates: RepositoryLayoutCandidate[] = classified.candidates;
   const repairableDecisionPaths = classified.repairableDecisionPaths;
   const destinationCounts = new Map<string, number>();
@@ -540,13 +556,24 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     } else if (!repositoryPathCanRemainIncluded(item.toPath, policy)) {
       blockers.push({ code: "destination_exists", pathDigest: sha256(item.toPath) });
       blockedDestinations.add(item.toPath);
+    } else if (isWithinPublicationRoot(item.toPath, policy.publicationRoot)) {
+      // Git ignores the publication root, so a user document moved there leaves version control.
+      blockers.push({
+        code: "destination_in_publication_root",
+        pathDigest: sha256(item.toPath),
+        path: item.source.path,
+      });
+      blockedDestinations.add(item.toPath);
     }
   }
   // Blocked candidates remain represented by their blockers but must never be
   // projected into the virtual post-migration scan. In particular, two source
   // documents that select the same destination would otherwise make the
   // second projection throw instead of returning a reviewable blocked plan.
-  const executableCandidates = candidates.filter((item) => !blockedDestinations.has(item.toPath));
+  const { executableCandidates, deferredDocuments } = accountRepositoryLayoutCandidates({
+    classified,
+    blockedDestinations,
+  });
   const movePaths = executableCandidates.map(({ source, toPath }) => ({
     fromPath: source.path,
     toPath,
@@ -620,7 +647,12 @@ export async function createRepositoryLayoutMigrationPlan(input: {
       source.content !== undefined &&
       source.contentHash !== null,
   );
-  if (agents === undefined && (routedInstructions.length > 0 || routedSkills.length > 0)) {
+  // A generated AGENTS.md is outside the scan; the structural compiler regenerates its routes.
+  if (
+    agents === undefined &&
+    !generatedPaths.has("AGENTS.md") &&
+    (routedInstructions.length > 0 || routedSkills.length > 0)
+  ) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
       "Provider instruction normalization requires a canonical AGENTS.md source.",
@@ -636,10 +668,8 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     });
     const blockPattern =
       /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/gu;
-    const legacyPatternBlock =
-      /\n?<!-- lervo:begin block=development_pattern_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=development_pattern_routes -->\n?/u;
     const existing = referenceChanges.get("AGENTS.md");
-    const baseContent = (existing?.content ?? agents.content).replace(legacyPatternBlock, "");
+    const baseContent = existing?.content ?? agents.content;
     const existingBlocks = baseContent.match(blockPattern) ?? [];
     let replacedBlock = false;
     const combined =
@@ -1076,8 +1106,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     referenceUpdates: referenceOperations.map(withoutContent),
     operations: operations.map(withoutContent),
     blockers,
-    deferredDocuments: classified.deferredDocuments,
-    deferredDocumentCount: classified.deferredDocumentCount,
+    ...(input.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.documentRouteContext }),
+    deferredDocuments,
+    deferredDocumentCount: deferredDocuments.length,
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
@@ -1116,14 +1149,20 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
     taxonomyHash,
-    coverage: scan.coverage,
+    coverage: {
+      ...scan.inventoryCoverage,
+      complete: scan.inventoryCoverage.complete && deferredDocuments.length === 0,
+    },
     registryDigest,
     moves,
     userUpdates,
     machineMoves,
     referenceUpdates,
-    deferredDocuments: classified.deferredDocuments,
-    deferredDocumentCount: classified.deferredDocumentCount,
+    ...(input.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.documentRouteContext }),
+    deferredDocuments,
+    deferredDocumentCount: deferredDocuments.length,
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
@@ -1164,6 +1203,9 @@ export async function applyRepositoryLayoutMigrationPlan(input: {
   }
   const current = await createRepositoryLayoutMigrationPlan({
     repositoryRoot: input.plan.repositoryRoot,
+    ...(input.plan.documentRouteContext === undefined
+      ? {}
+      : { documentRouteContext: input.plan.documentRouteContext }),
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),

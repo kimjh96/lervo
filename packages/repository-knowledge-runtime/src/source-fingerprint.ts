@@ -171,7 +171,20 @@ export function convergenceSourceFingerprint(input: {
   const sourceDigest = convergenceRepositoryDigest(input.repositoryRoot);
   const queue = observeConvergenceQueue(input.events);
   return {
-    fingerprint: sha256(canonicalJson({ sourceDigest, ...queue })),
+    fingerprint: sha256(
+      canonicalJson({
+        sourceDigest,
+        ...queue,
+        terminalSkills: metadata(
+          resolve(input.repositoryRoot, KNOWLEDGE_STATE, "terminal-skills", "queue"),
+        ),
+        practice: metadata(
+          resolve(input.repositoryRoot, KNOWLEDGE_STATE, "practice", "state.json"),
+        ),
+        practiceAssessmentWindow: Math.floor(Date.now() / (30 * 60_000)),
+        terminalSkillsDay: new Date().toISOString().slice(0, 10),
+      }),
+    ),
     sourceDigest,
     earliestAvailableAt: queue.earliestAvailableAt,
   };

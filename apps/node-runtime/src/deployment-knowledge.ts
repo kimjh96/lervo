@@ -56,7 +56,6 @@ export async function startDeploymentKnowledgeLoop(input: {
   const hold = knowledgeResidentHoldReason(input.storage.writableEventSchemaVersion);
   const provider = supervised ?? continuity;
   if (provider === undefined) return async () => undefined;
-  const executable = input.supervision?.runtimeReadiness?.providerExecutables?.[provider];
   const loop = (awaitAdmission: boolean) =>
     startRepositoryKnowledgeLoop({
       ...(input.workerEntry === undefined ? {} : { workerEntry: input.workerEntry }),
@@ -67,7 +66,6 @@ export async function startDeploymentKnowledgeLoop(input: {
       artifacts: input.storage.artifacts,
       signal: input.signal,
       provider,
-      ...(executable === undefined ? {} : { executable }),
       ...(awaitAdmission ? { awaitAdmission } : {}),
       onFailure: reportFailure,
     });

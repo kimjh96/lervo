@@ -68,7 +68,9 @@ export async function planReportStorageActivation(input: {
   if (
     writer.projectId !== evidence.projectId ||
     writer.contentHash !== evidence.writerCoordinateHash ||
-    writer.coordinate.selectedEventSchemaVersion !== 6
+    (writer.coordinate.selectedEventSchemaVersion !== 6 &&
+      writer.coordinate.selectedEventSchemaVersion !== 7 &&
+      writer.coordinate.selectedEventSchemaVersion !== 8)
   )
     throw new ReportStorageError(
       "report_storage_stale",

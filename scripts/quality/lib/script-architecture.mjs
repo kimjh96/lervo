@@ -18,12 +18,7 @@ const allowedDependencyEdges = new Set([
   "release->distribution",
   "release->shared",
 ]);
-const evidenceBoundRootScripts = new Map([
-  [
-    "scripts/run-linked-evidence-managed-canary-v18.mjs",
-    "sha256:ce9af008c14795de242f8063e39435bfc1067d5c23fc9cc851e3e94d8f1ece9d",
-  ],
-]);
+const evidenceBoundRootScripts = new Map();
 
 function repositoryPath(repositoryRoot, path) {
   return relative(repositoryRoot, path).split(sep).join("/");

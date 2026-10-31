@@ -29,6 +29,7 @@
     "dist/repository-runtime-*.js",
     "dist/repository-runtime.js",
     "dist/repository-runtime.json",
+    "dist/terminal-hook-launcher.mjs",
     "dist/terminal-hook.js"
   ],
   "publishConfig": {
@@ -68,7 +69,6 @@
     "@lervo/execution-contract": "workspace:*",
     "@lervo/execution-observability": "workspace:*",
     "@lervo/identity-migration": "workspace:*",
-    "@lervo/improvement-observation-local": "workspace:*",
     "@lervo/interaction-sqlite": "workspace:*",
     "@lervo/knowledge-okf": "workspace:*",
     "@lervo/live-trigger-contract": "workspace:*",

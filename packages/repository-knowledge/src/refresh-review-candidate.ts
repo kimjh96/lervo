@@ -14,6 +14,7 @@ function invalid(message: string): never {
 function assertImpactReport(report: KnowledgeImpactReport): void {
   if (
     report.schemaVersion !== 1 ||
+    !["complete", "partial"].includes(report.coverage) ||
     !/^kimpact_[a-f0-9]{24}$/.test(report.reportId) ||
     !/^ksnap_[a-f0-9]{24}$/.test(report.sourceSnapshotId) ||
     typeof report.projectId !== "string" ||
@@ -33,7 +34,12 @@ function assertImpactReport(report: KnowledgeImpactReport): void {
       !Array.isArray(item.reasons) ||
       item.reasons.some(
         (reason) =>
-          !["source_unit_changed", "source_unit_missing", "lineage_unavailable"].includes(reason),
+          ![
+            "source_unit_changed",
+            "source_unit_missing",
+            "lineage_unavailable",
+            "scan_incomplete",
+          ].includes(reason),
       )
     )
       invalid("The refresh review candidate has an invalid impact subject.");
@@ -53,6 +59,8 @@ function assertImpactReport(report: KnowledgeImpactReport): void {
     summary.unknown !== report.summary.unknown ||
     summary.affectedConcepts !== report.summary.affectedConcepts ||
     stableId("kimpact", {
+      coverage: report.coverage,
+      skippedForBudget: report.skippedForBudget,
       projectId: report.projectId,
       sourceSnapshotId: report.sourceSnapshotId,
       status: report.status,
@@ -101,11 +109,16 @@ export function createKnowledgeRefreshReviewCandidate(
       };
     });
   const materials = {
+    coverage: report.coverage,
+    skippedForBudget: report.skippedForBudget,
     semantics: "review_candidate" as const,
     projectId: report.projectId,
     sourceSnapshotId: report.sourceSnapshotId,
     impactReportId: report.reportId,
-    status: items.length === 0 ? ("no_changes" as const) : ("review_required" as const),
+    status:
+      items.length === 0 && report.coverage === "complete"
+        ? ("no_changes" as const)
+        : ("review_required" as const),
     automaticPublicationMutation: false as const,
     items,
   };

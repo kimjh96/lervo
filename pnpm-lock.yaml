@@ -143,9 +143,6 @@ importers:
       '@lervo/identity-migration':
         specifier: workspace:*
         version: link:../../packages/identity-migration
-      '@lervo/improvement-observation-local':
-        specifier: workspace:*
-        version: link:../../packages/improvement-observation-local
       '@lervo/interaction-sqlite':
         specifier: workspace:*
         version: link:../../packages/interaction-sqlite
@@ -1791,15 +1788,15 @@ importers:
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../project-storage
-      '@lervo/roles':
-        specifier: workspace:*
-        version: link:../roles
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
       '@lervo/skills':
         specifier: workspace:*
         version: link:../skills
+      '@lervo/sqlite-connection':
+        specifier: workspace:*
+        version: link:../sqlite-connection
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract

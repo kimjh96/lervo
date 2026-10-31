@@ -194,3 +194,48 @@ it("keeps every tracked opaque asset and stops at the exact reviewed capture cei
     }),
   ).toThrow(expect.objectContaining({ code: "knowledge_authority_unavailable" }));
 });
+
+it("excludes Lervo generated paths from change observation, baseline obligations, and legacy assessment", async () => {
+  const f = await fixture();
+  fixtures.push(f);
+  await mkdir(resolve(f.root, ".lervo/generated/design/previews"), { recursive: true });
+  await writeFile(resolve(f.root, ".lervo/generated/design/study.md"), "# Generated study\n");
+  await writeFile(
+    resolve(f.root, ".lervo/generated/design/previews/study.png"),
+    Buffer.from([0, 1, 2]),
+  );
+  expect(
+    execFileSync("git", ["-C", f.root, "ls-files", "--others", "--exclude-standard"], {
+      encoding: "utf8",
+    }),
+  ).toContain(".lervo/generated/design/study.md");
+  // Tracking an owned projection cannot turn it into canonical source content either.
+  execFileSync("git", ["-C", f.root, "add", "-f", ".lervo/generated/design/study.md"]);
+  await writeFile(resolve(f.root, "owner-note.md"), "# Owner knowledge\n");
+  const changed = captureConvergenceChangedPaths(f.root);
+  expect(changed).toContain("owner-note.md");
+  expect(changed.some((path) => path.startsWith(".lervo/generated/"))).toBe(false);
+  const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
+  expect(baseline.assessmentPaths).toContain("owner-note.md");
+  expect(baseline.assessmentPaths!.some((path) => path.startsWith(".lervo/generated/"))).toBe(
+    false,
+  );
+  expect(baseline.sources.some((source) => source.path.startsWith(".lervo/generated/"))).toBe(
+    false,
+  );
+  const generated = {
+    path: ".lervo/generated/design/study.md",
+    kind: "text" as const,
+    contentHash: sha256("legacy"),
+  };
+  expect(
+    convergenceAssessmentSources({
+      schemaVersion: 1,
+      obligationId: "legacy",
+      baseline: { ...baseline, sources: [generated], assessmentPaths: [generated.path] },
+      snapshotHash: baseline.sourceSnapshotHash,
+      receipts: [],
+      stageData: {},
+    }),
+  ).toEqual([]);
+});

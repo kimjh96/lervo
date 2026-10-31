@@ -8,7 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
   applyTerminalIntegrationPlan,
   createTerminalIntegrationPlan,
-  TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES,
+  TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES,
   terminalHookCommand,
 } from "../src/index.js";
 
@@ -165,7 +165,7 @@ describe("terminal integration migration", () => {
     ).toBe(nextRuntime);
   });
 
-  it("accepts a runtime above 4 MiB within the budget and blocks one above it", async () => {
+  it("accepts a launcher within 16 KiB and blocks one above it", async () => {
     const root = await repository();
     const initial = await createTerminalIntegrationPlan(root, runtimeContent);
     await applyTerminalIntegrationPlan({
@@ -178,7 +178,7 @@ describe("terminal integration migration", () => {
     });
     const padded = (bytes: number) =>
       `${runtimeContent}//${"x".repeat(bytes - Buffer.byteLength(runtimeContent) - 3)}\n`;
-    const large = padded(4 * 1024 * 1024 + 70_512);
+    const large = padded(TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES);
     const update = await createTerminalIntegrationPlan(root, large);
     expect(update).toMatchObject({ status: "ready", blockers: [], runtime: { action: "update" } });
     await applyTerminalIntegrationPlan({
@@ -189,7 +189,7 @@ describe("terminal integration migration", () => {
     });
     expect((await createTerminalIntegrationPlan(root, large)).status).toBe("current");
 
-    const oversized = padded(TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES + 1);
+    const oversized = padded(TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES + 1);
     expect((await createTerminalIntegrationPlan(root, oversized)).blockers).toEqual([
       expect.objectContaining({ code: "runtime_invalid" }),
     ]);

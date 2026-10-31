@@ -3,6 +3,9 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
+
+import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 
 import {
   RESIDENT_RECONCILE_BASE_MILLISECONDS as BASE,
@@ -58,10 +61,12 @@ async function cycle(input: {
   observeFails?: boolean;
   result?: unknown;
   fails?: boolean;
+  error?: unknown;
   now?: number;
 }) {
   let full = 0;
   const outcome = await runResidentCycle({
+    repositoryRoot: "/work/repo",
     previous: input.previous,
     now: () => input.now ?? NOW,
     ceilingMilliseconds: CEILING,
@@ -75,6 +80,7 @@ async function cycle(input: {
     },
     runFull: async () => {
       full++;
+      if (input.error !== undefined) throw input.error;
       if (input.fails) throw new Error("cycle failed");
       return (input.result ?? idleResult()) as never;
     },
@@ -127,6 +133,60 @@ describe("adaptive reconciliation", () => {
 });
 
 describe("change fence", () => {
+  it("records a typed failure with root-relative detail on one bounded line", async () => {
+    const message = `/work/repo/docs/a.md changed\r\n\0/work/repo/docs/b.md ${"x".repeat(500)}`;
+    const result = await cycle({
+      previous: null,
+      error: new RepositoryKnowledgeError("source_bytes_changed", message),
+    });
+    expect(result.state.lastFailure).toEqual({
+      code: "source_bytes_changed",
+      detail: `./docs/a.md changed ./docs/b.md ${"x".repeat(500)}`.slice(0, 300),
+      at: new Date(NOW).toISOString(),
+    });
+    expect(result.state.lastFailure!.detail).toHaveLength(300);
+  });
+
+  it("records the typed runtime failure message", async () => {
+    const error = new KnowledgeConvergenceRuntimeError("knowledge_materialization_busy");
+    expect((await cycle({ previous: null, error })).state.lastFailure).toMatchObject({
+      code: error.code,
+      detail: error.message,
+    });
+  });
+
+  it.each([
+    [Object.assign(new Error("native diagnostic"), { code: "native_failure" }), "native_failure"],
+    [
+      Object.assign(new Error("provider output"), {
+        name: "ProviderExecutionError",
+        code: "provider_failure",
+      }),
+      "provider_failure",
+    ],
+    [{ code: "provider_failure", message: "provider output" }, "provider_failure"],
+    [new Error("native diagnostic"), "unclassified_failure"],
+    [{ code: "ENOENT" }, "unclassified_failure"],
+    [{ code: "ab" }, "unclassified_failure"],
+    [{ code: `a${"b".repeat(81)}` }, "unclassified_failure"],
+    [{ code: "abc" }, "abc"],
+    [{ code: `a${"b".repeat(80)}` }, `a${"b".repeat(80)}`],
+  ])("records only a stable code for native or provider error %#", async (error, code) => {
+    expect((await cycle({ previous: null, error })).state.lastFailure).toEqual({
+      code,
+      detail: null,
+      at: new Date(NOW).toISOString(),
+    });
+  });
+
+  it("clears the failure after the next completed cycle", async () => {
+    const failed = await cycle({ previous: null, fails: true });
+    expect(failed.state.lastFailure).not.toBeNull();
+    const completed = await cycle({ previous: { ...failed.state, nextReconcileAt: null } });
+    expect(completed.outcome.kind).toBe("completed");
+    expect(completed.state.lastFailure).toBeNull();
+  });
+
   it("skips an idle-class cycle only while the fingerprint is unchanged", async () => {
     for (const lastResult of ["idle", "waiting", "attention"] as const) {
       const skipped = await cycle({ previous: previous({ lastResult }) });
@@ -199,6 +259,37 @@ describe("resident cycle state", () => {
     await Promise.all(directories.splice(0).map((path) => rm(path, { recursive: true })));
   });
 
+  it("persists the failure diagnostic and reads old state without lastFailure", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-cycle-"));
+    directories.push(root);
+    const result = await cycle({
+      previous: null,
+      error: new RepositoryKnowledgeError("source_bytes_changed", "/work/repo/docs/a.md changed"),
+    });
+    const failed = { ...result.state, nextReconcileAt: null };
+    await writeResidentCycleState(root, failed);
+    expect(await readResidentCycleState(root)).toEqual(failed);
+    expect((await stat(resolve(root, RESIDENT_CYCLE_STATE_PATH))).size).toBeLessThanOrEqual(4_096);
+    const legacy = previous();
+    expect(legacy).not.toHaveProperty("lastFailure");
+    await writeFile(resolve(root, RESIDENT_CYCLE_STATE_PATH), JSON.stringify(legacy));
+    expect(await readResidentCycleState(root)).toEqual(legacy);
+    const cleared = previous({ lastFailure: null });
+    await writeResidentCycleState(root, cleared);
+    expect(await readResidentCycleState(root)).toEqual(cleared);
+  });
+
+  it("rejects oversized state on both boundaries", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-cycle-"));
+    directories.push(root);
+    await writeResidentCycleState(root, previous());
+    await writeFile(resolve(root, RESIDENT_CYCLE_STATE_PATH), " ".repeat(4_097));
+    expect(await readResidentCycleState(root)).toBeNull();
+    await expect(
+      writeResidentCycleState(root, previous({ fingerprint: "x".repeat(4_097) })),
+    ).rejects.toThrow("exceeds 4 KiB");
+  });
+
   it("round-trips private state and treats missing or invalid state as absent", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-cycle-"));
     directories.push(root);
@@ -214,6 +305,12 @@ describe("resident cycle state", () => {
       JSON.stringify({ ...state, lastResult: "current" }),
       JSON.stringify({ ...state, idleStreak: -1 }),
       JSON.stringify({ ...state, lastCycleAt: "yesterday" }),
+      ...[
+        { code: "Invalid", detail: null, at: new Date(NOW).toISOString() },
+        { code: "valid_code", detail: "x".repeat(301), at: new Date(NOW).toISOString() },
+        { code: "valid_code", detail: "two\nlines", at: new Date(NOW).toISOString() },
+        { code: "valid_code", detail: null, at: null },
+      ].map((lastFailure) => JSON.stringify({ ...state, lastFailure })),
     ]) {
       await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
       await writeFile(resolve(root, RESIDENT_CYCLE_STATE_PATH), invalid);

@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0214](0214-bounded-repository-upgrade-orchestration.md) (event writer and host service stages), [ADR-0164](0164-user-runtime-service-management-boundary.md) (knowledge host target), [ADR-0469](../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (resident admission, doctor)
 Related: [ADR-0471](../../coordination/sync/0471-keep-cross-host-knowledge-ownership-safe-when-hub-coordination-fails.md), [Event writer activation](../../../foundation/event-writer-rollout/activation.md), [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
-Amended by: [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (replica service stage, current runtime pointer)
+Amended by: [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (replica service stage, current runtime pointer); [ADR-0536](../../execution/providers/admission/0536-admit-provider-clis-by-contract.md) (runtime provider CLI admission; host resident service tool directories)
 
 ## Context
 
@@ -23,7 +23,7 @@ After CLI 0.20.0 (ADR-0469) reached the owner's Mac on 2026-10-06:
 
 Add an `eventWriter` repository upgrade stage targeting schema 4, which the knowledge resident writes. Reuse the existing event-contract contract: collect reader evidence, plan, then apply the exact current plan ID with re-observed evidence, as `lervo event-contract activate --apply` does. Never bypass plan blockers or evidence failures; expose each as an upgrade blocker with an exact remedy.
 
-Local-reader preflight checks the generated terminal hook runtime's embedded event reader. If the runtime would change (`update` or `blocked`), report `terminal_hook_reader_stale`.
+Local-reader preflight checks the generated terminal hook runtime's embedded event reader. If the runtime would change (`update` or `blocked`), report `terminal_hook_reader_stale`. Under [ADR-0539](../../execution/providers/hooks/0539-keep-the-terminal-hook-runtime-host-local-behind-a-tracked-launcher.md), preflight verifies the currently published host runtime. It accepts a valid compatible runtime from another live publisher without requiring the resident's embedded hash. Missing, invalid, or marked state still blocks readiness. The resident has repair authority and cannot revert a newer published runtime while its publisher entry exists.
 
 | Stage | Requires |
 | --- | --- |

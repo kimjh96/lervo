@@ -26,6 +26,7 @@ interface DocumentStalenessState {
 }
 
 function observationCoordinate(input: {
+  coverage: DocumentStalenessReport["coverage"];
   head: string;
   now: Date;
   documents: DocumentStalenessInput["documents"];
@@ -39,6 +40,7 @@ function observationCoordinate(input: {
       assessmentHashes: input.assessmentHashes,
       assessmentPolicyHash: input.assessmentPolicyHash,
       head: input.head,
+      coverage: input.coverage,
       // The review-interval signal depends on the UTC evaluation day.
       day: input.now.toISOString().slice(0, 10),
       documents: input.documents.map((document) => [document.path, sha256(document.content)]),
@@ -60,7 +62,8 @@ async function readState(root: string): Promise<DocumentStalenessState | null> {
       value.schemaVersion !== 1 ||
       typeof value.coordinate !== "string" ||
       value.report?.kind !== "document_staleness.report" ||
-      value.report.evaluator !== DOCUMENT_STALENESS_EVALUATOR
+      value.report.evaluator !== DOCUMENT_STALENESS_EVALUATOR ||
+      value.report.coverage !== "complete"
     )
       return null;
     return value as DocumentStalenessState;
@@ -110,6 +113,7 @@ export async function observeRepositoryDocumentStaleness(
     head === null
       ? null
       : observationCoordinate({
+          coverage: input.coverage,
           head,
           now: input.now,
           documents: input.documents,
@@ -126,7 +130,12 @@ export async function observeRepositoryDocumentStaleness(
     assessments: assessmentRecords.map((item) => item.assessment),
     assessmentPolicyHash,
   });
-  if (input.mode === "evaluate_and_record" && coordinate !== null && report.status === "observed")
+  if (
+    input.mode === "evaluate_and_record" &&
+    coordinate !== null &&
+    report.status === "observed" &&
+    report.coverage === "complete"
+  )
     await writeState(input.root, { schemaVersion: 1, coordinate, report }).catch(() => undefined);
   return report;
 }

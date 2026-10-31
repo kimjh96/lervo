@@ -16,6 +16,38 @@ Tests retain two workers, the 30-second default deadline, a 45-minute shard time
 
 Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Generated release candidates receive these checks through their explicit dispatch. Ordinary PRs retain full tests and metadata checks without adding the distribution suite.
 
+## Source test package resolution
+
+Local Vitest and the CI config share the root `vitest.config.ts` aliases. Source tests resolve workspace library imports to authored `src` entrypoints. A package's default `dist` export must not silently select stale JavaScript. Specific subpath aliases precede their root alias; the currently imported subpath is `@lervo/repository-knowledge/workstream`.
+
+`pnpm repository-scripts:check`, included in `pnpm quality:check`, runs `scripts/quality/check-test-source-aliases.mjs`. This static check reads workspace manifests, the literal alias object, and tracked or untracked test files and helpers under `apps`, `packages`, and `scripts`. It parses imports, re-exports, type imports, literal dynamic imports, `require`, and Vitest mock imports without evaluating tests or importing the Vitest config. It rejects missing aliases, missing targets, aliases outside the owning package's source, and root aliases that shadow a used subpath. Nonliteral computed imports and imports inside subprocess code strings remain outside this static claim.
+
+The phase-zero audit found 104 workspace packages and 17 missing root aliases. All 15 library packages below export only `.` through `dist/index.js`, have `src/index.ts`, and define no private `#` imports. Each now has a source alias. The two distribution-only packages remain exact-name exceptions with reasons in `scripts/quality/lib/test-source-aliases.mjs`.
+
+| Package under `@lervo/` | Resolution and reason |
+| --- | --- |
+| `agent-organization` | Source; organization and deliberation contracts. |
+| `application-contract` | Source; shared application types and runtime contracts. |
+| `assignment-connector-conformance` | Source; connector conformance helpers. |
+| `conversation-deliberation-contract` | Source; deliberation identity and state contracts. |
+| `discord-gateway` | Source; gateway adapter and transport contracts. |
+| `execution-reliability` | Source; reliability evaluation contracts. |
+| `filesystem-durability` | Source; synchronization behavior and optional native fallback. |
+| `hub-runtime` | Source; importable runtime API. Launcher subprocesses retain built binaries. |
+| `identity-migration` | Source; migration planning and apply API. |
+| `node-work-admission` | Source; admission storage API. |
+| `organization-credential-source-file` | Source; credential file adapter. |
+| `organization-deployment-contract` | Source; deployment and credential contracts. |
+| `organization-deployment-sqlite` | Source; deployment storage adapter. |
+| `product-surface-projection` | Source; product projections. |
+| `request-grounding` | Source; request grounding contracts. |
+| `cli` | Built executable or packed files; no library export or source index. |
+| `node-runtime-dependencies` | Distribution dependency manifest; no source or runtime export. |
+
+Built-artifact tests retain explicit `dist` paths, packed-consumer resolution, and subprocess launchers. Vitest aliases do not apply inside those subprocesses or external bundlers. Native distribution tests retain built modules and native artifacts; source tests can exercise the optional native fallback. Schema source imports retain `#compiled-validators` and `#coordinate-data-validation` package imports. The existing global setup verifies or generates validators as required by [ADR-0503](../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md).
+
+This closes an alias omission within the existing source-test setup. It does not amend ADR-0496's exact shared-build transfer or ADR-0503's generated-validator boundary. Static success proves alias coverage for observed literal imports; it does not prove test assertions or built artifacts passed.
+
 ## Aggregate, events, and release effects
 
 `CI verification (lervo-ci-v1)` always evaluates the required job results. Its versioned receipt distinguishes `full` and `documentation_only`; failed, cancelled, skipped-required, and unknown results cannot become success. Hosted required-check configuration must be reconciled with this aggregate during rollout; local source checks do not establish that branch protection was changed.

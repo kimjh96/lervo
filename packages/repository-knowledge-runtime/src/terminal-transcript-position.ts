@@ -1,0 +1,115 @@
+import { createHash } from "node:crypto";
+import { constants } from "node:fs";
+import { open, realpath, type FileHandle } from "node:fs/promises";
+import { homedir } from "node:os";
+import { isAbsolute, relative, resolve } from "node:path";
+
+export interface TranscriptPosition {
+  path: string;
+  offset: number;
+  device: string;
+  inode: string;
+  prefixBytes: number;
+  prefixDigest: string;
+}
+
+export function validTranscriptPosition(value: unknown): value is TranscriptPosition {
+  const item = value as TranscriptPosition | null;
+  return (
+    item !== null &&
+    typeof item === "object" &&
+    typeof item.path === "string" &&
+    isAbsolute(item.path) &&
+    item.path.length <= 4096 &&
+    !item.path.includes("\0") &&
+    Number.isSafeInteger(item.offset) &&
+    item.offset >= 0 &&
+    typeof item.device === "string" &&
+    /^\d+$/u.test(item.device) &&
+    typeof item.inode === "string" &&
+    /^\d+$/u.test(item.inode) &&
+    item.prefixBytes === Math.min(item.offset, 4096) &&
+    typeof item.prefixDigest === "string" &&
+    /^sha256:[a-f0-9]{64}$/u.test(item.prefixDigest)
+  );
+}
+
+function within(root: string, path: string): boolean {
+  const part = relative(root, path);
+  return part !== "" && !isAbsolute(part) && part !== ".." && !part.startsWith("../");
+}
+
+/** Both ingress and the resident enforce the provider's own host-local transcript boundary. */
+export async function openProviderTranscript(
+  provider: "claude" | "codex",
+  path: string,
+): Promise<FileHandle> {
+  if (!isAbsolute(path) || path.length > 4096 || path.includes("\0"))
+    throw new Error("Invalid transcript path.");
+  const home = await realpath(homedir());
+  const logicalBase =
+    provider === "claude"
+      ? resolve(homedir(), ".claude/projects")
+      : resolve(process.env.CODEX_HOME ?? resolve(homedir(), ".codex"), "sessions");
+  const base =
+    provider === "claude"
+      ? resolve(home, ".claude/projects")
+      : resolve(process.env.CODEX_HOME ?? resolve(home, ".codex"), "sessions");
+  const actual = await realpath(path);
+  if (
+    (!within(logicalBase, resolve(path)) && !within(base, resolve(path))) ||
+    !within(base, actual) ||
+    (await realpath(logicalBase)) !== base
+  )
+    throw new Error("Transcript escaped its provider directory.");
+  const handle = await open(
+    actual,
+    constants.O_RDONLY | constants.O_NOFOLLOW | constants.O_NONBLOCK,
+  );
+  const metadata = await handle.stat();
+  if (!metadata.isFile() || metadata.uid !== process.getuid?.()) {
+    await handle.close();
+    throw new Error("Transcript is not owned by this user.");
+  }
+  return handle;
+}
+
+export async function transcriptPrefixDigest(handle: FileHandle, length: number): Promise<string> {
+  const bytes = Buffer.alloc(length);
+  let read = 0;
+  while (read < length) {
+    const result = await handle.read(bytes, read, length - read, read);
+    if (result.bytesRead === 0) throw new Error("Transcript prefix shrank.");
+    read += result.bytesRead;
+  }
+  return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+/** Hook ingress hashes at most 4 KiB. It never parses transcript content. */
+export async function terminalTranscriptPosition(
+  provider: "claude" | "codex",
+  path?: string,
+): Promise<TranscriptPosition | null> {
+  if (!path) return null;
+  try {
+    const handle = await openProviderTranscript(provider, path);
+    try {
+      const metadata = await handle.stat({ bigint: true });
+      const offset = Number(metadata.size);
+      if (!Number.isSafeInteger(offset)) return null;
+      const prefixBytes = Math.min(offset, 4096);
+      return {
+        path: await realpath(path),
+        offset,
+        device: String(metadata.dev),
+        inode: String(metadata.ino),
+        prefixBytes,
+        prefixDigest: await transcriptPrefixDigest(handle, prefixBytes),
+      };
+    } finally {
+      await handle.close();
+    }
+  } catch {
+    return null;
+  }
+}

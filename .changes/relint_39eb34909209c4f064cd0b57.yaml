@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_39eb34909209c4f064cd0b57"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Keep background knowledge moving when an approved draft meets divergent integration-target bytes: park its sources, return discarded drafts on the integration ref, report pending normalization as non-blocking attention, and surface owner-host convergence stops."

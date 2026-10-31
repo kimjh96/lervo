@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a3d961fe393191259092df99"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Record skill invocation and completion only when a run delivers the verified skill body; resolution-only hosts record resolution alone."

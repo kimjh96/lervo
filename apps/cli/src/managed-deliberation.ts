@@ -155,7 +155,6 @@ export interface ManagedDeliberationDependencies {
   prepareEvidence?(input: {
     repositoryRoot: string;
     topic: string;
-    documentRegistry: Awaited<ReturnType<typeof loadDocumentRegistry>>;
   }): Promise<ManagedDeliberationEvidenceBundle>;
   afterApprovedCheckpoint?(deliberationId: string): Promise<void> | void;
 }
@@ -455,7 +454,6 @@ async function executeWithStorage(
     const evidence = await (dependencies.prepareEvidence ?? prepareManagedDeliberationEvidence)({
       repositoryRoot: storage.paths.repositoryRoot,
       topic: request.topic,
-      documentRegistry: registry,
     });
     await workspace.installTaskEvidence(evidence);
     const executionBudget = {

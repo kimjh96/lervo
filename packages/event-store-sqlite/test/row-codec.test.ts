@@ -35,7 +35,7 @@ function row(schemaVersion: number): SqliteRow {
   };
   // Supported rows carry their real hash; an unsupported version is rejected before hashing.
   const eventHash =
-    schemaVersion > 6
+    schemaVersion > 8
       ? `sha256:${"c".repeat(64)}`
       : computeEventHash({
           eventId: stored.event_id,
@@ -71,7 +71,7 @@ describe("SQLite event row compatibility", () => {
   });
 
   it("reports an unsupported stored version distinctly", () => {
-    expect(() => rowToEvent(row(7))).toThrowError(
+    expect(() => rowToEvent(row(9))).toThrowError(
       expect.objectContaining({ code: "event_schema_unsupported" }),
     );
   });

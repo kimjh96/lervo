@@ -89,10 +89,11 @@ export async function reviewNormalizationBatch(
           convergenceSourceBytes(root, item.sourcePath),
         ),
       }));
-      const contextDocuments = await loadCanonicalReviewContext({
-        repositoryRoot: root,
-        sourcePaths: batch.paths,
-      });
+      const { documents: contextDocuments, skipped: contextSkips } =
+        await loadCanonicalReviewContext({
+          repositoryRoot: root,
+          sourcePaths: batch.paths,
+        });
       const reviewInput = {
         budget: {
           batchId: batch.batchId,
@@ -104,6 +105,7 @@ export async function reviewNormalizationBatch(
         task: "independent_normalization_review",
         schema: normalizationReviewResponseSchema,
         contextDocuments,
+        contextSkips,
         untrustedSourceData: { sources, candidate, context: contextDocuments },
       };
       let observed;

@@ -35,13 +35,12 @@ Historical documents, as defined in [ADR-0464](../decisions/knowledge/documents/
 
 Query results are `recommended`. Ranking and cache evidence do not prove selection, loading, injection, reference, or use.
 
-## Reviewed relation projection
+## Reviewed relations (retired)
 
-Knowledge query may derive a separate reviewed relation projection for managed context. The projection:
+Knowledge query derives no relation projection, and managed context selects no document from reviewed relations. [ADR-0523](../decisions/search/activation/0523-retire-reviewed-relation-context.md) retired the one-hop projection because it never received a reviewed relation and a comparable linked mechanism showed no quality benefit. Stored `context.selected` events with the `graph_recommendation` reason remain valid; no current path emits that reason. A future relation-based mechanism must enter through the search-engine port and paired comparison under ADR-0302.
 
-- Follows exactly one current, human-reviewed relation from a direct concept.
-- Examines at most 64 edges.
-- Returns at most five distinct targets.
-- Permits at most two graph selections.
+## Partial scan coverage
 
-Each target path must resolve to one concept and one registered document. Current document bytes are hashed at query time and bound to the source snapshot and impact report; concept records do not claim to store a document content hash. Exact concept and relation sidecar-set hashes make the projection rebuildable. Graph coordinates remain outside search-engine scoring and index identity.
+[ADR-0537](../decisions/knowledge/repository/source-intake/0537-degrade-over-budget-scans-by-priority.md) keeps queries available when eligible sources exceed `maxTotalBytes`. JSON results include `coverage: "complete" | "partial"` and `skippedForBudget: { count, bytes, classes }`. Text output reports the same coverage, skipped source count and bytes, and distinct skipped classes on one line. Hits from admitted publications remain recommendations; a partial result never proves repository-wide absence. The publication loader does not reread budget-skipped sources. Prompt and review context accept this subset; operations certifying currency require complete coverage.
+
+Impact reports and refresh candidates preserve scan coverage and skipped counts, bytes, and classes. An evidence unit absent from a partial scan is `unknown` with reason `scan_incomplete`, so it cannot imply deletion or suggest deprecation. A partial report never has overall `current` status. Observed units may still prove their own evidence current or changed. A partial refresh candidate remains `review_required` even when its observed items need no change. These fields add no event or source content; existing relative-path and private-artifact handling applies.

@@ -13,6 +13,7 @@ import { loadDocumentRouteClassifications } from "./document-route-classificatio
 import type {
   DeferredDocumentRoute,
   DocumentRouteEvidence,
+  DocumentRouteResolutionContext,
   RetainedDocumentPlacement,
 } from "./document-route-resolution.js";
 import type { DocumentToolOwnershipEvidence } from "./document-tool-ownership.js";
@@ -32,9 +33,6 @@ export type {
   RepositoryLayoutClassification,
   RepositoryLayoutReason,
 } from "./repository-layout-source-classification.js";
-
-/** Plans report at most this many retained or deferred documents; counts stay exact. */
-const MAXIMUM_REPORTED_DOCUMENTS = 256;
 
 export interface RepositoryLayoutClassificationBlocker {
   code: Extract<RepositoryLayoutSourceOutcome, { kind: "blocked" }>["blocker"]["code"];
@@ -170,6 +168,7 @@ export async function classifyRepositoryLayoutCandidates(input: {
   root: string;
   scan: RepositoryKnowledgeScan;
   taxonomy: DecisionTaxonomy;
+  documentRouteContext?: DocumentRouteResolutionContext;
 }): Promise<RepositoryLayoutCandidates> {
   const { root, scan, taxonomy } = input;
   const included = scan.sources.flatMap((source) => {
@@ -235,12 +234,24 @@ export async function classifyRepositoryLayoutCandidates(input: {
     blockers,
     repairableDecisionPaths: repairs.paths,
     liveClassificationIds,
-    deferredDocuments: deferred.slice(0, MAXIMUM_REPORTED_DOCUMENTS).map((item) => ({
+    deferredDocuments: deferred.map((item) => ({
       ...item,
+      resolution:
+        item.reason === "destination_conflict"
+          ? "destination_conflict"
+          : item.reason === "semantic_classification_uncertain"
+            ? "route_metadata"
+            : !input.documentRouteContext?.providerAvailable
+              ? "provider_unavailable"
+              : input.documentRouteContext.normalizationRoots.some(
+                    (root) => item.path === root || item.path.startsWith(`${root}/`),
+                  )
+                ? "background_classification"
+                : "delegation_scope",
       workspacePackage: owningWorkspacePackage(item.path, packages),
     })),
     deferredDocumentCount: deferred.length,
-    retainedDocuments: retained.slice(0, MAXIMUM_REPORTED_DOCUMENTS),
+    retainedDocuments: retained,
     retainedDocumentCount: retained.length,
   };
 }

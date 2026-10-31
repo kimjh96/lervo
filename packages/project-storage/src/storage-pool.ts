@@ -41,7 +41,7 @@ export function createProjectStoragePool(
   const requiredEventSchemaVersion = options.requiredEventSchemaVersion;
   if (
     requiredEventSchemaVersion !== undefined &&
-    ![1, 2, 3, 4, 5, 6].includes(requiredEventSchemaVersion)
+    ![1, 2, 3, 4, 5, 6, 7, 8].includes(requiredEventSchemaVersion)
   )
     throw new TypeError("The required event writer version is unsupported.");
   const entries = new Map<string, Entry>();

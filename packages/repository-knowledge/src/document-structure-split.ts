@@ -7,7 +7,7 @@ import { parse } from "yaml";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
@@ -22,6 +22,7 @@ import {
   repositorySourceKindForPath,
   splitRepositoryKnowledgeScanSource,
 } from "./scanner.js";
+import { isWithinPublicationRoot } from "./repository-publication-files.js";
 import { createDocumentSplitLineage, normalizeKnowledgeDocumentPath } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
 import { structuralConceptDirectory } from "./structural-projection.js";
@@ -180,7 +181,7 @@ export async function createKnowledgeDocumentSplitPlan(input: {
   }
   await assertSafeAbsentDestination(root, destinationPath);
   const [{ policy, scan }, storedConcepts, generatedPaths] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -204,11 +205,12 @@ export async function createKnowledgeDocumentSplitPlan(input: {
   if (
     repositorySourceKindForPath(destinationPath) !== "documentation" ||
     !repositoryPathCanRemainIncluded(destinationPath, policy) ||
-    generatedPaths.has(destinationPath)
+    generatedPaths.has(destinationPath) ||
+    isWithinPublicationRoot(destinationPath, policy.publicationRoot)
   ) {
     throw new RepositoryKnowledgeError(
       "knowledge_reconciliation_conflict",
-      "The split destination must be a new regular Markdown path included by policy.",
+      "The split destination must be a new regular Markdown path included by policy and outside the generated publication root.",
     );
   }
   if (storedConcepts.some((item) => item.value === null))
@@ -413,7 +415,7 @@ export async function createKnowledgeDocumentSplitPlan(input: {
     sourceSnapshotId: scan.snapshotId,
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     afterRegistryDigest,
     source: {

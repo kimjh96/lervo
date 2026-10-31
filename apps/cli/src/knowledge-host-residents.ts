@@ -1,3 +1,4 @@
+import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
@@ -26,6 +27,7 @@ import {
   hostResidentCandidates,
   type ResidentProvider,
 } from "./knowledge-host-resident-candidates.js";
+import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 
 /** How often the host resident looks for newly registered or removed repositories. */
 export const HOST_RESIDENT_SCAN_MILLISECONDS = 5 * 60_000;
@@ -65,6 +67,7 @@ export function startHostKnowledgeResidents(input: {
   heartbeatMilliseconds?: number;
   activate?: (root: string) => Promise<LocalEventWriterActivation>;
   now?: () => Date;
+  materializeRuntime?: () => Promise<unknown>;
 }): () => Promise<void> {
   const workerId = `cli-host-${process.pid}`;
   const activate = input.activate ?? ((root: string) => activateLocalEventWriter(root));
@@ -111,6 +114,7 @@ export function startHostKnowledgeResidents(input: {
       continuity: createKnowledgeConvergenceContinuity(storage),
       instructionCandidateTransport,
       publish: createKnowledgePublisher(storage.paths.repositoryRoot),
+      refreshHealth: () => prefetchRepositoryHealth(root),
       onCycle: (result) => input.onCycle?.(root, result),
       onFailure: (error) => input.onFailure(root, error),
     });
@@ -187,6 +191,9 @@ export function startHostKnowledgeResidents(input: {
         return;
       }
     }
+    await (
+      input.materializeRuntime ?? (() => ensureHostTerminalRuntime({ authority: "repair" }))
+    )().catch((error: unknown) => input.onFailure("", error));
     const candidates = await hostResidentCandidates(input.provider);
     for (const root of new Set([...residents.keys(), ...held.keys()]))
       if (!candidates.wanted.has(root)) await release(root);

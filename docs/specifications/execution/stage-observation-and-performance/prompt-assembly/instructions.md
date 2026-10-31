@@ -29,9 +29,8 @@ Emitted canonicalization outcomes are:
 - Canonical update with exact target hashes and source paths.
 - No durable change with an implementation-only, verification-only, already-canonical, or transient reason.
 - Review draft with exact proposed Markdown and hash.
-- Portable-skill candidate with a bounded development-pattern proposal.
 
-Every changed noncanonical source must be bound exactly once. The portable-skill instruction requires at least two independent groups binding distinct current passed verification events and exact source, skill, resource, input, output, tool, and permission contracts. Retrieval selection and provider agreement do not satisfy this gate. The function emits the gate but does not validate proposals, promote candidates, or establish approval.
+Every changed noncanonical source must be bound exactly once. The function emits these instructions but does not validate outcomes, promote candidates, or establish approval.
 
 Root instructions request checkpoint creation or advancement by the agent. Declaration is described as an unmanaged agent claim checked elsewhere; proposal bodies remain confined to local candidate state.
 

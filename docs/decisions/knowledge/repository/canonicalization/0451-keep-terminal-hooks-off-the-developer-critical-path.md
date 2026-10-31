@@ -3,6 +3,9 @@
 Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0433](0433-own-background-knowledge-for-every-repository-change.md) and [ADR-0450](0450-keep-background-knowledge-out-of-developer-flow.md)
+Amended by: [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (pending normalization is non-blocking attention, never a per-turn duty)
+
+Amended by: [ADR-0531](../../../execution/providers/hooks/0531-bound-terminal-hooks-and-retain-degraded-context.md)
 
 ## Context
 

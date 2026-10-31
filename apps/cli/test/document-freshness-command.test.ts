@@ -109,7 +109,7 @@ describe("document freshness owner surfaces", () => {
     });
     expect(report.summary).toMatchObject({ totalCount: 2, userActionCount: 1, blockingCount: 0 });
     expect(formatOperatingAttention(report)).toContain(
-      "document_freshness_candidate document_freshness_kfresh_aaaaaaaaaaaaaaaaaaaaaaaa · owner user · verified_pending_cross_check · README.md · entrypoint · factual_reference · hunks 1",
+      "document_freshness_candidate document_freshness_kfresh_aaaaaaaaaaaaaaaaaaaaaaaa · owner owner · verified_pending_cross_check · README.md · entrypoint · factual_reference · hunks 1",
     );
   });
 

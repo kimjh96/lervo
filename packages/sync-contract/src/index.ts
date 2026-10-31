@@ -8,3 +8,4 @@ export * from "./knowledge-instruction-candidate-exchange.js";
 export * from "./knowledge-convergence-host-record.js";
 export * from "./knowledge-convergence-owner-failure.js";
 export * from "./knowledge-convergence-definition.js";
+export * from "./provider-cli-observation.js";

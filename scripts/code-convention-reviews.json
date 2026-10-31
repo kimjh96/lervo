@@ -4,35 +4,28 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:a7bd319825bb83ac668b28047974f848928aaad4841f92abfce0b2f76b8f102e",
+      "contentHash": "sha256:a330edcf84653e905e986aceb1f8b3a20ec6c114703fd8c4d0f40a0f9adc7230",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. Host terminal runtime materialization is one call to its distribution adapter, and worker-entry provenance is delegated to its installation module; this entrypoint only refreshes those bindings.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/cli/src/knowledge-structure-command.ts",
-      "contentHash": "sha256:ceb08e80142892fca0475b79f2cccfad8316fc89a760219119636a85ec9d12dd",
+      "contentHash": "sha256:d2da5808ec1e24855aec407be032055265c7ab8533b1f843cb156ba40a63c7a5",
       "responsibility": "User document structure command adapter",
-      "rationale": "Move, merge, split, and delete are variants of one exact-approved document-structure command contract and share the same validation, normalization-relocation reporting, materialization event, and rollback boundary.",
+      "rationale": "Move, merge, split, and delete share one exact-approved document-structure command lifecycle, validation receipt, event, and rollback boundary. The added complete-coverage receipt gate composes reporting lint without adding policy, storage, or provider responsibilities. Structure planning and effects remain in package owners.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/cli/src/managed-deliberation.ts",
-      "contentHash": "sha256:a67e48218380e87fcea3891da3c6bcb2079558b8664b7934d17235143e2c81f7",
+      "contentHash": "sha256:a46b1dc939a9c3c0ef44ac1f69e9412620568b16c8d639133172d9acc0214bce",
       "responsibility": "Managed deliberation execution orchestration",
       "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Participant route validation, verified role composition, and organization-event mutation are isolated in the deliberation participant binding module; this module only orders binding, round execution, terminal release, and the existing lifecycle boundaries.",
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/managed-linked-evidence-canary.ts",
-      "contentHash": "sha256:db08d44e3c5bc37f80b0a0dcb848de4c49be67f4a4fa33d79be71d4d4f036558",
-      "responsibility": "Managed linked-evidence provider selection orchestration",
-      "rationale": "The module owns one read-only selection adapter lifecycle; pure projection and authorization, durable record construction, and managed-run composition remain in separate modules.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:9c49d2225914fb7928b168dd99b4ddf265ba39d2cb12ae1eeaba7fadf23de365",
+      "contentHash": "sha256:83293bd989140de3c358eec9a2b960b90431674e5ac0564011c4da9c514b9466",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module sequences one admitted run through context, execution, outcome checks, writing publication, finalization, and cleanup. Public command contracts, provider construction, grounded capability selection and package ceilings, and outcome verification are separate modules. Existing research, role, skill, workspace and project-verification owners retain their boundaries; the remaining lifecycle shares one ordered failure and storage-cleanup contract.",
       "disposition": "cohesive"
@@ -123,9 +116,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:e77f26644180ffcf13ca6b67cd2b8baef77cb02e3b7cb7b91b13c725c8805e75",
+      "contentHash": "sha256:426253ce83f73a0c1e31b67483ebb8873a5529c0977880e40f857d6398d0f39a",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the event payload privacy boundary and its declarative registry. Context-quality field and semantic rules live in context-quality-payload.ts; adding that registry does not couple artifact storage, plan preparation, or writer activation into redaction.",
+      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission, turn-bound selection, native-skill, and practice registrations add only declarative entries; native-skill and practice fields live in dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, queue and marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
     },
     {
@@ -144,14 +137,14 @@
     },
     {
       "path": "packages/knowledge-okf/src/okf.ts",
-      "contentHash": "sha256:b3fac31cbd1150edee5c7e51dc659cb2faa21cb8dba9ae0e184ccb9bd89b71df",
+      "contentHash": "sha256:da9242a4abf799e0f394269fda5b7010f72558951ab6cc9c8c3bf42e8c95592f",
       "responsibility": "OKF v0.2 exchange adapter",
-      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules.",
+      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules. Export now requires complete scan admission before binding freshness; other format-bound operations retain their existing ownership and validation boundaries.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:09ee509473da7036d6b52171d266a027e7f0077d342512232d46515c1d5c3adb",
+      "contentHash": "sha256:07dce3cc0ce573c5ef89dd3119a6b88800aeb79b3706b8b0a7947806f4f34bf3",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "One provider-neutral run lifecycle delegates source capture, process observation, capability policy, result collection and verification to existing ports. Source admission uses the project-storage gate for the complete run; failed reference-result preservation stays behind its own CAS/evidence boundary. The coordinator sequences both without owning SQLite or background retry policy.",
       "disposition": "cohesive"
@@ -178,13 +171,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/repository-knowledge-compiler/src/process-compiler.ts",
-      "contentHash": "sha256:e3047094c18228b7cbb1b03ccd3b931a80e072213372cce406b88cfb14b9896b",
-      "responsibility": "Isolated no-capability provider process adapter",
-      "rationale": "One isolated no-capability process boundary for both providers with native structured JSON output, shared availability translation, typed Codex failures, and the ADR-0479 reviewer-feedback instruction it adds only to envelopes carrying feedback. Admission, budgets, source policy and document effects stay outside. Common tests cover schema delivery, extraction, no tools, usage, cancellation and timeout.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
       "contentHash": "sha256:44aebaa1bf03512d62ca212a39260582f97df4ea3037d16240a8b3e940d6c72f",
       "responsibility": "Knowledge publication orchestration",
@@ -193,37 +179,37 @@
     },
     {
       "path": "packages/repository-knowledge/src/compiler.ts",
-      "contentHash": "sha256:1d088d7d90ee719274a43af8f2926abb0b0898d71c2540800598d30d3ec93a2d",
+      "contentHash": "sha256:865cc5f6a8b64843bcde57869e5b6144b60290752db1734537d8c29d60a0373f",
       "responsibility": "Deterministic structural knowledge compiler",
-      "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
+      "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module. Complete-scan refusal is shared with other currency consumers and applied at the common migration builder, including virtual scans. The configured reader remains partial-capable; private diagnostic persistence lives in scan-coverage.ts.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:2a7675b93a0fa641b2acb7579640fea062e853ee5372d300a2c2da8ffa34d6cf",
+      "contentHash": "sha256:6458b90a9f8d1f0efdc3a4fdc681610357b6a67c1d2da2a7d31cc100fdda76ad",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation, selection, worksets, shard cache, ADR-0473 tool ownership, and CLI rendering are separate; this module only threads tool-generated paths into eligibility and ADR-0479 reviewer feedback into envelopes, while feedback records and admission live in the convergence runtime.",
+      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, and tool ownership remain separate modules. The public compiler now delegates complete-coverage admission to the pure shared guard before provider calls; configured preparation and apply use the complete scanner. No independent scan or persistence policy is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-merge.ts",
-      "contentHash": "sha256:fb6f321845839f37c497337596655489ab5021654c87c0572e33e2230b93a190",
+      "contentHash": "sha256:2d52b391e0e3163f1c8ba3ea71911826493c9df9c31a66baa8b5e75a349a1d1b",
       "responsibility": "Exact-approved document merge operation",
-      "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility.",
+      "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
-      "contentHash": "sha256:05a7355349fb023c00d8bc9ab4f449f7d404ca3c638bfe83924377179df33ada",
+      "contentHash": "sha256:78faf1b1a51aae45d350f943bca9ef311afa40fc6f8b3dfe191b8f9004a7e091",
       "responsibility": "Exact-approved document move operation",
-      "rationale": "Destination safety, plan serialization, lineage, single-output normalization-record preservation, plan creation, and apply are one atomic document-move responsibility; normalization record mechanics remain in a separate bounded module and formatter configuration is outside this transaction.",
+      "rationale": "One exact-approved move binds destination safety, serialization, lineage, normalization record relocation and atomic apply. Shared modules retain record mechanics and layout policy. Complete scan admission delegates to the configured scanner before planning; no new independent responsibility is introduced.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
-      "contentHash": "sha256:0f0f0f5ff41c566eb2edd380d3748622b7bc941b1f7724456637b4243b5dd8f2",
+      "contentHash": "sha256:e9c98212c0ea68cf7812566eaa997e3be64b5f865f534a5ae8deea780b878049",
       "responsibility": "Exact-approved document split operation",
-      "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility.",
+      "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
@@ -235,16 +221,16 @@
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:dea9b4523cec9fac0e37a7cebb3404cb7cbb4719ac88427b0768bc02a803b825",
+      "contentHash": "sha256:a461c05523ec8b806a22889facae8b03b6257fbae482c77baa26505615348b3d",
       "responsibility": "Provider instruction bridge lifecycle",
-      "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
+      "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:477a401bcae5309a8112e03c5260dbe7c09e55baecd7e1a53566f5b665b5eee4",
+      "contentHash": "sha256:8271019d426cbb7779cc6090af634118a531ec74e1aab127629957f770d5c1f5",
       "responsibility": "Repository knowledge lifecycle lint",
-      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift lint.",
+      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift and publication-root lint. Coverage is returned as reporting metadata independently of validity; pure completeness admission remains in scan-completeness.ts, and receipt and baseline consumers own promotion.",
       "disposition": "cohesive"
     },
     {
@@ -255,45 +241,10 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/repository-knowledge/src/reconciliation-review.ts",
-      "contentHash": "sha256:3a21489ac0d9e8cb172c9b28bd45dbb60db1e5863f44404721e4e63749e485d5",
-      "responsibility": "Semantic reconciliation review lifecycle",
-      "rationale": "Policy validation, review identity, disposition validation, artifact persistence, and event recording form one exact-review responsibility.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/reconciliation.ts",
-      "contentHash": "sha256:833a90612baa44cbcd5a6adbfe9cdda61db8f590d419f18dcfd0261c14caf498",
-      "responsibility": "Semantic candidate reconciliation planning",
-      "rationale": "Existing registry inspection, candidate signatures, conflict options, and dispositions jointly produce one read-only reconciliation plan.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:fee3b10041f7bbc40a96b4588baffcb30eca3ee90f7f0cb91bcbbe6b3b54f046",
+      "contentHash": "sha256:3bf21a6ae1eb5fb2e75001d880a6c0752480859652656b2026a4f89066405d29",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction. Source classification and its evidence observation live in the layout-candidate modules; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:d2e3c0e93c2a9fe93068a5f2b2dfa961b7cc47613d296ce0314b3e612ef7b725",
-      "responsibility": "Fresh repository scan orchestration",
-      "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence. Git-ignored path observation lives in git-ignored-paths.ts; the scan only skips what it reports.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/semantic-compiler.ts",
-      "contentHash": "sha256:c65122d6efda0b8ad660fb8e4c726453145590ae1fd376a32e1d5deac24456b0",
-      "responsibility": "Semantic knowledge candidate compiler",
-      "rationale": "Compilation identity, bounded sharding, provider response validation, and candidate assembly are phases of one semantic compiler contract.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/semantic-materialization.ts",
-      "contentHash": "sha256:6bc3cf1b7d5bfd03c51a5fcbdddf59d97d411110a3d91276b722f143d6edd116",
-      "responsibility": "Reviewed semantic materialization transaction",
-      "rationale": "Review loading, operation derivation, publication generation, plan creation, and apply share one review-bound materialization contract.",
+      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Source classification, route evidence, durable apply, provider calls, lifecycle authority, scope decisions, and health observations retain separate owners. No independent provider or persistence policy was added.",
       "disposition": "cohesive"
     },
     {
@@ -305,16 +256,16 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:9aee9cdf2160eb6a4d6df5197a902ba9cbc0daba9b818fef2ac0239966466e6c",
+      "contentHash": "sha256:079a4b3df5ff87d5ad8b970005ea1469fdb8b273250ea5f303e2deb24f0c4a31",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "One declarative package contract surface for scans, policy, lifecycle results, and typed failures. The optional ranker preparation projection is opaque and provider-neutral; validation belongs to the concrete adapter and persistence to query preparation. No implementation, filesystem, or concrete search adapter is imported into these contracts.",
+      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects. The review adds explicit coverage and skipped summaries to reporting contracts and one scan-incomplete reason. Evaluation, admission, storage, and rendering stay in their owning modules; no second implementation concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:3a6ad30971ed3895f18cf05029670c8dfd74d11c255d20a1ba415756b2d4bd84",
+      "contentHash": "sha256:0fd811e008ed1a28eed4e024a2f5f035493aa05f5ff61537a0eb443fe4919bff",
       "responsibility": "Revisioned workstream snapshot lifecycle",
-      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
+      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, branch-binding storage, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
       "disposition": "cohesive"
     },
     {
@@ -340,16 +291,16 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:2183f5e1afcae686ff01e69803e124195ae2daaf4401d69d4d2e6a035b8b3f25",
+      "contentHash": "sha256:e41f3a368cb2e17062de118d06771876f76b9780160e65c1bd4157538b522017",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module declares the unchanged schema-name mapping and forward-reference catalog used by build-time generation and public type names. It contains no compiler initialization, runtime validation, filesystem access, provider policy or artifact publication. Those responsibilities live in separate owners.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:ebbffbb6be465b464e95dbb908e52e0f9a890541410556e21b1e86dd3875493e",
+      "contentHash": "sha256:8529ed8ec746aa5d1961dff64b9177fba1cbdd1df562991596969a44210a30f1",
       "responsibility": "Declarative terminal observation event schemas",
-      "rationale": "The module contains only the bounded JSON Schema declarations and inferred payload types for one terminal observation lifecycle; runtime validation, redaction, persistence, and orchestration remain in their owning modules.",
+      "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
       "disposition": "cohesive"
     },
     {
@@ -392,13 +343,6 @@
       "contentHash": "sha256:0608948abdbbffe1283bddb642c9a2f6f300bb0a1c4f3661c73e5bf35d9704ff",
       "responsibility": "Versioned lexical-v2 provider comparison contract",
       "rationale": "The module owns one immutable comparison-contract lineage: protocols, schema, suite validation, and pure acceptance evaluation share the same version and gate lifecycle, while provider execution and evidence selection remain separate.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/natural-language-evaluation/linked-evidence-managed-canary-recent-checkpoints.mjs",
-      "contentHash": "sha256:448575575da38837be4a3791169762037a07b7e7bc4302821c3f3cd8c88c44b9",
-      "responsibility": "Recent managed-canary checkpoint validation",
-      "rationale": "The module declaratively validates one lineage of recent immutable canary checkpoints; preparation, execution, storage, and reporting remain in separate modules, while the length follows explicit version-bound predecessor evidence.",
       "disposition": "cohesive"
     },
     {

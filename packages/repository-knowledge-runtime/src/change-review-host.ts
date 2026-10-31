@@ -1,3 +1,4 @@
+import { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
 import {
   RepositoryKnowledgeReviewError,
   type RepositoryKnowledgeWorkerHost,
@@ -138,10 +139,33 @@ export function governChangeReviewCalls(input: ChangeReviewHostInput): Knowledge
 export function createChangeReviewHost(
   input: ChangeReviewHostInput,
 ): RepositoryKnowledgeWorkerHost {
-  return createNoCapabilityKnowledgeReviewHost(
+  let active = createNoCapabilityKnowledgeReviewHost(
     input.storage.paths.repositoryRoot,
     input.provider,
-    input.executable,
-    governChangeReviewCalls(input),
   );
+  return {
+    inspectKnowledge: () => active.inspectKnowledge(),
+    assertReviewContextCurrent: () => active.assertReviewContextCurrent?.(),
+    review: async (sources, job) => {
+      // Missing delegation stays terminal attention for the review, as the call ceiling reports it.
+      const selected = await admittedBackgroundContext(input).catch((error: unknown) => {
+        if (
+          error instanceof KnowledgeConvergenceRuntimeError &&
+          error.code === "knowledge_authority_unavailable"
+        )
+          throw new RepositoryKnowledgeReviewError("knowledge_authority_unavailable", {
+            cause: error,
+          });
+        throw error;
+      });
+      active = createNoCapabilityKnowledgeReviewHost(
+        input.storage.paths.repositoryRoot,
+        selected.provider,
+        selected.executable,
+        governChangeReviewCalls(selected),
+        backgroundProviderOptions(selected),
+      );
+      return active.review(sources, job);
+    },
+  };
 }

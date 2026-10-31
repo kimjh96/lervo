@@ -1,6 +1,17 @@
 import { posix } from "node:path";
 
-import { ContextPreparationError, readRepositoryFile } from "@lervo/context";
+import {
+  optionalReviewDocuments,
+  type SemanticReviewContextDocument,
+} from "./knowledge-review-document.js";
+type QuerySourceReader = (
+  path: string,
+  maximumBytes: number,
+) => Promise<SemanticReviewContextDocument | null>;
+function querySourceReader(root: string): QuerySourceReader {
+  const load = optionalReviewDocuments();
+  return (path, maximumBytes) => load({ repositoryRoot: root, path, maximumBytes });
+}
 
 export function pathTerms(path: string): Set<string> {
   return new Set(
@@ -11,7 +22,11 @@ export function pathTerms(path: string): Set<string> {
   );
 }
 
-export async function contextQuery(root: string, paths: readonly string[]): Promise<string> {
+export async function contextQuery(
+  root: string,
+  paths: readonly string[],
+  loadSource: QuerySourceReader = querySourceReader(root),
+): Promise<string> {
   const terms: string[] = [];
   const add = (values: Iterable<string>, maximum: number) => {
     let added = 0;
@@ -27,15 +42,9 @@ export async function contextQuery(root: string, paths: readonly string[]): Prom
     32,
   );
   for (const path of paths.filter((source) => /\.mdx?$/iu.test(source)).slice(0, 8)) {
-    let source: string;
-    try {
-      source = new TextDecoder("utf8", { fatal: true }).decode(
-        await readRepositoryFile(root, path, 256 * 1024),
-      );
-    } catch (error) {
-      if (error instanceof ContextPreparationError && error.code === "document_missing") continue;
-      throw error;
-    }
+    const document = await loadSource(path, 256 * 1024);
+    if (document === null) continue;
+    const source = document.content;
     add(
       [...source.matchAll(/^\s{0,3}#{1,6}\s+(.+)$/gmu)].flatMap((match) => [
         ...pathTerms(match[1]!),
@@ -56,7 +65,11 @@ export async function contextQuery(root: string, paths: readonly string[]): Prom
   return terms.join(" ") || "repository knowledge canonicalization";
 }
 
-export async function sourceSpecificQueries(root: string, paths: readonly string[]) {
+export async function sourceSpecificQueries(
+  root: string,
+  paths: readonly string[],
+  loadSource: QuerySourceReader = querySourceReader(root),
+) {
   const focused: { query: string; eventBearing: boolean }[] = [];
   for (const path of paths) {
     if (path === ".github/PULL_REQUEST_TEMPLATE.md")
@@ -64,15 +77,9 @@ export async function sourceSpecificQueries(root: string, paths: readonly string
     if (path === "apps/cli/package.json")
       focused.push({ query: "cli bundle construction", eventBearing: false });
     if (!/\.[cm]?[jt]sx?$/u.test(path)) continue;
-    let source: string;
-    try {
-      source = new TextDecoder("utf8", { fatal: true }).decode(
-        await readRepositoryFile(root, path, 256 * 1024),
-      );
-    } catch (error) {
-      if (error instanceof ContextPreparationError && error.code === "document_missing") continue;
-      throw error;
-    }
+    const document = await loadSource(path, 256 * 1024);
+    if (document === null) continue;
+    const source = document.content;
     const terms = [...pathTerms(posix.basename(path))].filter(
       (term) => !["ts", "tsx", "js", "jsx", "mjs", "cjs"].includes(term),
     );

@@ -38,6 +38,7 @@ import {
   runAssignmentConnectorCommand,
 } from "./assignment-connector-command.js";
 import { runInitCommand, initUsage } from "./init-command.js";
+export { ensureStartupHostTerminalRuntime } from "./terminal-runtime.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { liveTriggerUsage, runLiveTriggerCommand } from "./live-trigger-command.js";
 import { executeManagedRun } from "./managed-run.js";
@@ -127,11 +128,6 @@ const defaultServices: CliServices = {
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
-  createLocalImprovementObservationHost: async (input) => {
-    const { createLocalImprovementObservationHost } =
-      await import("./local-improvement-observation-host.js");
-    return createLocalImprovementObservationHost(input);
-  },
 };
 
 export async function runCli(

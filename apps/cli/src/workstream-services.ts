@@ -1,10 +1,13 @@
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
+  clearCurrentWorkstreamProjection,
   readCurrentWorkstreamState,
   restoreCurrentWorkstreamState,
   sha256,
 } from "@lervo/repository-knowledge";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
+
+import { selectBranchWorkstream } from "./workstream-branch-selection.js";
 
 function artifactUri(contentHash: string): string {
   return `lervo-cas://sha256/${contentHash.slice("sha256:".length)}`;
@@ -48,27 +51,57 @@ function hasReplicatedWorkstreamOrigin(storage: ProjectStorage, workstreamId: st
   }
 }
 
+async function restoreRecordedWorkstream(
+  storage: ProjectStorage,
+  event: NonNullable<ReturnType<typeof latestWorkstreamEvent>>,
+) {
+  const payload = event.payload as Record<string, unknown>;
+  if (typeof payload.snapshotContentHash !== "string")
+    throw new Error("The recorded workstream snapshot hash is invalid.");
+  const uri = artifactUri(payload.snapshotContentHash);
+  if (!(await storage.artifacts.has(uri)))
+    throw new Error("The recorded workstream snapshot artifact is missing.");
+  await restoreCurrentWorkstreamState({
+    repositoryRoot: storage.paths.repositoryRoot,
+    content: await storage.artifacts.get(uri),
+    expectedHash: payload.snapshotContentHash,
+  });
+  const state = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+  if (state === null)
+    throw new Error("The recorded current workstream state could not be rebuilt.");
+  return state;
+}
+
+/**
+ * Verifies the workstream the checked-out branch continues. Switching branches re-projects that
+ * branch's workstream from its recorded history; a branch that continues none selects nothing.
+ */
 export async function verifiedCurrentWorkstream(
   storage: ProjectStorage,
 ): Promise<WorkstreamSnapshot | null> {
-  let state = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
+  const root = storage.paths.repositoryRoot;
+  let state = await readCurrentWorkstreamState(root);
+  const selection = await selectBranchWorkstream({
+    root,
+    projected: state?.snapshot ?? null,
+  });
+  if (selection.kind === "unbound") {
+    if (state !== null) await clearCurrentWorkstreamProjection(root);
+    return null;
+  }
+  if (selection.kind === "bound" && state?.snapshot.workstreamId !== selection.workstreamId) {
+    const bound = latestWorkstreamEvent(storage, selection.workstreamId);
+    if (bound === null) {
+      // The binding outlived its local history, as in a fresh clone before replication.
+      if (state !== null) await clearCurrentWorkstreamProjection(root);
+      return null;
+    }
+    state = await restoreRecordedWorkstream(storage, bound);
+  }
   const event = latestWorkstreamEvent(storage, state?.snapshot.workstreamId);
   if (state === null) {
     if (event === null) return null;
-    const payload = event.payload as Record<string, unknown>;
-    if (typeof payload.snapshotContentHash !== "string")
-      throw new Error("The recorded workstream snapshot hash is invalid.");
-    const uri = artifactUri(payload.snapshotContentHash);
-    if (!(await storage.artifacts.has(uri)))
-      throw new Error("The recorded workstream snapshot artifact is missing.");
-    await restoreCurrentWorkstreamState({
-      repositoryRoot: storage.paths.repositoryRoot,
-      content: await storage.artifacts.get(uri),
-      expectedHash: payload.snapshotContentHash,
-    });
-    state = await readCurrentWorkstreamState(storage.paths.repositoryRoot);
-    if (state === null)
-      throw new Error("The recorded current workstream state could not be rebuilt.");
+    state = await restoreRecordedWorkstream(storage, event);
   }
   if (event === null) throw new Error("The current workstream has no committed snapshot event.");
   const payload = event.payload as Record<string, unknown>;

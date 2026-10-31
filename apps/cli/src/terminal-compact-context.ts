@@ -1,19 +1,16 @@
 import { prepareTerminalInstructionPreamble } from "./terminal-instruction-context.js";
-import { observeContextPreparation } from "@lervo/context";
+import { extractTerminalFindAnchors, formatTerminalFindPointer } from "./terminal-find-anchors.js";
+import { documentIdForPath, observeContextPreparation } from "@lervo/context";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
   canonicalJson,
-  documentFreshnessCompactLine,
   listCanonicalizationCandidates,
   loadRepositoryKnowledgePolicy,
   sha256,
   workstreamFreshnessPolicy,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
-import {
-  documentFreshnessSummary,
-  inspectKnowledgeResidentHealth,
-} from "@lervo/repository-knowledge-runtime";
+import { inspectKnowledgeResidentHealth } from "@lervo/repository-knowledge-runtime";
 import { createSearchQueryProjection, searchQueryProjectorBuildId } from "@lervo/search";
 
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
@@ -24,10 +21,7 @@ import {
   staleWorkstreamEntryCount,
 } from "./terminal-compact-format.js";
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
-import {
-  instructionCaptureCompactLines,
-  readInstructionCaptureAttention,
-} from "./instruction-capture-attention.js";
+import { readRepositoryHealth } from "./repository-health-reader.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
@@ -63,16 +57,9 @@ export async function prepareCompactTerminalPromptContext(input: {
   const requestDigest = sha256(input.prompt);
   const observedAt = new Date();
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
-    captureTerminalRepositorySnapshot(input.root),
+    captureTerminalRepositorySnapshot(input.root, input.timing.deadlineMs),
   );
-  const [
-    sourceSnapshotId,
-    query,
-    canonicalization,
-    health,
-    documentFreshnessLine,
-    instructionCaptureLines,
-  ] = await Promise.all([
+  const [sourceSnapshotId, query, canonicalization, health, repositoryHealth] = await Promise.all([
     input.timing.measure("corpus_preparation", () =>
       terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
     ),
@@ -118,11 +105,11 @@ export async function prepareCompactTerminalPromptContext(input: {
       () => ({ coverage: "unavailable" as const, candidates: [] }),
     ),
     inspectKnowledgeResidentHealth(input.root),
-    documentFreshnessSummary(input.root, observedAt).then(documentFreshnessCompactLine, () => null),
-    readInstructionCaptureAttention(input.root).then(
-      (attention) => instructionCaptureCompactLines(attention, false),
-      () => [],
-    ),
+    readRepositoryHealth({
+      root: input.root,
+      repositoryRevision: repositorySnapshot.revision,
+      now: observedAt,
+    }),
   ]);
   const attention = createOperatingAttentionReport({
     projectId: query.projectId,
@@ -130,10 +117,12 @@ export async function prepareCompactTerminalPromptContext(input: {
     workstreamFreshness: query.workstreamFreshness,
     canonicalization,
     knowledgeLifecycle: { coverage: "unavailable", issues: [] },
+    health: repositoryHealth,
     observedAt,
   });
   const preamble = formatCompactTerminalPreamble({
     publicationLanguage: query.publicationLanguage,
+    workspaceBinding: input.workspaceBinding,
     attention,
     declarationInstruction: input.declarationInstruction,
     backgroundKnowledgeActive:
@@ -144,16 +133,26 @@ export async function prepareCompactTerminalPromptContext(input: {
       query.currentWorkstream,
       query.workstreamFreshness,
     ),
-    documentFreshnessLine,
-    instructionCaptureLines,
   });
+  // ADR-0538: exact anchors point at named skills, decisions, and nested instructions. A prompt is
+  // partial evidence of scope, so anchors never narrow owner-rule selection.
+  const anchors = extractTerminalFindAnchors(input.prompt, repositorySnapshot.files);
   const instructions = await prepareTerminalInstructionPreamble({
     root: input.root,
     preamble,
     maximumBytes: 4096,
     prompt: input.prompt,
+    optionalLines: anchors.pointers.map(formatTerminalFindPointer),
     sourceSnapshotId,
   });
+  // Only pointers that reached the context are selected; their bodies are never loaded here.
+  const selectedPointers = anchors.pointers
+    .slice(0, instructions.optionalLineCount)
+    .map(({ path, contentHash, kind }) => ({ path, contentHash, kind }));
+  const selected = selectedPointers.map((pointer) => ({
+    sourceId: documentIdForPath(pointer.path),
+    contentHash: pointer.contentHash,
+  }));
   const { additionalContext, workstream } = assembleCompactTerminalContext(
     instructions.preamble,
     query.currentWorkstream === null || query.workstreamFreshness === null
@@ -166,10 +165,10 @@ export async function prepareCompactTerminalPromptContext(input: {
       ...observeContextPreparation({
         requestDigest,
         sourceSnapshotId,
-        retrieval: "not_run",
-        candidateCount: null,
-        selected: [],
-        loads: [],
+        retrieval: anchors.pointers.length === 0 ? "not_run" : "completed",
+        candidateCount: anchors.pointers.length === 0 ? null : anchors.pointers.length,
+        selected,
+        loads: selected.length === 0 ? [] : null,
       }),
       instructions: instructions.report,
     },
@@ -177,6 +176,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     sourceSnapshotId,
     recommendationCount: 0,
     documents: [],
+    selectedPointers,
     repositoryRevision: repositorySnapshot.revision,
     repositoryFiles: repositorySnapshot.files,
     ...(repositorySnapshot.commits === undefined
@@ -202,6 +202,9 @@ export async function prepareCompactTerminalPromptContext(input: {
       targetPath: null,
       reasonIds: ["unmanaged_terminal_retrieval_only"],
     },
-    selection: { disposition: "query_projection_missing", selectedCount: 0 },
+    selection:
+      selected.length === 0
+        ? { disposition: "query_projection_missing", selectedCount: 0 }
+        : { disposition: "selected", selectedCount: selected.length },
   };
 }

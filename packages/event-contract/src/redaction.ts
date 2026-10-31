@@ -1,3 +1,4 @@
+import { practicePayloadAllowlists, practicePayloadSchemas } from "./practice-payload.js";
 import {
   contextQualityPayloadAllowlists,
   contextQualityPayloadSchemas,
@@ -16,6 +17,10 @@ import {
   instructionCapturePayloadAllowlists,
   instructionCapturePayloadSchemas,
 } from "./instruction-capture-payload.js";
+import {
+  terminalSkillPayloadAllowlists,
+  terminalSkillPayloadSchemas,
+} from "./terminal-skill-payload.js";
 import {
   validateSchema,
   type AgentContextHandoffRecordedEventPayload,
@@ -50,6 +55,8 @@ export const eventPayloadAllowlists = {
   ...knowledgeConvergencePayloadAllowlists,
   ...documentFreshnessPayloadAllowlists,
   ...instructionCapturePayloadAllowlists,
+  ...terminalSkillPayloadAllowlists,
+  ...practicePayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -120,6 +127,23 @@ export const eventPayloadAllowlists = {
     "mode",
     "reason",
     "occurredAt",
+  ],
+  "provider.cli.admitted": [
+    "provider",
+    "version",
+    "executableHash",
+    "probeResultHash",
+    "hostLabel",
+    "admittedAt",
+  ],
+  "provider.cli.rejected": [
+    "provider",
+    "version",
+    "executableHash",
+    "reason",
+    "exposedTools",
+    "hostLabel",
+    "rejectedAt",
   ],
   "knowledge.convergence.delegation.continued": [
     "repositoryIdentityHash",
@@ -211,6 +235,12 @@ export const eventPayloadAllowlists = {
     "scope",
     "knowledgeContext",
     "origin",
+    "conceptId",
+    "path",
+    "contentHash",
+    "providerSessionDigest",
+    "providerTurnDigest",
+    "contextEventId",
   ],
   "document.loaded": [
     "evidenceReceiptId",
@@ -1018,6 +1048,7 @@ export const eventPayloadAllowlists = {
     "contextHash",
     "recommendationCount",
     "loadedDocuments",
+    "selectedPointers",
     "workstreamId",
     "workstreamRevision",
     "workstreamSnapshotHash",
@@ -1046,6 +1077,7 @@ export const eventPayloadAllowlists = {
     "observationId",
     "contextEventId",
     "conceptId",
+    "documentId",
     "path",
     "contentHash",
     "scope",
@@ -1058,6 +1090,8 @@ export const eventPayloadAllowlists = {
     "contextEventId",
     "referenceEventIds",
     "referenceCount",
+    "selectedCount",
+    "pathMentionCount",
     "referenceTelemetry",
     "lifecycleStatus",
     "completionResult",
@@ -1440,6 +1474,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "repository.replica.diverged": "repositoryReplicaDivergedEventPayload",
   "repository.replica.reconciled": "repositoryReplicaReconciledEventPayload",
   "knowledge.convergence.owner.changed": "knowledgeConvergenceOwnerChangedEventPayload",
+  "provider.cli.admitted": "providerCliAdmittedEventPayload",
+  "provider.cli.rejected": "providerCliRejectedEventPayload",
   "knowledge.convergence.delegation.continued":
     "knowledgeConvergenceDelegationContinuedEventPayload",
   "knowledge.convergence.definitions.installed":
@@ -1454,6 +1490,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "capability.activated": "capabilityActivatedEventPayload",
   "context.recommended": "contextRecommendationEventPayload",
   "context.injected": "managedContextInjectedEventPayload",
+  "context.selected": "contextSelectedEventPayload",
   "adapter.result.captured": "adapterResultCapturedEventPayload",
   "context.referenced": "managedContextReferencedEventPayload",
   "run.completed": "runCompletedEventPayload",
@@ -1496,6 +1533,8 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "terminal.turn.declared": "terminalTurnDeclaredEventPayload",
   "terminal.reference.observed": "terminalReferenceObservedEventPayload",
   "terminal.turn.observed": "terminalTurnObservedEventPayload",
+  ...terminalSkillPayloadSchemas,
+  ...practicePayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

@@ -1,9 +1,10 @@
 import {
   runAutonomousKnowledgeWorker,
+  createChangeReviewHost,
+  admittedBackgroundContext,
   startAutonomousKnowledgeWorker,
   type ConvergenceOwnerVerdict,
 } from "@lervo/repository-knowledge-runtime";
-import { spawn } from "node:child_process";
 
 import {
   createKnowledgeConvergenceContinuity,
@@ -53,13 +54,23 @@ export async function runKnowledgeWorker(input: {
           : { maximumStages: Math.min(8, input.maximumJobs) }),
       });
     }
+    const selected =
+      input.host === undefined
+        ? await admittedBackgroundContext({ storage, provider: input.provider })
+        : null;
     return await runRepositoryKnowledgeWorker({
       repositoryRoot: storage.paths.repositoryRoot,
       events: storage.events,
       artifacts: storage.artifacts,
       workerId: `cli-${process.pid}`,
       provider: input.provider,
-      ...(input.host === undefined ? {} : { host: input.host }),
+      host:
+        input.host ??
+        createChangeReviewHost({
+          ...selected!,
+          signal: new AbortController().signal,
+          liveWorkPending: async () => false,
+        }),
       ...(input.maximumJobs === undefined ? {} : { maximumJobs: input.maximumJobs }),
     });
   } finally {
@@ -71,6 +82,11 @@ export async function runKnowledgeWorker(input: {
 export async function runKnowledgeWorkerCommand(
   args: readonly string[],
   io: { cwd: string; stdout(message: string): void; stderr(message: string): void },
+  /**
+   * The full CLI refreshes the core health projection each watch cycle. One-shot cycles
+   * leave that projection to their resident. No worker implementation enters the hook bundle.
+   */
+  options: { refreshHealth?: (root: string) => Promise<void> } = {},
 ): Promise<number> {
   const provider = args.includes("--provider") ? args[args.indexOf("--provider") + 1] : undefined;
   if (
@@ -93,6 +109,9 @@ export async function runKnowledgeWorkerCommand(
         continuity: createKnowledgeConvergenceContinuity(storage),
         instructionCandidateTransport,
         publish: createKnowledgePublisher(storage.paths.repositoryRoot),
+        ...(options.refreshHealth === undefined
+          ? {}
+          : { refreshHealth: () => options.refreshHealth!(storage.paths.repositoryRoot) }),
         onCycle: (result) => io.stdout(`${JSON.stringify(result)}\n`),
         onFailure: (error) =>
           io.stderr(knowledgeWorkerFailureLine(error, storage.paths.repositoryRoot)),
@@ -113,26 +132,4 @@ export async function runKnowledgeWorkerCommand(
   }
 }
 
-/**
- * Starts a detached worker after a turn or run has finished; the caller never waits for it. A
- * launch failure leaves the job queued for the next worker (`knowledge_worker_launch_failed`).
- */
-export function launchDetachedKnowledgeWorker(input: {
-  root: string;
-  entry: string;
-  args: readonly string[];
-}): boolean {
-  try {
-    const child = spawn(process.execPath, [input.entry, ...input.args], {
-      cwd: input.root,
-      detached: true,
-      stdio: "ignore",
-      env: process.env,
-    });
-    child.on("error", () => undefined);
-    child.unref();
-    return true;
-  } catch {
-    return false;
-  }
-}
+export { launchDetachedKnowledgeWorker } from "./detached-knowledge-worker.js";

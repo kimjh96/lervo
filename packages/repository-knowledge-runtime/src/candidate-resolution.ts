@@ -40,7 +40,7 @@ export async function resolveConvergenceCandidates(
         candidates.flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
       ),
     ];
-    const documents = await loadCanonicalReviewContext({
+    const { documents, skipped: contextSkips } = await loadCanonicalReviewContext({
       repositoryRoot: root,
       sourcePaths: paths,
     });
@@ -81,6 +81,7 @@ export async function resolveConvergenceCandidates(
           task: "canonical_candidate_resolution",
           schema: candidateReviewSchema,
           contextDocuments: documents,
+          contextSkips,
           untrustedSourceData: {
             candidates,
             sources,

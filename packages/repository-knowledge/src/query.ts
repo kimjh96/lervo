@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 
 import { loadDecisionTaxonomy, loadProjectManifest } from "@lervo/project";
-import type { DocumentRegistry } from "@lervo/schemas";
 import {
   archiveScopes,
   historicalDocumentMarker,
@@ -9,22 +8,14 @@ import {
 } from "./historical-documents.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
-import { sha256 } from "./integrity.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { readKnowledgeQueryPublications } from "./query-publications.js";
-import { mapKnowledgeReads } from "./knowledge-read-scheduling.js";
 import { readPreparationCache, writePreparationCache } from "./preparation-cache-file.js";
 import { SourceUnitCache } from "./source-unit-cache.js";
 import { ConceptSidecarCache } from "./concept-sidecar-cache.js";
-import { generatedKnowledgePaths, readSafePublication } from "./repository-publication-files.js";
-import { projectKnowledgeRelations, type RelationConceptCoordinate } from "./relation-query.js";
+import { generatedKnowledgePaths } from "./repository-publication-files.js";
 import { scanRepositoryKnowledge } from "./scanner.js";
-import {
-  loadStoredClaims,
-  loadStoredConcepts,
-  loadStoredRelations,
-  type StoredClaim,
-} from "./store-reader.js";
+import { loadStoredClaims, loadStoredConcepts, type StoredClaim } from "./store-reader.js";
 import type {
   KnowledgeQueryHit,
   KnowledgeQueryResult,
@@ -63,13 +54,11 @@ interface PreparedKnowledgeEntry {
 }
 
 interface PreparedKnowledgeQueryData {
+  coverage: KnowledgeQueryResult["coverage"];
+  skippedForBudget: KnowledgeQueryResult["skippedForBudget"];
   sourceSnapshotId: string;
   impactReportId: string;
-  conceptSidecarSetHash: string;
-  relationSidecarSetHash: string;
   entries: readonly PreparedKnowledgeEntry[];
-  concepts: readonly RelationConceptCoordinate[];
-  relations: Awaited<ReturnType<typeof loadStoredRelations>>;
   ranker?: PreparedRepositoryKnowledgeQueryRanker;
 }
 
@@ -116,7 +105,6 @@ export class RepositoryKnowledgeQueryIndex {
         .filter((item) => item.subjectKind === "concept")
         .map((item) => [item.subjectId, item.freshness]),
     );
-    const resolvedConcepts: RelationConceptCoordinate[] = [];
     const claimsByConcept = new Map<string, StoredClaim[]>();
     for (const stored of await loadStoredClaims(root)) {
       if (stored.value === null) continue;
@@ -130,11 +118,17 @@ export class RepositoryKnowledgeQueryIndex {
         ? undefined
         : new ConceptSidecarCache(await readPreparationCache(root, "concept-sidecars"));
     const storedConcepts = await loadStoredConcepts(root, conceptCache);
-    const storedRelations = await loadStoredRelations(root);
     const entries: PreparedKnowledgeEntry[] = [];
+    const skippedPaths = new Set(
+      scan.sources
+        .filter((source) => source.reason === "total_budget_exceeded")
+        .map((source) => source.path),
+    );
     const publications = await readKnowledgeQueryPublications(
       root,
-      storedConcepts,
+      storedConcepts.filter(
+        (stored) => stored.value === null || !skippedPaths.has(stored.value.path),
+      ),
       Math.min(policy.limits.maxFileBytes, 131_072),
     );
     for (const { concept, content, contentHash } of publications) {
@@ -150,14 +144,6 @@ export class RepositoryKnowledgeQueryIndex {
           : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id))
             ? "current"
             : "stale");
-      resolvedConcepts.push({
-        conceptId: concept.conceptId,
-        path: concept.path,
-        contentHash,
-        assurance,
-        freshness,
-        deprecated: false,
-      });
       const searchText = `${content}\n${linkedClaims.map((claim) => claim.statement).join("\n")}`;
       entries.push({
         hit: {
@@ -182,22 +168,6 @@ export class RepositoryKnowledgeQueryIndex {
           }) !== null,
       });
     }
-    const conceptSidecarSetHash = sha256(
-      JSON.stringify(
-        await mapKnowledgeReads(storedConcepts, async (stored) => {
-          const bytes = await readSafePublication(root, stored.file, 256 * 1024);
-          return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
-        }),
-      ),
-    );
-    const relationSidecarSetHash = sha256(
-      JSON.stringify(
-        await mapKnowledgeReads(storedRelations, async (stored) => {
-          const bytes = await readSafePublication(root, stored.file, 256 * 1024);
-          return [stored.file, bytes === null ? "unreadable" : sha256(bytes)] as const;
-        }),
-      ),
-    );
     const ranker = await input.ranker?.prepare(
       entries.map((entry) => ({
         conceptId: entry.hit.conceptId,
@@ -225,22 +195,16 @@ export class RepositoryKnowledgeQueryIndex {
     if (input.preparationCache !== "disabled" && ranker?.preparationProjection !== undefined)
       await writePreparationCache(root, "ranker", ranker.preparationProjection);
     return new RepositoryKnowledgeQueryIndex({
+      coverage: scan.coverage,
+      skippedForBudget: scan.skippedForBudget,
       sourceSnapshotId: scan.snapshotId,
       impactReportId: impact.reportId,
-      conceptSidecarSetHash,
-      relationSidecarSetHash,
       entries,
-      concepts: resolvedConcepts,
-      relations: storedRelations,
       ...(ranker === undefined ? {} : { ranker }),
     });
   }
 
-  query(input: {
-    query: string;
-    limit?: number;
-    documentRegistry?: DocumentRegistry;
-  }): KnowledgeQueryResult {
+  query(input: { query: string; limit?: number }): KnowledgeQueryResult {
     const rankedHits: KnowledgeQueryHit[] = [];
     const queryTerms = terms(input.query);
     // Historical documents are excluded from default retrieval and labelled when history is asked.
@@ -313,6 +277,8 @@ export class RepositoryKnowledgeQueryIndex {
     return {
       schemaVersion: 1,
       query: input.query,
+      coverage: this.data.coverage,
+      skippedForBudget: this.data.skippedForBudget,
       semantics: "recommended",
       ...(this.data.ranker === undefined
         ? {}
@@ -325,20 +291,6 @@ export class RepositoryKnowledgeQueryIndex {
       sourceSnapshotId: this.data.sourceSnapshotId,
       impactReportId: this.data.impactReportId,
       hits: selectedHits,
-      relationProjection: projectKnowledgeRelations({
-        sourceSnapshotId: this.data.sourceSnapshotId,
-        impactReportId: this.data.impactReportId,
-        conceptSidecarSetHash: this.data.conceptSidecarSetHash,
-        relationSidecarSetHash: this.data.relationSidecarSetHash,
-        seedConceptIds: selectedHits.map((hit) => hit.conceptId),
-        concepts: this.data.concepts,
-        relations: this.data.relations.flatMap((stored) =>
-          stored.value === null ? [] : [stored.value],
-        ),
-        ...(input.documentRegistry === undefined
-          ? {}
-          : { documentRegistry: input.documentRegistry }),
-      }),
     };
   }
 }
@@ -348,7 +300,6 @@ export async function queryRepositoryKnowledge(input: {
   query: string;
   limit?: number;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
-  documentRegistry?: DocumentRegistry;
   ranker?: RepositoryKnowledgeQueryRanker;
 }): Promise<KnowledgeQueryResult> {
   const index = await RepositoryKnowledgeQueryIndex.prepare({
@@ -361,6 +312,5 @@ export async function queryRepositoryKnowledge(input: {
   return index.query({
     query: input.query,
     ...(input.limit === undefined ? {} : { limit: input.limit }),
-    ...(input.documentRegistry === undefined ? {} : { documentRegistry: input.documentRegistry }),
   });
 }

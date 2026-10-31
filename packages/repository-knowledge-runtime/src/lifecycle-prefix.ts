@@ -1,3 +1,10 @@
+import {
+  deferLayoutOutsideScope,
+  lifecycleChangedPaths,
+  missingLifecyclePaths,
+} from "./lifecycle-plan-scope.js";
+import { observeDocumentDeferrals } from "./document-deferral-health.js";
+import { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
 import {
@@ -27,7 +34,7 @@ import {
 } from "./lifecycle-plan-parking.js";
 import { reviewLifecyclePlan } from "./lifecycle-plan-review.js";
 import { withConvergenceAssignment } from "./workforce.js";
-import { pathWithinConvergenceRoots } from "./delegation.js";
+import { assertConvergenceDelegation, pathWithinConvergenceRoots } from "./delegation.js";
 import { completeConvergenceStage, waitingConvergenceStage } from "./stage-receipt.js";
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 import { verifyConvergenceEffect } from "./stage-verification.js";
@@ -43,13 +50,36 @@ export async function prepareConvergenceLifecycle(
 ): Promise<KnowledgeConvergenceStageResult | null> {
   const root = context.storage.paths.repositoryRoot;
   const bootstrap = await createKnowledgeInstructionBootstrapPlan({ repositoryRoot: root });
-  let layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  const documentRouteContext = await inspectDocumentRouteResolutionContext({
+    repositoryRoot: root,
+    ...(context.admissionDirectory === undefined
+      ? {}
+      : { admissionDirectory: context.admissionDirectory }),
+  });
+  let layout = await createRepositoryLayoutMigrationPlan({
+    repositoryRoot: root,
+    documentRouteContext,
+  });
   // ADR-0476: deferred documents are classified first; the plan then carries their exact moves.
   if (
     bootstrap.status === "not_applicable" &&
     (await classifyDeferredDocumentRoutes(context, state, assertLease, layout)) > 0
   )
-    layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    layout = await createRepositoryLayoutMigrationPlan({
+      repositoryRoot: root,
+      documentRouteContext,
+    });
+  const delegation = await assertConvergenceDelegation({
+    repositoryRoot: root,
+    projectId: state.baseline.projectId,
+    expectedHash: state.baseline.delegationHash,
+    provider: context.provider,
+  });
+  const governedRoots = [...delegation.canonicalRoots, ...delegation.normalizationRoots];
+  const missingPaths = missingLifecyclePaths(layout, governedRoots);
+  if (missingPaths.length > 0 && layout.moves.length > 0)
+    layout = deferLayoutOutsideScope(layout, missingPaths);
+  await observeDocumentDeferrals({ repositoryRoot: root, layout });
   const plan =
     bootstrap.status !== "not_applicable" ? bootstrap : layout.status !== "current" ? layout : null;
   if (plan === null) return null;
@@ -61,17 +91,9 @@ export async function prepareConvergenceLifecycle(
       reason: "knowledge_lifecycle_blocked",
       dependency: { kind: "lifecycle_plan", snapshotHash: state.snapshotHash, planId: plan.planId },
     });
-  const paths = [
-    ...new Set(
-      plan.operations
-        .filter((operation) => operation.action !== "unchanged")
-        .flatMap((operation) =>
-          "destinationPath" in operation
-            ? [operation.path, operation.destinationPath]
-            : [operation.path],
-        ),
-    ),
-  ];
+  const paths = lifecycleChangedPaths(plan);
+  if (missingLifecyclePaths(plan, governedRoots).length > 0)
+    throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const kind: LifecyclePlanKind =
     plan.planKind === "repository_layout" ? "repository_layout" : "instruction_bootstrap";
   const parked = mergeParkedSources(

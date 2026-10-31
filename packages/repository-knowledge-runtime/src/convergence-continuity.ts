@@ -1,3 +1,8 @@
+import { readKnowledgeProviderPauseStates } from "./provider-admission-inspection.js";
+import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
+import { readWorkerProviderSelection } from "./provider-cli-selection.js";
+import { resolveAdmittedProviderCli } from "./provider-cli-admission.js";
+import { readProviderCliProjection, providerCliFindings } from "./provider-cli-findings.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import {
@@ -7,9 +12,12 @@ import {
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
 
+import { documentRouteScopeResponse } from "./document-route-scope-response.js";
+import { proposeDocumentRouteScope } from "./document-route-scope-proposal.js";
 import { continuityFindings, type ContinuityOwnerHostObservation } from "./continuity-findings.js";
 import { continuityHostRecord, continuityPeerSummary } from "./continuity-host-record.js";
 import {
+  convergenceScopeChangeRecorded,
   nextContinuationFailure,
   readConvergenceContinuityState,
   writeConvergenceContinuityState,
@@ -96,6 +104,7 @@ export interface ConvergenceContinuityInput {
   publication: () => Promise<KnowledgePublicationSettings | null>;
   hostLabel: string;
   now?: () => number;
+  providerAdmission?: () => Promise<ProviderCliAdmissionProjection | null>;
 }
 
 /**
@@ -208,12 +217,13 @@ export class ConvergenceContinuity {
       }
     const exchange: DefinitionExchangeObservation = { failureCode: null };
     const definitionPort = hubFailure === null ? (port?.definitions ?? null) : null;
+    const writer = await observeDelegationWriter(this.root, startedAt.getTime());
     const continuity = await continueConvergenceDelegation({
       storage: this.input.storage,
       policyPath: this.input.policyPath,
       peers,
       hostHash: host?.hostHash ?? null,
-      writer: await observeDelegationWriter(this.root, startedAt.getTime()),
+      writer,
       definitions:
         definitionPort === null ? null : hubDefinitionSource(definitionPort, exchange, signal),
       now: startedAt,
@@ -244,19 +254,59 @@ export class ConvergenceContinuity {
         : { role: fence.verdict.role, failureCode: fence.verdict.failureCode ?? null };
     const ownerHostState = ownerHostObservation(ownerHost, host);
     const peerSummaries = peers.map(continuityPeerSummary);
-    const findings = continuityFindings({
-      now: startedAt.getTime(),
-      delegation: continuity.delegation,
-      policy: continuity.policy,
-      renewal: continuity.renewal,
-      continuationFailure: continuity.failureCode,
-      ownerHost: ownerHostState,
-      verdict,
-      publicationStatus: publication?.status ?? null,
-      hubFailure,
-      definitionExchangeFailure: exchange.failureCode,
-      peers: peerSummaries,
-    });
+    // ADR-0540: propose at renewal, near expiry, or when the scope changed; keep an outstanding
+    // proposal, including one recorded in an older shape, current.
+    const scopeChange =
+      writer === "owner" &&
+      current !== null &&
+      (continuity.renewal?.kind === "renew" ||
+        previous?.scopeChange != null ||
+        previous?.delegation.scopeHash !== continuity.scopeHash ||
+        Date.parse(current.expiresAt) - 48 * 60 * 60_000 <= startedAt.getTime() ||
+        (await convergenceScopeChangeRecorded(this.root)))
+        ? await proposeDocumentRouteScope({ repositoryRoot: this.root, delegation: current })
+        : null;
+    const scopeResponse =
+      scopeChange === null
+        ? null
+        : await documentRouteScopeResponse(this.input.storage, scopeChange);
+    const pauses = await readKnowledgeProviderPauseStates({ now: startedAt });
+    const providerAdmission =
+      this.input.providerAdmission !== undefined
+        ? await this.input.providerAdmission()
+        : current?.state === "active"
+          ? (
+              await resolveAdmittedProviderCli({
+                storage: this.input.storage,
+                preferred:
+                  (await readWorkerProviderSelection(this.root))?.provider ?? current.providers[0]!,
+                allowed: current.providers,
+                hostLabel: host?.config.hostLabel ?? this.input.hostLabel,
+                admissionMode: "cached",
+                providerPaused: async (provider) =>
+                  pauses.find((pause) => pause.provider === provider)?.paused ?? false,
+                now: startedAt,
+              })
+            ).projection
+          : await readProviderCliProjection(this.root);
+    const findings = [
+      ...providerCliFindings(providerAdmission, pauses, startedAt),
+      ...continuityFindings({
+        scopeChange,
+        scopeResponse,
+        now: startedAt.getTime(),
+        delegation: continuity.delegation,
+        policy: continuity.policy,
+        renewal: continuity.renewal,
+        continuationFailure: continuity.failureCode,
+        ownerHost: ownerHostState,
+        verdict,
+        publicationStatus: publication?.status ?? null,
+        hubFailure,
+        definitionExchangeFailure: exchange.failureCode,
+        peers: peerSummaries,
+      }),
+    ].slice(0, 32);
     if (port !== null && host !== null)
       await port
         .publish(
@@ -271,6 +321,7 @@ export class ConvergenceContinuity {
             publicationStatus: publication?.status ?? null,
             health,
             findings,
+            providerAdmission,
           }),
           signal,
         )
@@ -290,6 +341,7 @@ export class ConvergenceContinuity {
     );
     const policy = continuity.policy;
     const state: ConvergenceContinuityState = {
+      ...(providerAdmission === null ? {} : { providerAdmission }),
       schemaVersion: 1,
       observedAt: startedAt.toISOString(),
       nextReconcileAt: new Date(nextReconcileAt).toISOString(),
@@ -328,6 +380,8 @@ export class ConvergenceContinuity {
         failureCode: hubFailure,
       },
       peers: peerSummaries,
+      scopeChange,
+      scopeResponse,
       findings,
     };
     await writeConvergenceContinuityState(this.root, state);

@@ -8,7 +8,7 @@ const NODE_REGISTRATION =
 /** The exact remedy for each closed activation blocker; unknown codes get the generic step. */
 const REMEDIES: Record<string, string> = {
   terminal_hook_reader_stale:
-    "The generated terminal hook runtime predates this CLI and cannot read event schema 4. Apply the terminal_integration stage first; `lervo upgrade` orders it before activation, and a provider hook change needs its displayed approval.",
+    "The terminal hook reader is not ready. The host resident restores the installed host runtime automatically. A legacy repository bundle must first migrate to the tracked launcher through the generated-only terminal_integration stage; provider changes retain their exact approval.",
   reader_inventory_node_health_unavailable: NODE_HEALTH,
   reader_inventory_node_health_stale: NODE_HEALTH,
   reader_inventory_node_identity_mismatch: NODE_REGISTRATION,

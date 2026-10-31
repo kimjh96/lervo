@@ -2,10 +2,32 @@ import { mkdir, lstat, chmod } from "node:fs/promises";
 import { resolve } from "node:path";
 import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import type { ProjectStorage } from "@lervo/project-storage";
-import type { WorkforceAssignment } from "@lervo/agent-workforce";
+import { listAssignments, type WorkforceAssignment } from "@lervo/agent-workforce";
 import { canonicalJson, sha256, stableId } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
+
+const PINNED_OBLIGATION = /^asn_[a-f0-9]{24}$/u;
+
+/**
+ * Convergence provenance, or for a pinned write assignment without it (ADR-0543 practice
+ * materialization) the assignment's own task identity. Its rows end with the assignment.
+ */
+function effectProvenance(assignment: WorkforceAssignment) {
+  if (assignment.convergence) return assignment.convergence;
+  // Only practice-owned write work qualifies; other pinned assignments keep the old refusal.
+  if (
+    assignment.accessMode !== "write" ||
+    !assignment.acceptanceCriteria.some((criterion) => criterion.startsWith("practice:"))
+  )
+    return null;
+  return {
+    obligationId: assignment.assignmentId,
+    inputArtifactHash: sha256(
+      canonicalJson([assignment.taskType, assignment.acceptanceCriteria, assignment.expectedPaths]),
+    ),
+  };
+}
 
 /** Private exact effect coordinates, retained until their canonical obligation is terminal. */
 export async function convergenceEffectCheckpoint<T>(input: {
@@ -15,7 +37,8 @@ export async function convergenceEffectCheckpoint<T>(input: {
   prepare(): Promise<T>;
 }): Promise<T> {
   const { storage, assignment } = input;
-  if (!assignment.convergence || !assignment.lease)
+  const provenance = effectProvenance(assignment);
+  if (!provenance || !assignment.lease)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const directory = resolve(storage.paths.repositoryRoot, ".lervo/state/knowledge");
   await mkdir(directory, { recursive: true, mode: 0o700 });
@@ -48,7 +71,7 @@ export async function convergenceEffectCheckpoint<T>(input: {
   const coordinate = sha256(
     canonicalJson([
       assignment.assignmentId,
-      assignment.convergence.inputArtifactHash,
+      provenance.inputArtifactHash,
       assignment.lease,
       input.effect,
     ]),
@@ -69,14 +92,22 @@ export async function convergenceEffectCheckpoint<T>(input: {
         throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
       return stored.value as T;
     }
-    for (const row of sqliteRows(
+    const obligations = sqliteRows(
       db.prepare("SELECT DISTINCT obligation_id FROM checkpoints LIMIT 8192").all(),
-    )) {
-      const id = String(row.obligation_id);
+    ).map((row) => String(row.obligation_id));
+    const open = obligations.some((id) => PINNED_OBLIGATION.test(id))
+      ? new Set(
+          (await listAssignments(storage.paths.repositoryRoot))
+            .filter((item) => ["queued", "leased", "blocked"].includes(item.status))
+            .map((item) => item.assignmentId),
+        )
+      : null;
+    for (const id of obligations) {
       const terminal = storage.events.get(stableId("evt", [id, "terminal"], 32));
       if (
-        terminal?.type === "repository.knowledge.convergence.recorded" &&
-        terminal.payload.obligationId === id
+        (terminal?.type === "repository.knowledge.convergence.recorded" &&
+          terminal.payload.obligationId === id) ||
+        (open !== null && PINNED_OBLIGATION.test(id) && !open.has(id))
       )
         db.prepare("DELETE FROM checkpoints WHERE obligation_id=?").run(id);
     }
@@ -93,10 +124,10 @@ export async function convergenceEffectCheckpoint<T>(input: {
       "INSERT INTO checkpoints(coordinate_hash,obligation_id,artifact_hash,assignment_id,input_hash,effect,lease_generation) VALUES(?,?,?,?,?,?,?)",
     ).run(
       coordinate,
-      assignment.convergence.obligationId,
+      provenance.obligationId,
       proof.contentHash,
       assignment.assignmentId,
-      assignment.convergence.inputArtifactHash,
+      provenance.inputArtifactHash,
       input.effect,
       assignment.lease.generation,
     );

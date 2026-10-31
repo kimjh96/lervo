@@ -30,6 +30,9 @@ import {
 import { CONVERGENCE_DELEGATION_PATH } from "./delegation-contract.js";
 
 const GENERATED = [".lervo/state/", ".lervo/data/", ".lervo/generated/", "docs/knowledge/"];
+export function convergenceSourcePath(path: string): boolean {
+  return !GENERATED.some((prefix) => path === prefix.slice(0, -1) || path.startsWith(prefix));
+}
 export function convergenceSourceBytes(
   root: string,
   path: string,
@@ -100,7 +103,7 @@ export function captureConvergenceChangedPaths(root: string): string[] {
         git(root, ["ls-files", "--others", "--exclude-standard", "-z"]),
       ]
         .flatMap((output) => output.split("\0"))
-        .filter(Boolean),
+        .filter((path) => path.length > 0 && convergenceSourcePath(path)),
     ),
   ].sort();
 }
@@ -121,7 +124,7 @@ export function captureConvergenceSources(
     ...new Set(
       git(root, ["ls-files", "-z", "--cached", "--others", "--exclude-standard"])
         .split("\0")
-        .filter((path) => path.length > 0 && !GENERATED.some((prefix) => path.startsWith(prefix))),
+        .filter((path) => path.length > 0 && convergenceSourcePath(path)),
     ),
   ].sort();
   if (paths.length > 20_000)

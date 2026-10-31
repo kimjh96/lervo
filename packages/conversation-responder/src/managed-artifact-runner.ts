@@ -63,9 +63,6 @@ export class ManagedConversationArtifactRunner {
         ...(input.plan.recommendationBatches === undefined
           ? {}
           : { recommendationBatches: input.plan.recommendationBatches }),
-        ...(input.plan.graphRecommendations === undefined
-          ? {}
-          : { graphRecommendations: input.plan.graphRecommendations }),
         publications: input.plan.publications,
         handoffs: input.plan.handoffs,
       },

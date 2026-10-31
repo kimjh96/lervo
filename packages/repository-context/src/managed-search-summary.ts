@@ -1,4 +1,3 @@
-import type { GraphDocumentRecommendation } from "@lervo/context";
 import type { ContextEvidence } from "@lervo/schemas";
 
 export interface ManagedSearchContextSummary {
@@ -10,8 +9,6 @@ export interface ManagedSearchContextSummary {
   recommendedKnowledgeConcepts: number;
   selectedKnowledgeConcepts: number;
   selectedKnowledgeConceptIds: string[];
-  recommendedGraphDocuments: number;
-  selectedGraphDocuments: number;
   referencedDocuments: number;
   referencedDocumentIds: string[];
 }
@@ -20,7 +17,6 @@ export function summarizeManagedSearchContext(
   attemptId: string,
   knowledgeAttemptId: string,
   evidence: readonly ContextEvidence[],
-  graphRecommendations: readonly GraphDocumentRecommendation[] = [],
 ): ManagedSearchContextSummary {
   const recommendedDocumentIds = new Set(
     evidence.filter((item) => item.state === "recommended").map((item) => item.documentId),
@@ -62,8 +58,6 @@ export function summarizeManagedSearchContext(
     recommendedKnowledgeConcepts: recommendedKnowledgeConceptIds.size,
     selectedKnowledgeConcepts: selectedKnowledgeConceptIds.length,
     selectedKnowledgeConceptIds,
-    recommendedGraphDocuments: graphRecommendations.length,
-    selectedGraphDocuments: graphRecommendations.filter((item) => item.selected).length,
     referencedDocuments: referencedDocumentIds.length,
     referencedDocumentIds,
   };

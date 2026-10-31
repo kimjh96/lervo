@@ -11,11 +11,7 @@ import {
   readWorkspace,
   registerAgent,
 } from "@lervo/agent-workforce";
-import {
-  applyWorkspaceProvision,
-  captureRepositorySnapshot,
-  planWorkspaceProvision,
-} from "@lervo/orchestrator";
+import { applyWorkspaceProvision, planWorkspaceProvision } from "@lervo/orchestrator";
 
 import {
   applyKnowledgeInstructionBridgePlan,
@@ -28,19 +24,16 @@ import {
   lintRepositoryKnowledge,
   listCanonicalizationCandidates,
   listKnowledgeArtifactPaths,
-  scanConfiguredRepositoryKnowledge,
   sha256,
   structuralConceptDirectory,
   terminalHookCommand,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage, RepositoryCoordinationRecords } from "@lervo/project-storage";
-import type { VerificationSuite } from "@lervo/schemas";
 import {
   activateFixtureEventWriterV2,
   activateFixtureEventWriterV3,
 } from "../../../packages/project/test/fixture-event-writer.js";
 import { createSearchQueryProjection, searchQueryProjectorBuildId } from "@lervo/search";
-import { runVerificationSuite } from "@lervo/verification";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
@@ -238,7 +231,12 @@ async function managedWorkerRepository() {
 }
 
 afterEach(async () => {
-  await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
+  // ADR-0531: a failed hook may return before abandoned sibling stages finish their state writes.
+  await Promise.all(
+    roots
+      .splice(0)
+      .map((root) => rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 })),
+  );
 });
 
 // These cases pin the opt-in per-prompt retrieval contract; compact defaults are covered separately.
@@ -599,7 +597,11 @@ describe("terminal integration CLI", () => {
         },
       ),
     ).toBe(0);
-    expect(JSON.parse(messages.join(""))).toEqual({});
+    expect(JSON.parse(messages.join(""))).toMatchObject({
+      hookSpecificOutput: {
+        additionalContext: expect.stringContaining("Lervo context degraded ("),
+      },
+    });
     expect(errors).toEqual([]);
   });
 
@@ -1738,387 +1740,6 @@ describe("terminal integration CLI", () => {
       ),
     ).toBe(true);
   }, 15_000);
-
-  it("turns a completed result into an evidence-bound portable-skill candidate", async () => {
-    const root = await initializedRepository();
-    const initialStorage = await openProjectStorage(root);
-    const projectId = initialStorage.manifest.projectId;
-    await initialStorage.close();
-    await activateFixtureEventWriterV2({
-      repositoryRoot: root,
-      projectId,
-      observedAt: "2026-09-05T01:00:00.000Z",
-    });
-    await mkdir(resolve(root, "apps/example"), { recursive: true });
-    await mkdir(resolve(root, "packages/example"), { recursive: true });
-    await writeFile(resolve(root, "apps/example/a.ts"), "export const workflowA = 'checked';\n");
-    await writeFile(
-      resolve(root, "packages/example/b.ts"),
-      "export const workflowB = 'checked';\n",
-    );
-    const workflowSuite = (suffix: "a" | "b"): VerificationSuite => ({
-      schemaVersion: 1,
-      suiteId: `workflow.${suffix}`,
-      stopOnFailure: true,
-      commands: [
-        {
-          commandId: `check.${suffix}`,
-          executable: "node",
-          arguments: ["-e", "process.exit(0)"],
-          cwd: ".",
-          timeoutMs: 5_000,
-          maxOutputBytes: 4_096,
-          environmentVariableNames: [],
-        },
-      ],
-    });
-    const workflowSuites = { a: workflowSuite("a"), b: workflowSuite("b") };
-    await mkdir(resolve(root, ".lervo/verifications"), { recursive: true });
-    await Promise.all(
-      (["a", "b"] as const).map((suffix) =>
-        writeFile(
-          resolve(root, `.lervo/verifications/workflow.${suffix}.yaml`),
-          `${JSON.stringify(workflowSuites[suffix], null, 2)}\n`,
-        ),
-      ),
-    );
-    const promptOutput: string[] = [];
-    const promptErrors: string[] = [];
-    expect(
-      await runCli(["terminal", "hook", "--provider", "codex", "--contract", "2"], {
-        cwd: root,
-        stdout: (message) => promptOutput.push(message),
-        stderr: (message) => promptErrors.push(message),
-        stdin: async () =>
-          JSON.stringify({
-            hook_event_name: "UserPromptSubmit",
-            session_id: "portable-skill-session",
-            turn_id: "portable-skill-turn",
-            prompt: "Complete the workflow and propose a reviewed reusable candidate.",
-          }),
-      }),
-    ).toBe(0);
-    const context = (
-      JSON.parse(promptOutput.join("")) as {
-        hookSpecificOutput?: { additionalContext: string };
-      }
-    ).hookSpecificOutput?.additionalContext;
-    expect(context, `${promptErrors.join("")} ${promptOutput.join("")}`).toBeTypeOf("string");
-    const observation = context!.match(/--observation (tobs_[A-Za-z0-9_-]+)/u)?.[1];
-    expect(observation).toMatch(/^tobs_/u);
-
-    const storage = await openProjectStorage(root);
-    const verification = [];
-    try {
-      for (const suffix of ["a", "b"] as const) {
-        const identity = `workflow${suffix.repeat(8)}`;
-        const repositoryRevision = sha256(`revision-${suffix}`);
-        let clock = Date.parse(`2026-09-05T01:0${suffix === "a" ? "1" : "2"}:00.000Z`);
-        const completed = await runVerificationSuite(
-          {
-            repositoryRoot: root,
-            repositoryRevision,
-            suite: workflowSuites[suffix],
-            artifactStore: storage.artifacts,
-            captureRepositoryRevision: async () => repositoryRevision,
-          },
-          { now: () => new Date(clock++) },
-        );
-        const appended = storage.events.append({
-          eventId: `evt_${identity}`,
-          projectId: storage.manifest.projectId,
-          runId: `run_${identity}`,
-          sessionId: `ses_${identity}`,
-          type: "verification.completed",
-          occurredAt: completed.result.completedAt,
-          actor: { kind: "system" },
-          schemaVersion: 1,
-          policyVersion: sha256(`policy-${suffix}`),
-          payload: {
-            verificationId: completed.result.verificationId,
-            suiteId: completed.result.suiteId,
-            suiteHash: completed.result.suiteHash,
-            repositoryRevision: completed.result.repositoryRevision,
-            status: completed.result.status,
-            resultArtifactId: completed.resultArtifact.artifactId,
-            resultContentHash: completed.resultArtifact.contentHash,
-            nonPassedCommandIds: [],
-          },
-        }).event;
-        verification.push({
-          independentGroup: `workflow-${suffix}`,
-          eventId: appended.eventId,
-          eventHash: appended.eventHash,
-          runId: appended.runId,
-          verificationId: appended.payload.verificationId,
-          suiteHash: appended.payload.suiteHash,
-          repositoryRevision: appended.payload.repositoryRevision,
-          resultContentHash: appended.payload.resultContentHash,
-        });
-      }
-    } finally {
-      await storage.close();
-    }
-
-    await writeFile(
-      resolve(root, "apps/example/a.ts"),
-      "export const workflowA = 'checked-with-evidence';\n",
-    );
-    const preparedSnapshot = JSON.parse(
-      await readFile(
-        resolve(root, `.lervo/state/terminal-integration/prepared-snapshots/${observation}.json`),
-        "utf8",
-      ),
-    ) as { files: Record<string, string> };
-    const currentSnapshot = await captureRepositorySnapshot(root);
-    const changedPaths = [
-      ...new Set([...Object.keys(preparedSnapshot.files), ...Object.keys(currentSnapshot.files)]),
-    ].filter((path) => preparedSnapshot.files[path] !== currentSnapshot.files[path]);
-    expect(changedPaths).toEqual(["apps/example/a.ts"]);
-    const { scan } = await scanConfiguredRepositoryKnowledge(root);
-    const workflowA = scan.units.find((unit) => unit.path === "apps/example/a.ts")!;
-    const workflowB = scan.units.find((unit) => unit.path === "packages/example/b.ts")!;
-    const declarationOutput: string[] = [];
-    const declarationErrors: string[] = [];
-    const proposal = {
-      schemaVersion: 1,
-      title: "Bounded workflow check",
-      summary: "Reuse an independently verified workflow without granting publication authority.",
-      scope: "repository workflow checks",
-      occurrences: [
-        { path: workflowA.path, locator: workflowA.locator, independentGroup: "workflow-a" },
-        { path: workflowB.path, locator: workflowB.locator, independentGroup: "workflow-b" },
-      ],
-      exceptions: ["Publication remains a separate authority."],
-      affectedInvariants: ["Verification and activation remain distinct."],
-      reasonsToChange: ["Two independent workflow groups passed exact verification."],
-      verificationCommands: ["pnpm quality:check"],
-      target: {
-        kind: "portable_skill",
-        path: ".agents/skills/bounded-workflow-check/SKILL.md",
-        content:
-          "---\nname: bounded-workflow-check\ndescription: Run the bounded workflow checks.\n---\n\n# Bounded workflow check\n\nUse exact verification and retain separate publication authority.\n",
-      },
-      workflowVerification: verification,
-      portableSkillContract: {
-        skillId: "bounded-workflow-check",
-        capabilityId: "repository/bounded_workflow_check",
-        version: "1.0.0",
-        supportedRoles: ["developer"],
-        providerCompatibility: { mode: "any" },
-        minimumRuntimeVersion: "0.11.4",
-        platforms: ["darwin", "linux", "win32"],
-        requiredTools: ["pnpm"],
-        requiredCapabilities: ["filesystem.read", "shell.execute"],
-        dependencies: [],
-        inputSchemaRef: "lervo-schema://skill/input/v1",
-        outputSchemaRef: "lervo-schema://skill/output/v1",
-        resources: [
-          {
-            path: "references/checklist.md",
-            content: "# Checklist\n\nRun the exact configured verification.\n",
-            purpose: "Defines the reviewed workflow checklist.",
-            required: true,
-          },
-        ],
-      },
-    };
-    expect(
-      await runCli(
-        [
-          "terminal",
-          "declare",
-          "--provider",
-          "codex",
-          "--observation",
-          observation!,
-          "--stdin",
-          "--json",
-        ],
-        {
-          cwd: root,
-          stdout: (message) => declarationOutput.push(message),
-          stderr: (message) => declarationErrors.push(message),
-          stdin: async () =>
-            JSON.stringify({
-              taskMode: "change",
-              canonicalizationDisposition: "pending_user_approval",
-              canonicalizationOutcome: {
-                schemaVersion: 1,
-                kind: "portable_skill_candidate",
-                summary: "The completed workflow produced a reviewable portable-skill candidate.",
-                sourcePaths: ["apps/example/a.ts"],
-                proposal,
-              },
-              knowledgeDisposition: "pending_user_approval",
-              deliberationDisposition: "not_requested",
-              deliberationId: null,
-            }),
-        },
-      ),
-      declarationErrors.join(""),
-    ).toBe(0);
-    const declared = JSON.parse(declarationOutput.join(""));
-    expect(declared.canonicalizationAssessment).toMatchObject({
-      status: "pending",
-      candidate: null,
-    });
-    expect(declared.developmentPatternCandidate).toMatchObject({
-      state: "candidate",
-      targetKind: "portable_skill",
-      occurrenceCount: 2,
-    });
-    const candidate = declared.developmentPatternCandidate as {
-      patternId: string;
-      candidateContentHash: string;
-    };
-    expect(
-      await runCli(
-        [
-          "knowledge",
-          "pattern",
-          "review",
-          candidate.patternId,
-          "--decision",
-          "accept",
-          "--reviewer",
-          "repository-maintainer",
-          "--approval",
-          candidate.candidateContentHash,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: () => undefined },
-      ),
-    ).toBe(0);
-    const promotionOutput: string[] = [];
-    expect(
-      await runCli(["knowledge", "pattern", "promote", candidate.patternId, "--json"], {
-        cwd: root,
-        stdout: (message) => promotionOutput.push(message),
-        stderr: (message) => declarationErrors.push(message),
-      }),
-      declarationErrors.join(""),
-    ).toBe(0);
-    const promotion = JSON.parse(promotionOutput.join("")) as {
-      planId: string;
-      status: string;
-      operations: Array<{ path: string }>;
-    };
-    expect(promotion).toMatchObject({ status: "ready" });
-    expect(promotion.operations.map((operation) => operation.path)).toEqual([
-      ".agents/skills/bounded-workflow-check/SKILL.md",
-      ".agents/skills/bounded-workflow-check/references/checklist.md",
-      ".agents/skills/bounded-workflow-check/lervo-skill.json",
-      ".agents/skills/bounded-workflow-check/lervo-capability.json",
-    ]);
-    expect(JSON.stringify(promotion)).not.toContain("Run the exact configured verification");
-    expect(
-      await runCli(
-        [
-          "knowledge",
-          "pattern",
-          "promote",
-          candidate.patternId,
-          "--apply",
-          "--approval",
-          promotion.planId,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: () => undefined },
-      ),
-    ).toBe(0);
-    expect(
-      await readFile(
-        resolve(root, ".agents/skills/bounded-workflow-check/references/checklist.md"),
-        "utf8",
-      ),
-    ).toContain("exact configured verification");
-    const manifest = JSON.parse(
-      await readFile(
-        resolve(root, ".agents/skills/bounded-workflow-check/lervo-skill.json"),
-        "utf8",
-      ),
-    );
-    expect(manifest).toMatchObject({
-      skillId: "bounded-workflow-check",
-      trust: { level: "untrusted" },
-      enabledScope: { kind: "disabled" },
-      requiredCapabilities: ["filesystem.read", "shell.execute"],
-      contracts: {
-        inputSchemaRef: "lervo-schema://skill/input/v1",
-        outputSchemaRef: "lervo-schema://skill/output/v1",
-      },
-    });
-
-    const authorizationOutput: string[] = [];
-    expect(
-      await runCli(
-        [
-          "capability",
-          "authorize-skill",
-          "--skill",
-          "bounded-workflow-check",
-          "--reviewer",
-          "repository-maintainer",
-          "--json",
-        ],
-        {
-          cwd: root,
-          stdout: (message) => authorizationOutput.push(message),
-          stderr: (message) => declarationErrors.push(message),
-        },
-      ),
-      declarationErrors.join(""),
-    ).toBe(0);
-    const authorization = JSON.parse(authorizationOutput.join("")) as { planId: string };
-    const authorizationPath = resolve(root, ".lervo/state/test-skill-authorization.json");
-    await writeFile(authorizationPath, authorizationOutput.join(""));
-    expect(
-      await runCli(
-        [
-          "capability",
-          "authorize-skill",
-          "--from",
-          authorizationPath,
-          "--apply",
-          "--approval",
-          authorization.planId,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: () => undefined },
-      ),
-    ).toBe(0);
-    expect(
-      JSON.parse(
-        await readFile(
-          resolve(root, ".agents/skills/bounded-workflow-check/lervo-skill.json"),
-          "utf8",
-        ),
-      ),
-    ).toMatchObject({
-      trust: { level: "reviewed", reviewedBy: "repository-maintainer" },
-      enabledScope: { kind: "projects", projectIds: [projectId] },
-    });
-
-    const migrationOutput: string[] = [];
-    expect(
-      await runCli(["capability", "migrate", "--json"], {
-        cwd: root,
-        stdout: (message) => migrationOutput.push(message),
-        stderr: (message) => declarationErrors.push(message),
-      }),
-      declarationErrors.join(""),
-    ).toBe(0);
-    const migration = JSON.parse(migrationOutput.join("")) as {
-      planId: string;
-      status: string;
-    };
-    expect(migration.status).toBe("ready");
-    expect(
-      await runCli(["capability", "migrate", "--apply", "--approval", migration.planId], {
-        cwd: root,
-        stdout: () => undefined,
-        stderr: () => undefined,
-      }),
-    ).toBe(0);
-  }, 15_000);
 });
 
 describe("compact terminal prompt context", () => {
@@ -2127,6 +1748,56 @@ describe("compact terminal prompt context", () => {
   });
   afterAll(() => {
     process.env.LERVO_TERMINAL_CONTEXT = "retrieval";
+  });
+
+  it("records only delivered exact-anchor pointers without loading their bodies", async () => {
+    const root = await initializedRepository();
+    const path = "docs/decisions/0541-observe-turn.md";
+    const body = "# ADR-0541: Observe the turn\n\nKeep reference evidence distinct from use.\n";
+    await mkdir(resolve(root, "docs/decisions"), { recursive: true });
+    await writeFile(resolve(root, path), body);
+    let output = "";
+    expect(
+      await runCli(
+        ["terminal", "hook", "--provider", "claude", "--contract", "2"],
+        {
+          cwd: root,
+          stdout: (text) => {
+            output += text;
+          },
+          stderr: () => undefined,
+          stdin: async () =>
+            JSON.stringify({
+              hook_event_name: "UserPromptSubmit",
+              session_id: "anchor-session",
+              prompt: "ADR-0541",
+            }),
+        },
+        {
+          projectSearchQueries: async () => {
+            throw new Error("No provider call is allowed.");
+          },
+        },
+      ),
+    ).toBe(0);
+    const context = JSON.parse(output).hookSpecificOutput.additionalContext;
+    expect(context).toContain(path);
+    expect(context).not.toContain("Keep reference evidence distinct from use.");
+    const storage = await openProjectStorage(root);
+    try {
+      const event = storage.events
+        .list({ limit: 1000 })
+        .findLast((item) => item.type === "terminal.context.prepared");
+      expect(event?.payload).toMatchObject({
+        selectedPointers: [{ path, contentHash: sha256(body), kind: "decision" }],
+        loadedDocuments: [],
+        selectionStatus: "selected",
+        loadingStatus: "not_run",
+        providerUseStatus: "unknown",
+      });
+    } finally {
+      await storage.close();
+    }
   });
 
   it.each(["codex", "claude"] as const)(

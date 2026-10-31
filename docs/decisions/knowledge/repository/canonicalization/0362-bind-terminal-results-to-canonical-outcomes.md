@@ -3,6 +3,8 @@
 - Status: accepted
 - Date: 2026-09-04
 
+Amended by: [ADR-0533](patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 Terminal finalization previously accepted a broad canonicalization disposition and inferred responsibility only from changed path classes. A change to any canonical document of the same class could suppress an unrelated candidate. When no canonical document changed, the candidate recorded source metadata without an agent-authored durable outcome or reviewable draft. The claim that a result was knowledgeized therefore exceeded the installed contract.

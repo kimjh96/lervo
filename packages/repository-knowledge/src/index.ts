@@ -14,31 +14,24 @@ export {
 export { createWorkstreamSuccessorSnapshot } from "./workstream-snapshot.js";
 export * from "./agent-artifact-profile.js";
 export * from "./agent-artifact-summary.js";
-export * from "./agent-profile-pattern.js";
 export * from "./apply.js";
 export * from "./artifact-paths.js";
 export * from "./git-ignored-paths.js";
-export * from "./candidate-signatures.js";
-export * from "./candidate-store.js";
 export * from "./canonicalization-candidate.js";
 export * from "./canonicalization-outcome.js";
 export * from "./canonicalization-responsibility.js";
-export * from "./compilation-binding.js";
-export * from "./compilation-comparison.js";
-export * from "./compilation-stability.js";
 export * from "./compiler.js";
-export * from "./cross-provider-fuzzy-merge.js";
-export * from "./cross-provider-merge.js";
 export * from "./css-source-units.js";
 export * from "./decision-layout.js";
-export * from "./development-pattern-rollback.js";
-export * from "./development-pattern.js";
 export * from "./document-layout-enforcement.js";
 export * from "./document-layout.js";
 export type { ApplicationContentEvidence } from "./application-content-evidence.js";
 export * from "./document-route-classification-contract.js";
 export * from "./document-route-classification-store.js";
+export { documentRouteDeferralResolution } from "./document-route-resolution.js";
 export type {
+  DocumentRouteDeferralResolution,
+  DocumentRouteResolutionContext,
   DeferredDocumentRoute,
   DocumentRouteBasis,
   DocumentRouteDeferralReason,
@@ -98,6 +91,7 @@ export {
   LERVO_PROJECTION_PREFIXES,
   repositoryPathMatchesPatterns,
 } from "./knowledge-intake-policy.js";
+export * from "./knowledge-build-state.js";
 export * from "./lint-query.js";
 export {
   documentDriftAttentionCodes,
@@ -173,16 +167,11 @@ export * from "./public-readme.js";
 export * from "./publication-language.js";
 export * from "./publication-snapshot.js";
 export * from "./query.js";
-export * from "./reconciliation-review.js";
-export * from "./reconciliation.js";
 export * from "./refresh-review-candidate.js";
-export * from "./relation-query.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
 export * from "./repository-layout-migration.js";
 export * from "./scanner.js";
-export * from "./semantic-compiler.js";
-export * from "./semantic-materialization.js";
 export * from "./skill-contract-source-units.js";
 export * from "./source-lineage.js";
 export * from "./state-projections.js";
@@ -190,7 +179,6 @@ export * from "./store-reader.js";
 export * from "./structural-projection.js";
 export * from "./terminal-integration.js";
 export * from "./types.js";
-export * from "./user-patch.js";
 export * from "./verification-source.js";
 export * from "./workstream.js";
 export type { WorkstreamBookkeeping, WorkstreamRepositoryHead } from "./workstream-bookkeeping.js";
@@ -204,3 +192,13 @@ export { KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT } from "./knowledge-converg
 export { replayKnowledgeConvergence } from "./knowledge-convergence-replay.js";
 export { createStoredDocumentNormalizationSubsetCandidate } from "./document-normalization-subset.js";
 export * from "./knowledge-stage-lint.js";
+
+export { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
+export { terminalHookRuntimeStorePath } from "./terminal-runtime-store-paths.js";
+export { materializeHostTerminalRuntime } from "./terminal-runtime-store.js";
+export {
+  hostTerminalRuntimeNeedsMaterialization,
+  inspectHostTerminalRuntime,
+} from "./terminal-runtime-store-health.js";
+export * from "./practice-contract.js";
+export * from "./practice-privacy.js";

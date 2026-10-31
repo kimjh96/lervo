@@ -33,6 +33,10 @@ routes:
     path: knowledge/maintenance
     priority: 97
     description: "Background knowledge maintenance scheduling, evidence recovery, progress observations, and bounded processing performance."
+  - id: knowledge.documents.routing
+    path: knowledge/documents/routing
+    priority: 97
+    description: "Where a legacy document goes during migration: semantic route classification, deferral, retained application content, and the outcome every candidate must reach."
   - id: knowledge.documents
     path: knowledge/documents
     priority: 95
@@ -41,6 +45,10 @@ routes:
     path: knowledge/semantics
     priority: 94
     description: "Scope carried from the legacy title terms: semantic candidate; knowledge graph; duplicate; contradiction; cross provider; compilation comparison."
+  - id: knowledge.repository.canonicalization.patterns
+    path: knowledge/repository/canonicalization/patterns
+    priority: 97
+    description: "Reusable practice learning and retirement of development-pattern candidates."
   - id: knowledge.repository.canonicalization
     path: knowledge/repository/canonicalization
     priority: 96
@@ -85,6 +93,10 @@ routes:
     path: coordination/conversations
     priority: 83
     description: "Scope carried from the legacy title terms: conversation; slack; discord."
+  - id: coordination.sync.workstreams
+    path: coordination/sync/workstreams
+    priority: 83
+    description: "Repository workstream replication across hosts: Hub lineages, heads, branch claims, and import."
   - id: coordination.sync
     path: coordination/sync
     priority: 82
@@ -161,6 +173,10 @@ routes:
     path: execution/providers/hooks
     priority: 54
     description: "Scope carried from the legacy title terms: terminal hook; hook isolation; provider hook."
+  - id: execution.provider-admission
+    path: execution/providers/admission
+    priority: 55
+    description: "Which provider CLI versions background work may run: admission by contract, pinned executables, and cross-host version agreement."
   - id: execution.provider-resource-limits
     path: execution/providers/resource-limits
     priority: 55

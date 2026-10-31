@@ -1,2 +1,2 @@
-export const readableEventSchemaVersions = [1, 2, 3, 4, 5, 6] as const;
+export const readableEventSchemaVersions = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 export const writableEventSchemaVersion = 1 as const;

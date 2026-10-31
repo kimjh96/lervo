@@ -139,6 +139,13 @@ export interface RepositorySourceUnit {
   title?: string;
 }
 
+export type RepositoryScanPriorityClass =
+  | "instructions"
+  | "portable_skills"
+  | "canonical_documents"
+  | "source_and_configuration"
+  | "other_documents";
+
 export interface RepositoryKnowledgeScan {
   schemaVersion: 1;
   projectId: string;
@@ -146,7 +153,9 @@ export interface RepositoryKnowledgeScan {
   scannerBuild: "repository-scanner-v1";
   snapshotId: string;
   contentSnapshotId: string;
-  coverage: {
+  coverage: "complete" | "partial";
+  skippedForBudget: { count: number; bytes: number; classes: RepositoryScanPriorityClass[] };
+  inventoryCoverage: {
     included: number;
     excluded: number;
     unsupported: number;
@@ -206,7 +215,7 @@ export interface KnowledgeMigrationPlan {
     version: "2";
     capability: "bounded_read_only_no_tools";
   };
-  coverage: RepositoryKnowledgeScan["coverage"];
+  coverage: RepositoryKnowledgeScan["inventoryCoverage"];
   impact: KnowledgeImpactSummary;
   impactReportId: string;
   operations: KnowledgeMigrationOperation[];
@@ -246,7 +255,7 @@ export interface RepositoryEntrypointDisposition {
 
 export type KnowledgeFreshness = "current" | "stale" | "unknown";
 export type KnowledgeImpactReason =
-  "source_unit_changed" | "source_unit_missing" | "lineage_unavailable";
+  "source_unit_changed" | "source_unit_missing" | "lineage_unavailable" | "scan_incomplete";
 
 export interface KnowledgeImpactItem {
   subjectKind: "concept" | "claim" | "relation";
@@ -264,6 +273,8 @@ export interface KnowledgeImpactSummary {
 }
 
 export interface KnowledgeImpactReport {
+  coverage: RepositoryKnowledgeScan["coverage"];
+  skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"];
   schemaVersion: 1;
   reportId: string;
   projectId: string;
@@ -288,6 +299,8 @@ export interface KnowledgeRefreshReviewItem {
 }
 
 export interface KnowledgeRefreshReviewCandidate {
+  coverage: RepositoryKnowledgeScan["coverage"];
+  skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"];
   schemaVersion: 1;
   candidateId: string;
   semantics: "review_candidate";
@@ -324,6 +337,8 @@ export interface KnowledgeLintIssue {
 }
 
 export interface KnowledgeLintResult {
+  coverage: RepositoryKnowledgeScan["coverage"];
+  skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"];
   schemaVersion: 1;
   repositoryRoot: string;
   valid: boolean;
@@ -331,6 +346,7 @@ export interface KnowledgeLintResult {
   issues: KnowledgeLintIssue[];
   /** Document staleness coverage; absent when staleness was not evaluated for this lint. */
   documentStaleness?: {
+    coverage: RepositoryKnowledgeScan["coverage"];
     status: "observed" | "unavailable";
     currentRevision: string | null;
     documents: number;
@@ -381,41 +397,6 @@ export interface RepositoryKnowledgeQueryRanker {
   ): PreparedRepositoryKnowledgeQueryRanker | Promise<PreparedRepositoryKnowledgeQueryRanker>;
 }
 
-export interface KnowledgeRelationRecommendation {
-  schemaVersion: 1;
-  recommendationId: string;
-  relationId: string;
-  relationType: "depends_on" | "constrains" | "related_to" | "supersedes" | "contradicts";
-  direction: "incoming" | "outgoing";
-  seedConceptId: string;
-  targetConceptId: string;
-  documentId: string;
-  path: string;
-  sourceContentHash: string;
-  sourceSnapshotId: string;
-  impactReportId: string;
-}
-
-export interface KnowledgeRelationProjection {
-  schemaVersion: 1;
-  projectionId: string;
-  sourceSnapshotId: string;
-  impactReportId: string;
-  conceptSidecarSetHash: string;
-  relationSidecarSetHash: string;
-  seedConceptIds: string[];
-  limits: {
-    readonly maximumSeeds: 5;
-    readonly maximumExaminedRelations: 64;
-    readonly maximumRecommendations: 5;
-    readonly maximumSelections: 2;
-    readonly hops: 1;
-  };
-  examinedRelationCount: number;
-  truncated: boolean;
-  recommendations: KnowledgeRelationRecommendation[];
-}
-
 export interface KnowledgeQueryResult {
   schemaVersion: 1;
   query: string;
@@ -424,10 +405,11 @@ export interface KnowledgeQueryResult {
     engine: { id: string; version: number };
     adapterBuildId: string;
   };
+  coverage: RepositoryKnowledgeScan["coverage"];
+  skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"];
   sourceSnapshotId: string;
   impactReportId: string;
   hits: KnowledgeQueryHit[];
-  relationProjection: KnowledgeRelationProjection;
 }
 
 export class RepositoryKnowledgeError extends Error {

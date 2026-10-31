@@ -14,10 +14,7 @@ import { RepositoryKnowledgeError } from "./types.js";
 export type CanonicalizationCandidateState =
   "candidate" | "pending" | "promoted" | "rejected" | "stale";
 
-export type StoredCanonicalizationOutcome = Exclude<
-  CanonicalizationOutcome,
-  { kind: "portable_skill_candidate" }
->;
+export type StoredCanonicalizationOutcome = CanonicalizationOutcome;
 
 export interface CanonicalizationSourceBinding {
   path: string;
@@ -143,14 +140,7 @@ function validateRecord(value: unknown): CanonicalizationCandidateRecord {
       "knowledge_source_unsafe",
       "The canonicalization candidate record is invalid.",
     );
-  if (record.outcome !== undefined) {
-    const outcome = parseCanonicalizationOutcome(record.outcome);
-    if (outcome.kind === "portable_skill_candidate")
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_unsafe",
-        "Portable-skill outcomes belong to the development-pattern registry.",
-      );
-  }
+  if (record.outcome !== undefined) parseCanonicalizationOutcome(record.outcome);
   return record as CanonicalizationCandidateRecord;
 }
 

@@ -1,4 +1,4 @@
-import { mkdir, rm } from "node:fs/promises";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { registerRepository } from "@lervo/repository-registry";
@@ -23,6 +23,7 @@ vi.mock("@lervo/project-storage", async (original) => ({
 }));
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
+const RESIDENT_CYCLE_STATE_PATH = ".lervo/state/knowledge/resident-cycle.json";
 afterEach(async () => {
   vi.unstubAllEnvs();
   for (const f of fixtures.splice(0)) {
@@ -125,6 +126,59 @@ describe("renewal policy command", () => {
 });
 
 describe("continuity doctor", () => {
+  it("surfaces a persisted cycle failure in doctor JSON and operating attention", async () => {
+    const { f, run } = await host();
+    const lastFailure = {
+      code: "source_bytes_changed",
+      detail: "./docs/specs/runtime.md changed during the scan.",
+      at: "2026-10-31T03:00:00.000Z",
+    };
+    const state = {
+      schemaVersion: 1,
+      fingerprint: null,
+      lastCycleAt: lastFailure.at,
+      lastResult: "failed",
+      idleStreak: 1,
+      nextReconcileAt: null,
+      lastFailure,
+    };
+    await mkdir(resolve(f.root, ".lervo/state/knowledge"), { recursive: true });
+    await writeFile(resolve(f.root, RESIDENT_CYCLE_STATE_PATH), JSON.stringify(state));
+    const report = JSON.parse((await run("doctor", "--json")).out);
+    const repository = report.repositories.find(
+      (item: { repositoryRoot: string }) => item.repositoryRoot === f.root,
+    );
+    expect(repository.lastFailure).toEqual(lastFailure);
+    const finding = {
+      code: "resident_cycle_failed",
+      severity: "attention",
+      detail: lastFailure.code,
+    } as const;
+    expect(repository.findings).toContainEqual({
+      ...finding,
+      remediation: expect.stringContaining("lervo knowledge convergence doctor --json"),
+    });
+    expect(continuityAttentionItems(repository.findings, lastFailure.at)).toContainEqual(
+      expect.objectContaining({
+        findingCode: "resident_cycle_failed",
+        detail: lastFailure.code,
+        severity: "attention",
+        requiresUserAction: false,
+        blocking: false,
+        instruction: expect.stringContaining(lastFailure.code),
+      }),
+    );
+    await writeFile(
+      resolve(f.root, RESIDENT_CYCLE_STATE_PATH),
+      JSON.stringify({ ...state, lastResult: "idle", lastFailure: null }),
+    );
+    const cleared = JSON.parse((await run("doctor", "--json")).out).repositories[0];
+    expect(cleared.lastFailure).toBeNull();
+    expect(cleared.findings.map((item: ContinuityFinding) => item.code)).not.toContain(
+      "resident_cycle_failed",
+    );
+  });
+
   it("reports an unreconciled registered checkout, then a reconciled one", async () => {
     const { f, state, run } = await host();
     await registerRepository({
@@ -196,7 +250,8 @@ describe("continuity attention", () => {
     "continuity_unobserved",
     "continuity_stale",
     "resident_not_running",
-    "hook_runtime_stale",
+    "resident_cycle_failed",
+    "hook_runtime_unavailable",
     "replica_diverged",
   ];
 

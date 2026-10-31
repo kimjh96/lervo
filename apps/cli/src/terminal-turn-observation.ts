@@ -6,6 +6,7 @@ import {
   type TerminalTurnDeclaredEventPayload,
 } from "@lervo/schemas";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
+import type { TranscriptPosition } from "@lervo/repository-knowledge-runtime";
 
 import {
   allTerminalEvents,
@@ -18,6 +19,7 @@ import type {
 } from "./terminal-hook-contract.js";
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
 import { writePreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
+import { openTerminalTurn } from "./terminal-open-turns.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 
 export function latestTerminalTurnDeclaration(
@@ -71,6 +73,7 @@ export async function recordPreparedTerminalContext(input: {
   occurredAt: string;
   eventId?: string;
   storage?: ProjectStorage;
+  transcript?: TranscriptPosition | null;
 }): Promise<string> {
   input.context.documents.forEach((document) =>
     assertTerminalRepositoryRelativePath(document.path),
@@ -105,13 +108,19 @@ export async function recordPreparedTerminalContext(input: {
     durableInstructionTargetPath: input.context.durableInstruction.targetPath,
     durableInstructionReasonIds: input.context.durableInstruction.reasonIds,
     selectionStatus: input.context.selection.selectedCount > 0 ? "selected" : "not_selected",
-    loadingStatus: input.context.selection.selectedCount > 0 ? "observed" : "not_run",
+    // ADR-0538 pointers are selected without loading their bodies; only observed loads count.
+    loadingStatus:
+      input.context.selection.selectedCount > 0 &&
+      input.context.preparationQuality.loading === "observed"
+        ? "observed"
+        : "not_run",
     hookPreparationStatus: "observed",
     providerInjectionStatus: "unobserved",
     providerUseStatus: "unknown",
     contextHash: sha256(input.context.additionalContext),
     recommendationCount: input.context.recommendationCount,
     loadedDocuments: input.context.documents,
+    selectedPointers: input.context.selectedPointers ?? [],
     workstreamId: input.context.workstream?.workstreamId ?? null,
     workstreamRevision: input.context.workstream?.revision ?? null,
     workstreamSnapshotHash: input.context.workstream?.snapshotHash ?? null,
@@ -146,6 +155,14 @@ export async function recordPreparedTerminalContext(input: {
         payload,
       }),
     );
+    await openTerminalTurn(input.root, {
+      provider: input.provider,
+      providerSessionDigest: input.coordinates.providerSessionDigest,
+      providerTurnDigest: input.coordinates.providerTurnDigest,
+      contextEventId: result.event.eventId,
+      openedAt: input.occurredAt,
+      transcript: input.transcript ?? null,
+    });
     return result.event.eventId;
   } finally {
     if (input.storage === undefined) await storage.close();

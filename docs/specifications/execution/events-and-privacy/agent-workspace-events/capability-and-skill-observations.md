@@ -10,7 +10,7 @@
 
 ## Skill execution
 
-`skill.invoked` binds skill ID, version, request digest, and declared capability names. `skill.completed` binds status and result-artifact coordinates. Missing completion means failure or unobserved completion, never success.
+`skill.invoked` is recorded only when the run's instructions contain the verified skill body. A host that only resolves skills, such as the Node managed-provider host under [ADR-0156](../../../../decisions/execution/providers/0156-managed-provider-skill-resolution.md), records `skill.resolved` alone. `skill.invoked` binds skill ID, version, request digest, and declared capability names. `skill.completed` binds status and result-artifact coordinates. Missing completion means failure or unobserved completion, never success.
 
 None of these capability or skill events proves attention, understanding, correctness, or semantic reliance.
 

@@ -144,6 +144,7 @@ export function classifyFlatDecision(
           path: evidencePath,
           contentHash: sha256(content),
           reason: "semantic_classification_uncertain",
+          resolution: "route_metadata",
         },
       };
     route = semantic.route;

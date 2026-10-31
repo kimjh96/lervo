@@ -4,6 +4,8 @@ Workforce events contain only opaque agent, assignment, lease, handoff, artifact
 
 State and event commit together; event failure restores bytes. Invalid or stale role contracts, contention, expiry, rejected claims, and unauthorized acknowledgments record no execution success.
 
+Practice workers reuse ordinary assignments with exact role-version, role-contract and capability pins. The pinned creation boundary also permits read-only assignments. Claiming still validates the active agent, ancestry, capability and path conflicts. A read-only lease grants no repository write. Generator and reviewer identities and sessions must differ. This adds no workforce event type or payload field.
+
 ## Related contracts
 
 [Repository upgrade role bindings](workforce-events/repository-upgrade-role-bindings.md) defines binding refresh authority, events, rollback, and interruption recovery.

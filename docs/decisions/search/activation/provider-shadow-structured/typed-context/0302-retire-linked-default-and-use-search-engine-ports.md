@@ -2,6 +2,7 @@
 
 Status: `accepted`; supersedes the production activation in ADR-0301
 Date: 2026-08-30
+Amended by: [ADR-0528](../../0528-remove-the-linked-evidence-canary-and-shadow.md) (the retained canary and shadow are removed)
 
 ## Context
 

@@ -162,6 +162,39 @@ describe("continuity findings", () => {
     ).toEqual(["hub_unavailable"]);
   });
 
+  it("reports the latest failed cycle with only its code, including legacy failures", () => {
+    const base = {
+      now,
+      expected: false,
+      stateObservedAt: null,
+      residentRunning: true,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+    };
+    const lastFailure = {
+      code: "source_bytes_changed",
+      detail: "./docs/a.md changed",
+      at: new Date(now).toISOString(),
+    };
+    expect(
+      localContinuityFindings({
+        ...base,
+        residentCycle: { lastResult: "failed", lastFailure },
+      }),
+    ).toEqual([
+      { code: "resident_cycle_failed", severity: "attention", detail: "source_bytes_changed" },
+    ]);
+    expect(localContinuityFindings({ ...base, residentCycle: { lastResult: "failed" } })).toEqual([
+      { code: "resident_cycle_failed", severity: "attention", detail: "unclassified_failure" },
+    ]);
+    expect(
+      localContinuityFindings({
+        ...base,
+        residentCycle: { lastResult: "idle", lastFailure: null },
+      }),
+    ).toEqual([]);
+  });
+
   it("adds local gaps only for checkouts that should have a resident", () => {
     expect(
       localContinuityFindings({
@@ -169,10 +202,10 @@ describe("continuity findings", () => {
         expected: false,
         stateObservedAt: null,
         residentRunning: false,
-        hookRuntime: "stale",
+        hookRuntime: "unavailable",
         replicaDiverged: false,
       }).map((finding) => finding.code),
-    ).toEqual(["hook_runtime_stale"]);
+    ).toEqual(["hook_runtime_unavailable"]);
     expect(
       localContinuityFindings({
         now,
@@ -214,6 +247,25 @@ describe("continuity findings", () => {
         detail: "terminal_hook_reader_stale",
       },
     ]);
+  });
+
+  it("reports an owner's degraded resident as non-blocking convergence attention (ADR-0530)", () => {
+    const base = {
+      now,
+      expected: true,
+      stateObservedAt: new Date(now).toISOString(),
+      residentRunning: true,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+      residentHold: "knowledge_sources_parked",
+    };
+    expect(localContinuityFindings({ ...base, owner: true })).toEqual([
+      { code: "convergence_attention", severity: "attention", detail: "knowledge_sources_parked" },
+    ]);
+    expect(localContinuityFindings({ ...base, owner: false })).toEqual([]);
+    expect(
+      localContinuityFindings({ ...base, owner: true, residentHold: "event_schema_outdated" }),
+    ).toEqual([{ code: "event_schema_outdated", severity: "attention", detail: null }]);
   });
 
   it("treats a checkout the running host resident serves as pending, not unobserved", () => {

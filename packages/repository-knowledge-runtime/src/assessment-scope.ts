@@ -1,4 +1,5 @@
 import type { KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import { convergenceSourcePath } from "./source-capture.js";
 
 /** Sensitive sources stay local, explicit policy exclusions stay visible, and opaque assets retain obligations. */
 export function convergenceAssessmentSources(state: KnowledgeConvergenceInput) {
@@ -10,6 +11,7 @@ export function convergenceAssessmentSources(state: KnowledgeConvergenceInput) {
   return sources.filter(
     (source) =>
       source.kind === "text" &&
+      convergenceSourcePath(source.path) &&
       (obligations === null || obligations.has(source.path)) &&
       !["sensitive_local", "policy_excluded"].includes(
         dispositions.get(source.path)?.kind ?? "semantic_source",

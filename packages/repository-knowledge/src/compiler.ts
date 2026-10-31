@@ -1,3 +1,4 @@
+import { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
 import { lstat, readFile } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
@@ -40,6 +41,7 @@ import { archiveScopes, historicalDocumentMarker } from "./historical-documents.
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { summarizeIncrementalReconciliation } from "./incremental-reconciliation.js";
 import { loadDocumentLayoutContract } from "./document-layout-contract.js";
+import { scanUnitsBySource } from "./scan-unit-index.js";
 import {
   isRebuildableStructuralProjectionPath,
   legacyStructuralBundleDirectory,
@@ -547,7 +549,9 @@ function sourceFileUnit(
   scan: RepositoryKnowledgeScan,
   source: RepositorySource,
 ): RepositorySourceUnit | undefined {
-  return scan.units.find((item) => item.sourceId === source.sourceId && item.unitKind === "file");
+  return scanUnitsBySource(scan)
+    .get(source.sourceId)
+    ?.find((item) => item.unitKind === "file");
 }
 
 function desiredOutputs(input: {
@@ -769,6 +773,7 @@ function desiredOutputs(input: {
               "",
               messages.generatedAgentsPurpose,
               "",
+              `- ${messages.agentKnowledgeEntry(indexPath)}`,
               ...messages.agentRules.map((rule) => `- ${rule}`),
               "",
               instructionRouteBlock.trimEnd(),
@@ -986,6 +991,7 @@ async function buildKnowledgeMigrationPlan(input: {
   reconciliationMode: KnowledgeMigrationPlan["reconciliation"]["strategy"];
 }): Promise<KnowledgeMigrationPlan> {
   const { root, manifest, policy, scan, previous } = input;
+  assertCompleteRepositoryKnowledgeScan(root, scan);
   const layout = await loadDocumentLayoutContract(root);
   const compilation = desiredOutputs({
     scan,
@@ -1094,7 +1100,7 @@ async function buildKnowledgeMigrationPlan(input: {
     sourceSnapshotId: scan.snapshotId,
     policyHash: planMaterials.policyHash,
     compiler: { id: "lervo.structural", version: "2", capability: "bounded_read_only_no_tools" },
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     impact: impact.summary,
     impactReportId: impact.reportId,
     operations,
@@ -1190,4 +1196,14 @@ export async function scanConfiguredRepositoryKnowledge(
     options,
   );
   return { manifest, policy, scan };
+}
+
+/** Complete inventory for operations that certify or materialize repository currency. */
+export async function scanCompleteConfiguredRepositoryKnowledge(
+  repositoryRoot: string,
+  options: Parameters<typeof scanConfiguredRepositoryKnowledge>[1] = {},
+): ReturnType<typeof scanConfiguredRepositoryKnowledge> {
+  const configured = await scanConfiguredRepositoryKnowledge(repositoryRoot, options);
+  assertCompleteRepositoryKnowledgeScan(repositoryRoot, configured.scan);
+  return configured;
 }

@@ -1,3 +1,4 @@
+import { verifyInstalledDocumentDeferrals } from "./lib/cli-document-deferrals.mjs";
 import { verifyCliNativeArtifact } from "./lib/cli-native-artifact.mjs";
 import { cliGraphPackageFiles } from "../shared/cli-release-files.mjs";
 import assert from "node:assert/strict";
@@ -170,7 +171,15 @@ async function verifyTraceModes(cliEntry, projectRoot, diagnostics) {
 }
 
 async function verifySelfContainedTerminalHook(deploymentRoot, projectRoot, repositoryKnowledge) {
-  const runtimeContent = await readFile(resolve(deploymentRoot, "dist/terminal-hook.js"), "utf8");
+  const runtimeContent = await readFile(
+    resolve(deploymentRoot, "dist/terminal-hook-launcher.mjs"),
+    "utf8",
+  );
+  assert.ok(Buffer.byteLength(runtimeContent) <= 16 * 1024);
+  assert.equal(
+    runtimeContent,
+    await readFile(resolve(repositoryRoot, "apps/cli/src/terminal-hook-launcher.mjs"), "utf8"),
+  );
   const plan = await repositoryKnowledge.createTerminalIntegrationPlan(projectRoot, runtimeContent);
   assert.equal(plan.status, "review_required");
   await repositoryKnowledge.applyTerminalIntegrationPlan({
@@ -193,10 +202,10 @@ async function verifySelfContainedTerminalHook(deploymentRoot, projectRoot, repo
     stderr:
       "Lervo terminal integration failed closed without exposing prompt or provider configuration content.\n",
   });
-  await appendFile(
-    resolve(projectRoot, ".lervo/generated/terminal-hooks/runtime-v2.mjs"),
-    "// tampered\n",
-  );
+  const store = repositoryKnowledge.terminalHookRuntimeStorePath();
+  const pointer = JSON.parse(await readFile(resolve(store, "current.json"), "utf8"));
+  assert.ok(pointer);
+  await appendFile(resolve(store, pointer.directory, "runtime-v2.mjs"), "// tampered\n");
   assert.deepEqual(await runShell(command, { cwd: nested, env: environment }), {
     code: 2,
     stdout: "",
@@ -211,6 +220,9 @@ async function main() {
   // Every CLI the smoke check starts inherits this, so it never registers its fixture in the
   // host's repository registry or touches other user state (ADR-0470).
   process.env.LERVO_USER_STATE_DIRECTORY = resolve(fixtureRoot, "user-state");
+  process.env.HOME = resolve(fixtureRoot, "home");
+  process.env.USERPROFILE = process.env.HOME;
+  process.env.LOCALAPPDATA = resolve(fixtureRoot, "local");
   try {
     const deploymentRoot = resolve(fixtureRoot, "installation");
     const projectRoot = resolve(fixtureRoot, "project");
@@ -224,6 +236,7 @@ async function main() {
       importBuiltWorkspacePackage("repository-knowledge"),
     ]);
     await verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedManifest);
+    await verifyInstalledDocumentDeferrals(cliEntry, fixtureRoot);
     await verifyTraceCapabilities(cliEntry, projectRoot, diagnostics);
     await createTraceFixture(cliEntry, projectRoot, openProjectStorage);
     await verifyTraceModes(cliEntry, projectRoot, diagnostics);

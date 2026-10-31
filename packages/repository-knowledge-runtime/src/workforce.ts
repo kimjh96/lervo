@@ -102,7 +102,8 @@ export async function withConvergenceAssignment(input: {
       agent!.responsibilityPaths.some((scope) => repositoryPathWithinScope(path, scope)),
     )
   ) {
-    roleName += ` ${sha256(canonicalJson(responsibilityPaths)).slice(7, 15)}`;
+    // Six hex digits keep "Knowledge integrator <12> <6>" within the 40-character name bound.
+    roleName += ` ${sha256(canonicalJson(responsibilityPaths)).slice(7, 13)}`;
     agent = agents.find(
       (candidate) =>
         candidate.status === "active" &&

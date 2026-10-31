@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_54135c83503e8c6dd3d22004"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Bound managed Node runtime retention and reclaim unreachable convergence artifacts during local background maintenance."

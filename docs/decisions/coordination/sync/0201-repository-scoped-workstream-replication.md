@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Date: 2026-08-24
+Amended by: [ADR-0526](../../execution/orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (the default-branch workstream is the replicated lineage)
 
 ## Context
 

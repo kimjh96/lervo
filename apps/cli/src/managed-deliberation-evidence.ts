@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import { readRepositoryFile } from "@lervo/context";
 import { queryRepositoryKnowledge } from "@lervo/repository-knowledge";
-import type { DocumentRegistry } from "@lervo/schemas";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { ManagedDeliberationError } from "./managed-deliberation-errors.js";
@@ -73,7 +72,6 @@ export function assertManagedDeliberationEvidenceBundle(
 export async function prepareManagedDeliberationEvidence(input: {
   repositoryRoot: string;
   topic: string;
-  documentRegistry: DocumentRegistry;
 }): Promise<ManagedDeliberationEvidenceBundle> {
   const query = managedSearchQuery(input.topic, "formal deliberation repository evidence");
   const knowledge = await queryRepositoryKnowledge({
@@ -81,7 +79,6 @@ export async function prepareManagedDeliberationEvidence(input: {
     query,
     limit: 20,
     supplementalSources: await collectLocalKnowledgeSources(input.repositoryRoot),
-    documentRegistry: input.documentRegistry,
   });
   const selected = knowledge.hits
     .filter((hit) => hit.freshness === "current")

@@ -29,7 +29,7 @@ Knowledge intake policy and per-file degradation are `wired` under the [per-chan
 | Neutral platform action, speaker provisioning, provenance, and limits seams; native-chat conformance suite | ADR-0455 | Suite passes for Discord, Slack, and native-chat adapters; installed hire and thread creation unchanged | Slice 0 ratchet |
 | Protocol handshake, writer lease, and handoff primitive | ADR-0456 | J2 on the Lervo repository | Slice 0 fidelity |
 | Typed decision resolution with history | ADR-0453 | A human reply records `workstream.decision.resolved`; Mac CLI shows it | none |
-| Prepared retrieval snapshot and turn report | ADR-0459 | Compact prompt shows pointers within 150 ms; J1 footer shows hits and tokens | Slice 0 attribution |
+| Prepared retrieval snapshot and turn report; exact prompt anchors | ADR-0459, ADR-0538 | Compact prompt shows exact-anchor pointers within 150 ms (`wired`); J1 footer shows hits and tokens | Slice 0 attribution |
 | Compatibility window for delegation | ADR-0454 | Role migration between turns preserves live delegation; `role_revision_drift` recorded | none |
 | Deliberation tiers, built-in Tier 0 and 1 definitions, trigger policy, wired outputs (`createKnowledgeCandidates`, decision resolution, plan revision, memory) | ADR-0460 | CLI Tier 1 run converges, producing a knowledge candidate and resolved decision in one transaction | Slice 0 usage verification, ADR-0453 decision resolution |
 

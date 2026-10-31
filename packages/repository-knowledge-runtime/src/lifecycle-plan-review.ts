@@ -1,3 +1,5 @@
+import { missingConvergencePaths } from "./lifecycle-plan-scope.js";
+import { assertConvergenceDelegation } from "./delegation.js";
 import { convergenceSourceBytes } from "./source-capture.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
 import { convergenceManagedKnowledgeRoots } from "./managed-knowledge-scope.js";
@@ -28,6 +30,17 @@ export async function reviewLifecyclePlan(
   plan: unknown,
   paths: string[],
 ): Promise<{ planHash: string; reviewerAgentId: string; rationale: string }> {
+  const delegation = await assertConvergenceDelegation({
+    repositoryRoot: context.storage.paths.repositoryRoot,
+    projectId: state.baseline.projectId,
+    expectedHash: state.baseline.delegationHash,
+    provider: context.provider,
+  });
+  if (
+    missingConvergencePaths(paths, [...delegation.canonicalRoots, ...delegation.normalizationRoots])
+      .length > 0
+  )
+    throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const planHash = sha256(canonicalJson(plan));
   const disclosedPlan = disclosedLifecyclePlan(plan);
   const generated = generatedLifecyclePlanPaths(plan);
@@ -50,7 +63,7 @@ export async function reviewLifecyclePlan(
       throw error;
     }
   });
-  const documents = await loadCanonicalReviewContext({
+  const { documents, skipped: contextSkips } = await loadCanonicalReviewContext({
     repositoryRoot: context.storage.paths.repositoryRoot,
     sourcePaths: reviewable,
   });
@@ -81,6 +94,7 @@ export async function reviewLifecyclePlan(
         task: "lifecycle_exact_plan_review",
         schema,
         contextDocuments: documents,
+        contextSkips,
         untrustedSourceData: {
           plan: disclosedPlan,
           planHash,

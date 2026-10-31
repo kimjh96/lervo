@@ -9,3 +9,9 @@
 - [ ] Mixed text and binary assets receive complete typed dispositions. Generated cache exclusion requires repository-governed evidence and never drops tracked assets.
 - [x] Stable source reaches a bounded fixed point: normalization writes cause no endless candidate regeneration, and zero debt produces no provider calls.
 - [x] Status distinguishes source-scoped success from complete baseline currency. Neither follows from an empty queue, valid lint alone, or transport health.
+
+## Priority scan budget degradation
+
+- [ ] Execute the [ADR-0537](../../../../../decisions/knowledge/repository/source-intake/0537-degrade-over-budget-scans-by-priority.md) regression tests for deterministic priority admission, query success with partial coverage, convergence and lifecycle refusal, and unchanged per-file/file-count limits. Tests are written but deliberately unexecuted in the [implementation report](../../../../../evidence/quality/scan-budget-priority-implementation.md).
+- [ ] Execute the adversarial regression cases for complete freshness and baseline admission, public normalization and pattern guards, partial impact uncertainty, custom routes, binary exclusions, warm-cache recovery, metadata-only skips, virtual/real digest equality, and skipped publication reads.
+- [ ] Verify an installed `lervo knowledge query` in `axli` under its existing 32 MiB policy, reporting partial coverage and skipped classes without raising the budget.

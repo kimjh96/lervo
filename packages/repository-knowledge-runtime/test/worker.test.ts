@@ -4,7 +4,9 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { listAssignments, listAgents } from "@lervo/agent-workforce";
+import { providerCliDispatchContext } from "@lervo/repository-knowledge-compiler";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -77,8 +79,9 @@ it(
         .size,
     ).toBeGreaterThanOrEqual(3);
     const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    expect(calls.map((line) => JSON.parse(line).cwd).length).toEqual(
-      new Set(calls.map((line) => JSON.parse(line).cwd)).size,
+    // ADR-0536: every provider step runs from the same neutral dispatch cwd, never a checkout.
+    expect(new Set(calls.map((line) => JSON.parse(line).cwd))).toEqual(
+      new Set([providerCliDispatchContext().cwd]),
     );
     await runAutonomousKnowledgeWorker({
       storage: f.storage,
@@ -227,7 +230,7 @@ it.each(["source", "delegation"] as const)(
 );
 
 it(
-  "preserves a dirty canonical target as an owned dependency without leasing a writer or repeating model work",
+  "parks a source whose draft meets a dirty canonical target and readmits it after the owner commits",
   { timeout: 240_000 },
   async () => {
     const f = await fixture(true, true);
@@ -249,44 +252,54 @@ it(
         executable: f.executable,
         admissionDirectory: f.admissionDirectory,
       });
-    let blocked: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 6; cycle++) {
-      blocked = await run();
-      if (blocked.status === "processed" && blocked.convergence.state === "waiting_authority")
-        break;
+    // ADR-0530: the divergent draft parks its source and every later stage still runs.
+    let parked: Awaited<ReturnType<typeof run>>;
+    for (let cycle = 0; cycle < 12; cycle++) {
+      parked = await run();
+      if (parked.status === "processed" && parked.convergence.state === "attention_required") break;
     }
-    expect(blocked!).toMatchObject({
-      convergence: { state: "waiting_authority", reason: "canonical_target_diverged" },
+    expect(parked!).toMatchObject({
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
     });
-    expect(await readFile(path, "utf8")).toBe(dirty);
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+      count: 1,
+      sources: [
+        { stage: "canonical", path: "src/runtime.ts", reason: "target_diverged", attempts: 1 },
+      ],
+    });
+    // Normalization may still rewrite the pending document, but never drops the owner's requirement.
+    expect(await readFile(path, "utf8")).toContain(
+      "Preserve this exact uncommitted user requirement.",
+    );
     const assignments = await listAssignments(f.root);
     expect(assignments.some((item) => item.convergence?.stage === "canonical_integration")).toBe(
       false,
     );
     const calls = await readFile(f.log, "utf8");
     expect(await run()).toMatchObject({
-      convergence: { state: "waiting_authority", reason: "canonical_target_diverged" },
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
     });
     expect(await readFile(f.log, "utf8")).toBe(calls);
-    const git = (args: string[]) =>
-      execFileSync(
-        "git",
-        ["-C", f.root, "-c", "user.name=Test", "-c", "user.email=test@lervo.invalid", ...args],
-        { encoding: "utf8" },
-      ).trim();
-    const oldRef = git(["rev-parse", "refs/heads/knowledge-integration"]);
-    git(["add", "--", "docs/specs/runtime.md"]);
-    const aligned = git([
-      "commit-tree",
-      git(["write-tree"]),
-      "-p",
-      oldRef,
-      "-m",
-      "Pin exact reviewed fixture target",
-    ]);
-    git(["update-ref", "refs/heads/knowledge-integration", aligned, oldRef]);
+    // Committing the owner's requirement changes HEAD's target bytes, which readmits the source.
+    execFileSync(
+      "git",
+      [
+        "-C",
+        f.root,
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@lervo.invalid",
+        "commit",
+        "-qm",
+        "Owner requirement",
+        "--",
+        "docs/specs/runtime.md",
+      ],
+      { encoding: "utf8" },
+    );
     let resumed: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 12; cycle++) {
+    for (let cycle = 0; cycle < 16; cycle++) {
       resumed = await run();
       if (
         resumed.status === "processed" &&

@@ -15,6 +15,7 @@ export interface ParsedTerminalHookInput {
   stopHookActive: boolean;
   prompt?: string;
   lastAssistantMessage?: string | null;
+  transcriptPath?: string;
 }
 
 export interface UnmanagedTerminalCoordinates {
@@ -53,6 +54,8 @@ export interface TerminalActivationReceipt {
   repositoryRevision?: string;
   observationEventId?: string;
   referenceCount?: number;
+  selectedCount?: number;
+  pathMentionCount?: number;
 }
 
 export interface TerminalRuntimeActivation {

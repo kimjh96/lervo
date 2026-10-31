@@ -103,12 +103,16 @@ describe("operating attention projection", () => {
     expect(report).toMatchObject({
       status: "action_required",
       coverage: { workstream: "current", knowledgeLifecycle: "cached" },
-      summary: { totalCount: 5, blockingCount: 3, userActionCount: 2, staleCount: 1 },
+      summary: { totalCount: 5, blockingCount: 2, userActionCount: 1, staleCount: 1 },
     });
     expect(report.items.slice(0, 2).map((item) => item.kind)).toEqual([
       "workstream_approval",
-      "workstream_decision",
+      "workstream_blocker",
     ]);
+    expect(report.items.find((item) => item.kind === "workstream_decision")).toMatchObject({
+      requiresUserAction: false,
+      attribution: { actor: "principal proxy", recommendation: "first" },
+    });
     expect(report.items.find((item) => item.kind === "canonicalization_review")).toMatchObject({
       state: "stale",
       actionOwner: "reviewer",

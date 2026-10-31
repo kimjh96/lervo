@@ -47,7 +47,8 @@ describe("agent surface migration CLI", () => {
     expect(output).toContain(
       ".claude/rules/api.md -> docs/instructions/architecture/api.md (instruction; explicit_metadata)",
     );
-    expect(output).toContain("deferred [semantic_classification_pending] .claude/rules/zebra.md");
+    // ADR-0540: each deferral names its resolution; no delegation admits a provider here.
+    expect(output).toContain("deferred [provider_unavailable] .claude/rules/zebra.md");
     expect(output).toContain("approval: kdocop_");
     expect(output).not.toContain("do-not-print-this-setting");
     expect(errors).toEqual([]);

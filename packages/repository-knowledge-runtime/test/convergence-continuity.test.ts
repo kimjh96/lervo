@@ -87,6 +87,7 @@ function continuity(input: {
   now?: () => number;
 }): ConvergenceContinuity {
   return new ConvergenceContinuity({
+    providerAdmission: async () => null,
     storage: input.f.storage as Fixture["storage"],
     policyPath: input.policyPath,
     hubCandidates: async () =>

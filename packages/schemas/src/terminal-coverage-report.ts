@@ -62,8 +62,8 @@ const terminalDocumentObservationSchema = {
     highestObservation: { type: "string", enum: ["prepared", "referenced"] },
     referenceKinds: {
       type: "array",
-      items: { type: "string", enum: ["output_citation"] },
-      maxItems: 1,
+      items: { type: "string", enum: ["output_citation", "path_mention"] },
+      maxItems: 2,
       uniqueItems: true,
     },
   },
@@ -135,6 +135,9 @@ const terminalTurnCoverageSchema = {
     sourceSnapshotId: { type: "string", pattern: "^ksnap_[a-f0-9]{24}$" },
     queryDigest: sha256Schema,
     contextHash: sha256Schema,
+    selectedCount: { type: ["integer", "null"], minimum: 0 },
+    referenceCount: { type: ["integer", "null"], minimum: 0 },
+    pathMentionCount: { type: ["integer", "null"], minimum: 0 },
     capabilities: {
       type: "object",
       properties: {

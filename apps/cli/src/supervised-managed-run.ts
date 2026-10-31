@@ -50,8 +50,7 @@ export async function admitSupervisedManagedRun<T>(input: {
     operatingContractHash(request.workCausality ?? null) !==
       operatingContractHash(
         supervisedManagedRetryCausality(effect, invocation.plan.workstreamId) ?? null,
-      ) ||
-    request.linkedEvidenceCanaryAuthorization !== undefined
+      )
   )
     throw new Error("The managed request differs from the supervised invocation.");
   return admitSupervisedManagedInvocation({

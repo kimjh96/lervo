@@ -13,6 +13,7 @@ import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters
 import { lintDocumentDrift, type DocumentStalenessLintMode } from "./document-drift-lint.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { repositoryKnowledgePublicationSnapshotId } from "./publication-snapshot.js";
+import { lintPublicationRootResidents } from "./publication-root-lint.js";
 import {
   generatedKnowledgePaths,
   readSafePublication,
@@ -401,7 +402,7 @@ export async function lintRepositoryKnowledge(
       severity: "warning",
       path: structuralManifestPath,
       message:
-        "No applied structural knowledge generation exists. Check for a refresh candidate because only semantic materialization may be present.",
+        "No applied structural knowledge generation exists. Git ignores generated knowledge, so a fresh clone starts here: run `lervo migrate knowledge`.",
     });
   }
   const project = await loadProjectManifest(root);
@@ -439,6 +440,12 @@ export async function lintRepositoryKnowledge(
   }
   const policy = await loadRepositoryKnowledgePolicy(root);
   const generated = await generatedKnowledgePaths(root);
+  await lintPublicationRootResidents({
+    root,
+    publicationRoot: policy.publicationRoot,
+    generatedPaths: generated,
+    issues,
+  });
   const scan =
     options.preparedScan ??
     (await scanRepositoryKnowledge({
@@ -453,6 +460,13 @@ export async function lintRepositoryKnowledge(
   if (scan.projectId !== project.projectId || scan.policyId !== policy.policyId) {
     throw new Error("The prepared knowledge scan does not match the current project policy.");
   }
+  if (scan.coverage === "partial")
+    issues.push({
+      code: "knowledge_scan_partial",
+      severity: "warning",
+      path: ".lervo/knowledge/policy.yaml",
+      message: `Repository scan coverage is partial: ${scan.skippedForBudget.count} sources and ${scan.skippedForBudget.bytes} bytes skipped for budget (${scan.skippedForBudget.classes.join(", ")}).`,
+    });
   const currentManifest = manifests.find(
     (item) => item.sourceSnapshotId === repositoryKnowledgePublicationSnapshotId(scan),
   );
@@ -667,6 +681,8 @@ export async function lintRepositoryKnowledge(
   return {
     schemaVersion: 1,
     repositoryRoot: root,
+    coverage: scan.coverage,
+    skippedForBudget: scan.skippedForBudget,
     valid: issues.every((issue) => issue.severity !== "error"),
     checkedConcepts: concepts.filter((item) => item.value !== null).length,
     issues,

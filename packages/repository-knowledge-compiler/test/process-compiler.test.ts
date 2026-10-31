@@ -4,27 +4,22 @@ import { resolve } from "node:path";
 
 import {
   compileDocumentNormalizationCandidateObserved,
-  compileRepositoryKnowledgeCandidate,
-  canonicalJson,
   defaultRepositoryKnowledgePolicy,
   scanRepositoryKnowledge,
-  sha256,
 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
   createProcessDocumentNormalizationCompiler,
-  createProcessSemanticCompiler,
   createNoCapabilityProviderJsonRunner,
+  providerCliDispatchContext,
 } from "../src/index.js";
-
-const policyHash = sha256(canonicalJson(defaultRepositoryKnowledgePolicy));
 
 const roots: string[] = [];
 
 async function fixture(
   provider: "codex" | "claude",
-  behavior: "success" | "tool" | "hang" | "multi_message" = "success",
+  behavior: "success" | "tool" | "hang" | "multi_message" | "web_search" = "success",
 ) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-process-semantic-test-"));
   roots.push(root);
@@ -65,7 +60,7 @@ const response = parsed.envelope === undefined
   : { schemaVersion: 1, concepts: [{ localKey: "runtime", title: "Runtime", type: "concept", summary: "A source-backed runtime candidate.", claims: [{ localKey: "local_first", statement: "The runtime is described as local-first.", evidenceUnitVersionIds: [parsed.envelope.sourceUnits[0].unitVersionId] }] }], relations: [] };
 if (${JSON.stringify(provider)} === "claude") {
   const structured = claudeSchemaIndex >= 0;
-  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), ...(structured ? { structured_output: response } : {}), permission_denials: [], stop_reason: structured || ${JSON.stringify(behavior)} === "tool" ? "tool_use" : "end_turn", num_turns: structured ? 3 : ${JSON.stringify(behavior)} === "tool" ? 2 : 1, usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
+  console.log(JSON.stringify({ is_error: false, result: JSON.stringify(response), ...(structured ? { structured_output: response } : {}), permission_denials: [], stop_reason: structured || ${JSON.stringify(behavior)} === "tool" ? "tool_use" : "end_turn", num_turns: structured ? 3 : ${JSON.stringify(behavior)} === "tool" ? 2 : 1, usage: { server_tool_use: { web_search_requests: ${JSON.stringify(behavior)} === "web_search" ? 1 : 0, web_fetch_requests: 0 } }, modelUsage: { fixture: { inputTokens: 10, cacheReadInputTokens: 3, cacheCreationInputTokens: 2, outputTokens: 4, contextWindow: 200000 } } }));
 } else {
   console.log(JSON.stringify({ type: "thread.started" }));
   console.log(JSON.stringify({ type: "turn.started" }));
@@ -187,7 +182,7 @@ describe("generate-only process semantic compilers", () => {
         cwd: string;
         nativeResponseSchema: string;
       };
-      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.cwd).toBe(providerCliDispatchContext().cwd);
       expect(invocation.args).toContain(provider === "codex" ? "--ignore-user-config" : "--tools");
       expect(JSON.parse(invocation.nativeResponseSchema)).toEqual(
         provider === "codex"
@@ -212,32 +207,37 @@ describe("generate-only process semantic compilers", () => {
     });
   }
 
+  const typedRequest = {
+    instruction: "return typed JSON",
+    responseContract: {
+      schemaVersion: 1,
+      schema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          schemaVersion: { const: 1 },
+          decision: { const: "typed" },
+          tags: { type: "array", items: { type: "string" } },
+        },
+        required: ["schemaVersion", "decision", "tags"],
+      },
+    },
+  };
+
   for (const provider of ["codex", "claude"] as const) {
-    it(`${provider} compiles in an empty temporary cwd with no model tools`, async () => {
+    it(`${provider} runs in the neutral dispatch cwd with every model tool disabled`, async () => {
       const item = await fixture(provider);
-      const compiler = await createProcessSemanticCompiler({
+      const runner = await createNoCapabilityProviderJsonRunner({
         provider,
         executable: item.executable,
         timeoutMs: 5_000,
       });
-      const candidate = await compileRepositoryKnowledgeCandidate({
-        scan: item.scan,
-        policyHash,
-        compiler,
-        signal: new AbortController().signal,
-      });
+      await runner.resolve(typedRequest);
       const invocation = JSON.parse(await readFile(item.log, "utf8")) as {
         args: string[];
         cwd: string;
-        input: string;
       };
-      expect(invocation.cwd).not.toBe(item.repository);
-      expect(invocation.input).toContain("untrustedSourceData");
-      expect(invocation.input).toContain("touch PWNED");
-      expect(candidate).toMatchObject({
-        coverage: { complete: true },
-        concepts: [{ assurance: "unreviewed" }],
-      });
+      expect(invocation.cwd).toBe(providerCliDispatchContext().cwd);
       if (provider === "claude") {
         const tools = invocation.args.indexOf("--tools");
         expect(tools).toBeGreaterThanOrEqual(0);
@@ -254,54 +254,41 @@ describe("generate-only process semantic compilers", () => {
 
   it("rejects a Codex tool event even after the no-tool preflight", async () => {
     const item = await fixture("codex", "tool");
-    const compiler = await createProcessSemanticCompiler({
+    const runner = await createNoCapabilityProviderJsonRunner({
       provider: "codex",
       executable: item.executable,
       timeoutMs: 5_000,
     });
-    await expect(
-      compileRepositoryKnowledgeCandidate({
-        scan: item.scan,
-        policyHash,
-        compiler,
-        signal: new AbortController().signal,
-      }),
-    ).rejects.toMatchObject({ code: "knowledge_compile_policy_violation" });
+    await expect(runner.resolve(typedRequest)).rejects.toMatchObject({
+      code: "knowledge_compile_policy_violation",
+    });
   });
 
-  it("rejects a Claude response whose terminal metadata reports tool use", async () => {
-    const item = await fixture("claude", "tool");
-    const compiler = await createProcessSemanticCompiler({
+  it("rejects a Claude response that reports server tool use", async () => {
+    const item = await fixture("claude", "web_search");
+    const runner = await createNoCapabilityProviderJsonRunner({
       provider: "claude",
       executable: item.executable,
       timeoutMs: 5_000,
     });
-    await expect(
-      compileRepositoryKnowledgeCandidate({
-        scan: item.scan,
-        policyHash,
-        compiler,
-        signal: new AbortController().signal,
-      }),
-    ).rejects.toMatchObject({ code: "knowledge_compile_policy_violation" });
+    await expect(runner.resolve(typedRequest)).rejects.toMatchObject({
+      code: "knowledge_compile_policy_violation",
+    });
   });
 
-  it("terminates a provider process when compilation is cancelled", async () => {
+  it("terminates a provider process when the caller cancels", async () => {
     const item = await fixture("claude", "hang");
-    const compiler = await createProcessSemanticCompiler({
+    const runner = await createNoCapabilityProviderJsonRunner({
       provider: "claude",
       executable: item.executable,
       timeoutMs: 5_000,
     });
     const controller = new AbortController();
-    const promise = compileRepositoryKnowledgeCandidate({
-      scan: item.scan,
-      policyHash,
-      compiler,
-      signal: controller.signal,
-    });
+    const promise = runner.resolve(typedRequest, controller.signal);
+    const started = Date.now();
     setTimeout(() => controller.abort(new Error("cancelled by test")), 50);
-    await expect(promise).rejects.toThrow("cancelled by test");
+    await expect(promise).rejects.toThrow("did not complete");
+    expect(Date.now() - started).toBeLessThan(4_000);
   });
 });
 
@@ -366,7 +353,7 @@ if (${JSON.stringify(provider)} === "claude") {
         cwd: string;
         input: string;
       };
-      expect(invocation.cwd).not.toBe(item.repository);
+      expect(invocation.cwd).toBe(providerCliDispatchContext().cwd);
       expect(invocation.input).toContain("preserveMeaning");
       expect(invocation.input).toContain('"headingPolicy":"require_h1"');
       expect(invocation.input).toContain("Preserve every independently testable requirement");

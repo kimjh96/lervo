@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { createTerminalCoverageReport } from "@lervo/diagnostics";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
+import { readTerminalSkillUsage } from "@lervo/repository-knowledge-runtime";
 
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { formatTerminalCoverageReport } from "./terminal-coverage-format.js";
@@ -90,13 +91,15 @@ export async function runTerminalCommand(
         undefined,
         foregroundKnowledgeMaterializationSettlement({ repositoryRoot: root, io }),
       );
+      const skillUsage = await readTerminalSkillUsage(root);
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify(result, null, 2)}\n`
+          ? `${JSON.stringify({ ...result, skillUsage }, null, 2)}\n`
           : [
               `Lervo terminal lifecycle: ${result.status}`,
               `Hook endpoint observation: ${result.runtimeActivation.status} (does not prove provider authorship)`,
               `Activation readiness: ${result.activationReadiness.status}`,
+              `Native skill usage: ${skillUsage === null ? "unavailable" : `${skillUsage.observedTurnCount} observed turns; ${skillUsage.skills.filter((skill) => skill.retirementCandidate).length} retirement candidates for principal proxy review`}`,
               ...result.issues.map(
                 (item) =>
                   `  ${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}${item.command}`,

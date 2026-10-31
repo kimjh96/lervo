@@ -1,4 +1,15 @@
 import {
+  providerCliAdmittedEventPayloadSchema,
+  providerCliRejectedEventPayloadSchema,
+} from "./provider-cli-event.js";
+import {
+  learningObservationRecordedEventPayloadSchema,
+  knowledgeSkillCandidateProposedEventPayloadSchema,
+  knowledgeSkillCandidateResolvedEventPayloadSchema,
+  knowledgeSkillUsageAssessedEventPayloadSchema,
+  knowledgeSkillRetiredEventPayloadSchema,
+} from "./practice-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -169,6 +180,7 @@ import {
 import { managedContextCoverageReportSchema } from "./managed-context-coverage-report.js";
 import {
   adapterResultCapturedEventPayloadSchema,
+  contextSelectedEventPayloadSchema,
   managedContextInjectedEventPayloadSchema,
   managedContextReferencedEventPayloadSchema,
 } from "./managed-context-event.js";
@@ -270,6 +282,10 @@ import {
   terminalBudgetPolicySchema,
   terminalBudgetReportSchema,
 } from "./terminal-budget-report.js";
+import {
+  terminalSkillObservedEventPayloadSchema,
+  terminalSkillTurnAssessedEventPayloadSchema,
+} from "./terminal-skill-event.js";
 import {
   terminalContextPreparedEventPayloadSchema,
   terminalReferenceObservedEventPayloadSchema,
@@ -430,6 +446,8 @@ export const schemaCatalog = {
   knowledgeInstructionCandidateExchangedEventPayload:
     knowledgeInstructionCandidateExchangedEventPayloadSchema,
   knowledgeConvergenceOwnerChangedEventPayload: knowledgeConvergenceOwnerChangedEventPayloadSchema,
+  providerCliAdmittedEventPayload: providerCliAdmittedEventPayloadSchema,
+  providerCliRejectedEventPayload: providerCliRejectedEventPayloadSchema,
   knowledgeConvergenceDelegationContinuedEventPayload:
     knowledgeConvergenceDelegationContinuedEventPayloadSchema,
   knowledgeConvergenceDefinitionsInstalledEventPayload:
@@ -456,6 +474,7 @@ export const schemaCatalog = {
   deliberationArtifactPublicationFailedEventPayload:
     deliberationArtifactPublicationFailedEventPayloadSchema,
   deliberationCompletedEventPayload: deliberationCompletedEventPayloadSchema,
+  // Historical development-pattern events retained for stored-event validation.
   developmentPatternObservedEventPayload: developmentPatternObservedEventPayloadSchema,
   developmentPatternTransitionedEventPayload: developmentPatternTransitionedEventPayloadSchema,
   developmentPatternEvaluationRegisteredEventPayload:
@@ -509,12 +528,20 @@ export const schemaCatalog = {
   contextPreparationReport: contextPreparationReportSchema,
   managedContextCoverageReport: managedContextCoverageReportSchema,
   managedContextInjectedEventPayload: managedContextInjectedEventPayloadSchema,
+  contextSelectedEventPayload: contextSelectedEventPayloadSchema,
   adapterResultCapturedEventPayload: adapterResultCapturedEventPayloadSchema,
   managedContextReferencedEventPayload: managedContextReferencedEventPayloadSchema,
   terminalContextPreparedEventPayload: terminalContextPreparedEventPayloadSchema,
   terminalTurnDeclaredEventPayload: terminalTurnDeclaredEventPayloadSchema,
   terminalReferenceObservedEventPayload: terminalReferenceObservedEventPayloadSchema,
   terminalTurnObservedEventPayload: terminalTurnObservedEventPayloadSchema,
+  learningObservationRecordedEventPayload: learningObservationRecordedEventPayloadSchema,
+  knowledgeSkillCandidateProposedEventPayload: knowledgeSkillCandidateProposedEventPayloadSchema,
+  knowledgeSkillCandidateResolvedEventPayload: knowledgeSkillCandidateResolvedEventPayloadSchema,
+  knowledgeSkillUsageAssessedEventPayload: knowledgeSkillUsageAssessedEventPayloadSchema,
+  knowledgeSkillRetiredEventPayload: knowledgeSkillRetiredEventPayloadSchema,
+  terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
+  terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,
   workstreamSnapshotRecordedEventPayload: workstreamSnapshotRecordedEventPayloadSchema,
   workstreamReplicationPublishRequest: workstreamReplicationPublishRequestSchema,

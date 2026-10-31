@@ -5,6 +5,10 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import {
   applyReplicatedWorkstreamImportPlan,
   createReplicatedWorkstreamImportPlan,
+  readCurrentWorkstreamState,
+  readWorkstreamBranchBindings,
+  writeWorkstreamBranchBindings,
+  type ReplicatedWorkstreamLocalHead,
 } from "@lervo/repository-knowledge/workstream";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import type { LocalWorkstreamRevision, WorkstreamReplicationLocalPort } from "@lervo/sync";
@@ -41,13 +45,28 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
     return this.reader.read();
   }
 
+  /** The replicated lineage's local head when branches carry their own workstreams. */
+  private async localHead(): Promise<ReplicatedWorkstreamLocalHead | undefined> {
+    if ((await readWorkstreamBranchBindings(this.repositoryRoot)) === null) return undefined;
+    const head = (await this.reader.read()).at(-1) ?? null;
+    const projected = await readCurrentWorkstreamState(this.repositoryRoot);
+    return {
+      state:
+        head === null ? null : { snapshot: head.snapshot, contentHash: head.snapshotContentHash },
+      projectionSelected:
+        head !== null && projected?.snapshot.workstreamId === head.snapshot.workstreamId,
+    };
+  }
+
   async importCurrent(input: LocalWorkstreamRevision): Promise<void> {
+    const localHead = await this.localHead();
     const plan = await createReplicatedWorkstreamImportPlan({
       repositoryRoot: this.repositoryRoot,
       projectId: this.projectId,
       snapshot: input.snapshot,
       snapshotContentHash: input.snapshotContentHash,
       previousSnapshotContentHash: input.previousSnapshotContentHash,
+      ...(localHead === undefined ? {} : { localHead }),
     });
     if (plan.status === "current") return;
     if (plan.status !== "ready") throw new Error("The replicated workstream import is blocked.");
@@ -55,6 +74,7 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
     await applyReplicatedWorkstreamImportPlan({
       plan,
       now: this.now(),
+      ...(localHead === undefined ? {} : { localHead }),
       recordApplied: async (receipt, content) => {
         const artifact = await this.artifacts.put(content);
         if (artifact.contentHash !== receipt.snapshotContentHash) {
@@ -85,5 +105,15 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
         });
       },
     });
+    const bindings = await readWorkstreamBranchBindings(this.repositoryRoot);
+    if (
+      bindings !== null &&
+      bindings.bindings[bindings.defaultBranch] !== input.snapshot.workstreamId
+    )
+      // The plan admits a different workstream only as the bound lineage's successor.
+      await writeWorkstreamBranchBindings(this.repositoryRoot, {
+        ...bindings,
+        bindings: { ...bindings.bindings, [bindings.defaultBranch]: input.snapshot.workstreamId },
+      });
   }
 }

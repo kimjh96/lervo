@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { execFile } from "node:child_process";
-import { mkdir, lstat, open } from "node:fs/promises";
+import { mkdir, lstat, open, unlink, symlink } from "node:fs/promises";
 import { dirname, resolve, relative } from "node:path";
 import { promisify } from "node:util";
 import { readWorkspace, updateWorkspace } from "@lervo/agent-workforce";
@@ -170,6 +170,14 @@ export async function sealCanonicalDrafts(
   state: KnowledgeConvergenceInput,
   authority: ConvergenceAssignmentAuthority,
   drafts: CanonicalDraft[],
+  commitIdentity?: {
+    name: string;
+    email: string;
+    subject: string;
+    trailers: string;
+    deletions?: { path: string; expectedHash: string }[];
+    links?: { path: string; target: string }[];
+  },
 ): Promise<{ workspaceId: string; path: string; resultHash: string }> {
   context.assertSource(state);
   const plan = await convergenceEffectCheckpoint({
@@ -178,6 +186,30 @@ export async function sealCanonicalDrafts(
     effect: "seal",
     prepare: async () => {
       const provision = await provisionCanonicalWorkspace(context, authority, "worker");
+      const extraPaths: string[] = [];
+      for (const deletion of commitIdentity?.deletions ?? []) {
+        const bytes = await execute(
+          "git",
+          ["-C", provision.path, "show", `${provision.baseCommit}:${deletion.path}`],
+          { encoding: "buffer", maxBuffer: 8192 },
+        );
+        if (sha256(bytes.stdout) !== deletion.expectedHash)
+          throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
+        await safeDirectory(provision.path, dirname(resolve(provision.path, deletion.path)));
+        const target = resolve(provision.path, deletion.path);
+        if (!(await lstat(target)).isFile())
+          throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
+        await unlink(target);
+        extraPaths.push(deletion.path);
+      }
+      for (const link of commitIdentity?.links ?? []) {
+        await safeDirectory(provision.path, dirname(resolve(provision.path, link.path)));
+        const target = resolve(dirname(resolve(provision.path, link.path)), link.target);
+        if (!target.startsWith(`${provision.path}/`))
+          throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
+        await symlink(link.target, resolve(provision.path, link.path));
+        extraPaths.push(link.path);
+      }
       for (const draft of drafts) {
         let before: string | null = null;
         try {
@@ -215,18 +247,25 @@ export async function sealCanonicalDrafts(
           await file.close();
         }
       }
-      await convergenceGit(provision.path, ["add", "--", ...drafts.map((draft) => draft.path)]);
+      await convergenceGit(provision.path, [
+        "add",
+        "-A",
+        "--",
+        ...drafts.map((draft) => draft.path),
+        ...extraPaths,
+      ]);
       if (await convergenceGit(provision.path, ["diff", "--cached", "--name-only"]))
         await convergenceGit(provision.path, [
           "-c",
-          "user.name=Lervo Knowledge Worker",
+          `user.name=${commitIdentity?.name ?? "Lervo Knowledge Worker"}`,
           "-c",
-          "user.email=knowledge@lervo.invalid",
+          `user.email=${commitIdentity?.email ?? "knowledge@lervo.invalid"}`,
           "-c",
           "core.hooksPath=/dev/null",
           "commit",
           "-m",
-          "docs: apply reviewed canonical knowledge",
+          commitIdentity?.subject ?? "docs: apply reviewed canonical knowledge",
+          ...(commitIdentity === undefined ? [] : ["-m", commitIdentity.trailers]),
         ]);
       const verifications = await verifyCanonicalWorkspace(context, authority, provision.path);
       const result = await context.storage.artifacts.put(

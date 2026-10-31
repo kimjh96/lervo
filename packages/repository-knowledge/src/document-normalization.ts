@@ -1,3 +1,4 @@
+import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import { constants } from "node:fs";
 import { lstat, mkdir, open, readFile } from "node:fs/promises";
 import { basename, dirname, posix, resolve } from "node:path";
@@ -8,7 +9,10 @@ import { loadDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
 import { hashSkillPackageProjection } from "@lervo/skills";
 
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import {
+  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
+} from "./compiler.js";
 import {
   applyDurableKnowledgeOperations,
   type DurableKnowledgeDeleteOperation,
@@ -37,6 +41,7 @@ import {
   type DocumentNormalizationWorksetBinding,
 } from "./document-normalization-workset.js";
 import { declaredContinuationSource } from "./continuation-source-declaration.js";
+import { scanUnitsBySource } from "./scan-unit-index.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { repositoryPathMatchesPatterns } from "./knowledge-intake-policy.js";
 import {
@@ -504,9 +509,9 @@ function unitsForSource(
   scan: RepositoryKnowledgeScan,
   source: RepositorySource,
 ): RepositorySourceUnit[] {
-  const units = scan.units.filter((unit) => unit.sourceId === source.sourceId);
+  const units = scanUnitsBySource(scan).get(source.sourceId) ?? [];
   const specific = units.filter((unit) => unit.unitKind !== "file");
-  return (specific.length > 0 ? specific : units).sort(
+  return [...(specific.length > 0 ? specific : units)].sort(
     (left, right) => left.range.startByte - right.range.startByte,
   );
 }
@@ -1316,6 +1321,7 @@ export interface CompileDocumentNormalizationCandidateInput {
 export async function compileDocumentNormalizationCandidateObserved(
   input: CompileDocumentNormalizationCandidateInput,
 ): Promise<DocumentNormalizationCompilationResult> {
+  requireCompleteRepositoryKnowledgeCoverage(input.scan);
   if (input.outputLanguage !== "en")
     throw new RepositoryKnowledgeError(
       "knowledge_compile_policy_violation",
@@ -2081,7 +2087,7 @@ async function prepareConfiguredDocumentNormalization(input: {
 }> {
   const root = resolve(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}
@@ -2279,7 +2285,7 @@ export async function createDocumentNormalizationPlan(input: {
 }): Promise<DocumentNormalizationPlan> {
   const root = resolve(input.repositoryRoot);
   const [{ policy, scan }, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(
+    scanCompleteConfiguredRepositoryKnowledge(
       root,
       input.supplementalSources === undefined
         ? {}

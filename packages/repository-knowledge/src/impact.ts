@@ -31,6 +31,7 @@ function aggregateFreshness(counts: KnowledgeImpactItem["evidence"]): KnowledgeF
 }
 
 function evaluateSubject(input: {
+  complete: boolean;
   subject: EvidenceSubject;
   currentVersionIds: Set<string>;
   currentByUnitId: Map<string, string>;
@@ -47,9 +48,13 @@ function evaluateSubject(input: {
     if (unitId === undefined) {
       evidence.unknown += 1;
       reasons.add("lineage_unavailable");
+      if (!input.complete) reasons.add("scan_incomplete");
     } else if (input.currentByUnitId.has(unitId)) {
       evidence.stale += 1;
       reasons.add("source_unit_changed");
+    } else if (!input.complete) {
+      evidence.unknown += 1;
+      reasons.add("scan_incomplete");
     } else {
       evidence.stale += 1;
       reasons.add("source_unit_missing");
@@ -121,7 +126,13 @@ export async function analyzeRepositoryKnowledgeImpact(input: {
 
   const semanticItems = subjects.map((subject) => ({
     subject,
-    item: evaluateSubject({ subject, currentVersionIds, currentByUnitId, versionToUnitId }),
+    item: evaluateSubject({
+      complete: input.scan.coverage === "complete",
+      subject,
+      currentVersionIds,
+      currentByUnitId,
+      versionToUnitId,
+    }),
   }));
   const conceptMembers = new Map<string, KnowledgeImpactItem[]>();
   for (const { subject, item } of semanticItems) {
@@ -163,12 +174,14 @@ export async function analyzeRepositoryKnowledgeImpact(input: {
   };
   const lineageComplete = !items.some((item) => item.reasons.includes("lineage_unavailable"));
   const materials = {
+    coverage: input.scan.coverage,
+    skippedForBudget: input.scan.skippedForBudget,
     projectId: input.scan.projectId,
     sourceSnapshotId: input.scan.snapshotId,
     status:
       summary.stale > 0
         ? ("affected" as const)
-        : summary.unknown > 0
+        : summary.unknown > 0 || input.scan.coverage !== "complete"
           ? ("unknown" as const)
           : ("current" as const),
     lineageComplete,

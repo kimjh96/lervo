@@ -1,0 +1,231 @@
+#!/usr/bin/env node
+import { createHash } from "node:crypto";
+import { constants } from "node:fs";
+import { lstat, mkdir, open, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
+import { homedir } from "node:os";
+import { relative, resolve, sep } from "node:path";
+import { pathToFileURL } from "node:url";
+
+const hash = (bytes) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+const assetNames = [
+  "native/cas-io-darwin.node",
+  "native/cas-io.json",
+  "native/file-sync-darwin.node",
+  "native/file-sync.json",
+];
+const store =
+  process.platform === "win32"
+    ? resolve(
+        process.env.LOCALAPPDATA || resolve(homedir(), "AppData/Local"),
+        "Lervo/terminal-hooks",
+      )
+    : resolve(homedir(), ".lervo/terminal-hooks");
+
+function privateOwner(stat) {
+  if (process.platform !== "win32" && (stat.uid !== process.getuid() || stat.mode & 0o022))
+    throw new Error("integrity");
+}
+async function trustedParents() {
+  if (process.platform === "win32") return;
+  const home = await realpath(homedir());
+  const parent = await realpath(resolve(store, ".."));
+  const within = relative(home, parent);
+  if (within === ".." || within.startsWith(`..${sep}`) || within.startsWith(sep))
+    throw new Error("integrity");
+}
+async function bytes(path, maximum) {
+  const stat = await lstat(path);
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > maximum) throw new Error("integrity");
+  privateOwner(stat);
+  const file = await open(path, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+  try {
+    const before = await file.stat();
+    privateOwner(before);
+    if (!before.isFile() || before.size > maximum) throw new Error("integrity");
+    const buffer = Buffer.alloc(before.size + 1);
+    let length = 0;
+    while (length < buffer.length) {
+      const result = await file.read(buffer, length, buffer.length - length, length);
+      if (!result.bytesRead) break;
+      length += result.bytesRead;
+    }
+    const value = buffer.subarray(0, length);
+    const after = await file.stat();
+    if (
+      value.length !== before.size ||
+      before.size !== after.size ||
+      before.mtimeMs !== after.mtimeMs
+    )
+      throw new Error("integrity");
+    return value;
+  } finally {
+    await file.close();
+  }
+}
+async function directory(path, requirePrivate = true) {
+  const stat = await lstat(path);
+  if (!stat.isDirectory() || stat.isSymbolicLink()) throw new Error("integrity");
+  if (requirePrivate) privateOwner(stat);
+}
+async function marker(repair = false) {
+  // Closed codes only: never include a repository path, error detail, or hook input.
+  const name = repair ? "repair" : "unavailable";
+  const temporary = resolve(store, `.${name}-${process.pid}.tmp`);
+  try {
+    // Validate existing parents before recursive mkdir can traverse a link outside home.
+    await trustedParents();
+    await mkdir(store, { mode: 0o700 });
+  } catch (error) {
+    if (error.code === "ENOENT") {
+      try {
+        await mkdir(resolve(store, ".."), { mode: 0o700 });
+        await trustedParents();
+        await mkdir(store, { mode: 0o700 });
+      } catch {
+        /* Best effort only. */
+      }
+    }
+  }
+  try {
+    await trustedParents();
+    // Closed repair codes can be written even when mode bits caused verification to fail.
+    await directory(store, false);
+    await writeFile(
+      temporary,
+      JSON.stringify({
+        schemaVersion: 1,
+        code: repair ? "hook_runtime_repair" : "hook_runtime_unavailable",
+      }) + "\n",
+      { mode: 0o600, flag: "wx" },
+    );
+    await rename(temporary, resolve(store, `${name}.json`));
+  } catch {
+    /* A marker cannot override an unsafe or unwritable store. */
+  } finally {
+    await rm(temporary, { force: true }).catch(() => undefined);
+  }
+}
+async function locate() {
+  try {
+    await trustedParents();
+    await directory(store);
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  let pointer;
+  try {
+    pointer = JSON.parse(await bytes(resolve(store, "current.json"), 4096));
+  } catch (error) {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  }
+  if (
+    pointer.schemaVersion !== 1 ||
+    !/^sha256:[a-f0-9]{64}$/u.test(pointer.contentHash) ||
+    !new RegExp(`^${pointer.contentHash.slice(7, 23)}(?:-repair-[a-f0-9]{16})?$`, "u").test(
+      pointer.directory,
+    )
+  )
+    throw new Error("integrity");
+  const root = resolve(store, pointer.directory);
+  await directory(root);
+  const manifest = JSON.parse(await bytes(resolve(root, "runtime-v2.json"), 16384));
+  if (
+    Object.keys(manifest).sort().join(",") !==
+      "assets,byteCount,contentHash,contractId,kind,runtimePath,schemaVersion" ||
+    manifest.schemaVersion !== 3 ||
+    manifest.kind !== "lervo_terminal_hook_runtime" ||
+    manifest.contractId !== "lervo_terminal_hooks_v2" ||
+    manifest.runtimePath !== ".lervo/generated/terminal-hooks/runtime-v2.mjs" ||
+    manifest.contentHash !== pointer.contentHash ||
+    !Array.isArray(manifest.assets) ||
+    (manifest.assets.length !== 0 && manifest.assets.length !== 4)
+  )
+    throw new Error("integrity");
+  const entry = resolve(root, "runtime-v2.mjs");
+  // The launcher outlives CLI releases, so its bound leaves room for the runtime to grow.
+  const runtime = await bytes(entry, 64 * 1024 * 1024);
+  if (
+    runtime.length !== manifest.byteCount ||
+    hash(runtime) !== manifest.contentHash ||
+    !runtime.toString("utf8").startsWith("#!/usr/bin/env node\n")
+  )
+    throw new Error("integrity");
+  if (manifest.assets.length) {
+    await directory(resolve(root, "native"));
+    if (
+      (await readdir(resolve(root, "native"))).some(
+        (name) => !assetNames.includes(`native/${name}`),
+      )
+    )
+      throw new Error("integrity");
+  } else {
+    try {
+      await lstat(resolve(root, "native"));
+      throw new Error("integrity");
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  for (const [index, asset] of manifest.assets.entries()) {
+    if (
+      Object.keys(asset).sort().join(",") !== "byteCount,contentHash,path" ||
+      asset.path !== assetNames[index]
+    )
+      throw new Error("integrity");
+    const value = await bytes(
+      resolve(root, asset.path),
+      asset.path.endsWith(".node") ? 1048576 : 4096,
+    );
+    if (value.length !== asset.byteCount || hash(value) !== asset.contentHash)
+      throw new Error("integrity");
+  }
+  return entry;
+}
+function missing(error, entry) {
+  return (
+    error.code === "ENOENT" ||
+    (entry &&
+      error.code === "ERR_MODULE_NOT_FOUND" &&
+      typeof error.url === "string" &&
+      error.url.endsWith("/runtime-v2.mjs"))
+  );
+}
+async function integrityFailure() {
+  await marker(true);
+  process.stderr.write("Lervo terminal hook runtime integrity verification failed.\n");
+  process.exitCode = 2;
+}
+for (let attempt = 0; attempt < 2; attempt++) {
+  let entry;
+  try {
+    entry = await locate();
+  } catch (error) {
+    if (missing(error)) {
+      if (attempt === 0) continue;
+      await marker();
+    } else {
+      await integrityFailure();
+    }
+    break;
+  }
+  if (entry === null) {
+    await marker();
+    break;
+  }
+  try {
+    // Same process; the verified runtime reads the original argv, stdin, and cwd.
+    // Node resolves symlinks for `import.meta.url`; the receipt must name that same real path.
+    const real = await realpath(entry);
+    process.env.LERVO_TERMINAL_HOOK_RUNTIME = real;
+    globalThis[Symbol.for("lervo.terminalHook.verifiedEntry")] = real;
+    await import(pathToFileURL(real).href);
+    break;
+  } catch (error) {
+    delete globalThis[Symbol.for("lervo.terminalHook.verifiedEntry")];
+    if (!missing(error, entry)) throw error;
+    if (attempt === 0) continue;
+    await marker();
+  }
+}

@@ -1,3 +1,4 @@
+import { pinEnrolledRuntimePredecessor } from "./node-runtime-enrollment-predecessor.js";
 import { createHash } from "node:crypto";
 import { lstat, readFile, realpath } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -160,6 +161,12 @@ export function createInstalledOrganizationNodeRolloutPort(
       ) {
         throw new Error("The installed Node plan changed before local apply.");
       }
+      if (ports.applyPlan === undefined)
+        await pinEnrolledRuntimePredecessor({
+          enrollmentId: enrollment.enrollmentId,
+          artifactHash: enrollment.runtimeArtifactHash,
+          ...(binding.homeDirectory === undefined ? {} : { homeDirectory: binding.homeDirectory }),
+        });
       const receipt = await applyPlan({
         plan: current.plan,
         configPath: resolve(binding.configPath),
