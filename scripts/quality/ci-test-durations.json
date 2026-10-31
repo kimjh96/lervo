@@ -7,7 +7,6 @@
   "durations": {
     "apps/cli/test/agent-organization-runtime-command.test.ts": 1096,
     "apps/cli/test/cli.test.ts": 6472,
-    "apps/cli/test/improvement-effect-local-adapter.test.ts": 1285,
     "apps/cli/test/knowledge-comparison.test.ts": 1517,
     "apps/cli/test/knowledge-sources.test.ts": 3657,
     "apps/cli/test/managed-deliberation-policies.test.ts": 1544,

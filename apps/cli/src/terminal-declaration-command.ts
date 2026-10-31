@@ -6,19 +6,11 @@ import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage"
 import { validateSchema, type TerminalTurnDeclaredEventPayload } from "@lervo/schemas";
 import {
   assessCanonicalization,
-  createDevelopmentPatternCandidate,
   parseCanonicalizationOutcome,
-  scanConfiguredRepositoryKnowledge,
   type CanonicalizationOutcome,
-  type DevelopmentPatternCandidate,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
 
-import {
-  prepareDevelopmentPatternObservation,
-  projectDevelopmentPatternObservation,
-} from "./development-pattern-observation.js";
-import { passedWorkflowVerificationEvidence } from "./development-pattern-verification.js";
 import { terminalUsage } from "./terminal-command-usage.js";
 import {
   allTerminalEvents,
@@ -169,21 +161,6 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
       throw new Error("An unchanged turn must use a null canonicalizationOutcome.");
     const preparedSnapshot = await readPreparedRepositorySnapshot(root, parsed.values.observation);
     const supplementalSources = repositoryChanged ? await collectLocalKnowledgeSources(root) : [];
-    let preparedPatternCandidate:
-      | {
-          candidate: DevelopmentPatternCandidate;
-          content: string;
-          contentHash: string;
-        }
-      | undefined;
-    if (draft.canonicalizationOutcome?.kind === "portable_skill_candidate") {
-      const { scan } = await scanConfiguredRepositoryKnowledge(root, { supplementalSources });
-      preparedPatternCandidate = createDevelopmentPatternCandidate({
-        proposal: draft.canonicalizationOutcome.proposal,
-        scan,
-        passedVerificationEvidence: passedWorkflowVerificationEvidence(storage),
-      });
-    }
     const canonicalizationAssessment =
       repositoryChanged && preparedSnapshot !== null
         ? await assessCanonicalization({
@@ -261,33 +238,11 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
       occurredAt,
       payload,
     });
-    const preparedPatternObservation =
-      preparedPatternCandidate === undefined
-        ? null
-        : await prepareDevelopmentPatternObservation({
-            repositoryRoot: root,
-            storage,
-            provider,
-            ...preparedPatternCandidate,
-            observedAt: occurredAt,
-          });
-    const recorded = storage.events.transact((transaction) => {
-      const declaration = transaction.append(terminalDraft);
-      for (const draft of preparedPatternObservation?.eventDrafts ?? []) transaction.append(draft);
-      return declaration;
-    });
-    const developmentPatternCandidate =
-      preparedPatternObservation === null
-        ? null
-        : await projectDevelopmentPatternObservation({
-            repositoryRoot: root,
-            storage,
-            patternId: preparedPatternObservation.patternId,
-          });
+    const recorded = storage.events.append(terminalDraft);
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, developmentPatternCandidate, knowledgeLifecycleIssues, ...payload }, null, 2)}\n`
-        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\ncanonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}\n${developmentPatternCandidate === null ? "" : `developmentPatternCandidate: ${developmentPatternCandidate.patternId}\n`}`,
+        ? `${JSON.stringify({ schemaVersion: 1, status: "declared", eventId: recorded.event.eventId, canonicalizationAssessment, knowledgeLifecycleIssues, ...payload }, null, 2)}\n`
+        : `Terminal turn disposition declared.\nobservation: ${parsed.values.observation}\nrepositoryRevision: ${repository.revision}\ncanonicalization: ${canonicalizationAssessment?.status ?? "not_applicable"}\n`,
     );
     return 0;
   } catch (error) {

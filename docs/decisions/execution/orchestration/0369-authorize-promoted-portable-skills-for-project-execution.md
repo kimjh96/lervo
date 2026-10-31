@@ -3,6 +3,8 @@
 Status: `accepted`  
 Date: 2026-09-05
 
+Amended by: [ADR-0533](../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 Portable-skill candidacy and promotion produced reviewed instructions, resources, and an untrusted, disabled skill manifest. Capability migration could package these bytes, but no lifecycle granted the exact trust and project scope required for selection. Migration also synthesized an empty dependency list, preventing promoted candidates from retaining exact MCP or plugin dependencies and reaching provider-confirmed activation without manually authored package metadata.

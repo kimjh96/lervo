@@ -14,7 +14,6 @@ export {
 export { createWorkstreamSuccessorSnapshot } from "./workstream-snapshot.js";
 export * from "./agent-artifact-profile.js";
 export * from "./agent-artifact-summary.js";
-export * from "./agent-profile-pattern.js";
 export * from "./apply.js";
 export * from "./artifact-paths.js";
 export * from "./git-ignored-paths.js";
@@ -24,8 +23,6 @@ export * from "./canonicalization-responsibility.js";
 export * from "./compiler.js";
 export * from "./css-source-units.js";
 export * from "./decision-layout.js";
-export * from "./development-pattern-rollback.js";
-export * from "./development-pattern.js";
 export * from "./document-layout-enforcement.js";
 export * from "./document-layout.js";
 export type { ApplicationContentEvidence } from "./application-content-evidence.js";

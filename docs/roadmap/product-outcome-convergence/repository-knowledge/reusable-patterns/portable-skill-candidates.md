@@ -1,6 +1,8 @@
 # Reviewed portable-skill candidates from independently verified repeated workflows
 
-State: **implemented**.
+State: **historical**.
+
+Superseded by: [ADR-0533](../../../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. Background practice learning remains planned.
 
 Terminal finalization combines independently grouped current sources and distinct passed verification events into a CAS-bound portable-skill development-pattern candidate. The candidate binds bounded `SKILL.md`, resources, and input, output, tool, permission, provider, platform, and role contracts. Its derived manifest is disabled and untrusted.
 

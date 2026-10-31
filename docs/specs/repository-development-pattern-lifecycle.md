@@ -1,7 +1,10 @@
 # Repository development-pattern lifecycle
 
-Status: `active`
+Status: `historical`
 As of: 2026-08-30
+
+
+Amended by: [ADR-0533](../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The following describes the removed implementation, not current commands.
 
 ## Scope
 

@@ -8,14 +8,8 @@ import { promisify } from "node:util";
 import {
   installedPortableSkillInstructions,
   installedPortableSkillRequest,
-  prepareInstalledPortableSkillCandidate,
-} from "./installed-portable-skill-candidate.mjs";
-import { observeInstalledPortableSkillTreatment } from "./installed-portable-skill-effect.mjs";
-import {
-  activateInstalledAgentProfileCandidate,
-  rollbackInstalledAgentProfileCandidate,
-} from "./installed-agent-profile-candidate.mjs";
-
+  prepareInstalledPortableSkillFixture,
+} from "./installed-portable-skill-fixture.mjs";
 const execute = promisify(execFile);
 
 function bytes(value) {
@@ -244,18 +238,13 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     LERVO_INSTALLED_CAPABILITY_PROMPT_LOG: promptLog,
     LERVO_INSTALLED_CAPABILITY_DEBUG_LOG: debugLog,
   };
-  const skill = await prepareInstalledPortableSkillCandidate({
+  const skill = await prepareInstalledPortableSkillFixture({
     cli,
     root,
     dependency: mcp,
+    hashCapabilityFiles,
     runCli,
     env,
-  });
-  const agentProfile = await activateInstalledAgentProfileCandidate({
-    cli,
-    root,
-    runCli,
-    roleProfileEvidence: skill.roleProfileEvidence,
   });
   let execution;
   try {
@@ -315,20 +304,6 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
   assert.equal(completed.payload.outputDigest, outcome.resultArtifact.contentHash);
   assert.equal(runCompleted.payload.resultDigest, outcome.resultArtifact.contentHash);
   assert.equal(runCompleted.payload.verificationStatus, "passed");
-  const effect = await observeInstalledPortableSkillTreatment({
-    cli,
-    root,
-    runCli,
-    env,
-    patternId: skill.patternId,
-    ...skill.effect,
-  });
-  await rollbackInstalledAgentProfileCandidate({
-    cli,
-    root,
-    runCli,
-    patternId: agentProfile.patternId,
-  });
   return {
     status: "passed",
     runId: outcome.runId,
@@ -336,7 +311,5 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     skillContentHash: skill.skill.contentHash,
     dependencyId: mcp.capabilityId,
     resultDigest: outcome.resultArtifact.contentHash,
-    effect,
-    agentProfilePatternId: agentProfile.patternId,
   };
 }

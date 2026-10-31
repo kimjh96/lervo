@@ -41,6 +41,10 @@ routes:
     path: knowledge/semantics
     priority: 94
     description: "Scope carried from the legacy title terms: semantic candidate; knowledge graph; duplicate; contradiction; cross provider; compilation comparison."
+  - id: knowledge.repository.canonicalization.patterns
+    path: knowledge/repository/canonicalization/patterns
+    priority: 97
+    description: "Reusable practice learning and retirement of development-pattern candidates."
   - id: knowledge.repository.canonicalization
     path: knowledge/repository/canonicalization
     priority: 96

@@ -636,10 +636,8 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     });
     const blockPattern =
       /<!-- lervo:begin block=repository_instruction_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=repository_instruction_routes -->\n?/gu;
-    const legacyPatternBlock =
-      /\n?<!-- lervo:begin block=development_pattern_routes schema=\d+ -->[\s\S]*?<!-- lervo:end block=development_pattern_routes -->\n?/u;
     const existing = referenceChanges.get("AGENTS.md");
-    const baseContent = (existing?.content ?? agents.content).replace(legacyPatternBlock, "");
+    const baseContent = existing?.content ?? agents.content;
     const existingBlocks = baseContent.match(blockPattern) ?? [];
     let replacedBlock = false;
     const combined =

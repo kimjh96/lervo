@@ -12,8 +12,6 @@ import {
 } from "@lervo/repository-knowledge";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
-import { runDevelopmentPatternCommand } from "./development-pattern-command.js";
-import { runImprovementEffectCommand } from "./improvement-effect-command.js";
 import type { CliIo, CliServices } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { runKnowledgeMaterializationRecovery } from "./knowledge-materialization-command.js";
@@ -48,13 +46,7 @@ export async function runKnowledgeCommand(
   args: string[],
   io: CliIo,
   services: Partial<
-    Pick<
-      CliServices,
-      | "createLocalImprovementObservationHost"
-      | "improvementObservationPort"
-      | "groundProductionRequest"
-      | "knowledgeMaterializationWait"
-    >
+    Pick<CliServices, "groundProductionRequest" | "knowledgeMaterializationWait">
   > = {},
 ): Promise<number> {
   const subcommand = args[0];
@@ -140,9 +132,6 @@ export async function runKnowledgeCommand(
     }
   }
   if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
-  if (subcommand === "pattern" && args[1] === "effect")
-    return runImprovementEffectCommand(args.slice(2), io, services);
-  if (subcommand === "pattern") return runDevelopmentPatternCommand(args.slice(1), io);
   if (subcommand === "materialize") return runKnowledgeMaterializationRecovery(args.slice(1), io);
   if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io);
   if (subcommand === "freshness") return runKnowledgeFreshness(args.slice(1), io);

@@ -7,8 +7,10 @@ lervo:
 
 # ADR-0377: Install evidence-bound agent-profile candidates
 
-Status: `accepted`
+Status: `historical`
 Decision date: 2026-09-06
+
+Amended by: [ADR-0533](../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The development-pattern pipeline is historical and its commands are removed.
 
 ## Context
 

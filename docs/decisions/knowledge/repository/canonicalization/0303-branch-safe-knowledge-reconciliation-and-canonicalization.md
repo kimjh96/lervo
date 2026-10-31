@@ -3,6 +3,8 @@
 Status: `accepted`
 Decision date: 2026-08-30
 
+Amended by: [ADR-0533](patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 CLI 0.4.2 exposed a coupled lifecycle failure during an eight-branch merge. Structural records from different source snapshots conflicted, while choosing Git ours or theirs produced a set owned by no recorded generation. Structural apply wrote missing publications, global lint found unrelated stale stages, and rollback removed the publications before reporting only a later `publication_missing` symptom. Bridge, normalization, and refresh depended on one another's state, while Terminal Stop reduced a typed repository error to a generic fail-closed sentence. The lifecycle also projected document ownership into tracked `.prettierignore`, causing tool-specific churn.

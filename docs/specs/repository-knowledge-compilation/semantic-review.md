@@ -26,11 +26,13 @@ Reconciliation yields create, register-existing, add-relation, managed-block pat
 
 Human review is an immutable local CAS artifact. Events retain bounded IDs, hashes, counts, policy coordinates, and decision metadata. User-byte patches require separate exact output-hash approval and never enter `accept-all-safe`.
 
-## Direct-terminal development-pattern intake
+## Direct-terminal instruction capture
 
 Direct terminal grounding may separately materialize one Lervo-generated durable instruction only when the typed one-shot gate proves an explicit low-risk additive repository rule, complete existing-instruction comparison, high confidence, and no ambiguity or conflict. It writes one content-addressed Markdown source and never overwrites user-owned instruction bytes. All other utterance shapes remain ignored, workstream-scoped, or pending.
 
-A completed direct-terminal result may instead propose a portable skill through the development-pattern lifecycle only when two or more independent source groups bind distinct current passed-verification events and exact skill-package contracts. Candidate instructions, resources, and the derived disabled manifest remain CAS-bound review material until separate pattern promotion and capability lifecycle authority. Retrieval selection never enters this path.
+## Historical development-pattern intake
+
+[ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md) removes direct-terminal portable-skill intake and pattern commands. Ordinary canonicalization candidates and instruction capture retain their separate review contracts.
 
 ## Durable materialization
 

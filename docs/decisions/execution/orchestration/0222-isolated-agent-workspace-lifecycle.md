@@ -3,6 +3,8 @@
 Status: `accepted`
 Decision date: 2026-08-26
 
+Amended by: [ADR-0533](../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 [ADR-0205](0205-conflict-safe-repository-agent-workforce.md) prevents overlapping repository-path claims by active assignment leases, but does not isolate checkout bytes, coordinate scheduling across Git worktrees, identify one integration authority, or define removal eligibility.

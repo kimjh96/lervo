@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-08-26
 
+Amended by: [ADR-0533](canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 Lervo requires bounded growth and retention for every repository-authored collection. Existing controls bound profile-specific file sizes, normalization outputs to 12 per source, and decision-leaf capacity, but no single projected-capacity evaluation covers every document-bearing directory. Independently migrated bounded documents can therefore accumulate without bound in an ordinary route.
