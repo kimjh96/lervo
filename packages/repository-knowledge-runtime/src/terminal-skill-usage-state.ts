@@ -1,3 +1,4 @@
+import { privateTerminalSkillTurns } from "./terminal-skill-private.js";
 import { resolve } from "node:path";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
@@ -33,8 +34,6 @@ export async function refreshTerminalSkillUsage(
   skills: InstalledTerminalSkill[],
   now: Date,
 ): Promise<void> {
-  const previous = await readTerminalSkillUsage(storage.paths.repositoryRoot);
-  if (previous?.projectedAt.slice(0, 10) === now.toISOString().slice(0, 10)) return;
   const events: EventEnvelope[] = [];
   let afterSeq = 0;
   while (true) {
@@ -52,6 +51,19 @@ export async function refreshTerminalSkillUsage(
   }
   await writePrivateJsonFile(
     resolve(storage.paths.repositoryRoot, TERMINAL_SKILL_USAGE_PATH),
-    projectTerminalSkillUsage({ skills, events, now }),
+    projectTerminalSkillUsage({
+      skills,
+      events: [
+        ...new Map(
+          [
+            ...(await privateTerminalSkillTurns(storage.paths.repositoryRoot, now)).flatMap(
+              (turn) => turn.events.filter((event) => event.type === "terminal.skill.observed"),
+            ),
+            ...events,
+          ].map((event) => [event.eventId, event]),
+        ).values(),
+      ],
+      now,
+    }),
   );
 }

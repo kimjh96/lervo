@@ -1,11 +1,11 @@
-import { constants } from "node:fs";
-import { open } from "node:fs/promises";
+import { sha256 } from "@lervo/repository-knowledge";
+import { openProviderTranscript, transcriptPrefixDigest } from "./terminal-transcript-position.js";
 import type { QueuedTerminalSkillTurn } from "./terminal-skill-queue.js";
 import { transcriptSkillIdentifiers } from "./terminal-skill-transcript-adapters.js";
 
 export const MAXIMUM_SKILL_TRANSCRIPT_BYTES = 4 * 1024 * 1024;
 export type SkillTranscriptAssessment = {
-  skillTelemetry: "observed" | "unavailable" | "truncated";
+  skillTelemetry: "observed" | "unavailable" | "truncated" | "unknown";
   identifiers: string[];
 };
 const unavailable = (): SkillTranscriptAssessment => ({
@@ -18,6 +18,8 @@ export async function assessTerminalSkillTranscript(
   turn: QueuedTerminalSkillTurn,
 ): Promise<SkillTranscriptAssessment> {
   const { start, end } = turn;
+  // No installed Codex fixture proves invocation telemetry yet.
+  if (turn.provider === "codex") return { skillTelemetry: "unknown", identifiers: [] };
   if (
     start === null ||
     end === null ||
@@ -28,17 +30,15 @@ export async function assessTerminalSkillTranscript(
   )
     return unavailable();
   try {
-    const handle = await open(
-      start.path,
-      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | constants.O_NONBLOCK,
-    );
+    const handle = await openProviderTranscript(turn.provider, start.path);
     try {
       const metadata = await handle.stat({ bigint: true });
       if (
         !metadata.isFile() ||
         String(metadata.dev) !== start.device ||
         String(metadata.ino) !== start.inode ||
-        metadata.size < BigInt(end.offset)
+        metadata.size < BigInt(end.offset) ||
+        (await transcriptPrefixDigest(handle, start.prefixBytes)) !== start.prefixDigest
       )
         return unavailable();
       const length = end.offset - start.offset;
@@ -52,11 +52,21 @@ export async function assessTerminalSkillTranscript(
         read += result.bytesRead;
       }
       const after = await handle.stat({ bigint: true });
-      if (after.size < BigInt(end.offset)) return unavailable();
+      if (
+        after.size < BigInt(end.offset) ||
+        (await transcriptPrefixDigest(handle, start.prefixBytes)) !== start.prefixDigest
+      )
+        return unavailable();
       const identifiers: string[] = [];
       for (const line of bytes.toString("utf8").split("\n")) {
         if (line.trim() === "") continue;
-        identifiers.push(...transcriptSkillIdentifiers(turn.provider, JSON.parse(line)));
+        const entry = JSON.parse(line) as { sessionId?: unknown };
+        if (
+          typeof entry?.sessionId !== "string" ||
+          sha256(`${turn.provider}\0${entry.sessionId}`) !== turn.providerSessionDigest
+        )
+          return unavailable();
+        identifiers.push(...transcriptSkillIdentifiers(turn.provider, entry));
       }
       return { skillTelemetry: "observed", identifiers };
     } finally {

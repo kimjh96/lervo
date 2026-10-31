@@ -16,6 +16,10 @@ This is reader-first compatibility only. The installed conversation writer retai
 
 The same reader accepts the bounded `work.supervision.preflight.blocked` payload proposed by [ADR-0431](../../../decisions/execution/orchestration/governed-work/owner-recovery/0431-fence-repeated-preflight-and-owner-spend.md). No writer or retry-barrier projection is active. This source change does not establish deployed reader support.
 
+## Native skill reader boundary
+
+Schema 7 adds `terminal.skill.observed` and `terminal.skill.turn_assessed`. Schemas 1 through 6 reject these types. Reader capability advertisement does not activate their writer. The selected writer coordinate requires current evidence that every configured reader supports history through schema 7. Before activation, the resident keeps observations only in a bounded host-private projection. See [native terminal skill observation](../provider-adapters/native-skill-observation.md) for attribution, privacy, retention, and failure states.
+
 ## Repository activation
 
 Repository activation supports explicit `--schema-version 3` with fresh authoritative evidence that all required readers support versions 1, 2, and 3. Its coordinate uses schema version 2. Existing version 1 coordinates and version 2 activation identifiers retain their meaning.

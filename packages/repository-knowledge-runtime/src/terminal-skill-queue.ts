@@ -1,7 +1,16 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
-import { lstat, mkdir, open, readdir, rename, rm } from "node:fs/promises";
-import { isAbsolute, resolve } from "node:path";
+import { link, lstat, mkdir, open, readdir, rm } from "node:fs/promises";
+import { resolve } from "node:path";
+import {
+  validTranscriptPosition,
+  type TranscriptPosition,
+} from "./terminal-transcript-position.js";
+export {
+  terminalTranscriptPosition,
+  validTranscriptPosition,
+  type TranscriptPosition,
+} from "./terminal-transcript-position.js";
 
 export const TERMINAL_SKILL_QUEUE = ".lervo/state/knowledge/terminal-skills/queue";
 const RETENTION_MS = 24 * 3_600_000;
@@ -9,13 +18,6 @@ const MAXIMUM_RECORDS = 128;
 const MAXIMUM_RECORD_BYTES = 12 * 1024;
 const EVENT = /^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
-
-export interface TranscriptPosition {
-  path: string;
-  offset: number;
-  device: string;
-  inode: string;
-}
 
 export interface QueuedTerminalSkillTurn {
   provider: "claude" | "codex";
@@ -26,43 +28,7 @@ export interface QueuedTerminalSkillTurn {
   start: TranscriptPosition | null;
   end: TranscriptPosition | null;
   enqueuedAt: string;
-}
-
-export function validTranscriptPosition(value: unknown): value is TranscriptPosition {
-  const item = value as TranscriptPosition | null;
-  return (
-    item !== null &&
-    typeof item === "object" &&
-    typeof item.path === "string" &&
-    isAbsolute(item.path) &&
-    item.path.length <= 4096 &&
-    !item.path.includes("\0") &&
-    Number.isSafeInteger(item.offset) &&
-    item.offset >= 0 &&
-    typeof item.device === "string" &&
-    /^\d+$/u.test(item.device) &&
-    typeof item.inode === "string" &&
-    /^\d+$/u.test(item.inode)
-  );
-}
-
-/** Hook-safe metadata only. Neither hook opens or reads the transcript. */
-export async function terminalTranscriptPosition(
-  path?: string,
-): Promise<TranscriptPosition | null> {
-  if (!path || !isAbsolute(path) || path.length > 4096 || path.includes("\0")) return null;
-  try {
-    const metadata = await lstat(path, { bigint: true });
-    const position = {
-      path,
-      offset: Number(metadata.size),
-      device: String(metadata.dev),
-      inode: String(metadata.ino),
-    };
-    return metadata.isFile() && validTranscriptPosition(position) ? position : null;
-  } catch {
-    return null;
-  }
+  repositoryRevision: string | null;
 }
 
 async function directory(root: string, create: boolean): Promise<string> {
@@ -90,6 +56,9 @@ function validRecord(value: unknown): value is QueuedTerminalSkillTurn {
     (item.providerTurnDigest === null || HASH.test(item.providerTurnDigest)) &&
     EVENT.test(item.contextEventId) &&
     EVENT.test(item.turnEventId) &&
+    (item.repositoryRevision === null ||
+      (typeof item.repositoryRevision === "string" &&
+        /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u.test(item.repositoryRevision))) &&
     (item.start === null || validTranscriptPosition(item.start)) &&
     (item.end === null || validTranscriptPosition(item.end)) &&
     typeof item.enqueuedAt === "string" &&
@@ -140,6 +109,10 @@ export async function queuedTerminalSkillTurns(
     } catch {
       /* Invalid local queue data provides no evidence. */
     }
+    // A producer can finish after the resident captured `now`. Leave future records untouched.
+    if (validRecord(value) && Date.parse(value.enqueuedAt) > now.getTime()) continue;
+    const metadata = await lstat(path).catch(() => null);
+    if (metadata !== null && metadata.mtimeMs > now.getTime()) continue;
     if (
       validRecord(value) &&
       name === `${value.contextEventId}.json` &&
@@ -147,7 +120,10 @@ export async function queuedTerminalSkillTurns(
       now.getTime() - Date.parse(value.enqueuedAt) < RETENTION_MS
     )
       result.push(value);
-    else await rm(path, { force: true });
+    else {
+      const metadata = await lstat(path).catch(() => null);
+      if (metadata !== null && metadata.mtimeMs <= now.getTime()) await rm(path, { force: true });
+    }
   }
   result.sort(
     (a, b) =>
@@ -172,10 +148,6 @@ export async function enqueueTerminalSkillTurn(
   try {
     if (!validRecord(record)) return;
     const base = await directory(root, true);
-    const previous = await queuedTerminalSkillTurns(root, new Date(record.enqueuedAt));
-    if (previous.some((item) => item.contextEventId === record.contextEventId)) return;
-    for (const item of previous.slice(0, Math.max(0, previous.length - MAXIMUM_RECORDS + 1)))
-      await removeTerminalSkillTurn(root, item.contextEventId);
     temporary = resolve(base, `.${randomUUID()}.tmp`);
     const handle = await open(
       temporary,
@@ -187,7 +159,8 @@ export async function enqueueTerminalSkillTurn(
     } finally {
       await handle.close();
     }
-    await rename(temporary, resolve(base, `${record.contextEventId}.json`));
+    // Atomic publish without replacement. A concurrent duplicate cannot rewrite a queued turn.
+    await link(temporary, resolve(base, `${record.contextEventId}.json`));
   } catch {
     /* Skill telemetry cannot fail Stop. */
   } finally {

@@ -1,3 +1,4 @@
+import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { randomUUID } from "node:crypto";
@@ -119,6 +120,8 @@ export async function runKnowledgeMigration(input: {
   }
   try {
     const repositoryRoot = resolve(input.io.cwd, values.root ?? ".");
+    if (input.mode === "migrate")
+      await rememberTerminalWorkerEntry(repositoryRoot, process.env.LERVO_CLI_ENTRY);
     if (values.rebuild === true && input.mode !== "refresh")
       throw new Error("--rebuild is supported only by lervo knowledge refresh.");
     await foregroundKnowledgeMaterializationSettlement({ repositoryRoot, io: input.io }).settle();

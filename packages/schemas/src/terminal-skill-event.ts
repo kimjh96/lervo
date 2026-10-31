@@ -38,7 +38,10 @@ export const terminalSkillTurnAssessedEventPayloadSchema = {
   type: "object",
   properties: {
     ...coordinates,
-    skillTelemetry: { type: "string", enum: ["observed", "unavailable", "truncated"] },
+    skillTelemetry: { type: "string", enum: ["observed", "unavailable", "truncated", "unknown"] },
+    provider: { type: "string", enum: ["codex", "claude"] },
+    unknownSkillCount: { type: "integer", minimum: 0 },
+    ambiguousSkillCount: { type: "integer", minimum: 0 },
     externalSkillCount: { type: "integer", minimum: 0 },
   },
   required: [
@@ -46,6 +49,9 @@ export const terminalSkillTurnAssessedEventPayloadSchema = {
     "providerTurnDigest",
     "skillTelemetry",
     "externalSkillCount",
+    "provider",
+    "unknownSkillCount",
+    "ambiguousSkillCount",
     "observedAt",
   ],
   additionalProperties: false,

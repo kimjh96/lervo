@@ -1,3 +1,4 @@
+import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
 import { applyWorkforceRoleBindingMigration } from "@lervo/agent-workforce";
 import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowledge";
@@ -77,6 +78,7 @@ export async function applyRepositoryUpgrade(
   materialization: KnowledgeMaterializationSettlement,
 ): Promise<UpgradeReceipt> {
   const root = approved.repositoryRoot;
+  await rememberTerminalWorkerEntry(root, process.env.LERVO_CLI_ENTRY);
   const appliedStages: string[] = [];
   const skippedStages: UpgradeReceipt["skippedStages"] = [];
 

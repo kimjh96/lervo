@@ -15,7 +15,7 @@ export const TERMINAL_OBSERVATION_POLICY_VERSION = sha256(
 );
 
 export const TERMINAL_HOOK_BUILD_DIGEST = sha256(
-  "lervo.terminal.hook-runtime.native-skill-ranges.v4",
+  "lervo.terminal.hook-runtime.native-skill-authentication.v5",
 );
 
 export function allTerminalEvents(events: ProjectStorage["events"]): EventEnvelope[] {

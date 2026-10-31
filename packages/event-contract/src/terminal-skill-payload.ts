@@ -14,6 +14,9 @@ export const terminalSkillPayloadAllowlists = {
     "providerTurnDigest",
     "skillTelemetry",
     "externalSkillCount",
+    "provider",
+    "unknownSkillCount",
+    "ambiguousSkillCount",
     "observedAt",
   ],
 } as const;

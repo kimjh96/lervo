@@ -1,10 +1,13 @@
+import { attributeTerminalSkills } from "./terminal-skill-attribution.js";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
-import { sha256 } from "@lervo/repository-knowledge";
 import {
-  installedTerminalSkills,
-  type InstalledTerminalSkill,
-} from "./terminal-installed-skills.js";
+  terminalSkillEvents,
+  terminalSkillEventId,
+  TERMINAL_SKILL_EVENT_SCHEMA_VERSION,
+} from "./terminal-skill-events.js";
+import { retainPrivateTerminalSkillTurn } from "./terminal-skill-private.js";
+import { installedTerminalSkills } from "./terminal-installed-skills.js";
 import {
   queuedTerminalSkillTurns,
   removeTerminalSkillTurn,
@@ -12,10 +15,6 @@ import {
 } from "./terminal-skill-queue.js";
 import { assessTerminalSkillTranscript } from "./terminal-skill-transcript.js";
 import { refreshTerminalSkillUsage } from "./terminal-skill-usage-state.js";
-
-const POLICY = sha256("lervo.terminal.native-skill-observation.v1");
-const identity = (context: string, suffix: string) =>
-  `evt_${sha256(`${context}\0${suffix}`).slice(7, 39)}`;
 
 function matches(
   turn: QueuedTerminalSkillTurn,
@@ -37,10 +36,10 @@ export async function runTerminalSkillObservationCycle(input: {
   const { storage, now } = input;
   const root = storage.paths.repositoryRoot;
   const queue = await queuedTerminalSkillTurns(root, now);
-  const catalog = await installedTerminalSkills(root).catch(() => null);
+  const currentCatalog = await installedTerminalSkills(root).catch(() => null);
   let assessedCount = 0;
   for (const turn of queue.slice(0, 4)) {
-    const assessedId = identity(turn.contextEventId, "assessed");
+    const assessedId = terminalSkillEventId(turn.contextEventId, "assessed");
     if (storage.events.get(assessedId) !== null) {
       await removeTerminalSkillTurn(root, turn.contextEventId);
       continue;
@@ -57,65 +56,41 @@ export async function runTerminalSkillObservationCycle(input: {
       await removeTerminalSkillTurn(root, turn.contextEventId);
       continue;
     }
+    const catalog =
+      turn.repositoryRevision === null
+        ? null
+        : await installedTerminalSkills(root, turn.repositoryRevision).catch(() => null);
     const assessment =
       catalog === null
-        ? { skillTelemetry: "unavailable" as const, identifiers: [] }
+        ? { skillTelemetry: "unknown" as const, identifiers: [] }
         : await assessTerminalSkillTranscript(turn);
-    const observations: Array<
-      InstalledTerminalSkill & { source: "provider_transcript" | "prompt_invocation" }
-    > = [];
-    let externalSkillCount = 0;
-    for (const identifier of assessment.identifiers) {
-      const skill = catalog?.resolve(turn.provider, identifier);
-      if (skill === undefined) externalSkillCount++;
-      else observations.push({ ...skill, source: "provider_transcript" });
-    }
-    if (Array.isArray(context.payload.selectedPointers)) {
-      for (const pointer of context.payload.selectedPointers as Array<{
-        kind?: unknown;
-        path?: unknown;
-        contentHash?: unknown;
-      }>) {
-        if (pointer.kind !== "skill") continue;
-        const skill = catalog?.skills.find(
-          (item) => item.path === pointer.path && item.contentHash === pointer.contentHash,
-        );
-        if (skill !== undefined) observations.push({ ...skill, source: "prompt_invocation" });
-      }
-    }
-    const coordinates = {
-      providerSessionDigest: turn.providerSessionDigest,
-      providerTurnDigest: turn.providerTurnDigest,
-      observedAt: parent.occurredAt,
-    };
-    const envelope = {
-      projectId: storage.manifest.projectId,
-      runId: parent.runId,
-      sessionId: parent.sessionId,
-      occurredAt: now.toISOString(),
-      actor: { kind: "system" as const },
-      schemaVersion: 1 as const,
-      policyVersion: POLICY,
-    };
-    storage.events.transact((transaction) => {
-      observations.forEach((skill, index) =>
-        transaction.append({
-          ...envelope,
-          eventId: identity(turn.contextEventId, `invocation:${index}`),
-          type: "terminal.skill.observed",
-          payload: { ...coordinates, ...skill, provider: turn.provider },
-        }),
-      );
-      transaction.append({
-        ...envelope,
-        eventId: assessedId,
-        type: "terminal.skill.turn_assessed",
-        payload: { ...coordinates, skillTelemetry: assessment.skillTelemetry, externalSkillCount },
-      });
+    const attribution = attributeTerminalSkills({
+      provider: turn.provider,
+      catalog,
+      assessment,
+      selectedPointers: context.payload.selectedPointers,
     });
+    const events = terminalSkillEvents({
+      storage,
+      turn,
+      parent,
+      now,
+      ...attribution,
+    });
+    if ((storage.writableEventSchemaVersion ?? 1) >= TERMINAL_SKILL_EVENT_SCHEMA_VERSION) {
+      storage.events.transact((transaction) => {
+        for (const event of events) transaction.append(event);
+      });
+    } else {
+      await retainPrivateTerminalSkillTurn(
+        root,
+        { contextEventId: turn.contextEventId, observedAt: parent.occurredAt, events },
+        now,
+      );
+    }
     await removeTerminalSkillTurn(root, turn.contextEventId);
     assessedCount++;
   }
-  if (catalog !== null) await refreshTerminalSkillUsage(storage, catalog.skills, now);
+  if (currentCatalog !== null) await refreshTerminalSkillUsage(storage, currentCatalog.skills, now);
   return { assessedCount };
 }

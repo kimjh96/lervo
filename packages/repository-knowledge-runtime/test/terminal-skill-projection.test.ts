@@ -23,7 +23,7 @@ function event(
     sessionId: "ses_skillusage01",
     type,
     actor: { kind: "system" },
-    schemaVersion: 1,
+    schemaVersion: 7,
     occurredAt: now.toISOString(),
     policyVersion: sha256("policy"),
     previousHash: index === 0 ? null : sha256("previous"),
@@ -32,6 +32,7 @@ function event(
       providerSessionDigest: sha256("session"),
       providerTurnDigest: null,
       observedAt,
+      provider: "claude",
       ...payload,
     },
   };
@@ -53,7 +54,12 @@ it("marks zero invocations after 20 observed turns as a principal proxy retireme
 });
 
 it("requires 20 measurable turns and never interprets unavailable or truncated transcripts as zero use", () => {
-  for (const events of [turns(19), turns(25, "unavailable"), turns(25, "truncated")]) {
+  for (const events of [
+    turns(19),
+    turns(25, "unavailable"),
+    turns(25, "truncated"),
+    turns(25, "unknown"),
+  ]) {
     expect(
       projectTerminalSkillUsage({ skills: [skill], events, now }).skills[0]!.retirementCandidate,
     ).toBe(false);
@@ -90,4 +96,14 @@ it("counts both invocation sources, ignores old and future evidence, and bounds 
     now,
   });
   expect(report.skills[0]!.retirementCandidate).toBe(true);
+});
+
+it("never counts Codex assessments as measurable turns even when an older writer claimed observed", () => {
+  const events = turns(25).map((entry) => ({
+    ...entry,
+    payload: { ...entry.payload, provider: "codex" },
+  }));
+  const report = projectTerminalSkillUsage({ skills: [skill], events, now });
+  expect(report.observedTurnCount).toBe(0);
+  expect(report.skills[0]!.retirementCandidate).toBe(false);
 });

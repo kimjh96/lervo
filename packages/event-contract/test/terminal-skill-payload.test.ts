@@ -26,12 +26,15 @@ it("accepts complete native invocation and assessment contracts, redacting all t
   });
   expect(safe.payload).toEqual(observed);
   expect(safe.redactions).toHaveLength(4);
-  for (const skillTelemetry of ["observed", "unavailable", "truncated"]) {
+  for (const skillTelemetry of ["observed", "unavailable", "truncated", "unknown"]) {
     expect(
       validateSchema("terminalSkillTurnAssessedEventPayload", {
         ...coordinates,
         skillTelemetry,
         externalSkillCount: 2,
+        provider: "claude",
+        unknownSkillCount: 0,
+        ambiguousSkillCount: 0,
       }).valid,
     ).toBe(true);
   }

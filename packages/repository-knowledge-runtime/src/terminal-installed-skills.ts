@@ -1,92 +1,72 @@
-import { constants } from "node:fs";
-import { lstat, open, readdir, realpath } from "node:fs/promises";
-import { isAbsolute, relative, resolve } from "node:path";
 import { sha256 } from "@lervo/repository-knowledge";
+import { terminalSkillRevisionFiles } from "./terminal-skill-revision-files.js";
 
 const SKILL_ID = /^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u;
-const MAXIMUM_SKILLS = 1024;
-const MAXIMUM_SKILL_BYTES = 256 * 1024;
 
 export interface InstalledTerminalSkill {
   skillId: string;
   path: string;
   contentHash: string;
 }
-
+export type TerminalSkillResolution =
+  | { status: "installed"; skill: InstalledTerminalSkill }
+  | { status: "ambiguous" | "unknown" | "external" };
 export interface InstalledTerminalSkills {
   skills: InstalledTerminalSkill[];
-  resolve(provider: "claude" | "codex", identifier: string): InstalledTerminalSkill | undefined;
+  resolve(provider: "claude" | "codex", identifier: string): TerminalSkillResolution;
 }
 
-function within(root: string, path: string): boolean {
-  const rel = relative(root, path);
-  return rel !== "" && !isAbsolute(rel) && rel !== ".." && !rel.startsWith("../");
-}
-
-async function names(path: string): Promise<string[]> {
-  try {
-    const entries = await readdir(path);
-    if (entries.length > MAXIMUM_SKILLS)
-      throw new Error("Installed skill catalog exceeds its bound.");
-    return entries.sort();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return [];
-    throw error;
-  }
-}
-
-/** Only portable repository files establish membership; provider links can add exact aliases. */
-export async function installedTerminalSkills(root: string): Promise<InstalledTerminalSkills> {
-  const repository = await realpath(root);
+/** Portable membership and provider precedence are resolved at the closing turn's commit. */
+export async function installedTerminalSkills(
+  root: string,
+  revision?: string,
+): Promise<InstalledTerminalSkills> {
+  const files = await terminalSkillRevisionFiles(root, revision);
   const skills: InstalledTerminalSkill[] = [];
-  const byRealPath = new Map<string, InstalledTerminalSkill>();
-  for (const name of await names(resolve(root, ".agents/skills"))) {
+  const portable = new Map<string, InstalledTerminalSkill>();
+  const byPath = new Map<string, InstalledTerminalSkill>();
+  for (const name of files.names(".agents/skills")) {
     if (!SKILL_ID.test(name)) continue;
     const path = `.agents/skills/${name}/SKILL.md`;
-    let actual: string;
-    try {
-      actual = await realpath(resolve(root, path));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
-      throw error;
-    }
-    if (!within(repository, actual)) continue;
-    const handle = await open(
-      actual,
-      constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | constants.O_NONBLOCK,
-    );
-    try {
-      const metadata = await handle.stat();
-      if (!metadata.isFile() || metadata.size > MAXIMUM_SKILL_BYTES)
-        throw new Error("Installed skill is unreadable or oversized.");
-      const bytes = Buffer.alloc(MAXIMUM_SKILL_BYTES + 1);
-      const { bytesRead } = await handle.read(bytes, 0, bytes.length, 0);
-      if (bytesRead > MAXIMUM_SKILL_BYTES) throw new Error("Installed skill exceeds its bound.");
-      const skill = { skillId: name, path, contentHash: sha256(bytes.subarray(0, bytesRead)) };
-      skills.push(skill);
-      byRealPath.set(actual, skill);
-    } finally {
-      await handle.close();
-    }
+    const actual = await files.follow(path);
+    const bytes = actual === null ? null : await files.read(actual);
+    if (bytes === null) continue;
+    const skill = { skillId: name, path, contentHash: sha256(bytes) };
+    skills.push(skill);
+    portable.set(name, skill);
+    byPath.set(actual!, skill);
   }
-  const aliases = {
-    claude: new Map<string, InstalledTerminalSkill>(),
-    codex: new Map<string, InstalledTerminalSkill>(),
+  const surfaces = {
+    claude: new Map<string, TerminalSkillResolution>(),
+    codex: new Map<string, TerminalSkillResolution>(),
   };
   for (const provider of ["claude", "codex"] as const) {
-    for (const skill of skills) aliases[provider].set(skill.skillId, skill);
-    for (const name of await names(resolve(root, `.${provider}/skills`))) {
+    for (const name of files.names(`.${provider}/skills`)) {
       if (!SKILL_ID.test(name)) continue;
-      const surface = resolve(root, `.${provider}/skills`, name);
-      if (!(await lstat(surface)).isSymbolicLink()) continue;
-      const actual = await realpath(resolve(surface, "SKILL.md")).catch(() => null);
-      const skill = actual === null ? undefined : byRealPath.get(actual);
-      if (
-        skill !== undefined &&
-        (!aliases[provider].has(name) || aliases[provider].get(name) === skill)
-      )
-        aliases[provider].set(name, skill);
+      const actual = await files.follow(`.${provider}/skills/${name}/SKILL.md`);
+      const skill = actual === null ? undefined : byPath.get(actual);
+      const sameName = portable.get(name);
+      surfaces[provider].set(
+        name,
+        sameName && sameName !== skill
+          ? { status: "ambiguous" }
+          : skill
+            ? { status: "installed", skill }
+            : { status: actual === null ? "external" : "unknown" },
+      );
     }
   }
-  return { skills, resolve: (provider, identifier) => aliases[provider].get(identifier) };
+  return {
+    skills,
+    resolve(provider, identifier) {
+      const surface = surfaces[provider].get(identifier);
+      if (surface) return surface;
+      if (provider === "claude")
+        return { status: identifier.includes(":") ? "external" : "unknown" };
+      const skill = portable.get(identifier);
+      if (skill) return { status: "installed", skill };
+      // An absent bare name may be uncommitted. Namespaced plugin names identify external skills.
+      return { status: identifier.includes(":") ? "external" : "unknown" };
+    },
+  };
 }

@@ -80,7 +80,7 @@ export async function runTerminalHookCommand(
       const coordinates = unmanagedTerminalCoordinates(provider, input);
       const occurredAt = new Date().toISOString();
       if (input.event === "UserPromptSubmit") {
-        const transcript = await terminalTranscriptPosition(input.transcriptPath);
+        const transcript = await terminalTranscriptPosition(provider, input.transcriptPath);
         const observationId = newTerminalIdentifier("tobs");
         stageContext = { root, coordinates, observationId };
         let workspaceBinding: TerminalWorkspaceBinding | null;
@@ -261,7 +261,7 @@ export async function runTerminalHookCommand(
         }).catch(() => ({ capturePending: false })),
       );
       const hookRuntime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-      const workerEntry = process.env.LERVO_CLI_ENTRY ?? (await terminalWorkerEntry(root));
+      const workerEntry = await terminalWorkerEntry(root);
       if (workerEntry !== null && workerEntry !== undefined)
         launchDetachedKnowledgeWorker({
           root,

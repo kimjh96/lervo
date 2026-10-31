@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3b1c3ce87c769150ed9da7e3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Authenticate native skill observations and worker entries, gate new events on reader activation, and bind attribution to the closing revision."
