@@ -18,6 +18,8 @@ export function printableKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): u
 
 export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrationPlan): string {
   const lines = [
+    `Deferred documents: ${plan.deferredDocumentCount}`,
+    ...documentRouteDeferralLines(plan.deferredDocuments, "  "),
     `Repository document-layout migration target: ${plan.repositoryRoot}`,
     `Plan ID: ${plan.planId}`,
     `Plan status: ${plan.status === "review_required" ? "item approvals required" : plan.status === "ready" ? "ready" : plan.status === "current" ? "current" : "blocked"}`,
@@ -32,11 +34,6 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
       `  approval: ${move.operationId}=${move.approvalHash}`,
     );
   }
-  if (plan.deferredDocumentCount > 0)
-    lines.push(
-      `Deferred documents (not blocking): ${plan.deferredDocumentCount}`,
-      ...documentRouteDeferralLines(plan.deferredDocuments, "  "),
-    );
   if (plan.retainedDocumentCount > 0)
     lines.push(
       `Retained in place: ${plan.retainedDocumentCount}`,

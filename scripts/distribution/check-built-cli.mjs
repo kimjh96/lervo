@@ -1,3 +1,4 @@
+import { verifyInstalledDocumentDeferrals } from "./lib/cli-document-deferrals.mjs";
 import { verifyCliNativeArtifact } from "./lib/cli-native-artifact.mjs";
 import { cliGraphPackageFiles } from "../shared/cli-release-files.mjs";
 import assert from "node:assert/strict";
@@ -224,6 +225,7 @@ async function main() {
       importBuiltWorkspacePackage("repository-knowledge"),
     ]);
     await verifyInstalledIdentity(cliEntry, deploymentRoot, projectRoot, expectedManifest);
+    await verifyInstalledDocumentDeferrals(cliEntry, fixtureRoot);
     await verifyTraceCapabilities(cliEntry, projectRoot, diagnostics);
     await createTraceFixture(cliEntry, projectRoot, openProjectStorage);
     await verifyTraceModes(cliEntry, projectRoot, diagnostics);

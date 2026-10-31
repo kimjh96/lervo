@@ -70,6 +70,8 @@ function hubFailure(detail: string | null): string {
 /** The exact next step for one continuity finding; the system retries everything else itself. */
 export function continuityRemediation(finding: ContinuityFinding): string {
   switch (finding.code) {
+    case "delegation_scope_change":
+      return `Accept the exact normalizationRoots additions ${finding.scopeChange?.requiredPaths.join(", ")} in ${finding.scopeChange?.proposalId}: ${finding.scopeChange?.paths.map((item) => `${item.path} (${item.classification}) -> ${item.destination}; classification ${item.evidence.classificationId}`).join("; ")}. Acceptance is recommended.${finding.scopeChange?.acceptanceBlocker === "scope_path_unavailable" ? ` Required paths cannot receive an exact file grant: ${finding.scopeChange.unsatisfiedPaths.join(", ")}. The move stays deferred.` : ""}${finding.scopeChange?.acceptanceBlocker === "normalization_root_limit" ? " The complete proposal exceeds the existing 32-root delegation limit. Scope acceptance requires a separately reviewed contract change; no partial or directory grant is proposed." : ""} Record acceptance or decline with lervo knowledge convergence delegation scope-response --proposal ${finding.scopeChange?.proposalId} --response <accept|decline> --evidence-hash <owner-turn-artifact-hash>. Review acceptance through ${REVIEW_DELEGATION}, then supply --from and --apply to scope-response.`;
     case "delegation_missing":
       return finding.severity === "owner_decision"
         ? `Another host converges this repository, but this host has no delegation and no continuity policy to seed one. Install the host policy once from a repository with a reviewed delegation (${INSTALL_POLICY}); every resident on this host then seeds itself.`

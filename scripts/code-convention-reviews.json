@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:96f95d0e1dd7814a29a0d1d8495efe8c79f7e6f94fdff4f8010bfdaa4e560e19",
+      "contentHash": "sha256:bb5b60bbad736d9aebe510888900b116e21c5d192825588c4b8e3a119c5b02ab",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module sequences one knowledge migration lifecycle; formatting, bootstrap application, terminal integration planning and apply, structural materialization event construction, command error rendering, and top-level dispatch are extracted, while the remaining effects share ordered plan, approval, rollback, and event contracts.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. The unavailable-provider branch only selects the current plan before normalization; it adds no provider or persistence policy.",
       "disposition": "cohesive"
     },
     {
@@ -249,9 +249,16 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:a15678e3b794b9688c4ba3a432d9e28cbb3b8dd673120b431c3073f1fd9f81e7",
+      "contentHash": "sha256:1b5dcdd47c468c2cc0b39377def99c5012b5b37fe7416ef2e3cb99a90501bd11",
       "responsibility": "Repository document-layout migration",
-      "rationale": "One reviewed repository-layout migration coordinates source placement, reference rebasing, machine artifacts and exact apply. Classification, instruction routing, lineage and tool ownership remain delegated. Complete scan admission precedes migration planning and uses shared private evidence handling.",
+      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Source classification, route evidence, durable apply, provider calls, lifecycle authority, scope decisions, and health observations retain separate owners. No independent provider or persistence policy was added.",
+      "disposition": "cohesive"
+    },
+    {
+      "path": "packages/repository-knowledge/src/scanner.ts",
+      "contentHash": "sha256:d2e3c0e93c2a9fe93068a5f2b2dfa961b7cc47613d296ce0314b3e612ef7b725",
+      "responsibility": "Fresh repository scan orchestration",
+      "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence. Git-ignored path observation lives in git-ignored-paths.ts; the scan only skips what it reports.",
       "disposition": "cohesive"
     },
     {

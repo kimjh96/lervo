@@ -80,6 +80,8 @@ export async function inspectConvergenceContinuity(input: {
   const expected = delegation.state !== "missing" || policyActive;
   const findings = [
     ...continuityFindings({
+      scopeChange: state?.scopeChange ?? null,
+      scopeResponse: state?.scopeResponse ?? null,
       now,
       delegation,
       policy,

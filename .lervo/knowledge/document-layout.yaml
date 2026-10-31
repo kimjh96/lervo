@@ -33,6 +33,10 @@ routes:
     path: knowledge/maintenance
     priority: 97
     description: "Background knowledge maintenance scheduling, evidence recovery, progress observations, and bounded processing performance."
+  - id: knowledge.documents.routing
+    path: knowledge/documents/routing
+    priority: 97
+    description: "Where a legacy document goes during migration: semantic route classification, deferral, retained application content, and the outcome every candidate must reach."
   - id: knowledge.documents
     path: knowledge/documents
     priority: 95

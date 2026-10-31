@@ -2,9 +2,11 @@ import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce"
 import {
   createRepositoryLayoutMigrationPlan,
   type RepositoryLayoutDeferredDocument,
+  type DocumentRouteDeferralResolution,
 } from "@lervo/repository-knowledge";
 
 import { CommandFailure } from "./command-error-output.js";
+import { deferredDocuments } from "./upgrade-deferred-documents.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import {
@@ -39,7 +41,11 @@ export interface KnowledgeStage {
    * ADR-0476: documents waiting for a semantic route. They never decide the disposition; each
    * is reported so the owner sees what the background resident will classify.
    */
-  deferredDocuments?: Array<Pick<RepositoryLayoutDeferredDocument, "path" | "reason" | "subject">>;
+  deferredDocuments?: Array<
+    Pick<RepositoryLayoutDeferredDocument, "path" | "reason" | "subject"> & {
+      resolution: DocumentRouteDeferralResolution;
+    }
+  >;
 }
 
 export interface TerminalIntegrationStage {
@@ -148,29 +154,12 @@ function knowledgePlanBlockers(value: Record<string, unknown>): UpgradeStageBloc
     .slice(0, maximumReportedBlockers);
 }
 
-function deferredDocuments(value: unknown): NonNullable<KnowledgeStage["deferredDocuments"]> {
-  return Array.isArray(value)
-    ? value.flatMap((item) => {
-        const document = record(item);
-        return document !== null &&
-          typeof document.path === "string" &&
-          (document.reason === "semantic_classification_pending" ||
-            document.reason === "semantic_classification_uncertain") &&
-          (document.subject === "document" ||
-            document.subject === "decision" ||
-            document.subject === "instruction")
-          ? [{ path: document.path, reason: document.reason, subject: document.subject }]
-          : [];
-      })
-    : [];
-}
-
 /** The layout plan's deferrals; an unavailable layout reports none rather than failing the stage. */
 async function layoutDeferrals(
   root: string,
   value: Record<string, unknown> | null,
 ): Promise<NonNullable<KnowledgeStage["deferredDocuments"]>> {
-  if (value?.planKind === "repository_layout") return deferredDocuments(value.deferredDocuments);
+  if (Array.isArray(value?.deferredDocuments)) return deferredDocuments(value.deferredDocuments);
   return createRepositoryLayoutMigrationPlan({ repositoryRoot: root }).then(
     (plan) => deferredDocuments(plan.deferredDocuments),
     () => [],

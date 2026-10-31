@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_29bdf9bdce6a4f5c2012ac18"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Account for every deferred migration document and classify routes during provider-backed migration."

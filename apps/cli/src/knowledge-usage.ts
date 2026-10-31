@@ -8,6 +8,7 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge worker <--once|--watch> --provider <codex|claude>
   lervo knowledge convergence <status|inspect> [--json]
   lervo knowledge convergence owner <status|release|publish> [--json]
+  lervo knowledge convergence delegation scope-response --proposal <id> --response <accept|decline> --evidence-hash <owner-turn-artifact-hash> [--from <reviewed-delegation.json> --apply <plan-id>] [--json]
   lervo knowledge convergence delegation --from <reviewed-delegation.json> [--asset-manifest-from <reviewed-assets.json>] [--apply <plan-id>] [--json]
   lervo knowledge convergence provider-probe --provider <codex|claude> [--json]
   lervo knowledge materialize --recover [--root <path>] [--json]

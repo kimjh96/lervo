@@ -1,5 +1,6 @@
 import type { ConvergenceContinuityPolicyReading } from "./continuity-policy-store.js";
 import type { DelegationRenewalDecision } from "./delegation-continuity-decision.js";
+import type { DocumentRouteScopeProposal } from "./document-route-scope-proposal.js";
 import type { ResidentHostObservation } from "./resident-host-observation.js";
 
 const HOUR_MS = 60 * 60_000;
@@ -16,6 +17,7 @@ export const CONTINUITY_PEER_STALE_MS = 2 * HOUR_MS;
 export type ContinuityFindingSeverity = "info" | "attention" | "owner_decision";
 
 export type ContinuityFindingCode =
+  | "delegation_scope_change"
   | "delegation_missing"
   | "delegation_expiring"
   | "delegation_expired"
@@ -57,6 +59,8 @@ export interface ContinuityFinding {
   severity: ContinuityFindingSeverity;
   /** A closed code or a host label, never a path, URL, or message. */
   detail: string | null;
+  /** Host-private evidence for the existing owner scope-change decision. Never exchanged with the Hub. */
+  scopeChange?: DocumentRouteScopeProposal;
 }
 
 export type ContinuityDelegationObservation =
@@ -82,6 +86,8 @@ export interface ContinuityPeerObservation {
 }
 
 export interface ContinuityFindingsInput {
+  scopeChange?: DocumentRouteScopeProposal | null;
+  scopeResponse?: "accept" | "decline" | null;
   now: number;
   delegation: ContinuityDelegationObservation;
   policy: ConvergenceContinuityPolicyReading;
@@ -226,6 +232,18 @@ export function continuityPeerFindings(
 /** Pure: every continuity gap this host can see, each with the narrowest needed severity. */
 export function continuityFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
   const findings = [
+    ...(input.scopeChange == null ||
+    input.scopeResponse === "accept" ||
+    input.scopeResponse === "decline"
+      ? []
+      : [
+          {
+            code: "delegation_scope_change" as const,
+            severity: "owner_decision" as const,
+            detail: null,
+            scopeChange: input.scopeChange,
+          },
+        ]),
     ...delegationFindings(input),
     ...(input.continuationFailure !== null && input.delegation.state !== "missing"
       ? [

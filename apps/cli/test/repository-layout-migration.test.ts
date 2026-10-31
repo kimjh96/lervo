@@ -294,7 +294,7 @@ describe("repository layout migration CLI", () => {
       }),
     ]);
     expect(formatRepositoryLayoutMigrationPlan(plan)).toContain(
-      "deferred [semantic_classification_pending] docs/adr/0001-zebra.md",
+      "deferred [provider_unavailable] docs/adr/0001-zebra.md",
     );
     messages.length = 0;
     expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
