@@ -91,3 +91,5 @@ Cross-repository skill sharing, automatic promotion without exact review, and pr
 - [Retrieval and improvement](../../../../research/lervo-product-positioning-and-verified-improvement/retrieval-and-improvement.md)
 - [Prime-Agent-derived execution outcomes](../../../../roadmap/product-outcome-convergence/execution.md)
 - [ADR-0413](../../../search/engines/0413-close-product-default-lexical-v2-surface-gaps.md)
+
+[ADR-0542](../../grounding/0542-observe-native-skill-use-instead-of-repeating-skill-disclosure.md) keeps installed skills out of the compact prompt, because providers disclose them natively, and observes their invocations at `Stop` instead. Compact-prompt disclosure remains for unreviewed candidates no provider loads.
