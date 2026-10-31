@@ -1,85 +1,18 @@
-import { constants } from "node:fs";
-import { lstat, open, readdir } from "node:fs/promises";
-import { extname, relative, resolve, sep } from "node:path";
-
-import {
-  agentArtifactFields,
-  binaryExtensions,
-  generatedEntrypoint,
-  opaqueSkillResourceFields,
-  repositorySourceClassificationForPath,
-  repositorySourceKindForPath,
-  secretCandidatePath,
-} from "./repository-source-classification.js";
-import { extractUnits, unit } from "./repository-source-units.js";
-import { isIgnorableFilesystemMetadata, isNestedGitWorkingTree } from "./filesystem-metadata.js";
-import { compileKnowledgeScannerExclusion } from "./knowledge-intake-policy.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { loadDocumentMoveLineages } from "./source-lineage.js";
-import type {
-  RepositoryKnowledgePolicy,
-  RepositoryKnowledgeScan,
-  RepositorySource,
-  RepositorySupplementalSource,
-} from "./types.js";
-import { RepositoryKnowledgeError } from "./types.js";
+import { extractUnits, unit } from "./repository-source-units.js";
 import {
   extractSkillContractUnitDescriptors,
   SKILL_CONTRACT_SOURCE_UNIT_ADAPTER,
 } from "./skill-contract-source-units.js";
 import {
-  GIT_REVISION_SOURCE_PATH,
-  observeGitHeadRevision,
-  type ObserveGitRevision,
-} from "./git-revision-source.js";
-import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
-import { observeGitIgnoredPaths, type ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
-import type { SourceUnitCache } from "./source-unit-cache.js";
-
-/** A source that moves under the scan is a concurrent edit, not an unsafe source. */
-function concurrentSourceChange(path: string): RepositoryKnowledgeError {
-  return new RepositoryKnowledgeError("source_bytes_changed", `${path} changed during the scan.`);
-}
-
-async function safeReadFile(
-  absolute: string,
-  path: string,
-  expectedSize: number,
-): Promise<Uint8Array> {
-  let handle;
-  try {
-    handle = await open(absolute, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-    const before = await handle.stat();
-    if (!before.isFile() || before.size !== expectedSize) throw concurrentSourceChange(path);
-    const bytes = await handle.readFile();
-    const after = await handle.stat();
-    if (
-      after.dev !== before.dev ||
-      after.ino !== before.ino ||
-      after.size !== before.size ||
-      after.mtimeMs !== before.mtimeMs
-    )
-      throw concurrentSourceChange(path);
-    return bytes;
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") throw concurrentSourceChange(path);
-    throw error;
-  } finally {
-    await handle?.close();
-  }
-}
-
-interface RepositoryKnowledgeScanInput {
-  repositoryRoot: string;
-  projectId: string;
-  policy: RepositoryKnowledgePolicy;
-  generatedPaths?: ReadonlySet<string>;
-  observeRevision?: ObserveGitRevision;
-  observeIgnoredPaths?: ObserveGitIgnoredPaths;
-  supplementalSources?: readonly RepositorySupplementalSource[];
-  sourceUnitFailureMode?: "fail" | "file_only";
-  sourceUnitCache?: SourceUnitCache;
-}
+  readRepositoryKnowledgeSources,
+  type RepositoryKnowledgeScanInput,
+} from "./scanner-intake.js";
+import {
+  RepositoryKnowledgeError,
+  type RepositoryKnowledgeScan,
+  type RepositorySource,
+} from "./types.js";
 
 /** Attempts per scan when another writer moves the revision or a file under it. */
 const REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS = 3;
@@ -108,326 +41,13 @@ export async function scanRepositoryKnowledge(
 async function scanRepositoryKnowledgeOnce(
   input: RepositoryKnowledgeScanInput,
 ): Promise<RepositoryKnowledgeScan> {
-  const root = resolve(input.repositoryRoot);
+  const { sources, includedBytes, supplementalByPath, sourceLineages, skippedForBudget } =
+    await readRepositoryKnowledgeSources(input);
+  const root = input.repositoryRoot;
   const extractSourceUnits =
     input.sourceUnitCache?.begin(input) ??
     ((source: RepositorySource & { content: string; contentHash: string }) =>
       extractUnits(input.projectId, source, input.sourceUnitFailureMode));
-  const sourceLineages = await loadDocumentMoveLineages({
-    repositoryRoot: root,
-    projectId: input.projectId,
-  });
-  const observeRevision = input.observeRevision ?? observeGitHeadRevision;
-  const revisionBefore = await observeRevision(root);
-  const sources: RepositorySource[] = [];
-  const excludes = compileKnowledgeScannerExclusion(input.policy);
-  // Git-ignored untracked paths carry no repository knowledge (ADR-0433), so the scan never reads
-  // them. Without this, a virtual environment or build output fills the read budget.
-  const gitIgnored = await (input.observeIgnoredPaths ?? observeGitIgnoredPaths)(root);
-  let includedBytes = 0;
-  let visitedFiles = 0;
-
-  const walk = async (directory: string): Promise<void> => {
-    const entries = await readdir(directory, { withFileTypes: true });
-    entries.sort((left, right) => left.name.localeCompare(right.name));
-    for (const entry of entries) {
-      if (isIgnorableFilesystemMetadata(entry)) continue;
-      const absolute = resolve(directory, entry.name);
-      const path = relative(root, absolute).split(sep).join("/");
-      const identityPath = sourceLineages.identityPathByCurrentPath.get(path);
-      const identityFields = identityPath === undefined ? {} : { identityPath };
-      const sourceId = stableId("src", { projectId: input.projectId, path: identityPath ?? path });
-      if (path.startsWith("../") || path === "..") {
-        throw new RepositoryKnowledgeError(
-          "knowledge_source_unsafe",
-          `${path} escapes the repository root.`,
-        );
-      }
-      if (excludes(path)) {
-        if (entry.isFile() || entry.isSymbolicLink()) {
-          sources.push({
-            sourceId,
-            path,
-            ...identityFields,
-            kind: repositorySourceKindForPath(path),
-            ...agentArtifactFields(path),
-            status: "excluded",
-            classification: "ordinary",
-            byteCount: 0,
-            contentHash: null,
-            reason: "policy_excluded",
-          });
-        }
-        continue;
-      }
-      if (gitIgnored.ignores(path, entry.isDirectory())) continue;
-      if (entry.isSymbolicLink()) {
-        sources.push({
-          sourceId,
-          path,
-          ...identityFields,
-          kind: repositorySourceKindForPath(path),
-          ...agentArtifactFields(path),
-          status: "unsupported",
-          classification: "unsupported",
-          byteCount: 0,
-          contentHash: null,
-          reason: "symbolic_link",
-        });
-        continue;
-      }
-      if (entry.isDirectory()) {
-        if (!(await isNestedGitWorkingTree(absolute))) await walk(absolute);
-        continue;
-      }
-      if (!entry.isFile()) continue;
-      visitedFiles += 1;
-      if (visitedFiles > input.policy.limits.maxFiles) {
-        throw new RepositoryKnowledgeError(
-          "knowledge_source_limit_exceeded",
-          "The repository file count exceeds the policy limit.",
-        );
-      }
-      const stats = await lstat(absolute).catch((error: NodeJS.ErrnoException) => {
-        throw error.code === "ENOENT" ? concurrentSourceChange(path) : error;
-      });
-      const id = sourceId;
-      if (input.generatedPaths?.has(path)) {
-        continue;
-      }
-      if (secretCandidatePath(path)) {
-        sources.push({
-          sourceId: id,
-          path,
-          ...identityFields,
-          kind: repositorySourceKindForPath(path),
-          ...agentArtifactFields(path),
-          status: "excluded",
-          classification: "secret_candidate",
-          byteCount: stats.size,
-          contentHash: null,
-          reason: "secret_candidate_bytes_not_read",
-        });
-        continue;
-      }
-      const artifactProfile = repositoryAgentArtifactForPath(path);
-      const boundedOpaqueResource = artifactProfile?.contentHandling === "opaque_resource";
-      if (stats.size > input.policy.limits.maxFileBytes && !boundedOpaqueResource) {
-        sources.push({
-          sourceId: id,
-          path,
-          ...identityFields,
-          kind: repositorySourceKindForPath(path),
-          ...agentArtifactFields(path),
-          status: "unsupported",
-          classification: "unsupported",
-          byteCount: stats.size,
-          contentHash: null,
-          reason: "file_size_limit",
-        });
-        continue;
-      }
-      const bytes = await safeReadFile(absolute, path, stats.size);
-      const includeOpaqueSkillResource = (): boolean => {
-        const opaqueFields = opaqueSkillResourceFields(path);
-        if (!("agentArtifact" in opaqueFields)) return false;
-        includedBytes += bytes.byteLength;
-        if (includedBytes > input.policy.limits.maxTotalBytes) {
-          throw new RepositoryKnowledgeError(
-            "knowledge_source_limit_exceeded",
-            "Read source bytes exceed the policy limit.",
-          );
-        }
-        sources.push({
-          sourceId: id,
-          path,
-          ...identityFields,
-          kind: repositorySourceKindForPath(path),
-          ...opaqueFields,
-          status: "included",
-          classification: "ordinary",
-          byteCount: bytes.byteLength,
-          contentHash: sha256(bytes),
-          reason: "opaque_portable_skill_resource",
-        });
-        return true;
-      };
-      if (binaryExtensions.has(extname(path).toLowerCase())) {
-        if (includeOpaqueSkillResource()) continue;
-        sources.push({
-          sourceId: id,
-          path,
-          ...identityFields,
-          kind: "other",
-          ...agentArtifactFields(path),
-          status: "unsupported",
-          classification: "unsupported",
-          byteCount: stats.size,
-          contentHash: null,
-          reason: "binary_file",
-        });
-        continue;
-      }
-      if (bytes.includes(0)) {
-        if (includeOpaqueSkillResource()) continue;
-        sources.push({
-          sourceId: id,
-          path,
-          ...identityFields,
-          kind: "other",
-          ...agentArtifactFields(path),
-          status: "unsupported",
-          classification: "unsupported",
-          byteCount: bytes.byteLength,
-          contentHash: null,
-          reason: "binary_content",
-        });
-        continue;
-      }
-      let content: string;
-      try {
-        content = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
-      } catch {
-        if (includeOpaqueSkillResource()) continue;
-        sources.push({
-          sourceId: id,
-          path,
-          ...identityFields,
-          kind: "other",
-          ...agentArtifactFields(path),
-          status: "unsupported",
-          classification: "unsupported",
-          byteCount: bytes.byteLength,
-          contentHash: null,
-          reason: "invalid_utf8",
-        });
-        continue;
-      }
-      if (generatedEntrypoint(path, content)) continue;
-      includedBytes += bytes.byteLength;
-      if (includedBytes > input.policy.limits.maxTotalBytes) {
-        throw new RepositoryKnowledgeError(
-          "knowledge_source_limit_exceeded",
-          "Read source bytes exceed the policy limit.",
-        );
-      }
-      sources.push({
-        sourceId: id,
-        path,
-        ...identityFields,
-        kind: repositorySourceKindForPath(path),
-        ...agentArtifactFields(path),
-        status: "included",
-        classification: repositorySourceClassificationForPath(path),
-        byteCount: bytes.byteLength,
-        contentHash: sha256(bytes),
-        content,
-      });
-    }
-  };
-  await walk(root);
-  const revisionAfter = await observeRevision(root);
-  if (JSON.stringify(revisionAfter) !== JSON.stringify(revisionBefore)) {
-    throw new RepositoryKnowledgeError(
-      "source_bytes_changed",
-      "The repository revision changed during the scan.",
-    );
-  }
-  const revisionSourceId = stableId("src", {
-    projectId: input.projectId,
-    path: GIT_REVISION_SOURCE_PATH,
-  });
-  if (revisionBefore.status === "observed") {
-    const revisionBytes = Buffer.byteLength(revisionBefore.content);
-    includedBytes += revisionBytes;
-    if (includedBytes > input.policy.limits.maxTotalBytes) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_limit_exceeded",
-        "Read source bytes exceed the policy limit.",
-      );
-    }
-    sources.push({
-      sourceId: revisionSourceId,
-      path: GIT_REVISION_SOURCE_PATH,
-      kind: "revision_metadata",
-      status: "included",
-      classification: "ordinary",
-      byteCount: revisionBytes,
-      contentHash: sha256(revisionBefore.content),
-      content: revisionBefore.content,
-      origin: "git_revision_adapter",
-    });
-  } else {
-    sources.push({
-      sourceId: revisionSourceId,
-      path: GIT_REVISION_SOURCE_PATH,
-      kind: "revision_metadata",
-      status: "unsupported",
-      classification: "unsupported",
-      byteCount: 0,
-      contentHash: null,
-      reason: revisionBefore.reason,
-      origin: "git_revision_adapter",
-    });
-  }
-  const supplementalByPath = new Map<string, RepositorySupplementalSource>();
-  // A set keeps the collision check linear; event-heavy repositories supply thousands of units.
-  const repositorySourcePaths = new Set(sources.map((source) => source.path));
-  for (const supplemental of [...(input.supplementalSources ?? [])].sort((left, right) =>
-    left.path.localeCompare(right.path),
-  )) {
-    if (
-      !/^@(?:verification|event)\/[a-z][a-z0-9_]{2,150}$/u.test(supplemental.path) ||
-      supplemental.content.includes("\0") ||
-      !/^[a-z][a-z0-9._+-]{2,127}$/u.test(supplemental.adapter) ||
-      supplemental.locator.length === 0 ||
-      supplemental.locator.length > 300 ||
-      supplemental.title.length === 0 ||
-      supplemental.title.length > 300 ||
-      supplementalByPath.has(supplemental.path) ||
-      repositorySourcePaths.has(supplemental.path) ||
-      (supplemental.kind === "verification_result" && supplemental.unitKind !== "verification") ||
-      (supplemental.kind === "execution_event" && supplemental.unitKind !== "event")
-    ) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_evidence_source_invalid",
-        "The supplemental evidence source contract is invalid.",
-      );
-    }
-    visitedFiles += 1;
-    if (visitedFiles > input.policy.limits.maxFiles) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_limit_exceeded",
-        "The repository source count exceeds the policy limit.",
-      );
-    }
-    const byteCount = Buffer.byteLength(supplemental.content);
-    if (byteCount > input.policy.limits.maxFileBytes) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_limit_exceeded",
-        "A supplemental evidence source exceeds the file byte limit.",
-      );
-    }
-    includedBytes += byteCount;
-    if (includedBytes > input.policy.limits.maxTotalBytes) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_limit_exceeded",
-        "Read source bytes exceed the policy limit.",
-      );
-    }
-    supplementalByPath.set(supplemental.path, supplemental);
-    sources.push({
-      sourceId: stableId("src", { projectId: input.projectId, path: supplemental.path }),
-      path: supplemental.path,
-      kind: supplemental.kind,
-      status: "included",
-      classification: supplemental.classification,
-      byteCount,
-      contentHash: sha256(supplemental.content),
-      content: supplemental.content,
-      origin: supplemental.origin,
-    });
-  }
   sources.sort((left, right) => left.path.localeCompare(right.path));
   if (new Set(sources.map((source) => source.sourceId)).size !== sources.length) {
     throw new RepositoryKnowledgeError(
@@ -442,6 +62,9 @@ async function scanRepositoryKnowledgeOnce(
   const skillDescriptors = await extractSkillContractUnitDescriptors({
     repositoryRoot: root,
     sources: included,
+    budgetSkippedPaths: sources
+      .filter((source) => source.reason === "total_budget_exceeded")
+      .map((source) => source.path),
   });
   const skillDescriptorByPath = new Map<string, typeof skillDescriptors>();
   for (const descriptor of skillDescriptors) {
@@ -541,12 +164,14 @@ async function scanRepositoryKnowledgeOnce(
       sources: contentSnapshotMaterials,
       units: contentUnitVersions,
     }),
-    coverage: {
+    coverage: skippedForBudget.count === 0 ? "complete" : "partial",
+    skippedForBudget,
+    inventoryCoverage: {
       included: sources.filter((source) => source.status === "included").length,
       excluded: sources.filter((source) => source.status === "excluded").length,
       unsupported: sources.filter((source) => source.status === "unsupported").length,
       includedBytes,
-      complete: true,
+      complete: skippedForBudget.count === 0,
     },
     sources,
     units,

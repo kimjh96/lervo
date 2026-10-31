@@ -189,3 +189,5 @@ export { KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT } from "./knowledge-converg
 export { replayKnowledgeConvergence } from "./knowledge-convergence-replay.js";
 export { createStoredDocumentNormalizationSubsetCandidate } from "./document-normalization-subset.js";
 export * from "./knowledge-stage-lint.js";
+
+export { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";

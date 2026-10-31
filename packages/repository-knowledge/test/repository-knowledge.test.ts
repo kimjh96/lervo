@@ -1228,6 +1228,44 @@ describe("repository knowledge migration", () => {
       expect.objectContaining({ subjectKind: "claim", freshness: "current" }),
     );
 
+    const partialScan = {
+      ...unrelatedScan.scan,
+      coverage: "partial" as const,
+      skippedForBudget: { count: 1, bytes: 64, classes: ["other_documents" as const] },
+    };
+    const matchingPartial = await analyzeRepositoryKnowledgeImpact({
+      repositoryRoot: root,
+      scan: partialScan,
+    });
+    expect(matchingPartial.status).toBe("unknown");
+    expect(matchingPartial.items).toContainEqual(
+      expect.objectContaining({ subjectKind: "claim", freshness: "current" }),
+    );
+    expect(createKnowledgeRefreshReviewCandidate(matchingPartial)).toMatchObject({
+      coverage: "partial",
+      status: "review_required",
+      skippedForBudget: partialScan.skippedForBudget,
+    });
+    const missingPartial = await analyzeRepositoryKnowledgeImpact({
+      repositoryRoot: root,
+      scan: {
+        ...partialScan,
+        units: partialScan.units.filter((unit) => unit.path !== "README.md"),
+      },
+    });
+    expect(missingPartial.items).toContainEqual(
+      expect.objectContaining({
+        subjectKind: "claim",
+        freshness: "unknown",
+        reasons: ["scan_incomplete"],
+      }),
+    );
+    expect(
+      createKnowledgeRefreshReviewCandidate(missingPartial).items.every(
+        (item) => item.proposedAction !== "consider_deprecation",
+      ),
+    ).toBe(true);
+
     await writeFile(resolve(root, "README.md"), "# Runtime\n\nLocal execution changed.\n");
     const changedScan = await scanConfiguredRepositoryKnowledge(root);
     const changedImpact = await analyzeRepositoryKnowledgeImpact({

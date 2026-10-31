@@ -12,18 +12,18 @@ describe("conversation repository-work knowledge completion", () => {
       const assertCurrent = vi.fn(async () => {
         throw new Error("stale projection");
       });
-      const lintIsValid = vi.fn(async () => false);
+      const lintReport = vi.fn(async () => ({ valid: true, coverage: "complete" as const }));
 
       await expect(
         resolveConversationRepositoryWorkKnowledgeDisposition({
           changedPathCount: 0,
           baselineKnowledgeCurrent,
           assertCurrent,
-          lintIsValid,
+          lintReport,
         }),
       ).resolves.toBe(expected);
-      expect(assertCurrent).not.toHaveBeenCalled();
-      expect(lintIsValid).not.toHaveBeenCalled();
+      expect(assertCurrent).toHaveBeenCalledTimes(baselineKnowledgeCurrent ? 0 : 1);
+      expect(lintReport).toHaveBeenCalledTimes(baselineKnowledgeCurrent ? 0 : 1);
     },
   );
 
@@ -37,7 +37,7 @@ describe("conversation repository-work knowledge completion", () => {
         assertCurrent: async () => {
           throw failure;
         },
-        lintIsValid: async () => false,
+        lintReport: async () => ({ valid: false, coverage: "complete" }),
       }),
     ).rejects.toBe(failure);
   });
@@ -50,8 +50,25 @@ describe("conversation repository-work knowledge completion", () => {
         assertCurrent: async () => {
           throw new Error("stale projection");
         },
-        lintIsValid: async () => true,
+        lintReport: async () => ({ valid: true, coverage: "complete" }),
       }),
     ).resolves.toBe("baseline_valid");
   });
 });
+
+it.each([0, 1])(
+  "rejects a partial lint baseline with %i changed paths",
+  async (changedPathCount) => {
+    const failure = new Error("current knowledge unavailable");
+    await expect(
+      resolveConversationRepositoryWorkKnowledgeDisposition({
+        changedPathCount,
+        baselineKnowledgeCurrent: false,
+        assertCurrent: async () => {
+          throw failure;
+        },
+        lintReport: async () => ({ valid: true, coverage: "partial" }),
+      }),
+    ).rejects.toBe(failure);
+  },
+);

@@ -1,3 +1,4 @@
+import { requireCompleteRepositoryKnowledgeCoverage } from "./scan-completeness.js";
 import {
   RepositoryKnowledgeError,
   type KnowledgeLintIssue,
@@ -45,6 +46,8 @@ export function validateKnowledgeStage(input: {
   ownedErrorCodes: ReadonlySet<string>;
   expectedTransitionCodes?: ReadonlySet<string>;
 }): KnowledgeLintResult {
+  requireCompleteRepositoryKnowledgeCoverage(input.before);
+  requireCompleteRepositoryKnowledgeCoverage(input.after);
   const beforeErrors = new Set(
     input.before.issues
       .filter((issue) => issue.severity === "error")

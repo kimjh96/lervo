@@ -1,3 +1,4 @@
+import { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
 import { lstat, readFile } from "node:fs/promises";
 import { basename, extname, relative, resolve, sep } from "node:path";
 
@@ -987,6 +988,7 @@ async function buildKnowledgeMigrationPlan(input: {
   reconciliationMode: KnowledgeMigrationPlan["reconciliation"]["strategy"];
 }): Promise<KnowledgeMigrationPlan> {
   const { root, manifest, policy, scan, previous } = input;
+  assertCompleteRepositoryKnowledgeScan(root, scan);
   const layout = await loadDocumentLayoutContract(root);
   const compilation = desiredOutputs({
     scan,
@@ -1095,7 +1097,7 @@ async function buildKnowledgeMigrationPlan(input: {
     sourceSnapshotId: scan.snapshotId,
     policyHash: planMaterials.policyHash,
     compiler: { id: "lervo.structural", version: "2", capability: "bounded_read_only_no_tools" },
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     impact: impact.summary,
     impactReportId: impact.reportId,
     operations,
@@ -1191,4 +1193,14 @@ export async function scanConfiguredRepositoryKnowledge(
     options,
   );
   return { manifest, policy, scan };
+}
+
+/** Complete inventory for operations that certify or materialize repository currency. */
+export async function scanCompleteConfiguredRepositoryKnowledge(
+  repositoryRoot: string,
+  options: Parameters<typeof scanConfiguredRepositoryKnowledge>[1] = {},
+): ReturnType<typeof scanConfiguredRepositoryKnowledge> {
+  const configured = await scanConfiguredRepositoryKnowledge(repositoryRoot, options);
+  assertCompleteRepositoryKnowledgeScan(repositoryRoot, configured.scan);
+  return configured;
 }

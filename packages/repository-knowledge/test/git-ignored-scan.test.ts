@@ -73,7 +73,10 @@ describe("Git-ignored repository paths", () => {
         policy,
         observeRevision: revision,
       }),
-    ).rejects.toMatchObject({ code: "knowledge_source_limit_exceeded" });
+    ).resolves.toMatchObject({
+      coverage: "partial",
+      skippedForBudget: { classes: ["source_and_configuration"] },
+    });
   });
 
   it("reports ignored paths relative to a scanned subdirectory", async () => {

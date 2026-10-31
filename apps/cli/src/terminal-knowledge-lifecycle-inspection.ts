@@ -201,7 +201,7 @@ async function inspectValidationLifecycle(input: {
     });
     // Drift warnings are agent-owned attention, never lifecycle gates (ADR-0464).
     advisories = documentDriftAttentionIssues(lint, TERMINAL_DRIFT_ATTENTION_ITEMS);
-    if (!lint.valid) {
+    if (lint.coverage !== "complete" || !lint.valid) {
       lintIssues.push({
         code: "repository_knowledge_lint_failed",
         command: "lervo knowledge lint",

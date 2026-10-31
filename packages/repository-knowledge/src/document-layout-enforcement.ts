@@ -1,3 +1,4 @@
+import { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
 import {
   createDocumentLayoutPermit,
   evaluateDocumentLayout,
@@ -57,6 +58,7 @@ function layoutOperation(operation: RepositoryDocumentOperation): DocumentLayout
 export async function evaluateCurrentRepositoryDocumentLayout(input: {
   repositoryRoot: string;
   operations: readonly RepositoryDocumentOperation[];
+  requireComplete?: boolean;
 }): Promise<DocumentLayoutEvaluation> {
   const [manifest, sourcePolicy, taxonomy] = await Promise.all([
     loadProjectManifest(input.repositoryRoot),
@@ -68,6 +70,7 @@ export async function evaluateCurrentRepositoryDocumentLayout(input: {
     projectId: manifest.projectId,
     policy: sourcePolicy,
   });
+  if (input.requireComplete) assertCompleteRepositoryKnowledgeScan(input.repositoryRoot, scan);
   const snapshot: DocumentLayoutSnapshotEntry[] = scan.sources.flatMap((source) =>
     source.status === "included" && /\.mdx?$/iu.test(source.path) && source.contentHash !== null
       ? [{ path: source.path, contentHash: source.contentHash, ownership: "user" as const }]
@@ -95,7 +98,10 @@ export async function authorizeCurrentRepositoryDocumentLayout(input: {
       (/\.mdx?$/iu.test(operation.path) || /\.mdx?$/iu.test(operation.destinationPath ?? "")),
   );
   if (!hasDocumentMutation) return null;
-  const evaluation = await evaluateCurrentRepositoryDocumentLayout(input);
+  const evaluation = await evaluateCurrentRepositoryDocumentLayout({
+    ...input,
+    requireComplete: true,
+  });
   if (evaluation.status === "blocked") {
     const blocker = evaluation.blockers[0]!;
     throw new RepositoryKnowledgeError(

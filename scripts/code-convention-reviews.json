@@ -11,9 +11,9 @@
     },
     {
       "path": "apps/cli/src/knowledge-structure-command.ts",
-      "contentHash": "sha256:ceb08e80142892fca0475b79f2cccfad8316fc89a760219119636a85ec9d12dd",
+      "contentHash": "sha256:d2da5808ec1e24855aec407be032055265c7ab8533b1f843cb156ba40a63c7a5",
       "responsibility": "User document structure command adapter",
-      "rationale": "Move, merge, split, and delete are variants of one exact-approved document-structure command contract and share the same validation, normalization-relocation reporting, materialization event, and rollback boundary.",
+      "rationale": "Move, merge, split, and delete share one exact-approved document-structure command lifecycle, validation receipt, event, and rollback boundary. The added complete-coverage receipt gate composes reporting lint without adding policy, storage, or provider responsibilities. Structure planning and effects remain in package owners.",
       "disposition": "cohesive"
     },
     {
@@ -137,9 +137,9 @@
     },
     {
       "path": "packages/knowledge-okf/src/okf.ts",
-      "contentHash": "sha256:b3fac31cbd1150edee5c7e51dc659cb2faa21cb8dba9ae0e184ccb9bd89b71df",
+      "contentHash": "sha256:da9242a4abf799e0f394269fda5b7010f72558951ab6cc9c8c3bf42e8c95592f",
       "responsibility": "OKF v0.2 exchange adapter",
-      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules.",
+      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules. Export now requires complete scan admission before binding freshness; other format-bound operations retain their existing ownership and validation boundaries.",
       "disposition": "cohesive"
     },
     {
@@ -188,35 +188,35 @@
       "path": "packages/repository-knowledge/src/compiler.ts",
       "contentHash": "sha256:f4573eaaa5be3dc31e5e020b5bab4079fcc553f6e7b9593f7052ec95a4f413c2",
       "responsibility": "Deterministic structural knowledge compiler",
-      "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module.",
+      "rationale": "Publication rendering, historical-document grouping, desired output construction, recorded-output comparison, and plan creation are phases of one deterministic structural compilation contract; historical marker detection lives in its own module. Complete-scan refusal is shared with other currency consumers and applied at the common migration builder, including virtual scans. The configured reader remains partial-capable; private diagnostic persistence lives in scan-coverage.ts.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:2a7675b93a0fa641b2acb7579640fea062e853ee5372d300a2c2da8ffa34d6cf",
+      "contentHash": "sha256:f0eb5236fa5d8b7c641ce47c1a97ab807ebae2fd7862959c3f62546106f791d4",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "Profiles, envelopes, candidate validation, lifecycle inspection, generation, candidate storage, planning, and exact-approved apply share one content-bound lifecycle. Observation, selection, worksets, shard cache, ADR-0473 tool ownership, and CLI rendering are separate; this module only threads tool-generated paths into eligibility and ADR-0479 reviewer feedback into envelopes, while feedback records and admission live in the convergence runtime.",
+      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, and tool ownership remain separate modules. The public compiler now delegates complete-coverage admission to the pure shared guard before provider calls; configured preparation and apply use the complete scanner. No independent scan or persistence policy is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-merge.ts",
       "contentHash": "sha256:c4b3dfe2a627815c3528fdc207030fdda1f759d058cb84770535dc03d4f061c1",
       "responsibility": "Exact-approved document merge operation",
-      "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility.",
+      "rationale": "Plan serialization, safe source inspection, merge planning, lineage updates, and apply are one atomic document-merge responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-move.ts",
       "contentHash": "sha256:16d260dad0e8db3f2b33c9f2a6b3802e7081aeea1e7466327f22f5b787e868d6",
       "responsibility": "Exact-approved document move operation",
-      "rationale": "Destination safety, plan serialization, lineage, single-output normalization-record preservation, plan creation, and apply are one atomic document-move responsibility; normalization record mechanics remain in a separate bounded module and formatter configuration is outside this transaction.",
+      "rationale": "One exact-approved move binds destination safety, serialization, lineage, normalization record relocation and atomic apply. Shared modules retain record mechanics and layout policy. Complete scan admission delegates to the configured scanner before planning; no new independent responsibility is introduced.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/document-structure-split.ts",
       "contentHash": "sha256:4ec0429f967d5e881a54e610d80f9d812084372a2fc652dc7f8a9a7f76419585",
       "responsibility": "Exact-approved document split operation",
-      "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility.",
+      "rationale": "Heading extraction, destination safety, plan serialization, lineage preservation, and apply are one atomic document-split responsibility. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
@@ -228,16 +228,16 @@
     },
     {
       "path": "packages/repository-knowledge/src/instruction-bridge.ts",
-      "contentHash": "sha256:dea9b4523cec9fac0e37a7cebb3404cb7cbb4719ac88427b0768bc02a803b825",
+      "contentHash": "sha256:a461c05523ec8b806a22889facae8b03b6257fbae482c77baa26505615348b3d",
       "responsibility": "Provider instruction bridge lifecycle",
-      "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted.",
+      "rationale": "Profile resolution, registry binding, structural refresh, plan creation, and exact-approved apply share one instruction-bridge lifecycle; target construction and classification are extracted. Complete-scan admission is delegated to the shared configured scanner before this lifecycle operation; aggregate inventory fields retain their existing contract. No independent policy, provider, or persistence concern is added.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
       "contentHash": "sha256:4a2ba0477bf13a3f2fde24a26340d1c3db5ee344ff16bc1179bcb7ab8b75f882",
       "responsibility": "Repository knowledge lifecycle lint",
-      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift and publication-root lint.",
+      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift and publication-root lint. Coverage is returned as reporting metadata independently of validity; pure completeness admission remains in scan-completeness.ts, and receipt and baseline consumers own promotion.",
       "disposition": "cohesive"
     },
     {
@@ -251,14 +251,7 @@
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
       "contentHash": "sha256:a15678e3b794b9688c4ba3a432d9e28cbb3b8dd673120b431c3073f1fd9f81e7",
       "responsibility": "Repository document-layout migration",
-      "rationale": "Link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction. Source classification and its evidence observation live in the layout-candidate modules; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/repository-knowledge/src/scanner.ts",
-      "contentHash": "sha256:d2e3c0e93c2a9fe93068a5f2b2dfa961b7cc47613d296ce0314b3e612ef7b725",
-      "responsibility": "Fresh repository scan orchestration",
-      "rationale": "Fresh filesystem discovery, safe reads, retries, lineage validation, supplemental evidence, and snapshot assembly own one scan. Pure classification, materialization, and transforms remain separate. Optional query-only source-unit reuse is supplied explicitly after fresh byte observation; the pure cache owns bindings and decoding, and a separate adapter owns persistence. Git-ignored path observation lives in git-ignored-paths.ts; the scan only skips what it reports.",
+      "rationale": "One reviewed repository-layout migration coordinates source placement, reference rebasing, machine artifacts and exact apply. Classification, instruction routing, lineage and tool ownership remain delegated. Complete scan admission precedes migration planning and uses shared private evidence handling.",
       "disposition": "cohesive"
     },
     {
@@ -272,7 +265,7 @@
       "path": "packages/repository-knowledge/src/types.ts",
       "contentHash": "sha256:89de5dbdce864b6598015fd84d008bdc519eeb94571e2a42c235870d72481285",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "One declarative package contract surface for scans, policy, lifecycle results, and typed failures. The optional ranker preparation projection is opaque and provider-neutral; validation belongs to the concrete adapter and persistence to query preparation. No implementation, filesystem, or concrete search adapter is imported into these contracts.",
+      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects. The review adds explicit coverage and skipped summaries to reporting contracts and one scan-incomplete reason. Evaluation, admission, storage, and rendering stay in their owning modules; no second implementation concern is added.",
       "disposition": "cohesive"
     },
     {

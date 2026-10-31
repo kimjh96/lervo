@@ -30,7 +30,7 @@ export async function prepareConversationRepositoryWorkKnowledgeEvidence(input: 
         changedPathCount: input.repositoryChange.changedPaths.length,
         baselineKnowledgeCurrent: input.baselineKnowledgeCurrent,
         assertCurrent: () => assertManagedRepositoryKnowledgeCurrent(input.repositoryRoot),
-        lintIsValid: async () => (await lintRepositoryKnowledge(input.repositoryRoot)).valid,
+        lintReport: () => lintRepositoryKnowledge(input.repositoryRoot),
       }),
       sourceManifestArtifact: null,
     };

@@ -10,7 +10,7 @@ import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enfo
 import { repositoryInstructionPaths } from "./document-layout.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
-import { scanConfiguredRepositoryKnowledge } from "./compiler.js";
+import { scanCompleteConfiguredRepositoryKnowledge } from "./compiler.js";
 import {
   RepositoryKnowledgeError,
   type RepositoryKnowledgePreparedScanOptions,
@@ -150,7 +150,7 @@ export async function createKnowledgeInstructionBootstrapPlan(input: {
   preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
 }): Promise<KnowledgeInstructionBootstrapPlan> {
   const root = resolve(input.repositoryRoot);
-  const { policy, scan } = await scanConfiguredRepositoryKnowledge(root, {
+  const { policy, scan } = await scanCompleteConfiguredRepositoryKnowledge(root, {
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),
@@ -167,7 +167,7 @@ export async function createKnowledgeInstructionBootstrapPlan(input: {
     repositoryRoot: root,
     sourceSnapshotId: scan.snapshotId,
     policyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
   };
   if (agentsPresent || claude === null) {
     const state = {

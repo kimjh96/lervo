@@ -9,7 +9,7 @@ Lervo compiles bounded repository evidence with or without `docs/`. Portable Mar
 
 The compilation contract comprises:
 
-- [Sources, policy, and structural publication](repository-knowledge-compilation/structural-publication.md).
+- [Sources, policy, and structural publication](repository-knowledge-compilation/structural-publication.md), including [priority scan admission and partial coverage](repository-knowledge-compilation/structural-publication/sources/discovery-and-units.md#total-byte-admission-and-coverage).
 - [Semantic compilation, review, and materialization](repository-knowledge-compilation/semantic-review.md): historical; removed by [ADR-0529](../decisions/knowledge/semantics/0529-remove-the-semantic-compilation-pipeline.md).
 - [Exchange, failures, and acceptance](repository-knowledge-compilation/validation-and-exchange.md).
 - [Document drift and historical documents](repository-knowledge-compilation/document-drift.md).

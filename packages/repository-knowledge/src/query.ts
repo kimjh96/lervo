@@ -54,6 +54,8 @@ interface PreparedKnowledgeEntry {
 }
 
 interface PreparedKnowledgeQueryData {
+  coverage: KnowledgeQueryResult["coverage"];
+  skippedForBudget: KnowledgeQueryResult["skippedForBudget"];
   sourceSnapshotId: string;
   impactReportId: string;
   entries: readonly PreparedKnowledgeEntry[];
@@ -117,9 +119,16 @@ export class RepositoryKnowledgeQueryIndex {
         : new ConceptSidecarCache(await readPreparationCache(root, "concept-sidecars"));
     const storedConcepts = await loadStoredConcepts(root, conceptCache);
     const entries: PreparedKnowledgeEntry[] = [];
+    const skippedPaths = new Set(
+      scan.sources
+        .filter((source) => source.reason === "total_budget_exceeded")
+        .map((source) => source.path),
+    );
     const publications = await readKnowledgeQueryPublications(
       root,
-      storedConcepts,
+      storedConcepts.filter(
+        (stored) => stored.value === null || !skippedPaths.has(stored.value.path),
+      ),
       Math.min(policy.limits.maxFileBytes, 131_072),
     );
     for (const { concept, content, contentHash } of publications) {
@@ -186,6 +195,8 @@ export class RepositoryKnowledgeQueryIndex {
     if (input.preparationCache !== "disabled" && ranker?.preparationProjection !== undefined)
       await writePreparationCache(root, "ranker", ranker.preparationProjection);
     return new RepositoryKnowledgeQueryIndex({
+      coverage: scan.coverage,
+      skippedForBudget: scan.skippedForBudget,
       sourceSnapshotId: scan.snapshotId,
       impactReportId: impact.reportId,
       entries,
@@ -266,6 +277,8 @@ export class RepositoryKnowledgeQueryIndex {
     return {
       schemaVersion: 1,
       query: input.query,
+      coverage: this.data.coverage,
+      skippedForBudget: this.data.skippedForBudget,
       semantics: "recommended",
       ...(this.data.ranker === undefined
         ? {}

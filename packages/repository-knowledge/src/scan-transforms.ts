@@ -181,7 +181,10 @@ export function splitRepositoryKnowledgeScanSource(input: {
       sources: contentSnapshotMaterials,
       units: contentUnitVersions,
     }),
-    coverage: { ...input.scan.coverage, included: input.scan.coverage.included + 1 },
+    inventoryCoverage: {
+      ...input.scan.inventoryCoverage,
+      included: input.scan.inventoryCoverage.included + 1,
+    },
     sources,
     units,
   };
@@ -253,11 +256,11 @@ export function upsertRepositoryKnowledgeScanSource(input: {
       sources: contentSnapshotMaterials,
       units: contentUnitVersions,
     }),
-    coverage: {
-      ...input.scan.coverage,
-      included: input.scan.coverage.included + (existing === undefined ? 1 : 0),
+    inventoryCoverage: {
+      ...input.scan.inventoryCoverage,
+      included: input.scan.inventoryCoverage.included + (existing === undefined ? 1 : 0),
       includedBytes:
-        input.scan.coverage.includedBytes - (existing?.byteCount ?? 0) + source.byteCount,
+        input.scan.inventoryCoverage.includedBytes - (existing?.byteCount ?? 0) + source.byteCount,
     },
     sources,
     units,
@@ -338,7 +341,10 @@ export function mergeRepositoryKnowledgeScanSources(input: {
       sources: contentSnapshotMaterials,
       units: contentUnitVersions,
     }),
-    coverage: { ...input.scan.coverage, included: input.scan.coverage.included - 1 },
+    inventoryCoverage: {
+      ...input.scan.inventoryCoverage,
+      included: input.scan.inventoryCoverage.included - 1,
+    },
     sources,
     units,
   };

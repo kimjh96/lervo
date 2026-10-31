@@ -6,6 +6,8 @@ import { validateKnowledgeStage } from "../src/knowledge-stage-lint.js";
 function result(issues: KnowledgeLintResult["issues"]): KnowledgeLintResult {
   return {
     schemaVersion: 1,
+    coverage: "complete",
+    skippedForBudget: { count: 0, bytes: 0, classes: [] },
     repositoryRoot: "/fixture",
     valid: issues.every((issue) => issue.severity !== "error"),
     checkedConcepts: 1,
@@ -54,3 +56,18 @@ describe("knowledge stage lint", () => {
     );
   });
 });
+
+it.each(["before", "after"] as const)(
+  "rejects partial %s lint before producing a receipt",
+  (side) => {
+    const input = { before: result([]), after: result([]) };
+    input[side] = {
+      ...input[side],
+      coverage: "partial",
+      skippedForBudget: { count: 1, bytes: 64, classes: ["other_documents"] },
+    };
+    expect(() =>
+      validateKnowledgeStage({ ...input, stage: "migration", ownedErrorCodes: new Set() }),
+    ).toThrow(expect.objectContaining({ code: "knowledge_source_limit_exceeded" }));
+  },
+);

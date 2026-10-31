@@ -9,7 +9,7 @@ import { loadDecisionTaxonomy } from "@lervo/project";
 import {
   createKnowledgeMigrationPlanForScan,
   recordedGeneratedKnowledgePaths,
-  scanConfiguredRepositoryKnowledge,
+  scanCompleteConfiguredRepositoryKnowledge,
 } from "./compiler.js";
 import { planDecisionTaxonomyRefresh } from "./decision-taxonomy-refresh.js";
 import { createKnowledgeInstructionBridgePlan } from "./instruction-bridge.js";
@@ -490,7 +490,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
   const taxonomySource = await readFile(taxonomyPath, "utf8");
   const [{ policy, scan }, storedConcepts, generatedPaths, taxonomy] = await Promise.all([
-    scanConfiguredRepositoryKnowledge(root, {
+    scanCompleteConfiguredRepositoryKnowledge(root, {
       ...(input.supplementalSources === undefined
         ? {}
         : { supplementalSources: input.supplementalSources }),
@@ -1124,7 +1124,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     afterSourceSnapshotId: virtualScan.snapshotId,
     policyHash,
     taxonomyHash,
-    coverage: scan.coverage,
+    coverage: scan.inventoryCoverage,
     registryDigest,
     moves,
     userUpdates,
