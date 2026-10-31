@@ -109,3 +109,5 @@ The grounding instruction specifies repository scope for rules governing agent w
 ## Deferred
 
 Automatic application of owner-stated rules and Discord review commands (ADR-0458).
+
+[ADR-0543](../repository/canonicalization/patterns/0543-learn-portable-skills-from-practice-in-the-knowledge-resident.md) adds the preceding turn's bounded work record to each capture call and a separate `practice` output field, so one call captures rules and reusable procedures; it learns portable skills in the resident from completed work.
