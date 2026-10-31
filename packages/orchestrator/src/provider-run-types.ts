@@ -122,6 +122,13 @@ export interface ManagedProviderRunInput {
   >;
   writingPolicy: ResolvedWritingPolicy | null;
   resolvedSkills: readonly ManagedResolvedSkill[];
+  /**
+   * Whether the resolved skills' verified bodies are in this run's instructions. Only then may the
+   * run claim `skill.invoked` and `skill.completed`; a resolution-only host records
+   * `skill.resolved` alone (ADR-0156). Absent means resolution only, so no caller can claim
+   * an invocation by omission.
+   */
+  skillDelivery?: "instructions_injected" | "resolution_only";
   resolvedCapabilities?: readonly ManagedResolvedCapability[];
   capabilityRecommendations?: readonly ManagedCapabilityRecommendation[];
   capabilityActivations?: readonly AdapterCapabilityActivationRequest[];

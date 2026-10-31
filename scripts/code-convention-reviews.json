@@ -32,7 +32,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:9c49d2225914fb7928b168dd99b4ddf265ba39d2cb12ae1eeaba7fadf23de365",
+      "contentHash": "sha256:ae4cff9a6465608d835de83f1c6073009d8185d62b01400260bf66a7795ddc94",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module sequences one admitted run through context, execution, outcome checks, writing publication, finalization, and cleanup. Public command contracts, provider construction, grounded capability selection and package ceilings, and outcome verification are separate modules. Existing research, role, skill, workspace and project-verification owners retain their boundaries; the remaining lifecycle shares one ordered failure and storage-cleanup contract.",
       "disposition": "cohesive"
@@ -151,7 +151,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:09ee509473da7036d6b52171d266a027e7f0077d342512232d46515c1d5c3adb",
+      "contentHash": "sha256:07dce3cc0ce573c5ef89dd3119a6b88800aeb79b3706b8b0a7947806f4f34bf3",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "One provider-neutral run lifecycle delegates source capture, process observation, capability policy, result collection and verification to existing ports. Source admission uses the project-storage gate for the complete run; failed reference-result preservation stays behind its own CAS/evidence boundary. The coordinator sequences both without owning SQLite or background retry policy.",
       "disposition": "cohesive"

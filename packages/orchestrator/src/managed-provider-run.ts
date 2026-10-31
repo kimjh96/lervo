@@ -471,7 +471,7 @@ export class ManagedProviderRunCoordinator {
         }
         if (expectedPath !== null) state.writeBridge.beginTurn(expectedPath);
 
-        if (index === 0)
+        if (index === 0 && input.skillDelivery === "instructions_injected")
           this.append(skillInvokedSpecs(input.resolvedSkills, input.requestDigest, this.time()));
 
         phase = "turn_start";
@@ -683,14 +683,15 @@ export class ManagedProviderRunCoordinator {
           publicationContent: state.publicationContent,
           artifactStore: this.options.artifactStore,
         });
-        this.append(
-          skillCompletedSpecs(
-            input.resolvedSkills,
-            state.resultArtifact.artifactId,
-            state.resultArtifact.contentHash,
-            this.time(),
-          ),
-        );
+        if (input.skillDelivery === "instructions_injected")
+          this.append(
+            skillCompletedSpecs(
+              input.resolvedSkills,
+              state.resultArtifact.artifactId,
+              state.resultArtifact.contentHash,
+              this.time(),
+            ),
+          );
       } catch (error) {
         failures.add(error, "result_store");
       }
