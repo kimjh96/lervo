@@ -11,7 +11,7 @@ import { resolveSupervisedManagedWorkspace } from "@lervo/node-runtime";
 
 import { assertAssignmentExecutionAuthority } from "@lervo/agent-workforce";
 import type { WorkforceAgent } from "@lervo/agent-workforce";
-import { documentIdForPath, type ManagedLinkedEvidenceSelection } from "@lervo/context";
+import { documentIdForPath } from "@lervo/context";
 import { writingContractForLanguage } from "@lervo/core";
 import { ManagedProviderRunCoordinator } from "@lervo/orchestrator";
 import { loadDocumentRegistry } from "@lervo/project";
@@ -26,13 +26,6 @@ import { finalizeImmediateManagedAssignment } from "./managed-run-assignment-fin
 import { prepareManagedRunWritingPolicy } from "./managed-run-writing-policy.js";
 import { prepareManagedResearchContext } from "./managed-research-context.js";
 import { recordManagedRoleProfileActivation } from "./managed-role-profile-activation.js";
-import {
-  executeManagedLinkedEvidenceCanary,
-  recordManagedLinkedEvidenceCanaryCompletion,
-  recordManagedLinkedEvidenceCanaryFailure,
-  type ManagedLinkedEvidenceCanaryOutcome,
-} from "./managed-linked-evidence-canary.js";
-import { resolveDeterministicManagedLinkedEvidenceSelection } from "./managed-linked-evidence-deterministic-selection.js";
 import {
   prepareManagedSearchContext,
   productDefaultSearchEngine,
@@ -103,9 +96,6 @@ export function createManagedRunExecutor(
 
     let storage: ProjectStorage | undefined;
     let outcome: ManagedRunOutcome | undefined;
-    let linkedEvidenceCanary: ManagedLinkedEvidenceCanaryOutcome | undefined;
-    let linkedEvidenceSelections: readonly ManagedLinkedEvidenceSelection[] = [];
-    let linkedEvidenceCanaryFinalizationStarted = false;
     let executionFailure: unknown;
     try {
       storage = await dependencies.openStorage(request.repositoryRoot);
@@ -268,9 +258,7 @@ export function createManagedRunExecutor(
         repositoryRoot: storage.paths.repositoryRoot,
         projectId: storage.manifest.projectId,
         observedAt: dependencies.now?.() ?? new Date(),
-        ...(dependencies.resolveExperimentalLinkedEvidenceSelection === undefined
-          ? { productDefault: productDefaultSearchEngine }
-          : {}),
+        productDefault: productDefaultSearchEngine,
         query: instructions,
         fallbackQuery: expectedPaths[0]!,
         expectedPaths,
@@ -280,44 +268,6 @@ export function createManagedRunExecutor(
         documentRegistry:
           request.supervisedInvocation === undefined ? registry : repositoryRegistry,
       });
-      if (request.linkedEvidenceCanaryAuthorization !== undefined) {
-        const authorization = request.linkedEvidenceCanaryAuthorization;
-        linkedEvidenceCanary =
-          authorization.maximumProviderCalls === 0
-            ? await resolveDeterministicManagedLinkedEvidenceSelection({
-                repositoryRoot: storage.paths.repositoryRoot,
-                projectId: storage.manifest.projectId,
-                runId,
-                provider: request.provider,
-                authorization,
-                operationalBatch: searchContext.recommendationBatch,
-                recommendationBatches: searchContext.recommendationBatches,
-              })
-            : await executeManagedLinkedEvidenceCanary({
-                repositoryRoot: storage.paths.repositoryRoot,
-                projectId: storage.manifest.projectId,
-                runId,
-                provider: request.provider,
-                request: instructions,
-                authorization,
-                operationalBatch: searchContext.recommendationBatch,
-                recommendationBatches: searchContext.recommendationBatches,
-                resolveArtifact: (uri) => storage!.artifacts.get(uri),
-                createAdapter: dependencies.createAdapter,
-                now: dependencies.now ?? (() => new Date()),
-              });
-        linkedEvidenceSelections = linkedEvidenceCanary.selections;
-      } else if (
-        request.supervisedInvocation === undefined &&
-        dependencies.resolveExperimentalLinkedEvidenceSelection !== undefined
-      ) {
-        linkedEvidenceSelections = await dependencies.resolveExperimentalLinkedEvidenceSelection({
-          repositoryRoot: storage.paths.repositoryRoot,
-          runId,
-          operationalBatch: searchContext.recommendationBatch,
-          recommendationBatches: searchContext.recommendationBatches,
-        });
-      }
       const primaryAdapter = dependencies.createAdapter({
         provider: request.provider,
         ...(request.providerExecutable === undefined
@@ -390,11 +340,6 @@ export function createManagedRunExecutor(
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
-          ...(linkedEvidenceSelections.length === 0
-            ? {}
-            : linkedEvidenceCanary === undefined
-              ? { defaultLinkedEvidenceSelections: linkedEvidenceSelections }
-              : { linkedEvidenceSelections }),
           documentRules: {
             ...managedWriting.documentRules,
             ...(research?.documentRules ?? {}),
@@ -470,15 +415,6 @@ export function createManagedRunExecutor(
         activatedAt: (dependencies.now?.() ?? new Date()).toISOString(),
         createEventId: () => dependencies.createId("evt"),
       });
-      if (linkedEvidenceCanary !== undefined) {
-        linkedEvidenceCanaryFinalizationStarted = true;
-        await recordManagedLinkedEvidenceCanaryCompletion({
-          repositoryRoot: storage.paths.repositoryRoot,
-          outcome: linkedEvidenceCanary,
-          evidence: result.contextEvidence,
-          recordedAt: dependencies.now?.() ?? new Date(),
-        });
-      }
       const outcomePolicy = await dependencies.resolveOutcomePolicy?.({ request, result, storage });
       const contextQuality = await observeManagedRunOutcomes({
         storage,
@@ -550,24 +486,6 @@ export function createManagedRunExecutor(
       }
     } catch (error) {
       executionFailure = error;
-      if (
-        storage !== undefined &&
-        linkedEvidenceCanary !== undefined &&
-        !linkedEvidenceCanaryFinalizationStarted
-      ) {
-        try {
-          await recordManagedLinkedEvidenceCanaryFailure({
-            repositoryRoot: storage.paths.repositoryRoot,
-            outcome: linkedEvidenceCanary,
-            recordedAt: dependencies.now?.() ?? new Date(),
-          });
-        } catch (recordError) {
-          executionFailure = new AggregateError(
-            [error, recordError],
-            "The managed run and its canary failure record both failed.",
-          );
-        }
-      }
     }
 
     let cleanupFailure: unknown;

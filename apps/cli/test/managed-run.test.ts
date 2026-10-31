@@ -28,7 +28,6 @@ import type { WritingSemanticEvaluator } from "@lervo/writing";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { createManagedRunExecutor, type RunProvider } from "../src/managed-run.js";
-import { resolveDefaultManagedLinkedEvidenceSelection } from "../src/managed-linked-evidence-default-selection.js";
 import { collectLocalKnowledgeSources } from "../src/knowledge-sources.js";
 import { runCli } from "../src/main.js";
 import { managedExecutionIdentity } from "@lervo/work-controller";
@@ -1083,51 +1082,6 @@ describe("lervo run vertical slice", () => {
       )
       .map((event) => event.payload.providerSessionId);
     expect(providerSessions).toEqual(["codex-cli-session", CLAUDE_SESSION_ID]);
-  });
-
-  it("keeps the retired linked treatment available only through an explicit evaluation seam", async () => {
-    const root = await createRepository();
-    await registerLinkedSearchContextDocuments(root);
-    const client = new ManagedCodexClient(root);
-    const executeManagedRun = createManagedRunExecutor({
-      openStorage: openProjectStorage,
-      createId: identifierFactory(),
-      semanticEvaluator: passingSemanticEvaluator,
-      resolveExperimentalLinkedEvidenceSelection: resolveDefaultManagedLinkedEvidenceSelection,
-      createAdapter: ({ repositoryRoot, resolveArtifact }) =>
-        new CodexAdapter({
-          repositoryRoot,
-          resolveArtifact,
-          clientFactory: async () => client,
-        }),
-    });
-
-    const exitCode = await runCli(
-      [
-        "run",
-        "--provider",
-        "codex",
-        "--path",
-        "src/result.ts",
-        "--verification",
-        "project.default",
-        "Implement a small file",
-      ],
-      { cwd: root, stdout: () => {}, stderr: () => {} },
-      { executeManagedRun },
-    );
-
-    expect(exitCode).toBe(0);
-    const storage = await openProjectStorage(root);
-    const events = storage.events.list();
-    await storage.close();
-    expect(
-      events.some(
-        (event) =>
-          (event.type === "context.selected" || event.type === "document.loaded") &&
-          event.payload.documentId === "doc_zzz_linked_constraint",
-      ),
-    ).toBe(true);
   });
 
   it("keeps the completed change but hides provider prose when semantic review is unavailable", async () => {

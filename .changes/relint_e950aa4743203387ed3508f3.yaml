@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e950aa4743203387ed3508f3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Remove the retired linked-evidence canary and the shadow observation that ran on every managed run and conversation."

@@ -29,15 +29,6 @@ export interface ContextDocumentCandidate {
   expectedContentHash?: string;
 }
 
-export interface ManagedLinkedEvidenceSelection {
-  schemaVersion: 1;
-  selectionAttemptId: string;
-  documentId: string;
-  path: string;
-  contentHash: string;
-  rank: number;
-}
-
 export interface ContextSelectionReason {
   reasonCode: SelectionReasonCode;
   ruleId: string;
@@ -80,8 +71,6 @@ export interface CreateContextPlanInput {
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   recommendationBatches?: readonly SearchRecommendationBatch[];
-  linkedEvidenceSelections?: readonly ManagedLinkedEvidenceSelection[];
-  defaultLinkedEvidenceSelections?: readonly ManagedLinkedEvidenceSelection[];
   additionalCandidates?: readonly ContextDocumentCandidate[];
   policyVersion: string;
   recordedAt: Date;

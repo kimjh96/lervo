@@ -10,7 +10,7 @@
 
 Each envelope and receipt has one provider-neutral `documentRole`: `task_evidence` or `governance_context`, plus a required `referenceEligible` state. Instructions, workstreams, writing policies, and protocols are governance; substantive task sources are task evidence. Governance wins when a document has both roles and is never reference eligible.
 
-Direct task selection is eligible. In the default-off exact canary, task evidence selected only as managed linked support is ineligible; direct provenance wins when both occur. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 acceptance.
+Direct task selection is eligible. Missing, unknown, changed, or role-inconsistent values fail delivery before E3 acceptance.
 
 E3 proves controlled injection, not understanding or use. E4 requires a structured result matching E3 coordinates, document version, role, and eligibility. Only eligible task evidence receives the exact standalone `lervo-e4:<documentId>:<contentHash>` token; supporting task context and governance context receive null.
 

@@ -5,7 +5,6 @@ import { randomBytes } from "node:crypto";
 import { createSearchAttempt, createSearchRecommendationBatch } from "@lervo/search";
 import { LocalSearchObservationStore, runLocalOperationalSearch } from "@lervo/search-local";
 
-import { observeManagedLinkedEvidenceShadow } from "./managed-linked-evidence-shadow.js";
 import { managedSearchQuery } from "./managed-search-context.js";
 import { searchCandidateRegistry } from "./search-candidate-registry.js";
 import type { ProductDefaultSearchEngine, SearchCandidateEngineResolver } from "@lervo/search";
@@ -20,7 +19,6 @@ export async function prepareManagedOperationalSearchContext(input: {
   nonce?: string;
   registry?: SearchCandidateEngineResolver;
   productDefault?: ProductDefaultSearchEngine;
-  runId?: string;
 }) {
   const query = managedSearchQuery(input.query, input.fallbackQuery);
   const operational = await withRetrievalPreparationBudget(() =>
@@ -48,16 +46,6 @@ export async function prepareManagedOperationalSearchContext(input: {
     recommendationLimit: 5,
     maximumSelections: 3,
   });
-  if (input.runId !== undefined) {
-    await observeManagedLinkedEvidenceShadow({
-      repositoryRoot: input.repositoryRoot,
-      projectId: input.projectId,
-      runId: input.runId,
-      observedAt: input.observedAt,
-      operationalBatch: batch,
-      recommendationBatches: [batch],
-    });
-  }
   return {
     preparationQuality: observeSearchPreparation({
       query,

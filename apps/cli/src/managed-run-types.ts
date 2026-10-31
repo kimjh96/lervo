@@ -11,13 +11,11 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import type { WritingPublicationResult, WritingSemanticEvaluator } from "@lervo/writing";
 import type { AdapterCapabilityActivationReceipt } from "@lervo/schemas";
 import type { ResolvedCapability } from "@lervo/capabilities";
-import type { ManagedLinkedEvidenceCanaryAuthorization } from "./managed-linked-evidence-canary.js";
 import type { ResolvedRunSkill } from "./run-skills.js";
 import type { ManagedSearchContextSummary } from "./repository-context.js";
 import type { LocalProviderWritingEvaluatorInput } from "./managed-writing-evaluator.js";
 import type { PreparedRunVerification } from "./run-verification.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
-import type { resolveDefaultManagedLinkedEvidenceSelection } from "./managed-linked-evidence-default-selection.js";
 
 export type RunProvider = "codex" | "claude";
 
@@ -38,7 +36,6 @@ export interface ManagedRunRequest {
   workCausality?: ManagedWorkCausalityInput;
   assignmentFinalization?: "immediate" | "governed";
   roleId?: string;
-  linkedEvidenceCanaryAuthorization?: ManagedLinkedEvidenceCanaryAuthorization;
 }
 
 export interface ManagedRunOutcome {
@@ -73,7 +70,6 @@ export interface ManagedRunDependencies {
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
     structuredOutputSchema?: Record<string, unknown>;
-    selectionBoundary?: "read_only_no_tools";
     executable?: string;
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
@@ -91,8 +87,6 @@ export interface ManagedRunDependencies {
     now?: () => Date;
   }): Promise<PreparedRunVerification>;
   groundProductionRequest?: GroundProductionRequest;
-  /** Internal paired-evaluation seam; ordinary application composition leaves this undefined. */
-  resolveExperimentalLinkedEvidenceSelection?: typeof resolveDefaultManagedLinkedEvidenceSelection;
 }
 
 export type ExecuteManagedRun = (request: ManagedRunRequest) => Promise<ManagedRunOutcome>;
