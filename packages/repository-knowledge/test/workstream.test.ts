@@ -93,6 +93,85 @@ describe("repository workstreams", () => {
     ).resolves.toMatchObject({ status: "blocked", blockers: [{ code: "non_advancing_revision" }] });
   });
 
+  it("advances the replicated lineage without replacing another branch's projection", async () => {
+    const root = await repository();
+    const base = {
+      schemaVersion: 1 as const,
+      status: "active" as const,
+      objective: "Keep each branch on its own workstream.",
+      nextActions: ["Continue."],
+      blockers: [],
+      notes: [],
+      references: [],
+      pendingDecisions: [],
+      pendingApprovals: [],
+      origin: {
+        kind: "created" as const,
+        sourceArtifactId: null,
+        sourceContentHash: null,
+        sourcePathDigest: null,
+      },
+      updatedAt: "2026-10-21T00:00:00.000Z",
+    };
+    const feature = {
+      ...base,
+      workstreamId: `wks_${"d".repeat(24)}`,
+      revision: 1,
+      title: "Feature",
+    };
+    const featureContent = `${canonicalJson(feature)}\n`;
+    await applyReplicatedWorkstreamImportPlan({
+      plan: await createReplicatedWorkstreamImportPlan({
+        repositoryRoot: root,
+        projectId: "prj_workstream_test",
+        snapshot: feature,
+        snapshotContentHash: sha256(featureContent),
+        previousSnapshotContentHash: null,
+      }),
+      now: new Date(),
+      recordApplied: () => undefined,
+    });
+    const local = { ...base, workstreamId: `wks_${"e".repeat(24)}`, revision: 2, title: "Program" };
+    const remote = { ...local, revision: 3 };
+    const remoteContent = `${canonicalJson(remote)}\n`;
+    const localHead = {
+      state: { snapshot: local, contentHash: sha256(`${canonicalJson(local)}\n`) },
+      projectionSelected: false,
+    };
+    const recorded: string[] = [];
+
+    const plan = await createReplicatedWorkstreamImportPlan({
+      repositoryRoot: root,
+      projectId: "prj_workstream_test",
+      snapshot: remote,
+      snapshotContentHash: sha256(remoteContent),
+      previousSnapshotContentHash: localHead.state.contentHash,
+      localHead,
+    });
+    expect(plan).toMatchObject({ status: "ready", operations: [] });
+    await applyReplicatedWorkstreamImportPlan({
+      plan,
+      now: new Date(),
+      localHead,
+      recordApplied: (receipt) => {
+        recorded.push(receipt.snapshotContentHash);
+      },
+    });
+
+    expect(recorded).toEqual([sha256(remoteContent)]);
+    expect(await readCurrentWorkstream(root)).toMatchObject({ workstreamId: feature.workstreamId });
+    await expect(
+      createReplicatedWorkstreamImportPlan({
+        repositoryRoot: root,
+        projectId: "prj_workstream_test",
+        snapshot: { ...local, revision: 1 },
+        snapshotContentHash: sha256(`${canonicalJson({ ...local, revision: 1 })}\n`),
+        previousSnapshotContentHash: null,
+        localHead,
+      }),
+    ).resolves.toMatchObject({ status: "blocked", blockers: [{ code: "non_advancing_revision" }] });
+  });
+
   it("starts structured continuation state without a legacy document", async () => {
     const root = await repository();
     const draft = {

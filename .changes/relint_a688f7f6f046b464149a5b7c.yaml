@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a688f7f6f046b464149a5b7c"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Bind each workstream to a branch so concurrent sessions keep separate objectives, branch switches stay fresh, and Hub replication follows the default-branch workstream."

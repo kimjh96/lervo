@@ -277,9 +277,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:3a6ad30971ed3895f18cf05029670c8dfd74d11c255d20a1ba415756b2d4bd84",
+      "contentHash": "sha256:0fd811e008ed1a28eed4e024a2f5f035493aa05f5ff61537a0eb443fe4919bff",
       "responsibility": "Revisioned workstream snapshot lifecycle",
-      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
+      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, branch-binding storage, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
       "disposition": "cohesive"
     },
     {
