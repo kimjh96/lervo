@@ -270,7 +270,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:fee3b10041f7bbc40a96b4588baffcb30eca3ee90f7f0cb91bcbbe6b3b54f046",
+      "contentHash": "sha256:a15678e3b794b9688c4ba3a432d9e28cbb3b8dd673120b431c3073f1fd9f81e7",
       "responsibility": "Repository document-layout migration",
       "rationale": "Link rebasing, neutral ownership-record migration, machine moves, user updates, serialization, plan creation, and apply are phases of one repository-wide layout transaction. Source classification and its evidence observation live in the layout-candidate modules; taxonomy role-template refresh and tool-specific formatter configuration are outside this boundary.",
       "disposition": "cohesive"
@@ -340,7 +340,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:cd08394a68f59a88d6bd0277e9ce088fa0d59d6e83bfc791d019c451e524bf95",
+      "contentHash": "sha256:d4cea2b8fe787a0c46224a57fa5d7b5b71360fa29acf44b68d8c3a314a3c6b68",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module is a declarative schema catalog and reference registry. It contains no parsing, provider translation, persistence, or invocation policy. Native-skill schemas are defined in their own contract module and registered here through the existing public schema-name boundary.",
       "disposition": "cohesive"

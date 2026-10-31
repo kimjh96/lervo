@@ -1,36 +1,9 @@
-# Verified improvement effects
+# Verified improvement observations and historical pattern effects
 
 Status: `active`
-As of: 2026-09-03
+As of: 2026-10-25
 
-This specification defines privacy-bounded post-promotion observation for reviewed development patterns. It measures observable repository outcomes but does not update model weights, prove semantic correctness, establish causation, or authorize automatic rollback.
-
-## Lifecycle
-
-1. While a pattern is exactly `reviewed`, a caller supplies a version-1 protocol request containing the accepted candidate and review hashes, intended target hash, request digest, versioned observation adapter descriptor, time-bounded baseline, and verified rate observations.
-2. `knowledge pattern effect register` creates a deterministic plan. Exact apply re-inspects the injected adapter, verifies the same observations, stores the full protocol in CAS, and appends `development.pattern.evaluation.registered` before promotion.
-3. Existing exact promotion remains the only canonical-source mutation.
-4. After promotion, `knowledge pattern effect observe` binds the registered protocol, exact promotion event, unchanged target, same adapter and metric set, and a treatment window beginning after promotion. Exact apply re-verifies the treatment, stores the comparison in CAS, and appends `development.pattern.effect.observed`.
-
-The stock CLI can plan from bounded JSON without observation authority. Its local host activates only when an individual command carries `--local-events`; an embedding host may instead inject `ImprovementObservationPortV1`. Provider-native queries, credentials, samples, and raw evidence remain adapter-private.
-
-An authorized host may separately use `ImprovementObservationCollectorV1` to prepare a request. Collection is not canonical apply authority: register and observe must re-inspect the narrower verification port and reproduce the exact observation before writing CAS or an event.
-
-The installed CLI exposes preparation as `knowledge pattern effect collect --local-events`. Version-1 input names the phase, pattern, inclusive window, and requested metric IDs. Output binds those coordinates to the inspected adapter descriptor, observations, and explicit unavailable results, and states `attribution: unestablished` and `canonicalMutation: none`. This ephemeral output may prepare the existing baseline or treatment request; it is not a protocol, comparison, approval, or success event.
-
-On register or observe, `--local-events` supplies only the local verification port. Plan creation does not require it. Apply requires the exact plan ID and `--write`, then reopens local event evidence and reproduces the reviewed counts and receipts before any canonical mutation.
-
-## Metric policy and claims
-
-Version 1 supports `source_recall`, `unnecessary_context`, `verification_success`, `repeated_failure`, `rework`, and `user_correction`. Each observation contains a bounded numerator and denominator plus evidence-set and adapter-receipt hashes. The pure controller compares integer basis points using fixed version-1 direction and materiality thresholds. A denominator below ten is insufficient evidence.
-
-Per-metric results are `favorable_observation`, `unfavorable_observation`, `no_material_difference`, or `insufficient_evidence`. The aggregate is favorable, mixed-or-unfavorable, no-material-difference, or inconclusive. Every result retains `attribution=unestablished`. An unfavorable aggregate sets `rollbackDisposition=review_required`; all others set `not_authorized`. Neither value performs or approves rollback.
-
-## Canonical and derived state
-
-Protocol and comparison bodies are immutable CAS artifacts. The two hash-chained events are canonical evidence. `.lervo/state/knowledge/improvement-effects/current.json` is a bounded, rebuildable projection deletable without losing the protocol or comparison. New effect events do not alter the existing development-pattern lifecycle projection.
-
-Exact replays return the existing event. A conflicting deterministic identity, stale plan, adapter drift, pattern or target drift, metric drift, invalid timing, malformed receipt, CAS failure, or event failure records no success. Missing observations mean unobserved, not zero or no effect.
+The local observation adapter and its ports remain available to authorized hosts. [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md) removes the pattern CLI host and comparison pipeline. The protocol, comparison, and state descriptions below are historical reader context.
 
 ## Local canonical-event adapter
 
@@ -45,9 +18,38 @@ The adapter scans one immutable event-store snapshot with explicit scan and evid
 
 `source_recall`, `unnecessary_context`, `rework`, and `user_correction` remain unavailable through this adapter because current local events do not establish their ground truth or exact counting units. Empty windows, unsupported metrics, and capacity overflow are explicit unavailable results, not zeroes or estimates. Invalid, inaccessible, contradictory, or unsafe-to-close sources fail with typed adapter errors.
 
-The shared `@lervo/improvement-observation-conformance` suite checks descriptor stability, exact round-trip verification, count, phase, pattern, and window drift rejection, unsupported-metric abstention, and unknown-adapter rejection. Storage scanning, metric projection, receipt binding, CLI composition, and canonical protocol persistence remain separate responsibilities.
+The shared `@lervo/improvement-observation-conformance` suite checks descriptor stability, exact round-trip verification, count, phase, pattern, and window drift rejection, unsupported-metric abstention, and unknown-adapter rejection. Storage scanning, metric projection, and receipt binding remain separate responsibilities.
 
-The CLI host keeps adapter construction, collection orchestration, rendering, command parsing, canonical routing, and storage separate. It lazily loads the local adapter only after `--local-events` grants observation authority to that invocation. Without the flag, collection fails before storage access, and register or observe apply retains the existing no-adapter failure. No background observation or implicit fallback is enabled.
+## Historical pattern effect pipeline
+
+The following sections describe the retired pipeline. They do not advertise current commands.
+
+### Lifecycle
+
+1. While a pattern is exactly `reviewed`, a caller supplies a version-1 protocol request containing the accepted candidate and review hashes, intended target hash, request digest, versioned observation adapter descriptor, time-bounded baseline, and verified rate observations.
+2. `knowledge pattern effect register` creates a deterministic plan. Exact apply re-inspects the injected adapter, verifies the same observations, stores the full protocol in CAS, and appends `development.pattern.evaluation.registered` before promotion.
+3. Existing exact promotion remains the only canonical-source mutation.
+4. After promotion, `knowledge pattern effect observe` binds the registered protocol, exact promotion event, unchanged target, same adapter and metric set, and a treatment window beginning after promotion. Exact apply re-verifies the treatment, stores the comparison in CAS, and appends `development.pattern.effect.observed`.
+
+The stock CLI can plan from bounded JSON without observation authority. Its local host activates only when an individual command carries `--local-events`; an embedding host may instead inject `ImprovementObservationPortV1`. Provider-native queries, credentials, samples, and raw evidence remain adapter-private.
+
+An authorized host may separately use `ImprovementObservationCollectorV1` to prepare a request. Collection is not canonical apply authority: register and observe must re-inspect the narrower verification port and reproduce the exact observation before writing CAS or an event.
+
+The installed CLI exposes preparation as `knowledge pattern effect collect --local-events`. Version-1 input names the phase, pattern, inclusive window, and requested metric IDs. Output binds those coordinates to the inspected adapter descriptor, observations, and explicit unavailable results, and states `attribution: unestablished` and `canonicalMutation: none`. This ephemeral output may prepare the existing baseline or treatment request; it is not a protocol, comparison, approval, or success event.
+
+On register or observe, `--local-events` supplies only the local verification port. Plan creation does not require it. Apply requires the exact plan ID and `--write`, then reopens local event evidence and reproduces the reviewed counts and receipts before any canonical mutation.
+
+### Metric policy and claims
+
+Version 1 supports `source_recall`, `unnecessary_context`, `verification_success`, `repeated_failure`, `rework`, and `user_correction`. Each observation contains a bounded numerator and denominator plus evidence-set and adapter-receipt hashes. The pure controller compares integer basis points using fixed version-1 direction and materiality thresholds. A denominator below ten is insufficient evidence.
+
+Per-metric results are `favorable_observation`, `unfavorable_observation`, `no_material_difference`, or `insufficient_evidence`. The aggregate is favorable, mixed-or-unfavorable, no-material-difference, or inconclusive. Every result retains `attribution=unestablished`. An unfavorable aggregate sets `rollbackDisposition=review_required`; all others set `not_authorized`. Neither value performs or approves rollback.
+
+### Canonical and derived state
+
+Protocol and comparison bodies are immutable CAS artifacts. The two hash-chained events are canonical evidence. `.lervo/state/knowledge/improvement-effects/current.json` is a bounded, rebuildable projection deletable without losing the protocol or comparison. New effect events do not alter the existing development-pattern lifecycle projection.
+
+Exact replays return the existing event. A conflicting deterministic identity, stale plan, adapter drift, pattern or target drift, metric drift, invalid timing, malformed receipt, CAS failure, or event failure records no success. Missing observations mean unobserved, not zero or no effect.
 
 ## Privacy
 

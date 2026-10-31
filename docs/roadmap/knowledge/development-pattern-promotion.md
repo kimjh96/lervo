@@ -1,7 +1,9 @@
 # Evidence-bound development-pattern promotion
 
-Status: `complete`
+Status: `historical`
 As of: 2026-08-26
+
+Superseded by: [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. Background practice learning remains planned.
 
 ## Problem
 

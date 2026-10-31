@@ -461,6 +461,7 @@ export const schemaCatalog = {
   deliberationArtifactPublicationFailedEventPayload:
     deliberationArtifactPublicationFailedEventPayloadSchema,
   deliberationCompletedEventPayload: deliberationCompletedEventPayloadSchema,
+  // Historical development-pattern events retained for stored-event validation.
   developmentPatternObservedEventPayload: developmentPatternObservedEventPayloadSchema,
   developmentPatternTransitionedEventPayload: developmentPatternTransitionedEventPayloadSchema,
   developmentPatternEvaluationRegisteredEventPayload:

@@ -5,5 +5,5 @@
 - [Conversation knowledge-job lease and source preflight](knowledge-and-terminal-integration/conversation-knowledge-jobs.md)
 - [Durable-instruction intake](knowledge-and-terminal-integration/durable-instruction-intake.md)
 - [State pruning](knowledge-and-terminal-integration/state-pruning.md)
-- [Development patterns](knowledge-and-terminal-integration/development-patterns.md)
+- [Historical development patterns](knowledge-and-terminal-integration/development-patterns.md)
 - [Terminal integration and activation receipts](knowledge-and-terminal-integration/terminal-integration.md)

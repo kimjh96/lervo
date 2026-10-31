@@ -96,14 +96,6 @@ export async function assessCanonicalization(input: {
       canonicalPathCount: canonicalResponsibilities.size,
       candidate: null,
     };
-  if (input.outcome?.kind === "portable_skill_candidate")
-    return {
-      schemaVersion: 1,
-      status: "pending",
-      changedPathCount: changedPaths.length,
-      canonicalPathCount: canonicalResponsibilities.size,
-      candidate: null,
-    };
   const candidateId = stableId("kcanon", {
     beforeRevision: input.beforeRevision,
     afterRevision: input.afterRevision,

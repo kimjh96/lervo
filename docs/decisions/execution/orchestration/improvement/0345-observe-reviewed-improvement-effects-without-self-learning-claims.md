@@ -1,7 +1,9 @@
 # ADR-0345: Observe reviewed improvement effects without self-learning claims
 
-- Status: `accepted`
+- Status: `historical`
 - Decision date: 2026-09-02
+
+Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The development-pattern pipeline is historical and its commands are removed.
 
 ## Context
 

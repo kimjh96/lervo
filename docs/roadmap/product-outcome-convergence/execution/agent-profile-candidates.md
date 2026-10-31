@@ -1,6 +1,8 @@
 # Agent-profile candidates
 
-State: `wired`
+State: `historical`
+
+Superseded by: [ADR-0533](../../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. Background practice learning remains planned.
 
 Outcome: eligible runtime evidence becomes a reviewable agent-profile candidate.
 

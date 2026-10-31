@@ -17,7 +17,6 @@ export * from "./governed-completion-reconciliation-command.js";
 export * from "./graph-projection.js";
 export * from "./graph-projection-v2.js";
 export * from "./topology-history-projection.js";
-export * from "./improvement-effect-plan.js";
 export * from "./managed-execution-budget.js";
 export * from "./managed-resource-projection.js";
 export * from "./managed-stage-projection.js";

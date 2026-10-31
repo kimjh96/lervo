@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { assessCanonicalization, sha256 } from "../src/index.js";
+import { assessCanonicalization, parseCanonicalizationOutcome, sha256 } from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -22,6 +22,18 @@ afterEach(async () => {
 });
 
 describe("canonicalization outcomes", () => {
+  it("rejects the retired portable-skill outcome for new declarations", () => {
+    expect(() =>
+      parseCanonicalizationOutcome({
+        schemaVersion: 1,
+        kind: "portable_skill_candidate",
+        summary: "A historical workflow proposal must not create a new pattern.",
+        sourcePaths: ["apps/example/src/value.ts"],
+        proposal: {},
+      }),
+    ).toThrow("The canonicalization outcome is invalid");
+  });
+
   it("binds an exact changed canonical target to every changed noncanonical source", async () => {
     const root = await repository();
     const sourcePath = "apps/example/src/value.ts";

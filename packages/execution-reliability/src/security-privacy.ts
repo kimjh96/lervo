@@ -199,8 +199,8 @@ export const foundationThreatModel: readonly FoundationThreatControl[] = [
     disposition: "mitigated",
     controls: ["candidate_not_truth", "reviewed_promotion", "exact_approval"],
     evidencePaths: [
-      "apps/cli/test/development-pattern-command.test.ts",
-      "apps/cli/test/development-pattern-command.test.ts",
+      "packages/repository-knowledge/test/canonicalization-outcome.test.ts",
+      "apps/cli/test/terminal-integration.test.ts",
     ],
   },
   {

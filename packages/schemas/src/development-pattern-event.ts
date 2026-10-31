@@ -2,6 +2,7 @@ import type { FromSchema } from "json-schema-to-ts";
 
 import { artifactIdSchema, roleIdSchema, sha256Schema, timestampSchema } from "./common.js";
 
+// Historical development-pattern events remain readable after ADR-0533.
 const patternIdSchema = { type: "string", pattern: "^pattern_[a-f0-9]{24}$" } as const;
 
 export const developmentPatternObservedEventPayloadSchema = {

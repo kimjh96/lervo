@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+
 ## Context
 
 The local improvement adapter measured verification success but left `repeated_failure` unavailable. Matching error prose, exit codes, changed files, or model judgments would expose sensitive material and infer a root cause unsupported by canonical evidence. Counting failed runs alone would not distinguish an initial failure from a recurrence.

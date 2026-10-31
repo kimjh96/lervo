@@ -2,6 +2,9 @@
 
 `development.pattern.observed` records pattern and observation IDs, provider, source-snapshot and evidence digests, independent occurrence count, and time.
 
+Amended by: [ADR-0533](../../../../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Historical reader contract. Active pattern producers and commands were removed; stored-event validation and redaction remain.
+
+
 `development.pattern.transitioned` records transition and pattern IDs, prior and next lifecycle states, candidate and review artifact coordinates, optional replacement pattern ID for supersession, target kind, exact approval digest, and time. Agent-profile promotion and rollback may also record predecessor artifact and content hashes and activated role ID, version, contract hash, and profile hash; they never include role bytes or paths.
 
 Both events exclude candidate and review bodies, occurrence and target paths, verification commands, reviewer identity, source text, credentials, and model output.

@@ -127,11 +127,6 @@ const defaultServices: CliServices = {
   finalizeGovernedAssignment,
   reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
-  createLocalImprovementObservationHost: async (input) => {
-    const { createLocalImprovementObservationHost } =
-      await import("./local-improvement-observation-host.js");
-    return createLocalImprovementObservationHost(input);
-  },
 };
 
 export async function runCli(

@@ -49,6 +49,7 @@ export const eventTypesV1 = [
   "deliberation.artifact.recorded",
   "deliberation.artifact.publication_failed",
   "deliberation.completed",
+  // Historical development-pattern events retained for stored-event validation.
   "development.pattern.observed",
   "development.pattern.transitioned",
   "development.pattern.evaluation.registered",
