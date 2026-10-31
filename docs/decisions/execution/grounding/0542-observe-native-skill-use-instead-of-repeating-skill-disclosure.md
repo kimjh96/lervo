@@ -23,13 +23,16 @@ What Lervo lacks is evidence of use. A skills audit on 2026-10-31 found zero `sk
 
 The compact prompt does not list installed skills. ADR-0458 disclosure in the compact prompt applies only to unreviewed candidates that no provider loads natively. An explicit `/name` or `$name` in the prompt still produces an [ADR-0538](0538-find-governing-context-through-exact-prompt-anchors.md) pointer.
 
-### `Stop` observes skill invocations from the provider transcript
+### The resident observes skill invocations from the provider transcript
 
-When the `Stop` hook input names a transcript path, the hook reads the closing turn from that transcript:
+The hooks only record where the turn is. When the provider's hook input names a transcript path, `UserPromptSubmit` stores the transcript's byte size in the ADR-0541 open-turn marker, and `Stop` queues the transcript path, that start offset, the size at `Stop`, and the turn coordinates in a host-private queue. The hooks never read or parse the transcript, so the hook bundle and the prompt path do not grow.
 
-- It reads only the turn's entries, from the newest user prompt to the end, and at most the last 4 MiB of the file.
+The knowledge resident drains the queue:
+
+- It reads only the turn's byte range, at most 4 MiB, and drops the turn as `truncated` beyond that.
 - It extracts skill invocations: Claude Code `tool_use` entries named `Skill`, with the skill identifier in `input.skill`, and the equivalent Codex entries when its transcript records them.
 - An invocation counts only when its identifier names a skill installed in the repository: `.agents/skills/<name>/SKILL.md`, or a provider surface that links to it. Plugin, user, and built-in skills are outside the repository and are counted only as one total.
+- A transcript that was rotated or shrank below the recorded range is `unavailable` for that turn.
 
 Each counted invocation records one `terminal.skill.observed` event with the skill identifier, `SKILL.md` path, content hash, provider, turn coordinates, and `source: "provider_transcript"`. A `/name` or `$name` prompt anchor records the same event with `source: "prompt_invocation"`.
 
@@ -42,18 +45,18 @@ A daily projection counts observed invocations per installed skill over 30 days.
 ## Events, states, privacy, and failure meaning
 
 - `terminal.skill.observed` (new): required `skillId`, `path`, `contentHash`, `provider`, `source` (`provider_transcript | prompt_invocation`), `providerSessionDigest`, `providerTurnDigest`, `observedAt`.
-- `terminal.turn.observed` gains `skillTelemetry` (`observed | unavailable | truncated`) and `externalSkillCount`.
-- The transcript is read locally and never stored. Events carry skill identifiers, repository paths, and hashes only, never prompt, reply, or tool content. External skill identifiers are not recorded, only their count.
+- `terminal.skill.turn_assessed` (new): `providerSessionDigest`, `providerTurnDigest`, `skillTelemetry` (`observed | unavailable | truncated`), `externalSkillCount`, `observedAt`. It is recorded by the resident, after `terminal.turn.observed`.
+- The queue holds only the transcript path, offsets, and digests, in Git-ignored 0600 files, for at most 24 hours. The transcript is read locally by the resident and never stored or sent to a provider. Events carry skill identifiers, repository paths, and hashes only, never prompt, reply, or tool content. External skill identifiers are not recorded, only their count.
 - A missing, unreadable, or oversized transcript sets `skillTelemetry` to `unavailable` or `truncated`. It never fails the hook or blocks the turn.
 
 ## Verification
 
 Focused tests must show:
 
-- a Claude Code transcript turn with a `Skill` invocation of an installed repository skill records one event with path and hash;
+- the hooks record only the transcript path and offsets, and the resident records one event, with path and hash, for a Claude Code `Skill` invocation of an installed repository skill;
 - invocations of plugin or user skills record only `externalSkillCount`;
 - entries from earlier turns are ignored, and the 4 MiB bound sets `truncated`;
-- a missing transcript records `unavailable` without failing `Stop`;
+- a missing, rotated, or shrunken transcript records `unavailable` without failing `Stop` or the resident cycle;
 - the 30-day projection marks a skill with zero invocations after 20 turns as a retirement candidate for the principal proxy.
 
 Installed verification must show, in `axli`, a Claude Code turn that invokes `eli5` recorded as one `terminal.skill.observed` event.
