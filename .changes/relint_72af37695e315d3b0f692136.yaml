@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_72af37695e315d3b0f692136"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Remove the always-empty reviewed relation projection from knowledge query JSON and the graph counters from managed run search summaries."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_58358bbd202617418bf26214"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Remove development-pattern and role-candidate commands while preserving historical event reads and existing skills."

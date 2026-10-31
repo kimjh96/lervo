@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8d7d725c5bf8e2edc72e82a9"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Report unbuilt knowledge in fresh clones from query, lint, and the first terminal prompt, and build it in the background when the build writes only Git-ignored outputs."

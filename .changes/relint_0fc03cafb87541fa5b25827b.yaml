@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0fc03cafb87541fa5b25827b"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Bind terminal knowledge queries to the single open turn and observe selected document paths as reference proxies."

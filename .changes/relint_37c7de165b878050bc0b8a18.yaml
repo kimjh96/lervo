@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_37c7de165b878050bc0b8a18"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Keep terminal hook software in a private host store behind a stable tracked launcher, with automatic runtime repair and legacy artifact migration."

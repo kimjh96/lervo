@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_71e1b9efbe1cd2f97272a901"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Remove the unused semantic compilation pipeline: lervo knowledge compile, compare, stability, merge-candidate, fuzzy-merge-candidate, reconcile, review-policy, review, and materialize <review-id>; materialize --recover stays."
