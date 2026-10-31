@@ -29,4 +29,13 @@ describe("TypeScript declaration files", () => {
       extractJavaScriptSymbolSpans("export const KEY_BYTES: number;", "key.mts"),
     ).toThrow("cannot be extracted safely and completely");
   });
+
+  it("keeps parsing a declaration-named file that holds implementation bodies", () => {
+    expect(
+      extractJavaScriptSymbolSpans(
+        "export function f(a: number) { return a + 1; }",
+        "legacy.d.ts",
+      ).map((span) => span.locator),
+    ).toEqual(["declaration:f"]);
+  });
 });

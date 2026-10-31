@@ -144,23 +144,31 @@ export function extractJavaScriptSymbolSpans(source: string, path: string): Java
       : extension === ".cjs"
         ? "commonjs"
         : "unambiguous";
-  let program: AstNode;
-  try {
-    const parsed = parse(source, {
+  const parseProgram = (dts: boolean): AstNode =>
+    parse(source, {
       attachComment: false,
       errorRecovery: false,
       plugins: [
-        ...(typescript ? [["typescript", { dts: declaration }] satisfies ParserPlugin] : []),
+        ...(typescript ? [["typescript", { dts }] satisfies ParserPlugin] : []),
         ...(jsx ? ["jsx" as const] : []),
         "decorators-legacy",
       ],
       ranges: true,
       sourceType,
       tokens: false,
-    });
-    program = parsed.program as unknown as AstNode;
+    }).program as unknown as AstNode;
+  let program: AstNode;
+  try {
+    program = parseProgram(declaration);
   } catch {
-    return fail();
+    // A declaration file that also holds implementation bodies is rejected in `dts` mode; it
+    // keeps the implementation parse it always had.
+    try {
+      if (!declaration) return fail();
+      program = parseProgram(false);
+    } catch {
+      return fail();
+    }
   }
 
   const spans = new Map<string, JavaScriptSymbolSpan>();
