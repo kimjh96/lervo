@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_010be463912a1b000f63606b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Index repository scan units by source, removing a quadratic lookup that kept the knowledge resident on a full CPU core in large repositories."

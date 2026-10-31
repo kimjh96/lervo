@@ -37,6 +37,7 @@ import {
   type DocumentNormalizationWorksetBinding,
 } from "./document-normalization-workset.js";
 import { declaredContinuationSource } from "./continuation-source-declaration.js";
+import { scanUnitsBySource } from "./scan-unit-index.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { repositoryPathMatchesPatterns } from "./knowledge-intake-policy.js";
 import {
@@ -504,9 +505,9 @@ function unitsForSource(
   scan: RepositoryKnowledgeScan,
   source: RepositorySource,
 ): RepositorySourceUnit[] {
-  const units = scan.units.filter((unit) => unit.sourceId === source.sourceId);
+  const units = scanUnitsBySource(scan).get(source.sourceId) ?? [];
   const specific = units.filter((unit) => unit.unitKind !== "file");
-  return (specific.length > 0 ? specific : units).sort(
+  return [...(specific.length > 0 ? specific : units)].sort(
     (left, right) => left.range.startByte - right.range.startByte,
   );
 }
