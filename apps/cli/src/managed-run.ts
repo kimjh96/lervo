@@ -292,7 +292,6 @@ export function createManagedRunExecutor(
                 authorization,
                 operationalBatch: searchContext.recommendationBatch,
                 recommendationBatches: searchContext.recommendationBatches,
-                graphRecommendations: searchContext.graphRecommendations,
               })
             : await executeManagedLinkedEvidenceCanary({
                 repositoryRoot: storage.paths.repositoryRoot,
@@ -303,7 +302,6 @@ export function createManagedRunExecutor(
                 authorization,
                 operationalBatch: searchContext.recommendationBatch,
                 recommendationBatches: searchContext.recommendationBatches,
-                graphRecommendations: searchContext.graphRecommendations,
                 resolveArtifact: (uri) => storage!.artifacts.get(uri),
                 createAdapter: dependencies.createAdapter,
                 now: dependencies.now ?? (() => new Date()),
@@ -318,7 +316,6 @@ export function createManagedRunExecutor(
           runId,
           operationalBatch: searchContext.recommendationBatch,
           recommendationBatches: searchContext.recommendationBatches,
-          graphRecommendations: searchContext.graphRecommendations,
         });
       }
       const primaryAdapter = dependencies.createAdapter({
@@ -393,7 +390,6 @@ export function createManagedRunExecutor(
           publications: [],
           handoffs: [],
           recommendationBatches: searchContext.recommendationBatches,
-          graphRecommendations: searchContext.graphRecommendations,
           ...(linkedEvidenceSelections.length === 0
             ? {}
             : linkedEvidenceCanary === undefined
@@ -537,7 +533,6 @@ export function createManagedRunExecutor(
           searchContext.attempt.attemptId,
           searchContext.knowledgeAttempt.attemptId,
           result.contextEvidence,
-          searchContext.graphRecommendations,
         ),
       };
       if (

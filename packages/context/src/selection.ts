@@ -8,7 +8,6 @@ import { assertUniqueHandoffs, indexPublications } from "./collections.js";
 import { candidatesFromRegistry, isGeneratedInstructionPath } from "./discovery.js";
 import { ContextEvidenceCollector, defaultReceiptId } from "./evidence.js";
 import { normalizeRepositoryPath } from "./paths.js";
-import { applyGraphRecommendations } from "./graph-recommendations.js";
 import { applyManagedLinkedEvidenceSelections } from "./managed-linked-evidence-selection.js";
 import { applyDefaultManagedLinkedEvidenceSelections } from "./managed-linked-evidence-default-selection.js";
 import {
@@ -299,11 +298,6 @@ export function createContextPlan(input: CreateContextPlanInput): ContextPlan {
     batches: input.recommendationBatches ?? [],
     coordinates: input.coordinates,
     recordedAt: input.recordedAt,
-    candidates,
-    accumulator,
-  });
-  applyGraphRecommendations({
-    recommendations: input.graphRecommendations ?? [],
     candidates,
     accumulator,
   });

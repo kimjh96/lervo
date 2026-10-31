@@ -29,21 +29,6 @@ export interface ContextDocumentCandidate {
   expectedContentHash?: string;
 }
 
-export interface GraphDocumentRecommendation {
-  schemaVersion: 1;
-  projectionId: string;
-  recommendationId: string;
-  relationId: string;
-  targetConceptId: string;
-  documentId: string;
-  path: string;
-  sourceContentHash: string;
-  sourceSnapshotId: string;
-  impactReportId: string;
-  rank: number;
-  selected: boolean;
-}
-
 export interface ManagedLinkedEvidenceSelection {
   schemaVersion: 1;
   selectionAttemptId: string;
@@ -95,7 +80,6 @@ export interface CreateContextPlanInput {
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   recommendationBatches?: readonly SearchRecommendationBatch[];
-  graphRecommendations?: readonly GraphDocumentRecommendation[];
   linkedEvidenceSelections?: readonly ManagedLinkedEvidenceSelection[];
   defaultLinkedEvidenceSelections?: readonly ManagedLinkedEvidenceSelection[];
   additionalCandidates?: readonly ContextDocumentCandidate[];
@@ -165,7 +149,6 @@ export type ContextPreparationErrorCode =
   | "invalid_context_plan"
   | "invalid_path_rule"
   | "invalid_search_recommendation"
-  | "invalid_graph_recommendation"
   | "receipt_id_conflict"
   | "instruction_catalog_overflow"
   | "required_rule_unresolved"

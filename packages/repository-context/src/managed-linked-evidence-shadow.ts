@@ -3,7 +3,6 @@ import { createHash } from "node:crypto";
 import {
   LinkedEvidenceShadowError,
   projectLinkedEvidenceShadow,
-  type GraphDocumentRecommendation,
   type LinkedEvidenceShadowSource,
 } from "@lervo/context";
 import {
@@ -30,7 +29,6 @@ export async function observeManagedLinkedEvidenceShadow(input: {
   observedAt: Date;
   operationalBatch: SearchRecommendationBatch;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
 }): Promise<void> {
   try {
     await recordManagedLinkedEvidenceShadow(input);
@@ -46,7 +44,6 @@ async function recordManagedLinkedEvidenceShadow(input: {
   observedAt: Date;
   operationalBatch: SearchRecommendationBatch;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
 }): Promise<void> {
   assertSearchRecommendationBatch(input.operationalBatch);
   if (!sameSearchEngine(input.operationalBatch.attempt.engine, SEARCH_ENGINE)) return;
@@ -108,7 +105,6 @@ async function recordManagedLinkedEvidenceShadow(input: {
       ...input.recommendationBatches.flatMap((batch) =>
         batch.recommendations.map((item) => item.documentId),
       ),
-      ...input.graphRecommendations.map((item) => item.documentId),
     ]);
     const existingPaths = corpus
       .filter((source) => ordinaryDocumentIds.has(source.documentId))

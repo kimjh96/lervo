@@ -322,7 +322,6 @@ describe("managed linked-evidence provider selection", () => {
       authorization,
       operationalBatch: value.operationalBatch,
       recommendationBatches: [value.operationalBatch],
-      graphRecommendations: [],
     });
 
     expect(outcome.selections).toEqual([
@@ -433,7 +432,6 @@ describe("managed linked-evidence provider selection", () => {
       authorization,
       operationalBatch: value.operationalBatch,
       recommendationBatches: [value.operationalBatch],
-      graphRecommendations: [],
       resolveArtifact: async () => new Uint8Array(),
       createAdapter: ({ selectionBoundary, structuredOutputSchema }) => {
         expect(selectionBoundary).toBe("read_only_no_tools");
@@ -579,7 +577,6 @@ describe("managed linked-evidence provider selection", () => {
       },
       operationalBatch: value.operationalBatch,
       recommendationBatches: [value.operationalBatch],
-      graphRecommendations: [],
       resolveArtifact: async () => new Uint8Array(),
       createAdapter: ({ selectionBoundary, structuredOutputSchema }) => {
         expect(selectionBoundary).toBe("read_only_no_tools");
@@ -654,7 +651,6 @@ describe("managed linked-evidence provider selection", () => {
         },
         operationalBatch: value.operationalBatch,
         recommendationBatches: [value.operationalBatch],
-        graphRecommendations: [],
         resolveArtifact: async () => new Uint8Array(),
         createAdapter: ({ selectionBoundary, structuredOutputSchema }) => {
           expect(selectionBoundary).toBe("read_only_no_tools");
@@ -709,7 +705,6 @@ describe("managed linked-evidence provider selection", () => {
         },
         operationalBatch: value.operationalBatch,
         recommendationBatches: [value.operationalBatch],
-        graphRecommendations: [],
         resolveArtifact: async () => new Uint8Array(),
         createAdapter: () => {
           adapterCreations += 1;
@@ -748,7 +743,6 @@ describe("managed linked-evidence provider selection", () => {
         },
         operationalBatch: value.operationalBatch,
         recommendationBatches: [value.operationalBatch],
-        graphRecommendations: [],
         resolveArtifact: async () => new Uint8Array(),
         createAdapter: ({ structuredOutputSchema }) =>
           new ClaudeAdapter({

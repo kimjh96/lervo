@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import { observeContextPreparation, type GraphDocumentRecommendation } from "@lervo/context";
+import { observeContextPreparation } from "@lervo/context";
 import { assertSearchRecommendationBatch, type SearchRecommendationBatch } from "@lervo/search";
 
 /** Normalize existing selection receipts without treating index reads as provider-context loads. */
@@ -9,9 +9,8 @@ export function observeSearchPreparation(input: {
   corpusCoverage?: "unobserved" | "incomplete";
   sourceSnapshotId: string | null;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
 }) {
-  if (input.recommendationBatches.length > 2 || input.graphRecommendations.length > 8) {
+  if (input.recommendationBatches.length > 2) {
     throw new TypeError("Context preparation exceeds the current search observation profile.");
   }
   const candidates = new Map<string, string>();
@@ -34,8 +33,6 @@ export function observeSearchPreparation(input: {
       );
     }
   }
-  for (const item of input.graphRecommendations)
-    add(item.documentId, item.sourceContentHash, item.selected);
   return observeContextPreparation({
     requestDigest: `sha256:${createHash("sha256").update(input.query).digest("hex")}`,
     sourceSnapshotId: input.sourceSnapshotId,

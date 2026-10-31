@@ -12,7 +12,6 @@ import {
   managedLinkedEvidenceSelectionProtocolDigest,
   managedLinkedEvidenceSelectionSchema,
   parseManagedLinkedEvidenceSelection,
-  type GraphDocumentRecommendation,
   type ManagedLinkedEvidenceCanaryCandidate,
 } from "@lervo/context";
 import type { SearchRecommendationBatch } from "@lervo/search";
@@ -179,7 +178,6 @@ export async function executeManagedLinkedEvidenceCanary(input: {
   authorization: ManagedLinkedEvidenceCanaryAuthorization;
   operationalBatch: SearchRecommendationBatch;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
   resolveArtifact: (uri: string) => Promise<Uint8Array>;
   createAdapter: ManagedLinkedEvidenceAdapterFactory;
   now: () => Date;

@@ -52,7 +52,6 @@ export interface ManagedConversationResponsePlan {
   documentRules: DocumentRuleMap;
   additionalCandidates?: readonly ContextDocumentCandidate[];
   recommendationBatches?: ManagedPrepareContextInput["recommendationBatches"];
-  graphRecommendations?: ManagedPrepareContextInput["graphRecommendations"];
   publications: readonly SharedContextPublication[];
   handoffs: readonly ContextHandoffInput[];
   writingPolicy: ResolvedWritingPolicy;

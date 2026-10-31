@@ -28,7 +28,7 @@ The compilation contract comprises:
 
 [Autonomous background convergence](background-knowledge-convergence/runtime.md) implements the version-4 successor: continuous baseline discovery, separately authorized review/integration, normalization, and ordered lifecycle verification. The [installed audit](../evidence/quality/background-knowledge-convergence-audit.md) distinguishes current queue settlement from unresolved repository debt. Private installed Codex acceptance verifies this implementation. Production background document writes still require reviewed reader/writer activation and exact per-project delegation.
 
-[Repository knowledge query](repository-knowledge-query.md) owns concept, claim, relation, impact, ranking, relevance-floor, reviewed one-hop projection, and query evidence semantics. User-authored Markdown and reviewed semantic sidecars remain canonical; structural records and query indexes are rebuildable. A recommendation never proves selection, loading, injection, reference, or use.
+[Repository knowledge query](repository-knowledge-query.md) owns concept, claim, relation, impact, ranking, relevance-floor, and query evidence semantics. User-authored Markdown and reviewed semantic sidecars remain canonical; structural records and query indexes are rebuildable. A recommendation never proves selection, loading, injection, reference, or use.
 
 [Repository agent surfaces](repository-agent-surfaces.md) defines recognized provider entrypoints, fixed-size instruction routing, upgrade migration, and tool-neutral rewrite protection. Behavioral instructions, portable skills, and reviewable workflows may be semantic sources; provider settings and local memory remain inventory-only.
 

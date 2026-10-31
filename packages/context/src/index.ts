@@ -4,7 +4,6 @@ export * from "./evidence.js";
 export * from "./filesystem.js";
 export * from "./freshness.js";
 export * from "./generated-source-exclusions.js";
-export * from "./graph-recommendations.js";
 export * from "./linked-evidence-shadow.js";
 export * from "./managed-linked-evidence-canary.js";
 export * from "./managed-linked-evidence-selection.js";

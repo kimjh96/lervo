@@ -27,9 +27,6 @@ export async function prepareContext(input: PrepareContextInput): Promise<Loaded
     ...(input.recommendationBatches === undefined
       ? {}
       : { recommendationBatches: input.recommendationBatches }),
-    ...(input.graphRecommendations === undefined
-      ? {}
-      : { graphRecommendations: input.graphRecommendations }),
     ...(input.linkedEvidenceSelections === undefined
       ? {}
       : { linkedEvidenceSelections: input.linkedEvidenceSelections }),

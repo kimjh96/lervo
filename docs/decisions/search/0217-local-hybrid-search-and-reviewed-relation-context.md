@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-25
+Amended by: [ADR-0523](activation/0523-retire-reviewed-relation-context.md) (reviewed relation context retired)
 
 ## Context
 

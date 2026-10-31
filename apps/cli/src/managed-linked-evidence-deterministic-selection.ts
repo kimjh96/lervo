@@ -1,7 +1,6 @@
 import {
   ManagedLinkedEvidenceCanaryError,
   managedLinkedEvidenceDeterministicSelectionPolicy,
-  type GraphDocumentRecommendation,
 } from "@lervo/context";
 import type { SearchRecommendationBatch } from "@lervo/search";
 
@@ -25,7 +24,6 @@ export async function resolveDeterministicManagedLinkedEvidenceSelection(input: 
   authorization: ManagedLinkedEvidenceDeterministicSelectionAuthorization;
   operationalBatch: SearchRecommendationBatch;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
 }): Promise<ManagedLinkedEvidenceCanaryOutcome> {
   assertManagedLinkedEvidenceAuthorization({
     authorization: input.authorization,

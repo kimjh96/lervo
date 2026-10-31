@@ -381,41 +381,6 @@ export interface RepositoryKnowledgeQueryRanker {
   ): PreparedRepositoryKnowledgeQueryRanker | Promise<PreparedRepositoryKnowledgeQueryRanker>;
 }
 
-export interface KnowledgeRelationRecommendation {
-  schemaVersion: 1;
-  recommendationId: string;
-  relationId: string;
-  relationType: "depends_on" | "constrains" | "related_to" | "supersedes" | "contradicts";
-  direction: "incoming" | "outgoing";
-  seedConceptId: string;
-  targetConceptId: string;
-  documentId: string;
-  path: string;
-  sourceContentHash: string;
-  sourceSnapshotId: string;
-  impactReportId: string;
-}
-
-export interface KnowledgeRelationProjection {
-  schemaVersion: 1;
-  projectionId: string;
-  sourceSnapshotId: string;
-  impactReportId: string;
-  conceptSidecarSetHash: string;
-  relationSidecarSetHash: string;
-  seedConceptIds: string[];
-  limits: {
-    readonly maximumSeeds: 5;
-    readonly maximumExaminedRelations: 64;
-    readonly maximumRecommendations: 5;
-    readonly maximumSelections: 2;
-    readonly hops: 1;
-  };
-  examinedRelationCount: number;
-  truncated: boolean;
-  recommendations: KnowledgeRelationRecommendation[];
-}
-
 export interface KnowledgeQueryResult {
   schemaVersion: 1;
   query: string;
@@ -427,7 +392,6 @@ export interface KnowledgeQueryResult {
   sourceSnapshotId: string;
   impactReportId: string;
   hits: KnowledgeQueryHit[];
-  relationProjection: KnowledgeRelationProjection;
 }
 
 export class RepositoryKnowledgeError extends Error {

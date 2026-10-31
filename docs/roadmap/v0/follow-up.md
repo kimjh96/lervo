@@ -5,7 +5,7 @@
 See [completed follow-up contracts and evidence boundaries](completed-follow-up.md). Topic references:
 
 - [Managed context grounding and coverage](../context-grounding-coverage.md)
-- [Local hybrid search and reviewed relation context](../../decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md) and [20-case quality and latency observation](../../evidence/search/repository-retrieval-v1.md)
+- [Local hybrid search and reviewed relation context](../../decisions/search/0217-local-hybrid-search-and-reviewed-relation-context.md), [20-case quality and latency observation](../../evidence/search/repository-retrieval-v1.md), and [ADR-0523 retirement of reviewed relation context](../../decisions/search/activation/0523-retire-reviewed-relation-context.md)
 - [Claim-eligible linked supporting context](../../decisions/search/activation/provider-shadow-structured/typed-context/0301-activate-deterministic-claim-eligible-linked-context.md) and [ADR-0302 retirement of the ordinary linked default](../../decisions/search/activation/provider-shadow-structured/typed-context/0302-retire-linked-default-and-use-search-engine-ports.md)
 - [Natural-language terminal development flow](../natural-language-terminal-flow.md)
 - [Repository onboarding and agent workforce](../onboarding/agent-workforce.md)

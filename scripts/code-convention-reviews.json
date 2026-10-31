@@ -18,14 +18,14 @@
     },
     {
       "path": "apps/cli/src/managed-deliberation.ts",
-      "contentHash": "sha256:a67e48218380e87fcea3891da3c6bcb2079558b8664b7934d17235143e2c81f7",
+      "contentHash": "sha256:a46b1dc939a9c3c0ef44ac1f69e9412620568b16c8d639133172d9acc0214bce",
       "responsibility": "Managed deliberation execution orchestration",
       "rationale": "All functions validate or execute one managed deliberation lifecycle and share the same provider plan, writing contract, checkpoint, and interruption semantics. Participant route validation, verified role composition, and organization-event mutation are isolated in the deliberation participant binding module; this module only orders binding, round execution, terminal release, and the existing lifecycle boundaries.",
       "disposition": "cohesive"
     },
     {
       "path": "apps/cli/src/managed-linked-evidence-canary.ts",
-      "contentHash": "sha256:db08d44e3c5bc37f80b0a0dcb848de4c49be67f4a4fa33d79be71d4d4f036558",
+      "contentHash": "sha256:b3253eaf8c2b27a5f0680937340f1d8f402be25c9fedaf371bef0eeb76e35560",
       "responsibility": "Managed linked-evidence provider selection orchestration",
       "rationale": "The module owns one read-only selection adapter lifecycle; pure projection and authorization, durable record construction, and managed-run composition remain in separate modules.",
       "disposition": "cohesive"
@@ -305,7 +305,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:9aee9cdf2160eb6a4d6df5197a902ba9cbc0daba9b818fef2ac0239966466e6c",
+      "contentHash": "sha256:89de5dbdce864b6598015fd84d008bdc519eeb94571e2a42c235870d72481285",
       "responsibility": "Repository knowledge public contract types",
       "rationale": "One declarative package contract surface for scans, policy, lifecycle results, and typed failures. The optional ranker preparation projection is opaque and provider-neutral; validation belongs to the concrete adapter and persistence to query preparation. No implementation, filesystem, or concrete search adapter is imported into these contracts.",
       "disposition": "cohesive"

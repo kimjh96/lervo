@@ -320,7 +320,6 @@ export async function openManagedConversationReadResponder(input: {
         },
         additionalCandidates: repositoryContext.additionalCandidates,
         recommendationBatches: repositoryContext.recommendationBatches,
-        graphRecommendations: repositoryContext.graphRecommendations,
         publications: [],
         handoffs: [],
         writingPolicy: {

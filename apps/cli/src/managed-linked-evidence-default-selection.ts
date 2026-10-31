@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 import {
   managedLinkedEvidenceDefaultPolicy,
-  type GraphDocumentRecommendation,
   type ManagedLinkedEvidenceSelection,
 } from "@lervo/context";
 import type { SearchRecommendationBatch } from "@lervo/search";
@@ -23,7 +22,6 @@ export async function resolveDefaultManagedLinkedEvidenceSelection(input: {
   runId: string;
   operationalBatch: SearchRecommendationBatch;
   recommendationBatches: readonly SearchRecommendationBatch[];
-  graphRecommendations: readonly GraphDocumentRecommendation[];
 }): Promise<ManagedLinkedEvidenceSelection[]> {
   const projection = await prepareManagedLinkedEvidenceProjection(input);
   const attemptId = selectionAttemptId(input.runId);
