@@ -8,6 +8,7 @@ Amended by:
 - [ADR-0481](0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md): generated projections bound by hash in lifecycle plan review.
 - [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md): lifecycle plans park; every settled stall is reevaluated once per contract.
 - [ADR-0491](0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md): tool-generated opaque files are not canonical assets.
+- [ADR-0530](../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md): sources whose approved drafts meet divergent integration targets park as `target_diverged`.
 
 ## Context
 

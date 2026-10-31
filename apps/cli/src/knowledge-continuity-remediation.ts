@@ -135,5 +135,9 @@ export function continuityRemediation(finding: ContinuityFinding): string {
       return "The generated terminal hook runtime is older than the installed Lervo. Run lervo upgrade, then apply its plan.";
     case "replica_diverged":
       return "The Mac–WSL replica of this repository diverged; see the repository_replica_divergence attention item.";
+    case "convergence_attention":
+      return finding.detail === "knowledge_sources_parked"
+        ? "Background knowledge finished everything except parked sources. lervo knowledge convergence status --json lists them: edit a parked source to readmit it; a target_diverged source is also readmitted when its integration-target bytes change."
+        : "Background knowledge convergence on this host stopped for this cause. lervo knowledge convergence status --json names the stage; the resident retries once the cause changes.";
   }
 }

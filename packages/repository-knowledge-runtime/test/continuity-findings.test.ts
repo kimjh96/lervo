@@ -216,6 +216,25 @@ describe("continuity findings", () => {
     ]);
   });
 
+  it("reports an owner's degraded resident as non-blocking convergence attention (ADR-0530)", () => {
+    const base = {
+      now,
+      expected: true,
+      stateObservedAt: new Date(now).toISOString(),
+      residentRunning: true,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+      residentHold: "knowledge_sources_parked",
+    };
+    expect(localContinuityFindings({ ...base, owner: true })).toEqual([
+      { code: "convergence_attention", severity: "attention", detail: "knowledge_sources_parked" },
+    ]);
+    expect(localContinuityFindings({ ...base, owner: false })).toEqual([]);
+    expect(
+      localContinuityFindings({ ...base, owner: true, residentHold: "event_schema_outdated" }),
+    ).toEqual([{ code: "event_schema_outdated", severity: "attention", detail: null }]);
+  });
+
   it("treats a checkout the running host resident serves as pending, not unobserved", () => {
     const base = {
       now,

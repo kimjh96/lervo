@@ -93,6 +93,9 @@ async function canonicalDispositionLedger(
         approval.policyHash !== prior.baseline.policyHash
       )
         continue;
+      // ADR-0530: a batch parked at divergent targets settled without integrating anything.
+      const result = await integratedInput(artifacts, event.payload.resultArtifactHash);
+      if (result?.stageData.canonicalTargetParked === approval.assessmentHash) continue;
       for (const decision of batch.assessment.decisions) {
         if (decision.disposition === "needs_review") continue;
         const source = batch.sources.find((item) => item.path === decision.path);

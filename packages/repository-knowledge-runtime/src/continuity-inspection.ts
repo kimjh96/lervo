@@ -103,6 +103,7 @@ export async function inspectConvergenceContinuity(input: {
       replicaDiverged: input.replicaDiverged ?? false,
       residentHold: resident?.status === "degraded" ? resident.reason : null,
       residentHost,
+      owner: fence?.verdict.role === "owner",
     }),
   ];
   return {
