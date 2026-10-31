@@ -2,12 +2,12 @@ import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { sha256 } from "@lervo/repository-knowledge";
+import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import { draftOrReviewPractice } from "../src/practice-draft.js";
 import { materializePractice, createPracticeClaudeLink } from "../src/practice-materialization.js";
 import { settlePracticeAssessment } from "../src/practice-assessment.js";
-import { readPracticeState } from "../src/practice-store.js";
-import { practice, practiceContext, work } from "./practice-fixture.js";
+import { readPracticeState, writePracticeState } from "../src/practice-store.js";
+import { practice, practiceContext, work, now } from "./practice-fixture.js";
 
 const mocks = vi.hoisted(() => ({
   call: vi.fn(),
@@ -37,6 +37,9 @@ vi.mock("../src/practice-assignment.js", () => ({
       assignment: { lease: { sessionId: `session-${input.role}` } },
     }),
 }));
+vi.mock("../src/convergence-owner-fence.js", () => ({
+  knowledgeOutputCommitGrant: async () => ({ allowed: true, hostHash: null }),
+}));
 vi.mock("../src/practice-scope.js", () => ({ requestPracticeWriteScope: vi.fn() }));
 
 const roots: string[] = [];
@@ -51,16 +54,24 @@ beforeEach(() => {
     complete: true,
     digest: sha256("catalog"),
     readRoots: ["*"],
+    readablePaths: [],
     skills: [],
     rules: [],
   });
 });
-async function setup() {
+async function setup(observed = work, readRoots = ["*"], readablePaths: string[] = []) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-practice-review-"));
   roots.push(root);
   const context = practiceContext(root);
   const state = await readPracticeState(root);
-  await settlePracticeAssessment({ context, state, work, value: practice, readRoots: ["*"] });
+  await settlePracticeAssessment({
+    context,
+    state,
+    work: observed,
+    value: practice,
+    readRoots,
+    readablePaths,
+  });
   return { root, context, state, candidate: state.candidates[0]! };
 }
 
@@ -88,6 +99,7 @@ describe("practice comparison, independent review and authority", () => {
         complete: true,
         digest: sha256("catalog"),
         readRoots: ["*"],
+        readablePaths: [],
         skills: [
           {
             name: practice.name,
@@ -151,6 +163,41 @@ describe("practice comparison, independent review and authority", () => {
     expect(candidate.state).toBe("reviewed_accepted");
   });
 
+  it("never reintroduces assessment-excluded paths, hashes or reply lines into drafting and review", async () => {
+    const excludedHash = sha256("excluded content");
+    const { context, state, candidate } = await setup(
+      {
+        ...work,
+        reply: "Read src/visible.ts.\nRead excluded/hidden.ts.",
+        changedFiles: [{ path: "excluded/hidden.ts", before: null, after: excludedHash }],
+        steps: [{ ...work.steps[0]!, paths: ["src/visible.ts", "excluded/hidden.ts"] }],
+      },
+      ["src"],
+      ["src/visible.ts"],
+    );
+    mocks.catalog.mockResolvedValue({
+      complete: true,
+      digest: sha256("catalog"),
+      readRoots: ["src"],
+      readablePaths: ["src/visible.ts"],
+      skills: [],
+      rules: [],
+    });
+    mocks.call.mockImplementation(async (input) => {
+      const disclosed = canonicalJson(input.data);
+      expect(disclosed).not.toContain("excluded/hidden.ts");
+      expect(disclosed).not.toContain(excludedHash);
+      expect(input.data.evidence[0].evidenceHash).toBe(state.evidence[0]!.evidenceHash);
+      return input.kind === "draft"
+        ? { overlap: "new", targetSkill: null, practice }
+        : { ...input.data.binding, decision: "accept", reasonCode: "accepted" };
+    });
+    await draftOrReviewPractice(context, state, candidate);
+    await draftOrReviewPractice(context, state, candidate);
+    expect(mocks.call).toHaveBeenCalledTimes(2);
+    expect(candidate.state).toBe("reviewed_accepted");
+  });
+
   it("refuses self-review before making the review call", async () => {
     const { context, state, candidate } = await setup();
     mocks.sameAgent = true;
@@ -160,6 +207,69 @@ describe("practice comparison, independent review and authority", () => {
       "review_invalid",
     );
     expect(mocks.call).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(["assessed", "drafted"] as const)(
+    "rechecks current read scope before %s disclosure",
+    async (stage) => {
+      const { context, state, candidate } = await setup();
+      if (stage === "drafted") {
+        mocks.call.mockResolvedValue({ overlap: "new", targetSkill: null, practice });
+        await draftOrReviewPractice(context, state, candidate);
+        mocks.call.mockClear();
+      }
+      mocks.catalog.mockResolvedValue({
+        complete: true,
+        digest: sha256("catalog"),
+        readRoots: [],
+        readablePaths: [],
+        skills: [],
+        rules: [],
+      });
+      // A formerly allowed work path is retained in the exact evidence, not re-hashed on revocation.
+      const evidence = state.evidence[0]!;
+      evidence.work.steps[0]!.paths = ["src/previously-readable.ts"];
+      const { evidenceHash: _hash, ...bundle } = evidence;
+      evidence.evidenceHash = sha256(canonicalJson(bundle));
+      candidate.evidenceHashes = [evidence.evidenceHash];
+      await expect(draftOrReviewPractice(context, state, candidate)).rejects.toThrow(
+        "source_incomplete",
+      );
+      expect(mocks.call).not.toHaveBeenCalled();
+    },
+  );
+
+  it("retains accepted evidence through persistence and re-reviews after a catalog change", async () => {
+    const { root, context, state, candidate } = await setup();
+    mocks.call.mockImplementation(async (input) =>
+      input.kind === "draft"
+        ? { overlap: "new", targetSkill: null, practice }
+        : { ...input.data.binding, decision: "accept", reasonCode: "accepted" },
+    );
+    await draftOrReviewPractice(context, state, candidate);
+    await draftOrReviewPractice(context, state, candidate);
+    const hashes = [...candidate.evidenceHashes];
+    await writePracticeState(root, state, now);
+    const resumed = await readPracticeState(root);
+    const accepted = resumed.candidates[0]!;
+    expect(resumed.evidence).toHaveLength(1);
+    mocks.catalog.mockResolvedValue({
+      complete: true,
+      digest: sha256("changed catalog"),
+      readRoots: ["*"],
+      readablePaths: [],
+      skills: [],
+      rules: [],
+    });
+    await expect(materializePractice(context, resumed, accepted)).rejects.toThrow("review_invalid");
+    expect(accepted.state).toBe("assessed");
+    expect(accepted.evidenceHashes).toEqual(hashes);
+    await draftOrReviewPractice(context, resumed, accepted);
+    await draftOrReviewPractice(context, resumed, accepted);
+    expect(accepted.state).toBe("reviewed_accepted");
+    expect(accepted.review!.catalogDigest).toBe(sha256("changed catalog"));
+    expect(accepted.review!.evidenceHashes).toEqual(hashes);
+    expect(mocks.call).toHaveBeenCalledTimes(4);
   });
 
   it("waits for missing write roots without writing the draft", async () => {

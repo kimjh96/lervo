@@ -10,6 +10,7 @@ export interface PracticeStep {
 }
 
 export interface PracticeWorkRecord {
+  resumeAt?: string | null;
   workDigest: string;
   contextEventId: string;
   turnEventId: string;
@@ -49,6 +50,7 @@ export type PracticeCandidateState =
   | "retired";
 
 export interface PracticeCandidate {
+  resumeAt?: string | null;
   candidateId: string;
   practiceDigest: string;
   workDigests: string[];
@@ -71,12 +73,14 @@ export interface PracticeCandidate {
 }
 
 export interface GeneratedPracticeSkill {
+  resumeAt?: string | null;
   name: string;
   path: string;
   versionHash: string;
   candidateId: string;
   commit: string;
   exposedAt: string | null;
+  integrationObservedAt?: string | null;
   reevaluatedAt: string | null;
 }
 

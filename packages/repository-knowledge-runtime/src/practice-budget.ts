@@ -107,3 +107,18 @@ export async function settlePracticeBudget(
     db.close();
   }
 }
+
+/** A reservation without a provider attempt consumes neither tokens nor the daily attempt count. */
+export async function releaseUnattemptedPracticeBudget(
+  reservation: PracticeReservation,
+): Promise<void> {
+  const db = await database(reservation.directory);
+  try {
+    db.prepare("DELETE FROM reservations WHERE id=? AND day=?").run(
+      reservation.id,
+      reservation.day,
+    );
+  } finally {
+    db.close();
+  }
+}

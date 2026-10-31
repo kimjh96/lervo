@@ -10,6 +10,8 @@ import { loadConvergenceDelegation } from "./delegation.js";
 import { terminalSkillRevisionFiles } from "./terminal-skill-revision-files.js";
 import { sha256 } from "@lervo/repository-knowledge";
 import { retirePracticeSkill } from "./practice-retirement.js";
+import { observePracticeExposure } from "./practice-exposure.js";
+import { practiceReady, practiceResumeAt } from "./practice-deferral.js";
 
 /** Usage is assessed daily. A missing host exchange or provider surface always preserves unknown. */
 export async function assessPracticeUsage(
@@ -34,6 +36,7 @@ export async function assessPracticeUsage(
           "terminal.skill.turn_assessed",
           "skill.resolved",
           "skill.invoked",
+          "capability.loaded",
           "conversation.repository_work.completed",
           "run.requested",
         ].includes(e.type)
@@ -73,14 +76,15 @@ export async function assessPracticeUsage(
       }
     }
     const present = await files?.read(skill.path);
-    const exposed = events.find(
-      (e) =>
-        e.type === "terminal.skill.observed" &&
-        e.payload.path === skill.path &&
-        e.payload.contentHash === skill.versionHash,
-    );
-    if (skill.exposedAt === null && present && sha256(present) === skill.versionHash && exposed) {
-      skill.exposedAt = exposed.occurredAt;
+    const previouslyExposed = skill.exposedAt !== null;
+    observePracticeExposure({
+      skill,
+      present: !!present && sha256(present) === skill.versionHash,
+      events,
+      notBefore: candidate.observedAt,
+      now: context.now(),
+    });
+    if (!previouslyExposed && skill.exposedAt !== null) {
       candidate.state = "exposed";
       practiceFunnel(state, context.now(), "exposed");
     }
@@ -103,11 +107,24 @@ export async function assessPracticeUsage(
       candidate.state = "used";
       practiceFunnel(state, context.now(), "used");
     }
-    if (!usage.reevaluate || skill.reevaluatedAt !== null || effects !== "write") continue;
-    const verdict = await reviewPracticeUsage(context, state, skill, usage);
-    if (verdict === "retire") await retirePracticeSkill(context, state, skill, usage);
-    skill.reevaluatedAt = context.now().toISOString();
-    return true;
+    if (
+      !usage.reevaluate ||
+      skill.reevaluatedAt !== null ||
+      effects !== "write" ||
+      !practiceReady(skill, context.now())
+    )
+      continue;
+    try {
+      const verdict = await reviewPracticeUsage(context, state, skill, usage);
+      if (verdict === "retire") await retirePracticeSkill(context, state, skill, usage);
+      skill.reevaluatedAt = context.now().toISOString();
+      skill.resumeAt = null;
+      return true;
+    } catch (error) {
+      const resumeAt = practiceResumeAt(error, context.now());
+      if (resumeAt === null) throw error;
+      skill.resumeAt = resumeAt;
+    }
   }
   return false;
 }

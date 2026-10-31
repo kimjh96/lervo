@@ -2,7 +2,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { reservePracticeBudget, settlePracticeBudget } from "../src/practice-budget.js";
+import {
+  reservePracticeBudget,
+  settlePracticeBudget,
+  releaseUnattemptedPracticeBudget,
+} from "../src/practice-budget.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -16,6 +20,23 @@ async function directory() {
 const now = new Date("2026-10-31T12:00:00Z");
 
 describe("host skill-learning budget", () => {
+  it("releases both tokens and attempt count when admission ends without a call", async () => {
+    const path = await directory();
+    const args = {
+      projectId: "a",
+      kind: "draft" as const,
+      inputBytes: 100,
+      outputTokens: 100,
+      now,
+      directory: path,
+    };
+    for (let i = 0; i < 3; i++) {
+      const reservation = await reservePracticeBudget(args);
+      expect(reservation).not.toBeNull();
+      await releaseUnattemptedPracticeBudget(reservation!);
+    }
+    expect(await reservePracticeBudget(args)).not.toBeNull();
+  });
   it("holds unobserved usage reservations across repositories and restarts", async () => {
     const path = await directory();
     const first = await reservePracticeBudget({

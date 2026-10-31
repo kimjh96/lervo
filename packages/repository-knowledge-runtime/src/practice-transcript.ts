@@ -7,6 +7,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { boundedUtf8Tail } from "./instruction-capture-queue.js";
 import type { PracticeStep } from "./practice-state.js";
+import { practiceResultOutcome, practiceResultSession } from "./practice-transcript-result.js";
 
 function object(value: unknown): Record<string, unknown> {
   return value !== null && typeof value === "object" ? (value as Record<string, unknown>) : {};
@@ -55,32 +56,6 @@ function repositoryPaths(input: Record<string, unknown>, root: string): string[]
   ].slice(0, 16);
 }
 
-function resultOutcome(result: Record<string, unknown>): PracticeStep["outcome"] {
-  if (result.is_error === true) return "failed";
-  if (result.is_error === false) return "passed";
-  const output = result.output ?? result.content;
-  const structured = object(
-    typeof output === "string"
-      ? (() => {
-          try {
-            return JSON.parse(output);
-          } catch {
-            return null;
-          }
-        })()
-      : output,
-  );
-  const code =
-    result.exit_code ??
-    result.exitCode ??
-    structured.exit_code ??
-    structured.exitCode ??
-    (typeof output === "string"
-      ? /(?:Process exited with code|Exit code:)\s*(-?\d+)/u.exec(output)?.[1]
-      : undefined);
-  return code === undefined ? "unknown" : Number(code) === 0 ? "passed" : "failed";
-}
-
 /** Translate native tool records only; neither replies nor shell arguments prove success. */
 export function extractPracticeSteps(
   entries: Record<string, unknown>[],
@@ -93,6 +68,8 @@ export function extractPracticeSteps(
 } {
   const steps: PracticeStep[] = [];
   const byId = new Map<string, PracticeStep>();
+  const sessions = new Map<string, PracticeStep>();
+  const polling = new Map<PracticeStep, { origin: PracticeStep; session: string }>();
   const entryIds: string[] = [];
   let reply = "";
   for (const [index, entry] of entries.entries()) {
@@ -137,13 +114,29 @@ export function extractPracticeSteps(
       };
       steps.push(step);
       byId.set(String(call.id ?? call.call_id), step);
+      if (kind.split(".").at(-1) === "write_stdin") {
+        const session = String(input.session_id);
+        const origin = sessions.get(session);
+        if (origin) polling.set(step, { origin, session });
+      }
     }
     for (const result of [
       ...blocks.filter((b) => b.type === "tool_result"),
       ...(payload.type === "function_call_output" ? [payload] : []),
     ]) {
       const step = byId.get(String(result.tool_use_id ?? result.call_id));
-      if (step) step.outcome = resultOutcome({ ...object(entry.toolUseResult), ...result });
+      if (step) {
+        const native = { ...object(entry.toolUseResult), ...result };
+        step.outcome = practiceResultOutcome(native);
+        const continuation = polling.get(step);
+        if (continuation && step.outcome !== "unknown") {
+          continuation.origin.outcome = step.outcome;
+          sessions.delete(continuation.session);
+        } else if (step.kind.split(".").at(-1) === "exec_command") {
+          const session = practiceResultSession(native);
+          if (session !== null && step.outcome === "unknown") sessions.set(session, step);
+        }
+      }
     }
   }
   return {

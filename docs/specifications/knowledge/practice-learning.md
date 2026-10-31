@@ -28,19 +28,20 @@ Materialization and publication reuse existing knowledge materialization and pub
 
 ## Failure codes
 
-| Code                            | Meaning                                                       | Retry                                         |
-| ------------------------------- | ------------------------------------------------------------- | --------------------------------------------- |
-| `source_incomplete`             | The work record was truncated or missing.                     | Retryable with new evidence.                  |
-| `verification_unavailable`      | No observed outcome.                                          | Not promotable from this turn.                |
-| `review_invalid`                | The review did not bind the current hashes.                   | Retried.                                      |
-| `target_changed`                | The skill file changed before writing.                        | Re-assessed.                                  |
-| `publication_authority_missing` | The delegation lacks the root.                                | Waits for scope.                              |
-| `usage_coverage_unknown`        | Coverage is incomplete.                                       | Blocks retirement.                            |
-| `provider_not_admitted`         | No admitted provider.                                         | Waits.                                        |
-| `assessment_expired`            | Not resolved within 7 days.                                   | Closed; the evidence bundle is deleted.       |
-| `practice_budget_exhausted`     | The skill-learning reservation or attempt bound is exhausted. | Wait for the next budget window.              |
-| `assessment_failed`             | A practice operation failed without an assessment result.     | Retry under the attempt and retention bounds. |
-| `foreground_pending`            | Foreground work needs the provider.                           | Wait for idle admission.                      |
+| Code                                 | Meaning                                                       | Retry                                         |
+| ------------------------------------ | ------------------------------------------------------------- | --------------------------------------------- |
+| `source_incomplete`                  | The work record was truncated or missing.                     | Retryable with new evidence.                  |
+| `verification_unavailable`           | No observed outcome.                                          | Not promotable from this turn.                |
+| `review_invalid`                     | The review did not bind the current hashes.                   | Retried.                                      |
+| `target_changed`                     | The skill file changed before writing.                        | Re-assessed.                                  |
+| `publication_authority_missing`      | The delegation lacks the root.                                | Waits for scope.                              |
+| `usage_coverage_unknown`             | Coverage is incomplete.                                       | Blocks retirement.                            |
+| `provider_not_admitted`              | No admitted provider.                                         | Waits.                                        |
+| `assessment_expired`                 | Not resolved within 7 days.                                   | Closed; the evidence bundle is deleted.       |
+| `practice_budget_exhausted`          | The skill-learning reservation or attempt bound is exhausted. | Wait for the next budget window.              |
+| `assessment_failed`                  | A practice operation failed without an assessment result.     | Retry under the attempt and retention bounds. |
+| `foreground_pending`                 | Foreground work needs the provider.                           | Wait for idle admission.                      |
+| `practice_reader_activation_pending` | Configured readers have not activated schema 8.               | Wait before creating workforce state.         |
 
 ## Privacy
 
@@ -59,18 +60,26 @@ The terminal hooks retain their ADR-0542 contract. The resident shares one verif
 
 The capture response adds nullable `practice` beside the unchanged `captureClass` contract. Invalid practice leaves the rule result intact. The legacy capture queue has no session field. The resident attaches preceding work only when the prompt digest, provider and capture time identify one prepared context. Ambiguous matches remain eligible for the 30-minute local assessment.
 
-Evidence uses scanner exclusions, the delegation parent's read scope and shared credential classification. Secret lines and host-specific home paths are removed before retention or practice-provider input. Changed-file excerpts require the observed content hash. Unchanged excerpts require a regular Git blob at the Stop commit. Each excerpt is at most 8 KiB. Evidence remains private on the observing host.
+Evidence uses scanner exclusions, the delegation parent's read scope and shared credential classification. JSON secret keys are removed at every nesting level, without regard to case. They include `password`, `token`, `secret`, `api_key`, `authorization`, `cookie` and `private_key`. Text filtering also removes secret lines and host-specific home paths. Fragments with secret keys are dropped when their value boundary is unknown. Storage and provider-call boundaries apply both checks.
 
-The private projection bounds work records at 128, retained evidence at 64, shapes at 2,048, assessment tombstones at 1,024 and daily funnel rows at 32. Shapes expire after 30 days. Unresolved evidence expires after seven days. Generated-version metadata stays bounded at 1,024 entries. Capacity bounds grant no extra authority.
+The retained work record is the same scope projection supplied at assessment. Excluded paths, their hashes and reply lines are absent before its evidence hash is computed. Every assessment, draft and review revalidates current read authority before invocation. Revocation blocks disclosure of the retained bundle. It does not silently change a review's evidence hash. Changed-file excerpts require the observed content hash. Unchanged excerpts require a regular Git blob at the Stop commit. Each excerpt is at most 8 KiB. Evidence remains private on the observing host.
+
+The private projection bounds work records at 128, retained evidence at 64, shapes at 2,048, assessment tombstones at 1,024 and daily funnel rows at 32. Shapes expire after 30 days. Evidence remains available through accepted review until materialization, rejection or seven-day expiry. A catalog change invalidates approval but preserves the work digests and evidence hashes for another draft and independent review. Generated-version metadata stays bounded at 1,024 entries. Capacity bounds grant no extra authority.
 
 Drafting compares installed skills and applied rules by meaning. Repeated shapes inform ordering and review confidence. They never gate candidates. Provider catalog context contains skill and rule entries with their digest. The scanner inventory and read-root coordinates stay local. `already_covered` closes the observation. `partial_overlap` retains a delta proposal. A hand-written or edited skill stays unchanged. Only an exact generated-version hash permits an update. Conflicts wait as `unresolved`. An incomplete or ungrounded rejection permits one redraft after a new work digest arrives. Other rejections close the observation.
 
 The generator and reviewer use separate workforce agent identities and leased sessions. Pinned read-only assignments retain the ordinary role, capability, ancestry and path-conflict checks. Reviews bind the draft, retained evidence, target preimage and complete catalog. Accepted writes reuse the durable knowledge journal, verified workspace integration and the existing knowledge publication commit path. A missing `.agents/skills` normalization root creates one workstream scope decision for all waiting skills. It does not expand the delegation. Claude links are created only under a delegated root and only at an absent path.
 
-Every new practice event, including `learning.observation.recorded`, requires event schema 8. The existing activation planner checks every configured reader before enabling the writer. Event payload schemas reject work text and unknown fields. Deterministic expiry may resolve a candidate without a reviewer; `reviewerAgentId` and `reviewedDraftHash` are then nullable. `coverage` is `complete` or `unknown`.
+Every new practice event, including `learning.observation.recorded`, requires event schema 8. The same activation barrier precedes practice workforce registration, assignment creation and leasing. Older readers must never encounter the new pinned read-only assignment form before activation. The existing activation planner checks every configured reader before enabling the writer. Event payload schemas reject work text and unknown fields. Deterministic expiry may resolve a candidate without a reviewer; `reviewerAgentId` and `reviewedDraftHash` are then nullable. `coverage` is `complete` or `unknown`.
 
 The host skill-learning ledger reserves input and output before each call. It counts retries and retirement reviews toward the daily three-draft and three-review bounds. Missing usage retains the reservation. Added capture work is charged to the skill-learning ledger; the shared call still has one provider-reported usage receipt. Foreground work and pending rule capture take priority. Practice calls share resident call admission and the provider pause mechanism.
 
+Admission and budget waits do not count as failed assignments or provider attempts. Preflight obtains admission and reserves the daily budget before workforce work starts. An unattempted call releases its reservation. Work records, candidates and generated versions may keep a private `resumeAt` timestamp. Daily limits resume at the next UTC day; transient admission waits resume after one minute. The scheduler skips waiting records and selects eligible drafts or reviews. Actual failed assignments have a daily retry bound. A wait discovered after leasing preserves the lease for retry instead of completing it as failed. These fields carry no work text and add no event.
+
+Native command evidence follows asynchronous execution sessions. A final `write_stdin` exit status updates the original `exec_command` step for that session. Running polls and unrelated sessions cannot prove verification.
+
 Usage joins native observations by exact path and hash. Managed `skill.invoked` receipts require a matching `skill.resolved` hash in the same run and session. The projection keeps the two evidence levels distinct. A missing exposure observation, missing turn assessment, Codex coverage, another unobserved surface or unavailable host coverage keeps usage unknown. Re-evaluation requests review after 30 days and 20 covered turns. It grants no deletion authority. The reviewer keeps rare tasks and insufficient trigger-frequency evidence. Hand-written skills can produce health information only after 90 days of covered non-use.
+
+Exposure comes from an exact-version `capability.loaded` skill receipt, or from exact file presence on the integration target followed by an observed terminal turn. The private `integrationObservedAt` timestamp records when that presence was first confirmed. Earlier turns cannot backdate exposure. Losing presence before exposure clears that timestamp. Selection and invocation events do not establish exposure. A loaded but uninvoked version can reach `unused_with_coverage` and re-evaluation.
 
 The standalone source path is wired. Hub candidate and usage exchange remains the single [bounded exchange follow-up](../../roadmap/knowledge/background-practice-learning.md#bounded-exchange-follow-up). Hub-coordinated hosts still assess and review locally. Only the convergence owner writes. Hub usage cannot become complete before typed host aggregates are implemented. Mac and WSL installed acceptance remains pending. Focused tests were written and were not run.

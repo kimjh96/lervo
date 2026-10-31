@@ -16,7 +16,9 @@ import { settlePracticeAssessment } from "./practice-assessment.js";
 export interface PracticeCaptureAttachment {
   workDigest: string;
   data: unknown;
+  validateDisclosure?(): Promise<boolean>;
   readRoots: string[];
+  readablePaths: string[];
   reservation: PracticeReservation;
   ownerResponse?: { digest: string; excerpt: string };
 }
@@ -78,7 +80,18 @@ export async function preparePracticeCapture(
     ? {
         workDigest: work.workDigest,
         data,
+        validateDisclosure: async () => {
+          const current = await loadConvergenceDelegation(root);
+          if (!current) return false;
+          const permissions = await loadPracticeCatalog(root, current.delegation, state);
+          return (
+            canonicalJson(
+              disclosePracticeWork(data, permissions.readRoots, permissions.readablePaths),
+            ) === canonicalJson(data)
+          );
+        },
         readRoots: catalog.readRoots,
+        readablePaths: catalog.readablePaths,
         reservation,
         ownerResponse: {
           digest: sha256(capture.ownerTurn),
@@ -95,6 +108,10 @@ export async function completePracticeCapture(
   value: unknown,
   usage: ProviderJsonUsage | null,
 ): Promise<void> {
+  if (attachment.validateDisclosure && !(await attachment.validateDisclosure())) {
+    await settlePracticeBudget(attachment.reservation, usage?.totalTokens ?? null);
+    return;
+  }
   const state = await readPracticeState(context.storage.paths.repositoryRoot);
   const work = state.works.find((w) => w.workDigest === attachment.workDigest);
   const practice = (value as { practice?: unknown } | null)?.practice;
@@ -115,6 +132,7 @@ export async function completePracticeCapture(
       work,
       value: practice,
       readRoots: attachment.readRoots,
+      readablePaths: attachment.readablePaths,
       ...(attachment.ownerResponse === undefined
         ? {}
         : { ownerResponse: attachment.ownerResponse }),

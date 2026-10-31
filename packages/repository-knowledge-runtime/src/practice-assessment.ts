@@ -21,6 +21,7 @@ export async function settlePracticeAssessment(input: {
   work: PracticeWorkRecord;
   value: unknown;
   readRoots: string[];
+  readablePaths?: string[];
   ownerResponse?: { digest: string; excerpt: string };
 }): Promise<void> {
   const { context, state, work } = input;
@@ -58,6 +59,7 @@ export async function settlePracticeAssessment(input: {
       procedure,
       input.readRoots,
       input.ownerResponse,
+      input.readablePaths,
     );
   } catch {
     practiceFunnel(state, now, "assessed", "source_incomplete");

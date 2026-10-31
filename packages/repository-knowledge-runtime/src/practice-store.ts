@@ -2,6 +2,7 @@ import { chmod, lstat, mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.js";
 import { practiceFunnel, type PracticeState } from "./practice-state.js";
+import { sanitizePracticeText } from "@lervo/repository-knowledge";
 
 export const PRACTICE_ROOT = ".lervo/state/knowledge/practice";
 const DAY = 86_400_000;
@@ -75,7 +76,6 @@ export function compactPracticeState(state: PracticeState, now: Date): void {
         (c) =>
           ![
             "reviewed_rejected",
-            "reviewed_accepted",
             "materialized",
             "published",
             "exposed",
@@ -115,6 +115,10 @@ export async function writePracticeState(
   now: Date,
 ): Promise<void> {
   compactPracticeState(state, now);
+  for (const work of state.works) work.reply = sanitizePracticeText(work.reply);
+  const serialized = JSON.stringify(state);
+  if (sanitizePracticeText(serialized) !== serialized)
+    throw new TypeError("Private practice state.");
   let path = resolve(root);
   for (const part of PRACTICE_ROOT.split("/")) {
     path = resolve(path, part);

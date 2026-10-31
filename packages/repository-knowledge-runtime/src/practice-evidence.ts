@@ -10,6 +10,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { repositoryPathWithinScope } from "@lervo/work-controller";
 import type { PracticeEvidence, PracticeWorkRecord } from "./practice-state.js";
+import { disclosePracticeWork } from "./practice-disclosure.js";
 
 const execute = promisify(execFile);
 
@@ -20,6 +21,7 @@ export async function retainPracticeEvidence(
   procedure: ReusablePractice,
   readRoots: string[],
   ownerResponse?: PracticeEvidence["ownerResponse"],
+  readablePaths?: string[],
 ): Promise<PracticeEvidence> {
   const scan = procedure.sourcePaths.length
     ? (await scanConfiguredRepositoryKnowledge(root)).scan
@@ -61,10 +63,21 @@ export async function retainPracticeEvidence(
     excerpts.push({ path, contentHash: hash, text: sanitizePracticeText(excerpt) });
   }
   const bundle = {
-    work,
+    work: disclosePracticeWork(work, readRoots, readablePaths),
     procedure,
     excerpts,
-    ...(ownerResponse === undefined ? {} : { ownerResponse }),
+    ...(ownerResponse === undefined
+      ? {}
+      : {
+          ownerResponse: {
+            ...ownerResponse,
+            excerpt: disclosePracticeWork(
+              { ...work, reply: ownerResponse.excerpt },
+              readRoots,
+              readablePaths,
+            ).reply,
+          },
+        }),
   };
   if (Buffer.byteLength(canonicalJson(bundle)) > 32 * 1024)
     throw new TypeError("Practice evidence exceeds 32 KiB.");

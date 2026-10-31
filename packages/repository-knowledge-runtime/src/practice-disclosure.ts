@@ -19,8 +19,9 @@ export function disclosePracticeWork(
   const denied = [
     ...new Set([...work.changedFiles.map((f) => f.path), ...work.steps.flatMap((s) => s.paths)]),
   ].filter((p) => !allowed(p));
+  const { resumeAt: _resumeAt, ...observed } = work;
   const result = {
-    ...work,
+    ...observed,
     changedFiles: work.changedFiles.filter((f) => allowed(f.path)),
     steps: work.steps.map((s) => ({ ...s, paths: s.paths.filter(allowed) })),
     reply: sanitizePracticeText(work.reply)

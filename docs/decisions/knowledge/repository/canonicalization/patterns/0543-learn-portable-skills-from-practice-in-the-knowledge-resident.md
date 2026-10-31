@@ -45,7 +45,7 @@ A single completed, observed turn is enough for a candidate, as ADR-0458 require
 
 ### Evidence lasts until review
 
-At assessment, a turn with a practice keeps a sanitized evidence bundle: the procedure fields, the step list, the outcome, the file hashes, and excerpts of the reply and of cited files. Lines the repository scanner classifies as secret are removed before the bundle is stored or sent to any provider. The bundle stays on the observing host until its candidate is resolved, or for 7 days. Review runs on the observing host against that bundle. Other hosts receive only the draft, hashes, and the resolution. A candidate not resolved within 7 days expires with `assessment_expired`.
+At assessment, a turn with a practice keeps a sanitized evidence bundle: the procedure fields, the step list, the outcome, the file hashes, and excerpts of the reply and of cited files. The stored and hashed work uses the same read-scope projection as assessment. Secret JSON values and secret text are removed before storage and checked again before provider calls. Each call revalidates current read authority. The bundle stays on the observing host until materialization or rejection, or for 7 days. Accepted review keeps the evidence while materialization is pending. A catalog change invalidates approval and permits another draft and review against the retained evidence. Review runs on the observing host against that bundle. Other hosts receive only the draft, hashes, and the resolution. A candidate not materialized or rejected within 7 days expires with `assessment_expired`.
 
 ### Shapes rank, they do not gate
 
@@ -101,7 +101,7 @@ ADR-0542 observations and managed-run `skill.invoked` receipts are combined, eac
 - `unused_with_coverage`: no invocation, while invocations were observable for every provider and host that ran turns in the repository.
 - `unknown`: any provider, host, or surface without coverage, or exposure not yet confirmed.
 
-The window starts when the version is confirmed exposed: the file is present on the integration target and the provider loaded it, where observable. Usage aggregates (counts, last observed time, coverage) are exchanged per host.
+The window starts when the version is confirmed exposed. Exact provider load evidence confirms exposure. Exact file presence on the integration target followed by an observed turn also confirms exposure where native loading is unobservable. Invocation is separate from exposure. Usage aggregates (counts, last observed time, coverage) are exchanged per host.
 
 A Lervo-generated skill that is `unused_with_coverage` for 30 days after at least 20 observed turns is re-evaluated by the reviewer agent. The reviewer also weighs how often its trigger situation occurred in observed work. A skill for a rare task, such as a quarterly release, is kept. The reviewer may retire it, through the same write and publication path. `unknown` never leads to retirement. A hand-written skill is never proposed for removal on missing observation; only `unused_with_coverage` for 90 days lets it appear as an informational health item.
 
@@ -121,6 +121,8 @@ Skill learning has its own daily budget under the host provider budget, below ru
 
 Tokens added to a capture call by the work record count against the skill-learning budget, not the capture budget. Input and output tokens are reserved before each call. An unobserved usage keeps its reservation. The added capture input is bounded at 24 KiB per turn. Skill learning waits whenever rule capture or foreground work needs the provider.
 
+Budget and admission waits preserve retry eligibility. They consume no failed-assignment attempt without a provider call. The resident records a resume time and selects other eligible work while a record waits. Practice workforce state requires the same schema 8 reader activation as practice events.
+
 ## Events, states, privacy, and failure meaning
 
 The [practice learning contract](../../../../../specifications/knowledge/practice-learning.md) defines candidate states, the events `knowledge.skill_candidate.proposed`, `knowledge.skill_candidate.resolved`, `knowledge.skill.usage_assessed`, and `knowledge.skill.retired`, failure codes and their retry meaning, privacy and retention, and funnel measurement. Events carry identifiers, hashes, digests, and published skill paths only. Work-record text never leaves the observing host.
@@ -139,6 +141,11 @@ Focused tests must show:
 - reservations hold when usage is unobserved, and the funnel records each drop reason;
 - a work record with no following owner turn is assessed after 30 minutes;
 - the reviewer reads the retained, sanitized evidence bundle, and secret lines never reach a provider.
+- nested JSON secrets are removed at storage and call boundaries, and read-scope revocation blocks later disclosure;
+- budget waits resume without permanent failure or queue starvation, and pre-activation readers can still list assignments;
+- accepted evidence survives a catalog change and reaches independent review again;
+- asynchronous session completion updates the original verification command;
+- load evidence reaches twenty unused covered turns and thirty-day re-evaluation without invocation.
 
 Installed verification must show, on Mac and WSL, a skill learned from ordinary directive work without a teaching or request prompt, reviewed by a separate agent, published through a knowledge pull request, and later invoked.
 

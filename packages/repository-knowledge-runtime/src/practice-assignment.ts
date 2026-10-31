@@ -18,9 +18,29 @@ import { convergenceAgentName, retireSupersededConvergenceAgents } from "./conve
 import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import { knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
+import { PRACTICE_EVENT_SCHEMA_VERSION } from "./practice-events.js";
+import { practiceResumeAt } from "./practice-deferral.js";
 
 /** Reuse delegation role pins, workforce leases, path conflict checks and durable completion. */
 export async function withPracticeAssignment<T>(input: {
+  context: InstructionCaptureContext;
+  role: ConvergenceWorkerRole;
+  key: string;
+  paths: string[];
+  prepare?(): Promise<{ release(): Promise<void> }>;
+  run(authority: ConvergenceAssignmentAuthority): Promise<T>;
+}): Promise<T> {
+  if ((input.context.storage.writableEventSchemaVersion ?? 1) < PRACTICE_EVENT_SCHEMA_VERSION)
+    throw new Error("practice_reader_activation_pending");
+  const prepared = await input.prepare?.();
+  try {
+    return await runPracticeAssignment(input);
+  } finally {
+    await prepared?.release();
+  }
+}
+
+async function runPracticeAssignment<T>(input: {
   context: InstructionCaptureContext;
   role: ConvergenceWorkerRole;
   key: string;
@@ -94,8 +114,15 @@ export async function withPracticeAssignment<T>(input: {
     if (sha256(bytes) !== ref.contentHash) throw new Error("review_invalid");
     return JSON.parse(Buffer.from(bytes).toString("utf8")) as T;
   }
-  if (previous.length >= 3) throw new Error("practice_budget_exhausted");
-  let assignment = previous.find((a) => a.status === "queued");
+  if (
+    previous.filter(
+      (a) =>
+        a.status === "failed" &&
+        a.updatedAt.slice(0, 10) === context.now().toISOString().slice(0, 10),
+    ).length >= 3
+  )
+    throw new Error("practice_budget_exhausted");
+  let assignment = previous.find((a) => a.status === "queued" || a.status === "leased");
   assignment ??= await createPinnedAssignment({
     repositoryRoot: root,
     taskType,
@@ -112,15 +139,21 @@ export async function withPracticeAssignment<T>(input: {
     requiredCapabilityHash: binding.capabilityHash,
     recordEvent,
   });
-  assignment = await claimAssignment({
-    repositoryRoot: root,
-    assignmentId: assignment.assignmentId,
-    expectedRevision: assignment.revision,
-    agentId: agent.agentId,
-    sessionId: `ses_${randomUUID().replaceAll("-", "")}`,
-    leaseDurationMs: 30 * 60_000,
-    recordEvent,
-  });
+  if (!(
+    assignment.status === "leased" &&
+    assignment.lease?.agentId === agent.agentId &&
+    Date.parse(assignment.lease.expiresAt) > context.now().getTime()
+  ))
+    assignment = await claimAssignment({
+      repositoryRoot: root,
+      assignmentId: assignment.assignmentId,
+      expectedRevision: assignment.revision,
+      agentId: agent.agentId,
+      sessionId: `ses_${randomUUID().replaceAll("-", "")}`,
+      leaseDurationMs: 30 * 60_000,
+      now: context.now(),
+      recordEvent,
+    });
   const pinned = assignment;
   const assertCurrent = async () => {
     if (context.signal.aborted) throw new Error("Practice assignment cancelled.");
@@ -161,6 +194,7 @@ export async function withPracticeAssignment<T>(input: {
       agentId: agent.agentId,
       leaseId: pinned.lease!.leaseId,
       verificationStatus: "passed",
+      now: context.now(),
       resultArtifacts: [
         {
           artifactId: `art_${artifact.contentHash.slice(7, 39)}`,
@@ -171,12 +205,14 @@ export async function withPracticeAssignment<T>(input: {
     });
     return result;
   } catch (error) {
+    if (practiceResumeAt(error, context.now()) !== null) throw error;
     await completeAssignment({
       repositoryRoot: root,
       assignmentId: pinned.assignmentId,
       agentId: agent.agentId,
       leaseId: pinned.lease!.leaseId,
       verificationStatus: "failed",
+      now: context.now(),
       failureCode: "practice_assessment_failed",
       resultArtifacts: [],
       recordEvent,

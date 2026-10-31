@@ -4,6 +4,8 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import {
   instructionCaptureAssessmentInstruction,
   instructionCaptureRequest,
+  canonicalJson,
+  sanitizePracticeText,
   type InstructionCaptureRequestInput,
 } from "@lervo/repository-knowledge";
 import {
@@ -112,6 +114,7 @@ export async function assessInstructionCapture(input: {
   request: InstructionCaptureRequestInput;
   catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
   sourceRevision: string;
+  validatePrecedingWork?(): Promise<boolean>;
 }): Promise<InstructionCaptureAssessmentCall> {
   const { context } = input;
   if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
@@ -158,7 +161,14 @@ export async function assessInstructionCapture(input: {
         systemPrompt: instructionCaptureAssessmentInstruction,
         timeoutMs: ASSESSMENT_TIMEOUT_MILLISECONDS,
       });
-      const request = instructionCaptureRequest(input.request);
+      const captureInput = { ...input.request };
+      if (input.validatePrecedingWork && !(await input.validatePrecedingWork().catch(() => false)))
+        delete captureInput.precedingWork;
+      if (captureInput.precedingWork !== undefined) {
+        const serialized = canonicalJson(captureInput.precedingWork);
+        if (sanitizePracticeText(serialized) !== serialized) delete captureInput.precedingWork;
+      }
+      const request = instructionCaptureRequest(captureInput);
       result =
         runner.resolveObserved === undefined
           ? { value: await runner.resolve(request, context.signal), usage: null }

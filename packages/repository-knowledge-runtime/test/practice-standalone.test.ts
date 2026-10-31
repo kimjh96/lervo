@@ -11,6 +11,9 @@ import { convergenceDelegationPlanHash } from "../src/delegation.js";
 
 const provider = vi.hoisted(() => vi.fn());
 vi.mock("../src/practice-provider.js", () => ({ callPracticeProvider: provider }));
+vi.mock("../src/practice-provider-preparation.js", () => ({
+  preparePracticeProvider: async () => ({ release: async () => {} }),
+}));
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 const execute = promisify(execFile);
 afterEach(async () => {
@@ -22,7 +25,7 @@ afterEach(async () => {
 
 describe("standalone resident practice lifecycle", () => {
   it("assesses, drafts, independently reviews and materializes through the integration ref without a Hub", async () => {
-    const f = await fixture(true);
+    const f = await fixture(true, false, false, 0, 8);
     fixtures.push(f);
     const { review: oldReview, ...scope } = f.delegation!;
     const delegation = {

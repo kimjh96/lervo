@@ -11,6 +11,10 @@ Lervo should learn reusable practice from verified work. [ADR-0533](../../decisi
 - Have an independent reviewer agent, never the generator and not the owner, review each candidate exactly. Promote it on exact review or used-in-practice evidence (ADR-0458). Only a consequential effect reaches the owner.
 - Produce repository instructions or portable skills through the appropriate reviewed authority.
 - Require no turn declaration.
+- Keep secrets and excluded paths out of stored and disclosed evidence, and revalidate read scope before each call.
+- Resume budget waits without failed attempts or queue starvation. Gate workforce state on reader activation.
+- Preserve accepted evidence for catalog re-review. Join asynchronous command outcomes by session.
+- Establish exposure from loading or target presence followed by a turn, then measure unused covered turns independently of invocation.
 
 The implementation works locally without a Hub. It preserves exact evidence and user-owned content. Provider behavior stays behind adapters. Background writes require the reviewed convergence delegation and the current convergence owner.
 

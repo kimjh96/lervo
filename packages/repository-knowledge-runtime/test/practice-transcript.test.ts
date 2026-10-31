@@ -84,3 +84,64 @@ it.each(["echo test", "pnpm test || true", "pnpm test --help"])(
     expect(result.steps[0]!.verification).toBe(false);
   },
 );
+
+describe("Codex command sessions", () => {
+  function call(id: string, name: string, input: Record<string, unknown>) {
+    return {
+      type: "response_item",
+      payload: { type: "function_call", call_id: id, name, arguments: JSON.stringify(input) },
+    };
+  }
+  function result(id: string, output: unknown) {
+    return {
+      type: "response_item",
+      payload: {
+        type: "function_call_output",
+        call_id: id,
+        output: typeof output === "string" ? output : JSON.stringify(output),
+      },
+    };
+  }
+  it.each(["structured", "native_text"])(
+    "attributes only the final %s session exit to its original command",
+    (format) => {
+      const entries = [
+        call("first", "exec_command", { cmd: "pnpm typecheck" }),
+        result(
+          "first",
+          format === "structured" ? { session_id: 101 } : "Process running with session ID 101",
+        ),
+        call("second", "exec_command", { cmd: "pnpm build" }),
+        result("second", { session_id: 202 }),
+        call("poll-one", "write_stdin", { session_id: 101, chars: "" }),
+        result("poll-one", { session_id: 101 }),
+        call("finish-two", "write_stdin", { session_id: 202, chars: "" }),
+        result("finish-two", { exit_code: 1 }),
+        call("finish-one", "write_stdin", { session_id: 101, chars: "" }),
+        result(
+          "finish-one",
+          format === "structured" ? { exit_code: 0 } : "Process exited with code 0",
+        ),
+      ];
+      const interim = extractPracticeSteps(entries.slice(0, 6), "/repo");
+      expect(interim.steps[0]!.outcome).toBe("unknown");
+      const complete = extractPracticeSteps(entries, "/repo");
+      expect(complete.steps[0]).toMatchObject({ verification: true, outcome: "passed" });
+      expect(complete.steps[1]).toMatchObject({ verification: true, outcome: "failed" });
+      expect(complete.steps[2]!.outcome).toBe("unknown");
+      expect(JSON.stringify(complete)).not.toContain("session_id");
+    },
+  );
+  it("leaves a running or unknown session unverified", () => {
+    const extracted = extractPracticeSteps(
+      [
+        call("start", "exec_command", { cmd: "pnpm check" }),
+        result("start", { session_id: 101 }),
+        call("unrelated", "write_stdin", { session_id: 999, chars: "" }),
+        result("unrelated", { exit_code: 0 }),
+      ],
+      "/repo",
+    );
+    expect(extracted.steps[0]!.outcome).toBe("unknown");
+  });
+});

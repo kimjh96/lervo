@@ -8,7 +8,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { settleInstructionCapture } from "./instruction-capture-settlement.js";
 import { preparePracticeCapture, completePracticeCapture } from "./practice-capture.js";
-import { settlePracticeBudget } from "./practice-budget.js";
+import { releaseUnattemptedPracticeBudget } from "./practice-budget.js";
 
 import {
   assessInstructionCapture,
@@ -131,6 +131,9 @@ export async function runInstructionCaptureCycle(
     const call = await assessInstructionCapture({
       context,
       captureId: capture.captureId,
+      ...(practice?.validateDisclosure === undefined
+        ? {}
+        : { validatePrecedingWork: practice.validateDisclosure }),
       request: {
         ...(practice === null ? {} : { precedingWork: practice.data }),
         surface: capture.source,
@@ -146,7 +149,7 @@ export async function runInstructionCaptureCycle(
     });
     if (call.status === "deferred") {
       if (practice !== null && call.attempted !== true)
-        await settlePracticeBudget(practice.reservation, 0).catch(() => {});
+        await releaseUnattemptedPracticeBudget(practice.reservation).catch(() => {});
       deferred = call.reason;
       break;
     }

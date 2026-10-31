@@ -1,4 +1,4 @@
-import { reusablePracticeSchema } from "@lervo/repository-knowledge";
+import { canonicalJson, reusablePracticeSchema } from "@lervo/repository-knowledge";
 import type { InstructionCaptureContext } from "./instruction-capture-assessment.js";
 import { listQueuedInstructionCaptures } from "./instruction-capture-queue.js";
 import { compactPracticeState, readPracticeState, writePracticeState } from "./practice-store.js";
@@ -6,8 +6,8 @@ import { loadConvergenceDelegation } from "./delegation.js";
 import { practiceFunnel, practiceShapeSupport } from "./practice-state.js";
 import { loadPracticeCatalog } from "./practice-catalog.js";
 import { PRACTICE_ASSESSMENT_PROMPT, settlePracticeAssessment } from "./practice-assessment.js";
-import { withPracticeAssignment } from "./practice-assignment.js";
-import { callPracticeProvider } from "./practice-provider.js";
+import { withPracticeProviderAssignment } from "./practice-provider-assignment.js";
+import { practiceReady, practiceResumeAt } from "./practice-deferral.js";
 import { draftOrReviewPractice } from "./practice-draft.js";
 import { materializePractice } from "./practice-materialization.js";
 import { assessPracticeUsage } from "./practice-usage.js";
@@ -62,7 +62,8 @@ export async function runPracticeLearningCycle(
     const work = state.works.find(
       (w) =>
         context.now().getTime() - Date.parse(w.observedAt) >= 30 * 60_000 &&
-        !state.assessed.some((a) => a.workDigest === w.workDigest),
+        !state.assessed.some((a) => a.workDigest === w.workDigest) &&
+        practiceReady(w, context.now()),
     );
     if (work) {
       if (!work.complete || work.outcome !== "passed") {
@@ -70,38 +71,62 @@ export async function runPracticeLearningCycle(
         return;
       }
       const catalog = await loadPracticeCatalog(root, loaded.delegation, state);
-      const result = await withPracticeAssignment({
-        context,
-        role: "generator",
-        key: work.workDigest,
-        paths: [],
-        run: (authority) =>
-          callPracticeProvider({
-            context,
-            authority,
-            kind: "assessment",
-            key: work.workDigest,
-            data: disclosePracticeWork(work, catalog.readRoots, catalog.readablePaths),
-            prompt: PRACTICE_ASSESSMENT_PROMPT,
-            schema: {
-              type: "object",
-              additionalProperties: false,
-              properties: { practice: { anyOf: [{ type: "null" }, reusablePracticeSchema] } },
-              required: ["practice"],
-            },
-          }),
-      });
-      await settlePracticeAssessment({
-        context,
-        state,
-        work,
-        value: (result as { practice?: unknown } | null)?.practice,
-        readRoots: catalog.readRoots,
-      });
-      return;
+      const data = disclosePracticeWork(work, catalog.readRoots, catalog.readablePaths);
+      try {
+        const result = await withPracticeProviderAssignment({
+          context,
+          role: "generator",
+          assignmentKey: work.workDigest,
+          paths: [],
+          kind: "assessment",
+          key: work.workDigest,
+          data,
+          beforeCall: async () => {
+            const current = await loadConvergenceDelegation(root);
+            if (!current) throw new Error("provider_not_admitted");
+            const permissions = await loadPracticeCatalog(root, current.delegation, state);
+            if (
+              canonicalJson(
+                disclosePracticeWork(data, permissions.readRoots, permissions.readablePaths),
+              ) !== canonicalJson(data)
+            )
+              throw new Error("source_incomplete");
+          },
+          prompt: PRACTICE_ASSESSMENT_PROMPT,
+          schema: {
+            type: "object",
+            additionalProperties: false,
+            properties: { practice: { anyOf: [{ type: "null" }, reusablePracticeSchema] } },
+            required: ["practice"],
+          },
+          resolve: (value) => value,
+        });
+        await settlePracticeAssessment({
+          context,
+          state,
+          work,
+          value: (result as { practice?: unknown } | null)?.practice,
+          readRoots: catalog.readRoots,
+          readablePaths: catalog.readablePaths,
+        });
+        return;
+      } catch (error) {
+        const resumeAt = practiceResumeAt(error, context.now());
+        if (resumeAt === null) throw error;
+        work.resumeAt = resumeAt;
+        practiceFunnel(
+          state,
+          context.now(),
+          "waiting",
+          error instanceof Error ? error.message : "provider_not_admitted",
+        );
+      }
     }
-    let candidates = state.candidates.filter((c) =>
-      ["assessed", "unresolved", "drafted", "reviewed_accepted"].includes(c.state),
+    let candidates = state.candidates.filter(
+      (c) =>
+        ["assessed", "unresolved", "drafted", "reviewed_accepted"].includes(c.state) &&
+        (effects === "write" || c.state !== "reviewed_accepted") &&
+        practiceReady(c, context.now()),
     );
     if (candidates.some((c) => c.state === "unresolved")) {
       const catalog = await loadPracticeCatalog(root, loaded.delegation, state);
@@ -114,10 +139,24 @@ export async function runPracticeLearningCycle(
         practiceShapeSupport(state, b.workDigests) - practiceShapeSupport(state, a.workDigests) ||
         a.observedAt.localeCompare(b.observedAt),
     );
-    for (const candidate of candidates.slice(0, 1)) {
-      if (candidate.state === "reviewed_accepted") {
-        if (effects === "write") await materializePractice(context, state, candidate);
-      } else await draftOrReviewPractice(context, state, candidate);
+    for (const candidate of candidates) {
+      try {
+        if (candidate.state === "reviewed_accepted") {
+          if (effects === "write") await materializePractice(context, state, candidate);
+        } else await draftOrReviewPractice(context, state, candidate);
+        candidate.resumeAt = null;
+        return;
+      } catch (error) {
+        const resumeAt = practiceResumeAt(error, context.now());
+        if (resumeAt === null) throw error;
+        candidate.resumeAt = resumeAt;
+        practiceFunnel(
+          state,
+          context.now(),
+          "waiting",
+          error instanceof Error ? error.message : "provider_not_admitted",
+        );
+      }
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "";

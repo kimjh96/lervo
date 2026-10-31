@@ -11,8 +11,7 @@ import type { PracticeVersionUsage } from "./practice-usage-projection.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { loadPracticeCatalog } from "./practice-catalog.js";
 import { ordinaryConvergenceSourceBytes } from "./source-file.js";
-import { withPracticeAssignment } from "./practice-assignment.js";
-import { callPracticeProvider } from "./practice-provider.js";
+import { withPracticeProviderAssignment } from "./practice-provider-assignment.js";
 import { appendPracticeEvent } from "./practice-events.js";
 
 export async function reviewPracticeUsage(
@@ -44,43 +43,55 @@ export async function reviewPracticeUsage(
     catalogDigest: catalog.digest,
     evidenceHashes: [sha256(canonicalJson([usage, shapes]))],
   };
-  const reviewed = await withPracticeAssignment({
+  const reviewed = await withPracticeProviderAssignment({
     context,
     role: "reviewer",
-    key: `${skill.versionHash}:retirement:${binding.evidenceHashes[0]}`,
+    assignmentKey: `${skill.versionHash}:retirement:${binding.evidenceHashes[0]}`,
     paths: [skill.path],
-    run: async (authority) => {
+    assertAuthority: (authority) => {
       if (
         authority.agent.agentId === candidate.drafterAgentId ||
         authority.assignment.lease!.sessionId === candidate.drafterSessionId
       )
         throw new Error("review_invalid");
-      const result = (await callPracticeProvider({
-        context,
-        authority,
-        kind: "review",
-        key: skill.candidateId,
-        data: {
-          binding,
-          skill: { ...skill, content: sanitizePracticeText(bytes.toString("utf8")) },
-          usage,
-          shapes,
-        },
-        schema: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            decision: { enum: ["keep", "retire"] },
-            draftHash: { type: "string" },
-            targetHash: { type: "string" },
-            catalogDigest: { type: "string" },
-            evidenceHashes: { type: "array", items: { type: "string" } },
-          },
-          required: ["decision", "draftHash", "targetHash", "catalogDigest", "evidenceHashes"],
-        },
-        prompt:
-          "Re-evaluate this exact unused skill. Consider the frequency of its trigger situation in observed work. Shapes are a ranking signal and do not prove a trigger occurred. Keep rare-task skills such as quarterly releases, and keep whenever trigger-frequency evidence is insufficient. Unknown coverage never permits retirement. Echo every supplied binding. A retire verdict proposes removal through the normal reviewed write path.",
-      })) as Omit<PracticeReview, "decision"> & { decision: "keep" | "retire" };
+    },
+    kind: "review",
+    key: skill.candidateId,
+    beforeCall: async () => {
+      const current = await loadConvergenceDelegation(root);
+      if (!current) throw new Error("provider_not_admitted");
+      const permissions = await loadPracticeCatalog(root, current.delegation, state);
+      if (
+        !permissions.complete ||
+        permissions.digest !== catalog.digest ||
+        !permissions.skills.some(
+          (entry) => entry.path === skill.path && entry.contentHash === skill.versionHash,
+        )
+      )
+        throw new Error("source_incomplete");
+    },
+    data: {
+      binding,
+      skill: { ...skill, content: sanitizePracticeText(bytes.toString("utf8")) },
+      usage,
+      shapes,
+    },
+    schema: {
+      type: "object",
+      additionalProperties: false,
+      properties: {
+        decision: { enum: ["keep", "retire"] },
+        draftHash: { type: "string" },
+        targetHash: { type: "string" },
+        catalogDigest: { type: "string" },
+        evidenceHashes: { type: "array", items: { type: "string" } },
+      },
+      required: ["decision", "draftHash", "targetHash", "catalogDigest", "evidenceHashes"],
+    },
+    prompt:
+      "Re-evaluate this exact unused skill. Consider the frequency of its trigger situation in observed work. Shapes are a ranking signal and do not prove a trigger occurred. Keep rare-task skills such as quarterly releases, and keep whenever trigger-frequency evidence is insufficient. Unknown coverage never permits retirement. Echo every supplied binding. A retire verdict proposes removal through the normal reviewed write path.",
+    resolve: (value, authority) => {
+      const result = value as Omit<PracticeReview, "decision"> & { decision: "keep" | "retire" };
       const review = {
         ...result,
         decision: "accept" as const,

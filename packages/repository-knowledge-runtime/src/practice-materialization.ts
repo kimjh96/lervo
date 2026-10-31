@@ -106,8 +106,6 @@ export async function materializePractice(
     })
   ) {
     candidate.state = "assessed";
-    candidate.workDigests = [];
-    candidate.evidenceHashes = [];
     candidate.review = null;
     throw new Error("review_invalid");
   }
