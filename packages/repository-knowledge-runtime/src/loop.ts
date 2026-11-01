@@ -36,6 +36,8 @@ type WorkerResult = Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
  * host-wide full-cycle admission cannot starve it. Reconciliation is rate-limited internally.
  */
 export const RESIDENT_CONTINUITY_TICK_MILLISECONDS = 60_000;
+/** Under the 20-minute display window of the health projection (ADR-0535). */
+export const RESIDENT_HEALTH_REFRESH_MILLISECONDS = 5 * 60_000;
 
 function healthOf(result: WorkerResult): KnowledgeResidentState {
   if (result.status === "busy") return "busy";
@@ -64,8 +66,12 @@ export function startAutonomousKnowledgeWorker(input: {
   admissionDirectory?: string;
   subscribe?: (notify: () => void) => () => void;
   onCycle?: (result: WorkerResult) => void;
-  /** Read-only projections run after every observation, including skipped and failed cycles. */
+  /**
+   * Read-only projections run after every observation, including skipped and failed cycles, and
+   * on their own cadence so a long cycle never leaves the projection older than its display window.
+   */
   refreshHealth?: () => Promise<void>;
+  healthRefreshMilliseconds?: number;
   onFailure: (error: unknown) => void;
   intervalMilliseconds?: number;
   reconcileCeilingMilliseconds?: number;
@@ -183,6 +189,27 @@ export function startAutonomousKnowledgeWorker(input: {
       });
     return continuityRun;
   };
+  // One refresh at a time; the cycle's own refresh and this cadence share the same single flight.
+  let projectionRefresh: Promise<void> | null = null;
+  let projectionAgain = false;
+  /** A request during a refresh runs once more afterwards, so a cycle's result is never missed. */
+  const refreshProjection = (): Promise<void> => {
+    if (input.refreshHealth === undefined || signal.aborted) return Promise.resolve();
+    if (projectionRefresh !== null) {
+      projectionAgain = true;
+      return projectionRefresh;
+    }
+    const refreshHealth = input.refreshHealth;
+    projectionRefresh = (async () => {
+      do {
+        projectionAgain = false;
+        await refreshHealth().catch((error: unknown) => input.onFailure(error));
+      } while (projectionAgain && !signal.aborted);
+    })().finally(() => {
+      projectionRefresh = null;
+    });
+    return projectionRefresh;
+  };
   const runOnce = async () => {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
@@ -242,7 +269,7 @@ export function startAutonomousKnowledgeWorker(input: {
           })
         : null;
     await healthWrite;
-    await input.refreshHealth?.().catch((error: unknown) => input.onFailure(error));
+    await refreshProjection();
     const now = Date.now();
     const reconcileDelay = residentReconcileDelay({
       idleStreak: cycle.state.idleStreak,
@@ -277,7 +304,7 @@ export function startAutonomousKnowledgeWorker(input: {
         if (!signal.aborted) input.onFailure(error);
         report("attention", "knowledge_resident_cycle_failed");
         await healthWrite;
-        await input.refreshHealth?.().catch((failure: unknown) => input.onFailure(failure));
+        await refreshProjection();
       })
       .finally(() => {
         running = null;
@@ -310,6 +337,13 @@ export function startAutonomousKnowledgeWorker(input: {
         schedule,
       );
   const healthTimer = setInterval(heartbeat, 15_000);
+  const projectionTimer =
+    input.refreshHealth === undefined
+      ? null
+      : setInterval(
+          () => void refreshProjection(),
+          input.healthRefreshMilliseconds ?? RESIDENT_HEALTH_REFRESH_MILLISECONDS,
+        );
   const ownerHeartbeat =
     input.ownership === undefined
       ? null
@@ -329,11 +363,13 @@ export function startAutonomousKnowledgeWorker(input: {
     controller.abort();
     if (reconcile !== null) clearTimeout(reconcile);
     clearInterval(healthTimer);
+    if (projectionTimer !== null) clearInterval(projectionTimer);
     if (continuityTimer !== null) clearInterval(continuityTimer);
     if (ownerHeartbeat !== null) clearInterval(ownerHeartbeat);
     if (debounce !== null) clearTimeout(debounce);
     unsubscribe?.();
     await running;
+    await projectionRefresh;
     await continuityRun;
     if (reconcile !== null) clearTimeout(reconcile);
     healthState = "stopped";

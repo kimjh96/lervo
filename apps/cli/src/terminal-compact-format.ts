@@ -98,6 +98,8 @@ export function formatCompactTerminalPreamble(input: {
   instructionCaptureLines?: readonly string[];
   /** ADR-0535 cached Know/Find health; empty when every measure is within target. */
   healthSection?: string;
+  /** The current snapshot, so a projection from before the latest change is labeled as such. */
+  repositoryRevision?: string;
   workspaceBinding?: TerminalWorkspaceBinding | null;
 }): string {
   const now = new Date(input.attention.observedAt);
@@ -109,7 +111,11 @@ export function formatCompactTerminalPreamble(input: {
   const healthSection =
     health === null
       ? input.healthSection
-      : formatRepositoryHealth(mergeCurrentOwnerAttention(health, input.attention), now);
+      : formatRepositoryHealth(
+          mergeCurrentOwnerAttention(health, input.attention),
+          now,
+          input.repositoryRevision,
+        );
   const blocking = input.attention.items
     .filter((item) => item.blocking && !item.requiresUserAction && !isStaleWorkstreamItem(item))
     .slice(0, 5);

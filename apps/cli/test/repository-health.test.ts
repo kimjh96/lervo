@@ -57,6 +57,22 @@ describe("repository health reader and compact section", () => {
     expect((await read(healthNow, `sha256:${"b".repeat(64)}`)).measures.convergence.reason).toBe(
       "projection_revision_changed",
     );
+    // A terminal turn keeps the earlier projection and labels it instead of hiding every measure.
+    const earlier = await readRepositoryHealth({
+      root: path,
+      now: healthNow,
+      repositoryRevision: `sha256:${"b".repeat(64)}`,
+      acceptEarlierRevision: true,
+    });
+    expect(earlier.measures.deferred.status).not.toBe("unknown");
+    const labelled = healthyProjection();
+    labelled.measures.find = { ...stale.measures.find };
+    expect(formatRepositoryHealth(labelled, healthNow, `sha256:${"b".repeat(64)}`)).toContain(
+      ", before the latest repository change]",
+    );
+    expect(formatRepositoryHealth(labelled, healthNow, healthRevision)).not.toContain(
+      "before the latest",
+    );
     const expired = healthyProjection();
     expired.measures.freshness.value!.evaluationValidUntil = "2026-10-31T01:59:00.000Z";
     expired.measures.freshness.value!.cycleValidUntil = "2026-10-31T01:59:00.000Z";
