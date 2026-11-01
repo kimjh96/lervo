@@ -1,5 +1,14 @@
 import { spawn } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  realpath,
+  rm,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -18,7 +27,8 @@ import { ensureHostTerminalRuntime } from "../src/terminal-runtime.js";
 const roots: string[] = [];
 const source = fileURLToPath(new URL("../src/terminal-hook-launcher.mjs", import.meta.url));
 async function fixture() {
-  const home = await mkdtemp(resolve(tmpdir(), "lervo-launcher-"));
+  // macOS links /var to /private/var; the launcher reports real paths.
+  const home = await realpath(await mkdtemp(resolve(tmpdir(), "lervo-launcher-")));
   roots.push(home);
   const cwd = resolve(home, "repository/nested");
   await mkdir(cwd, { recursive: true });
@@ -301,24 +311,30 @@ it.each([true, false])(
     await writeFile(resolve(f.store, "current.json"), pointerA, { mode: 0o600 });
     const loader = resolve(f.home, "race-loader.mjs");
     const entry = resolve(f.store, JSON.parse(pointerA).directory, "runtime-v2.mjs");
+    const race = `
+      if (specifier === ${JSON.stringify(pathToFileURL(entry).href)}) {
+        rmSync(${JSON.stringify(entry)});
+        writeFileSync(${JSON.stringify(resolve(f.store, "current.json"))}, ${JSON.stringify(switchPointer ? pointerB : pointerA)});
+      }`;
     await writeFile(
       loader,
-      `
-    import { rm, writeFile } from "node:fs/promises";
-    export async function resolve(specifier, context, next) {
-      if (specifier === ${JSON.stringify(pathToFileURL(entry).href)}) {
-        await rm(${JSON.stringify(entry)});
-        await writeFile(${JSON.stringify(resolve(f.store, "current.json"))}, ${JSON.stringify(switchPointer ? pointerB : pointerA)});
-      }
+      `import { rmSync, writeFileSync } from "node:fs";
+    export async function resolve(specifier, context, next) {${race}
       return next(specifier, context);
-    }
-  `,
+    }`,
     );
-    // A loader intercepts import after verification, with no test hook in the launcher.
+    // A hook intercepts import after verification, with no test hook in the launcher. Newer Node
+    // deprecates the off-thread register(), so the in-thread hook is used where it exists.
     const preload = resolve(f.home, "register.mjs");
     await writeFile(
       preload,
-      `import {register} from "node:module"; register(${JSON.stringify(pathToFileURL(loader).href)});`,
+      `import * as module from "node:module";
+    import { rmSync, writeFileSync } from "node:fs";
+    if (typeof module.registerHooks === "function")
+      module.registerHooks({ resolve(specifier, context, next) {${race}
+        return next(specifier, context);
+      } });
+    else module.register(${JSON.stringify(pathToFileURL(loader).href)});`,
     );
     const run = launch(f, [], preload);
     run.child.stdin.end();
