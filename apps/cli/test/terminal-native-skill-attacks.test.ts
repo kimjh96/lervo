@@ -58,6 +58,19 @@ it("rejects an in-place rewrite that retains the inode and byte length", async (
   expect(events.filter((event) => event.type === "terminal.skill.observed")).toEqual([]);
 });
 
+it("rejects an in-place rewrite of a first-turn transcript created after its prompt", async () => {
+  const f = await fixture(false, "claude", true, false);
+  await writeFile(f.transcriptPath, skillLine("eli5"));
+  await f.stop();
+  const original = await readFile(f.transcriptPath, "utf8");
+  await writeFile(f.transcriptPath, original.replace('"eli5"', '"evil"'));
+  const events = await f.resident();
+  expect(
+    events.find((event) => event.type === "terminal.skill.turn_assessed")!.payload.skillTelemetry,
+  ).toBe("unavailable");
+  expect(events.filter((event) => event.type === "terminal.skill.observed")).toEqual([]);
+});
+
 it.each(["foreign-session", null])(
   "rejects range entries without the hook session identity: %s",
   async (sessionId) => {

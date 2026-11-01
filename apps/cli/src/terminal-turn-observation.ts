@@ -74,6 +74,7 @@ export async function recordPreparedTerminalContext(input: {
   eventId?: string;
   storage?: ProjectStorage;
   transcript?: TranscriptPosition | null;
+  transcriptAbsent?: string | null;
 }): Promise<string> {
   input.context.documents.forEach((document) =>
     assertTerminalRepositoryRelativePath(document.path),
@@ -162,6 +163,7 @@ export async function recordPreparedTerminalContext(input: {
       contextEventId: result.event.eventId,
       openedAt: input.occurredAt,
       transcript: input.transcript ?? null,
+      ...(input.transcriptAbsent ? { transcriptAbsent: input.transcriptAbsent } : {}),
     });
     return result.event.eventId;
   } finally {

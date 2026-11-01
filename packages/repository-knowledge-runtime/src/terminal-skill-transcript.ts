@@ -1,9 +1,15 @@
 import { sha256 } from "@lervo/repository-knowledge";
-import { openProviderTranscript, transcriptPrefixDigest } from "./terminal-transcript-position.js";
+import type { FileHandle } from "node:fs/promises";
+import {
+  openProviderTranscript,
+  transcriptPrefixDigest,
+  type TranscriptPosition,
+} from "./terminal-transcript-position.js";
 import type { QueuedTerminalSkillTurn } from "./terminal-skill-queue.js";
 import { transcriptSkillIdentifiers } from "./terminal-skill-transcript-adapters.js";
 
 export const MAXIMUM_SKILL_TRANSCRIPT_BYTES = 4 * 1024 * 1024;
+const CLAUDE_FILE_HISTORY = new Set(["file-history-snapshot", "file-history-delta"]);
 export type SkillTranscriptAssessment = {
   skillTelemetry: "observed" | "unavailable" | "truncated" | "unknown";
   identifiers: string[];
@@ -22,6 +28,21 @@ export async function assessTerminalSkillTranscript(
         ),
       }
     : { skillTelemetry: range.status, identifiers: [] };
+}
+
+/**
+ * Both recorded prefixes must still match. The Stop prefix covers a turn whose transcript did not
+ * exist at its prompt, where the start prefix is empty.
+ */
+async function prefixesIntact(
+  handle: FileHandle,
+  start: TranscriptPosition,
+  end: TranscriptPosition,
+): Promise<boolean> {
+  return (
+    (await transcriptPrefixDigest(handle, start.prefixBytes)) === start.prefixDigest &&
+    (await transcriptPrefixDigest(handle, end.prefixBytes)) === end.prefixDigest
+  );
 }
 
 /** Shared authenticity boundary; transcript contents stay on the observing host. */
@@ -50,7 +71,7 @@ export async function readVerifiedTerminalTranscript(
         String(metadata.dev) !== start.device ||
         String(metadata.ino) !== start.inode ||
         metadata.size < BigInt(end.offset) ||
-        (await transcriptPrefixDigest(handle, start.prefixBytes)) !== start.prefixDigest
+        !(await prefixesIntact(handle, start, end))
       )
         return { status: "unavailable" };
       if (turn.provider === "codex") {
@@ -76,15 +97,14 @@ export async function readVerifiedTerminalTranscript(
         read += result.bytesRead;
       }
       const after = await handle.stat({ bigint: true });
-      if (
-        after.size < BigInt(end.offset) ||
-        (await transcriptPrefixDigest(handle, start.prefixBytes)) !== start.prefixDigest
-      )
+      if (after.size < BigInt(end.offset) || !(await prefixesIntact(handle, start, end)))
         return { status: "unavailable" };
       const entries: Record<string, unknown>[] = [];
       for (const line of bytes.toString("utf8").split("\n")) {
         if (line.trim() === "") continue;
         const entry = JSON.parse(line) as Record<string, unknown>;
+        // Claude file-history records carry no session and no tool use; they are not turn content.
+        if (turn.provider === "claude" && CLAUDE_FILE_HISTORY.has(entry?.type as string)) continue;
         if (
           turn.provider === "claude" &&
           (typeof entry?.sessionId !== "string" ||

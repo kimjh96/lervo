@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_67294e601dd6a0096d6fe83d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Observe skill use on the first turn of a Claude Code session, and bind agent-run knowledge queries to the calling session even while other sessions have turns open."

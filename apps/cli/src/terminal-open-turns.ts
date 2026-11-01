@@ -1,10 +1,11 @@
 import { constants } from "node:fs";
 import { lstat, mkdir, open, opendir, rename, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 
-import type { TerminalIntegrationProvider } from "@lervo/repository-knowledge";
+import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 import {
+  newTranscriptStart,
   validTranscriptPosition,
   type TranscriptPosition,
 } from "@lervo/repository-knowledge-runtime";
@@ -27,6 +28,8 @@ export interface OpenTerminalTurn {
   contextEventId: string;
   openedAt: string;
   transcript?: TranscriptPosition | null;
+  /** The transcript path when the provider had not created it yet at this prompt. */
+  transcriptAbsent?: string;
 }
 
 async function markerDirectory(root: string, create: boolean): Promise<string> {
@@ -55,6 +58,11 @@ function isMarker(value: unknown): value is OpenTerminalTurn {
     (item.transcript === undefined ||
       item.transcript === null ||
       validTranscriptPosition(item.transcript)) &&
+    (item.transcriptAbsent === undefined ||
+      (typeof item.transcriptAbsent === "string" &&
+        isAbsolute(item.transcriptAbsent) &&
+        item.transcriptAbsent.length <= 4096 &&
+        !item.transcriptAbsent.includes("\0"))) &&
     Number.isFinite(Date.parse(item.openedAt))
   );
 }
@@ -129,6 +137,24 @@ export async function openTerminalTurn(root: string, marker: OpenTerminalTurn): 
   }
 }
 
+/**
+ * The open turn an agent-run query belongs to. Claude Code gives every command it runs its own
+ * session, so the query binds to that session's marker even while other sessions have turns open.
+ * Without a provider session, it binds only when exactly one turn is open.
+ */
+export async function queryOpenTerminalTurn(
+  root: string,
+  env: NodeJS.ProcessEnv = process.env,
+  now = new Date(),
+): Promise<OpenTerminalTurn | null> {
+  const session = env.CLAUDE_CODE_SESSION_ID;
+  if (session === undefined) return singleOpenTerminalTurn(root, now);
+  // A named but unusable session never falls back to another session's single open turn.
+  if (session.trim() === "" || session.length > 512) return null;
+  const marker = await sessionOpenTerminalTurn(root, sha256(`claude\0${session}`), now);
+  return marker?.provider === "claude" ? marker : null;
+}
+
 /** The open-turn marker of one session, or null when none exists or storage is unusable. */
 export async function sessionOpenTerminalTurn(
   root: string,
@@ -165,4 +191,24 @@ export function openTurnCoordinates(marker: OpenTerminalTurn): UnmanagedTerminal
     providerSessionDigest: marker.providerSessionDigest,
     providerTurnDigest: marker.providerTurnDigest,
   };
+}
+
+/**
+ * Where the closing turn's transcript range starts: the position recorded at its prompt, or the
+ * start of a transcript that did not exist at that prompt and now exists at the same path.
+ */
+export function openTurnTranscriptStart(
+  marker: OpenTerminalTurn,
+  end: TranscriptPosition | null,
+  transcriptPath: string | undefined,
+): TranscriptPosition | null {
+  if (marker.transcript) return marker.transcript;
+  if (
+    marker.transcriptAbsent === undefined ||
+    end === null ||
+    transcriptPath === undefined ||
+    resolve(transcriptPath) !== marker.transcriptAbsent
+  )
+    return null;
+  return newTranscriptStart(end);
 }

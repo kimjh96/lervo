@@ -13,7 +13,10 @@ import {
 import { createEventReaderCapabilities } from "@lervo/event-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256 } from "@lervo/repository-knowledge";
-import { terminalTranscriptPosition } from "@lervo/repository-knowledge-runtime";
+import {
+  absentTerminalTranscript,
+  terminalTranscriptPosition,
+} from "@lervo/repository-knowledge-runtime";
 import { runTerminalSkillObservationCycle } from "../../../packages/repository-knowledge-runtime/src/terminal-skill-stage.js";
 import {
   terminalEventDraft,
@@ -73,6 +76,7 @@ export async function fixture(
   promptAnchor = false,
   provider: "claude" | "codex" = "claude",
   activated = true,
+  transcriptAtPrompt = true,
 ) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-native-skill-"));
   roots.push(root);
@@ -117,7 +121,7 @@ export async function fixture(
   );
   await mkdir(transcriptDirectory, { recursive: true });
   const transcriptPath = resolve(transcriptDirectory, "private-transcript.jsonl");
-  await writeFile(transcriptPath, skillLine("earlier-private-user-skill"));
+  if (transcriptAtPrompt) await writeFile(transcriptPath, skillLine("earlier-private-user-skill"));
   const input = parseTerminalHookInput(
     JSON.stringify({
       hook_event_name: "UserPromptSubmit",
@@ -157,14 +161,16 @@ export async function fixture(
     await storage.close();
   }
   const start = await terminalTranscriptPosition(provider, input.transcriptPath);
+  const transcriptAbsent = await absentTerminalTranscript(provider, input.transcriptPath);
   await openTerminalTurn(root, {
     provider,
     ...coordinates,
     contextEventId,
     openedAt: now.toISOString(),
     transcript: start,
+    ...(transcriptAbsent === null ? {} : { transcriptAbsent }),
   });
-  async function stop() {
+  async function stop(stopTranscriptPath = transcriptPath) {
     return recordObservedTerminalTurn({
       root,
       provider,
@@ -173,7 +179,7 @@ export async function fixture(
         JSON.stringify({
           hook_event_name: "Stop",
           session_id: "session",
-          transcript_path: transcriptPath,
+          transcript_path: stopTranscriptPath,
         }),
       ),
       lifecycle: {

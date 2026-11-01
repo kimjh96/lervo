@@ -66,3 +66,5 @@ Focused tests must show:
 - a compact turn with an ADR-0538 pointer whose path the reply quotes counts one reference.
 
 Installed verification must show, in `axli`, a Claude Code turn that runs `lervo knowledge query` and quotes a returned path, recorded as one `agent_query` selection and one `path_mention` reference.
+
+[ADR-0553](0553-bind-terminal-observations-to-the-provider-session-and-the-first-turn.md) binds agent queries to the calling Claude session before falling back to the single open turn.

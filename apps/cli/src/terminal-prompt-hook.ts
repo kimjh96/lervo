@@ -1,5 +1,8 @@
 import { openProjectStorage } from "@lervo/project-storage";
-import { terminalTranscriptPosition } from "@lervo/repository-knowledge-runtime";
+import {
+  absentTerminalTranscript,
+  terminalTranscriptPosition,
+} from "@lervo/repository-knowledge-runtime";
 import { terminalKnowledgeBootstrapNotice } from "./knowledge-bootstrap.js";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 import { writeTerminalActivationReceipt } from "./terminal-activation-state.js";
@@ -55,6 +58,8 @@ export async function prepareAndRecordTerminalPrompt({
 }): Promise<string> {
   // ADR-0542: record only the transcript position; the resident reads the turn later.
   const transcript = await terminalTranscriptPosition(provider, transcriptPath);
+  const transcriptAbsent =
+    transcript === null ? await absentTerminalTranscript(provider, transcriptPath) : null;
   const prepared = await timing.measure("context_assembly", () =>
     prepareTerminalPromptContext({
       root,
@@ -91,6 +96,7 @@ export async function prepareAndRecordTerminalPrompt({
         eventId: observationEventId,
         storage: observationStorage,
         transcript,
+        transcriptAbsent,
       });
       await writeTerminalActivationReceipt(root, {
         schemaVersion: 1,

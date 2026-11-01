@@ -162,6 +162,40 @@ it.each([
   });
 });
 
+it("reads a first turn from the start of a transcript the provider created after its prompt", async () => {
+  const f = await fixture(false, "claude", true, false);
+  expect(f.start).toBeNull();
+  // Claude writes file-history records without a session; they must not void the turn.
+  const history = (type: string) =>
+    JSON.stringify({ type, messageId: "message", snapshot: { trackedFileBackups: {} } }) + "\n";
+  await writeFile(
+    f.transcriptPath,
+    history("file-history-snapshot") + skillLine("eli5") + history("file-history-delta"),
+  );
+  await f.stop();
+  const events = await f.resident();
+  expect(events.filter((e) => e.type === "terminal.skill.observed")).toHaveLength(1);
+  expect(events.find((e) => e.type === "terminal.skill.observed")!.payload).toMatchObject({
+    skillId: "eli5",
+    source: "provider_transcript",
+  });
+  expect(
+    events.find((e) => e.type === "terminal.skill.turn_assessed")!.payload.skillTelemetry,
+  ).toBe("observed");
+});
+
+it("keeps an absent-at-prompt transcript unavailable when Stop names a different transcript", async () => {
+  const f = await fixture(false, "claude", true, false);
+  const other = resolve(f.transcriptPath, "../other-transcript.jsonl");
+  await writeFile(other, skillLine("eli5"));
+  await f.stop(other);
+  const events = await f.resident();
+  expect(events.some((e) => e.type === "terminal.skill.observed")).toBe(false);
+  expect(
+    events.find((e) => e.type === "terminal.skill.turn_assessed")!.payload.skillTelemetry,
+  ).toBe("unavailable");
+});
+
 it("records an explicit prompt pointer with prompt_invocation independently of transcript availability", async () => {
   const f = await fixture(true);
   await rm(f.transcriptPath);
