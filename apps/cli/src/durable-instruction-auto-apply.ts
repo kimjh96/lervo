@@ -1,7 +1,7 @@
 import { listDurableInstructionCandidates } from "@lervo/repository-knowledge";
 import { instructionCandidateApplyAuthority } from "@lervo/repository-knowledge-runtime";
 
-import { applyReviewedDurableInstruction } from "./durable-instruction-intake.js";
+import { applyReviewedDurableInstruction } from "./durable-instruction-review.js";
 
 /** The settling reviewer recorded for rules the owner stated and the automatic gate admitted. */
 export const OWNER_STATED_RULE_REVIEWER = "lervo-principal-proxy";

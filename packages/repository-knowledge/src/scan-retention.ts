@@ -60,9 +60,12 @@ export async function admitRetainedContent(input: {
     const retain = retainedBytes + candidate.byteCount <= input.maxTotalBytes;
     const source = await candidate.read();
     if (source === null) continue;
-    if (source.status !== "included" || retain) {
+    // An opaque resource keeps no text, so it neither spends the retained-content budget nor
+    // becomes observed-only.
+    if (source.status !== "included" || source.content === undefined || retain) {
       sources.push(source);
-      if (source.status === "included") retainedBytes += source.byteCount;
+      if (source.status === "included" && source.content !== undefined)
+        retainedBytes += source.byteCount;
       continue;
     }
     const { content, ...metadata } = source;

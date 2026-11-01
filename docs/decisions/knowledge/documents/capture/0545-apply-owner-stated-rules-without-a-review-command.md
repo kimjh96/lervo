@@ -35,7 +35,9 @@ Each resident cycle on the convergence owner, or on a single host without Hub co
 
 The recorded reviewer is `lervo-principal-proxy`. No owner or agent runs a review command.
 
-A candidate that fails the rebuilt gate, for example because the catalog changed, stays stored and is retried on the next cycle. A non-owner host never applies. It assesses its own turns and shares candidates through the Hub, and the owner host applies them after its next exchange.
+- A candidate stays bound to the instruction catalog it was judged against. Owner rules applied after it do not stale it. Each apply records the catalog digest before and after, and the candidate stays valid when those recorded applies lead from its digest to the current one. Any other catalog change still stales it.
+- On a Hub-coordinated owner, a candidate is settled only after its rule commit exists: the `applied` resolution is published and the candidate is removed. When the commit fails, for example on a held Git index lock, the written rule and its apply event stay, and the next cycle retries the commit before settling.
+- A candidate that fails the rebuilt gate stays stored and is retried on the next cycle. A non-owner host never applies. It assesses its own turns and shares candidates through the Hub, and the owner host applies them after its next exchange.
 
 `lervo knowledge instruction review` remains for rejecting a candidate or applying one by hand. Undoing an applied rule is an ordinary change to its generated file, or a new owner statement.
 
@@ -57,7 +59,9 @@ Focused tests must show:
 
 - On the owner, an owner-stated candidate is applied and committed as `Lervo Knowledge`, and its `applied` resolution is queued for the Hub. A second cycle finds nothing to apply.
 - On a non-owner host, nothing is applied, and the candidate stays.
-- A candidate whose instruction catalog changed is deferred and kept.
+- A candidate whose instruction catalog changed in another way is deferred and kept.
+- Two candidates judged against the same catalog are both applied in one cycle.
+- A failed commit keeps the candidate and publishes no resolution; the retry commits and settles it.
 - The resident worker calls the apply step only on the owner path, and its failure does not fail the cycle.
 
 Installed verification must show the owner's 2026-11-01 rule applied on the WSL owner without a review command, then present on the Mac after publication.

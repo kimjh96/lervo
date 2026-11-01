@@ -175,56 +175,55 @@ describe("priority scan byte admission", () => {
     ).toBe("observed_only");
   });
 
-  it("charges opaque skill resources, revision metadata, and supplemental evidence to the same budget", async () => {
+  it("charges revision metadata and supplemental evidence, but never text-less opaque skill resources", async () => {
     const root = await repository(["AGENTS.md"]);
     await mkdir(resolve(root, ".agents/skills/example"), { recursive: true });
     await writeFile(resolve(root, ".agents/skills/example/image.png"), Buffer.alloc(64));
-    const result = await scanRepositoryKnowledge({
-      repositoryRoot: root,
-      projectId: "prj_scanbudgetfixture",
-      policy: {
-        ...defaultRepositoryKnowledgePolicy,
-        limits: { maxFiles: 3, maxFileBytes: 64, maxTotalBytes: 128 },
-      },
-      observeRevision: async () => ({ status: "observed", content: "a".repeat(40) + "\n" }),
-      supplementalSources: [
-        {
-          path: "@event/evt_budgetfixture",
-          kind: "execution_event",
-          unitKind: "event",
-          classification: "ordinary",
-          content: "evidence",
-          adapter: "fixture.event",
-          locator: "event",
-          title: "Event",
-          origin: "execution_event_store",
+    const run = (maxTotalBytes: number) =>
+      scanRepositoryKnowledge({
+        repositoryRoot: root,
+        projectId: "prj_scanbudgetfixture",
+        policy: {
+          ...defaultRepositoryKnowledgePolicy,
+          limits: { maxFiles: 3, maxFileBytes: 64, maxTotalBytes },
         },
-      ],
-    });
-    expect(result.sources.find((source) => source.path.endsWith("image.png"))).toMatchObject({
+        observeRevision: async () => ({ status: "observed", content: "a".repeat(40) + "\n" }),
+        supplementalSources: [
+          {
+            path: "@event/evt_budgetfixture",
+            kind: "execution_event",
+            unitKind: "event",
+            classification: "ordinary",
+            content: "evidence",
+            adapter: "fixture.event",
+            locator: "event",
+            title: "Event",
+            origin: "execution_event_store",
+          },
+        ],
+      });
+    // 64 (AGENTS.md) + 41 (revision) + 8 (evidence) fit 128; the 64-byte image keeps no text.
+    const roomy = await run(128);
+    expect(roomy.sources.find((source) => source.path.endsWith("image.png"))).toMatchObject({
       status: "included",
       reason: "opaque_portable_skill_resource",
       byteCount: 64,
     });
-    const observed = result.sources.filter((source) => source.contentRetention === "observed_only");
-    expect(observed.map((source) => source.kind).sort()).toEqual([
-      "execution_event",
-      "revision_metadata",
-    ]);
+    expect(roomy.sources.some((source) => source.contentRetention === "observed_only")).toBe(false);
+    expect(roomy.coverage).toBe("complete");
+    expect(roomy.inventoryCoverage.includedBytes).toBe(177);
+
+    // At 100 bytes the revision no longer fits; the smaller evidence still does.
+    const tight = await run(100);
+    const observed = tight.sources.filter((source) => source.contentRetention === "observed_only");
+    expect(observed.map((source) => source.kind)).toEqual(["revision_metadata"]);
     expect(
       observed.every((source) => source.content === undefined && source.contentHash !== null),
     ).toBe(true);
-    // Their single whole-source units survive without the text.
-    expect(result.units.map((unit) => unit.unitKind).sort()).toEqual(
-      expect.arrayContaining(["event", "revision"]),
-    );
-    expect(result.skippedForBudget).toEqual({
-      count: 2,
-      bytes: 49,
-      classes: ["other_documents", "execution_evidence"],
-    });
-    expect(result.coverage).toBe("partial");
-    expect(result.inventoryCoverage.includedBytes).toBe(177);
+    // Its single whole-source unit survives without the text.
+    expect(tight.units.map((unit) => unit.unitKind)).toEqual(expect.arrayContaining(["revision"]));
+    expect(tight.skippedForBudget).toEqual({ count: 1, bytes: 41, classes: ["other_documents"] });
+    expect(tight.coverage).toBe("partial");
   });
 
   it("still stops on maxFiles even when none of the bytes would fit", async () => {

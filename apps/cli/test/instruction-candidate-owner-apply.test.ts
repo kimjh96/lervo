@@ -153,6 +153,40 @@ async function hubHost(role: "owner" | "waiting_owner") {
   return { root, candidate, git };
 }
 
+async function storeOwnerStatedCandidate(root: string, statement: GroundedDurableInstruction) {
+  const catalog = await inspectInstructionCatalog({
+    repositoryRoot: root,
+    supplementalSources: [],
+  });
+  const storage = await openProjectStorage(root);
+  const projectId = storage.manifest.projectId;
+  await storage.close();
+  const plan = await createDurableInstructionPlan({
+    repositoryRoot: root,
+    projectId,
+    requestDigest: sha256(statement.statement!),
+    resolverResultDigest: `sha256:${"f".repeat(64)}`,
+    groundingStatus: "ready",
+    catalogComplete: true,
+    ambiguityReasons: [],
+    instruction: statement,
+  });
+  return storeDurableInstructionCandidate({
+    repositoryRoot: root,
+    candidate: createDurableInstructionCandidate({
+      plan,
+      provider: "claude",
+      sourceSnapshotId: catalog.sourceSnapshotId,
+      instruction: statement,
+      now: new Date(),
+      instructionCatalogDigest: durableInstructionCatalogDigest(
+        catalog.semanticCatalog.canonicalInstructions.entries,
+      ),
+      capture: { source: "terminal_prompt", captureId: `kcap_${"4".repeat(24)}` },
+    }),
+  });
+}
+
 function review(root: string, candidate: { candidateId: string; candidateHash: string }) {
   const stdout: string[] = [];
   const stderr: string[] = [];
@@ -280,5 +314,53 @@ describe("applying owner-stated rules without a review command (ADR-0545)", () =
       }),
     ).toEqual({ applied: 0, deferred: 1 });
     expect(await listDurableInstructionCandidates(wsl.root)).toHaveLength(1);
+  });
+});
+
+describe("owner-stated rules that arrive together or meet a failed commit (ADR-0545)", () => {
+  it("applies two candidates judged against the same catalog in one cycle", async () => {
+    const wsl = await hubHost("owner");
+    await storeOwnerStatedCandidate(wsl.root, {
+      ...instruction,
+      title: "Implement directly",
+      statement: "Claude implements Lervo changes directly and uses Codex only for review.",
+    });
+    expect(await listDurableInstructionCandidates(wsl.root)).toHaveLength(2);
+    expect(
+      await applyOwnerStatedInstructionCandidates({
+        repositoryRoot: wsl.root,
+        now: () => new Date(),
+      }),
+    ).toEqual({ applied: 2, deferred: 0 });
+    expect(await listDurableInstructionCandidates(wsl.root)).toEqual([]);
+    const { stdout: log } = await wsl.git("log", "-2", "--format=%an");
+    expect(log.trim().split("\n")).toEqual(["Lervo Knowledge", "Lervo Knowledge"]);
+  });
+
+  it("keeps the candidate until the rule commit exists, then settles it on retry", async () => {
+    const wsl = await hubHost("owner");
+    const lock = resolve(wsl.root, ".git/index.lock");
+    await writeFile(lock, "");
+    expect(
+      await applyOwnerStatedInstructionCandidates({
+        repositoryRoot: wsl.root,
+        now: () => new Date(),
+      }),
+    ).toEqual({ applied: 0, deferred: 1 });
+    expect(await listDurableInstructionCandidates(wsl.root)).toHaveLength(1);
+    expect((await readInstructionCandidateExchangeState(wsl.root)).pendingResolutions).toEqual([]);
+    await rm(lock);
+    expect(
+      await applyOwnerStatedInstructionCandidates({
+        repositoryRoot: wsl.root,
+        now: () => new Date(),
+      }),
+    ).toEqual({ applied: 1, deferred: 0 });
+    expect(await listDurableInstructionCandidates(wsl.root)).toEqual([]);
+    const { stdout: log } = await wsl.git("log", "-1", "--format=%an%n%B");
+    expect(log).toContain(`Lervo-Instruction-Candidate: ${wsl.candidate.candidateId}`);
+    expect((await readInstructionCandidateExchangeState(wsl.root)).pendingResolutions).toEqual([
+      expect.objectContaining({ resolution: "applied" }),
+    ]);
   });
 });

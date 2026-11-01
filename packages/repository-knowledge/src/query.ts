@@ -136,13 +136,18 @@ export class RepositoryKnowledgeQueryIndex {
         linkedClaims.length > 0 || concept.assurance === "human_reviewed"
           ? "human_reviewed"
           : "unreviewed";
+      // ADR-0544: Lervo-generated concepts cite only whole-file units, which observed-only sources
+      // keep, so a missing version is a change. Other concepts may cite inner units that were not
+      // extracted, so a missing version is unknown while any source is observed-only.
       const freshness =
         conceptImpact.get(concept.conceptId) ??
         (concept.sourceUnitVersionIds.length === 0
           ? "unknown"
           : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id))
             ? "current"
-            : "stale");
+            : skippedPaths.size > 0 && concept.ownership !== "lervo_generated"
+              ? "unknown"
+              : "stale");
       const searchText = `${content}\n${linkedClaims.map((claim) => claim.statement).join("\n")}`;
       entries.push({
         hit: {
