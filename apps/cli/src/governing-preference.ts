@@ -6,7 +6,7 @@ import { governingDocumentsFor } from "@lervo/repository-knowledge";
 import { readGoverningIndex } from "./turn-governance.js";
 
 const MAXIMUM_NAMED_PATHS = 32;
-const PATH_TOKEN = /[A-Za-z0-9_.@-]+(?:\/[A-Za-z0-9_.@-]+)+\/?|[A-Za-z0-9_@-]+\.[A-Za-z0-9]{1,8}/gu;
+const PATH_TOKEN = /\.?[A-Za-z0-9_@-][A-Za-z0-9_.@-]*(?:\/[A-Za-z0-9_.@-]+)*\/?/gu;
 
 /**
  * Repository paths a query sentence names, such as `apps/cli/src/query.ts` or `docs/`. Only paths
@@ -16,7 +16,10 @@ export function repositoryPathsNamedIn(root: string, text: string): string[] {
   const found = new Set<string>();
   for (const match of text.matchAll(PATH_TOKEN)) {
     if (found.size >= MAXIMUM_NAMED_PATHS) break;
-    const candidate = match[0].replace(/[.,:;]+$/u, "").replace(/\/$/u, "");
+    const token = match[0].replace(/[.,:;]+$/u, "");
+    // A bare word names a path only as `word/`, `.dotfile`, or `name.ext`, never as itself.
+    if (!/[/.]/u.test(token)) continue;
+    const candidate = token.replace(/\/$/u, "");
     if (candidate === "" || isAbsolute(candidate)) continue;
     const relative = normalize(candidate);
     if (relative.startsWith("..") || relative.split(sep).includes("..")) continue;

@@ -159,8 +159,8 @@ export async function queryOpenTerminalTurn(
   const markers: OpenTerminalTurn[] = [];
   for (const [provider, variable] of named) {
     const session = env[variable]!;
-    // A named but unusable session never falls back to another session's single open turn.
-    if (session.trim() === "" || session.length > 512) continue;
+    // A named but unusable session never falls back to another provider or open turn.
+    if (session.trim() === "" || session.length > 512) return null;
     const marker = await sessionOpenTerminalTurn(root, sha256(`${provider}\0${session}`), now);
     if (marker?.provider === provider) markers.push(marker);
   }

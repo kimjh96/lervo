@@ -216,6 +216,15 @@ it("binds a Codex query to its thread, even when it inherited an outer Claude se
     });
 });
 
+it("never binds through an inherited session when another provider's session is unusable", async () => {
+  const root = await fixture();
+  await prepare(root, "outer-claude-session");
+  vi.stubEnv("CODEX_THREAD_ID", "");
+  vi.stubEnv("CLAUDE_CODE_SESSION_ID", "outer-claude-session");
+  await queryCommand(root);
+  expect((await events(root)).filter((event) => event.type === "context.selected")).toEqual([]);
+});
+
 it("binds nothing when both named provider sessions have open turns", async () => {
   const root = await fixture();
   await prepare(root, "codex-thread", [], "codex");

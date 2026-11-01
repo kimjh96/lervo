@@ -201,13 +201,16 @@ export function startAutonomousKnowledgeWorker(input: {
     }
     const refreshHealth = input.refreshHealth;
     projectionRefresh = (async () => {
-      do {
-        projectionAgain = false;
-        await refreshHealth().catch((error: unknown) => input.onFailure(error));
-      } while (projectionAgain && !signal.aborted);
-    })().finally(() => {
-      projectionRefresh = null;
-    });
+      try {
+        do {
+          projectionAgain = false;
+          await refreshHealth().catch((error: unknown) => input.onFailure(error));
+        } while (projectionAgain && !signal.aborted);
+      } finally {
+        // Cleared in the same turn as the last loop check, so no request lands in between.
+        projectionRefresh = null;
+      }
+    })();
     return projectionRefresh;
   };
   const runOnce = async () => {

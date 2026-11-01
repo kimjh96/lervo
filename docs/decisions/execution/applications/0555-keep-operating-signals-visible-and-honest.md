@@ -28,17 +28,17 @@ When the compact workstream section exceeds the remaining budget, it keeps whole
 
 ### Lervo's own commits never age a workstream
 
-The commit distance counts non-merge commits whose author is neither `knowledge@lervo.invalid` nor `lervo-release[bot]@users.noreply.github.com`. Git output is filtered in the CLI, so no PCRE support is needed. The count reads at most 1,000 commits; beyond that a snapshot is stale under any policy.
+The commit distance counts non-merge commits whose author is neither `knowledge@lervo.invalid` nor `lervo-release[bot]@users.noreply.github.com`. It reads `git shortlog --summary --email --no-merges`, one line per author, so the output stays bounded for any range and recent Lervo commits never hide earlier work. No PCRE support is needed.
 
 ### Agent queries bind to any provider's own session, never ambiguously
 
-`lervo knowledge query` reads `CLAUDE_CODE_SESSION_ID` for Claude Code and `CODEX_THREAD_ID` for Codex. A named session binds only when that provider's marker for it is open. When exactly one named session has an open turn, the query binds to it. When both do, it binds nothing. A blank or oversized value never falls back to another session. Without either variable, the single-open-turn rule stays.
+`lervo knowledge query` reads `CLAUDE_CODE_SESSION_ID` for Claude Code and `CODEX_THREAD_ID` for Codex. A named session binds only when that provider's marker for it is open. When exactly one named session has an open turn, the query binds to it. When both do, it binds nothing. An empty, blank, or oversized value binds nothing, never another provider's session. Without either variable, the single-open-turn rule stays.
 
 ### Unclassified failures keep their cause
 
 The private stage-failure evidence of an unclassified failure adds `cause: { code, name }`, holding the original error code and error name only when they are identifier-shaped. It never holds the message.
 
-On macOS, the host resident's launchd definition sends output to `~/Library/Logs/Lervo/knowledge-host.log`. The resident bounds that file at startup and every ten minutes: above 4 MiB, it copies the file to `knowledge-host.log.1` and truncates it in place. Systemd definitions keep logging to the journal and reject a log file.
+On macOS, the host resident's launchd definition sends output to `~/Library/Logs/Lervo/knowledge-host.log`. The resident bounds that file at startup and every ten minutes: above 4 MiB, it writes the newest 4 MiB to `knowledge-host.log.1` and truncates the file in place. The host service passes the same path to the service manager, which re-renders the definition with it, and creates the log directory first, because launchd does not. Systemd definitions keep logging to the journal and reject a log file.
 
 ## Events, states, privacy, and failure meaning
 
@@ -58,4 +58,5 @@ Focused tests show:
 - a Codex query binds to its thread while inheriting an outer Claude session, and two open named sessions bind nothing;
 - an unclassified cause keeps identifier-shaped code and name only;
 - the launchd definition includes the log paths only when given, and systemd rejects them;
-- the log bound keeps one previous generation and truncates in place.
+- the log bound keeps one previous generation of at most 4 MiB and truncates in place;
+- the managed install passes the log path to the service manager and creates its directory.

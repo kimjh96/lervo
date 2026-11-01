@@ -55,15 +55,18 @@ export async function measureWorkstreamHeadDistance(
   if (recorded === undefined) return { status: "not_recorded" };
   try {
     await git(root, ["merge-base", "--is-ancestor", recorded, "HEAD"]);
-    // A bounded window: past 1,000 counted commits the snapshot is stale under any policy.
+    // One line per author with its commit count, so the output stays bounded however long the
+    // range is, and recent Lervo commits never hide earlier work.
     const authors = await git(
       root,
-      ["log", "--no-merges", "--max-count=1000", "--format=%ae", `${recorded}..HEAD`],
-      1000 * 256,
+      ["shortlog", "--summary", "--numbered", "--email", "--no-merges", `${recorded}..HEAD`],
+      256 * 1024,
     );
-    const count = authors
-      .split("\n")
-      .filter((email) => email !== "" && !LERVO_AUTHOR_EMAILS.has(email)).length;
+    let count = 0;
+    for (const line of authors.split("\n")) {
+      const match = /^\s*(\d+)\s+.*<([^>]*)>\s*$/u.exec(line);
+      if (match !== null && !LERVO_AUTHOR_EMAILS.has(match[2]!)) count += Number(match[1]);
+    }
     return Number.isSafeInteger(count) && count >= 0
       ? { status: "measured", commitsBehind: count }
       : { status: "unresolvable" };

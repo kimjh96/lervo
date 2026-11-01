@@ -12,7 +12,9 @@ last="starting"
 finish() { echo "$1"; exit "$2"; }
 
 pr_checks() {
-  local json; json=$(gh pr checks "$1" --json name,bucket 2>/dev/null) || return 3
+  # gh exits non-zero when a check failed, so judge the JSON it printed rather than its status.
+  local json; json=$(gh pr checks "$1" --json name,bucket 2>/dev/null)
+  jq -e 'type == "array"' >/dev/null 2>&1 <<<"$json" || return 3
   local pending total failed
   total=$(jq 'length' <<<"$json"); pending=$(jq '[.[]|select(.bucket=="pending")]|length' <<<"$json")
   failed=$(jq '[.[]|select(.bucket=="fail" or .bucket=="cancel")]|length' <<<"$json")
@@ -32,7 +34,9 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
       number=$(gh pr list --head lervo/release-cli --state open --json number --jq '.[0].number' 2>/dev/null)
       if [ -n "$number" ]; then
         sha=$(gh pr view "$number" --json headRefOid --jq .headRefOid)
-        runs=$(gh run list --commit "$sha" --event workflow_dispatch --json name,status,conclusion 2>/dev/null || echo '[]')
+        # Only the newest dispatch of each workflow counts; a retried candidate supersedes a failure.
+        runs=$(gh run list --commit "$sha" --event workflow_dispatch --json name,status,conclusion,createdAt 2>/dev/null \
+          | jq '[group_by(.name)[] | max_by(.createdAt)]' 2>/dev/null || echo '[]')
         total=$(jq 'length' <<<"$runs"); pending=$(jq '[.[]|select(.status!="completed")]|length' <<<"$runs")
         last="PR #$number $sha: $(jq -r '[.[]|"\(.name)=\(.status)/\(.conclusion)"]|join(", ")' <<<"$runs")"
         if [ "$total" -gt 0 ] && [ "$pending" -eq 0 ]; then

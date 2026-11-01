@@ -18,6 +18,8 @@ async function root() {
   await mkdir(resolve(path, ".lervo/state"), { recursive: true });
   await writeFile(resolve(path, "apps/cli/src/query.ts"), "");
   await writeFile(resolve(path, "package.json"), "{}");
+  await mkdir(resolve(path, "scripts"), { recursive: true });
+  await writeFile(resolve(path, ".gitignore"), "");
   return path;
 }
 
@@ -26,9 +28,9 @@ it("finds only existing repository paths written in a query sentence", async () 
   expect(
     repositoryPathsNamedIn(
       path,
-      "Fix ranking in apps/cli/src/query.ts, apps/cli/ and package.json; not docs/missing.md or ../etc/passwd.",
+      "Fix ranking in apps/cli/src/query.ts, apps/cli/ and package.json; also scripts/ and .gitignore, not docs/missing.md, ../etc/passwd, or the scripts word alone.",
     ),
-  ).toEqual(["apps/cli/src/query.ts", "apps/cli", "package.json"]);
+  ).toEqual(["apps/cli/src/query.ts", "apps/cli", "package.json", "scripts", ".gitignore"]);
 });
 
 it("weights canonical documents by how many target paths they name", async () => {

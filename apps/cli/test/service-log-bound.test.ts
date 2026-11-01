@@ -17,8 +17,9 @@ it("keeps one previous generation and truncates an oversized service log in plac
   expect(await boundServiceLog(path, 16)).toBe(false);
   await writeFile(path, "small\n");
   expect(await boundServiceLog(path, 16)).toBe(false);
-  await writeFile(path, "x".repeat(40));
+  await writeFile(path, "a".repeat(24) + "x".repeat(16));
   expect(await boundServiceLog(path, 16)).toBe(true);
   expect((await stat(path)).size).toBe(0);
-  expect(await readFile(`${path}.1`, "utf8")).toBe("x".repeat(40));
+  // The previous generation keeps only the newest bytes, within the same bound.
+  expect(await readFile(`${path}.1`, "utf8")).toBe("x".repeat(16));
 });

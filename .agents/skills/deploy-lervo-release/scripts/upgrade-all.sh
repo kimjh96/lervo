@@ -8,7 +8,11 @@ import json,os,sys
 for p in [os.path.expanduser("~/Library/Application Support/Lervo/repositories.json"), os.path.expanduser("~/.local/state/lervo/repositories.json")]:
     if os.path.exists(p):
         d=json.load(open(p)); items=d.get("repositories",d) if isinstance(d,dict) else d
-        print("\n".join(r.get("root") or r.get("repositoryRoot") for r in items)); break')
+        print("\n".join(r.get("root") or r.get("repositoryRoot") for r in items)); break
+else:
+    sys.exit("no Lervo repository registry on this host")')
+[ $? -eq 0 ] && [ -n "$reg" ] || { echo "registry unreadable or empty" >&2; exit 2; }
+failed=0
 summary() { python3 -I -c "import json,sys;d=json.load(open(sys.argv[1]));print(d.get('status'),'applied=',d.get('appliedStages'),'skipped=',[s.get('stage') for s in d.get('skippedStages') or []],'lint=',d.get('knowledgeLint'),'err=',(d.get('error') or {}).get('code'))" "$1" 2>/dev/null; }
 while IFS= read -r root; do
   [ -z "$root" ] && continue; name=$(basename "$root"); final="?"
@@ -30,4 +34,7 @@ while IFS= read -r root; do
     [ "$status" != "ready" ] && break
   done
   echo "== $name: $final"
+  [ "$final" = "current" ] || failed=$((failed + 1))
 done <<< "$reg"
+# Any repository that did not reach current fails the run, so a caller never reads it as done.
+[ "$failed" -eq 0 ] || { echo "$failed repositories not current" >&2; exit 1; }

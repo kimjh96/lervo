@@ -79,6 +79,7 @@ function parse(args) {
     "--executable",
     "--node-executable",
     "--path-directories",
+    "--log-file",
     "--config",
     "--configuration-source",
   ]);
@@ -122,6 +123,7 @@ function parse(args) {
     (["upgrade", "rollback"].includes(action) ? 1 : 0) +
     (nodeExecutable === undefined ? 0 : 1) +
     (values.has("--path-directories") ? 1 : 0) +
+    (values.has("--log-file") ? 1 : 0) +
     (configurationSource === undefined ? 0 : 1);
   if (!write || values.size !== expectedSize) {
     fail("write_not_authorized", "Install and remove require canonical input and --write.");
@@ -130,9 +132,11 @@ function parse(args) {
   const previousDefinition = values.get("--previous-definition");
   const executable = values.get("--executable");
   const config = values.get("--config");
+  const logFile = values.get("--log-file");
   for (const value of [
     definition,
     executable,
+    ...(logFile === undefined ? [] : [logFile]),
     ...(nodeExecutable === undefined ? [] : [nodeExecutable]),
     config,
     ...(configurationSource === undefined ? [] : [configurationSource]),
@@ -152,6 +156,7 @@ function parse(args) {
     executable: resolve(executable),
     nodeExecutable: nodeExecutable === undefined ? null : resolve(nodeExecutable),
     pathDirectories: values.get("--path-directories")?.split(":") ?? [],
+    ...(logFile === undefined ? {} : { logFile: resolve(logFile) }),
     config: resolve(config),
     ...(configurationSource === undefined
       ? {}
