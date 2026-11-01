@@ -2,7 +2,7 @@
   "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.23.2",
+    "version": "0.23.3",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -350,5 +350,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:f823ed47e3affa706433a59a0d5b6736436b6f35df8285126244f7cf973e14f8"
+  "artifactDigest": "sha256:9d7dbe3c06e355b8f772f36cef6be9441e82438a8744facc66f1a54d5d30c9ad"
 }
