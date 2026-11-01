@@ -65,10 +65,21 @@ export function platformApiUrl(
   return url;
 }
 
+/**
+ * An untyped platform failure carries a stable code, such as `http_429` or `response_too_large`,
+ * so an operator can tell failures apart without the response body or any message content.
+ */
+function platformHttpFailure(code: string, message: string): Error {
+  return Object.assign(new Error(message), { code });
+}
+
 async function readJsonResponse(input: { response: Response; maximum: number }): Promise<unknown> {
   if (!input.response.headers.get("content-type")?.toLowerCase().startsWith("application/json")) {
     await input.response.body?.cancel();
-    throw new Error("Platform API response content type mismatch");
+    throw platformHttpFailure(
+      "response_content_type_mismatch",
+      "Platform API response content type mismatch",
+    );
   }
   const declared = input.response.headers.get("content-length");
   if (
@@ -76,9 +87,10 @@ async function readJsonResponse(input: { response: Response; maximum: number }):
     (!/^(0|[1-9][0-9]*)$/.test(declared) || Number(declared) > input.maximum)
   ) {
     await input.response.body?.cancel();
-    throw new Error("Platform API response size mismatch");
+    throw platformHttpFailure("response_size_mismatch", "Platform API response size mismatch");
   }
-  if (input.response.body === null) throw new Error("Platform API response body missing");
+  if (input.response.body === null)
+    throw platformHttpFailure("response_body_missing", "Platform API response body missing");
   const reader = input.response.body.getReader();
   const chunks: Uint8Array[] = [];
   let byteCount = 0;
@@ -88,7 +100,7 @@ async function readJsonResponse(input: { response: Response; maximum: number }):
     byteCount += chunk.value.byteLength;
     if (byteCount > input.maximum) {
       await reader.cancel();
-      throw new Error("Platform API response too large");
+      throw platformHttpFailure("response_too_large", "Platform API response too large");
     }
     chunks.push(chunk.value);
   }
@@ -117,7 +129,10 @@ export async function getPlatformJson(options: PlatformJsonReadOptions): Promise
     });
     if (!response.ok) {
       await response.body?.cancel();
-      throw new Error("Platform API rejected history retrieval");
+      throw platformHttpFailure(
+        `http_${response.status}`,
+        "Platform API rejected history retrieval",
+      );
     }
     return await readJsonResponse({ response, maximum });
   } catch (error) {

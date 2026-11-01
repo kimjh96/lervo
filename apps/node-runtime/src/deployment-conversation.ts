@@ -24,8 +24,30 @@ import { resolveDiscordUnaddressedPriorities } from "./discord-conversation-prio
 import { assertProductOwnerSupervisionPolicy } from "./product-owner-supervision-policy.js";
 import type { NodeRuntimeDeferredWork } from "./startup-deferred-work.js";
 
+/**
+ * Where an error was thrown, as `file:line:column` of its first stack frame, with the directory
+ * removed. It names code, never message content, so an uncoded failure can still be located.
+ */
+function siteOf(error: unknown): { site?: string } {
+  const site = errorThrowSite(error);
+  return site === null ? {} : { site };
+}
+
+export function errorThrowSite(error: unknown): string | null {
+  const stack = (error as { stack?: unknown } | null)?.stack;
+  if (typeof stack !== "string") return null;
+  for (const line of stack.split("\n").slice(1, 8)) {
+    const match = /\(?([^()\s]+):(\d+):(\d+)\)?\s*$/u.exec(line.trim());
+    if (match === null) continue;
+    const file = match[1]!.split(/[\\/]/u).at(-1)!;
+    if (!/^[A-Za-z0-9_.-]{1,96}$/u.test(file)) continue;
+    return `${file}:${match[2]}:${match[3]}`;
+  }
+  return null;
+}
+
 function boundedErrorCoordinates(error: unknown): string {
-  const coordinates: Array<{ name: string; code: string | null }> = [];
+  const coordinates: Array<{ name: string; code: string | null; site?: string }> = [];
   const seen = new Set<unknown>();
   let current: unknown = error;
   while (typeof current === "object" && current !== null && !seen.has(current)) {
@@ -40,6 +62,7 @@ function boundedErrorCoordinates(error: unknown): string {
         typeof record.code === "string" && /^[A-Za-z][A-Za-z0-9_-]{0,63}$/u.test(record.code)
           ? record.code
           : null,
+      ...(typeof record.code === "string" ? {} : siteOf(current)),
     });
     if (coordinates.length >= 6) break;
     current = record.cause;
