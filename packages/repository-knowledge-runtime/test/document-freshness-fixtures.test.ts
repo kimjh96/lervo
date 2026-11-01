@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { rm, writeFile } from "node:fs/promises";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { applyFreshnessCandidateByOwner } from "../src/freshness-apply.js";
 import { revertFreshnessCandidate } from "../src/freshness-revert.js";
@@ -9,6 +9,7 @@ import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js"
 
 const fixtures: FreshnessFixture[] = [];
 afterEach(async () => {
+  vi.restoreAllMocks();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });

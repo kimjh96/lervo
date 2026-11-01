@@ -19,6 +19,7 @@ import { verificationSuiteHash } from "@lervo/verification";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { convergenceDelegationPlanHash, type ConvergenceDelegation } from "../src/delegation.js";
 
+import { isolateProviderCliDetection } from "./provider-cli-detection-isolation.js";
 const execute = promisify(execFile);
 export async function fixture(
   authorized = false,
@@ -28,6 +29,8 @@ export async function fixture(
   writableEventSchemaVersion: 4 | 5 | 8 = 4,
 ) {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-autonomous-knowledge-"));
+  // A failing fixture executable must never fall back to a provider CLI installed on this machine.
+  isolateProviderCliDetection(directory);
   const root = resolve(directory, "repository");
   await mkdir(root);
   await applyInitPlan(await createInitPlan({ root, projectId: "prj_convergence_runtime" }));

@@ -5,6 +5,7 @@ import { promisify } from "node:util";
 
 import { runDocumentFreshnessCycle } from "../src/freshness-stage.js";
 import { fixture } from "./fixture.js";
+import { isolateProviderCliDetection } from "./provider-cli-detection-isolation.js";
 
 const execute = promisify(execFile);
 const fixtureProvider = resolve(
@@ -33,6 +34,8 @@ export interface FreshnessPlanEntry {
  */
 export async function freshnessFixture(eventSchema: 4 | 5 = 4) {
   const base = await fixture(true, false, false, 0, eventSchema);
+  // A provider failure must defer the cycle, not fall back to a provider CLI on the host.
+  isolateProviderCliDetection(base.directory);
   const providerDirectory = resolve(base.directory, "freshness-provider");
   await mkdir(providerDirectory, { recursive: true });
   const executable = resolve(providerDirectory, "claude");
