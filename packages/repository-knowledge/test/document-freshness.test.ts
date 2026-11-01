@@ -573,3 +573,35 @@ describe("document freshness policy", () => {
 });
 
 export type { DocumentFreshnessFindingV1 };
+
+describe("unresolved references in freshness generation", () => {
+  it("tells the generator that no_change_needed cannot settle an unresolved reference", async () => {
+    const { documentFreshnessGenerationInstruction } =
+      await import("../src/document-freshness-response.js");
+    expect(documentFreshnessGenerationInstruction).toContain(
+      "When untrustedSourceData.unresolvedReferences is not empty, no_change_needed is never accepted",
+    );
+    expect(documentFreshnessGenerationInstruction).toContain(
+      "append ` (removed)` to that same line",
+    );
+  });
+
+  it("accepts a removed target that its own line marks as removed", async () => {
+    const { unresolvedDocumentReferences } =
+      await import("../src/document-freshness-references.js");
+    const oracle = {
+      exists: (path: string) => path === "docs/current.md",
+      readText: () => null,
+      topLevel: (segment: string) => ["docs", "packages"].includes(segment),
+    };
+    const before = "# Evidence\n\nThe check read `packages/runtime/test/._worker.test.ts`.\n";
+    const after =
+      "# Evidence\n\nThe check read `packages/runtime/test/._worker.test.ts` (removed).\n";
+    expect(
+      unresolvedDocumentReferences({ path: "docs/evidence/a.md", content: before, oracle }),
+    ).toHaveLength(1);
+    expect(
+      unresolvedDocumentReferences({ path: "docs/evidence/a.md", content: after, oracle }),
+    ).toEqual([]);
+  });
+});
