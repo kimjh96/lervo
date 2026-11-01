@@ -108,6 +108,11 @@ function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+/** The resident bounds this file at startup (ADR-0555); launchd only appends to it. */
+export function knowledgeHostLogPath(homeDirectory: string): string {
+  return resolve(homeDirectory, "Library", "Logs", "Lervo", "knowledge-host.log");
+}
+
 function managerFor(platform: NodeJS.Platform): "launchd" | "systemd" | null {
   return platform === "darwin" ? "launchd" : platform === "linux" ? "systemd" : null;
 }
@@ -208,6 +213,7 @@ async function prepareHostService(ports: KnowledgeHostServicePorts): Promise<Pre
     nodeExecutable,
     pathDirectories: [],
     config: configPath,
+    ...(manager === "launchd" ? { logFile: knowledgeHostLogPath(ports.homeDirectory) } : {}),
   }) as string;
   const options = { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid };
   const status = await ports.manage(

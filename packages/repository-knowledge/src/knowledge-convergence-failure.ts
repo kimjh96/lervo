@@ -102,3 +102,23 @@ export function normalizedConvergenceFailure(error: unknown): string {
     ? code
     : "knowledge_stage_failure_unclassified";
 }
+
+/**
+ * What an unclassified failure was, without its message: the original code and error name when
+ * they are identifier-shaped. Private stage evidence keeps it so the next look finds the cause.
+ */
+export function unclassifiedFailureCause(error: unknown): {
+  code: string | null;
+  name: string | null;
+} {
+  const value = error as { code?: unknown; name?: unknown } | null;
+  const code =
+    typeof value?.code === "string" && /^[A-Za-z][A-Za-z0-9_.-]{1,63}$/u.test(value.code)
+      ? value.code
+      : null;
+  const name =
+    typeof value?.name === "string" && /^[A-Za-z][A-Za-z0-9]{1,63}$/u.test(value.name)
+      ? value.name
+      : null;
+  return { code, name };
+}

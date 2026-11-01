@@ -304,6 +304,20 @@ describe("knowledge host resident service definition", () => {
     );
   });
 
+  it("routes launchd output to a log file only when one is given, and never for systemd", () => {
+    const logFile = "/Users/owner/Library/Logs/Lervo/knowledge-host.log";
+    const launchd = formatRuntimeServiceDefinition({ ...input, manager: "launchd", logFile });
+    expect(launchd).toContain(
+      `<key>StandardOutPath</key>\n  <string>${logFile}</string>\n  <key>StandardErrorPath</key>\n  <string>${logFile}</string>`,
+    );
+    expect(formatRuntimeServiceDefinition({ ...input, manager: "launchd" })).not.toContain(
+      "StandardErrorPath",
+    );
+    expect(() => formatRuntimeServiceDefinition({ ...input, manager: "systemd", logFile })).toThrow(
+      /Only a launchd service takes a log file/u,
+    );
+  });
+
   it("renders resolved tool directories into PATH before the system directories", () => {
     const systemd = formatRuntimeServiceDefinition({
       ...input,

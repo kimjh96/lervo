@@ -54,7 +54,7 @@ function parse(args) {
       values.has(key)
     ) {
       fail(
-        "Usage: --manager <systemd|launchd> --runtime <hub|node|knowledge-host|repository-replica> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] [--path-directories <dir:dir>] --config <absolute-path> --output <new-absolute-path>",
+        "Usage: --manager <systemd|launchd> --runtime <hub|node|knowledge-host|repository-replica> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] [--path-directories <dir:dir>] [--log-file <absolute-path>] --config <absolute-path> --output <new-absolute-path>",
       );
     }
     values.set(key, value);
@@ -66,6 +66,7 @@ function parse(args) {
     "--executable",
     "--node-executable",
     "--path-directories",
+    "--log-file",
     "--config",
     "--output",
   ]);
@@ -82,7 +83,8 @@ function parse(args) {
     values.size !==
     (runtime === "node" ? 6 : 5) +
       (nodeExecutable === undefined ? 0 : 1) +
-      (values.has("--path-directories") ? 1 : 0)
+      (values.has("--path-directories") ? 1 : 0) +
+      (values.has("--log-file") ? 1 : 0)
   ) {
     fail("A required service-render argument is missing or an unexpected argument was provided.");
   }
@@ -95,9 +97,13 @@ function parse(args) {
   const executable = values.get("--executable");
   const config = values.get("--config");
   const output = values.get("--output");
+  const logFile = values.get("--log-file");
+  if (logFile !== undefined && manager !== "launchd")
+    fail("Only a launchd service takes a log file; systemd services log to the user journal.");
   for (const [label, value] of [
     ["executable", executable],
     ...(nodeExecutable === undefined ? [] : [["Node executable", nodeExecutable]]),
+    ...(logFile === undefined ? [] : [["log file", logFile]]),
     ["config", config],
     ["output", output],
   ]) {
@@ -114,6 +120,7 @@ function parse(args) {
     pathDirectories,
     config: resolve(config),
     output: resolve(output),
+    logFile: logFile === undefined ? null : resolve(logFile),
   };
 }
 
@@ -225,10 +232,15 @@ function launchd(input) {
   const path = xml(runtimePath(input));
   const nodeArgument =
     input.nodeExecutable === null ? "" : `    <string>${xml(input.nodeExecutable)}</string>\n`;
+  // launchd discards output without these keys; systemd services already log to the journal.
+  const logLines =
+    input.logFile === null || input.logFile === undefined
+      ? ""
+      : `  <key>StandardOutPath</key>\n  <string>${xml(input.logFile)}</string>\n  <key>StandardErrorPath</key>\n  <string>${xml(input.logFile)}</string>\n`;
   const runtimeArgumentLines = runtimeArguments(input)
     .map((value) => `    <string>${xml(value)}</string>\n`)
     .join("");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n${runtimeArgumentLines}  </array>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>PATH</key>\n    <string>${path}</string>\n  </dict>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n</dict>\n</plist>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n${runtimeArgumentLines}  </array>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>PATH</key>\n    <string>${path}</string>\n  </dict>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n${logLines}</dict>\n</plist>\n`;
 }
 
 function normalizeDefinitionInput(input) {
@@ -248,6 +260,7 @@ function normalizeDefinitionInput(input) {
     ...((input.pathDirectories ?? []).length === 0
       ? []
       : ["--path-directories", input.pathDirectories.join(":")]),
+    ...(input.logFile === undefined || input.logFile === null ? [] : ["--log-file", input.logFile]),
     "--config",
     input.config,
     "--output",
