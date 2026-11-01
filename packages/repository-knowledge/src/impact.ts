@@ -15,6 +15,7 @@ import type {
   RepositoryKnowledgeScan,
 } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
+import { observedOnlySource } from "./scan-retention.js";
 
 interface EvidenceSubject {
   subjectKind: "claim" | "relation";
@@ -31,6 +32,7 @@ function aggregateFreshness(counts: KnowledgeImpactItem["evidence"]): KnowledgeF
 }
 
 function evaluateSubject(input: {
+  /** Every unit of every source is present, so an absent unit is provably missing. */
   complete: boolean;
   subject: EvidenceSubject;
   currentVersionIds: Set<string>;
@@ -124,10 +126,15 @@ export async function analyzeRepositoryKnowledgeImpact(input: {
   const versionToUnitId = new Map<string, string>();
   for (const unit of input.scan.units) versionToUnitId.set(unit.unitVersionId, unit.unitId);
 
+  // Unit ids are one-way digests, so an absent cited unit cannot be attributed to a source. Any
+  // observed-only source (ADR-0544) may own it, so absence proves deletion only when every source
+  // is retained; otherwise it is unknown with `scan_incomplete`, never stale.
+  const unitsComplete =
+    input.scan.coverage === "complete" && !input.scan.sources.some(observedOnlySource);
   const semanticItems = subjects.map((subject) => ({
     subject,
     item: evaluateSubject({
-      complete: input.scan.coverage === "complete",
+      complete: unitsComplete,
       subject,
       currentVersionIds,
       currentByUnitId,

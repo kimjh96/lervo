@@ -12,6 +12,7 @@ function knowledgeResult() {
     semantics: "recommended" as const,
     coverage: "complete" as const,
     skippedForBudget: { count: 0, bytes: 0, classes: [] },
+    retention: { observedOnly: { count: 0, bytes: 0, classes: [] } },
     ranking: {
       engine: { id: "lexical", version: 2 },
       adapterBuildId: LEXICAL_V2_ADAPTER_BUILD_ID,

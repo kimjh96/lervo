@@ -99,3 +99,59 @@ it("returns hits and compact JSON and text coverage for a partial scan", async (
     code: "knowledge_source_limit_exceeded",
   });
 });
+
+it("keeps complete coverage and reports the observed-only Find gap when code overflows", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-query-retention-"));
+  roots.push(root);
+  await applyInitPlan(await createInitPlan({ root, projectId: "prj_queryretention" }));
+  await mkdir(resolve(root, "docs/specifications"), { recursive: true });
+  await writeFile(
+    resolve(root, "docs/specifications/runtime.md"),
+    "# Cobaltretention\nKeep cobaltretention observable.\n",
+  );
+  await applyKnowledgeMigrationPlan(
+    await createKnowledgeMigrationPlan({ repositoryRoot: root }),
+    new Date(),
+    () => undefined,
+  );
+  const complete = await scanConfiguredRepositoryKnowledge(root);
+  const budget = complete.scan.inventoryCoverage.includedBytes + 4096;
+  await mkdir(resolve(root, "src"), { recursive: true });
+  await writeFile(
+    resolve(root, "src/overflow.ts"),
+    `export const value = "${"c".repeat(budget)}";\n`,
+  );
+  await writeFile(
+    resolve(root, ".lervo/knowledge/policy.yaml"),
+    JSON.stringify({
+      ...defaultRepositoryKnowledgePolicy,
+      limits: { ...defaultRepositoryKnowledgePolicy.limits, maxTotalBytes: budget },
+    }),
+  );
+  for (const json of [true, false]) {
+    let output = "";
+    const code = await runKnowledgeQuery([...(json ? ["--json"] : []), "cobaltretention"], {
+      cwd: root,
+      stdout: (text) => {
+        output += text;
+      },
+      stderr: () => undefined,
+    });
+    expect(code).toBe(0);
+    if (json)
+      expect(JSON.parse(output)).toMatchObject({
+        coverage: "complete",
+        retention: { observedOnly: { count: 1, classes: ["source_and_configuration"] } },
+      });
+    else {
+      expect(output).toContain("Scan coverage: complete;");
+      expect(output).toContain(
+        "Find gap (repository scanner): 1 observed-only sources, " +
+          `${budget + 25} bytes (source_and_configuration) are hashed and change-tracked but not searched by symbol or section.`,
+      );
+    }
+  }
+  await expect(createKnowledgeMigrationPlan({ repositoryRoot: root })).resolves.toMatchObject({
+    coverage: { complete: true },
+  });
+});

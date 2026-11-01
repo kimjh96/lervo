@@ -127,6 +127,11 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
                   "Repository knowledge is not built in this checkout, so zero recommendations does not mean no source matches. Run `lervo migrate knowledge`; Git ignores the generated output.",
                 ]),
             `Scan coverage: ${result.coverage}; skipped for budget: ${result.skippedForBudget.count} sources, ${result.skippedForBudget.bytes} bytes${result.skippedForBudget.classes.length ? `; classes: ${result.skippedForBudget.classes.join(", ")}` : ""}.`,
+            ...(result.retention.observedOnly.count === 0
+              ? []
+              : [
+                  `Find gap (repository scanner): ${result.retention.observedOnly.count} observed-only sources, ${result.retention.observedOnly.bytes} bytes (${result.retention.observedOnly.classes.join(", ")}) are hashed and change-tracked but not searched by symbol or section.`,
+                ]),
             ...result.hits.map(
               (hit) =>
                 `  ${hit.score.toString().padStart(2)}  ${hit.title} · ${hit.path} · ${hit.freshness}`,

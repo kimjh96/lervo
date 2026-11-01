@@ -13,7 +13,6 @@ import { sha256, stableId } from "./integrity.js";
 import { loadDocumentMoveLineages } from "./source-lineage.js";
 import type {
   RepositoryKnowledgePolicy,
-  RepositoryKnowledgeScan,
   RepositorySource,
   RepositorySupplementalSource,
 } from "./types.js";
@@ -27,7 +26,8 @@ import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
 import { observeGitIgnoredPaths, type ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
 import { defaultDecisionTaxonomy } from "@lervo/project";
 import { loadDocumentLayoutContract } from "./document-layout-contract.js";
-import { compareScanPaths, repositoryScanPriority, scanPriorityClasses } from "./scan-priority.js";
+import { repositoryScanPriority } from "./scan-priority.js";
+import { admitRetainedContent, type ScanRetentionCandidate } from "./scan-retention.js";
 import type { SourceUnitCache } from "./source-unit-cache.js";
 
 import { concurrentSourceChange, readRepositoryFileSource } from "./scanner-file-source.js";
@@ -57,14 +57,8 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
   // Git-ignored untracked paths carry no repository knowledge (ADR-0433), so the scan never reads
   // them. Without this, a virtual environment or build output fills the read budget.
   const gitIgnored = await (input.observeIgnoredPaths ?? observeGitIgnoredPaths)(root);
-  let includedBytes = 0;
   const taxonomy = (await loadDocumentLayoutContract(root)).taxonomy ?? defaultDecisionTaxonomy;
-  const candidates: Array<{
-    path: string;
-    byteCount: number;
-    source: RepositorySource;
-    read: () => Promise<void>;
-  }> = [];
+  const candidates: ScanRetentionCandidate[] = [];
   const supplementalByPath = new Map<string, RepositorySupplementalSource>();
   let visitedFiles = 0;
 
@@ -178,7 +172,6 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
         classification: "unsupported",
         byteCount: stats.size,
         contentHash: null,
-        reason: "total_budget_exceeded",
       };
       if (binaryExtensions.has(extname(path).toLowerCase()) && !boundedOpaqueResource) {
         sources.push({ ...source, kind: "other", reason: "binary_file" });
@@ -187,11 +180,8 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
       candidates.push({
         path,
         byteCount: stats.size,
-        source,
-        read: async () => {
-          const observed = await readRepositoryFileSource(absolute, source);
-          if (observed !== null) sources.push(observed);
-        },
+        priority: repositoryScanPriority(path, taxonomy),
+        read: () => readRepositoryFileSource(absolute, source),
       });
     }
   };
@@ -216,10 +206,8 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
     candidates.push({
       path: source.path,
       byteCount: revisionBytes,
-      source,
-      read: async () => {
-        sources.push(source);
-      },
+      priority: repositoryScanPriority(source.path, taxonomy),
+      read: async () => source,
     });
   } else {
     sources.push({
@@ -235,9 +223,7 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
     });
   }
   // A set keeps the collision check linear; event-heavy repositories supply thousands of units.
-  const repositorySourcePaths = new Set(
-    [...sources, ...candidates.map((candidate) => candidate.source)].map((source) => source.path),
-  );
+  const repositorySourcePaths = new Set([...sources, ...candidates].map((source) => source.path));
   for (const supplemental of [...(input.supplementalSources ?? [])].sort((left, right) =>
     left.path.localeCompare(right.path),
   )) {
@@ -288,49 +274,29 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
     candidates.push({
       path: source.path,
       byteCount,
-      source,
-      read: async () => {
-        sources.push(source);
-      },
+      priority: repositoryScanPriority(source.path, taxonomy),
+      read: async () => source,
+      supplemental,
     });
   }
-  candidates.sort(
-    (left, right) =>
-      scanPriorityClasses.indexOf(repositoryScanPriority(left.path, taxonomy)) -
-        scanPriorityClasses.indexOf(repositoryScanPriority(right.path, taxonomy)) ||
-      compareScanPaths(left.path, right.path),
-  );
-  const skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"] = {
-    count: 0,
-    bytes: 0,
-    classes: [],
-  };
-  const skippedClasses = new Set<RepositoryKnowledgeScan["skippedForBudget"]["classes"][number]>();
-  for (const candidate of candidates) {
-    if (includedBytes + candidate.byteCount > input.policy.limits.maxTotalBytes) {
-      const { content: _content, ...metadata } = candidate.source;
-      sources.push({
-        ...metadata,
-        status: "unsupported",
-        classification: "unsupported",
-        contentHash: null,
-        reason: "total_budget_exceeded",
-      });
-      skippedForBudget.count += 1;
-      skippedForBudget.bytes += candidate.byteCount;
-      skippedClasses.add(repositoryScanPriority(candidate.path, taxonomy));
-      continue;
-    }
-    const offset = sources.length;
-    await candidate.read();
-    for (const source of sources.slice(offset))
-      if (source.status === "included") includedBytes += source.byteCount;
-  }
+  const admitted = await admitRetainedContent({
+    projectId: input.projectId,
+    maxTotalBytes: input.policy.limits.maxTotalBytes,
+    candidates,
+  });
+  sources.push(...admitted.sources);
   if (JSON.stringify(await observeRevision(root)) !== JSON.stringify(revisionBefore))
     throw new RepositoryKnowledgeError(
       "source_bytes_changed",
       "The repository revision changed during the scan.",
     );
-  skippedForBudget.classes = scanPriorityClasses.filter((value) => skippedClasses.has(value));
-  return { sources, includedBytes, supplementalByPath, sourceLineages, skippedForBudget };
+  return {
+    sources,
+    observedUnits: admitted.observedUnits,
+    supplementalByPath,
+    sourceLineages,
+    coverage: admitted.coverage,
+    skippedForBudget: admitted.skippedForBudget,
+    retention: admitted.retention,
+  };
 }

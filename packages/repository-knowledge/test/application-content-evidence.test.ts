@@ -18,8 +18,8 @@ function observe(sources: ApplicationContentSource[], documentPaths: string[]) {
 }
 
 describe("application content evidence", () => {
-  it("resolves imports, static template prefixes, and joined path arguments within a package", () => {
-    const evidence = observe(
+  it("resolves imports, static template prefixes, and joined path arguments within a package", async () => {
+    const evidence = await observe(
       [
         source("apps/web/package.json", "{}", "build_definition"),
         source("apps/web/src/guide.ts", 'import guide from "./content/guide.md";\n'),
@@ -53,7 +53,7 @@ describe("application content evidence", () => {
     ]);
   });
 
-  it("accepts a content glob only when it admits the document's extension", () => {
+  it("accepts a content glob only when it admits the document's extension", async () => {
     const sources = [
       source("site/package.json", "{}", "build_definition"),
       source("site/content.config.mjs", 'export default { include: ["content/**/*.mdx"] };\n'),
@@ -61,7 +61,7 @@ describe("application content evidence", () => {
       source("site/content/b.md", "# B\n", "documentation"),
     ];
 
-    const evidence = observe(sources, ["site/content/a.mdx", "site/content/b.md"]);
+    const evidence = await observe(sources, ["site/content/a.mdx", "site/content/b.md"]);
 
     expect(evidence.get("site/content/a.mdx")).toEqual([
       expect.objectContaining({ target: "site/content", targetKind: "glob" }),
@@ -69,8 +69,8 @@ describe("application content evidence", () => {
     expect(evidence.has("site/content/b.md")).toBe(false);
   });
 
-  it("records a document inside a directory tree that holds the package's own modules", () => {
-    const evidence = observe(
+  it("records a document inside a directory tree that holds the package's own modules", async () => {
+    const evidence = await observe(
       [
         source("apps/web/package.json", "{}", "build_definition"),
         source("apps/web/app/docs/page.tsx", "export default function Page() {}\n"),
@@ -89,8 +89,8 @@ describe("application content evidence", () => {
     ]);
   });
 
-  it("gives no evidence across packages, from tests, at a package root, or under the documentation root", () => {
-    const evidence = observe(
+  it("gives no evidence across packages, from tests, at a package root, or under the documentation root", async () => {
+    const evidence = await observe(
       [
         source("package.json", "{}", "build_definition"),
         source("scripts/check-docs.mjs", 'const notes = "docs/notes";\nconst all = "**/*.md";\n'),
@@ -109,15 +109,43 @@ describe("application content evidence", () => {
     expect(evidence.size).toBe(0);
   });
 
-  it("ignores Markdown outside any declared workspace package", () => {
+  it("ignores Markdown outside any declared workspace package", async () => {
     expect(
-      observe(
-        [
-          source("tools/render.ts", 'read("../notes/page.md");\n'),
-          source("notes/page.md", "# Page\n", "documentation"),
-        ],
-        ["notes/page.md"],
+      (
+        await observe(
+          [
+            source("tools/render.ts", 'read("../notes/page.md");\n'),
+            source("notes/page.md", "# Page\n", "documentation"),
+          ],
+          ["notes/page.md"],
+        )
       ).size,
     ).toBe(0);
+  });
+  it("rereads an observed-only source through the port instead of hiding its references", async () => {
+    const sources: ApplicationContentSource[] = [
+      source("apps/web/package.json", "{}", "build_definition"),
+      {
+        path: "apps/web/src/guide.ts",
+        kind: "code",
+        status: "included",
+        contentRetention: "observed_only",
+      },
+      source("apps/web/src/content/guide.md", "# Guide\n", "documentation"),
+    ];
+    const documentPaths = ["apps/web/src/content/guide.md"];
+    const read: string[] = [];
+    const evidence = await observeApplicationContent({
+      sources,
+      documentPaths,
+      documentationRoot: "docs",
+      readObservedText: async (item) => {
+        read.push(item.path);
+        return 'import guide from "./content/guide.md";\n';
+      },
+    });
+    expect(read).toEqual(["apps/web/src/guide.ts"]);
+    expect(evidence.get("apps/web/src/content/guide.md")).toHaveLength(1);
+    await expect(observe(sources, documentPaths)).rejects.toThrow(/Observed-only source text/u);
   });
 });

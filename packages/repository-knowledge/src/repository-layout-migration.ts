@@ -60,6 +60,8 @@ import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { accountRepositoryLayoutCandidates } from "./repository-layout-accounting.js";
 import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
 import { isWithinPublicationRoot } from "./repository-publication-files.js";
+import { observedOnlySource } from "./scan-retention.js";
+import { readObservedSourceText } from "./scanner-file-source.js";
 
 const HASH = /^sha256:[a-f0-9]{64}$/;
 
@@ -587,17 +589,25 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     }
   >();
   const movedContentChanges = new Map<string, { content: string; count: number }>();
-  for (const source of scan.sources) {
+  for (const scanned of scan.sources) {
     if (
-      source.status !== "included" ||
-      source.content === undefined ||
-      source.contentHash === null ||
-      generatedPaths.has(source.path) ||
-      bytePreservedDocumentCollection(source.path, taxonomy) ||
-      source.path.startsWith(".lervo/") ||
-      source.path.startsWith("knowledge/")
+      scanned.status !== "included" ||
+      scanned.contentHash === null ||
+      generatedPaths.has(scanned.path) ||
+      bytePreservedDocumentCollection(scanned.path, taxonomy) ||
+      scanned.path.startsWith(".lervo/") ||
+      scanned.path.startsWith("knowledge/")
     )
       continue;
+    // An observed-only file (ADR-0544) may still name a moved document, so it is reread once here;
+    // only the rewritten text of a changed file stays in memory.
+    const content =
+      scanned.content ??
+      (observedOnlySource(scanned) && movePaths.length > 0 && !scanned.path.startsWith("@")
+        ? await readObservedSourceText(root, scanned)
+        : undefined);
+    if (content === undefined) continue;
+    const source = { ...scanned, content };
     const move = movePaths.find((item) => item.fromPath === source.path);
     const rebased =
       move === undefined
@@ -609,7 +619,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     if (move !== undefined) movedContentChanges.set(source.path, rewritten);
     else
       referenceChanges.set(source.path, {
-        source: source as RepositorySource & { content: string; contentHash: string },
+        source: { ...source, contentHash: scanned.contentHash },
         content: rewritten.content,
         count: rewritten.count,
       });

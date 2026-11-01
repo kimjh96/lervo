@@ -194,6 +194,7 @@ export { createStoredDocumentNormalizationSubsetCandidate } from "./document-nor
 export * from "./knowledge-stage-lint.js";
 
 export { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
+export { readObservedSourceText } from "./scanner-file-source.js";
 export { terminalHookRuntimeStorePath } from "./terminal-runtime-store-paths.js";
 export { materializeHostTerminalRuntime } from "./terminal-runtime-store.js";
 export {

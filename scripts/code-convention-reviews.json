@@ -242,9 +242,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:3bf21a6ae1eb5fb2e75001d880a6c0752480859652656b2026a4f89066405d29",
+      "contentHash": "sha256:b7f7e53a41525429781ecd6113c9cbc6d87173c54583ae6109e1bae468fad775",
       "responsibility": "Repository document-layout migration",
-      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Source classification, route evidence, durable apply, provider calls, lifecycle authority, scope decisions, and health observations retain separate owners. No independent provider or persistence policy was added.",
+      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Classification, route evidence, durable apply, providers, lifecycle authority, scope, and health keep separate owners. Reference rewriting rereads observed-only sources through the scanner-owned hash-verified reader. No independent provider or persistence policy was added.",
       "disposition": "cohesive"
     },
     {
@@ -256,9 +256,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:079a4b3df5ff87d5ad8b970005ea1469fdb8b273250ea5f303e2deb24f0c4a31",
+      "contentHash": "sha256:1737e7ff32eb0b6c03444c18f41490810565a437a15f1dd78a49276e72f2f3b3",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects. The review adds explicit coverage and skipped summaries to reporting contracts and one scan-incomplete reason. Evaluation, admission, storage, and rendering stay in their owning modules; no second implementation concern is added.",
+      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects. The review adds explicit coverage and skipped summaries to reporting contracts, one scan-incomplete reason, and the observed-only retention marker and summary. Evaluation, admission, storage, and rendering stay in their owning modules; no second implementation concern is added.",
       "disposition": "cohesive"
     },
     {

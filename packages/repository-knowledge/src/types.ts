@@ -104,6 +104,8 @@ export interface RepositorySource {
   byteCount: number;
   contentHash: string | null;
   reason?: string;
+  /** ADR-0544: hashed and change-tracked, but its text was released after the read. */
+  contentRetention?: "observed_only";
   content?: string;
   origin?: "git_revision_adapter" | "verification_event_cas" | "execution_event_store";
   agentArtifact?: RepositoryAgentArtifact;
@@ -143,8 +145,9 @@ export type RepositoryScanPriorityClass =
   | "instructions"
   | "portable_skills"
   | "canonical_documents"
+  | "other_documents"
   | "source_and_configuration"
-  | "other_documents";
+  | "execution_evidence";
 
 export interface RepositoryKnowledgeScan {
   schemaVersion: 1;
@@ -155,6 +158,10 @@ export interface RepositoryKnowledgeScan {
   contentSnapshotId: string;
   coverage: "complete" | "partial";
   skippedForBudget: { count: number; bytes: number; classes: RepositoryScanPriorityClass[] };
+  /** Observed-only sources: known and change-tracked, not searched by symbol or section. */
+  retention: {
+    observedOnly: { count: number; bytes: number; classes: RepositoryScanPriorityClass[] };
+  };
   inventoryCoverage: {
     included: number;
     excluded: number;
@@ -407,6 +414,7 @@ export interface KnowledgeQueryResult {
   };
   coverage: RepositoryKnowledgeScan["coverage"];
   skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"];
+  retention: RepositoryKnowledgeScan["retention"];
   sourceSnapshotId: string;
   impactReportId: string;
   hits: KnowledgeQueryHit[];

@@ -13,6 +13,7 @@ import {
   observeRepositoryDocumentStaleness,
   type DocumentStalenessObservationMode,
 } from "./document-staleness-state.js";
+import { scanRetentionDigest } from "./scan-retention.js";
 import type {
   KnowledgeLintIssue,
   KnowledgeLintResult,
@@ -84,6 +85,7 @@ export async function lintDocumentDrift(input: {
   const report = await observeRepositoryDocumentStaleness({
     root: input.root,
     coverage: input.scan.coverage,
+    retentionDigest: scanRetentionDigest(input.scan),
     mode: input.staleness,
     documents: currentMarkdownDocumentSources(input.scan, input.taxonomy).map((source) => ({
       path: source.path,

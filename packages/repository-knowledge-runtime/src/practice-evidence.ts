@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import {
   canonicalJson,
   practicePublicPath,
+  readObservedSourceText,
   sanitizePracticeText,
   scanConfiguredRepositoryKnowledge,
   sha256,
@@ -35,14 +36,16 @@ export async function retainPracticeEvidence(
     )
       throw new TypeError("Practice source is outside the read scope.");
     const source = scan?.sources.find((s) => s.path === path && s.status === "included");
-    if (!source?.contentHash || source.content === undefined)
+    const observedOnly = source?.contentRetention === "observed_only";
+    if (!source?.contentHash || (source.content === undefined && !observedOnly))
       throw new TypeError("Practice source is excluded by the scanner.");
     const changed = work.changedFiles.find((f) => f.path === path);
     let bytes: Buffer;
     if (changed?.after) {
       if (source.contentHash !== changed.after)
         throw new TypeError("Practice source changed after observation.");
-      bytes = Buffer.from(source.content, "utf8");
+      // An observed-only source (ADR-0544) is reread and must still match its observed hash.
+      bytes = Buffer.from(source.content ?? (await readObservedSourceText(root, source)), "utf8");
     } else {
       const { stdout: tree } = await execute(
         "git",

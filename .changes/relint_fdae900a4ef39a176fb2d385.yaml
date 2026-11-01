@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fdae900a4ef39a176fb2d385"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Repository scans hash every source and spend the byte budget only on retained text, documents before code and Lervo evidence last, so code growth no longer blocks knowledge currency."

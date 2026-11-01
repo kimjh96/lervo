@@ -186,7 +186,9 @@ describe("complete paged execution evidence", () => {
   it("leaves the scanner responsible for the aggregate of ordinary and supplemental bytes", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-paged-event-scan-"));
     try {
-      // README.md is a canonical document, so it is admitted before the lower-priority events.
+      // README.md is a canonical document, so it is retained before the events, which are always
+      // last (ADR-0544). An event that no longer fits is observed only and never makes coverage
+      // partial; its unit remains.
       await writeFile(resolve(root, "README.md"), "# Ordinary\n");
       const pages = collectExecutionEventSourcePages({ events: store(history(2)), limits });
       const supplementalSources = pages.flat();
@@ -206,8 +208,12 @@ describe("complete paged execution evidence", () => {
           observeRevision: async () => ({ status: "unavailable", reason: "git_head_unavailable" }),
         }),
       ).resolves.toMatchObject({
-        coverage: "partial",
-        skippedForBudget: { classes: ["other_documents"] },
+        coverage: "complete",
+        skippedForBudget: { classes: ["execution_evidence"] },
+        retention: { observedOnly: { classes: ["execution_evidence"] } },
+        units: expect.arrayContaining(
+          supplementalSources.map((source) => expect.objectContaining({ path: source.path })),
+        ),
       });
     } finally {
       await rm(root, { recursive: true, force: true });

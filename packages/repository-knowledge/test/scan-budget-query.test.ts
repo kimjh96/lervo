@@ -58,7 +58,11 @@ it("never rereads a registered publication skipped by budget admission", async (
   ).toBe(true);
   await writeFile(resolve(root, path), "# Cobaltmaintenance\n".padEnd(budget * 2, "r"));
   const { scan } = await scanConfiguredRepositoryKnowledge(root);
-  expect(scan.sources.find((source) => source.path === path)?.reason).toBe("total_budget_exceeded");
+  expect(scan.sources.find((source) => source.path === path)).toMatchObject({
+    status: "included",
+    contentRetention: "observed_only",
+    contentHash: expect.stringMatching(/^sha256:/u),
+  });
   const read = vi.spyOn(publicationFiles, "readSafePublication");
   const result = await queryRepositoryKnowledge({
     repositoryRoot: root,

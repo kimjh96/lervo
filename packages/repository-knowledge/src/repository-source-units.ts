@@ -1,7 +1,11 @@
 import { basename, extname } from "node:path";
 
 import { sha256, stableId } from "./integrity.js";
-import type { RepositorySource, RepositorySourceUnit } from "./types.js";
+import type {
+  RepositorySource,
+  RepositorySourceUnit,
+  RepositorySupplementalSource,
+} from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 import { GIT_REVISION_SOURCE_ADAPTER } from "./git-revision-source.js";
 import {
@@ -238,34 +242,31 @@ export function extractUnits(
   return extractUnitsWithOutcome(projectId, source, sourceUnitFailureMode).units;
 }
 
-export function extractUnitsWithOutcome(
+/**
+ * The unit that spans a whole source: the revision unit for revision metadata, otherwise the
+ * `file:/` unit. An observed-only source keeps exactly this unit (ADR-0544).
+ */
+export function wholeSourceUnit(
   projectId: string,
   source: RepositorySource & { content: string; contentHash: string },
-  sourceUnitFailureMode: "fail" | "file_only" = "fail",
-): { units: RepositorySourceUnit[]; complete: boolean } {
-  if (source.kind === "revision_metadata") {
-    return {
-      complete: true,
-      units: [
-        unit({
-          projectId,
-          source,
-          unitKind: "revision",
-          locator: "revision:HEAD",
-          startCharacter: 0,
-          endCharacter: source.content.length,
-          startByte: 0,
-          endByte: Buffer.byteLength(source.content),
-          startLine: 1,
-          endLine: 1,
-          title: "Git HEAD commit",
-          adapter: GIT_REVISION_SOURCE_ADAPTER,
-          versionBinding: "unit",
-        }),
-      ],
-    };
-  }
-  const fileUnit = unit({
+): RepositorySourceUnit {
+  if (source.kind === "revision_metadata")
+    return unit({
+      projectId,
+      source,
+      unitKind: "revision",
+      locator: "revision:HEAD",
+      startCharacter: 0,
+      endCharacter: source.content.length,
+      startByte: 0,
+      endByte: Buffer.byteLength(source.content),
+      startLine: 1,
+      endLine: 1,
+      title: "Git HEAD commit",
+      adapter: GIT_REVISION_SOURCE_ADAPTER,
+      versionBinding: "unit",
+    });
+  return unit({
     projectId,
     source,
     unitKind: "file",
@@ -276,6 +277,38 @@ export function extractUnitsWithOutcome(
     endLine: source.content.split("\n").length,
     title: basename(source.path),
   });
+}
+
+/** The one unit of a supplemental evidence source, whether its text is retained or not. */
+export function supplementalEvidenceUnit(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+  supplemental: RepositorySupplementalSource,
+): RepositorySourceUnit {
+  return unit({
+    projectId,
+    source,
+    unitKind: supplemental.unitKind,
+    locator: supplemental.locator,
+    startCharacter: 0,
+    endCharacter: source.content.length,
+    startByte: 0,
+    endByte: source.byteCount,
+    startLine: 1,
+    endLine: source.content.split("\n").length,
+    title: supplemental.title,
+    adapter: supplemental.adapter,
+    versionBinding: "unit",
+  });
+}
+
+export function extractUnitsWithOutcome(
+  projectId: string,
+  source: RepositorySource & { content: string; contentHash: string },
+  sourceUnitFailureMode: "fail" | "file_only" = "fail",
+): { units: RepositorySourceUnit[]; complete: boolean } {
+  const fileUnit = wholeSourceUnit(projectId, source);
+  if (source.kind === "revision_metadata") return { complete: true, units: [fileUnit] };
   let codeUnits: RepositorySourceUnit[];
   let jsonUnits: RepositorySourceUnit[];
   let yamlUnits: RepositorySourceUnit[];

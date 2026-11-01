@@ -23,7 +23,9 @@ import {
   recordDocumentRouteClassifications,
   inspectRepositoryDocumentRewriters,
   lintRepositoryKnowledge,
+  loadRepositoryKnowledgePolicy,
   recoverKnowledgeMaterialization,
+  scanConfiguredRepositoryKnowledge,
   sha256,
   stableId,
 } from "../src/index.js";
@@ -178,6 +180,52 @@ describe("repository layout migration", () => {
     );
     expect(await readFile(resolve(root, "check.mjs"), "utf8")).toContain("docs/product/vision.md");
     expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+    expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
+      "current",
+    );
+  });
+
+  it("rewrites references in an observed-only code file without retaining it in the scan", async () => {
+    const root = await repository();
+    const tool = "tools/check.ts";
+    await mkdir(resolve(root, "tools"));
+    await writeFile(resolve(root, tool), "export const docs = ['EXAMPLE_VISION.md'];\n");
+    const policy = await loadRepositoryKnowledgePolicy(root);
+    const retainAllButTool = async () => {
+      await writeFile(
+        resolve(root, ".lervo/knowledge/policy.yaml"),
+        JSON.stringify({ ...policy, limits: { ...policy.limits } }),
+      );
+      const { scan } = await scanConfiguredRepositoryKnowledge(root);
+      const maxTotalBytes =
+        scan.inventoryCoverage.includedBytes -
+        scan.sources.find((source) => source.path === tool)!.byteCount;
+      await writeFile(
+        resolve(root, ".lervo/knowledge/policy.yaml"),
+        JSON.stringify({ ...policy, limits: { ...policy.limits, maxTotalBytes } }),
+      );
+    };
+    await retainAllButTool();
+    const budgeted = (await scanConfiguredRepositoryKnowledge(root)).scan;
+    expect(budgeted.coverage).toBe("complete");
+    expect(budgeted.sources.find((source) => source.path === tool)).toMatchObject({
+      contentRetention: "observed_only",
+    });
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+    expect(plan.referenceUpdates.map((item) => item.path)).toContain(tool);
+    await applyRepositoryLayoutMigrationPlan({
+      plan,
+      approvals: plan.moves.map((move) => ({
+        operationId: move.operationId,
+        approvalHash: move.approvalHash,
+      })),
+      now: new Date("2026-08-23T00:01:00.000Z"),
+      recordApplied: () => undefined,
+    });
+    expect(await readFile(resolve(root, tool), "utf8")).toBe(
+      "export const docs = ['docs/product/vision.md'];\n",
+    );
+    await retainAllButTool();
     expect((await createRepositoryLayoutMigrationPlan({ repositoryRoot: root })).status).toBe(
       "current",
     );

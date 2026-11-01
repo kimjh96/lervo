@@ -52,49 +52,55 @@ const priorityPaths = [
   "z/AGENTS.md",
   ".agents/skills/example/SKILL.md",
   "docs/specifications/z.md",
-  "src/z.ts",
   "a-research.md",
+  "src/z.ts",
 ];
 const classes = [
   "instructions",
   "portable_skills",
   "canonical_documents",
-  "source_and_configuration",
   "other_documents",
+  "source_and_configuration",
 ];
+
+function retainedPaths(result: Awaited<ReturnType<typeof scan>>): string[] {
+  return result.sources
+    .filter((source) => source.status === "included" && source.content !== undefined)
+    .map((source) => source.path)
+    .sort();
+}
 
 describe("priority scan byte admission", () => {
   it.each([1, 2, 3, 4])(
-    "admits the first %i priority classes before lower classes",
+    "retains the first %i retention classes before lower classes and observes the rest",
     async (count) => {
       const root = await repository([...priorityPaths].reverse());
       const result = await scan(root, count * 64);
-      expect(result.coverage).toBe("partial");
-      expect(result.skippedForBudget).toEqual({
+      expect(result.coverage).toBe(count === 4 ? "complete" : "partial");
+      const unretained = {
         count: 5 - count,
         bytes: (5 - count) * 64,
         classes: classes.slice(count),
-      });
-      expect(
-        result.sources
-          .filter((source) => source.status === "included")
-          .map((source) => source.path)
-          .sort(),
-      ).toEqual(priorityPaths.slice(0, count).sort());
+      };
+      expect(result.skippedForBudget).toEqual(unretained);
+      expect(result.retention).toEqual({ observedOnly: unretained });
+      expect(retainedPaths(result)).toEqual(priorityPaths.slice(0, count).sort());
       for (const path of priorityPaths.slice(count)) {
         const source = result.sources.find((item) => item.path === path);
         expect(source).toMatchObject({
           path,
           byteCount: 64,
-          status: "unsupported",
-          reason: "total_budget_exceeded",
-          contentHash: null,
+          status: "included",
+          contentRetention: "observed_only",
+          contentHash: expect.stringMatching(/^sha256:/u),
         });
         expect(source).not.toHaveProperty("content");
+        expect(source).not.toHaveProperty("reason");
       }
       expect(result.inventoryCoverage).toMatchObject({
-        complete: false,
-        includedBytes: count * 64,
+        complete: count === 4,
+        included: 5,
+        includedBytes: 5 * 64,
       });
     },
   );
@@ -109,7 +115,10 @@ describe("priority scan byte admission", () => {
       "docs/research/large.md",
     ]);
     const result = await scan(root, 5 * 64);
-    expect(result.sources.filter((source) => source.status === "included")).toHaveLength(5);
+    expect(result.sources.filter((source) => source.status === "included")).toHaveLength(6);
+    expect(retainedPaths(result)).not.toContain("docs/research/large.md");
+    expect(retainedPaths(result)).toHaveLength(5);
+    expect(result.coverage).toBe("partial");
     expect(result.skippedForBudget).toEqual({ count: 1, bytes: 64, classes: ["other_documents"] });
   });
 
@@ -120,16 +129,17 @@ describe("priority scan byte admission", () => {
     const result = await scan(first, 64);
     expect(await scan(first, 64)).toEqual(result);
     expect(await scan(second, 64)).toEqual(result);
-    expect(result.sources.find((source) => source.status === "included")?.path).toBe(
-      "docs/research/Z.md",
-    );
+    expect(retainedPaths(result)).toEqual(["docs/research/Z.md"]);
   });
 
   it("continues with a later small file after a candidate does not fit", async () => {
     const root = await repository(["docs/research/a.md", "docs/research/b.md"]);
     await writeFile(resolve(root, "docs/research/a.md"), "x".repeat(80));
     const result = await scan(root, 64);
-    expect(result.sources.find((source) => source.path.endsWith("b.md"))?.status).toBe("included");
+    expect(result.sources.find((source) => source.path.endsWith("b.md"))?.content).toBeDefined();
+    expect(result.sources.find((source) => source.path.endsWith("a.md"))?.contentRetention).toBe(
+      "observed_only",
+    );
     expect(result.skippedForBudget).toMatchObject({ count: 1, bytes: 80 });
   });
 
@@ -158,11 +168,11 @@ describe("priority scan byte admission", () => {
     );
     const result = await scan(root, 64);
     expect(
-      result.sources.find((source) => source.path === "manual/specifications/runtime.md")?.status,
-    ).toBe("included");
+      result.sources.find((source) => source.path === "manual/specifications/runtime.md")?.content,
+    ).toBeDefined();
     expect(
-      result.sources.find((source) => source.path === "manual/research/notes.md")?.reason,
-    ).toBe("total_budget_exceeded");
+      result.sources.find((source) => source.path === "manual/research/notes.md")?.contentRetention,
+    ).toBe("observed_only");
   });
 
   it("charges opaque skill resources, revision metadata, and supplemental evidence to the same budget", async () => {
@@ -196,16 +206,25 @@ describe("priority scan byte admission", () => {
       reason: "opaque_portable_skill_resource",
       byteCount: 64,
     });
-    const skipped = result.sources.filter((source) => source.reason === "total_budget_exceeded");
-    expect(skipped.map((source) => source.kind).sort()).toEqual([
+    const observed = result.sources.filter((source) => source.contentRetention === "observed_only");
+    expect(observed.map((source) => source.kind).sort()).toEqual([
       "execution_event",
       "revision_metadata",
     ]);
     expect(
-      skipped.every((source) => source.content === undefined && source.contentHash === null),
+      observed.every((source) => source.content === undefined && source.contentHash !== null),
     ).toBe(true);
-    expect(result.skippedForBudget).toEqual({ count: 2, bytes: 49, classes: ["other_documents"] });
-    expect(result.inventoryCoverage.includedBytes).toBe(128);
+    // Their single whole-source units survive without the text.
+    expect(result.units.map((unit) => unit.unitKind).sort()).toEqual(
+      expect.arrayContaining(["event", "revision"]),
+    );
+    expect(result.skippedForBudget).toEqual({
+      count: 2,
+      bytes: 49,
+      classes: ["other_documents", "execution_evidence"],
+    });
+    expect(result.coverage).toBe("partial");
+    expect(result.inventoryCoverage.includedBytes).toBe(177);
   });
 
   it("still stops on maxFiles even when none of the bytes would fit", async () => {

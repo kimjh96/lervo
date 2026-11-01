@@ -1,5 +1,6 @@
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { extractUnits, unit } from "./repository-source-units.js";
+import { extractUnits, supplementalEvidenceUnit, unit } from "./repository-source-units.js";
+import { observedOnlySource } from "./scan-retention.js";
 import {
   extractSkillContractUnitDescriptors,
   SKILL_CONTRACT_SOURCE_UNIT_ADAPTER,
@@ -41,8 +42,15 @@ export async function scanRepositoryKnowledge(
 async function scanRepositoryKnowledgeOnce(
   input: RepositoryKnowledgeScanInput,
 ): Promise<RepositoryKnowledgeScan> {
-  const { sources, includedBytes, supplementalByPath, sourceLineages, skippedForBudget } =
-    await readRepositoryKnowledgeSources(input);
+  const {
+    sources,
+    observedUnits,
+    supplementalByPath,
+    sourceLineages,
+    coverage,
+    skippedForBudget,
+    retention,
+  } = await readRepositoryKnowledgeSources(input);
   const root = input.repositoryRoot;
   const extractSourceUnits =
     input.sourceUnitCache?.begin(input) ??
@@ -55,6 +63,8 @@ async function scanRepositoryKnowledgeOnce(
       "Document move lineage and the current source path conflict under the same source identity.",
     );
   }
+  // Observed-only sources never reach the source-unit cache: it maps exact retained bytes to their
+  // complete extraction, so its entries never cross between retained and observed-only reads.
   const included = sources.filter(
     (source): source is RepositorySource & { content: string; contentHash: string } =>
       source.status === "included" && source.content !== undefined && source.contentHash !== null,
@@ -62,9 +72,7 @@ async function scanRepositoryKnowledgeOnce(
   const skillDescriptors = await extractSkillContractUnitDescriptors({
     repositoryRoot: root,
     sources: included,
-    budgetSkippedPaths: sources
-      .filter((source) => source.reason === "total_budget_exceeded")
-      .map((source) => source.path),
+    budgetSkippedPaths: sources.filter(observedOnlySource).map((source) => source.path),
   });
   const skillDescriptorByPath = new Map<string, typeof skillDescriptors>();
   for (const descriptor of skillDescriptors) {
@@ -95,24 +103,9 @@ async function scanRepositoryKnowledgeOnce(
           }),
         ),
       ];
-    return [
-      unit({
-        projectId: input.projectId,
-        source,
-        unitKind: supplemental.unitKind,
-        locator: supplemental.locator,
-        startCharacter: 0,
-        endCharacter: source.content.length,
-        startByte: 0,
-        endByte: source.byteCount,
-        startLine: 1,
-        endLine: source.content.split("\n").length,
-        title: supplemental.title,
-        adapter: supplemental.adapter,
-        versionBinding: "unit",
-      }),
-    ];
+    return [supplementalEvidenceUnit(input.projectId, source, supplemental)];
   });
+  units.push(...observedUnits);
   units.sort(
     (left, right) =>
       left.unitId.localeCompare(right.unitId) ||
@@ -164,14 +157,17 @@ async function scanRepositoryKnowledgeOnce(
       sources: contentSnapshotMaterials,
       units: contentUnitVersions,
     }),
-    coverage: skippedForBudget.count === 0 ? "complete" : "partial",
+    coverage,
     skippedForBudget,
+    retention,
     inventoryCoverage: {
       included: sources.filter((source) => source.status === "included").length,
       excluded: sources.filter((source) => source.status === "excluded").length,
       unsupported: sources.filter((source) => source.status === "unsupported").length,
-      includedBytes,
-      complete: skippedForBudget.count === 0,
+      includedBytes: sources
+        .filter((source) => source.status === "included")
+        .reduce((total, source) => total + source.byteCount, 0),
+      complete: coverage === "complete",
     },
     sources,
     units,
