@@ -125,7 +125,7 @@ export function instructionCaptureAttentionItems(
 }
 
 /**
- * The compact prompt lines: what waits for the owner, and the applied owner rules every provider
+ * The compact prompt lines: pending owner-rule work, and the applied owner rules every provider
  * must follow. Titles are normalized rule titles from reviewed files, never prompt text.
  */
 export function instructionCaptureCompactLines(
@@ -139,7 +139,10 @@ export function instructionCaptureCompactLines(
     );
   const captured = input.candidates.filter((candidate) => candidate.captureSource !== undefined);
   if (input.candidates.length > 0 || input.held.length > 0) {
-    const where = input.applyElsewhere === undefined ? "review" : `review on ${ownerHost(input)}`;
+    const where =
+      input.applyElsewhere === undefined
+        ? "automatic apply"
+        : `automatic apply on ${ownerHost(input)}`;
     const parts = [
       ...(input.candidates.length === 0
         ? []
@@ -152,12 +155,12 @@ export function instructionCaptureCompactLines(
       ...(input.held.length === 0
         ? []
         : [
-            `${input.held.length} held owner decision or rule${input.held.length === 1 ? "" : "s"}`,
+            `${input.held.length} held decision or rule${input.held.length === 1 ? "" : "s"} for the principal proxy`,
           ]),
     ];
     lines.push(
       boundedLine(
-        `Instruction capture: ${parts.join("; ")}. Tell the owner; details: lervo knowledge instruction status and lervo knowledge instruction capture.`,
+        `Instruction capture: ${parts.join("; ")}. Details: lervo knowledge instruction status and lervo knowledge instruction capture.`,
       ),
     );
   }

@@ -22,7 +22,7 @@ Grounding failure returns `ignored` with `semantic_resolution_failed` and one st
 
 No reason carries provider output.
 
-Candidates require exact review and prove neither approval, correctness, provider delivery, provider use, nor canonical status. The ignored active registry is sharded, bounded to 64 records and 16 KiB per record, and removes records after apply or reject.
+Candidates prove neither approval, correctness, provider delivery, provider use, nor canonical status. Under [ADR-0545](../../../../decisions/knowledge/documents/capture/0545-apply-owner-stated-rules-without-a-review-command.md), the convergence owner applies owner-stated candidates (`authority: explicit_user`) in each resident cycle when the rebuilt plan is still `ready`, recording `lervo-principal-proxy` as reviewer; other candidates require exact review. The ignored active registry is sharded, bounded to 64 records and 16 KiB per record, and removes records after apply or reject.
 
 ## Review and application
 

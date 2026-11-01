@@ -90,6 +90,11 @@ export async function runAutonomousKnowledgeWorker(input: {
   owner?: () => Promise<ConvergenceOwnerVerdict>;
   /** ADR-0467 Hub adapter for exchanging owner-rule candidates; absent keeps them host-local. */
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
+  /**
+   * ADR-0545: applies owner-stated rule candidates that pass the automatic gate. It runs only on
+   * the convergence owner, after capture and the Hub exchange; absent leaves candidates stored.
+   */
+  applyOwnerStatedInstructions?: () => Promise<unknown>;
 }): Promise<
   | { status: "busy" }
   | {
@@ -252,6 +257,9 @@ export async function runAutonomousKnowledgeWorker(input: {
     // Owner-turn capture (ADR-0467) runs first: it is small, bounded per cycle, and its result is
     // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
     const ownerTurns = await ownerTurnWork();
+    // ADR-0545: the owner stated these rules, so no review command waits on the owner or an agent.
+    // A failure leaves every candidate stored for the next cycle and blocks nothing.
+    await input.applyOwnerStatedInstructions?.().catch(() => undefined);
     await runPracticeLearningCycle(practiceContext, "write");
     // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
     const outcomes = (await changeReviewDeferred(context))

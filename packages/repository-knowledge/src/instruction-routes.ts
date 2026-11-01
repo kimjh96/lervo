@@ -14,7 +14,7 @@ export function repositoryInstructionRouteBlock(_input: RepositoryInstructionRou
     "- Translate explicit natural-language requests to hire, assign, inspect, resolve, hand off, or retire repository agents into `lervo agent`, `lervo assignment`, and workstream operations yourself; when authority or scope is ambiguous, record one bounded pending decision instead of guessing or asking for a bookkeeping command.",
     "- Resolve roles with `lervo role list|show|validate`; treat the six built-ins as templates, author a lazy `.lervo/roles/<role-id>.json` source when a requested repository role does not exist, and never bypass version, hash, capability, verification, or ancestry validation.",
     "- Register every subagent with its parent and apply the same durable identity, scoped lease, path-conflict, evidence, verification, and finalization contracts used for root agents.",
-    "- Never record owner rules, corrections, or decisions in provider-private memory. Lervo captures them from the conversation for owner review; to record one explicitly, use `lervo knowledge instruction intake`. Follow every applied rule under `docs/instructions/generated/`.",
+    "- Never record owner rules, corrections, or decisions in provider-private memory. Lervo captures them from the conversation and applies owner-stated rules automatically; to record one explicitly, use `lervo knowledge instruction intake`. Follow every applied rule under `docs/instructions/generated/`.",
     "<!-- lervo:end block=repository_instruction_routes -->",
     "",
   ].join("\n");

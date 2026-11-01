@@ -132,7 +132,7 @@ export class InstructionApplyOwnerElsewhereError extends Error {
     readonly holderLabel: string | null,
   ) {
     super(
-      `This host does not own knowledge convergence (${reason}). Apply this candidate on the convergence owner host${holderLabel === null ? "" : ` (${holderLabel})`}; it already holds the candidate through the Hub exchange.`,
+      `This host does not own knowledge convergence (${reason}). The convergence owner host${holderLabel === null ? "" : ` (${holderLabel})`} receives this candidate through the Hub exchange and applies an owner-stated rule automatically; no review is needed here.`,
     );
     this.name = "InstructionApplyOwnerElsewhereError";
   }
