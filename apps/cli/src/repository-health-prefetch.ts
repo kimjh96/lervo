@@ -7,9 +7,11 @@ import {
 import {
   inspectKnowledgeResidentHealth,
   readConvergenceContinuityState,
+  readConvergenceOwnerFence,
 } from "@lervo/repository-knowledge-runtime";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import { readHealthEventHistory } from "./repository-health-events.js";
+import { readHealthAppearance } from "./repository-health-appearance.js";
 import {
   projectRepositoryHealth,
   type HealthProjectionSources,
@@ -56,12 +58,14 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       resident,
       maintenance,
       continuity,
+      ownerRole,
       staleness,
       freshnessCycle,
       capture,
       attention,
       layout,
       cachedLifecycle,
+      appearance,
     ] = await Promise.all([
       observeRepositoryHead(root, now),
       inspectKnowledgeResidentHealth(root, now).catch(() => null),
@@ -70,6 +74,13 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
         ".lervo/state/knowledge/maintenance-observation.json",
       ),
       readConvergenceContinuityState(root).catch(() => null),
+      readConvergenceOwnerFence(root)
+        .then((fence) =>
+          fence === null
+            ? null
+            : { role: fence.verdict.role, holderLabel: fence.verdict.holder?.label ?? null },
+        )
+        .catch(() => null),
       readRecordedDocumentStalenessReport(root).catch(() => null),
       state<NonNullable<HealthProjectionSources["freshnessCycle"]>>(
         root,
@@ -86,6 +97,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
         repositoryRevision: snapshot.revision,
         supplementalSources: [],
       }),
+      readHealthAppearance(root),
     ]);
     let history: HealthProjectionSources["history"] = null;
     try {
@@ -100,6 +112,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       resident,
       maintenance,
       continuity,
+      ownerRole,
       staleness,
       freshnessCycle,
       captureObservedAt: capture?.lastCycleAt ?? null,
@@ -107,6 +120,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       layout,
       cachedLifecycle,
       history,
+      appearance,
     });
     // A racing repository edit never acquires a current-revision label.
     if ((await captureTerminalRepositorySnapshot(root)).revision === snapshot.revision)

@@ -285,6 +285,50 @@ describe("health projection from recorded sources", () => {
     expect(stopped).toHaveLength(1);
   });
 
+  it("reports a recorded stop's first owner-turn appearance and a never-shown stop", () => {
+    const input = sources();
+    input.history!.events = [
+      event("repository.knowledge.stage.recorded", 1, "2026-10-18T04:46:00Z", {
+        obligationId: "one",
+        state: "attention_required",
+        failureCode: "document_directory_file_capacity_exceeded",
+      }),
+    ];
+    input.maintenance!.status.state = "attention_required";
+    input.maintenance!.status.reason = "document_directory_file_capacity_exceeded";
+    const age = healthNow.getTime() - Date.parse("2026-10-18T04:46:00Z");
+
+    input.appearance = {
+      schemaVersion: 1,
+      recordingSince: "2026-10-01T00:00:00Z",
+      stops: [
+        {
+          since: "2026-10-18T04:46:00Z",
+          reason: "document_directory_file_capacity_exceeded",
+          firstPreparedAt: "2026-10-18T05:46:00Z",
+        },
+      ],
+    };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "complete",
+      reason: null,
+      value: { reportedAt: "2026-10-18T05:46:00Z", unreportedMilliseconds: 3_600_000 },
+    });
+
+    input.appearance = { ...input.appearance, stops: [] };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "complete",
+      value: { reportedAt: null, unreportedMilliseconds: age },
+    });
+
+    // A stop that began before recording may have appeared earlier, so it stays unknown.
+    input.appearance = { ...input.appearance, recordingSince: "2026-10-19T00:00:00Z" };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "partial",
+      reason: "attention_appearance_unrecorded",
+    });
+  });
+
   it("counts only the seven-day window and never calls bounded partial history zero", () => {
     const input = sources();
     input.history!.events = [
@@ -328,5 +372,60 @@ describe("health projection from recorded sources", () => {
     vi.stubEnv("WSL_DISTRO_NAME", "Ubuntu");
     expect(macBytes).toBe(JSON.stringify(projectRepositoryHealth(wsl)));
     expect(macBytes).not.toMatch(/\/Users\/|\/mnt\/|darwin|win32|linux/u);
+  });
+});
+
+describe("convergence on a host that does not own it", () => {
+  const ownerPeer = (observedAt: Date, residentState: string) => ({
+    hostHash: `sha256:${"7".repeat(64)}`,
+    hostLabel: "wsl",
+    observedAt: observedAt.toISOString(),
+    delegationState: "active",
+    delegationExpiresAt: null,
+    policy: "active",
+    ownerRole: "owner",
+    residentState,
+  });
+  const nonOwner = (peerState: string, peerAgeMs: number): HealthProjectionSources => {
+    const input = sources();
+    // The local record still shows a stop from an earlier ownership.
+    input.maintenance = {
+      observedAt: healthNow.toISOString(),
+      status: {
+        ...input.maintenance!.status,
+        state: "attention_required",
+        reason: "knowledge_compile_policy_violation",
+      },
+    };
+    input.resident = { ...input.resident!, state: "waiting", reason: "waiting_owner:wsl" };
+    input.ownerRole = { role: "waiting_owner", holderLabel: "wsl" };
+    input.continuity = {
+      peers: [ownerPeer(new Date(healthNow.getTime() - peerAgeMs), peerState)],
+    } as unknown as HealthProjectionSources["continuity"];
+    return input;
+  };
+
+  it("reports the owner's healthy state instead of its own earlier stop", () => {
+    expect(
+      projectRepositoryHealth(nonOwner("running", 5 * 60_000)).measures.convergence,
+    ).toMatchObject({
+      status: "within_target",
+      value: { state: "owner_elsewhere", owner: "resident on wsl", since: null },
+    });
+  });
+
+  it("reports a stopped owner as a gap and an old owner observation as unknown", () => {
+    expect(
+      projectRepositoryHealth(nonOwner("attention", 5 * 60_000)).measures.convergence,
+    ).toMatchObject({
+      status: "gap",
+      value: { reason: "owner_resident_attention" },
+    });
+    expect(
+      projectRepositoryHealth(nonOwner("running", 3 * 60 * 60_000)).measures.convergence,
+    ).toMatchObject({
+      status: "unknown",
+      reason: "owner_observation_missing_or_stale",
+    });
   });
 });

@@ -4,6 +4,8 @@ Status: `accepted`
 Decision date: 2026-10-31
 Amends: [ADR-0451](../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0361](0361-project-operating-attention-without-new-authority.md), [ADR-0463](../../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md), [ADR-0467](../../knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md)
 
+Amended by: [ADR-0548](0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md) (a non-owner reports the owner's convergence; owner turns record when a stop is first shown)
+
 ## Context
 
 Convergence stopped silently for one to two weeks while terminal prompts asked

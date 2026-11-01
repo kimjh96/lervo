@@ -34,6 +34,18 @@ function duration(milliseconds: number | null): string {
   return hours < 48 ? `${hours}h` : `${Math.floor(hours / 24)}d`;
 }
 
+/** The current convergence stop line, or null; owner turns record its first appearance. */
+export function convergenceStopLine(
+  health: RepositoryHealthProjectionV1,
+  now: Date,
+): string | null {
+  const measure = health.measures.convergence;
+  if (measure.status !== "gap" || measure.value === null) return null;
+  const v = measure.value;
+  const since = v.since === null ? null : now.getTime() - Date.parse(v.since);
+  return `Lervo health: knowledge stopped ${duration(since)} (${v.reason ?? v.state}); ${v.owner}; recovery: ${v.recovery}.`;
+}
+
 /**
  * Rendering is pure. A healthy repository costs no bytes. Each gap is one line naming the actor
  * that handles it; only consequential effects are owner-actionable. Unknown measures collapse into
@@ -76,19 +88,20 @@ export function formatRepositoryHealth(
       `Lervo health: needs owner authority (${owner.count === null ? "at least " : ""}${ownerCount}): ${selected.join(" | ")}${omitted > 0 ? `${selected.length ? "; " : ""}omitted ${omitted}; inspect: lervo application attention --json` : ""}.`,
     );
   }
-  const convergenceGap = m.convergence.status === "gap" && m.convergence.value !== null;
-  if (convergenceGap) {
-    const v = m.convergence.value!;
-    const since = v.since === null ? null : now.getTime() - Date.parse(v.since);
-    lines.push(
-      `Lervo health: knowledge stopped ${duration(since)} (${v.reason ?? v.state}); ${v.owner}; recovery: ${v.recovery}.`,
-    );
-  }
+  const stopLine = convergenceStopLine(projection, now);
+  const convergenceGap = stopLine !== null;
+  if (stopLine !== null) lines.push(stopLine);
   // The longest stop repeats the convergence line when one stop is current.
   if (!convergenceGap && m.longestStop.status === "gap" && m.longestStop.value !== null) {
     const v = m.longestStop.value;
+    const reporting =
+      v.reportedAt !== null
+        ? `, first shown after ${duration(v.unreportedMilliseconds)}`
+        : v.unreportedMilliseconds !== null
+          ? ", never shown"
+          : ", reporting unknown";
     lines.push(
-      `Lervo health: a knowledge stop lasted ${duration(v.ageMilliseconds)}${v.reportedAt === null ? ", reporting unknown" : ""}; resident.`,
+      `Lervo health: a knowledge stop lasted ${duration(v.ageMilliseconds)}${reporting}; resident.`,
     );
   }
   if (m.freshness.status === "gap" && m.freshness.value !== null) {

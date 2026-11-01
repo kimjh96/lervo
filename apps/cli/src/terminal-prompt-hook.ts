@@ -8,9 +8,14 @@ import {
   TERMINAL_OBSERVATION_POLICY_VERSION,
 } from "./terminal-event-coordinates.js";
 import { queueTerminalOwnerTurn } from "./terminal-instruction-capture.js";
-import { prepareTerminalPromptContext } from "./terminal-prompt-context.js";
+import {
+  prepareTerminalPromptContext,
+  type PreparedTerminalPromptContext,
+} from "./terminal-prompt-context.js";
 import { withinTerminalDeadline } from "./terminal-hook-budget.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
+import { recordHealthStopAppearance } from "./repository-health-appearance.js";
+import { convergenceStopLine } from "./repository-health-format.js";
 import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -103,6 +108,11 @@ export async function prepareAndRecordTerminalPrompt({
         observationEventId,
       });
     });
+    // ADR-0548: record when a convergence stop first reached an owner turn. A failure loses only
+    // this observation and never blocks the prompt.
+    await timing.measure("event_commit", () =>
+      recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined),
+    );
     // ADR-0467: queue the owner's turn for background semantic capture. A queue failure
     // loses only this capture; it never blocks or delays the prompt.
     await timing.measure("event_commit", () =>
@@ -129,4 +139,21 @@ export async function prepareAndRecordTerminalPrompt({
     await withinTerminalDeadline(deadlineMs, () => observationStorage.close());
   }
   return context.additionalContext;
+}
+
+async function recordOwnerTurnStopAppearance(
+  root: string,
+  context: PreparedTerminalPromptContext,
+  occurredAt: string,
+): Promise<void> {
+  const health = context.attention.health ?? null;
+  const line =
+    health === null ? null : convergenceStopLine(health, new Date(context.attention.observedAt));
+  const value = health?.measures.convergence.value ?? null;
+  const shown = line !== null && value?.since != null && context.additionalContext.includes(line);
+  await recordHealthStopAppearance({
+    root,
+    stop: shown ? { since: value!.since!, reason: value!.reason } : null,
+    at: occurredAt,
+  });
 }

@@ -53,10 +53,18 @@ There is no event, history directory or append-only collection.
   and continuity findings. State, reason, stop time, resident state, actor and
   recovery condition remain distinct. Repeated same-reason stage events retain
   the first stop time. Missing recovery is `none recorded`, with an inspect command.
+  On a host the convergence fence does not make the owner, the measure reports
+  the owner peer's published resident state as `owner_elsewhere`; a missing or
+  older-than-90-minute owner observation is unknown with
+  `owner_observation_missing_or_stale` ([ADR-0548](../../../decisions/execution/applications/0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md)).
 - **Longest stop:** bounded stage history closes an episode on recorded progress
   or resolution. Future events cannot open or close an episode. Stop duration
-  does not establish reporting: `reportedAt` and `unreportedMilliseconds` remain
-  null with `attention_appearance_unrecorded`. Render `reporting unknown`.
+  does not establish reporting. Owner terminal turns record each stop's first
+  prepared appearance in `.lervo/state/repository-health-appearance.json`.
+  A shown stop reports `reportedAt` and the time until it was shown; a stop
+  that started after recording began and was never shown reports its whole
+  duration as unreported. Older stops, or a missing record, keep both null with
+  `attention_appearance_unrecorded` and render `reporting unknown`.
 - **Freshness:** current-HEAD staleness evaluation and cycle summary are independent.
   Evaluation carries nullable stale/evaluated/unevaluated/unknown counts plus
   `evaluationObservedAt` and `evaluationValidUntil`. Cycle carries nullable
