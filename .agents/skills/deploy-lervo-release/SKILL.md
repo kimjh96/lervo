@@ -12,7 +12,7 @@ A deployment is never partial. Unless the owner names an exception, one deployme
 Verify every feature pull request before opening it, so CI is a confirmation rather than the first test:
 
 1. Finish review fixes first, then run the full suite once: `pnpm test` with `TMPDIR` set to a real path (`python3 -c "import os,tempfile;print(os.path.realpath(tempfile.gettempdir()))"`). A failure that also fails on unmodified `main` on the same host is reported, not ignored.
-2. Run `pnpm quality:check` and `pnpm release:completion:check --base <task-base>`.
+2. Run `pnpm quality:check`, `pnpm typecheck`, `pnpm architecture:check`, and `pnpm release:completion:check --base <task-base>`. CI runs the same typecheck against the supported Node minimum, so a passing focused test run does not prove it.
 3. Run `pnpm build` immediately before `pnpm release:manifest:update` and `pnpm release:sbom:update`, and commit the metadata separately. A manifest made from an older build fails CI.
 4. Run `pnpm release:attestation:check` and the seven distribution smokes (`smoke:built-cli`, `smoke:built-hub`, `smoke:hub-distribution`, `smoke:built-node`, `smoke:node-distribution`, `smoke:packed-cli`, `smoke:registry-publish`).
 5. Get an adversarial review and re-judge each finding before fixing it.
