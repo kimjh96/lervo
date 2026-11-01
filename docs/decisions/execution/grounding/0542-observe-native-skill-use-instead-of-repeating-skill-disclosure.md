@@ -73,3 +73,5 @@ Focused tests must show:
 - the 30-day projection marks a skill with zero invocations after 20 turns as a retirement candidate for the principal proxy.
 
 Installed verification must show, in `axli`, a Claude Code turn that invokes `eli5` recorded as one `terminal.skill.observed` event.
+
+[ADR-0553](0553-bind-terminal-observations-to-the-provider-session-and-the-first-turn.md) starts the range of a first turn at the beginning of a transcript the provider created after the prompt.

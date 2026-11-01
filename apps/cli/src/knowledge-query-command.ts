@@ -12,7 +12,7 @@ import {
 import { collectInteractiveLocalKnowledgeSources } from "./knowledge-sources.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import type { CliIo } from "./types.js";
-import { singleOpenTerminalTurn } from "./terminal-open-turns.js";
+import { queryOpenTerminalTurn } from "./terminal-open-turns.js";
 import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
 
 export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<number> {
@@ -50,7 +50,7 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
         "Artifact verification requires --verify-artifact and --expected-plan together.",
       );
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-    const turn = await singleOpenTerminalTurn(repositoryRoot);
+    const turn = await queryOpenTerminalTurn(repositoryRoot);
     const supplementalSources = await collectInteractiveLocalKnowledgeSources(repositoryRoot);
     const projection = projectTaskQuery({
       intent: query,

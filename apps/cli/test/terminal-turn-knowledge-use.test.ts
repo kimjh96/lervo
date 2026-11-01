@@ -1,7 +1,7 @@
 import { mkdtemp, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
@@ -26,7 +26,12 @@ const roots: string[] = [];
 const projectId = "prj_turnknowledge01";
 const query = "cobaltqdoc987";
 const revision = sha256("unchanged repository");
+beforeEach(() => {
+  // These tests may run inside a Claude Code terminal, which names its own session.
+  vi.stubEnv("CLAUDE_CODE_SESSION_ID", undefined);
+});
 afterEach(async () => {
+  vi.unstubAllEnvs();
   vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -156,6 +161,42 @@ it.each([0, 2])("records no turn selections with %s open turns", async (count) =
   await queryCommand(root);
   expect((await events(root)).filter((event) => event.type === "context.selected")).toEqual([]);
 });
+
+it("binds to the calling Claude session while other sessions have open turns", async () => {
+  const root = await fixture();
+  await prepare(root, "session-a");
+  const { marker } = await prepare(root, "session-b");
+  await prepare(root, "session-c");
+  vi.stubEnv("CLAUDE_CODE_SESSION_ID", "session-b");
+  const result = await queryCommand(root);
+  const selected = (await events(root)).filter((event) => event.type === "context.selected");
+  expect(selected).toHaveLength(result.hits.length);
+  for (const event of selected)
+    expect(event.payload).toMatchObject({
+      origin: "agent_query",
+      contextEventId: marker.contextEventId,
+      providerSessionDigest: marker.providerSessionDigest,
+    });
+});
+
+it("records nothing when the calling Claude session has no open turn", async () => {
+  const root = await fixture();
+  await prepare(root, "only-open-session");
+  vi.stubEnv("CLAUDE_CODE_SESSION_ID", "session-without-turn");
+  await queryCommand(root);
+  expect((await events(root)).filter((event) => event.type === "context.selected")).toEqual([]);
+});
+
+it.each(["x".repeat(513), "   ", ""])(
+  "never falls back to another session for an unusable Claude session: %#",
+  async (session) => {
+    const root = await fixture();
+    await prepare(root, "unrelated-session");
+    vi.stubEnv("CLAUDE_CODE_SESSION_ID", session);
+    await queryCommand(root);
+    expect((await events(root)).filter((event) => event.type === "context.selected")).toEqual([]);
+  },
+);
 
 it("does not bind results when another session opens during the query", async () => {
   const root = await fixture();

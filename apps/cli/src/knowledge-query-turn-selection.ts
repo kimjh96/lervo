@@ -8,7 +8,7 @@ import {
 } from "./terminal-event-coordinates.js";
 import {
   openTurnCoordinates,
-  singleOpenTerminalTurn,
+  queryOpenTerminalTurn,
   type OpenTerminalTurn,
 } from "./terminal-open-turns.js";
 
@@ -16,10 +16,11 @@ export async function recordKnowledgeQueryTurnSelection(input: {
   root: string;
   turn: OpenTerminalTurn | null;
   hits: readonly Pick<KnowledgeQueryHit, "conceptId" | "path" | "contentHash">[];
+  env?: NodeJS.ProcessEnv;
 }): Promise<void> {
   try {
     if (input.turn === null || input.hits.length === 0 || input.hits.length > 20) return;
-    const turn = await singleOpenTerminalTurn(input.root);
+    const turn = await queryOpenTerminalTurn(input.root, input.env);
     if (turn === null || JSON.stringify(turn) !== JSON.stringify(input.turn)) return;
     const storage = await openProjectStorage(input.root);
     try {

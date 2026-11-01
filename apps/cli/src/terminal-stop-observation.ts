@@ -30,7 +30,11 @@ import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { findLatestPreparedContext } from "./terminal-prepared-context-query.js";
 import { selectedTerminalDocuments } from "./terminal-turn-selection.js";
 import { observedTerminalReferences } from "./terminal-output-references.js";
-import { closeTerminalTurn, sessionOpenTerminalTurn } from "./terminal-open-turns.js";
+import {
+  closeTerminalTurn,
+  openTurnTranscriptStart,
+  sessionOpenTerminalTurn,
+} from "./terminal-open-turns.js";
 
 export async function recordObservedTerminalTurn(input: {
   root: string;
@@ -178,7 +182,10 @@ export async function recordObservedTerminalTurn(input: {
       turnEventId,
       repositoryRevision,
       // The transcript range starts at this turn's own prompt only when its marker is proven.
-      start: marker?.contextEventId === context.eventId ? (marker.transcript ?? null) : null,
+      start:
+        marker?.contextEventId === context.eventId
+          ? openTurnTranscriptStart(marker, transcriptEnd, input.hookInput.transcriptPath)
+          : null,
       end: transcriptEnd,
       enqueuedAt: input.occurredAt,
     });

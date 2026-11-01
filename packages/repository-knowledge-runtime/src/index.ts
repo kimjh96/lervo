@@ -8,6 +8,7 @@ export {
   validTranscriptPosition,
   type TranscriptPosition,
 } from "./terminal-skill-queue.js";
+export { absentTerminalTranscript, newTranscriptStart } from "./terminal-transcript-position.js";
 export {
   convergenceDelegationPlanHash,
   loadConvergenceDelegation,

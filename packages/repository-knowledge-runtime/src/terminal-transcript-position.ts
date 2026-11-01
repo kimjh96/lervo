@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { open, realpath, type FileHandle } from "node:fs/promises";
+import { lstat, open, realpath, type FileHandle } from "node:fs/promises";
 import { homedir } from "node:os";
 import { isAbsolute, relative, resolve } from "node:path";
 
@@ -39,6 +39,12 @@ function within(root: string, path: string): boolean {
   return part !== "" && !isAbsolute(part) && part !== ".." && !part.startsWith("../");
 }
 
+function providerTranscriptBase(provider: "claude" | "codex"): string {
+  return provider === "claude"
+    ? resolve(homedir(), ".claude/projects")
+    : resolve(process.env.CODEX_HOME ?? resolve(homedir(), ".codex"), "sessions");
+}
+
 /** Both ingress and the resident enforce the provider's own host-local transcript boundary. */
 export async function openProviderTranscript(
   provider: "claude" | "codex",
@@ -47,10 +53,7 @@ export async function openProviderTranscript(
   if (!isAbsolute(path) || path.length > 4096 || path.includes("\0"))
     throw new Error("Invalid transcript path.");
   const home = await realpath(homedir());
-  const logicalBase =
-    provider === "claude"
-      ? resolve(homedir(), ".claude/projects")
-      : resolve(process.env.CODEX_HOME ?? resolve(homedir(), ".codex"), "sessions");
+  const logicalBase = providerTranscriptBase(provider);
   const base =
     provider === "claude"
       ? resolve(home, ".claude/projects")
@@ -112,4 +115,33 @@ export async function terminalTranscriptPosition(
   } catch {
     return null;
   }
+}
+
+/**
+ * A provider can create a session's transcript only after its first prompt hook. The hook then
+ * records the absent path, so Stop can read that turn from the start of the new file.
+ */
+export async function absentTerminalTranscript(
+  provider: "claude" | "codex",
+  path?: string,
+): Promise<string | null> {
+  if (!path || !isAbsolute(path) || path.length > 4096 || path.includes("\0")) return null;
+  const logical = resolve(path);
+  if (!within(providerTranscriptBase(provider), logical)) return null;
+  try {
+    await lstat(logical);
+    return null;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === "ENOENT" ? logical : null;
+  }
+}
+
+/** Everything in a transcript created during the turn belongs to that turn. */
+export function newTranscriptStart(end: TranscriptPosition): TranscriptPosition {
+  return {
+    ...end,
+    offset: 0,
+    prefixBytes: 0,
+    prefixDigest: `sha256:${createHash("sha256").update(Buffer.alloc(0)).digest("hex")}`,
+  };
 }
