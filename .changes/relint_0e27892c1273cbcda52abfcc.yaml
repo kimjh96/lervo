@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_0e27892c1273cbcda52abfcc"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "After a turn changes files that canonical documents name, show the next turn which of those documents it did not consult, and report the miss rate in repository health."
