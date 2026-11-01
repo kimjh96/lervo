@@ -1,9 +1,12 @@
+import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
+import { longHistoryEvents } from "../../storage-contract/test/listed-event-source.fixture.js";
 import {
   AgentOrganizationError,
   assertOrganizationRuntimeIdentity,
   projectAgentOrganization,
+  projectAgentOrganizationFromEventSource,
 } from "../src/index.js";
 
 const projectId = "prj_organization01";
@@ -413,5 +416,26 @@ describe("agent organization projection", () => {
         code: "organization_state_conflict",
       }),
     );
+  });
+
+  it("projects from organization types beyond 100,000 events without reading the whole history", () => {
+    const source = [team, membership, deployment, channel, deliberation];
+    const noise = { ...channel, type: "context.selected", payload: {} };
+    const long = longHistoryEvents([...source, noise] as unknown as EventEnvelope[]);
+    const projection = projectAgentOrganizationFromEventSource({ projectId, events: long });
+    expect(projection).toEqual(projectAgentOrganization({ projectId, events: long.events }));
+    expect(projection.deliberationParticipants).toHaveLength(1);
+    // A snapshot head excludes organization events appended after it.
+    const head = long.events.find((item) => item.type === deployment.type)!.seq;
+    expect(
+      projectAgentOrganizationFromEventSource({ projectId, events: long, throughSeq: head }),
+    ).toMatchObject({ lastSequence: head, channelMemberships: [], deliberationParticipants: [] });
+    // A source that returns another type is not trusted.
+    expect(() =>
+      projectAgentOrganizationFromEventSource({
+        projectId,
+        events: { list: () => [long.head] },
+      }),
+    ).toThrow(expect.objectContaining({ code: "organization_event_invalid" }));
   });
 });

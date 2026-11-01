@@ -9,8 +9,25 @@ import type {
   ResourceGroupObservationV1,
 } from "@lervo/application-contract";
 
-import { projectManagedStageGroups } from "./managed-stage-projection.js";
-import { projectManagedResourceGroups } from "./managed-resource-projection.js";
+import { managedStageEventTypes, projectManagedStageGroups } from "./managed-stage-projection.js";
+import {
+  managedResourceEventTypes,
+  projectManagedResourceGroups,
+} from "./managed-resource-projection.js";
+
+/**
+ * Event types `projectManagedAttempts` consumes without a scope anchor. A typed read of them is
+ * sufficient input; a caller passing `scopeAnchor` must also read `workstream.snapshot.recorded`.
+ */
+export const managedAttemptEventTypes: readonly string[] = [
+  ...new Set([
+    "work.causality.recorded",
+    "run.completed",
+    "run.failed",
+    ...managedResourceEventTypes,
+    ...managedStageEventTypes,
+  ]),
+];
 
 export interface AttemptProjectionV1 {
   attempts: ManagedAttemptObservationV1[];

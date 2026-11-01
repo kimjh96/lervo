@@ -4,7 +4,8 @@ import { resolve } from "node:path";
 import { FileSystemCas } from "@lervo/cas";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { operatingContractHash, planMandateInstallation } from "@lervo/work-controller";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { rejectWholeHistoryReads } from "../../storage-contract/test/whole-history-reads.fixture.js";
 import {
   SupervisionMandateJournal,
   SupervisionResponsibilityReader,
@@ -77,6 +78,7 @@ async function fixture(writer: 1 | 2 | 3 = 3) {
   return { root, events, artifacts, leases, lease, coordinates, journal, plan };
 }
 afterEach(async () => {
+  vi.restoreAllMocks();
   for (const store of stores.splice(0)) store.close();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -154,6 +156,9 @@ describe("mandate journal evidence fencing", () => {
       writableEventSchemaVersion: 3,
     });
     stores.push(events);
+    // The identity check reads installations only, so history length cannot fail it.
+    rejectWholeHistoryReads(f.events);
+    rejectWholeHistoryReads(events);
     const supervisionId = "second-supervision";
     const lease = f.leases.acquire({
       supervisionId,

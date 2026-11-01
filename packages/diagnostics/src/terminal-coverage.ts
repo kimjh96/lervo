@@ -5,16 +5,18 @@ import {
   type TerminalTurnCoverage,
 } from "@lervo/schemas";
 import { terminalStageCoverage } from "./terminal-stage-coverage.js";
-import type { EventStore } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded, type EventStore } from "@lervo/storage-contract";
 
 import { DiagnosticsError } from "./types.js";
 
-const TERMINAL_EVENT_TYPES = new Set([
+const TERMINAL_EVENT_TYPES = [
   "terminal.context.prepared",
   "terminal.reference.observed",
   "terminal.turn.observed",
   "execution.stages.observed",
-]);
+];
+/** Bounds the terminal events the report retains, never the length of history (ADR-0554). */
+const maximumTerminalEvents = 100_000;
 
 type JsonObject = Record<string, unknown>;
 
@@ -88,18 +90,11 @@ function ratio(numerator: number, denominator: number, unavailableReason: string
 }
 
 function allTerminalEvents(events: EventStore): EventEnvelope[] {
-  const collected: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (true) {
-    const batch = events.list({ afterSeq, limit: 1000 });
-    if (batch.length === 0) break;
-    for (const event of batch) {
-      afterSeq = event.seq;
-      if (TERMINAL_EVENT_TYPES.has(event.type)) collected.push(event);
-    }
-    if (batch.length < 1000) break;
-  }
-  return collected;
+  return collectEventsOfTypesBounded({
+    events,
+    types: TERMINAL_EVENT_TYPES,
+    maximumEvents: maximumTerminalEvents,
+  });
 }
 
 function reportForContext(context: EventEnvelope, events: EventEnvelope[]): TerminalTurnCoverage {

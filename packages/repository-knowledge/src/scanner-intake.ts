@@ -26,7 +26,7 @@ import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
 import { observeGitIgnoredPaths, type ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
 import { defaultDecisionTaxonomy } from "@lervo/project";
 import { loadDocumentLayoutContract } from "./document-layout-contract.js";
-import { repositoryScanPriority } from "./scan-priority.js";
+import { compareScanPaths, repositoryScanPriority } from "./scan-priority.js";
 import { admitRetainedContent, type ScanRetentionCandidate } from "./scan-retention.js";
 import type { SourceUnitCache } from "./source-unit-cache.js";
 
@@ -224,8 +224,10 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
   }
   // A set keeps the collision check linear; event-heavy repositories supply thousands of units.
   const repositorySourcePaths = new Set([...sources, ...candidates].map((source) => source.path));
+  const skippedSupplemental = { count: 0, bytes: 0 };
+  // Which sources survive the file count must not depend on the host locale.
   for (const supplemental of [...(input.supplementalSources ?? [])].sort((left, right) =>
-    left.path.localeCompare(right.path),
+    compareScanPaths(left.path, right.path),
   )) {
     if (
       !/^@(?:verification|event)\/[a-z][a-z0-9_]{2,150}$/u.test(supplemental.path) ||
@@ -245,14 +247,15 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
         "The supplemental evidence source contract is invalid.",
       );
     }
-    visitedFiles += 1;
-    if (visitedFiles > input.policy.limits.maxFiles) {
-      throw new RepositoryKnowledgeError(
-        "knowledge_source_limit_exceeded",
-        "The repository source count exceeds the policy limit.",
-      );
-    }
     const byteCount = Buffer.byteLength(supplemental.content);
+    // ADR-0554: evidence windows yield to repository files; sources past the count are skipped
+    // for budget instead of failing the scan, so a long history never stops knowledge.
+    if (visitedFiles >= input.policy.limits.maxFiles) {
+      skippedSupplemental.count += 1;
+      skippedSupplemental.bytes += byteCount;
+      continue;
+    }
+    visitedFiles += 1;
     if (byteCount > input.policy.limits.maxFileBytes) {
       throw new RepositoryKnowledgeError(
         "knowledge_source_limit_exceeded",
@@ -296,7 +299,11 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
     supplementalByPath,
     sourceLineages,
     coverage: admitted.coverage,
-    skippedForBudget: admitted.skippedForBudget,
+    skippedForBudget: {
+      ...admitted.skippedForBudget,
+      count: admitted.skippedForBudget.count + skippedSupplemental.count,
+      bytes: admitted.skippedForBudget.bytes + skippedSupplemental.bytes,
+    },
     retention: admitted.retention,
   };
 }

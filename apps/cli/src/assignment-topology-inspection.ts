@@ -1,12 +1,21 @@
 import type { WorkGraphV2 } from "@lervo/application-contract";
 import { listAssignments, type WorkforceAssignment } from "@lervo/agent-workforce";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
-import { projectManagedAttempts, projectWorkGraphV2 } from "@lervo/work-controller";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
+import {
+  managedAttemptEventTypes,
+  projectManagedAttempts,
+  projectWorkGraphV2,
+  workGraphV2EventTypes,
+} from "@lervo/work-controller";
 
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
+/** Bounds the attempt and topology events retained, never the length of project history. */
 const maximumSourceEvents = 100_000;
+const topologySourceEventTypes = [
+  ...new Set([...managedAttemptEventTypes, ...workGraphV2EventTypes]),
+];
 
 export async function loadAssignmentTopologySnapshot(storage: ProjectStorage): Promise<{
   graph: WorkGraphV2;
@@ -16,8 +25,9 @@ export async function loadAssignmentTopologySnapshot(storage: ProjectStorage): P
   if (workstream === null || workstream.status !== "active")
     throw new Error("Assignment topology requires one verified active workstream.");
   const assignments = await listAssignments(storage.paths.repositoryRoot);
-  const events = collectProjectEventsBounded({
+  const events = collectEventsOfTypesBounded({
     events: storage.events,
+    types: topologySourceEventTypes,
     maximumEvents: maximumSourceEvents,
   });
   const attempts = projectManagedAttempts({

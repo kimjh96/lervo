@@ -72,7 +72,12 @@ export async function reconcileInterruptedOwnerReasoning(input: {
         const decisions: EventEnvelope[] = [];
         let afterSeq = 0;
         while (true) {
-          const page = storage.events.list({ afterSeq, limit: 1000 });
+          // ADR-0554: a typed read of decisions; the store verifies each returned row.
+          const page = storage.events.list({
+            afterSeq,
+            limit: 1000,
+            types: ["work.supervision.decision.recorded"],
+          });
           if (page.length === 0) break;
           decisions.push(
             ...page.filter(

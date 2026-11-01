@@ -20,12 +20,14 @@ export interface VerifiedEventTailRead {
  * In-memory cursor over the append-only project event chain for one set of event types.
  *
  * The first read, a read after `fullReadIntervalMs`, a clock rollback, and any anchor failure read
- * the whole history; other reads return only events after the cursor. The store assigns `seq`
- * inside serialized write transactions and rejects updates and deletes, so the events at or below
- * a verified head never change: the union of the earlier reads and the new tail equals one full
- * read. The anchor (same event ID, sequence, and stored hash, and a head not behind it) detects a
- * replaced or rolled-back store; the periodic full read bounds what an out-of-band rewrite below
- * the anchor could hide. The cursor is process memory only and never authorizes anything.
+ * every matching event; other reads return only matching events after the cursor. Reads are typed,
+ * so their cost and retention follow the matching events, never the length of the whole history.
+ * The store assigns `seq` inside serialized write transactions and rejects updates and deletes, so
+ * the events at or below a verified head never change: the union of the earlier reads and the new
+ * tail equals one full read. The anchor (same event ID, sequence, and stored hash, and a head not
+ * behind it) detects a replaced or rolled-back store; the periodic full read bounds what an
+ * out-of-band rewrite below the anchor could hide. The cursor is process memory only and never
+ * authorizes anything.
  */
 export class VerifiedEventTail {
   private cursor: TailCursor | null = null;
@@ -34,8 +36,8 @@ export class VerifiedEventTail {
   constructor(
     private readonly options: {
       types: readonly string[];
-      /** Upper bound on the store head; larger histories fail as the full walk did. */
-      maximumEvents: number;
+      /** Upper bound on the matching events one read retains; history length is never bounded. */
+      maximumMatchedEvents: number;
       fullReadIntervalMs: number;
       boundMessage: string;
       now?: () => number;
@@ -53,8 +55,6 @@ export class VerifiedEventTail {
     const restarted = !this.anchorHolds(events, at);
     if (restarted) this.reset();
     const head = events.latest();
-    if (head !== null && head.seq > this.options.maximumEvents)
-      throw new Error(this.options.boundMessage);
     const observed: EventEnvelope[] = [];
     let afterSeq = this.cursor?.seq ?? 0;
     while (head !== null && afterSeq < head.seq) {
@@ -64,7 +64,10 @@ export class VerifiedEventTail {
         if (event.seq > head.seq) break;
         afterSeq = event.seq;
         // Stores that ignore the optional filter still yield the same result.
-        if (this.options.types.includes(event.type)) observed.push(event);
+        if (!this.options.types.includes(event.type)) continue;
+        if (observed.length >= this.options.maximumMatchedEvents)
+          throw new Error(this.options.boundMessage);
+        observed.push(event);
       }
       if (page.length < 1_000 || page.at(-1)!.seq >= head.seq) break;
     }

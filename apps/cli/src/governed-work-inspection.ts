@@ -7,12 +7,13 @@ import {
 } from "@lervo/application-contract";
 import { listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
-import { projectGovernedWorkReport } from "@lervo/work-controller";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
+import { governedWorkReportEventTypes, projectGovernedWorkReport } from "@lervo/work-controller";
 
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { observeGraphApprovals } from "./approval-authority-observer.js";
 
+/** Bounds the governed-work events retained, never the length of project history. */
 const maximumSourceEvents = 100_000;
 
 export interface InspectGovernedWorkInput {
@@ -40,8 +41,9 @@ export function createGovernedWorkInspector(
       const [assignments, events] = await Promise.all([
         listAssignments(storage.paths.repositoryRoot),
         Promise.resolve(
-          collectProjectEventsBounded({
+          collectEventsOfTypesBounded({
             events: storage.events,
+            types: governedWorkReportEventTypes,
             maximumEvents: maximumSourceEvents,
           }),
         ),

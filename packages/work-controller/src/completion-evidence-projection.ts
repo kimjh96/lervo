@@ -13,6 +13,12 @@ export type CompletionEvidenceCoordinate = Omit<
   "schemaVersion" | "completionEvidenceId"
 >;
 
+/** Event types `projectCompletionEvidence` consumes; a typed read of them is sufficient input. */
+export const completionEvidenceEventTypes = [
+  "run.completed",
+  "assignment.completion.prepared",
+] as const;
+
 export function completionEvidenceId(coordinate: CompletionEvidenceCoordinate): string {
   return `acp_${sha256(JSON.stringify(coordinate)).slice("sha256:".length, "sha256:".length + 24)}`;
 }
@@ -44,6 +50,8 @@ export function projectCompletionEvidence(input: {
       throw new TypeError("A governed completion preparation event is invalid.");
     }
     const payload = event.payload as AssignmentCompletionPreparedEventPayload;
+    // Another workstream's preparations are its own evidence; that workstream's projection checks them.
+    if (payload.workstreamId !== input.workstreamId) continue;
     const attempt = attemptsByRun.get(event.runId);
     const completed = completedByRun.get(event.runId);
     if (
@@ -53,7 +61,6 @@ export function projectCompletionEvidence(input: {
       attempt.assignmentId !== payload.assignmentId ||
       attempt.terminalStatus !== "completed" ||
       attempt.verificationStatus !== "passed" ||
-      payload.workstreamId !== input.workstreamId ||
       payload.preparedAt !== event.occurredAt ||
       Date.parse(payload.preparedAt) < Date.parse(completed.occurredAt)
     ) {

@@ -1,7 +1,7 @@
 import type { ImprovementObservationCollectionRequestV1 } from "@lervo/application-contract";
 import { evaluateImprovementObservationPortConformance } from "@lervo/improvement-observation-conformance";
 import type { EventEnvelope } from "@lervo/schemas";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   LOCAL_IMPROVEMENT_OBSERVATION_ADAPTER_ID,
@@ -47,12 +47,16 @@ function verificationEvent(
   } as EventEnvelope;
 }
 
-function eventStore(events: EventEnvelope[]) {
+function eventStore(events: EventEnvelope[], head?: EventEnvelope) {
   return {
-    latest: () => events.at(-1) ?? null,
-    list: (options: { afterSeq?: number; limit?: number }) =>
+    latest: () => head ?? events.at(-1) ?? null,
+    list: (options: { afterSeq?: number; limit?: number; types?: readonly string[] }) =>
       events
-        .filter((event) => event.seq > (options.afterSeq ?? 0))
+        .filter(
+          (event) =>
+            event.seq > (options.afterSeq ?? 0) &&
+            (options.types === undefined || options.types.includes(event.type)),
+        )
         .slice(0, options.limit ?? 1_000),
   };
 }
@@ -71,12 +75,12 @@ function collectionRequest(
   };
 }
 
-function adapterFor(events: EventEnvelope[], maximumScannedEvents?: number) {
+function adapterFor(events: EventEnvelope[], maximumEvidenceEvents?: number) {
   return createLocalImprovementObservationAdapter({
     evidenceSource: createEventStoreImprovementEvidenceSource({
       projectId,
       events: eventStore(events),
-      ...(maximumScannedEvents === undefined ? {} : { maximumScannedEvents }),
+      ...(maximumEvidenceEvents === undefined ? {} : { maximumEvidenceEvents }),
     }),
   });
 }
@@ -240,6 +244,32 @@ describe("local improvement observation adapter", () => {
       observations: [],
       unavailable: [{ metricId: "verification_success", reason: "evidence_limit_exceeded" }],
     });
+  });
+
+  it("reads typed evidence however far the store head is beyond 100,000 events", async () => {
+    // ADR-0554: only verification completions are read, so a long history never fails the read.
+    const head = {
+      ...verificationEvent(150_000, "passed"),
+      type: "run.requested",
+    } as EventEnvelope;
+    const events = [verificationEvent(1, "failed"), verificationEvent(2, "passed"), head];
+    const store = eventStore(events, head);
+    const list = vi.spyOn(store, "list");
+    const adapter = createLocalImprovementObservationAdapter({
+      evidenceSource: createEventStoreImprovementEvidenceSource({ projectId, events: store }),
+    });
+    await expect(adapter.collect(collectionRequest())).resolves.toEqual(
+      await adapterFor(events.slice(0, 2)).collect(collectionRequest()),
+    );
+    expect(
+      list.mock.calls.every(([options]) => options.types?.join() === "verification.completed"),
+    ).toBe(true);
+    const foreign = { ...verificationEvent(3, "passed"), projectId: "prj_observation_other" };
+    await expect(
+      adapterFor([verificationEvent(1, "passed"), foreign as EventEnvelope]).collect(
+        collectionRequest(),
+      ),
+    ).rejects.toMatchObject({ code: "evidence_invalid" });
   });
 
   it("rejects status and non-passed-command contradictions", async () => {

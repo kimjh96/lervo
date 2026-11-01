@@ -4,12 +4,15 @@ import {
   workCausalityEventId,
 } from "@lervo/execution-contract";
 import type { WorkCausalityRecordedEventPayload } from "@lervo/schemas";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
 
 import type { ManagedWorkCausalityInput } from "./provider-run-types.js";
 import type { ManagedEventSpec } from "./telemetry.js";
 import type { ManagedEventStore, ManagedRunCoordinates } from "./types.js";
 
+/** Admission depends only on causal records and whether the run was already requested. */
+const admissionSourceEventTypes = ["work.causality.recorded", "run.requested"] as const;
+/** Bounds the matching events retained, never the length of project history. */
 const maximumSourceEvents = 100_000;
 
 export function resolveManagedWorkCausality(input: {
@@ -55,8 +58,9 @@ export function admitManagedWorkCausality(input: {
 } {
   const payload = resolveManagedWorkCausality(input);
   const eventId = workCausalityEventId(input.coordinates.projectId, input.coordinates.runId);
-  const events = collectProjectEventsBounded({
+  const events = collectEventsOfTypesBounded({
     events: input.events,
+    types: admissionSourceEventTypes,
     maximumEvents: maximumSourceEvents,
   });
   const disposition = validateWorkCausalityAdmission({

@@ -16,6 +16,11 @@ const schemaByType = {
   "agent.context.handoff.recorded": "agentContextHandoffRecordedEventPayload",
 } as const satisfies Record<AgentContextEvent["type"], SchemaName>;
 
+/** Every event type the agent-context projection consumes; a typed read of them is sufficient. */
+export const agentContextEventTypes = Object.keys(
+  schemaByType,
+) as readonly AgentContextEvent["type"][];
+
 export function isAgentContextEventType(type: string): type is AgentContextEvent["type"] {
   return Object.hasOwn(schemaByType, type);
 }

@@ -3,6 +3,8 @@ import { mkdir, rename, writeFile } from "node:fs/promises";
 import { relative, resolve, sep } from "node:path";
 
 import {
+  agentOrganizationEventTypes,
+  isAgentContextEventType,
   projectAgentContext,
   projectAgentOrganization,
   type AgentContextEventEnvelope,
@@ -15,6 +17,11 @@ import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
 import { renderAgentContextDocument, selectAgentContextEntries } from "./agent-context-document.js";
 
 const maximumEntries = 8;
+const retainedEventTypes = [
+  "agent.context.promoted",
+  "agent.context.handoff.recorded",
+  ...agentOrganizationEventTypes,
+];
 const maximumMaterializedBytes = 32_768;
 
 function artifactUri(contentHash: string): string {
@@ -47,14 +54,28 @@ export class AgentContextMaterializer {
     },
   ) {}
 
+  /**
+   * ADR-0554: only the agent-context and organization events the projections read are retained.
+   * Review and source events they reference are looked up by ID, within the observed head.
+   */
   private refreshEvents(): void {
-    while (true) {
-      const page = this.options.events.list({ afterSeq: this.lastSequence, limit: 1_000 });
+    const head = this.options.events.latest()?.seq ?? 0;
+    while (this.lastSequence < head) {
+      const page = this.options.events
+        .list({ afterSeq: this.lastSequence, limit: 1_000, types: retainedEventTypes })
+        .filter((event) => event.seq <= head);
       this.events.push(...page);
-      if (page.length === 0) return;
+      if (page.length < 1_000) break;
       this.lastSequence = page.at(-1)!.seq;
-      if (page.length < 1_000) return;
     }
+    this.lastSequence = head;
+  }
+
+  private lookupEvent(eventId: string): AgentContextEventEnvelope | undefined {
+    const event = this.options.events.get(eventId);
+    return event !== null && event.seq <= this.lastSequence
+      ? (event as AgentContextEventEnvelope)
+      : undefined;
   }
 
   async materialize(
@@ -67,7 +88,11 @@ export class AgentContextMaterializer {
       projectId: this.options.projectId,
       agentId,
       agents,
-      events: this.events as AgentContextEventEnvelope[],
+      events: this.events.filter((event) =>
+        isAgentContextEventType(event.type),
+      ) as AgentContextEventEnvelope[],
+      lookupEvent: (eventId) => this.lookupEvent(eventId),
+      observedThroughSeq: this.lastSequence,
     });
     const organization = projectAgentOrganization({
       projectId: this.options.projectId,

@@ -7,15 +7,20 @@ import {
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import { loadProjectManifest } from "@lervo/project";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
 import { observeMandateExecutionAuthority } from "@lervo/node-runtime";
 import {
   assertMandateInstallationPlan,
   assertOperatingMandate,
   operatingContractHash,
+  operatingWorkScopeEventTypes,
   planMandateInstallation,
   selectOperatingWorkScope,
 } from "@lervo/work-controller";
 import { observeMandateInstallationSource } from "./mandate-installation-source.js";
+
+/** Bounds the work-scope events retained, never the length of project history. */
+const maximumWorkScopeEvents = 32_768;
 
 function journal(
   storage: ProjectStorage,
@@ -69,16 +74,12 @@ export async function selectRepositoryMandateWorkScope(input: {
     const workstreamId = input.workstreamId ?? current?.snapshot.workstreamId;
     if (workstreamId === undefined)
       throw new Error("Work-scope selection requires a workstream coordinate.");
-    const events: ReturnType<ProjectStorage["events"]["list"]> = [];
-    let afterSeq = 0;
-    while (true) {
-      const page = storage.events.list({ afterSeq, limit: 1_000 });
-      if (page.length === 0) break;
-      events.push(...page);
-      afterSeq = page.at(-1)!.seq;
-      if (events.length > 32_768)
-        throw new Error("Work-scope selection exceeds the complete event-source bound.");
-    }
+    // ADR-0554: only the work-scope projection's types are read and retained.
+    const events = collectEventsOfTypesBounded({
+      events: storage.events,
+      types: operatingWorkScopeEventTypes,
+      maximumEvents: maximumWorkScopeEvents,
+    });
     return selectOperatingWorkScope({
       projectId: storage.manifest.projectId,
       workstreamId,

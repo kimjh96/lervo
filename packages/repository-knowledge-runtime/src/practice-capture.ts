@@ -38,7 +38,12 @@ export async function preparePracticeCapture(
   const matches: Array<{ session: string; seq: number }> = [];
   let afterSeq = 0;
   while (true) {
-    const events = context.storage.events.list({ afterSeq, limit: 1000 });
+    // ADR-0554: a typed read costs only prepared terminal contexts, never the length of history.
+    const events = context.storage.events.list({
+      afterSeq,
+      limit: 1000,
+      types: ["terminal.context.prepared"],
+    });
     if (!events.length) break;
     for (const event of events)
       if (

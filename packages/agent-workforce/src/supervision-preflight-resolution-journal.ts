@@ -1,5 +1,5 @@
 import type { InstalledOperatingMandate } from "@lervo/application-contract";
-import { collectProjectEventsBounded, type EventStore } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded, type EventStore } from "@lervo/storage-contract";
 import { lineageRootId, operatingContractHash } from "@lervo/work-controller";
 import type {
   SupervisionEventJournal,
@@ -8,6 +8,8 @@ import type {
 import { listUnresolvedSupervisionPreflightBlocks } from "./supervision-preflight-block-journal.js";
 
 const RESOLVED = "work.supervision.preflight.resolved";
+/** Supersession or revocation events one check may retain; history length is never bounded. */
+const maximumMatchedEvents = 100_000;
 
 export interface SupervisionPreflightAuthorityReviewV1 {
   schemaVersion: 1;
@@ -41,7 +43,11 @@ export function reviewSupervisionPreflightAuthorityChange(input: {
   );
   if (blocked === undefined)
     throw new Error("The preflight block is absent or already resolved for this owner lineage.");
-  const supersessions = collectProjectEventsBounded({ events, maximumEvents: 100_000 }).filter(
+  const supersessions = collectEventsOfTypesBounded({
+    events,
+    types: ["work.supervision.decision.superseded"],
+    maximumEvents: maximumMatchedEvents,
+  }).filter(
     (event) =>
       event.type === "work.supervision.decision.superseded" &&
       event.projectId === coordinates.projectId &&
@@ -131,9 +137,10 @@ export async function recordSupervisionPreflightAuthorityResolution(input: {
     installationEventId: expected.sourceSnapshotEventId,
   });
   input.journal.append(RESOLVED, payload, identity, () => {
-    const revoked = collectProjectEventsBounded({
+    const revoked = collectEventsOfTypesBounded({
       events: input.events,
-      maximumEvents: 100_000,
+      types: ["work.supervision.mandate.revoked"],
+      maximumEvents: maximumMatchedEvents,
     }).some(
       (event) =>
         event.type === "work.supervision.mandate.revoked" &&

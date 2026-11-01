@@ -60,6 +60,31 @@ describe("assignment completion evidence projection", () => {
     ]);
   });
 
+  it("leaves another workstream's completion preparations to that workstream", () => {
+    const coordinate = {
+      workstreamId: "wks_ffffffffffffffffffffffff",
+      assignmentId: assignment("2").assignmentId,
+      assignmentRevision: 1,
+      agentId: "agt_222222222222222222222222",
+      leaseId: "lse_222222222222222222222222",
+      runId: "run_222222222222222222222222",
+      sessionId: "ses_111111111111111111111111",
+      resultArtifactId: `art_${"b".repeat(64)}`,
+      resultContentHash: `sha256:${"b".repeat(64)}`,
+      preparedAt: "2026-09-01T00:00:01.000Z",
+    };
+    const { runId, sessionId: _sessionId, ...payload } = coordinate;
+    const events = [
+      event(1, "assignment.completion.prepared", runId, {
+        completionEvidenceId: completionEvidenceId(coordinate),
+        ...payload,
+        verificationStatus: "passed",
+        writingPublicationStatus: "allowed",
+      }),
+    ];
+    expect(projectCompletionEvidence({ events, attempts: [], workstreamId })).toEqual([]);
+  });
+
   it("rejects evidence whose artifact differs from the completed run", () => {
     const node = assignment("1");
     const runId = "run_111111111111111111111111";

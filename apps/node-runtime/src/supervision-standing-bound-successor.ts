@@ -11,6 +11,9 @@ import {
   type BoundWorkstreamState,
 } from "./supervision-workstream-state.js";
 
+/** Matching events one successor scan may observe; history length itself is never bounded. */
+const maximumMatchedEvents = 100_000;
+
 export function standingSuccessorMarker(
   successorIndex: number,
   requestContentHash: string,
@@ -35,7 +38,11 @@ async function preparedSuccessor(input: {
   let found: { workstreamId: string; startEvent: { eventId: string; eventHash: string } } | null =
     null;
   while (true) {
-    const page = storage.events.list({ afterSeq: cursor, limit: 1000 });
+    const page = storage.events.list({
+      afterSeq: cursor,
+      limit: 1000,
+      types: ["workstream.snapshot.recorded"],
+    });
     if (page.length === 0) {
       if (found !== null) {
         const latest = await readBoundWorkstreamState(storage, found.workstreamId);
@@ -45,7 +52,8 @@ async function preparedSuccessor(input: {
       return found;
     }
     observed += page.length;
-    if (observed > 100_000) throw new Error("The successor history exceeds its source bound.");
+    if (observed > maximumMatchedEvents)
+      throw new Error("The successor events exceed their source bound.");
     for (const event of page) {
       if (
         event.projectId !== storage.manifest.projectId ||
@@ -108,10 +116,15 @@ function hasInstalledSuccessor(
   let cursor = anchor.seq;
   let observed = 0;
   while (true) {
-    const page = storage.events.list({ afterSeq: cursor, limit: 1000 });
+    const page = storage.events.list({
+      afterSeq: cursor,
+      limit: 1000,
+      types: ["work.supervision.mandate.installed"],
+    });
     if (page.length === 0) return false;
     observed += page.length;
-    if (observed > 100_000) throw new Error("The successor history exceeds its source bound.");
+    if (observed > maximumMatchedEvents)
+      throw new Error("The successor events exceed their source bound.");
     if (
       page.some(
         (event) =>

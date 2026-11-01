@@ -9,7 +9,8 @@ import {
   planMandateInstallation,
   reviewOperatingAction,
 } from "@lervo/work-controller";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+import { rejectWholeHistoryReads } from "../../storage-contract/test/whole-history-reads.fixture.js";
 import {
   SupervisionDecisionJournal,
   SupervisionMandateJournal,
@@ -21,6 +22,7 @@ import { hash, mandate, now, plan, snapshot } from "./supervision.fixture.js";
 const roots: string[] = [];
 const stores: (SQLiteEventStore | SQLiteSupervisionOwnerLeaseStore)[] = [];
 afterEach(async () => {
+  vi.restoreAllMocks();
   for (const store of stores.splice(0)) store.close();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -173,6 +175,8 @@ async function fixture() {
 
 it("clears a block only through an approved review after non-start and a fresh spend epoch", async () => {
   const f = await fixture();
+  // Every check reads only the event types it decides on, so history length cannot fail it.
+  rejectWholeHistoryReads(f.events);
   // Without a proven non-start or a later reviewed epoch nothing can be reviewed.
   await expect(
     f.mandates.reviewPreflightResolution(f.blockedEventId, f.reviewerId),

@@ -3,13 +3,14 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
-import type { EventStore } from "@lervo/storage-contract";
+import type { EventStore, ListEventsOptions } from "@lervo/storage-contract";
 import { describe, expect, it } from "vitest";
 
 import { collectExecutionEventSources } from "../src/execution-event-source.js";
 import { collectExecutionEventSourcePages } from "../src/paged-execution-event-source.js";
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
+import { longEventHistory } from "./long-event-history.js";
 
 const limits = { maxFiles: 100_000, maxTotalBytes: 64 * 1024 * 1024 };
 const invalid = expect.objectContaining({ code: "knowledge_evidence_source_invalid" });
@@ -48,7 +49,7 @@ describe("complete paged execution evidence", () => {
   it("preserves every original beyond the legacy byte bound with independently bounded pages", () => {
     const rows = history(4_100, 4_000);
     const events = store(rows);
-    expect(() => collectExecutionEventSources({ events })).toThrowError(invalid);
+    expect(collectExecutionEventSources({ events }).length).toBeLessThan(rows.length);
     const pages = collectExecutionEventSourcePages({ events, limits });
     expect(pages).toHaveLength(2);
     expect(pages.flat().map((source) => JSON.parse(source.content))).toEqual(rows);
@@ -74,24 +75,53 @@ describe("complete paged execution evidence", () => {
     );
   });
 
-  it("refuses a fifth page and both tracked aggregate bounds without partial output", () => {
+  it("selects the newest window instead of a fifth page or an exceeded tracked bound", () => {
     const rows = history(16_000, 4_000);
-    expect(() =>
+    const roomy = { ...limits, maxTotalBytes: 128 * 1024 * 1024 };
+    const pages = collectExecutionEventSourcePages({ events: store(rows), limits: roomy });
+    // ADR-0554: the oldest originals that would need a fifth page are left out, deterministically.
+    expect(pages).toHaveLength(4);
+    const retained = pages.flat();
+    expect(retained.length).toBeLessThan(rows.length);
+    expect(retained.map((source) => JSON.parse(source.content))).toEqual(
+      rows.slice(-retained.length),
+    );
+    for (const page of pages)
+      expect(
+        page.reduce((sum, source) => sum + Buffer.byteLength(source.content), 0),
+      ).toBeLessThanOrEqual(16 * 1024 * 1024);
+    expect(collectExecutionEventSourcePages({ events: store(rows), limits: roomy })).toEqual(pages);
+    const small = history(2);
+    expect(
+      collectExecutionEventSourcePages({ events: store(small), limits: { ...limits, maxFiles: 1 } })
+        .flat()
+        .map((source) => source.path),
+    ).toEqual([`@event/${small[1]!.eventId}`]);
+    expect(
       collectExecutionEventSourcePages({
-        events: store(rows),
-        limits: {
-          ...limits,
-          maxTotalBytes: 128 * 1024 * 1024,
-        },
+        events: store(small),
+        limits: { ...limits, maxTotalBytes: 1 },
       }),
-    ).toThrowError(invalid);
-    const small = store(history(2));
-    expect(() =>
-      collectExecutionEventSourcePages({ events: small, limits: { ...limits, maxFiles: 1 } }),
-    ).toThrowError(invalid);
-    expect(() =>
-      collectExecutionEventSourcePages({ events: small, limits: { ...limits, maxTotalBytes: 1 } }),
-    ).toThrowError(invalid);
+    ).toEqual([]);
+  });
+
+  it("verifies the whole chain and returns the window when the head is beyond 100,000 events", () => {
+    const executionSeqs = [3, 99_999, 100_001, 149_998];
+    const events = longEventHistory(150_000, executionSeqs);
+    const pages = collectExecutionEventSourcePages({ events, limits });
+    expect(pages.flat().map((source) => JSON.parse(source.content).seq)).toEqual(executionSeqs);
+    const broken = {
+      ...events,
+      list: (options?: ListEventsOptions) =>
+        events
+          .list(options)
+          .map((event) =>
+            event.seq === 120_000 ? { ...event, previousHash: `sha256:${"d".repeat(64)}` } : event,
+          ),
+    };
+    expect(() => collectExecutionEventSourcePages({ events: broken, limits })).toThrowError(
+      invalid,
+    );
   });
 
   it("pins its original head while allowing valid concurrent appends", () => {
@@ -149,7 +179,7 @@ describe("complete paged execution evidence", () => {
     }
   });
 
-  it("checks the pinned anchor, sequence bound, predecessor links and per-event bytes", () => {
+  it("checks the pinned anchor, an unreachable head, predecessor links and per-event bytes", () => {
     const rows = history(2);
     const events = store(rows);
     expect(() =>

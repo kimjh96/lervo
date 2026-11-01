@@ -1,7 +1,15 @@
 import { sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import type { EventEnvelope } from "@lervo/schemas";
+import { visitEventsOfTypes } from "@lervo/storage-contract";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import type { ConvergenceApprovedEffect } from "./effect-source-fence.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+
+/**
+ * The most recent settled normalizations a lineage proof considers. Every match the former
+ * 10,000-event head window held is still among them.
+ */
+const maximumSettledNormalizations = 10_000;
 
 /** Only canonically settled, independently reviewed normalization can explain a target preimage. */
 export async function hasCanonicalNormalizationLineage(
@@ -13,24 +21,24 @@ export async function hasCanonicalNormalizationLineage(
 ): Promise<boolean> {
   if (targetHash === sourceHash) return true;
   if (targetHash === null || sourceHash === null) return false;
-  const latest = context.storage.events.latest()?.seq ?? 0;
-  let afterSeq = Math.max(0, latest - 10_000);
-  const settled = [];
-  while (afterSeq < latest) {
-    const page = context.storage.events.list({ afterSeq, limit: 512 });
-    if (!page.length) break;
-    settled.push(
-      ...page.filter(
-        (event) =>
-          event.seq <= latest &&
-          event.type === "repository.knowledge.stage.recorded" &&
-          event.payload.stage === "normalization_apply" &&
-          event.payload.state === "current" &&
-          event.payload.resultArtifactHash !== null,
-      ),
-    );
-    afterSeq = page.at(-1)!.seq;
-  }
+  // ADR-0554: a typed read keeps the most recent settled normalizations, whatever the noise
+  // between them; the window counts retained matches, never the length of history.
+  const settled: EventEnvelope[] = [];
+  visitEventsOfTypes({
+    events: context.storage.events,
+    types: ["repository.knowledge.stage.recorded"],
+    throughSeq: context.storage.events.latest()?.seq ?? 0,
+    visit: (event) => {
+      if (
+        event.payload.stage !== "normalization_apply" ||
+        event.payload.state !== "current" ||
+        event.payload.resultArtifactHash === null
+      )
+        return;
+      settled.push(event);
+      if (settled.length > maximumSettledNormalizations) settled.shift();
+    },
+  });
   const load = async <T>(hash: string): Promise<T> => {
     const bytes = await context.storage.artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);
     if (sha256(bytes) !== hash)

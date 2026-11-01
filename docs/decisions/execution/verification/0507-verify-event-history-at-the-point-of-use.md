@@ -29,3 +29,5 @@ A modified or corrupted row is rejected whenever it is read, linked or extended,
 Store opening and per-write verification no longer grow with history. On the same repository copy, opening falls from about 505 ms to 1.0–1.7 ms, for both writable and read-only stores. In the synthetic stores, per-write CPU stays at 1.1–1.4 ms from 1,000 to 30,000 events; at 10,000 and 30,000 events it was 21 and 62 ms.
 
 Explicit verification costs the same as before. On the repository copy, alternating runs measured 573–990 ms for the previous algorithm and 597–626 ms for the new one. Reading every event now includes hash checks, so `list` over the full history rises from 117–178 ms to 306–346 ms. A complete traversal therefore costs more per row read, but it verifies the chain once instead of reading history three times. The earlier test that a tampered store fails to open is replaced by tests for each point of use: reading, extending a damaged tail, a valid row with a broken predecessor link, outbox reads and explicit verification.
+
+[ADR-0554](0554-bound-what-a-reader-retains-never-history-length.md) removes history-length bounds: readers bound only what they retain.

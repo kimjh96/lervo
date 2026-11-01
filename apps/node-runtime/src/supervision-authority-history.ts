@@ -7,8 +7,25 @@ const MAXIMUM_OBSERVATION_PASSES = 16;
 const TAIL_AUDIT_INTERVAL_MS = 60_000;
 /** Re-verification of every historical byte; also forced by clock rollback or anchor failure. */
 const FULL_AUDIT_INTERVAL_MS = 900_000;
+/** Bound on retained rows; the chain is streamed, so history length itself is never bounded. */
+const MAXIMUM_RETAINED_BYTES = 32 * 1024 * 1024;
 
-/** Rebuildable authority projection; hints and cached rows never replace canonical events. */
+/** Event types the default authority retention keeps for mandate, team, and workstream checks. */
+export function isSupervisionAuthorityEvent(event: EventEnvelope): boolean {
+  return (
+    event.type === "work.supervision.mandate.installed" ||
+    event.type.startsWith("organization.") ||
+    event.type === "workstream.snapshot.recorded"
+  );
+}
+
+/**
+ * Rebuildable authority projection; hints and cached rows never replace canonical events.
+ *
+ * Every read verifies each appended link from the anchor, and the full audit streams the whole
+ * chain from the first event. Only rows the retention selects are kept, under a byte bound, so a
+ * long history costs streaming time at most once per audit interval but never fails the read.
+ */
 export class SupervisionAuthorityHistory {
   private cursor: EventEnvelope | null = null;
   private retained: EventEnvelope[] = [];
@@ -63,14 +80,11 @@ export class SupervisionAuthorityHistory {
         if (
           typeof this.retention === "function"
             ? this.retention(event)
-            : this.retention === "execution" ||
-              event.type === "work.supervision.mandate.installed" ||
-              event.type.startsWith("organization.") ||
-              event.type === "workstream.snapshot.recorded"
+            : this.retention === "execution" || isSupervisionAuthorityEvent(event)
         ) {
           const copy = structuredClone(event);
           this.bytes += Buffer.byteLength(JSON.stringify(copy));
-          if (this.bytes > 32 * 1024 * 1024)
+          if (this.bytes > MAXIMUM_RETAINED_BYTES)
             throw new Error("The supervision authority projection exceeds its byte bound.");
           this.retained.push(copy);
         }
@@ -116,8 +130,6 @@ export class SupervisionAuthorityHistory {
     // a stable head instead of failing on the first concurrent append.
     for (let pass = 1; ; pass += 1) {
       const head = this.events.latest();
-      if ((head?.seq ?? 0) > 100_000)
-        throw new Error("The supervision authority history exceeds its source bound.");
       this.readThrough(head);
       const confirmed = this.events.latest();
       if (

@@ -61,7 +61,12 @@ export async function recoverInterruptedPreTurn(input: {
           throw new Error("The interrupted run does not have the exact pre-turn prefix.");
         const decisions = [];
         for (let afterSeq = 0; afterSeq < (storage.events.latest()?.seq ?? 0);) {
-          const page = storage.events.list({ afterSeq, limit: 1000 });
+          // ADR-0554: a typed read of decisions; the store verifies each returned row.
+          const page = storage.events.list({
+            afterSeq,
+            limit: 1000,
+            types: ["work.supervision.decision.recorded"],
+          });
           if (page.length === 0) break;
           decisions.push(
             ...page.filter(

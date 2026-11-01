@@ -3,8 +3,9 @@ import type { EventStore } from "@lervo/storage-contract";
 import { NodeSupervisionError, type NodeSupervisionBinding } from "./supervision-authority.js";
 import { VerifiedEventTail } from "./verified-event-tail.js";
 
-const maximumEvents = 100_000;
-const boundMessage = "The supervised request history exceeds its observation bound.";
+/** Request-origin events one read may retain; the length of the whole history is never bounded. */
+const maximumBoundRequestEvents = 100_000;
+const boundMessage = "The supervised request origins exceed their observation bound.";
 const boundRequestTypes = ["work.supervision.bound"] as const;
 /** Matches the authority history full audit: an out-of-band rewrite is caught within 15 minutes. */
 const presenceFullReadIntervalMs = 900_000;
@@ -49,7 +50,7 @@ export function findBoundSupervisionRequestEvent(input: {
 }): EventEnvelope | null {
   const tail = new VerifiedEventTail({
     types: boundRequestTypes,
-    maximumEvents,
+    maximumMatchedEvents: maximumBoundRequestEvents,
     fullReadIntervalMs: presenceFullReadIntervalMs,
     boundMessage,
   });
@@ -81,7 +82,7 @@ export class BoundSupervisionRequestPresence {
   ) {
     this.tail = new VerifiedEventTail({
       types: boundRequestTypes,
-      maximumEvents,
+      maximumMatchedEvents: maximumBoundRequestEvents,
       fullReadIntervalMs: presenceFullReadIntervalMs,
       boundMessage,
       ...(input.now === undefined ? {} : { now: input.now }),

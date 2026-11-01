@@ -1,4 +1,4 @@
-import { computeEventHash } from "@lervo/event-contract";
+import { canonicalJson, computeEventHash } from "@lervo/event-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 import { describe, expect, it, vi } from "vitest";
@@ -42,6 +42,7 @@ import {
   RecentExecutionEventProjection,
 } from "../src/recent-execution-event-source.js";
 import { collectVerificationResultSources } from "../src/verification-source.js";
+import { longEventHistory } from "./long-event-history.js";
 
 function history(count: number): EventEnvelope[] {
   let previousHash: string | null = null;
@@ -63,18 +64,18 @@ function history(count: number): EventEnvelope[] {
 function historyStore(values: EventEnvelope[]) {
   return {
     latest: () => values.at(-1) ?? null,
-    list: (options?: { afterSeq?: number; limit?: number }) =>
-      values.filter((item) => item.seq > (options?.afterSeq ?? 0)).slice(0, options?.limit),
+    list: (options?: { afterSeq?: number; limit?: number; types?: readonly string[] }) =>
+      values
+        .filter((item) => item.seq > (options?.afterSeq ?? 0))
+        .filter((item) => options?.types === undefined || options.types.includes(item.type))
+        .slice(0, options?.limit),
   };
 }
 
 describe("streaming recent execution evidence", () => {
-  it("shares a complete verification traversal without changing recent evidence", async () => {
-    const values = history(2_003);
-    const events = historyStore(values);
-    const expected = collectRecentExecutionEventSources({ events, maximumEvents: 4_096 });
+  it("leaves verification results to a typed read instead of a shared traversal", async () => {
+    const events = historyStore(history(2_003));
     const list = vi.spyOn(events, "list");
-    const recent = new RecentExecutionEventProjection(4_096);
     const verification = await collectVerificationResultSources({
       events,
       artifacts: {
@@ -85,53 +86,55 @@ describe("streaming recent execution evidence", () => {
       loadSuite: async () => {
         throw new Error("No verification suite expected.");
       },
-      observeEvent: (event) => recent.observe(event),
     });
     expect(verification).toEqual([]);
-    expect(recent.sources()).toEqual(expected);
-    // One verified traversal replaces separate whole-history checks before and after it.
-    expect(list).toHaveBeenCalledTimes(3);
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(list.mock.calls[0]![0]).toMatchObject({ types: ["verification.completed"] });
   });
 
-  it("fails the shared traversal for unsafe older bytes and an unreached observed head", async () => {
-    const values = history(4);
-    values[0] = event({
-      requestDigest: `sha256:${"a".repeat(64)}`,
-      role: "developer",
-      prompt: "private-old-source",
-    });
-    const input = {
-      artifacts: { get: async () => new Uint8Array() },
-      loadSuite: async () => {
-        throw new Error("No verification suite expected.");
-      },
-    };
-    const recent = new RecentExecutionEventProjection(2);
-    await expect(
-      collectVerificationResultSources({
-        ...input,
-        events: historyStore(values),
-        observeEvent: (event) => recent.observe(event),
-      }),
-    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  it("fails for an unreached observed head", () => {
     const events = historyStore(history(4));
     const head = events.latest()!;
     vi.spyOn(events, "latest").mockReturnValue({ ...head, eventHash: `sha256:${"f".repeat(64)}` });
-    await expect(
-      collectVerificationResultSources({
-        ...input,
-        events,
-        observeEvent: (event) => new RecentExecutionEventProjection(2).observe(event),
-      }),
-    ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+    expect(() => collectRecentExecutionEventSources({ events, maximumEvents: 2 })).toThrowError(
+      expect.objectContaining({ code: "knowledge_evidence_source_invalid" }),
+    );
+  });
+
+  it("selects the same window when the store head is beyond 100,000 events", () => {
+    const executionSeqs = [3, 99_999, 100_001, 149_998];
+    const events = longEventHistory(150_000, executionSeqs);
+    const recent = collectRecentExecutionEventSources({ events, maximumEvents: 2 });
+    expect(recent.map((source) => JSON.parse(source.content).seq)).toEqual([100_001, 149_998]);
+    expect(
+      collectExecutionEventSources({ events }).map((source) => JSON.parse(source.content).seq),
+    ).toEqual(executionSeqs);
+    const projection = new RecentExecutionEventProjection(4);
+    for (const seq of executionSeqs) projection.observe(events.at(seq));
+    expect(projection.complete()).toBe(true);
+    projection.observe(events.at(1));
+    expect(projection.complete()).toBe(true);
+    expect(new RecentExecutionEventProjection(2).complete()).toBe(true);
+    const partial = new RecentExecutionEventProjection(2);
+    for (const seq of executionSeqs) partial.observe(events.at(seq));
+    expect(partial.complete()).toBe(false);
   });
 
   it("preserves a recent window after complete history exceeds its count and byte bounds", () => {
     const values = history(33_000);
     const events = historyStore(values);
-    expect(() => collectExecutionEventSources({ events })).toThrowError(
-      expect.objectContaining({ code: "knowledge_evidence_source_invalid" }),
+    // ADR-0554: the legacy single corpus keeps its newest originals within 16 MiB, not failing.
+    const legacy = collectExecutionEventSources({ events });
+    const bytes = (count: number) =>
+      values
+        .slice(-count)
+        .reduce((sum, value) => sum + Buffer.byteLength(`${canonicalJson(value)}\n`), 0);
+    expect(legacy.length).toBeLessThan(32_768);
+    expect(legacy.map((source) => source.path)).toEqual(
+      values.slice(-legacy.length).map((value) => `@event/${value.eventId}`),
     );
+    expect(bytes(legacy.length)).toBeLessThanOrEqual(16 * 1024 * 1024);
+    expect(bytes(legacy.length + 1)).toBeGreaterThan(16 * 1024 * 1024);
     const sources = collectRecentExecutionEventSources({ events, maximumEvents: 4_096 });
     expect(sources).toHaveLength(4_096);
     expect(sources.map((source) => JSON.parse(source.content).seq)).toEqual(

@@ -3,6 +3,8 @@ import type { EventStore } from "@lervo/storage-contract";
 import { VerifiedEventTail } from "./verified-event-tail.js";
 
 const reviewTypes = ["work.supervision.review.recorded"] as const;
+/** Review events one read may retain; the length of the surrounding history is never bounded. */
+const maximumReviewEvents = 100_000;
 
 /**
  * `<assignment>:<artifact>` pairs the owner accepted. A completed assignment only means the worker
@@ -48,9 +50,9 @@ export class AcceptedSupervisionResults {
   ) {
     this.tail = new VerifiedEventTail({
       types: reviewTypes,
-      maximumEvents: Number.MAX_SAFE_INTEGER,
+      maximumMatchedEvents: maximumReviewEvents,
       fullReadIntervalMs: 900_000,
-      boundMessage: "The supervision review history exceeds its observation bound.",
+      boundMessage: "The supervision review events exceed their observation bound.",
       ...(now === undefined ? {} : { now }),
     });
   }

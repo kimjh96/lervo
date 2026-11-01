@@ -4,6 +4,7 @@ import type { EventDraft, EventDraftV1 } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
+import { visitEventsOfTypes } from "@lervo/storage-contract";
 
 import type {
   ParsedTerminalHookInput,
@@ -18,17 +19,25 @@ export const TERMINAL_HOOK_BUILD_DIGEST = sha256(
   "lervo.terminal.hook-runtime.degraded-context-and-native-skill.v6",
 );
 
-export function allTerminalEvents(events: ProjectStorage["events"]): EventEnvelope[] {
-  const result: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (true) {
-    const batch = events.list({ afterSeq, limit: 1000 });
-    if (batch.length === 0) break;
-    result.push(...batch);
-    afterSeq = batch.at(-1)!.seq;
-    if (batch.length < 1000) break;
-  }
-  return result;
+/**
+ * The last event of one type that matches, through the observed head. A typed read retains only
+ * that event, so the length of history bounds neither memory nor success (ADR-0554).
+ */
+export function latestTerminalEventOfType(
+  events: Pick<ProjectStorage["events"], "latest" | "list">,
+  type: string,
+  matches: (event: EventEnvelope) => boolean,
+): EventEnvelope | undefined {
+  let latest: EventEnvelope | undefined;
+  visitEventsOfTypes({
+    events,
+    types: [type],
+    throughSeq: events.latest()?.seq ?? 0,
+    visit: (event) => {
+      if (matches(event)) latest = event;
+    },
+  });
+  return latest;
 }
 
 function digestSuffix(digest: string): string {

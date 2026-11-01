@@ -13,7 +13,7 @@ import {
 
 import { terminalUsage } from "./terminal-command-usage.js";
 import {
-  allTerminalEvents,
+  latestTerminalEventOfType,
   newTerminalIdentifier,
   terminalEventDraft,
 } from "./terminal-event-coordinates.js";
@@ -122,15 +122,14 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
     const draft = parseTurnDeclarationDraft(await io.stdin());
     const root = await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? "."));
     storage = await openProjectStorage(root);
-    const context = allTerminalEvents(storage.events)
-      .filter(
-        (event) =>
-          event.type === "terminal.context.prepared" &&
-          event.actor.kind === "provider" &&
-          event.actor.provider === parsed.values.provider &&
-          event.payload.observationId === parsed.values.observation,
-      )
-      .at(-1);
+    const context = latestTerminalEventOfType(
+      storage.events,
+      "terminal.context.prepared",
+      (event) =>
+        event.actor.kind === "provider" &&
+        event.actor.provider === parsed.values.provider &&
+        event.payload.observationId === parsed.values.observation,
+    );
     if (context === undefined) throw new Error("No matching prepared terminal observation exists.");
     const contextRevision = context.payload.repositoryRevision;
     if (typeof contextRevision !== "string")

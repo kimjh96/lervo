@@ -3,7 +3,7 @@ import type {
   MandateInstallationPlan,
 } from "@lervo/application-contract";
 import {
-  collectProjectEventsBounded,
+  collectEventsOfTypesBounded,
   type ArtifactStore,
   type EventStore,
 } from "@lervo/storage-contract";
@@ -28,6 +28,9 @@ import type {
   SQLiteSupervisionOwnerLeaseStore,
   SupervisionOwnerLease,
 } from "./supervision-owner-lease.js";
+
+/** Installation or revocation events one check may retain; history length is never bounded. */
+const maximumMandateEvents = 100_000;
 
 /** Canonical installation evidence. Consumers must revalidate current authority before any effect. */
 export class SupervisionMandateJournal {
@@ -193,7 +196,12 @@ export class SupervisionMandateJournal {
         this.assertHead(current?.latestEventId ?? null);
         assertCanonicalSupervisionIdentity({
           ...this.coordinates,
-          events: collectProjectEventsBounded({ events: this.events, maximumEvents: 100_000 }),
+          // The identity check reads installations only, so a typed read sees every candidate.
+          events: collectEventsOfTypesBounded({
+            events: this.events,
+            types: ["work.supervision.mandate.installed"],
+            maximumEvents: maximumMandateEvents,
+          }),
         });
       },
     );
@@ -266,7 +274,11 @@ export class SupervisionMandateJournal {
     assertDerivedMandate(parentPlan.mandate, plan.mandate, derivation);
     if (
       requireUnrevokedParent &&
-      collectProjectEventsBounded({ events: this.events, maximumEvents: 100_000 }).some(
+      collectEventsOfTypesBounded({
+        events: this.events,
+        types: ["work.supervision.mandate.revoked"],
+        maximumEvents: maximumMandateEvents,
+      }).some(
         (event) =>
           event.type === "work.supervision.mandate.revoked" &&
           event.payload.mandateHash === derivation.parentMandateHash,

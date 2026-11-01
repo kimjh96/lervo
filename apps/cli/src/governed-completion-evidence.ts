@@ -3,8 +3,11 @@ import { sha256 } from "@lervo/repository-knowledge";
 import { completionEvidenceId } from "@lervo/work-controller";
 import { validateWorkCausalityHistory } from "@lervo/execution-contract";
 import { validateSchema, type RunCompletedEventPayload } from "@lervo/schemas";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
 
+/** Causal records and run completions are the only history this evidence check consumes. */
+const completionSourceEventTypes = ["work.causality.recorded", "run.completed"] as const;
+/** Bounds the matching events retained, never the length of project history. */
 const maximumSourceEvents = 100_000;
 
 export function recordGovernedCompletionEvidence(input: {
@@ -20,8 +23,9 @@ export function recordGovernedCompletionEvidence(input: {
   resultContentHash: string;
   preparedAt: string;
 }): string {
-  const events = collectProjectEventsBounded({
+  const events = collectEventsOfTypesBounded({
     events: input.storage.events,
+    types: completionSourceEventTypes,
     maximumEvents: maximumSourceEvents,
   });
   const causal = validateWorkCausalityHistory(events).get(input.runId);

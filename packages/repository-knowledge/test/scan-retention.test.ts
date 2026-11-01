@@ -13,6 +13,7 @@ import {
   upsertRepositoryKnowledgeScanSource,
 } from "../src/index.js";
 import { observeRepositoryDocumentStaleness } from "../src/document-staleness-state.js";
+import { compareScanPaths } from "../src/scan-priority.js";
 import { scanRetentionDigest } from "../src/scan-retention.js";
 import { SourceUnitCache } from "../src/source-unit-cache.js";
 import type { RepositorySupplementalSource } from "../src/types.js";
@@ -81,6 +82,57 @@ const observed = (result: Awaited<ReturnType<typeof scan>>) =>
     .map((source) => source.path);
 
 describe("observe every source and budget only retained content", () => {
+  it("skips evidence sources past the file count for budget instead of failing", async () => {
+    const files = { ...documents, ...code };
+    const root = await repository(files);
+    const result = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_scanretention",
+      policy: {
+        ...defaultRepositoryKnowledgePolicy,
+        limits: {
+          maxFiles: Object.keys(files).length,
+          maxFileBytes: 4096,
+          maxTotalBytes: 1024 * 1024,
+        },
+      },
+      observeRevision: async () => ({ status: "unavailable", reason: "git_head_unavailable" }),
+      supplementalSources: [evidence],
+    });
+    expect(result.sources.some((source) => source.path === evidence.path)).toBe(false);
+    expect(result.skippedForBudget).toMatchObject({
+      count: 1,
+      bytes: Buffer.byteLength(evidence.content),
+    });
+  });
+
+  it("keeps the code-point-first evidence sources within the file count, whatever the locale", async () => {
+    const files = { ...documents, ...code };
+    const root = await repository(files);
+    // Locale collation puts "_" before digits; code-point order puts digits first.
+    const underscore = { ...evidence, path: "@event/evt_order_a" };
+    const digit = { ...evidence, path: "@event/evt_order0a" };
+    expect(underscore.path.localeCompare(digit.path, "en")).toBeLessThan(0);
+    expect(compareScanPaths(digit.path, underscore.path)).toBeLessThan(0);
+    const result = await scanRepositoryKnowledge({
+      repositoryRoot: root,
+      projectId: "prj_scanretention",
+      policy: {
+        ...defaultRepositoryKnowledgePolicy,
+        limits: {
+          maxFiles: Object.keys(files).length + 1,
+          maxFileBytes: 4096,
+          maxTotalBytes: 1024 * 1024,
+        },
+      },
+      observeRevision: async () => ({ status: "unavailable", reason: "git_head_unavailable" }),
+      supplementalSources: [underscore, digit],
+    });
+    const kept = result.sources.filter((source) => source.path.startsWith("@event/"));
+    expect(kept.map((source) => source.path)).toEqual([digit.path]);
+    expect(result.skippedForBudget).toMatchObject({ count: 1 });
+  });
+
   it("completes when code and evidence exceed the budget but documents fit", async () => {
     const root = await repository();
     const full = await scan(root, 1024 * 1024);

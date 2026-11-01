@@ -28,6 +28,8 @@ export async function readTerminalSkillUsage(
     : null;
 }
 
+const skillUsageEventTypes = ["terminal.skill.observed", "terminal.skill.turn_assessed"];
+
 /** One current bounded projection. History is rebuilt from the canonical event log. */
 export async function refreshTerminalSkillUsage(
   storage: ProjectStorage,
@@ -37,7 +39,8 @@ export async function refreshTerminalSkillUsage(
   const events: EventEnvelope[] = [];
   let afterSeq = 0;
   while (true) {
-    const batch = storage.events.list({ afterSeq, limit: 1000 });
+    // ADR-0554: a typed read costs only the skill events, never the length of history.
+    const batch = storage.events.list({ afterSeq, limit: 1000, types: skillUsageEventTypes });
     if (batch.length === 0) break;
     for (const event of batch)
       if (

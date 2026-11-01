@@ -1,11 +1,14 @@
 import { rename, rm, writeFile } from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
+import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import { sqliteRow } from "../src/sqlite-row.js";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SupervisionAuthorityHistory } from "../src/supervision-authority-history.js";
 import { observeNodeSupervisionRecoveryAuthority } from "../src/supervision-authority.js";
+import { projectId } from "../../../packages/work-controller/test/fixtures.js";
 import { supervisionFixture } from "./supervision.fixture.js";
+import { scopedHistoryFixture } from "./supervision-scoped-history.fixture.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -270,16 +273,37 @@ describe("incremental supervision authority history", () => {
     }
   });
 
-  it("preserves the authority source event bound before allocating history", async () => {
-    const f = await fixture();
-    try {
-      const head = f.storage.events.latest()!;
-      vi.spyOn(f.storage.events, "latest").mockReturnValue({ ...head, seq: 100_001 });
-      const list = vi.spyOn(f.storage.events, "list");
-      await expect(f.reader.read()).rejects.toThrow("source bound");
-      expect(list).not.toHaveBeenCalled();
-    } finally {
-      await f.storage.close();
-    }
-  });
+  it("streams a chain beyond 100,000 events and retains only authority rows", async () => {
+    const f = await scopedHistoryFixture(roots);
+    const runId = "run_111111111111111111111111";
+    f.append("workstream.snapshot.recorded", runId);
+    for (let index = 0; index < 100_050; index += 1) f.append("adapter.started", runId);
+    f.append("organization.team.bound", runId);
+    const authority = (rows: typeof f.rows) => rows.filter((row) => row.type !== "adapter.started");
+    let at = Date.now();
+    const reader = new SupervisionAuthorityHistory(f.events, f.databasePath, projectId, () => at);
+    expect(await reader.read()).toEqual(authority(f.rows));
+
+    // An appended authority change is read from the anchor without re-streaming history.
+    const head = f.rows.at(-1)!.seq;
+    f.append("work.supervision.mandate.installed", runId);
+    const list = vi.spyOn(f.events, "list");
+    at += 60_000;
+    expect(await reader.read()).toEqual(authority(f.rows));
+    expect(list.mock.calls).toEqual([[{ afterSeq: head, limit: 1000 }]]);
+
+    // A rolled-back store fails the anchor and is re-streamed from the first event.
+    f.rows.splice(50_000);
+    expect(await reader.read()).toEqual(authority(f.rows));
+
+    // The periodic audit re-proves every link below the anchor.
+    for (let index = 0; index < 60_000; index += 1) f.append("adapter.started", runId);
+    expect(await reader.read()).toHaveLength(1);
+    const rewritten = { ...eventWithoutHash(f.rows[70_000]!), previousHash: f.rows[0]!.eventHash };
+    f.rows[70_000] = { ...rewritten, eventHash: computeEventHash(rewritten) };
+    at += 60_000;
+    expect(await reader.read()).toHaveLength(1);
+    at += 900_000;
+    await expect(reader.read()).rejects.toThrow("event chain is invalid");
+  }, 60_000);
 });

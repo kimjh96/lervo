@@ -9,7 +9,6 @@ import type {
 
 export interface ProjectStorageImprovementEvidenceSourceOptionsV1 {
   repositoryRoot: string;
-  maximumScannedEvents?: number;
   maximumEvidenceEvents?: number;
   openStorage?: (root: string) => Promise<ProjectStorage>;
 }
@@ -62,9 +61,6 @@ export function createProjectStorageImprovementEvidenceSource(
       const source = createEventStoreImprovementEvidenceSource({
         projectId: storage.manifest.projectId,
         events: storage.events,
-        ...(input.maximumScannedEvents === undefined
-          ? {}
-          : { maximumScannedEvents: input.maximumScannedEvents }),
         ...(input.maximumEvidenceEvents === undefined
           ? {}
           : { maximumEvidenceEvents: input.maximumEvidenceEvents }),

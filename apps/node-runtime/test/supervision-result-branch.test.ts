@@ -164,4 +164,9 @@ it("reads accepted reviews incrementally with the same keys as a full scan", () 
   expect(reader.read()).toEqual(new Set());
   now += 900_000;
   expect(reader.read()).toEqual(new Set(["asn_2:sha256:d"]));
+  // A head far beyond 100,000 events is not a bound: only matching reviews are read.
+  rows.push(review(200_000, "accepted", "sha256:e"), other(250_000));
+  expect(reader.read()).toEqual(acceptedResultKeys(rows));
+  now += 900_000;
+  expect(reader.read()).toEqual(new Set(["asn_2:sha256:d", "asn_200000:sha256:e"]));
 });

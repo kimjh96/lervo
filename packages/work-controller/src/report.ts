@@ -5,12 +5,20 @@ import {
 } from "@lervo/application-contract";
 import type { EventEnvelope } from "@lervo/schemas";
 
-import { projectManagedAttempts } from "./attempt-projection.js";
-import { projectCompletionEvidence } from "./completion-evidence-projection.js";
+import { managedAttemptEventTypes, projectManagedAttempts } from "./attempt-projection.js";
+import {
+  completionEvidenceEventTypes,
+  projectCompletionEvidence,
+} from "./completion-evidence-projection.js";
 import { decideGovernedLoop } from "./governed-loop-decision.js";
 import { assessManagedExecutionBudgets } from "./managed-execution-budget.js";
 import { projectWorkGraph } from "./graph-projection.js";
 import type { AssignmentGraphSourceV1 } from "./graph-projection.js";
+
+/** Event types `projectGovernedWorkReport` consumes; a typed read of them is sufficient input. */
+export const governedWorkReportEventTypes: readonly string[] = [
+  ...new Set([...managedAttemptEventTypes, ...completionEvidenceEventTypes]),
+];
 
 export function projectGovernedWorkReport(input: {
   query: GovernedWorkQueryV1;

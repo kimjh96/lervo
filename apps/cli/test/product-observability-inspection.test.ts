@@ -2,6 +2,11 @@ import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import { inspectProductObservability } from "../src/product-observability-inspection.js";
+import {
+  listedEvents,
+  longHistoryEvents,
+  longHistoryHeadSeq,
+} from "../../../packages/storage-contract/test/listed-event-source.fixture.js";
 
 const projectId = "prj_observability_query";
 const workId = `wrk_${"1".repeat(24)}`;
@@ -122,8 +127,7 @@ describe("product observability inspection", () => {
               eventCount: source.length,
               headHash: source.at(-1)!.eventHash,
             }),
-            list: ({ afterSeq = 0, limit = 100 } = {}) =>
-              source.filter((item) => item.seq > afterSeq).slice(0, limit),
+            list: listedEvents(source),
           },
           close: async () => {
             closeCount += 1;
@@ -149,6 +153,63 @@ describe("product observability inspection", () => {
     expect(closeCount).toBe(1);
   });
 
+  it("projects one work beyond 100,000 events without walking the whole history", async () => {
+    const history = longHistoryEvents(
+      [...events(), event(7, "run.requested", {})].map((item, index) =>
+        index === 6 ? { ...item, runId: "run_unrelated_work" } : item,
+      ),
+    );
+    const report = await inspectProductObservability(
+      { repositoryRoot: "/repository", workId, originCoordinate: null },
+      {
+        openStorage: async () => ({
+          manifest: { projectId },
+          events: {
+            verifyIntegrity: () => ({
+              valid: true,
+              eventCount: longHistoryHeadSeq,
+              headHash: history.head.eventHash,
+            }),
+            list: history.list,
+          },
+          close: async () => undefined,
+        }),
+        captureSnapshot: async () => ({ revision: hash("f") }),
+      },
+    );
+
+    expect(report).toMatchObject({
+      sourceEventHeadHash: history.head.eventHash,
+      workCoordinate: `work:${workId}`,
+      resources: { status: "complete", groups: [{ usage: { cachedInputTokens: 60 } }] },
+      stages: { status: "complete", stageCatalogVersion: 2 },
+    });
+  });
+
+  it("fails closed when the verified head changes during a long-history read", async () => {
+    const history = longHistoryEvents(events());
+    await expect(
+      inspectProductObservability(
+        { repositoryRoot: "/repository", workId, originCoordinate: null },
+        {
+          openStorage: async () => ({
+            manifest: { projectId },
+            events: {
+              verifyIntegrity: () => ({
+                valid: true,
+                eventCount: longHistoryHeadSeq,
+                headHash: hash("0"),
+              }),
+              list: history.list,
+            },
+            close: async () => undefined,
+          }),
+          captureSnapshot: async () => ({ revision: hash("f") }),
+        },
+      ),
+    ).rejects.toThrowError("verified event head changed");
+  });
+
   it("fails closed when repository bytes change during inspection", async () => {
     const source = events();
     let captureCount = 0;
@@ -164,8 +225,7 @@ describe("product observability inspection", () => {
                 eventCount: source.length,
                 headHash: source.at(-1)!.eventHash,
               }),
-              list: ({ afterSeq = 0, limit = 100 } = {}) =>
-                source.filter((item) => item.seq > afterSeq).slice(0, limit),
+              list: listedEvents(source),
             },
             close: async () => undefined,
           }),

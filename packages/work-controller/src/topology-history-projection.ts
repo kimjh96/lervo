@@ -25,6 +25,9 @@ interface TopologyNodeEvent {
 type TopologyNodeParseResult =
   { status: "not_topology" } | { status: "invalid" } | { status: "valid"; node: TopologyNodeEvent };
 
+/** Event types `projectAssignmentTopologyHistory` consumes; a typed read of them is sufficient. */
+export const assignmentTopologyHistoryEventTypes = ["assignment.created"] as const;
+
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const CHANGE_ID = /^gtc_[a-f0-9]{24}$/u;
 const PLAN_ID = /^gtp_[a-f0-9]{24}$/u;

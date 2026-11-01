@@ -4,6 +4,7 @@ import {
   assertOperatingMandate,
   assertMandateExecutionSuccession,
   observeOperatingWorkScope,
+  operatingWorkScopeEventTypes,
   selectOperatingWorkScope,
   operatingContractHash,
   projectWorkstreamResources,
@@ -158,6 +159,42 @@ describe("reviewed operating work scope", () => {
     expect(() => observeOperatingWorkScope(f.input)).not.toThrow();
     f.input.events.find((event) => event.type === "run.completed")!.seq = 11;
     expect(() => observeOperatingWorkScope(f.input)).toThrow(/unfinished/iu);
+  });
+
+  it("answers from its declared event types exactly as from the complete history", () => {
+    const f = fixture();
+    const causal = { ...causalityPayload({ assignmentId: "unused" }), assignmentId: null };
+    const decision = { workstreamId, decisionId: "d" };
+    const supervised = assignment("s", { status: "completed" });
+    f.input.events.unshift(
+      event(1, "work.causality.recorded", "run_prior0001", causal),
+      event(2, "run.requested", "run_prior0001", {}),
+      event(3, "run.failed", "run_prior0001", {}),
+      event(4, "work.supervision.decision.recorded", "run_owner", decision),
+      event(5, "work.supervision.effect.observed", "run_owner", {
+        ...decision,
+        status: "effect_confirmed",
+      }),
+      event(6, "work.supervision.bound", "run_owner", { assignmentId: supervised.assignmentId }),
+      event(7, "deliberation.completed", "run_other", {}),
+    );
+    const outcome = (events: typeof f.input.events) => {
+      try {
+        return observeOperatingWorkScope({ ...f.input, events });
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    const declared = (events: typeof f.input.events) =>
+      events.filter((item) => operatingWorkScopeEventTypes.includes(item.type));
+    expect(outcome(f.input.events)).not.toBeTypeOf("string");
+    expect(outcome(declared(f.input.events))).toEqual(outcome(f.input.events));
+    // Each required type still changes the answer after unrelated events are removed.
+    for (const removed of [3, 5]) {
+      const without = f.input.events.filter((item) => item.seq !== removed);
+      expect(outcome(declared(without))).toEqual(outcome(without));
+      expect(outcome(without)).toBeTypeOf("string");
+    }
   });
 
   it("keeps all new causal descendants in the scoped budget without rewriting prior usage", () => {

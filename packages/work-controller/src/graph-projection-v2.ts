@@ -7,7 +7,13 @@ import type { EventEnvelope } from "@lervo/schemas";
 
 import { projectWorkGraph, type AssignmentGraphSourceV1 } from "./graph-projection.js";
 import { sha256 } from "./hash.js";
-import { projectAssignmentTopologyHistory } from "./topology-history-projection.js";
+import {
+  assignmentTopologyHistoryEventTypes,
+  projectAssignmentTopologyHistory,
+} from "./topology-history-projection.js";
+
+/** Event types `projectWorkGraphV2` consumes; a typed read of them is sufficient input. */
+export const workGraphV2EventTypes: readonly string[] = [...assignmentTopologyHistoryEventTypes];
 
 export function projectWorkGraphV2(input: {
   projectId: string;
