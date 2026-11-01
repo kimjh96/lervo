@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_077b07bd6604183f03273a84"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep the Node runtime, knowledge, and inspections working once a repository's event history passes 100,000 events: readers bound only what they keep, never how long history is."
