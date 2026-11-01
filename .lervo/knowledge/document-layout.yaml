@@ -37,6 +37,10 @@ routes:
     path: knowledge/documents/routing
     priority: 97
     description: "Where a legacy document goes during migration: semantic route classification, deferral, retained application content, and the outcome every candidate must reach."
+  - id: knowledge.documents.capture
+    path: knowledge/documents/capture
+    priority: 97
+    description: "How owner rules, corrections, and decisions stated in conversation become applied repository instructions without an owner review queue."
   - id: knowledge.documents
     path: knowledge/documents
     priority: 95

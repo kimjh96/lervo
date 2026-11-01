@@ -81,6 +81,8 @@ export function startAutonomousKnowledgeWorker(input: {
   }) => Promise<KnowledgePublicationOutcome>;
   /** ADR-0467 Hub adapter for owner-rule candidates; absent keeps them host-local. */
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
+  /** ADR-0545 owner-stated rule application on the convergence owner; absent keeps candidates. */
+  applyOwnerStatedInstructions?: () => Promise<unknown>;
   /** ADR-0469 delegation and host continuity; it runs before each ownership observation. */
   continuity?: ConvergenceContinuity;
   continuityTickMilliseconds?: number;
