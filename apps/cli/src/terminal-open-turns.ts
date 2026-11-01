@@ -137,22 +137,34 @@ export async function openTerminalTurn(root: string, marker: OpenTerminalTurn): 
   }
 }
 
+const PROVIDER_SESSION_VARIABLES = [
+  ["claude", "CLAUDE_CODE_SESSION_ID"],
+  ["codex", "CODEX_THREAD_ID"],
+] as const;
+
 /**
- * The open turn an agent-run query belongs to. Claude Code gives every command it runs its own
- * session, so the query binds to that session's marker even while other sessions have turns open.
- * Without a provider session, it binds only when exactly one turn is open.
+ * The open turn an agent-run query belongs to. Claude Code and Codex give every command they run
+ * their own session, so the query binds to that session's marker even while other sessions have
+ * turns open. A provider started inside another inherits the outer session too, so only a named
+ * session with an open turn binds, and two such sessions bind nothing. Without any provider
+ * session, the query binds only when exactly one turn is open.
  */
 export async function queryOpenTerminalTurn(
   root: string,
   env: NodeJS.ProcessEnv = process.env,
   now = new Date(),
 ): Promise<OpenTerminalTurn | null> {
-  const session = env.CLAUDE_CODE_SESSION_ID;
-  if (session === undefined) return singleOpenTerminalTurn(root, now);
-  // A named but unusable session never falls back to another session's single open turn.
-  if (session.trim() === "" || session.length > 512) return null;
-  const marker = await sessionOpenTerminalTurn(root, sha256(`claude\0${session}`), now);
-  return marker?.provider === "claude" ? marker : null;
+  const named = PROVIDER_SESSION_VARIABLES.filter(([, variable]) => env[variable] !== undefined);
+  if (named.length === 0) return singleOpenTerminalTurn(root, now);
+  const markers: OpenTerminalTurn[] = [];
+  for (const [provider, variable] of named) {
+    const session = env[variable]!;
+    // A named but unusable session never falls back to another session's single open turn.
+    if (session.trim() === "" || session.length > 512) continue;
+    const marker = await sessionOpenTerminalTurn(root, sha256(`${provider}\0${session}`), now);
+    if (marker?.provider === provider) markers.push(marker);
+  }
+  return markers.length === 1 ? markers[0]! : null;
 }
 
 /** The open-turn marker of one session, or null when none exists or storage is unusable. */

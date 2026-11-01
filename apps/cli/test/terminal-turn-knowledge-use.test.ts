@@ -29,6 +29,7 @@ const revision = sha256("unchanged repository");
 beforeEach(() => {
   // These tests may run inside a Claude Code terminal, which names its own session.
   vi.stubEnv("CLAUDE_CODE_SESSION_ID", undefined);
+  vi.stubEnv("CODEX_THREAD_ID", undefined);
 });
 afterEach(async () => {
   vi.unstubAllEnvs();
@@ -61,8 +62,9 @@ async function prepare(
   root: string,
   session: string,
   selectedPointers: { path: string; contentHash: string; kind: "decision" }[] = [],
+  provider: "claude" | "codex" = "claude",
 ) {
-  const coordinates = unmanagedTerminalCoordinates("claude", {
+  const coordinates = unmanagedTerminalCoordinates(provider, {
     event: "UserPromptSubmit",
     providerSessionId: session,
     providerTurnId: null,
@@ -75,7 +77,7 @@ async function prepare(
     contextEventId = storage.events.append(
       terminalEventDraft({
         projectId,
-        provider: "claude",
+        provider,
         coordinates,
         type: "terminal.context.prepared",
         occurredAt: openedAt,
@@ -97,7 +99,7 @@ async function prepare(
     await storage.close();
   }
   const marker = {
-    provider: "claude" as const,
+    provider,
     providerSessionDigest: coordinates.providerSessionDigest,
     providerTurnDigest: null,
     contextEventId,
@@ -197,6 +199,32 @@ it.each(["x".repeat(513), "   ", ""])(
     expect((await events(root)).filter((event) => event.type === "context.selected")).toEqual([]);
   },
 );
+
+it("binds a Codex query to its thread, even when it inherited an outer Claude session", async () => {
+  const root = await fixture();
+  const { marker } = await prepare(root, "codex-thread", [], "codex");
+  await prepare(root, "unrelated-session");
+  vi.stubEnv("CODEX_THREAD_ID", "codex-thread");
+  vi.stubEnv("CLAUDE_CODE_SESSION_ID", "outer-claude-session");
+  const result = await queryCommand(root);
+  const selected = (await events(root)).filter((event) => event.type === "context.selected");
+  expect(selected).toHaveLength(result.hits.length);
+  for (const event of selected)
+    expect(event.payload).toMatchObject({
+      contextEventId: marker.contextEventId,
+      providerSessionDigest: marker.providerSessionDigest,
+    });
+});
+
+it("binds nothing when both named provider sessions have open turns", async () => {
+  const root = await fixture();
+  await prepare(root, "codex-thread", [], "codex");
+  await prepare(root, "claude-session");
+  vi.stubEnv("CODEX_THREAD_ID", "codex-thread");
+  vi.stubEnv("CLAUDE_CODE_SESSION_ID", "claude-session");
+  await queryCommand(root);
+  expect((await events(root)).filter((event) => event.type === "context.selected")).toEqual([]);
+});
 
 it("does not bind results when another session opens during the query", async () => {
   const root = await fixture();
