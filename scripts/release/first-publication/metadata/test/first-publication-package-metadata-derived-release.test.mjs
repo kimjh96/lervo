@@ -15,11 +15,12 @@ import {
 import {
   applyMetadataFixture,
   createMetadataApplyFixture,
+  currentBuildMetadataSources,
 } from "../../test/fixtures/first-publication-metadata-apply.mjs";
 
 describe("first-publication package metadata derived release", () => {
   it("uses the production release generator without changing repository sources", async () => {
-    const fixture = await createMetadataApplyFixture();
+    const fixture = await createMetadataApplyFixture(await currentBuildMetadataSources());
     try {
       const before = await readFile(fixture.paths.packageManifestPath);
       const generated = await generateFirstPublicationPackageMetadataDerivedRelease({
@@ -43,7 +44,7 @@ describe("first-publication package metadata derived release", () => {
   }, 30_000);
 
   it("reproduces an applied release manifest with the production generator", async () => {
-    const fixture = await createMetadataApplyFixture();
+    const fixture = await createMetadataApplyFixture(await currentBuildMetadataSources());
     try {
       await applyMetadataFixture(fixture);
       const before = await readFile(fixture.paths.packageManifestPath);

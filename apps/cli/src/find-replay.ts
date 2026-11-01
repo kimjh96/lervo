@@ -14,6 +14,7 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { readPrivateStateJson, writePrivateStateJson } from "./private-state-file.js";
+import { governingPreference } from "./governing-preference.js";
 
 const execute = promisify(execFile);
 const SCANNED_COMMITS = 600;
@@ -179,7 +180,11 @@ export async function runFindReplay(input: {
       continuation: "",
       targetPaths: replay.targetPaths,
     });
-    const result = await index.query({ query: projection.query, limit: input.limit });
+    const result = await index.query({
+      query: projection.query,
+      limit: input.limit,
+      preferred: await governingPreference(input.root, replay.targetPaths),
+    });
     results.push(
       scoreReplayCase(
         replay,

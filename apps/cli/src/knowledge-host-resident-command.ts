@@ -5,6 +5,9 @@ import {
 } from "./knowledge-host-service-config.js";
 import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
 import { untilTerminated } from "./process-termination.js";
+import { knowledgeHostLogPath } from "./knowledge-host-service.js";
+import { keepServiceLogBounded } from "./service-log-bound.js";
+import { homedir } from "node:os";
 
 const hostUsage =
   "Usage: lervo knowledge worker --watch --host [--provider <claude|codex>] [--config <absolute-path>]\n";
@@ -41,6 +44,11 @@ export async function runHostKnowledgeResidentsCommand(
     fallback = provider ?? reading.config.provider;
     launch = "service";
   }
+  // ADR-0555: the launchd service appends output to a log file; the resident keeps it bounded.
+  const stopLogBound =
+    launch === "service" && process.platform === "darwin"
+      ? keepServiceLogBounded(knowledgeHostLogPath(homedir()))
+      : () => undefined;
   const stop = startHostKnowledgeResidents({
     provider: fallback,
     launch,
@@ -50,6 +58,7 @@ export async function runHostKnowledgeResidentsCommand(
   try {
     await untilTerminated();
   } finally {
+    stopLogBound();
     await stop();
   }
   return 0;

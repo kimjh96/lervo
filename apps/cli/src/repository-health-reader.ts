@@ -24,6 +24,11 @@ export async function readRepositoryHealth(input: {
   root: string;
   repositoryRevision: string;
   now: Date;
+  /**
+   * Terminal turns keep a projection made before the latest repository change, within the same
+   * age window, instead of hiding every measure; the formatter labels it. Attention stays exact.
+   */
+  acceptEarlierRevision?: boolean;
 }): Promise<RepositoryHealthProjectionV1> {
   const fallback = (reason: string) =>
     unknownRepositoryHealth(input.repositoryRevision, input.now, reason);
@@ -34,7 +39,10 @@ export async function readRepositoryHealth(input: {
       ),
     ) as RepositoryHealthProjectionV1;
     if (!validHealthProjection(value)) return fallback("projection_invalid");
-    if (value.repositoryRevision !== input.repositoryRevision) {
+    if (
+      value.repositoryRevision !== input.repositoryRevision &&
+      input.acceptEarlierRevision !== true
+    ) {
       const result = fallback("projection_revision_changed");
       result.observedAt = value.observedAt;
       return result;

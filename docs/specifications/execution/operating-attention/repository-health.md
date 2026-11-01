@@ -36,7 +36,11 @@ The whole projection and maintenance observations expire after 20 minutes.
 Staleness evaluation, freshness cycle and capture evidence expire after 24 hours;
 resident heartbeat evidence expires after 120 seconds. Future timestamps are
 unknown. Missing, unreadable, invalid, stale and changed-revision projections
-have explicit reasons. An old file is never healthy by default.
+have explicit reasons. An old file is never healthy by default. Terminal turns
+accept a changed-revision projection inside the 20-minute window and label its
+age `before the latest repository change`; operating attention keeps the exact
+revision. The resident refreshes the projection every five minutes and after each
+cycle, one refresh at a time ([ADR-0555](../../../decisions/execution/applications/0555-keep-operating-signals-visible-and-honest.md)).
 
 A singleton private `.lervo/state/repository-health-generation.sqlite` counter
 is claimed before source reads. Publication rechecks this generation and renames

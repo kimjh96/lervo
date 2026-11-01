@@ -6,6 +6,7 @@ import {
   MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS,
   normalizedConvergenceFailure,
   UNCLASSIFIED_STAGE_REEVALUATION_MS,
+  unclassifiedFailureCause,
 } from "./knowledge-convergence-failure.js";
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
@@ -252,6 +253,7 @@ export async function processKnowledgeConvergence(
                 reevaluateAt: new Date(
                   now().getTime() + UNCLASSIFIED_STAGE_REEVALUATION_MS,
                 ).toISOString(),
+                cause: unclassifiedFailureCause(error),
               }
             : {}),
         }),

@@ -15,11 +15,14 @@ import {
   createFirstPublicationPackageMetadataApplyReceipt,
 } from "../../metadata/first-publication-package-metadata-apply-transaction.mjs";
 import { applyFirstPublicationPackageMetadataFiles } from "../../metadata/first-publication-package-metadata-apply-filesystem.mjs";
+import { generateFirstPublicationPackageMetadataPostApplyRelease } from "../../metadata/first-publication-package-metadata-post-apply-release.mjs";
+import { createCliReleaseSbom } from "../../../lib/cli-release-sbom.mjs";
 import { releaseArtifactDigest } from "../../../../shared/release-artifact-manifest.mjs";
 import {
   activationRepository,
   activationRepositoryRoot,
   createActivationSourceFiles,
+  currentActivationSources,
 } from "./first-publication-activation.mjs";
 
 function decision() {
@@ -53,8 +56,26 @@ function generatedManifest(current, candidateResult) {
   return generated;
 }
 
-export async function createMetadataApplyFixture() {
-  const prepared = await createActivationSourceFiles();
+/**
+ * Release sources that the production generator reproduces from the local build, so a test that
+ * compares generator output does not also require the build to match the committed manifest.
+ * `pnpm release:manifest:check` owns that committed-manifest comparison.
+ */
+export async function currentBuildMetadataSources() {
+  const committed = await currentActivationSources();
+  const releaseManifest = await generateFirstPublicationPackageMetadataPostApplyRelease(committed);
+  const lockfile = parseFirstPublicationPackageMetadataLockfile(
+    await readFile(resolve(activationRepositoryRoot, "pnpm-lock.yaml")),
+  );
+  return {
+    packageManifest: committed.packageManifest,
+    releaseManifest,
+    releaseSbom: createCliReleaseSbom(releaseManifest, lockfile),
+  };
+}
+
+export async function createMetadataApplyFixture(baseline) {
+  const prepared = await createActivationSourceFiles(baseline);
   const paths = {
     ...prepared.paths,
     releaseSbomPath: resolve(prepared.root, "release-sbom.cdx.json"),
@@ -63,9 +84,10 @@ export async function createMetadataApplyFixture() {
   const permitPath = resolve(prepared.root, "permit.json");
   const transactionRoot = resolve(prepared.root, ".metadata-apply-transaction");
   await Promise.all([
-    readFile(resolve(activationRepositoryRoot, "apps/cli/release-sbom.cdx.json")).then((contents) =>
-      writeFile(paths.releaseSbomPath, contents),
-    ),
+    (baseline?.releaseSbom === undefined
+      ? readFile(resolve(activationRepositoryRoot, "apps/cli/release-sbom.cdx.json"))
+      : Promise.resolve(`${JSON.stringify(baseline.releaseSbom, null, 2)}\n`)
+    ).then((contents) => writeFile(paths.releaseSbomPath, contents)),
     readFile(resolve(activationRepositoryRoot, "pnpm-lock.yaml")).then((contents) =>
       writeFile(paths.lockfilePath, contents),
     ),

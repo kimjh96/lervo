@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import {
   convergenceRetryLimit,
   normalizedConvergenceFailure,
+  unclassifiedFailureCause,
 } from "../src/knowledge-convergence-failure.js";
 
 it("normalizes managed verification cancellation without retrying it as a transient error", () => {
@@ -63,4 +64,17 @@ it("types a project manifest that lervo upgrade briefly rewrites as a transient 
   expect(normalizedConvergenceFailure({ code: "knowledge_verification_modified_sources" })).toBe(
     "knowledge_verification_modified_sources",
   );
+});
+
+it("keeps an unclassified failure's identifier-shaped code and name, never its message", () => {
+  expect(
+    unclassifiedFailureCause(
+      Object.assign(new TypeError("private /path detail"), { code: "ERR_SOMETHING_NEW" }),
+    ),
+  ).toEqual({ code: "ERR_SOMETHING_NEW", name: "TypeError" });
+  expect(unclassifiedFailureCause({ code: "has spaces and /paths", name: "x y" })).toEqual({
+    code: null,
+    name: null,
+  });
+  expect(unclassifiedFailureCause(null)).toEqual({ code: null, name: null });
 });

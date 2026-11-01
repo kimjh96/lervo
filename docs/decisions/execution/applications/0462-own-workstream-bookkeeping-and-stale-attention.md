@@ -83,3 +83,5 @@ Older Lervo nodes reject snapshots containing `repositoryHead` or `droppedNoteCo
 ## Verification
 
 Focused tests cover staleness boundaries, consequential stale approvals never becoming directives, compact and retrieval byte caps, merge-patch semantics, server-side `updatedAt` and `revision`, rolling notes, `--help` exit status, and equal events for one-call and two-step apply.
+
+[ADR-0555](0555-keep-operating-signals-visible-and-honest.md) keeps operating signals visible between cycles and excludes Lervo-authored commits from workstream staleness.

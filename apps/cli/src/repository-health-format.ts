@@ -54,6 +54,7 @@ export function convergenceStopLine(
 export function formatRepositoryHealth(
   projection: RepositoryHealthProjectionV1,
   now: Date,
+  currentRevision?: string,
 ): string {
   const m = projection.measures;
   const ageMinutes = Math.max(
@@ -65,7 +66,11 @@ export function formatRepositoryHealth(
       measure.reason === "projection_missing_or_unreadable" ||
       measure.reason === "projection_invalid",
   );
-  const age = absentProjection ? "unknown" : `${ageMinutes}m`;
+  const earlier =
+    currentRevision !== undefined && projection.repositoryRevision !== currentRevision;
+  const age = absentProjection
+    ? "unknown"
+    : `${ageMinutes}m${earlier ? ", before the latest repository change" : ""}`;
   const lines: string[] = [];
   const owner = m.ownerReview.value;
   const ownerCount = owner?.count ?? owner?.confirmedCount ?? 0;

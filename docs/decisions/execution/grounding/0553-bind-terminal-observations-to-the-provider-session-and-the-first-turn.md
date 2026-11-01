@@ -53,3 +53,5 @@ Focused tests must show:
 - a query whose session has no open turn records nothing, even when another single turn is open.
 
 Installed verification must show, in `axli` with another session's marker present, a first Claude Code turn that invokes `eli5` recorded as one provider-transcript `terminal.skill.observed`, and a turn that runs `lervo knowledge query` and quotes a returned path recorded as `agent_query` selections and one `path_mention` reference.
+
+[ADR-0555](../applications/0555-keep-operating-signals-visible-and-honest.md) binds Codex queries through `CODEX_THREAD_ID` and never binds across nested providers ambiguously.

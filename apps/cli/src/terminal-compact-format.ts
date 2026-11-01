@@ -98,6 +98,8 @@ export function formatCompactTerminalPreamble(input: {
   instructionCaptureLines?: readonly string[];
   /** ADR-0535 cached Know/Find health; empty when every measure is within target. */
   healthSection?: string;
+  /** The current snapshot, so a projection from before the latest change is labeled as such. */
+  repositoryRevision?: string;
   workspaceBinding?: TerminalWorkspaceBinding | null;
 }): string {
   const now = new Date(input.attention.observedAt);
@@ -109,7 +111,11 @@ export function formatCompactTerminalPreamble(input: {
   const healthSection =
     health === null
       ? input.healthSection
-      : formatRepositoryHealth(mergeCurrentOwnerAttention(health, input.attention), now);
+      : formatRepositoryHealth(
+          mergeCurrentOwnerAttention(health, input.attention),
+          now,
+          input.repositoryRevision,
+        );
   const blocking = input.attention.items
     .filter((item) => item.blocking && !item.requiresUserAction && !isStaleWorkstreamItem(item))
     .slice(0, 5);
@@ -160,9 +166,29 @@ export function assembleCompactTerminalContext(
     Buffer.byteLength(separator);
   if (workstream === null || remaining <= 0 || cappedPreamble !== preamble)
     return { additionalContext: cappedPreamble, workstream: null };
-  const context = capContextBytes(workstream.context, remaining);
+  const context = wholeWorkstreamLines(workstream.context, remaining);
+  if (context === null) return { additionalContext: cappedPreamble, workstream: null };
   const delivered = { ...workstream, context, deliveredByteCount: Buffer.byteLength(context) };
   return { additionalContext: `${cappedPreamble}${separator}${context}`, workstream: delivered };
+}
+
+const WORKSTREAM_OMITTED = "Lervo workstream: omitted for space; run `lervo workstream current`.";
+
+/**
+ * Whole lines in order, so a crowded turn never receives half a sentence. When a later line does
+ * not fit, the last kept line becomes a pointer; when none fits, the pointer alone, or nothing.
+ */
+function wholeWorkstreamLines(context: string, maximumBytes: number): string | null {
+  if (Buffer.byteLength(context) <= maximumBytes) return context;
+  const lines = context.split("\n");
+  const pointer = `\n${WORKSTREAM_OMITTED}`;
+  const kept: string[] = [];
+  for (const line of lines) {
+    if (Buffer.byteLength([...kept, line].join("\n") + pointer) > maximumBytes) break;
+    kept.push(line);
+  }
+  if (kept.length > 0) return `${kept.join("\n")}${pointer}`;
+  return Buffer.byteLength(WORKSTREAM_OMITTED) <= maximumBytes ? WORKSTREAM_OMITTED : null;
 }
 
 export function formatDegradedTerminalContext(

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8212936d471138efd035f972"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Keep health visible between knowledge cycles, fit the workstream line whole, stop Lervo's own commits from aging a workstream, bind Codex queries to their turn, record the cause of unclassified knowledge failures, and rank canonical documents that name a task's paths first."

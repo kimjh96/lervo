@@ -63,3 +63,5 @@ No public event type or stage state is added.
 Focused tests are written for exact ref-only recovery without changing root bytes, capacity parking, preserved coverage, normalization or next-workset advancement, readmission after source or layout changes, routing guidance, generated path exclusion including old inputs, optional oversized and symlinked documents, missing and non-UTF-8 documents, focused query degradation, required instruction failure, exact context bindings, stale readable recommendations, and private failure paths. The owner forbids executing tests in this task.
 
 Installed acceptance remains open: axli and flemo must leave their reported stops on the owner host, reach normalization without another developer turn, and retain precise attention for any remaining parked sources or layout debt. Local static checks cannot establish that recovery.
+
+[ADR-0555](../../execution/applications/0555-keep-operating-signals-visible-and-honest.md) keeps the cause of unclassified stage failures in private evidence and the macOS resident output in a bounded log.

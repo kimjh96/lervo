@@ -29,6 +29,8 @@ export async function writeManagedUserService(input: {
     nodeExecutable: string;
     configPath: string;
     pathDirectories: string[];
+    /** A launchd output path; the manager re-renders the definition with it. */
+    logFile?: string;
   };
 }): Promise<ManagedServiceStatus> {
   const directory = await mkdtemp(resolve(tmpdir(), `lervo-${input.runtime}-service-`));
@@ -62,6 +64,7 @@ export async function writeManagedUserService(input: {
         ...(coordinates.pathDirectories.length === 0
           ? []
           : ["--path-directories", coordinates.pathDirectories.join(":")]),
+        ...(coordinates.logFile === undefined ? [] : ["--log-file", coordinates.logFile]),
         "--config",
         coordinates.configPath,
         "--write",

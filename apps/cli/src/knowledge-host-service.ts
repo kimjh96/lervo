@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, realpath } from "node:fs/promises";
+import { mkdir, readFile, realpath } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -108,6 +108,11 @@ function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+/** The resident bounds this file at startup (ADR-0555); launchd only appends to it. */
+export function knowledgeHostLogPath(homeDirectory: string): string {
+  return resolve(homeDirectory, "Library", "Logs", "Lervo", "knowledge-host.log");
+}
+
 function managerFor(platform: NodeJS.Platform): "launchd" | "systemd" | null {
   return platform === "darwin" ? "launchd" : platform === "linux" ? "systemd" : null;
 }
@@ -122,6 +127,7 @@ interface PreparedHostService {
     nodeExecutable: string;
     configPath: string;
     pathDirectories: string[];
+    logFile?: string;
   } | null;
 }
 
@@ -202,12 +208,14 @@ async function prepareHostService(ports: KnowledgeHostServicePorts): Promise<Pre
       ? configReading.config
       : { schemaVersion: 1, userStateDirectory, provider: null };
   const identity = { manager, runtime: RUNTIME, instance: null };
+  const logFile = manager === "launchd" ? knowledgeHostLogPath(ports.homeDirectory) : undefined;
   const definition = formatRuntimeServiceDefinition({
     ...identity,
     executable,
     nodeExecutable,
     pathDirectories: [],
     config: configPath,
+    ...(logFile === undefined ? {} : { logFile }),
   }) as string;
   const options = { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid };
   const status = await ports.manage(
@@ -240,7 +248,13 @@ async function prepareHostService(ports: KnowledgeHostServicePorts): Promise<Pre
     definition,
     installed,
     config,
-    coordinates: { executable, nodeExecutable, configPath, pathDirectories: [] },
+    coordinates: {
+      executable,
+      nodeExecutable,
+      configPath,
+      pathDirectories: [],
+      ...(logFile === undefined ? {} : { logFile }),
+    },
   });
   if (!status.managerAvailable)
     return prepared("blocked", "service_manager_unavailable", "none", [
@@ -308,6 +322,9 @@ export async function applyHostResidentService(
   let configCreated = false;
   if (current.stage.configAction === "create")
     configCreated = await createKnowledgeHostServiceConfig(coordinates!.configPath, config!);
+  // launchd opens the output path itself and does not create missing directories.
+  if (coordinates!.logFile !== undefined)
+    await mkdir(dirname(coordinates!.logFile), { recursive: true, mode: 0o700 });
   const result = await writeManagedUserService({
     manage: ports.manage,
     options: { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid },

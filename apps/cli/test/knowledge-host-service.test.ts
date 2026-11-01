@@ -1,6 +1,6 @@
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -132,6 +132,11 @@ describe("host resident service stage", () => {
     // Only the Node and CLI startup paths join the fixed system path.
     expect(definition).toContain(`<string>${resolve(host.home, "bin")}:/usr/local/sbin`);
     expect(install).not.toContain("--path-directories");
+    // The manager re-renders the definition, so it must receive the same launchd log path.
+    const logFile = resolve(host.home, "Library", "Logs", "Lervo", "knowledge-host.log");
+    expect(install).toEqual(expect.arrayContaining(["--log-file", logFile]));
+    expect(definition).toContain(`<key>StandardErrorPath</key>\n  <string>${logFile}</string>`);
+    expect((await stat(dirname(logFile))).isDirectory()).toBe(true);
     expect(definition).toContain("<string>knowledge</string>");
     expect(definition).toContain("<string>--host</string>");
     expect(await inspectHostResidentService(host.ports)).toMatchObject({

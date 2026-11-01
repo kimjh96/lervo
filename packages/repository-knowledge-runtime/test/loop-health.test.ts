@@ -68,3 +68,54 @@ it.each(["skipped", "failed", "rejected"] as const)(
     }
   },
 );
+
+it("refreshes health on its own cadence while a long cycle runs, one refresh at a time", async () => {
+  vi.useFakeTimers();
+  let finishCycle!: () => void;
+  vi.mocked(runResidentCycle).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finishCycle = () =>
+          resolve({
+            state: {
+              schemaVersion: 1,
+              fingerprint: null,
+              lastCycleAt: new Date().toISOString(),
+              lastResult: "waiting",
+              idleStreak: 1,
+            },
+            earliestAvailableAt: null,
+            outcome: { kind: "skipped" },
+          });
+      }),
+  );
+  let active = 0;
+  let overlapped = false;
+  const refreshHealth = vi.fn(async () => {
+    active += 1;
+    overlapped ||= active > 1;
+    await new Promise((resolve) => setTimeout(resolve, 1_000));
+    active -= 1;
+  });
+  const storage = { paths: { repositoryRoot: "/fixture" } } as unknown as ProjectStorage;
+  const stop = startAutonomousKnowledgeWorker({
+    storage,
+    workerId: "resident",
+    provider: "codex",
+    subscribe: () => () => undefined,
+    refreshHealth,
+    healthRefreshMilliseconds: 300_000,
+    onFailure: vi.fn(),
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(900_000);
+    // The cycle has not finished, yet the projection stayed within its 20-minute window.
+    expect(refreshHealth).toHaveBeenCalledTimes(3);
+    finishCycle();
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(refreshHealth).toHaveBeenCalledTimes(4);
+    expect(overlapped).toBe(false);
+  } finally {
+    await stop();
+  }
+});

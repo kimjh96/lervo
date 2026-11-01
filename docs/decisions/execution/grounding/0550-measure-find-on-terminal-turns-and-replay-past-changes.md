@@ -66,3 +66,5 @@ Evidence and research documents often outrank decisions and specifications. Rera
 
 - `apps/cli/test/repository-health-projection.test.ts` covers terminal proof, the gap ratio, and windowed history.
 - `apps/cli/test/find-replay.test.ts` covers classification, scoring, case collection that excludes Lervo commits and code-only commits, and report state.
+
+[ADR-0556](0556-rank-canonical-documents-that-name-the-task-paths-first.md) ranks canonical documents that name the target paths first, judged by this replay.

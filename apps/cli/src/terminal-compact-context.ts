@@ -113,6 +113,7 @@ export async function prepareCompactTerminalPromptContext(input: {
         root: input.root,
         repositoryRevision: repositorySnapshot.revision,
         now: observedAt,
+        acceptEarlierRevision: true,
       }),
       pendingLearnedNotice(input.root),
       readTurnGovernance(input.root).then(pendingTurnGovernance, () => null),
@@ -134,6 +135,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     backgroundKnowledgeActive:
       input.workspaceBinding?.executionKind === "worker" || health.status === "healthy",
     workstreamPresent: query.currentWorkstream !== null,
+    repositoryRevision: repositorySnapshot.revision,
     staleWorkstreamEntryCount: staleWorkstreamEntryCount(
       attention,
       query.currentWorkstream,
