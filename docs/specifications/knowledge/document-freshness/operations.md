@@ -12,14 +12,16 @@ Resolve ownership of every other document in this order:
 
 Classify each hunk by its byte range's ownership; candidates can mix ownership. A range touching a marker fails `commonmark_structure`.
 
-| Ownership | Class | Authority | Version 1 effect |
+| Ownership | Class | Authority | Effect |
 | --- | --- | --- | --- |
 | Lervo-managed | `factual_reference` | `none`: apply in verifying cycle | applies |
-| Lervo-managed | `statement` | `none`: apply in verifying cycle | owner, until Tier 0 agrees |
+| Lervo-managed | `statement` | `none`: apply in verifying cycle | applies after Tier 0 agreement; owner when Tier 0 is unavailable |
 | Lervo-managed | `safety_or_policy` | `owner` | owner |
 | User-owned | `factual_reference` | `principal_mandate` if an installed mandate lists `document_freshness`; otherwise `owner` | owner; no mandate kind is installed |
 | User-owned | `statement` | `owner` | owner |
 | User-owned | `safety_or_policy` | `owner` | owner |
+
+Tier 0 agreement ([ADR-0557](../../../decisions/knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md)) grants no authority. It only removes the owner substitution for hunks this matrix already lets Lervo apply. Every user-owned hunk still needs its listed authority.
 
 Apply runs as one sequence under the knowledge worker's repository lock:
 
@@ -39,7 +41,7 @@ Owner approval binds `candidateId` and `afterHash`: `lervo knowledge freshness a
 ## Surfaces
 
 - `lervo knowledge freshness status [--root <path>] [--json]`: counts by state and priority class, oldest open candidate and age, today's budget used, hold list, and time-to-fresh of the last ten applies.
-- `lervo knowledge freshness review [<candidateId>] [--json]`: without an identifier, lists candidates awaiting the owner with exact apply commands; with one, prints each hunk as a unified diff, claims and evidence coordinates, check table, and cross-check outcome.
+- `lervo knowledge freshness review [<candidateId>] [--json]`: without an identifier, lists candidates awaiting the owner with exact apply commands and any `unavailable` cross-check reason; with one, prints each hunk as a unified diff with its cross-check verdict and reason, claims and evidence coordinates, the check table, and the cross-check outcome, reviewer, and run.
 - `lervo knowledge freshness apply|revert|reject|acknowledge <candidateId>`: operations above; `acknowledge` resolves an applied notice.
 
 Attention items appear in `lervo application attention` and the cached retrieval prompt path:
@@ -48,7 +50,7 @@ Attention items appear in `lervo application attention` and the cached retrieval
 | --- | --- | --- |
 | `document_freshness_candidate` | `actionOwner: user`, `requiresUserAction: true`, `blocking: false` | `candidateId`, `documentPath`, `priorityClass`, `changeClasses`, `hunkCount`, `instruction` |
 | `document_freshness_applied` | `actionOwner: agent`, informational; resolves on acknowledgment or after 24 hours | `candidateId`, `documentPath`, `approvalSource`, `commitHash`, `revertInstruction` |
-| `document_freshness_blocked` | `actionOwner: user` | `reasonCode`, `documentPath` or null, `attempts`, `instruction` |
+| `document_freshness_blocked` | `actionOwner: user` | `reasonCode` (`zero_success_window` or `repeated_cross_check_disagreement`), `documentPath` or null, `attempts`, `instruction` |
 
 None is blocking; all stay within the ADR-0462 twelve-item, 4 KiB attention budget.
 
@@ -65,7 +67,7 @@ Payloads contain only relative paths, hashes, counts, codes, and identifiers. Hu
 | Event | Required fields |
 | --- | --- |
 | `document.freshness.candidate.created` | `candidateId`, `findingDigest`, `documentPath`, `documentHash`, `operation`, `priorityClass`, `changeClasses`, `hunkCount`, `evidenceCount`, `evidenceTruncated`, `usageObserved`, `occurredAt` |
-| `document.freshness.candidate.verified` | `candidateId`, `checks[]` (`code`, `status`), `crossCheck` (`not_required`, `agreement`, `material_disagreement`, `unavailable`), `deliberationRunId` or null, `authorityRequired`, `afterHash`, `occurredAt` |
+| `document.freshness.candidate.verified` | `candidateId`, `checks[]` (`code`, `status`), `crossCheck` (`not_required`, `agreement`, `material_disagreement`, `unavailable`), `deliberationRunId` (the Tier 0 call's `run_freshness_<24 hex>` run) or null when no call reached a provider, `authorityRequired`, `afterHash`, `occurredAt`. Recorded once, after any required cross-check settles. |
 | `document.freshness.candidate.applied` | `candidateId`, `documentPath`, `beforeHash`, `afterHash`, `appliedHunkCount`, `pendingHunkCount`, `approvalSource` (`lervo_managed`, `principal_mandate`, `owner`), `approvalRef`, `commitHash` or null, `occurredAt` |
 | `document.freshness.candidate.rejected` | `candidateId`, `reasonCode`, `rejectorKind` (`deterministic`, `cross_check`, `proxy`, `owner`, `budget`), `contestedHunkIds[]`, `occurredAt` |
 | `document.freshness.candidate.reverted` | `candidateId`, `documentPath`, `restoredHash`, `revertedBy` (`owner`, `agent`), `holdUntil`, `occurredAt` |
@@ -81,7 +83,9 @@ Failure behavior:
 - `revert_conflict`: leave the document as found.
 - `freshness_hold_active`: refuse apply until the hold ends.
 
-Five attempts with zero verified candidates in one day raise `document_freshness_blocked` with `reasonCode: zero_success_window`.
+Five attempts with zero verified candidates in one day raise `document_freshness_blocked` with `reasonCode: zero_success_window`. A finding whose candidate and single regeneration both met Tier 0 disagreement raises it with `reasonCode: repeated_cross_check_disagreement` until a later candidate exists for that document.
+
+A Tier 0 failure never blocks other work: it settles the candidate as `unavailable` with its reason and holds it for the owner.
 
 A provider failure before any model call (the version check, the no-capability probe, or admission under [ADR-0536](../../../decisions/execution/providers/admission/0536-admit-provider-clis-by-contract.md)) defers the finding with `provider_not_admitted`. It spends no budget, creates no rejected candidate, and does not count as an attempt. Only a call that reached the model can be charged at the per-candidate bound when its usage is unobserved. On 2026-10-31, a Codex probe rejection had recorded 14 `candidate_invalid` rejections since 2026-10-29 and exhausted the daily budget with no model call.
 
@@ -106,12 +110,12 @@ All keys under `documentFreshness` in `.lervo/knowledge/policy.yaml` are optiona
 
 ## Fixtures and journey
 
-Domain cases: `packages/repository-knowledge/test/document-freshness.test.ts`. Argo fixtures: `packages/repository-knowledge-runtime/test/document-freshness-fixtures.test.ts`, running the real stage against scratch Git repositories. The fixture provider, `scripts/distribution/fixtures/document-freshness-claude.mjs`, answers the no-capability JSON contract from a plan file beside it.
+Domain cases: `packages/repository-knowledge/test/document-freshness.test.ts` and `document-freshness-cross-check.test.ts`. Argo fixtures: `packages/repository-knowledge-runtime/test/document-freshness-fixtures.test.ts`, running the real stage against scratch Git repositories; Tier 0 journeys: `document-freshness-cross-check.test.ts` beside it. The fixture provider, `scripts/distribution/fixtures/document-freshness-claude.mjs`, answers the no-capability JSON contract, including the cross-check task, from a plan file beside it.
 
 | Id | Scenario from Argo history | Expected in version 1 |
 | --- | --- | --- |
-| F1 | `AGENTS.md` says risk limits live in `v2/argo_v2/live/engine.py: Limits`; `v2/` deleted; `v4/argo4/live/engine.py` holds `class Limits` | `safety`, two `safety_or_policy` hunks, `crossCheck: unavailable`, `authorityRequired: owner`, `verified_pending_cross_check`, one usage record, first cycle |
-| F2 | `README.md` links missing `v2/README.md` and says "every 6 hours"; `v4/README.md` says "daily at 00:40 UTC" | `entrypoint`, two `factual_reference` user-owned hunks, `owner` (no mandate kind), `references_resolve` passes |
+| F1 | `AGENTS.md` says risk limits live in `v2/argo_v2/live/engine.py: Limits`; `v2/` deleted; `v4/argo4/live/engine.py` holds `class Limits` | `safety`, two `safety_or_policy` hunks, `crossCheck: agreement`, `authorityRequired: owner`, `waiting_authority`, two usage records (generation and cross-check), first cycle |
+| F2 | `README.md` links missing `v2/README.md` and says "every 6 hours"; `v4/README.md` says "daily at 00:40 UTC" | `entrypoint`, two `factual_reference` user-owned hunks, `crossCheck: agreement`, `owner` (no mandate kind), `references_resolve` passes |
 | F3 | Root `FINAL-DESIGN.md` describes removed v1; `IMPLEMENTATION-HANDOFF.md` deleted; nine inbound links | `archive` to `docs/archive/v1-final-design.md` with banner and nine `inboundLinkRewrites`; `owner`; owner apply moves it and commits with the trailer |
 | F4 | Unrelated edit under `v3/scripts`; already-correct document flagged by `review_interval_elapsed` | No candidate for the edit; deterministic `no_change_needed` without provider call |
 | F5 | Owner edits document while candidate waits | `source_changed`, state `superseded`, new candidate after edit is committed |

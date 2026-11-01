@@ -119,11 +119,14 @@ export interface DocumentFreshnessAppliedAttentionItemV1 extends OperatingAttent
   revertInstruction: string;
 }
 
-/** The freshness loop cannot make progress: zero verified candidates from five attempts today. */
+/**
+ * The freshness loop cannot make progress: zero verified candidates from five attempts today, or
+ * a candidate and its single regeneration both met Tier 0 material disagreement (ADR-0557).
+ */
 export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "document_freshness_blocked";
   state: "action_required";
-  reasonCode: "zero_success_window";
+  reasonCode: "zero_success_window" | "repeated_cross_check_disagreement";
   documentPath: string | null;
   attempts: number;
 }

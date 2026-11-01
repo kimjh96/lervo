@@ -10,12 +10,13 @@ The provider returns `{ operation, hunks[], archiveName, currentDocumentPath, ex
 - For `operation: edit`, `hunks[]`: `{ hunkId, range: { startByte, endByte }, beforeHash, replacement, changeClass, ownership, managedBlockId or null, authorityRequired, crossCheckRequired, claims[] }`. Each claim is `{ claimDigest, text, evidence[]: { path, hash, lineRange or null } }`.
 - For `operation: archive`, `archive`: `targetPath` under `documentFreshness.historicalRoot`, `banner`, `inboundLinkRewrites[]` and `outgoingLinkRewrites[]` of `{ path, line, from, to }`, `ownership`, and the content hash of every rewritten inbound document.
 - For `operation: no_change_needed` or `needs_owner_input`, `explanation` of at most 1 KiB.
-- `authorityRequired: none | principal_mandate | owner`, `state`, `checks[]`, `crossCheck`, `beforeBytesRef` (CAS), `afterHash` of the full verified output, `appliedHash` after the latest apply, `appliedHunkIds[]`, `pendingHunkIds[]`, `tokensObserved`, `rejection`, `approval`, `commitHash`, and `acknowledgedAt`.
+- `authorityRequired: none | principal_mandate | owner`, `state`, `checks[]`, `crossCheck`, the additive `crossCheckReview` (see [Cross-check](#cross-check)), `beforeBytesRef` (CAS), `afterHash` of the full verified output, `appliedHash` after the latest apply, `appliedHunkIds[]`, `pendingHunkIds[]`, `tokensObserved`, `rejection`, `approval`, `commitHash`, and `acknowledgedAt`.
 
 States are `generated`, `verified`, `verified_pending_cross_check`, `waiting_authority`, `applied`, `partially_applied`, `rejected`, `superseded`, and `reverted`.
 
+- `generated` also holds an edit whose Tier 0 call has not settled; it is not in the owner queue.
 - `verified` is transient for edits Lervo applies itself and final for `no_change_needed`.
-- `verified_pending_cross_check` means all deterministic checks passed but a hunk needs Tier 0; until Tier 0 exists, the owner reviews it instead.
+- `verified_pending_cross_check` means all deterministic checks passed but a hunk that needs Tier 0 has no agreement because the cross-check was unavailable; the owner reviews it instead.
 - `partially_applied` means Lervo-managed hunks applied and the remainder wait. The candidate records both sets.
 
 ## Change class rules
@@ -46,8 +47,18 @@ An archive records `source_hash`, `outside_bytes_unchanged` (target path is free
 
 Cross-check is required when any hunk is `statement` or `safety_or_policy`, its bytes are user-owned, or `operation` is `archive`. `crossCheck: always` requires it everywhere; `never` is refused for user-owned bytes.
 
-The design enqueues an ADR-0460 Tier 0 `cross_check` with `DecisionPointSignal.kind: document_freshness` and the fixed question: "For each hunk, does the replacement follow from the cited evidence, and does the candidate change nothing else?"
+[ADR-0557](../../../decisions/knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md) runs Tier 0 as one call in a fresh no-capability session of an admitted provider, separate from generation. The fixed question is: "For each hunk, does the replacement follow from the cited evidence, and does the candidate change nothing else?"
 
-`agreement` would mark the candidate `verified`. `material_disagreement` rejects it with `cross_check_disagreement` and contested `hunkId`s, then regenerates once. A second disagreement raises `document_freshness_blocked`.
+- **Input**, stored in CAS by hash: per hunk, the exact source bytes, the replacement, up to three context lines on each side, the change class, and the claims with evidence coordinates. It also carries the cited bundle evidence excerpts, at most 6 KiB each and 24 KiB in total.
+- **Output**: `{ hunks: [{ hunkId, verdict: agree | disagree, reason }] }`, exactly one verdict per hunk, with a reason of 1 to 400 characters. Any other shape is invalid and settles as `unavailable`.
+- **Budget**: the call counts inside `maximumTokensPerCandidate` and the daily budget. An estimated or observed overrun settles as `unavailable` with `freshness_budget_exhausted`.
 
-Version 1 has no Tier 0 because ADR-0460 Slice 1 is unimplemented. The candidate records `crossCheck: unavailable`; each hunk needing cross-check carries `crossCheckRequired: true`; the candidate waits in `verified_pending_cross_check`. Owner approval substitutes for the missing cross-check. Nothing in that state applies without it.
+| Outcome | Effect |
+| --- | --- |
+| `agreement` | The owner substitution is removed. Lervo-managed hunks with authority `none` apply in the settling cycle (`verified`); user-owned and `safety_or_policy` hunks keep their authority (`waiting_authority`). |
+| `material_disagreement` | `rejected` with `cross_check_disagreement`, `rejectorKind: cross_check`, and the contested `hunkId`s. The finding regenerates once; a second disagreement raises `document_freshness_blocked` with `repeated_cross_check_disagreement`. |
+| `unavailable` | `verified_pending_cross_check`; owner approval substitutes. Lervo-managed hunks that do not need the cross-check still apply. |
+
+`crossCheckReview` records `status` (`pending` or `settled`), `inputHash`, `runId` (the call's ADR-0459 run, also the `verified` event's `deliberationRunId`), `reviewerProvider`, `outcome`, `unavailableReason`, per-hunk `verdicts`, `tokensObserved`, `deferrals`, and `settledAt`. `unavailableReason` is one of `freshness_budget_exhausted`, `knowledge_authority_unavailable`, `knowledge_capacity_unavailable`, `knowledge_provider_paused`, `provider_not_admitted`, `cross_check_input_unavailable`, `cross_check_provider_failed`, `cross_check_usage_unavailable`, `cross_check_response_invalid`, or `archive_not_cross_checked`.
+
+While the call is pending, the candidate stays `generated` and nothing applies. A turn without provider capacity leaves it pending; the next cycle resumes it before new generation, and eight such turns settle it as `unavailable`. Archives are not cross-checked in this version and record `archive_not_cross_checked`. The ADR-0460 `document_freshness` decision-point signal still awaits ADR-0460 Slice 1.

@@ -44,9 +44,21 @@ export function formatDocumentFreshnessReview(
     `Document freshness review: ${candidates.length} ${candidates.length === 1 ? "candidate awaits" : "candidates await"} the owner`,
     ...candidates.map(
       (candidate) =>
-        `  ${candidate.state} ${candidate.candidateId} ${candidate.documentPath} · ${candidate.priorityClass} · ${classes(candidate)} · hunks pending ${candidate.pendingHunkIds.length}${candidate.crossCheck === "unavailable" ? " · cross-check unavailable, owner review instead" : ""}\n    ${candidate.applyCommand ?? "no apply command: the candidate needs owner input"}`,
+        `  ${candidate.state} ${candidate.candidateId} ${candidate.documentPath} · ${candidate.priorityClass} · ${classes(candidate)} · hunks pending ${candidate.pendingHunkIds.length}${candidate.crossCheck === "unavailable" ? ` · cross-check unavailable${candidate.crossCheckReview?.unavailableReason == null ? "" : ` (${candidate.crossCheckReview.unavailableReason})`}, owner review instead` : candidate.crossCheck === "agreement" ? " · cross-check agreement" : ""}\n    ${candidate.applyCommand ?? "no apply command: the candidate needs owner input"}`,
     ),
   ].join("\n")}\n`;
+}
+
+function crossCheckSummary(candidate: DocumentFreshnessCandidateV1): string {
+  const review = candidate.crossCheckReview;
+  if (review === undefined) return candidate.crossCheck;
+  if (review.status === "pending") return "pending";
+  return [
+    candidate.crossCheck,
+    ...(review.unavailableReason === null ? [] : [`reason ${review.unavailableReason}`]),
+    ...(review.reviewerProvider === null ? [] : [`reviewer ${review.reviewerProvider}`]),
+    ...(review.runId === null ? [] : [`run ${review.runId}`]),
+  ].join(" · ");
 }
 
 export function formatDocumentFreshnessCandidate(
@@ -55,7 +67,7 @@ export function formatDocumentFreshnessCandidate(
 ): string {
   return [
     `Freshness candidate ${candidate.candidateId} · ${candidate.state} · ${candidate.documentPath}`,
-    `operation ${candidate.operation} · priority ${candidate.priorityClass} · authority ${candidate.authorityRequired} · cross-check ${candidate.crossCheck}`,
+    `operation ${candidate.operation} · priority ${candidate.priorityClass} · authority ${candidate.authorityRequired} · cross-check ${crossCheckSummary(candidate)}`,
     ...candidate.checks.map((check) => `  check ${check.code}: ${check.status} (${check.detail})`),
     ...(candidate.explanation === null ? [] : [`explanation: ${candidate.explanation}`]),
     diff,

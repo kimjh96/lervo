@@ -146,12 +146,23 @@ export {
   parseDocumentFreshnessProposal,
   type DocumentFreshnessProposal,
 } from "./document-freshness-response.js";
+export { documentFreshnessAutoApplicableHunks } from "./document-freshness-candidate-state.js";
 export {
   buildDocumentFreshnessCandidate,
-  documentFreshnessAutoApplicableHunks,
   reviewIntervalOnlyFreshnessCandidate,
   type DocumentFreshnessEvidenceItem,
 } from "./document-freshness-candidate.js";
+export {
+  buildDocumentFreshnessCrossCheckInput,
+  documentFreshnessCandidateNeedsCrossCheck,
+  documentFreshnessCrossCheckBlocked,
+  documentFreshnessCrossCheckInstruction,
+  documentFreshnessCrossCheckResponseSchema,
+  parseDocumentFreshnessCrossCheckResponse,
+  pendingDocumentFreshnessCrossCheck,
+  settleDocumentFreshnessCrossCheck,
+  type DocumentFreshnessCrossCheckInputV1,
+} from "./document-freshness-cross-check.js";
 export {
   documentFreshnessOwnershipResolver,
   observeDocumentFreshnessFindings,

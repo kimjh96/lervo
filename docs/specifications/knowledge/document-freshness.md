@@ -11,6 +11,7 @@ This contract implements [ADR-0463](../../decisions/knowledge/documents/0463-ref
 
 ## References
 
+- [ADR-0557 Tier 0 cross-check in an independent no-capability session](../../decisions/knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md)
 - [ADR-0023 evidence-based document staleness](../../decisions/knowledge/documents/0023-evidence-based-document-staleness.md)
 - [ADR-0464 document drift and historical documents](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md)
 - [ADR-0465 settled knowledge batch-boundary commits](../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md)

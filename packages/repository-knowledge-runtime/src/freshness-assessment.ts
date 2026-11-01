@@ -205,7 +205,7 @@ export async function reviewPendingFreshnessAssessment(
   }
   const result = await generateFreshnessProposal({
     context,
-    bundle: {
+    source: {
       ...bundle,
       assessmentDependencyDigest: documentFreshnessDependencyDigest(dependency),
     },

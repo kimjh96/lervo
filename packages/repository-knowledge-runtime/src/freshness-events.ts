@@ -109,7 +109,8 @@ export function recordFreshnessCandidateOutcome(input: {
       candidateId: candidate.candidateId,
       checks: candidate.checks.map((check) => ({ code: check.code, status: check.status })),
       crossCheck: candidate.crossCheck,
-      deliberationRunId: null,
+      // The Tier 0 call's ADR-0459 run; null when no cross-check call reached a provider.
+      deliberationRunId: candidate.crossCheckReview?.runId ?? null,
       authorityRequired: candidate.authorityRequired,
       afterHash: candidate.afterHash,
       occurredAt: input.occurredAt,

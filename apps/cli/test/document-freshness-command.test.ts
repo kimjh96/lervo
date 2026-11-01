@@ -6,6 +6,10 @@ import type { DocumentFreshnessCandidateV1 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { documentFreshnessAttentionItems } from "../src/document-freshness-attention.js";
+import {
+  formatDocumentFreshnessCandidate,
+  formatDocumentFreshnessReview,
+} from "../src/knowledge-freshness-format.js";
 import { runCli } from "../src/main.js";
 import { formatOperatingAttention } from "../src/operating-attention-format.js";
 import { createOperatingAttentionReport } from "../src/operating-attention-projection.js";
@@ -111,6 +115,57 @@ describe("document freshness owner surfaces", () => {
     expect(formatOperatingAttention(report)).toContain(
       "document_freshness_candidate document_freshness_kfresh_aaaaaaaaaaaaaaaaaaaaaaaa · owner owner · verified_pending_cross_check · README.md · entrypoint · factual_reference · hunks 1",
     );
+  });
+
+  it("raises a blocked item for repeated Tier 0 disagreement and shows per-hunk outcomes", () => {
+    const [blocked] = documentFreshnessAttentionItems({
+      awaiting: [],
+      applied: [],
+      blocked: null,
+      crossCheckBlocked: [
+        { documentPath: "AGENTS.md", candidateId: "kfresh_dddddddddddddddddddddddd", attempts: 2 },
+      ],
+    });
+    expect(blocked).toMatchObject({
+      kind: "document_freshness_blocked",
+      itemId: "document_freshness_blocked_cross_check_kfresh_dddddddddddddddddddddddd",
+      reasonCode: "repeated_cross_check_disagreement",
+      documentPath: "AGENTS.md",
+      attempts: 2,
+      actionOwner: "user",
+      blocking: false,
+    });
+    const settled = (
+      outcome: "agreement" | "unavailable",
+      unavailableReason: "cross_check_response_invalid" | null,
+    ) =>
+      candidate({
+        crossCheck: outcome,
+        state: outcome === "agreement" ? "waiting_authority" : "verified_pending_cross_check",
+        crossCheckReview: {
+          status: "settled",
+          inputHash: `sha256:${"5".repeat(64)}`,
+          runId: "run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
+          reviewerProvider: "claude",
+          outcome,
+          unavailableReason,
+          verdicts:
+            outcome === "agreement"
+              ? [{ hunkId: "kfh_aaaaaaaaaaaaaaaa", verdict: "agree", reason: "Evidence shows v4." }]
+              : [],
+          tokensObserved: 900,
+          deferrals: 0,
+          settledAt: "2026-10-05T00:10:00.000Z",
+        },
+      });
+    expect(formatDocumentFreshnessCandidate(settled("agreement", null), "")).toContain(
+      "cross-check agreement · reviewer claude · run run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
+    );
+    expect(
+      formatDocumentFreshnessReview([
+        { ...settled("unavailable", "cross_check_response_invalid"), applyCommand: null },
+      ]),
+    ).toContain("cross-check unavailable (cross_check_response_invalid), owner review instead");
   });
 
   it("adds the bounded freshness line to the compact preamble only when present", () => {

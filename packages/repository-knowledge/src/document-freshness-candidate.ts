@@ -11,10 +11,12 @@ import {
   documentFreshnessAuthority,
   documentFreshnessCrossCheckRequired,
   documentFreshnessRangeOwnership,
-  strongestDocumentFreshnessAuthority,
 } from "./document-freshness-classification.js";
+import {
+  documentFreshnessCandidateAuthority,
+  documentFreshnessVerifiedState,
+} from "./document-freshness-candidate-state.js";
 import type {
-  DocumentFreshnessCandidateState,
   DocumentFreshnessCandidateV1,
   DocumentFreshnessCheckResult,
   DocumentFreshnessFindingV1,
@@ -130,23 +132,6 @@ function rejected(
   return finish({ ...candidate, state: "rejected", rejection, checks });
 }
 
-/** Hunks that may apply now: no authority beyond Lervo's own and no pending cross-check. */
-export function documentFreshnessAutoApplicableHunks(
-  candidate: Pick<DocumentFreshnessCandidateV1, "hunks">,
-): DocumentFreshnessHunk[] {
-  return candidate.hunks.filter(
-    (hunk) => hunk.authorityRequired === "none" && !hunk.crossCheckRequired,
-  );
-}
-
-function verifiedState(hunks: readonly DocumentFreshnessHunk[]): DocumentFreshnessCandidateState {
-  if (hunks.some((hunk) => hunk.authorityRequired === "none" && !hunk.crossCheckRequired))
-    return "verified";
-  return hunks.some((hunk) => hunk.crossCheckRequired)
-    ? "verified_pending_cross_check"
-    : "waiting_authority";
-}
-
 function editCandidate(
   input: DocumentFreshnessCandidateInput,
   proposal: DocumentFreshnessProposal,
@@ -228,20 +213,15 @@ function editCandidate(
     policy: input.policy,
     oracle: input.oracle,
   });
+  const crossCheck = hunks.some((hunk) => hunk.crossCheckRequired)
+    ? ("unavailable" as const)
+    : ("not_required" as const);
   const candidate = {
     ...base,
     hunks,
     checks,
-    authorityRequired: strongestDocumentFreshnessAuthority(
-      hunks.map((hunk) =>
-        hunk.crossCheckRequired && hunk.authorityRequired === "none"
-          ? "owner"
-          : hunk.authorityRequired,
-      ),
-    ),
-    crossCheck: hunks.some((hunk) => hunk.crossCheckRequired)
-      ? ("unavailable" as const)
-      : ("not_required" as const),
+    authorityRequired: documentFreshnessCandidateAuthority(hunks, crossCheck),
+    crossCheck,
   };
   const failure = documentFreshnessCheckFailure(checks);
   if (failure !== null)
@@ -253,7 +233,7 @@ function editCandidate(
   return finish({
     ...candidate,
     afterHash: sha256(output),
-    state: verifiedState(hunks),
+    state: documentFreshnessVerifiedState(hunks, crossCheck),
     pendingHunkIds: hunks.map((hunk) => hunk.hunkId),
   });
 }
@@ -322,7 +302,7 @@ function archiveCandidate(
     });
   return finish({
     ...candidate,
-    // Archives always need the cross-check; until Tier 0 exists the owner reviews instead.
+    // Archives always need the cross-check; Tier 0 covers edit hunks only, so the owner reviews.
     authorityRequired: documentFreshnessCrossCheckRequired({
       ownership: input.documentOwnership,
       changeClass: null,
@@ -339,8 +319,9 @@ function archiveCandidate(
 /**
  * Turns one provider proposal into a candidate: locate hunks by exact text, classify, derive
  * authority, apply in memory, and run every deterministic check. Pure apart from the read-only
- * tree oracle; nothing is written. Version 1 has no Tier 0 cross-check, so consequential hunks
- * are held for the owner and the candidate records `crossCheck: unavailable`.
+ * tree oracle; nothing is written. A consequential hunk leaves with `crossCheck: unavailable`;
+ * the runtime then runs the ADR-0557 Tier 0 cross-check and settles it with
+ * `settleDocumentFreshnessCrossCheck`.
  */
 export function buildDocumentFreshnessCandidate(
   input: DocumentFreshnessCandidateInput,

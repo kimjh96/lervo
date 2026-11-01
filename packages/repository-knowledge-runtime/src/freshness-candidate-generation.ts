@@ -4,7 +4,6 @@ import { resolve } from "node:path";
 
 import {
   buildDocumentFreshnessCandidate,
-  documentFreshnessAutoApplicableHunks,
   documentFreshnessFindingActionable,
   filesystemDocumentFreshnessOracle,
   parseDocumentFreshnessProposal,
@@ -16,7 +15,12 @@ import {
   type PrioritizedDocumentFreshnessFinding,
 } from "@lervo/repository-knowledge";
 
-import { applyLervoManagedFreshnessHunks } from "./freshness-apply.js";
+import {
+  applyCrossCheckedFreshnessHunks,
+  freshnessCrossCheckPending,
+  prepareFreshnessCrossCheck,
+  runFreshnessCrossCheck,
+} from "./freshness-cross-check.js";
 import { buildFreshnessEvidenceBundle, freshnessBundleBytes } from "./freshness-evidence-bundle.js";
 import { recordFreshnessCandidateOutcome } from "./freshness-events.js";
 import {
@@ -65,8 +69,9 @@ function inboundMarkdown(
 
 /**
  * Turns one admitted finding into a stored candidate: bundle the evidence into CAS, run the
- * governed provider call, build and verify the candidate, record its events, and let Lervo apply
- * its own verified hunks. A deferred call writes nothing and leaves the finding for a later cycle.
+ * governed provider call, build and verify the candidate, run its Tier 0 cross-check in a separate
+ * session, record its events, and let Lervo apply its own verified hunks. A deferred generation
+ * writes nothing and leaves the finding for a later cycle.
  */
 export async function generateFreshnessCandidate(input: {
   context: FreshnessGenerationContext;
@@ -162,7 +167,7 @@ export async function generateFreshnessCandidate(input: {
       bundle: stored.contentHash,
       attempt: input.attempt,
     });
-    const generated = await generateFreshnessProposal({ context, bundle, generationId });
+    const generated = await generateFreshnessProposal({ context, source: bundle, generationId });
     if (generated.status === "deferred") return { status: "deferred", reason: generated.reason };
     tokensObserved =
       generated.usage?.totalTokens ??
@@ -198,6 +203,13 @@ export async function generateFreshnessCandidate(input: {
           contestedHunkIds: [],
         },
       };
+    candidate = await prepareFreshnessCrossCheck({
+      storage,
+      candidate,
+      source: shared.source,
+      evidence,
+      now,
+    });
   }
   await writeFreshnessCandidate(root, candidate);
   recordFreshnessCandidateOutcome({
@@ -206,18 +218,16 @@ export async function generateFreshnessCandidate(input: {
     documentHash: entry.finding.documentHash,
     occurredAt: now,
   });
-  const automatic = documentFreshnessAutoApplicableHunks(candidate);
-  if (
-    input.autoApply !== false &&
-    candidate.state === "verified" &&
-    candidate.operation === "edit" &&
-    automatic.length > 0
-  )
-    candidate = await applyLervoManagedFreshnessHunks({
-      storage,
+  if (freshnessCrossCheckPending(candidate)) {
+    const checked = await runFreshnessCrossCheck({
+      context,
       candidate,
-      hunkIds: new Set(automatic.map((hunk) => hunk.hunkId)),
-      now: context.now(),
+      maximumTokens: input.policy.maximumTokensPerCandidate,
     });
+    candidate = checked.candidate;
+    tokensObserved += checked.tokensObserved;
+  }
+  if (input.autoApply !== false)
+    candidate = await applyCrossCheckedFreshnessHunks(context, candidate);
   return { status: "candidate", candidate, tokensObserved };
 }

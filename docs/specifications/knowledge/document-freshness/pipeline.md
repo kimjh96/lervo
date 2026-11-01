@@ -4,10 +4,11 @@
 
 ```text
 ADR-0464 detection ─► finding mapping ─► prioritize ─► admit (budget) ─► bundle evidence
-   ─► governed generation ─► deterministic checks ─► cross-check gate ─► authority ─► apply ─► commit
-                                         │                    │              │
-                                         └─► rejected         │              └─► waiting for the owner
-                                                              └─► verified_pending_cross_check (version 1)
+   ─► governed generation ─► deterministic checks ─► Tier 0 cross-check ─► authority ─► apply ─► commit
+                                         │                    │                   │
+                                         └─► rejected         ├─► rejected        └─► waiting for the owner
+                                                              │   (disagreement)
+                                                              └─► verified_pending_cross_check (unavailable)
 ```
 
 The knowledge resident owns the stage (`packages/repository-knowledge-runtime/src/freshness-stage.ts`), which follows per-change intake and convergence in `runAutonomousKnowledgeWorker`. Stage failure never blocks intake or convergence.

@@ -65,7 +65,8 @@ export type DocumentFreshnessCrossCheck =
 
 /**
  * `verified_pending_cross_check` means every deterministic check passed but a consequential hunk
- * needs the ADR-0460 Tier 0 cross-check, which is not yet available; the owner reviews instead.
+ * has no Tier 0 agreement because the cross-check was unavailable (ADR-0557); the owner reviews
+ * instead. A candidate whose cross-check call has not settled yet stays `generated`.
  */
 export type DocumentFreshnessCandidateState =
   | "generated"
@@ -171,6 +172,47 @@ export interface DocumentFreshnessApproval {
   approvedAt: string;
 }
 
+/** One reviewer verdict for one hunk; `reason` is short reviewer prose kept only in the store. */
+export interface DocumentFreshnessCrossCheckVerdict {
+  hunkId: string;
+  verdict: "agree" | "disagree";
+  reason: string;
+}
+
+/**
+ * Why a required cross-check has no outcome. Every value holds the candidate for the owner; none
+ * is ever read as agreement.
+ */
+export type DocumentFreshnessCrossCheckUnavailableReason =
+  | "archive_not_cross_checked"
+  | "freshness_budget_exhausted"
+  | "knowledge_authority_unavailable"
+  | "knowledge_capacity_unavailable"
+  | "knowledge_provider_paused"
+  | "provider_not_admitted"
+  | "cross_check_input_unavailable"
+  | "cross_check_provider_failed"
+  | "cross_check_usage_unavailable"
+  | "cross_check_response_invalid";
+
+/**
+ * The ADR-0557 Tier 0 record on a candidate. `pending` means the input is in CAS and the call has
+ * not settled; `settled` carries the outcome. `runId` is the cross-check call's ADR-0459 run and
+ * the `deliberationRunId` of the `verified` event. Prompts and inputs never leave CAS.
+ */
+export interface DocumentFreshnessCrossCheckReview {
+  status: "pending" | "settled";
+  inputHash: string | null;
+  runId: string | null;
+  reviewerProvider: "codex" | "claude" | null;
+  outcome: DocumentFreshnessCrossCheck | null;
+  unavailableReason: DocumentFreshnessCrossCheckUnavailableReason | null;
+  verdicts: DocumentFreshnessCrossCheckVerdict[];
+  tokensObserved: number;
+  deferrals: number;
+  settledAt: string | null;
+}
+
 export interface DocumentFreshnessCandidateV1 {
   schemaVersion: 1;
   candidateId: string;
@@ -195,6 +237,8 @@ export interface DocumentFreshnessCandidateV1 {
   state: DocumentFreshnessCandidateState;
   checks: DocumentFreshnessCheckResult[];
   crossCheck: DocumentFreshnessCrossCheck;
+  /** Additive: absent on candidates created before Tier 0 existed. */
+  crossCheckReview?: DocumentFreshnessCrossCheckReview;
   evidenceCount: number;
   evidenceTruncated: boolean;
   /** CAS reference of the exact source bytes, written before any apply. */

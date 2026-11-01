@@ -57,7 +57,7 @@ async function argoHistory(f: FreshnessFixture, documents: Record<string, string
 
 describe("document freshness fixtures (ADR-0463)", () => {
   it(
-    "F1 holds a safety correction to AGENTS.md for the owner in the first cycle",
+    "F1 holds a cross-checked safety correction to AGENTS.md for the owner in the first cycle",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
@@ -86,8 +86,8 @@ describe("document freshness fixtures (ADR-0463)", () => {
         documentPath: "AGENTS.md",
         priorityClass: "safety",
         operation: "edit",
-        state: "verified_pending_cross_check",
-        crossCheck: "unavailable",
+        state: "waiting_authority",
+        crossCheck: "agreement",
         authorityRequired: "owner",
       });
       expect(candidate!.hunks.map((hunk) => hunk.changeClass)).toEqual([
@@ -98,12 +98,18 @@ describe("document freshness fixtures (ADR-0463)", () => {
       expect(await f.read("AGENTS.md")).toBe(AGENTS_V2);
       expect(f.eventsOf("document.freshness.candidate.created")).toHaveLength(1);
       expect(f.eventsOf("document.freshness.candidate.verified")).toHaveLength(1);
+      expect(f.eventsOf("document.freshness.candidate.verified")[0]?.payload).toMatchObject({
+        crossCheck: "agreement",
+        deliberationRunId: candidate!.crossCheckReview?.runId,
+        authorityRequired: "owner",
+      });
       expect(f.eventsOf("document.freshness.candidate.applied")).toHaveLength(0);
       const usage = f
         .eventsOf("resource.usage.recorded")
         .map((event) => event.payload as Record<string, unknown>)
         .filter((payload) => payload.stage === "document_freshness");
-      expect(usage).toHaveLength(1);
+      // The generation call and the separate Tier 0 cross-check call.
+      expect(usage).toHaveLength(2);
       expect(usage[0]).toMatchObject({ channel: "knowledge_worker", status: "observed" });
       expect(digest(AGENTS_V2)).toBe(candidate!.sourceHash);
     },
@@ -162,7 +168,8 @@ describe("document freshness fixtures (ADR-0463)", () => {
       expect(candidate).toMatchObject({
         documentPath: "README.md",
         priorityClass: "entrypoint",
-        state: "verified_pending_cross_check",
+        state: "waiting_authority",
+        crossCheck: "agreement",
         authorityRequired: "owner",
       });
       expect(
@@ -210,6 +217,8 @@ describe("document freshness fixtures (ADR-0463)", () => {
       expect(candidate).toMatchObject({
         operation: "archive",
         state: "verified_pending_cross_check",
+        crossCheck: "unavailable",
+        crossCheckReview: { unavailableReason: "archive_not_cross_checked", runId: null },
         authorityRequired: "owner",
       });
       expect(candidate.archive?.targetPath).toBe("docs/archive/v1-final-design.md");
@@ -280,8 +289,7 @@ describe("document freshness fixtures (ADR-0463)", () => {
       await f.commit("owner note");
       await f.cycle(new Date(Date.now() + 2_000));
       const next = (await listFreshnessCandidates(f.root)).filter(
-        (item) =>
-          item.documentPath === "README.md" && item.state === "verified_pending_cross_check",
+        (item) => item.documentPath === "README.md" && item.state === "waiting_authority",
       );
       expect(next).toHaveLength(1);
       expect(next[0]!.candidateId).not.toBe(first.candidateId);

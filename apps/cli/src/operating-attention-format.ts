@@ -27,7 +27,7 @@ function describe(item: OperatingAttentionItemV1): string {
   if (item.kind === "knowledge_convergence_continuity")
     return `${item.severity} · ${item.findingCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
   if (item.kind === "document_freshness_blocked")
-    return `${item.reasonCode} · attempts ${item.attempts}`;
+    return `${item.reasonCode}${item.documentPath === null ? "" : ` · ${item.documentPath}`} · attempts ${item.attempts}`;
   if (item.kind === "durable_instruction_candidate")
     return `${item.captureSource} · ${item.title} · ${item.targetPath}`;
   if (item.kind === "captured_decision")
