@@ -26,6 +26,7 @@ import {
 import {
   symbolicConvergenceSourceBytes,
   assertSymbolicTargetsCaptured,
+  repositoryLinkReference,
 } from "./symbolic-source.js";
 import { CONVERGENCE_DELEGATION_PATH } from "./delegation-contract.js";
 
@@ -76,9 +77,13 @@ function observeConvergenceSource(
   path: string,
   settings: ConvergenceSourceCaptureSettings,
   cache: SourceHashCache,
+  derivedReferences: ConvergenceSourceCaptureSettings["policy"]["symbolicReferences"],
 ): CachedSourceHash & { byteLength: number } {
-  const reference = settings.policy.symbolicReferences.find((item) => item.path === path);
+  // A reviewed reference wins; an undeclared in-repository link is captured the same way.
+  const declared = settings.policy.symbolicReferences.find((item) => item.path === path);
+  const reference = declared ?? repositoryLinkReference(root, path);
   if (reference) {
+    if (declared === undefined) derivedReferences.push(reference);
     const bytes = symbolicConvergenceSourceBytes(root, reference);
     return { ...classifiedSource(bytes), byteLength: bytes.byteLength };
   }
@@ -132,11 +137,12 @@ export function captureConvergenceSources(
   const sources: KnowledgeConvergenceBaseline["sources"] = [];
   let totalBytes = 0;
   const cache = openSourceHashCache(root);
+  const derivedReferences: ConvergenceSourceCaptureSettings["policy"]["symbolicReferences"] = [];
   try {
     for (const path of paths) {
       let observed: CachedSourceHash & { byteLength: number };
       try {
-        observed = observeConvergenceSource(root, path, settings, cache);
+        observed = observeConvergenceSource(root, path, settings, cache, derivedReferences);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
         throw error;
@@ -151,7 +157,7 @@ export function captureConvergenceSources(
     cache.close();
   }
   assertSymbolicTargetsCaptured(
-    settings.policy.symbolicReferences,
+    [...settings.policy.symbolicReferences, ...derivedReferences],
     sources.map((source) => source.path),
   );
   if (

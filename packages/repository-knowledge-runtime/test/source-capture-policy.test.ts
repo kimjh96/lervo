@@ -87,8 +87,13 @@ it("captures reviewed file and directory aliases without traversing or rewriting
   );
   await symlink("../../.agents/skills/local", resolve(f.root, ".claude/skills/local"));
   const before = await readFile(resolve(f.root, "docs/specs/runtime.md"));
-  expect(() => captureConvergenceSources(f.root, "policy")).toThrow(
-    expect.objectContaining({ code: "knowledge_source_kind_unsupported" }),
+  // ADR-0546: undeclared in-repository links are captured as the same descriptors.
+  const undeclared = captureConvergenceSources(f.root, "policy");
+  expect(undeclared.sources).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ path: "README.md", kind: "opaque" }),
+      expect.objectContaining({ path: ".claude/skills/local", kind: "opaque" }),
+    ]),
   );
   await setCapturePolicy(f, {
     maximumRepositoryBytes: 256 * 1024 * 1024,
@@ -238,4 +243,26 @@ it("excludes Lervo generated paths from change observation, baseline obligations
       stageData: {},
     }),
   ).toEqual([]);
+});
+
+it("keeps undeclared links that leave the repository, reach Lervo state, or chain unsupported (ADR-0546)", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  await rm(resolve(f.root, "README.md"));
+  await symlink("../outside.md", resolve(f.root, "README.md"));
+  expect(() => captureConvergenceSources(f.root, "policy")).toThrow(
+    expect.objectContaining({ code: "knowledge_source_kind_unsupported" }),
+  );
+  await rm(resolve(f.root, "README.md"));
+  await symlink(".lervo/knowledge/convergence-delegation.json", resolve(f.root, "README.md"));
+  expect(() => captureConvergenceSources(f.root, "policy")).toThrow(
+    expect.objectContaining({ code: "knowledge_source_kind_unsupported" }),
+  );
+  await rm(resolve(f.root, "README.md"));
+  await symlink("docs/specs/runtime.md", resolve(f.root, "README.md"));
+  await rm(resolve(f.root, "docs/specs/runtime.md"));
+  await symlink("../../AGENTS.md", resolve(f.root, "docs/specs/runtime.md"));
+  expect(() => captureConvergenceSources(f.root, "policy")).toThrow(
+    expect.objectContaining({ code: "knowledge_source_kind_unsupported" }),
+  );
 });
