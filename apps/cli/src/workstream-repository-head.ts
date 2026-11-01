@@ -13,10 +13,10 @@ import type { WorkstreamSnapshot } from "@lervo/schemas";
 const execute = promisify(execFile);
 const COMMIT = /^[a-f0-9]{40,64}$/u;
 
-async function git(root: string, args: string[]): Promise<string> {
+async function git(root: string, args: string[], maxBuffer = 4096): Promise<string> {
   const { stdout } = await execute("git", ["-C", root, ...args], {
     timeout: 5_000,
-    maxBuffer: 4096,
+    maxBuffer,
   });
   return stdout.trim();
 }
@@ -35,6 +35,15 @@ export async function observeRepositoryHead(
 }
 
 /**
+ * Lervo's own knowledge commits and release preparation, and merge commits, carry no owner or agent
+ * work, so they never age a workstream. Only other authored commits count toward staleness.
+ */
+const LERVO_AUTHOR_EMAILS = new Set([
+  "knowledge@lervo.invalid",
+  "lervo-release[bot]@users.noreply.github.com",
+]);
+
+/**
  * A recorded commit that is not an ancestor of the current HEAD (rewritten, reset, or unfetched
  * history) is unresolvable rather than zero commits behind, so it cannot look current.
  */
@@ -46,7 +55,15 @@ export async function measureWorkstreamHeadDistance(
   if (recorded === undefined) return { status: "not_recorded" };
   try {
     await git(root, ["merge-base", "--is-ancestor", recorded, "HEAD"]);
-    const count = Number(await git(root, ["rev-list", "--count", `${recorded}..HEAD`]));
+    // A bounded window: past 1,000 counted commits the snapshot is stale under any policy.
+    const authors = await git(
+      root,
+      ["log", "--no-merges", "--max-count=1000", "--format=%ae", `${recorded}..HEAD`],
+      1000 * 256,
+    );
+    const count = authors
+      .split("\n")
+      .filter((email) => email !== "" && !LERVO_AUTHOR_EMAILS.has(email)).length;
     return Number.isSafeInteger(count) && count >= 0
       ? { status: "measured", commitsBehind: count }
       : { status: "unresolvable" };

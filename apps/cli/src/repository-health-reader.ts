@@ -39,7 +39,10 @@ export async function readRepositoryHealth(input: {
       ),
     ) as RepositoryHealthProjectionV1;
     if (!validHealthProjection(value)) return fallback("projection_invalid");
-    if (value.repositoryRevision !== input.repositoryRevision && input.acceptEarlierRevision !== true) {
+    if (
+      value.repositoryRevision !== input.repositoryRevision &&
+      input.acceptEarlierRevision !== true
+    ) {
       const result = fallback("projection_revision_changed");
       result.observedAt = value.observedAt;
       return result;

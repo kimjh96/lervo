@@ -66,7 +66,8 @@ export function formatRepositoryHealth(
       measure.reason === "projection_missing_or_unreadable" ||
       measure.reason === "projection_invalid",
   );
-  const earlier = currentRevision !== undefined && projection.repositoryRevision !== currentRevision;
+  const earlier =
+    currentRevision !== undefined && projection.repositoryRevision !== currentRevision;
   const age = absentProjection
     ? "unknown"
     : `${ageMinutes}m${earlier ? ", before the latest repository change" : ""}`;
