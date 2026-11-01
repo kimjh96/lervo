@@ -168,6 +168,8 @@ export * from "./publication-language.js";
 export * from "./publication-snapshot.js";
 export * from "./query.js";
 export { repositoryScanPriority } from "./scan-priority.js";
+export * from "./document-link-web.js";
+export { archiveScopes } from "./historical-documents.js";
 export * from "./refresh-review-candidate.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";

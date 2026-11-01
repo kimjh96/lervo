@@ -105,7 +105,12 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
         )
       );
     case "brokenLinks":
-      return count(v.count);
+      return (
+        count(v.count) &&
+        [v.missingBacklinkCount, v.orphanCount].every(
+          (value) => value === undefined || count(value),
+        )
+      );
     case "find":
       return (
         time(v.windowStart) &&

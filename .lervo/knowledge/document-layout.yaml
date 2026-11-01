@@ -37,6 +37,10 @@ routes:
     path: knowledge/documents/routing
     priority: 97
     description: "Where a legacy document goes during migration: semantic route classification, deferral, retained application content, and the outcome every candidate must reach."
+  - id: knowledge.documents.links
+    path: knowledge/documents/links
+    priority: 97
+    description: "How documents connect: the deterministic link web, broken links, amendment back-links, orphan canonical documents, and dependent-document checks."
   - id: knowledge.documents.capture
     path: knowledge/documents/capture
     priority: 97

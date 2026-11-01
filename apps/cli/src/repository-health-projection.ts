@@ -17,6 +17,7 @@ import { projectHealthFreshness } from "./repository-health-freshness.js";
 import { projectHealthOwnerReview } from "./repository-health-owner-review.js";
 import { unknownHealthMeasure } from "./repository-health-measure.js";
 import type { HealthAppearanceState } from "./repository-health-appearance.js";
+import type { LinkWebSummary } from "./link-web-projection.js";
 
 const DAY = 86_400_000;
 const MAINTENANCE = ".lervo/state/knowledge/maintenance-observation.json";
@@ -54,6 +55,11 @@ export interface HealthProjectionSources {
   history: HealthEventHistory | null;
   /** ADR-0548 first prepared appearance of each stop in an owner turn. */
   appearance?: HealthAppearanceState | null;
+  /** ADR-0551 link web over current Markdown, rebuilt when tracked Markdown changes. */
+  linkWeb?: Pick<
+    LinkWebSummary,
+    "observedAt" | "brokenCount" | "missingBacklinkCount" | "orphanCount"
+  > | null;
   /** ADR-0550 last replay summary over past changes. */
   findReplay?: {
     observedAt: string;
@@ -334,6 +340,31 @@ function find(input: HealthProjectionSources): RepositoryHealthProjectionV1["mea
   );
 }
 
+const LINK_WEB = ".lervo/state/link-web.json";
+
+/**
+ * ADR-0551: broken links and missing amendment back-links are gaps; documents without inbound
+ * links are reported with them, because an orphan is unconnected knowledge but not an error.
+ */
+function brokenLinks(
+  input: HealthProjectionSources,
+): RepositoryHealthProjectionV1["measures"]["brokenLinks"] {
+  const web = input.linkWeb ?? null;
+  if (web === null) return unknownHealthMeasure("link_web_unavailable", [LINK_WEB]);
+  return observed(
+    {
+      count: web.brokenCount,
+      missingBacklinkCount: web.missingBacklinkCount,
+      orphanCount: web.orphanCount,
+    },
+    web.observedAt,
+    DAY,
+    [LINK_WEB],
+    web.brokenCount > 0 || web.missingBacklinkCount > 0,
+    input.now,
+  );
+}
+
 /** Pure, host-neutral policy over already recorded state. No provider or lint is a dependency. */
 export function projectRepositoryHealth(
   input: HealthProjectionSources,
@@ -349,13 +380,7 @@ export function projectRepositoryHealth(
       freshness: projectHealthFreshness(input),
       ownerReview: projectHealthOwnerReview(input),
       deferred: deferred(input),
-      // The existing lifecycle cache records only lint validity, not broken-link findings/counts.
-      brokenLinks: unknownHealthMeasure(
-        input.cachedLifecycle === null
-          ? "current_revision_lint_cache_missing"
-          : "cached_lint_has_no_link_count",
-        [".lervo/state/terminal-integration/knowledge-lifecycle-cache.json"],
-      ),
+      brokenLinks: brokenLinks(input),
       find: find(input),
     },
   };

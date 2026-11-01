@@ -118,7 +118,12 @@ export function formatRepositoryHealth(
     );
   }
   if (m.brokenLinks.status === "gap" && m.brokenLinks.value !== null) {
-    lines.push(`Lervo health: ${m.brokenLinks.value.count} broken links; freshness cycle.`);
+    const v = m.brokenLinks.value;
+    const backlinks = v.missingBacklinkCount
+      ? `, ${v.missingBacklinkCount} amendments not linked back`
+      : "";
+    const orphans = v.orphanCount ? `, ${v.orphanCount} canonical documents unlinked` : "";
+    lines.push(`Lervo health: ${v.count} broken links${backlinks}${orphans}; freshness cycle.`);
   }
   if (m.find.status === "gap" && m.find.value !== null) {
     const v = m.find.value;

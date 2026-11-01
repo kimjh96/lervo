@@ -70,7 +70,12 @@ export interface RepositoryHealthProjectionV1 {
       items: Array<{ path: string; since: string | null; ageMilliseconds: number | null }>;
       omitted: number;
     }>;
-    brokenLinks: RepositoryHealthMeasureV1<{ count: number }>;
+    brokenLinks: RepositoryHealthMeasureV1<{
+      count: number;
+      /** ADR-0551 link web; absent on projections written before it. */
+      missingBacklinkCount?: number;
+      orphanCount?: number;
+    }>;
     find: RepositoryHealthMeasureV1<{
       windowStart: string;
       lastInjectedAt: string | null;

@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-31
 Amends: [ADR-0451](../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0361](0361-project-operating-attention-without-new-authority.md), [ADR-0463](../../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md), [ADR-0467](../../knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md)
 
-Amended by: [ADR-0548](0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md) (a non-owner reports the owner's convergence; owner turns record when a stop is first shown), [ADR-0550](../grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md) (Find counts terminal turns; windowed event history; replay)
+Amended by: [ADR-0548](0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md) (a non-owner reports the owner's convergence; owner turns record when a stop is first shown), [ADR-0550](../grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md) (Find counts terminal turns; windowed event history; replay), [ADR-0551](../../knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md) (broken links from the link web)
 
 ## Context
 

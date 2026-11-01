@@ -87,8 +87,11 @@ There is no event, history directory or append-only collection.
   `semantic_classification_pending` count, at most 32 relative paths and exact
   omissions. First-seen time is unrecorded, so age is unknown. Partial layout
   coverage cannot establish zero.
-- **Broken links:** existing lifecycle cache records validity without link counts.
-  This measure stays unknown and never invokes lint to fill the gap.
+- **Broken links:** the link web over current Markdown, rebuilt in the background
+  when tracked Markdown changes, gives broken links, amendments not linked back,
+  and unlinked canonical documents ([ADR-0551](../../../decisions/knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md)).
+  The first two are gaps. A summary older than one day, or a failed rebuild, is
+  unknown. This measure never invokes lint.
 - **Find:** the reader keeps whole stage history and only eight days of per-turn
   activity, retaining at most 10,000 events from at most 250,000 scanned; overflow
   or failed reads are unknown. It establishes recorded last injection, seven-day

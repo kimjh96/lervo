@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2c5ce36f135266e8831ba83f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Measure the document link web in the background and report broken links, amendments not linked back, and unlinked canonical documents in repository health."

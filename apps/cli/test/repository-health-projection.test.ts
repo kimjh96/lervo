@@ -234,8 +234,28 @@ describe("health projection from recorded sources", () => {
     expect(result.measures.brokenLinks).toMatchObject({
       status: "unknown",
       value: null,
-      reason: "current_revision_lint_cache_missing",
+      reason: "link_web_unavailable",
     });
+    // ADR-0551: broken links and unlinked amendments are gaps; orphans ride along as counts.
+    const linked = sources();
+    linked.linkWeb = {
+      observedAt: healthNow.toISOString(),
+      brokenCount: 0,
+      missingBacklinkCount: 0,
+      orphanCount: 5,
+    };
+    expect(projectRepositoryHealth(linked).measures.brokenLinks).toMatchObject({
+      status: "within_target",
+      value: { count: 0, missingBacklinkCount: 0, orphanCount: 5 },
+    });
+    linked.linkWeb.missingBacklinkCount = 2;
+    const gap = projectRepositoryHealth(linked);
+    expect(gap.measures.brokenLinks.status).toBe("gap");
+    expect(formatRepositoryHealth(gap, healthNow)).toContain(
+      "0 broken links, 2 amendments not linked back, 5 canonical documents unlinked",
+    );
+    linked.linkWeb.observedAt = "2026-10-01T00:00:00Z";
+    expect(projectRepositoryHealth(linked).measures.brokenLinks.status).toBe("unknown");
     const missing = sources();
     missing.staleness = null;
     missing.maintenance = null;
