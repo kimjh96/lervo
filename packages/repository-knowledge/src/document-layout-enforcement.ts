@@ -2,6 +2,7 @@ import { assertCompleteRepositoryKnowledgeScan } from "./scan-coverage.js";
 import {
   createDocumentLayoutPermit,
   evaluateDocumentLayout,
+  worseningDocumentLayoutBlockers,
   type DocumentLayoutEvaluation,
   type DocumentLayoutOperation,
   type DocumentLayoutPermit,
@@ -103,7 +104,7 @@ export async function authorizeCurrentRepositoryDocumentLayout(input: {
     requireComplete: true,
   });
   if (evaluation.status === "blocked") {
-    const blocker = evaluation.blockers[0]!;
+    const blocker = worseningDocumentLayoutBlockers(evaluation)[0]!;
     throw new RepositoryKnowledgeError(
       blocker.code,
       `The projected repository document layout is blocked by ${blocker.code}.`,
@@ -111,3 +112,5 @@ export async function authorizeCurrentRepositoryDocumentLayout(input: {
   }
   return createDocumentLayoutPermit(evaluation, input.now);
 }
+
+export { worseningDocumentLayoutBlockers };

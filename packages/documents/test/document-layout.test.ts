@@ -5,6 +5,7 @@ import {
   createDocumentLayoutPermit,
   evaluateDocumentLayout,
   validateDocumentLayoutPermit,
+  worseningDocumentLayoutBlockers,
   type DocumentLayoutSnapshotEntry,
 } from "../src/index.js";
 
@@ -67,6 +68,60 @@ describe("projected document layout", () => {
         operationIds: ["move-c"],
       }),
     );
+  });
+
+  it("keeps existing overflow visible without blocking writes that do not grow it", () => {
+    const snapshot = [
+      entry("README.md"),
+      entry("notes/a.md"),
+      entry("notes/b.md"),
+      entry("notes/c.md"),
+      entry("docs/a.md"),
+    ];
+    const write = (operation: Parameters<typeof evaluateDocumentLayout>[0]["operations"][number]) =>
+      evaluateDocumentLayout({
+        snapshot,
+        operations: [operation],
+        policy,
+        roles: defaultRepositoryDocumentPolicy.roles,
+      });
+    const hash = `sha256:${"b".repeat(64)}`;
+
+    const unrelated = write({
+      operationId: "create-b",
+      action: "create",
+      path: "docs/b.md",
+      contentHash: hash,
+    });
+    expect(unrelated.status).toBe("bounded");
+    expect(unrelated.blockers).toContainEqual(
+      expect.objectContaining({ directory: "notes", observed: 3, projected: 3 }),
+    );
+    expect(worseningDocumentLayoutBlockers(unrelated)).toEqual([]);
+    expect(() => createDocumentLayoutPermit(unrelated)).not.toThrow();
+
+    const inPlace = write({
+      operationId: "update-a",
+      action: "update",
+      path: "notes/a.md",
+      contentHash: hash,
+    });
+    expect(inPlace.status).toBe("bounded");
+
+    const shrink = write({ operationId: "delete-a", action: "delete", path: "notes/a.md" });
+    expect(shrink.status).toBe("bounded");
+
+    const grow = write({
+      operationId: "create-d",
+      action: "create",
+      path: "notes/d.md",
+      contentHash: hash,
+    });
+    expect(grow.status).toBe("blocked");
+    expect(worseningDocumentLayoutBlockers(grow)).toEqual([
+      expect.objectContaining({ directory: "notes", observed: 3, projected: 4 }),
+    ]);
+    expect(() => createDocumentLayoutPermit(grow)).toThrow();
   });
 
   it("counts document-bearing direct children and honors a bounded catalog override", () => {

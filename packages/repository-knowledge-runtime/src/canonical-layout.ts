@@ -3,6 +3,7 @@ import {
   canonicalJson,
   evaluateCurrentRepositoryDocumentLayout,
   sha256,
+  worseningDocumentLayoutBlockers,
 } from "@lervo/repository-knowledge";
 import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 
@@ -33,15 +34,18 @@ export async function canonicalDocumentLayout(
   return {
     guidance,
     evaluation,
+    worseningBlockers: worseningDocumentLayoutBlockers(evaluation),
     // Document edits do not release capacity; layout policy, routing, and counts do.
     capacityHash: sha256(canonicalJson(guidance)),
   };
 }
 
+/** Only overflow the drafts create or grow parks a batch; existing overflow is lint debt. */
 export function capacityBlocked(layout: Awaited<ReturnType<typeof canonicalDocumentLayout>>) {
+  const blockers = layout.worseningBlockers;
   return (
-    layout.evaluation.blockers.length > 0 &&
-    layout.evaluation.blockers.every(
+    blockers.length > 0 &&
+    blockers.every(
       (blocker) =>
         blocker.code === "document_directory_file_capacity_exceeded" ||
         blocker.code === "document_directory_child_capacity_exceeded" ||

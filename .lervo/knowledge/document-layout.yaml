@@ -57,6 +57,10 @@ routes:
     path: knowledge/repository/canonicalization
     priority: 96
     description: "Scope carried from the legacy title terms: knowledge candidates; canonicalization; canonical outcomes."
+  - id: knowledge.repository.layout
+    path: knowledge/repository/layout
+    priority: 95
+    description: "How repository document layout capacity, roles, and permits bound document writes, and when existing overflow blocks them."
   - id: knowledge.repository.source-intake
     path: knowledge/repository/source-intake
     priority: 95

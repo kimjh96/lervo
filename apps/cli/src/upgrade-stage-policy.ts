@@ -17,8 +17,10 @@ export type UpgradeStageName =
  *   has applied, because the prerequisite changes the dependent's inputs.
  * - `not_blocked`: the dependent may apply only when the prerequisite is not
  *   blocked after its own application in the same run.
+ * - `ordered_after`: the dependent runs after the prerequisite in apply order,
+ *   but a blocked or pending prerequisite never defers it.
  */
-export type UpgradeStageRequirement = "applied_first" | "not_blocked";
+export type UpgradeStageRequirement = "applied_first" | "not_blocked" | "ordered_after";
 
 export interface UpgradeStageDependency {
   stage: UpgradeStageName;
@@ -38,7 +40,9 @@ export const upgradeStageDependencies: Readonly<
   workforce: [{ stage: "capabilities", requires: "applied_first" }],
   terminal_integration: [],
   knowledge: [{ stage: "capabilities", requires: "applied_first" }],
-  node: [{ stage: "knowledge", requires: "not_blocked" }],
+  // ADR-0546: Node readiness judges regression, not knowledge currency, so a blocked knowledge
+  // stage must not strand the Node runtime and the event writer behind it on an old release.
+  node: [{ stage: "knowledge", requires: "ordered_after" }],
   // ADR-0470: the generated hook runtime is a local event reader, and a Node reader must be
   // upgraded before its health can prove it reads the new schema. The stage's own hook reader
   // preflight decides when the hook runtime still awaits an owner approval.
@@ -73,6 +77,7 @@ export function deferringPrerequisite(
   dispositions: Partial<Record<UpgradeStageName, StageDisposition>>,
 ): UpgradeStageDependency | null {
   for (const dependency of upgradeStageDependencies[stage]) {
+    if (dependency.requires === "ordered_after") continue;
     const disposition = dispositions[dependency.stage];
     if (dependency.requires === "applied_first" && disposition === "safe_apply") return dependency;
     if (disposition === "blocked") return dependency;
