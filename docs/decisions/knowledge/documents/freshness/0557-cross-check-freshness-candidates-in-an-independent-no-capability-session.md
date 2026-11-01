@@ -38,11 +38,11 @@ Archives are not cross-checked in this version, because the question is per hunk
 
 ### Pending calls
 
-While the call is unsettled, the candidate stays `generated` with `crossCheckReview.status: pending`. It is not in the owner queue, Lervo applies nothing from it, and no `verified` event exists yet. The resident allows one provider call per turn, so the generation turn usually defers the cross-check. The next freshness cycle resumes it before any new generation. Eight turns without provider capacity settle it as `unavailable` with `knowledge_capacity_unavailable`. Changed source bytes or dependencies supersede a pending candidate, as they supersede any open candidate.
+While the call is unsettled, the candidate stays `generated` with `crossCheckReview.status: pending`. It is not in the owner queue, Lervo applies nothing from it, and no `verified` event exists yet. The resident allows one provider call per turn, so the generation turn usually defers the cross-check. The next freshness cycle resumes it before any new generation. Eight turns without provider capacity settle it as `unavailable` with `knowledge_capacity_unavailable`. A turn that has no capacity counts one deferral for every pending candidate it could not reach, so later candidates reach the same bound. Changed source bytes or dependencies supersede a pending candidate, as they supersede any open candidate.
 
 ### Budget
 
-Cross-check tokens count inside the 30,000-token candidate budget and the daily repository budget. Before the call, an estimate of the stored input at four bytes per token must fit in the remaining candidate budget. After the call, the observed usage must fit too. Otherwise the outcome is `unavailable` with `freshness_budget_exhausted`. A failed call, or one with unobserved usage, is charged the remaining candidate budget, because it may have reached the model.
+Cross-check tokens count inside the 30,000-token candidate budget and the daily repository budget. Before the call, an estimate of the stored input at four bytes per token must fit in the remaining candidate budget. After the call, the observed usage must fit too. Otherwise the outcome is `unavailable` with `freshness_budget_exhausted`. A failed call, one with unobserved usage, or one that reached the provider and then reported a quota or authentication failure is charged the remaining candidate budget, because it may have reached the model. A resumed call is also bounded by what remains of the daily budget; when the daily budget cannot afford it, the candidate stays pending without spending or counting a deferral, until the budget resets. Settled cross-check spend is written to the cycle state before any later step of the cycle, so a later failure cannot make it reusable.
 
 ### Authority that remains
 
@@ -65,6 +65,8 @@ Focused tests use the fixture provider, with provider discovery confined to the 
 - disagreement rejects with the contested hunk IDs, stays out of the owner queue, and regenerates once; a second disagreement raises the blocked item;
 - invalid JSON and a failed call both settle as `unavailable` and never as agreement;
 - cross-check tokens count in the candidate and daily budgets, and an over-budget call settles as `unavailable`;
+- a call that fails with a provider quota after reaching the provider is charged the remaining candidate budget;
+- a resumed cross-check that the daily budget cannot afford waits without a call or a deferral;
 - a turn without provider capacity keeps the call pending and out of the owner queue, and the next turn settles it;
 - `verified` events carry the outcome and the run identifier.
 

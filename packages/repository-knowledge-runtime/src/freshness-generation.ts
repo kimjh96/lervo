@@ -51,6 +51,8 @@ export type FreshnessGenerationResult =
         | "knowledge_capacity_unavailable"
         | "knowledge_provider_paused"
         | "provider_not_admitted";
+      /** True when the provider call was made and may have spent tokens before it failed. */
+      attempted?: true;
     };
 
 /** One document a freshness call injected, measured by its hash and injected byte count. */
@@ -240,7 +242,7 @@ export async function generateFreshnessProposal(input: {
       });
       if (error instanceof KnowledgeProviderAvailabilityError) {
         await pauseKnowledgeProviderFailure(context, error);
-        return { status: "deferred", reason: "knowledge_provider_paused" };
+        return { status: "deferred", reason: "knowledge_provider_paused", attempted: true };
       }
       return { status: "failed", usage: null };
     }

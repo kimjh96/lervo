@@ -9,7 +9,11 @@ import {
   renderDocumentFreshnessDiff,
 } from "../src/freshness-review.js";
 import { runDocumentFreshnessCycle } from "../src/freshness-stage.js";
-import { listFreshnessCandidates } from "../src/freshness-state-store.js";
+import {
+  listFreshnessCandidates,
+  readFreshnessCycleState,
+  writeFreshnessCycleState,
+} from "../src/freshness-state-store.js";
 import {
   freshnessFixture,
   type FreshnessFixture,
@@ -275,6 +279,62 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         30_800,
       );
       expect(await f.read("AGENTS.md")).toBe(ORIGINAL);
+    },
+  );
+
+  it(
+    "charges a cross-check that reached the provider before its usage limit",
+    { timeout: 120_000 },
+    async () => {
+      const f = await setup({ crossCheck: "quota" });
+      await f.cycle();
+      const [candidate] = await listFreshnessCandidates(f.root);
+      expect(candidate).toMatchObject({
+        state: "verified_pending_cross_check",
+        crossCheck: "unavailable",
+        crossCheckReview: { unavailableReason: "knowledge_provider_paused" },
+      });
+      // The failed call is charged whatever was left of the 30,000-token candidate budget.
+      expect(candidate!.tokensObserved).toBe(30_000);
+      expect(await f.read("AGENTS.md")).toBe(ORIGINAL);
+    },
+  );
+
+  it(
+    "waits for the daily budget without spending or counting a deferral",
+    { timeout: 120_000 },
+    async () => {
+      const f = await setup();
+      const turn = (now: Date) =>
+        runDocumentFreshnessCycle({
+          context: {
+            storage: f.storage,
+            provider: "claude",
+            executable: f.executable,
+            admissionDirectory: f.admissionDirectory,
+            signal: new AbortController().signal,
+            liveWorkPending: async () => false,
+            now: () => now,
+            providerQuantum: { remaining: 1 },
+          },
+        });
+      await turn(minutes(1));
+      const [pending] = await listFreshnessCandidates(f.root);
+      expect(pending).toMatchObject({ crossCheckReview: { status: "pending", deferrals: 1 } });
+      const state = await readFreshnessCycleState(f.root);
+      await writeFreshnessCycleState(f.root, {
+        ...state,
+        budget: { ...state.budget, tokensUsed: 150_000 - 10 },
+      });
+      await turn(minutes(2));
+      const [waiting] = await listFreshnessCandidates(f.root);
+      expect(waiting).toMatchObject({
+        state: "generated",
+        crossCheckReview: { status: "pending", deferrals: 1 },
+      });
+      expect((await f.providerCalls()).map((call) => call.task)).toEqual([
+        "document_freshness_candidate",
+      ]);
     },
   );
 

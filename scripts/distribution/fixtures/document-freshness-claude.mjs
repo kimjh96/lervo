@@ -68,6 +68,11 @@ if (request.task === "document_freshness_cross_check" && crossCheckMode === "fai
   console.error("fixture cross-check failure");
   process.exit(1);
 }
+// A provider that reached the model and then reported its usage limit.
+if (request.task === "document_freshness_cross_check" && crossCheckMode === "quota") {
+  console.error("You've hit your usage limit for this period.");
+  process.exit(1);
+}
 const cite = (path) => {
   const item = bundle.evidence.find((evidence) => evidence.path === path);
   if (item === undefined) throw new Error(`The bundle has no evidence for ${path}`);

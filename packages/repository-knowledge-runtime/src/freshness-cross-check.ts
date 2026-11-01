@@ -128,6 +128,8 @@ export async function runFreshnessCrossCheck(input: {
   context: FreshnessGenerationContext;
   candidate: DocumentFreshnessCandidateV1;
   maximumTokens: number;
+  /** Tokens left in the repository's daily freshness budget; absent means already reserved. */
+  dailyRemaining?: number;
 }): Promise<FreshnessCrossCheckResult> {
   const { context, candidate } = input;
   const review = candidate.crossCheckReview;
@@ -161,6 +163,9 @@ export async function runFreshnessCrossCheck(input: {
       ESTIMATED_BYTES_PER_TOKEN,
   );
   if (estimated > remaining) return unavailable("freshness_budget_exhausted");
+  // The daily budget resets; a cross-check it cannot afford waits without counting a deferral.
+  if (estimated > (input.dailyRemaining ?? Number.POSITIVE_INFINITY))
+    return { candidate, tokensObserved: 0, status: "pending" };
   const generationId = stableId("kfg", [
     candidate.candidateId,
     "tier0_cross_check",
@@ -187,6 +192,9 @@ export async function runFreshnessCrossCheck(input: {
     responseSchema: documentFreshnessCrossCheckResponseSchema,
     prompt: documentFreshnessCrossCheckInstruction,
   });
+  // A call that reached the provider and then failed may have spent tokens: charge the bound.
+  if (result.status === "deferred" && result.attempted === true)
+    return unavailable(result.reason, remaining, runId);
   if (result.status === "deferred") {
     if (
       result.reason === "knowledge_capacity_unavailable" &&
@@ -230,6 +238,38 @@ export async function runFreshnessCrossCheck(input: {
   });
 }
 
+/**
+ * Records one capacity deferral for a pending cross-check that this turn did not reach. At the
+ * bound it settles as unavailable, so no waiting candidate stays pending without limit.
+ */
+async function deferPendingFreshnessCrossCheck(
+  context: FreshnessGenerationContext,
+  candidate: DocumentFreshnessCandidateV1,
+): Promise<void> {
+  const review = candidate.crossCheckReview;
+  if (review === undefined || review === null) return;
+  if (review.deferrals + 1 >= MAXIMUM_CAPACITY_DEFERRALS) {
+    await settle({
+      context,
+      candidate,
+      settlement: {
+        status: "unavailable",
+        reason: "knowledge_capacity_unavailable",
+        runId: null,
+        reviewerProvider: null,
+        tokensObserved: 0,
+        settledAt: context.now().toISOString(),
+      },
+    });
+    return;
+  }
+  await writeFreshnessCandidate(context.storage.paths.repositoryRoot, {
+    ...candidate,
+    crossCheckReview: { ...review, deferrals: review.deferrals + 1 },
+    updatedAt: context.now().toISOString(),
+  });
+}
+
 /** Lervo applies its own hunks once a settled candidate is `verified`; other states wait. */
 export async function applyCrossCheckedFreshnessHunks(
   context: FreshnessGenerationContext,
@@ -254,6 +294,8 @@ export async function resumePendingFreshnessCrossChecks(input: {
   context: FreshnessGenerationContext;
   candidates: readonly DocumentFreshnessCandidateV1[];
   maximumTokens: number;
+  /** Tokens left in today's freshness budget; each resumed call is bounded by what remains. */
+  dailyRemaining: number;
   autoApply: boolean;
 }): Promise<{
   tokensObserved: number;
@@ -272,15 +314,20 @@ export async function resumePendingFreshnessCrossChecks(input: {
   const pending = input.candidates
     .filter(freshnessCrossCheckPending)
     .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
-  for (const candidate of pending) {
+  for (const [index, candidate] of pending.entries()) {
     const result = await runFreshnessCrossCheck({
       context: input.context,
       candidate,
       maximumTokens: input.maximumTokens,
+      dailyRemaining: Math.max(0, input.dailyRemaining - totals.tokensObserved),
     });
     totals.tokensObserved += result.tokensObserved;
     if (result.status === "pending") {
       totals.pending = true;
+      // Candidates this turn could not reach age by the same capacity deferral, each to its bound.
+      if (result.candidate.crossCheckReview?.deferrals !== candidate.crossCheckReview?.deferrals)
+        for (const waiting of pending.slice(index + 1))
+          await deferPendingFreshnessCrossCheck(input.context, waiting);
       break;
     }
     if (result.candidate.state === "rejected") {

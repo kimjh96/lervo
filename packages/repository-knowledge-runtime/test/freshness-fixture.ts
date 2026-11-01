@@ -27,7 +27,7 @@ export interface FreshnessPlanEntry {
   explanation?: string;
   assessmentAgrees?: boolean;
   /** Tier 0 reviewer answer; `agree` when absent. */
-  crossCheck?: "agree" | "disagree" | "invalid" | "fail";
+  crossCheck?: "agree" | "disagree" | "invalid" | "fail" | "quota";
   /** With `disagree`, contest only the hunks with these `before` texts. */
   crossCheckDisagree?: string[];
   crossCheckInputTokens?: number;

@@ -124,10 +124,13 @@ export async function runDocumentFreshnessCycle(input: {
     context,
     candidates,
     maximumTokens: policy.maximumTokensPerCandidate,
+    dailyRemaining: Math.max(0, policy.maximumTokensPerDay - state.budget.tokensUsed),
     autoApply: input.effects !== "prepare",
   });
   state.budget.tokensUsed += crossChecks.tokensObserved;
   state.budget.verified += crossChecks.verifiedCount;
+  // Settled cross-check spend is recorded before any later step can fail, so it is never reused.
+  if (crossChecks.tokensObserved > 0) await writeFreshnessCycleState(root, state);
   const pendingAssessment = candidates.find(
     (candidate) => candidate.state === "generated" && candidate.operation === "no_change_needed",
   );
