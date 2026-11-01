@@ -30,7 +30,11 @@ export interface HealthProjectionSources {
   maintenance: { observedAt: string; status: KnowledgeConvergenceStatus } | null;
   continuity: ConvergenceContinuityState | null;
   /** ADR-0466 verdict for this host; a non-owner reports the owner's state, not its own past. */
-  ownerRole?: { role: string; holderLabel: string | null } | null;
+  ownerRole?: {
+    role: string;
+    holderLabel: string | null;
+    holderHostHash?: string | null;
+  } | null;
   staleness: DocumentStalenessReport | null;
   freshnessCycle: {
     lastCycleAt: string | null;
@@ -50,6 +54,13 @@ export interface HealthProjectionSources {
   history: HealthEventHistory | null;
   /** ADR-0548 first prepared appearance of each stop in an owner turn. */
   appearance?: HealthAppearanceState | null;
+  /** ADR-0550 last replay summary over past changes. */
+  findReplay?: {
+    observedAt: string;
+    caseCount: number;
+    recall: number | null;
+    precision: number | null;
+  } | null;
 }
 
 function observed<T>(
@@ -88,15 +99,26 @@ function ownerElsewhereConvergence(
   const owner = input.ownerRole;
   if (owner === undefined || owner === null || owner.role === "owner") return null;
   if (!["waiting_owner", "yielding", "contended"].includes(owner.role)) return null;
+  // Labels can repeat across hosts; the lease holder's host hash identifies the owner exactly.
+  const holderHash = owner.holderHostHash ?? null;
   const peer = input.continuity?.peers.find(
     (item) =>
       item.ownerRole === "owner" &&
-      (owner.holderLabel === null || item.hostLabel === owner.holderLabel),
+      (holderHash !== null
+        ? item.hostHash === holderHash
+        : owner.holderLabel !== null && item.hostLabel === owner.holderLabel),
   );
   const age = peer === undefined ? NaN : input.now.getTime() - Date.parse(peer.observedAt);
   if (peer === undefined || !Number.isFinite(age) || age < 0 || age > OWNER_PEER_MAXIMUM_AGE_MS)
     return unknownHealthMeasure("owner_observation_missing_or_stale", source);
-  const stopped = peer.residentState === "attention" || peer.residentState === "waiting";
+  // An owner that published no resident state proves nothing about convergence.
+  if (
+    !["running", "idle", "busy", "waiting", "attention", "stopped"].includes(
+      peer.residentState ?? "",
+    )
+  )
+    return unknownHealthMeasure("owner_resident_state_unrecorded", source);
+  const stopped = ["attention", "waiting", "stopped"].includes(peer.residentState!);
   return observed(
     {
       state: "owner_elsewhere",
@@ -189,7 +211,12 @@ function stopReporting(
   durationMilliseconds: number,
 ): { reportedAt: string | null; unreportedMilliseconds: number } | null {
   const appearance = input.appearance ?? null;
-  if (appearance === null || Date.parse(stop.since) < Date.parse(appearance.recordingSince))
+  const since = Date.parse(stop.since);
+  if (
+    appearance === null ||
+    since < Date.parse(appearance.recordingSince) ||
+    (appearance.prunedThrough != null && since <= Date.parse(appearance.prunedThrough))
+  )
     return null;
   const shown = appearance.stops.find((item) => item.since === stop.since);
   if (shown === undefined)
@@ -277,21 +304,32 @@ function find(input: HealthProjectionSources): RepositoryHealthProjectionV1["mea
   const lastInjectedAt =
     events.filter((e) => e.type === "context.injected").at(-1)?.occurredAt ?? null;
   const window = events.filter((e) => Date.parse(e.occurredAt) >= start);
+  const turns = window
+    .filter((e) => e.type === "terminal.turn.observed")
+    .map((e) => e.payload as { selectedCount?: unknown; pathMentionCount?: unknown });
+  const counted = (value: unknown) =>
+    Number.isSafeInteger(value) && (value as number) > 0 ? (value as number) : 0;
   const value = {
     windowStart: new Date(start).toISOString(),
     lastInjectedAt,
     referencedCount: window.filter((e) => e.type === "context.referenced").length,
     terminalPreparedCount: window.filter((e) => e.type === "terminal.context.prepared").length,
+    turnCount: turns.length,
+    selectedTurnCount: turns.filter((turn) => counted(turn.selectedCount) > 0).length,
+    pathMentionCount: turns.reduce((sum, turn) => sum + counted(turn.pathMentionCount), 0),
+    replay: input.findReplay ?? null,
   };
+  // ADR-0550: either channel can prove Find. Managed runs inject and reference documents; compact
+  // terminal turns select governing documents and the reply cites them by path.
+  const managedProven =
+    lastInjectedAt !== null && Date.parse(lastInjectedAt) >= start && value.referencedCount > 0;
+  const terminalProven = value.selectedTurnCount > 0 && value.pathMentionCount > 0;
   return observed(
     value,
     input.now.toISOString(),
     20 * 60_000,
     [EVENTS],
-    lastInjectedAt === null ||
-      Date.parse(lastInjectedAt) < start ||
-      value.referencedCount === 0 ||
-      value.terminalPreparedCount === 0,
+    !managedProven && !terminalProven,
     input.now,
   );
 }

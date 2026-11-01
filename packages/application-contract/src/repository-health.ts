@@ -76,6 +76,17 @@ export interface RepositoryHealthProjectionV1 {
       lastInjectedAt: string | null;
       referencedCount: number;
       terminalPreparedCount: number;
+      /** ADR-0550 terminal turn evidence; absent on projections written before it. */
+      turnCount?: number;
+      selectedTurnCount?: number;
+      pathMentionCount?: number;
+      /** ADR-0550 last replay over past changes, or null when none is recorded. */
+      replay?: {
+        observedAt: string;
+        caseCount: number;
+        recall: number | null;
+        precision: number | null;
+      } | null;
     }>;
   };
 }

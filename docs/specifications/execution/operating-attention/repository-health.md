@@ -89,12 +89,16 @@ There is no event, history directory or append-only collection.
   coverage cannot establish zero.
 - **Broken links:** existing lifecycle cache records validity without link counts.
   This measure stays unknown and never invokes lint to fill the gap.
-- **Find:** at most 10,000 typed local events plus one overflow read establish
-  recorded last injection and seven-day reference/preparation counts. Overflow or
-  failed reads are unknown. Future events are excluded. No local injection event
-  means `last recorded injection unknown`; it cannot prove no injection occurred.
-  Complete recorded counts may be zero. Prepared, injected, referenced and used
-  remain distinct.
+- **Find:** the reader keeps whole stage history and only eight days of per-turn
+  activity, retaining at most 10,000 events from at most 250,000 scanned; overflow
+  or failed reads are unknown. It establishes recorded last injection, seven-day
+  reference/preparation counts, and terminal turns with selected documents and
+  path citations. Either managed injection with references or terminal selection
+  with citations proves Find ([ADR-0550](../../../decisions/execution/grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md)).
+  The last replay over past changes adds recall and precision. Future events are
+  excluded. No local injection event means `last recorded injection unknown`; it
+  cannot prove no injection occurred. Complete recorded counts may be zero.
+  Prepared, injected, referenced and used remain distinct.
 
 ## Actor and authority
 

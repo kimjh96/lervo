@@ -126,8 +126,18 @@ export function formatRepositoryHealth(
       v.lastInjectedAt === null
         ? "last recorded injection unknown"
         : `last injection ${duration(now.getTime() - Date.parse(v.lastInjectedAt))} ago`;
+    const terminal =
+      v.turnCount === undefined
+        ? ""
+        : `${v.selectedTurnCount}/${v.turnCount} turns selected governing documents, ${v.pathMentionCount} cited; `;
+    const percent = (rate: number | null) =>
+      rate === null ? "unknown" : `${Math.round(rate * 100)}%`;
+    const replay =
+      v.replay == null
+        ? ""
+        : `; replay of ${v.replay.caseCount} past changes: recall ${percent(v.replay.recall)}, precision ${percent(v.replay.precision)}`;
     lines.push(
-      `Lervo health: Find unproven (${injected}; ${v.referencedCount} references in 7d); context preparer.`,
+      `Lervo health: Find unproven in 7d (${terminal}${injected}; ${v.referencedCount} managed references${replay}); context preparer.`,
     );
   }
   const unknown = Object.entries(m)

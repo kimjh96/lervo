@@ -13,6 +13,12 @@ import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import { readHealthEventHistory } from "./repository-health-events.js";
 import { readHealthAppearance } from "./repository-health-appearance.js";
 import { projectLearnedNotice } from "./learned-notice-projection.js";
+import {
+  readFindReplaySummary,
+  runFindReplay,
+  summarizeReplay,
+  writeFindReplayReport,
+} from "./find-replay.js";
 import { readLearnedNoticeCursor, writeLearnedNotice } from "./learned-notice-state.js";
 import {
   projectRepositoryHealth,
@@ -68,6 +74,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       layout,
       cachedLifecycle,
       appearance,
+      findReplay,
     ] = await Promise.all([
       observeRepositoryHead(root, now),
       inspectKnowledgeResidentHealth(root, now).catch(() => null),
@@ -80,7 +87,11 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
         .then((fence) =>
           fence === null
             ? null
-            : { role: fence.verdict.role, holderLabel: fence.verdict.holder?.label ?? null },
+            : {
+                role: fence.verdict.role,
+                holderLabel: fence.verdict.holder?.label ?? null,
+                holderHostHash: fence.verdict.holder?.hostHash ?? null,
+              },
         )
         .catch(() => null),
       readRecordedDocumentStalenessReport(root).catch(() => null),
@@ -100,10 +111,11 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
         supplementalSources: [],
       }),
       readHealthAppearance(root),
+      readFindReplaySummary(root),
     ]);
     let history: HealthProjectionSources["history"] = null;
     try {
-      history = readHealthEventHistory(storage.events);
+      history = readHealthEventHistory(storage.events, now);
     } catch {
       /* Unreadable evidence stays unknown. */
     }
@@ -123,12 +135,15 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       cachedLifecycle,
       history,
       appearance,
+      findReplay,
     });
     // A racing repository edit never acquires a current-revision label.
     if ((await captureTerminalRepositorySnapshot(root)).revision === snapshot.revision)
       await publishRepositoryHealth(root, projection, generation);
     // ADR-0549: the learned notice is prepared here, off the prompt path. Failure loses one notice.
     await refreshLearnedNotice(root, now).catch(() => undefined);
+    // ADR-0550: a weekly provider-free replay keeps the Find evaluation current.
+    await refreshFindReplay(root, now).catch(() => undefined);
   } finally {
     await storage.close();
   }
@@ -142,4 +157,17 @@ async function refreshLearnedNotice(root: string, now: Date): Promise<void> {
     now,
   });
   if (notice !== null) await writeLearnedNotice(root, notice);
+}
+
+const FIND_REPLAY_INTERVAL_MS = 7 * 86_400_000;
+
+async function refreshFindReplay(root: string, now: Date): Promise<void> {
+  const last = await readFindReplaySummary(root);
+  if (last !== null && now.getTime() - Date.parse(last.observedAt) < FIND_REPLAY_INTERVAL_MS)
+    return;
+  // A failed replay records an empty report, so it retries next week instead of on every prefetch.
+  const report = await runFindReplay({ root, maximumCases: 40, limit: 8, now }).catch(() =>
+    summarizeReplay([], 8, now),
+  );
+  await writeFindReplayReport(root, report);
 }

@@ -3,6 +3,7 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge canonicalization review <candidate-id> --decision <defer|reject> --reviewer <id> --approval <candidate-hash> [--root <path>] [--json]
   lervo knowledge canonicalization promote <candidate-id> --target <canonical-path> --target-hash <sha256> --reviewer <id> --approval <candidate-hash> [--root <path>] [--json]
   lervo knowledge impact [--root <path>] [--json]
+  lervo knowledge find-replay [--cases <1..200>] [--limit <1..32>] [--root <path>] [--json]
   lervo knowledge refresh-candidate [--root <path>] [--json]
   lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <1000..600000>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
   lervo knowledge worker <--once|--watch> --provider <codex|claude>
