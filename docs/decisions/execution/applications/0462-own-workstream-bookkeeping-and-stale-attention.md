@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-05
-Amended by: [ADR-0526](../orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (each branch records its own HEAD)
+Amended by: [ADR-0526](../orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (each branch records its own HEAD), [ADR-0535](0535-project-core-health-with-actor-owned-attention.md) (unclassified questions require principal-proxy classification, not owner action)
 Amends: [ADR-0199](../../knowledge/repository/0199-structured-workstream-continuation-state.md), [ADR-0361](0361-project-operating-attention-without-new-authority.md), and [ADR-0451](../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
 
 ## Context
@@ -40,7 +40,7 @@ A snapshot is `stale` if any rule holds:
 - `updatedAt` is older than `staleAfterHours` (default 48).
 - Recorded `repositoryHead` is more than `staleAfterCommits` commits behind current HEAD (default 20).
 - Recorded HEAD is not an ancestor of current HEAD, or Git cannot resolve it.
-- `updatedAt` is more than five minutes in the future.
+- `updatedAt` is in the future, as specified by the [operating attention report contract](../../../specifications/execution/operating-attention/report-contract.md#workstream-and-canonicalization-candidates).
 
 Snapshots predating HEAD recording use the age rule alone. The optional `workstream` section in `.lervo/knowledge/policy.yaml` configures both thresholds:
 
@@ -52,7 +52,7 @@ workstream:
 
 A stale snapshot makes every blocker, pending decision, pending approval, and next action stale. Each stale attention item has `state: "stale"`, `blocking: false`, `requiresUserAction: false`, owner `agent`, and the instruction "Re-verify against the repository before acting; do not present as current."
 
-Workstream approvals and decisions carry a consequence class. Approval kinds map to `repository_write`, `deployment`, or `external_effect`. Decisions have no structured class and are `unclassified`; Lervo never classifies free text. Under the repository invariant on consequential effects, every class—including `unclassified`—is consequential. Stale approvals and decisions are never rendered as directives; terminal and context renderings withhold their question or summary text.
+Workstream approvals and decisions carry a consequence class. Approval kinds map to `repository_write`, `deployment`, or `external_effect`. Decisions have no structured class and are `unclassified`; Lervo never classifies free text. Under ADR-0535, an unclassified workstream question belongs to the principal proxy for classification; its wording does not establish a consequential effect or owner authority. Only structured consequential effects require owner action, with existing authority checks and exact review preserved. Stale approvals and decisions are never rendered as directives; terminal and context renderings withhold their question or summary text.
 
 ### Hook output
 
