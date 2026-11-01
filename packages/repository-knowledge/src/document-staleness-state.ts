@@ -27,6 +27,7 @@ interface DocumentStalenessState {
 
 function observationCoordinate(input: {
   coverage: DocumentStalenessReport["coverage"];
+  retentionDigest: string | null;
   head: string;
   now: Date;
   documents: DocumentStalenessInput["documents"];
@@ -41,6 +42,7 @@ function observationCoordinate(input: {
       assessmentPolicyHash: input.assessmentPolicyHash,
       head: input.head,
       coverage: input.coverage,
+      retention: input.retentionDigest,
       // The review-interval signal depends on the UTC evaluation day.
       day: input.now.toISOString().slice(0, 10),
       documents: input.documents.map((document) => [document.path, sha256(document.content)]),
@@ -99,7 +101,12 @@ export async function readRecordedDocumentStalenessReport(
  * its coordinate matches. Only `evaluate_and_record` writes, and only `.lervo/state/`.
  */
 export async function observeRepositoryDocumentStaleness(
-  input: DocumentStalenessInput & { root: string; mode: DocumentStalenessObservationMode },
+  input: DocumentStalenessInput & {
+    root: string;
+    mode: DocumentStalenessObservationMode;
+    /** ADR-0544 retention digest of the scan that supplied the documents. */
+    retentionDigest?: string;
+  },
 ): Promise<DocumentStalenessReport> {
   const head = await input.git.headRevision().catch(() => null);
   const assessmentRecords = await currentWorkingFreshnessAssessments(
@@ -114,6 +121,7 @@ export async function observeRepositoryDocumentStaleness(
       ? null
       : observationCoordinate({
           coverage: input.coverage,
+          retentionDigest: input.retentionDigest ?? null,
           head,
           now: input.now,
           documents: input.documents,

@@ -15,6 +15,7 @@ import { SourceUnitCache } from "./source-unit-cache.js";
 import { ConceptSidecarCache } from "./concept-sidecar-cache.js";
 import { generatedKnowledgePaths } from "./repository-publication-files.js";
 import { scanRepositoryKnowledge } from "./scanner.js";
+import { observedOnlySource } from "./scan-retention.js";
 import { loadStoredClaims, loadStoredConcepts, type StoredClaim } from "./store-reader.js";
 import type {
   KnowledgeQueryHit,
@@ -56,6 +57,7 @@ interface PreparedKnowledgeEntry {
 interface PreparedKnowledgeQueryData {
   coverage: KnowledgeQueryResult["coverage"];
   skippedForBudget: KnowledgeQueryResult["skippedForBudget"];
+  retention: KnowledgeQueryResult["retention"];
   sourceSnapshotId: string;
   impactReportId: string;
   entries: readonly PreparedKnowledgeEntry[];
@@ -119,11 +121,8 @@ export class RepositoryKnowledgeQueryIndex {
         : new ConceptSidecarCache(await readPreparationCache(root, "concept-sidecars"));
     const storedConcepts = await loadStoredConcepts(root, conceptCache);
     const entries: PreparedKnowledgeEntry[] = [];
-    const skippedPaths = new Set(
-      scan.sources
-        .filter((source) => source.reason === "total_budget_exceeded")
-        .map((source) => source.path),
-    );
+    // A publication whose source text was not retained is not reread for the query either.
+    const skippedPaths = new Set(scan.sources.filter(observedOnlySource).map((s) => s.path));
     const publications = await readKnowledgeQueryPublications(
       root,
       storedConcepts.filter(
@@ -137,13 +136,18 @@ export class RepositoryKnowledgeQueryIndex {
         linkedClaims.length > 0 || concept.assurance === "human_reviewed"
           ? "human_reviewed"
           : "unreviewed";
+      // ADR-0544: Lervo-generated concepts cite only whole-file units, which observed-only sources
+      // keep, so a missing version is a change. Other concepts may cite inner units that were not
+      // extracted, so a missing version is unknown while any source is observed-only.
       const freshness =
         conceptImpact.get(concept.conceptId) ??
         (concept.sourceUnitVersionIds.length === 0
           ? "unknown"
           : concept.sourceUnitVersionIds.every((id) => currentUnits.has(id))
             ? "current"
-            : "stale");
+            : skippedPaths.size > 0 && concept.ownership !== "lervo_generated"
+              ? "unknown"
+              : "stale");
       const searchText = `${content}\n${linkedClaims.map((claim) => claim.statement).join("\n")}`;
       entries.push({
         hit: {
@@ -197,6 +201,7 @@ export class RepositoryKnowledgeQueryIndex {
     return new RepositoryKnowledgeQueryIndex({
       coverage: scan.coverage,
       skippedForBudget: scan.skippedForBudget,
+      retention: scan.retention,
       sourceSnapshotId: scan.snapshotId,
       impactReportId: impact.reportId,
       entries,
@@ -279,6 +284,7 @@ export class RepositoryKnowledgeQueryIndex {
       query: input.query,
       coverage: this.data.coverage,
       skippedForBudget: this.data.skippedForBudget,
+      retention: this.data.retention,
       semantics: "recommended",
       ...(this.data.ranker === undefined
         ? {}

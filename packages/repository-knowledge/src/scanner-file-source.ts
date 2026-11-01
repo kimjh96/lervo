@@ -1,6 +1,6 @@
 import { constants } from "node:fs";
 import { open } from "node:fs/promises";
-import { extname } from "node:path";
+import { extname, resolve } from "node:path";
 
 import { sha256 } from "./integrity.js";
 import {
@@ -80,4 +80,27 @@ export async function readRepositoryFileSource(
     contentHash: sha256(bytes),
     content,
   };
+}
+
+/**
+ * Rereads one observed-only source (ADR-0544) for a transient use. The bytes must still be the
+ * observed ones; otherwise the caller acts on a scan that no longer describes the repository.
+ */
+export async function readObservedSourceText(
+  repositoryRoot: string,
+  source: RepositorySource,
+): Promise<string> {
+  if (
+    source.status !== "included" ||
+    source.contentHash === null ||
+    source.path.startsWith("@") ||
+    source.path.split("/").some((segment) => segment === "" || segment === "." || segment === "..")
+  )
+    throw new RepositoryKnowledgeError(
+      "knowledge_source_unsafe",
+      `${source.path} is not an observed repository file.`,
+    );
+  const bytes = await safeReadFile(resolve(repositoryRoot, ...source.path.split("/")), source);
+  if (sha256(bytes) !== source.contentHash) throw concurrentSourceChange(source.path);
+  return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
 }

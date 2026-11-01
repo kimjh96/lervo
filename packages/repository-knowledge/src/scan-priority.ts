@@ -3,18 +3,26 @@ import type { DecisionTaxonomy } from "@lervo/project";
 import { repositoryDocumentScanPriority } from "./document-layout.js";
 import {
   agentArtifactFields,
-  repositorySourceClassificationForPath,
   repositorySourceKindForPath,
 } from "./repository-source-classification.js";
 import type { RepositoryScanPriorityClass } from "./types.js";
 
+/** Retention order (ADR-0544): documents precede code, and Lervo's own evidence is always last. */
 export const scanPriorityClasses: RepositoryScanPriorityClass[] = [
   "instructions",
   "portable_skills",
   "canonical_documents",
-  "source_and_configuration",
   "other_documents",
+  "source_and_configuration",
+  "execution_evidence",
 ];
+
+/** Classes 1–4: a complete scan retains every source in them, so document readers see them all. */
+export function knowledgeScanPriorityClass(value: RepositoryScanPriorityClass): boolean {
+  return (
+    scanPriorityClasses.indexOf(value) < scanPriorityClasses.indexOf("source_and_configuration")
+  );
+}
 
 /** Code-point admission order is independent of host locale. Paths use slash separators. */
 export function compareScanPaths(left: string, right: string): number {
@@ -31,6 +39,7 @@ export function repositoryScanPriority(
   path: string,
   taxonomy: DecisionTaxonomy,
 ): RepositoryScanPriorityClass {
+  if (/^@(?:event|verification)\//u.test(path)) return "execution_evidence";
   const artifact = agentArtifactFields(path).agentArtifact;
   if (
     artifact?.migrationDisposition === "portable_skill" ||
@@ -41,8 +50,10 @@ export function repositoryScanPriority(
   if (artifact !== undefined || kind === "instruction") return "instructions";
   const documentPriority = repositoryDocumentScanPriority(path, taxonomy);
   if (documentPriority !== null) return documentPriority;
-  if (repositorySourceClassificationForPath(path) === "sensitive") return "other_documents";
-  return kind === "documentation" || kind === "log" || kind === "other" || path.startsWith("@")
+  // Only documents are knowledge classes; Markdown under a test or schema path is still a
+  // document because its readers require its text. Logs and unrecognized text files (data, CAD,
+  // lock files) are observed like code: no document reader needs their text to claim currency.
+  return kind === "documentation" || path.startsWith("@") || /\.mdx?$/iu.test(path)
     ? "other_documents"
     : "source_and_configuration";
 }

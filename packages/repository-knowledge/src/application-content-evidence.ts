@@ -29,6 +29,7 @@ export interface ApplicationContentSource {
   path: string;
   kind: RepositorySourceKind;
   status: string;
+  contentRetention?: "observed_only";
   content?: string;
 }
 
@@ -248,11 +249,16 @@ function sourceTreeEvidence(
  * repository documentation root are repository documentation by the reviewed layout and never
  * receive evidence; neither does Markdown outside any declared workspace package.
  */
-export function observeApplicationContent(input: {
-  sources: readonly ApplicationContentSource[];
+export async function observeApplicationContent<Source extends ApplicationContentSource>(input: {
+  sources: readonly Source[];
   documentPaths: readonly string[];
   documentationRoot: string;
-}): Map<string, ApplicationContentEvidence[]> {
+  /**
+   * Rereads an observed-only source (ADR-0544) for this one pass. Without it such a source would
+   * silently hide a reference, so it is required whenever one can contribute evidence.
+   */
+  readObservedText?: (source: Source) => Promise<string>;
+}): Promise<Map<string, ApplicationContentEvidence[]>> {
   const roots = workspacePackageRoots(input.sources);
   const documents = input.documentPaths.filter(
     (path) =>
@@ -274,7 +280,8 @@ export function observeApplicationContent(input: {
   for (const source of [...input.sources].sort((left, right) =>
     left.path.localeCompare(right.path),
   )) {
-    if (source.status !== "included" || source.content === undefined) continue;
+    const observedOnly = source.contentRetention === "observed_only";
+    if (source.status !== "included" || (source.content === undefined && !observedOnly)) continue;
     if (!REFERENCING_KINDS.has(source.kind) || source.path.startsWith(".lervo/")) continue;
     const packageRoot = owningWorkspacePackage(source.path, roots);
     if (packageRoot === null || !packagesWithDocuments.has(packageRoot)) continue;
@@ -283,10 +290,13 @@ export function observeApplicationContent(input: {
       !moduleDirectories.has(posix.dirname(source.path))
     )
       moduleDirectories.set(posix.dirname(source.path), source.path);
-    if (source.content.length > MAXIMUM_SCANNED_SOURCE_BYTES) continue;
+    if (source.content === undefined && input.readObservedText === undefined)
+      throw new TypeError(`Observed-only source text is required: ${source.path}`);
+    const content = source.content ?? (await input.readObservedText!(source));
+    if (content.length > MAXIMUM_SCANNED_SOURCE_BYTES) continue;
     const byTarget = references.get(packageRoot) ?? new Map();
     references.set(packageRoot, byTarget);
-    for (const literal of new Set(pathLiterals(source.content)))
+    for (const literal of new Set(pathLiterals(content)))
       for (const reference of resolveReference(literal, source.path, packageRoot)) {
         const entries = byTarget.get(reference.target) ?? [];
         entries.push({ reference, sourcePath: source.path });

@@ -354,14 +354,17 @@ export async function applyKnowledgeStage(root: string, stage: KnowledgeStage): 
     throw capturedFailure(result, "The exact knowledge migration stage failed.");
 }
 
+/**
+ * Pre-existing repository content errors stay visible in the receipt and never stop the
+ * independent Node, event-writer, and service stages (ordered-stage convergence). Only a lint
+ * command that could not produce a report stops the apply.
+ */
 export async function lintKnowledge(root: string): Promise<{ valid: boolean; issueCount: number }> {
   const result = await capture(
     (io) => runKnowledgeCommand(["lint", "--root", root, "--json"], io),
     root,
   );
-  const valid = result.code === 0 && result.value?.valid === true;
-  const issues = Array.isArray(result.value?.issues) ? result.value.issues.length : valid ? 0 : 1;
-  if (!valid)
-    throw capturedFailure(result, `Repository knowledge lint failed with ${issues} issue(s).`);
-  return { valid, issueCount: issues };
+  if (typeof result.value?.valid !== "boolean" || !Array.isArray(result.value?.issues))
+    throw capturedFailure(result, "Repository knowledge lint could not produce a report.");
+  return { valid: result.code === 0 && result.value.valid, issueCount: result.value.issues.length };
 }

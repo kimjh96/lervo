@@ -96,3 +96,22 @@ export async function commitAppliedInstructionCandidate(input: {
     return null;
   }
 }
+
+/**
+ * Whether the applied rule file is tracked and identical to HEAD, so an earlier apply already
+ * committed it. A retry then settles the candidate without a second commit.
+ */
+export async function appliedInstructionCandidateCommitted(input: {
+  repositoryRoot: string;
+  targetPath: string;
+}): Promise<boolean> {
+  try {
+    const git = async (args: string[]) =>
+      (await execute("git", ["-C", input.repositoryRoot, ...args], { maxBuffer: 1024 * 1024 }))
+        .stdout;
+    if ((await git(["ls-files", "--", input.targetPath])).trim() === "") return false;
+    return (await git(["status", "--porcelain", "--", input.targetPath])).trim() === "";
+  } catch {
+    return false;
+  }
+}

@@ -15,3 +15,8 @@
 - [ ] Execute the [ADR-0537](../../../../../decisions/knowledge/repository/source-intake/0537-degrade-over-budget-scans-by-priority.md) regression tests for deterministic priority admission, query success with partial coverage, convergence and lifecycle refusal, and unchanged per-file/file-count limits. Tests are written but deliberately unexecuted in the [implementation report](../../../../../evidence/quality/scan-budget-priority-implementation.md).
 - [ ] Execute the adversarial regression cases for complete freshness and baseline admission, public normalization and pattern guards, partial impact uncertainty, custom routes, binary exclusions, warm-cache recovery, metadata-only skips, virtual/real digest equality, and skipped publication reads.
 - [ ] Verify an installed `lervo knowledge query` in `axli` under its existing 32 MiB policy, reporting partial coverage and skipped classes without raising the budget.
+
+## Observed sources and retained-content budget
+
+- [x] Focused [ADR-0544](../../../../../decisions/knowledge/repository/source-intake/0544-observe-every-source-and-budget-only-retained-content.md) tests show complete coverage when code and evidence exceed the budget, documents retained before code and evidence last, partial coverage when documents alone exceed it, edits to observed-only files detected by impact, inner units of observed-only files `unknown`, budget-independent structural publications, uncrossed unit caches, and the query Find gap.
+- [ ] Verify installed `lervo upgrade` reaching `current` in `axli` with its 32 MiB budget unchanged.

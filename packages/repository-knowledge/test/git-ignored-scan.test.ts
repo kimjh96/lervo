@@ -74,8 +74,10 @@ describe("Git-ignored repository paths", () => {
         observeRevision: revision,
       }),
     ).resolves.toMatchObject({
-      coverage: "partial",
+      // Every path is read and hashed; code beyond the budget is observed only (ADR-0544).
+      coverage: "complete",
       skippedForBudget: { classes: ["source_and_configuration"] },
+      retention: { observedOnly: { classes: ["source_and_configuration"] } },
     });
   });
 

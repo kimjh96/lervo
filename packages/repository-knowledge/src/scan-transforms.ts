@@ -6,7 +6,8 @@ import {
   repositorySourceKindForPath,
   repositorySourceClassificationForPath,
 } from "./repository-source-classification.js";
-import { extractUnits } from "./repository-source-units.js";
+import { extractUnits, wholeSourceUnit } from "./repository-source-units.js";
+import { observedOnlySource } from "./scan-retention.js";
 import type { RepositoryKnowledgeScan, RepositorySource } from "./types.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
@@ -190,16 +191,30 @@ export function splitRepositoryKnowledgeScanSource(input: {
   };
 }
 
+function observedOnlyByteChange(
+  scan: RepositoryKnowledgeScan,
+  delta: number,
+): Pick<RepositoryKnowledgeScan, "skippedForBudget" | "retention"> {
+  const { observedOnly } = scan.retention;
+  return {
+    skippedForBudget: { ...scan.skippedForBudget, bytes: scan.skippedForBudget.bytes + delta },
+    retention: { observedOnly: { ...observedOnly, bytes: observedOnly.bytes + delta } },
+  };
+}
+
 export function upsertRepositoryKnowledgeScanSource(input: {
   scan: RepositoryKnowledgeScan;
   path: string;
   content: string;
 }): RepositoryKnowledgeScan {
   const existing = input.scan.sources.find((item) => item.path === input.path);
+  // An observed-only source stays observed-only. If the new size moves the retention boundary, the
+  // real rescan differs and digest comparison fails instead of inventing retained units.
+  const observedOnly = existing !== undefined && observedOnlySource(existing);
   if (
     existing !== undefined &&
     (existing.status !== "included" ||
-      existing.content === undefined ||
+      (existing.content === undefined && !observedOnly) ||
       existing.contentHash === null)
   ) {
     throw new RepositoryKnowledgeError(
@@ -220,12 +235,16 @@ export function upsertRepositoryKnowledgeScanSource(input: {
     contentHash: sha256(input.content),
     content: input.content,
   };
-  const sources = [...input.scan.sources.filter((item) => item.path !== input.path), source].sort(
-    (left, right) => left.path.localeCompare(right.path),
-  );
+  const { content: _content, ...observedMetadata } = source;
+  const sources = [
+    ...input.scan.sources.filter((item) => item.path !== input.path),
+    observedOnly ? { ...observedMetadata, contentRetention: "observed_only" as const } : source,
+  ].sort((left, right) => left.path.localeCompare(right.path));
   const units = [
     ...input.scan.units.filter((item) => item.sourceId !== existing?.sourceId),
-    ...extractUnits(input.scan.projectId, source),
+    ...(observedOnly
+      ? [wholeSourceUnit(input.scan.projectId, source)]
+      : extractUnits(input.scan.projectId, source)),
   ].sort(
     (left, right) =>
       left.unitId.localeCompare(right.unitId) ||
@@ -256,6 +275,9 @@ export function upsertRepositoryKnowledgeScanSource(input: {
       sources: contentSnapshotMaterials,
       units: contentUnitVersions,
     }),
+    ...(observedOnly && existing !== undefined
+      ? observedOnlyByteChange(input.scan, source.byteCount - existing.byteCount)
+      : {}),
     inventoryCoverage: {
       ...input.scan.inventoryCoverage,
       included: input.scan.inventoryCoverage.included + (existing === undefined ? 1 : 0),

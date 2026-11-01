@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-31
 Amends: [ADR-0457](../../documents/0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md) (per-file degradation)
+Amended by: [ADR-0544](0544-observe-every-source-and-budget-only-retained-content.md) (every source is hashed; the budget bounds retained content, documents before code and evidence last; coverage)
 
 ## Context
 

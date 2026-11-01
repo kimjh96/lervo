@@ -10,6 +10,7 @@ import {
 import { classifyFlatDecision } from "./decision-layout.js";
 import { repositoryDocumentationRoot, structuralMigrationCandidate } from "./document-layout.js";
 import { loadDocumentRouteClassifications } from "./document-route-classification-store.js";
+import { readObservedSourceText } from "./scanner-file-source.js";
 import type {
   DeferredDocumentRoute,
   DocumentRouteEvidence,
@@ -177,8 +178,9 @@ export async function classifyRepositoryLayoutCandidates(input: {
   });
   const evidence: DocumentRouteEvidence = {
     classifications: await loadDocumentRouteClassifications(root),
-    applicationContent: observeApplicationContent({
+    applicationContent: await observeApplicationContent({
       sources: scan.sources,
+      readObservedText: (source) => readObservedSourceText(root, source),
       documentPaths: included
         .filter(
           (source) =>

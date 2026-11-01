@@ -316,3 +316,57 @@ it(
     );
   },
 );
+
+it("applies owner-stated rules only on the convergence owner, and a failure blocks nothing (ADR-0545)", async () => {
+  const f = await fixture();
+  fixtures.push(f);
+  const calls: string[] = [];
+  const run = (
+    role: "owner" | "waiting_owner" | null,
+    apply: () => Promise<unknown> = async () => {
+      calls.push(role ?? "single_host");
+    },
+  ) =>
+    runAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "fixture",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      applyOwnerStatedInstructions: apply,
+      ...(role === null
+        ? {}
+        : {
+            owner: async () =>
+              ({
+                role,
+                reason: role === "owner" ? "lease_granted" : "convergence_owner_elsewhere",
+                mode: "hub",
+                hostHash: `sha256:${"1".repeat(64)}`,
+                hostLabel: "mac",
+                holder:
+                  role === "owner"
+                    ? null
+                    : {
+                        hostHash: `sha256:${"2".repeat(64)}`,
+                        label: "wsl",
+                        generation: 3,
+                        expiresAt: null,
+                      },
+                validUntil: role === "owner" ? new Date(Date.now() + 600_000).toISOString() : null,
+                wakeAt: null,
+                grantedAt: null,
+                yieldUntil: null,
+                observedAt: new Date().toISOString(),
+              }) as never,
+          }),
+    });
+  expect(await run(null)).toMatchObject({ status: "processed" });
+  expect(await run("waiting_owner")).toMatchObject({ status: "waiting_owner" });
+  expect(calls).toEqual(["single_host"]);
+  expect(
+    await run(null, async () => {
+      throw new Error("apply failed");
+    }),
+  ).toMatchObject({ status: "processed" });
+});

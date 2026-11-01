@@ -7,11 +7,11 @@ import {
   loadDurableInstructionCandidate,
 } from "@lervo/repository-knowledge";
 
+import { intakeDurableInstruction } from "./durable-instruction-intake.js";
 import {
   applyReviewedDurableInstruction,
-  intakeDurableInstruction,
   rejectDurableInstructionCandidate,
-} from "./durable-instruction-intake.js";
+} from "./durable-instruction-review.js";
 import type { CliIo, CliServices } from "./types.js";
 
 async function intakeRequest(

@@ -1,3 +1,4 @@
+import { applyOwnerStatedInstructionCandidates } from "./durable-instruction-auto-apply.js";
 import {
   runAutonomousKnowledgeWorker,
   createChangeReviewHost,
@@ -47,6 +48,11 @@ export async function runKnowledgeWorker(input: {
         storage,
         owner: () => ownership.observe(),
         instructionCandidateTransport,
+        applyOwnerStatedInstructions: () =>
+          applyOwnerStatedInstructionCandidates({
+            repositoryRoot: storage.paths.repositoryRoot,
+            now: () => new Date(),
+          }),
         workerId: `cli-${process.pid}`,
         provider: input.provider,
         ...(input.maximumJobs === undefined
@@ -108,6 +114,11 @@ export async function runKnowledgeWorkerCommand(
         ownership: createKnowledgeConvergenceOwnership(storage, provider),
         continuity: createKnowledgeConvergenceContinuity(storage),
         instructionCandidateTransport,
+        applyOwnerStatedInstructions: () =>
+          applyOwnerStatedInstructionCandidates({
+            repositoryRoot: storage.paths.repositoryRoot,
+            now: () => new Date(),
+          }),
         publish: createKnowledgePublisher(storage.paths.repositoryRoot),
         ...(options.refreshHealth === undefined
           ? {}
