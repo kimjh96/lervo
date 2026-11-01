@@ -100,3 +100,5 @@ Source wiring and fixture evidence earn at most `wired`; installed parity and
 the felt outcome remain unknown without that evidence. Focused tests cover empty
 healthy output, unknown evidence, ownership, byte bounds, the prompt boundary
 and host-neutral projection. They are written but not run in this task.
+
+[ADR-0555](0555-keep-operating-signals-visible-and-honest.md) keeps operating signals visible between cycles and excludes Lervo-authored commits from workstream staleness.
