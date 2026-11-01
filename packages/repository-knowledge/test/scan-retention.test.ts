@@ -257,3 +257,21 @@ describe("observe every source and budget only retained content", () => {
     ).rejects.toMatchObject({ code: "knowledge_source_unsafe" });
   });
 });
+
+describe("data files are not knowledge (ADR-0544)", () => {
+  it("observes logs and unrecognized text files like code, so they never make coverage partial", async () => {
+    const root = await repository({
+      ...documents,
+      "fixtures/part.step": `ISO-10303-21;\n${"DATA;\n".repeat(200)}`,
+      "logs/run.log": `${"line\n".repeat(200)}`,
+    });
+    const result = await scan(root, documentBytes + 64);
+    expect(observed(result)).toEqual(
+      expect.arrayContaining(["fixtures/part.step", "logs/run.log"]),
+    );
+    expect(result.coverage).toBe("complete");
+    expect(result.retention.observedOnly.classes).not.toContain("other_documents");
+    expect(retained(result)).toEqual(expect.arrayContaining(Object.keys(documents)));
+    expect(() => assertCompleteRepositoryKnowledgeScan(root, result)).not.toThrow();
+  });
+});

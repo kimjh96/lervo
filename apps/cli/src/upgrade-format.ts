@@ -150,6 +150,11 @@ export function formatUpgradeReceipt(receipt: UpgradeReceipt): string {
     `applied: ${receipt.appliedStages.length === 0 ? "none" : receipt.appliedStages.join(", ")}`,
     ...receipt.skippedStages.map((item) => `skipped: ${item.stage} (${item.reason})`),
     ...(receipt.nextPlanId === null ? [] : [`next plan: ${receipt.nextPlanId}`]),
+    ...(receipt.knowledgeLint === null || receipt.knowledgeLint.valid
+      ? []
+      : [
+          `knowledge lint: ${receipt.knowledgeLint.issueCount} issue(s) in repository content; the knowledge resident repairs them, and other stages were applied (lervo knowledge lint --json)`,
+        ]),
   ];
   for (const item of receipt.pending)
     lines.push(

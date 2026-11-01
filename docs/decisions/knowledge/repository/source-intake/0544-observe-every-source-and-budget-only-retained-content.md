@@ -38,8 +38,8 @@ The scanner reads every eligible text source once, as today, to validate it and 
 1. Agent instructions and provider surfaces.
 2. Portable skills.
 3. Canonical documents and publication indexes.
-4. Other documents, including research and evidence documents in the repository.
-5. Source code and configuration.
+4. Other documents, including research and evidence documents and any Markdown file.
+5. Source code, configuration, logs, and other text files such as data or lock files.
 6. Lervo execution and verification evidence (`@event/`, `@verification/`), as the new class `execution_evidence`.
 
 Documents now precede code. Lervo's own evidence is always last, so its growth can never displace repository knowledge.
@@ -48,13 +48,15 @@ Documents now precede code. Lervo's own evidence is always last, so its growth c
 
 - `coverage: "complete"` means every eligible source has a content hash and every source in classes 1–4 is retained. Currency-claiming paths keep requiring it.
 - `coverage: "partial"` now means a knowledge-class source (classes 1–4) could not be retained. The documents themselves exceed the budget. This is a genuine stop: the owner consolidates documents or changes the budget. Lervo never changes it automatically.
-- `skippedForBudget` keeps its shape and counts sources of every class that were not retained. A new `retention: { observedOnly: { count, bytes, classes } }` reports code and evidence that are observed but not retained. Query and the core health projection report it as a Find gap with the actor `repository scanner`: those files are known and change-tracked, but not searched by symbol or section.
+- `skippedForBudget` keeps its shape and counts sources of every class that were not retained. A new `retention: { observedOnly: { count, bytes, classes } }` reports code and evidence that are observed but not retained. Query reports it as a Find gap with the actor `repository scanner`; feeding the same summary into the core health projection is a follow-up, since that projection has no scan input yet: those files are known and change-tracked, but not searched by symbol or section.
 
 ### Currency consumers treat observed-only units as unknown
 
-- Impact and staleness evaluation: a cited unit that is absent because its source is observed-only is `unknown` with reason `scan_incomplete`, never `stale` or `source_unit_missing`. A whole-file unit of an observed-only source is current or changed by its hash, as before.
+- Impact and staleness evaluation: a cited unit that is absent because its source is observed-only is `unknown` with reason `scan_incomplete`, never `stale` or `source_unit_missing`. A whole-file unit of an observed-only source is current or changed by its hash, as before. Unit identifiers are one-way digests and stored claims carry only unit identifiers, so while any source is observed-only, every absent cited unit is `unknown`. On 2026-11-01 no repository held stored claims or relations after [ADR-0529](../../semantics/0529-remove-the-semantic-compilation-pipeline.md), so this limit hides no current evidence.
 - Structural publication counts, groups, and concept unit lists use observed-only sources exactly as retained ones. Publications are therefore independent of the budget.
 - Consumers that need document text (normalization, layout, drift, instruction bridges, canonicalization) only see classes 1–4, which a complete scan always retains.
+- Consumers that need the text of any file (layout-migration reference rewriting, application-content evidence, practice evidence) reread an observed-only file once and require it to match its observed hash, or stop with `source_bytes_changed`. They never skip it.
+- The publication snapshot binds only whole-file units, because inner units follow from the bytes each whole-file version binds. This changes every repository's publication snapshot once, so the first run after the upgrade regenerates publications.
 - Snapshot and cache identity: content snapshot identifiers stay hash-based. Any cache or projection whose value depends on extracted units, including the source-unit cache and staleness projections, additionally binds a retention digest over the observed-only paths. A scan with observed-only sources never satisfies, or is satisfied by, a fully retained entry.
 
 ## Events, states, privacy, and failure meaning
