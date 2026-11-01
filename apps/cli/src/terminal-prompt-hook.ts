@@ -16,6 +16,7 @@ import { withinTerminalDeadline } from "./terminal-hook-budget.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import { recordHealthStopAppearance } from "./repository-health-appearance.js";
 import { convergenceStopLine } from "./repository-health-format.js";
+import { writeLearnedNoticeCursor } from "./learned-notice-state.js";
 import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -113,6 +114,12 @@ export async function prepareAndRecordTerminalPrompt({
     await timing.measure("event_commit", () =>
       recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined),
     );
+    // ADR-0549: a notice that reached this turn is not repeated.
+    const learned = context.learnedNotice;
+    if (learned !== undefined && context.additionalContext.includes(learned.line))
+      await timing.measure("event_commit", () =>
+        writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined),
+      );
     // ADR-0467: queue the owner's turn for background semantic capture. A queue failure
     // loses only this capture; it never blocks or delays the prompt.
     await timing.measure("event_commit", () =>

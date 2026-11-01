@@ -57,7 +57,7 @@ Strengths from the four reference products land where they serve an outcome. The
 
 ### 1. Know: knowledge is current and correct
 
-- **Felt outcome.** After development, the owner receives a short notice of what Lervo learned, which canonical documents changed and why, and what they link to. It is information, not a task. Nothing waits silently.
+- **Felt outcome.** After development, the owner receives a short notice of what Lervo learned, which canonical documents changed and why, and what they link to. It is information, not a task. Nothing waits silently. [ADR-0549](../../decisions/execution/applications/0549-tell-the-owner-what-lervo-learned-after-development.md) delivers it in compact terminal turns from Lervo's own commits.
 - **Measures.**
   - Lag from a source change to its canonical update.
   - Stale document backlog.

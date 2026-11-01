@@ -1,7 +1,4 @@
-import { constants } from "node:fs";
-import { randomUUID } from "node:crypto";
-import { lstat, mkdir, open, readFile, rename, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readPrivateStateJson, writePrivateStateJson } from "./private-state-file.js";
 
 /**
  * ADR-0548: the first time a convergence stop line is placed in an owner turn's context. This is
@@ -20,7 +17,6 @@ export interface HealthAppearanceState {
   stops: HealthStopAppearance[];
 }
 
-const DIRECTORY = ".lervo/state";
 const FILE = "repository-health-appearance.json";
 const MAXIMUM_STOPS = 64;
 const MAXIMUM_BYTES = 64 * 1024;
@@ -46,39 +42,8 @@ function valid(value: unknown): value is HealthAppearanceState {
 
 /** Missing, oversized, or invalid state is null; readers then report appearance as unknown. */
 export async function readHealthAppearance(root: string): Promise<HealthAppearanceState | null> {
-  try {
-    const path = resolve(root, DIRECTORY, FILE);
-    const stats = await lstat(path);
-    if (!stats.isFile() || stats.size > MAXIMUM_BYTES) return null;
-    const value: unknown = JSON.parse(await readFile(path, "utf8"));
-    return valid(value) ? value : null;
-  } catch {
-    return null;
-  }
-}
-
-async function writeHealthAppearance(root: string, state: HealthAppearanceState): Promise<void> {
-  const directory = resolve(root, DIRECTORY);
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  const stats = await lstat(directory);
-  if (!stats.isDirectory() || stats.isSymbolicLink())
-    throw new Error("Unsafe repository health state directory.");
-  const temporary = resolve(directory, `.health-appearance-${randomUUID()}.tmp`);
-  let handle;
-  try {
-    handle = await open(
-      temporary,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
-      0o600,
-    );
-    await handle.writeFile(`${JSON.stringify(state)}\n`);
-    await handle.close();
-    handle = undefined;
-    await rename(temporary, resolve(directory, FILE));
-  } finally {
-    await handle?.close();
-    await rm(temporary, { force: true });
-  }
+  const value = await readPrivateStateJson(root, FILE, MAXIMUM_BYTES);
+  return valid(value) ? value : null;
 }
 
 /**
@@ -109,5 +74,5 @@ export async function recordHealthStopAppearance(input: {
     ]
       .sort((left, right) => right.since.localeCompare(left.since))
       .slice(0, MAXIMUM_STOPS);
-  await writeHealthAppearance(input.root, state);
+  await writePrivateStateJson(input.root, FILE, state);
 }

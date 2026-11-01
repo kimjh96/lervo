@@ -70,6 +70,8 @@ export interface PreparedTerminalPromptContext {
     context: string;
   } | null;
   attention: OperatingAttentionReportV1;
+  /** ADR-0549 learned notice placed in this turn, recorded as shown after the turn is prepared. */
+  learnedNotice?: { throughCommit: string; line: string };
   grounding: {
     requestDigest: string;
     queryDigest: string;

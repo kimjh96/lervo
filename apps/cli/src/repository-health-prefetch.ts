@@ -12,6 +12,8 @@ import {
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import { readHealthEventHistory } from "./repository-health-events.js";
 import { readHealthAppearance } from "./repository-health-appearance.js";
+import { projectLearnedNotice } from "./learned-notice-projection.js";
+import { readLearnedNoticeCursor, writeLearnedNotice } from "./learned-notice-state.js";
 import {
   projectRepositoryHealth,
   type HealthProjectionSources,
@@ -125,7 +127,19 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
     // A racing repository edit never acquires a current-revision label.
     if ((await captureTerminalRepositorySnapshot(root)).revision === snapshot.revision)
       await publishRepositoryHealth(root, projection, generation);
+    // ADR-0549: the learned notice is prepared here, off the prompt path. Failure loses one notice.
+    await refreshLearnedNotice(root, now).catch(() => undefined);
   } finally {
     await storage.close();
   }
+}
+
+async function refreshLearnedNotice(root: string, now: Date): Promise<void> {
+  const cursor = await readLearnedNoticeCursor(root);
+  const notice = await projectLearnedNotice({
+    root,
+    shownThrough: cursor?.shownThrough ?? null,
+    now,
+  });
+  if (notice !== null) await writeLearnedNotice(root, notice);
 }
