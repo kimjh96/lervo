@@ -83,7 +83,6 @@ it("refreshes health on its own cadence while a long cycle runs, one refresh at 
               lastCycleAt: new Date().toISOString(),
               lastResult: "waiting",
               idleStreak: 1,
-              nextReconcileAt: null,
             },
             earliestAvailableAt: null,
             outcome: { kind: "skipped" },
