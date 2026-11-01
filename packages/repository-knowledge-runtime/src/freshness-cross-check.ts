@@ -163,8 +163,9 @@ export async function runFreshnessCrossCheck(input: {
       ESTIMATED_BYTES_PER_TOKEN,
   );
   if (estimated > remaining) return unavailable("freshness_budget_exhausted");
-  // The daily budget resets; a cross-check it cannot afford waits without counting a deferral.
-  if (estimated > (input.dailyRemaining ?? Number.POSITIVE_INFINITY))
+  // A call can be charged up to the whole remaining candidate budget, so the daily budget must
+  // afford that bound. It resets; until then the cross-check waits without counting a deferral.
+  if (remaining > (input.dailyRemaining ?? Number.POSITIVE_INFINITY))
     return { candidate, tokensObserved: 0, status: "pending" };
   const generationId = stableId("kfg", [
     candidate.candidateId,
@@ -296,6 +297,8 @@ export async function resumePendingFreshnessCrossChecks(input: {
   maximumTokens: number;
   /** Tokens left in today's freshness budget; each resumed call is bounded by what remains. */
   dailyRemaining: number;
+  /** Persists each settled spend before anything else runs, so a later failure cannot lose it. */
+  recordSpend: (tokens: number) => Promise<void>;
   autoApply: boolean;
 }): Promise<{
   tokensObserved: number;
@@ -322,6 +325,7 @@ export async function resumePendingFreshnessCrossChecks(input: {
       dailyRemaining: Math.max(0, input.dailyRemaining - totals.tokensObserved),
     });
     totals.tokensObserved += result.tokensObserved;
+    if (result.tokensObserved > 0) await input.recordSpend(result.tokensObserved);
     if (result.status === "pending") {
       totals.pending = true;
       // Candidates this turn could not reach age by the same capacity deferral, each to its bound.

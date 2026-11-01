@@ -324,7 +324,8 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       const state = await readFreshnessCycleState(f.root);
       await writeFreshnessCycleState(f.root, {
         ...state,
-        budget: { ...state.budget, tokensUsed: 150_000 - 10 },
+        // Enough for the estimated input, but not for the remaining-candidate charge bound.
+        budget: { ...state.budget, tokensUsed: 150_000 - 5_000 },
       });
       await turn(minutes(2));
       const [waiting] = await listFreshnessCandidates(f.root);

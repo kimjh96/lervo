@@ -125,12 +125,14 @@ export async function runDocumentFreshnessCycle(input: {
     candidates,
     maximumTokens: policy.maximumTokensPerCandidate,
     dailyRemaining: Math.max(0, policy.maximumTokensPerDay - state.budget.tokensUsed),
+    // Each settled spend is written at once, before auto-apply or the next candidate can fail.
+    recordSpend: async (tokens) => {
+      state.budget.tokensUsed += tokens;
+      await writeFreshnessCycleState(root, state);
+    },
     autoApply: input.effects !== "prepare",
   });
-  state.budget.tokensUsed += crossChecks.tokensObserved;
   state.budget.verified += crossChecks.verifiedCount;
-  // Settled cross-check spend is recorded before any later step can fail, so it is never reused.
-  if (crossChecks.tokensObserved > 0) await writeFreshnessCycleState(root, state);
   const pendingAssessment = candidates.find(
     (candidate) => candidate.state === "generated" && candidate.operation === "no_change_needed",
   );
