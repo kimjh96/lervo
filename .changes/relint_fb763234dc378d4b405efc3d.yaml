@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fb763234dc378d4b405efc3d"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Measure Find on compact terminal turns, keep health history complete as prompts accumulate, and add lervo knowledge find-replay, a provider-free recall and precision replay over past changes."
