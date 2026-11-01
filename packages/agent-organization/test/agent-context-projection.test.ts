@@ -1,6 +1,12 @@
+import type { EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
-import { AgentContextError, projectAgentContext } from "../src/index.js";
+import { longHistoryEvents } from "../../storage-contract/test/listed-event-source.fixture.js";
+import {
+  AgentContextError,
+  projectAgentContext,
+  projectAgentContextFromEventSource,
+} from "../src/index.js";
 
 const projectId = "prj_context0001";
 const ownerAgentId = `agt_${"a".repeat(24)}`;
@@ -111,6 +117,27 @@ describe("agent context projection", () => {
     expect(successor.incomingHandoffs).toHaveLength(1);
   });
 
+  it("resolves review and source events by lookup when a typed read omits them", () => {
+    const full = projectAgentContext({
+      projectId,
+      agentId: ownerAgentId,
+      agents,
+      events: [source, review, promotion, handoff],
+    });
+    const byId = new Map([source, review].map((event) => [event.eventId, event] as const));
+    const typed = projectAgentContext({
+      projectId,
+      agentId: ownerAgentId,
+      agents,
+      events: [promotion, handoff],
+      lookupEvent: (eventId) => byId.get(eventId),
+    });
+    expect(typed).toEqual(full);
+    expect(() =>
+      projectAgentContext({ projectId, agentId: ownerAgentId, agents, events: [promotion] }),
+    ).toThrow(AgentContextError);
+  });
+
   it("rejects promotion without exact qualifying review evidence", () => {
     expect(() =>
       projectAgentContext({
@@ -144,5 +171,40 @@ describe("agent context projection", () => {
         code: "agent_context_state_conflict",
       }),
     );
+  });
+
+  it("projects from context types beyond 100,000 events, resolving reviews within the head", () => {
+    const long = longHistoryEvents([
+      source,
+      review,
+      promotion,
+      handoff,
+    ] as unknown as EventEnvelope[]);
+    const byId = new Map(long.events.map((event) => [event.eventId, event] as const));
+    const events = { ...long, latest: () => long.head, get: (id: string) => byId.get(id) ?? null };
+    const projection = projectAgentContextFromEventSource({
+      projectId,
+      agentId: successorAgentId,
+      agents,
+      events,
+    });
+    expect(projection).toEqual(
+      projectAgentContext({ projectId, agentId: successorAgentId, agents, events: long.events }),
+    );
+    expect(projection.inheritedEntries).toHaveLength(1);
+    // A review event resolved beyond the observed head cannot attest the promotion.
+    const reviewEvent = byId.get(review.eventId)!;
+    expect(() =>
+      projectAgentContextFromEventSource({
+        projectId,
+        agentId: successorAgentId,
+        agents,
+        events: {
+          ...events,
+          get: (id: string) =>
+            id === review.eventId ? { ...reviewEvent, seq: long.head.seq + 1 } : events.get(id),
+        },
+      }),
+    ).toThrow(AgentContextError);
   });
 });

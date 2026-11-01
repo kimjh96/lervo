@@ -31,9 +31,8 @@ it("collects complete SQLite execution originals beyond the legacy corpus withou
           });
       });
       head = storage.events.latest();
-      expect(() => collectExecutionEventSources({ events: storage.events })).toThrowError(
-        expect.objectContaining({ code: "knowledge_evidence_source_invalid" }),
-      );
+      // The legacy 16 MiB corpus keeps only its newest originals (ADR-0554); paging keeps all.
+      expect(collectExecutionEventSources({ events: storage.events }).length).toBeLessThan(4_100);
     } finally {
       await storage.close();
     }

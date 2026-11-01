@@ -9,7 +9,7 @@ import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-know
 import type { TranscriptPosition } from "@lervo/repository-knowledge-runtime";
 
 import {
-  allTerminalEvents,
+  latestTerminalEventOfType,
   assertTerminalRepositoryRelativePath,
   terminalEventDraft,
 } from "./terminal-event-coordinates.js";
@@ -27,14 +27,14 @@ export function latestTerminalTurnDeclaration(
   contextEventId: string,
   provider: TerminalIntegrationProvider,
 ): { event: EventEnvelope; payload: TerminalTurnDeclaredEventPayload } | null {
-  const declarations = allTerminalEvents(events).filter(
-    (event) =>
-      event.type === "terminal.turn.declared" &&
-      event.actor.kind === "agent" &&
-      event.actor.provider === provider &&
-      event.payload.contextEventId === contextEventId,
+  const event = latestTerminalEventOfType(
+    events,
+    "terminal.turn.declared",
+    (candidate) =>
+      candidate.actor.kind === "agent" &&
+      candidate.actor.provider === provider &&
+      candidate.payload.contextEventId === contextEventId,
   );
-  const event = declarations.at(-1);
   if (event === undefined) return null;
   const validation = validateSchema("terminalTurnDeclaredEventPayload", event.payload);
   if (!validation.valid) throw new Error("The terminal turn declaration event is invalid.");
@@ -47,13 +47,11 @@ export function terminalDeliberationDeclarationMatches(
 ): boolean {
   if (declaration.deliberationDisposition === "not_requested")
     return declaration.deliberationId === null;
-  const completed = allTerminalEvents(events)
-    .filter(
-      (event) =>
-        event.type === "deliberation.completed" &&
-        event.payload.deliberationId === declaration.deliberationId,
-    )
-    .at(-1);
+  const completed = latestTerminalEventOfType(
+    events,
+    "deliberation.completed",
+    (event) => event.payload.deliberationId === declaration.deliberationId,
+  );
   if (completed === undefined) return false;
   const status = completed.payload.status;
   return (

@@ -11,11 +11,32 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import { inspectEventWriterCoordinate, loadProjectManifest } from "@lervo/project";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import { resolveRoleContract } from "@lervo/roles";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
-import { observeOperatingWorkScope, operatingContractHash } from "@lervo/work-controller";
-import type { SupervisionAuthorityHistory } from "./supervision-authority-history.js";
+import {
+  observeOperatingWorkScope,
+  operatingContractHash,
+  operatingWorkScopeEventTypes,
+} from "@lervo/work-controller";
+import {
+  isSupervisionAuthorityEvent,
+  SupervisionAuthorityHistory,
+} from "./supervision-authority-history.js";
 import { observeMandateExecutionAuthority } from "./supervision-execution-host.js";
 import { readBoundWorkstreamState } from "./supervision-workstream-state.js";
+
+/**
+ * Without a long-lived history, one observation streams and verifies the complete chain and keeps
+ * only the authority rows and the rows the reviewed work-scope check reads.
+ */
+function oneShotSourceHistory(storage: ProjectStorage): SupervisionAuthorityHistory {
+  return new SupervisionAuthorityHistory(
+    storage.events,
+    storage.paths.eventDatabase,
+    storage.manifest.projectId,
+    Date.now,
+    (event) =>
+      isSupervisionAuthorityEvent(event) || operatingWorkScopeEventTypes.includes(event.type),
+  );
+}
 
 /** Validates local history and the reviewed execution side without claiming remote convergence. */
 export async function observeMandateInstallationSource(
@@ -43,10 +64,7 @@ export async function observeMandateInstallationSource(
     writer.coordinate.selectedEventSchemaVersion < 3
   )
     throw new Error("Mandate installation requires reviewed event writer version 3 activation.");
-  const history =
-    authorityHistory === undefined
-      ? collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 })
-      : await authorityHistory.read();
+  const history = await (authorityHistory ?? oneShotSourceHistory(storage)).read();
   const installedWorkstream =
     boundWorkstreamId === undefined
       ? await readCurrentWorkstreamState(root)

@@ -16,6 +16,9 @@ import {
 
 type ManagedProvider = ManagedStageGroupObservationV1["provider"];
 
+/** Event types `projectManagedStageGroups` consumes; a typed read of them is sufficient input. */
+export const managedStageEventTypes = ["adapter.started", "execution.stages.observed"] as const;
+
 function managedProvider(value: string | undefined): value is ManagedProvider {
   return value === "codex" || value === "claude";
 }

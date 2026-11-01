@@ -28,9 +28,7 @@ import {
   resolveProductDeliberationPolicy,
   type ProductDeliberationPolicyDependencies,
 } from "./product-deliberation-policy.js";
-
-const maximumProjectionEvents = 100_000;
-const eventPageSize = 1_000;
+import { readVerifiedEvents, readVerifiedWorkEvents } from "./product-deliberation-event-source.js";
 
 interface ProductDeliberationInspectionDependencies {
   openStorage(root: string): Promise<ProjectStorage>;
@@ -73,44 +71,6 @@ const defaultDependencies: ProductDeliberationInspectionDependencies = {
 
 function stable(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function readVerifiedEvents(storage: ProjectStorage): {
-  events: EventEnvelope[];
-  headHash: string;
-} {
-  const integrity = storage.events.verifyIntegrity();
-  if (
-    !integrity.valid ||
-    integrity.headHash === null ||
-    integrity.eventCount < 1 ||
-    integrity.eventCount > maximumProjectionEvents
-  ) {
-    throw new ProductDeliberationSourceError(
-      "deliberation_source_invalid",
-      "The deliberation projection requires one bounded valid canonical event chain.",
-    );
-  }
-  const events: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (events.length < integrity.eventCount) {
-    const page = storage.events
-      .list({
-        afterSeq,
-        limit: Math.min(eventPageSize, integrity.eventCount - events.length),
-      })
-      .filter((event) => event.seq <= integrity.eventCount);
-    if (page.length === 0) break;
-    events.push(...page);
-    afterSeq = page.at(-1)!.seq;
-  }
-  if (events.length !== integrity.eventCount || events.at(-1)?.eventHash !== integrity.headHash) {
-    throw new ProductDeliberationSourceError(
-      "deliberation_source_changed",
-      "The canonical event head changed during deliberation inspection.",
-    );
-  }
-  return { events, headHash: integrity.headHash };
 }
 
 function queueStatus(queues: ConversationDeliberationQueueInspection) {
@@ -282,7 +242,7 @@ export async function inspectProductDeliberation(
       projectWorkExecutionReport({
         projectId: storage.manifest.projectId,
         workId,
-        events: source.events,
+        events: readVerifiedWorkEvents(storage, source, workId),
       });
       resourceReportCoordinate = `work:${workId}`;
     } catch (error) {

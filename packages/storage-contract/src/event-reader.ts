@@ -104,6 +104,40 @@ export function collectRunEventsBounded(input: {
 }
 
 /**
+ * Visits one run's immutable originals in sequence order without retaining them, through
+ * `throughSeq` when supplied. A caller that merges runs bounds what it keeps (ADR-0554).
+ */
+export function visitRunEvents(input: {
+  events: Pick<EventStore, "list">;
+  runId: string;
+  throughSeq?: number;
+  visit(event: EventEnvelope): void;
+  pageSize?: number;
+}): void {
+  if (input.runId.length === 0) throw new TypeError("runId must not be empty.");
+  if (
+    input.throughSeq !== undefined &&
+    (!Number.isSafeInteger(input.throughSeq) || input.throughSeq < 0)
+  )
+    throw new TypeError("throughSeq must be a safe integer of at least 0.");
+  const pageSize = input.pageSize ?? maximumPageSize;
+  assertPositiveSafeInteger(pageSize, "pageSize");
+  if (pageSize > maximumPageSize) throw new TypeError("pageSize must not exceed 1,000.");
+
+  let afterSeq = 0;
+  while (true) {
+    const page = input.events.list({ runId: input.runId, afterSeq, limit: pageSize });
+    assertForwardPage(page, afterSeq, input.runId);
+    const throughSeq = input.throughSeq;
+    const snapshotPage =
+      throughSeq === undefined ? page : page.filter((event) => event.seq <= throughSeq);
+    snapshotPage.forEach(input.visit);
+    if (page.length < pageSize || snapshotPage.length < page.length) return;
+    afterSeq = page.at(-1)!.seq;
+  }
+}
+
+/**
  * Collects the project's events of the given types in sequence order with an explicit memory
  * bound. Rows are verified as they are decoded; the gaps between them are not traversed.
  */
@@ -142,6 +176,42 @@ export function collectEventsOfTypesBounded(input: {
     }
     events.push(...page);
     if (page.length < Math.min(pageSize, remaining + 1)) return events;
+    afterSeq = page.at(-1)!.seq;
+  }
+}
+
+/**
+ * Visits the project's events of the given types through `throughSeq` in sequence order without
+ * retaining them, so history length bounds neither memory nor success (ADR-0554). Rows are
+ * verified as they are decoded; the gaps between them are not traversed.
+ */
+export function visitEventsOfTypes(input: {
+  events: Pick<EventStore, "list">;
+  types: readonly string[];
+  throughSeq: number;
+  visit(event: EventEnvelope): void;
+  pageSize?: number;
+}): void {
+  if (input.types.length === 0) throw new TypeError("types must not be empty.");
+  if (!Number.isSafeInteger(input.throughSeq) || input.throughSeq < 0)
+    throw new TypeError("throughSeq must be a safe integer of at least 0.");
+  const pageSize = input.pageSize ?? maximumPageSize;
+  assertPositiveSafeInteger(pageSize, "pageSize");
+  if (pageSize > maximumPageSize) throw new TypeError("pageSize must not exceed 1,000.");
+  const types = new Set(input.types);
+
+  let afterSeq = 0;
+  while (afterSeq < input.throughSeq) {
+    const page = input.events.list({ afterSeq, limit: pageSize, types: input.types });
+    assertForwardPage(page, afterSeq);
+    if (page.some((event) => !types.has(event.type)))
+      throw new EventReadError(
+        "event_sequence_invalid",
+        "The event store returned an event outside the requested types.",
+      );
+    const snapshotPage = page.filter((event) => event.seq <= input.throughSeq);
+    snapshotPage.forEach(input.visit);
+    if (page.length < pageSize || snapshotPage.length < page.length) return;
     afterSeq = page.at(-1)!.seq;
   }
 }

@@ -31,6 +31,11 @@ const schemaByType = {
     "organizationDeliberationParticipantReleasedEventPayload",
 } as const satisfies Record<AgentOrganizationEvent["type"], SchemaName>;
 
+/** Every event type the organization projection consumes; a typed read of them is sufficient. */
+export const agentOrganizationEventTypes = Object.keys(
+  schemaByType,
+) as readonly AgentOrganizationEvent["type"][];
+
 export function isAgentOrganizationEventType(type: string): type is AgentOrganizationEvent["type"] {
   return Object.hasOwn(schemaByType, type);
 }

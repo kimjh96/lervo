@@ -4,15 +4,17 @@ import { resolve } from "node:path";
 import { canonicalJson } from "@lervo/event-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { readBoundWorkstreamState } from "../src/supervision-workstream-state.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { observeNodeSupervisionAuthority } from "../src/supervision-authority.js";
+import { rejectWholeHistoryReads } from "../../../packages/storage-contract/test/whole-history-reads.fixture.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 
 const roots: string[] = [];
 afterEach(async () => {
+  vi.restoreAllMocks();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -78,6 +80,20 @@ it("reads an exact bound goal while a different reviewed goal is selected", asyn
         )
       ).source.workstreamId,
     ).toBe(fixture.binding.workstreamId);
+  } finally {
+    await storage.close();
+  }
+});
+
+it("reads the bound goal from snapshot events alone, whatever the history length", async () => {
+  const fixture = await supervisionFixture(roots);
+  const storage = await openProjectStorage(fixture.root);
+  try {
+    const expected = (await readCurrentWorkstreamState(fixture.root))!;
+    const list = rejectWholeHistoryReads(storage.events);
+    const state = await readBoundWorkstreamState(storage, fixture.binding.workstreamId);
+    expect(state?.contentHash).toBe(expected.contentHash);
+    expect(list.mock.calls.every(([options]) => options?.types !== undefined)).toBe(true);
   } finally {
     await storage.close();
   }
@@ -218,6 +234,7 @@ it("rejects an unexplained gap in a bound workstream", async () => {
         recordedAt: snapshot.updatedAt,
       },
     });
+    rejectWholeHistoryReads(storage.events);
     await expect(readBoundWorkstreamState(storage, fixture.binding.workstreamId)).rejects.toThrow(
       /forked or incomplete/u,
     );

@@ -1,4 +1,4 @@
-import { maximumWorkTraceEvents } from "@lervo/diagnostics";
+import { collectWorkExecutionEvents } from "@lervo/diagnostics";
 import { projectWorkExecutionReport } from "@lervo/execution-observability";
 import { captureRepositorySnapshot } from "@lervo/orchestrator";
 import { projectWorkObservability } from "@lervo/product-surface-projection";
@@ -10,8 +10,6 @@ import {
   validateSchema,
 } from "@lervo/schemas";
 import type { EventChainReport, ListEventsOptions } from "@lervo/storage-contract";
-
-const observationPageSize = 1_000;
 
 interface ObservabilityEventSource {
   list(options?: ListEventsOptions): EventEnvelope[];
@@ -44,24 +42,22 @@ const defaultDependencies: ProductObservabilityInspectionDependencies = {
   captureSnapshot: captureRepositorySnapshot,
 };
 
-function readVerifiedHead(source: ObservabilityEventSource, integrity: EventChainReport) {
-  if (integrity.eventCount > maximumWorkTraceEvents) {
-    throw new Error(`The observability source exceeds ${maximumWorkTraceEvents} events.`);
-  }
-  const events: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (events.length < integrity.eventCount) {
-    const page = source
-      .list({
-        afterSeq,
-        limit: Math.min(observationPageSize, integrity.eventCount - events.length),
-      })
-      .filter((event) => event.seq <= integrity.eventCount);
-    if (page.length === 0) break;
-    events.push(...page);
-    afterSeq = page.at(-1)!.seq;
-  }
-  if (events.length !== integrity.eventCount || events.at(-1)?.eventHash !== integrity.headHash) {
+/**
+ * Reads the work's events through the verified head. Only the work's runs and causal records are
+ * retained, so the read is bounded by the work, not by the length of project history.
+ */
+function readVerifiedWorkEvents(
+  source: ObservabilityEventSource,
+  integrity: EventChainReport,
+  workId: string,
+) {
+  const events = collectWorkExecutionEvents({
+    events: source,
+    workId,
+    throughSeq: integrity.eventCount,
+  });
+  const head = source.list({ afterSeq: integrity.eventCount - 1, limit: 1 })[0];
+  if (head?.seq !== integrity.eventCount || head.eventHash !== integrity.headHash) {
     throw new Error("The verified event head changed while observability was being inspected.");
   }
   return events;
@@ -106,7 +102,7 @@ export async function inspectProductObservability(
       throw new Error("No canonical events exist for product observability projection.");
     }
     const repositoryBefore = await dependencies.captureSnapshot(input.repositoryRoot);
-    const events = readVerifiedHead(storage.events, integrity);
+    const events = readVerifiedWorkEvents(storage.events, integrity, input.workId);
     const workReport = projectWorkExecutionReport({
       projectId: storage.manifest.projectId,
       workId: input.workId,

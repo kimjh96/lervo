@@ -37,14 +37,14 @@ function legacyReviewQualifies(review: AgentContextEventEnvelope): boolean {
 
 function assertSourceAndReview(
   envelope: AgentContextEventEnvelope,
-  eventsById: ReadonlyMap<string, AgentContextEventEnvelope>,
+  eventById: (eventId: string) => AgentContextEventEnvelope | undefined,
 ): void {
   const payload = agentContextEvent(envelope)?.payload;
   if (payload === undefined || !("reviewEventId" in payload)) return;
   if (payload.summaryArtifactId !== artifactId(payload.summaryContentHash)) {
     conflict("The promoted context summary artifact coordinate is invalid.");
   }
-  const review = eventsById.get(payload.reviewEventId);
+  const review = eventById(payload.reviewEventId);
   const metadata = payload as Record<string, unknown>;
   const governed = hasCompleteGovernedAgentContextMetadata(metadata);
   if (
@@ -62,7 +62,7 @@ function assertSourceAndReview(
     conflict("The context promotion review does not attest the exact summary and agent.");
   }
   if (payload.source.kind === "event") {
-    const source = eventsById.get(payload.source.sourceId);
+    const source = eventById(payload.source.sourceId);
     if (source === undefined || source.eventHash !== payload.source.contentHash) {
       conflict("The context promotion source event does not match its exact hash.");
     }
@@ -76,6 +76,16 @@ export function projectAgentContext(input: {
   agentId: string;
   agents: readonly AgentContextWorkforceIdentity[];
   events: readonly AgentContextEventEnvelope[];
+  /**
+   * Resolves review and source events that a typed read did not return (ADR-0554). The caller
+   * answers only from the same verified store snapshot; absent, the given events must hold them.
+   */
+  lookupEvent?: (eventId: string) => AgentContextEventEnvelope | undefined;
+  /**
+   * The head a typed read observed. It is reported as `lastSequence`, as when the whole history
+   * through that head was given; absent, the last given event is reported.
+   */
+  observedThroughSeq?: number;
 }): AgentContextProjection {
   const agent = input.agents.find((candidate) => candidate.agentId === input.agentId);
   if (agent === undefined) {
@@ -89,6 +99,7 @@ export function projectAgentContext(input: {
       event.eventId === undefined ? [] : ([[event.eventId, event]] as const),
     ),
   );
+  const eventById = (eventId: string) => eventsById.get(eventId) ?? input.lookupEvent?.(eventId);
   const entries: ProjectedAgentContextEntry[] = [];
   const handoffs: AgentContextProjection["incomingHandoffs"] = [];
   let lastSequence = 0;
@@ -103,11 +114,17 @@ export function projectAgentContext(input: {
         "Agent context events must use the project event order and identity.",
       );
     }
+    if (input.observedThroughSeq !== undefined && envelope.seq > input.observedThroughSeq) {
+      throw new AgentContextError(
+        "agent_context_event_invalid",
+        "Agent context events must not follow the observed head.",
+      );
+    }
     lastSequence = envelope.seq;
     const event = agentContextEvent(envelope);
     if (event === null) continue;
     if (event.type === "agent.context.promoted") {
-      assertSourceAndReview(envelope, eventsById);
+      assertSourceAndReview(envelope, eventById);
       const payload = event.payload;
       if (
         payload.reviewBindingVersion === 2 &&
@@ -197,6 +214,6 @@ export function projectAgentContext(input: {
     outgoingHandoffs: handoffs
       .filter((handoff) => handoff.fromAgentId === input.agentId)
       .sort((left, right) => left.contextHandoffId.localeCompare(right.contextHandoffId)),
-    lastSequence,
+    lastSequence: input.observedThroughSeq ?? lastSequence,
   };
 }

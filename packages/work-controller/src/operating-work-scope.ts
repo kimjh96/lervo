@@ -55,6 +55,22 @@ export function selectOperatingWorkScope<T extends Assignment>(input: {
   throw new Error("No canonical workstream snapshot can safely anchor the reviewed work scope.");
 }
 
+/**
+ * Every event type `observeOperatingWorkScope` reads. A caller that streams history may retain only
+ * these types and still receive the same answer as from the complete project history.
+ */
+export const operatingWorkScopeEventTypes: readonly string[] = [
+  "workstream.snapshot.recorded",
+  "work.supervision.bound",
+  "work.causality.recorded",
+  "run.completed",
+  "run.failed",
+  "deliberation.completed",
+  "work.supervision.decision.recorded",
+  "work.supervision.decision.superseded",
+  "work.supervision.effect.observed",
+];
+
 /** Validates an exact reviewed historical boundary without accepting or rewriting prior work. */
 export function observeOperatingWorkScope<T extends Assignment>(input: {
   scope: Scope;

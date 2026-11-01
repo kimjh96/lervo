@@ -35,9 +35,13 @@ function storage(input: { events: EventEnvelope[]; close: () => Promise<void> })
     manifest: { projectId },
     events: {
       latest: () => input.events.at(-1) ?? null,
-      list: (options?: { afterSeq?: number; limit?: number }) =>
+      list: (options?: { afterSeq?: number; limit?: number; types?: readonly string[] }) =>
         input.events
-          .filter((event) => event.seq > (options?.afterSeq ?? 0))
+          .filter(
+            (event) =>
+              event.seq > (options?.afterSeq ?? 0) &&
+              (options?.types === undefined || options.types.includes(event.type)),
+          )
           .slice(0, options?.limit ?? 1_000),
     },
     close: input.close,
@@ -59,10 +63,12 @@ it("preserves read and close failures as one unavailable-source failure", async 
   const closeFailure = new Error("close failed");
   const source = createProjectStorageImprovementEvidenceSource({
     repositoryRoot: "/fixture",
-    maximumScannedEvents: 1,
     openStorage: async () =>
       storage({
-        events: [fixtureEvent(1), fixtureEvent(2)],
+        events: [
+          fixtureEvent(1),
+          { ...fixtureEvent(2), type: "verification.completed", projectId: "prj_other_fixture" },
+        ],
         close: async () => {
           throw closeFailure;
         },

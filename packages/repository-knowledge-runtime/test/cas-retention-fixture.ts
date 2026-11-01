@@ -82,6 +82,7 @@ export async function retentionFixture() {
       projectId: storage.manifest.projectId,
       eventId: `evt_${String(seq).padStart(32, "0")}`,
       eventHash: `sha256:${String(seq).padStart(64, "0")}`,
+      previousHash: history.at(-1)?.eventHash ?? null,
       occurredAt: oldDate.toISOString(),
     } as unknown as EventEnvelope;
     history.push(record);

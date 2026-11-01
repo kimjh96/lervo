@@ -17,6 +17,15 @@ function resourceCompleteness(
   return "complete";
 }
 
+/** Event types `projectManagedResourceGroups` consumes; a typed read of them is sufficient input. */
+export const managedResourceEventTypes = [
+  "adapter.started",
+  "adapter.stopped",
+  "provider.process.observed",
+  "resource.usage.recorded",
+  "run.failed",
+] as const;
+
 /** Failure codes of managed-run phases that precede the provider adapter's start. */
 export const PRE_START_FAILURES: readonly string[] = [
   "contract_validation_failed",

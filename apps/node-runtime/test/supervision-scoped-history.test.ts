@@ -1,4 +1,5 @@
 import { rename, rm, writeFile } from "node:fs/promises";
+import { computeEventHash, eventWithoutHash } from "@lervo/event-contract";
 import { afterEach, expect, it, vi } from "vitest";
 import { projectManagedAttempts, projectWorkstreamResources } from "@lervo/work-controller";
 import {
@@ -171,7 +172,7 @@ it("retains explicitly linked historical runs and detects database replacement",
   await expect(f.reader.read()).rejects.toThrow("database was replaced");
 });
 
-it("fails closed on malformed unrelated causality and preserves the complete sequence bound", async () => {
+it("fails closed on malformed unrelated causality", async () => {
   const f = await scopedHistoryFixture(roots);
   f.append("work.causality.recorded", unrelatedRun, {
     ...causalityPayload({ assignmentId }),
@@ -182,8 +183,21 @@ it("fails closed on malformed unrelated causality and preserves the complete seq
     attemptOrdinal: 2,
   });
   await expect(f.reader.read()).rejects.toMatchObject({ code: "causality_parent_missing" });
-  vi.spyOn(f.events, "latest").mockReturnValue({ ...f.rows[0]!, seq: 100_001 });
-  const list = vi.spyOn(f.events, "list");
-  await expect(f.reader.read()).rejects.toThrow("source bound");
-  expect(list).not.toHaveBeenCalled();
 });
+
+it("streams a chain beyond 100,000 events, retaining only its scope and verifying every link", async () => {
+  const f = await scopedHistoryFixture(roots);
+  f.append("work.causality.recorded", ownRun, causalityPayload({ assignmentId }));
+  for (let index = 0; index < 100_050; index += 1) f.append("adapter.started", unrelatedRun);
+  f.append("run.completed", ownRun, { verificationStatus: "passed" });
+  const selected = await f.reader.read();
+  expect(f.rows.at(-1)!.seq).toBe(100_052);
+  expect(selected).toEqual(f.rows.filter((row) => row.runId === ownRun));
+
+  // The periodic audit re-streams the whole chain and still rejects a rewritten link.
+  const index = 60_000;
+  const body = { ...eventWithoutHash(f.rows[index]!), previousHash: `sha256:${"9".repeat(64)}` };
+  f.rows[index] = { ...body, eventHash: computeEventHash(body) };
+  f.advance(900_000);
+  await expect(f.reader.read()).rejects.toThrow("event chain is invalid");
+}, 60_000);

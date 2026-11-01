@@ -48,6 +48,7 @@ export async function scopedHistoryFixture(roots: string[]) {
       rows
         .slice(options?.afterSeq ?? 0)
         .filter((row) => options?.runId === undefined || row.runId === options.runId)
+        .filter((row) => options?.types === undefined || options.types.includes(row.type))
         .slice(0, options?.limit)
         .map(verified),
     verifyIntegrity: () => ({

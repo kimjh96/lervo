@@ -1,33 +1,27 @@
 import { resolve } from "node:path";
 
-import { projectAgentContext, projectAgentOrganization } from "@lervo/agent-organization";
+import {
+  projectAgentContext,
+  projectAgentOrganizationFromEventSource,
+  readAgentContextEventSource,
+} from "@lervo/agent-organization";
 import { listAgents } from "@lervo/agent-workforce";
 import type { OrganizationTeamOperatingInput } from "@lervo/application-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
-import type { EventEnvelope } from "@lervo/schemas";
 import { createOrganizationOperatingReport } from "@lervo/work-controller";
 
 import type { CliIo } from "./types.js";
 
-function readEvents(storage: Awaited<ReturnType<typeof openProjectStorage>>): EventEnvelope[] {
-  const events: EventEnvelope[] = [];
-  let afterSeq = 0;
-  while (true) {
-    const page = storage.events.list({ afterSeq, limit: 1_000 });
-    events.push(...page);
-    if (page.length < 1_000) return events;
-    afterSeq = page.at(-1)!.seq;
-  }
-}
-
 async function inspectTeam(root: string): Promise<OrganizationTeamOperatingInput> {
   const storage = await openProjectStorage(root);
   try {
-    const events = readEvents(storage);
-    const organization = projectAgentOrganization({
+    // ADR-0554: typed reads through one observed head, never the whole history.
+    const context = readAgentContextEventSource(storage.events);
+    const organization = projectAgentOrganizationFromEventSource({
       projectId: storage.manifest.projectId,
-      events: events.filter((event) => event.type.startsWith("organization.")),
+      events: storage.events,
+      throughSeq: context.throughSeq,
     });
     if (organization.team === null) {
       throw new Error(`No organization team is bound at ${root}.`);
@@ -38,7 +32,8 @@ async function inspectTeam(root: string): Promise<OrganizationTeamOperatingInput
         projectId: storage.manifest.projectId,
         agentId: agent.agentId,
         agents,
-        events,
+        events: context.events,
+        lookupEvent: context.lookupEvent,
       }),
     );
     const workstream = await readCurrentWorkstreamState(root);
@@ -76,7 +71,7 @@ async function inspectTeam(root: string): Promise<OrganizationTeamOperatingInput
               revision: workstream.snapshot.revision,
               status: workstream.snapshot.status,
             },
-      sourceHeadSequence: events.at(-1)?.seq ?? 0,
+      sourceHeadSequence: context.throughSeq,
     };
   } finally {
     await storage.close();

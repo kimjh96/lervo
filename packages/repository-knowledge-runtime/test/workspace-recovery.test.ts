@@ -150,6 +150,21 @@ it(
       typeof hasCanonicalNormalizationLineage
     >[0];
     expect(await hasCanonicalNormalizationLineage(context, state, path, target, source)).toBe(true);
+    // ADR-0554: newer events of other types never hide a settled normalization.
+    const head = f.events.latest()!;
+    const noisy = {
+      storage: {
+        ...f.storage,
+        events: {
+          latest: () => ({ ...head, seq: head.seq + 20_000 }),
+          list: (options: Parameters<typeof f.events.list>[0]) => {
+            if (options?.types === undefined) throw new Error("The reader walked the history.");
+            return f.events.list(options);
+          },
+        },
+      },
+    } as unknown as typeof context;
+    expect(await hasCanonicalNormalizationLineage(noisy, state, path, target, source)).toBe(true);
     await writeFile(
       resolve(f.root, path),
       (await readFile(resolve(f.root, path), "utf8")) + "\nManual owner change.\n",

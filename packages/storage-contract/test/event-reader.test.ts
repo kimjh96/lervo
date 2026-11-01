@@ -6,6 +6,8 @@ import {
   collectProjectEventsBounded,
   collectRunEventsBounded,
   visitEventSnapshot,
+  visitEventsOfTypes,
+  visitRunEvents,
   type ListEventsOptions,
 } from "../src/index.js";
 
@@ -115,6 +117,78 @@ describe("bounded event reader contract", () => {
         maximumEvents: 3,
       }),
     ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
+  });
+
+  it("streams typed matches through a pinned head however long history is", () => {
+    const typed = (seq: number, type: string) => ({ ...event(seq), type }) as EventEnvelope;
+    // ADR-0554: a head beyond 100,000 with few matches costs only the matches.
+    const values = [typed(7, "a"), typed(99_999, "a"), typed(150_000, "a"), typed(150_001, "a")];
+    const store = {
+      list: vi.fn((options: ListEventsOptions = {}) =>
+        values
+          .filter(
+            (item) =>
+              item.seq > (options.afterSeq ?? 0) &&
+              (options.types === undefined || options.types.includes(item.type)),
+          )
+          .slice(0, options.limit ?? 100),
+      ),
+    };
+    const visited: number[] = [];
+    visitEventsOfTypes({
+      events: store,
+      types: ["a"],
+      throughSeq: 150_000,
+      pageSize: 2,
+      visit: (item) => visited.push(item.seq),
+    });
+    expect(visited).toEqual([7, 99_999, 150_000]);
+    expect(store.list).toHaveBeenCalledTimes(2);
+    expect(store.list.mock.calls.every(([options]) => options?.types?.join() === "a")).toBe(true);
+    for (const page of [[typed(1, "b")], [typed(2, "a"), typed(1, "a")]])
+      expect(() =>
+        visitEventsOfTypes({
+          events: { list: () => page },
+          types: ["a"],
+          throughSeq: 3,
+          visit: () => undefined,
+        }),
+      ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
+    expect(() =>
+      visitEventsOfTypes({ events: store, types: [], throughSeq: 1, visit: () => undefined }),
+    ).toThrow(/types/u);
+  });
+
+  it("streams one run through a pinned head without retaining it", () => {
+    const values = [event(1), event(2, "run_reader_0002"), event(3), event(4), event(5)];
+    const store = reader(values);
+    const visited: number[] = [];
+    visitRunEvents({
+      events: store,
+      runId: "run_reader_0001",
+      throughSeq: 4,
+      pageSize: 2,
+      visit: (item) => visited.push(item.seq),
+    });
+    expect(visited).toEqual([1, 3, 4]);
+    expect(store.list.mock.calls.every(([options]) => options?.runId === "run_reader_0001")).toBe(
+      true,
+    );
+    const all: number[] = [];
+    visitRunEvents({
+      events: store,
+      runId: "run_reader_0001",
+      visit: (item) => all.push(item.seq),
+    });
+    expect(all).toEqual([1, 3, 4, 5]);
+    for (const page of [[event(1, "run_reader_0002")], [event(2), event(1)]])
+      expect(() =>
+        visitRunEvents({
+          events: { list: () => page },
+          runId: "run_reader_0001",
+          visit: () => undefined,
+        }),
+      ).toThrow(expect.objectContaining({ code: "event_sequence_invalid" }));
   });
 
   it("rejects a non-forward page and a page from another run", () => {

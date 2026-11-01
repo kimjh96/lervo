@@ -21,7 +21,11 @@ export * from "./managed-execution-budget.js";
 export * from "./managed-resource-projection.js";
 export * from "./managed-stage-projection.js";
 export * from "./operating-goal-projection.js";
-export { observeOperatingWorkScope, selectOperatingWorkScope } from "./operating-work-scope.js";
+export {
+  observeOperatingWorkScope,
+  operatingWorkScopeEventTypes,
+  selectOperatingWorkScope,
+} from "./operating-work-scope.js";
 export * from "./organization-operating-report.js";
 export * from "./ceo-policy.js";
 export * from "./ceo-execution.js";

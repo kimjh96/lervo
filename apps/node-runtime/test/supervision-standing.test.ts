@@ -26,6 +26,7 @@ import {
 } from "../src/supervision-standing-bound-successor.js";
 import { openNodeSupervisionService } from "../src/supervision-startup.js";
 import { readBoundWorkstreamState } from "../src/supervision-workstream-state.js";
+import { rejectWholeHistoryReads } from "../../../packages/storage-contract/test/whole-history-reads.fixture.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -262,6 +263,8 @@ it("recovers a prepared unselected successor after a restart without recording a
     requestContentHash,
     now: () => "2026-09-19T00:00:00.000Z",
   });
+  // Recovery reads only snapshot and installation events, whatever the history length.
+  const wholeHistory = rejectWholeHistoryReads(storage.events);
   const restarted = await recordUnselectedStandingSuccessor({
     storage,
     predecessor,
@@ -273,6 +276,7 @@ it("recovers a prepared unselected successor after a restart without recording a
     now: () => "2026-09-19T00:01:00.000Z",
   });
   expect(restarted).toEqual(first);
+  wholeHistory.mockRestore();
   expect(
     collectProjectEventsBounded({ events: storage.events, maximumEvents: 4000 }).filter(
       (event) =>

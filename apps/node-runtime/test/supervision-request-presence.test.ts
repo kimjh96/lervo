@@ -116,12 +116,28 @@ describe("bound supervision request presence", () => {
     ).toThrow(expect.objectContaining({ code: "supervision_workstream_inactive" }));
   });
 
-  it("keeps the full walk's history bound", () => {
-    const events = store([filler(1)]);
-    events.rows[0] = filler(100_001);
-    expect(() => findBoundSupervisionRequestEvent({ events, projectId, binding })).toThrow(
-      /exceeds its observation bound/iu,
+  it("finds the origin in a history far beyond 100,000 events by reading only origin events", () => {
+    for (const honorTypes of [true, false]) {
+      const rows = [filler(1), bound(120_000), filler(150_000)];
+      const events = store(rows, honorTypes);
+      expect(findBoundSupervisionRequestEvent({ events, projectId, binding })?.seq).toBe(120_000);
+      const presence = new BoundSupervisionRequestPresence({ events, projectId, binding });
+      expect(presence.find()?.seq).toBe(120_000);
+      events.append(bound(150_001));
+      expect(outcome(() => presence.find())).toMatch(/conflicting request origins/iu);
+    }
+  });
+
+  it("bounds the origin events one read retains, not the history length", () => {
+    const others = Array.from({ length: 100_001 }, (_, index) =>
+      bound(index + 1, { payload: { ...event().payload, workstreamId: `wks_${"9".repeat(24)}` } }),
     );
+    expect(() =>
+      findBoundSupervisionRequestEvent({ events: store(others), projectId, binding }),
+    ).toThrow(/origins exceed their observation bound/iu);
+    expect(
+      findBoundSupervisionRequestEvent({ events: store(others.slice(1)), projectId, binding }),
+    ).toBeNull();
   });
 
   it("answers exactly like a full scan after every append, including a late conflicting origin", () => {

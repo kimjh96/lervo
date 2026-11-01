@@ -2,9 +2,12 @@ import { canonicalJson } from "@lervo/event-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge";
 import { validateSchema, type EventEnvelope, type WorkstreamSnapshot } from "@lervo/schemas";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
 
 import { readSupervisionTextArtifact } from "./supervision-artifact-json.js";
+
+/** Snapshot events one read may retain; the length of the whole history is never bounded. */
+const maximumSnapshotEvents = 100_000;
 
 export interface BoundWorkstreamState {
   snapshot: WorkstreamSnapshot;
@@ -14,7 +17,11 @@ export interface BoundWorkstreamState {
   sourceEventHash: string;
 }
 
-/** Selects one canonical goal by reviewed binding, never by the human-facing current pointer. */
+/**
+ * Selects one canonical goal by reviewed binding, never by the human-facing current pointer.
+ * Only snapshot events decide the answer, so without verified events it reads that type alone;
+ * each returned row is hash-checked and the snapshot chain itself is validated below.
+ */
 export async function readBoundWorkstreamState(
   storage: ProjectStorage,
   workstreamId: string,
@@ -24,7 +31,11 @@ export async function readBoundWorkstreamState(
     throw new Error("The bound workstream identity is invalid.");
   const events =
     verifiedEvents ??
-    collectProjectEventsBounded({ events: storage.events, maximumEvents: 100_000 });
+    collectEventsOfTypesBounded({
+      events: storage.events,
+      types: ["workstream.snapshot.recorded"],
+      maximumEvents: maximumSnapshotEvents,
+    });
   const snapshots = events.filter(
     (event) =>
       event.type === "workstream.snapshot.recorded" &&

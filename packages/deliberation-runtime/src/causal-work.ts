@@ -5,11 +5,18 @@ import {
   workCausalityEventId,
 } from "@lervo/execution-contract";
 import type { WorkCausalityRecordedEventPayload } from "@lervo/schemas";
-import { collectProjectEventsBounded, type EventStore } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded, type EventStore } from "@lervo/storage-contract";
 
 import type { DeliberationEventSpec } from "./event-recorder.js";
 import type { DeliberationRuntimeCoordinates } from "./types.js";
 
+/** Admission depends only on causal records and whether the run was already started. */
+const admissionSourceEventTypes = [
+  "work.causality.recorded",
+  "run.requested",
+  "deliberation.started",
+] as const;
+/** Bounds the matching events retained, never the length of project history. */
 const maximumSourceEvents = 100_000;
 
 export function deliberationRootCausality(input: {
@@ -29,8 +36,9 @@ export function deliberationRootCausality(input: {
     agentId: null,
   };
   const eventId = workCausalityEventId(input.coordinates.projectId, input.coordinates.runId);
-  const events = collectProjectEventsBounded({
+  const events = collectEventsOfTypesBounded({
     events: input.events,
+    types: admissionSourceEventTypes,
     maximumEvents: maximumSourceEvents,
   });
   const disposition = validateWorkCausalityAdmission({

@@ -155,8 +155,17 @@ describe("conversation deliberation artifact source", () => {
         integrationId: "itg_discord01",
         events: {
           latest: () => events.at(-1) ?? null,
-          list: ({ afterSeq = 0, limit = 100 } = {}) =>
-            events.filter((event) => event.seq > afterSeq).slice(0, limit),
+          list: ({
+            afterSeq = 0,
+            limit = 100,
+            types,
+          }: { afterSeq?: number; limit?: number; types?: readonly string[] } = {}) =>
+            events
+              .filter(
+                (event) =>
+                  event.seq > afterSeq && (types === undefined || types.includes(event.type)),
+              )
+              .slice(0, limit),
         },
         repositoryArtifacts,
         conversationArtifacts: artifacts,
@@ -337,8 +346,17 @@ describe("conversation deliberation artifact source", () => {
       integrationId: "itg_coordinator01",
       events: {
         latest: () => events.at(-1) ?? null,
-        list: ({ afterSeq = 0, limit = 100 } = {}) =>
-          events.filter((event) => event.seq > afterSeq).slice(0, limit),
+        list: ({
+          afterSeq = 0,
+          limit = 100,
+          types,
+        }: { afterSeq?: number; limit?: number; types?: readonly string[] } = {}) =>
+          events
+            .filter(
+              (event) =>
+                event.seq > afterSeq && (types === undefined || types.includes(event.type)),
+            )
+            .slice(0, limit),
       },
       repositoryArtifacts,
       conversationArtifacts: artifacts,

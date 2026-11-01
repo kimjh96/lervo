@@ -1,8 +1,9 @@
 import type { OperatingGoalReportV1 } from "@lervo/application-contract";
 import { listAssignments } from "@lervo/agent-workforce";
 import { openProjectStorage } from "@lervo/project-storage";
-import { collectProjectEventsBounded } from "@lervo/storage-contract";
+import { collectEventsOfTypesBounded } from "@lervo/storage-contract";
 import {
+  managedAttemptEventTypes,
   projectManagedAttempts,
   projectOperatingGoalReport,
   projectWorkGraph,
@@ -11,6 +12,7 @@ import {
 import { projectOperatingObjective } from "./operating-objective-inspection.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
+/** Bounds the managed-attempt events retained, never the length of project history. */
 const MAXIMUM_SOURCE_EVENTS = 100_000;
 
 export interface InspectOperatingGoalInput {
@@ -31,8 +33,9 @@ export const inspectOperatingGoal: InspectOperatingGoal = async (input) => {
     const [assignments, events] = await Promise.all([
       listAssignments(storage.paths.repositoryRoot),
       Promise.resolve(
-        collectProjectEventsBounded({
+        collectEventsOfTypesBounded({
           events: storage.events,
+          types: managedAttemptEventTypes,
           maximumEvents: MAXIMUM_SOURCE_EVENTS,
         }),
       ),

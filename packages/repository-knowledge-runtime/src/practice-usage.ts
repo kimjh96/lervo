@@ -13,6 +13,17 @@ import { retirePracticeSkill } from "./practice-retirement.js";
 import { observePracticeExposure } from "./practice-exposure.js";
 import { practiceReady, practiceResumeAt } from "./practice-deferral.js";
 
+const usageEventTypes: readonly string[] = [
+  "terminal.turn.observed",
+  "terminal.skill.observed",
+  "terminal.skill.turn_assessed",
+  "skill.resolved",
+  "skill.invoked",
+  "capability.loaded",
+  "conversation.repository_work.completed",
+  "run.requested",
+];
+
 /** Usage is assessed daily. A missing host exchange or provider surface always preserves unknown. */
 export async function assessPracticeUsage(
   context: InstructionCaptureContext,
@@ -24,22 +35,14 @@ export async function assessPracticeUsage(
   const events: EventEnvelope[] = [];
   let afterSeq = 0;
   let bounded = true;
+  // ADR-0554: a typed read costs only the usage events; the bound counts what is retained.
   while (true) {
-    const page = context.storage.events.list({ afterSeq, limit: 1000 });
+    const page = context.storage.events.list({ afterSeq, limit: 1000, types: usageEventTypes });
     if (!page.length) break;
     for (const e of page)
       if (
         Date.parse(e.occurredAt) >= context.now().getTime() - 91 * 86_400_000 &&
-        [
-          "terminal.turn.observed",
-          "terminal.skill.observed",
-          "terminal.skill.turn_assessed",
-          "skill.resolved",
-          "skill.invoked",
-          "capability.loaded",
-          "conversation.repository_work.completed",
-          "run.requested",
-        ].includes(e.type)
+        usageEventTypes.includes(e.type)
       )
         events.push(e);
     afterSeq = page.at(-1)!.seq;

@@ -11,7 +11,7 @@ import {
   verificationSha256,
   verificationSuiteHash,
 } from "@lervo/verification-contract";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { defaultRepositoryKnowledgePolicy } from "../src/policy.js";
 import { scanRepositoryKnowledge } from "../src/scanner.js";
@@ -19,7 +19,7 @@ import { collectVerificationResultSources } from "../src/verification-source.js"
 
 const roots: string[] = [];
 
-function fixture(): {
+function fixture(index = 0): {
   suite: VerificationSuite;
   result: VerificationResult;
   bytes: Uint8Array;
@@ -45,7 +45,7 @@ function fixture(): {
     schemaVersion: 1,
     suiteId: suite.suiteId,
     suiteHash: verificationSuiteHash(suite),
-    repositoryRevision: `sha256:${"a".repeat(64)}`,
+    repositoryRevision: `sha256:${index.toString(16).padStart(64, "0")}`,
     startedAt: "2026-08-23T00:00:00.000Z",
     completedAt: "2026-08-23T00:00:01.000Z",
     status: "passed",
@@ -81,7 +81,7 @@ function fixture(): {
   const bytes = verificationResultBytes(result);
   const resultContentHash = verificationSha256(bytes);
   const event = {
-    seq: 1,
+    seq: index + 1,
     previousHash: null,
     eventHash: `sha256:${"b".repeat(64)}`,
     type: "verification.completed",
@@ -124,13 +124,10 @@ afterEach(async () => {
 describe("verification result knowledge source", () => {
   it("binds a canonical completed event and CAS original as one supplemental unit", async () => {
     const { suite, result, bytes, event } = fixture();
-    const observeEvent = vi.fn();
     const sources = await collectVerificationResultSources({
       ...ports(event, bytes),
       loadSuite: async () => suite,
-      observeEvent,
     });
-    expect(observeEvent).toHaveBeenCalledExactlyOnceWith(event);
     expect(sources).toEqual([
       expect.objectContaining({
         path: `@verification/${result.verificationId}`,
@@ -195,4 +192,82 @@ describe("verification result knowledge source", () => {
       }),
     ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
   });
+
+  it("reads only completions however far the store head is beyond 100,000 events", async () => {
+    const { suite, result, bytes, event } = fixture(119_999);
+    // ADR-0554: the head is a later event of another type; the typed read never visits it.
+    const head = { ...event, seq: 150_000, type: "run.requested" } as EventEnvelope;
+    const store = completionStore([event], head);
+    const sources = await collectVerificationResultSources({
+      events: store,
+      artifacts: { get: async () => bytes },
+      loadSuite: async () => suite,
+    });
+    expect(sources.map((source) => source.path)).toEqual([
+      `@verification/${result.verificationId}`,
+    ]);
+    expect(store.calls).toEqual([["verification.completed"]]);
+  });
+
+  it("selects the newest results instead of failing and still rejects conflicting completions", async () => {
+    const fixtures = Array.from({ length: 258 }, (_, index) => fixture(index));
+    const artifacts = new Map(
+      fixtures.map(({ bytes }) => [
+        `lervo-cas://sha256/${verificationSha256(bytes).slice("sha256:".length)}`,
+        bytes,
+      ]),
+    );
+    const input = {
+      artifacts: { get: async (uri: string) => artifacts.get(uri)! },
+      loadSuite: async () => fixtures[0]!.suite,
+    };
+    const events = fixtures.map(({ event }) => event);
+    const sources = await collectVerificationResultSources({
+      ...input,
+      events: completionStore(events),
+    });
+    expect(sources.map((source) => source.path)).toEqual(
+      fixtures
+        .slice(2)
+        .map(({ result }) => `@verification/${result.verificationId}`)
+        .sort((left, right) => left.localeCompare(right)),
+    );
+    // A later identical completion makes the oldest verification recent again.
+    const repeated = { ...events[0]!, seq: 259 } as EventEnvelope;
+    const reselected = await collectVerificationResultSources({
+      ...input,
+      events: completionStore([...events, repeated]),
+    });
+    expect(reselected.map((source) => source.path)).toContain(
+      `@verification/${fixtures[0]!.result.verificationId}`,
+    );
+    expect(reselected).toHaveLength(256);
+    // Its earlier completion left the window before the conflicting one arrived.
+    const conflicting = {
+      ...repeated,
+      payload: { ...repeated.payload, status: "failed" },
+    } as EventEnvelope;
+    for (const history of [
+      [...events, conflicting],
+      [events[0]!, { ...conflicting, seq: 2 } as EventEnvelope],
+    ])
+      await expect(
+        collectVerificationResultSources({ ...input, events: completionStore(history) }),
+      ).rejects.toMatchObject({ code: "knowledge_evidence_source_invalid" });
+  });
 });
+
+function completionStore(events: EventEnvelope[], head = events.at(-1)!) {
+  const calls: (readonly string[] | undefined)[] = [];
+  return {
+    calls,
+    latest: () => head,
+    list: (options?: { afterSeq?: number; limit?: number; types?: readonly string[] }) => {
+      calls.push(options?.types);
+      return events
+        .filter((event) => event.seq > (options?.afterSeq ?? 0))
+        .filter((event) => options?.types === undefined || options.types.includes(event.type))
+        .slice(0, options?.limit);
+    },
+  };
+}
