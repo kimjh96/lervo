@@ -50,5 +50,7 @@ describe("repository health stop appearance", () => {
     const stops = (await readHealthAppearance(root))!.stops;
     expect(stops).toHaveLength(64);
     expect(stops[0]!.since).toBe("2026-02-01T01:09:00.000Z");
+    // The newest dropped stop bounds what the record can still prove.
+    expect((await readHealthAppearance(root))!.prunedThrough).toBe("2026-02-01T00:05:00.000Z");
   });
 });

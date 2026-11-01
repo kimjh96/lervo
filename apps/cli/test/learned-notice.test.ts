@@ -123,6 +123,55 @@ describe("learned notice", () => {
     expect(notice).toMatchObject({ throughCommit: head, counts: { updated: 1 } });
   });
 
+  it("reports a backlog oldest first in batches without skipping commits", async () => {
+    const { root, base } = await repository();
+    const commits: string[] = [];
+    for (let index = 0; index < 34; index += 1)
+      commits.push(
+        await commit(
+          root,
+          { [`docs/guide-${index}.md`]: `# Guide ${index}\n` },
+          "docs: apply reviewed background knowledge",
+          lervo,
+        ),
+      );
+    const first = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
+    expect(first).toMatchObject({ throughCommit: commits[31], counts: { updated: 32 } });
+    const second = await projectLearnedNotice({
+      root,
+      shownThrough: first!.throughCommit,
+      now: new Date(),
+    });
+    expect(second).toMatchObject({ throughCommit: commits[33], counts: { updated: 2 } });
+    expect(second!.entries.map((entry) => entry.path).sort()).toEqual([
+      "docs/guide-32.md",
+      "docs/guide-33.md",
+    ]);
+  });
+
+  it("restarts from the first-run window when the cursor exists but is not an ancestor", async () => {
+    const { root } = await repository();
+    git(root, ["checkout", "-q", "-b", "other"]);
+    const elsewhere = await commit(
+      root,
+      { "docs/other.md": "# Other\n" },
+      "docs: apply reviewed background knowledge",
+      lervo,
+    );
+    git(root, ["checkout", "-q", "main"]);
+    const head = await commit(
+      root,
+      { "docs/가이드.md": "# 가이드\n" },
+      "docs: apply reviewed background knowledge",
+      lervo,
+    );
+    const notice = await projectLearnedNotice({ root, shownThrough: elsewhere, now: new Date() });
+    expect(notice).toMatchObject({ throughCommit: head, counts: { updated: 1 } });
+    expect(notice!.entries).toEqual([
+      { kind: "updated", path: "docs/가이드.md", title: "가이드", links: [] },
+    ]);
+  });
+
   it("keeps the line within its byte cap and counts what it omits", () => {
     const entries = Array.from({ length: 16 }, (_, index) => ({
       kind: "updated" as const,

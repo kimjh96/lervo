@@ -14,6 +14,8 @@ export interface HealthAppearanceState {
   schemaVersion: 1;
   /** Stops that started before this time predate recording, so their appearance is unknown. */
   recordingSince: string;
+  /** The newest start time dropped by the 64-stop bound; stops at or before it are unknown. */
+  prunedThrough?: string | null;
   stops: HealthStopAppearance[];
 }
 
@@ -29,6 +31,9 @@ function valid(value: unknown): value is HealthAppearanceState {
   return (
     state?.schemaVersion === 1 &&
     isTime(state.recordingSince) &&
+    (state.prunedThrough === undefined ||
+      state.prunedThrough === null ||
+      isTime(state.prunedThrough)) &&
     Array.isArray(state.stops) &&
     state.stops.length <= MAXIMUM_STOPS &&
     state.stops.every(
@@ -67,12 +72,14 @@ export async function recordHealthStopAppearance(input: {
     Date.parse(input.stop.since) < Date.parse(state.recordingSince) ||
     state.stops.some((stop) => stop.since === input.stop!.since);
   if (current !== null && known) return;
-  if (!known)
-    state.stops = [
+  if (!known) {
+    const ordered = [
       ...state.stops,
       { since: input.stop!.since, reason: input.stop!.reason, firstPreparedAt: input.at },
-    ]
-      .sort((left, right) => right.since.localeCompare(left.since))
-      .slice(0, MAXIMUM_STOPS);
+    ].sort((left, right) => Date.parse(right.since) - Date.parse(left.since));
+    state.stops = ordered.slice(0, MAXIMUM_STOPS);
+    const pruned = ordered[MAXIMUM_STOPS];
+    if (pruned !== undefined) state.prunedThrough = pruned.since;
+  }
   await writePrivateStateJson(input.root, FILE, state);
 }

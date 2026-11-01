@@ -109,17 +109,6 @@ export async function prepareAndRecordTerminalPrompt({
         observationEventId,
       });
     });
-    // ADR-0548: record when a convergence stop first reached an owner turn. A failure loses only
-    // this observation and never blocks the prompt.
-    await timing.measure("event_commit", () =>
-      recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined),
-    );
-    // ADR-0549: a notice that reached this turn is not repeated.
-    const learned = context.learnedNotice;
-    if (learned !== undefined && context.additionalContext.includes(learned.line))
-      await timing.measure("event_commit", () =>
-        writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined),
-      );
     // ADR-0467: queue the owner's turn for background semantic capture. A queue failure
     // loses only this capture; it never blocks or delays the prompt.
     await timing.measure("event_commit", () =>
@@ -145,6 +134,12 @@ export async function prepareAndRecordTerminalPrompt({
   } finally {
     await withinTerminalDeadline(deadlineMs, () => observationStorage.close());
   }
+  // ADR-0548 and ADR-0549: only a context that every step above prepared successfully is the one
+  // the provider receives, so delivery is recorded last. A failure loses only these observations.
+  await recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined);
+  const learned = context.learnedNotice;
+  if (learned !== undefined && context.additionalContext.includes(learned.line))
+    await writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined);
   return context.additionalContext;
 }
 

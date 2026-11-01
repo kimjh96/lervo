@@ -14,7 +14,11 @@ const MAXIMUM_LINKS = 3;
 const FIRST_RUN_WINDOW = "24 hours ago";
 
 async function git(root: string, args: string[], maxBuffer = 1024 * 1024): Promise<string> {
-  const { stdout } = await execute("git", ["-C", root, ...args], { timeout: 10_000, maxBuffer });
+  // Unquoted paths keep non-ASCII names, such as Korean document titles, classifiable.
+  const { stdout } = await execute("git", ["-C", root, "-c", "core.quotePath=false", ...args], {
+    timeout: 10_000,
+    maxBuffer,
+  });
   return stdout;
 }
 
@@ -76,25 +80,40 @@ export async function projectLearnedNotice(input: {
   shownThrough: string | null;
   now: Date;
 }): Promise<LearnedNotice | null> {
+  // A cursor that is not an ancestor of HEAD (rewritten or switched history) restarts from the
+  // first-run window instead of reporting another branch's commits.
+  const reachable =
+    input.shownThrough !== null &&
+    (await git(input.root, ["merge-base", "--is-ancestor", input.shownThrough, "HEAD"]).then(
+      () => true,
+      () => false,
+    ));
+  const range = reachable ? [`${input.shownThrough}..HEAD`] : ["--since", FIRST_RUN_WINDOW, "HEAD"];
   let log: string;
   try {
-    const range =
-      input.shownThrough === null
-        ? ["--since", FIRST_RUN_WINDOW, "HEAD"]
-        : [`${input.shownThrough}..HEAD`];
+    // Oldest first, in bounded batches, so a backlog is reported in order and never skipped.
+    const batch = (
+      await git(input.root, [
+        "rev-list",
+        "--reverse",
+        `--author=${LERVO_KNOWLEDGE_COMMIT_EMAIL}`,
+        ...range,
+      ])
+    )
+      .split("\n")
+      .filter((commit) => /^[a-f0-9]{40,64}$/u.test(commit))
+      .slice(0, MAXIMUM_COMMITS);
+    if (batch.length === 0) return emptyNotice(input.now, reachable ? input.shownThrough : null);
     log = await git(input.root, [
       "log",
-      `--max-count=${MAXIMUM_COMMITS}`,
-      `--author=${LERVO_KNOWLEDGE_COMMIT_EMAIL}`,
+      "--no-walk=unsorted",
       "--format=%x1e%H%x1f%s",
       "--name-only",
       "--no-renames",
-      ...range,
+      ...batch.reverse(),
     ]);
   } catch {
-    // An unknown or unreachable cursor (rewritten history) restarts from the first-run window.
-    if (input.shownThrough === null) return null;
-    return projectLearnedNotice({ ...input, shownThrough: null });
+    return null;
   }
   const commits = log
     .split("\x1e")
@@ -130,8 +149,19 @@ export async function projectLearnedNotice(input: {
   return {
     schemaVersion: 1,
     observedAt: input.now.toISOString(),
-    throughCommit: commits[0]?.commit ?? input.shownThrough,
+    // The newest commit of this batch; a later batch continues from it.
+    throughCommit: commits[0]?.commit ?? (reachable ? input.shownThrough : null),
     counts,
     entries,
+  };
+}
+
+function emptyNotice(now: Date, throughCommit: string | null): LearnedNotice {
+  return {
+    schemaVersion: 1,
+    observedAt: now.toISOString(),
+    throughCommit,
+    counts: { owner_rule: 0, skill: 0, canonical: 0, updated: 0 },
+    entries: [],
   };
 }
