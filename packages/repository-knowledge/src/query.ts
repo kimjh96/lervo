@@ -64,6 +64,39 @@ interface PreparedKnowledgeQueryData {
   ranker?: PreparedRepositoryKnowledgeQueryRanker;
 }
 
+const MAXIMUM_PREFERRED_HITS = 5;
+const PREFERRED_TIE_DEPTH = 32;
+
+/**
+ * Puts the strongest preferred documents first: more named target paths first, then the ranked
+ * order, then path. Preferred documents outside the ranked hits join with their own entries.
+ */
+export function preferHits(
+  ranked: readonly KnowledgeQueryHit[],
+  preferred: readonly { path: string; weight: number }[],
+  entries: readonly PreparedKnowledgeEntry[],
+  eligible: (entry: PreparedKnowledgeEntry) => boolean,
+  toHit: (entry: PreparedKnowledgeEntry, score: number) => KnowledgeQueryHit,
+  limit: number,
+): KnowledgeQueryHit[] {
+  if (preferred.length === 0) return [...ranked];
+  const position = new Map(ranked.map((hit, index) => [hit.path, index] as const));
+  const byPath = new Map(entries.filter(eligible).map((entry) => [entry.hit.path, entry] as const));
+  const chosen = preferred
+    .filter((item) => item.weight > 0 && (position.has(item.path) || byPath.has(item.path)))
+    .sort(
+      (left, right) =>
+        right.weight - left.weight ||
+        (position.get(left.path) ?? Number.MAX_SAFE_INTEGER) -
+          (position.get(right.path) ?? Number.MAX_SAFE_INTEGER) ||
+        (left.path < right.path ? -1 : left.path > right.path ? 1 : 0),
+    )
+    .slice(0, MAXIMUM_PREFERRED_HITS)
+    .map((item) => ranked[position.get(item.path) ?? -1] ?? toHit(byPath.get(item.path)!, 1));
+  const first = new Set(chosen.map((hit) => hit.path));
+  return [...chosen, ...ranked.filter((hit) => !first.has(hit.path))].slice(0, limit);
+}
+
 export class RepositoryKnowledgeQueryIndex {
   private constructor(private readonly data: PreparedKnowledgeQueryData) {}
 
@@ -209,8 +242,21 @@ export class RepositoryKnowledgeQueryIndex {
     });
   }
 
-  query(input: { query: string; limit?: number }): KnowledgeQueryResult {
+  query(input: {
+    query: string;
+    limit?: number;
+    /**
+     * ADR-0556: canonical documents that name the task's target paths, weighted by how many they
+     * name. Up to five come first, ties in ranked order; the rest of the list keeps its ranking.
+     */
+    preferred?: readonly { path: string; weight: number }[];
+  }): KnowledgeQueryResult {
     const rankedHits: KnowledgeQueryHit[] = [];
+    // Preferred documents break ties by a deeper ranked order than the returned page.
+    const rankedLimit = Math.max(
+      input.limit ?? 20,
+      (input.preferred ?? []).length === 0 ? 0 : PREFERRED_TIE_DEPTH,
+    );
     const queryTerms = terms(input.query);
     // Historical documents are excluded from default retrieval and labelled when history is asked.
     const includeHistorical = queryTargetsHistory(input.query);
@@ -234,7 +280,7 @@ export class RepositoryKnowledgeQueryIndex {
       const withheld = this.data.entries.filter((entry) => !eligible(entry)).length;
       const ranked = this.data.ranker.rank({
         query: input.query,
-        limit: (input.limit ?? 20) + withheld,
+        limit: rankedLimit + withheld,
       });
       const observed = new Set<string>();
       for (const item of ranked) {
@@ -248,7 +294,7 @@ export class RepositoryKnowledgeQueryIndex {
           throw new TypeError("The repository knowledge ranker returned an invalid result.");
         }
         observed.add(item.conceptId);
-        if (eligible(entry) && rankedHits.length < (input.limit ?? 20))
+        if (eligible(entry) && rankedHits.length < rankedLimit)
           rankedHits.push(toHit(entry, item.score));
       }
     } else {
@@ -277,7 +323,7 @@ export class RepositoryKnowledgeQueryIndex {
         ? rankedHits
             .sort((left, right) => right.score - left.score || left.path.localeCompare(right.path))
             .filter((hit) => hit.score >= Math.max(1, Math.ceil((rankedHits[0]?.score ?? 0) / 10)))
-            .slice(0, input.limit ?? 20)
+            .slice(0, rankedLimit)
         : rankedHits;
     return {
       schemaVersion: 1,
@@ -296,7 +342,14 @@ export class RepositoryKnowledgeQueryIndex {
           }),
       sourceSnapshotId: this.data.sourceSnapshotId,
       impactReportId: this.data.impactReportId,
-      hits: selectedHits,
+      hits: preferHits(
+        selectedHits,
+        input.preferred ?? [],
+        this.data.entries,
+        eligible,
+        toHit,
+        input.limit ?? 20,
+      ),
     };
   }
 }
@@ -305,6 +358,7 @@ export async function queryRepositoryKnowledge(input: {
   repositoryRoot: string;
   query: string;
   limit?: number;
+  preferred?: readonly { path: string; weight: number }[];
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   ranker?: RepositoryKnowledgeQueryRanker;
 }): Promise<KnowledgeQueryResult> {
@@ -318,5 +372,6 @@ export async function queryRepositoryKnowledge(input: {
   return index.query({
     query: input.query,
     ...(input.limit === undefined ? {} : { limit: input.limit }),
+    ...(input.preferred === undefined ? {} : { preferred: input.preferred }),
   });
 }

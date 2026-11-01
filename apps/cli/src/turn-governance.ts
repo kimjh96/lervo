@@ -40,7 +40,7 @@ export async function governingIndexPresent(root: string): Promise<boolean> {
   return (await readGoverningIndex(root)) !== null;
 }
 
-async function readGoverningIndex(root: string): Promise<GoverningIndex | null> {
+export async function readGoverningIndex(root: string): Promise<GoverningIndex | null> {
   const value = (await readPrivateStateJson(root, INDEX, 4 * 1024 * 1024)) as
     (GoverningIndex & { schemaVersion?: unknown }) | null;
   return value?.schemaVersion === 1 &&

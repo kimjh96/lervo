@@ -14,6 +14,7 @@ import { knowledgeUsage } from "./knowledge-usage.js";
 import type { CliIo } from "./types.js";
 import { queryOpenTerminalTurn } from "./terminal-open-turns.js";
 import { recordKnowledgeQueryTurnSelection } from "./knowledge-query-turn-selection.js";
+import { governingPreference, repositoryPathsNamedIn } from "./governing-preference.js";
 
 export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<number> {
   try {
@@ -57,12 +58,17 @@ export async function runKnowledgeQuery(args: string[], io: CliIo): Promise<numb
       continuation: parsed.values.continuation ?? "",
       targetPaths: parsed.values.path ?? [],
     });
+    // ADR-0556: canonical documents naming the target paths, given or written in the sentence.
+    const preferred = await governingPreference(repositoryRoot, [
+      ...new Set([...(parsed.values.path ?? []), ...repositoryPathsNamedIn(repositoryRoot, query)]),
+    ]);
     const result = await withRetrievalPreparationBudget(() =>
       queryRepositoryKnowledge({
         repositoryRoot,
         query: projection.query,
         supplementalSources,
         ranker: productDefaultRepositoryKnowledgeRanker,
+        preferred,
       }),
     );
     const preparation: RepositoryQualityInput = {
