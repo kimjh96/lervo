@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2ea5773558ca52b7eafd2223"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Apply owner-stated rules on the convergence owner without a review command, and stop telling agents that captured rules wait for owner review."
