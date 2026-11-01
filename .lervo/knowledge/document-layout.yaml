@@ -45,6 +45,10 @@ routes:
     path: knowledge/documents/capture
     priority: 97
     description: "How owner rules, corrections, and decisions stated in conversation become applied repository instructions without an owner review queue."
+  - id: knowledge.documents.freshness
+    path: knowledge/documents/freshness
+    priority: 97
+    description: "How stale documents are corrected: freshness candidates, their independent Tier 0 cross-check, authority to apply, and the owner path when review is unavailable."
   - id: knowledge.documents
     path: knowledge/documents
     priority: 95
