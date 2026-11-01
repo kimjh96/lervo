@@ -19,17 +19,17 @@ The first measurement on 2026-11-01 found these gaps in the Mac checkout of `ler
 
 ### One provider-free link web
 
-`buildDocumentLinkWeb` reads the current Markdown and the tracked path set. It reuses the reference extractor and the historical-document marker that lint uses. It reports:
+`buildDocumentLinkWeb` reads the current Markdown and the tracked path set. It reuses the reference extractor and the historical-document marker that lint uses, in a link-only mode so code references never spend the per-document bound. A document that still reaches the bound makes the measure `partial` with `link_extraction_bounded`. It reports:
 
 - **broken links:** Markdown links whose resolved target is not a tracked file or directory;
-- **missing back-links:** an `Amends:` header link whose target exists, is current, and has no link to the amending document;
+- **missing back-links:** an `Amends:` header link, resolved like every other link, whose target exists, is current, and has no link to the amending document;
 - **orphans:** canonical documents (by scan priority) inside a directory, other than `README` and `index` files, with no inbound link from another document.
 
 Historical documents are frozen records. They are not checked, need no inbound links, and their links do not count. Markdown under `.lervo/` is a generated projection and is left out.
 
 ### Built in the background, reused until Markdown changes
 
-The health prefetch rebuilds the web only when the digest of tracked and untracked-but-not-ignored Markdown paths, sizes, and modification times changes. It writes `.lervo/state/link-web.json` with counts and at most 16 examples of each finding. On the Mac checkout of `lervo` a rebuild takes about 0.2 seconds.
+The health prefetch rebuilds the web only when its input digest changes: the content hash of every tracked or untracked-but-not-ignored Markdown file, plus the full path set that link targets resolve against. An unchanged digest is re-observed after an hour, so an idle repository's measure does not expire. It writes `.lervo/state/link-web.json` with counts and at most 16 examples of each finding. On the Mac checkout of `lervo` a rebuild takes about 0.2 seconds.
 
 ### Health reports it
 
@@ -47,5 +47,5 @@ Repairing missing back-links and connecting orphans is not decided here. Both ed
 
 ## Verification
 
-- `apps/cli/test/link-web.test.ts` covers broken links, orphans, missing back-links, historical exclusion, generated-output exclusion, and digest reuse.
+- `apps/cli/test/link-web.test.ts` covers broken links, orphans, missing back-links including encoded links, the extraction bound, historical and generated exclusion, rebuilds on content-only and target-only changes, and re-observation.
 - `apps/cli/test/repository-health-projection.test.ts` covers the gap rule, the wording, and expiry.

@@ -16,6 +16,8 @@ export interface LearnedNotice {
   throughCommit: string | null;
   counts: Record<LearnedNoticeEntry["kind"], number>;
   entries: LearnedNoticeEntry[];
+  /** Older Lervo commits in the range beyond the itemized bound. */
+  omittedCommits?: number;
 }
 
 /** The newest Lervo commit an owner turn has already been shown. */
@@ -37,6 +39,7 @@ function validNotice(value: unknown): value is LearnedNotice {
     typeof notice.observedAt === "string" &&
     (notice.throughCommit === null || COMMIT.test(notice.throughCommit)) &&
     KINDS.every((kind) => Number.isInteger(notice.counts?.[kind])) &&
+    (notice.omittedCommits === undefined || Number.isInteger(notice.omittedCommits)) &&
     Array.isArray(notice.entries) &&
     notice.entries.length <= 16 &&
     notice.entries.every(

@@ -8,7 +8,8 @@ import { LERVO_KNOWLEDGE_COMMIT_EMAIL } from "@lervo/repository-knowledge";
 import type { LearnedNotice, LearnedNoticeEntry } from "./learned-notice-state.js";
 
 const execute = promisify(execFile);
-const MAXIMUM_COMMITS = 32;
+/** Commits itemized per notice; older ones in the range are counted, never revisited. */
+const MAXIMUM_COMMITS = 500;
 const MAXIMUM_ENTRIES = 16;
 const MAXIMUM_LINKS = 3;
 const FIRST_RUN_WINDOW = "24 hours ago";
@@ -88,30 +89,41 @@ export async function projectLearnedNotice(input: {
       () => true,
       () => false,
     ));
-  const range = reachable ? [`${input.shownThrough}..HEAD`] : ["--since", FIRST_RUN_WINDOW, "HEAD"];
   let log: string;
+  let head: string;
+  let omittedCommits: number;
   try {
-    // Oldest first, in bounded batches, so a backlog is reported in order and never skipped.
-    const batch = (
-      await git(input.root, [
-        "rev-list",
-        "--reverse",
-        `--author=${LERVO_KNOWLEDGE_COMMIT_EMAIL}`,
-        ...range,
-      ])
+    // The notice covers the whole range up to this HEAD, and the cursor then moves to HEAD. A
+    // single-commit cursor inside merged histories could otherwise revisit a parallel branch.
+    head = (await git(input.root, ["rev-parse", "HEAD"])).trim();
+    const range = reachable
+      ? [`${input.shownThrough}..${head}`]
+      : ["--since", FIRST_RUN_WINDOW, head];
+    const all = (
+      await git(
+        input.root,
+        ["rev-list", `--author=${LERVO_KNOWLEDGE_COMMIT_EMAIL}`, ...range],
+        16 * 1024 * 1024,
+      )
     )
       .split("\n")
-      .filter((commit) => /^[a-f0-9]{40,64}$/u.test(commit))
-      .slice(0, MAXIMUM_COMMITS);
-    if (batch.length === 0) return emptyNotice(input.now, reachable ? input.shownThrough : null);
-    log = await git(input.root, [
-      "log",
-      "--no-walk=unsorted",
-      "--format=%x1e%H%x1f%s",
-      "--name-only",
-      "--no-renames",
-      ...batch.reverse(),
-    ]);
+      .filter((commit) => /^[a-f0-9]{40,64}$/u.test(commit));
+    // rev-list lists newest first; the newest commits are itemized and the rest are counted.
+    const batch = all.slice(0, MAXIMUM_COMMITS);
+    omittedCommits = all.length - batch.length;
+    if (batch.length === 0) return emptyNotice(input.now, head);
+    log = await git(
+      input.root,
+      [
+        "log",
+        "--no-walk=unsorted",
+        "--format=%x1e%H%x1f%s",
+        "--name-only",
+        "--no-renames",
+        ...batch,
+      ],
+      16 * 1024 * 1024,
+    );
   } catch {
     return null;
   }
@@ -149,8 +161,9 @@ export async function projectLearnedNotice(input: {
   return {
     schemaVersion: 1,
     observedAt: input.now.toISOString(),
-    // The newest commit of this batch; a later batch continues from it.
-    throughCommit: commits[0]?.commit ?? (reachable ? input.shownThrough : null),
+    // Everything up to this HEAD is covered, so the next notice starts here.
+    throughCommit: head,
+    ...(omittedCommits > 0 ? { omittedCommits } : {}),
     counts,
     entries,
   };

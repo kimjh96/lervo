@@ -34,7 +34,7 @@ Stage and convergence records are kept whole, so a long stop keeps its start. Pe
 
 `lervo knowledge find-replay [--cases <1..200>] [--limit <1..32>]` builds cases from up to 600 recent non-merge commits not authored by Lervo. A case is a commit that changed code and governing documents together:
 
-- target paths: changed sources classified as code or configuration, excluding `.lervo/` and `.changes/`;
+- target paths: changed sources whose kind is code, configuration, test, schema, or build definition, excluding `.lervo/` and `.changes/`; images, logs, and unclassified files are not targets;
 - expected documents: co-changed Markdown classified as instructions, portable skills, or canonical documents that still exist.
 
 Each case is asked through the same projected task query and product ranker an agent query uses. Its result is scored by recall, precision, first rank, hit rate, and mean reciprocal rank. The report is written to `.lervo/state/find-replay.json`. The background health prefetch reruns it when the last report is older than seven days, and records an empty report on failure so it does not retry every prefetch. The Find gap line shows the last replay's recall and precision.
@@ -49,9 +49,9 @@ The first replay (40 cases, top 8, 2026-11-01, Mac checkouts):
 | ---------- | ----: | -----: | --------: | -------: | ----: |
 | `lervo`    |    40 |  0.245 |     0.144 |    0.725 | 0.441 |
 | `axli`     |    40 |  0.243 |     0.053 |    0.375 | 0.236 |
-| `flemo`    |    35 |  0.267 |     0.082 |    0.457 | 0.279 |
-| `plen`     |    15 |  0.356 |     0.092 |    0.467 | 0.294 |
-| `shiflo`   |    40 |  0.191 |     0.063 |    0.375 | 0.206 |
+| `flemo`    |    24 |  0.229 |     0.068 |    0.375 | 0.180 |
+| `plen`     |    14 |  0.375 |     0.080 |    0.429 | 0.292 |
+| `shiflo`   |    40 |  0.188 |     0.059 |    0.350 | 0.203 |
 
 Evidence and research documents often outrank decisions and specifications. Reranking the top 32 with a document-class prior raised `lervo` recall to 0.288 and MRR to 0.506, and moved `axli` and `flemo` by one to three points. That is too small to change product ranking on this evidence; later ranking changes are judged against this replay.
 

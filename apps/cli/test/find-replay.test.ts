@@ -44,6 +44,8 @@ describe("find replay", () => {
           "docs/evidence/run.md",
           "package.json",
           ".lervo/knowledge/document-layout.yaml",
+          "docs/screenshots/home.png",
+          "logs/run.log",
         ],
         taxonomy,
       ),

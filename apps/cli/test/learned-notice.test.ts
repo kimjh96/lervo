@@ -123,30 +123,28 @@ describe("learned notice", () => {
     expect(notice).toMatchObject({ throughCommit: head, counts: { updated: 1 } });
   });
 
-  it("reports a backlog oldest first in batches without skipping commits", async () => {
+  it("covers the whole range up to HEAD so merged branches are never revisited", async () => {
     const { root, base } = await repository();
-    const commits: string[] = [];
-    for (let index = 0; index < 34; index += 1)
-      commits.push(
-        await commit(
-          root,
-          { [`docs/guide-${index}.md`]: `# Guide ${index}\n` },
-          "docs: apply reviewed background knowledge",
-          lervo,
-        ),
-      );
-    const first = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
-    expect(first).toMatchObject({ throughCommit: commits[31], counts: { updated: 32 } });
-    const second = await projectLearnedNotice({
+    git(root, ["checkout", "-q", "-b", "side"]);
+    await commit(
       root,
-      shownThrough: first!.throughCommit,
-      now: new Date(),
-    });
-    expect(second).toMatchObject({ throughCommit: commits[33], counts: { updated: 2 } });
-    expect(second!.entries.map((entry) => entry.path).sort()).toEqual([
-      "docs/guide-32.md",
-      "docs/guide-33.md",
-    ]);
+      { "docs/side.md": "# Side\n" },
+      "docs: apply reviewed background knowledge",
+      lervo,
+    );
+    git(root, ["checkout", "-q", "main"]);
+    await commit(
+      root,
+      { "docs/main.md": "# Main\n" },
+      "docs: apply reviewed background knowledge",
+      lervo,
+    );
+    git(root, ["merge", "-q", "--no-edit", "side"]);
+    const head = git(root, ["rev-parse", "HEAD"]);
+    const first = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
+    expect(first).toMatchObject({ throughCommit: head, counts: { updated: 2 } });
+    const again = await projectLearnedNotice({ root, shownThrough: head, now: new Date() });
+    expect(again).toMatchObject({ throughCommit: head, entries: [] });
   });
 
   it("restarts from the first-run window when the cursor exists but is not an ancestor", async () => {

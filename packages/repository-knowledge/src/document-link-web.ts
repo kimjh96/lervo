@@ -1,6 +1,4 @@
-import { posix } from "node:path";
-
-import { extractDocumentReferences } from "./document-references.js";
+import { extractDocumentReferences, MAXIMUM_DOCUMENT_REFERENCES } from "./document-references.js";
 import { historicalDocumentMarker } from "./historical-documents.js";
 
 export interface DocumentLinkWebInput {
@@ -20,19 +18,19 @@ export interface DocumentLinkWeb {
   orphans: string[];
   /** An `Amends:` header link whose target does not link back. */
   missingBacklinks: { path: string; target: string }[];
+  /** Documents whose links reached the extraction bound; findings may be incomplete. */
+  truncated: string[];
 }
 
-const AMENDS = /^Amends:\s*(.+)$/mu;
-const LINK_TARGET = /\]\(([^)\s#]+)(?:#[^)]*)?\)/gu;
+const AMENDS = /^Amends:.*$/mu;
 
+/** Links on the `Amends:` header line, resolved like every other link (encoding included). */
 function amendedTargets(path: string, content: string): string[] {
-  const header = AMENDS.exec(content.slice(0, 4096))?.[1];
+  const header = AMENDS.exec(content.slice(0, 4096))?.[0];
   if (header === undefined) return [];
-  return [...header.matchAll(LINK_TARGET)]
-    .map((match) => match[1]!)
-    .filter((target) => !/^[a-z]+:/iu.test(target) && !target.startsWith("/"))
-    .map((target) => posix.normalize(posix.join(posix.dirname(path), target)))
-    .filter((target) => !target.startsWith(".."));
+  return extractDocumentReferences({ path, content: header, markdownLinksOnly: true }).map(
+    (reference) => reference.target,
+  );
 }
 
 /**
@@ -52,11 +50,14 @@ export function buildDocumentLinkWeb(input: DocumentLinkWebInput): DocumentLinkW
   const inbound = new Map<string, number>();
   const linksFrom = new Map<string, Set<string>>();
   const broken: DocumentLinkWeb["broken"] = [];
+  const truncated: string[] = [];
   let linkCount = 0;
   for (const document of current) {
     const targets = new Set<string>();
-    for (const reference of extractDocumentReferences(document)) {
-      if (reference.kind !== "markdown_link") continue;
+    const references = extractDocumentReferences({ ...document, markdownLinksOnly: true });
+    // A document at the bound may hide further links, so the web reports it as incomplete.
+    if (references.length >= MAXIMUM_DOCUMENT_REFERENCES) truncated.push(document.path);
+    for (const reference of references) {
       linkCount += 1;
       targets.add(reference.target);
       if (!input.trackedPaths.has(reference.target))
@@ -80,6 +81,7 @@ export function buildDocumentLinkWeb(input: DocumentLinkWebInput): DocumentLinkW
   const byPath = (left: { path: string }, right: { path: string }) =>
     left.path < right.path ? -1 : left.path > right.path ? 1 : 0;
   return {
+    truncated: truncated.sort(),
     documentCount: current.length,
     linkCount,
     broken: broken.sort(byPath),

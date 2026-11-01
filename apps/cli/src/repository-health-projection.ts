@@ -58,7 +58,7 @@ export interface HealthProjectionSources {
   /** ADR-0551 link web over current Markdown, rebuilt when tracked Markdown changes. */
   linkWeb?: Pick<
     LinkWebSummary,
-    "observedAt" | "brokenCount" | "missingBacklinkCount" | "orphanCount"
+    "observedAt" | "brokenCount" | "missingBacklinkCount" | "orphanCount" | "truncatedCount"
   > | null;
   /** ADR-0550 last replay summary over past changes. */
   findReplay?: {
@@ -351,7 +351,7 @@ function brokenLinks(
 ): RepositoryHealthProjectionV1["measures"]["brokenLinks"] {
   const web = input.linkWeb ?? null;
   if (web === null) return unknownHealthMeasure("link_web_unavailable", [LINK_WEB]);
-  return observed(
+  const measure = observed(
     {
       count: web.brokenCount,
       missingBacklinkCount: web.missingBacklinkCount,
@@ -363,6 +363,12 @@ function brokenLinks(
     web.brokenCount > 0 || web.missingBacklinkCount > 0,
     input.now,
   );
+  // A document past the extraction bound may hide links, so counts are a lower bound.
+  if ((web.truncatedCount ?? 0) > 0 && measure.value !== null) {
+    measure.coverage = "partial";
+    measure.reason = "link_extraction_bounded";
+  }
+  return measure;
 }
 
 /** Pure, host-neutral policy over already recorded state. No provider or lint is a dependency. */

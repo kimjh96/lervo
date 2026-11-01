@@ -115,13 +115,18 @@ function fenceReference(info: string): string | null {
   return null;
 }
 
-/** Extracts bounded, deduplicated references in first-occurrence order. */
+/**
+ * Extracts bounded, deduplicated references in first-occurrence order. `markdownLinksOnly` keeps
+ * code references from spending the bound, so link checks see every link.
+ */
 export function extractDocumentReferences(input: {
   path: string;
   content: string;
+  markdownLinksOnly?: boolean;
 }): DocumentReference[] {
   const references = new Map<string, DocumentReference>();
   const add = (reference: DocumentReference): void => {
+    if (input.markdownLinksOnly && reference.kind !== "markdown_link") return;
     if (references.size >= MAXIMUM_DOCUMENT_REFERENCES) return;
     const key = `${reference.kind}\u0000${reference.target}\u0000${reference.symbol ?? ""}`;
     if (!references.has(key)) references.set(key, reference);

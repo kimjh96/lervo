@@ -17,7 +17,7 @@ Lervo's commits are already the canonical record of what it changed. They reach 
 
 ### Build the notice from Lervo's own commits
 
-The background health prefetch builds the notice. It never runs on the prompt path. It reads at most 32 commits by the Lervo knowledge identity after the last shown commit, or from the last 24 hours on the first run or when that commit is unreachable. It classifies each changed path:
+The background health prefetch builds the notice. It never runs on the prompt path. It reads the commits by the Lervo knowledge identity from the last shown point up to the current HEAD, or from the last 24 hours on the first run or when that point is not an ancestor of HEAD. The newest 500 are itemized and older ones are counted. Once shown, the cursor moves to that HEAD, so merged histories are never revisited. It classifies each changed path:
 
 | Kind         | Source                                                                          | Shown as                                                                             |
 | ------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
@@ -46,4 +46,4 @@ After the hook prepares a turn that contains the line, it records the newest cov
 
 ## Verification
 
-`apps/cli/test/learned-notice.test.ts` covers classification, added links, the cursor, an unreachable cursor, the byte cap, and state validation. On the Mac checkout of `lervo`, the notice for the five newest Lervo commits names the owner rule "Use Korean for owner-facing responses." and the updated documents.
+`apps/cli/test/learned-notice.test.ts` covers classification, added links, the cursor, merged histories, a non-ancestor cursor, non-ASCII paths, the byte cap, and state validation. On the Mac checkout of `lervo`, the notice for the five newest Lervo commits names the owner rule "Use Korean for owner-facing responses." and the updated documents.

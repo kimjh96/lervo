@@ -17,6 +17,7 @@ const execute = promisify(execFile);
 const STATE = "link-web.json";
 const SAMPLE = 16;
 const MAXIMUM_DOCUMENT_BYTES = 1024 * 1024;
+const REOBSERVE_MS = 60 * 60_000;
 
 export interface LinkWebSummary {
   schemaVersion: 1;
@@ -28,6 +29,8 @@ export interface LinkWebSummary {
   brokenCount: number;
   orphanCount: number;
   missingBacklinkCount: number;
+  /** Documents whose links reached the extraction bound; counts may be low. */
+  truncatedCount?: number;
   broken: { path: string; line: number; target: string }[];
   orphans: string[];
   missingBacklinks: { path: string; target: string }[];
@@ -49,7 +52,12 @@ async function trackedFiles(root: string): Promise<string[]> {
     ],
     { timeout: 30_000, maxBuffer: 64 * 1024 * 1024 },
   );
-  return [...new Set(stdout.split("\0").filter((path) => path.length > 0))];
+  // Private state changes on every refresh and is never a link target.
+  return [
+    ...new Set(
+      stdout.split("\0").filter((path) => path.length > 0 && !path.startsWith(".lervo/state/")),
+    ),
+  ];
 }
 
 /** Publication indexes and root entrypoints are reached from outside the document tree. */
@@ -70,7 +78,7 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
   const stats = await Promise.all(
     markdown.map((path) =>
       stat(resolve(root, path)).then(
-        (value) => ({ path, size: value.size, mtime: value.mtimeMs, file: value.isFile() }),
+        (value) => ({ path, size: value.size, file: value.isFile() }),
         () => null,
       ),
     ),
@@ -79,19 +87,30 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
     (entry): entry is NonNullable<typeof entry> =>
       entry !== null && entry.file && entry.size <= MAXIMUM_DOCUMENT_BYTES,
   );
-  const inputDigest = `sha256:${createHash("sha256")
-    .update(present.map((entry) => `${entry.path}\0${entry.size}\0${entry.mtime}`).join("\n"))
-    .digest("hex")}`;
-  const previous = await readLinkWeb(root);
-  if (previous?.inputDigest === inputDigest) return previous;
-
-  const taxonomy = await loadDecisionTaxonomy(root);
   const documents = await Promise.all(
     present.map(async (entry) => ({
       path: entry.path,
       content: await readFile(resolve(root, entry.path), "utf8"),
     })),
   );
+  // Content and every link target path decide the result, so both bind reuse.
+  const digest = createHash("sha256");
+  for (const document of documents)
+    digest.update(
+      `${document.path}\0${createHash("sha256").update(document.content).digest("hex")}\n`,
+    );
+  digest.update(files.join("\0"));
+  const inputDigest = `sha256:${digest.digest("hex")}`;
+  const previous = await readLinkWeb(root);
+  if (previous?.inputDigest === inputDigest) {
+    // Unchanged input is re-observed, so an idle repository's measure does not expire.
+    if (now.getTime() - Date.parse(previous.observedAt) < REOBSERVE_MS) return previous;
+    const reobserved = { ...previous, observedAt: now.toISOString() };
+    await writePrivateStateJson(root, STATE, reobserved);
+    return reobserved;
+  }
+
+  const taxonomy = await loadDecisionTaxonomy(root);
   const trackedPaths = new Set<string>();
   for (const path of files) {
     trackedPaths.add(path);
@@ -115,6 +134,7 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
     brokenCount: web.broken.length,
     orphanCount: web.orphans.length,
     missingBacklinkCount: web.missingBacklinks.length,
+    truncatedCount: web.truncated.length,
     broken: web.broken.slice(0, SAMPLE),
     orphans: web.orphans.slice(0, SAMPLE),
     missingBacklinks: web.missingBacklinks.slice(0, SAMPLE),

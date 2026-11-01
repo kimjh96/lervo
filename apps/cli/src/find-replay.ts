@@ -10,6 +10,7 @@ import {
   LERVO_KNOWLEDGE_COMMIT_EMAIL,
   RepositoryKnowledgeQueryIndex,
   repositoryScanPriority,
+  repositorySourceKindForPath,
 } from "@lervo/repository-knowledge";
 
 import { readPrivateStateJson, writePrivateStateJson } from "./private-state-file.js";
@@ -53,6 +54,7 @@ export interface FindReplayReport {
 }
 
 const GOVERNING = new Set(["instructions", "portable_skills", "canonical_documents"]);
+const TARGET_KINDS = new Set(["code", "configuration", "test", "schema", "build_definition"]);
 
 /** Splits one commit's changed paths into the code it targets and the governing documents. */
 export function classifyReplayPaths(
@@ -65,8 +67,10 @@ export function classifyReplayPaths(
     // Lervo configuration and release-intent records are not the development work being replayed.
     if (path.startsWith(".lervo/") || path.startsWith(".changes/")) continue;
     const priority = repositoryScanPriority(path, taxonomy);
-    if (priority === "source_and_configuration") targetPaths.push(path);
-    else if (GOVERNING.has(priority) && /\.mdx?$/iu.test(path)) expected.push(path);
+    // Only real development sources are targets; images, logs, and unclassified files are not.
+    if (priority === "source_and_configuration") {
+      if (TARGET_KINDS.has(repositorySourceKindForPath(path))) targetPaths.push(path);
+    } else if (GOVERNING.has(priority) && /\.mdx?$/iu.test(path)) expected.push(path);
   }
   return { targetPaths: targetPaths.slice(0, MAXIMUM_TARGET_PATHS), expected };
 }

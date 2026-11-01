@@ -27,7 +27,10 @@ export function formatLearnedNotice(notice: LearnedNotice): string | null {
     (left, right) => order.indexOf(left.kind) - order.indexOf(right.kind),
   );
   const head = "Lervo learned since it last reported (information, no action needed): ";
-  const tail = "; details: git log --author=knowledge@lervo.invalid.";
+  const older = notice.omittedCommits
+    ? `; ${notice.omittedCommits} older commits not itemized`
+    : "";
+  const tail = `${older}; details: git log --author=knowledge@lervo.invalid.`;
   const parts: string[] = [];
   for (const entry of entries) {
     const next = singleLine(describe(entry));
