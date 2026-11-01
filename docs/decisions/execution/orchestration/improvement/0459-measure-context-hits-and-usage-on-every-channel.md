@@ -5,7 +5,7 @@ Decision date: 2026-10-04
 Amends: [ADR-0451](../../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md), [ADR-0413](../../../search/engines/0413-close-product-default-lexical-v2-surface-gaps.md), [ADR-0431](../governed-work/owner-recovery/0431-fence-repeated-preflight-and-owner-spend.md), [ADR-0346](0346-measure-improvement-effects-from-bounded-local-events.md)
 Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 
-Amended by: [ADR-0550](../../grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md) (a provider-free replay set over past changes)
+Amended by: [ADR-0550](../../grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md) (a provider-free replay set over past changes), [ADR-0552](../../grounding/0552-check-changes-against-the-canon-that-names-them.md) (miss rate from the governing index)
 
 ## Context
 

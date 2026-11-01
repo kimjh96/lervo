@@ -98,7 +98,9 @@ There is no event, history directory or append-only collection.
   reference/preparation counts, and terminal turns with selected documents and
   path citations. Either managed injection with references or terminal selection
   with citations proves Find ([ADR-0550](../../../decisions/execution/grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md)).
-  The last replay over past changes adds recall and precision. Future events are
+  The last replay over past changes adds recall and precision, and the governance
+  check adds how many changing turns missed the canon that names a changed path
+  ([ADR-0552](../../../decisions/execution/grounding/0552-check-changes-against-the-canon-that-names-them.md)). Future events are
   excluded. No local injection event means `last recorded injection unknown`; it
   cannot prove no injection occurred. Complete recorded counts may be zero.
   Prepared, injected, referenced and used remain distinct.

@@ -8,10 +8,12 @@ import { loadDecisionTaxonomy } from "@lervo/project";
 import {
   archiveScopes,
   buildDocumentLinkWeb,
+  buildGoverningIndex,
   repositoryScanPriority,
 } from "@lervo/repository-knowledge";
 
 import { readPrivateStateJson, writePrivateStateJson } from "./private-state-file.js";
+import { governingIndexPresent, writeGoverningIndex } from "./turn-governance.js";
 
 const execute = promisify(execFile);
 const STATE = "link-web.json";
@@ -102,7 +104,7 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
   digest.update(files.join("\0"));
   const inputDigest = `sha256:${digest.digest("hex")}`;
   const previous = await readLinkWeb(root);
-  if (previous?.inputDigest === inputDigest) {
+  if (previous?.inputDigest === inputDigest && (await governingIndexPresent(root))) {
     // Unchanged input is re-observed, so an idle repository's measure does not expire.
     if (now.getTime() - Date.parse(previous.observedAt) < REOBSERVE_MS) return previous;
     const reobserved = { ...previous, observedAt: now.toISOString() };
@@ -118,6 +120,18 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
     for (let index = 1; index < segments.length; index += 1)
       trackedPaths.add(segments.slice(0, index).join("/"));
   }
+  // ADR-0552: the same documents give the governing index the Stop check reads.
+  await writeGoverningIndex(
+    root,
+    buildGoverningIndex({
+      documents,
+      // Roadmaps track delivery; they name code paths as evidence, not as rules over them.
+      canonical: (path) =>
+        !path.split("/").includes("roadmap") &&
+        ["instructions", "canonical_documents"].includes(repositoryScanPriority(path, taxonomy)),
+      archiveScopes: archiveScopes(taxonomy),
+    }),
+  );
   const web = buildDocumentLinkWeb({
     documents,
     trackedPaths,

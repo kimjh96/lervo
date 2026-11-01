@@ -47,6 +47,8 @@ export async function recordObservedTerminalTurn(input: {
   pathMentionCount: number;
   knowledgeJobQueued: boolean;
   changedPaths: string[];
+  /** Documents this turn selected or loaded, for the ADR-0552 governance check. */
+  consultedPaths: string[];
 }> {
   const storage = await openProjectStorage(input.root);
   let contextEventId: string | null = null;
@@ -186,6 +188,9 @@ export async function recordObservedTerminalTurn(input: {
       selectedCount: selected.length,
       pathMentionCount,
       knowledgeJobQueued: change !== null,
+      consultedPaths: [
+        ...new Set([...selected.map((item) => item.path), ...documents.map((item) => item.path)]),
+      ],
       changedPaths: change
         ? (JSON.parse(change.manifestContent) as { paths: { path: string }[] }).paths.map(
             (item) => item.path,

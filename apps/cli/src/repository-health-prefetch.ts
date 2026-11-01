@@ -14,6 +14,7 @@ import { readHealthEventHistory } from "./repository-health-events.js";
 import { readHealthAppearance } from "./repository-health-appearance.js";
 import { projectLearnedNotice } from "./learned-notice-projection.js";
 import { refreshLinkWeb } from "./link-web-projection.js";
+import { readTurnGovernance, turnGovernanceSummary } from "./turn-governance.js";
 import {
   readFindReplaySummary,
   runFindReplay,
@@ -76,6 +77,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       cachedLifecycle,
       appearance,
       findReplay,
+      governance,
       linkWeb,
     ] = await Promise.all([
       observeRepositoryHead(root, now),
@@ -114,6 +116,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       }),
       readHealthAppearance(root),
       readFindReplaySummary(root),
+      readTurnGovernance(root).then((state) => turnGovernanceSummary(state, now)),
       // ADR-0551: rebuilt here only when tracked Markdown changed; a failure leaves it unknown.
       refreshLinkWeb(root, now).catch(() => null),
     ]);
@@ -140,6 +143,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       history,
       appearance,
       findReplay,
+      governance,
       linkWeb,
     });
     // A racing repository edit never acquires a current-revision label.

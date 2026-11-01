@@ -207,3 +207,4 @@ export {
 } from "./terminal-runtime-store-health.js";
 export * from "./practice-contract.js";
 export * from "./practice-privacy.js";
+export * from "./document-governing-index.js";

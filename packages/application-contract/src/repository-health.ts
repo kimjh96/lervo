@@ -85,6 +85,9 @@ export interface RepositoryHealthProjectionV1 {
       turnCount?: number;
       selectedTurnCount?: number;
       pathMentionCount?: number;
+      /** ADR-0552 seven-day turns whose changes canon governs, and those that missed it. */
+      governedTurnCount?: number;
+      missedTurnCount?: number;
       /** ADR-0550 last replay over past changes, or null when none is recorded. */
       replay?: {
         observedAt: string;

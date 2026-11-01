@@ -23,6 +23,7 @@ import {
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
 import { readRepositoryHealth } from "./repository-health-reader.js";
 import { formatLearnedNotice } from "./learned-notice-format.js";
+import { readTurnGovernance, turnGovernanceLine } from "./turn-governance.js";
 import { readLearnedNotice, readLearnedNoticeCursor } from "./learned-notice-state.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -61,7 +62,7 @@ export async function prepareCompactTerminalPromptContext(input: {
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
     captureTerminalRepositorySnapshot(input.root, input.timing.deadlineMs),
   );
-  const [sourceSnapshotId, query, canonicalization, health, repositoryHealth, learned] =
+  const [sourceSnapshotId, query, canonicalization, health, repositoryHealth, learned, governance] =
     await Promise.all([
       input.timing.measure("corpus_preparation", () =>
         terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
@@ -114,6 +115,7 @@ export async function prepareCompactTerminalPromptContext(input: {
         now: observedAt,
       }),
       pendingLearnedNotice(input.root),
+      readTurnGovernance(input.root).then(turnGovernanceLine, () => null),
     ]);
   const attention = createOperatingAttentionReport({
     projectId: query.projectId,
@@ -149,6 +151,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     // ADR-0549: the learned notice is information, so it yields to owner rules and find pointers.
     optionalLines: [
       ...anchors.pointers.map(formatTerminalFindPointer),
+      ...(governance === null ? [] : [governance]),
       ...(learned === null ? [] : [learned.line]),
     ],
     sourceSnapshotId,
@@ -193,6 +196,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     workstream,
     attention,
     ...(learned === null ? {} : { learnedNotice: learned }),
+    ...(governance === null ? {} : { governanceLine: governance }),
     grounding: {
       requestDigest,
       queryDigest: query.queryProjection.receipt.projectedQueryDigest,

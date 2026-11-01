@@ -117,9 +117,13 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
         nullable(v.lastInjectedAt, time) &&
         count(v.referencedCount) &&
         count(v.terminalPreparedCount) &&
-        [v.turnCount, v.selectedTurnCount, v.pathMentionCount].every(
-          (value) => value === undefined || count(value),
-        ) &&
+        [
+          v.turnCount,
+          v.selectedTurnCount,
+          v.pathMentionCount,
+          v.governedTurnCount,
+          v.missedTurnCount,
+        ].every((value) => value === undefined || count(value)) &&
         (v.replay === undefined || v.replay === null || validReplay(v.replay))
       );
   }

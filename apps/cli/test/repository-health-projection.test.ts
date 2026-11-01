@@ -404,6 +404,10 @@ describe("health projection from recorded sources", () => {
     expect(formatRepositoryHealth(projectRepositoryHealth(input), healthNow)).toContain(
       "1/3 turns selected governing documents, 0 cited",
     );
+    input.governance = { governedTurnCount: 4, missedTurnCount: 3 };
+    expect(formatRepositoryHealth(projectRepositoryHealth(input), healthNow)).toContain(
+      "3/4 changing turns missed governing canon",
+    );
     input.history!.events.push(turn(4, 1, 1));
     expect(projectRepositoryHealth(input).measures.find).toMatchObject({
       status: "within_target",

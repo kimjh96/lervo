@@ -141,8 +141,12 @@ export function formatRepositoryHealth(
       v.replay == null
         ? ""
         : `; replay of ${v.replay.caseCount} past changes: recall ${percent(v.replay.recall)}, precision ${percent(v.replay.precision)}`;
+    const missed =
+      v.governedTurnCount === undefined || v.governedTurnCount === 0
+        ? ""
+        : `; ${v.missedTurnCount}/${v.governedTurnCount} changing turns missed governing canon`;
     lines.push(
-      `Lervo health: Find unproven in 7d (${terminal}${injected}; ${v.referencedCount} managed references${replay}); context preparer.`,
+      `Lervo health: Find unproven in 7d (${terminal}${injected}; ${v.referencedCount} managed references${missed}${replay}); context preparer.`,
     );
   }
   const unknown = Object.entries(m)

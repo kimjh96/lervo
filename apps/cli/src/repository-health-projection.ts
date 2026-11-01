@@ -60,6 +60,8 @@ export interface HealthProjectionSources {
     LinkWebSummary,
     "observedAt" | "brokenCount" | "missingBacklinkCount" | "orphanCount" | "truncatedCount"
   > | null;
+  /** ADR-0552 seven-day governance check summary. */
+  governance?: { governedTurnCount: number; missedTurnCount: number } | null;
   /** ADR-0550 last replay summary over past changes. */
   findReplay?: {
     observedAt: string;
@@ -324,6 +326,7 @@ function find(input: HealthProjectionSources): RepositoryHealthProjectionV1["mea
     selectedTurnCount: turns.filter((turn) => counted(turn.selectedCount) > 0).length,
     pathMentionCount: turns.reduce((sum, turn) => sum + counted(turn.pathMentionCount), 0),
     replay: input.findReplay ?? null,
+    ...(input.governance == null ? {} : input.governance),
   };
   // ADR-0550: either channel can prove Find. Managed runs inject and reference documents; compact
   // terminal turns select governing documents and the reply cites them by path.

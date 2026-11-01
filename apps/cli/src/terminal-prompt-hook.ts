@@ -17,6 +17,7 @@ import { recordTerminalStageObservation } from "./terminal-stage-persistence.js"
 import { recordHealthStopAppearance } from "./repository-health-appearance.js";
 import { convergenceStopLine } from "./repository-health-format.js";
 import { writeLearnedNoticeCursor } from "./learned-notice-state.js";
+import { markTurnGovernanceShown } from "./turn-governance.js";
 import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -137,6 +138,11 @@ export async function prepareAndRecordTerminalPrompt({
   // ADR-0548 and ADR-0549: only a context that every step above prepared successfully is the one
   // the provider receives, so delivery is recorded last. A failure loses only these observations.
   await recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined);
+  if (
+    context.governanceLine !== undefined &&
+    context.additionalContext.includes(context.governanceLine)
+  )
+    await markTurnGovernanceShown(root, occurredAt).catch(() => undefined);
   const learned = context.learnedNotice;
   if (learned !== undefined && context.additionalContext.includes(learned.line))
     await writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined);
