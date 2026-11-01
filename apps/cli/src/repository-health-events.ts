@@ -1,14 +1,21 @@
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
-const TYPES = [
-  "context.injected",
-  "context.referenced",
-  "terminal.context.prepared",
+const STAGE_TYPES = [
   "repository.knowledge.stage.recorded",
   "repository.knowledge.convergence.recorded",
 ];
+/** Per-turn activity grows with every prompt, so only its recent window is retained. */
+const ACTIVITY_TYPES = [
+  "context.injected",
+  "context.referenced",
+  "terminal.context.prepared",
+  "terminal.turn.observed",
+];
+const TYPES = [...ACTIVITY_TYPES, ...STAGE_TYPES];
+const ACTIVITY_WINDOW_MS = 8 * 86_400_000;
 const MAXIMUM_EVENTS = 10_000;
+const MAXIMUM_SCANNED = 250_000;
 const STOPPED = new Set([
   "waiting_review",
   "waiting_authority",
@@ -22,15 +29,23 @@ export interface HealthEventHistory {
   complete: boolean;
 }
 
-/** Bounded typed pages, off the critical path. Overflow cannot masquerade as a seven-day zero. */
-export function readHealthEventHistory(events: Pick<EventStore, "list">): HealthEventHistory {
+/**
+ * Bounded typed pages, off the critical path. Stage records are kept whole so a long stop keeps
+ * its start; per-turn activity older than eight days is dropped, so prompt volume alone never
+ * turns the history partial. Overflow cannot masquerade as a seven-day zero.
+ */
+export function readHealthEventHistory(
+  events: Pick<EventStore, "list">,
+  now = new Date(),
+): HealthEventHistory {
   const found: EventEnvelope[] = [];
+  const activityStart = now.getTime() - ACTIVITY_WINDOW_MS;
   let afterSeq = 0;
   let scanned = 0;
-  while (scanned <= MAXIMUM_EVENTS) {
+  while (scanned < MAXIMUM_SCANNED) {
     const page = events.list({
       afterSeq,
-      limit: Math.min(1_000, MAXIMUM_EVENTS + 1 - scanned),
+      limit: Math.min(1_000, MAXIMUM_SCANNED - scanned),
       types: TYPES,
     });
     if (page.length === 0) return { events: found, complete: true };
@@ -38,11 +53,15 @@ export function readHealthEventHistory(events: Pick<EventStore, "list">): Health
       scanned += 1;
       if (event.seq <= afterSeq) throw new Error("Health event history did not advance.");
       afterSeq = event.seq;
-      if (TYPES.includes(event.type)) found.push(event);
+      if (!TYPES.includes(event.type)) continue;
+      if (ACTIVITY_TYPES.includes(event.type) && Date.parse(event.occurredAt) < activityStart)
+        continue;
+      found.push(event);
+      if (found.length > MAXIMUM_EVENTS)
+        return { events: found.slice(0, MAXIMUM_EVENTS), complete: false };
     }
-    if (scanned > MAXIMUM_EVENTS) break;
   }
-  return { events: found.slice(0, MAXIMUM_EVENTS), complete: false };
+  return { events: found, complete: false };
 }
 
 export interface RecordedStop {

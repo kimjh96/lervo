@@ -43,10 +43,10 @@ This diagnosis does not establish provider reasoning, understanding, answer qual
 
 ## References
 
-- [V13 evidence](provider-shadow/linked-evidence-provider-shadow-pilot-v13.md)
-- [ADR-0268](../../decisions/search/activation/0268-diagnose-and-confirm-claim-coverage-v13.md)
-- [Repository instructions](../../../AGENTS.md)
-- [CLI version management](../../distribution/cli-version-management.md)
-- [ADR-0221](../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md)
-- [ADR-0180](../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md)
-- [ADR-0227](../../decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md)
+- [V13 evidence](linked-evidence-provider-shadow-pilot-v13.md)
+- [ADR-0268](../../../decisions/search/activation/0268-diagnose-and-confirm-claim-coverage-v13.md)
+- [Repository instructions](../../../../AGENTS.md)
+- [CLI version management](../../../distribution/cli-version-management.md)
+- [ADR-0221](../../../decisions/release/packaging/0221-reviewed-cli-release-preparation.md)
+- [ADR-0180](../../../decisions/knowledge/semantics/0180-hash-bound-human-conflict-resolution.md)
+- [ADR-0227](../../../decisions/knowledge/semantics/0227-approval-gated-cross-provider-fuzzy-merge.md)

@@ -142,6 +142,20 @@ it("uses unknown wording for unrecorded reporting and injection", () => {
   expect(text).not.toMatch(/never reported|none injected yet/u);
 });
 
+it("renders when a recorded stop was first shown, or that it never was", () => {
+  const p = healthyProjection();
+  p.measures.longestStop.status = "gap";
+  p.measures.longestStop.value = {
+    since: "2026-10-30T00:00:00Z",
+    ageMilliseconds: 7_200_000,
+    reportedAt: "2026-10-30T00:30:00Z",
+    unreportedMilliseconds: 1_800_000,
+  };
+  expect(formatRepositoryHealth(p, healthNow)).toContain("first shown after 30m");
+  p.measures.longestStop.value = { ...p.measures.longestStop.value, reportedAt: null };
+  expect(formatRepositoryHealth(p, healthNow)).toContain("never shown");
+});
+
 it("reads live heartbeat through the 15-minute reconcile interval and expires absent or changed hosting", async () => {
   const path = await root();
   const p = healthyProjection();

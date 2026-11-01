@@ -22,6 +22,9 @@ import {
 } from "./terminal-compact-format.js";
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
 import { readRepositoryHealth } from "./repository-health-reader.js";
+import { formatLearnedNotice } from "./learned-notice-format.js";
+import { pendingTurnGovernance, readTurnGovernance } from "./turn-governance.js";
+import { readLearnedNotice, readLearnedNoticeCursor } from "./learned-notice-state.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
@@ -59,58 +62,61 @@ export async function prepareCompactTerminalPromptContext(input: {
   const repositorySnapshot = await input.timing.measure("repository_snapshot", () =>
     captureTerminalRepositorySnapshot(input.root, input.timing.deadlineMs),
   );
-  const [sourceSnapshotId, query, canonicalization, health, repositoryHealth] = await Promise.all([
-    input.timing.measure("corpus_preparation", () =>
-      terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
-    ),
-    input.timing.measure("query_projection", async () => {
-      const storage = await openProjectStorage(input.root);
-      try {
-        const [policy, currentWorkstream] = await Promise.all([
-          loadRepositoryKnowledgePolicy(input.root),
-          verifiedCurrentWorkstream(storage),
-        ]);
-        const workstreamFreshness =
-          currentWorkstream === null
-            ? null
-            : await observeWorkstreamFreshness({
-                root: input.root,
-                snapshot: currentWorkstream,
-                policy: workstreamFreshnessPolicy(policy),
-                observedAt,
-              });
-        const queryProjection = createSearchQueryProjection({
-          projector: compactQueryProjector,
-          requestDigest,
-          contextDigest: sha256(canonicalJson({ contextRequirement: "none" })),
-          projectorResultDigest: sha256("lervo.terminal-compact.no-queries"),
-          requestedLanguage: policy.publication.language,
-          queries: [],
-          durationMs: 0,
-          status: "empty",
-        });
-        return {
-          publicationLanguage: policy.publication.language,
-          queryProjection,
-          currentWorkstream,
-          workstreamFreshness,
-          projectId: storage.manifest.projectId,
-        };
-      } finally {
-        await storage.close();
-      }
-    }),
-    listCanonicalizationCandidates(input.root).then(
-      (candidates) => ({ coverage: "complete" as const, candidates }),
-      () => ({ coverage: "unavailable" as const, candidates: [] }),
-    ),
-    inspectKnowledgeResidentHealth(input.root),
-    readRepositoryHealth({
-      root: input.root,
-      repositoryRevision: repositorySnapshot.revision,
-      now: observedAt,
-    }),
-  ]);
+  const [sourceSnapshotId, query, canonicalization, health, repositoryHealth, learned, governance] =
+    await Promise.all([
+      input.timing.measure("corpus_preparation", () =>
+        terminalKnowledgeSnapshotId(input.root, repositorySnapshot.revision),
+      ),
+      input.timing.measure("query_projection", async () => {
+        const storage = await openProjectStorage(input.root);
+        try {
+          const [policy, currentWorkstream] = await Promise.all([
+            loadRepositoryKnowledgePolicy(input.root),
+            verifiedCurrentWorkstream(storage),
+          ]);
+          const workstreamFreshness =
+            currentWorkstream === null
+              ? null
+              : await observeWorkstreamFreshness({
+                  root: input.root,
+                  snapshot: currentWorkstream,
+                  policy: workstreamFreshnessPolicy(policy),
+                  observedAt,
+                });
+          const queryProjection = createSearchQueryProjection({
+            projector: compactQueryProjector,
+            requestDigest,
+            contextDigest: sha256(canonicalJson({ contextRequirement: "none" })),
+            projectorResultDigest: sha256("lervo.terminal-compact.no-queries"),
+            requestedLanguage: policy.publication.language,
+            queries: [],
+            durationMs: 0,
+            status: "empty",
+          });
+          return {
+            publicationLanguage: policy.publication.language,
+            queryProjection,
+            currentWorkstream,
+            workstreamFreshness,
+            projectId: storage.manifest.projectId,
+          };
+        } finally {
+          await storage.close();
+        }
+      }),
+      listCanonicalizationCandidates(input.root).then(
+        (candidates) => ({ coverage: "complete" as const, candidates }),
+        () => ({ coverage: "unavailable" as const, candidates: [] }),
+      ),
+      inspectKnowledgeResidentHealth(input.root),
+      readRepositoryHealth({
+        root: input.root,
+        repositoryRevision: repositorySnapshot.revision,
+        now: observedAt,
+      }),
+      pendingLearnedNotice(input.root),
+      readTurnGovernance(input.root).then(pendingTurnGovernance, () => null),
+    ]);
   const attention = createOperatingAttentionReport({
     projectId: query.projectId,
     workstream: query.currentWorkstream,
@@ -142,7 +148,12 @@ export async function prepareCompactTerminalPromptContext(input: {
     preamble,
     maximumBytes: 4096,
     prompt: input.prompt,
-    optionalLines: anchors.pointers.map(formatTerminalFindPointer),
+    // ADR-0549: the learned notice is information, so it yields to owner rules and find pointers.
+    optionalLines: [
+      ...anchors.pointers.map(formatTerminalFindPointer),
+      ...(governance === null ? [] : [governance.line]),
+      ...(learned === null ? [] : [learned.line]),
+    ],
     sourceSnapshotId,
   });
   // Only pointers that reached the context are selected; their bodies are never loaded here.
@@ -184,6 +195,8 @@ export async function prepareCompactTerminalPromptContext(input: {
       : { repositoryCommits: repositorySnapshot.commits }),
     workstream,
     attention,
+    ...(learned === null ? {} : { learnedNotice: learned }),
+    ...(governance === null ? {} : { governance }),
     grounding: {
       requestDigest,
       queryDigest: query.queryProjection.receipt.projectedQueryDigest,
@@ -207,4 +220,17 @@ export async function prepareCompactTerminalPromptContext(input: {
         ? { disposition: "query_projection_missing", selectedCount: 0 }
         : { disposition: "selected", selectedCount: selected.length },
   };
+}
+
+/** ADR-0549: the prepared notice, unless an owner turn was already shown everything it covers. */
+async function pendingLearnedNotice(
+  root: string,
+): Promise<{ throughCommit: string; line: string } | null> {
+  const [notice, cursor] = await Promise.all([
+    readLearnedNotice(root),
+    readLearnedNoticeCursor(root),
+  ]);
+  if (notice?.throughCommit == null || notice.throughCommit === cursor?.shownThrough) return null;
+  const line = formatLearnedNotice(notice);
+  return line === null ? null : { throughCommit: notice.throughCommit, line };
 }

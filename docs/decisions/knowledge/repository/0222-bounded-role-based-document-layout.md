@@ -3,7 +3,7 @@
 - Status: accepted
 - Decision date: 2026-08-26
 
-Amended by: [ADR-0533](canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
+Amended by: [ADR-0533](canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain. [ADR-0547](layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md). Only overflow a write creates or grows blocks it; existing overflow stays a lint error.
 
 ## Context
 

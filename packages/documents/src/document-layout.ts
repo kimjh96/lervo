@@ -187,6 +187,18 @@ function roleBlockers(
   return blockers;
 }
 
+/**
+ * A capacity overflow the operations did not create or grow is existing debt: it stays visible to
+ * lint, but it does not block unrelated writes. Role conflicts always block.
+ */
+export function worseningDocumentLayoutBlockers(
+  evaluation: Pick<DocumentLayoutEvaluation, "blockers">,
+): DocumentLayoutBlocker[] {
+  return evaluation.blockers.filter(
+    (blocker) => blocker.code === "document_role_conflict" || blocker.projected > blocker.observed,
+  );
+}
+
 export function evaluateDocumentLayout(input: {
   snapshot: readonly DocumentLayoutSnapshotEntry[];
   operations: readonly DocumentLayoutOperation[];
@@ -247,7 +259,7 @@ export function evaluateDocumentLayout(input: {
     });
   return {
     evaluatorVersion: 1,
-    status: blockers.length === 0 ? "bounded" : "blocked",
+    status: worseningDocumentLayoutBlockers({ blockers }).length === 0 ? "bounded" : "blocked",
     snapshotHash: sha256(canonicalJsonBytes(snapshot)),
     policyHash: sha256(canonicalJsonBytes(input.policy)),
     roleRegistryHash: sha256(canonicalJsonBytes(input.roles)),

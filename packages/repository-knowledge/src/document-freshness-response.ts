@@ -64,6 +64,8 @@ export const documentFreshnessGenerationInstruction = [
   "Each hunk names exact text that occurs once in the document as before and its replacement as after.",
   "Each hunk needs at least one claim whose evidence cites a path and hash from the bundle evidence list.",
   "Prefer no_change_needed over speculation, and needs_owner_input when the evidence does not determine the new value.",
+  "When untrustedSourceData.unresolvedReferences is not empty, no_change_needed is never accepted: edit every listed reference.",
+  "Replace an unresolved reference with the current path or symbol the evidence shows. When its target was removed and the line still records a past fact, keep the reference text and append ` (removed)` to that same line, citing the evidence of the removal.",
   "Use archive only when the document describes a superseded design that the evidence no longer supports.",
 ].join(" ");
 

@@ -27,12 +27,7 @@ import {
   type KnowledgeStage,
   type UpgradeStageBlocker,
 } from "./upgrade-stage-inspection.js";
-import {
-  deferralReason,
-  deferringPrerequisite,
-  type StageDisposition,
-  type UpgradeStageName,
-} from "./upgrade-stage-policy.js";
+import { type StageDisposition, type UpgradeStageName } from "./upgrade-stage-policy.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pending"] {
@@ -138,23 +133,16 @@ export async function applyRepositoryUpgrade(
       );
   }
 
-  const postKnowledge = await materialization.run(
-    () => inspectKnowledge(root),
-    knowledgeRefusedByMarker,
-  );
-  let lint: UpgradeReceipt["knowledgeLint"] = null;
-  const nodeDeferral = deferringPrerequisite("node", { knowledge: postKnowledge.disposition });
-  if (nodeDeferral !== null) {
-    skippedStages.push({ stage: "knowledge_lint", reason: deferralReason(nodeDeferral) });
-    skippedStages.push({ stage: "node", reason: deferralReason(nodeDeferral) });
-  } else {
-    lint = await materialization.run(() => lintKnowledge(root));
-    const node = await inspectRegisteredNodeUpgrade(root, approved.projectId, approved.cli.version);
-    if (node.stage.disposition === "safe_apply") {
-      await applyRegisteredNodeUpgrade(node);
-      appliedStages.push("repository_node");
-    }
+  // ADR-0546: the Node stage is ordered after knowledge without depending on it, and lint reports
+  // a blocked knowledge stage instead of being skipped.
+  const node = await inspectRegisteredNodeUpgrade(root, approved.projectId, approved.cli.version);
+  if (node.stage.disposition === "safe_apply") {
+    await applyRegisteredNodeUpgrade(node);
+    appliedStages.push("repository_node");
   }
+  const lint: UpgradeReceipt["knowledgeLint"] = await materialization.run(() =>
+    lintKnowledge(root),
+  );
 
   // The event writer stage re-observes the hook reader and the Node and Hub readers itself, so a
   // stage deferred behind them applies once they are current and is skipped otherwise.

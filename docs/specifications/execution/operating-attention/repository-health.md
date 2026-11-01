@@ -53,10 +53,18 @@ There is no event, history directory or append-only collection.
   and continuity findings. State, reason, stop time, resident state, actor and
   recovery condition remain distinct. Repeated same-reason stage events retain
   the first stop time. Missing recovery is `none recorded`, with an inspect command.
+  On a host the convergence fence does not make the owner, the measure reports
+  the owner peer's published resident state as `owner_elsewhere`; a missing or
+  older-than-90-minute owner observation is unknown with
+  `owner_observation_missing_or_stale` ([ADR-0548](../../../decisions/execution/applications/0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md)).
 - **Longest stop:** bounded stage history closes an episode on recorded progress
   or resolution. Future events cannot open or close an episode. Stop duration
-  does not establish reporting: `reportedAt` and `unreportedMilliseconds` remain
-  null with `attention_appearance_unrecorded`. Render `reporting unknown`.
+  does not establish reporting. Owner terminal turns record each stop's first
+  prepared appearance in `.lervo/state/repository-health-appearance.json`.
+  A shown stop reports `reportedAt` and the time until it was shown; a stop
+  that started after recording began and was never shown reports its whole
+  duration as unreported. Older stops, or a missing record, keep both null with
+  `attention_appearance_unrecorded` and render `reporting unknown`.
 - **Freshness:** current-HEAD staleness evaluation and cycle summary are independent.
   Evaluation carries nullable stale/evaluated/unevaluated/unknown counts plus
   `evaluationObservedAt` and `evaluationValidUntil`. Cycle carries nullable
@@ -79,14 +87,23 @@ There is no event, history directory or append-only collection.
   `semantic_classification_pending` count, at most 32 relative paths and exact
   omissions. First-seen time is unrecorded, so age is unknown. Partial layout
   coverage cannot establish zero.
-- **Broken links:** existing lifecycle cache records validity without link counts.
-  This measure stays unknown and never invokes lint to fill the gap.
-- **Find:** at most 10,000 typed local events plus one overflow read establish
-  recorded last injection and seven-day reference/preparation counts. Overflow or
-  failed reads are unknown. Future events are excluded. No local injection event
-  means `last recorded injection unknown`; it cannot prove no injection occurred.
-  Complete recorded counts may be zero. Prepared, injected, referenced and used
-  remain distinct.
+- **Broken links:** the link web over current Markdown, rebuilt in the background
+  when tracked Markdown changes, gives broken links, amendments not linked back,
+  and unlinked canonical documents ([ADR-0551](../../../decisions/knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md)).
+  The first two are gaps. A summary older than one day, or a failed rebuild, is
+  unknown. This measure never invokes lint.
+- **Find:** the reader keeps whole stage history and only eight days of per-turn
+  activity, retaining at most 10,000 events from at most 250,000 scanned; overflow
+  or failed reads are unknown. It establishes recorded last injection, seven-day
+  reference/preparation counts, and terminal turns with selected documents and
+  path citations. Either managed injection with references or terminal selection
+  with citations proves Find ([ADR-0550](../../../decisions/execution/grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md)).
+  The last replay over past changes adds recall and precision, and the governance
+  check adds how many changing turns missed the canon that names a changed path
+  ([ADR-0552](../../../decisions/execution/grounding/0552-check-changes-against-the-canon-that-names-them.md)). Future events are
+  excluded. No local injection event means `last recorded injection unknown`; it
+  cannot prove no injection occurred. Complete recorded counts may be zero.
+  Prepared, injected, referenced and used remain distinct.
 
 ## Actor and authority
 

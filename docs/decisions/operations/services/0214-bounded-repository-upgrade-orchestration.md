@@ -8,6 +8,7 @@ Amended by:
 - [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md): apply holds the resident full-cycle admission; scans retry concurrent changes.
 - [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md): `--apply --safe` plans and applies approval-free upgrades in one window.
 - [ADR-0488](0488-point-node-configurations-at-one-current-cli.md): the Node stage maintains the host CLI pointer and migrates pinned configuration paths.
+- [ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md): the Node stage is ordered after knowledge without depending on it; lint always runs and reports content errors in the receipt.
 
 ## Context
 
@@ -45,7 +46,7 @@ The plan publishes `policy.stageDependencies`. Apply follows capabilities, workf
 | `workforce` | Capabilities applied first |
 | `terminal_integration` | Nothing |
 | `knowledge` | Capabilities applied first |
-| `node` | Knowledge not blocked, then knowledge lint |
+| `node` | Ordered after knowledge; a blocked knowledge stage does not defer it ([ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md)). Knowledge lint runs after it |
 | `event_writer` | `terminal_integration` and `node` applied first |
 | `host_service` | Nothing |
 | `replica_service` | Runs last, after `node`; a stage deferred behind an applying `node` stage is re-observed during apply |
@@ -80,8 +81,8 @@ No new durable wrapper event is emitted. Capability, knowledge, terminal, and No
 - A generated-only stage that does not converge within sixteen iterations fails without crossing a user-owned boundary.
 - `pending_authority` means safe automatic work is complete, but a distinct owner must approve or perform the named action.
 - A Node failure retains ADR-0207's transactional rollback and unknown-effect meanings. `offline_ready` is allowed only for fresh `hub_unavailable` observations and is not synchronization evidence.
-- A lint failure prevents successful upgrade completion.
-- A `blocked` result after apply means independent stages may have applied, but the repository is not current. Node reconciliation and knowledge lint are skipped with reason `knowledge_stage_blocked`.
+- Lint content errors are reported in the receipt and do not stop other stages. Only a lint command that cannot produce a report fails the apply.
+- A `blocked` result after apply means independent stages may have applied, but the repository is not current. Node reconciliation and knowledge lint still run.
 
 ## Consequences
 

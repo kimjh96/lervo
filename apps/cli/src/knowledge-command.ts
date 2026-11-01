@@ -1,5 +1,6 @@
 import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 import { runKnowledgeQuery } from "./knowledge-query-command.js";
+import { runFindReplayCommand } from "./find-replay-command.js";
 import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
 import { runHostKnowledgeResidentsCommand } from "./knowledge-host-resident-command.js";
@@ -172,6 +173,7 @@ export async function runKnowledgeCommand(
     }
   }
   if (subcommand === "query") return runKnowledgeQuery(args.slice(1), io);
+  if (subcommand === "find-replay") return runFindReplayCommand(args.slice(1), io);
   io.stderr(`Specify a supported knowledge subcommand.\n${knowledgeUsage}\n`);
   return 1;
 }

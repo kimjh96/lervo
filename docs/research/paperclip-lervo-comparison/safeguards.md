@@ -12,7 +12,7 @@ Single-assignee issue checkout does not replace repository-path overlap checks. 
 
 ### Repository knowledge lifecycle
 
-Keep Markdown, repository state, skills, verification, and execution events canonical. Graphs, lexical indexes, embeddings, dashboards, and task maps remain rebuildable projections. See the [repository knowledge specification](../specs/repository-knowledge-compilation.md).
+Keep Markdown, repository state, skills, verification, and execution events canonical. Graphs, lexical indexes, embeddings, dashboards, and task maps remain rebuildable projections. See the [repository knowledge specification](../../specs/repository-knowledge-compilation.md).
 
 ### Capability exactness
 

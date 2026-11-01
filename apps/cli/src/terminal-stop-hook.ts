@@ -1,4 +1,5 @@
 import { hostOutcomeTask, observeHostContextOutcomes } from "@lervo/repository-context";
+import { recordTurnGovernance } from "./turn-governance.js";
 import type { TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 import type { TerminalHookFailureReason } from "@lervo/schemas";
 import type {
@@ -94,6 +95,17 @@ export async function completeTerminalHookTurn({
       workspaceCheckpointEventId,
       occurredAt,
     }),
+  );
+  // ADR-0552: canon naming a changed path that the turn did not consult is shown next turn. A
+  // failure loses only this observation.
+  await timing.measure("lifecycle_inspection", () =>
+    recordTurnGovernance({
+      root,
+      turnKey: expectation.contextEventId,
+      changedPaths: observation.changedPaths,
+      selectedPaths: observation.consultedPaths,
+      at: occurredAt,
+    }).catch(() => undefined),
   );
   await timing.measure("lifecycle_inspection", () =>
     observeHostContextOutcomes({

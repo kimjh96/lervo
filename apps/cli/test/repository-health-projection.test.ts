@@ -10,6 +10,7 @@ import {
   recordedConvergenceStops,
 } from "../src/repository-health-events.js";
 import { createOperatingAttentionReport } from "../src/operating-attention-projection.js";
+import { formatRepositoryHealth } from "../src/repository-health-format.js";
 import { healthNow, healthRevision } from "./repository-health-fixture.js";
 import { healthFreshnessCandidate } from "./repository-health-freshness-fixture.js";
 
@@ -233,8 +234,28 @@ describe("health projection from recorded sources", () => {
     expect(result.measures.brokenLinks).toMatchObject({
       status: "unknown",
       value: null,
-      reason: "current_revision_lint_cache_missing",
+      reason: "link_web_unavailable",
     });
+    // ADR-0551: broken links and unlinked amendments are gaps; orphans ride along as counts.
+    const linked = sources();
+    linked.linkWeb = {
+      observedAt: healthNow.toISOString(),
+      brokenCount: 0,
+      missingBacklinkCount: 0,
+      orphanCount: 5,
+    };
+    expect(projectRepositoryHealth(linked).measures.brokenLinks).toMatchObject({
+      status: "within_target",
+      value: { count: 0, missingBacklinkCount: 0, orphanCount: 5 },
+    });
+    linked.linkWeb.missingBacklinkCount = 2;
+    const gap = projectRepositoryHealth(linked);
+    expect(gap.measures.brokenLinks.status).toBe("gap");
+    expect(formatRepositoryHealth(gap, healthNow)).toContain(
+      "0 broken links, 2 amendments not linked back, 5 canonical documents unlinked",
+    );
+    linked.linkWeb.observedAt = "2026-10-01T00:00:00Z";
+    expect(projectRepositoryHealth(linked).measures.brokenLinks.status).toBe("unknown");
     const missing = sources();
     missing.staleness = null;
     missing.maintenance = null;
@@ -285,6 +306,57 @@ describe("health projection from recorded sources", () => {
     expect(stopped).toHaveLength(1);
   });
 
+  it("reports a recorded stop's first owner-turn appearance and a never-shown stop", () => {
+    const input = sources();
+    input.history!.events = [
+      event("repository.knowledge.stage.recorded", 1, "2026-10-18T04:46:00Z", {
+        obligationId: "one",
+        state: "attention_required",
+        failureCode: "document_directory_file_capacity_exceeded",
+      }),
+    ];
+    input.maintenance!.status.state = "attention_required";
+    input.maintenance!.status.reason = "document_directory_file_capacity_exceeded";
+    const age = healthNow.getTime() - Date.parse("2026-10-18T04:46:00Z");
+
+    input.appearance = {
+      schemaVersion: 1,
+      recordingSince: "2026-10-01T00:00:00Z",
+      stops: [
+        {
+          since: "2026-10-18T04:46:00Z",
+          reason: "document_directory_file_capacity_exceeded",
+          firstPreparedAt: "2026-10-18T05:46:00Z",
+        },
+      ],
+    };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "complete",
+      reason: null,
+      value: { reportedAt: "2026-10-18T05:46:00Z", unreportedMilliseconds: 3_600_000 },
+    });
+
+    input.appearance = { ...input.appearance, stops: [] };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "complete",
+      value: { reportedAt: null, unreportedMilliseconds: age },
+    });
+
+    // A stop at or before the pruned bound may have been shown, so it stays unknown.
+    input.appearance = { ...input.appearance, prunedThrough: "2026-10-18T04:46:00Z" };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "partial",
+      reason: "attention_appearance_unrecorded",
+    });
+    input.appearance = { ...input.appearance, prunedThrough: null };
+    // A stop that began before recording may have appeared earlier, so it stays unknown.
+    input.appearance = { ...input.appearance, recordingSince: "2026-10-19T00:00:00Z" };
+    expect(projectRepositoryHealth(input).measures.longestStop).toMatchObject({
+      coverage: "partial",
+      reason: "attention_appearance_unrecorded",
+    });
+  });
+
   it("counts only the seven-day window and never calls bounded partial history zero", () => {
     const input = sources();
     input.history!.events = [
@@ -316,6 +388,59 @@ describe("health projection from recorded sources", () => {
     expect(calls).toBeLessThanOrEqual(11);
   });
 
+  it("proves Find from terminal turns that select and cite governing documents", () => {
+    const input = sources();
+    const turn = (seq: number, selectedCount: number, pathMentionCount: number) =>
+      event("terminal.turn.observed", seq, "2026-10-30T00:00:00Z", {
+        selectedCount,
+        pathMentionCount,
+      });
+    input.history!.events = [turn(1, 0, 0), turn(2, 2, 0), turn(3, 0, 0)];
+    const unproven = projectRepositoryHealth(input).measures.find;
+    expect(unproven).toMatchObject({
+      status: "gap",
+      value: { turnCount: 3, selectedTurnCount: 1, pathMentionCount: 0 },
+    });
+    expect(formatRepositoryHealth(projectRepositoryHealth(input), healthNow)).toContain(
+      "1/3 turns selected governing documents, 0 cited",
+    );
+    input.governance = { governedTurnCount: 4, missedTurnCount: 3 };
+    expect(formatRepositoryHealth(projectRepositoryHealth(input), healthNow)).toContain(
+      "3/4 changing turns missed governing canon",
+    );
+    input.history!.events.push(turn(4, 1, 1));
+    expect(projectRepositoryHealth(input).measures.find).toMatchObject({
+      status: "within_target",
+      value: { turnCount: 4, selectedTurnCount: 2, pathMentionCount: 1 },
+    });
+  });
+
+  it("keeps whole stage history but only the recent turn window, so volume stays complete", () => {
+    const now = new Date("2026-11-01T00:00:00Z");
+    const stored = [
+      event("repository.knowledge.stage.recorded", 1, "2026-09-01T00:00:00Z", {
+        obligationId: "one",
+        state: "attention_required",
+      }),
+      ...Array.from({ length: 12_000 }, (_, index) =>
+        event("terminal.context.prepared", index + 2, "2026-10-01T00:00:00Z", {}),
+      ),
+      event("terminal.turn.observed", 12_002, "2026-10-31T00:00:00Z", {}),
+    ];
+    const history = readHealthEventHistory(
+      {
+        list: ({ afterSeq = 0, limit = 1000 } = {}) =>
+          stored.filter((item) => item.seq > afterSeq).slice(0, limit),
+      },
+      now,
+    );
+    expect(history.complete).toBe(true);
+    expect(history.events.map((item) => item.type)).toEqual([
+      "repository.knowledge.stage.recorded",
+      "terminal.turn.observed",
+    ]);
+  });
+
   it("produces identical bytes for equal Mac and WSL source values without host paths or environment", () => {
     const mac = sources();
     mac.layout!.repositoryRoot = "/Users/owner/lervo";
@@ -328,5 +453,87 @@ describe("health projection from recorded sources", () => {
     vi.stubEnv("WSL_DISTRO_NAME", "Ubuntu");
     expect(macBytes).toBe(JSON.stringify(projectRepositoryHealth(wsl)));
     expect(macBytes).not.toMatch(/\/Users\/|\/mnt\/|darwin|win32|linux/u);
+  });
+});
+
+describe("convergence on a host that does not own it", () => {
+  const ownerPeer = (observedAt: Date, residentState: string) => ({
+    hostHash: `sha256:${"7".repeat(64)}`,
+    hostLabel: "wsl",
+    observedAt: observedAt.toISOString(),
+    delegationState: "active",
+    delegationExpiresAt: null,
+    policy: "active",
+    ownerRole: "owner",
+    residentState,
+  });
+  const nonOwner = (peerState: string, peerAgeMs: number): HealthProjectionSources => {
+    const input = sources();
+    // The local record still shows a stop from an earlier ownership.
+    input.maintenance = {
+      observedAt: healthNow.toISOString(),
+      status: {
+        ...input.maintenance!.status,
+        state: "attention_required",
+        reason: "knowledge_compile_policy_violation",
+      },
+    };
+    input.resident = { ...input.resident!, state: "waiting", reason: "waiting_owner:wsl" };
+    input.ownerRole = { role: "waiting_owner", holderLabel: "wsl" };
+    input.continuity = {
+      peers: [ownerPeer(new Date(healthNow.getTime() - peerAgeMs), peerState)],
+    } as unknown as HealthProjectionSources["continuity"];
+    return input;
+  };
+
+  it("reports the owner's healthy state instead of its own earlier stop", () => {
+    expect(
+      projectRepositoryHealth(nonOwner("running", 5 * 60_000)).measures.convergence,
+    ).toMatchObject({
+      status: "within_target",
+      value: { state: "owner_elsewhere", owner: "resident on wsl", since: null },
+    });
+  });
+
+  it("matches the lease holder by host hash when labels repeat, and never trusts a missing state", () => {
+    const input = nonOwner("attention", 5 * 60_000);
+    const former = {
+      ...(input.continuity!.peers[0] as object),
+      hostHash: `sha256:${"1".repeat(64)}`,
+      residentState: "running",
+    };
+    input.continuity = {
+      peers: [former, ...input.continuity!.peers],
+    } as unknown as HealthProjectionSources["continuity"];
+    input.ownerRole = {
+      role: "waiting_owner",
+      holderLabel: "wsl",
+      holderHostHash: `sha256:${"7".repeat(64)}`,
+    };
+    expect(projectRepositoryHealth(input).measures.convergence).toMatchObject({
+      status: "gap",
+      value: { reason: "owner_resident_attention" },
+    });
+    expect(
+      projectRepositoryHealth(nonOwner(null as unknown as string, 5 * 60_000)).measures.convergence,
+    ).toMatchObject({ status: "unknown", reason: "owner_resident_state_unrecorded" });
+    expect(
+      projectRepositoryHealth(nonOwner("stopped", 5 * 60_000)).measures.convergence,
+    ).toMatchObject({ status: "gap", value: { reason: "owner_resident_stopped" } });
+  });
+
+  it("reports a stopped owner as a gap and an old owner observation as unknown", () => {
+    expect(
+      projectRepositoryHealth(nonOwner("attention", 5 * 60_000)).measures.convergence,
+    ).toMatchObject({
+      status: "gap",
+      value: { reason: "owner_resident_attention" },
+    });
+    expect(
+      projectRepositoryHealth(nonOwner("running", 3 * 60 * 60_000)).measures.convergence,
+    ).toMatchObject({
+      status: "unknown",
+      reason: "owner_observation_missing_or_stale",
+    });
   });
 });

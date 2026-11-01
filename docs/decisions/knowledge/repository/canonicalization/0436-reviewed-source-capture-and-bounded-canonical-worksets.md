@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-09-28
-Amended by: [ADR-0532](../../maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) (optional context reads preserve reference-only alias capture)
+Amended by: [ADR-0532](../../maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) (optional context reads preserve reference-only alias capture), [ADR-0546](../source-intake/0546-capture-in-repository-links-without-a-reviewed-declaration.md) (undeclared in-repository links are captured without review)
 
 ## Context
 

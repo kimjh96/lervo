@@ -8,9 +8,16 @@ import {
   TERMINAL_OBSERVATION_POLICY_VERSION,
 } from "./terminal-event-coordinates.js";
 import { queueTerminalOwnerTurn } from "./terminal-instruction-capture.js";
-import { prepareTerminalPromptContext } from "./terminal-prompt-context.js";
+import {
+  prepareTerminalPromptContext,
+  type PreparedTerminalPromptContext,
+} from "./terminal-prompt-context.js";
 import { withinTerminalDeadline } from "./terminal-hook-budget.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
+import { recordHealthStopAppearance } from "./repository-health-appearance.js";
+import { convergenceStopLine } from "./repository-health-format.js";
+import { writeLearnedNoticeCursor } from "./learned-notice-state.js";
+import { markTurnGovernanceShown } from "./turn-governance.js";
 import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
@@ -128,5 +135,31 @@ export async function prepareAndRecordTerminalPrompt({
   } finally {
     await withinTerminalDeadline(deadlineMs, () => observationStorage.close());
   }
+  // ADR-0548 and ADR-0549: only a context that every step above prepared successfully is the one
+  // the provider receives, so delivery is recorded last. A failure loses only these observations.
+  await recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined);
+  const governance = context.governance;
+  if (governance !== undefined && context.additionalContext.includes(governance.line))
+    await markTurnGovernanceShown(root, governance.pendingAt, occurredAt).catch(() => undefined);
+  const learned = context.learnedNotice;
+  if (learned !== undefined && context.additionalContext.includes(learned.line))
+    await writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined);
   return context.additionalContext;
+}
+
+async function recordOwnerTurnStopAppearance(
+  root: string,
+  context: PreparedTerminalPromptContext,
+  occurredAt: string,
+): Promise<void> {
+  const health = context.attention.health ?? null;
+  const line =
+    health === null ? null : convergenceStopLine(health, new Date(context.attention.observedAt));
+  const value = health?.measures.convergence.value ?? null;
+  const shown = line !== null && value?.since != null && context.additionalContext.includes(line);
+  await recordHealthStopAppearance({
+    root,
+    stop: shown ? { since: value!.since!, reason: value!.reason } : null,
+    at: occurredAt,
+  });
 }

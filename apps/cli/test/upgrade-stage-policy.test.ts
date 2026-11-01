@@ -13,7 +13,7 @@ describe("upgrade stage dependency policy", () => {
     expect(upgradeStageDependencies.terminal_integration).toEqual([]);
     expect(upgradeStageDependencies.capabilities).toEqual([]);
     expect(upgradeStageDependencies.node).toEqual([
-      { stage: "knowledge", requires: "not_blocked" },
+      { stage: "knowledge", requires: "ordered_after" },
     ]);
   });
 
@@ -23,9 +23,9 @@ describe("upgrade stage dependency policy", () => {
       requires: "applied_first",
     });
     expect(deferringPrerequisite("workforce", { capabilities: "current" })).toBeNull();
-    const nodeDeferral = deferringPrerequisite("node", { knowledge: "blocked" });
-    expect(nodeDeferral).not.toBeNull();
-    expect(deferralReason(nodeDeferral!)).toBe("knowledge_stage_blocked");
+    // ADR-0546: a blocked knowledge stage no longer strands the Node runtime.
+    expect(deferringPrerequisite("node", { knowledge: "blocked" })).toBeNull();
+    expect(deferringPrerequisite("node", { knowledge: "safe_apply" })).toBeNull();
     expect(deferringPrerequisite("node", { knowledge: "pending_authority" })).toBeNull();
     expect(deferringPrerequisite("terminal_integration", { knowledge: "blocked" })).toBeNull();
   });

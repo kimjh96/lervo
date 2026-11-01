@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2ada9ca5cb4e4569b49e2674"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Tell the owner once, in the next compact turn, which owner rules, skills, and canonical documents Lervo committed since it last reported, without displacing owner rules."

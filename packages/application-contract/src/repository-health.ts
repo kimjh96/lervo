@@ -70,12 +70,31 @@ export interface RepositoryHealthProjectionV1 {
       items: Array<{ path: string; since: string | null; ageMilliseconds: number | null }>;
       omitted: number;
     }>;
-    brokenLinks: RepositoryHealthMeasureV1<{ count: number }>;
+    brokenLinks: RepositoryHealthMeasureV1<{
+      count: number;
+      /** ADR-0551 link web; absent on projections written before it. */
+      missingBacklinkCount?: number;
+      orphanCount?: number;
+    }>;
     find: RepositoryHealthMeasureV1<{
       windowStart: string;
       lastInjectedAt: string | null;
       referencedCount: number;
       terminalPreparedCount: number;
+      /** ADR-0550 terminal turn evidence; absent on projections written before it. */
+      turnCount?: number;
+      selectedTurnCount?: number;
+      pathMentionCount?: number;
+      /** ADR-0552 seven-day turns whose changes canon governs, and those that missed it. */
+      governedTurnCount?: number;
+      missedTurnCount?: number;
+      /** ADR-0550 last replay over past changes, or null when none is recorded. */
+      replay?: {
+        observedAt: string;
+        caseCount: number;
+        recall: number | null;
+        precision: number | null;
+      } | null;
     }>;
   };
 }

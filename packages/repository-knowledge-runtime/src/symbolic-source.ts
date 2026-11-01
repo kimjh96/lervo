@@ -1,5 +1,5 @@
 import { lstatSync, readlinkSync } from "node:fs";
-import { resolve } from "node:path";
+import { posix, resolve } from "node:path";
 import { canonicalJson } from "@lervo/repository-knowledge";
 import {
   symbolicReferenceTarget,
@@ -56,4 +56,43 @@ export function assertSymbolicTargetsCaptured(
     )
       throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
   }
+}
+
+/**
+ * A tracked link whose target stays inside the repository, such as a provider skill surface
+ * (`.claude/skills/<name>` → `../../.agents/skills/<name>`), is captured as its descriptor exactly
+ * like a reviewed reference. Returns null for a non-link; a link that leaves the repository, is
+ * absolute, or reaches Lervo state stays unsupported.
+ */
+export function repositoryLinkReference(root: string, path: string): SymbolicReference | null {
+  let stat;
+  try {
+    stat = lstatSync(resolve(root, path));
+  } catch {
+    return null;
+  }
+  if (!stat.isSymbolicLink()) return null;
+  const target = readlinkSync(resolve(root, path));
+  const resolved = symbolicReferenceTarget({ path, target });
+  if (
+    posix.isAbsolute(target) ||
+    target.includes("\\") ||
+    target.includes("\0") ||
+    resolved === "." ||
+    resolved === ".." ||
+    resolved.startsWith("../") ||
+    [".git", ".lervo"].some((prefix) => resolved === prefix || resolved.startsWith(`${prefix}/`))
+  )
+    throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
+  let targetStat;
+  try {
+    targetStat = lstatSync(resolve(root, resolved));
+  } catch (error) {
+    throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported", {
+      cause: error,
+    });
+  }
+  if (!targetStat.isFile() && !targetStat.isDirectory())
+    throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
+  return { path, target, targetKind: targetStat.isFile() ? "file" : "directory" };
 }

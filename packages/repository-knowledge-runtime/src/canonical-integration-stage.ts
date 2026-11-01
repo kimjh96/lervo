@@ -112,7 +112,7 @@ export async function integrateCanonicalBaseline(
     return parkCanonicalTargetBatch(context, state, batch, {
       reason: "layout_capacity_exceeded",
       layoutCapacityHash: layout.capacityHash,
-      codes: [...new Set(layout.evaluation.blockers.map((blocker) => blocker.code))],
+      codes: [...new Set(layout.worseningBlockers.map((blocker) => blocker.code))],
       ...(retiredRefEffect === undefined ? {} : { retiredRefEffect }),
     });
   }

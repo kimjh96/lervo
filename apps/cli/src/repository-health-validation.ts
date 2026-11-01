@@ -18,6 +18,18 @@ const count = (value: unknown): boolean => Number.isSafeInteger(value) && (value
 const nullable = (value: unknown, valid: (v: unknown) => boolean): boolean =>
   value === null || valid(value);
 
+const rate = (value: unknown): boolean =>
+  value === null || (typeof value === "number" && value >= 0 && value <= 1);
+function validReplay(value: unknown): boolean {
+  return (
+    object(value) &&
+    time(value.observedAt) &&
+    count(value.caseCount) &&
+    rate(value.recall) &&
+    rate(value.precision)
+  );
+}
+
 function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boolean {
   switch (key) {
     case "convergence":
@@ -93,13 +105,26 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
         )
       );
     case "brokenLinks":
-      return count(v.count);
+      return (
+        count(v.count) &&
+        [v.missingBacklinkCount, v.orphanCount].every(
+          (value) => value === undefined || count(value),
+        )
+      );
     case "find":
       return (
         time(v.windowStart) &&
         nullable(v.lastInjectedAt, time) &&
         count(v.referencedCount) &&
-        count(v.terminalPreparedCount)
+        count(v.terminalPreparedCount) &&
+        [
+          v.turnCount,
+          v.selectedTurnCount,
+          v.pathMentionCount,
+          v.governedTurnCount,
+          v.missedTurnCount,
+        ].every((value) => value === undefined || count(value)) &&
+        (v.replay === undefined || v.replay === null || validReplay(v.replay))
       );
   }
 }
