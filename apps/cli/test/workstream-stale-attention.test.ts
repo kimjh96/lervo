@@ -181,7 +181,13 @@ describe("stale workstream attention", () => {
     expect(Buffer.byteLength(first.additionalContext)).toBeLessThanOrEqual(
       MAXIMUM_COMPACT_CONTEXT_BYTES,
     );
-    expect(first.additionalContext).toContain("[Lervo context truncated at");
+    // The workstream is cut only at line boundaries and ends with a pointer, never mid-sentence.
+    expect(first.additionalContext).not.toContain("[Lervo context truncated at");
+    expect(first.workstream?.context).toMatch(
+      /Lervo workstream: omitted for space; run `lervo workstream current`\.$/u,
+    );
+    for (const line of first.workstream!.context.split("\n").slice(0, -1))
+      expect(workstreamContext!.context.split("\n")).toContain(line);
     expect(first.additionalContext).toContain(
       "publication.language=en; writingPolicyId=writing_en-human",
     );
