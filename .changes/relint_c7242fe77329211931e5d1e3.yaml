@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_c7242fe77329211931e5d1e3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep applying independent upgrade stages when repository content has pre-existing knowledge lint errors, and report those errors in the receipt."
