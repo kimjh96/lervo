@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0530](0530-keep-background-knowledge-moving-past-divergent-targets.md), [ADR-0436](../repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md), and [ADR-0486](../semantics/0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md)
+Amended by: [ADR-0546](../repository/source-intake/0546-capture-in-repository-links-without-a-reviewed-declaration.md) (capture also derives undeclared in-repository link descriptors) and the ADR-0547 amendment recorded in [ADR-0222](../repository/0222-bounded-role-based-document-layout.md) (only overflow a write creates or grows blocks it).
 
 ## Context
 
@@ -28,7 +29,9 @@ The disposition ledger retains independently approved noncandidate decisions fro
 
 Each capacity parking binds a hash of the observed counts, capacity policy, routes, and roles. Changed source bytes or a changed layout hash readmit the source in a later obligation. Editing unrelated document bodies does not release capacity. Existing stalls receive one evaluation under the new contract.
 
-Routing guidance alone cannot repair an already oversized folder: the existing evaluator rejects any projected layout that still exceeds capacity, including writes elsewhere. The layout lifecycle retains documents already in canonical trees such as `docs/specs`; it does not automatically subdivide them. It classifies legacy documents and validates grouped decision leaves. This change moves no user documents and does not relax the evaluator. Repairing an existing canonical folder requires a separate exact reviewed layout change. Normalization may still meet that independent capacity constraint at apply.
+Routing guidance alone cannot repair an already oversized folder. Under the ADR-0547 amendment recorded in ADR-0222, only overflow a write creates or grows blocks it; existing overflow stays a lint error. Existing unrelated overflow therefore does not by itself block a write elsewhere. Adding documents to a full directory still creates or grows overflow and is blocked. The layout lifecycle retains documents already in canonical trees such as `docs/specs`; it does not automatically subdivide them. It classifies legacy documents and validates grouped decision leaves. This change moves no user documents. Repairing an existing canonical folder requires a separate exact reviewed layout change. Normalization remains subject to the amended write-capacity rule, and existing overflow remains visible to lint.
+
+The complete ADR-0547 text was not supplied for this correction. This paragraph applies only the explicit amendment recorded in ADR-0222; it does not establish additional evaluator mechanics, deployment status, or completed acceptance.
 
 ### Exclude owned projections at every assessment entry
 
@@ -42,7 +45,7 @@ Applicable instruction documents remain required. Discovery or loading failure s
 
 Linked canonical candidates, query recommendations, focused hits, and source reads used only to enrich queries or discover links are optional. Missing files, read failures including oversized files, unsafe paths including symlinks, changed-during-read failures, and invalid UTF-8 are skipped with a closed reason. Optional reads share a ceiling of 64 attempts per selection. Existing document and aggregate byte ceilings remain. Query failures and readable documents whose expected hash differs still fail closed.
 
-Internal symlinks are skipped too. ADR-0436 captures only reviewed link descriptors and separately inventories real targets; neither ordinary capture nor review context follows aliases. This change preserves that contract.
+Internal symlinks are skipped by optional context reads too. Under ADR-0436 as amended by ADR-0546, source capture records reviewed link descriptors and derives descriptors for eligible undeclared tracked in-repository links. A declared reference takes precedence for the same path. Derived references require a relative target inside the repository, outside `.git` and `.lervo`, naming an existing file or directory whose target capture passes the complete Git-governed inventory check. Link chains remain unsupported. The 32-reference bound applies to reviewed declarations; derived references remain bounded by the 20,000-path inventory limit. Descriptor capture never follows or reads target bytes through the link, and real targets are inventoried separately. This capture amendment does not authorize review-context readers to follow aliases or establish semantic coverage.
 
 Only successfully loaded documents become context bindings. Canonical batches retain those exact documents, layout guidance, and skip evidence for independent review. Provider observations record skips separately from loaded-context measurements. A skipped path cannot prove coverage or load, injection, or use.
 
