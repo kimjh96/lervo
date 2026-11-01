@@ -11,6 +11,8 @@ const MAXIMUM_SHOWN_CHANGES = 3;
 
 /** One repository-changing turn: how many changed paths canon governs, and what it missed. */
 export interface TurnGovernanceRecord {
+  /** The prepared context event of the turn; a retried Stop for it records nothing new. */
+  turnKey?: string;
   at: string;
   changedCount: number;
   governingCount: number;
@@ -22,6 +24,7 @@ export interface TurnGovernanceState {
   turns: TurnGovernanceRecord[];
   /** The newest turn's misses, until an owner turn has been shown them. */
   pending: {
+    turnKey?: string;
     at: string;
     changed: string[];
     missed: string[];
@@ -59,6 +62,7 @@ export async function readTurnGovernance(root: string): Promise<TurnGovernanceSt
  */
 export async function recordTurnGovernance(input: {
   root: string;
+  turnKey: string;
   changedPaths: readonly string[];
   selectedPaths: readonly string[];
   at: string;
@@ -78,10 +82,13 @@ export async function recordTurnGovernance(input: {
   }
   const missed = [...governing].filter((document) => !consulted.has(document)).sort();
   const previous = await readTurnGovernance(input.root);
+  // A retried Stop may have lost its turn selection, so only the first record of a turn counts.
+  if (previous?.turns.some((turn) => turn.turnKey === input.turnKey)) return;
   const start = Date.parse(input.at) - WINDOW_MS;
   const turns = [
     ...(previous?.turns ?? []).filter((turn) => Date.parse(turn.at) >= start),
     {
+      turnKey: input.turnKey,
       at: input.at,
       changedCount: changed.size,
       governingCount: governing.size,
@@ -95,6 +102,7 @@ export async function recordTurnGovernance(input: {
       missed.length === 0
         ? null
         : {
+            turnKey: input.turnKey,
             at: input.at,
             changed: governedChanges.slice(0, MAXIMUM_SHOWN_CHANGES),
             missed: missed.slice(0, MAXIMUM_SHOWN_DOCUMENTS),
@@ -103,16 +111,29 @@ export async function recordTurnGovernance(input: {
   } satisfies TurnGovernanceState);
 }
 
-/** The line for the next owner turn, or null when nothing is pending. */
+/** The pending check for the next owner turn, or null when nothing is pending. */
+export function pendingTurnGovernance(
+  state: TurnGovernanceState | null,
+): { pendingAt: string; line: string } | null {
+  const line = turnGovernanceLine(state);
+  return line === null ? null : { pendingAt: state!.pending!.at, line };
+}
+
 export function turnGovernanceLine(state: TurnGovernanceState | null): string | null {
   const pending = state?.pending ?? null;
   if (pending === null || pending.shownAt !== null) return null;
   return `Lervo check: the last turn changed ${pending.changed.join(", ")} without consulting the canon that names it: ${pending.missed.join(", ")}. Verify the change against these sources before building on it.`;
 }
 
-export async function markTurnGovernanceShown(root: string, at: string): Promise<void> {
+/** Marks only the pending check that this turn showed; a newer one stays pending. */
+export async function markTurnGovernanceShown(
+  root: string,
+  pendingAt: string,
+  at: string,
+): Promise<void> {
   const state = await readTurnGovernance(root);
-  if (state?.pending == null || state.pending.shownAt !== null) return;
+  if (state?.pending == null || state.pending.shownAt !== null || state.pending.at !== pendingAt)
+    return;
   await writePrivateStateJson(root, STATE, {
     ...state,
     pending: { ...state.pending, shownAt: at },

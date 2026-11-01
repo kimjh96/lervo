@@ -101,6 +101,7 @@ export async function completeTerminalHookTurn({
   await timing.measure("lifecycle_inspection", () =>
     recordTurnGovernance({
       root,
+      turnKey: expectation.contextEventId,
       changedPaths: observation.changedPaths,
       selectedPaths: observation.consultedPaths,
       at: occurredAt,

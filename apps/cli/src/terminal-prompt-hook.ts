@@ -138,11 +138,9 @@ export async function prepareAndRecordTerminalPrompt({
   // ADR-0548 and ADR-0549: only a context that every step above prepared successfully is the one
   // the provider receives, so delivery is recorded last. A failure loses only these observations.
   await recordOwnerTurnStopAppearance(root, context, occurredAt).catch(() => undefined);
-  if (
-    context.governanceLine !== undefined &&
-    context.additionalContext.includes(context.governanceLine)
-  )
-    await markTurnGovernanceShown(root, occurredAt).catch(() => undefined);
+  const governance = context.governance;
+  if (governance !== undefined && context.additionalContext.includes(governance.line))
+    await markTurnGovernanceShown(root, governance.pendingAt, occurredAt).catch(() => undefined);
   const learned = context.learnedNotice;
   if (learned !== undefined && context.additionalContext.includes(learned.line))
     await writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined);

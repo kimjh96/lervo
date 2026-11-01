@@ -102,6 +102,9 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
       `${document.path}\0${createHash("sha256").update(document.content).digest("hex")}\n`,
     );
   digest.update(files.join("\0"));
+  // The layout taxonomy decides canonical and archive scopes, so it binds reuse too.
+  const taxonomy = await loadDecisionTaxonomy(root);
+  digest.update(`\0${JSON.stringify(taxonomy)}`);
   const inputDigest = `sha256:${digest.digest("hex")}`;
   const previous = await readLinkWeb(root);
   if (previous?.inputDigest === inputDigest && (await governingIndexPresent(root))) {
@@ -112,7 +115,6 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
     return reobserved;
   }
 
-  const taxonomy = await loadDecisionTaxonomy(root);
   const trackedPaths = new Set<string>();
   for (const path of files) {
     trackedPaths.add(path);

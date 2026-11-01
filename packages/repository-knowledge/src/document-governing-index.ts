@@ -1,4 +1,4 @@
-import { extractDocumentReferences } from "./document-references.js";
+import { extractDocumentReferences, MAXIMUM_DOCUMENT_REFERENCES } from "./document-references.js";
 import { historicalDocumentMarker } from "./historical-documents.js";
 
 /** Repository paths (files or directories) named by current canonical documents. */
@@ -6,6 +6,8 @@ export interface GoverningIndex {
   documents: string[];
   /** Referenced path → indexes into `documents`, each list sorted. */
   entries: Record<string, number[]>;
+  /** Documents that reached the reference bound; they may govern more than recorded. */
+  truncated: string[];
 }
 
 const MAXIMUM_DOCUMENTS_PER_PATH = 16;
@@ -32,14 +34,19 @@ export function buildGoverningIndex(input: {
     )
     .sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
   const entries: Record<string, number[]> = {};
+  const truncated: string[] = [];
   documents.forEach((document, index) => {
-    for (const reference of extractDocumentReferences(document)) {
-      if (reference.weak || /\.mdx?$/iu.test(reference.target)) continue;
+    const references = extractDocumentReferences({
+      ...document,
+      accept: (reference) => reference.weak !== true && !/\.mdx?$/iu.test(reference.target),
+    });
+    if (references.length >= MAXIMUM_DOCUMENT_REFERENCES) truncated.push(document.path);
+    for (const reference of references) {
       const list = (entries[reference.target] ??= []);
       if (list.at(-1) !== index && list.length < MAXIMUM_DOCUMENTS_PER_PATH) list.push(index);
     }
   });
-  return { documents: documents.map((document) => document.path), entries };
+  return { documents: documents.map((document) => document.path), entries, truncated };
 }
 
 /** Documents governing a changed path: the path itself and every directory above it. */

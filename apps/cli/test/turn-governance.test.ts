@@ -45,12 +45,26 @@ describe("governing index", () => {
   });
 });
 
+describe("governing index bound", () => {
+  it("lets excluded Markdown references not displace code paths", () => {
+    const links = Array.from({ length: 600 }, (_, index) => `[d${index}](d${index}.md)`).join(" ");
+    const big = buildGoverningIndex({
+      documents: [{ path: "docs/decisions/0009-big.md", content: `${links}\n\n\`src/late.ts\`\n` }],
+      canonical: () => true,
+      archiveScopes: [],
+    });
+    expect(governingDocumentsFor(big, "src/late.ts")).toEqual(["docs/decisions/0009-big.md"]);
+    expect(big.truncated).toEqual([]);
+  });
+});
+
 describe("turn governance", () => {
   it("records misses, shows them once, and summarizes the miss rate", async () => {
     const root = await mkdtemp(join(tmpdir(), "lervo-governance-"));
     // Without an index nothing is recorded, so absence never reads as zero misses.
     await recordTurnGovernance({
       root,
+      turnKey: "evt_zero",
       changedPaths: ["apps/cli/src/upgrade.ts"],
       selectedPaths: [],
       at: "2026-11-01T00:00:00.000Z",
@@ -60,6 +74,7 @@ describe("turn governance", () => {
     await writeGoverningIndex(root, index);
     await recordTurnGovernance({
       root,
+      turnKey: "evt_one",
       changedPaths: ["apps/cli/src/upgrade.ts", "docs/specifications/cli.md"],
       selectedPaths: [],
       at: "2026-11-01T01:00:00.000Z",
@@ -73,11 +88,24 @@ describe("turn governance", () => {
     expect(turnGovernanceLine(missed)).toContain(
       "changed apps/cli/src/upgrade.ts without consulting the canon that names it: docs/decisions/0001-upgrade.md",
     );
-    await markTurnGovernanceShown(root, "2026-11-01T01:05:00.000Z");
+    // A retried Stop for the same turn records nothing new.
+    await recordTurnGovernance({
+      root,
+      turnKey: "evt_one",
+      changedPaths: ["apps/cli/src/upgrade.ts"],
+      selectedPaths: [],
+      at: "2026-11-01T01:01:00.000Z",
+    });
+    expect((await readTurnGovernance(root))!.turns).toHaveLength(1);
+    // Marking an older pending check leaves the current one pending.
+    await markTurnGovernanceShown(root, "2026-10-31T00:00:00.000Z", "2026-11-01T01:05:00.000Z");
+    expect(turnGovernanceLine(await readTurnGovernance(root))).not.toBeNull();
+    await markTurnGovernanceShown(root, "2026-11-01T01:00:00.000Z", "2026-11-01T01:05:00.000Z");
     expect(turnGovernanceLine(await readTurnGovernance(root))).toBeNull();
 
     await recordTurnGovernance({
       root,
+      turnKey: "evt_two",
       changedPaths: ["apps/cli/src/upgrade.ts"],
       selectedPaths: ["docs/decisions/0001-upgrade.md", "docs/specifications/cli.md"],
       at: "2026-11-01T02:00:00.000Z",

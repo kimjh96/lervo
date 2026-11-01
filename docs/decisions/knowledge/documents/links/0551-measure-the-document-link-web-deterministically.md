@@ -29,7 +29,7 @@ Historical documents are frozen records. They are not checked, need no inbound l
 
 ### Built in the background, reused until Markdown changes
 
-The health prefetch rebuilds the web only when its input digest changes: the content hash of every tracked or untracked-but-not-ignored Markdown file, plus the full path set that link targets resolve against. An unchanged digest is re-observed after an hour, so an idle repository's measure does not expire. It writes `.lervo/state/link-web.json` with counts and at most 16 examples of each finding. On the Mac checkout of `lervo` a rebuild takes about 0.2 seconds.
+The health prefetch rebuilds the web only when its input digest changes: the content hash of every tracked or untracked-but-not-ignored Markdown file, plus the full path set that link targets resolve against, and the layout taxonomy that decides canonical and archive scopes. An unchanged digest is re-observed after an hour, so an idle repository's measure does not expire. It writes `.lervo/state/link-web.json` with counts and at most 16 examples of each finding. On the Mac checkout of `lervo` a rebuild takes about 0.2 seconds.
 
 ### Health reports it
 
