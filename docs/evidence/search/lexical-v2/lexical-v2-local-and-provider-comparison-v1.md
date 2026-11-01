@@ -38,7 +38,7 @@ The BM25F control queried faster but lost success and recall in both suites. It 
 
 ## Paired provider contract
 
-The checked-in suite is [`lexical-v2-provider-comparison-v1.json`](../../../benchmarks/search/lexical-v2-provider-comparison-v1.json), digest `sha256:4916d3b13ee00b3b789eea8dff7b845dfe191aae06ea01ef299113edf6061406`. It binds eight public Korean and mixed-language cases, two per task type, top-three whole-document evidence, three repetitions, alternating arm order, independent sessions, no retries, no repository tools, and at most 48 invocations per provider.
+The checked-in suite is [`lexical-v2-provider-comparison-v1.json`](../../../../benchmarks/search/lexical-v2-provider-comparison-v1.json), digest `sha256:4916d3b13ee00b3b789eea8dff7b845dfe191aae06ea01ef299113edf6061406`. It binds eight public Korean and mixed-language cases, two per task type, top-three whole-document evidence, three repetitions, alternating arm order, independent sessions, no retries, no repository tools, and at most 48 invocations per provider.
 
 Each provider independently had to preserve per-case pass count, recall, and precision; use no more than 90% of baseline reported tokens and 95% of baseline duration; provide complete usage; and produce zero contract, tool, or command failures. Provider usage is descriptive adapter telemetry, not billed cost, and values cannot be compared across providers.
 
