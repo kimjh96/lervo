@@ -92,14 +92,23 @@ async function captureFixture(authorized = true) {
     ...base,
     executable,
     /** Maps an owner turn to the classification the fixture provider returns for it. */
-    async plan(entries: Array<{ ownerTurn: string; response?: unknown; fail?: boolean }>) {
+    async plan(
+      entries: Array<{
+        ownerTurn: string;
+        response?: unknown;
+        fail?: boolean;
+        crossCheck?: "agree" | "disagree" | "fail";
+      }>,
+    ) {
       await writeFile(
         resolve(providerDirectory, "instruction-capture-plan.json"),
         JSON.stringify(
           Object.fromEntries(
             entries.map((entry) => [
               digest(entry.ownerTurn),
-              entry.fail === true ? { fail: true } : { response: entry.response },
+              entry.fail === true
+                ? { fail: true }
+                : { response: entry.response, crossCheck: entry.crossCheck },
             ]),
           ),
         ),
@@ -167,7 +176,7 @@ const PRECEDING_AGENT_TURN =
 
 describe("owner-turn instruction capture stage (ADR-0467)", () => {
   it(
-    "turns English, Korean, paraphrased, and implicit owner rules into exact-review candidates",
+    "turns English, Korean, paraphrased, and implicit owner rules into cross-checked candidates",
     { timeout: 120_000 },
     async () => {
       const f = await captureFixture();
@@ -211,8 +220,11 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       expect(
         candidates.every((candidate) => candidate.instructionCatalogDigest !== undefined),
       ).toBe(true);
-      const calls = await f.calls();
+      const all = await f.calls();
+      const calls = all.filter((call) => call.task === "instruction_capture_assessment");
       expect(calls).toHaveLength(4);
+      // ADR-0561: every restated rule is checked by an independent session before it is stored.
+      expect(all.filter((call) => call.task === "durable_instruction_cross_check")).toHaveLength(4);
       // Each later turn is judged against the rules already waiting, so rephrasings dedupe.
       expect(calls.map((call) => call.pendingOwnerRuleCount)).toEqual([0, 1, 2, 3]);
       expect(
@@ -227,6 +239,13 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
         .filter((event) => (event.payload as { stage?: unknown }).stage === "instruction_capture");
       expect(usage).toHaveLength(4);
       expect(usage[0]!.payload).toMatchObject({ channel: "knowledge_worker" });
+      expect(
+        f
+          .eventsOf("resource.usage.recorded")
+          .filter(
+            (event) => (event.payload as { stage?: unknown }).stage === "instruction_cross_check",
+          ),
+      ).toHaveLength(4);
       expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
     },
   );
@@ -269,7 +288,7 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
     expect(state).not.toContain(IMPLICIT_KOREAN_CORRECTION);
   });
 
-  it("holds conversation decisions for the owner and records the ADR-0457 conversation event", async () => {
+  it("holds conversation decisions as Lervo debt and records the ADR-0457 conversation event", async () => {
     const f = await captureFixture();
     const decisionTurn = "Let's keep the knowledge worker on the Mac until the writer lease ships.";
     const conversationEventId = `cve_${"a".repeat(64)}`;
@@ -347,7 +366,7 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
     });
   });
 
-  it("holds an owner rule whose scope the gate cannot accept instead of dropping it", async () => {
+  it("stores an unscoped, high-risk, inferred rule once the cross-check agrees", async () => {
     const f = await captureFixture();
     const ownerTurn = "Only one of them should ever write.";
     await f.plan([
@@ -355,12 +374,15 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
         ownerTurn,
         response: {
           schemaVersion: 1,
-          captureClass: "durable_instruction",
+          captureClass: "correction_of_agent_behavior",
           durableInstruction: {
             ...canonicalRule("Allow a single writer", "Only one host writes."),
             disposition: "pending",
+            authority: "inferred",
             scope: { kind: "unspecified", paths: [] },
+            risk: "high",
             confidence: "medium",
+            reasonIds: ["broad.product.policy"],
           },
           decision: null,
           reasonIds: [],
@@ -368,11 +390,83 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       },
     ]);
     await f.enqueue({ ownerTurn });
-    await f.cycle();
+    expect(await f.cycle()).toMatchObject({ instructionCandidateCount: 1 });
+    const [candidate] = await listDurableInstructionCandidates(f.root);
+    expect(candidate?.instruction).toMatchObject({ authority: "inferred", risk: "high" });
+    expect(candidate?.proposedMarkdown).not.toContain("paths:");
+    expect((await readInstructionCaptureState(f.root)).held).toEqual([]);
+  });
+
+  it("rejects a captured rule the cross-check disagrees with as Lervo debt", async () => {
+    const f = await captureFixture();
+    const ownerTurn = "Maybe we should only let one host write?";
+    await f.plan([
+      {
+        ownerTurn,
+        crossCheck: "disagree",
+        response: {
+          schemaVersion: 1,
+          captureClass: "durable_instruction",
+          durableInstruction: canonicalRule("Allow a single writer", "Only one host writes."),
+          decision: null,
+          reasonIds: [],
+        },
+      },
+    ]);
+    await f.enqueue({ ownerTurn });
+    expect(await f.cycle()).toMatchObject({ assessedCount: 1, instructionCandidateCount: 0 });
     expect(await listDurableInstructionCandidates(f.root)).toEqual([]);
     expect((await readInstructionCaptureState(f.root)).held).toEqual([
-      expect.objectContaining({ kind: "rule_needs_clarification", title: "Allow a single writer" }),
+      expect.objectContaining({ kind: "cross_check_disagreement", title: "Allow a single writer" }),
     ]);
+    expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
+  });
+
+  it("stores a rule in the owner's own words without a model cross-check", async () => {
+    const f = await captureFixture();
+    const ownerTurn = "From now on: Keep both hosts writable. Thanks.";
+    await f.plan([
+      {
+        ownerTurn,
+        crossCheck: "disagree",
+        response: {
+          schemaVersion: 1,
+          captureClass: "durable_instruction",
+          durableInstruction: canonicalRule(
+            "Keep both hosts writable",
+            "Keep both hosts writable.",
+          ),
+          decision: null,
+          reasonIds: [],
+        },
+      },
+    ]);
+    await f.enqueue({ ownerTurn });
+    expect(await f.cycle()).toMatchObject({ instructionCandidateCount: 1 });
+    expect(
+      (await f.calls()).filter((call) => call.task === "durable_instruction_cross_check"),
+    ).toEqual([]);
+  });
+
+  it("retries a retained owner rule with backoff and never drops it", async () => {
+    const f = await captureFixture();
+    const ownerTurn = "Keep both hosts writable at all times.";
+    await f.plan([{ ownerTurn, fail: true }]);
+    await enqueueInstructionCapture({
+      repositoryRoot: f.root,
+      source: "terminal_prompt",
+      provider: "claude",
+      ownerTurn,
+      precedingAgentTurn: null,
+      retained: true,
+      now: new Date("2026-11-02T00:00:00.000Z"),
+    });
+    for (const minute of [0, 10, 30, 70, 200])
+      await f.cycle(new Date(Date.parse("2026-11-02T00:00:00.000Z") + minute * 60_000));
+    const [queued] = await listQueuedInstructionCaptures(f.root);
+    expect(queued).toMatchObject({ retained: true, attempts: 5 });
+    await f.cycle(new Date("2026-11-04T00:00:00.000Z"));
+    expect(await listQueuedInstructionCaptures(f.root)).toHaveLength(1);
   });
 
   it("assesses one turn once, even when several agents queue it", async () => {
@@ -564,7 +658,9 @@ describe("owner-turn capture across hosts (ADR-0467)", () => {
           candidateExchange: { status: "exchanged", published: 1 },
         },
       });
-      expect(await mac.calls()).toHaveLength(1);
+      expect(
+        (await mac.calls()).filter((call) => call.task === "instruction_capture_assessment"),
+      ).toHaveLength(1);
       expect(hub.records.size).toBe(1);
       const [record] = [...hub.records.values()];
       expect(record).toMatchObject({ resolution: "open" });

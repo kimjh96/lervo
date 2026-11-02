@@ -22,13 +22,16 @@ import { runKnowledgeInstructionCapture } from "./knowledge-instruction-capture-
 export async function runKnowledgeInstruction(
   args: string[],
   io: CliIo,
-  services?: Pick<CliServices, "groundProductionRequest">,
+  services?: Pick<CliServices, "groundProductionRequest" | "crossCheckDurableInstruction">,
 ): Promise<number> {
   try {
-    if (["intake", "status", "review"].includes(args[0] ?? ""))
+    if (["intake", "status", "retire"].includes(args[0] ?? ""))
       return await runKnowledgeDurableInstruction(args, io, services);
     if (args[0] === "capture") return await runKnowledgeInstructionCapture(args.slice(1), io);
-    if (args[0] !== "bridge") throw new Error("The instruction command currently supports bridge.");
+    if (args[0] !== "bridge")
+      throw new Error(
+        "The instruction command supports intake, status, retire, capture, and bridge.",
+      );
     const parsed = parseArgs({
       args: args.slice(1),
       strict: true,

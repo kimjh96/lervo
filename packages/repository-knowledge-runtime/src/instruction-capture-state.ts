@@ -24,12 +24,14 @@ const HELD_RETENTION_MILLISECONDS = 30 * 86_400_000;
 const MAXIMUM_STATE_BYTES = 256 * 1024;
 
 /**
- * `decision`: a settled choice the owner stated. `rule_needs_clarification`: an owner rule whose
- * scope, risk, or confidence kept it from becoming an exact candidate; the owner confirms it.
+ * Lervo's own unresolved capture work (ADR-0561); none of it waits for the owner. `decision`: a
+ * settled choice the owner stated, for Lervo to record in canonical documents.
+ * `cross_check_disagreement`: a captured rule the independent cross-check rejected.
+ * `rule_needs_clarification`: written only before ADR-0561, read so older state still projects.
  */
 export interface HeldCapture {
   captureId: string;
-  kind: "decision" | "rule_needs_clarification";
+  kind: "decision" | "cross_check_disagreement" | "rule_needs_clarification";
   source: InstructionCaptureSurface;
   title: string;
   statement: string;

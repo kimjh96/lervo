@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-// Fixture Claude provider for ADR-0467 owner-turn capture. It answers the no-capability JSON
-// contract from `instruction-capture-plan.json` beside this script, keyed by the sha256 digest of
-// the owner turn, so a test decides the semantic classification instead of a model and never
+// Fixture Claude provider for ADR-0467 owner-turn capture and the ADR-0561 cross-check. It answers
+// the no-capability JSON contract from `instruction-capture-plan.json` beside this script, keyed by
+// the sha256 digest of the owner turn, so a test decides the semantic classification instead of a model and never
 // relies on words in the turn. It logs only digests and whether context arrived.
 
 import { createHash } from "node:crypto";
@@ -43,9 +43,14 @@ if (request.task === "provider_cli_admission_probe") {
   );
   process.exit(0);
 }
-if (request.task !== "instruction_capture_assessment")
+if (
+  request.task !== "instruction_capture_assessment" &&
+  request.task !== "durable_instruction_cross_check"
+)
   throw new Error(`Unexpected fixture task ${request.task}`);
-const digest = `sha256:${createHash("sha256").update(request.untrustedOwnerTurn).digest("hex")}`;
+const crossCheck = request.task === "durable_instruction_cross_check";
+const ownerText = crossCheck ? request.untrustedOwnerText : request.untrustedOwnerTurn;
+const digest = `sha256:${createHash("sha256").update(ownerText).digest("hex")}`;
 appendFileSync(
   logPath,
   `${JSON.stringify({
@@ -59,7 +64,7 @@ appendFileSync(
 );
 const plan = existsSync(planPath) ? JSON.parse(readFileSync(planPath, "utf8")) : {};
 const entry = plan[digest];
-if (entry?.fail === true) process.exit(3);
+if (entry?.fail === true || (crossCheck && entry?.crossCheck === "fail")) process.exit(3);
 const none = {
   disposition: "none",
   speechAct: "other",
@@ -75,13 +80,20 @@ const none = {
   confidence: "low",
   reasonIds: [],
 };
-const response = entry?.response ?? {
-  schemaVersion: 1,
-  captureClass: "none",
-  durableInstruction: none,
-  decision: null,
-  reasonIds: ["fixture_plan_missing"],
-};
+// ADR-0561 cross-check: the plan's `crossCheck` verdict, agreeing by default.
+const response = crossCheck
+  ? {
+      schemaVersion: 1,
+      verdict: entry?.crossCheck === "disagree" ? "disagree" : "agree",
+      reasonIds: ["fixture_cross_check"],
+    }
+  : (entry?.response ?? {
+      schemaVersion: 1,
+      captureClass: "none",
+      durableInstruction: none,
+      decision: null,
+      reasonIds: ["fixture_plan_missing"],
+    });
 console.log(
   JSON.stringify({
     is_error: false,

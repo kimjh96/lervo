@@ -22,7 +22,7 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge freshness acknowledge <candidate-id> [--root <path>] [--json]
   lervo knowledge instruction intake --provider <codex|claude> (--from <json-path>|--stdin) [--root <path>] [--json]
   lervo knowledge instruction status [<candidate-id>] [--root <path>] [--json]
-  lervo knowledge instruction review <candidate-id> --decision <apply|reject> --reviewer <id> --approval <candidate-hash> [--root <path>] [--json]
+  lervo knowledge instruction retire <rule-id> [--root <path>] [--json]
   lervo knowledge instruction capture [--dismiss <capture-id>] [--root <path>] [--json]
   lervo knowledge instruction bridge --provider claude [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
   lervo knowledge lint [--root <path>] [--json]

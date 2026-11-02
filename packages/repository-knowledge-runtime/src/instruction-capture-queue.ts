@@ -31,7 +31,9 @@ export const INSTRUCTION_CAPTURE_QUEUE_ROOT = `${INSTRUCTION_CAPTURE_ROOT}/queue
 const AGENT_TURN_ROOT = `${INSTRUCTION_CAPTURE_ROOT}/agent-turns`;
 
 export const MAXIMUM_QUEUED_CAPTURES = 32;
+export const MAXIMUM_RETAINED_CAPTURES = 32;
 export const CAPTURE_RETENTION_MILLISECONDS = 24 * 3_600_000;
+const MAXIMUM_RETRY_DELAY_MILLISECONDS = 24 * 3_600_000;
 const MAXIMUM_AGENT_TURN_SLOTS = 16;
 const AGENT_TURN_RETENTION_MILLISECONDS = 6 * 3_600_000;
 const MAXIMUM_RECORD_BYTES = 64 * 1024;
@@ -51,6 +53,13 @@ export interface QueuedInstructionCapture {
   enqueuedAt: string;
   expiresAt: string;
   attempts: number;
+  /**
+   * ADR-0561: an explicitly submitted owner rule whose grounding or fidelity check could not
+   * finish. It never expires, is never evicted, and is retried with backoff until it is stored.
+   */
+  retained?: true;
+  /** The earliest retry time of a retained record after a failed attempt. */
+  nextAttemptAt?: string;
 }
 
 /** Keeps the tail of a UTF-8 string within a byte bound without splitting a code point. */
@@ -120,13 +129,16 @@ function validCapture(value: unknown): value is QueuedInstructionCapture {
     typeof item.expiresAt === "string" &&
     Number.isFinite(Date.parse(item.expiresAt)) &&
     Number.isSafeInteger(item.attempts) &&
-    (item.attempts ?? -1) >= 0
+    (item.attempts ?? -1) >= 0 &&
+    (item.retained === undefined || item.retained === true) &&
+    (item.nextAttemptAt === undefined ||
+      (typeof item.nextAttemptAt === "string" && Number.isFinite(Date.parse(item.nextAttemptAt))))
   );
 }
 
 export type InstructionCaptureEnqueueResult =
   | { status: "queued" | "already_queued"; captureId: string }
-  | { status: "skipped"; reason: "empty_turn" | "turn_too_large" };
+  | { status: "skipped"; reason: "empty_turn" | "turn_too_large" | "retained_queue_full" };
 
 /**
  * Queues one owner turn for semantic assessment. It performs only bounded local file work, so it
@@ -140,6 +152,8 @@ export async function enqueueInstructionCapture(input: {
   ownerTurn: string;
   precedingAgentTurn: string | null;
   conversation?: { conversationEventId: string; agentId: string | null } | null;
+  /** Keep the record until it is settled (ADR-0561 explicit owner rules). */
+  retained?: boolean;
   now: Date;
 }): Promise<InstructionCaptureEnqueueResult> {
   if (input.ownerTurn.trim() === "") return { status: "skipped", reason: "empty_turn" };
@@ -161,12 +175,19 @@ export async function enqueueInstructionCapture(input: {
   const directory = resolve(input.repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT);
   if (validCapture(await readPrivate(resolve(directory, name))))
     return { status: "already_queued", captureId };
-  const existing = await listQueuedInstructionCaptures(input.repositoryRoot);
-  for (const evicted of existing.slice(
-    0,
-    Math.max(0, existing.length - MAXIMUM_QUEUED_CAPTURES + 1),
-  ))
-    await removeQueuedInstructionCapture(input.repositoryRoot, evicted.captureId);
+  const all = await listQueuedInstructionCaptures(input.repositoryRoot);
+  if (
+    input.retained === true &&
+    all.filter((capture) => capture.retained === true).length >= MAXIMUM_RETAINED_CAPTURES
+  )
+    return { status: "skipped", reason: "retained_queue_full" };
+  const existing = all.filter((capture) => capture.retained !== true);
+  if (input.retained !== true)
+    for (const evicted of existing.slice(
+      0,
+      Math.max(0, existing.length - MAXIMUM_QUEUED_CAPTURES + 1),
+    ))
+      await removeQueuedInstructionCapture(input.repositoryRoot, evicted.captureId);
   const record: QueuedInstructionCapture = {
     schemaVersion: 1,
     captureId,
@@ -179,6 +200,7 @@ export async function enqueueInstructionCapture(input: {
     enqueuedAt: input.now.toISOString(),
     expiresAt: new Date(input.now.getTime() + CAPTURE_RETENTION_MILLISECONDS).toISOString(),
     attempts: 0,
+    ...(input.retained === true ? { retained: true as const } : {}),
   };
   await writePrivate(input.repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT, name, record);
   return { status: "queued", captureId };
@@ -218,12 +240,28 @@ export async function removeQueuedInstructionCapture(
   });
 }
 
-/** Records one more failed assessment attempt; the caller drops the record at its ceiling. */
+/**
+ * Records one more failed assessment attempt. The caller drops an ordinary record at its ceiling;
+ * a retained record waits an exponentially growing delay, at most a day, before its next attempt.
+ */
 export async function recordInstructionCaptureAttempt(
   repositoryRoot: string,
   capture: QueuedInstructionCapture,
+  now: Date,
 ): Promise<QueuedInstructionCapture> {
-  const next = { ...capture, attempts: capture.attempts + 1 };
+  const attempts = capture.attempts + 1;
+  const next: QueuedInstructionCapture = {
+    ...capture,
+    attempts,
+    ...(capture.retained === true
+      ? {
+          nextAttemptAt: new Date(
+            now.getTime() +
+              Math.min(MAXIMUM_RETRY_DELAY_MILLISECONDS, 2 ** Math.min(attempts, 16) * 60_000),
+          ).toISOString(),
+        }
+      : {}),
+  };
   await writePrivate(
     repositoryRoot,
     INSTRUCTION_CAPTURE_QUEUE_ROOT,
@@ -240,7 +278,7 @@ export async function pruneInstructionCaptureQueue(
 ): Promise<number> {
   let expired = 0;
   for (const capture of await listQueuedInstructionCaptures(repositoryRoot)) {
-    if (Date.parse(capture.expiresAt) > now.getTime()) continue;
+    if (capture.retained === true || Date.parse(capture.expiresAt) > now.getTime()) continue;
     await removeQueuedInstructionCapture(repositoryRoot, capture.captureId);
     expired += 1;
   }

@@ -15,7 +15,7 @@ import {
 const execute = promisify(execFile);
 
 /**
- * Who may apply a reviewed owner-rule candidate (ADR-0467). A host without Hub coordination
+ * Who may apply a stored owner-rule candidate (ADR-0467, ADR-0561). A host without Hub coordination
  * applies as a single host does: it writes the generated rule and leaves the commit to its owner.
  * A Hub-coordinated host applies only while its ADR-0466 fence grants ownership, and then commits
  * the rule as `Lervo Knowledge` so publication and the replica carry it to every host.
@@ -49,14 +49,21 @@ export async function instructionCandidateApplyAuthority(
   };
 }
 
+/** The commit subjects of owner-rule changes; ADR-0549 notices classify them. */
+export const OWNER_RULE_COMMIT_SUBJECT = "docs: apply an owner rule";
+export const OWNER_RULE_RETIRE_COMMIT_SUBJECT = "docs: retire an owner rule";
+
 /**
- * Commits exactly the applied rule file as `Lervo Knowledge` with the owner trailer. Returns
- * null when committing is unsafe or ownership ended; the written rule stays for the next owner.
+ * Commits exactly the given owner-rule paths, including deletions, as `Lervo Knowledge` with the
+ * owner trailer. Only tracked paths can carry a deletion; an untracked deleted path is simply gone.
+ * Returns null when committing is unsafe or ownership ended; the written bytes stay for the next
+ * owner.
  */
-export async function commitAppliedInstructionCandidate(input: {
+async function commitOwnerRulePaths(input: {
   repositoryRoot: string;
-  targetPath: string;
-  candidateId: string;
+  paths: readonly string[];
+  subject: string;
+  trailer: string;
 }): Promise<string | null> {
   const root = input.repositoryRoot;
   if (!(await knowledgeOutputCommitSafe(root))) return null;
@@ -70,24 +77,22 @@ export async function commitAppliedInstructionCandidate(input: {
       })
     ).stdout;
   const trailers = [
-    `Lervo-Instruction-Candidate: ${input.candidateId}`,
+    input.trailer,
     ...(grant.hostHash === null ? [] : [`${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
   ].join("\n");
   try {
     const before = (await git(["rev-parse", "HEAD"])).trim();
-    await git(["add", "--", input.targetPath]);
+    const paths: string[] = [];
+    for (const path of input.paths)
+      if (
+        (await git(["ls-files", "--", path])).trim() !== "" ||
+        (await git(["status", "--porcelain", "--", path])).trim() !== ""
+      )
+        paths.push(path);
+    if (paths.length === 0) return null;
+    await git(["add", "-A", "--", ...paths]);
     await git(
-      [
-        "commit",
-        "--only",
-        "--quiet",
-        "-m",
-        "docs: apply a reviewed owner rule",
-        "-m",
-        trailers,
-        "--",
-        input.targetPath,
-      ],
+      ["commit", "--only", "--quiet", "-m", input.subject, "-m", trailers, "--", ...paths],
       KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
     );
     const after = (await git(["rev-parse", "HEAD"])).trim();
@@ -98,19 +103,57 @@ export async function commitAppliedInstructionCandidate(input: {
 }
 
 /**
- * Whether the applied rule file is tracked and identical to HEAD, so an earlier apply already
- * committed it. A retry then settles the candidate without a second commit.
+ * Commits the applied rule file and the deletion of any generated rule it replaced. The commit is
+ * the undo point: reverting it restores the replaced rule (ADR-0561).
+ */
+export function commitAppliedInstructionCandidate(input: {
+  repositoryRoot: string;
+  targetPath: string;
+  replacedPaths?: readonly string[];
+  candidateId: string;
+}): Promise<string | null> {
+  return commitOwnerRulePaths({
+    repositoryRoot: input.repositoryRoot,
+    paths: [input.targetPath, ...(input.replacedPaths ?? [])],
+    subject: OWNER_RULE_COMMIT_SUBJECT,
+    trailer: `Lervo-Instruction-Candidate: ${input.candidateId}`,
+  });
+}
+
+/** Commits the deletion of one retired generated rule, the undo of an applied rule. */
+export function commitRetiredInstruction(input: {
+  repositoryRoot: string;
+  path: string;
+  ruleId: string;
+}): Promise<string | null> {
+  return commitOwnerRulePaths({
+    repositoryRoot: input.repositoryRoot,
+    paths: [input.path],
+    subject: OWNER_RULE_RETIRE_COMMIT_SUBJECT,
+    trailer: `Lervo-Instruction-Rule: ${input.ruleId}`,
+  });
+}
+
+/**
+ * Whether the applied rule file is tracked and identical to HEAD, and every replaced rule is
+ * deleted in HEAD, so an earlier apply already committed it. A retry then settles the candidate
+ * without a second commit.
  */
 export async function appliedInstructionCandidateCommitted(input: {
   repositoryRoot: string;
   targetPath: string;
+  replacedPaths?: readonly string[];
 }): Promise<boolean> {
   try {
     const git = async (args: string[]) =>
       (await execute("git", ["-C", input.repositoryRoot, ...args], { maxBuffer: 1024 * 1024 }))
         .stdout;
     if ((await git(["ls-files", "--", input.targetPath])).trim() === "") return false;
-    return (await git(["status", "--porcelain", "--", input.targetPath])).trim() === "";
+    return (
+      (
+        await git(["status", "--porcelain", "--", input.targetPath, ...(input.replacedPaths ?? [])])
+      ).trim() === ""
+    );
   } catch {
     return false;
   }

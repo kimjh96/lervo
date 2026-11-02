@@ -33,6 +33,7 @@ import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { groundProductionRequest } from "./semantic-grounding.js";
+import { crossCheckDurableInstruction } from "./durable-instruction-cross-check.js";
 import {
   prepareProductionSearchQueries,
   projectProductionSearchQueries,
@@ -79,6 +80,7 @@ const defaultServices: CliServices = {
   inspectDoctorEnvironment,
   executeEnvironmentQuery,
   groundProductionRequest,
+  crossCheckDurableInstruction,
   projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
   inspectOperatingAttention,

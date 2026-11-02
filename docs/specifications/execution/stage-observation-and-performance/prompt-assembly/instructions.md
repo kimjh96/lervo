@@ -8,15 +8,11 @@ The worker branch restricts changes to assignment-scoped paths. It describes Sto
 
 Worker instructions prohibit advancing the repository-wide workstream or repairing another workspace's knowledge movement. They direct commits only when required by the task or sealing flow and keep the repository-wide workstream informational.
 
-## Repository-long instruction review
+## Repository-long instructions
 
-For an explicit repository-long instruction, the preamble directs the agent to:
+For an explicit repository-long instruction, the preamble directs the agent to submit the exact request through `lervo knowledge instruction intake --provider <provider> --stdin`. Under [ADR-0561](../../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), Lervo stores and applies the rule itself, reports it afterward, and `lervo knowledge instruction retire <rule-id>` undoes it.
 
-1. Submit the exact request through `lervo knowledge instruction intake --provider <provider> --stdin`.
-2. Inspect returned Markdown and candidate hash.
-3. Use `lervo knowledge instruction review` for the exact apply or reject decision.
-
-It prohibits inferred durability or approval. Prompt assembly performs neither intake nor review and materializes no rule.
+It prohibits inferred durability and never asks the owner to run the commands or approve the rule. Prompt assembly performs no intake and materializes no rule.
 
 ## Root completion instructions
 

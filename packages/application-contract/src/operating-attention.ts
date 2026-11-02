@@ -132,12 +132,12 @@ export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttent
 }
 
 /**
- * An owner rule or correction captured from a terminal prompt or managed conversation (ADR-0467).
- * It waits for exact-hash review; `title` is the normalized rule title, never the owner's words.
+ * A stored owner rule the resident has not applied yet (ADR-0467, ADR-0561). It is Lervo's own
+ * work and never waits for the owner; `title` is the normalized rule title, never the owner's words.
  */
 export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "durable_instruction_candidate";
-  state: "waiting_authority";
+  state: "pending_apply";
   candidateId: string;
   candidateHash: string;
   captureSource: "terminal_prompt" | "conversation" | "explicit_intake";
@@ -146,10 +146,14 @@ export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAtt
   createdAt?: string;
 }
 
-/** A decision the owner stated, held until it is documented or dismissed (ADR-0467). */
+/**
+ * Lervo's own held capture debt (ADR-0467, ADR-0561): a decision the owner stated that Lervo has
+ * not documented yet, or a captured rule the independent cross-check rejected. Never owner work.
+ */
 export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "captured_decision";
-  state: "action_required";
+  state: "lervo_debt";
+  heldKind: "decision" | "cross_check_disagreement";
   captureId: string;
   captureSource: "terminal_prompt" | "conversation";
   title: string;
@@ -158,11 +162,12 @@ export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemB
 
 /**
  * ADR-0467: owner turns are queued on this host, but it has no background-work authority (no
- * active delegation for its provider), so it cannot assess them. One item per host.
+ * active delegation for its provider), so it cannot assess them yet. One item per host. ADR-0561:
+ * this is Lervo debt shown with its age, not an owner task.
  */
 export interface InstructionCaptureBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "instruction_capture_blocked";
-  state: "action_required";
+  state: "lervo_debt";
   reasonCode: "knowledge_authority_unavailable";
   queuedCount: number;
   since: string;

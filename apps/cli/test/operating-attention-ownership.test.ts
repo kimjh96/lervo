@@ -113,7 +113,7 @@ describe("attention authority at consequential effects", () => {
     durable_instruction_candidate: {
       ...base,
       kind: "durable_instruction_candidate",
-      state: "waiting_authority",
+      state: "pending_apply",
       itemId: "instruction",
       candidateId: "instruction",
       candidateHash: `sha256:${"a".repeat(64)}`,
@@ -124,7 +124,8 @@ describe("attention authority at consequential effects", () => {
     captured_decision: {
       ...base,
       kind: "captured_decision",
-      state: "action_required",
+      state: "lervo_debt",
+      heldKind: "decision",
       itemId: "capture",
       captureId: "capture",
       captureSource: "conversation",
@@ -134,7 +135,7 @@ describe("attention authority at consequential effects", () => {
     instruction_capture_blocked: {
       ...base,
       kind: "instruction_capture_blocked",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "capture_blocked",
       reasonCode: "knowledge_authority_unavailable",
       queuedCount: 1,
@@ -185,9 +186,9 @@ describe("attention authority at consequential effects", () => {
     ["document_freshness_candidate", "resident freshness cycle", false],
     ["document_freshness_applied", "resident freshness cycle", false],
     ["document_freshness_blocked", "resident freshness cycle", false],
-    ["durable_instruction_candidate", "instruction reviewer", false],
-    ["captured_decision", "principal proxy", false],
-    ["instruction_capture_blocked", "owner", true],
+    ["durable_instruction_candidate", "knowledge resident", false],
+    ["captured_decision", "knowledge resident", false],
+    ["instruction_capture_blocked", "knowledge resident", false],
     ["knowledge_convergence_owner", "resident", false],
     ["knowledge_publication", "knowledge publisher", false],
     ["knowledge_convergence_continuity", "resident", false],
@@ -281,7 +282,8 @@ describe("attention authority at consequential effects", () => {
       ...base,
       kind: "captured_decision",
       itemId: "capture",
-      state: "action_required",
+      state: "lervo_debt",
+      heldKind: "decision",
       captureId: "capture",
       captureSource: "conversation",
       title: "Settled choice",
@@ -291,7 +293,7 @@ describe("attention authority at consequential effects", () => {
       actionOwner: "agent",
       requiresUserAction: false,
       recordedInstruction: base.instruction,
-      attribution: { actor: "principal proxy", ageMilliseconds: 86_400_000, consequence: null },
+      attribution: { actor: "knowledge resident", ageMilliseconds: 86_400_000, consequence: null },
     });
     const blocked: OperatingAttentionItemV1 = {
       ...base,
@@ -334,18 +336,23 @@ describe("attention authority at consequential effects", () => {
         inspectCommand: "lervo knowledge freshness review candidate",
       },
     });
+    // ADR-0561: a missing delegation for capture is Lervo debt, never owner work.
     const scope: OperatingAttentionItemV1 = {
       ...base,
       kind: "instruction_capture_blocked",
       itemId: "authority",
-      state: "action_required",
+      state: "lervo_debt",
       reasonCode: "knowledge_authority_unavailable",
       queuedCount: 1,
       since: "2026-10-30T02:00:00.000Z",
     };
-    expect(attributeOperatingAttention(scope, healthNow).attribution).toMatchObject({
-      consequence: "authority_scope",
-      inspectCommand: "lervo knowledge convergence doctor --json",
+    expect(attributeOperatingAttention(scope, healthNow)).toMatchObject({
+      requiresUserAction: false,
+      attribution: {
+        actor: "knowledge resident",
+        consequence: null,
+        inspectCommand: "lervo knowledge convergence doctor --json",
+      },
     });
   });
 });

@@ -7,6 +7,10 @@ export interface LearnedNoticeEntry {
   title: string | null;
   /** Repository-relative Markdown link targets the change added; canonical documents only. */
   links: string[];
+  /** ADR-0561: generated owner rules this owner rule replaced in the same commit. */
+  replaced?: string[];
+  /** ADR-0561: the owner rule was retired (deleted) rather than stored. */
+  retired?: true;
 }
 
 export interface LearnedNotice {
@@ -48,7 +52,11 @@ function validNotice(value: unknown): value is LearnedNotice {
         typeof entry.path === "string" &&
         (entry.title === null || typeof entry.title === "string") &&
         Array.isArray(entry.links) &&
-        entry.links.every((link) => typeof link === "string"),
+        entry.links.every((link) => typeof link === "string") &&
+        (entry.replaced === undefined ||
+          (Array.isArray(entry.replaced) &&
+            entry.replaced.every((path) => typeof path === "string"))) &&
+        (entry.retired === undefined || entry.retired === true),
     )
   );
 }

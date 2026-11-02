@@ -30,7 +30,6 @@ import {
   MAXIMUM_ASSESSMENTS_PER_CYCLE,
   readInstructionCaptureState,
   writeInstructionCaptureState,
-  type InstructionCaptureState,
 } from "./instruction-capture-state.js";
 
 const MAXIMUM_ATTEMPTS = 3;
@@ -62,30 +61,27 @@ interface CycleCounts {
 const MAXIMUM_PENDING_OWNER_RULES = 16;
 
 /**
- * Rules that already wait for the owner, so a second phrasing of the same rule is judged
- * `covered` instead of becoming a duplicate candidate. Normalized text only, never turns.
+ * Rules stored but not applied yet, so a second phrasing of the same rule is judged `covered`
+ * instead of becoming a duplicate candidate. Normalized text only, never turns.
  */
 async function pendingOwnerRules(
   root: string,
-  state: InstructionCaptureState,
 ): Promise<Array<{ title: string; statement: string }>> {
   const candidates = await listDurableInstructionCandidates(root).catch(() => []);
-  return [
-    ...candidates.map((candidate) => ({
+  return candidates
+    .map((candidate) => ({
       title: candidate.instruction.title ?? candidate.ruleId,
       statement: candidate.instruction.statement ?? "",
-    })),
-    ...state.held
-      .filter((entry) => entry.kind === "rule_needs_clarification")
-      .map((entry) => ({ title: entry.title, statement: entry.statement })),
-  ].slice(0, MAXIMUM_PENDING_OWNER_RULES);
+    }))
+    .slice(0, MAXIMUM_PENDING_OWNER_RULES);
 }
 
 /**
  * The ADR-0467 capture stage of the knowledge resident. It drains the transient owner-turn queue
  * under the hourly, daily, and per-cycle budget, assesses each turn semantically through the
- * governed provider path, and turns the result into an exact-review candidate, a held decision or
- * clarification for the owner, or nothing. Queue text is deleted as soon as a turn is settled.
+ * governed provider path, and turns the result into a cross-checked rule candidate that the
+ * resident applies (ADR-0561), a held item that is Lervo's own debt, or nothing. Queue text is
+ * deleted as soon as a turn is settled.
  */
 export async function runInstructionCaptureCycle(
   context: InstructionCaptureContext,
@@ -120,6 +116,8 @@ export async function runInstructionCaptureCycle(
       await removeQueuedInstructionCapture(root, capture.captureId);
       continue;
     }
+    if (capture.nextAttemptAt !== undefined && Date.parse(capture.nextAttemptAt) > now.getTime())
+      continue;
     if (attempted >= MAXIMUM_ASSESSMENTS_PER_CYCLE || !captureBudgetAvailable(state.budget)) {
       counts.skippedForBudget += 1;
       continue;
@@ -141,7 +139,7 @@ export async function runInstructionCaptureCycle(
         precedingAgentTurn: capture.precedingAgentTurn,
         semanticCatalog: {
           ...catalog.semanticCatalog,
-          pendingOwnerRules: await pendingOwnerRules(root, state),
+          pendingOwnerRules: await pendingOwnerRules(root),
         },
       },
       catalogEntries: catalog.semanticCatalog.canonicalInstructions.entries,
@@ -182,16 +180,22 @@ export async function runInstructionCaptureCycle(
           now,
         });
       } catch (error) {
-        // The same rule already waits for review under another capture of the same words.
+        // The same rule is already stored under another capture of the same words.
         if ((error as { code?: unknown }).code === "knowledge_plan_stale") outcome = "covered";
         // An invalid assessment or a refused candidate is a failed attempt, never a guess.
         else if (!(error instanceof TypeError) && (error as { code?: unknown }).code === undefined)
           throw error;
       }
     }
-    if (outcome === null) {
-      const next = await recordInstructionCaptureAttempt(root, capture);
-      if (next.attempts < MAXIMUM_ATTEMPTS) continue;
+    if (typeof outcome === "object" && outcome !== null) {
+      // The cross-check could not run now; the turn stays queued for a later cycle.
+      deferred = outcome.deferred;
+      break;
+    }
+    if (outcome === null || outcome === "retry") {
+      const next = await recordInstructionCaptureAttempt(root, capture, now);
+      // A retained owner rule is never dropped; it waits for its backoff instead.
+      if (next.retained === true || next.attempts < MAXIMUM_ATTEMPTS) continue;
       counts.failedCount += 1;
     } else {
       counts.assessedCount += 1;
@@ -199,7 +203,7 @@ export async function runInstructionCaptureCycle(
       else if (outcome === "held") counts.decisionCount += 1;
       else if (outcome === "personal_preference") counts.personalPreferenceCount += 1;
       else if (outcome === "covered") counts.coveredCount += 1;
-      else counts.ignoredCount += 1;
+      else if (outcome === "ignored") counts.ignoredCount += 1;
     }
     state.assessed.push({ captureId: capture.captureId, at: now.toISOString() });
     await removeQueuedInstructionCapture(root, capture.captureId);

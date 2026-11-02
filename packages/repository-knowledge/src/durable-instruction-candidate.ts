@@ -82,38 +82,56 @@ function safeScopePath(path: unknown): path is string {
   );
 }
 
+function validReplaces(value: unknown): boolean {
+  return (
+    value === undefined ||
+    (Array.isArray(value) &&
+      value.length <= 16 &&
+      value.every((path) => typeof path === "string" && safeScopePath(path)) &&
+      new Set(value).size === value.length)
+  );
+}
+
+/**
+ * ADR-0561: a stored candidate is any grounded rule. Risk, operation, conflict, confidence, and
+ * authority are classification, not admission; only the shape and bounds are validated here.
+ */
 function validInstruction(value: unknown): value is GroundedDurableInstruction {
   const item = value as GroundedDurableInstruction | null;
   return (
     item !== null &&
     typeof item === "object" &&
-    exactKeys(item, [
-      "disposition",
-      "speechAct",
-      "authority",
-      "durability",
-      "operation",
-      "scope",
-      "title",
-      "statement",
-      "exceptions",
-      "risk",
-      "conflict",
-      "confidence",
-      "reasonIds",
-    ]) &&
-    item.disposition === "canonical" &&
-    item.speechAct === "directive" &&
-    item.authority === "explicit_user" &&
-    item.durability === "repository" &&
-    item.operation === "add" &&
-    (item.scope.kind === "repository" || item.scope.kind === "paths") &&
+    exactKeys(
+      item,
+      [
+        "disposition",
+        "speechAct",
+        "authority",
+        "durability",
+        "operation",
+        "scope",
+        "title",
+        "statement",
+        "exceptions",
+        "risk",
+        "conflict",
+        "confidence",
+        "reasonIds",
+      ],
+      ["replaces"],
+    ) &&
+    (item.disposition === "canonical" || item.disposition === "pending") &&
+    ["explicit_user", "inferred"].includes(item.authority) &&
+    ["none", "add", "replace", "remove"].includes(item.operation) &&
+    ["low", "high", "unknown"].includes(item.risk) &&
+    ["none", "covered", "possible", "unknown"].includes(item.conflict) &&
+    ["high", "medium", "low"].includes(item.confidence) &&
+    ["repository", "paths", "unspecified"].includes(item.scope.kind) &&
     exactKeys(item.scope, ["kind", "paths"]) &&
     Array.isArray(item.scope.paths) &&
     item.scope.paths.length <= 16 &&
     item.scope.paths.every(safeScopePath) &&
     new Set(item.scope.paths).size === item.scope.paths.length &&
-    (item.scope.kind === "paths") === item.scope.paths.length > 0 &&
     typeof item.title === "string" &&
     item.title.length > 0 &&
     Buffer.byteLength(item.title) <= 160 &&
@@ -125,13 +143,11 @@ function validInstruction(value: unknown): value is GroundedDurableInstruction {
     item.exceptions.every(
       (entry) => typeof entry === "string" && entry.length > 0 && Buffer.byteLength(entry) <= 512,
     ) &&
-    item.risk === "low" &&
-    item.conflict === "none" &&
-    item.confidence === "high" &&
     Array.isArray(item.reasonIds) &&
     item.reasonIds.length <= 8 &&
     item.reasonIds.every((entry) => typeof entry === "string" && REASON_ID.test(entry)) &&
-    new Set(item.reasonIds).size === item.reasonIds.length
+    new Set(item.reasonIds).size === item.reasonIds.length &&
+    validReplaces(item.replaces)
   );
 }
 
@@ -211,15 +227,15 @@ export function createDurableInstructionCandidate(input: {
     input.plan.status !== "ready" ||
     input.plan.ruleId === null ||
     input.plan.targetPath === null ||
-    input.plan.operations.length !== 1 ||
-    operation?.action !== "create" ||
+    operation?.path !== input.plan.targetPath ||
+    !["create", "update", "unchanged"].includes(operation.action) ||
     operation.content === undefined ||
     !validInstruction(input.instruction) ||
     !SNAPSHOT_ID.test(input.sourceSnapshotId)
   )
     throw new RepositoryKnowledgeError(
-      "knowledge_approval_required",
-      "Only an eligible durable-instruction plan can become a review candidate.",
+      "knowledge_plan_stale",
+      "Only a ready durable-instruction plan can become a stored candidate.",
     );
   const candidateId = stableId("kinstruction", {
     projectId: input.plan.projectId,

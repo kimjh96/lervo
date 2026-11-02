@@ -13,6 +13,7 @@ const MAXIMUM_COMMITS = 500;
 const MAXIMUM_ENTRIES = 16;
 const MAXIMUM_LINKS = 3;
 const FIRST_RUN_WINDOW = "24 hours ago";
+const GENERATED_RULES = "docs/instructions/generated/";
 
 async function git(root: string, args: string[], maxBuffer = 1024 * 1024): Promise<string> {
   // Unquoted paths keep non-ASCII names, such as Korean document titles, classifiable.
@@ -25,7 +26,13 @@ async function git(root: string, args: string[], maxBuffer = 1024 * 1024): Promi
 
 /** Each Lervo commit subject names why its outputs changed. */
 function commitKind(subject: string): LearnedNoticeEntry["kind"] | null {
-  if (subject === "docs: apply a reviewed owner rule") return "owner_rule";
+  // ADR-0561 renamed the owner-rule subjects; the reviewed form remains in older history.
+  if (
+    subject === "docs: apply an owner rule" ||
+    subject === "docs: retire an owner rule" ||
+    subject === "docs: apply a reviewed owner rule"
+  )
+    return "owner_rule";
   if (subject === "docs: apply reviewed canonical knowledge") return "canonical";
   if (subject === "docs: apply reviewed background knowledge") return "updated";
   return null;
@@ -118,7 +125,7 @@ export async function projectLearnedNotice(input: {
         "log",
         "--no-walk=unsorted",
         "--format=%x1e%H%x1f%s",
-        "--name-only",
+        "--name-status",
         "--no-renames",
         ...batch,
       ],
@@ -131,18 +138,31 @@ export async function projectLearnedNotice(input: {
     .split("\x1e")
     .filter((block) => block.trim().length > 0)
     .map((block) => {
-      const [header = "", ...paths] = block.split("\n");
+      const [header = "", ...lines] = block.split("\n");
       const [commit = "", subject = ""] = header.split("\x1f");
-      return { commit, subject, paths: paths.filter((path) => path.length > 0) };
+      const changes = lines
+        .map((line) => /^([A-Z])[0-9]*\t(.+)$/u.exec(line))
+        .filter((match) => match !== null)
+        .map((match) => ({ deleted: match[1] === "D", path: match[2]! }));
+      const ruleDeletions = changes
+        .filter((change) => change.deleted && change.path.startsWith(GENERATED_RULES))
+        .map((change) => change.path);
+      return { commit, subject, changes, ruleDeletions };
     });
   const seen = new Set<string>();
   const entries: LearnedNoticeEntry[] = [];
   const counts = { owner_rule: 0, skill: 0, canonical: 0, updated: 0 };
   // Newest first, so each path reports its latest reason.
-  for (const { commit, subject, paths } of commits) {
+  for (const { commit, subject, changes, ruleDeletions } of commits) {
     const kind = commitKind(subject);
     if (kind === null) continue;
-    for (const path of paths) {
+    // A rule stored in the same commit carries the rules it replaced; otherwise a deleted rule
+    // was retired and is itemized on its own.
+    const storesRule = changes.some(
+      (change) => !change.deleted && change.path.startsWith(GENERATED_RULES),
+    );
+    for (const { deleted, path } of changes) {
+      if (deleted && (storesRule || !path.startsWith(GENERATED_RULES))) continue;
       const resolved = pathKind(kind, path);
       if (resolved === null) continue;
       const key = resolved === "skill" ? path.split("/").slice(0, 3).join("/") : path;
@@ -150,11 +170,20 @@ export async function projectLearnedNotice(input: {
       seen.add(key);
       counts[resolved] += 1;
       if (entries.length >= MAXIMUM_ENTRIES) continue;
+      const replaced =
+        resolved === "owner_rule" && !deleted && ruleDeletions.length > 0 ? ruleDeletions : [];
       entries.push({
         kind: resolved,
         path: key,
-        title: resolved === "skill" ? (key.split("/")[2] ?? null) : await title(input.root, path),
+        title:
+          resolved === "skill"
+            ? (key.split("/")[2] ?? null)
+            : deleted
+              ? null
+              : await title(input.root, path),
         links: resolved === "canonical" ? await addedLinks(input.root, commit, path) : [],
+        ...(replaced.length > 0 ? { replaced } : {}),
+        ...(deleted ? { retired: true as const } : {}),
       });
     }
   }

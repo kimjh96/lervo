@@ -47,21 +47,26 @@ export function attributeOperatingAttention(
       actor = "resident freshness cycle";
       inspectCommand = "lervo knowledge freshness status";
       break;
+    // ADR-0561: instruction capture never waits for the owner; each item is Lervo debt.
     case "durable_instruction_candidate":
-      actor = "instruction reviewer";
+      actor = "knowledge resident";
       waitingSince = item.createdAt ?? null;
+      recommendation = "Apply the stored owner rule in the next cycle";
       inspectCommand = `lervo knowledge instruction status ${item.candidateId}`;
       break;
     case "captured_decision":
-      actor = "principal proxy";
+      actor = "knowledge resident";
       waitingSince = item.capturedAt;
-      recommendation = "Document the settled decision or resolve its scope under the mandate";
+      recommendation =
+        item.heldKind === "decision"
+          ? "Record the owner decision in the canonical documents"
+          : "Keep the rejected rule as debt until the owner states it again";
       inspectCommand = "lervo knowledge instruction capture";
       break;
     case "instruction_capture_blocked":
-      consequence = "authority_scope";
+      actor = "knowledge resident";
       waitingSince = item.since;
-      recommendation = "Authorize a bounded knowledge convergence delegation";
+      recommendation = "Assess queued owner turns once a convergence delegation is active";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
     case "knowledge_convergence_continuity":

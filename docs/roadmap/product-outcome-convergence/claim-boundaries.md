@@ -1,7 +1,7 @@
 # Corrected product claim boundaries
 
 - Completed natural-language terminal v1 verifies retrieval, workstream checkpoints, declarations, and lifecycle inspection. It provides neither automatic semantic outcome drafting nor proactive user attention.
-- Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 forbids direct-hook effect grounding and mutation. The installed explicit durable-instruction command owns candidate creation and exact reviewed materialization outside the hook.
+- Completed branch-safe lifecycle verifies typed candidate creation and exact review. ADR-0327 forbids direct-hook effect grounding and mutation. The installed explicit durable-instruction command owns candidate creation and materialization outside the hook; under ADR-0561 it applies owner rules after a fidelity check instead of an exact review.
 - The completed governed-loop roadmap and installed extensions covered manual execution, read-only workstream goals, liveness, bounded unattended continuation, and reviewed additive dynamic topology. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the loop, goal report, combined liveness report, and unattended scheduler; root-agent liveness and supervision topology stay. Native provider-session resume and independent nested-goal mutation remain outside those contracts.
 - The product-host protocol was a CLI compatibility boundary, not a Paperclip or Buzz product interface. ADR-0560 removed it.
 - ADR-0417 assigns Lervo delivery ownership for a Discord-visible reference product and future first-party surface. The Discord foundations do not establish a completed interface; each named installed journey remains `delivery required`.

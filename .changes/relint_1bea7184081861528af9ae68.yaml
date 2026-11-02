@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1bea7184081861528af9ae68"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Store and apply every owner rule after a fidelity or independent cross-check, and remove the owner instruction review command"

@@ -105,8 +105,8 @@ export async function runAutonomousKnowledgeWorker(input: {
   /** ADR-0467 Hub adapter for exchanging owner-rule candidates; absent keeps them host-local. */
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
   /**
-   * ADR-0545: applies owner-stated rule candidates that pass the automatic gate. It runs only on
-   * the convergence owner, after capture and the Hub exchange; absent leaves candidates stored.
+   * ADR-0545, ADR-0561: applies every stored owner-rule candidate. It runs only on the convergence
+   * owner, after capture and the Hub exchange; absent leaves candidates stored.
    */
   applyOwnerStatedInstructions?: () => Promise<unknown>;
   /** How convergence observes repository sources; absent, every observation is a full capture. */

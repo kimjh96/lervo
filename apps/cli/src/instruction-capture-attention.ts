@@ -49,45 +49,46 @@ function candidateItem(
   candidate: DurableInstructionCandidateInspection,
   input: InstructionCaptureAttentionInput,
 ): DurableInstructionCandidateAttentionItemV1 {
-  const apply = `lervo knowledge instruction review ${candidate.candidateId} --decision apply --reviewer <id> --approval ${candidate.candidateHash}`;
   return {
     schemaVersion: 1,
     kind: "durable_instruction_candidate",
     itemId: `durable_instruction_${candidate.candidateId}`,
-    state: "waiting_authority",
+    state: "pending_apply",
     candidateId: candidate.candidateId,
     candidateHash: candidate.candidateHash,
     captureSource: candidate.captureSource ?? "explicit_intake",
     title: candidate.instruction.title ?? candidate.ruleId,
     targetPath: candidate.targetPath,
     createdAt: candidate.createdAt,
-    actionOwner: "user",
-    requiresUserAction: true,
+    actionOwner: "host resident",
+    requiresUserAction: false,
     blocking: false,
     instruction:
       input.applyElsewhere === undefined
-        ? `Review the exact rule with lervo knowledge instruction status ${candidate.candidateId}; apply with ${apply}, or reject it.`
-        : `Review the exact rule with lervo knowledge instruction status ${candidate.candidateId}; apply it on ${ownerHost(input)}, which holds the same candidate, or reject it here.`,
+        ? `The knowledge resident applies this stored owner rule in its next cycle; inspect it with lervo knowledge instruction status ${candidate.candidateId}.`
+        : `${ownerHost(input)} applies this stored owner rule after its next Hub exchange; inspect it with lervo knowledge instruction status ${candidate.candidateId}.`,
   };
 }
 
 function heldItem(entry: HeldCapture): CapturedDecisionAttentionItemV1 {
+  const heldKind = entry.kind === "decision" ? "decision" : "cross_check_disagreement";
   return {
     schemaVersion: 1,
     kind: "captured_decision",
     itemId: `captured_decision_${entry.captureId}`,
-    state: "action_required",
+    state: "lervo_debt",
+    heldKind,
     captureId: entry.captureId,
     captureSource: entry.source,
     title: entry.title,
     capturedAt: entry.capturedAt,
-    actionOwner: "user",
-    requiresUserAction: true,
+    actionOwner: "agent",
+    requiresUserAction: false,
     blocking: false,
     instruction:
-      entry.kind === "decision"
-        ? `Record this decision in the canonical documents, then dismiss it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`
-        : `Confirm the rule's scope with lervo knowledge instruction intake, then dismiss it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`,
+      heldKind === "decision"
+        ? `Lervo debt: record this owner decision in the canonical documents, then clear it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`
+        : `Lervo debt: the independent cross-check rejected this captured rule, so it was not stored. A later owner turn that states it again is captured again; clear it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`,
   };
 }
 
@@ -99,15 +100,15 @@ function blockedItem(blocked: {
     schemaVersion: 1,
     kind: "instruction_capture_blocked",
     itemId: "instruction_capture_blocked_knowledge_authority_unavailable",
-    state: "action_required",
+    state: "lervo_debt",
     reasonCode: "knowledge_authority_unavailable",
     queuedCount: blocked.queuedCount,
     since: blocked.since,
-    actionOwner: "user",
-    requiresUserAction: true,
+    actionOwner: "host resident",
+    requiresUserAction: false,
     blocking: false,
     instruction:
-      "Owner turns on this host cannot be assessed: it has no active knowledge convergence delegation for its provider. Review one with lervo knowledge convergence delegation; queued turns expire after 24 hours.",
+      "Lervo debt: owner turns on this host wait for assessment because it has no active knowledge convergence delegation for its provider. Explicitly submitted owner rules stay queued until assessed; other queued turns expire after 24 hours.",
   };
 }
 
@@ -135,7 +136,7 @@ export function instructionCaptureCompactLines(
   const lines: string[] = [];
   if (input.authorityBlocked !== undefined && input.authorityBlocked !== null)
     lines.push(
-      `Instruction capture: ${input.authorityBlocked.queuedCount} owner turn${input.authorityBlocked.queuedCount === 1 ? "" : "s"} cannot be assessed on this host because it has no knowledge convergence delegation; tell the owner (lervo application attention).`,
+      `Instruction capture (Lervo debt, no owner action): ${input.authorityBlocked.queuedCount} owner turn${input.authorityBlocked.queuedCount === 1 ? "" : "s"} wait for assessment on this host because it has no knowledge convergence delegation.`,
     );
   const captured = input.candidates.filter((candidate) => candidate.captureSource !== undefined);
   if (input.candidates.length > 0 || input.held.length > 0) {
@@ -155,7 +156,7 @@ export function instructionCaptureCompactLines(
       ...(input.held.length === 0
         ? []
         : [
-            `${input.held.length} held decision or rule${input.held.length === 1 ? "" : "s"} for the principal proxy`,
+            `${input.held.length} held decision${input.held.length === 1 ? "" : "s"} or rejected rule${input.held.length === 1 ? "" : "s"} as Lervo debt`,
           ]),
     ];
     lines.push(

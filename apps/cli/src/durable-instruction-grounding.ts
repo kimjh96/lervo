@@ -71,6 +71,7 @@ export async function groundDurableInstructionRequest(input: {
     });
     return {
       ...grounded.decision,
+      failed: false,
       ambiguityReasons: grounded.proposal.ambiguityReasons,
       resolverResultDigest: grounded.proposal.resolver.resultDigest,
       durableInstruction: grounded.proposal.durableInstruction,
@@ -79,6 +80,7 @@ export async function groundDurableInstructionRequest(input: {
     if (!(error instanceof GroundProductionRequestError)) throw error;
     return {
       ...semanticResolutionFailureDecision(),
+      failed: true,
       ambiguityReasons: error.reasonIds,
       resolverResultDigest: `sha256:${"0".repeat(64)}`,
       durableInstruction: { ...failedInstruction, reasonIds: error.reasonIds },

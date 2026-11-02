@@ -47,12 +47,12 @@ These items carry candidate identifiers, relative paths, classes, and counts, ne
 
 [ADR-0467](../../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) defines:
 
-- `durable_instruction_candidate`: an exact-review instruction candidate carrying its source (`terminal_prompt`, `conversation`, or `explicit_intake`), normalized title, target path, and hash-bound review command.
-- `captured_decision`: a held owner decision or rule needing the owner's confirmation, with a dismiss command.
+- `durable_instruction_candidate` (`pending_apply`): a stored owner rule the resident has not applied yet, carrying its source (`terminal_prompt`, `conversation`, or `explicit_intake`), normalized title, target path, and status command.
+- `captured_decision` (`lervo_debt`): a held owner decision Lervo has not documented (`heldKind: decision`) or a captured rule the independent cross-check rejected (`heldKind: cross_check_disagreement`), with a dismiss command.
 
-Instruction candidates belong to the instruction reviewer; held settled decisions belong to the principal proxy. Neither is owner-actionable merely because review is pending. Both are non-blocking and carry normalized titles, never owner or agent turn text. Existing review and write authority remains required before applying a candidate.
+Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), instruction candidates and held items belong to the knowledge resident as Lervo debt, with `requiresUserAction: false`. They are non-blocking and carry normalized titles, never owner or agent turn text.
 
-`instruction_capture_blocked` appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when.
+`instruction_capture_blocked` (`lervo_debt`) appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when, and never requires owner action.
 
 On a Hub-coordinated host that does not own convergence, the candidate instruction names the owner host where the candidate is applied. The compact prompt includes capture upkeep in the cached health section; full applied owner rules remain in the instruction preamble.
 

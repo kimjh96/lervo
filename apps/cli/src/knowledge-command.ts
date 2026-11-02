@@ -41,7 +41,10 @@ export async function runKnowledgeCommand(
   args: string[],
   io: CliIo,
   services: Partial<
-    Pick<CliServices, "groundProductionRequest" | "knowledgeMaterializationWait">
+    Pick<
+      CliServices,
+      "groundProductionRequest" | "crossCheckDurableInstruction" | "knowledgeMaterializationWait"
+    >
   > = {},
 ): Promise<number> {
   const subcommand = args[0];
@@ -73,9 +76,13 @@ export async function runKnowledgeCommand(
     return runKnowledgeInstruction(
       args.slice(1),
       io,
-      services.groundProductionRequest === undefined
+      services.groundProductionRequest === undefined ||
+        services.crossCheckDurableInstruction === undefined
         ? undefined
-        : { groundProductionRequest: services.groundProductionRequest },
+        : {
+            groundProductionRequest: services.groundProductionRequest,
+            crossCheckDurableInstruction: services.crossCheckDurableInstruction,
+          },
     );
   }
   if (subcommand === "lint") {

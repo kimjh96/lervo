@@ -56,7 +56,7 @@ The remaining boundaries are:
 
 ### Owner-turn instruction capture evidence
 
-Owner-turn instruction capture is `wired` under [ADR-0467](../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) and its [specification](../../specifications/knowledge/instruction-capture.md), as amended by ADR-0545. The terminal hook and managed conversations queue owner turns without a provider call. The knowledge resident's `instruction_capture` stage assesses them semantically and creates exact-hash candidates or held decisions. After candidate exchange, the convergence owner automatically applies eligible owner-stated rules through the existing plan gate; held items retain their resolution path.
+Owner-turn instruction capture is `wired` under [ADR-0467](../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) and its [specification](../../specifications/knowledge/instruction-capture.md). The terminal hook and managed conversations queue owner turns without a provider call. The knowledge resident's `instruction_capture` stage assesses them semantically and, after an independent cross-check ([ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)), stores candidates that the convergence owner applies, or holds decisions as Lervo debt.
 
 Fixture-provider tests cover English, Korean, paraphrased and implicit corrections, privacy, budget, and cross-provider visibility. A 28-case suite recorded 1.000 class agreement against Claude. Explicit intake succeeds on the reproduced English and Korean requests.
 
@@ -64,7 +64,6 @@ Remaining boundaries:
 
 - No installed run on the Lervo repository has converted a real Claude Code or Discord owner turn into a reviewed candidate.
 - Conversations use the queue rather than the ADR-0457 `knowledgeCandidate` turn field.
-- Eligible `explicit_user` candidates no longer require an owner or agent review command. Automatic application still requires current catalog bindings and a ready plan with matching rule, target and bytes. Installed verification remains open for the owner's 2026-11-01 rule to apply on WSL and reach the Mac through publication.
 - Cross-host exchange is tested against a fake Hub and the real Hub route, but has not run between the installed Mac and WSL hosts.
 
 Each host assesses its own owner turns. On Hub-coordinated hosts, only the ADR-0466 convergence owner applies and commits a candidate. A standalone host applies locally without the Hub commit requirement.

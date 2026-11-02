@@ -18,15 +18,15 @@ After candidate exchange, the convergence owner automatically applies eligible o
 
 `exchangeInstructionCandidates` in `packages/repository-knowledge-runtime/src/instruction-candidate-exchange.ts` runs these steps in order:
 
-1. Publish this host's pending resolutions (`applied` or `rejected`) before removing the local candidate. Explicit `lervo knowledge instruction review` remains a resolution path; eligible owner-stated rules can also be applied automatically through the existing plan gate.
+1. Publish this host's pending resolutions (`applied` or `rejected`), recorded by the apply path before removing the local candidate.
 2. Read the Hub list. A resolved record removes the matching local candidate and is remembered to prevent reimport. An open record absent from this host is validated with `validateDurableInstructionCandidate` and stored, unless the generated rule already exists with identical bytes.
 3. Publish this host's own open candidates not yet listed by the Hub.
 
 Host-local bookkeeping is stored in `.lervo/state/knowledge/instruction-capture/exchange.json`, bounded to 128 known hashes, 128 resolved hashes, and 16 pending resolutions. A Hub failure preserves bookkeeping and retries every step next cycle.
 
-A host without delegation sets `authorityBlocked` in `state.json`, projecting one `instruction_capture_blocked` attention item and the compact line `Instruction capture: N owner turns cannot be assessed on this host because it has no knowledge convergence delegation`.
+A host without delegation sets `authorityBlocked` in `state.json`, projecting one `instruction_capture_blocked` Lervo-debt item (`requiresUserAction: false`, ADR-0561) and the compact line `Instruction capture (Lervo debt, no owner action): N owner turns wait for assessment on this host because it has no knowledge convergence delegation`.
 
-On a Hub-coordinated host that does not own convergence, application belongs to the convergence owner. The review-oriented candidate line `… await review on the convergence owner host (<label>)` does not establish that an eligible `explicit_user` candidate requires a manual review command. Without Hub coordination, exchange reports `standalone`, and application remains local without committing.
+On a Hub-coordinated host that does not own convergence, the candidate line reads `… await automatic apply on the convergence owner host (<label>)`. Without Hub coordination, exchange reports `standalone`, and the resident applies locally without committing.
 
 ## Hub contract
 

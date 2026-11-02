@@ -6,9 +6,16 @@ function singleLine(value: string): string {
   return value.replace(/[\r\n\u0000-\u001f\u007f]/gu, " ");
 }
 
+function ruleId(path: string): string {
+  return path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
+}
+
 function describe(entry: LearnedNoticeEntry): string {
   const name = entry.title === null ? entry.path : `"${entry.title}" (${entry.path})`;
-  if (entry.kind === "owner_rule") return `owner rule ${name}`;
+  if (entry.kind === "owner_rule" && entry.retired === true)
+    return `retired owner rule ${ruleId(entry.path)}`;
+  if (entry.kind === "owner_rule")
+    return `stored owner rule ${name}${entry.replaced?.length ? ` (replaced ${entry.replaced.map(ruleId).join(", ")})` : ""}`;
   if (entry.kind === "skill") return `skill ${entry.title ?? entry.path}`;
   if (entry.kind === "canonical")
     return `canon ${name} from development${entry.links.length ? `, links ${entry.links.join(", ")}` : ""}`;
@@ -30,7 +37,11 @@ export function formatLearnedNotice(notice: LearnedNotice): string | null {
   const older = notice.omittedCommits
     ? `; ${notice.omittedCommits} older commits not itemized`
     : "";
-  const tail = `${older}; details: git log --author=knowledge@lervo.invalid.`;
+  // ADR-0561: a stored owner rule is reported after the fact together with its undo.
+  const undo = entries.some((entry) => entry.kind === "owner_rule" && entry.retired !== true)
+    ? "; undo a rule: lervo knowledge instruction retire <rule-id>"
+    : "";
+  const tail = `${older}${undo}; details: git log --author=knowledge@lervo.invalid.`;
   const parts: string[] = [];
   for (const entry of entries) {
     const next = singleLine(describe(entry));

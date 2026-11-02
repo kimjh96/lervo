@@ -13,8 +13,8 @@ import type { CliIo } from "./types.js";
 
 /**
  * `lervo knowledge instruction capture`: the ADR-0467 capture status (queue depth, budget
- * windows, held decisions and rules) and `--dismiss <capture-id>` for a held item the owner has
- * documented or declined. It never prints queued turn text.
+ * windows, held Lervo debt) and `--dismiss <capture-id>` to clear a held item once Lervo has
+ * documented the decision or the rejected rule is moot (ADR-0561). It never prints queued turn text.
  */
 export async function runKnowledgeInstructionCapture(args: string[], io: CliIo): Promise<number> {
   const parsed = parseArgs({
@@ -44,7 +44,7 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
     instructionCandidateApplyAuthority(repositoryRoot),
     readInstructionCandidateExchangeState(repositoryRoot),
   ]);
-  // ADR-0467: every host assesses its own turns; only applying a candidate needs the owner.
+  // ADR-0467: every host assesses its own turns; only the convergence owner applies candidates.
   const report = {
     schemaVersion: 1 as const,
     queuedCount: queue.length,
@@ -61,6 +61,7 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
       promptDigest: capture.promptDigest,
       enqueuedAt: capture.enqueuedAt,
       attempts: capture.attempts,
+      retained: capture.retained === true,
     })),
     budget: state.budget,
     lastCycleAt: state.lastCycleAt,

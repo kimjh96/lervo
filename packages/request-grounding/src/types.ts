@@ -83,6 +83,8 @@ export interface DurableInstructionIntent {
   conflict: "none" | "covered" | "possible" | "unknown";
   confidence: "high" | "medium" | "low";
   reasonIds: string[];
+  /** Catalog paths of older rules this rule supersedes in the same scope (ADR-0561). */
+  replaces?: string[];
 }
 
 export interface SemanticGroundingProposal {

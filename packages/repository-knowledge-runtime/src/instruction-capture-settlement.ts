@@ -10,11 +10,25 @@ import {
   type InstructionCaptureAssessment,
 } from "@lervo/repository-knowledge";
 import type { InstructionCaptureContext } from "./instruction-capture-assessment.js";
+import { crossCheckCapturedInstruction } from "./instruction-capture-cross-check.js";
 import { appendInstructionCaptureEvent } from "./instruction-capture-events.js";
 import type { QueuedInstructionCapture } from "./instruction-capture-queue.js";
 import type { HeldCapture, InstructionCaptureState } from "./instruction-capture-state.js";
+
+/**
+ * `rejected`: the independent cross-check disagreed, so the rule was not stored and is recorded
+ * as Lervo's own debt. `retry`: the rule text or the cross-check verdict was unusable and the turn
+ * is attempted again. `deferred`: the cross-check could not run now; the turn stays queued.
+ */
 type CaptureOutcome =
-  "instruction_candidate" | "held" | "ignored" | "personal_preference" | "covered";
+  | "instruction_candidate"
+  | "held"
+  | "ignored"
+  | "personal_preference"
+  | "covered"
+  | "rejected"
+  | "retry"
+  | { deferred: string };
 
 function held(input: {
   capture: QueuedInstructionCapture;
@@ -85,30 +99,36 @@ async function materializeInstruction(input: {
     projectId: input.context.storage.manifest.projectId,
     requestDigest: capture.promptDigest,
     resolverResultDigest: sha256(canonicalJson(assessment)),
-    groundingStatus: "ready",
-    catalogComplete:
-      catalog.complete && catalog.semanticCatalog.canonicalInstructions.entries.length < 32,
-    ambiguityReasons: [],
     instruction: assessment.durableInstruction,
   });
   if (plan.status === "current" || assessment.durableInstruction.conflict === "covered")
     return "covered";
-  if (plan.status !== "ready") {
+  if (plan.status === "ungrounded") return "retry";
+  if (plan.status !== "ready") return "ignored";
+  const check = await crossCheckCapturedInstruction({
+    context: input.context,
+    capture,
+    instruction: assessment.durableInstruction,
+    catalogEntries: catalog.semanticCatalog.canonicalInstructions.entries,
+    sourceRevision: catalog.sourceSnapshotId,
+  });
+  if (check.status === "deferred") return { deferred: check.reason };
+  if (check.status === "failed") return "retry";
+  if (check.status === "agree" || check.status === "disagree")
+    input.state.budget.tokensToday += check.tokens;
+  if (check.status === "disagree") {
     const { title, statement } = assessment.durableInstruction;
-    if (plan.status === "pending" && title !== null && statement !== null) {
-      input.state.held.push(
-        held({
-          capture,
-          kind: "rule_needs_clarification",
-          title,
-          statement,
-          subjectKey: null,
-          now: input.now,
-        }),
-      );
-      return "held";
-    }
-    return "ignored";
+    input.state.held.push(
+      held({
+        capture,
+        kind: "cross_check_disagreement",
+        title: title!,
+        statement: statement!,
+        subjectKey: null,
+        now: input.now,
+      }),
+    );
+    return "rejected";
   }
   const candidate = await storeDurableInstructionCandidate({
     repositoryRoot: root,

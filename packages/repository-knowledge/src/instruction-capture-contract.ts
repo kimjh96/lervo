@@ -89,6 +89,12 @@ export const groundedDurableInstructionSchema = {
       uniqueItems: true,
       items: { type: "string", maxLength: 160, pattern: identifierPattern },
     },
+    replaces: {
+      type: "array",
+      maxItems: 16,
+      uniqueItems: true,
+      items: { type: "string", minLength: 1, maxLength: 500 },
+    },
   },
   required: [
     "disposition",
@@ -104,6 +110,7 @@ export const groundedDurableInstructionSchema = {
     "conflict",
     "confidence",
     "reasonIds",
+    "replaces",
   ],
 } as const;
 
@@ -160,7 +167,7 @@ export const instructionCaptureAssessmentInstruction = [
   "decision: the owner settles a design, product, or process choice for this repository that later work should respect, without phrasing it as a behavioral rule.",
   "preference_personal: the owner states a preference about their own personal workflow that is not framed as a rule for the repository. It never enters shared repository knowledge.",
   "none: requests, questions, status, task-scoped directives, examples, quotations, hypotheticals, and complaints that establish no lasting rule or decision.",
-  "For durable_instruction and correction_of_agent_behavior, normalize the rule into durableInstruction. A rule that governs how agents work in this repository, without naming narrower paths, has repository scope. Use canonical only for one explicit owner-authored, low-risk, additive rule with unambiguous scope, no conflict with semanticCatalog.canonicalInstructions, and high confidence. Use conflict covered when an entry of semanticCatalog.canonicalInstructions or semanticCatalog.pendingOwnerRules already states the same rule in any wording.",
+  "For durable_instruction and correction_of_agent_behavior, normalize the rule into durableInstruction with disposition canonical. A rule that governs how agents work in this repository, without naming narrower paths, has repository scope. Broad, policy, removal, replacement, and authority-changing rules are still canonical: record them through operation, risk, and reasonIds instead of withholding them. Set authority explicit_user only when the owner stated the rule; a rule inferred from a correction or from context is inferred. Use conflict covered when an entry of semanticCatalog.canonicalInstructions or semanticCatalog.pendingOwnerRules already states the same rule in any wording. When the rule contradicts an entry of semanticCatalog.canonicalInstructions, set conflict possible and list that entry's path in replaces; otherwise replaces is empty.",
   "For decision, fill decision with a normalized title, a one-paragraph statement, and a lowercase subjectKey. Set durableInstruction to canonical as well only when the decision is itself a repository-long rule for agents.",
   "For none and preference_personal, set durableInstruction.disposition to none and decision to null.",
   "Write title, statement, exceptions, and decision text in semanticCatalog.retrievalLanguage as complete sentences. Normalize meaning; never copy conversation prose verbatim and never include names, secrets, credentials, or text unrelated to the rule.",
@@ -238,7 +245,13 @@ function textList(value: unknown, maximumItems: number, maximum: number, field: 
 
 function durableInstruction(value: unknown): GroundedDurableInstruction {
   const item = record(value, "durableInstruction");
-  exactKeys(item, groundedDurableInstructionSchema.required, "durableInstruction");
+  // `replaces` arrived with ADR-0561; an older response without it replaces nothing.
+  const { replaces, ...rest } = item;
+  exactKeys(
+    rest,
+    groundedDurableInstructionSchema.required.filter((key) => key !== "replaces"),
+    "durableInstruction",
+  );
   const scope = record(item.scope, "durableInstruction.scope");
   exactKeys(scope, ["kind", "paths"], "durableInstruction.scope");
   return {
@@ -270,6 +283,7 @@ function durableInstruction(value: unknown): GroundedDurableInstruction {
     conflict: oneOf(item.conflict, ["none", "covered", "possible", "unknown"], "conflict"),
     confidence: oneOf(item.confidence, ["high", "medium", "low"], "confidence"),
     reasonIds: identifiers(item.reasonIds, 8, "durableInstruction.reasonIds"),
+    replaces: replaces === undefined ? [] : textList(replaces, 16, 500, "replaces"),
   };
 }
 

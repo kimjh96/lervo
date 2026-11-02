@@ -1,4 +1,4 @@
-import { access, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -10,6 +10,7 @@ import {
   type GroundedDurableInstruction,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
+import { listQueuedInstructionCaptures } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS } from "../src/durable-instruction-grounding.js";
@@ -85,9 +86,14 @@ async function intake(
   root: string,
   request: string,
   instruction: GroundedDurableInstruction = canonicalInstruction,
+  crossCheck: (input: { ownerText: string }) => Promise<{
+    verdict: "agree" | "disagree";
+    reasonIds: string[];
+  }> = async () => ({ verdict: "agree", reasonIds: [] }),
 ) {
   const stdout: string[] = [];
   const stderr: string[] = [];
+  const checks: string[] = [];
   const exitCode = await runCli(
     ["knowledge", "instruction", "intake", "--provider", "codex", "--stdin", "--json"],
     {
@@ -96,111 +102,89 @@ async function intake(
       stderr: (message) => stderr.push(message),
       stdin: async () => JSON.stringify({ schemaVersion: 1, request }),
     },
-    { groundProductionRequest: grounding(instruction) },
+    {
+      groundProductionRequest: grounding(instruction),
+      crossCheckDurableInstruction: async (input) => {
+        checks.push(input.ownerText);
+        return crossCheck(input);
+      },
+    },
   );
-  return { exitCode, stdout: stdout.join(""), stderr: stderr.join("") };
+  return {
+    exitCode,
+    stdout: stdout.join(""),
+    stderr: stderr.join(""),
+    checks,
+    result: (stdout.length === 0 ? null : JSON.parse(stdout.join(""))) as {
+      status: string;
+      reasonIds: string[];
+      ruleId: string | null;
+      targetPath: string | null;
+      replacedPaths: string[];
+      fidelity: string | null;
+      captureId: string | null;
+      candidate: unknown;
+    } | null,
+  };
 }
 
-describe("explicit durable-instruction intake", () => {
-  it("creates an exact review candidate and applies only its approved hash", async () => {
+/** The two explicit owner rules the former intake gate dropped on 2026-11-02. */
+const STRENGTHEN_THE_CORE =
+  "Strengthen the core before widening it; remove unused or unnecessary parts.";
+const DECIDE_WITHOUT_THE_OWNER =
+  "Lervo decides and proceeds on its own; the owner is never a review or approval step; replace every owner approval gate with an independent cross-check, a reversible or backed-up effect, and a notice after the fact.";
+
+describe("explicit durable-instruction intake (ADR-0561)", () => {
+  it("stores and applies the two owner rules the former gate dropped", async () => {
     const root = await repository();
-    const request =
-      "Keep this private preface out of storage. From now on, use Conventional Commits for every repository commit.";
-    const created = await intake(root, request);
-    expect(created.exitCode, created.stderr).toBe(0);
-    const result = JSON.parse(created.stdout) as {
-      status: string;
-      candidate: {
-        candidateId: string;
-        candidateHash: string;
-        artifactPath: string;
-        targetPath: string;
-        proposedMarkdown: string;
-      };
-    };
-    expect(result.status).toBe("review_required");
-    expect(result.candidate.proposedMarkdown).toContain(canonicalInstruction.statement);
-    expect(result.candidate.proposedMarkdown).not.toContain("private preface");
-    expect(await readFile(resolve(root, result.candidate.artifactPath), "utf8")).not.toContain(
-      request,
-    );
-    await expect(access(resolve(root, result.candidate.targetPath))).rejects.toMatchObject({
-      code: "ENOENT",
+    const broad = await intake(root, STRENGTHEN_THE_CORE, {
+      ...canonicalInstruction,
+      disposition: "pending",
+      operation: "remove",
+      scope: { kind: "unspecified", paths: [] },
+      title: "Strengthen the core before widening it",
+      statement: STRENGTHEN_THE_CORE,
+      risk: "high",
+      conflict: "unknown",
+      confidence: "medium",
+      reasonIds: ["broad.product.policy"],
     });
-
-    const rejectedOutput: string[] = [];
-    expect(
-      await runCli(
-        [
-          "knowledge",
-          "instruction",
-          "review",
-          result.candidate.candidateId,
-          "--decision",
-          "apply",
-          "--reviewer",
-          "repository-owner",
-          "--approval",
-          `sha256:${"0".repeat(64)}`,
-        ],
-        {
-          cwd: root,
-          stdout: () => undefined,
-          stderr: (message) => rejectedOutput.push(message),
-        },
-      ),
-    ).toBe(1);
-    expect(rejectedOutput.join("")).toContain("reviewed candidate hash does not match");
-    await expect(access(resolve(root, result.candidate.targetPath))).rejects.toMatchObject({
-      code: "ENOENT",
+    expect(broad.exitCode, broad.stderr).toBe(0);
+    expect(broad.result).toMatchObject({ status: "applied", fidelity: "owner_wording" });
+    const authority = await intake(root, DECIDE_WITHOUT_THE_OWNER, {
+      ...canonicalInstruction,
+      operation: "replace",
+      title: "Decide without the owner",
+      statement: DECIDE_WITHOUT_THE_OWNER,
+      risk: "high",
+      conflict: "possible",
+      confidence: "high",
+      reasonIds: ["authority.change", "broad.product.policy"],
     });
-
-    const appliedOutput: string[] = [];
-    const appliedErrors: string[] = [];
-    expect(
-      await runCli(
-        [
-          "knowledge",
-          "instruction",
-          "review",
-          result.candidate.candidateId,
-          "--decision",
-          "apply",
-          "--reviewer",
-          "repository-owner",
-          "--approval",
-          result.candidate.candidateHash,
-          "--json",
-        ],
-        {
-          cwd: root,
-          stdout: (message) => appliedOutput.push(message),
-          stderr: (message) => appliedErrors.push(message),
-        },
-      ),
-      appliedErrors.join(""),
-    ).toBe(0);
-    expect(JSON.parse(appliedOutput.join(""))).toMatchObject({
-      operation: "durable_instruction_intake",
-      targetPath: result.candidate.targetPath,
-    });
-    expect(await readFile(resolve(root, result.candidate.targetPath), "utf8")).toBe(
-      result.candidate.proposedMarkdown,
-    );
+    expect(authority.result).toMatchObject({ status: "applied", fidelity: "owner_wording" });
+    // The owner's own wording needs no model check.
+    expect([...broad.checks, ...authority.checks]).toEqual([]);
+    for (const [stored, statement] of [
+      [broad, STRENGTHEN_THE_CORE],
+      [authority, DECIDE_WITHOUT_THE_OWNER],
+    ] as const) {
+      expect(JSON.stringify(stored.result)).not.toContain("automatic_gate_not_satisfied");
+      expect(await readFile(resolve(root, stored.result!.targetPath!), "utf8")).toContain(
+        statement,
+      );
+    }
     expect(await listDurableInstructionCandidates(root)).toEqual([]);
-
     const storage = await openProjectStorage(root);
     try {
       expect(
         storage.events
           .list()
-          .some(
+          .filter(
             (event) =>
               event.type === "knowledge.materialization.applied" &&
-              event.payload.operation === "durable_instruction_intake" &&
-              event.payload.approvalDigest !== null,
+              event.payload.operation === "durable_instruction_intake",
           ),
-      ).toBe(true);
+      ).toHaveLength(2);
     } finally {
       await storage.close();
     }
@@ -212,133 +196,118 @@ describe("explicit durable-instruction intake", () => {
     await applyKnowledgeMigrationPlan(migration, new Date(), () => undefined);
     const query = await queryRepositoryKnowledge({
       repositoryRoot: root,
-      query: "required commit message format",
+      query: "owner approval gate cross-check",
     });
-    expect(query.hits.some((hit) => hit.path === result.candidate.targetPath)).toBe(true);
+    expect(query.hits.some((hit) => hit.path === authority.result!.targetPath)).toBe(true);
   });
 
-  it("rejects and removes a candidate without changing repository instruction bytes", async () => {
+  it("never returns pending for any classification of an explicit owner rule", async () => {
     const root = await repository();
-    const created = await intake(root, "Always use Conventional Commits in this repository.");
-    const candidate = (JSON.parse(created.stdout) as { candidate: NonNullable<unknown> })
-      .candidate as {
-      candidateId: string;
-      candidateHash: string;
-      targetPath: string;
-    };
-    const errors: string[] = [];
-    expect(
-      await runCli(
-        [
-          "knowledge",
-          "instruction",
-          "review",
-          candidate.candidateId,
-          "--decision",
-          "reject",
-          "--reviewer",
-          "repository-owner",
-          "--approval",
-          candidate.candidateHash,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: (message) => errors.push(message) },
-      ),
-      errors.join(""),
-    ).toBe(0);
-    expect(await listDurableInstructionCandidates(root)).toEqual([]);
-    await expect(access(resolve(root, candidate.targetPath))).rejects.toMatchObject({
+    const statuses: string[] = [];
+    for (const [index, variant] of [
+      { risk: "unknown", confidence: "low", conflict: "unknown" },
+      { authority: "inferred", speechAct: "other", durability: "unspecified" },
+      { scope: { kind: "unspecified", paths: [] }, disposition: "pending" },
+    ].entries()) {
+      const request = `Rule ${index}: use Conventional Commits for every repository commit.`;
+      const stored = await intake(root, request, {
+        ...canonicalInstruction,
+        statement: request,
+        ...(variant as Partial<GroundedDurableInstruction>),
+      });
+      statuses.push(stored.result!.status);
+      expect(stored.result!.reasonIds).not.toContain("automatic_gate_not_satisfied");
+    }
+    expect(statuses).toEqual(["applied", "applied", "applied"]);
+  });
+
+  it("cross-checks a restated rule, and queues it for background retry on disagreement", async () => {
+    const root = await repository();
+    const request =
+      "Keep this private preface out of storage. From now on, use Conventional Commits for every repository commit.";
+    const restated = { ...canonicalInstruction, statement: "Use Conventional Commits always." };
+    const agreed = await intake(root, request, restated);
+    expect(agreed.checks).toEqual([request]);
+    expect(agreed.result).toMatchObject({ status: "applied", fidelity: "cross_checked" });
+    const content = await readFile(resolve(root, agreed.result!.targetPath!), "utf8");
+    expect(content).toContain("Use Conventional Commits always.");
+    expect(content).not.toContain("private preface");
+
+    const other = await repository();
+    const disagreed = await intake(other, request, restated, async () => ({
+      verdict: "disagree",
+      reasonIds: ["obligation_changed"],
+    }));
+    expect(disagreed.exitCode).toBe(0);
+    expect(disagreed.result).toMatchObject({
+      status: "queued",
+      reasonIds: expect.arrayContaining(["cross_check_disagreed"]),
+    });
+    expect(await listQueuedInstructionCaptures(other)).toEqual([
+      expect.objectContaining({ captureId: disagreed.result!.captureId, retained: true }),
+    ]);
+    await expect(access(resolve(other, "docs/instructions/generated"))).rejects.toMatchObject({
       code: "ENOENT",
     });
   });
 
-  it("does not create a candidate when the semantic gate is pending", async () => {
+  it("replaces a conflicting older rule, and retire undoes the newer one", async () => {
     const root = await repository();
-    const pending = await intake(root, "Could we perhaps use a commit convention?", {
+    const older = await intake(root, "Use Conventional Commits for every repository commit.", {
       ...canonicalInstruction,
-      disposition: "pending",
-      speechAct: "question",
-      authority: "inferred",
-      conflict: "unknown",
-      confidence: "low",
-      reasonIds: ["question_is_not_authority"],
+      statement: "Use Conventional Commits for every repository commit.",
     });
-    expect(pending.exitCode).toBe(1);
-    expect(JSON.parse(pending.stdout)).toMatchObject({ status: "pending", candidate: null });
-    expect(await listDurableInstructionCandidates(root)).toEqual([]);
+    const newerRequest = "Use Conventional Commits with a package scope for every commit.";
+    const newer = await intake(root, newerRequest, {
+      ...canonicalInstruction,
+      title: "Scoped conventional commits",
+      statement: newerRequest,
+      conflict: "possible",
+      replaces: [older.result!.targetPath!],
+    });
+    expect(newer.result).toMatchObject({
+      status: "applied",
+      replacedPaths: [older.result!.targetPath],
+    });
+    await expect(access(resolve(root, older.result!.targetPath!))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(await readFile(resolve(root, newer.result!.targetPath!), "utf8")).toContain(
+      `    replaces:\n      - ${older.result!.ruleId}`,
+    );
+
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    expect(
+      await runCli(["knowledge", "instruction", "retire", newer.result!.ruleId!, "--json"], {
+        cwd: root,
+        stdout: (message) => stdout.push(message),
+        stderr: (message) => stderr.push(message),
+      }),
+      stderr.join(""),
+    ).toBe(0);
+    expect(JSON.parse(stdout.join(""))).toMatchObject({
+      status: "retired",
+      ruleId: newer.result!.ruleId,
+    });
+    await expect(access(resolve(root, newer.result!.targetPath!))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 
-  it("blocks apply when canonical instruction sources change after intake", async () => {
+  it("removes the owner review command", async () => {
     const root = await repository();
-    const created = await intake(root, "Always use Conventional Commits in this repository.");
-    const candidate = (
-      JSON.parse(created.stdout) as {
-        candidate: { candidateId: string; candidateHash: string; targetPath: string };
-      }
-    ).candidate;
-    await writeFile(resolve(root, "AGENTS.md"), "# Changed instruction authority\n");
-    const errors: string[] = [];
+    const stderr: string[] = [];
     expect(
       await runCli(
-        [
-          "knowledge",
-          "instruction",
-          "review",
-          candidate.candidateId,
-          "--decision",
-          "apply",
-          "--reviewer",
-          "repository-owner",
-          "--approval",
-          candidate.candidateHash,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: (message) => errors.push(message) },
+        ["knowledge", "instruction", "review", "kinstruction_x", "--decision", "apply"],
+        { cwd: root, stdout: () => undefined, stderr: (message) => stderr.push(message) },
       ),
     ).toBe(1);
-    expect(errors.join("")).toContain("catalog changed after candidate review began");
-    await expect(access(resolve(root, candidate.targetPath))).rejects.toMatchObject({
-      code: "ENOENT",
-    });
-    expect(await listDurableInstructionCandidates(root)).toHaveLength(1);
+    expect(stderr.join("")).toContain("intake, status, retire, capture, and bridge");
   });
 
-  it("applies a candidate after unrelated sources change, bound to its instruction catalog", async () => {
-    const root = await repository();
-    const created = await intake(root, "Always use Conventional Commits in this repository.");
-    const candidate = (
-      JSON.parse(created.stdout) as {
-        candidate: {
-          candidateId: string;
-          candidateHash: string;
-          targetPath: string;
-          instructionCatalogDigest?: string;
-        };
-      }
-    ).candidate;
-    expect(candidate.instructionCatalogDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
-    await writeFile(resolve(root, "README.md"), "# A later, unrelated change\n");
-    const errors: string[] = [];
-    expect(
-      await runCli(
-        [
-          "knowledge",
-          "instruction",
-          "review",
-          candidate.candidateId,
-          "--decision",
-          "apply",
-          "--reviewer",
-          "repository-owner",
-          "--approval",
-          candidate.candidateHash,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: (message) => errors.push(message) },
-      ),
-      errors.join(""),
-    ).toBe(0);
-    await expect(access(resolve(root, candidate.targetPath))).resolves.toBeUndefined();
-  });
-
-  it("reports why semantic resolution failed instead of a bare failure", async () => {
+  it("queues the request for background retry when semantic resolution fails", async () => {
     const root = await repository();
     let observedTimeout: number | undefined;
     const stdout: string[] = [];
@@ -364,13 +333,16 @@ describe("explicit durable-instruction intake", () => {
           },
         },
       ),
-    ).toBe(1);
+    ).toBe(0);
     expect(observedTimeout).toBe(DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS);
     expect(DURABLE_INSTRUCTION_GROUNDING_TIMEOUT_MS).toBeGreaterThanOrEqual(60_000);
     expect(JSON.parse(stdout.join(""))).toMatchObject({
-      status: "ignored",
+      status: "queued",
       reasonIds: ["semantic_resolution_failed", "semantic_resolution_provider_timed_out"],
       candidate: null,
     });
+    expect(await listQueuedInstructionCaptures(root)).toEqual([
+      expect.objectContaining({ retained: true, ownerTurn: "Never restrict work to one host." }),
+    ]);
   });
 });

@@ -186,9 +186,6 @@ describe("instruction capture assessment contract (ADR-0467)", () => {
       projectId: "prj_capturefixture",
       requestDigest: `sha256:${"1".repeat(64)}`,
       resolverResultDigest: `sha256:${"2".repeat(64)}`,
-      groundingStatus: "ready",
-      catalogComplete: true,
-      ambiguityReasons: [],
       instruction: rule as GroundedDurableInstruction,
     });
     const captured = createDurableInstructionCandidate({

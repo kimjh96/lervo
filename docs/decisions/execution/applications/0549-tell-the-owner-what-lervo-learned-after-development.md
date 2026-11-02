@@ -19,12 +19,12 @@ Lervo's commits are already the canonical record of what it changed. They reach 
 
 The background health prefetch builds the notice. It never runs on the prompt path. It reads the commits by the Lervo knowledge identity from the last shown point up to the current HEAD, or from the last 24 hours on the first run or when that point is not an ancestor of HEAD. The newest 500 are itemized and older ones are counted. Once shown, the cursor moves to that HEAD, so merged histories are never revisited. It classifies each changed path:
 
-| Kind         | Source                                                                          | Shown as                                                                             |
-| ------------ | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `owner_rule` | "apply a reviewed owner rule", or any path under `docs/instructions/generated/` | The rule's heading and path                                                          |
-| `skill`      | Any path under `.agents/skills/<name>/`                                         | The skill name                                                                       |
-| `canonical`  | "apply reviewed canonical knowledge"                                            | Heading, path, "from development", and up to three repository links the change added |
-| `updated`    | "apply reviewed background knowledge"                                           | Path                                                                                 |
+| Kind         | Source                                                                                                                                   | Shown as                                                                             |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| `owner_rule` | "apply an owner rule", "retire an owner rule", the older "apply a reviewed owner rule", or any path under `docs/instructions/generated/` | The rule's heading and path, the rules it replaced, or "retired"                     |
+| `skill`      | Any path under `.agents/skills/<name>/`                                                                                                  | The skill name                                                                       |
+| `canonical`  | "apply reviewed canonical knowledge"                                                                                                     | Heading, path, "from development", and up to three repository links the change added |
+| `updated`    | "apply reviewed background knowledge"                                                                                                    | Path                                                                                 |
 
 Generated indexes and `.lervo` paths are left out, because they restate other changes. Each path appears once, with its newest reason. At most 16 entries are kept, and every kind is counted.
 
@@ -33,6 +33,10 @@ Generated indexes and `.lervo` paths are left out, because they restate other ch
 The next compact owner turn adds one line of at most 480 bytes. It is optional context: it is added only after owner rules and find pointers fit in the turn budget, so it never displaces them. It begins "Lervo learned since it last reported (information, no action needed)". Owner rules, skills, and canon come first. Whole items survive the cap, and the rest are counted. The line ends with the `git log` command that shows the details.
 
 After the hook prepares a turn that contains the line, it records the newest covered commit. A later turn does not repeat the notice. Like ADR-0548, this proves `prepared` delivery only.
+
+### Owner-rule notices (ADR-0561)
+
+[ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) makes this notice the after-the-fact report of a stored owner rule. A rule file added in an owner-rule commit is shown as `stored owner rule "<title>" (<path>)`, followed by `(replaced <rule-id>, …)` when the same commit deleted older generated rules. A rule file deleted on its own is shown as `retired owner rule <rule-id>`. When any rule was stored, the line names the undo: `lervo knowledge instruction retire <rule-id>`. Entries add the optional `replaced` and `retired` fields; older notice files without them stay valid.
 
 ## State, events, privacy, and failure meaning
 

@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -105,6 +105,39 @@ describe("learned notice", () => {
     const after = await projectLearnedNotice({ root, shownThrough: head, now: new Date() });
     expect(after).toMatchObject({ throughCommit: head, entries: [] });
     expect(formatLearnedNotice(after!)).toBeNull();
+  });
+
+  it("reports a stored owner rule with the rule it replaced, a retired rule, and the undo", async () => {
+    const { root, base } = await repository();
+    const older = `docs/instructions/generated/rule_${"a".repeat(24)}.md`;
+    const newer = `docs/instructions/generated/rule_${"b".repeat(24)}.md`;
+    const retired = `docs/instructions/generated/rule_${"c".repeat(24)}.md`;
+    await commit(
+      root,
+      { [older]: "# Older rule\n", [retired]: "# Retired rule\n" },
+      "chore: seed rules",
+      developer,
+    );
+    await rm(join(root, older));
+    await commit(root, { [newer]: "# Scoped commits\n" }, "docs: apply an owner rule", lervo);
+    await rm(join(root, retired));
+    const head = await commit(root, {}, "docs: retire an owner rule", lervo);
+
+    const notice = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
+    expect(notice).toMatchObject({ throughCommit: head, counts: { owner_rule: 2 } });
+    expect(notice!.entries).toEqual(
+      expect.arrayContaining([
+        { kind: "owner_rule", path: newer, title: "Scoped commits", links: [], replaced: [older] },
+        { kind: "owner_rule", path: retired, title: null, links: [], retired: true },
+      ]),
+    );
+    const line = formatLearnedNotice(notice!)!;
+    expect(line).toContain(
+      `stored owner rule "Scoped commits" (${newer}) (replaced rule_${"a".repeat(24)})`,
+    );
+    expect(line).toContain(`retired owner rule rule_${"c".repeat(24)}`);
+    expect(line).toContain("undo a rule: lervo knowledge instruction retire <rule-id>");
+    expect(Buffer.byteLength(line)).toBeLessThanOrEqual(480);
   });
 
   it("restarts from the first-run window when the cursor is no longer reachable", async () => {

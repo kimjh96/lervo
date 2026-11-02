@@ -80,6 +80,7 @@ export {
 export * from "./materialization-settlement.js";
 export * from "./durable-instruction.js";
 export * from "./durable-instruction-catalog.js";
+export * from "./durable-instruction-cross-check.js";
 export * from "./generated-durable-instructions.js";
 export * from "./instruction-capture-contract.js";
 export * from "./execution-event-source.js";

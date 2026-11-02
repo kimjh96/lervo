@@ -99,6 +99,7 @@ export {
 } from "./instruction-candidate-exchange-state.js";
 export {
   commitAppliedInstructionCandidate,
+  commitRetiredInstruction,
   appliedInstructionCandidateCommitted,
   instructionCandidateApplyAuthority,
   type InstructionCandidateApplyAuthority,
