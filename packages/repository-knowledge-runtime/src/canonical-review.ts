@@ -166,6 +166,8 @@ export async function reviewCanonicalBaseline(
 /**
  * ADR-0479: one bounded re-assessment with the reviewer's rationale, then isolation. Rejection never
  * stops the pipeline; an isolated single source is parked and the remaining sources continue.
+ * ADR-0561: a source its generator marked `needs_review` regenerates once like any rejection, then
+ * parks as Lervo debt; it is never parked at once as an owner decision.
  */
 async function rejectedCanonicalBatch(
   context: ConvergenceRuntimeContext,
@@ -178,10 +180,7 @@ async function rejectedCanonicalBatch(
   const previousRetry = state.stageData.canonicalReviewRetry as
     { offset: number; count: number; rationale: string } | null | undefined;
   const retried = previousRetry?.offset === batch.offset ? previousRetry.count : 0;
-  const ownerDecision =
-    batch.sources.length === 1 &&
-    batch.assessment.decisions.some((decision) => decision.disposition === "needs_review");
-  if (!ownerDecision && retried < 1)
+  if (retried < 1)
     return completeConvergenceStage({
       sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,

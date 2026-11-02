@@ -5,6 +5,7 @@ import {
   scanCompleteConfiguredRepositoryKnowledge,
   inspectConfiguredDocumentNormalization,
   inspectRepositoryKnowledgeCurrency,
+  canonicalizationCandidateHeld,
   listCanonicalizationCandidates,
   type KnowledgeConvergenceBaseline,
 } from "@lervo/repository-knowledge";
@@ -73,6 +74,17 @@ async function observeConvergenceRepository(root: string, openingFence?: string)
   };
 }
 
+/**
+ * A candidate the background reviewer still has to resolve. ADR-0561: one it deferred twice is
+ * held as Lervo debt, shown in attention with its age, and no longer an obligation.
+ */
+function openCandidate(candidate: ConvergenceRepositoryObservation["candidates"][number]): boolean {
+  return (
+    ["candidate", "pending", "stale"].includes(candidate.observedState) &&
+    !(candidate.observedState === "pending" && canonicalizationCandidateHeld(candidate))
+  );
+}
+
 type ConvergenceRepositoryObservation = Awaited<ReturnType<typeof observeConvergenceRepository>>;
 
 export async function discoverConvergenceBaseline(
@@ -102,7 +114,7 @@ export async function discoverConvergenceBaseline(
       ...historical.paths,
       ...normalization.pendingDocuments,
       ...candidates
-        .filter((candidate) => ["candidate", "pending", "stale"].includes(candidate.observedState))
+        .filter(openCandidate)
         .flatMap((candidate) => candidate.sourceBindings.map((binding) => binding.path)),
     ].filter(convergenceSourcePath),
   );
@@ -133,9 +145,7 @@ export async function discoverConvergenceBaseline(
   });
   const settled = new Set(settledAssessments.map((item) => item.path));
   const assessmentPaths = [...obligationPaths].filter((path) => !settled.has(path)).sort();
-  const canonicalization = candidates.filter((candidate) =>
-    ["candidate", "pending", "stale"].includes(candidate.observedState),
-  ).length;
+  const canonicalization = candidates.filter(openCandidate).length;
   const debtCounts = {
     canonicalization,
     normalization: normalization.pendingDocuments.length,

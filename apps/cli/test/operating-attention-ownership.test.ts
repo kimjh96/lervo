@@ -194,7 +194,7 @@ describe("attention authority at consequential effects", () => {
     ["instruction_capture_blocked", "knowledge resident", false],
     ["knowledge_convergence_owner", "resident", false],
     ["knowledge_publication", "knowledge publisher", false],
-    ["knowledge_convergence_continuity", "resident", false],
+    ["knowledge_convergence_continuity", "knowledge resident", false],
   ] as const)("classifies %s through structured effects", (kind, actor, requiresUserAction) => {
     expect(attributeOperatingAttention(items[kind], healthNow)).toMatchObject({
       requiresUserAction,
@@ -234,19 +234,24 @@ describe("attention authority at consequential effects", () => {
     },
   );
 
-  it("keeps scope and exact write exceptions while preserving stale re-verification", () => {
+  it("holds continuity and pending declarations as Lervo work while preserving stale re-verification", () => {
+    // ADR-0561: continuity outside the policy limits is Lervo debt, never an owner decision.
     expect(
       attributeOperatingAttention(
-        { ...items.knowledge_convergence_continuity, severity: "owner_decision" },
+        { ...items.knowledge_convergence_continuity, severity: "lervo_debt" },
         healthNow,
-      ).requiresUserAction,
-    ).toBe(true);
+      ),
+    ).toMatchObject({
+      requiresUserAction: false,
+      attribution: { actor: "knowledge resident", consequence: null },
+    });
+    // A stored pending_user_approval declaration waits on no one.
     expect(
       attributeOperatingAttention(
         { ...items.knowledge_lifecycle, issueCode: "turn_approval_pending" },
         healthNow,
       ).requiresUserAction,
-    ).toBe(true);
+    ).toBe(false);
     // ADR-0561: a reviewed layout plan is Lervo's own cross-checked work, never owner work.
     expect(
       attributeOperatingAttention(
@@ -344,8 +349,8 @@ describe("attention authority at consequential effects", () => {
       detail: null,
     };
     expect(attributeOperatingAttention(lifecycle, healthNow)).toMatchObject({
-      requiresUserAction: true,
-      attribution: { actor: "owner", consequence: "repository_write" },
+      requiresUserAction: false,
+      attribution: { actor: "resident", consequence: null },
     });
     // ADR-0561: a missing delegation for capture is Lervo debt, never owner work.
     const scope: OperatingAttentionItemV1 = {

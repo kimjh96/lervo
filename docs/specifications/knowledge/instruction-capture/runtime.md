@@ -29,13 +29,15 @@ For each turn, it sends `instructionCaptureRequest` (`@lervo/repository-knowledg
 
 Practice extraction uses a separate completed-work record under `.lervo/state/knowledge/practice/`; it does not enlarge the legacy capture queue or its 2 KiB preceding-reply bound. The legacy queue has no session field. The resident attaches preceding work only when the prompt digest, provider and capture time identify one prepared context. Ambiguous matches remain eligible for the 30-minute local practice assessment. Added capture work is charged to the separate skill-learning budget, and practice extraction failure does not fail rule capture. The practice learning contract owns work-record bounds, evidence retention, review and implementation status.
 
-| Class                          | Outcome                                                                                                                                                  |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `durable_instruction`          | Durable-instruction plan, then the ADR-0561 cross-check: candidate, `covered`, held `cross_check_disagreement`, or a retry when the rule text is missing |
-| `correction_of_agent_behavior` | Same as `durable_instruction`                                                                                                                            |
-| `decision`                     | Held `decision`; a decision that is itself a canonical rule follows the instruction path                                                                 |
-| `preference_personal`          | Counted; nothing stored                                                                                                                                  |
-| `none`                         | Counted; nothing stored                                                                                                                                  |
+| Class                          | Outcome                                                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `durable_instruction`          | Durable-instruction plan, then the ADR-0561 cross-check: candidate, `covered`, one regeneration and then held `cross_check_disagreement`, or a retry when the rule text is missing |
+| `correction_of_agent_behavior` | Same as `durable_instruction`                                                                                                                                                      |
+| `decision`                     | Normalized as a repository-wide canonical rule with the decision's title and statement, then the same path; held `decision` only when it cannot be grounded as a rule              |
+| `preference_personal`          | Counted; nothing stored                                                                                                                                                            |
+| `none`                         | Counted; nothing stored                                                                                                                                                            |
+
+The first cross-check disagreement records `crossCheckDisagreement.reasonIds` on the queued turn. It is not a failed attempt, and the next cycle reassesses the turn with those reasons as `priorCrossCheckDisagreement`.
 
 A candidate carries `captureSource`, `captureId`, and the instruction-catalog digest used for assessment. An existing candidate for the same words counts as `covered`.
 

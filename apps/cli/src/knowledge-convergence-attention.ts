@@ -138,6 +138,9 @@ export function knowledgeConvergenceAttentionItems(
       ? input.publication.failure
       : null;
   if (failure !== null && failure !== undefined) {
+    // ADR-0561: Lervo retries every publication failure itself; only missing gh credentials,
+    // which Lervo cannot create, are the owner's, and they are reported as a notice.
+    const credentials = /^gh \S+ exit \S+ auth$/u.test(failure.detail ?? "");
     const item: KnowledgePublicationAttentionItemV1 = {
       schemaVersion: 1,
       kind: "knowledge_publication",
@@ -148,8 +151,8 @@ export function knowledgeConvergenceAttentionItems(
       pullRequestUrl: input.publication?.pullRequestUrl ?? null,
       occurrences: failure.occurrences,
       firstObservedAt: failure.firstObservedAt,
-      actionOwner: "user",
-      requiresUserAction: true,
+      actionOwner: credentials ? "user" : "agent",
+      requiresUserAction: credentials,
       blocking: false,
       instruction:
         forgeFailureInstruction(failure.detail) ??

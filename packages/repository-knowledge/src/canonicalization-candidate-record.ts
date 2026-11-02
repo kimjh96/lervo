@@ -47,6 +47,16 @@ export interface CanonicalizationCandidateInspection extends CanonicalizationCan
   contentHash: string;
 }
 
+/**
+ * ADR-0561: a candidate the background canonical reviewer deferred after its one regeneration is
+ * held as Lervo debt. It is not reviewed again until its sources change or it is reopened.
+ */
+export function canonicalizationCandidateHeld(
+  candidate: Pick<CanonicalizationCandidateRecord, "state" | "review">,
+): boolean {
+  return candidate.state === "pending" && candidate.review?.decision === "defer";
+}
+
 const ROOT = ".lervo/state/knowledge/canonicalization-candidates";
 const MAXIMUM_CANDIDATE_RECORDS = 256;
 export const MAXIMUM_CANONICALIZATION_SOURCE_BINDINGS = 256;

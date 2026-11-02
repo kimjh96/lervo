@@ -11,7 +11,10 @@ import { createRepositoryLayoutMigrationPlan } from "./repository-layout-migrati
 import { lintRepositoryKnowledge } from "./lint-query.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
-import { listCanonicalizationCandidates } from "./canonicalization-candidate-record.js";
+import {
+  canonicalizationCandidateHeld,
+  listCanonicalizationCandidates,
+} from "./canonicalization-candidate-record.js";
 import type { RepositoryKnowledgePreparedScanOptions } from "./types.js";
 
 export type RepositoryKnowledgeCurrencyReason =
@@ -64,9 +67,13 @@ export async function inspectRepositoryKnowledgeCurrency(
   if (normalization.pendingDocuments.length > 0) reasons.push("normalization_pending");
   if (lint.coverage !== "complete" || !lint.valid) reasons.push("knowledge_lint_invalid");
   const candidates = await listCanonicalizationCandidates(repositoryRoot);
+  // ADR-0561: a candidate the reviewer deferred twice is held as Lervo debt, shown in attention
+  // with its age; like a parked source, it does not keep the rest of knowledge from currency.
   if (
-    candidates.some((candidate) =>
-      ["candidate", "pending", "stale"].includes(candidate.observedState),
+    candidates.some(
+      (candidate) =>
+        ["candidate", "pending", "stale"].includes(candidate.observedState) &&
+        !(candidate.observedState === "pending" && canonicalizationCandidateHeld(candidate)),
     )
   )
     reasons.push("canonicalization_pending");

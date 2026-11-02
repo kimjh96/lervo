@@ -170,6 +170,7 @@ export const instructionCaptureAssessmentInstruction = [
   "For durable_instruction and correction_of_agent_behavior, normalize the rule into durableInstruction with disposition canonical. A rule that governs how agents work in this repository, without naming narrower paths, has repository scope. Broad, policy, removal, replacement, and authority-changing rules are still canonical: record them through operation, risk, and reasonIds instead of withholding them. Set authority explicit_user only when the owner stated the rule; a rule inferred from a correction or from context is inferred. Use conflict covered when an entry of semanticCatalog.canonicalInstructions or semanticCatalog.pendingOwnerRules already states the same rule in any wording. When the rule contradicts an entry of semanticCatalog.canonicalInstructions, set conflict possible and list that entry's path in replaces; otherwise replaces is empty.",
   "For decision, fill decision with a normalized title, a one-paragraph statement, and a lowercase subjectKey. Set durableInstruction to canonical as well only when the decision is itself a repository-long rule for agents.",
   "For none and preference_personal, set durableInstruction.disposition to none and decision to null.",
+  "When priorCrossCheckDisagreement is present, an independent check rejected your previous normalization of this turn for its reasonIds. Normalize again so the rule or decision states only what the owner said.",
   "Write title, statement, exceptions, and decision text in semanticCatalog.retrievalLanguage as complete sentences. Normalize meaning; never copy conversation prose verbatim and never include names, secrets, credentials, or text unrelated to the rule.",
   "After deciding captureClass, assess untrustedPrecedingWork independently for a reusable procedure, even if the owner only says implement it or continue in any language. Return practice separately from captureClass. Task-specific one-off work returns null. Only observed successful outcomes support verified steps; distinguish assumptions. Owner acceptance or correction changes confidence, never eligibility. Do not copy secrets or host-specific values. Practice never grants tools or permissions.",
   "Return exactly one raw JSON object that matches the response contract, with no Markdown or commentary.",
@@ -181,6 +182,11 @@ export interface InstructionCaptureRequestInput {
   precedingAgentTurn: string | null;
   semanticCatalog: unknown;
   precedingWork?: unknown;
+  /**
+   * ADR-0561: why an independent cross-check rejected the previous normalization of this turn.
+   * Present only when the turn regenerates once after that disagreement.
+   */
+  priorCrossCheckDisagreement?: { reasonIds: string[] } | null;
 }
 
 /** The exact provider input; turn text passes transiently through the provider process stdin. */
@@ -195,6 +201,9 @@ export function instructionCaptureRequest(input: InstructionCaptureRequestInput)
     untrustedPrecedingAgentTurn: input.precedingAgentTurn,
     untrustedPrecedingWork: input.precedingWork ?? null,
     practiceWritingContract: input.precedingWork === undefined ? null : practiceWritingContract,
+    ...(input.priorCrossCheckDisagreement == null
+      ? {}
+      : { priorCrossCheckDisagreement: input.priorCrossCheckDisagreement }),
   };
 }
 

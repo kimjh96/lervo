@@ -71,7 +71,7 @@ Records are stored in host-private `.lervo/state/knowledge/document-route-classi
 
 `--accept-layout`, `--decline-layout`, and `--approve-item` for layout items are removed and fail with a message that names `lervo knowledge revert <commit>`. The `repository_layout_decision_pending` and `repository_layout_decision_declined` attention items, the upgrade `layoutDecision`, and `.lervo/state/knowledge/layout-decision.json` no longer exist. A layout plan in terminal attention is agent work (`repository_layout_review_required`, `requiresUserAction: false`).
 
-Continuity no longer proposes a `delegation_scope_change` for layout moves, and reconciliation clears a proposal an older version recorded. The `scope-response` subcommand and its proposal and decision records remain until a later ADR-0561 slice removes them; nothing produces a proposal for them to answer.
+Continuity no longer proposes a `delegation_scope_change` for layout moves, and a reader drops a proposal an older version recorded. The `scope-response` subcommand and its proposal and decision records are removed; the subcommand fails with a message that names `lervo knowledge revert <commit>`.
 
 ## Deferral health integration
 

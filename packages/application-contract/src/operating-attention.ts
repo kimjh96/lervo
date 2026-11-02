@@ -215,14 +215,15 @@ export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionI
 /**
  * ADR-0469: a background knowledge continuity gap on this host, such as a delegation that will
  * lapse without a policy, a Hub that refuses coordination, or a checkout no resident reconciles.
- * It never blocks; it requires the user only for an authority or scope decision.
+ * It never blocks. Under ADR-0561 it never requires the user: continuity Lervo cannot restore
+ * within the installed policy limits is `lervo_debt`, shown with its age and reason.
  */
 export interface KnowledgeConvergenceContinuityAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_convergence_continuity";
-  state: "action_required" | "observed";
+  state: "lervo_debt" | "observed";
   findingCode: string;
   actor?: "provider admission";
-  severity: "attention" | "owner_decision";
+  severity: "attention" | "lervo_debt";
   /** A closed cause code or a host label; never a path, URL, or message. */
   detail: string | null;
   observedAt: string | null;

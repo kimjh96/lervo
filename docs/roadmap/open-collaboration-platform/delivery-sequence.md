@@ -72,8 +72,26 @@ Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-
 Remaining boundaries:
 
 - Not yet observed on argo after release: the layout moves applying with no owner command, followed by a notice with the undo command.
-- The delegation `scope-response` command and its proposal and decision records, canonicalization review and promote, and delegation renewal remain for slice A4.
-- The terminal integration `--approve-item`, `lervo upgrade --approval`, and the `turn_approval_pending` owner item remain for later slices.
+- The terminal integration `--approve-item` and `lervo upgrade --approval` remain for later slices.
+
+### Owner-free canonicalization, delegation, and continuity
+
+Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) slice A4, canonicalization candidates, delegation renewal, continuity findings, and turn declarations are `wired` without an owner step:
+
+- Only the background canonical reviewer resolves a candidate. A deferral regenerates the review once, then holds the candidate as Lervo debt while convergence continues. `lervo knowledge canonicalization review` and `promote` are removed, and `reopen` undoes a decision.
+- A delegation outside the policy limits renews narrowed to them, and the resident rolls a near policy horizon forward with the same limits.
+- Continuity `owner_decision` findings become `lervo_debt`, which never requires user action.
+- The delegation `scope-response` command and its proposal, decision, and response records are removed.
+- New declarations cannot claim `pending_user_approval`. Remaining lifecycle work is declared `pending_background`, and `turn_approval_pending` is no longer reported.
+- A captured owner decision enters canon through the cross-checked rule path. A captured rule the cross-check rejects regenerates once before it is held as Lervo debt.
+- A source its generator marks `needs_review` regenerates once before it is parked as Lervo debt.
+
+Runtime and CLI tests cover each replacement: deferral regeneration and hold, narrowed renewal, horizon roll-forward, legacy continuity state, decision capture, capture regeneration, `needs_review` regeneration, and the removed commands.
+
+Remaining boundaries:
+
+- Not yet observed on an installed host after release: a renewal narrowed to the policy limits, a rolled horizon, or a held candidate shown as Lervo debt.
+- Owner-required attention that remains belongs to later slices or to credentials: Hub ownership verdicts and replica divergence (A6), and `gh` authentication for knowledge publication (credentials, notice-only).
 
 ## Slice 3: self-organizing and standing
 

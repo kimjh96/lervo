@@ -63,10 +63,7 @@ export function executionInstructions(input: {
     durableHistory.length === 0
       ? "No earlier durable work result was available for this worker."
       : `Earlier durable work results for this worker:\n${durableHistory}`,
-    canonicalizationAssignment(
-      input.canonicalizationCandidates ?? [],
-      input.worker === null ? "conversation-agent" : input.worker.roleId,
-    ),
+    canonicalizationAssignment(input.canonicalizationCandidates ?? []),
     normalizationAssignment(input.normalizationReview ?? null),
     input.contextPointers ?? null,
     `Current request:\n${input.request}`,

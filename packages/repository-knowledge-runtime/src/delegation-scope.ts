@@ -64,15 +64,20 @@ export function bindConvergenceDelegationScope(input: {
 /**
  * Same-scope renewal: identical scope, parent, reviewer, and review time; only the term changes.
  * ADR-0478 keeps `reviewedAt` at the last owner review, because a renewal is a continuation, not
- * a review, and the result must be the same bytes on every host. Any other change requires an
- * owner-reviewed delegation.
+ * a review, and the result must be the same bytes on every host. Under ADR-0561 `limits` narrows
+ * the providers and ceilings to the installed policy limits; nothing else ever changes.
  */
 export function renewedConvergenceDelegation(input: {
   current: ConvergenceDelegation;
   expiresAt: string;
+  limits?: Pick<ConvergenceDelegation, "providers" | "resourceCeilings">;
 }): ConvergenceDelegation {
   const { review, ...rest } = structuredClone(input.current);
-  const plan: Omit<ConvergenceDelegation, "review"> = { ...rest, expiresAt: input.expiresAt };
+  const plan: Omit<ConvergenceDelegation, "review"> = {
+    ...rest,
+    ...(input.limits === undefined ? {} : structuredClone(input.limits)),
+    expiresAt: input.expiresAt,
+  };
   return parseConvergenceDelegation({
     ...plan,
     review: {

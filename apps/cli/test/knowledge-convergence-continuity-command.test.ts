@@ -269,20 +269,30 @@ describe("continuity attention", () => {
     ).toContain("sync.write");
   });
 
-  it("projects non-blocking items and requires the user only for owner decisions", () => {
+  it("projects non-blocking items and never requires the user, holding Lervo debt instead", () => {
     const items = continuityAttentionItems(
       [
         { code: "policy_absent", severity: "info", detail: null },
         { code: "lease_unverifiable", severity: "attention", detail: "hub_forbidden" },
-        { code: "delegation_expiring", severity: "owner_decision", detail: "no_policy" },
+        { code: "delegation_expiring", severity: "lervo_debt", detail: "no_policy" },
         { code: "peer_delegation_expiring", severity: "attention", detail: "wsl" },
         { code: "peer_delegation_expiring", severity: "attention", detail: "wsl" },
       ],
       "2026-10-06T00:00:00.000Z",
     );
     expect(items.map((item) => [item.itemId, item.requiresUserAction, item.blocking])).toEqual([
-      ["knowledge_convergence_continuity_delegation_expiring_no_policy", true, false],
+      ["knowledge_convergence_continuity_delegation_expiring_no_policy", false, false],
       ["knowledge_convergence_continuity_peer_delegation_expiring_wsl", false, false],
     ]);
+    expect(items[0]).toMatchObject({ state: "lervo_debt", actionOwner: "host resident" });
+    expect(items[0]!.instruction).toMatch(/^Lervo debt: /u);
+  });
+
+  it("assigns the owner no step in any continuity remediation (ADR-0561)", () => {
+    for (const code of codes)
+      for (const severity of ["attention", "lervo_debt"] as const)
+        expect(continuityRemediation({ code, severity, detail: null })).not.toMatch(
+          /renewal-policy install|--from <reviewed-delegation|scope-response|Review a (new|renewed)/u,
+        );
   });
 });

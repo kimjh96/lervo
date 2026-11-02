@@ -16,7 +16,7 @@ If a reviewer response fails the exact candidate, source-unit, and output-hash c
 
 If a canonical assessment response fails its exact source, hash, or reference contract, the generator may make one fresh call within the existing three-call stage ceiling. The invalid response establishes no coverage or candidate. A second invalid response or exhausted budget retains explicit assessment attention.
 
-Old canonicalization candidates are reviewed one at a time. Each review loads source-specific canonical context for the candidate's exact source bindings. Unrelated candidates cannot consume the bounded document slots or make a present contract appear missing. A stale candidate closes only its old binding; a current candidate requires substantive source coverage before promotion or rejection.
+Old canonicalization candidates are reviewed one at a time. Each review loads source-specific canonical context for the candidate's exact source bindings. Unrelated candidates cannot consume the bounded document slots or make a present contract appear missing. A stale candidate closes only its old binding; a current candidate requires substantive source coverage before promotion or rejection. Under [ADR-0561](../../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a deferral no longer stops the obligation with `knowledge_semantic_review_rejected`. The review regenerates once with the deferral as `priorDeferral`, and a second deferral holds the candidate as Lervo debt while convergence continues.
 
 ## Approval and application
 

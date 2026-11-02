@@ -359,9 +359,6 @@ export class ConvergenceContinuity {
         failureCode: hubFailure,
       },
       peers: peerSummaries,
-      // ADR-0561: layout moves no longer need delegation scope, so no scope change is proposed.
-      scopeChange: null,
-      scopeResponse: null,
       findings,
     };
     await writeConvergenceContinuityState(this.root, state);

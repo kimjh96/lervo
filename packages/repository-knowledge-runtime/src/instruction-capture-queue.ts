@@ -1,15 +1,4 @@
-import { randomUUID } from "node:crypto";
-import {
-  chmod,
-  lstat,
-  mkdir,
-  readdir,
-  readFile,
-  rename,
-  rm,
-  stat,
-  writeFile,
-} from "node:fs/promises";
+import { readdir, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
@@ -20,25 +9,34 @@ import {
   type InstructionCaptureSurface,
 } from "@lervo/repository-knowledge";
 
+import { pruneExpiredAgentTurns } from "./instruction-capture-agent-turn.js";
+import {
+  boundedUtf8Tail,
+  INSTRUCTION_CAPTURE_ROOT,
+  readPrivate,
+  writePrivate,
+} from "./instruction-capture-private-file.js";
+
+// Stable facade: callers keep importing the capture root, text bound, and agent-turn store here.
+export { boundedUtf8Tail, INSTRUCTION_CAPTURE_ROOT } from "./instruction-capture-private-file.js";
+export {
+  readPrecedingAgentTurn,
+  recordPrecedingAgentTurn,
+} from "./instruction-capture-agent-turn.js";
+
 /**
  * The only place owner-turn text rests (ADR-0467): a private, Git-ignored, short-lived queue the
  * terminal hook and the conversation runtime write and the knowledge resident drains. Records are
  * 0600 files in 0700 directories, expire after a day, and are deleted as soon as they are
  * assessed. Events never carry this text; they carry `promptDigest` only.
  */
-export const INSTRUCTION_CAPTURE_ROOT = ".lervo/state/knowledge/instruction-capture";
 export const INSTRUCTION_CAPTURE_QUEUE_ROOT = `${INSTRUCTION_CAPTURE_ROOT}/queue`;
-const AGENT_TURN_ROOT = `${INSTRUCTION_CAPTURE_ROOT}/agent-turns`;
 
 export const MAXIMUM_QUEUED_CAPTURES = 32;
 export const MAXIMUM_RETAINED_CAPTURES = 32;
 export const CAPTURE_RETENTION_MILLISECONDS = 24 * 3_600_000;
 const MAXIMUM_RETRY_DELAY_MILLISECONDS = 24 * 3_600_000;
-const MAXIMUM_AGENT_TURN_SLOTS = 16;
-const AGENT_TURN_RETENTION_MILLISECONDS = 6 * 3_600_000;
-const MAXIMUM_RECORD_BYTES = 64 * 1024;
 const CAPTURE_ID = /^kcap_[a-f0-9]{24}$/u;
-const SESSION_KEY = /^[a-f0-9]{24}$/u;
 
 export interface QueuedInstructionCapture {
   schemaVersion: 1;
@@ -60,52 +58,11 @@ export interface QueuedInstructionCapture {
   retained?: true;
   /** The earliest retry time of a retained record after a failed attempt. */
   nextAttemptAt?: string;
-}
-
-/** Keeps the tail of a UTF-8 string within a byte bound without splitting a code point. */
-export function boundedUtf8Tail(value: string, maximumBytes: number): string {
-  const bytes = Buffer.from(value, "utf8");
-  if (bytes.byteLength <= maximumBytes) return value;
-  let start = bytes.byteLength - maximumBytes;
-  while (start < bytes.byteLength && ((bytes[start] ?? 0) & 0xc0) === 0x80) start += 1;
-  return bytes.subarray(start).toString("utf8");
-}
-
-async function ensureDirectory(root: string, relative: string): Promise<string> {
-  let directory = resolve(root);
-  for (const part of relative.split("/")) {
-    directory = resolve(directory, part);
-    await mkdir(directory, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
-      if (error.code !== "EEXIST") throw error;
-    });
-    const observed = await lstat(directory);
-    if (!observed.isDirectory() || observed.isSymbolicLink())
-      throw new Error("The instruction capture state directory is invalid.");
-  }
-  return directory;
-}
-
-async function writePrivate(root: string, directory: string, name: string, value: unknown) {
-  const base = await ensureDirectory(root, directory);
-  const temporary = resolve(base, `.capture-${randomUUID()}.tmp`);
-  try {
-    await writeFile(temporary, `${JSON.stringify(value)}\n`, { mode: 0o600, flag: "wx" });
-    await chmod(temporary, 0o600);
-    await rename(temporary, resolve(base, name));
-  } catch (error) {
-    await rm(temporary, { force: true });
-    throw error;
-  }
-}
-
-async function readPrivate(path: string): Promise<unknown> {
-  try {
-    const observed = await lstat(path);
-    if (!observed.isFile() || observed.size > MAXIMUM_RECORD_BYTES) return null;
-    return JSON.parse(await readFile(path, "utf8")) as unknown;
-  } catch {
-    return null;
-  }
+  /**
+   * ADR-0561: the independent cross-check rejected this turn's first normalization. The turn
+   * regenerates once with these reasons as evidence; a second disagreement holds it as debt.
+   */
+  crossCheckDisagreement?: { reasonIds: string[] };
 }
 
 function validCapture(value: unknown): value is QueuedInstructionCapture {
@@ -132,7 +89,16 @@ function validCapture(value: unknown): value is QueuedInstructionCapture {
     (item.attempts ?? -1) >= 0 &&
     (item.retained === undefined || item.retained === true) &&
     (item.nextAttemptAt === undefined ||
-      (typeof item.nextAttemptAt === "string" && Number.isFinite(Date.parse(item.nextAttemptAt))))
+      (typeof item.nextAttemptAt === "string" &&
+        Number.isFinite(Date.parse(item.nextAttemptAt)))) &&
+    (item.crossCheckDisagreement === undefined ||
+      (typeof item.crossCheckDisagreement === "object" &&
+        item.crossCheckDisagreement !== null &&
+        Array.isArray(item.crossCheckDisagreement.reasonIds) &&
+        item.crossCheckDisagreement.reasonIds.length <= 8 &&
+        item.crossCheckDisagreement.reasonIds.every(
+          (reason) => typeof reason === "string" && reason.length <= 160,
+        )))
   );
 }
 
@@ -271,6 +237,28 @@ export async function recordInstructionCaptureAttempt(
   return next;
 }
 
+/**
+ * ADR-0561: records the first cross-check disagreement, so the next cycle regenerates the turn
+ * once with the reasons as evidence. It is not a failed attempt and does not consume one.
+ */
+export async function recordInstructionCaptureDisagreement(
+  repositoryRoot: string,
+  capture: QueuedInstructionCapture,
+  reasonIds: readonly string[],
+): Promise<QueuedInstructionCapture> {
+  const next: QueuedInstructionCapture = {
+    ...capture,
+    crossCheckDisagreement: { reasonIds: reasonIds.slice(0, 8).map((id) => id.slice(0, 160)) },
+  };
+  await writePrivate(
+    repositoryRoot,
+    INSTRUCTION_CAPTURE_QUEUE_ROOT,
+    `${capture.captureId}.json`,
+    next,
+  );
+  return next;
+}
+
 /** Removes expired records and reports how many expired unassessed. */
 export async function pruneInstructionCaptureQueue(
   repositoryRoot: string,
@@ -282,86 +270,6 @@ export async function pruneInstructionCaptureQueue(
     await removeQueuedInstructionCapture(repositoryRoot, capture.captureId);
     expired += 1;
   }
-  const slots = resolve(repositoryRoot, AGENT_TURN_ROOT);
-  try {
-    for (const name of await readdir(slots)) {
-      const value = (await readPrivate(resolve(slots, name))) as { recordedAt?: unknown } | null;
-      const recordedAt = typeof value?.recordedAt === "string" ? Date.parse(value.recordedAt) : NaN;
-      if (!(now.getTime() - recordedAt < AGENT_TURN_RETENTION_MILLISECONDS))
-        await rm(resolve(slots, name), { force: true });
-    }
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
+  await pruneExpiredAgentTurns(repositoryRoot, now);
   return expired;
-}
-
-function sessionKey(provider: "codex" | "claude", providerSessionId: string): string {
-  return sha256(`${provider}\0${providerSessionId}`).slice("sha256:".length, "sha256:".length + 24);
-}
-
-/**
- * Keeps the latest agent reply of one terminal session so the next owner turn is assessed with
- * it: an implicit correction only makes sense against what the agent just said. One bounded slot
- * per session, overwritten each turn, expiring after six hours.
- */
-export async function recordPrecedingAgentTurn(input: {
-  repositoryRoot: string;
-  provider: "codex" | "claude";
-  providerSessionId: string;
-  agentTurn: string | null;
-  now: Date;
-}): Promise<void> {
-  const key = sessionKey(input.provider, input.providerSessionId);
-  const directory = resolve(input.repositoryRoot, AGENT_TURN_ROOT);
-  if (input.agentTurn === null || input.agentTurn.trim() === "") {
-    await rm(resolve(directory, `${key}.json`), { force: true });
-    return;
-  }
-  let names: string[] = [];
-  try {
-    names = (await readdir(directory)).filter((name) => name !== `${key}.json`).sort();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-  if (names.length >= MAXIMUM_AGENT_TURN_SLOTS) {
-    const aged = await Promise.all(
-      names.map(async (name) => ({
-        name,
-        modified: await stat(resolve(directory, name)).then(
-          (observed) => observed.mtimeMs,
-          () => 0,
-        ),
-      })),
-    );
-    aged.sort((left, right) => left.modified - right.modified);
-    for (const entry of aged.slice(0, names.length - MAXIMUM_AGENT_TURN_SLOTS + 1))
-      await rm(resolve(directory, entry.name), { force: true });
-  }
-  await writePrivate(input.repositoryRoot, AGENT_TURN_ROOT, `${key}.json`, {
-    schemaVersion: 1,
-    text: boundedUtf8Tail(input.agentTurn, MAXIMUM_CAPTURED_AGENT_TURN_BYTES),
-    recordedAt: input.now.toISOString(),
-  });
-}
-
-export async function readPrecedingAgentTurn(input: {
-  repositoryRoot: string;
-  provider: "codex" | "claude";
-  providerSessionId: string;
-  now: Date;
-}): Promise<string | null> {
-  const key = sessionKey(input.provider, input.providerSessionId);
-  if (!SESSION_KEY.test(key)) return null;
-  const value = (await readPrivate(
-    resolve(input.repositoryRoot, AGENT_TURN_ROOT, `${key}.json`),
-  )) as { schemaVersion?: unknown; text?: unknown; recordedAt?: unknown } | null;
-  if (
-    value?.schemaVersion !== 1 ||
-    typeof value.text !== "string" ||
-    typeof value.recordedAt !== "string" ||
-    !(input.now.getTime() - Date.parse(value.recordedAt) < AGENT_TURN_RETENTION_MILLISECONDS)
-  )
-    return null;
-  return value.text;
 }

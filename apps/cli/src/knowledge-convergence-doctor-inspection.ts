@@ -47,10 +47,11 @@ export interface ContinuityDoctorReport {
   schemaVersion: 1;
   kind: "knowledge_convergence.doctor";
   observedAt: string;
-  status: "healthy" | "attention" | "owner_decision";
+  /** ADR-0561: `lervo_debt` replaced `owner_decision`; no finding asks the owner. */
+  status: "healthy" | "attention" | "lervo_debt";
   policy: { state: string; horizonAt: string | null; authority: string | null };
   repositories: ContinuityDoctorRepository[];
-  summary: { repositories: number; ownerDecisions: number; attention: number; info: number };
+  summary: { repositories: number; lervoDebt: number; attention: number; info: number };
 }
 
 /** Live peers through the Hub when this checkout is Hub-coordinated; null keeps cached peers. */
@@ -153,13 +154,13 @@ export async function inspectContinuityDoctor(input: {
   for (const root of [...roots].sort())
     repositories.push(await inspectRepository(root, policyPath, now));
   const all = repositories.flatMap((repository) => repository.findings);
-  const ownerDecisions = all.filter((finding) => finding.severity === "owner_decision").length;
+  const lervoDebt = all.filter((finding) => finding.severity === "lervo_debt").length;
   const attention = all.filter((finding) => finding.severity === "attention").length;
   return {
     schemaVersion: 1,
     kind: "knowledge_convergence.doctor",
     observedAt: now.toISOString(),
-    status: ownerDecisions > 0 ? "owner_decision" : attention > 0 ? "attention" : "healthy",
+    status: lervoDebt > 0 ? "lervo_debt" : attention > 0 ? "attention" : "healthy",
     policy:
       policy.status === "loaded"
         ? {
@@ -171,9 +172,9 @@ export async function inspectContinuityDoctor(input: {
     repositories,
     summary: {
       repositories: repositories.length,
-      ownerDecisions,
+      lervoDebt,
       attention,
-      info: all.length - ownerDecisions - attention,
+      info: all.length - lervoDebt - attention,
     },
   };
 }

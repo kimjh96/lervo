@@ -887,7 +887,7 @@ describe("terminal integration CLI", () => {
           reasonCode: "implementation_only",
           sourcePaths: ["src/feature.ts"],
         },
-        knowledgeDisposition: "pending_user_approval",
+        knowledgeDisposition: "pending_background",
         deliberationDisposition: "not_requested",
         deliberationId: null,
       });
@@ -907,7 +907,7 @@ describe("terminal integration CLI", () => {
               ...quiet,
               stdin: async () =>
                 declaration.replace(
-                  '"knowledgeDisposition":"pending_user_approval"',
+                  '"knowledgeDisposition":"pending_background"',
                   '"knowledgeDisposition":"current"',
                 ),
             },

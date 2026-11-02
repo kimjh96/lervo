@@ -6,6 +6,7 @@ import type {
   RepositoryReplicaDivergenceAttentionItemV1,
 } from "@lervo/application-contract";
 import {
+  canonicalizationCandidateHeld,
   canonicalJson,
   sha256,
   STALE_WORKSTREAM_INSTRUCTION,
@@ -64,29 +65,17 @@ function canonicalizationItem(
           : [],
     hasProposedContent: candidate.outcome?.kind === "review_draft",
     createdAt: candidate.createdAt,
-    actionOwner: candidate.observedState === "pending" ? "user" : "reviewer",
-    requiresUserAction: candidate.observedState === "pending",
-    blocking: candidate.observedState === "pending",
+    // ADR-0561: the background canonical reviewer resolves every candidate; none waits for the owner.
+    actionOwner: "reviewer",
+    requiresUserAction: false,
+    blocking: false,
     instruction:
       candidate.observedState === "stale"
-        ? `Inspect stale candidate ${candidate.candidateId}; it permits exact-hash rejection with ${candidate.contentHash} but not defer or promotion.`
-        : candidate.observedState === "pending"
-          ? `Run lervo knowledge canonicalization status ${candidate.candidateId} --json and present its bounded outcome and exact ${candidate.contentHash} review binding; apply no write or promotion without explicit authority.`
-          : `Inspect candidate ${candidate.candidateId} and use exact hash ${candidate.contentHash} for defer, reject, or promotion review.`,
+        ? `The background canonical reviewer closes stale candidate ${candidate.candidateId}, because its source bindings changed.`
+        : canonicalizationCandidateHeld(candidate)
+          ? `Lervo debt: the background canonical reviewer deferred candidate ${candidate.candidateId} twice, so it stays held until its sources change. Inspect it with lervo knowledge canonicalization status ${candidate.candidateId} --json.`
+          : `The background canonical reviewer promotes or rejects candidate ${candidate.candidateId} after its independent review. Inspect it with lervo knowledge canonicalization status ${candidate.candidateId} --json.`,
   };
-}
-
-/**
- * ADR-0561: a reviewed knowledge lifecycle plan (bootstrap, layout, structural, bridge) is applied
- * by Lervo after an independent cross-check, so it is agent work. Only the terminal integration
- * approval still waits for the owner until its own replacement lands.
- */
-function lifecycleOwner(
-  issue: TerminalLifecycleInspection["issues"][number],
-): Pick<KnowledgeLifecycleAttentionItemV1, "actionOwner" | "requiresUserAction"> {
-  if (issue.code === "turn_approval_pending")
-    return { actionOwner: "user", requiresUserAction: true };
-  return { actionOwner: "agent", requiresUserAction: false };
 }
 
 function replicaDivergenceItem(
@@ -229,8 +218,10 @@ export function createOperatingAttentionReport(input: {
           state: "action_required",
           issueCode: issue.code,
           detail: issue.detail ?? null,
-          ...lifecycleOwner(issue),
-          blocking: issue.code === "turn_approval_pending",
+          // ADR-0561: every lifecycle issue is agent work; Lervo cross-checks and applies plans.
+          actionOwner: "agent",
+          requiresUserAction: false,
+          blocking: false,
           instruction: issue.command,
         }));
   const replicaItems =

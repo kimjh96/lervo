@@ -2,6 +2,7 @@ import type { KnowledgeConvergenceHostRecord } from "@lervo/sync-contract";
 
 import {
   delegationWithinContinuityLimits,
+  narrowedToContinuityLimits,
   type ConvergenceContinuityPolicy,
 } from "./continuity-policy.js";
 import type { ConvergenceContinuityPolicyReading } from "./continuity-policy-store.js";
@@ -14,11 +15,16 @@ type ContinuityPolicyStatus = ConvergenceContinuityPolicyReading;
 
 /**
  * What continuity may do for an existing delegation. `renew` is the only effect; every other
- * outcome is reported, and the ones a policy cannot settle need the owner.
+ * outcome is reported, and the ones a policy cannot settle are Lervo debt (ADR-0561), never an
+ * owner step. `limits` is present when the renewal narrows a delegation to the policy limits.
  */
 export type DelegationRenewalDecision =
   | { kind: "current"; renewAt: string }
-  | { kind: "renew"; expiresAt: string }
+  | {
+      kind: "renew";
+      expiresAt: string;
+      limits?: Pick<ConvergenceDelegation, "providers" | "resourceCeilings">;
+    }
   | { kind: "revoked" }
   | { kind: "no_policy" }
   | { kind: "policy_invalid" }
@@ -40,7 +46,9 @@ export function decideDelegationRenewal(input: {
   const renewAt = Date.parse(delegation.expiresAt) - rules.renewal.windowHours * HOUR_MS;
   if (renewAt > now) return { kind: "current", renewAt: new Date(renewAt).toISOString() };
   const limits = delegationWithinContinuityLimits(delegation, rules);
-  if (limits !== "within") return { kind: "outside_policy", reason: limits };
+  // ADR-0561: renew within the last installed limits instead of waiting for an owner review.
+  const narrowed = limits === "within" ? null : narrowedToContinuityLimits(delegation, rules);
+  if (limits !== "within" && narrowed === null) return { kind: "outside_policy", reason: limits };
   const expiresAt = Math.min(
     nextTermEnd({
       previousExpiresAt: Date.parse(delegation.expiresAt),
@@ -52,7 +60,11 @@ export function decideDelegationRenewal(input: {
   );
   if (expiresAt <= Math.max(now, Date.parse(delegation.expiresAt)))
     return { kind: "horizon_exhausted" };
-  return { kind: "renew", expiresAt: new Date(expiresAt).toISOString() };
+  return {
+    kind: "renew",
+    expiresAt: new Date(expiresAt).toISOString(),
+    ...(narrowed === null ? {} : { limits: narrowed }),
+  };
 }
 
 /**
@@ -75,16 +87,26 @@ function nextTermEnd(input: {
 const OWNER_RECORD_FRESH_MS = 2 * HOUR_MS;
 
 export type DelegationAdoptionDecision =
-  { kind: "adopt"; record: KnowledgeConvergenceHostRecord; expiresAt: string } | { kind: "none" };
+  | {
+      kind: "adopt";
+      record: KnowledgeConvergenceHostRecord;
+      expiresAt: string;
+      limits?: Pick<ConvergenceDelegation, "providers" | "resourceCeilings">;
+    }
+  | { kind: "none" };
 
 /**
  * ADR-0478: a host that does not own the repository never renews; it adopts the owner's term.
  * Only a fresh record from the current owner at the identical scope, active and later than the
- * local expiry, qualifies, and the local policy must still permit that scope and term.
+ * local expiry, qualifies, and the local policy must still permit that scope and term. Under
+ * ADR-0561 the identical scope may be the local scope narrowed to the policy limits, which is
+ * what the owner renews to; `limits` then carries that narrowing.
  */
 export function decideDelegationAdoption(input: {
   delegation: ConvergenceDelegation;
   scopeHash: string;
+  /** The local scope hash after narrowing it to the policy limits, when that differs. */
+  narrowedScopeHash?: string | null;
   policy: ContinuityPolicyStatus;
   peers: readonly KnowledgeConvergenceHostRecord[];
   localHostHash: string | null;
@@ -93,8 +115,11 @@ export function decideDelegationAdoption(input: {
   const { delegation, policy, now } = input;
   if (delegation.state !== "active" || policy.status !== "loaded") return { kind: "none" };
   const rules = policy.policy;
-  if (rules.state === "revoked" || delegationWithinContinuityLimits(delegation, rules) !== "within")
-    return { kind: "none" };
+  if (rules.state === "revoked") return { kind: "none" };
+  const within = delegationWithinContinuityLimits(delegation, rules) === "within";
+  const narrowed = within ? null : narrowedToContinuityLimits(delegation, rules);
+  const scopeHash = within ? input.scopeHash : (input.narrowedScopeHash ?? null);
+  if (scopeHash === null || (!within && narrowed === null)) return { kind: "none" };
   const floor = Math.max(now, Date.parse(delegation.expiresAt));
   const owner = input.peers
     .filter(
@@ -103,7 +128,7 @@ export function decideDelegationAdoption(input: {
         record.owner?.role === "owner" &&
         now - Date.parse(record.observedAt) <= OWNER_RECORD_FRESH_MS &&
         record.delegation?.state === "active" &&
-        record.delegation.scopeHash === input.scopeHash &&
+        record.delegation.scopeHash === scopeHash &&
         Date.parse(record.delegation.expiresAt) > floor &&
         Date.parse(record.delegation.expiresAt) <= Date.parse(rules.horizonAt),
     )
@@ -113,7 +138,12 @@ export function decideDelegationAdoption(input: {
     )[0];
   return owner === undefined
     ? { kind: "none" }
-    : { kind: "adopt", record: owner, expiresAt: owner.delegation!.expiresAt };
+    : {
+        kind: "adopt",
+        record: owner,
+        expiresAt: owner.delegation!.expiresAt,
+        ...(narrowed === null ? {} : { limits: narrowed }),
+      };
 }
 
 export type DelegationSeedDecision =

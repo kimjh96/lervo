@@ -1,6 +1,5 @@
 import type { ConvergenceContinuityPolicyReading } from "./continuity-policy-store.js";
 import type { DelegationRenewalDecision } from "./delegation-continuity-decision.js";
-import type { DocumentRouteScopeProposal } from "./document-route-scope-proposal.js";
 import type { ResidentHostObservation } from "./resident-host-observation.js";
 import type { ResidentCycleState } from "./resident-cycle-state.js";
 
@@ -12,13 +11,13 @@ export const CONTINUITY_PEER_STALE_MS = 2 * HOUR_MS;
 
 /**
  * `info` is reported by the doctor only. `attention` is an operating-attention item the system
- * expects to resolve itself or that names an operator fix. `owner_decision` needs the owner:
- * only a real authority or scope decision is ever raised this way.
+ * expects to resolve itself or that names an operator fix. `lervo_debt` (ADR-0561) is continuity
+ * Lervo could not restore within the last installed policy bounds; it is shown with its age and
+ * reason and never waits for the owner. Stored `owner_decision` findings read as `lervo_debt`.
  */
-export type ContinuityFindingSeverity = "info" | "attention" | "owner_decision";
+export type ContinuityFindingSeverity = "info" | "attention" | "lervo_debt";
 
 export type ContinuityFindingCode =
-  | "delegation_scope_change"
   | "delegation_missing"
   | "delegation_expiring"
   | "delegation_expired"
@@ -67,8 +66,6 @@ export interface ContinuityFinding {
   severity: ContinuityFindingSeverity;
   /** A closed code or a host label, never a path, URL, or message. */
   detail: string | null;
-  /** Host-private evidence for the existing owner scope-change decision. Never exchanged with the Hub. */
-  scopeChange?: DocumentRouteScopeProposal;
 }
 
 export type ContinuityDelegationObservation =
@@ -113,7 +110,7 @@ function delegationFindings(input: ContinuityFindingsInput): ContinuityFinding[]
   const active = input.policy.status === "loaded" && input.policy.policy.state === "active";
   const { delegation, renewal } = input;
   if (delegation.state === "invalid")
-    return [{ code: "delegation_invalid", severity: "owner_decision", detail: null }];
+    return [{ code: "delegation_invalid", severity: "lervo_debt", detail: null }];
   if (delegation.state === "revoked")
     return [{ code: "delegation_revoked", severity: "info", detail: null }];
   // A repository nobody delegated on any host is simply not enrolled; only a policy that should
@@ -125,22 +122,20 @@ function delegationFindings(input: ContinuityFindingsInput): ContinuityFinding[]
         severity: active
           ? "attention"
           : input.peers.some((peer) => peer.delegationState === "active")
-            ? "owner_decision"
+            ? "lervo_debt"
             : "info",
         detail: input.continuationFailure,
       },
     ];
   if (renewal?.kind === "outside_policy")
-    return [
-      { code: "delegation_outside_policy", severity: "owner_decision", detail: renewal.reason },
-    ];
+    return [{ code: "delegation_outside_policy", severity: "lervo_debt", detail: renewal.reason }];
   const remaining = Date.parse(delegation.expiresAt) - input.now;
   const renewable = active && renewal !== null && ["current", "renew"].includes(renewal.kind);
   if (delegation.state === "expired")
     return [
       {
         code: "delegation_expired",
-        severity: renewable ? "attention" : "owner_decision",
+        severity: renewable ? "attention" : "lervo_debt",
         detail: renewal?.kind ?? null,
       },
     ];
@@ -148,7 +143,7 @@ function delegationFindings(input: ContinuityFindingsInput): ContinuityFinding[]
     return [
       {
         code: "delegation_expiring",
-        severity: "owner_decision",
+        severity: "lervo_debt",
         detail: renewal?.kind ?? "no_policy",
       },
     ];
@@ -159,12 +154,13 @@ function policyFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
   if (input.policy.status === "absent")
     return [{ code: "policy_absent", severity: "info", detail: null }];
   if (input.policy.status === "invalid")
-    return [{ code: "policy_invalid", severity: "owner_decision", detail: null }];
+    return [{ code: "policy_invalid", severity: "lervo_debt", detail: null }];
   const { policy } = input.policy;
   if (policy.state === "revoked")
     return [{ code: "policy_revoked", severity: "info", detail: null }];
+  // ADR-0561: the resident rolls the horizon forward itself; a near horizon means it has not yet.
   return Date.parse(policy.horizonAt) - input.now <= CONTINUITY_ATTENTION_LEAD_MS
-    ? [{ code: "policy_horizon_near", severity: "owner_decision", detail: null }]
+    ? [{ code: "policy_horizon_near", severity: "attention", detail: null }]
     : [];
 }
 

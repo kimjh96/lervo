@@ -181,7 +181,6 @@ export {
 } from "./document-deferral-health.js";
 export { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
 
-export { recordDocumentRouteScopeDecision } from "./document-route-scope-decision.js";
 export { residentCycleFailure } from "./resident-cycle-failure.js";
 
 export { createChangeReviewHost } from "./change-review-host.js";

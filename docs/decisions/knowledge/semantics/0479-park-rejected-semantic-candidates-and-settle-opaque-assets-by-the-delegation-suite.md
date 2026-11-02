@@ -5,6 +5,7 @@ Decision date: 2026-10-06
 Amends: [ADR-0435](../repository/canonicalization/0435-continue-normalization-after-canonical-rejection.md), [ADR-0438](../repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md), and [ADR-0448](../repository/canonicalization/0448-settle-unread-sensitive-sources-by-disposition.md)
 Amended by:
 
+- [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md): a `needs_review` source regenerates once and parks as `review_rejected` Lervo debt, never as `owner_decision`.
 - [ADR-0481](0481-bind-generated-projections-by-hash-in-lifecycle-plan-review.md): generated projections bound by hash in lifecycle plan review.
 - [ADR-0485](0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md): lifecycle plans park; every settled stall is reevaluated once per contract.
 - [ADR-0491](0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md): tool-generated opaque files are not canonical assets.

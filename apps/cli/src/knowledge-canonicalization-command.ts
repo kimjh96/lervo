@@ -3,80 +3,58 @@ import { parseArgs } from "node:util";
 
 import {
   listCanonicalizationCandidates,
-  transitionCanonicalizationCandidate,
+  reopenCanonicalizationCandidate,
 } from "@lervo/repository-knowledge";
 
+import { REMOVED_CANONICALIZATION_REVIEW } from "./removed-approval-options.js";
 import type { CliIo } from "./types.js";
 
+/**
+ * `lervo knowledge canonicalization status|reopen`. ADR-0561 removed `review` and `promote`: the
+ * background canonical reviewer resolves every candidate, and `reopen` undoes its decision.
+ */
 export async function runKnowledgeCanonicalization(args: string[], io: CliIo): Promise<number> {
   try {
     const action = args[0];
-    if (!["status", "review", "promote"].includes(action ?? ""))
-      throw new Error("Canonicalization requires status, review, or promote.");
+    if (action === "review" || action === "promote")
+      throw new Error(REMOVED_CANONICALIZATION_REVIEW);
+    if (action !== "status" && action !== "reopen")
+      throw new Error("Canonicalization requires status or reopen.");
     const parsed = parseArgs({
       args: args.slice(1),
       strict: true,
       allowPositionals: true,
-      options: {
-        root: { type: "string" },
-        json: { type: "boolean" },
-        decision: { type: "string" },
-        reviewer: { type: "string" },
-        approval: { type: "string" },
-        target: { type: "string" },
-        "target-hash": { type: "string" },
-      },
+      options: { root: { type: "string" }, json: { type: "boolean" } },
     });
     const root = resolve(io.cwd, parsed.values.root ?? ".");
-    if (action === "status") {
-      if (parsed.positionals.length > 1)
-        throw new Error("Canonicalization status accepts at most one candidate ID.");
-      const candidates = (await listCanonicalizationCandidates(root)).filter(
-        (item) => parsed.positionals[0] === undefined || item.candidateId === parsed.positionals[0],
-      );
+    if (action === "reopen") {
+      if (parsed.positionals.length !== 1)
+        throw new Error("Canonicalization reopen requires one candidate ID.");
+      const result = await reopenCanonicalizationCandidate({
+        repositoryRoot: root,
+        candidateId: parsed.positionals[0]!,
+      });
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify({ schemaVersion: 1, candidates }, null, 2)}\n`
-          : `Canonicalization candidates: ${candidates.length}\n${candidates
-              .map(
-                (item) =>
-                  `  ${item.observedState} ${item.candidateId} · sources ${item.sourceBindings.length} · targets ${item.recommendedRoots.join(",")}`,
-              )
-              .join("\n")}${candidates.length === 0 ? "" : "\n"}`,
+          ? `${JSON.stringify(result, null, 2)}\n`
+          : `Canonicalization candidate reopened: ${result.candidateId}\nThe background canonical reviewer judges it again.\n`,
       );
       return 0;
     }
-    if (parsed.positionals.length !== 1)
-      throw new Error(`Canonicalization ${action} requires one candidate ID.`);
-    if (typeof parsed.values.reviewer !== "string" || typeof parsed.values.approval !== "string")
-      throw new Error(`Canonicalization ${action} requires --reviewer and --approval.`);
-    const result = await transitionCanonicalizationCandidate({
-      repositoryRoot: root,
-      candidateId: parsed.positionals[0]!,
-      expectedContentHash: parsed.values.approval,
-      action:
-        action === "promote"
-          ? "promote"
-          : parsed.values.decision === "defer"
-            ? "defer"
-            : parsed.values.decision === "reject"
-              ? "reject"
-              : (() => {
-                  throw new Error("Canonicalization review requires --decision defer or reject.");
-                })(),
-      reviewerId: parsed.values.reviewer,
-      ...(action === "promote"
-        ? {
-            targetPath: parsed.values.target,
-            targetContentHash: parsed.values["target-hash"],
-          }
-        : {}),
-      now: new Date(),
-    });
+    if (parsed.positionals.length > 1)
+      throw new Error("Canonicalization status accepts at most one candidate ID.");
+    const candidates = (await listCanonicalizationCandidates(root)).filter(
+      (item) => parsed.positionals[0] === undefined || item.candidateId === parsed.positionals[0],
+    );
     io.stdout(
       parsed.values.json
-        ? `${JSON.stringify(result, null, 2)}\n`
-        : `Canonicalization candidate ${result.observedState}: ${result.candidateId}\n`,
+        ? `${JSON.stringify({ schemaVersion: 1, candidates }, null, 2)}\n`
+        : `Canonicalization candidates: ${candidates.length}\n${candidates
+            .map(
+              (item) =>
+                `  ${item.observedState} ${item.candidateId} · sources ${item.sourceBindings.length} · targets ${item.recommendedRoots.join(",")}`,
+            )
+            .join("\n")}${candidates.length === 0 ? "" : "\n"}`,
     );
     return 0;
   } catch (error) {

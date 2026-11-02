@@ -35,7 +35,8 @@ export type ParkedSourceStage = "canonical" | "normalization" | "lifecycle";
 
 /**
  * `review_rejected`: bounded regeneration with the reviewer's reasons was exhausted.
- * `owner_decision`: the generator itself could not decide the source without the owner.
+ * `owner_decision`: written only by versions before ADR-0561, which parked a source its generator
+ * could not decide as an owner decision; it now parses as Lervo debt like `review_rejected`.
  * `target_diverged` (ADR-0530): an approved draft's integration-target bytes differ from the
  * reviewed preimage, so integrating it would replace bytes nobody reviewed.
  * `layout_capacity_exceeded`: the approved batch cannot fit the projected document layout.

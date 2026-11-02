@@ -137,6 +137,7 @@ export async function runInstructionCaptureCycle(
         surface: capture.source,
         ownerTurn: capture.ownerTurn,
         precedingAgentTurn: capture.precedingAgentTurn,
+        priorCrossCheckDisagreement: capture.crossCheckDisagreement ?? null,
         semanticCatalog: {
           ...catalog.semanticCatalog,
           pendingOwnerRules: await pendingOwnerRules(root),
@@ -192,6 +193,8 @@ export async function runInstructionCaptureCycle(
       deferred = outcome.deferred;
       break;
     }
+    // ADR-0561: the first cross-check disagreement regenerates the turn in a later cycle.
+    if (outcome === "regenerate") continue;
     if (outcome === null || outcome === "retry") {
       const next = await recordInstructionCaptureAttempt(root, capture, now);
       // A retained owner rule is never dropped; it waits for its backoff instead.

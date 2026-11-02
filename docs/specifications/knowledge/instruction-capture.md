@@ -7,7 +7,7 @@ This contract implements [ADR-0467](../../decisions/knowledge/documents/0467-cap
 
 ## Pipeline
 
-Terminal `UserPromptSubmit` and managed conversation turns enter a transient queue without a provider call. Resident assessment produces a rule, a held decision, or nothing for none, personal preference, and covered outcomes. Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a rule is stored only after an independent cross-check agrees with it. After capture and Hub candidate exchange, the convergence owner applies every stored candidate to `docs/instructions/generated/`. A single host without Hub coordination applies locally. Nothing in this pipeline waits for the owner.
+Terminal `UserPromptSubmit` and managed conversation turns enter a transient queue without a provider call. Resident assessment produces a rule, a held decision, or nothing for none, personal preference, and covered outcomes. Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a rule is stored only after an independent cross-check agrees with it. A first disagreement regenerates the turn once, with the cross-check's reasons as `priorCrossCheckDisagreement`; a second disagreement holds the rule as Lervo debt. An owner decision enters canon through the same cross-checked rule path, and only a decision that cannot be grounded as a rule is held. After capture and Hub candidate exchange, the convergence owner applies every stored candidate to `docs/instructions/generated/`. A single host without Hub coordination applies locally. Nothing in this pipeline waits for the owner.
 
 ## Cross-check before storage
 

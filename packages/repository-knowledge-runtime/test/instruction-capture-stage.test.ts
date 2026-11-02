@@ -288,7 +288,7 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
     expect(state).not.toContain(IMPLICIT_KOREAN_CORRECTION);
   });
 
-  it("holds conversation decisions as Lervo debt and records the ADR-0457 conversation event", async () => {
+  it("documents a conversation decision as a cross-checked owner rule and records the ADR-0457 event", async () => {
     const f = await captureFixture();
     const decisionTurn = "Let's keep the knowledge worker on the Mac until the writer lease ships.";
     const conversationEventId = `cve_${"a".repeat(64)}`;
@@ -310,21 +310,23 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       },
     ]);
     await f.enqueue({ ownerTurn: decisionTurn, source: "conversation", conversationEventId });
-    expect(await f.cycle()).toMatchObject({ decisionCount: 1, instructionCandidateCount: 0 });
-    const state = await readInstructionCaptureState(f.root);
-    expect(state.held).toEqual([
-      expect.objectContaining({
-        kind: "decision",
-        source: "conversation",
-        subjectKey: "knowledge.worker.host",
-      }),
-    ]);
+    // ADR-0561: the decision enters canon through the independent cross-check, not as held work.
+    expect(await f.cycle()).toMatchObject({ decisionCount: 0, instructionCandidateCount: 1 });
+    expect((await readInstructionCaptureState(f.root)).held).toEqual([]);
+    const [candidate] = await listDurableInstructionCandidates(f.root);
+    expect(candidate?.instruction).toMatchObject({
+      disposition: "canonical",
+      scope: { kind: "repository", paths: [] },
+      title: "Keep the knowledge worker on the Mac until the writer lease ships",
+    });
+    expect(
+      (await f.calls()).filter((call) => call.task === "durable_instruction_cross_check"),
+    ).toHaveLength(1);
     const [recorded] = f.eventsOf("conversation.knowledge_candidate.recorded");
     expect(recorded?.payload).toMatchObject({
       conversationEventId,
-      kind: "decision",
-      subjectKeyDigest: digest("knowledge.worker.host"),
-      summaryHash: state.held[0]!.summaryHash,
+      kind: "instruction",
+      candidateId: candidate!.candidateId,
     });
     expect(JSON.stringify(recorded)).not.toContain(decisionTurn);
   });
@@ -397,7 +399,7 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
     expect((await readInstructionCaptureState(f.root)).held).toEqual([]);
   });
 
-  it("rejects a captured rule the cross-check disagrees with as Lervo debt", async () => {
+  it("regenerates a rule once after a cross-check disagreement, then holds it as Lervo debt", async () => {
     const f = await captureFixture();
     const ownerTurn = "Maybe we should only let one host write?";
     await f.plan([
@@ -414,7 +416,23 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       },
     ]);
     await f.enqueue({ ownerTurn });
+    // ADR-0561: the first disagreement keeps the turn queued with the reasons as evidence.
+    expect(await f.cycle()).toMatchObject({ assessedCount: 0, instructionCandidateCount: 0 });
+    expect((await readInstructionCaptureState(f.root)).held).toEqual([]);
+    const [queued] = await listQueuedInstructionCaptures(f.root);
+    expect(queued).toMatchObject({
+      attempts: 0,
+      crossCheckDisagreement: { reasonIds: ["fixture_cross_check"] },
+    });
+    // The regeneration carries the disagreement; a second disagreement holds the rule as debt.
     expect(await f.cycle()).toMatchObject({ assessedCount: 1, instructionCandidateCount: 0 });
+    const assessments = (await f.calls()).filter(
+      (call) => call.task === "instruction_capture_assessment",
+    );
+    expect(assessments.map((call) => call.priorCrossCheckDisagreementPresent)).toEqual([
+      false,
+      true,
+    ]);
     expect(await listDurableInstructionCandidates(f.root)).toEqual([]);
     expect((await readInstructionCaptureState(f.root)).held).toEqual([
       expect.objectContaining({ kind: "cross_check_disagreement", title: "Allow a single writer" }),

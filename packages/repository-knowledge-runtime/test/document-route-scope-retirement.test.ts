@@ -12,8 +12,6 @@ import {
 } from "@lervo/repository-knowledge";
 import { ConvergenceContinuity } from "../src/convergence-continuity.js";
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
-import { loadConvergenceDelegation } from "../src/delegation.js";
-import { proposeDocumentRouteScope } from "../src/document-route-scope-proposal.js";
 import { readConvergenceContinuityState } from "../src/continuity-state.js";
 import { fixture } from "./fixture.js";
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -24,7 +22,7 @@ afterEach(async () => {
   }
 });
 
-it("asks no scope change for classified outside-root moves and clears a recorded proposal", async () => {
+it("asks no scope change for classified outside-root moves and retires a recorded proposal", async () => {
   const f = await fixture(true);
   fixtures.push(f);
   await writeFile(resolve(f.root, "TRACE.md"), "# Trace\n\nOperator tracing.\n");
@@ -83,37 +81,44 @@ it("asks no scope change for classified outside-root moves and clears a recorded
   });
   const first = await continuity.reconcile();
   // ADR-0561: the reviewed layout plan carries its own exact paths, so no scope grant is asked.
-  expect(first?.scopeChange).toBeNull();
-  expect(first?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(false);
-  expect(first?.findings.some((finding) => finding.severity === "owner_decision")).toBe(false);
+  expect(first).not.toHaveProperty("scopeChange");
+  expect(first?.findings.map((finding) => finding.severity)).not.toContain("owner_decision");
   const layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: f.root });
   expect(layout.moves.map((move) => move.fromPath).sort()).toEqual(["RECOVERY.md", "TRACE.md"]);
   expect(layout.retainedDocuments.map((document) => document.path)).toContain(
     "application/copy.md",
   );
-  // A proposal an older version recorded is cleared on the next reconciliation.
-  const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
-  const legacy = await proposeDocumentRouteScope({ repositoryRoot: f.root, delegation });
-  expect(legacy).not.toBeNull();
+  // A proposal and owner decisions an older version recorded read as retired Lervo debt.
   const statePath = resolve(f.root, ".lervo/state/knowledge/convergence-continuity.json");
   const recorded = JSON.parse(await readFile(statePath, "utf8"));
   await writeFile(
     statePath,
     JSON.stringify({
       ...recorded,
-      scopeChange: legacy,
+      scopeChange: {
+        proposalId: "kscope_legacy",
+        planId: "kplan_legacy",
+        requiredPaths: ["TRACE.md"],
+        unsatisfiedPaths: [],
+      },
+      scopeResponse: null,
       findings: [
         ...recorded.findings,
         { code: "delegation_scope_change", severity: "owner_decision", detail: null },
+        { code: "policy_invalid", severity: "owner_decision", detail: null },
       ],
     }),
   );
-  expect((await readConvergenceContinuityState(f.root))?.scopeChange?.proposalId).toBe(
-    legacy?.proposalId,
-  );
+  const legacy = await readConvergenceContinuityState(f.root);
+  expect(legacy).not.toHaveProperty("scopeChange");
+  expect(legacy).not.toHaveProperty("scopeResponse");
+  expect(legacy?.findings.map((finding) => finding.code)).not.toContain("delegation_scope_change");
+  expect(legacy?.findings).toContainEqual({
+    code: "policy_invalid",
+    severity: "lervo_debt",
+    detail: null,
+  });
   const cleared = await continuity.reconcile({ force: true });
-  expect(cleared?.scopeChange).toBeNull();
-  expect(cleared?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(
-    false,
-  );
+  expect(cleared).not.toHaveProperty("scopeChange");
+  expect(JSON.parse(await readFile(statePath, "utf8"))).not.toHaveProperty("scopeChange");
 });

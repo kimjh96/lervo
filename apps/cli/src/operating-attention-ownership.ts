@@ -30,9 +30,11 @@ export function attributeOperatingAttention(
     case "workstream_blocker":
       actor = "working agent";
       break;
+    // ADR-0561: the background canonical reviewer resolves every candidate; none waits for the owner.
     case "canonicalization_review":
       actor = "canonical reviewer";
       waitingSince = item.createdAt;
+      recommendation = "Resolve the candidate in the next background review";
       inspectCommand = `lervo knowledge canonicalization status ${item.candidateId} --json`;
       break;
     // ADR-0561: freshness never waits for the owner; held work is Lervo debt with backoff.
@@ -64,7 +66,7 @@ export function attributeOperatingAttention(
       waitingSince = item.capturedAt;
       recommendation =
         item.heldKind === "decision"
-          ? "Record the owner decision in the canonical documents"
+          ? "Document the owner decision once it can be grounded as a canonical rule"
           : "Keep the rejected rule as debt until the owner states it again";
       inspectCommand = "lervo knowledge instruction capture";
       break;
@@ -74,10 +76,11 @@ export function attributeOperatingAttention(
       recommendation = "Assess queued owner turns once a convergence delegation is active";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
+    // ADR-0561: continuity renews within the installed policy limits; held continuity is Lervo debt.
     case "knowledge_convergence_continuity":
-      consequence = item.severity === "owner_decision" ? "authority_scope" : null;
+      actor = "knowledge resident";
       waitingSince = item.observedAt;
-      recommendation = "Review the continuity scope and renew only its bounded authority";
+      recommendation = "Restore continuity within the installed policy limits";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
     case "knowledge_convergence_owner":
@@ -113,12 +116,6 @@ export function attributeOperatingAttention(
       consequence = "repository_write";
       waitingSince = item.openedAt;
       recommendation = "Choose the authoritative replica before overwriting conflicting bytes";
-      break;
-    case "knowledge_lifecycle":
-      if (item.issueCode === "turn_approval_pending") {
-        consequence = "repository_write";
-        recommendation = "Inspect the pending exact repository write approval";
-      }
       break;
   }
   if (prior?.waitingSince) waitingSince = prior.waitingSince;

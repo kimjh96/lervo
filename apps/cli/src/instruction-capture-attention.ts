@@ -87,7 +87,7 @@ function heldItem(entry: HeldCapture): CapturedDecisionAttentionItemV1 {
     blocking: false,
     instruction:
       heldKind === "decision"
-        ? `Lervo debt: record this owner decision in the canonical documents, then clear it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`
+        ? `Lervo debt: this owner decision could not be grounded as a canonical rule, so the knowledge resident has not documented it yet. Clear it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`
         : `Lervo debt: the independent cross-check rejected this captured rule, so it was not stored. A later owner turn that states it again is captured again; clear it with lervo knowledge instruction capture --dismiss ${entry.captureId}.`,
   };
 }

@@ -177,7 +177,7 @@ describe("health projection from recorded sources", () => {
 
   it("counts the full owner set before limiting the retained batch", () => {
     const input = sources();
-    input.attention = createOperatingAttentionReport({
+    const report = createOperatingAttentionReport({
       projectId: "prj_health",
       workstream: null,
       workstreamFreshness: null,
@@ -194,7 +194,29 @@ describe("health projection from recorded sources", () => {
       knowledgeConvergence: { owner: null, publication: null },
       observedAt: healthNow,
     });
-    expect(input.attention.summary).toMatchObject({ userActionCount: 300, truncatedCount: 44 });
+    // ADR-0561: a stored pending_user_approval declaration is Lervo work, never owner review.
+    expect(report.summary).toMatchObject({ userActionCount: 0, truncatedCount: 44 });
+    input.attention = report;
+    expect(projectRepositoryHealth(input).measures.ownerReview.value).toMatchObject({ count: 0 });
+    // Owner work that remains for other effects counts the full set before the batch limit.
+    const byKind = report.summary.byKind!;
+    input.attention = {
+      ...report,
+      summary: {
+        ...report.summary,
+        userActionCount: 300,
+        byKind: {
+          ...byKind,
+          knowledge_lifecycle: { ...byKind.knowledge_lifecycle!, userActionCount: 300 },
+        },
+      },
+      items: report.items.map((item) => ({
+        ...item,
+        actionOwner: "user",
+        requiresUserAction: true,
+        attribution: { ...item.attribution!, actor: "owner", requiresUserAction: true },
+      })),
+    };
     expect(projectRepositoryHealth(input).measures.ownerReview.value).toMatchObject({
       count: 300,
       confirmedCount: 300,

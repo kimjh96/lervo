@@ -60,6 +60,7 @@ appendFileSync(
     precedingAgentTurnPresent: request.untrustedPrecedingAgentTurn !== null,
     catalogEntryCount: request.semanticCatalog?.canonicalInstructions?.entries?.length ?? null,
     pendingOwnerRuleCount: request.semanticCatalog?.pendingOwnerRules?.length ?? null,
+    priorCrossCheckDisagreementPresent: request.priorCrossCheckDisagreement !== undefined,
   })}\n`,
 );
 const plan = existsSync(planPath) ? JSON.parse(readFileSync(planPath, "utf8")) : {};

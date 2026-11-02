@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { verifyPackedHandoffJourney } from "./packed-handoff-consumer.mjs";
@@ -159,8 +159,6 @@ export async function verifyPackedOperatingConsumer(consumerRoot, runCli) {
     "export const packedCanonicalization = true;\n",
     "utf8",
   );
-  const proposedMarkdown =
-    "# Operating fixture\n\nThe packed canonicalization fixture is enabled.\n";
   const declaration = parsed(
     await runCli(
       [
@@ -175,36 +173,25 @@ export async function verifyPackedOperatingConsumer(consumerRoot, runCli) {
       ],
       JSON.stringify({
         taskMode: "change",
-        canonicalizationDisposition: "pending_user_approval",
+        canonicalizationDisposition: "canonical_sources_current",
         canonicalizationOutcome: {
           schemaVersion: 1,
-          kind: "review_draft",
-          summary: "The packed fixture proposes a durable specification update.",
-          drafts: [
-            {
-              targetPath: "docs/specs/operating-fixture.md",
-              sourcePaths: ["operating-fixture.ts"],
-              proposedMarkdown,
-              proposedContentHash: sha256(proposedMarkdown),
-            },
-          ],
+          kind: "no_durable_change",
+          summary: "The packed fixture change is implementation-only.",
+          reasonCode: "implementation_only",
+          sourcePaths: ["operating-fixture.ts"],
         },
-        knowledgeDisposition: "pending_user_approval",
+        // ADR-0561: remaining lifecycle work is Lervo's background work, never an owner wait.
+        knowledgeDisposition: "pending_background",
         deliberationDisposition: "not_requested",
         deliberationId: null,
       }),
     ),
   );
   assert.equal(declaration.status, "declared");
-  assert.equal(declaration.canonicalizationAssessment.status, "pending");
+  assert.equal(declaration.canonicalizationAssessment.status, "candidate");
   const canonicalizationCandidate = declaration.canonicalizationAssessment.candidate;
-  assert.equal(canonicalizationCandidate.outcome.kind, "review_draft");
-  assert.deepEqual(canonicalizationCandidate.outcome.drafts[0], {
-    targetPath: "docs/specs/operating-fixture.md",
-    sourcePaths: ["operating-fixture.ts"],
-    proposedMarkdown,
-    proposedContentHash: sha256(proposedMarkdown),
-  });
+  assert.equal(canonicalizationCandidate.outcome.kind, "no_durable_change");
   const candidateStatus = parsed(
     await runCli([
       "knowledge",
@@ -261,45 +248,12 @@ export async function verifyPackedOperatingConsumer(consumerRoot, runCli) {
     attention.items.some(
       (item) =>
         item.itemId === canonicalizationCandidate.candidateId &&
-        item.outcomeKind === "review_draft" &&
-        item.hasProposedContent === true &&
-        // ADR-0535: the reviewer role owns a pending draft; the owner is not a review queue.
+        item.outcomeKind === "no_durable_change" &&
+        // ADR-0561: the background canonical reviewer owns every candidate; the owner never does.
         item.actionOwner === "reviewer" &&
         item.requiresUserAction === false,
     ),
     true,
-  );
-  await mkdir(resolve(consumerRoot, "docs/specs"), { recursive: true });
-  await writeFile(
-    resolve(consumerRoot, "docs/specs/operating-fixture.md"),
-    proposedMarkdown,
-    "utf8",
-  );
-  const promotedCandidate = parsed(
-    await runCli([
-      "knowledge",
-      "canonicalization",
-      "promote",
-      canonicalizationCandidate.candidateId,
-      "--target",
-      "docs/specs/operating-fixture.md",
-      "--target-hash",
-      sha256(proposedMarkdown),
-      "--reviewer",
-      "packed.fixture",
-      "--approval",
-      canonicalizationCandidate.contentHash,
-      "--json",
-    ]),
-  );
-  assert.equal(promotedCandidate.observedState, "promoted");
-  assert.equal(promotedCandidate.promotion.targetPath, "docs/specs/operating-fixture.md");
-  const attentionAfterPromotion = parsed(await runCli(["application", "attention", "--json"]));
-  assert.equal(
-    attentionAfterPromotion.items.some(
-      (item) => item.itemId === canonicalizationCandidate.candidateId,
-    ),
-    false,
   );
 
   const handoffId = await verifyPackedHandoffJourney({

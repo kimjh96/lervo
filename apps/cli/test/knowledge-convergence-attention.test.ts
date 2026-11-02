@@ -64,6 +64,9 @@ it("projects one ownership item and one publication item, and nothing for a heal
       failureCode: "knowledge_publication_checks_failed",
       occurrences: 2,
       pullRequestUrl: "https://example.invalid/pull/7",
+      // ADR-0561: Lervo retries a failed check itself; it is never owner work.
+      actionOwner: "agent",
+      requiresUserAction: false,
     },
   ]);
   const report = createOperatingAttentionReport({
@@ -195,6 +198,8 @@ it("shows the gh step, exit code, and failure class with a class-specific remedi
     kind: "knowledge_publication",
     failureCode: "knowledge_publication_pull_request_failed",
     detail: "gh update exit 1 auth",
+    // Only credentials Lervo cannot create stay with the owner.
+    requiresUserAction: true,
   });
   expect(item!.instruction).toContain("gh auth status");
   const report = createOperatingAttentionReport({
@@ -217,6 +222,7 @@ it("shows the gh step, exit code, and failure class with a class-specific remedi
     },
   });
   expect(unclassified!.instruction).toContain("Check that gh is installed and authenticated");
+  expect(unclassified!.requiresUserAction).toBe(false);
 });
 
 it("projects superseded knowledge commits a checkout could not drop as one attention item", () => {

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_1b4bcc4869d9c02ed8f41a32"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "The background canonical reviewer resolves canonicalization candidates, delegations renew within the installed policy limits, continuity owner decisions become Lervo debt, and the canonicalization review, promote, and scope-response commands are removed"
