@@ -31,6 +31,11 @@ export interface DocumentFreshnessReference {
   kind: "link" | "path_mention";
   symbol: string | null;
   resolved: boolean;
+  /**
+   * ADR-0558: true for an unresolved path mention whose target no commit reachable from HEAD ever
+   * contained, such as an example or fixture name. It was never removed, so it is not stale.
+   */
+  neverTracked: boolean;
 }
 
 /** Where a finding came from: the ADR-0464 staleness projection or its drift lint codes. */

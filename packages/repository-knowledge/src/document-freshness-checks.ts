@@ -15,7 +15,9 @@ import {
   documentFreshnessChangedBytes,
   documentFreshnessOutsideBytesUnchanged,
 } from "./document-freshness-hunks.js";
+import { extractDocumentReferences, MAXIMUM_DOCUMENT_REFERENCES } from "./document-references.js";
 import {
+  freshnessReferenceMissing,
   unresolvedDocumentReferences,
   type DocumentFreshnessTreeOracle,
 } from "./document-freshness-references.js";
@@ -155,15 +157,36 @@ function structureCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessCh
 
 function referencesCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessCheckResult[] {
   const output = Buffer.from(input.output).toString("utf8");
+  const neverTracked = new Set(
+    input.finding.references
+      .filter((reference) => reference.neverTracked)
+      .map((reference) => reference.target),
+  );
   const unresolved = unresolvedDocumentReferences({
     path: input.documentPath,
     content: output,
     oracle: input.oracle,
+    neverTracked,
   });
+  // The extractor stops at its reference cap, so a reference an edit adds past the cap would go
+  // unseen. Then every replacement is checked on its own as well.
+  if (
+    extractDocumentReferences({ path: input.documentPath, content: output }).length >=
+    MAXIMUM_DOCUMENT_REFERENCES
+  )
+    for (const hunk of input.hunks)
+      unresolved.push(
+        ...unresolvedDocumentReferences({
+          path: input.documentPath,
+          content: hunk.replacement,
+          oracle: input.oracle,
+          neverTracked,
+        }),
+      );
   // Unresolved references on a line that marks history were already excluded above.
   const remaining = input.finding.references.filter(
     (reference) =>
-      !reference.resolved &&
+      freshnessReferenceMissing(reference) &&
       unresolved.some(
         (item) => item.target === reference.target && (item.symbol ?? null) === reference.symbol,
       ),
@@ -233,9 +256,7 @@ function entrypointCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessC
     // Repository paths look like package names to the README inventory; the reference checks
     // above own them, so only real package names, badges, commands, and tables stay protected.
     const stalePaths = new Set(
-      input.finding.references
-        .filter((reference) => !reference.resolved)
-        .map((item) => item.target),
+      input.finding.references.filter(freshnessReferenceMissing).map((item) => item.target),
     );
     const protectedValues = (text: string) =>
       extractPublicReadmeCoordinates(text)

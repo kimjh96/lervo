@@ -34,8 +34,8 @@ Each check records `{ code, status: passed or failed, detail }` on the candidate
 | `source_hash` | Current document hash equals `sourceHash`. |
 | `outside_bytes_unchanged` | Every byte outside hunk ranges is identical after apply, checked independently of output production. |
 | `commonmark_structure` | Output parses. Heading count, depth, and text are unchanged unless a `factual_reference` hunk spans the heading line. `lervo_v1` marker bytes and block identifiers are unchanged. |
-| `references_resolve` | Every relative link and path span in the output resolves in the current tree under ADR-0464, or is on a line marking history (`historical`, `archived`, `superseded`, `formerly`, `removed`, ...). |
-| `missing_references_resolved` | Every unresolved reference in the finding is replaced, removed, or marked historical. |
+| `references_resolve` | Every relative link and path span in the output resolves in the current tree under ADR-0464, is on a line marking history (`historical`, `archived`, `superseded`, `formerly`, `removed`, ...), or is a path mention the finding already recorded as `neverTracked` ([ADR-0558](../../../decisions/knowledge/documents/freshness/0558-treat-never-tracked-path-mentions-as-not-removed.md)). An edit cannot introduce a new absent path. |
+| `missing_references_resolved` | Every missing reference in the finding (unresolved and not `neverTracked`) is replaced, removed, or marked historical. |
 | `claims_bound` | Every hunk has a claim; every claim cites at least one `{ path, hash }` from bundle evidence. |
 | `edit_bound` | Changed bytes, measured per hunk after the common prefix and suffix, are at most 25 percent of the document and 4 KiB. |
 | `entrypoint_bounds` | An entrypoint may not grow past these byte/line limits: `README.md` 12,288/160; `AGENTS.md` 8,192/120; `CLAUDE.md` 2,048/40. ADR-0206 protected README coordinates are unchanged except repository paths. |

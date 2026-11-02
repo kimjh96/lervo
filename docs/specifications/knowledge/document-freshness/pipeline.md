@@ -33,10 +33,12 @@ The loop reads one `DocumentFreshnessFindingV1` per document. `observeDocumentFr
 | `currentRevision` | HEAD | Git |
 | `reasons[]` | `connected_path_changed`, `connected_path_deleted`, `reference_target_missing`, `review_interval_elapsed`, `managed_input_changed`, `superseded_by` | report reasons, changed-path dispositions, reference resolution |
 | `connectedPathChanges[]` | `{ path, beforeHash or null, afterHash or null, disposition: modified, deleted, added, renamed, renamedTo or null }` | report `changedPaths`, object lookups, rename detection at the deleting commit |
-| `references[]` | `{ line, target, kind: link or path_mention, symbol or null, resolved }` | ADR-0464 reference extractor and resolution rule |
+| `references[]` | `{ line, target, kind: link or path_mention, symbol or null, resolved, neverTracked }` | ADR-0464 reference extractor and resolution rule; `neverTracked` from one bounded Git history lookup ([ADR-0558](../../../decisions/knowledge/documents/freshness/0558-treat-never-tracked-path-mentions-as-not-removed.md)) |
 | `publicationGroup` | `entrypoint`, `canonical`, `historical`, `generated`, `other` | path, layout roles, ADR-0464 historical classifier |
 | `supersededBy` | path of a current document whose `supersedes` line links this one, or null | bounded `git grep` |
 | `detectedAt` | first observation time of this finding digest | cycle record |
+
+A reference is missing only when it is unresolved and not `neverTracked`. `neverTracked` is true for an unresolved path mention whose target no commit reachable from HEAD ever added, such as an example or fixture name; it raises no `reference_target_missing` reason and is not listed in the bundle's `unresolvedReferences`. A Markdown link is never `neverTracked`. A shallow clone, a Git failure, or a path Git cannot take literally counts the target as tracked ([ADR-0558](../../../decisions/knowledge/documents/freshness/0558-treat-never-tracked-path-mentions-as-not-removed.md)).
 
 Drop evaluator reasons that only report unobserved evidence. Historical documents never become findings. Documents whose working bytes differ from HEAD wait until edits are committed, so freshness commits never carry uncommitted edits.
 

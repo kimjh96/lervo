@@ -5,6 +5,7 @@ import {
   canonicalJson,
   documentFreshnessGenerationInstruction,
   documentFreshnessWritingContract,
+  freshnessReferenceMissing,
   sha256,
   type DocumentFreshnessEvidenceItem,
   type DocumentFreshnessFindingV1,
@@ -297,13 +298,11 @@ export async function buildFreshnessEvidenceBundle(input: {
       text: input.content.toString("utf8"),
     },
     reasons: finding.reasons,
-    unresolvedReferences: finding.references
-      .filter((reference) => !reference.resolved)
-      .map((reference) => ({
-        line: reference.line,
-        target: reference.target,
-        symbol: reference.symbol,
-      })),
+    unresolvedReferences: finding.references.filter(freshnessReferenceMissing).map((reference) => ({
+      line: reference.line,
+      target: reference.target,
+      symbol: reference.symbol,
+    })),
     changedPaths,
     deletedPaths,
     relatedDocuments,

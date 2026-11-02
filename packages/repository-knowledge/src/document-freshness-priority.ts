@@ -5,6 +5,7 @@ import type {
   DocumentFreshnessPolicy,
   DocumentFreshnessPriorityClass,
 } from "./document-freshness-contract.js";
+import { freshnessReferenceMissing } from "./document-freshness-references.js";
 
 const classRank: Record<DocumentFreshnessPriorityClass, number> = {
   safety: 0,
@@ -50,7 +51,7 @@ export function documentFreshnessTouchedLines(
   const touched = new Set<number>();
   for (const reference of finding.references) {
     const affected =
-      !reference.resolved ||
+      freshnessReferenceMissing(reference) ||
       changed.some((path) => reference.target === path || reference.target.startsWith(`${path}/`));
     if (affected) touched.add(reference.line);
   }

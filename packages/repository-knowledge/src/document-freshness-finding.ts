@@ -6,6 +6,7 @@ import type {
   DocumentFreshnessReason,
   DocumentFreshnessReference,
 } from "./document-freshness-contract.js";
+import { freshnessReferenceMissing } from "./document-freshness-references.js";
 import type { DocumentStalenessFinding } from "./document-staleness-evaluation.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 
@@ -62,7 +63,7 @@ export function documentFreshnessFinding(input: {
       compare(left.target, right.target) ||
       compare(left.symbol ?? "", right.symbol ?? ""),
   );
-  if (references.some((reference) => !reference.resolved)) reasons.add("reference_target_missing");
+  if (references.some(freshnessReferenceMissing)) reasons.add("reference_target_missing");
   if (input.supersededBy !== null) reasons.add("superseded_by");
   const body = {
     schemaVersion: 1 as const,

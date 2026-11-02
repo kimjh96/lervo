@@ -6,6 +6,7 @@ import {
   buildDocumentFreshnessCandidate,
   documentFreshnessFindingActionable,
   filesystemDocumentFreshnessOracle,
+  freshnessReferenceMissing,
   parseDocumentFreshnessProposal,
   reviewIntervalOnlyFreshnessCandidate,
   stableId,
@@ -119,7 +120,7 @@ export async function generateFreshnessCandidate(input: {
       finding: entry.finding,
       evidence: [],
     });
-    if (dependencyWitness !== null && entry.finding.references.every((ref) => ref.resolved)) {
+    if (dependencyWitness !== null && !entry.finding.references.some(freshnessReferenceMissing)) {
       candidate = { ...candidate, dependencyWitness };
       candidate = await settleFreshnessAssessment({
         context,

@@ -39,34 +39,71 @@ export function documentReferenceResolved(
   return text === null || symbolPresent(text, reference.symbol);
 }
 
-/** Outgoing references of one document with their current resolution. */
+/**
+ * ADR-0558: a reference is stale evidence only when its target is absent now and is not a path
+ * mention that the repository never tracked. Every freshness gate asks this one question.
+ */
+export function freshnessReferenceMissing(
+  reference: Pick<DocumentFreshnessReference, "resolved" | "neverTracked">,
+): boolean {
+  return !reference.resolved && !reference.neverTracked;
+}
+
+/** Marks the unresolved path mentions whose target the repository never tracked (ADR-0558). */
+export function markNeverTrackedReferences(
+  references: readonly DocumentFreshnessReference[],
+  neverTracked: ReadonlySet<string>,
+): DocumentFreshnessReference[] {
+  return references.map((reference) => ({
+    ...reference,
+    neverTracked:
+      !reference.resolved &&
+      reference.kind === "path_mention" &&
+      neverTracked.has(reference.target),
+  }));
+}
+
+/**
+ * Outgoing references of one document with their current resolution. `neverTracked` holds the
+ * targets that no commit reachable from HEAD ever contained; only a path mention can use it,
+ * because a Markdown link to a missing target is a broken link whatever its history.
+ */
 export function documentFreshnessReferences(input: {
   path: string;
   content: string;
   oracle: DocumentFreshnessTreeOracle;
+  neverTracked?: ReadonlySet<string>;
 }): DocumentFreshnessReference[] {
-  return extractDocumentReferences(input).map((reference) => ({
-    line: reference.line,
-    target: reference.target,
-    kind: reference.kind === "markdown_link" ? "link" : "path_mention",
-    symbol: reference.symbol ?? null,
-    resolved: documentReferenceResolved(reference, input.oracle),
-  }));
+  return markNeverTrackedReferences(
+    extractDocumentReferences(input).map((reference) => ({
+      line: reference.line,
+      target: reference.target,
+      kind: reference.kind === "markdown_link" ? "link" : "path_mention",
+      symbol: reference.symbol ?? null,
+      resolved: documentReferenceResolved(reference, input.oracle),
+      neverTracked: false,
+    })),
+    input.neverTracked ?? new Set(),
+  );
 }
 
 /**
  * References in `content` that do not resolve and do not sit on a historical line. Used by the
  * `references_resolve` check, so an edit can never introduce or keep an unresolved reference.
+ * `neverTracked` exempts path mentions the source already had as never tracked (ADR-0558); an
+ * edit cannot introduce a new untracked path, because that set comes from the source finding.
  */
 export function unresolvedDocumentReferences(input: {
   path: string;
   content: string;
   oracle: DocumentFreshnessTreeOracle;
+  neverTracked?: ReadonlySet<string>;
 }): DocumentReference[] {
   const lines = input.content.split(/\r?\n/u);
   return extractDocumentReferences(input).filter(
     (reference) =>
       !documentReferenceResolved(reference, input.oracle) &&
+      !(reference.kind !== "markdown_link" && input.neverTracked?.has(reference.target) === true) &&
       !isHistoricalReferenceLine(lines[reference.line - 1] ?? ""),
   );
 }

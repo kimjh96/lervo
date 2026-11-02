@@ -120,8 +120,11 @@ export {
 } from "./document-freshness-finding.js";
 export {
   documentFreshnessReferences,
+  freshnessReferenceMissing,
+  markNeverTrackedReferences,
   type DocumentFreshnessTreeOracle,
 } from "./document-freshness-references.js";
+export { neverTrackedReferenceTargets } from "./document-freshness-reference-history.js";
 export {
   activeDocumentFreshnessHold,
   admitDocumentFreshnessFindings,
