@@ -1,6 +1,6 @@
 # Historical Documents
 
-A document is historical if it is under `docs/archive/` or an `archive` capacity override, has historical front matter, or has a leading `Historical`, `Archived`, or `Superseded` blockquote banner.
+A document is historical if it is under `docs/archive/` or an `archive` capacity override, has historical front matter, has a leading `Historical`, `Archived`, or `Superseded` blockquote banner, or has a header `Status:` line whose first token is `superseded`, `historical`, or `archived` ([ADR-0562](../../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md)). The header is every line before the first `##` heading, and the line may be a list item, such as `- Status: superseded by [ADR-0394](...)`. A `partially_superseded` status stays current.
 
 Structural publication lists historical documents in a separate "Historical documents (not current design)" group and labels each entry.
 
