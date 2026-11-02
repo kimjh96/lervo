@@ -188,7 +188,7 @@
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
       "contentHash": "sha256:f7431bc190493c28cf2e23acb6ec811eb7731c4c126c1644bbfcad055a5f08e6",
       "responsibility": "Repository document-layout migration",
-      "rationale": "The module composes one exact layout transaction with virtual scanning, exact item content binding, and apply-time revalidation. Conflict outcomes and candidate accounting live in repository-layout-accounting.ts, and the capacity hold for moves in repository-layout-capacity.ts (ADR-0583). Classification, route evidence, durable apply, providers, lifecycle authority, reverted-move holds (ADR-0561), and health keep separate owners. Reference rewriting rereads observed-only sources through the scanner's verified reader.",
+      "rationale": "One exact layout transaction with virtual scanning, exact item content binding, and apply-time revalidation. Accounting lives in repository-layout-accounting.ts and the ADR-0583 capacity hold in repository-layout-capacity.ts. Classification, route evidence, durable apply, providers, lifecycle authority, ADR-0561 reverted-move holds, and health keep separate owners.",
       "disposition": "cohesive"
     },
     {
@@ -207,9 +207,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:972f4cadb81f8cf6f5aed900ce9eab62b167c20b563555bf09bff3e62438c4cd",
+      "contentHash": "sha256:323e3a9ab70dd7db419e06ff23cfbc050d17c68e224b7dfbf4ced734016ee266",
       "responsibility": "Revisioned workstream snapshot lifecycle",
-      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, branch-binding storage, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
+      "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, origin and predecessor invariants, CAS binding, plan identity, plan admission such as the ADR-0561 refusal of new approvals, and the durable apply protocol. Snapshot construction, bookkeeping, revisions, freshness, branch bindings, and context rendering live in sibling modules.",
       "disposition": "cohesive"
     },
     {

@@ -13,7 +13,7 @@ Lervo makes AI-assisted repository work durable, inspectable, and portable witho
 - Codex and Claude share a provider-neutral execution and evidence model.
 - Bounded source evidence supplies repository knowledge without requiring a documentation layout.
 - Human and agent entrypoints stay short; linked documents hold independent concerns.
-- Existing user content changes only through exact reviewed approval.
+- Existing user content changes only after an independent cross-check, as a reversible change reported with its undo command; Lervo never waits for an owner approval.
 - Optional Hub and node runtimes coordinate repositories and devices without becoming authorities for local source truth.
 
 ## Users and organization

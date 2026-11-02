@@ -28,3 +28,6 @@ export function hasRemovedOption(args: readonly string[], ...names: string[]): b
     names.some((name) => arg === `--${name}` || arg.startsWith(`--${name}=`)),
   );
 }
+
+export const REMOVED_ASSIGNMENT_APPROVAL =
+  "--approval was removed from lervo assignment create: an assignment never waits for an owner approval; the working agent cross-checks each effect, makes it reversible, and reports it.";

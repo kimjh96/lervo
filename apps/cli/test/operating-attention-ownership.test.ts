@@ -16,7 +16,7 @@ describe("attention authority at consequential effects", () => {
     workstream_approval: {
       ...base,
       kind: "workstream_approval",
-      state: "pending",
+      state: "lervo_debt",
       itemId: "approval",
       approvalId: "approval",
       approvalKind: "deployment",
@@ -158,7 +158,7 @@ describe("attention authority at consequential effects", () => {
     knowledge_convergence_owner: {
       ...base,
       kind: "knowledge_convergence_owner",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "owner",
       role: "unverifiable",
       reason: "offline",
@@ -170,7 +170,7 @@ describe("attention authority at consequential effects", () => {
     knowledge_publication: {
       ...base,
       kind: "knowledge_publication",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "publication",
       failureCode: "knowledge_publication_checks_failed",
       detail: null,
@@ -191,7 +191,7 @@ describe("attention authority at consequential effects", () => {
   } satisfies Record<OperatingAttentionItemV1["kind"], OperatingAttentionItemV1>;
 
   it.each([
-    ["workstream_approval", "owner", true],
+    ["workstream_approval", "working agent", false],
     ["workstream_decision", "principal proxy", false],
     ["workstream_blocker", "working agent", false],
     ["canonicalization_review", "canonical reviewer", false],
@@ -204,7 +204,7 @@ describe("attention authority at consequential effects", () => {
     ["captured_decision", "knowledge resident", false],
     ["instruction_capture_blocked", "knowledge resident", false],
     ["held_effect", "capability installer", false],
-    ["knowledge_convergence_owner", "resident", false],
+    ["knowledge_convergence_owner", "knowledge resident", false],
     ["knowledge_publication", "knowledge publisher", false],
     ["knowledge_convergence_continuity", "knowledge resident", false],
   ] as const)("classifies %s through structured effects", (kind, actor, requiresUserAction) => {
@@ -217,7 +217,7 @@ describe("attention authority at consequential effects", () => {
   it.each([
     [
       "hub_forbidden",
-      "authority_scope",
+      "credentials",
       "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope",
     ],
     [
@@ -231,7 +231,7 @@ describe("attention authority at consequential effects", () => {
       "Restore owner-only access to the configured Hub token file",
     ],
   ] as const)(
-    "retains consequential %s recovery for the owner",
+    "keeps the %s credential as the owner's notice-only recovery",
     (failureCode, consequence, recommendation) => {
       expect(
         attributeOperatingAttention(

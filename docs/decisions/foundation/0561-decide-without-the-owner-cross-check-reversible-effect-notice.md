@@ -79,3 +79,13 @@ The per-item approval commands (`--approve-item`, `--approval`, `--accept-layout
 - The two owner rules dropped on 2026-11-02 are stored when they are submitted again.
 - On argo, the layout moves apply without any owner command, followed by a notice with the undo command.
 - `rg` finds no `--approve-item`, `--approval`, or `requiresUserAction: true` path for the effects above.
+
+### Results (2026-11-02)
+
+Slices A1 to A7 implement the decision on the `remove-owner-approval-gates` branch:
+
+- **Gates.** A1 stores every owner rule, A2 freshness, A3 layout, migration, and structure, A4 canonicalization, delegation, and continuity, A5 upgrade, provider hooks, capabilities, and state, A6 workstream heads, replica conflicts, and supervision escalation, and A7 onboarding, convergence ownership, publication, recorded workstream approvals, and assignment approvals. Each replacement has a runtime or CLI test, listed per slice in the [delivery sequence](../../roadmap/open-collaboration-platform/delivery-sequence.md).
+- **Owner rules.** An A1 CLI test stores and applies the two owner rules the former intake gate dropped on 2026-11-02.
+- **Health and notices.** The health owner-authority line is replaced by one Lervo debt line with count, oldest age, and top reason, including the Node's supervision and workstream debt. Every freshness and effect notice carries `{effect, targets, reason, crossCheck: {reviewers, verdict}, undo}`; effects without a commit report through the bounded effect notice journal.
+- **Search.** Over `apps`, `packages`, `scripts`, and `.agents` without tests, `requiresUserAction: true` no longer appears. The remaining `--approve-item` and `--approval` hits are the one-line refusals of removed options, the CI release scripts that echo their own plan ID, and the comments that state the rule. `owner_decision` and `pending_user_approval` remain only so stored records parse.
+- **Not yet verified.** The argo layout moves after release, and the Hub remote-command `require_approval` for Hub-issued writes, which still needs the Node-side stronger check named in the delivery sequence.

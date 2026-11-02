@@ -13,7 +13,7 @@ export const HEALTH_MEASURES = [
   "convergence",
   "longestStop",
   "freshness",
-  "ownerReview",
+  "lervoDebt",
   "deferred",
   "brokenLinks",
   "find",

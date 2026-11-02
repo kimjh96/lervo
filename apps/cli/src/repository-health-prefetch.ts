@@ -79,6 +79,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       findReplay,
       governance,
       linkWeb,
+      nodeHealth,
     ] = await Promise.all([
       observeRepositoryHead(root, now),
       inspectKnowledgeResidentHealth(root, now).catch(() => null),
@@ -119,6 +120,11 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       readTurnGovernance(root).then((state) => turnGovernanceSummary(state, now)),
       // ADR-0551: rebuilt here only when tracked Markdown changed; a failure leaves it unknown.
       refreshLinkWeb(root, now).catch(() => null),
+      // ADR-0561: Node supervision and workstream replication debt join the Lervo debt line.
+      state<NonNullable<HealthProjectionSources["nodeHealth"]>>(
+        root,
+        ".lervo/state/node-runtime-health.json",
+      ),
     ]);
     let history: HealthProjectionSources["history"] = null;
     try {
@@ -145,6 +151,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       findReplay,
       governance,
       linkWeb,
+      nodeHealth,
     });
     // A racing repository edit never acquires a current-revision label.
     if ((await captureTerminalRepositorySnapshot(root)).revision === snapshot.revision)
@@ -163,6 +170,8 @@ async function refreshLearnedNotice(root: string, now: Date): Promise<void> {
   const notice = await projectLearnedNotice({
     root,
     shownThrough: cursor?.shownThrough ?? null,
+    // A cursor from before the journal covers every notice up to the time it was shown.
+    noticesShownThrough: cursor?.noticesShownThrough ?? cursor?.shownAt ?? null,
     now,
   });
   if (notice !== null) await writeLearnedNotice(root, notice);

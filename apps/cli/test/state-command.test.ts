@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { readEffectNotices } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, expect, it } from "vitest";
 
@@ -68,6 +69,10 @@ it("resets only rebuildable state and preserves durable CAS data", async () => {
   };
   expect(receipt.resetPlanId).toBe(plan.planId);
   expect(receipt.undo).toBe(`lervo state restore ${receipt.backupId}`);
+  // ADR-0561: the durable notice journal survives the reset and reports it with its undo.
+  expect(await readEffectNotices(root)).toMatchObject([
+    { effect: "state_reset", targets: [".lervo/state"], undo: receipt.undo },
+  ]);
   await expect(
     readFile(resolve(root, ".lervo/state/example/projection.json"), "utf8"),
   ).rejects.toThrow();

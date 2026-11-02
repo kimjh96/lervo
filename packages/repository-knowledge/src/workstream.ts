@@ -127,7 +127,8 @@ export interface WorkstreamUpdatePlan {
       | "identity_changed"
       | "origin_changed"
       | "invalid_snapshot"
-      | "invalid_patch";
+      | "invalid_patch"
+      | "owner_approval_unsupported";
     message: string;
   }>;
   operations: KnowledgeFileOperation[];
@@ -172,7 +173,10 @@ export interface WorkstreamStartPlan {
   currentSnapshotContentHash: string | null;
   desiredSnapshotContentHash: string | null;
   snapshot: WorkstreamSnapshot | null;
-  blockers: Array<{ code: "current_workstream_exists" | "invalid_draft"; message: string }>;
+  blockers: Array<{
+    code: "current_workstream_exists" | "invalid_draft" | "owner_approval_unsupported";
+    message: string;
+  }>;
   operations: KnowledgeFileOperation[];
   /** Service-stamped write facts; null when the caller supplied an exact draft. */
   bookkeeping: WorkstreamBookkeeping | null;
@@ -654,6 +658,8 @@ export async function createWorkstreamStartPlan(input: {
       code: "invalid_draft",
       message: "The workstream start draft does not satisfy the bounded v1 fields.",
     });
+  if ((snapshot?.pendingApprovals?.length ?? 0) > 0)
+    blockers.push({ code: "owner_approval_unsupported", message: OWNER_APPROVAL_UNSUPPORTED });
   const snapshotContent = snapshot === null ? null : `${canonicalJson(snapshot)}\n`;
   const desiredSnapshotContentHash = snapshotContent === null ? null : sha256(snapshotContent);
   const planId = stableId("kwstreamplan", {
@@ -1148,6 +1154,10 @@ export const createHandoffWorkstreamMigrationPlan = createContinuationWorkstream
 /** @deprecated Use applyContinuationWorkstreamMigrationPlan. */
 export const applyHandoffWorkstreamMigrationPlan = applyContinuationWorkstreamMigrationPlan;
 
+/** ADR-0561: Lervo never waits for an owner approval, so a workstream cannot declare one. */
+const OWNER_APPROVAL_UNSUPPORTED =
+  "A workstream cannot declare a new pending approval: cross-check the effect, make it reversible, apply it, and report it instead (ADR-0561).";
+
 export async function createWorkstreamUpdatePlan(input: {
   repositoryRoot: string;
   projectId: string;
@@ -1182,6 +1192,17 @@ export async function createWorkstreamUpdatePlan(input: {
     });
   }
   const snapshot = desiredValid ? (input.snapshot as WorkstreamSnapshot) : null;
+  // ADR-0561: a stored approval may be carried or removed, never newly declared.
+  const recordedApprovals = new Set(
+    (current?.pendingApprovals ?? []).map((approval) => canonicalJson(approval)),
+  );
+  if (
+    snapshot !== null &&
+    (snapshot.pendingApprovals ?? []).some(
+      (approval) => !recordedApprovals.has(canonicalJson(approval)),
+    )
+  )
+    blockers.push({ code: "owner_approval_unsupported", message: OWNER_APPROVAL_UNSUPPORTED });
   if (current !== null && snapshot !== null) {
     if (snapshot.workstreamId !== current.workstreamId)
       blockers.push({

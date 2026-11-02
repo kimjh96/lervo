@@ -84,8 +84,8 @@ export function nodeReadinessComponentText(
       ? `unavailable:${value.failureCode ?? "unknown"}`
       : value.status === "dormant"
         ? `dormant:${value.reasonCode ?? "unknown"}`
-        : value.status === "attention"
-          ? `attention:${value.reasonCode ?? "unknown"}`
+        : value.status === "attention" || value.status === "lervo_debt"
+          ? `${value.status}:${value.reasonCode ?? "unknown"}`
           : value.status;
 }
 
@@ -93,8 +93,9 @@ export function nodeReadinessComponentText(
 function healthy(component: NodeReadinessComponent, health: NodeRuntimeComponentHealth): boolean {
   if (deliveryComponents.has(component)) return health.status === "ready";
   if (component === "supervision")
-    return ["ready", "disabled", "dormant", "attention"].includes(health.status);
-  return health.status === "ready" || health.status === "disabled";
+    return ["ready", "disabled", "dormant", "attention", "lervo_debt"].includes(health.status);
+  // ADR-0561: Lervo debt is held work, not an unready Node.
+  return ["ready", "disabled", "lervo_debt"].includes(health.status);
 }
 
 function hubUnavailable(health: NodeRuntimeComponentHealth): boolean {

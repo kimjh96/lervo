@@ -16,6 +16,7 @@ import {
 } from "./capability-install-cross-check.js";
 import { CommandFailure } from "./command-error-output.js";
 import { effectBackupUndoCommand, sealEffectBackup, takeEffectBackup } from "./effect-backup.js";
+import { noticeEffect } from "./effect-notice.js";
 import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
 import type { CliIo } from "./types.js";
 
@@ -133,6 +134,17 @@ export async function runCapabilityInstall(input: {
     (item) => item.subject !== subject,
   );
   const undo = backup === null ? null : effectBackupUndoCommand(backup.backupId);
+  if (backup !== null && undo !== null)
+    await noticeEffect({
+      repositoryRoot,
+      effect: "capability_install",
+      subject: backup.backupId,
+      targets: [subject],
+      reason: `installed ${subject} in ${targetScope} scope`,
+      reviewers: check.verdicts.map((item) => item.reviewer),
+      verdict: "agree",
+      undo,
+    });
   const receipt = {
     schemaVersion: 1,
     operation: "capability.installed",

@@ -14,6 +14,7 @@ import { loadProjectManifest } from "@lervo/project";
 
 import { runCapabilityInstall } from "./capability-install-command.js";
 import { effectBackupUndoCommand, sealEffectBackup, takeEffectBackup } from "./effect-backup.js";
+import { noticeEffect } from "./effect-notice.js";
 import { hasRemovedOption, REMOVED_APPLY_APPROVAL } from "./removed-approval-options.js";
 import { runSkillAuthorizationCommand } from "./skill-authorization-command.js";
 import type { CliIo, CliServices } from "./types.js";
@@ -84,6 +85,19 @@ export async function runCapabilityCommand(
       const result = await applyCapabilityMigration(plan);
       if (backup !== null) await sealEffectBackup(repositoryRoot, backup);
       const undo = backup === null ? null : effectBackupUndoCommand(backup.backupId);
+      if (backup !== null && undo !== null)
+        await noticeEffect({
+          repositoryRoot,
+          effect: "capability_migration",
+          subject: backup.backupId,
+          targets: plan.items
+            .filter((item) => item.action === "create")
+            .map((item) => item.targetPath),
+          reason: `packaged ${created.length} repository skill(s) as capabilities`,
+          reviewers: ["deterministic migration plan"],
+          verdict: "applied",
+          undo,
+        });
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify({ ...result, undo }, null, 2)}\n`

@@ -149,7 +149,7 @@ export async function prepareAndRecordTerminalPrompt({
     await markTurnGovernanceShown(root, governance.pendingAt, occurredAt).catch(() => undefined);
   const learned = context.learnedNotice;
   if (learned !== undefined && context.additionalContext.includes(learned.line))
-    await writeLearnedNoticeCursor(root, learned.throughCommit, occurredAt).catch(() => undefined);
+    await writeLearnedNoticeCursor(root, learned, occurredAt).catch(() => undefined);
   return context.additionalContext;
 }
 

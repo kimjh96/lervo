@@ -17,9 +17,11 @@ export function attributeOperatingAttention(
   let inspectCommand = ATTENTION;
   let waitingSince: string | null = null;
   switch (item.kind) {
+    // ADR-0561: a recorded approval is Lervo debt; the working agent cross-checks the effect,
+    // makes it reversible, applies it, and reports it instead of waiting for the owner.
     case "workstream_approval":
-      consequence = item.consequence === "unclassified" ? null : item.consequence;
-      recommendation = `Review the exact binding for ${item.approvalId}`;
+      actor = "working agent";
+      recommendation = `Cross-check, back up, and apply ${item.approvalId}, then report it`;
       inspectCommand = "lervo workstream current --context";
       break;
     case "workstream_decision":
@@ -91,10 +93,13 @@ export function attributeOperatingAttention(
       recommendation = "Restore continuity within the installed policy limits";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
+    // ADR-0561: the resident retries ownership coordination; only a credential is the owner's.
     case "knowledge_convergence_owner":
+      actor = "knowledge resident";
       waitingSince = item.observedAt;
+      recommendation = "Retry ownership coordination on the next cycle";
       if (item.failureCode === "hub_forbidden") {
-        consequence = "authority_scope";
+        consequence = "credentials";
         recommendation =
           "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope";
       }

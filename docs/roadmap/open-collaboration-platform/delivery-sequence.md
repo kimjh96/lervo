@@ -100,7 +100,7 @@ Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-
 Remaining boundaries:
 
 - Not yet observed on the fleet after release: an upgrade applying provider hooks and a reviewed plan with no owner command, followed by notices with their undo commands.
-- `lervo init --onboard` still reports its own `pending_authority` onboarding status for a stage it does not apply; the Hub remote-command policy evaluator keeps its signed `require_approval` decisions for Hub-issued writes, which belong to the Hub and replica slice.
+- `lervo init --onboard` and the Hub remote-command policy evaluator are covered by slice A7 below.
 
 ## Slice 3: self-organizing and standing
 
@@ -130,7 +130,27 @@ Sync, Hub, node-runtime, orchestrator, work-controller, and CLI tests cover each
 Remaining boundaries:
 
 - Not yet observed on the installed Mac and WSL fleet after release. The Hub must deploy before the Nodes for the exact revision read; until then, divergence stays held.
-- Node health still shows supervision Lervo debt as `supervision_attention_required` with reason codes `lervo_debt` and the reason, not as a dedicated debt line.
+- Node health supervision and workstream divergence debt became the `lervo_debt` component status in slice A7 below.
+
+### Lervo debt line, notices, and the remaining owner gates
+
+Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) slice A7, the last owner waits outside the Hub control page are `wired` without an owner step:
+
+- **Lervo debt line.** The health `ownerReview` measure and its "needs owner authority" line are replaced by one `lervoDebt` measure and one line with the held count, the oldest age, the most frequent reason, and the three oldest sources. It collects held freshness, capture, canonicalization, continuity, convergence ownership, publication, replica, held effects, recorded workstream approvals, `knowledge_sources_parked`, and the Node's supervision and workstream replication debt. Details stay in `lervo application attention --json`. A missing credential adds one notice line.
+- **Node health.** A supervision escalation the principal proxy could not settle and divergent workstream heads are the component status `lervo_debt` with the time the reason was first observed. Neither degrades the Node or fails fleet readiness.
+- **Notices.** Every `freshness` and `effect` notice carries `{effect, targets, reason, crossCheck: {reviewers, verdict}, undo}`. Effects without a commit (provider hooks, capability install and migration, skill authorization, state reset, the workforce and Node upgrade stages, workstream reconciliation and restore, and replica backups) record the same fields in the bounded `.lervo/data/effect-notices.json` journal. The CLI and the Node write it, and the ADR-0549 learned notice reports it beside Lervo's commits.
+- **Onboarding.** `lervo init --onboard` cross-checks and applies a reviewed stage through `--apply`; a stage no session could check, or one the check rejects, is reported as `lervo_debt` and held for `lervo upgrade --apply`. `pending_authority` is gone.
+- **Convergence attention.** An unverifiable or contended convergence owner and held superseded commits are `lervo_debt` owned by the resident, which retries coordination every cycle; a contended standalone host yields until the other host's lease window passes. Only `hub_unauthorized`, `token_file_unreadable`, `hub_forbidden`, and a missing `gh` login are `credentials_missing` notices.
+- **Workstream and assignments.** A recorded workstream approval is Lervo debt the working agent settles; a new snapshot cannot declare one (`owner_approval_unsupported`), and stored ones still parse. Pending decisions belong to the principal proxy. `lervo assignment create --approval` is removed.
+- **AGENTS.md invariant 10** now reads cross-check, make reversible, and notify at consequential effects; ADR-0452, the vision promise, and the scope and execution indexes say the same.
+
+CLI and node-runtime tests cover the debt projection and line, the credential notice, Node debt health, journal notices and their cursor, onboarding debt, the refused approval declarations, and the removed assignment option.
+
+Remaining boundaries:
+
+- The Hub remote-command policy still issues signed `require_approval` decisions for Hub-issued `filesystem.write`, and the Hub `/control` page creates the signed approval that carries the command's exact path scope. Replacing it needs a Node-side stronger-check path: two agreeing independent no-capability sessions over the proposed write scope, a backup branch of the target checkout, and a path scope taken from the signed command instead of the approval. Verification: a managed remote provider run with `filesystem.write` completes with no approval record, and a disagreeing second check writes nothing and holds the command as Lervo debt.
+- Release tooling (`pnpm release:prepare` and `pnpm release:tag`) still binds `--approval <plan-id>`; the CI script echoes the plan it just computed, so no owner is involved.
+- Not yet observed on the installed fleet after release: the Lervo debt line, Node debt health, or a journal notice shown in an owner turn.
 
 ## Slice 4: convergence
 

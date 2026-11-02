@@ -33,7 +33,7 @@ function currentItems(snapshot: WorkstreamSnapshot): string[] {
     ...(pendingDecisions.length === 0
       ? []
       : [
-          "Pending user decisions:",
+          "Pending decisions (the principal proxy settles them within the operating mandate):",
           ...pendingDecisions.map(
             (item) =>
               `- ${item.decisionId}${item.blocking ? " [blocking]" : ""}: ${item.question}; choices=${item.choices.map((choice) => `${choice.choiceId}:${choice.label}`).join(", ")}; recommended=${item.recommendedChoiceId ?? "none"}`,
@@ -42,7 +42,7 @@ function currentItems(snapshot: WorkstreamSnapshot): string[] {
     ...(pendingApprovals.length === 0
       ? []
       : [
-          "Pending user approvals:",
+          "Recorded approvals (Lervo debt: cross-check, make reversible, apply, and report each; never ask the owner):",
           ...pendingApprovals.map(
             (item) =>
               `- ${item.approvalId}${item.blocking ? " [blocking]" : ""}: ${item.kind}; ${item.summary}; binding=${item.bindingHash}`,

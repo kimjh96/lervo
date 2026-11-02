@@ -36,9 +36,14 @@ export interface WorkstreamDecisionAttentionItemV1 extends OperatingAttentionIte
   recommendedChoiceId: string | null;
 }
 
+/**
+ * A pending approval a stored workstream snapshot still records (ADR-0561). New snapshots cannot
+ * declare one; a recorded one is Lervo debt the working agent settles by cross-checking the effect,
+ * making it reversible, and reporting it, never an owner approval.
+ */
 export interface WorkstreamApprovalAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "workstream_approval";
-  state: "pending" | "stale";
+  state: "lervo_debt" | "stale";
   consequence: WorkstreamItemConsequenceV1;
   approvalId: string;
   approvalKind: "repository_bytes" | "managed_write" | "external_action" | "deployment";
@@ -55,7 +60,8 @@ export interface WorkstreamBlockerAttentionItemV1 extends OperatingAttentionItem
 
 export interface CanonicalizationAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "canonicalization_review";
-  state: "candidate" | "pending" | "stale";
+  /** `lervo_debt`: the reviewer deferred the candidate twice, so Lervo holds it (ADR-0561). */
+  state: "candidate" | "pending" | "stale" | "lervo_debt";
   candidateId: string;
   candidateHash: string;
   sourcePaths: string[];
@@ -210,11 +216,14 @@ export interface HeldEffectAttentionItemV1 extends OperatingAttentionItemBaseV1 
 
 /**
  * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
- * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
+ * another host's fresh knowledge commit. Convergence stays read-only until it is resolved. Under
+ * ADR-0561 the resident retries the coordination itself, so the item is `lervo_debt`; only a
+ * credential Lervo cannot create (`hub_unauthorized`, `token_file_unreadable`, `hub_forbidden`)
+ * is `credentials_missing`, a notice that never blocks the stages that do not need it.
  */
 export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_convergence_owner";
-  state: "action_required";
+  state: "lervo_debt" | "credentials_missing";
   role: "unverifiable" | "contended";
   reason: string;
   /** The recorded Hub failure cause of an `unverifiable` verdict, such as `hub_forbidden`. */
@@ -225,10 +234,14 @@ export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAtten
   observedAt: string;
 }
 
-/** ADR-0466: publishing the owner's knowledge commits failed; one item per failure code. */
+/**
+ * ADR-0466: publishing the owner's knowledge commits failed, or superseded commits stayed on the
+ * branch; one item per failure code. ADR-0561: Lervo retries each itself (`lervo_debt`); only a
+ * missing `gh` login is `credentials_missing`, a notice.
+ */
 export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_publication";
-  state: "action_required";
+  state: "lervo_debt" | "credentials_missing";
   failureCode: string;
   detail: string | null;
   pullRequestUrl: string | null;

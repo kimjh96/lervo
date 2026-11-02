@@ -82,7 +82,7 @@ function candidate(
 }
 
 describe("operating attention projection", () => {
-  it("prioritizes typed user authority and keeps stale and maintenance states distinct", () => {
+  it("holds a recorded approval as Lervo debt and keeps stale and maintenance states distinct", () => {
     const report = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream,
@@ -103,12 +103,16 @@ describe("operating attention projection", () => {
     expect(report).toMatchObject({
       status: "action_required",
       coverage: { workstream: "current", knowledgeLifecycle: "cached" },
-      summary: { totalCount: 5, blockingCount: 2, userActionCount: 1, staleCount: 1 },
+      summary: { totalCount: 5, blockingCount: 1, userActionCount: 0, staleCount: 1 },
     });
-    expect(report.items.slice(0, 2).map((item) => item.kind)).toEqual([
-      "workstream_approval",
-      "workstream_blocker",
-    ]);
+    expect(report.items[0]!.kind).toBe("workstream_blocker");
+    // ADR-0561: a recorded approval is the working agent's debt, never an owner approval.
+    expect(report.items.find((item) => item.kind === "workstream_approval")).toMatchObject({
+      state: "lervo_debt",
+      requiresUserAction: false,
+      blocking: false,
+      attribution: { actor: "working agent", consequence: null },
+    });
     expect(report.items.find((item) => item.kind === "workstream_decision")).toMatchObject({
       requiresUserAction: false,
       attribution: { actor: "principal proxy", recommendation: "first" },

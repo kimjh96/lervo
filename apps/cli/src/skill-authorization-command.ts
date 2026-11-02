@@ -10,6 +10,7 @@ import {
 } from "@lervo/skills";
 
 import { effectBackupUndoCommand, sealEffectBackup, takeEffectBackup } from "./effect-backup.js";
+import { noticeEffect } from "./effect-notice.js";
 import type { CliIo } from "./types.js";
 
 /**
@@ -87,6 +88,16 @@ export async function runSkillAuthorizationCommand(args: string[], io: CliIo): P
   });
   await sealEffectBackup(repositoryRoot, backup);
   const undo = effectBackupUndoCommand(backup.backupId);
+  await noticeEffect({
+    repositoryRoot,
+    effect: "skill_authorization",
+    subject: backup.backupId,
+    targets: [`${receipt.skillId}@${receipt.version}`, plan.manifestPath],
+    reason: `authorized ${receipt.skillId}@${receipt.version} for project execution`,
+    reviewers: [plan.reviewerId],
+    verdict: receipt.status,
+    undo,
+  });
   io.stdout(
     parsed.values.json
       ? `${JSON.stringify({ ...receipt, undo }, null, 2)}\n`

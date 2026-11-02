@@ -13,11 +13,13 @@ import { openProjectStorage } from "@lervo/project-storage";
 
 import { CommandFailure } from "./command-error-output.js";
 import {
+  effectBackupUndoCommand,
   restoreEffectBackup,
   sealEffectBackup,
   takeEffectBackup,
   type EffectBackup,
 } from "./effect-backup.js";
+import { noticeEffect } from "./effect-notice.js";
 import { loadTerminalHookLauncher } from "./terminal-runtime.js";
 import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 
@@ -175,7 +177,22 @@ export async function applyTerminalIntegrationStage(input: {
         { planId: plan.planId },
       );
     }
-    if (backup !== null) await sealEffectBackup(input.repositoryRoot, backup);
+    if (backup !== null) {
+      await sealEffectBackup(input.repositoryRoot, backup);
+      await noticeEffect({
+        repositoryRoot: input.repositoryRoot,
+        effect: "terminal_integration",
+        subject: backup.backupId,
+        targets: plan.targets
+          .filter((target) => target.action === "create" || target.action === "update")
+          .map((target) => target.path),
+        reason: `merged the Lervo hooks of plan ${plan.planId} into the provider hook files`,
+        reviewers: ["post-apply verification"],
+        verdict: "verified",
+        undo: effectBackupUndoCommand(backup.backupId),
+        now: input.now,
+      });
+    }
     await rememberTerminalWorkerEntry(input.repositoryRoot, process.env.LERVO_CLI_ENTRY);
     return { receipt, backupId: backup?.backupId ?? null };
   } finally {

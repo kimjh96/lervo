@@ -227,12 +227,24 @@ export async function prepareCompactTerminalPromptContext(input: {
 /** ADR-0549: the prepared notice, unless an owner turn was already shown everything it covers. */
 async function pendingLearnedNotice(
   root: string,
-): Promise<{ throughCommit: string; line: string } | null> {
+): Promise<{ throughCommit: string; noticesThrough?: string; line: string } | null> {
   const [notice, cursor] = await Promise.all([
     readLearnedNotice(root),
     readLearnedNoticeCursor(root),
   ]);
-  if (notice?.throughCommit == null || notice.throughCommit === cursor?.shownThrough) return null;
+  if (notice?.throughCommit == null) return null;
+  // ADR-0561: a journal notice newer than the last shown one is new even without a new commit.
+  const newNotices =
+    notice.noticesThrough !== undefined &&
+    (cursor?.noticesShownThrough === undefined ||
+      Date.parse(notice.noticesThrough) > Date.parse(cursor.noticesShownThrough));
+  if (notice.throughCommit === cursor?.shownThrough && !newNotices) return null;
   const line = formatLearnedNotice(notice);
-  return line === null ? null : { throughCommit: notice.throughCommit, line };
+  return line === null
+    ? null
+    : {
+        throughCommit: notice.throughCommit,
+        ...(notice.noticesThrough === undefined ? {} : { noticesThrough: notice.noticesThrough }),
+        line,
+      };
 }

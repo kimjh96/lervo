@@ -80,16 +80,19 @@ There is no event, history directory or append-only collection.
   changed-HEAD or stale evaluation preserves a valid cycle summary, and vice
   versa. The aggregate is partial when one portion is unknown and wholly unknown
   only when both are unknown. A cycle never supplies an evaluated denominator.
-- **Owner review:** source currency gates both items and counts. Stale or missing
-  capture/cycle evidence cannot become current owner requests or establish zero.
-  Stale convergence-owner and continuity observations are also excluded. `count`
-  and `upkeepCount` are null when overall coverage is incomplete; `confirmedCount`
-  retains the verified owner portion. `workstreamCount` identifies that portion's
-  workstream approvals so current evidence can replace cached approvals, including
-  omitted ones. At most 32 summaries are retained; `omitted` counts the verified
-  owner summaries beyond the returned items. Each summary names the consequence,
-  recommendation, waiting age and exact inspect command. Unknown total coverage
-  is separate from known omissions. Original typed source items remain inspectable.
+- **Lervo debt:** every change Lervo holds as its own debt ([ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)).
+  Attention items in state `lervo_debt` supply held freshness candidates and
+  findings, held capture, canonicalization candidates the reviewer deferred
+  twice, continuity, unverifiable or contended convergence ownership, publication
+  failures and held superseded commits, replica divergence, held foreground
+  effects, and approvals that stored workstream snapshots still record. The
+  maintenance observation supplies `knowledge_sources_parked`. The Node health
+  snapshot supplies supervision and workstream replication components in status
+  `lervo_debt`, each with the time its reason was first observed. The value
+  carries the total count, the oldest start and its age, the most frequent reason,
+  at most 16 per-source summaries, and at most eight missing credentials.
+  Coverage is partial when an attention source is unavailable or the report was
+  truncated. None of it is owner work.
 - **Deferred documents:** the provider-free layout plan supplies
   `semantic_classification_pending` count, at most 32 relative paths and exact
   omissions. First-seen time is unrecorded, so age is unknown. Partial layout
@@ -125,34 +128,36 @@ waiting age. Unrecorded or future waiting times have unknown age. Stale items
 retain their re-verification `instruction` for existing consumers. Attribution
 proves neither a running worker nor permission for an effect.
 
-Only structured consequential effects under AGENTS.md invariant 10 require the
-owner. A held review, settled decision, provider failure or classification task
-belongs to its named resident, reviewer, proxy, publisher or coordinator.
-`hub_forbidden` requires owner scope authority. `hub_unauthorized` and
-`token_file_unreadable` require credential authority. Existing knowledge
-convergence delegation grants neither credential replacement nor Hub permission
-management. Delegation/continuity scope decisions, exact repository write
-approvals, user-owned freshness writes, safety/policy changes and replica
-overwrites retain their authority checks. Workstream blockers remain blocking
-without making the owner their default actor.
+Under ADR-0561 no attention item requires the owner except a missing credential
+Lervo cannot create: `hub_unauthorized`, `token_file_unreadable`, and
+`hub_forbidden` convergence ownership failures, and a `gh` login a knowledge
+publication needs. Those items have state `credentials_missing`, actor `owner`,
+and consequence `credentials`; they are notices that never block the stages that
+do not need them. A held review, settled decision, provider failure,
+classification task, recorded workstream approval, or ownership contention
+belongs to its named resident, reviewer, proxy, publisher, coordinator, or
+working agent. Workstream blockers remain blocking without making the owner
+their default actor.
 
 Freshness classification covers every candidate before the 256-item attention
 return cap. `summary.byKind` and total/user-action/omitted counts reflect that full
-classification. Owner items sort first. Exact review commands and
+classification. Credential notices sort first. Exact review commands and
 `lervo knowledge freshness status` retain an inspection path beyond the cap.
 
 ## Compact rendering
 
 Healthy output is empty. Each gap is one `Lervo health:` line naming its actor or
 recovery condition. Unknown and partial measures share one collapsed unknown
-line. The first line carries projection age. Raw event counter dumps and upkeep
-counts stay in JSON. Owner authority is one batch with recommendations, inspect
-commands and omissions; an incomplete total reads `at least` the confirmed count.
+line. The first line carries projection age. Raw event counter dumps stay in
+JSON. Lervo debt is one line with its count, oldest age, most frequent reason, and
+the three oldest sources; details stay in `lervo application attention --json`.
+A missing credential adds one notice line naming the first recommendation and
+its inspect command.
 
-Currently read workstream approvals replace cached workstream entries, merge
-with cached owner effects and deduplicate by stable item identity. A missing,
-stale or changed-revision health file cannot hide a currently observed approval.
-Resolved or stale workstream approvals do not reappear through the cache.
+Currently read workstream approvals replace the cached workstream debt source.
+A missing, stale or changed-revision health file cannot hide a currently
+observed recorded approval, and a settled one does not reappear through the
+cache.
 
 The health section is at most 520 UTF-8 bytes, including newlines, age and
 omissions. Whole lines and inspect commands survive; omitted lines point to the

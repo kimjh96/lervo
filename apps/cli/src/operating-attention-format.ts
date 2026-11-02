@@ -81,9 +81,6 @@ export function formatTerminalAttentionContext(report: OperatingAttentionReportV
   const current = report.items.filter((item) => !isStaleWorkstreamItem(item));
   const staleWorkstreamCount = report.items.length - current.length;
   const selected = current.slice(0, maximumItems);
-  const userOwnedBlocking = selected.some(
-    (item) => item.actionOwner === "user" && item.requiresUserAction && item.blocking,
-  );
   return capContextBytes(
     [
       `Repository attention: ${report.status}; digest: ${report.reportDigest}; items: ${report.summary.totalCount}; omitted: ${report.summary.truncatedCount}; blocking: ${report.summary.blockingCount}; requiresUserAction: ${report.summary.userActionCount}; stale: ${report.summary.staleCount}; canonicalizationCoverage: ${report.coverage.canonicalization}; lifecycleCoverage: ${report.coverage.knowledgeLifecycle}.`,
@@ -99,12 +96,9 @@ export function formatTerminalAttentionContext(report: OperatingAttentionReportV
       ...staleWorkstreamCountLine(staleWorkstreamCount),
       [
         "Before claiming completion, resolve current agent-owned items that fall within this task.",
-        ...(userOwnedBlocking
-          ? [
-              "For a listed current blocking item with owner=user, present its bounded question or approval in this turn instead of waiting to encounter it incidentally.",
-            ]
-          : []),
-        "Do not infer approval, do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment.",
+        // ADR-0561: nothing waits for the owner; a missing credential is reported as a notice.
+        "Never ask the owner to approve, review, or decide an item: cross-check it, make it reversible, apply it, and report it; mention a missing credential as a notice.",
+        "Do not ask the user to run Lervo bookkeeping, and do not treat this prepared projection as receipt or acknowledgment.",
       ].join(" "),
     ].join("\n"),
     MAXIMUM_TERMINAL_ATTENTION_BYTES,

@@ -14,7 +14,7 @@ import type {
 } from "@lervo/repository-knowledge-runtime";
 import { recordedConvergenceStops, type HealthEventHistory } from "./repository-health-events.js";
 import { projectHealthFreshness } from "./repository-health-freshness.js";
-import { projectHealthOwnerReview } from "./repository-health-owner-review.js";
+import { projectHealthLervoDebt, type HealthNodeDebt } from "./repository-health-lervo-debt.js";
 import { unknownHealthMeasure } from "./repository-health-measure.js";
 import type { HealthAppearanceState } from "./repository-health-appearance.js";
 import type { LinkWebSummary } from "./link-web-projection.js";
@@ -63,6 +63,8 @@ export interface HealthProjectionSources {
   > | null;
   /** ADR-0552 seven-day governance check summary. */
   governance?: { governedTurnCount: number; missedTurnCount: number } | null;
+  /** ADR-0561 Node components holding Lervo debt; absent or null when no Node health is recorded. */
+  nodeHealth?: HealthNodeDebt | null;
   /** ADR-0550 last replay summary over past changes. */
   findReplay?: {
     observedAt: string;
@@ -388,7 +390,7 @@ export function projectRepositoryHealth(
       convergence: convergence(input),
       longestStop: longestStop(input),
       freshness: projectHealthFreshness(input),
-      ownerReview: projectHealthOwnerReview(input),
+      lervoDebt: projectHealthLervoDebt(input),
       deferred: deferred(input),
       brokenLinks: brokenLinks(input),
       find: find(input),

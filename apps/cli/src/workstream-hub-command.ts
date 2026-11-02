@@ -6,12 +6,32 @@ import { readOwnerOnlyText } from "@lervo/runtime-security";
 import {
   AuthenticatedHubHttpTransport,
   reconcileDivergentWorkstream,
+  type WorkstreamReconciliationNotice,
   restoreReconciledWorkstreamHead,
   runWorkstreamReplicationCycle,
 } from "@lervo/sync";
 import { createProjectRegistrationRequest } from "@lervo/sync-contract";
 import type { CliIo } from "./types.js";
 import { registeredNodeHubCoordinates } from "./knowledge-node-hub-coordinates.js";
+import { noticeEffect } from "./effect-notice.js";
+
+/** ADR-0561: a reconciliation or restore reports its notice through the learned notice. */
+function noticeReconciliation(
+  root: string,
+  snapshotContentHash: string,
+  notice: WorkstreamReconciliationNotice,
+): Promise<void> {
+  return noticeEffect({
+    repositoryRoot: root,
+    effect: notice.effect,
+    subject: snapshotContentHash,
+    targets: notice.targets,
+    reason: notice.reason,
+    reviewers: notice.crossCheck.reviewers,
+    verdict: notice.crossCheck.verdict,
+    undo: notice.undo,
+  });
+}
 
 export const workstreamHubUsage = [
   "  lervo workstream sync [--root <path>] [--hub-config <path>] [--json]",
@@ -111,6 +131,7 @@ export async function runWorkstreamHubCommand(args: string[], io: CliIo): Promis
         snapshotContentHash: parsed.values.restore,
         now: new Date().toISOString(),
       });
+      await noticeReconciliation(root, restored.snapshotContentHash, restored.notice);
       output({ schemaVersion: 1, status: "restored", ...restored });
       return 0;
     }
@@ -119,6 +140,8 @@ export async function runWorkstreamHubCommand(args: string[], io: CliIo): Promis
       output({ schemaVersion: 1, status: "current", sync: synchronized });
       return 0;
     }
+    if (result.status === "reconciled")
+      await noticeReconciliation(root, result.snapshotContentHash, result.notice);
     output({ schemaVersion: 1, ...result });
     return result.status === "reconciled" ? 0 : 1;
   } finally {

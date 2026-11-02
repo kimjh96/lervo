@@ -3,9 +3,15 @@ import { readFile } from "node:fs/promises";
 import { posix, resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { readEffectNotices } from "@lervo/project";
 import { LERVO_KNOWLEDGE_COMMIT_EMAIL } from "@lervo/repository-knowledge";
 
-import type { LearnedNotice, LearnedNoticeEntry } from "./learned-notice-state.js";
+import { withJournalNotices } from "./learned-notice-journal.js";
+import type {
+  LearnedEffectNotice,
+  LearnedNotice,
+  LearnedNoticeEntry,
+} from "./learned-notice-state.js";
 
 const execute = promisify(execFile);
 /** Commits itemized per notice; older ones in the range are counted, never revisited. */
@@ -13,6 +19,7 @@ const MAXIMUM_COMMITS = 500;
 const MAXIMUM_ENTRIES = 16;
 const MAXIMUM_LINKS = 3;
 const FIRST_RUN_WINDOW = "24 hours ago";
+const MAXIMUM_TARGETS = 8;
 const GENERATED_RULES = "docs/instructions/generated/";
 
 async function git(root: string, args: string[], maxBuffer = 1024 * 1024): Promise<string> {
@@ -25,12 +32,31 @@ async function git(root: string, args: string[], maxBuffer = 1024 * 1024): Promi
 }
 
 /**
+ * ADR-0561: a commit trailer records who agreed as one line, either `agreement 2/2 (claude run;
+ * codex run)`, `<reviewer> agreed`, or `<reviewer> approved`; anything else is kept as the verdict
+ * with no reviewer.
+ */
+export function parseCrossCheckTrailer(value: string): LearnedEffectNotice["crossCheck"] {
+  const text = value.trim() || "unrecorded";
+  const rounds = /^agreement \d+\/\d+ \((.*)\)$/u.exec(text);
+  if (rounds !== null)
+    return {
+      reviewers: rounds[1]!.split("; ").filter((reviewer) => reviewer.length > 0),
+      verdict: "agree",
+    };
+  const single = /^(.+) (?:agreed|approved)$/u.exec(text);
+  if (single !== null) return { reviewers: [single[1]!], verdict: "agree" };
+  return { reviewers: [], verdict: text };
+}
+
+/**
  * ADR-0561: a freshness apply commit names its document in the subject and carries the notice
  * fields as trailers; one entry reports the whole commit, however many paths an archive touched.
  */
 function freshnessEntry(
   subject: string,
   trailers: { candidate: string; reason: string; crossCheck: string },
+  targets: string[],
 ): LearnedNoticeEntry | null {
   const refresh = /^docs: refresh (.+) from evidence$/u.exec(subject);
   const archive = /^docs: archive (.+) as historical$/u.exec(subject);
@@ -43,8 +69,9 @@ function freshnessEntry(
     links: [],
     freshness: {
       effect: archive === null ? "refresh" : "archive",
+      targets,
       reason: trailers.reason || "unrecorded",
-      crossCheck: trailers.crossCheck || "unrecorded",
+      crossCheck: parseCrossCheckTrailer(trailers.crossCheck),
       undo: `lervo knowledge freshness revert ${trailers.candidate}`,
     },
   };
@@ -57,6 +84,7 @@ function freshnessEntry(
 function effectEntry(
   commit: string,
   trailers: { effect: string; effectReason: string; effectCrossCheck: string },
+  targets: string[],
 ): LearnedNoticeEntry | null {
   if (!/^[a-z_]{1,40}$/u.test(trailers.effect)) return null;
   return {
@@ -66,8 +94,9 @@ function effectEntry(
     links: [],
     effect: {
       effect: trailers.effect,
+      targets,
       reason: trailers.effectReason || "unrecorded",
-      crossCheck: trailers.effectCrossCheck || "unrecorded",
+      crossCheck: parseCrossCheckTrailer(trailers.effectCrossCheck),
       undo: `lervo knowledge revert ${commit}`,
     },
   };
@@ -133,6 +162,23 @@ async function addedLinks(root: string, commit: string, path: string): Promise<s
  * owner host's commits computes the same notice. A first run looks back 24 hours.
  */
 export async function projectLearnedNotice(input: {
+  root: string;
+  shownThrough: string | null;
+  /** The newest journal notice already shown; null on a first run. */
+  noticesShownThrough?: string | null;
+  now: Date;
+}): Promise<LearnedNotice | null> {
+  const commits = await projectCommitNotice(input);
+  if (commits === null) return null;
+  return withJournalNotices(
+    commits,
+    await readEffectNotices(input.root),
+    input.noticesShownThrough ?? null,
+    input.now,
+  );
+}
+
+async function projectCommitNotice(input: {
   root: string;
   shownThrough: string | null;
   now: Date;
@@ -220,7 +266,8 @@ export async function projectLearnedNotice(input: {
   const counts = { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, effect: 0, updated: 0 };
   // Newest first, so each path reports its latest reason.
   for (const { commit, subject, changes, ruleDeletions, trailers } of commits) {
-    const freshness = freshnessEntry(subject, trailers);
+    const targets = changes.slice(0, MAXIMUM_TARGETS).map((change) => change.path);
+    const freshness = freshnessEntry(subject, trailers, targets);
     if (freshness !== null) {
       if (seen.has(freshness.path)) continue;
       seen.add(freshness.path);
@@ -228,7 +275,7 @@ export async function projectLearnedNotice(input: {
       if (entries.length < MAXIMUM_ENTRIES) entries.push(freshness);
       continue;
     }
-    const effectNotice = effectEntry(commit, trailers);
+    const effectNotice = effectEntry(commit, trailers, targets);
     if (effectNotice !== null) {
       counts.effect += 1;
       if (entries.length < MAXIMUM_ENTRIES) entries.push(effectNotice);

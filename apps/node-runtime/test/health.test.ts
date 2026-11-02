@@ -329,3 +329,55 @@ it("keeps a goal budget attention state operational and validates its exact coun
     }),
   ).toThrow();
 });
+
+it("reports supervision and workstream Lervo debt with its first observation, without degrading", async () => {
+  let now = new Date("2026-11-02T00:00:00.000Z");
+  const publisher = createNodeRuntimeHealthPublisher(
+    await stateDirectory(),
+    false,
+    false,
+    undefined,
+    false,
+    true,
+    { now: () => now },
+  );
+  await publisher.initialize();
+  await publisher.observeSync(idleSync);
+  await publisher.observeWorkstreamReplication({
+    status: "divergent",
+    publishedCount: 0,
+    imported: false,
+    headCount: 2,
+  } as never);
+  await publisher.observeSupervision({
+    status: "lervo_debt",
+    reasonCode: "principal_scope_exceeded",
+  });
+  now = new Date("2026-11-02T01:00:00.000Z");
+  await publisher.observeSupervision({
+    status: "lervo_debt",
+    reasonCode: "principal_scope_exceeded",
+  });
+  // ADR-0561: held work is Lervo debt; the Node stays ready and keeps when the debt began.
+  expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path))).toMatchObject({
+    status: "ready",
+    workstreamReplication: {
+      status: "lervo_debt",
+      reasonCode: "divergent_heads",
+      since: "2026-11-02T00:00:00.000Z",
+    },
+    supervision: {
+      status: "lervo_debt",
+      reasonCode: "principal_scope_exceeded",
+      since: "2026-11-02T00:00:00.000Z",
+    },
+  });
+  await publisher.observeSupervision({
+    status: "lervo_debt",
+    reasonCode: "principal_mandate_expired",
+  });
+  expect((await snapshot(publisher.path)).supervision).toMatchObject({
+    reasonCode: "principal_mandate_expired",
+    since: "2026-11-02T01:00:00.000Z",
+  });
+});

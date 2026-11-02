@@ -106,7 +106,7 @@ describe("lervo init CLI", () => {
     expect(messages.join("")).toContain("The project is already initialized.");
   });
 
-  it("advances safe onboarding stages from init and stops at provider authority", async () => {
+  it("advances safe onboarding stages from init and holds an unchecked stage as Lervo debt", async () => {
     const root = await temporaryRepository();
     const messages: string[] = [];
     expect(
@@ -116,7 +116,12 @@ describe("lervo init CLI", () => {
         stderr: (message: string) => messages.push(message),
       }),
     ).toBe(0);
-    expect(messages.join("")).toContain("Onboarding: pending_authority");
+    // ADR-0561: a reviewed stage no session could cross-check is Lervo debt, never owner authority.
+    expect(messages.join("")).toContain("Onboarding: lervo_debt");
+    expect(messages.join("")).toContain(
+      "(Lervo debt: cross_check_unavailable; lervo upgrade --apply retries it, no owner action)",
+    );
+    expect(messages.join("")).not.toContain("authority");
     expect(messages.join("")).toContain("initial agent: agt_");
     await expect(access(resolve(root, "docs/knowledge/index.md"))).resolves.toBeUndefined();
     await expect(access(resolve(root, "AGENTS.md"))).resolves.toBeUndefined();

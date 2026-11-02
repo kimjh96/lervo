@@ -221,6 +221,19 @@ describe("workforce CLI", () => {
     }
   });
 
+  it("refuses an owner approval requirement on a new assignment (ADR-0561)", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-workforce-approval-"));
+    roots.push(root);
+    const errors: string[] = [];
+    expect(
+      await runCli(
+        ["assignment", "create", "--type", "change", "--approval", "owner", "--write"],
+        io(root, [], errors),
+      ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("--approval was removed from lervo assignment create");
+  });
+
   it("plans and applies one exact assignment cancellation", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-cancellation-"));
     roots.push(root);

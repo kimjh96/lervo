@@ -48,8 +48,9 @@ export function convergenceStopLine(
 
 /**
  * Rendering is pure. A healthy repository costs no bytes. Each gap is one line naming the actor
- * that handles it; only consequential effects are owner-actionable. Unknown measures collapse into
- * one line, and raw counters stay in the attention JSON.
+ * that handles it; nothing is owner work (ADR-0561): held changes collapse into one Lervo debt
+ * line, and only missing credentials add a notice. Unknown measures collapse into one line, and
+ * raw counters stay in the attention JSON.
  */
 export function formatRepositoryHealth(
   projection: RepositoryHealthProjectionV1,
@@ -72,27 +73,20 @@ export function formatRepositoryHealth(
     ? "unknown"
     : `${ageMinutes}m${earlier ? ", before the latest repository change" : ""}`;
   const lines: string[] = [];
-  const owner = m.ownerReview.value;
-  const ownerCount = owner?.count ?? owner?.confirmedCount ?? 0;
-  if (m.ownerReview.status === "gap" && owner !== null && ownerCount > 0) {
-    const items = owner.items.filter(
-      (item) => item.requiresUserAction && item.consequence !== null,
-    );
-    const recommendations = items.map(
-      (item) =>
-        `${item.itemId}: ${singleLine(item.recommendation)}; inspect: ${item.inspectCommand}`,
-    );
-    // Reserve space for every retained recommendation and an exact inspect command.
-    const selected: string[] = [];
-    for (const recommendation of recommendations) {
-      if (Buffer.byteLength(selected.concat(recommendation).join(" | ")) > 300) break;
-      selected.push(recommendation);
-    }
-    const omitted = ownerCount - selected.length;
+  const debt = m.lervoDebt.value;
+  // ADR-0561: credentials are the one notice-only exception; nothing else is owner work.
+  const missing = debt?.credentials ?? [];
+  if (missing.length > 0)
     lines.push(
-      `Lervo health: needs owner authority (${owner.count === null ? "at least " : ""}${ownerCount}): ${selected.join(" | ")}${omitted > 0 ? `${selected.length ? "; " : ""}omitted ${omitted}; inspect: lervo application attention --json` : ""}.`,
+      `Lervo health: notice, ${missing.length} credential${missing.length === 1 ? "" : "s"} missing: ${singleLine(missing[0]!.recommendation)} (${missing[0]!.inspectCommand}); Lervo continues without ${missing.length === 1 ? "it" : "them"}.`,
     );
-  }
+  if (debt !== null && debt.count > 0)
+    lines.push(
+      `Lervo health: Lervo debt (no owner action): ${debt.count} held, oldest ${duration(debt.oldestAgeMilliseconds)}${debt.topReason === null ? "" : `, top reason ${debt.topReason}`} (${debt.sources
+        .slice(0, 3)
+        .map((item) => `${item.source} ${item.count}`)
+        .join(", ")}); Lervo retries each; details: lervo application attention --json.`,
+    );
   const stopLine = convergenceStopLine(projection, now);
   const convergenceGap = stopLine !== null;
   if (stopLine !== null) lines.push(stopLine);
@@ -113,13 +107,6 @@ export function formatRepositoryHealth(
     const v = m.freshness.value;
     lines.push(
       `Lervo health: ${v.stale === null ? "freshness evaluation unknown" : `${v.stale}/${v.evaluated} evaluated documents stale, ${v.unevaluated} unevaluated`}; freshness cycle.`,
-    );
-  }
-  const debt = m.freshness.value?.debt ?? [];
-  if (debt.length > 0) {
-    const oldest = debt[0]!;
-    lines.push(
-      `Lervo health: Lervo debt (no owner action): ${debt.length} stale document${debt.length === 1 ? "" : "s"} held, oldest ${duration(oldest.ageMilliseconds)} ${oldest.path} (${oldest.reason}); freshness cycle retries with backoff.`,
     );
   }
   if (m.deferred.status === "gap" && m.deferred.value !== null) {

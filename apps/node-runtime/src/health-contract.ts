@@ -14,6 +14,12 @@ export type NodeRuntimeComponentHealth =
       reasonCode: "goal_budget_insufficient";
       resourceBudget: SupervisionResourceBudgetV1 & { scope: "goal" };
     }
+  /**
+   * ADR-0561: work Lervo holds as its own debt, such as a supervision escalation the principal
+   * proxy could not settle or divergent workstream heads it could not reconcile yet. It never waits
+   * for the owner and does not degrade the Node. `since` is the first observation of this reason.
+   */
+  | { status: "lervo_debt"; reasonCode: string; since?: string }
   | { status: "unavailable"; failureCode: string; reasonCodes?: string[] };
 
 /** Bounded identifier codes only; never prose, paths, or provider output. */
@@ -70,6 +76,16 @@ function componentHealth(value: unknown): value is NodeRuntimeComponentHealth {
       component.failureCode === undefined &&
       component.reasonCodes === undefined &&
       component.resourceBudget === undefined
+    );
+  }
+  if (component.status === "lervo_debt") {
+    const since = (component as { since?: unknown }).since;
+    return (
+      boundedHealthReasonCodes([component.reasonCode]) &&
+      component.failureCode === undefined &&
+      component.reasonCodes === undefined &&
+      component.resourceBudget === undefined &&
+      (since === undefined || (typeof since === "string" && Number.isFinite(Date.parse(since))))
     );
   }
   if (component.status === "attention") {

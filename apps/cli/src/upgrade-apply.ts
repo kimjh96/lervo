@@ -9,6 +9,7 @@ import { applyEventWriterStage } from "./event-writer-activation-stage.js";
 import { effectBackupUndoCommand } from "./effect-backup.js";
 import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
 import { applyKnowledgeStages } from "./upgrade-knowledge-apply.js";
+import { noticeEffect } from "./effect-notice.js";
 import { applyHostResidentService } from "./knowledge-host-service.js";
 import {
   applyRepositoryReplicaService,
@@ -250,6 +251,21 @@ export async function applyRepositoryUpgrade(
   // A holder that still holds was never replaced, so every stage ran under the exclusion.
   await confirmExclusion(null);
   clock.lap("runtime_retention");
+
+  // ADR-0561: the workforce and Node stages have no commit or backup of their own, so their
+  // notices join the effect notice journal; the other stages record theirs where they apply.
+  for (const [index, notice] of notices.entries())
+    if (notice.stage === "workforce" || notice.stage === "node")
+      await noticeEffect({
+        repositoryRoot: root,
+        effect: notice.stage === "node" ? "node_service_upgrade" : "workforce_role_refresh",
+        subject: `${approved.planId}:${index}`,
+        targets: [approved.planId],
+        reason: notice.summary,
+        reviewers: [notice.stage === "node" ? "Node readiness check" : "role contract validation"],
+        verdict: "verified",
+        undo: notice.undo,
+      });
 
   const final = await materialization.run(
     () => createRepositoryUpgradePlan(root, host),

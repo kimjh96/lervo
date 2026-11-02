@@ -10,7 +10,7 @@ import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { FileSystemCas } from "@lervo/cas";
 import { ConversationOperationDrain } from "@lervo/conversation-app";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
-import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
+import { loadProjectManifest, recordEffectNotice, resolveProjectPaths } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import { runOutboundSyncLoop } from "@lervo/sync";
 import {
@@ -285,10 +285,16 @@ export async function openNodeRuntime(
                       transport: workspaceTransport,
                     },
                   }),
-              onWorkstreamReconciled: (result) => {
+              onWorkstreamReconciled: async (result) => {
                 process.stdout.write(
                   `Lervo kept the newer ${result.kept} workstream head as ${result.workstreamId} and preserved ${result.preserved.snapshotContentHash}; undo with ${result.notice.undo}.\n`,
                 );
+                // ADR-0561: the same notice reaches the owner's next turn through the learned notice.
+                await recordEffectNotice(paths.repositoryRoot, {
+                  noticeId: `${result.notice.effect}:${result.snapshotContentHash}`,
+                  occurredAt: new Date().toISOString(),
+                  ...result.notice,
+                }).catch(() => undefined);
               },
               onWorkstreamReconcileHeld: (reasonCode) => {
                 process.stderr.write(

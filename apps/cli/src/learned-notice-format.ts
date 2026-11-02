@@ -1,4 +1,8 @@
-import type { LearnedNotice, LearnedNoticeEntry } from "./learned-notice-state.js";
+import type {
+  LearnedEffectNotice,
+  LearnedNotice,
+  LearnedNoticeEntry,
+} from "./learned-notice-state.js";
 
 const MAXIMUM_LINE_BYTES = 480;
 
@@ -10,6 +14,14 @@ function ruleId(path: string): string {
   return path.slice(path.lastIndexOf("/") + 1).replace(/\.md$/u, "");
 }
 
+/** ADR-0561 notice fields in one clause: why, who agreed, and the undo command. */
+function noticeClause(notice: LearnedEffectNotice): string {
+  const reviewers = notice.crossCheck.reviewers.length
+    ? ` by ${notice.crossCheck.reviewers.join(", ")}`
+    : "";
+  return `reason ${notice.reason}; cross-check ${notice.crossCheck.verdict}${reviewers}; undo: ${notice.undo}`;
+}
+
 function describe(entry: LearnedNoticeEntry): string {
   const name = entry.title === null ? entry.path : `"${entry.title}" (${entry.path})`;
   if (entry.kind === "owner_rule" && entry.retired === true)
@@ -18,9 +30,13 @@ function describe(entry: LearnedNoticeEntry): string {
     return `stored owner rule ${name}${entry.replaced?.length ? ` (replaced ${entry.replaced.map(ruleId).join(", ")})` : ""}`;
   if (entry.kind === "skill") return `skill ${entry.title ?? entry.path}`;
   if (entry.kind === "freshness" && entry.freshness !== undefined)
-    return `${entry.freshness.effect === "archive" ? "archived" : "refreshed"} ${entry.path} (reason ${entry.freshness.reason}; cross-check ${entry.freshness.crossCheck}; undo: ${entry.freshness.undo})`;
-  if (entry.kind === "effect" && entry.effect !== undefined)
-    return `applied ${entry.effect.effect.replaceAll("_", " ")}: ${entry.effect.reason} (cross-check ${entry.effect.crossCheck}; undo: ${entry.effect.undo})`;
+    return `${entry.freshness.effect === "archive" ? "archived" : "refreshed"} ${entry.path} (${noticeClause(entry.freshness)})`;
+  if (entry.kind === "effect" && entry.effect !== undefined) {
+    const targets = entry.effect.targets.length
+      ? ` on ${entry.effect.targets.slice(0, 2).join(", ")}${entry.effect.targets.length > 2 ? ` and ${entry.effect.targets.length - 2} more` : ""}`
+      : "";
+    return `applied ${entry.effect.effect.replaceAll("_", " ")}${targets} (${noticeClause(entry.effect)})`;
+  }
   if (entry.kind === "canonical")
     return `canon ${name} from development${entry.links.length ? `, links ${entry.links.join(", ")}` : ""}`;
   return `updated ${entry.path}`;

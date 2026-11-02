@@ -23,11 +23,12 @@ import {
   runAssignmentHandoffAcknowledgementCommand,
 } from "./assignment-handoff-acknowledgement-command.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
+import { hasRemovedOption, REMOVED_ASSIGNMENT_APPROVAL } from "./removed-approval-options.js";
 
 export const workforceUsage = [
   agentUsage,
   "  lervo assignment list [--root <path>] [--json]",
-  "  lervo assignment create --type <type> --role <role> --criteria <text> --suite <id> --path <path> [--dependency <id>] [--approval <requirement>] [--workstream <id>] [--priority <0-100>] --write [--root <path>] [--json]",
+  "  lervo assignment create --type <type> --role <role> --criteria <text> --suite <id> --path <path> [--dependency <id>] [--workstream <id>] [--priority <0-100>] --write [--root <path>] [--json]",
   "  lervo assignment claim --assignment <id> --agent <id> --session <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
   "  lervo assignment renew --assignment <id> --agent <id> --lease <id> [--lease-ms <ms>] --write [--root <path>] [--json]",
   "  lervo assignment handoff --assignment <id> --from-agent <id> --to-agent <id> --lease <id> --request-digest <sha256> --artifact <id>=<sha256> --evidence-event <id> --write [--root <path>] [--json]",
@@ -53,7 +54,6 @@ function parse(args: string[]) {
       suite: { type: "string", multiple: true },
       path: { type: "string", multiple: true },
       dependency: { type: "string", multiple: true },
-      approval: { type: "string", multiple: true },
       workstream: { type: "string" },
       priority: { type: "string" },
       assignment: { type: "string" },
@@ -113,6 +113,7 @@ export async function runWorkforceCommand(
   }
   try {
     if (namespace === "agent") return await runAgentCommand(args, io);
+    if (hasRemovedOption(args, "approval")) throw new Error(REMOVED_ASSIGNMENT_APPROVAL);
     const parsed = parse(args);
     if (parsed.values.help) {
       io.stdout(`${workforceUsage}\n`);
@@ -160,7 +161,8 @@ export async function runWorkforceCommand(
           dependencyIds: parsed.values.dependency ?? [],
           acceptanceCriteria: parsed.values.criteria!,
           verificationSuiteIds: parsed.values.suite!,
-          approvalRequirements: parsed.values.approval ?? [],
+          // ADR-0561: an assignment never waits for an owner approval; stored ones still parse.
+          approvalRequirements: [],
           expectedPaths: parsed.values.path!,
           ...(parsed.values.workstream === undefined
             ? {}

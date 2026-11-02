@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { recordEffectNotice } from "@lervo/project";
 import { describe, expect, it } from "vitest";
 
 import { formatLearnedNotice } from "../src/learned-notice-format.js";
@@ -236,14 +237,15 @@ describe("learned notice", () => {
         links: [],
         freshness: {
           effect: "refresh",
+          targets: ["README.md", "docs/archive/old.md"],
           reason: "reference_target_missing",
-          crossCheck: "agreement 2/2 (claude run_a; codex run_b)",
+          crossCheck: { reviewers: ["claude run_a", "codex run_b"], verdict: "agree" },
           undo: `lervo knowledge freshness revert ${candidate}`,
         },
       },
     ]);
     expect(formatLearnedNotice(notice!)).toContain(
-      `refreshed README.md (reason reference_target_missing; cross-check agreement 2/2 (claude run_a; codex run_b); undo: lervo knowledge freshness revert ${candidate})`,
+      `refreshed README.md (reason reference_target_missing; cross-check agree by claude run_a, codex run_b; undo: lervo knowledge freshness revert ${candidate})`,
     );
   });
 
@@ -280,15 +282,57 @@ describe("learned notice", () => {
         links: [],
         effect: {
           effect: "repository_layout",
+          targets: ["docs/operations/TRACE.md"],
           reason: "moved 19 documents to their classified routes, rewrote 4 references",
-          crossCheck: "lifecycle reviewer agt_reviewer approved",
+          crossCheck: { reviewers: ["lifecycle reviewer agt_reviewer"], verdict: "agree" },
           undo: `lervo knowledge revert ${head}`,
         },
       },
     ]);
     expect(formatLearnedNotice(notice!)).toContain(
-      `applied repository layout: moved 19 documents to their classified routes, rewrote 4 references (cross-check lifecycle reviewer agt_reviewer approved; undo: lervo knowledge revert ${head})`,
+      `applied repository layout on docs/operations/TRACE.md (reason moved 19 documents to their classified routes, rewrote 4 references; cross-check agree by lifecycle reviewer agt_reviewer; undo: lervo knowledge revert ${head})`,
     );
+  });
+
+  it("reports journal effects without a commit beside the commits, once (ADR-0561)", async () => {
+    const { root, base } = await repository();
+    const now = new Date();
+    await recordEffectNotice(root, {
+      noticeId: "terminal_integration:lbk_one",
+      occurredAt: new Date(now.getTime() - 60_000).toISOString(),
+      effect: "terminal_integration",
+      targets: [".claude/settings.json"],
+      reason: "merged the Lervo hooks into the provider hook files",
+      crossCheck: { reviewers: ["post-apply verification"], verdict: "verified" },
+      undo: "lervo state restore lbk_one",
+    });
+    const notice = await projectLearnedNotice({
+      root,
+      shownThrough: base,
+      noticesShownThrough: null,
+      now,
+    });
+    expect(notice).toMatchObject({ counts: { effect: 1 }, noticesThrough: expect.any(String) });
+    expect(notice!.entries[0]).toMatchObject({
+      kind: "effect",
+      effect: {
+        effect: "terminal_integration",
+        targets: [".claude/settings.json"],
+        crossCheck: { reviewers: ["post-apply verification"], verdict: "verified" },
+        undo: "lervo state restore lbk_one",
+      },
+    });
+    expect(formatLearnedNotice(notice!)).toContain(
+      "applied terminal integration on .claude/settings.json (reason merged the Lervo hooks into the provider hook files; cross-check verified by post-apply verification; undo: lervo state restore lbk_one)",
+    );
+    const shown = await projectLearnedNotice({
+      root,
+      shownThrough: base,
+      noticesShownThrough: notice!.noticesThrough!,
+      now,
+    });
+    expect(shown).toMatchObject({ counts: { effect: 0 } });
+    expect(shown!.noticesThrough).toBeUndefined();
   });
 
   it("keeps the line within its byte cap and counts what it omits", () => {
@@ -322,8 +366,15 @@ describe("learned notice", () => {
     };
     await writeLearnedNotice(root, notice);
     expect(await readLearnedNotice(root)).toEqual(notice);
-    await writeLearnedNoticeCursor(root, "b".repeat(40), notice.observedAt);
-    expect(await readLearnedNoticeCursor(root)).toMatchObject({ shownThrough: "b".repeat(40) });
+    await writeLearnedNoticeCursor(
+      root,
+      { throughCommit: "b".repeat(40), noticesThrough: notice.observedAt },
+      notice.observedAt,
+    );
+    expect(await readLearnedNoticeCursor(root)).toMatchObject({
+      shownThrough: "b".repeat(40),
+      noticesShownThrough: notice.observedAt,
+    });
     await writeFile(join(root, ".lervo/state/learned-notice.json"), '{"schemaVersion":2}');
     expect(await readLearnedNotice(root)).toBeNull();
   });

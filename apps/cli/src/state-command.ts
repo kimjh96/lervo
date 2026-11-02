@@ -16,6 +16,7 @@ import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-k
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
 import { effectBackupUndoCommand, restoreEffectBackup, takeEffectBackup } from "./effect-backup.js";
+import { noticeEffect } from "./effect-notice.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { hasRemovedOption, REMOVED_APPLY_APPROVAL } from "./removed-approval-options.js";
 import { inspectStateRetentionEvidence } from "./state-retention-evidence.js";
@@ -332,6 +333,17 @@ export async function runStateCommand(
       backupId: backup?.backupId ?? null,
       undo: backup === null ? null : effectBackupUndoCommand(backup.backupId),
     };
+    if (backup !== null && receipt.undo !== null)
+      await noticeEffect({
+        repositoryRoot: current.repositoryRoot,
+        effect: "state_reset",
+        subject: backup.backupId,
+        targets: [".lervo/state"],
+        reason: `moved ${current.fileCount} derived-state files into a backup (plan ${current.planId})`,
+        reviewers: ["deterministic reset plan"],
+        verdict: "applied",
+        undo: receipt.undo,
+      });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`

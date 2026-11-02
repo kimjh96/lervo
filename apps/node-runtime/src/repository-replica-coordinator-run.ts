@@ -26,6 +26,7 @@ import {
   describeRepositoryReplicaFailure,
   isRepositoryReplicaPeerTransportFailure,
 } from "./repository-replica-failure.js";
+import { noticeReplicaBackup } from "./repository-replica-notice.js";
 import {
   replicaCycleOutcome,
   replicaFailureOutcome,
@@ -185,6 +186,8 @@ export async function runRepositoryReplicaCoordinator(
         if (result.status === "divergent") unhealthy = true;
         outcome = replicaCycleOutcome(result);
         emit(reporter.observeResult(result));
+        if ("backup" in result && result.backup !== undefined)
+          await noticeReplicaBackup(repository.localRoot, result.replicaId, result.backup);
       } catch (error) {
         unhealthy = true;
         const [failure, receiptRecorded] =

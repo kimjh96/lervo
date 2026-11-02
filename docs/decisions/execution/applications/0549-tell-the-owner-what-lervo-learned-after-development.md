@@ -46,12 +46,20 @@ Under ADR-0561, Lervo applies document freshness changes itself, so this notice 
 
 ### Effect notices (ADR-0561)
 
-Lervo applies a cross-checked layout, continuation migration, instruction bootstrap or bridge, document normalization, or document structure change itself and commits it on its own. The commit carries `Lervo-Effect`, `Lervo-Effect-Plan`, `Lervo-Effect-Reason`, and `Lervo-Effect-Cross-Check` trailers. The notice shows `applied <effect>: <reason> (cross-check <verdict>; undo: lervo knowledge revert <commit>)`, ordered after freshness and before background updates. Entries add the optional `effect` field and counts add `effect`; an older notice file without that count is rebuilt.
+Lervo applies a cross-checked layout, continuation migration, instruction bootstrap or bridge, document normalization, or document structure change itself and commits it on its own. The commit carries `Lervo-Effect`, `Lervo-Effect-Plan`, `Lervo-Effect-Reason`, and `Lervo-Effect-Cross-Check` trailers. Entries add the optional `effect` field and counts add `effect`; an older notice file without that count is rebuilt.
+
+Every `freshness` and `effect` entry carries the ADR-0561 notice fields `{effect, targets, reason, crossCheck: {reviewers, verdict}, undo}`. For a commit, `targets` are up to eight changed paths and `crossCheck` is parsed from the trailer: `agreement N/N (<reviewer>; …)`, `<reviewer> agreed`, or `<reviewer> approved` give verdict `agree` and the named reviewers, and any other text is kept as the verdict. The notice shows `applied <effect> on <targets> (reason <reason>; cross-check <verdict> by <reviewers>; undo: <command>)`, ordered after freshness and before background updates. A notice file with the earlier string-valued `crossCheck` is invalid and rebuilt.
+
+### Effects without a commit (ADR-0561)
+
+Some effects have no commit of their own: provider hook files, capability installs and migrations, skill authorization, a derived-state reset, the workforce and Node upgrade stages, workstream head reconciliation and restore, and a replica backup branch. Each records one notice with the same fields in the durable private journal `.lervo/data/effect-notices.json` (`schemaVersion: 1`, at most 64 notices, each with `noticeId` and `occurredAt`). The CLI records its own effects, and the Node records workstream reconciliation and replica backups for its repository. Targets are bounded identifiers, such as paths, plan IDs, branches, and content hashes; reviewers name sessions or checks, never a person. A notice whose `noticeId` is already recorded is ignored.
+
+The prefetch adds journal notices newer than the last shown one, or from the last 24 hours on a first run, as `effect` entries beside the commits. The notice file adds `noticesThrough`, the newest journal notice it covers, and the cursor adds `noticesShownThrough`. A turn shows the notice when either a new commit or a newer journal notice exists. A cursor written before the journal counts as shown through its `shownAt`. A failed journal write loses that notice and never fails or undoes the effect.
 
 ## State, events, privacy, and failure meaning
 
-- `.lervo/state/learned-notice.json` (`schemaVersion: 1`, `observedAt`, `throughCommit`, `counts`, `entries`) and `.lervo/state/learned-notice-cursor.json` (`schemaVersion: 1`, `shownThrough`, `shownAt`). Both are private, mode `0600`, bounded, and deletable. They hold repository paths and headings that are already in the repository, and no content or provider output.
-- No event is added. Git is the canonical source; the files are projections.
+- `.lervo/state/learned-notice.json` (`schemaVersion: 1`, `observedAt`, `throughCommit`, `counts`, `entries`, optional `noticesThrough`) and `.lervo/state/learned-notice-cursor.json` (`schemaVersion: 1`, `shownThrough`, `shownAt`, optional `noticesShownThrough`). Both are private, mode `0600`, bounded, and deletable. They hold repository paths and headings that are already in the repository, and no content or provider output.
+- No event is added. Git is the canonical source for committed effects; the files are projections. The ADR-0561 effect notice journal is the durable record of effects without a commit; it is bounded to 64 notices and survives `lervo state reset`.
 - A failed build or write loses one notice and never blocks a prompt. A missing or invalid file shows nothing. A deleted cursor shows the last 24 hours again.
 
 ## Limits

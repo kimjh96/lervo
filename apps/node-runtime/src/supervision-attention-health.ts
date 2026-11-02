@@ -17,11 +17,19 @@ export function supervisionAttentionReasonCodes(
   return [...reasonCodes];
 }
 
-/** A goal-scoped budget stop needs user attention but does not make the Node service unavailable. */
+/**
+ * A goal-scoped budget stop needs attention but does not make the Node service unavailable. An
+ * escalation the principal proxy could not settle is Lervo debt (ADR-0561), never owner work.
+ */
 export function supervisionAttentionHealth(input: {
   reasonCodes: string[] | null;
   resourceBudget?: SupervisionResourceBudgetV1 | undefined;
 }): NodeRuntimeComponentHealth {
+  if (input.reasonCodes?.includes("lervo_debt") === true)
+    return {
+      status: "lervo_debt",
+      reasonCode: input.reasonCodes.find((code) => code !== "lervo_debt") ?? "lervo_debt",
+    };
   return input.reasonCodes?.includes("aggregate_budget_exceeded") === true &&
     input.resourceBudget?.scope === "goal"
     ? {

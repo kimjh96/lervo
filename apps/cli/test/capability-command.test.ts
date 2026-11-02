@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 
 import { hashCapabilityFiles } from "@lervo/capabilities";
-import { createDefaultManifest, serializeYaml } from "@lervo/project";
+import { createDefaultManifest, readEffectNotices, serializeYaml } from "@lervo/project";
 import type { CapabilityPackageManifest } from "@lervo/schemas";
 import { hashSkillPackage } from "@lervo/skills";
 
@@ -158,6 +158,15 @@ it("installs a project capability after two agreeing cross-checks and undoes it"
   expect(checks.asked).toEqual(["codex", "claude"]);
   const receipt = JSON.parse(applied.out.join("")) as { undo: string };
   expect(receipt.undo).toMatch(/^lervo state restore lbk_[a-f0-9]{24}$/u);
+  // ADR-0561: the learned notice reports the install with both reviewers and its undo.
+  expect(await readEffectNotices(value.repositoryRoot)).toMatchObject([
+    {
+      effect: "capability_install",
+      targets: ["tools/local-mcp@1.0.0"],
+      crossCheck: { verdict: "agree" },
+      undo: receipt.undo,
+    },
+  ]);
   const listed = io(value.repositoryRoot);
   expect(await runCapabilityCommand(["list", "--scope", "project", "--json"], listed.io)).toBe(0);
   expect(JSON.parse(listed.out.join("")).packages[0]).toMatchObject({
