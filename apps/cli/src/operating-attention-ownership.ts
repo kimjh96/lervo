@@ -109,6 +109,11 @@ export function attributeOperatingAttention(
         consequence = "repository_write";
         recommendation = "Inspect the pending exact repository write approval";
       }
+      if (item.issueCode === "repository_layout_decision_pending") {
+        consequence = "repository_write";
+        recommendation = "Accept the one repository layout decision (recommended) or decline it";
+        inspectCommand = item.instruction;
+      }
       break;
   }
   if (prior?.waitingSince) waitingSince = prior.waitingSince;

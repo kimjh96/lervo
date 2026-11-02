@@ -33,6 +33,10 @@ import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import { runInstructionBootstrapStage } from "./instruction-bootstrap-command.js";
 import type { CliIo } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
+import {
+  resolveLayoutDecision,
+  validateLayoutDecisionOptions,
+} from "./knowledge-layout-decision.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import { recordStructuralMaterialization } from "./structural-materialization-event.js";
 import {
@@ -77,6 +81,8 @@ export async function runKnowledgeMigration(input: {
     root?: string;
     apply?: string;
     "approve-item"?: string[];
+    "accept-layout"?: string;
+    "decline-layout"?: string;
     "continuation-source"?: string;
     provider?: string;
     candidate?: string;
@@ -97,6 +103,8 @@ export async function runKnowledgeMigration(input: {
         root: { type: "string" },
         apply: { type: "string" },
         "approve-item": { type: "string", multiple: true },
+        "accept-layout": { type: "string" },
+        "decline-layout": { type: "string" },
         "continuation-source": { type: "string" },
         provider: { type: "string" },
         candidate: { type: "string" },
@@ -119,6 +127,11 @@ export async function runKnowledgeMigration(input: {
   }
   try {
     const repositoryRoot = resolve(io.cwd, values.root ?? ".");
+    validateLayoutDecisionOptions(values);
+    const layoutDecisionRequested =
+      values["accept-layout"] !== undefined || values["decline-layout"] !== undefined;
+    if (layoutDecisionRequested && input.mode !== "migrate")
+      throw new Error("A layout decision is supported only by lervo migrate knowledge.");
     if (input.mode === "migrate") {
       await ensureHostTerminalRuntime();
       await rememberTerminalWorkerEntry(repositoryRoot, process.env.LERVO_CLI_ENTRY);
@@ -143,6 +156,10 @@ export async function runKnowledgeMigration(input: {
         await projectStorage.close();
       }
       if (continuation.status !== "current") {
+        if (layoutDecisionRequested)
+          throw new Error(
+            "The continuation workstream migration must finish before the layout decision.",
+          );
         if (values.apply === undefined) {
           if ((values["approve-item"]?.length ?? 0) > 0)
             throw new Error("--approve-item must be used with --apply.");
@@ -246,7 +263,11 @@ export async function runKnowledgeMigration(input: {
       json: values.json ?? false,
       io,
     });
-    if (instructionBootstrapResult !== null) return instructionBootstrapResult;
+    if (instructionBootstrapResult !== null) {
+      if (layoutDecisionRequested)
+        io.stderr("The layout decision was not used: an earlier migration stage is pending.\n");
+      return layoutDecisionRequested ? 1 : instructionBootstrapResult;
+    }
     // The generated canonical AGENTS.md entrypoint is materialized by the base
     // knowledge stage. Defer agent-surface routing until that source exists so
     // a fresh repository containing portable skills can bootstrap safely.
@@ -276,15 +297,35 @@ export async function runKnowledgeMigration(input: {
         ? await planKnowledgeMigrationRouting({
             repositoryRoot,
             supplementalSources,
-            classify: values.apply === undefined,
+            classify: values.apply === undefined && !layoutDecisionRequested,
             ...(values.provider === undefined ? {} : { provider: values.provider }),
             ...(values.model === undefined ? {} : { model: values.model }),
             ...(values.executable === undefined ? {} : { executable: values.executable }),
             ...(values["timeout-ms"] === undefined ? {} : { timeoutMs: values["timeout-ms"] }),
           })
         : null;
+    if (layoutDecisionRequested && (layout === null || layout.status === "current"))
+      throw new Error("No layout decision is pending for the current plan.");
+    let decidedApprovals: Array<{ operationId: string; approvalHash: string }> | undefined;
+    if (layout !== null && layoutDecisionRequested) {
+      const decided = await resolveLayoutDecision({
+        plan: layout,
+        ...(values["accept-layout"] === undefined ? {} : { accept: values["accept-layout"] }),
+        ...(values["decline-layout"] === undefined ? {} : { decline: values["decline-layout"] }),
+        now: new Date(),
+      });
+      if (decided.kind === "declined") {
+        io.stdout(
+          values.json
+            ? `${JSON.stringify({ declined: decided.decision }, null, 2)}\n`
+            : `Declined layout decision ${decided.decision.decisionId}. No files have been changed. Lervo does not ask again until the plan changes.\n`,
+        );
+        return 0;
+      }
+      decidedApprovals = decided.approvals;
+    }
     if (layout !== null && layout.status !== "current") {
-      if (values.apply === undefined) {
+      if (values.apply === undefined && decidedApprovals === undefined) {
         if ((values["approve-item"]?.length ?? 0) > 0)
           throw new Error("--approve-item must be used with --apply.");
         io.stdout(
@@ -294,9 +335,9 @@ export async function runKnowledgeMigration(input: {
         );
         return layout.status === "review_required" || layout.status === "ready" ? 0 : 1;
       }
-      if (values.apply !== layout.planId)
+      if (decidedApprovals === undefined && values.apply !== layout.planId)
         throw new Error("The requested plan ID does not match the current repository layout plan.");
-      const approvals = parseLayoutApprovals(values["approve-item"]);
+      const approvals = decidedApprovals ?? parseLayoutApprovals(values["approve-item"]);
       const baselineValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
         supplementalSources,
       });

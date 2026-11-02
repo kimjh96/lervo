@@ -189,6 +189,7 @@ export * from "./refresh-review-candidate.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
 export * from "./repository-layout-migration.js";
+export * from "./repository-layout-decision.js";
 export * from "./scanner.js";
 export * from "./skill-contract-source-units.js";
 export * from "./source-lineage.js";

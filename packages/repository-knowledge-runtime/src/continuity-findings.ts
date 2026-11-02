@@ -247,7 +247,12 @@ export function continuityFindings(input: ContinuityFindingsInput): ContinuityFi
       : [
           {
             code: "delegation_scope_change" as const,
-            severity: "owner_decision" as const,
+            // ADR-0559: a proposal over the root limit can never be accepted; the owner decides
+            // the same moves once through the repository layout decision instead.
+            severity:
+              input.scopeChange.acceptanceBlocker === "normalization_root_limit"
+                ? ("info" as const)
+                : ("owner_decision" as const),
             detail: null,
             scopeChange: input.scopeChange,
           },

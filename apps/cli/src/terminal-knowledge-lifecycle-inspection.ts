@@ -10,6 +10,8 @@ import {
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   assertNoKnowledgeMaterializationTransaction,
+  repositoryLayoutDecision,
+  repositoryLayoutDecisionDeclined,
   RepositoryKnowledgeError,
   scanConfiguredRepositoryKnowledge,
   type KnowledgeMaterializationSettlement,
@@ -18,6 +20,10 @@ import {
 } from "@lervo/repository-knowledge";
 import { terminalHookKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { documentRouteDeferralAdvisories } from "./document-route-deferral-attention.js";
+import {
+  repositoryLayoutDecisionCommands,
+  repositoryLayoutDecisionSummary,
+} from "./knowledge-layout-decision.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
@@ -113,7 +119,18 @@ async function inspectStructuralLifecycle(input: {
       );
     }
   }
-  if (layout !== null && layout.status !== "current") {
+  const decision = layout === null ? null : repositoryLayoutDecision(layout);
+  if (decision !== null) {
+    // ADR-0559: one owner decision for every item approval; a declined decision is not asked again.
+    if (!(await repositoryLayoutDecisionDeclined(input.root, decision.decisionId))) {
+      const commands = repositoryLayoutDecisionCommands(decision);
+      issues.push({
+        code: "repository_layout_decision_pending",
+        command: `${commands.accept} (decline: ${commands.decline})`,
+        detail: `${decision.decisionId}: ${repositoryLayoutDecisionSummary(decision)}`,
+      });
+    }
+  } else if (layout !== null && layout.status !== "current") {
     issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
   }
   // ADR-0476: a document waiting for a semantic route is attention, never a lifecycle gate.

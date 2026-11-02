@@ -8,6 +8,7 @@ import {
 import { CommandFailure } from "./command-error-output.js";
 import { deferredDocuments } from "./upgrade-deferred-documents.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
+import { pendingLayoutDecision } from "./knowledge-layout-decision.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import {
   planTerminalIntegrationStage,
@@ -46,6 +47,8 @@ export interface KnowledgeStage {
       resolution: DocumentRouteDeferralResolution;
     }
   >;
+  /** ADR-0559: the one owner decision a layout plan asks for, with its two commands. */
+  layoutDecision?: { decisionId: string; summary: string; accept: string; decline: string };
 }
 
 export interface TerminalIntegrationStage {
@@ -254,6 +257,22 @@ async function knowledgeDisposition(
       },
     };
   }
+  const decision =
+    envelope === null && planKind === "repository_layout" && status === "review_required"
+      ? await pendingLayoutDecision(root, result.value)
+      : null;
+  // A declined decision is settled: the rest of the upgrade is current until the plan changes.
+  if (decision !== null)
+    return {
+      ...(decision === "declined"
+        ? { disposition: "current", reason: "layout_decision_declined" }
+        : { disposition: "pending_authority", reason: "layout_decision_pending" }),
+      planKind,
+      planId,
+      status,
+      blockers: [],
+      ...(decision === "declined" ? {} : { layoutDecision: decision }),
+    };
   if (
     envelope === null &&
     ["review_required", "provider_required", "action_required"].includes(status)

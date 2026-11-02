@@ -79,7 +79,11 @@ function canonicalizationItem(
 function lifecycleOwner(
   issue: TerminalLifecycleInspection["issues"][number],
 ): Pick<KnowledgeLifecycleAttentionItemV1, "actionOwner" | "requiresUserAction"> {
-  if (issue.code === "turn_approval_pending" || issue.code.includes("review_required")) {
+  if (
+    issue.code === "turn_approval_pending" ||
+    issue.code === "repository_layout_decision_pending" ||
+    issue.code.includes("review_required")
+  ) {
     return { actionOwner: "user", requiresUserAction: true };
   }
   return { actionOwner: "agent", requiresUserAction: false };

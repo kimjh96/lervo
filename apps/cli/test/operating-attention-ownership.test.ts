@@ -243,6 +243,21 @@ describe("attention authority at consequential effects", () => {
         healthNow,
       ).requiresUserAction,
     ).toBe(true);
+    // ADR-0559: the one layout decision is owner work with its accept command to inspect.
+    const accept = "lervo migrate knowledge --accept-layout klaydec_x=sha256:y";
+    expect(
+      attributeOperatingAttention(
+        {
+          ...items.knowledge_lifecycle,
+          issueCode: "repository_layout_decision_pending",
+          instruction: accept,
+        },
+        healthNow,
+      ),
+    ).toMatchObject({
+      requiresUserAction: true,
+      attribution: { consequence: "repository_write", inspectCommand: accept },
+    });
     // A gh authentication failure needs the owner's login; other publication failures do not.
     expect(
       attributeOperatingAttention(
