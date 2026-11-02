@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_58782c133df5080d3baa6f49"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Discord conversation failures without an error code now record a stable HTTP failure code or the file and line that threw, never message content, so residual Discord errors can be located."

@@ -1,6 +1,8 @@
-<!-- lervo-release package="@lervo/cli" version="0.23.4" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.23.5" schema="1" -->
 
 ## What's changed
 
-- Keep health visible between knowledge cycles, fit the workstream line whole, stop Lervo's own commits from aging a workstream, bind Codex queries to their turn, record the cause of unclassified knowledge failures, and rank canonical documents that name a task's paths first.
-- Keep the Node runtime, knowledge, and inspections working once a repository's event history passes 100,000 events: readers bound only what they keep, never how long history is.
+- A reviewed repository layout plan is now asked as one owner decision with a recommendation, shown in the plan, attention, health, and lervo upgrade, accepted or declined with one command each; a scope proposal over the delegation root limit is no longer asked.
+- Discord conversation failures without an error code now record a stable HTTP failure code or the file and line that threw, never message content, so residual Discord errors can be located.
+- Document freshness candidates now get an independent no-capability Tier 0 cross-check, so agreed Lervo-managed statement hunks apply without the owner and contested candidates are rejected and regenerated once.
+- Document freshness no longer treats a path mention that the repository never tracked, such as a fixture or example name, as a removed reference, so it creates no finding and no forced (removed) edit; deleted paths behave as before.
