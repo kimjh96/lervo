@@ -2,7 +2,7 @@ import { readPrivateStateJson, writePrivateStateJson } from "./private-state-fil
 
 /** ADR-0549: one thing Lervo committed, with the reason its commit records. */
 export interface LearnedNoticeEntry {
-  kind: "owner_rule" | "skill" | "canonical" | "freshness" | "updated";
+  kind: "owner_rule" | "skill" | "canonical" | "freshness" | "effect" | "updated";
   path: string;
   title: string | null;
   /** Repository-relative Markdown link targets the change added; canonical documents only. */
@@ -14,6 +14,13 @@ export interface LearnedNoticeEntry {
   /** ADR-0561 freshness notice: what Lervo did, why, the cross-check, and the undo command. */
   freshness?: {
     effect: "refresh" | "archive";
+    reason: string;
+    crossCheck: string;
+    undo: string;
+  };
+  /** ADR-0561 effect notice: a cross-checked layout, migration, or structure commit. */
+  effect?: {
+    effect: string;
     reason: string;
     crossCheck: string;
     undo: string;
@@ -41,7 +48,7 @@ export interface LearnedNoticeCursor {
 const NOTICE = "learned-notice.json";
 const CURSOR = "learned-notice-cursor.json";
 const COMMIT = /^[a-f0-9]{40,64}$/u;
-const KINDS = ["owner_rule", "skill", "canonical", "freshness", "updated"] as const;
+const KINDS = ["owner_rule", "skill", "canonical", "freshness", "effect", "updated"] as const;
 
 function validNotice(value: unknown): value is LearnedNotice {
   const notice = value as LearnedNotice | null;
@@ -68,7 +75,14 @@ function validNotice(value: unknown): value is LearnedNotice {
           ((entry.freshness.effect === "refresh" || entry.freshness.effect === "archive") &&
             [entry.freshness.reason, entry.freshness.crossCheck, entry.freshness.undo].every(
               (value) => typeof value === "string",
-            ))),
+            ))) &&
+        (entry.effect === undefined ||
+          [
+            entry.effect.effect,
+            entry.effect.reason,
+            entry.effect.crossCheck,
+            entry.effect.undo,
+          ].every((value) => typeof value === "string")),
     )
   );
 }

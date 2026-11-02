@@ -6,6 +6,7 @@ import type { DocumentRouteClassificationRequest } from "@lervo/repository-knowl
 import { KnowledgeConvergenceRuntimeError } from "../../../packages/repository-knowledge-runtime/src/failure.js";
 import { pauseKnowledgeProvider } from "../../../packages/repository-knowledge-runtime/src/provider-admission.js";
 import { runCli } from "../src/main.js";
+import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const provider = vi.hoisted(() => ({
   calls: [] as unknown[],
@@ -144,7 +145,7 @@ async function fixture() {
   return { root, io, messages, errors };
 }
 
-it("classifies TRACE during migrate --provider and applies its move through the same plan approval", async () => {
+it("classifies TRACE during migrate --provider and applies its move after an independent cross-check", async () => {
   const { root, io, messages, errors } = await fixture();
   expect(
     await runCli(["migrate", "knowledge", "--provider", "codex", "--json"], io),
@@ -166,16 +167,17 @@ it("classifies TRACE during migrate --provider and applies its move through the 
     code: "ENOENT",
   });
   messages.length = 0;
-  const approvals = [...plan.moves, ...plan.userUpdates].flatMap(
-    (item: { operationId: string; approvalHash: string }) => [
-      "--approve-item",
-      `${item.operationId}=${item.approvalHash}`,
-    ],
-  );
+  const crossCheck = planCrossCheck();
   expect(
-    await runCli(["migrate", "knowledge", "--apply", plan.planId, ...approvals, "--json"], io),
+    await runCli(
+      ["migrate", "knowledge", "--apply", plan.planId, "--provider", "codex", "--json"],
+      io,
+      crossCheck.services,
+    ),
     errors.join(""),
   ).toBe(0);
+  // The cross-check runs in the named provider, separate from the classification call.
+  expect(crossCheck.checked).toEqual([expect.objectContaining({ provider: "codex" })]);
   expect(await readFile(resolve(root, "docs/operations/TRACE.md"), "utf8")).toContain(
     "Inspect service traces",
   );

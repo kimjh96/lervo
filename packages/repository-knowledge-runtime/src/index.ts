@@ -194,3 +194,19 @@ export {
   planProjectConvergenceArtifactRetention,
   type CasRetentionPlan,
 } from "./cas-retention-plan.js";
+export {
+  lifecyclePlanReviewVerdict,
+  prepareLifecyclePlanCrossCheck,
+} from "./lifecycle-plan-review-input.js";
+export { readWorkerProviderSelection } from "./provider-cli-selection.js";
+export { lifecycleChangedPaths } from "./lifecycle-plan-scope.js";
+export {
+  commitKnowledgeEffect,
+  commitKnowledgePaths,
+  knowledgeEffectUndoCommand,
+  KNOWLEDGE_EFFECT_KINDS,
+  KNOWLEDGE_EFFECT_TRAILERS,
+  type KnowledgeCommitResult,
+  type KnowledgeEffectKind,
+  type KnowledgeEffectNotice,
+} from "./knowledge-effect-commit.js";

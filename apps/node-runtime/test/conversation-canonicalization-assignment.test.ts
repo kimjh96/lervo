@@ -76,9 +76,10 @@ it("assigns open background candidates to the next write-capable Discord turn", 
     normalizationReview: review,
   });
   expect(assigned).toContain("Document normalization debt: 3 documents await normalization");
-  // The sandboxed turn reviews and applies the stored candidate; it never starts a provider.
+  // The sandboxed turn applies the stored candidate after Lervo's own cross-check (ADR-0561).
   expect(assigned).toContain(
-    `lervo knowledge normalize --candidate ${review.candidateId} --apply knormplan_fixture --approve-item ${review.items[0]!.operationId}=${review.items[0]!.approvalHash}`,
+    `lervo knowledge normalize --candidate ${review.candidateId} --apply knormplan_fixture\``,
   );
+  expect(assigned).not.toContain("--approve-item");
   expect(assigned).toContain("Do not run `--provider`");
 });

@@ -41,6 +41,8 @@ import { completeConvergenceStage, waitingConvergenceStage } from "./stage-recei
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 import { verifyConvergenceEffect } from "./stage-verification.js";
 import { pathWithinConvergenceRoots } from "./delegation.js";
+import { commitKnowledgeEffect } from "./knowledge-effect-commit.js";
+import { lifecycleEffectNotice } from "./lifecycle-effect-notice.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -121,6 +123,8 @@ export async function verifyConvergenceLifecycle(
         },
       });
     }
+    // ADR-0561: a reviewed bridge plan carries its own exact path set, whatever the roots.
+    const reviewed = approval !== null;
     return withConvergenceAssignment({
       storage: context.storage,
       provider: context.provider,
@@ -128,17 +132,19 @@ export async function verifyConvergenceLifecycle(
       role: "writer",
       state,
       paths,
+      writeScope: reviewed ? "reviewed_plan" : "delegation_roots",
       assertLease,
       run: async (authority) => {
         if (
-          paths.some(
-            (path) =>
-              !convergenceManagedKnowledgePath(path) &&
-              !pathWithinConvergenceRoots(path, [
-                ...authority.delegation.canonicalRoots,
-                ...authority.delegation.normalizationRoots,
-              ]),
-          ) ||
+          (!reviewed &&
+            paths.some(
+              (path) =>
+                !convergenceManagedKnowledgePath(path) &&
+                !pathWithinConvergenceRoots(path, [
+                  ...authority.delegation.canonicalRoots,
+                  ...authority.delegation.normalizationRoots,
+                ]),
+            )) ||
           approval?.reviewerAgentId === authority.agent.agentId
         )
           throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
@@ -180,6 +186,19 @@ export async function verifyConvergenceLifecycle(
             })
           : await applyKnowledgeMigrationPlan(plan, new Date(), record);
         context.sourceObservation?.noteChange();
+        // ADR-0561: the reviewed bridge lands as its own commit, the undo point the notice names.
+        await authority.assertCurrent();
+        const commit =
+          "profile" in plan && approval !== null
+            ? await commitKnowledgeEffect({
+                repositoryRoot: root,
+                paths,
+                notice: lifecycleEffectNotice(
+                  plan,
+                  `lifecycle reviewer ${approval.reviewerAgentId} approved`,
+                ),
+              })
+            : null;
         return completeConvergenceStage({
           sources: convergenceSourceObservation(context),
           artifacts: context.storage.artifacts,
@@ -188,7 +207,15 @@ export async function verifyConvergenceLifecycle(
           nextStage: "lifecycle_verification",
           stageData: {},
           approvedEffects: convergenceOperationEffects(plan.operations),
-          proof: { status: "ordered_lifecycle_applied", receipt, approval },
+          ...(commit?.status === "committed"
+            ? { committedHead: { before: commit.before, after: commit.after } }
+            : {}),
+          proof: {
+            status: "ordered_lifecycle_applied",
+            receipt,
+            approval,
+            commit: commit?.status === "committed" ? commit.after : null,
+          },
         });
       },
     });

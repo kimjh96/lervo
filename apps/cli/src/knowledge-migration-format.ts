@@ -1,11 +1,9 @@
-import {
-  repositoryLayoutDecision,
-  type KnowledgeMigrationPlan,
-  type RepositoryLayoutMigrationPlan,
+import type {
+  KnowledgeMigrationPlan,
+  RepositoryLayoutMigrationPlan,
 } from "@lervo/repository-knowledge";
 
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
-import { formatRepositoryLayoutDecision } from "./knowledge-layout-decision.js";
 import { layoutCapacityLines } from "./layout-capacity-lines.js";
 
 export function printableKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): unknown {
@@ -25,7 +23,7 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
     ...documentRouteDeferralLines(plan.deferredDocuments, "  "),
     `Repository document-layout migration target: ${plan.repositoryRoot}`,
     `Plan ID: ${plan.planId}`,
-    `Plan status: ${plan.status === "review_required" ? "item approvals required" : plan.status === "ready" ? "ready" : plan.status === "current" ? "current" : "blocked"}`,
+    `Plan status: ${plan.status === "review_required" ? "cross-check required" : plan.status === "ready" ? "ready" : plan.status === "current" ? "current" : "blocked"}`,
     `Document moves: ${plan.moves.length}`,
     `User-document updates: ${plan.userUpdates.length}`,
     `Machine-artifact moves: ${plan.machineMoves.length}`,
@@ -34,7 +32,6 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
   for (const move of plan.moves) {
     lines.push(
       `  ${move.fromPath} -> ${move.toPath} (${move.classification}${move.classificationBasis === undefined ? "" : `; ${move.classificationBasis}`})`,
-      `  approval: ${move.operationId}=${move.approvalHash}`,
     );
   }
   lines.push(...layoutCapacityLines(plan.layoutCapacity ?? [], ""));
@@ -43,12 +40,7 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
       `Retained in place: ${plan.retainedDocumentCount}`,
       ...plan.retainedDocuments.map((item) => `  ${item.path} (${item.basis})`),
     );
-  for (const update of plan.userUpdates) {
-    lines.push(
-      `  ${update.path} (${update.reason})`,
-      `  approval: ${update.operationId}=${update.approvalHash}`,
-    );
-  }
+  for (const update of plan.userUpdates) lines.push(`  ${update.path} (${update.reason})`);
   for (const blocker of plan.blockers) {
     const details = [
       blocker.candidateRouteIds === undefined
@@ -60,29 +52,14 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
     ].join("");
     lines.push(`  blocker [${blocker.code}] ${blocker.path ?? blocker.pathDigest}${details}`);
   }
-  const decision = repositoryLayoutDecision(plan);
-  if (decision !== null)
-    lines.push(...formatRepositoryLayoutDecision(decision, plan.repositoryRoot));
   if (plan.status === "review_required")
     lines.push(
       "No files have been changed.",
-      decision === null
-        ? `To apply, use --apply ${plan.planId} with every displayed --approve-item.`
-        : `Accept or decline the layout decision above with one command, or use --apply ${plan.planId} with every displayed --approve-item.`,
+      `The background knowledge resident cross-checks and applies this plan on its own. To apply it now, use --apply ${plan.planId}; an independent cross-check reviews it first, and the commit it creates is the undo point.`,
     );
   if (plan.status === "ready")
     lines.push("No files have been changed.", `To apply, use --apply ${plan.planId}.`);
   return `${lines.join("\n")}\n`;
-}
-
-export function parseLayoutApprovals(
-  values: string[] | undefined,
-): Array<{ operationId: string; approvalHash: string }> {
-  return (values ?? []).map((value) => {
-    const match = /^(kdocop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(value);
-    if (match === null) throw new Error("--approve-item must use <operation-id>=<approval-hash>.");
-    return { operationId: match[1]!, approvalHash: match[2]! };
-  });
 }
 
 function conflictExplanation(path: string, reason: string | undefined): string {

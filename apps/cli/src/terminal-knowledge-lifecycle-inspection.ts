@@ -10,8 +10,6 @@ import {
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   assertNoKnowledgeMaterializationTransaction,
-  repositoryLayoutDecision,
-  repositoryLayoutDecisionDeclined,
   RepositoryKnowledgeError,
   scanConfiguredRepositoryKnowledge,
   type KnowledgeMaterializationSettlement,
@@ -20,10 +18,6 @@ import {
 } from "@lervo/repository-knowledge";
 import { terminalHookKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { documentRouteDeferralAdvisories } from "./document-route-deferral-attention.js";
-import {
-  repositoryLayoutDecisionCommands,
-  repositoryLayoutDecisionSummary,
-} from "./knowledge-layout-decision.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 
 import type { TerminalLifecycleInspection } from "./terminal-hook-contract.js";
@@ -119,31 +113,13 @@ async function inspectStructuralLifecycle(input: {
       );
     }
   }
-  const decision = layout === null ? null : repositoryLayoutDecision(layout);
-  const decisionDeclined =
-    decision !== null && (await repositoryLayoutDecisionDeclined(input.root, decision.decisionId));
-  if (decision !== null) {
-    // ADR-0559: one owner decision for every item approval; a declined decision is not asked again.
-    const commands = repositoryLayoutDecisionCommands(decision, input.root);
-    if (!decisionDeclined)
-      issues.push({
-        code: "repository_layout_decision_pending",
-        command: `${commands.accept} (decline: ${commands.decline})`,
-        detail: `${decision.decisionId}: ${repositoryLayoutDecisionSummary(decision)}`,
-      });
-  } else if (layout !== null && layout.status !== "current") {
+  // ADR-0561: a reviewed layout plan is applied by Lervo itself after an independent cross-check.
+  if (layout !== null && layout.status !== "current") {
     issues.push({ code: `repository_layout_${layout.status}`, command: "lervo migrate knowledge" });
   }
   // ADR-0476: a document waiting for a semantic route is attention, never a lifecycle gate.
   const advisories =
     layout === null ? [] : documentRouteDeferralAdvisories(layout.deferredDocuments);
-  // A declined layout keeps the later knowledge stages waiting; say so without asking again.
-  if (decision !== null && decisionDeclined)
-    advisories.unshift({
-      code: "repository_layout_decision_declined",
-      command: repositoryLayoutDecisionCommands(decision, input.root).accept,
-      detail: `${decision.decisionId} was declined; later knowledge stages wait until the layout plan changes or the decision is accepted.`,
-    });
 
   let structuralCurrent = false;
   if (layout?.status === "current") {

@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Decision date: 2026-08-25
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (independent cross-check replaces the operation approval)
+
+> **Amended (2026-11-02).** Under [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), the adoption plan no longer takes an operation approval. The background lifecycle reviewer, or a foreground independent cross-check before `--apply`, must agree; the adoption then lands as its own `Lervo Knowledge` commit that `lervo knowledge revert <commit>` undoes.
 
 ## Context
 

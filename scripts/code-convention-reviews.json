@@ -3,20 +3,6 @@
   "reviewLineThreshold": 400,
   "reviews": [
     {
-      "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:e164f1b39e193600938931ab61abe045082dd8f85bf3e2cb7b2bd6bf9e7afa6c",
-      "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, terminal integration, and ADR-0559 layout decisions retain dedicated modules. Terminal runtime, worker-entry provenance, and the ADR-0578 shared pre-write scan are single calls to their owners.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "apps/cli/src/knowledge-structure-command.ts",
-      "contentHash": "sha256:d2da5808ec1e24855aec407be032055265c7ab8533b1f843cb156ba40a63c7a5",
-      "responsibility": "User document structure command adapter",
-      "rationale": "Move, merge, split, and delete share one exact-approved document-structure command lifecycle, validation receipt, event, and rollback boundary. The added complete-coverage receipt gate composes reporting lint without adding policy, storage, or provider responsibilities. Structure planning and effects remain in package owners.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/cli/src/managed-deliberation.ts",
       "contentHash": "sha256:a46b1dc939a9c3c0ef44ac1f69e9412620568b16c8d639133172d9acc0214bce",
       "responsibility": "Managed deliberation execution orchestration",
@@ -207,9 +193,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:7530894d7daa5c8bc736745fad6b56df112f7abfd82d609fc5d75ac721ad5835",
+      "contentHash": "sha256:f7431bc190493c28cf2e23acb6ec811eb7731c4c126c1644bbfcad055a5f08e6",
       "responsibility": "Repository document-layout migration",
-      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and candidate accounting live in repository-layout-accounting.ts, and the capacity hold for moves in repository-layout-capacity.ts (ADR-0583). Classification, route evidence, durable apply, providers, lifecycle authority, scope, and health keep separate owners. Reference rewriting rereads observed-only sources through the scanner's verified reader.",
+      "rationale": "The module composes one exact layout transaction with virtual scanning, exact item content binding, and apply-time revalidation. Conflict outcomes and candidate accounting live in repository-layout-accounting.ts, and the capacity hold for moves in repository-layout-capacity.ts (ADR-0583). Classification, route evidence, durable apply, providers, lifecycle authority, reverted-move holds (ADR-0561), and health keep separate owners. Reference rewriting rereads observed-only sources through the scanner's verified reader.",
       "disposition": "cohesive"
     },
     {

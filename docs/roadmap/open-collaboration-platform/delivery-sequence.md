@@ -65,6 +65,16 @@ Remaining boundaries:
 
 Each host assesses its own owner turns. On Hub-coordinated hosts, only the ADR-0466 convergence owner applies and commits a candidate. A standalone host applies locally without the Hub commit requirement.
 
+### Owner-free layout, migration, and structure effects
+
+Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) slice A3, repository layout, continuation migration, canonical instruction bootstrap and bridge, document normalization, and document structure changes are `wired` without an owner step. The background lifecycle reviewer applies a reviewed plan whatever the delegation's roots, so a plan with paths far beyond the 32-root limit applies. A foreground `--apply` asks a fresh no-capability session for the same exact plan review first. Each effect lands as its own `Lervo Knowledge` commit with `Lervo-Effect` trailers, the learned notice reports it, and `lervo knowledge revert <commit>` undoes it; a reverted layout move stays in place until its bytes change. A rejected plan is parked as Lervo debt. `--approve-item` for these stages and the ADR-0559 `--accept-layout` and `--decline-layout` commands are removed. Runtime and CLI tests cover agreement, disagreement, a 20-move plan across many roots, commit-then-delete, and revert.
+
+Remaining boundaries:
+
+- Not yet observed on argo after release: the layout moves applying with no owner command, followed by a notice with the undo command.
+- The delegation `scope-response` command and its proposal and decision records, canonicalization review and promote, and delegation renewal remain for slice A4.
+- The terminal integration `--approve-item`, `lervo upgrade --approval`, and the `turn_approval_pending` owner item remain for later slices.
+
 ## Slice 3: self-organizing and standing
 
 | Item | Design | Verification | Depends on |

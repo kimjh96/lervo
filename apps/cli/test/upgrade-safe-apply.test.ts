@@ -7,6 +7,7 @@ import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli as runUnisolatedCli } from "../src/main.js";
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import * as terminalRuntime from "../src/terminal-runtime.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
@@ -46,7 +47,11 @@ async function approveTerminalIntegration(root: string): Promise<void> {
     const stdout: string[] = [];
     const stderr: string[] = [];
     expect(
-      await runCli(["migrate", "knowledge", ...args, "--json"], io(root, stdout, stderr)),
+      await runCli(
+        ["migrate", "knowledge", ...args, "--json"],
+        io(root, stdout, stderr),
+        agreeingCrossCheck,
+      ),
       stderr.join(""),
     ).toBe(0);
     return JSON.parse(stdout.join("")) as {
@@ -57,15 +62,13 @@ async function approveTerminalIntegration(root: string): Promise<void> {
       userUpdates?: Array<{ operationId: string; approvalHash: string }>;
     };
   };
+  // ADR-0561: only the terminal integration stage still binds an item approval.
   const approvals = (plan: Awaited<ReturnType<typeof migrate>>) =>
-    plan.userUpdates !== undefined
-      ? plan.userUpdates.flatMap((item) => [
-          "--approve-item",
-          `${item.operationId}=${item.approvalHash}`,
-        ])
-      : plan.approvalHash === undefined || plan.approvalHash === null
-        ? []
-        : ["--approve-item", `${plan.operationId}=${plan.approvalHash}`];
+    plan.planKind === "terminal_integration" &&
+    plan.approvalHash !== undefined &&
+    plan.approvalHash !== null
+      ? ["--approve-item", `${plan.operationId}=${plan.approvalHash}`]
+      : [];
   for (let index = 0; index < 10; index += 1) {
     const plan = await migrate();
     await migrate("--apply", plan.planId, ...approvals(plan));

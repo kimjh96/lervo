@@ -1194,9 +1194,23 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   };
 }
 
+/**
+ * The exact content binding of every user-document move and update in a plan. ADR-0561: Lervo
+ * supplies these itself once an independent cross-check agreed with the exact plan; they bind the
+ * apply to the reviewed bytes and never stand for an owner approval.
+ */
+export function repositoryLayoutItemBindings(
+  plan: Pick<RepositoryLayoutMigrationPlan, "moves" | "userUpdates">,
+): Array<{ operationId: string; approvalHash: string }> {
+  return [...plan.moves, ...plan.userUpdates].map(({ operationId, approvalHash }) => ({
+    operationId,
+    approvalHash,
+  }));
+}
+
 export async function applyRepositoryLayoutMigrationPlan(input: {
   plan: RepositoryLayoutMigrationPlan;
-  approvals: Array<{ operationId: string; approvalHash: string }>;
+  itemBindings: Array<{ operationId: string; approvalHash: string }>;
   now: Date;
   recordApplied: (receipt: RepositoryLayoutMigrationReceipt) => void | Promise<void>;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
@@ -1209,19 +1223,19 @@ export async function applyRepositoryLayoutMigrationPlan(input: {
       "knowledge_reconciliation_conflict",
       "The repository layout migration plan is not applicable.",
     );
-  const approvalItems = [...input.plan.moves, ...input.plan.userUpdates];
-  const approvalMap = new Map(input.approvals.map((item) => [item.operationId, item.approvalHash]));
+  const items = [...input.plan.moves, ...input.plan.userUpdates];
+  const bindings = new Map(input.itemBindings.map((item) => [item.operationId, item.approvalHash]));
   if (
-    approvalMap.size !== approvalItems.length ||
-    approvalItems.some(
+    bindings.size !== items.length ||
+    items.some(
       (item) =>
-        !HASH.test(approvalMap.get(item.operationId) ?? "") ||
-        approvalMap.get(item.operationId) !== item.approvalHash,
+        !HASH.test(bindings.get(item.operationId) ?? "") ||
+        bindings.get(item.operationId) !== item.approvalHash,
     )
   ) {
     throw new RepositoryKnowledgeError(
       "knowledge_approval_required",
-      "Repository layout migration requires exact item approval for every user-document move or update.",
+      "Repository layout migration binds every user-document move or update to its exact content hash.",
     );
   }
   const current = await createRepositoryLayoutMigrationPlan({

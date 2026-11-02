@@ -2,24 +2,16 @@ import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { randomUUID } from "node:crypto";
 import { lstat } from "node:fs/promises";
 import {
   applyKnowledgeMigrationPlan,
-  applyRepositoryLayoutMigrationPlan,
-  applyContinuationWorkstreamMigrationPlan,
-  canonicalJson,
   createKnowledgeInstructionBridgePlan,
   type RepositoryKnowledgeScan,
   type RepositoryLayoutMigrationPlan,
   createKnowledgeMigrationPlan,
-  createContinuationWorkstreamMigrationPlan,
   lintRepositoryKnowledge,
   inspectConfiguredDocumentNormalization,
-  sha256,
-  RepositoryKnowledgeError,
   scanConfiguredRepositoryKnowledge,
-  serializableRepositoryLayoutMigrationPlan,
   serializableTerminalIntegrationPlan,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -34,45 +26,29 @@ import {
 } from "./terminal-integration-stage.js";
 import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import { runInstructionBootstrapStage } from "./instruction-bootstrap-command.js";
-import type { CliIo } from "./types.js";
-import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
-import {
-  resolveLayoutDecision,
-  validateLayoutDecisionOptions,
-} from "./knowledge-layout-decision.js";
+import type { CliIo, CliServices } from "./types.js";
+import { runInstructionBridge } from "./instruction-bridge-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import { recordStructuralMaterialization } from "./structural-materialization-event.js";
 import {
   formatKnowledgeMigrationBlockers,
   formatKnowledgeMigrationPlan,
-  formatRepositoryLayoutMigrationPlan,
-  parseLayoutApprovals,
   printableKnowledgeMigrationPlan,
 } from "./knowledge-migration-format.js";
+import { runRepositoryLayoutStage } from "./repository-layout-stage.js";
+import { runContinuationWorkstreamStage } from "./continuation-workstream-stage.js";
+import { crossCheckPlan } from "./plan-cross-check.js";
+import { REMOVED_APPROVE_ITEM, REMOVED_LAYOUT_DECISION } from "./removed-approval-options.js";
 import {
   formatTerminalIntegrationPlan,
   formatTerminalIntegrationReceipt,
   terminalActivation,
 } from "./terminal-integration-format.js";
 import {
-  repositoryLayoutKnowledgeLintCodes,
+  expectedInstructionBridgeTransitions,
   structuralKnowledgeLintCodes,
   validateKnowledgeStage,
 } from "./knowledge-stage-lint.js";
-
-function expectedInstructionBridgeTransitions(
-  operations: ReadonlyArray<{ path: string; action: string }>,
-): ReadonlySet<string> {
-  return new Set(
-    operations.some(
-      (operation) =>
-        operation.action !== "unchanged" &&
-        (operation.path === "AGENTS.md" || operation.path === "CLAUDE.md"),
-    )
-      ? ["instruction_bridge_binding_stale"]
-      : [],
-  );
-}
 
 export async function runKnowledgeMigration(input: {
   args: string[];
@@ -80,14 +56,18 @@ export async function runKnowledgeMigration(input: {
   mode: "migrate" | "refresh";
   /** Receives the layout plan this run evaluated, so a caller need not plan it again. */
   observeLayout?: (layout: RepositoryLayoutMigrationPlan) => void;
+  services?: Partial<Pick<CliServices, "crossCheckPlan">>;
 }): Promise<number> {
   let io = input.io;
+  const crossCheck = input.services?.crossCheckPlan ?? crossCheckPlan;
+  if (input.args.some((arg) => /^--(?:accept|decline)-layout(?:=|$)/u.test(arg))) {
+    io.stderr(`${REMOVED_LAYOUT_DECISION}\n`);
+    return 1;
+  }
   let values: {
     root?: string;
     apply?: string;
     "approve-item"?: string[];
-    "accept-layout"?: string;
-    "decline-layout"?: string;
     "continuation-source"?: string;
     provider?: string;
     candidate?: string;
@@ -107,9 +87,8 @@ export async function runKnowledgeMigration(input: {
       options: {
         root: { type: "string" },
         apply: { type: "string" },
+        // Terminal integration still binds its exact provider-hook approval (ADR-0561 slice A5).
         "approve-item": { type: "string", multiple: true },
-        "accept-layout": { type: "string" },
-        "decline-layout": { type: "string" },
         "continuation-source": { type: "string" },
         provider: { type: "string" },
         candidate: { type: "string" },
@@ -132,11 +111,17 @@ export async function runKnowledgeMigration(input: {
   }
   try {
     const repositoryRoot = resolve(io.cwd, values.root ?? ".");
-    validateLayoutDecisionOptions(values);
-    const layoutDecisionRequested =
-      values["accept-layout"] !== undefined || values["decline-layout"] !== undefined;
-    if (layoutDecisionRequested && input.mode !== "migrate")
-      throw new Error("A layout decision is supported only by lervo migrate knowledge.");
+    if (
+      values.provider !== undefined &&
+      values.provider !== "codex" &&
+      values.provider !== "claude"
+    )
+      throw new Error("--provider must be codex or claude.");
+    const provider = values.provider as "codex" | "claude" | undefined;
+    // Only the terminal integration stage still takes an exact item binding.
+    const terminalApprovals = values["approve-item"] ?? [];
+    if (terminalApprovals.some((value) => !value.startsWith("ktermop_")))
+      throw new Error(REMOVED_APPROVE_ITEM);
     if (input.mode === "migrate") {
       await ensureHostTerminalRuntime();
       await rememberTerminalWorkerEntry(repositoryRoot, process.env.LERVO_CLI_ENTRY);
@@ -151,136 +136,28 @@ export async function runKnowledgeMigration(input: {
     let preparedScan: RepositoryKnowledgeScan | undefined = (
       await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources })
     ).scan;
-    if (input.mode === "migrate") {
-      const projectStorage = await openProjectStorage(repositoryRoot);
-      let continuation;
-      try {
-        continuation = await createContinuationWorkstreamMigrationPlan({
-          repositoryRoot,
-          projectId: projectStorage.manifest.projectId,
-          ...(values["continuation-source"] === undefined
-            ? {}
-            : { sourcePath: values["continuation-source"] }),
-          supplementalSources,
-          preparedScan,
-        });
-      } finally {
-        await projectStorage.close();
-      }
-      if (continuation.status !== "current") {
-        if (layoutDecisionRequested)
-          throw new Error(
-            "The continuation workstream migration must finish before the layout decision.",
-          );
-        if (values.apply === undefined) {
-          if ((values["approve-item"]?.length ?? 0) > 0)
-            throw new Error("--approve-item must be used with --apply.");
-          io.stdout(
-            values.json
-              ? `${JSON.stringify(
-                  {
-                    ...continuation,
-                    operations: continuation.operations.map((operation) => {
-                      if (!("content" in operation)) return operation;
-                      const { content: _content, ...printable } = operation;
-                      return printable;
-                    }),
-                  },
-                  null,
-                  2,
-                )}\n`
-              : continuation.status === "blocked"
-                ? `Continuation workstream migration is blocked.\n${continuation.blockers.map((item) => `  [${item.code}] ${item.message}`).join("\n")}\n${continuation.candidates.map((item) => `  candidate: ${item.path} declared=${item.signals.join(",")}`).join("\n")}\n`
-                : `Continuation workstream migration review plan created.\nplan: ${continuation.planId}\nworkstream: ${continuation.workstream?.workstreamId}\nsource: ${continuation.sourcePath} (${continuation.sourceContentHash})\nreferences updated: ${continuation.referenceUpdates.length}\nnormalization records retired: ${continuation.removedNormalizationRecords.length}\napproval: ${continuation.operationId}=${continuation.approvalHash}\nNo files or state have been changed.\n`,
-          );
-          return continuation.status === "blocked" ? 1 : 0;
-        }
-        if (continuation.status === "blocked")
-          throw new Error("The continuation workstream migration is blocked.");
-        if (values.apply !== continuation.planId)
-          throw new Error(
-            "The requested plan ID does not match the current continuation workstream migration plan.",
-          );
-        if ((values["approve-item"]?.length ?? 0) !== 1)
-          throw new Error(
-            "Continuation workstream migration requires one exact --approve-item value.",
-          );
-        const approval = /^(kwstreamop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(
-          values["approve-item"]![0]!,
-        );
-        if (approval === null)
-          throw new Error("--approve-item must use <operation-id>=<sha256-approval-hash>.");
-        const storage = await openProjectStorage(repositoryRoot);
-        try {
-          const eventIdentity = randomUUID().replaceAll("-", "");
-          const receipt = await applyContinuationWorkstreamMigrationPlan({
-            plan: continuation,
-            approvedOperationId: approval[1]!,
-            approvedHash: approval[2]!,
-            now: new Date(),
-            supplementalSources,
-            recordApplied: async (applied, artifacts) => {
-              const sourceArtifact = await storage.artifacts.put(artifacts.sourceContent);
-              const snapshotArtifact = await storage.artifacts.put(artifacts.snapshotContent);
-              if (
-                sourceArtifact.contentHash !== applied.sourceContentHash ||
-                snapshotArtifact.contentHash !== applied.snapshotContentHash
-              ) {
-                throw new RepositoryKnowledgeError(
-                  "knowledge_apply_failed",
-                  "The persisted workstream artifacts differ from the migration bindings.",
-                );
-              }
-              storage.events.append({
-                eventId: `evt_${eventIdentity}`,
-                projectId: applied.projectId,
-                runId: `run_${eventIdentity}`,
-                sessionId: `ses_${eventIdentity}`,
-                type: "workstream.snapshot.recorded",
-                occurredAt: applied.appliedAt,
-                actor: { kind: "user" },
-                schemaVersion: 1,
-                policyVersion: applied.approvalHash,
-                payload: {
-                  workstreamId: applied.workstreamId,
-                  revision: applied.revision,
-                  status: applied.status,
-                  changeKind: "legacy_continuation_migration",
-                  snapshotArtifactId: `art_${applied.snapshotContentHash.slice("sha256:".length)}`,
-                  snapshotContentHash: applied.snapshotContentHash,
-                  previousSnapshotContentHash: applied.previousSnapshotContentHash,
-                  sourceArtifactId: `art_${applied.sourceContentHash.slice("sha256:".length)}`,
-                  sourceContentHash: applied.sourceContentHash,
-                  recordedAt: applied.appliedAt,
-                },
-              });
-            },
-          });
-          io.stdout(
-            values.json
-              ? `${JSON.stringify(receipt, null, 2)}\n`
-              : `Migrated ${continuation.sourcePath} into Lervo workstream state.\nworkstream: ${receipt.workstreamId}\nreferences updated: ${receipt.referenceUpdatedCount}\nRun lervo migrate knowledge again to refresh canonical documentation and navigation.\n`,
-          );
-        } finally {
-          await storage.close();
-        }
-        return 0;
-      }
-    }
-    const instructionBootstrapResult = await runInstructionBootstrapStage({
+    const stage = {
       repositoryRoot,
       supplementalSources,
-      preparedScan,
       ...(values.apply === undefined ? {} : { applyPlanId: values.apply }),
-      approvalItems: values["approve-item"] ?? [],
+      ...(provider === undefined ? {} : { provider }),
       json: values.json ?? false,
       io,
-    });
-    if (instructionBootstrapResult !== null) {
-      if (layoutDecisionRequested)
-        io.stderr("The layout decision was not used: an earlier migration stage is pending.\n");
-      return layoutDecisionRequested ? 1 : instructionBootstrapResult;
-    }
+      crossCheckPlan: crossCheck,
+    };
+    const continuation =
+      input.mode === "migrate"
+        ? await runContinuationWorkstreamStage({
+            ...stage,
+            preparedScan,
+            ...(values["continuation-source"] === undefined
+              ? {}
+              : { sourcePath: values["continuation-source"] }),
+          })
+        : null;
+    if (continuation !== null) return continuation;
+    const bootstrap = await runInstructionBootstrapStage({ ...stage, preparedScan });
+    if (bootstrap !== null) return bootstrap;
     // The generated canonical AGENTS.md entrypoint is materialized by the base
     // knowledge stage. Defer agent-surface routing until that source exists so
     // a fresh repository containing portable skills can bootstrap safely.
@@ -311,7 +188,7 @@ export async function runKnowledgeMigration(input: {
             repositoryRoot,
             supplementalSources,
             preparedScan,
-            classify: values.apply === undefined && !layoutDecisionRequested,
+            classify: values.apply === undefined,
             ...(values.provider === undefined ? {} : { provider: values.provider }),
             ...(values.model === undefined ? {} : { model: values.model }),
             ...(values.executable === undefined ? {} : { executable: values.executable }),
@@ -319,145 +196,9 @@ export async function runKnowledgeMigration(input: {
           })
         : null;
     if (layout !== null) input.observeLayout?.(layout);
-    if (layoutDecisionRequested && (layout === null || layout.status === "current"))
-      throw new Error("No layout decision is pending for the current plan.");
-    let decidedApprovals: Array<{ operationId: string; approvalHash: string }> | undefined;
-    if (layout !== null && layoutDecisionRequested) {
-      const decided = await resolveLayoutDecision({
-        plan: layout,
-        ...(values["accept-layout"] === undefined ? {} : { accept: values["accept-layout"] }),
-        ...(values["decline-layout"] === undefined ? {} : { decline: values["decline-layout"] }),
-        now: new Date(),
-      });
-      if (decided.kind === "declined") {
-        io.stdout(
-          values.json
-            ? `${JSON.stringify({ declined: decided.decision }, null, 2)}\n`
-            : `Declined layout decision ${decided.decision.decisionId}. No files have been changed. Lervo does not ask again until the plan changes.\n`,
-        );
-        return 0;
-      }
-      decidedApprovals = decided.approvals;
-    }
     if (layout !== null && layout.status !== "current") {
-      if (values.apply === undefined && decidedApprovals === undefined) {
-        if ((values["approve-item"]?.length ?? 0) > 0)
-          throw new Error("--approve-item must be used with --apply.");
-        io.stdout(
-          values.json
-            ? `${JSON.stringify(serializableRepositoryLayoutMigrationPlan(layout), null, 2)}\n`
-            : formatRepositoryLayoutMigrationPlan(layout),
-        );
-        return layout.status === "review_required" || layout.status === "ready" ? 0 : 1;
-      }
-      if (decidedApprovals === undefined && values.apply !== layout.planId)
-        throw new Error("The requested plan ID does not match the current repository layout plan.");
-      const approvals = decidedApprovals ?? parseLayoutApprovals(values["approve-item"]);
-      preparedScan = undefined;
-      const baselineValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
-        supplementalSources,
-      });
-      const storage = await openProjectStorage(layout.repositoryRoot);
-      let receipt;
-      try {
-        const eventIdentity = randomUUID().replaceAll("-", "");
-        receipt = await applyRepositoryLayoutMigrationPlan({
-          plan: layout,
-          approvals,
-          now: new Date(),
-          supplementalSources,
-          recordApplied: async (applied) => {
-            const observedValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
-              allowTransactionPlanId: layout.planId,
-              supplementalSources,
-            });
-            const validation = validateKnowledgeStage({
-              stage: "repository layout migration",
-              before: baselineValidation,
-              after: observedValidation,
-              ownedErrorCodes: repositoryLayoutKnowledgeLintCodes,
-              expectedTransitionCodes: expectedInstructionBridgeTransitions(layout.operations),
-            });
-            const validationHash = sha256(canonicalJson(validation));
-            await storage.artifacts.put(canonicalJson(validation));
-            const conceptChanges = layout.operations
-              .map((operation) => ({
-                operation,
-                match:
-                  /^\.lervo\/knowledge\/concepts\/(?:[a-f0-9]{2}\/)?(concept_[a-f0-9]{24})\.yaml$/.exec(
-                    operation.path,
-                  ),
-              }))
-              .filter(
-                (
-                  item,
-                ): item is {
-                  operation: (typeof layout.operations)[number];
-                  match: RegExpExecArray;
-                } => item.match !== null,
-              );
-            const createdConceptIds = conceptChanges
-              .filter((item) => item.operation.action === "create")
-              .map((item) => item.match[1] as string)
-              .slice(0, 256);
-            const updatedConceptIds = conceptChanges
-              .filter((item) => item.operation.action === "update")
-              .map((item) => item.match[1] as string)
-              .slice(0, 256);
-            storage.events.append({
-              eventId: `evt_${eventIdentity}`,
-              projectId: layout.projectId,
-              runId: `run_${eventIdentity}`,
-              sessionId: `ses_${eventIdentity}`,
-              type: "knowledge.materialization.applied",
-              occurredAt: applied.appliedAt,
-              actor: { kind: "system" },
-              schemaVersion: 1,
-              policyVersion: layout.policyHash,
-              payload: {
-                operation: "migrate",
-                planId: applied.planId,
-                sourceSnapshotId: applied.sourceSnapshotId,
-                policyHash: layout.policyHash,
-                compilerId: "lervo.repository-layout",
-                compilerVersion: "1",
-                approvalDigest: applied.approvalDigest,
-                coverage: layout.coverage,
-                bundleIds: [],
-                createdConceptIds,
-                updatedConceptIds,
-                deprecatedConceptIds: [],
-                conceptListTruncated: conceptChanges.length > 256,
-                resultArtifactId: null,
-                resultArtifactHash: null,
-                createdCount: applied.created.length,
-                updatedCount: applied.updated.length,
-                unchangedCount: applied.unchanged.length,
-                beforeRegistryDigest: layout.registryDigest,
-                afterRegistryDigest: sha256(
-                  canonicalJson(
-                    layout.operations.map((item) => ({
-                      pathDigest: sha256(item.path),
-                      hash: item.action === "move" ? item.expectedCurrentHash : item.desiredHash,
-                    })),
-                  ),
-                ),
-                validationReportId: `klint_${validationHash.slice("sha256:".length, "sha256:".length + 24)}`,
-                validationReportHash: validationHash,
-                appliedAt: applied.appliedAt,
-              },
-            });
-          },
-        });
-      } finally {
-        await storage.close();
-      }
-      migrationDeferralOutput(io, layout, values.json ?? false).stdout(
-        values.json
-          ? `${JSON.stringify(receipt, null, 2)}\n`
-          : `Repository document-layout migration completed.\nplan: ${receipt.planId}\nDocument moves: ${receipt.movedCount}\nMachine-artifact moves: ${receipt.machineMovedCount}\nReference updates: ${receipt.referenceUpdatedCount}\n`,
-      );
-      return 0;
+      if (values.apply !== undefined) preparedScan = undefined;
+      return await runRepositoryLayoutStage({ ...stage, layout });
     }
     io = migrationDeferralOutput(io, layout, values.json ?? false);
     const plan = await createKnowledgeMigrationPlan({
@@ -479,25 +220,7 @@ export async function runKnowledgeMigration(input: {
         supplementalSources,
         preparedScan,
       });
-      if (bridge.status !== "current") {
-        if ((values["approve-item"]?.length ?? 0) > 1)
-          throw new Error("The Claude instruction bridge accepts one exact --approve-item value.");
-        return runKnowledgeInstruction(
-          [
-            "bridge",
-            "--provider",
-            "claude",
-            "--root",
-            repositoryRoot,
-            ...(values.apply === undefined ? [] : ["--apply", values.apply]),
-            ...(values["approve-item"]?.[0] === undefined
-              ? []
-              : ["--approve-item", values["approve-item"][0]]),
-            ...(values.json ? ["--json"] : []),
-          ],
-          io,
-        );
-      }
+      if (bridge.status !== "current") return await runInstructionBridge(stage);
     }
     if (input.mode === "migrate" && structuralCurrent) {
       const prepared = await planTerminalIntegrationStage(repositoryRoot);
@@ -573,10 +296,10 @@ export async function runKnowledgeMigration(input: {
             ...(values.executable === undefined ? [] : ["--executable", values.executable]),
             ...(values["timeout-ms"] === undefined ? [] : ["--timeout-ms", values["timeout-ms"]]),
             ...(values.apply === undefined ? [] : ["--apply", values.apply]),
-            ...(values["approve-item"] ?? []).flatMap((approval) => ["--approve-item", approval]),
             ...(values.json ? ["--json"] : []),
           ],
           io,
+          { crossCheckPlan: crossCheck },
         );
       }
       if (values.apply === undefined) {

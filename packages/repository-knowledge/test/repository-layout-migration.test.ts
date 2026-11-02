@@ -159,7 +159,7 @@ describe("repository layout migration", () => {
     ]);
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -215,7 +215,7 @@ describe("repository layout migration", () => {
     expect(plan.referenceUpdates.map((item) => item.path)).toContain(tool);
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -391,7 +391,7 @@ describe("repository layout migration", () => {
     );
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -797,7 +797,7 @@ describe("repository layout migration", () => {
     expect(plan.referenceUpdates).toContainEqual(expect.objectContaining({ path: "AGENTS.md" }));
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -854,7 +854,7 @@ describe("repository layout migration", () => {
     );
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -908,7 +908,7 @@ describe("repository layout migration", () => {
     );
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -958,7 +958,7 @@ describe("repository layout migration", () => {
     );
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -976,13 +976,13 @@ describe("repository layout migration", () => {
     );
   });
 
-  it("requires every item approval and rolls back all moves after interruption", async () => {
+  it("binds every item to its exact hash and rolls back all moves after interruption", async () => {
     const root = await repository();
     const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
     await expect(
       applyRepositoryLayoutMigrationPlan({
         plan,
-        approvals: [],
+        itemBindings: [],
         now: new Date(),
         recordApplied: () => undefined,
       }),
@@ -996,7 +996,7 @@ describe("repository layout migration", () => {
     await expect(
       applyRepositoryLayoutMigrationPlan({
         plan,
-        approvals: plan.moves.map((move) => ({
+        itemBindings: plan.moves.map((move) => ({
           operationId: move.operationId,
           approvalHash: move.approvalHash,
         })),
@@ -1351,7 +1351,7 @@ describe("repository layout migration", () => {
     expect(plan.blockers).toEqual([]);
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: plan.moves.map((move) => ({
+      itemBindings: plan.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -1368,12 +1368,12 @@ describe("repository layout migration", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("moves legacy machine artifacts without user-byte approval", async () => {
+  it("moves legacy machine artifacts without a user-byte cross-check", async () => {
     const root = await repository();
     const initial = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
     await applyRepositoryLayoutMigrationPlan({
       plan: initial,
-      approvals: initial.moves.map((move) => ({
+      itemBindings: initial.moves.map((move) => ({
         operationId: move.operationId,
         approvalHash: move.approvalHash,
       })),
@@ -1396,7 +1396,7 @@ describe("repository layout migration", () => {
     });
     await applyRepositoryLayoutMigrationPlan({
       plan,
-      approvals: [],
+      itemBindings: [],
       now: new Date(),
       recordApplied: () => undefined,
     });
@@ -1416,7 +1416,7 @@ describe("repository layout migration", () => {
     const initial = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
     await applyRepositoryLayoutMigrationPlan({
       plan: initial,
-      approvals: [...initial.moves, ...initial.userUpdates].map((item) => ({
+      itemBindings: [...initial.moves, ...initial.userUpdates].map((item) => ({
         operationId: item.operationId,
         approvalHash: item.approvalHash,
       })),

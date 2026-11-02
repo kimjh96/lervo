@@ -16,6 +16,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { createProcessDocumentNormalizationCompiler } from "@lervo/repository-knowledge-compiler";
 import { openProjectStorage } from "@lervo/project-storage";
+import { lifecycleChangedPaths } from "@lervo/repository-knowledge-runtime";
 
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import {
@@ -23,19 +24,10 @@ import {
   parseDocumentNormalizationOptions,
 } from "./document-normalization-options.js";
 import { formatDocumentNormalizationPreflight } from "./document-normalization-preflight-format.js";
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 import { normalizationKnowledgeLintCodes, validateKnowledgeStage } from "./knowledge-stage-lint.js";
-
-function approvals(
-  values: string[] | undefined,
-): Array<{ operationId: string; approvalHash: string }> {
-  return (values ?? []).map((value) => {
-    const match = /^(knormop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(value);
-    if (match === null)
-      throw new Error("--approve-item must use <normalization-operation-id>=<approval-hash>.");
-    return { operationId: match[1]!, approvalHash: match[2]! };
-  });
-}
+import { applyCrossCheckedEffect, crossCheckedEffectLines } from "./cross-checked-effect.js";
+import { crossCheckPlan } from "./plan-cross-check.js";
 
 function printablePlan(
   plan: DocumentNormalizationPlan,
@@ -86,17 +78,20 @@ function formatPlan(
     lines.push(`  ${item.sourcePath} (${item.profile})`);
     for (const output of item.outputs)
       lines.push(`    -> ${output.path} · ${output.byteCount} bytes · ${output.contentHash}`);
-    lines.push(`    approval: ${item.operationId}=${item.approvalHash}`);
   }
   for (const blocker of plan.blockers) lines.push(`  blocker [${blocker.code}] ${blocker.path}`);
   if (plan.status === "review_required")
     lines.push(
-      "No repository document has been changed. Review the stored candidate bytes, then apply this plan with every displayed approval.",
+      `No repository document has been changed. Apply with --candidate ${plan.candidateId} --apply ${plan.planId}; an independent cross-check reviews the stored candidate bytes first, and the commit it creates is the undo point.`,
     );
   return `${lines.join("\n")}\n`;
 }
 
-export async function runDocumentNormalizationCommand(args: string[], io: CliIo): Promise<number> {
+export async function runDocumentNormalizationCommand(
+  args: string[],
+  io: CliIo,
+  services: Partial<Pick<CliServices, "crossCheckPlan">> = {},
+): Promise<number> {
   try {
     const options = parseDocumentNormalizationOptions(args);
     if (options.help) {
@@ -188,8 +183,6 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
       supplementalSources,
     });
     if (options.apply === undefined) {
-      if ((options.approveItems?.length ?? 0) > 0)
-        throw new Error("--approve-item must be used with --apply.");
       io.stdout(
         options.json
           ? `${JSON.stringify(printablePlan(plan, stored.artifactPath, resourceObservation), null, 2)}\n`
@@ -207,102 +200,121 @@ export async function runDocumentNormalizationCommand(args: string[], io: CliIo)
     const storage = await openProjectStorage(repositoryRoot);
     try {
       const eventIdentity = randomUUID().replaceAll("-", "");
-      const receipt = await applyDocumentNormalizationPlan({
+      const { receipt, report } = await applyCrossCheckedEffect({
+        crossCheckPlan: services.crossCheckPlan ?? crossCheckPlan,
+        repositoryRoot,
+        ...(options.crossCheckProvider === undefined
+          ? {}
+          : { provider: options.crossCheckProvider }),
         plan,
-        candidate,
-        approvals: approvals(options.approveItems),
-        now: new Date(),
-        supplementalSources,
-        recordApplied: async (applied) => {
-          const observedValidation = await lintRepositoryKnowledge(repositoryRoot, {
-            supplementalSources,
-            allowTransactionPlanId: plan.planId,
-          });
-          const rewritesBridgeInputs = plan.items.some(
-            (item) => item.sourcePath === "AGENTS.md" || item.sourcePath === "CLAUDE.md",
-          );
-          const expectedTransitionCodes = new Set(
-            rewritesBridgeInputs ? ["instruction_bridge_binding_stale"] : [],
-          );
-          const stageValidation = validateKnowledgeStage({
-            stage: "document normalization",
-            before: baselineValidation,
-            after: observedValidation,
-            ownedErrorCodes: normalizationKnowledgeLintCodes,
-            expectedTransitionCodes,
-          });
-          const validationHash = sha256(canonicalJson(stageValidation));
-          await storage.artifacts.put(canonicalJson(stageValidation));
-          storage.events.append({
-            eventId: `evt_${eventIdentity}`,
-            projectId: plan.projectId,
-            runId: `run_${eventIdentity}`,
-            sessionId: `ses_${eventIdentity}`,
-            type: "knowledge.materialization.applied",
-            occurredAt: applied.appliedAt,
-            actor: { kind: "system" },
-            schemaVersion: 1,
-            policyVersion: sha256(
-              canonicalJson({
-                outputLanguage: plan.outputLanguage,
-                formatVersion: plan.formatVersion,
-              }),
-            ),
-            payload: {
-              operation: "normalize_documents",
-              planId: plan.planId,
-              sourceSnapshotId: plan.sourceSnapshotId,
-              policyHash: sha256(
-                canonicalJson({
-                  outputLanguage: plan.outputLanguage,
-                  formatVersion: plan.formatVersion,
-                }),
-              ),
-              compilerId: candidate.compiler.compilerId,
-              compilerVersion: candidate.compiler.compilerVersion,
-              compilerBuildId: candidate.compiler.compilerBuildId,
-              approvalDigest: applied.approvalDigest,
-              coverage: { ...candidate.coverage, workset: candidate.workset },
-              bundleIds: [],
-              createdConceptIds: [],
-              updatedConceptIds: [],
-              deprecatedConceptIds: [],
-              conceptListTruncated: false,
-              resultArtifactId: null,
-              resultArtifactHash: null,
-              createdCount: applied.created.length,
-              updatedCount: applied.updated.length,
-              unchangedCount: 0,
-              deletedCount: applied.deleted.length,
-              beforeRegistryDigest: sha256(
-                canonicalJson(
-                  plan.items.map((item) => ({
-                    pathDigest: sha256(item.sourcePath),
-                    hash: item.sourceContentHash,
-                  })),
-                ),
-              ),
-              afterRegistryDigest: sha256(
-                canonicalJson(
-                  plan.items.flatMap((item) =>
-                    item.outputs.map((output) => ({
-                      pathDigest: sha256(output.path),
-                      hash: output.contentHash,
-                    })),
-                  ),
-                ),
-              ),
-              validationReportId: `klint_${validationHash.slice("sha256:".length, "sha256:".length + 24)}`,
-              validationReportHash: validationHash,
-              appliedAt: applied.appliedAt,
-            },
-          });
+        paths: lifecycleChangedPaths(plan),
+        notice: {
+          effect: "document_normalization",
+          planId: plan.planId,
+          reason: `normalized ${plan.items.length} documents to ${plan.outputLanguage} ${plan.formatVersion}`,
         },
+        apply: () =>
+          applyDocumentNormalizationPlan({
+            plan,
+            candidate,
+            // The plan's own content bindings; the cross-check above agreed with these exact bytes.
+            approvals: plan.items.map(({ operationId, approvalHash }) => ({
+              operationId,
+              approvalHash,
+            })),
+            now: new Date(),
+            supplementalSources,
+            recordApplied: async (applied) => {
+              const observedValidation = await lintRepositoryKnowledge(repositoryRoot, {
+                supplementalSources,
+                allowTransactionPlanId: plan.planId,
+              });
+              const rewritesBridgeInputs = plan.items.some(
+                (item) => item.sourcePath === "AGENTS.md" || item.sourcePath === "CLAUDE.md",
+              );
+              const expectedTransitionCodes = new Set(
+                rewritesBridgeInputs ? ["instruction_bridge_binding_stale"] : [],
+              );
+              const stageValidation = validateKnowledgeStage({
+                stage: "document normalization",
+                before: baselineValidation,
+                after: observedValidation,
+                ownedErrorCodes: normalizationKnowledgeLintCodes,
+                expectedTransitionCodes,
+              });
+              const validationHash = sha256(canonicalJson(stageValidation));
+              await storage.artifacts.put(canonicalJson(stageValidation));
+              storage.events.append({
+                eventId: `evt_${eventIdentity}`,
+                projectId: plan.projectId,
+                runId: `run_${eventIdentity}`,
+                sessionId: `ses_${eventIdentity}`,
+                type: "knowledge.materialization.applied",
+                occurredAt: applied.appliedAt,
+                actor: { kind: "system" },
+                schemaVersion: 1,
+                policyVersion: sha256(
+                  canonicalJson({
+                    outputLanguage: plan.outputLanguage,
+                    formatVersion: plan.formatVersion,
+                  }),
+                ),
+                payload: {
+                  operation: "normalize_documents",
+                  planId: plan.planId,
+                  sourceSnapshotId: plan.sourceSnapshotId,
+                  policyHash: sha256(
+                    canonicalJson({
+                      outputLanguage: plan.outputLanguage,
+                      formatVersion: plan.formatVersion,
+                    }),
+                  ),
+                  compilerId: candidate.compiler.compilerId,
+                  compilerVersion: candidate.compiler.compilerVersion,
+                  compilerBuildId: candidate.compiler.compilerBuildId,
+                  approvalDigest: applied.approvalDigest,
+                  coverage: { ...candidate.coverage, workset: candidate.workset },
+                  bundleIds: [],
+                  createdConceptIds: [],
+                  updatedConceptIds: [],
+                  deprecatedConceptIds: [],
+                  conceptListTruncated: false,
+                  resultArtifactId: null,
+                  resultArtifactHash: null,
+                  createdCount: applied.created.length,
+                  updatedCount: applied.updated.length,
+                  unchangedCount: 0,
+                  deletedCount: applied.deleted.length,
+                  beforeRegistryDigest: sha256(
+                    canonicalJson(
+                      plan.items.map((item) => ({
+                        pathDigest: sha256(item.sourcePath),
+                        hash: item.sourceContentHash,
+                      })),
+                    ),
+                  ),
+                  afterRegistryDigest: sha256(
+                    canonicalJson(
+                      plan.items.flatMap((item) =>
+                        item.outputs.map((output) => ({
+                          pathDigest: sha256(output.path),
+                          hash: output.contentHash,
+                        })),
+                      ),
+                    ),
+                  ),
+                  validationReportId: `klint_${validationHash.slice("sha256:".length, "sha256:".length + 24)}`,
+                  validationReportHash: validationHash,
+                  appliedAt: applied.appliedAt,
+                },
+              });
+            },
+          }),
       });
       io.stdout(
         options.json
-          ? `${JSON.stringify(receipt, null, 2)}\n`
-          : `Repository documents normalized.\nplan: ${receipt.planId}\nsource documents: ${receipt.normalizedDocumentCount}\noutput documents: ${receipt.outputDocumentCount}\nRun lervo migrate knowledge again to refresh structural navigation.\n`,
+          ? `${JSON.stringify({ ...receipt, notice: report }, null, 2)}\n`
+          : `Repository documents normalized.\nplan: ${receipt.planId}\nsource documents: ${receipt.normalizedDocumentCount}\noutput documents: ${receipt.outputDocumentCount}\n${crossCheckedEffectLines(report).join("\n")}\nRun lervo migrate knowledge again to refresh structural navigation.\n`,
       );
       return 0;
     } finally {

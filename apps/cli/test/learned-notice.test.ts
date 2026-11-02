@@ -247,6 +247,50 @@ describe("learned notice", () => {
     );
   });
 
+  it("reports a cross-checked layout commit with its reason, reviewer, and undo (ADR-0561)", async () => {
+    const { root, base } = await repository();
+    await mkdir(join(root, "docs/operations"), { recursive: true });
+    await writeFile(join(root, "docs/operations/TRACE.md"), "# Trace\n");
+    git(root, ["add", "-A"], lervo);
+    git(
+      root,
+      [
+        "commit",
+        "-q",
+        "-m",
+        "docs: apply the cross-checked repository layout",
+        "-m",
+        [
+          "Lervo-Effect: repository_layout",
+          "Lervo-Effect-Plan: klayout_0123",
+          "Lervo-Effect-Reason: moved 19 documents to their classified routes, rewrote 4 references",
+          "Lervo-Effect-Cross-Check: lifecycle reviewer agt_reviewer approved",
+        ].join("\n"),
+      ],
+      lervo,
+    );
+    const head = git(root, ["rev-parse", "HEAD"]).trim();
+    const notice = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
+    expect(notice).toMatchObject({ counts: { effect: 1, updated: 0 } });
+    expect(notice!.entries).toEqual([
+      {
+        kind: "effect",
+        path: `repository_layout@${head.slice(0, 12)}`,
+        title: null,
+        links: [],
+        effect: {
+          effect: "repository_layout",
+          reason: "moved 19 documents to their classified routes, rewrote 4 references",
+          crossCheck: "lifecycle reviewer agt_reviewer approved",
+          undo: `lervo knowledge revert ${head}`,
+        },
+      },
+    ]);
+    expect(formatLearnedNotice(notice!)).toContain(
+      `applied repository layout: moved 19 documents to their classified routes, rewrote 4 references (cross-check lifecycle reviewer agt_reviewer approved; undo: lervo knowledge revert ${head})`,
+    );
+  });
+
   it("keeps the line within its byte cap and counts what it omits", () => {
     const entries = Array.from({ length: 16 }, (_, index) => ({
       kind: "updated" as const,
@@ -258,7 +302,7 @@ describe("learned notice", () => {
       schemaVersion: 1,
       observedAt: new Date().toISOString(),
       throughCommit: "a".repeat(40),
-      counts: { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, updated: 40 },
+      counts: { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, effect: 0, updated: 40 },
       entries,
     })!;
     expect(Buffer.byteLength(line)).toBeLessThanOrEqual(480);
@@ -273,7 +317,7 @@ describe("learned notice", () => {
       schemaVersion: 1 as const,
       observedAt: new Date().toISOString(),
       throughCommit: "b".repeat(40),
-      counts: { owner_rule: 1, skill: 0, canonical: 0, freshness: 0, updated: 0 },
+      counts: { owner_rule: 1, skill: 0, canonical: 0, freshness: 0, effect: 0, updated: 0 },
       entries: [{ kind: "owner_rule" as const, path: "docs/r.md", title: null, links: [] }],
     };
     await writeLearnedNotice(root, notice);

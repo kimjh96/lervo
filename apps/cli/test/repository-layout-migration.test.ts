@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { formatRepositoryLayoutMigrationPlan } from "../src/knowledge-migration-format.js";
 import { runCli } from "../src/main.js";
+import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
 
@@ -52,21 +53,17 @@ describe("repository layout migration CLI", () => {
       status: "review_required",
     });
     messages.length = 0;
+    // ADR-0561: an independent cross-check agrees, so Lervo applies the adoption itself.
+    const crossCheck = planCrossCheck();
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          adoption.planId,
-          "--approve-item",
-          `${adoption.operationId}=${adoption.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", adoption.planId, "--json"],
         io,
+        crossCheck.services,
       ),
       errors.join(""),
     ).toBe(0);
+    expect(crossCheck.checked).toHaveLength(1);
     expect(JSON.parse(messages.join(""))).toMatchObject({
       operation: "instruction_canonical_adoption",
     });
@@ -105,26 +102,20 @@ describe("repository layout migration CLI", () => {
     messages.length = 0;
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          bridge.planId,
-          "--approve-item",
-          `${bridge.operationId}=${bridge.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", bridge.planId, "--json"],
         io,
+        crossCheck.services,
       ),
       errors.join(""),
     ).toBe(0);
+    expect(crossCheck.checked).toHaveLength(2);
     expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toBe(
       "<!-- lervo:begin block=provider_entry schema=1 -->\n@AGENTS.md\n<!-- lervo:end block=provider_entry -->\n",
     );
     expect(errors).toEqual([]);
   }, 15_000);
 
-  it("completes plan, approved apply, lint, and idempotent rerun through migrate knowledge", async () => {
+  it("completes plan, cross-checked apply, lint, and idempotent rerun through migrate knowledge", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-migration-"));
     roots.push(root);
     await writeFile(resolve(root, "README.md"), "# Example\n\nSee ARCHITECTURE.md.\n");
@@ -147,10 +138,11 @@ describe("repository layout migration CLI", () => {
     };
     expect(plan).toMatchObject({ planKind: "repository_layout", status: "review_required" });
     messages.length = 0;
-    const applyArgs = ["migrate", "knowledge", "--apply", plan.planId, "--json"];
-    for (const move of plan.moves)
-      applyArgs.push("--approve-item", `${move.operationId}=${move.approvalHash}`);
-    expect(await runCli(applyArgs, io), errors.join("")).toBe(0);
+    const { services } = planCrossCheck();
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io, services),
+      errors.join(""),
+    ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({
       operation: "migrate",
       movedCount: 1,
@@ -173,18 +165,7 @@ describe("repository layout migration CLI", () => {
     expect(bridge.status).toBe("review_required");
     messages.length = 0;
     expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          bridge.planId,
-          "--approve-item",
-          `${bridge.operationId}=${bridge.approvalHash}`,
-          "--json",
-        ],
-        io,
-      ),
+      await runCli(["migrate", "knowledge", "--apply", bridge.planId, "--json"], io, services),
       errors.join(""),
     ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });

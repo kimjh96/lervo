@@ -35,12 +35,10 @@ export type DocumentRouteDeferralReason =
   | "semantic_classification_pending"
   | "semantic_classification_uncertain"
   | "destination_conflict"
-  | "destination_capacity"
-  | "delegation_scope";
+  | "destination_capacity";
 
 export type DocumentRouteDeferralResolution =
   | "background_classification"
-  | "delegation_scope"
   | "route_metadata"
   | "provider_unavailable"
   | "destination_conflict"
@@ -55,7 +53,6 @@ export function documentRouteDeferralResolution(document: {
 
 export interface DocumentRouteResolutionContext {
   providerAvailable: boolean;
-  normalizationRoots: readonly string[];
 }
 
 /** A legacy document waiting for a semantic route; it never blocks the rest of the plan. */
@@ -69,7 +66,6 @@ export interface DeferredDocumentRoute {
   resolution: DocumentRouteDeferralResolution;
   basis?: string;
   destination?: string;
-  requiredPaths?: string[];
 }
 
 /** Why a Markdown file outside the canonical layout stays where it is. */

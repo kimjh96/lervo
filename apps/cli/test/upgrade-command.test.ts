@@ -21,6 +21,7 @@ import { runCli as runUnisolatedCli } from "../src/main.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
 const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 
 /** Keeps upgrade applies off the developer host's real background-resident admission. */
 const isolatedAdmission = {
@@ -498,20 +499,13 @@ describe("lervo upgrade", () => {
     // A new checkout writes schema 1; the event writer stage is ready beside the user decision.
     expect(first.status).toBe("ready");
     expect(first.stages.eventWriter.disposition).toBe("safe_apply");
-    // ADR-0559: the layout plan is one owner decision with its two commands.
+    // ADR-0561: no layout decision is asked; without a background owner the plan waits for an
+    // explicit cross-checked apply.
     expect(first.stages.knowledge).toMatchObject({
       disposition: "pending_authority",
-      reason: "layout_decision_pending",
-      layoutDecision: {
-        decisionId: expect.stringMatching(/^klaydec_/u),
-        accept: expect.stringMatching(
-          /^lervo migrate knowledge --root \S+ --accept-layout klaydec_/u,
-        ),
-        decline: expect.stringMatching(
-          /^lervo migrate knowledge --root \S+ --decline-layout klaydec_/u,
-        ),
-      },
+      reason: "review_required",
     });
+    expect(first.stages.knowledge).not.toHaveProperty("layoutDecision");
 
     const migrationOutput: string[] = [];
     expect(
@@ -526,16 +520,9 @@ describe("lervo upgrade", () => {
     expect(ignoreUpdate).toBeDefined();
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          migration.planId,
-          "--approve-item",
-          `${ignoreUpdate.operationId}=${ignoreUpdate.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", migration.planId, "--json"],
         io(root, [], errors),
+        agreeingCrossCheck,
       ),
       errors.join(""),
     ).toBe(0);

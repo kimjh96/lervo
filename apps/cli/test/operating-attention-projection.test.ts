@@ -130,6 +130,29 @@ describe("operating attention projection", () => {
     });
   });
 
+  it("attributes reviewed lifecycle plans to Lervo's own cross-check, never the owner (ADR-0561)", () => {
+    const report = createOperatingAttentionReport({
+      projectId: "prj_0123456789abcdef",
+      workstream: null,
+      workstreamFreshness: null,
+      canonicalization: { coverage: "complete", candidates: [] },
+      knowledgeLifecycle: {
+        coverage: "cached",
+        issues: [
+          "instruction_canonical_bootstrap_review_required",
+          "repository_layout_review_required",
+          "claude_instruction_bridge_review_required",
+        ].map((code) => ({ code, command: "lervo migrate knowledge" })),
+      },
+      observedAt: new Date("2026-11-02T00:00:00.000Z"),
+    });
+    const lifecycle = report.items.filter((item) => item.kind === "knowledge_lifecycle");
+    expect(lifecycle).toHaveLength(3);
+    for (const item of lifecycle)
+      expect(item).toMatchObject({ actionOwner: "agent", requiresUserAction: false });
+    expect(report.summary.userActionCount).toBe(0);
+  });
+
   it("excludes terminal canonicalization states and keeps the digest independent of observation time", () => {
     const first = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",

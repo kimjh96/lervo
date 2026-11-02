@@ -19,13 +19,14 @@ Lervo's commits are already the canonical record of what it changed. They reach 
 
 The background health prefetch builds the notice. It never runs on the prompt path. It reads the commits by the Lervo knowledge identity from the last shown point up to the current HEAD, or from the last 24 hours on the first run or when that point is not an ancestor of HEAD. The newest 500 are itemized and older ones are counted. Once shown, the cursor moves to that HEAD, so merged histories are never revisited. It classifies each changed path:
 
-| Kind         | Source                                                                                                                                   | Shown as                                                                             |
-| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| `owner_rule` | "apply an owner rule", "retire an owner rule", the older "apply a reviewed owner rule", or any path under `docs/instructions/generated/` | The rule's heading and path, the rules it replaced, or "retired"                     |
-| `skill`      | Any path under `.agents/skills/<name>/`                                                                                                  | The skill name                                                                       |
-| `canonical`  | "apply reviewed canonical knowledge"                                                                                                     | Heading, path, "from development", and up to three repository links the change added |
-| `freshness`  | "refresh `<path>` from evidence" or "archive `<path>` as historical" with `Lervo-Freshness-*` trailers (ADR-0561)                        | Path, reason, cross-check verdict, and the revert command; one entry per commit      |
-| `updated`    | "apply reviewed background knowledge"                                                                                                    | Path                                                                                 |
+| Kind         | Source                                                                                                                                   | Shown as                                                                                         |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `owner_rule` | "apply an owner rule", "retire an owner rule", the older "apply a reviewed owner rule", or any path under `docs/instructions/generated/` | The rule's heading and path, the rules it replaced, or "retired"                                 |
+| `skill`      | Any path under `.agents/skills/<name>/`                                                                                                  | The skill name                                                                                   |
+| `canonical`  | "apply reviewed canonical knowledge"                                                                                                     | Heading, path, "from development", and up to three repository links the change added             |
+| `freshness`  | "refresh `<path>` from evidence" or "archive `<path>` as historical" with `Lervo-Freshness-*` trailers (ADR-0561)                        | Path, reason, cross-check verdict, and the revert command; one entry per commit                  |
+| `effect`     | Any commit with a `Lervo-Effect` trailer: cross-checked layout, migration, bridge, bootstrap, normalization, or structure (ADR-0561)     | Effect, reason, cross-check verdict, and `lervo knowledge revert <commit>`; one entry per commit |
+| `updated`    | "apply reviewed background knowledge"                                                                                                    | Path                                                                                             |
 
 Generated indexes and `.lervo` paths are left out, because they restate other changes. Each path appears once, with its newest reason. At most 16 entries are kept, and every kind is counted.
 
@@ -42,6 +43,10 @@ After the hook prepares a turn that contains the line, it records the newest cov
 ### Freshness notices (ADR-0561)
 
 Under ADR-0561, Lervo applies document freshness changes itself, so this notice is the after-the-fact report of each one. The apply commit carries `Lervo-Freshness-Candidate`, `Lervo-Freshness-Reason`, and `Lervo-Freshness-Cross-Check` trailers. The notice reads them and shows `refreshed <path> (reason <reasons>; cross-check <verdict>; undo: lervo knowledge freshness revert <candidate-id>)`, or `archived <path> (…)` for an archive, ordered after canon and before background updates. Entries add the optional `freshness` field and counts add `freshness`; an older notice file without that count is rebuilt.
+
+### Effect notices (ADR-0561)
+
+Lervo applies a cross-checked layout, continuation migration, instruction bootstrap or bridge, document normalization, or document structure change itself and commits it on its own. The commit carries `Lervo-Effect`, `Lervo-Effect-Plan`, `Lervo-Effect-Reason`, and `Lervo-Effect-Cross-Check` trailers. The notice shows `applied <effect>: <reason> (cross-check <verdict>; undo: lervo knowledge revert <commit>)`, ordered after freshness and before background updates. Entries add the optional `effect` field and counts add `effect`; an older notice file without that count is rebuilt.
 
 ## State, events, privacy, and failure meaning
 

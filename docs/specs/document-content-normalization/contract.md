@@ -36,7 +36,7 @@ Skill resource hashes bind lifecycle and approval; scripts and assets are not re
 
 ## Review and apply
 
-Candidates and shard responses remain ignored local state. Cache identity binds the envelope and compiler build. Plans bind exact candidate bytes and require per-source approval.
+Candidates and shard responses remain ignored local state. Cache identity binds the envelope and compiler build. Plans bind exact candidate bytes. Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a foreground apply (`lervo knowledge normalize --candidate <id> --apply <plan-id>`) runs an independent cross-check of the exact plan in a fresh no-capability session instead of per-source approval, then commits the result as its own `Lervo Knowledge` commit that `lervo knowledge revert <commit>` undoes. A disagreement changes nothing.
 
 Normalization debt is background work, not a user or reviewer queue (amended 2026-10-25 by [ADR-0530](../../decisions/knowledge/maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md)). Documents become pending whenever added or edited after normalization. Background knowledge convergence generates, independently reviews, and applies them. Terminal turns see the pending count only as non-blocking attention; no turn is obliged to advance it. When no background owner runs, Discord repository-work turns in synchronous knowledge mode still receive a stored candidate in their instructions. On request, a turn runs `lervo knowledge normalize --scope all-pending --max-provider-calls 8`, compares each candidate with its source, and applies accepted candidates with their exact approval hashes. A candidate that loses meaning remains unapproved and is reported.
 

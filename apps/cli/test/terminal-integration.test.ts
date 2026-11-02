@@ -38,6 +38,7 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { runCli as runCliBase } from "../src/main.js";
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import { terminalTurnDeclarationRequired } from "../src/terminal-lifecycle-inspection.js";
 import { terminalKnowledgeSnapshotId } from "../src/terminal-compact-context.js";
 import { captureTerminalRepositorySnapshot } from "../src/terminal-repository-snapshot.js";
@@ -69,6 +70,7 @@ function projectedQueries(
 
 const runCli: typeof runCliBase = (args, io, overrides = {}) =>
   runCliBase(args, io, {
+    ...agreeingCrossCheck,
     prepareSearchQueries: undefined,
     projectSearchQueries: async (input) => projectedQueries(input, [input.request]),
     groundProductionRequest: async ({ request, provider }) => {
@@ -779,15 +781,13 @@ describe("terminal integration CLI", () => {
         userUpdates?: Array<{ operationId: string; approvalHash: string }>;
       };
     };
+    // ADR-0561: only the terminal integration stage still binds an item approval.
     const approvals = (plan: Awaited<ReturnType<typeof migrate>>) =>
-      plan.userUpdates !== undefined
-        ? plan.userUpdates.flatMap((item) => [
-            "--approve-item",
-            `${item.operationId}=${item.approvalHash}`,
-          ])
-        : plan.approvalHash === undefined || plan.approvalHash === null
-          ? []
-          : ["--approve-item", `${plan.operationId}=${plan.approvalHash}`];
+      plan.planKind === "terminal_integration" &&
+      plan.approvalHash !== undefined &&
+      plan.approvalHash !== null
+        ? ["--approve-item", `${plan.operationId}=${plan.approvalHash}`]
+        : [];
     const terminalPlan = async () => {
       for (let index = 0; index < 10; index += 1) {
         const plan = await migrate();
@@ -1098,17 +1098,11 @@ describe("terminal integration CLI", () => {
       approvalHash: string;
     };
     expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          migration.planId,
-          "--approve-item",
-          `${migration.operationId}=${migration.approvalHash}`,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: () => undefined },
-      ),
+      await runCli(["migrate", "knowledge", "--apply", migration.planId], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: () => undefined,
+      }),
     ).toBe(0);
     const messages: string[] = [];
     const errors: string[] = [];
@@ -1685,20 +1679,7 @@ describe("terminal integration CLI", () => {
     if (intermediate.operations?.some((item) => item.action !== "unchanged")) {
       messages.length = 0;
       expect(
-        await runCli(
-          [
-            "migrate",
-            "knowledge",
-            "--apply",
-            intermediate.planId,
-            ...(intermediate.userUpdates ?? []).flatMap((item) => [
-              "--approve-item",
-              `${item.operationId}=${item.approvalHash}`,
-            ]),
-            "--json",
-          ],
-          io,
-        ),
+        await runCli(["migrate", "knowledge", "--apply", intermediate.planId, "--json"], io),
         errors.join(""),
       ).toBe(0);
       messages.length = 0;
@@ -1821,19 +1802,7 @@ describe("compact terminal prompt context", () => {
         operationId: string;
         approvalHash: string;
       };
-      expect(
-        await runCli(
-          [
-            "migrate",
-            "knowledge",
-            "--apply",
-            migration.planId,
-            "--approve-item",
-            `${migration.operationId}=${migration.approvalHash}`,
-          ],
-          quiet,
-        ),
-      ).toBe(0);
+      expect(await runCli(["migrate", "knowledge", "--apply", migration.planId], quiet)).toBe(0);
       await mkdir(resolve(root, "docs/instructions/generated"), { recursive: true });
       await writeFile(
         resolve(root, `docs/instructions/generated/rule_${"d".repeat(24)}.md`),

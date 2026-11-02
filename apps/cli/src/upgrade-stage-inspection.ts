@@ -9,7 +9,6 @@ import type {
 import { CommandFailure } from "./command-error-output.js";
 import { layoutDeferrals } from "./upgrade-deferred-documents.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
-import { pendingLayoutDecision } from "./knowledge-layout-decision.js";
 import { MAXIMUM_LAYOUT_CAPACITY_ITEMS } from "./layout-capacity-lines.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import {
@@ -53,8 +52,6 @@ export interface KnowledgeStage {
   layoutCapacity?: RepositoryLayoutCapacityFinding[];
   /** The full number of directories over capacity; `layoutCapacity` lists at most 16. */
   layoutCapacityCount?: number;
-  /** ADR-0559: the one owner decision a layout plan asks for, with its two commands. */
-  layoutDecision?: { decisionId: string; summary: string; accept: string; decline: string };
 }
 
 export interface TerminalIntegrationStage {
@@ -244,9 +241,10 @@ async function knowledgeDisposition(
       blockers: [],
     };
   }
-  // Provider selection is owner work only when no background owner will normalize the debt.
+  // Provider selection and a reviewed lifecycle plan are background work whenever a background
+  // owner will normalize the debt or cross-check and apply the plan (ADR-0561).
   const backgroundOwner =
-    envelope === null && status === "provider_required"
+    envelope === null && (status === "provider_required" || status === "review_required")
       ? await knowledgeBackgroundOwner(root)
       : null;
   if (backgroundOwner !== null) {
@@ -261,27 +259,12 @@ async function knowledgeDisposition(
         owner: backgroundOwner,
         pendingDocuments: Array.isArray(result.value.pendingDocuments)
           ? result.value.pendingDocuments.length
-          : 0,
+          : Array.isArray(result.value.moves)
+            ? result.value.moves.length
+            : 0,
       },
     };
   }
-  const decision =
-    envelope === null && planKind === "repository_layout" && status === "review_required"
-      ? await pendingLayoutDecision(root, result.value)
-      : null;
-  // A declined decision is settled, not current: the later knowledge stages it holds back stay
-  // uninspected, so the stage reports them as deferred until the plan changes.
-  if (decision !== null)
-    return {
-      ...(decision === "declined"
-        ? { disposition: "deferred", reason: "layout_decision_declined" }
-        : { disposition: "pending_authority", reason: "layout_decision_pending" }),
-      planKind,
-      planId,
-      status,
-      blockers: [],
-      ...(decision === "declined" ? {} : { layoutDecision: decision }),
-    };
   if (
     envelope === null &&
     ["review_required", "provider_required", "action_required"].includes(status)

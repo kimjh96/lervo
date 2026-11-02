@@ -2,15 +2,11 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import {
-  CONVERGENCE_HOST_TRAILER,
   knowledgeOutputCommitGrant,
   readConvergenceOwnerFence,
 } from "./convergence-owner-fence.js";
 import { readConvergenceOwnerHost } from "./convergence-owner-host.js";
-import {
-  KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
-  knowledgeOutputCommitSafe,
-} from "./knowledge-output-commit.js";
+import { commitKnowledgePaths } from "./knowledge-effect-commit.js";
 
 const execute = promisify(execFile);
 
@@ -53,53 +49,20 @@ export async function instructionCandidateApplyAuthority(
 export const OWNER_RULE_COMMIT_SUBJECT = "docs: apply an owner rule";
 export const OWNER_RULE_RETIRE_COMMIT_SUBJECT = "docs: retire an owner rule";
 
-/**
- * Commits exactly the given owner-rule paths, including deletions, as `Lervo Knowledge` with the
- * owner trailer. Only tracked paths can carry a deletion; an untracked deleted path is simply gone.
- * Returns null when committing is unsafe or ownership ended; the written bytes stay for the next
- * owner.
- */
+/** Commits exactly the given owner-rule paths as `Lervo Knowledge` with the owner trailer. */
 async function commitOwnerRulePaths(input: {
   repositoryRoot: string;
   paths: readonly string[];
   subject: string;
   trailer: string;
 }): Promise<string | null> {
-  const root = input.repositoryRoot;
-  if (!(await knowledgeOutputCommitSafe(root))) return null;
-  const grant = await knowledgeOutputCommitGrant(root);
-  if (!grant.allowed) return null;
-  const git = async (args: string[], env?: NodeJS.ProcessEnv) =>
-    (
-      await execute("git", ["-C", root, ...args], {
-        maxBuffer: 16 * 1024 * 1024,
-        ...(env === undefined ? {} : { env: { ...process.env, ...env } }),
-      })
-    ).stdout;
-  const trailers = [
-    input.trailer,
-    ...(grant.hostHash === null ? [] : [`${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
-  ].join("\n");
-  try {
-    const before = (await git(["rev-parse", "HEAD"])).trim();
-    const paths: string[] = [];
-    for (const path of input.paths)
-      if (
-        (await git(["ls-files", "--", path])).trim() !== "" ||
-        (await git(["status", "--porcelain", "--", path])).trim() !== ""
-      )
-        paths.push(path);
-    if (paths.length === 0) return null;
-    await git(["add", "-A", "--", ...paths]);
-    await git(
-      ["commit", "--only", "--quiet", "-m", input.subject, "-m", trailers, "--", ...paths],
-      KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
-    );
-    const after = (await git(["rev-parse", "HEAD"])).trim();
-    return (await git(["rev-parse", `${after}^`])).trim() === before ? after : null;
-  } catch {
-    return null;
-  }
+  const result = await commitKnowledgePaths({
+    repositoryRoot: input.repositoryRoot,
+    paths: input.paths,
+    subject: input.subject,
+    trailers: [input.trailer],
+  });
+  return result.status === "committed" ? result.after : null;
 }
 
 /**

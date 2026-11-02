@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d4e9069f35a853e783c94e4c"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Lervo cross-checks and applies layout, migration, normalization, structure, and instruction bridge plans itself, and removes the owner approval options"

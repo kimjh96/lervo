@@ -19,6 +19,8 @@ function describe(entry: LearnedNoticeEntry): string {
   if (entry.kind === "skill") return `skill ${entry.title ?? entry.path}`;
   if (entry.kind === "freshness" && entry.freshness !== undefined)
     return `${entry.freshness.effect === "archive" ? "archived" : "refreshed"} ${entry.path} (reason ${entry.freshness.reason}; cross-check ${entry.freshness.crossCheck}; undo: ${entry.freshness.undo})`;
+  if (entry.kind === "effect" && entry.effect !== undefined)
+    return `applied ${entry.effect.effect.replaceAll("_", " ")}: ${entry.effect.reason} (cross-check ${entry.effect.crossCheck}; undo: ${entry.effect.undo})`;
   if (entry.kind === "canonical")
     return `canon ${name} from development${entry.links.length ? `, links ${entry.links.join(", ")}` : ""}`;
   return `updated ${entry.path}`;
@@ -36,6 +38,7 @@ export function formatLearnedNotice(notice: LearnedNotice): string | null {
     "skill",
     "canonical",
     "freshness",
+    "effect",
     "updated",
   ];
   const entries = [...notice.entries].sort(

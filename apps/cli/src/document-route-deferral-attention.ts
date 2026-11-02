@@ -26,9 +26,7 @@ export function documentRouteDeferralInstruction(
   if (resolution === "destination_conflict")
     return `Resolve the occupied or ambiguous destination for ${document.path}, then rebuild the migration plan. The source remains in place.`;
   if (resolution === "destination_capacity")
-    return `The destination directory for ${document.path} would exceed its document capacity, so the move is held and the source remains in place. Add a capacity override for that directory in .lervo/knowledge/document-layout.yaml, or add ${metadata} front matter naming another route.`;
-  if (resolution === "delegation_scope")
-    return `The background knowledge resident classifies ${document.path}; its move then joins the one repository layout decision that lervo migrate knowledge shows, or the next delegation renewal's exact scope proposal when that fits the delegation limit.`;
+    return `The destination directory for ${document.path} would exceed its document capacity, so Lervo holds the move and the source remains in place; nothing waits for the owner. A capacity override for that directory in .lervo/knowledge/document-layout.yaml, or ${metadata} front matter naming another route, releases it.`;
   return resolution === "route_metadata"
     ? `The semantic classifier could not place ${document.path} with confidence. Add ${metadata} front matter naming a configured route, or exclude the path in .lervo/knowledge/policy.yaml if it is not repository documentation.`
     : `The background knowledge resident classifies ${document.path} semantically under its delegation. To place it now, add ${metadata} front matter naming a configured route, or exclude the path in .lervo/knowledge/policy.yaml if it is not repository documentation.`;

@@ -4,7 +4,7 @@ Status: `complete`
 As of: 2026-08-27
 
 - Local `init -> migrate knowledge -> apply -> lint -> query -> managed run -> verification` succeeds without a Hub.
-- User documents remain byte-safe without exact approval.
+- User bytes change only after an independent cross-check, as a revertable commit (ADR-0561).
 - Normalization preserves section coverage, managed blocks, code and link coordinates, skill identity, and skill-resource lifecycle; Shiflo is not merely relocated legacy content.
 - Codex and Claude pass shared contracts.
 - A clean clone or another installation reproduces tracked knowledge.

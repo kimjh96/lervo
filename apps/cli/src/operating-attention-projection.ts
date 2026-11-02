@@ -76,16 +76,16 @@ function canonicalizationItem(
   };
 }
 
+/**
+ * ADR-0561: a reviewed knowledge lifecycle plan (bootstrap, layout, structural, bridge) is applied
+ * by Lervo after an independent cross-check, so it is agent work. Only the terminal integration
+ * approval still waits for the owner until its own replacement lands.
+ */
 function lifecycleOwner(
   issue: TerminalLifecycleInspection["issues"][number],
 ): Pick<KnowledgeLifecycleAttentionItemV1, "actionOwner" | "requiresUserAction"> {
-  if (
-    issue.code === "turn_approval_pending" ||
-    issue.code === "repository_layout_decision_pending" ||
-    issue.code.includes("review_required")
-  ) {
+  if (issue.code === "turn_approval_pending")
     return { actionOwner: "user", requiresUserAction: true };
-  }
   return { actionOwner: "agent", requiresUserAction: false };
 }
 

@@ -1,9 +1,12 @@
 # ADR-0559: Ask one owner decision for a reviewed layout plan
 
-Status: `accepted`
+Status: `superseded`
 Decision date: 2026-11-02
+Superseded by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (Lervo cross-checks and applies the layout plan itself)
 Amends: [ADR-0540](0540-account-for-every-document-a-migration-defers.md) (outside-root moves), [ADR-0476](../0476-route-legacy-documents-semantically-and-never-migrate-application-content.md) (layout approval)
 Contract: [Layout and routing](../../../../specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md), [continuity](../../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md)
+
+> **Superseded (2026-11-02).** [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) removes the owner decision this record describes. `--accept-layout`, `--decline-layout`, the `repository_layout_decision_pending` and `repository_layout_decision_declined` attention items, the upgrade `layoutDecision`, and the host-private decline record are gone. The background lifecycle reviewer applies the reviewed plan whatever the delegation's roots, a foreground `--apply` runs an independent cross-check first, and `lervo knowledge revert <commit>` undoes the layout commit. The [layout and routing contract](../../../../specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md) holds the current behavior.
 
 ## Context
 

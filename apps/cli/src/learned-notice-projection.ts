@@ -50,6 +50,29 @@ function freshnessEntry(
   };
 }
 
+/**
+ * ADR-0561: a cross-checked effect commit (layout, migration, normalization, structure) carries its
+ * notice fields as trailers; one entry reports the whole commit with its undo command.
+ */
+function effectEntry(
+  commit: string,
+  trailers: { effect: string; effectReason: string; effectCrossCheck: string },
+): LearnedNoticeEntry | null {
+  if (!/^[a-z_]{1,40}$/u.test(trailers.effect)) return null;
+  return {
+    kind: "effect",
+    path: `${trailers.effect}@${commit.slice(0, 12)}`,
+    title: null,
+    links: [],
+    effect: {
+      effect: trailers.effect,
+      reason: trailers.effectReason || "unrecorded",
+      crossCheck: trailers.effectCrossCheck || "unrecorded",
+      undo: `lervo knowledge revert ${commit}`,
+    },
+  };
+}
+
 /** Each Lervo commit subject names why its outputs changed. */
 function commitKind(subject: string): LearnedNoticeEntry["kind"] | null {
   // ADR-0561 renamed the owner-rule subjects; the reviewed form remains in older history.
@@ -150,7 +173,7 @@ export async function projectLearnedNotice(input: {
       [
         "log",
         "--no-walk=unsorted",
-        "--format=%x1e%H%x1f%s%x1f%(trailers:key=Lervo-Freshness-Candidate,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Freshness-Reason,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Freshness-Cross-Check,valueonly,separator=%x1d)",
+        "--format=%x1e%H%x1f%s%x1f%(trailers:key=Lervo-Freshness-Candidate,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Freshness-Reason,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Freshness-Cross-Check,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Effect,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Effect-Reason,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Effect-Cross-Check,valueonly,separator=%x1d)",
         "--name-status",
         "--no-renames",
         ...batch,
@@ -165,8 +188,16 @@ export async function projectLearnedNotice(input: {
     .filter((block) => block.trim().length > 0)
     .map((block) => {
       const [header = "", ...lines] = block.split("\n");
-      const [commit = "", subject = "", candidate = "", reason = "", crossCheck = ""] =
-        header.split("\x1f");
+      const [
+        commit = "",
+        subject = "",
+        candidate = "",
+        reason = "",
+        crossCheck = "",
+        effect = "",
+        effectReason = "",
+        effectCrossCheck = "",
+      ] = header.split("\x1f");
       const changes = lines
         .map((line) => /^([A-Z])[0-9]*\t(.+)$/u.exec(line))
         .filter((match) => match !== null)
@@ -178,12 +209,15 @@ export async function projectLearnedNotice(input: {
         candidate: candidate.trim(),
         reason: reason.trim(),
         crossCheck: crossCheck.trim(),
+        effect: effect.trim(),
+        effectReason: effectReason.trim(),
+        effectCrossCheck: effectCrossCheck.trim(),
       };
       return { commit, subject, changes, ruleDeletions, trailers };
     });
   const seen = new Set<string>();
   const entries: LearnedNoticeEntry[] = [];
-  const counts = { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, updated: 0 };
+  const counts = { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, effect: 0, updated: 0 };
   // Newest first, so each path reports its latest reason.
   for (const { commit, subject, changes, ruleDeletions, trailers } of commits) {
     const freshness = freshnessEntry(subject, trailers);
@@ -192,6 +226,12 @@ export async function projectLearnedNotice(input: {
       seen.add(freshness.path);
       counts.freshness += 1;
       if (entries.length < MAXIMUM_ENTRIES) entries.push(freshness);
+      continue;
+    }
+    const effectNotice = effectEntry(commit, trailers);
+    if (effectNotice !== null) {
+      counts.effect += 1;
+      if (entries.length < MAXIMUM_ENTRIES) entries.push(effectNotice);
       continue;
     }
     const kind = commitKind(subject);
@@ -243,7 +283,7 @@ function emptyNotice(now: Date, throughCommit: string | null): LearnedNotice {
     schemaVersion: 1,
     observedAt: now.toISOString(),
     throughCommit,
-    counts: { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, updated: 0 },
+    counts: { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, effect: 0, updated: 0 },
     entries: [],
   };
 }

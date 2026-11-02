@@ -1,18 +1,18 @@
+import { execFile } from "node:child_process";
 import { access, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { promisify } from "node:util";
 import { afterEach, expect, it } from "vitest";
-import { createRepositoryLayoutMigrationPlan } from "@lervo/repository-knowledge";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import {
   createConvergenceDelegationPlan,
   applyConvergenceDelegationPlan,
 } from "../src/delegation-plan.js";
 import { convergenceDelegationPlanHash, loadConvergenceDelegation } from "../src/delegation.js";
-import { proposeDocumentRouteScope } from "../src/document-route-scope-proposal.js";
-import { recordDocumentRouteScopeDecision } from "../src/document-route-scope-decision.js";
-import { deferLayoutOutsideScope, missingLifecyclePaths } from "../src/lifecycle-plan-scope.js";
-import { inspectDocumentDeferralHealth } from "../src/document-deferral-health.js";
+import { missingLifecyclePaths } from "../src/lifecycle-plan-scope.js";
 import { fixture } from "./fixture.js";
+
+const execute = promisify(execFile);
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -23,7 +23,7 @@ afterEach(async () => {
 });
 
 it(
-  "classifies an outside-root document, defers without review, records acceptance, and applies the move",
+  "classifies an outside-root document, then reviews, applies, and commits its move with no owner command",
   { timeout: 90_000 },
   async () => {
     const f = await fixture(true);
@@ -58,65 +58,21 @@ it(
         executable: f.executable,
         admissionDirectory: f.admissionDirectory,
       });
-    let raw = await createRepositoryLayoutMigrationPlan({ repositoryRoot: f.root });
-    for (
-      let cycle = 0;
-      cycle < 8 && !raw.moves.some((move) => move.fromPath === "TRACE.md");
-      cycle++
-    ) {
-      await run();
-      raw = await createRepositoryLayoutMigrationPlan({ repositoryRoot: f.root });
-    }
-    expect(raw.moves).toContainEqual(
-      expect.objectContaining({ fromPath: "TRACE.md", classificationBasis: "semantic_provider" }),
-    );
     const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
-    const missing = missingLifecyclePaths(raw, [
-      ...delegation.canonicalRoots,
-      ...delegation.normalizationRoots,
-    ]);
-    expect(missing).toEqual(["TRACE.md"]);
-    expect(deferLayoutOutsideScope(raw, missing).deferredDocuments).toContainEqual(
-      expect.objectContaining({ path: "TRACE.md", resolution: "delegation_scope" }),
-    );
-    expect(await inspectDocumentDeferralHealth({ repositoryRoot: f.root })).toMatchObject({
-      deferredDocumentCount: 1,
-    });
-    await expect(access(resolve(f.root, "TRACE.md"))).resolves.toBeUndefined();
-    const callsBefore = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
+    // ADR-0561: the move needs paths outside the delegation's roots and no scope grant.
     expect(
-      callsBefore.some(
-        (call) =>
-          call.request.task === "lifecycle_exact_plan_review" &&
-          call.request.untrustedSourceData.sources.some(
-            (source: { path: string }) => source.path === "TRACE.md",
-          ),
+      missingLifecyclePaths(
+        {
+          operations: [
+            { path: "TRACE.md", action: "move", destinationPath: "docs/operations/TRACE.md" },
+          ],
+        },
+        [...delegation.canonicalRoots, ...delegation.normalizationRoots],
       ),
-    ).toBe(false);
-    const proposal = (await proposeDocumentRouteScope({ repositoryRoot: f.root, delegation }))!;
-    const { review: previousReview, ...current } = delegation;
-    const accepted = {
-      ...current,
-      normalizationRoots: [...current.normalizationRoots, ...proposal.requiredPaths],
-    };
-    const plan = await createConvergenceDelegationPlan(f.storage, {
-      ...accepted,
-      review: { ...previousReview, planHash: convergenceDelegationPlanHash(accepted) },
-    });
-    const evidence = await f.artifacts.put("The owner accepts this exact document scope proposal.");
-    await recordDocumentRouteScopeDecision({
-      storage: f.storage,
-      proposalId: proposal.proposalId,
-      response: "accept",
-      evidenceArtifactHash: evidence.contentHash,
-      delegationPlan: plan,
-    });
+    ).toEqual(["TRACE.md"]);
     for (
       let cycle = 0;
-      cycle < 8 &&
+      cycle < 12 &&
       (await access(resolve(f.root, "TRACE.md")).then(
         () => true,
         () => false,
@@ -141,5 +97,18 @@ it(
           ),
       ),
     ).toBe(true);
+    // The move landed as its own Lervo commit carrying the notice fields.
+    const { stdout } = await execute("git", [
+      "-C",
+      f.root,
+      "log",
+      "--author=knowledge@lervo.invalid",
+      "--format=%s%x1f%(trailers:key=Lervo-Effect,valueonly)",
+    ]);
+    expect(stdout).toContain(
+      "docs: apply the cross-checked repository layout\x1frepository_layout",
+    );
+    const { stdout: tracked } = await execute("git", ["-C", f.root, "ls-files", "docs/operations"]);
+    expect(tracked).toContain("docs/operations/TRACE.md");
   },
 );

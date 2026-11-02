@@ -10,6 +10,8 @@
 
 The projection includes pending workstream decisions and approvals, workstream blockers, nonterminal canonicalization candidates, and current knowledge-lifecycle issues. Workstream approvals and decisions carry a consequence class: `repository_write`, `deployment`, `external_effect`, or, for decisions, `unclassified`. An unclassified decision requires principal-proxy classification; it does not prove a consequential effect. [ADR-0535](../../../decisions/execution/applications/0535-project-core-health-with-actor-owned-attention.md) adds [actor attribution and repository health](repository-health.md), retaining original guidance as `recordedInstruction`. Only structured consequential effects remain user-actionable.
 
+Knowledge-lifecycle items are agent work. Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a reviewed lifecycle plan such as `instruction_canonical_bootstrap_review_required`, `repository_layout_review_required`, or `claude_instruction_bridge_review_required` is applied by Lervo after an independent cross-check, so it has `actionOwner: agent` and `requiresUserAction: false`. The `repository_layout_decision_pending` and `repository_layout_decision_declined` items no longer exist. Only `turn_approval_pending` still requires user action until its own ADR-0561 slice lands.
+
 Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and capped at 256 returned records. Classification and totals cover every loaded freshness candidate before this cap;
 there is no earlier 16-candidate cutoff. `summary.byKind` retains total and
 user-action counts per kind, and `summary.truncatedCount` is exact. Omitted

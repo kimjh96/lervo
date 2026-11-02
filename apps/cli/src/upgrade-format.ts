@@ -86,13 +86,6 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
         : ` · ${plan.stages.knowledge.backgroundDebt.pendingDocuments} pending document(s) owned by the background resident through its ${plan.stages.knowledge.backgroundDebt.owner === "delegation" ? "delegation" : "host continuity policy"}`
     }`,
     ...blockerLines(plan.stages.knowledge.blockers, "  "),
-    ...(plan.stages.knowledge.layoutDecision === undefined
-      ? []
-      : [
-          `  layout decision ${plan.stages.knowledge.layoutDecision.decisionId}: ${plan.stages.knowledge.layoutDecision.summary}`,
-          `  accept: ${plan.stages.knowledge.layoutDecision.accept}`,
-          `  decline: ${plan.stages.knowledge.layoutDecision.decline}`,
-        ]),
     ...documentRouteDeferralLines(plan.stages.knowledge.deferredDocuments ?? [], "  "),
     ...layoutCapacityLines(
       plan.stages.knowledge.layoutCapacity ?? [],

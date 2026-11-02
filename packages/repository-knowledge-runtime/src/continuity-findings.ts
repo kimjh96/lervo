@@ -94,8 +94,6 @@ export interface ContinuityPeerObservation {
 }
 
 export interface ContinuityFindingsInput {
-  scopeChange?: DocumentRouteScopeProposal | null;
-  scopeResponse?: "accept" | "decline" | null;
   now: number;
   delegation: ContinuityDelegationObservation;
   policy: ConvergenceContinuityPolicyReading;
@@ -240,23 +238,6 @@ export function continuityPeerFindings(
 /** Pure: every continuity gap this host can see, each with the narrowest needed severity. */
 export function continuityFindings(input: ContinuityFindingsInput): ContinuityFinding[] {
   const findings = [
-    ...(input.scopeChange == null ||
-    input.scopeResponse === "accept" ||
-    input.scopeResponse === "decline"
-      ? []
-      : [
-          {
-            code: "delegation_scope_change" as const,
-            // ADR-0559: a proposal over the root limit can never be accepted; the owner decides
-            // the same moves once through the repository layout decision instead.
-            severity:
-              input.scopeChange.acceptanceBlocker === "normalization_root_limit"
-                ? ("info" as const)
-                : ("owner_decision" as const),
-            detail: null,
-            scopeChange: input.scopeChange,
-          },
-        ]),
     ...delegationFindings(input),
     ...(input.continuationFailure !== null && input.delegation.state !== "missing"
       ? [

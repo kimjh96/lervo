@@ -12,9 +12,8 @@ import {
 } from "@lervo/repository-knowledge";
 import { ConvergenceContinuity } from "../src/convergence-continuity.js";
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
-import { loadConvergenceDelegation, convergenceDelegationPlanHash } from "../src/delegation.js";
+import { loadConvergenceDelegation } from "../src/delegation.js";
 import { proposeDocumentRouteScope } from "../src/document-route-scope-proposal.js";
-import { recordDocumentRouteScopeDecision } from "../src/document-route-scope-decision.js";
 import { readConvergenceContinuityState } from "../src/continuity-state.js";
 import { fixture } from "./fixture.js";
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -25,7 +24,7 @@ afterEach(async () => {
   }
 });
 
-it("proposes all classified outside-root files once at renewal, excludes application content, and clears after owner acceptance", async () => {
+it("asks no scope change for classified outside-root moves and clears a recorded proposal", async () => {
   const f = await fixture(true);
   fixtures.push(f);
   await writeFile(resolve(f.root, "TRACE.md"), "# Trace\n\nOperator tracing.\n");
@@ -83,157 +82,38 @@ it("proposes all classified outside-root files once at renewal, excludes applica
     hostLabel: "mac",
   });
   const first = await continuity.reconcile();
-  expect(first?.scopeChange).toMatchObject({
-    recommendation: "accept",
-    acceptanceBlocker: null,
-    paths: [
-      {
-        path: "RECOVERY.md",
-        classification: "document",
-        destination: "docs/operations/RECOVERY.md",
-      },
-      { path: "TRACE.md", classification: "document", destination: "docs/operations/TRACE.md" },
-    ],
-  });
-  expect(
-    first?.findings.filter((finding) => finding.code === "delegation_scope_change"),
-  ).toHaveLength(1);
-  expect(
-    first?.scopeChange?.paths.every((item) =>
-      item.evidence.classificationId.startsWith("kdroute_"),
-    ),
-  ).toBe(true);
-  const repeated = await continuity.reconcile({ force: true });
-  expect(repeated?.scopeChange).toEqual(first?.scopeChange);
-  expect(
-    repeated?.findings.filter((finding) => finding.code === "delegation_scope_change"),
-  ).toHaveLength(1);
-  const evidence = await f.artifacts.put("The owner declines this exact scope proposal.");
-  const statePath = resolve(f.root, ".lervo/state/knowledge/convergence-continuity.json");
-  const legacyState = JSON.parse(await readFile(statePath, "utf8"));
-  delete legacyState.scopeChange.requiredPaths;
-  delete legacyState.scopeChange.unsatisfiedPaths;
-  await writeFile(statePath, JSON.stringify(legacyState));
-  const legacyReading = await readConvergenceContinuityState(f.root);
-  expect(legacyReading?.scopeChange).toBeNull();
-  expect(
-    legacyReading?.findings.some((finding) => finding.code === "delegation_scope_change"),
-  ).toBe(false);
-  expect((await continuity.reconcile({ force: true }))?.scopeChange?.proposalId).toBe(
-    first?.scopeChange?.proposalId,
-  );
-  await recordDocumentRouteScopeDecision({
-    storage: f.storage,
-    proposalId: first!.scopeChange!.proposalId,
-    response: "decline",
-    evidenceArtifactHash: evidence.contentHash,
-  });
-  const declined = await continuity.reconcile({ force: true });
-  expect(declined?.scopeResponse).toBe("decline");
-  expect(declined?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(
-    false,
-  );
-  expect((await continuity.reconcile({ force: true }))?.scopeResponse).toBe("decline");
-  // A reference rewrite changes required evidence even when the source classification is unchanged.
-  await writeFile(resolve(f.root, "README.md"), "# Repository\n\nSee [trace](TRACE.md).\n");
-  const changed = await continuity.reconcile({ force: true });
-  expect(changed?.scopeChange?.proposalId).not.toBe(first?.scopeChange?.proposalId);
-  expect(changed?.scopeChange?.requiredPaths).toEqual(
-    expect.arrayContaining([
-      "TRACE.md",
-      "RECOVERY.md",
-      "docs/operations/TRACE.md",
-      "docs/operations/RECOVERY.md",
-      "README.md",
-    ]),
-  );
-  expect(changed?.scopeResponse).toBeNull();
-  expect(changed?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(
-    true,
-  );
-  const loaded = (await loadConvergenceDelegation(f.root))!.delegation;
-  expect(loaded.normalizationRoots).not.toContain("TRACE.md");
-  const sourceOnly = await proposeDocumentRouteScope({
-    repositoryRoot: f.root,
-    delegation: {
-      ...loaded,
-      normalizationRoots: [...loaded.normalizationRoots, "TRACE.md", "RECOVERY.md"],
-    },
-  });
-  expect(sourceOnly?.requiredPaths).not.toContain("TRACE.md");
-  expect(sourceOnly?.requiredPaths).toContain("docs/operations/TRACE.md");
-  expect(sourceOnly?.requiredPaths).toContain("README.md");
-  const accepted = {
-    ...loaded,
-    normalizationRoots: [...loaded.normalizationRoots, ...changed!.scopeChange!.requiredPaths],
-  };
-  const { review: previousReview, ...plan } = accepted;
-  accepted.review = { ...previousReview, planHash: convergenceDelegationPlanHash(plan) };
-  await writeFile(
-    resolve(f.root, ".lervo/knowledge/convergence-delegation.json"),
-    JSON.stringify(accepted),
-  );
-  expect(
-    await proposeDocumentRouteScope({ repositoryRoot: f.root, delegation: accepted }),
-  ).toBeNull();
-  expect((await continuity.reconcile({ force: true }))?.scopeChange).toBeNull();
+  // ADR-0561: the reviewed layout plan carries its own exact paths, so no scope grant is asked.
+  expect(first?.scopeChange).toBeNull();
+  expect(first?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(false);
+  expect(first?.findings.some((finding) => finding.severity === "owner_decision")).toBe(false);
   const layout = await createRepositoryLayoutMigrationPlan({ repositoryRoot: f.root });
+  expect(layout.moves.map((move) => move.fromPath).sort()).toEqual(["RECOVERY.md", "TRACE.md"]);
   expect(layout.retainedDocuments.map((document) => document.path)).toContain(
     "application/copy.md",
   );
-  // Preserve the existing authority bound instead of silently widening directories at capacity.
-  const directoryGrant = await proposeDocumentRouteScope({
-    repositoryRoot: f.root,
-    delegation: loaded,
-    layout: {
-      ...layout,
-      operations: [
-        ...layout.operations,
-        {
-          path: "application",
-          action: "delete",
-          ownership: "user",
-          mediaType: "text/markdown",
-          expectedCurrentHash: sha256("directory"),
-          desiredHash: sha256("deleted"),
-        },
-      ],
-    },
-  });
-  expect(directoryGrant).toMatchObject({
-    acceptanceBlocker: "scope_path_unavailable",
-    unsatisfiedPaths: ["application"],
-  });
-  expect(directoryGrant?.requiredPaths).not.toContain("application");
-  const atCapacity = {
-    ...loaded,
-    normalizationRoots: Array.from({ length: 32 }, (_, index) => `scope-${index}.md`),
-  };
-  expect(
-    await proposeDocumentRouteScope({ repositoryRoot: f.root, delegation: atCapacity, layout }),
-  ).toMatchObject({
-    acceptanceBlocker: "normalization_root_limit",
-    paths: changed?.scopeChange?.paths,
-  });
-  const { review: capacityReview, ...capacityPlan } = atCapacity;
-  atCapacity.review = { ...capacityReview, planHash: convergenceDelegationPlanHash(capacityPlan) };
+  // A proposal an older version recorded is cleared on the next reconciliation.
+  const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
+  const legacy = await proposeDocumentRouteScope({ repositoryRoot: f.root, delegation });
+  expect(legacy).not.toBeNull();
+  const statePath = resolve(f.root, ".lervo/state/knowledge/convergence-continuity.json");
+  const recorded = JSON.parse(await readFile(statePath, "utf8"));
   await writeFile(
-    resolve(f.root, ".lervo/knowledge/convergence-delegation.json"),
-    JSON.stringify(atCapacity),
+    statePath,
+    JSON.stringify({
+      ...recorded,
+      scopeChange: legacy,
+      findings: [
+        ...recorded.findings,
+        { code: "delegation_scope_change", severity: "owner_decision", detail: null },
+      ],
+    }),
   );
-  const capacityProposal = (await continuity.reconcile({ force: true }))!.scopeChange!;
-  expect(capacityProposal.acceptanceBlocker).toBe("normalization_root_limit");
-  await recordDocumentRouteScopeDecision({
-    storage: f.storage,
-    proposalId: capacityProposal.proposalId,
-    response: "decline",
-    evidenceArtifactHash: evidence.contentHash,
-  });
-  for (let scan = 0; scan < 2; scan++) {
-    const state = await continuity.reconcile({ force: true });
-    expect(state?.scopeResponse).toBe("decline");
-    expect(state?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(
-      false,
-    );
-  }
+  expect((await readConvergenceContinuityState(f.root))?.scopeChange?.proposalId).toBe(
+    legacy?.proposalId,
+  );
+  const cleared = await continuity.reconcile({ force: true });
+  expect(cleared?.scopeChange).toBeNull();
+  expect(cleared?.findings.some((finding) => finding.code === "delegation_scope_change")).toBe(
+    false,
+  );
 });

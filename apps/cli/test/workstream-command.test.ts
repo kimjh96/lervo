@@ -7,6 +7,7 @@ import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
 
@@ -223,16 +224,9 @@ describe("workstream CLI", () => {
     const applyOutput: string[] = [];
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", plan.planId, "--json"],
         { ...quiet, stdout: (message) => applyOutput.push(message) },
+        agreeingCrossCheck,
       ),
     ).toBe(0);
     expect(JSON.parse(applyOutput.join(""))).toMatchObject({

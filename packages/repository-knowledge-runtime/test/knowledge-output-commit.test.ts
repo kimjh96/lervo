@@ -58,14 +58,35 @@ it(
     // The committer is explicit too, so no commit depends on an ambient Git identity.
     const commits = git(f.root, "log", "--format=%an <%ae>|%cn <%ce>|%s", `${before}..HEAD`);
     expect(commits.split("\n").length).toBeGreaterThanOrEqual(1);
-    for (const line of commits.split("\n"))
-      expect(line).toBe(`${identity}|${identity}|docs: apply reviewed background knowledge`);
-    const committed = git(f.root, "log", "--name-only", "--format=", `${before}..HEAD`)
+    // ADR-0561: a reviewed lifecycle effect lands as its own commit beside settled outputs.
+    const subjects = new Set([
+      "docs: apply reviewed background knowledge",
+      "docs: apply the cross-checked repository layout",
+      "docs: apply the cross-checked instruction bridge",
+      "docs: adopt the cross-checked canonical instructions",
+    ]);
+    for (const line of commits.split("\n")) {
+      const [author, committer, subject] = line.split("|");
+      expect([author, committer]).toEqual([identity, identity]);
+      expect(subjects.has(subject!)).toBe(true);
+    }
+    const settled = git(
+      f.root,
+      "log",
+      "--format=%H",
+      "--grep=^docs: apply reviewed background knowledge$",
+      `${before}..HEAD`,
+    )
       .split("\n")
+      .filter(Boolean);
+    expect(settled.length).toBeGreaterThanOrEqual(1);
+    const committed = settled
+      .flatMap((commit) => git(f.root, "show", "--name-only", "--format=", commit).split("\n"))
       .filter(Boolean);
     // The developer's uncommitted source change stays in the working tree.
     expect(committed).not.toContain("src/runtime.ts");
-    expect(git(f.root, "status", "--porcelain")).toContain(" M src/runtime.ts");
+    // The helper trims, so an unstaged change on the first status line loses its leading space.
+    expect(git(f.root, "status", "--porcelain")).toMatch(/^ ?M src\/runtime\.ts$/mu);
     expect(committed).toContain("docs/specs/runtime.md");
     expect(
       committed.every((path) => path.startsWith("docs/") || path.startsWith(".lervo/knowledge/")),
@@ -107,8 +128,17 @@ it(
       "export const maximumBackgroundCalls = 3;\n",
     );
     const before = git(f.root, "rev-parse", "HEAD");
-    // One stage per cycle, stopping as soon as the commit lands, as a busy repository would.
-    for (let i = 0; i < 16 && git(f.root, "rev-parse", "HEAD") === before; i++)
+    // One stage per cycle, stopping as soon as the settled-output commit lands, as a busy
+    // repository would. A reviewed lifecycle effect may commit first (ADR-0561).
+    const settled = () =>
+      git(
+        f.root,
+        "log",
+        "--format=%H",
+        "--grep=^docs: apply reviewed background knowledge$",
+        `${before}..HEAD`,
+      );
+    for (let i = 0; i < 24 && settled() === ""; i++)
       await runAutonomousKnowledgeWorker({
         storage: f.storage,
         workerId: `boundary-${i}`,
@@ -117,13 +147,10 @@ it(
         maximumStages: 1,
         admissionDirectory: f.admissionDirectory,
       });
-    expect(git(f.root, "rev-parse", "HEAD")).not.toBe(before);
-    expect(git(f.root, "log", "-1", "--format=%s")).toBe(
-      "docs: apply reviewed background knowledge",
-    );
-    expect(git(f.root, "show", "--name-only", "--format=", "HEAD").split("\n")).toContain(
-      "docs/specs/runtime.md",
-    );
+    expect(settled()).not.toBe("");
+    expect(
+      git(f.root, "show", "--name-only", "--format=", settled().split("\n")[0]!).split("\n"),
+    ).toContain("docs/specs/runtime.md");
     const stages = f.events
       .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
       .map((event) => event.payload as { stage: string; state: string });

@@ -26,6 +26,10 @@ import {
   type RepositoryLayoutCandidate,
   type RepositoryLayoutSourceOutcome,
 } from "./repository-layout-source-classification.js";
+import {
+  readRevertedRepositoryLayoutMoves,
+  revertedRepositoryLayoutMove,
+} from "./repository-layout-revert.js";
 import { loadDocumentMoveLineages } from "./source-lineage.js";
 import type { RepositoryKnowledgeScan } from "./types.js";
 
@@ -45,7 +49,9 @@ export interface RepositoryLayoutClassificationBlocker {
 /** Retained placements, including documents a repository tool owns (ADR-0473 evidence). */
 export type RepositoryLayoutRetainedDocument =
   | RetainedDocumentPlacement
-  | { path: string; basis: "tool_owned"; evidence: DocumentToolOwnershipEvidence[] };
+  | { path: string; basis: "tool_owned"; evidence: DocumentToolOwnershipEvidence[] }
+  /** ADR-0561: the owner reverted this exact move, so it stays until its bytes change. */
+  | { path: string; basis: "layout_reverted"; evidence: { commit: string; revertedAt: string } };
 
 /** A deferred document with the workspace package that holds it, the classifier's context. */
 export interface RepositoryLayoutDeferredDocument extends DeferredDocumentRoute {
@@ -219,6 +225,22 @@ export async function classifyRepositoryLayoutCandidates(input: {
   }
   const repairs = await lineageRepairs({ root, scan, taxonomy, evidence });
   candidates.push(...repairs.candidates);
+  const reverted = await readRevertedRepositoryLayoutMoves(root);
+  for (let index = candidates.length - 1; index >= 0 && reverted.length > 0; index -= 1) {
+    const candidate = candidates[index]!;
+    const hold = revertedRepositoryLayoutMove(reverted, {
+      fromPath: candidate.source.path,
+      toPath: candidate.toPath,
+      contentHash: candidate.source.contentHash,
+    });
+    if (hold === null) continue;
+    candidates.splice(index, 1);
+    retained.push({
+      path: candidate.source.path,
+      basis: "layout_reverted",
+      evidence: { commit: hold.commit, revertedAt: hold.revertedAt },
+    });
+  }
   deferred.push(...repairs.deferred);
   candidates.sort((left, right) => left.source.path.localeCompare(right.source.path));
   deferred.sort((left, right) => left.path.localeCompare(right.path));
@@ -243,13 +265,10 @@ export async function classifyRepositoryLayoutCandidates(input: {
           ? "destination_conflict"
           : item.reason === "semantic_classification_uncertain"
             ? "route_metadata"
-            : !input.documentRouteContext?.providerAvailable
-              ? "provider_unavailable"
-              : input.documentRouteContext.normalizationRoots.some(
-                    (root) => item.path === root || item.path.startsWith(`${root}/`),
-                  )
-                ? "background_classification"
-                : "delegation_scope",
+            : // ADR-0561: the resident classifies and moves a document whatever the roots.
+              input.documentRouteContext?.providerAvailable
+              ? "background_classification"
+              : "provider_unavailable",
       workspacePackage: owningWorkspacePackage(item.path, packages),
     })),
     deferredDocumentCount: deferred.length,

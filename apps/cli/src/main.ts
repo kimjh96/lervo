@@ -34,6 +34,7 @@ import { createTerminalStageObservation } from "./terminal-stage-observation.js"
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { groundProductionRequest } from "./semantic-grounding.js";
 import { crossCheckDurableInstruction } from "./durable-instruction-cross-check.js";
+import { crossCheckPlan } from "./plan-cross-check.js";
 import {
   prepareProductionSearchQueries,
   projectProductionSearchQueries,
@@ -81,6 +82,7 @@ const defaultServices: CliServices = {
   executeEnvironmentQuery,
   groundProductionRequest,
   crossCheckDurableInstruction,
+  crossCheckPlan,
   projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
   inspectOperatingAttention,
@@ -104,7 +106,7 @@ export async function runCli(
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io, services);
   if (command === "host") return runHostCommand(args.slice(1), io);
-  if (command === "migrate") return runMigrateCommand(args.slice(1), io);
+  if (command === "migrate") return runMigrateCommand(args.slice(1), io, services);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);

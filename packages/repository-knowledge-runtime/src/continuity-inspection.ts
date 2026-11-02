@@ -90,8 +90,6 @@ export async function inspectConvergenceContinuity(input: {
       new Date(now),
     ),
     ...continuityFindings({
-      scopeChange: state?.scopeChange ?? null,
-      scopeResponse: state?.scopeResponse ?? null,
       now,
       delegation,
       policy,

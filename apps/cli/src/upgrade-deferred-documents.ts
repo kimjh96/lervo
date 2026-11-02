@@ -19,11 +19,9 @@ const DEFERRAL_REASONS: readonly DocumentRouteDeferralReason[] = [
   "semantic_classification_uncertain",
   "destination_conflict",
   "destination_capacity",
-  "delegation_scope",
 ];
 const DEFERRAL_RESOLUTIONS: readonly DocumentRouteDeferralResolution[] = [
   "background_classification",
-  "delegation_scope",
   "route_metadata",
   "provider_unavailable",
   "destination_conflict",
