@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c172029509299b6499a0fc30"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add lervo knowledge web stats and lervo knowledge web suspects, which build a private relation web of documents, paths, packages, commands, and ADR headers and list the documents a change may have made wrong."

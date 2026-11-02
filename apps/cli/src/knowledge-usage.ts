@@ -23,4 +23,6 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge instruction capture [--dismiss <capture-id>] [--root <path>] [--json]
   lervo knowledge instruction bridge --provider claude [--root <path>] [--apply <plan-id> [--cross-check-provider <codex|claude>]] [--json]
   lervo knowledge lint [--root <path>] [--json]
+  lervo knowledge web stats [--root <path>] [--json]
+  lervo knowledge web suspects --since <revision> [--root <path>] [--json]
   lervo knowledge query [--record] [--verify-artifact <path> --expected-plan <sha256> [--baseline <path>] [--verification-definition <path>]] [--root <path>] [--path <target-path>] [--artifact <kind>] [--action <action>] [--continuation <text>] [--json] <query>`;
