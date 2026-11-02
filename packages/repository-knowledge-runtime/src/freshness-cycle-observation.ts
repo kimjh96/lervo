@@ -5,8 +5,9 @@ import { promisify } from "node:util";
 import {
   canonicalJson,
   sha256,
-  documentFreshnessReviewStates,
+  documentFreshnessHeldStates,
   type DocumentFreshnessCandidateV1,
+  type DocumentFreshnessDebt,
   type DocumentFreshnessSummary,
   type PrioritizedDocumentFreshnessFinding,
 } from "@lervo/repository-knowledge";
@@ -42,10 +43,24 @@ export async function workingBytes(root: string, path: string): Promise<Buffer |
   }
 }
 
+const MAXIMUM_SUMMARY_DEBT = 8;
+
+/** The oldest Lervo debt entries the owner surfaces render, with no candidate identifiers. */
+export function freshnessDebtSummary(
+  debt: readonly DocumentFreshnessDebt[],
+): NonNullable<DocumentFreshnessSummary["debt"]> {
+  return debt.slice(0, MAXIMUM_SUMMARY_DEBT).map((entry) => ({
+    documentPath: entry.documentPath,
+    reason: entry.reason,
+    since: entry.since,
+  }));
+}
+
 export function summarize(input: {
   findings: readonly PrioritizedDocumentFreshnessFinding[];
   candidates: readonly DocumentFreshnessCandidateV1[];
   blocked: boolean;
+  debt: readonly DocumentFreshnessDebt[];
   now: Date;
 }): DocumentFreshnessSummary {
   const safety = input.findings.filter((entry) => entry.priorityClass === "safety");
@@ -54,7 +69,7 @@ export function summarize(input: {
     safetyCount: safety.length,
     firstSafetyPath: safety[0]?.finding.documentPath ?? null,
     awaitingReviewCount: input.candidates.filter((candidate) =>
-      documentFreshnessReviewStates.has(candidate.state),
+      documentFreshnessHeldStates.has(candidate.state),
     ).length,
     appliedRecentPaths: input.candidates
       .filter(
@@ -66,5 +81,6 @@ export function summarize(input: {
       .map((candidate) => candidate.documentPath)
       .slice(0, 8),
     blocked: input.blocked,
+    debt: freshnessDebtSummary(input.debt),
   };
 }

@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import {
   documentFreshnessCandidateIdPattern,
   type DocumentFreshnessCandidateV1,
+  type DocumentFreshnessDebt,
   type DocumentFreshnessHold,
   type DocumentFreshnessSummary,
 } from "@lervo/repository-knowledge";
@@ -44,6 +45,13 @@ export interface FreshnessCycleState {
     string,
     { attempts: number; receiptHash: string; nextCursor: string | null; reason: string }
   >;
+  /** Additive (ADR-0561): findings Lervo holds as its own debt, with their backoff. */
+  debt?: DocumentFreshnessDebt[];
+  /**
+   * Additive (ADR-0561): five attempts today produced no verified candidate, so new generation
+   * pauses until `until`; `level` doubles the backoff while the window stays without success.
+   */
+  zeroSuccessHold?: { since: string; until: string; level: number } | null;
 }
 
 export function emptyFreshnessCycleState(): FreshnessCycleState {

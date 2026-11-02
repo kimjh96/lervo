@@ -13,7 +13,7 @@ afterEach(async () => {
 });
 
 it.each([17, 300])(
-  "classifies all %i freshness candidates before the report cap",
+  "classifies all %i held freshness candidates as Lervo debt before the report cap",
   async (count) => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-health-candidates-"));
     roots.push(root);
@@ -23,11 +23,7 @@ it.each([17, 300])(
         candidateId,
         updatedAt: new Date(healthNow.getTime() - i * 1000).toISOString(),
       });
-      if (i < count - 1)
-        for (const hunk of candidate.hunks) {
-          hunk.ownership = "lervo_managed";
-          hunk.authorityRequired = "none";
-        }
+      if (i < count - 1) for (const hunk of candidate.hunks) hunk.ownership = "lervo_managed";
       const directory = resolve(
         root,
         ".lervo/state/knowledge/freshness-candidates",
@@ -37,7 +33,7 @@ it.each([17, 300])(
       await writeFile(resolve(directory, `${candidateId}.json`), JSON.stringify(candidate));
     }
     const documentFreshness = await documentFreshnessAttentionSources(root, healthNow);
-    expect(documentFreshness.awaiting).toHaveLength(count);
+    expect(documentFreshness.held).toHaveLength(count);
     const report = createOperatingAttentionReport({
       projectId: "prj_health",
       workstream: null,
@@ -47,15 +43,13 @@ it.each([17, 300])(
       documentFreshness,
       observedAt: healthNow,
     });
+    // ADR-0561: user-owned bytes no longer make a held candidate owner work.
     expect(report.summary).toMatchObject({
       totalCount: count,
-      userActionCount: 1,
+      userActionCount: 0,
       truncatedCount: Math.max(0, count - 256),
     });
-    expect(report.items[0]).toMatchObject({
-      candidateId: `kfresh_${(count - 1).toString(16).padStart(24, "0")}`,
-      requiresUserAction: true,
-    });
+    expect(report.items.every((item) => item.requiresUserAction === false)).toBe(true);
     expect(report.items[0]!.attribution!.inspectCommand).toContain(
       "lervo knowledge freshness review",
     );

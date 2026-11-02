@@ -46,6 +46,7 @@ export interface HealthProjectionSources {
       awaitingReviewCount: number;
       appliedRecentPaths: string[];
       blocked: boolean;
+      debt?: Array<{ documentPath: string; reason: string; since: string }>;
     };
   } | null;
   captureObservedAt: string | null;

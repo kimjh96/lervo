@@ -147,6 +147,10 @@ export {
   documentFreshnessRangeOwnership,
 } from "./document-freshness-classification.js";
 export {
+  documentFreshnessCrossCheckRetryAt,
+  projectDocumentFreshnessDebt,
+} from "./document-freshness-debt.js";
+export {
   applyDocumentFreshnessHunks,
   documentFreshnessOutsideBytesUnchanged,
 } from "./document-freshness-hunks.js";
@@ -168,7 +172,6 @@ export {
 export {
   buildDocumentFreshnessCrossCheckInput,
   documentFreshnessCandidateNeedsCrossCheck,
-  documentFreshnessCrossCheckBlocked,
   documentFreshnessCrossCheckInstruction,
   documentFreshnessCrossCheckResponseSchema,
   parseDocumentFreshnessCrossCheckResponse,
@@ -176,6 +179,7 @@ export {
   settleDocumentFreshnessCrossCheck,
   type DocumentFreshnessCrossCheckInputV1,
 } from "./document-freshness-cross-check.js";
+export { buildDocumentFreshnessArchiveCrossCheckInput } from "./document-freshness-archive-cross-check.js";
 export {
   documentFreshnessOwnershipResolver,
   observeDocumentFreshnessFindings,

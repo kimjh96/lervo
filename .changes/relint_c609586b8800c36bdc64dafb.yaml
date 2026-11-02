@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c609586b8800c36bdc64dafb"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Lervo applies cross-checked document freshness changes itself and removes freshness apply and reject"

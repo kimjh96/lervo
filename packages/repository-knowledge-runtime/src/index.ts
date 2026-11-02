@@ -30,7 +30,6 @@ export {
   type ConvergenceDelegationPlan,
 } from "./delegation-plan.js";
 export { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
-export { applyFreshnessCandidateByOwner } from "./freshness-apply.js";
 export { DocumentFreshnessOperationError } from "./freshness-document-io.js";
 export { revertFreshnessCandidate } from "./freshness-revert.js";
 export {
@@ -39,7 +38,6 @@ export {
   documentFreshnessSummary,
   inspectDocumentFreshnessStatus,
   listDocumentFreshnessReview,
-  rejectFreshnessCandidate,
   renderDocumentFreshnessDiff,
   requireFreshnessCandidate,
   withDocumentFreshnessOwnerLock,

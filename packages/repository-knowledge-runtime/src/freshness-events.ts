@@ -99,11 +99,13 @@ export function recordFreshnessCandidateOutcome(input: {
     recordFreshnessRejection({ storage: input.storage, candidate, occurredAt: input.occurredAt });
     return;
   }
+  // A retried cross-check settles again (ADR-0561); each settlement after the first is distinct.
+  const retries = candidate.crossCheckReview?.retries ?? 0;
   appendFreshnessEvent({
     storage: input.storage,
     type: "document.freshness.candidate.verified",
     correlationId: candidate.candidateId,
-    coordinate: null,
+    coordinate: retries === 0 ? null : ["cross_check_retry", retries],
     occurredAt: input.occurredAt,
     payload: {
       candidateId: candidate.candidateId,

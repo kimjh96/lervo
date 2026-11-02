@@ -136,7 +136,12 @@ describe("health projection from recorded sources", () => {
         workstreamFreshness: null,
         canonicalization: { coverage: "complete", candidates: [] },
         knowledgeLifecycle: { coverage: "cached", issues: [] },
-        documentFreshness: { awaiting: [healthFreshnessCandidate({})], applied: [], blocked: null },
+        documentFreshness: {
+          held: [healthFreshnessCandidate({})],
+          applied: [],
+          zeroSuccessHold: null,
+          debt: [],
+        },
         instructionCapture: {
           candidates: [],
           held: [],
@@ -177,14 +182,14 @@ describe("health projection from recorded sources", () => {
       workstream: null,
       workstreamFreshness: null,
       canonicalization: { coverage: "complete", candidates: [] },
-      knowledgeLifecycle: { coverage: "cached", issues: [] },
-      documentFreshness: {
-        awaiting: Array.from({ length: 300 }, (_, i) =>
-          healthFreshnessCandidate({ candidateId: `kfresh_${i.toString(16).padStart(24, "0")}` }),
-        ),
-        applied: [],
-        blocked: null,
+      knowledgeLifecycle: {
+        coverage: "cached",
+        issues: Array.from({ length: 300 }, (_, i) => ({
+          code: "turn_approval_pending",
+          command: `lervo workstream current --context ${i}`,
+        })),
       },
+      documentFreshness: { held: [], applied: [], zeroSuccessHold: null, debt: [] },
       instructionCapture: { candidates: [], held: [], applied: { rules: [], totalCount: 0 } },
       knowledgeConvergence: { owner: null, publication: null },
       observedAt: healthNow,

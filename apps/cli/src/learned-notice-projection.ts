@@ -24,6 +24,32 @@ async function git(root: string, args: string[], maxBuffer = 1024 * 1024): Promi
   return stdout;
 }
 
+/**
+ * ADR-0561: a freshness apply commit names its document in the subject and carries the notice
+ * fields as trailers; one entry reports the whole commit, however many paths an archive touched.
+ */
+function freshnessEntry(
+  subject: string,
+  trailers: { candidate: string; reason: string; crossCheck: string },
+): LearnedNoticeEntry | null {
+  const refresh = /^docs: refresh (.+) from evidence$/u.exec(subject);
+  const archive = /^docs: archive (.+) as historical$/u.exec(subject);
+  const path = refresh?.[1] ?? archive?.[1];
+  if (path === undefined || !/^kfresh_[a-f0-9]{24}$/u.test(trailers.candidate)) return null;
+  return {
+    kind: "freshness",
+    path,
+    title: null,
+    links: [],
+    freshness: {
+      effect: archive === null ? "refresh" : "archive",
+      reason: trailers.reason || "unrecorded",
+      crossCheck: trailers.crossCheck || "unrecorded",
+      undo: `lervo knowledge freshness revert ${trailers.candidate}`,
+    },
+  };
+}
+
 /** Each Lervo commit subject names why its outputs changed. */
 function commitKind(subject: string): LearnedNoticeEntry["kind"] | null {
   // ADR-0561 renamed the owner-rule subjects; the reviewed form remains in older history.
@@ -124,7 +150,7 @@ export async function projectLearnedNotice(input: {
       [
         "log",
         "--no-walk=unsorted",
-        "--format=%x1e%H%x1f%s",
+        "--format=%x1e%H%x1f%s%x1f%(trailers:key=Lervo-Freshness-Candidate,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Freshness-Reason,valueonly,separator=%x1d)%x1f%(trailers:key=Lervo-Freshness-Cross-Check,valueonly,separator=%x1d)",
         "--name-status",
         "--no-renames",
         ...batch,
@@ -139,7 +165,8 @@ export async function projectLearnedNotice(input: {
     .filter((block) => block.trim().length > 0)
     .map((block) => {
       const [header = "", ...lines] = block.split("\n");
-      const [commit = "", subject = ""] = header.split("\x1f");
+      const [commit = "", subject = "", candidate = "", reason = "", crossCheck = ""] =
+        header.split("\x1f");
       const changes = lines
         .map((line) => /^([A-Z])[0-9]*\t(.+)$/u.exec(line))
         .filter((match) => match !== null)
@@ -147,13 +174,26 @@ export async function projectLearnedNotice(input: {
       const ruleDeletions = changes
         .filter((change) => change.deleted && change.path.startsWith(GENERATED_RULES))
         .map((change) => change.path);
-      return { commit, subject, changes, ruleDeletions };
+      const trailers = {
+        candidate: candidate.trim(),
+        reason: reason.trim(),
+        crossCheck: crossCheck.trim(),
+      };
+      return { commit, subject, changes, ruleDeletions, trailers };
     });
   const seen = new Set<string>();
   const entries: LearnedNoticeEntry[] = [];
-  const counts = { owner_rule: 0, skill: 0, canonical: 0, updated: 0 };
+  const counts = { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, updated: 0 };
   // Newest first, so each path reports its latest reason.
-  for (const { commit, subject, changes, ruleDeletions } of commits) {
+  for (const { commit, subject, changes, ruleDeletions, trailers } of commits) {
+    const freshness = freshnessEntry(subject, trailers);
+    if (freshness !== null) {
+      if (seen.has(freshness.path)) continue;
+      seen.add(freshness.path);
+      counts.freshness += 1;
+      if (entries.length < MAXIMUM_ENTRIES) entries.push(freshness);
+      continue;
+    }
     const kind = commitKind(subject);
     if (kind === null) continue;
     // A rule stored in the same commit carries the rules it replaced; otherwise a deleted rule
@@ -203,7 +243,7 @@ function emptyNotice(now: Date, throughCommit: string | null): LearnedNotice {
     schemaVersion: 1,
     observedAt: now.toISOString(),
     throughCommit,
-    counts: { owner_rule: 0, skill: 0, canonical: 0, updated: 0 },
+    counts: { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, updated: 0 },
     entries: [],
   };
 }

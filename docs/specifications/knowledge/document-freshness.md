@@ -3,7 +3,7 @@
 Status: `wired`
 As of: 2026-10-05
 
-This contract implements [ADR-0463](../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md): detection inputs, evidence, candidate verification, apply authority, surfaces, events, policy, and fixtures. Roadmap labels identify the wired parts.
+This contract implements [ADR-0463](../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md): detection inputs, evidence, candidate verification, cross-checked apply without the owner (ADR-0561), surfaces, events, policy, and fixtures. Roadmap labels identify the wired parts.
 
 - [Pipeline, detection, admission, and evidence](document-freshness/pipeline.md)
 - [Candidate contract and verification](document-freshness/candidates.md)
@@ -11,6 +11,7 @@ This contract implements [ADR-0463](../../decisions/knowledge/documents/0463-ref
 
 ## References
 
+- [ADR-0561 decide without the owner: cross-check, reversible effect, notice](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)
 - [ADR-0557 Tier 0 cross-check in an independent no-capability session](../../decisions/knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md)
 - [ADR-0023 evidence-based document staleness](../../decisions/knowledge/documents/0023-evidence-based-document-staleness.md)
 - [ADR-0464 document drift and historical documents](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md)

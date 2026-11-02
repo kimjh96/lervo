@@ -203,6 +203,50 @@ describe("learned notice", () => {
     ]);
   });
 
+  it("reports each freshness apply with its reason, cross-check, and undo command (ADR-0561)", async () => {
+    const { root, base } = await repository();
+    const candidate = "kfresh_0123456789abcdef01234567";
+    await mkdir(join(root, "docs/archive"), { recursive: true });
+    await writeFile(join(root, "docs/archive/old.md"), "# Old\n");
+    await writeFile(join(root, "README.md"), "# Repo v4\n");
+    git(root, ["add", "-A"], lervo);
+    git(
+      root,
+      [
+        "commit",
+        "-q",
+        "-m",
+        "docs: refresh README.md from evidence",
+        "-m",
+        [
+          `Lervo-Freshness-Candidate: ${candidate}`,
+          "Lervo-Freshness-Reason: reference_target_missing",
+          "Lervo-Freshness-Cross-Check: agreement 2/2 (claude run_a; codex run_b)",
+        ].join("\n"),
+      ],
+      lervo,
+    );
+    const notice = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
+    expect(notice).toMatchObject({ counts: { freshness: 1, updated: 0 } });
+    expect(notice!.entries).toEqual([
+      {
+        kind: "freshness",
+        path: "README.md",
+        title: null,
+        links: [],
+        freshness: {
+          effect: "refresh",
+          reason: "reference_target_missing",
+          crossCheck: "agreement 2/2 (claude run_a; codex run_b)",
+          undo: `lervo knowledge freshness revert ${candidate}`,
+        },
+      },
+    ]);
+    expect(formatLearnedNotice(notice!)).toContain(
+      `refreshed README.md (reason reference_target_missing; cross-check agreement 2/2 (claude run_a; codex run_b); undo: lervo knowledge freshness revert ${candidate})`,
+    );
+  });
+
   it("keeps the line within its byte cap and counts what it omits", () => {
     const entries = Array.from({ length: 16 }, (_, index) => ({
       kind: "updated" as const,
@@ -214,7 +258,7 @@ describe("learned notice", () => {
       schemaVersion: 1,
       observedAt: new Date().toISOString(),
       throughCommit: "a".repeat(40),
-      counts: { owner_rule: 0, skill: 0, canonical: 0, updated: 40 },
+      counts: { owner_rule: 0, skill: 0, canonical: 0, freshness: 0, updated: 40 },
       entries,
     })!;
     expect(Buffer.byteLength(line)).toBeLessThanOrEqual(480);
@@ -229,7 +273,7 @@ describe("learned notice", () => {
       schemaVersion: 1 as const,
       observedAt: new Date().toISOString(),
       throughCommit: "b".repeat(40),
-      counts: { owner_rule: 1, skill: 0, canonical: 0, updated: 0 },
+      counts: { owner_rule: 1, skill: 0, canonical: 0, freshness: 0, updated: 0 },
       entries: [{ kind: "owner_rule" as const, path: "docs/r.md", title: null, links: [] }],
     };
     await writeLearnedNotice(root, notice);

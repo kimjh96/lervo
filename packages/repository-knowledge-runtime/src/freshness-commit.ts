@@ -47,6 +47,8 @@ export async function commitKnowledgeOutputPaths(input: {
       | "Lervo-Practice-Retirement";
     candidateId: string;
   };
+  /** Further single-line trailers, such as the ADR-0561 freshness notice fields. */
+  extraTrailers?: ReadonlyArray<readonly [key: string, value: string]>;
 }): Promise<string | null> {
   const root = input.repositoryRoot;
   if (input.paths.length === 0 || !(await knowledgeOutputCommitSafe(root))) return null;
@@ -55,6 +57,9 @@ export async function commitKnowledgeOutputPaths(input: {
   if (!grant.allowed) return null;
   const trailers = [
     `${input.trailer.key}: ${input.trailer.candidateId}`,
+    ...(input.extraTrailers ?? []).map(
+      ([key, value]) => `${key}: ${value.replace(/[\r\n]+/gu, " ")}`,
+    ),
     ...(grant.hostHash === null ? [] : [`${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
   ].join("\n");
   try {

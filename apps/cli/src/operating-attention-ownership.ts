@@ -35,16 +35,21 @@ export function attributeOperatingAttention(
       waitingSince = item.createdAt;
       inspectCommand = `lervo knowledge canonicalization status ${item.candidateId} --json`;
       break;
+    // ADR-0561: freshness never waits for the owner; held work is Lervo debt with backoff.
     case "document_freshness_candidate":
       actor = "resident freshness cycle";
-      consequence = item.ownerConsequence ?? null;
       waitingSince = item.createdAt ?? null;
-      recommendation = "Review the verified candidate before authorizing its held effect";
+      recommendation = "Retry the cross-check and apply what it agrees";
       inspectCommand = `lervo knowledge freshness review ${item.candidateId}`;
       break;
     case "document_freshness_applied":
+      actor = "resident freshness cycle";
+      inspectCommand = "lervo knowledge freshness status";
+      break;
     case "document_freshness_blocked":
       actor = "resident freshness cycle";
+      waitingSince = item.since;
+      recommendation = `Retry with backoff at ${item.retryAt}`;
       inspectCommand = "lervo knowledge freshness status";
       break;
     // ADR-0561: instruction capture never waits for the owner; each item is Lervo debt.

@@ -6,9 +6,13 @@ import type {
   DocumentFreshnessHunk,
 } from "../src/document-freshness-contract.js";
 import {
+  documentFreshnessCrossCheckRetryAt,
+  projectDocumentFreshnessDebt,
+} from "../src/document-freshness-debt.js";
+import { buildDocumentFreshnessArchiveCrossCheckInput } from "../src/document-freshness-archive-cross-check.js";
+import {
   buildDocumentFreshnessCrossCheckInput,
   documentFreshnessCandidateNeedsCrossCheck,
-  documentFreshnessCrossCheckBlocked,
   parseDocumentFreshnessCrossCheckResponse,
   pendingDocumentFreshnessCrossCheck,
   settleDocumentFreshnessCrossCheck,
@@ -40,6 +44,16 @@ function hunk(overrides: Partial<DocumentFreshnessHunk>): DocumentFreshnessHunk 
 }
 
 const managed = hunk({});
+const archivePlan = {
+  targetPath: "docs/archive/guide.md",
+  banner: "> Historical: archived on 2026-11-02.\n\n",
+  inboundLinkRewrites: [
+    { path: "docs/a.md", line: 3, from: "../guide.md", to: "archive/guide.md" },
+  ],
+  outgoingLinkRewrites: [],
+  ownership: "user_owned" as const,
+  inboundSourceHashes: { "docs/a.md": `sha256:${"7".repeat(64)}` },
+};
 const userOwned = hunk({
   hunkId: `kfh_${"2".repeat(16)}`,
   range: { startByte: 45, endByte: 73 },
@@ -47,7 +61,11 @@ const userOwned = hunk({
   changeClass: "factual_reference",
   ownership: "user_owned",
   managedBlockId: null,
-  authorityRequired: "owner",
+});
+const userStatement = hunk({
+  hunkId: `kfh_${"3".repeat(16)}`,
+  ownership: "user_owned",
+  managedBlockId: null,
 });
 
 function candidate(hunks: DocumentFreshnessHunk[]): DocumentFreshnessCandidateV1 {
@@ -65,7 +83,7 @@ function candidate(hunks: DocumentFreshnessHunk[]): DocumentFreshnessCandidateV1
     archive: null,
     explanation: null,
     reasonsAddressed: ["connected_path_changed"],
-    authorityRequired: "owner",
+    authorityRequired: "none",
     state: "generated",
     checks: [],
     crossCheck: "unavailable",
@@ -157,18 +175,59 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
     ]);
   });
 
-  it("keeps owner authority on user-owned hunks after agreement", () => {
+  it("lets one agreement apply a user-owned factual hunk without the owner", () => {
     const settled = settleDocumentFreshnessCrossCheck(candidate([userOwned]), {
       ...reviewer,
       status: "verdicts",
       verdicts: [{ hunkId: userOwned.hunkId, verdict: "agree", reason: "ok" }],
     });
     expect(settled).toMatchObject({
-      state: "waiting_authority",
+      state: "verified",
       crossCheck: "agreement",
-      authorityRequired: "owner",
+      authorityRequired: "none",
     });
-    expect(documentFreshnessAutoApplicableHunks(settled)).toEqual([]);
+    expect(documentFreshnessAutoApplicableHunks(settled).map((item) => item.hunkId)).toEqual([
+      userOwned.hunkId,
+    ]);
+  });
+
+  it("needs two independent agreements for a user-owned statement or safety hunk", () => {
+    for (const required of [userStatement, hunk({ changeClass: "safety_or_policy" })]) {
+      const first = settleDocumentFreshnessCrossCheck(candidate([required]), {
+        ...reviewer,
+        status: "verdicts",
+        verdicts: [{ hunkId: required.hunkId, verdict: "agree", reason: "ok" }],
+      });
+      // The first agreement arms a second round in a fresh session; nothing applies yet.
+      expect(first).toMatchObject({
+        state: "generated",
+        crossCheck: "unavailable",
+        crossCheckRounds: [{ status: "settled", outcome: "agreement", runId: reviewer.runId }],
+        crossCheckReview: { status: "pending", inputHash: `sha256:${"9".repeat(64)}` },
+      });
+      expect(documentFreshnessAutoApplicableHunks(first)).toEqual([]);
+      const second = settleDocumentFreshnessCrossCheck(first, {
+        ...reviewer,
+        runId: "run_freshness_bbbbbbbbbbbbbbbbbbbbbbbb",
+        status: "verdicts",
+        verdicts: [{ hunkId: required.hunkId, verdict: "agree", reason: "ok" }],
+      });
+      expect(second).toMatchObject({
+        state: "verified",
+        crossCheck: "agreement",
+        tokensObserved: 3_300,
+      });
+      expect(documentFreshnessAutoApplicableHunks(second)).toHaveLength(1);
+      const contested = settleDocumentFreshnessCrossCheck(first, {
+        ...reviewer,
+        status: "verdicts",
+        verdicts: [{ hunkId: required.hunkId, verdict: "disagree", reason: "unsupported" }],
+      });
+      expect(contested).toMatchObject({
+        state: "rejected",
+        rejection: { reasonCode: "cross_check_disagreement" },
+      });
+    }
   });
 
   it("rejects the whole candidate on any disagreement with the contested hunk IDs", () => {
@@ -191,7 +250,7 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
     });
   });
 
-  it("holds every required hunk for the owner when the cross-check is unavailable", () => {
+  it("holds every required hunk for Lervo's retry when the cross-check is unavailable", () => {
     const settled = settleDocumentFreshnessCrossCheck(candidate([managed]), {
       ...reviewer,
       runId: null,
@@ -202,13 +261,30 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
     expect(settled).toMatchObject({
       state: "verified_pending_cross_check",
       crossCheck: "unavailable",
-      authorityRequired: "owner",
+      authorityRequired: "none",
       crossCheckReview: { unavailableReason: "cross_check_response_invalid", verdicts: [] },
     });
     expect(documentFreshnessAutoApplicableHunks(settled)).toEqual([]);
+    const settledAt = Date.parse(reviewer.settledAt);
+    expect(documentFreshnessCrossCheckRetryAt(settled)?.getTime()).toBe(settledAt + 3_600_000);
+    const retried = { ...settled, crossCheckReview: { ...settled.crossCheckReview!, retries: 6 } };
+    expect(documentFreshnessCrossCheckRetryAt(retried)?.getTime()).toBe(settledAt + 86_400_000);
   });
 
-  it("needs a call only for edits with a required hunk and no outcome", () => {
+  it("rejects an over-budget cross-check instead of holding it", () => {
+    const settled = settleDocumentFreshnessCrossCheck(candidate([managed]), {
+      ...reviewer,
+      tokensObserved: 0,
+      status: "unavailable",
+      reason: "freshness_budget_exhausted",
+    });
+    expect(settled).toMatchObject({
+      state: "rejected",
+      rejection: { reasonCode: "freshness_budget_exhausted", rejectorKind: "budget" },
+    });
+  });
+
+  it("needs a call for archives and for edits with a required hunk and no outcome", () => {
     const verified = { ...candidate([managed]), state: "verified_pending_cross_check" as const };
     expect(documentFreshnessCandidateNeedsCrossCheck(verified)).toBe(true);
     expect(
@@ -218,41 +294,143 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       }),
     ).toBe(false);
     expect(
-      documentFreshnessCandidateNeedsCrossCheck({ ...verified, operation: "archive", hunks: [] }),
-    ).toBe(false);
+      documentFreshnessCandidateNeedsCrossCheck({
+        ...verified,
+        operation: "archive",
+        hunks: [],
+        archive: archivePlan,
+      }),
+    ).toBe(true);
     expect(
       documentFreshnessCandidateNeedsCrossCheck({ ...verified, crossCheck: "agreement" }),
     ).toBe(false);
   });
 
-  it("blocks a finding after its candidate and single regeneration both disagree", () => {
-    const rejected = (id: string, createdAt: string) => ({
+  it("asks the reviewer about the archive move and its inbound link rewrites", () => {
+    const input = buildDocumentFreshnessArchiveCrossCheckInput({
+      candidate: { ...candidate([]), archive: archivePlan },
+      source: Buffer.from(source),
+      evidence: [{ path: "ops/build.md", hash: evidenceHash, text: "# Build" }],
+    });
+    expect(input.hunks.map((item) => item.changeClass)).toEqual([
+      "archive",
+      "archive_inbound_links",
+    ]);
+    expect(input.hunks[0]!.after).toContain("docs/archive/guide.md");
+    expect(input.hunks[1]).toMatchObject({
+      before: "docs/a.md:3 ../guide.md",
+      after: "docs/a.md:3 archive/guide.md",
+    });
+    expect(input.evidence).toEqual([
+      { path: "ops/build.md", hash: evidenceHash, excerpt: "# Build", truncated: false },
+    ]);
+    const archive = { ...candidate([]), operation: "archive" as const, archive: archivePlan };
+    const first = settleDocumentFreshnessCrossCheck(archive, {
+      ...reviewer,
+      status: "verdicts",
+      verdicts: input.hunks.map((item) => ({
+        hunkId: item.hunkId,
+        verdict: "agree",
+        reason: "ok",
+      })),
+    });
+    expect(first).toMatchObject({
+      state: "generated",
+      crossCheckRounds: [{ outcome: "agreement" }],
+    });
+    const second = settleDocumentFreshnessCrossCheck(first, {
+      ...reviewer,
+      status: "verdicts",
+      verdicts: input.hunks.map((item) => ({
+        hunkId: item.hunkId,
+        verdict: "agree",
+        reason: "ok",
+      })),
+    });
+    expect(second).toMatchObject({ state: "verified", crossCheck: "agreement" });
+  });
+
+  it("holds a finding as Lervo debt after its regeneration fails too, with doubling backoff", () => {
+    const now = new Date("2026-11-02T00:00:00.000Z");
+    const rejected = (id: string, createdAt: string, reasonCode = "cross_check_disagreement") => ({
       ...candidate([managed]),
       candidateId: id,
       createdAt,
+      state: "rejected" as const,
       rejection: {
-        reasonCode: "cross_check_disagreement" as const,
+        reasonCode: reasonCode as "cross_check_disagreement",
         rejectorKind: "cross_check" as const,
         contestedHunkIds: [managed.hunkId],
       },
     });
     const first = rejected(`kfresh_${"1".repeat(24)}`, "2026-11-01T00:00:00.000Z");
     const second = rejected(`kfresh_${"2".repeat(24)}`, "2026-11-01T01:00:00.000Z");
-    expect(documentFreshnessCrossCheckBlocked([first])).toEqual([]);
-    expect(documentFreshnessCrossCheckBlocked([first, second])).toEqual([
-      {
-        findingDigest: first.findingDigest,
-        documentPath: "docs/guide.md",
-        candidateId: second.candidateId,
+    expect(projectDocumentFreshnessDebt({ candidates: [first], previous: [], now })).toEqual([]);
+    const [debt] = projectDocumentFreshnessDebt({ candidates: [first, second], previous: [], now });
+    expect(debt).toEqual({
+      findingDigest: first.findingDigest,
+      documentPath: "docs/guide.md",
+      candidateId: second.candidateId,
+      reason: "cross_check_disagreement_repeated",
+      since: now.toISOString(),
+      attempts: 1,
+      retryAt: "2026-11-03T00:00:00.000Z",
+    });
+    // The same candidate keeps the debt; a failed retry doubles the backoff.
+    const later = new Date("2026-11-04T00:00:00.000Z");
+    expect(
+      projectDocumentFreshnessDebt({ candidates: [first, second], previous: [debt!], now: later }),
+    ).toEqual([debt]);
+    const third = rejected(`kfresh_${"3".repeat(24)}`, "2026-11-03T01:00:00.000Z");
+    expect(
+      projectDocumentFreshnessDebt({
+        candidates: [first, second, third],
+        previous: [debt!],
+        now: later,
+      }),
+    ).toEqual([
+      expect.objectContaining({
         attempts: 2,
-      },
+        since: now.toISOString(),
+        retryAt: "2026-11-06T00:00:00.000Z",
+      }),
     ]);
-    const later = {
-      ...candidate([managed]),
-      candidateId: `kfresh_${"3".repeat(24)}`,
-      findingDigest: `sha256:${"4".repeat(64)}`,
-      createdAt: "2026-11-02T00:00:00.000Z",
-    };
-    expect(documentFreshnessCrossCheckBlocked([first, second, later])).toEqual([]);
+    // An applied candidate clears the debt.
+    const applied = { ...third, state: "applied" as const, rejection: null };
+    expect(
+      projectDocumentFreshnessDebt({
+        candidates: [first, second, applied],
+        previous: [debt!],
+        now,
+      }),
+    ).toEqual([]);
+    // An undetermined answer twice, or one exhausted budget, is debt too.
+    const undetermined = (id: string, createdAt: string) => ({
+      ...rejected(id, createdAt, "candidate_invalid"),
+      operation: "needs_owner_input" as const,
+    });
+    expect(
+      projectDocumentFreshnessDebt({
+        candidates: [
+          undetermined(`kfresh_${"4".repeat(24)}`, "2026-11-01T00:00:00.000Z"),
+          undetermined(`kfresh_${"5".repeat(24)}`, "2026-11-01T01:00:00.000Z"),
+        ],
+        previous: [],
+        now,
+      }).map((entry) => entry.reason),
+    ).toEqual(["freshness_evidence_undetermined"]);
+    expect(
+      projectDocumentFreshnessDebt({
+        candidates: [
+          rejected(
+            `kfresh_${"6".repeat(24)}`,
+            "2026-11-01T00:00:00.000Z",
+            "freshness_budget_exhausted",
+          ),
+        ],
+        previous: [],
+        now,
+      }).map((entry) => entry.reason),
+    ).toEqual(["budget_exceeded"]);
   });
 });

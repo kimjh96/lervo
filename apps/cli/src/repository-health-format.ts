@@ -115,6 +115,13 @@ export function formatRepositoryHealth(
       `Lervo health: ${v.stale === null ? "freshness evaluation unknown" : `${v.stale}/${v.evaluated} evaluated documents stale, ${v.unevaluated} unevaluated`}; freshness cycle.`,
     );
   }
+  const debt = m.freshness.value?.debt ?? [];
+  if (debt.length > 0) {
+    const oldest = debt[0]!;
+    lines.push(
+      `Lervo health: Lervo debt (no owner action): ${debt.length} stale document${debt.length === 1 ? "" : "s"} held, oldest ${duration(oldest.ageMilliseconds)} ${oldest.path} (${oldest.reason}); freshness cycle retries with backoff.`,
+    );
+  }
   if (m.deferred.status === "gap" && m.deferred.value !== null) {
     const ages = m.deferred.value.items.map((item) => item.ageMilliseconds);
     const oldest = ages.some((value) => value === null) ? null : Math.max(0, ...(ages as number[]));

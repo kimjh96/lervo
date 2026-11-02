@@ -61,7 +61,22 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
         ["cycleStale", "safety", "awaitingReview", "refreshed"].every((k) =>
           nullable(v[k], count),
         ) &&
-        nullable(v.blocked, (x) => typeof x === "boolean")
+        nullable(v.blocked, (x) => typeof x === "boolean") &&
+        (v.debt === undefined ||
+          nullable(
+            v.debt,
+            (list) =>
+              Array.isArray(list) &&
+              list.length <= 8 &&
+              list.every(
+                (entry: unknown) =>
+                  object(entry) &&
+                  text(entry.path) &&
+                  text(entry.reason) &&
+                  time(entry.since) &&
+                  nullable(entry.ageMilliseconds, count),
+              ),
+          ))
       );
     case "ownerReview":
       return (

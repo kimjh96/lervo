@@ -17,13 +17,17 @@ import {
   type PrioritizedDocumentFreshnessFinding,
 } from "@lervo/repository-knowledge";
 
+import { applyVerifiedFreshness } from "./freshness-auto-apply.js";
 import {
-  applyCrossCheckedFreshnessHunks,
   freshnessCrossCheckPending,
   prepareFreshnessCrossCheck,
   runFreshnessCrossCheck,
 } from "./freshness-cross-check.js";
-import { buildFreshnessEvidenceBundle, freshnessBundleBytes } from "./freshness-evidence-bundle.js";
+import {
+  buildFreshnessEvidenceBundle,
+  freshnessBundleBytes,
+  type FreshnessRegenerationEvidence,
+} from "./freshness-evidence-bundle.js";
 import { recordFreshnessCandidateOutcome } from "./freshness-events.js";
 import {
   freshnessCallAbandoned,
@@ -73,9 +77,10 @@ function inboundMarkdown(
 
 /**
  * Turns one admitted finding into a stored candidate: bundle the evidence into CAS, run the
- * governed provider call, build and verify the candidate, run its Tier 0 cross-check in a separate
- * session, record its events, and let Lervo apply its own verified hunks. A deferred generation
- * writes nothing and leaves the finding for a later cycle.
+ * governed provider call, build and verify the candidate, run its Tier 0 cross-check in separate
+ * sessions, record its events, and let Lervo apply what the cross-check agreed (ADR-0561). A
+ * deferred generation writes nothing and leaves the finding for a later cycle. A regeneration
+ * carries the previous failure's reasons as evidence.
  */
 export async function generateFreshnessCandidate(input: {
   context: FreshnessGenerationContext;
@@ -84,10 +89,10 @@ export async function generateFreshnessCandidate(input: {
   documentOwnership: DocumentFreshnessOwnership;
   attempt: number;
   policy: DocumentFreshnessPolicy;
-  mandateKinds: readonly string[];
   autoApply?: boolean;
   evidenceCursor?: string;
   predecessorCandidateId?: string;
+  regeneration?: FreshnessRegenerationEvidence;
 }): Promise<FreshnessFindingOutcome> {
   const { context, entry } = input;
   const storage = context.storage;
@@ -103,7 +108,6 @@ export async function generateFreshnessCandidate(input: {
     evidenceTruncated: false,
     policy: input.policy,
     oracle,
-    mandateKinds: input.mandateKinds,
     inboundDocuments: () => inboundMarkdown(root, entry.finding.documentPath),
     now,
   };
@@ -138,6 +142,7 @@ export async function generateFreshnessCandidate(input: {
       finding: entry.finding,
       content: input.content,
       ...(input.evidenceCursor === undefined ? {} : { cursor: input.evidenceCursor }),
+      ...(input.regeneration === undefined ? {} : { regeneration: input.regeneration }),
     });
     const dependencyWitness = await captureFreshnessDependencies({
       root,
@@ -194,12 +199,12 @@ export async function generateFreshnessCandidate(input: {
       evidenceTruncated: bundle.evidenceTruncated,
       tokensObserved,
     });
+    const predecessorCandidateId =
+      input.predecessorCandidateId ?? input.regeneration?.predecessorCandidateId;
     candidate = {
       ...candidate,
       dependencyWitness,
-      ...(input.predecessorCandidateId === undefined
-        ? {}
-        : { predecessorCandidateId: input.predecessorCandidateId }),
+      ...(predecessorCandidateId === undefined ? {} : { predecessorCandidateId }),
       ...(candidate.operation === "no_change_needed" && candidate.state === "verified"
         ? { state: "generated" as const }
         : {}),
@@ -219,7 +224,6 @@ export async function generateFreshnessCandidate(input: {
       candidate,
       source: shared.source,
       evidence,
-      now,
     });
   }
   await writeFreshnessCandidate(root, candidate);
@@ -238,7 +242,6 @@ export async function generateFreshnessCandidate(input: {
     candidate = checked.candidate;
     tokensObserved += checked.tokensObserved;
   }
-  if (input.autoApply !== false)
-    candidate = await applyCrossCheckedFreshnessHunks(context, candidate);
+  if (input.autoApply !== false) candidate = await applyVerifiedFreshness(context, candidate);
   return { status: "candidate", candidate, tokensObserved };
 }

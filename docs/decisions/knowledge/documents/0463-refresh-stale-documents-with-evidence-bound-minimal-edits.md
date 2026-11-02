@@ -5,8 +5,11 @@ Decision date: 2026-10-05
 Builds on: [ADR-0464 document drift detection](0464-report-document-drift-and-historical-documents.md), [ADR-0462 stale attention](../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
 Amends: [ADR-0023](0023-evidence-based-document-staleness.md), [ADR-0457](0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md), [ADR-0453](../../coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0460](../../coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md), [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
 Amended by: [ADR-0557](freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md) (Tier 0 in an independent no-capability session), [ADR-0580](../maintenance/0580-let-a-resident-with-parked-work-back-off.md) (a pending no-change review reopens the stage only when the day's budget can pay for it)
+Superseded in part by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (owner authority, apply, and attention)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 Contract: [Document freshness specification](../../../specifications/knowledge/document-freshness.md)
+
+> **Superseded in part (2026-11-02).** [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) replaces section 3's authority matrix, the owner apply path, and owner attention: Lervo applies each change after its required cross-checks agree, holds what it cannot resolve as Lervo debt, and reports each apply with its undo. The [specification](../../../specifications/knowledge/document-freshness/operations.md#authority-and-apply) holds the current contract.
 
 ## Context
 
@@ -81,7 +84,7 @@ Determine change classes as follows:
 
 Generation, verification, and cross-check require no authority and are budget-bounded. Only applying a user-owned hunk is a consequential effect. In `AGENTS.md` and `CLAUDE.md`, Lervo-managed block hunks use the ADR-0022 patch path; user-prose hunks follow the user-owned row. A candidate may apply partly and wait partly, and must report that state.
 
-Narrowly amend ADR-0453: `PrincipalMandateV1.decisionKinds` may gain `document_freshness`, consequence class `repository_internal_reversible`. Under that mandate, the proxy approves user-owned `factual_reference` hunks and the knowledge convergence owner applies them, up to `maximumFreshnessApprovalsPerDay` (default 5). The proxy writes no bytes. Version 1 installs no such kind, per the owner decision below: every user-owned apply goes to the owner. User-owned `statement` and `safety_or_policy` hunks always wait for the owner. Argo's stale `v2` risk-limit line is `safety_or_policy`: it would produce a candidate within one cycle and an owner question in the next escalation batch, not an auto-apply.
+A narrow ADR-0453 amendment for a `document_freshness` mandate kind was deferred; ADR-0561 makes it unnecessary.
 
 Every apply records an event, informational attention item, turn-report line, Discord notice in the next batch window, and a commit by `Lervo Knowledge` carrying `Lervo-Freshness-Candidate: <candidateId>`.
 

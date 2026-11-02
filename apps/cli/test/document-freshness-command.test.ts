@@ -42,7 +42,7 @@ function candidate(overrides: Partial<DocumentFreshnessCandidateV1>): DocumentFr
         changeClass: "factual_reference",
         ownership: "user_owned",
         managedBlockId: null,
-        authorityRequired: "owner",
+        authorityRequired: "none",
         crossCheckRequired: true,
         claims: [],
       },
@@ -50,7 +50,7 @@ function candidate(overrides: Partial<DocumentFreshnessCandidateV1>): DocumentFr
     archive: null,
     explanation: null,
     reasonsAddressed: ["reference_target_missing"],
-    authorityRequired: "owner",
+    authorityRequired: "none",
     state: "verified_pending_cross_check",
     checks: [],
     crossCheck: "unavailable",
@@ -73,99 +73,136 @@ function candidate(overrides: Partial<DocumentFreshnessCandidateV1>): DocumentFr
   };
 }
 
-describe("document freshness owner surfaces", () => {
-  it("projects waiting, applied, and blocked freshness state as ADR-0463 attention items", () => {
+const unavailableReview = {
+  status: "settled" as const,
+  inputHash: `sha256:${"5".repeat(64)}`,
+  runId: "run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
+  reviewerProvider: "claude" as const,
+  outcome: "unavailable" as const,
+  unavailableReason: "cross_check_response_invalid" as const,
+  verdicts: [],
+  tokensObserved: 900,
+  deferrals: 0,
+  settledAt: "2026-10-05T00:10:00.000Z",
+};
+
+describe("document freshness surfaces without the owner (ADR-0561)", () => {
+  it("projects held, applied, zero-success, and debt state without any owner action", () => {
     const applied = candidate({
       candidateId: "kfresh_bbbbbbbbbbbbbbbbbbbbbbbb",
       documentPath: "AGENTS.md",
       state: "applied",
+      crossCheck: "agreement",
+      crossCheckReview: {
+        ...unavailableReview,
+        outcome: "agreement",
+        unavailableReason: null,
+        verdicts: [
+          { hunkId: "kfh_aaaaaaaaaaaaaaaa", verdict: "agree", reason: "Evidence shows v4." },
+        ],
+      },
       approval: {
         approvalSource: "lervo_managed",
         approvalRef: afterHash,
-        reviewer: null,
+        reviewer: "cross_check run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
         approvedAt: "2026-10-05T00:00:00.000Z",
       },
       commitHash: "c".repeat(40),
     });
-    const items = documentFreshnessAttentionItems({
-      awaiting: [candidate({})],
+    const held = candidate({ crossCheckReview: unavailableReview });
+    const debt = {
+      findingDigest: `sha256:${"6".repeat(64)}`,
+      documentPath: "docs/guide.md",
+      candidateId: "kfresh_dddddddddddddddddddddddd",
+      reason: "cross_check_disagreement_repeated" as const,
+      since: "2026-10-04T00:00:00.000Z",
+      attempts: 1,
+      retryAt: "2026-10-06T00:00:00.000Z",
+    };
+    const input = {
+      held: [held],
       applied: [applied],
-      blocked: { attempts: 5 },
-    });
+      zeroSuccessHold: {
+        since: "2026-10-05T00:00:00.000Z",
+        until: "2026-10-05T01:00:00.000Z",
+        attempts: 5,
+      },
+      debt: [
+        debt,
+        { ...debt, reason: "freshness_evidence_undetermined" as const, documentPath: "a.md" },
+        { ...debt, reason: "budget_exceeded" as const, documentPath: "b.md" },
+      ],
+    };
+    const items = documentFreshnessAttentionItems(input);
     expect(
-      items.map((item) => [item.kind, item.actionOwner, item.requiresUserAction, item.blocking]),
+      items.map((item) => [item.kind, item.state, item.actionOwner, item.requiresUserAction]),
     ).toEqual([
-      ["document_freshness_candidate", "user", true, false],
-      ["document_freshness_applied", "agent", false, false],
-      ["document_freshness_blocked", "user", true, false],
+      ["document_freshness_candidate", "lervo_debt", "host resident", false],
+      ["document_freshness_applied", "applied", "agent", false],
+      ["document_freshness_blocked", "lervo_debt", "host resident", false],
+      ["document_freshness_blocked", "lervo_debt", "host resident", false],
+      ["document_freshness_blocked", "lervo_debt", "host resident", false],
+      ["document_freshness_blocked", "lervo_debt", "host resident", false],
     ]);
-    expect(items[0]!.instruction).toContain(
-      `lervo knowledge freshness apply kfresh_aaaaaaaaaaaaaaaaaaaaaaaa --approval ${afterHash}`,
+    expect(items.every((item) => !item.requiresUserAction && !item.blocking)).toBe(true);
+    expect(items.map((item) => item.instruction).join("\n")).not.toMatch(
+      /freshness apply|--approval/u,
     );
+    expect(items[0]).toMatchObject({
+      heldReason: "cross_check_response_invalid",
+      retryAt: "2026-10-05T01:10:00.000Z",
+    });
+    // The applied notice names the document, the reason, the cross-check, and the undo.
+    expect(items[1]!.instruction).toBe(
+      "Lervo refreshed AGENTS.md (reason reference_target_missing; cross-check agreement 1/1 (claude run_freshness_eeeeeeeeeeeeeeeeeeeeeeee)); mention it in the turn report. Undo with lervo knowledge freshness revert kfresh_bbbbbbbbbbbbbbbbbbbbbbbb, or acknowledge with lervo knowledge freshness acknowledge kfresh_bbbbbbbbbbbbbbbbbbbbbbbb.",
+    );
+    expect(items.slice(2).map((item) => (item as { reasonCode: string }).reasonCode)).toEqual([
+      "zero_success_window",
+      "cross_check_disagreement_repeated",
+      "freshness_evidence_undetermined",
+      "budget_exceeded",
+    ]);
     const report = createOperatingAttentionReport({
       projectId: "prj_freshness_fixture",
       workstream: null,
       workstreamFreshness: null,
       canonicalization: { coverage: "complete", candidates: [] },
       knowledgeLifecycle: { coverage: "complete", issues: [] },
-      documentFreshness: { awaiting: [candidate({})], applied: [applied], blocked: null },
-      observedAt: new Date("2026-10-05T01:00:00.000Z"),
+      documentFreshness: input,
+      observedAt: new Date("2026-10-05T00:30:00.000Z"),
     });
-    expect(report.summary).toMatchObject({ totalCount: 2, userActionCount: 1, blockingCount: 0 });
+    expect(report.summary).toMatchObject({ totalCount: 6, userActionCount: 0, blockingCount: 0 });
+    expect(report.items.every((item) => item.requiresUserAction === false)).toBe(true);
     expect(formatOperatingAttention(report)).toContain(
-      "document_freshness_candidate document_freshness_kfresh_aaaaaaaaaaaaaaaaaaaaaaaa · owner owner · verified_pending_cross_check · README.md · entrypoint · factual_reference · hunks 1",
+      "document_freshness_candidate document_freshness_kfresh_aaaaaaaaaaaaaaaaaaaaaaaa · owner resident freshness cycle · lervo_debt · README.md · entrypoint · factual_reference · hunks 1 · cross_check_response_invalid",
     );
   });
 
-  it("raises a blocked item for repeated Tier 0 disagreement and shows per-hunk outcomes", () => {
-    const [blocked] = documentFreshnessAttentionItems({
-      awaiting: [],
-      applied: [],
-      blocked: null,
-      crossCheckBlocked: [
-        { documentPath: "AGENTS.md", candidateId: "kfresh_dddddddddddddddddddddddd", attempts: 2 },
-      ],
+  it("shows held candidates and cross-check rounds for inspection only", () => {
+    const agreed = candidate({
+      state: "applied",
+      crossCheck: "agreement",
+      crossCheckRounds: [{ ...unavailableReview, outcome: "agreement", unavailableReason: null }],
+      crossCheckReview: { ...unavailableReview, outcome: "agreement", unavailableReason: null },
     });
-    expect(blocked).toMatchObject({
-      kind: "document_freshness_blocked",
-      itemId: "document_freshness_blocked_cross_check_kfresh_dddddddddddddddddddddddd",
-      reasonCode: "repeated_cross_check_disagreement",
-      documentPath: "AGENTS.md",
-      attempts: 2,
-      actionOwner: "user",
-      blocking: false,
-    });
-    const settled = (
-      outcome: "agreement" | "unavailable",
-      unavailableReason: "cross_check_response_invalid" | null,
-    ) =>
-      candidate({
-        crossCheck: outcome,
-        state: outcome === "agreement" ? "waiting_authority" : "verified_pending_cross_check",
-        crossCheckReview: {
-          status: "settled",
-          inputHash: `sha256:${"5".repeat(64)}`,
-          runId: "run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
-          reviewerProvider: "claude",
-          outcome,
-          unavailableReason,
-          verdicts:
-            outcome === "agreement"
-              ? [{ hunkId: "kfh_aaaaaaaaaaaaaaaa", verdict: "agree", reason: "Evidence shows v4." }]
-              : [],
-          tokensObserved: 900,
-          deferrals: 0,
-          settledAt: "2026-10-05T00:10:00.000Z",
-        },
-      });
-    expect(formatDocumentFreshnessCandidate(settled("agreement", null), "")).toContain(
-      "cross-check agreement · reviewer claude · run run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
+    const text = formatDocumentFreshnessCandidate(agreed, "");
+    expect(text).toContain(
+      "cross-check agreement · earlier agreeing rounds 1 · reviewer claude · run run_freshness_eeeeeeeeeeeeeeeeeeeeeeee",
     );
+    expect(text).toContain(
+      "Undo: lervo knowledge freshness revert kfresh_aaaaaaaaaaaaaaaaaaaaaaaa",
+    );
+    expect(text).not.toContain("--approval");
     expect(
       formatDocumentFreshnessReview([
-        { ...settled("unavailable", "cross_check_response_invalid"), applyCommand: null },
+        {
+          ...candidate({ crossCheckReview: unavailableReview }),
+          retryAt: "2026-10-05T01:10:00.000Z",
+        },
       ]),
-    ).toContain("cross-check unavailable (cross_check_response_invalid), owner review instead");
+    ).toContain(
+      "cross-check unavailable (cross_check_response_invalid) · Lervo retries at 2026-10-05T01:10:00.000Z",
+    );
   });
 
   it("adds the bounded freshness line to the compact preamble only when present", () => {
@@ -186,7 +223,7 @@ describe("document freshness owner surfaces", () => {
       staleWorkstreamEntryCount: 0,
     };
     const line =
-      "Document freshness: 1 stale (1 safety: AGENTS.md), 1 candidate awaits review; lervo knowledge freshness review";
+      "Document freshness (no owner action): 1 stale (1 safety: AGENTS.md), 1 candidate held by Lervo; lervo knowledge freshness status";
     expect(formatCompactTerminalPreamble({ ...base, documentFreshnessLine: line })).toContain(
       `\n${line}\n`,
     );
@@ -217,7 +254,17 @@ describe("document freshness owner surfaces", () => {
     });
     output = "";
     expect(await runCli(["knowledge", "freshness", "review"], io)).toBe(0);
-    expect(output).toBe("Document freshness review: no candidate awaits the owner.\n");
+    expect(output).toBe("Document freshness review: Lervo holds no candidate.\n");
+    // ADR-0561 removed the owner approval and rejection commands; undo stays.
+    for (const removed of [
+      ["apply", "kfresh_cccccccccccccccccccccccc", "--approval", afterHash],
+      ["reject", "kfresh_cccccccccccccccccccccccc", "--reason", "not_stale"],
+    ]) {
+      output = "";
+      expect(await runCli(["knowledge", "freshness", ...removed], io)).toBe(1);
+      expect(output).toContain(`Freshness ${removed[0]} was removed`);
+      expect(output).toContain("lervo knowledge freshness revert <candidate-id>");
+    }
     output = "";
     expect(
       await runCli(
@@ -228,6 +275,6 @@ describe("document freshness owner surfaces", () => {
     expect(output).toContain('"status": "failed"');
     output = "";
     expect(await runCli(["knowledge", "freshness", "rewrite"], io)).toBe(1);
-    expect(output).toContain("Document freshness requires status, review, apply");
+    expect(output).toContain("Document freshness requires status, review, revert, acknowledge");
   });
 });

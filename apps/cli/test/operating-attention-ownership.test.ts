@@ -81,14 +81,15 @@ describe("attention authority at consequential effects", () => {
     document_freshness_candidate: {
       ...base,
       kind: "document_freshness_candidate",
-      state: "verified_pending_cross_check",
+      state: "lervo_debt",
       itemId: "freshness",
       candidateId: "freshness",
       documentPath: "README.md",
       priorityClass: "canonical",
       changeClasses: ["statement"],
       hunkCount: 1,
-      ownerConsequence: null,
+      heldReason: "cross_check_response_invalid",
+      retryAt: null,
     },
     document_freshness_applied: {
       ...base,
@@ -104,11 +105,13 @@ describe("attention authority at consequential effects", () => {
     document_freshness_blocked: {
       ...base,
       kind: "document_freshness_blocked",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "blocked",
       reasonCode: "zero_success_window",
       documentPath: null,
       attempts: 5,
+      since: "2026-10-30T02:00:00.000Z",
+      retryAt: "2026-10-30T03:00:00.000Z",
     },
     durable_instruction_candidate: {
       ...base,
@@ -295,18 +298,25 @@ describe("attention authority at consequential effects", () => {
       recordedInstruction: base.instruction,
       attribution: { actor: "knowledge resident", ageMilliseconds: 86_400_000, consequence: null },
     });
+    // ADR-0561: freshness holds are Lervo debt with backoff, shown with their age.
     const blocked: OperatingAttentionItemV1 = {
       ...base,
       kind: "document_freshness_blocked",
       itemId: "freshness",
-      state: "action_required",
-      reasonCode: "zero_success_window",
-      documentPath: null,
-      attempts: 5,
+      state: "lervo_debt",
+      reasonCode: "cross_check_disagreement_repeated",
+      documentPath: "README.md",
+      attempts: 1,
+      since: "2026-10-30T02:00:00.000Z",
+      retryAt: "2026-10-31T02:00:00.000Z",
     };
     expect(attributeOperatingAttention(blocked, healthNow)).toMatchObject({
       requiresUserAction: false,
-      attribution: { actor: "resident freshness cycle" },
+      attribution: {
+        actor: "resident freshness cycle",
+        consequence: null,
+        ageMilliseconds: 86_400_000,
+      },
     });
   });
 
@@ -315,26 +325,31 @@ describe("attention authority at consequential effects", () => {
       ...base,
       kind: "document_freshness_candidate",
       itemId: "freshness",
-      state: "verified_pending_cross_check",
+      state: "lervo_debt",
       candidateId: "candidate",
       documentPath: "README.md",
       priorityClass: "canonical",
       changeClasses: ["statement"],
       hunkCount: 1,
-      ownerConsequence: null,
+      heldReason: "cross_check_response_invalid",
+      retryAt: null,
+      instruction: "Review and approve this freshness candidate.",
     };
-    expect(attributeOperatingAttention(candidate, healthNow).requiresUserAction).toBe(false);
-    const effect = attributeOperatingAttention(
-      { ...candidate, ownerConsequence: "repository_write" },
-      healthNow,
-    );
-    expect(effect).toMatchObject({
+    expect(attributeOperatingAttention(candidate, healthNow)).toMatchObject({
+      requiresUserAction: false,
+      attribution: { inspectCommand: "lervo knowledge freshness review candidate" },
+    });
+    const lifecycle: OperatingAttentionItemV1 = {
+      ...base,
+      kind: "knowledge_lifecycle",
+      itemId: "lifecycle",
+      state: "action_required",
+      issueCode: "turn_approval_pending",
+      detail: null,
+    };
+    expect(attributeOperatingAttention(lifecycle, healthNow)).toMatchObject({
       requiresUserAction: true,
-      attribution: {
-        actor: "owner",
-        consequence: "repository_write",
-        inspectCommand: "lervo knowledge freshness review candidate",
-      },
+      attribution: { actor: "owner", consequence: "repository_write" },
     });
     // ADR-0561: a missing delegation for capture is Lervo debt, never owner work.
     const scope: OperatingAttentionItemV1 = {

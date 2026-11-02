@@ -17,6 +17,8 @@ function describe(entry: LearnedNoticeEntry): string {
   if (entry.kind === "owner_rule")
     return `stored owner rule ${name}${entry.replaced?.length ? ` (replaced ${entry.replaced.map(ruleId).join(", ")})` : ""}`;
   if (entry.kind === "skill") return `skill ${entry.title ?? entry.path}`;
+  if (entry.kind === "freshness" && entry.freshness !== undefined)
+    return `${entry.freshness.effect === "archive" ? "archived" : "refreshed"} ${entry.path} (reason ${entry.freshness.reason}; cross-check ${entry.freshness.crossCheck}; undo: ${entry.freshness.undo})`;
   if (entry.kind === "canonical")
     return `canon ${name} from development${entry.links.length ? `, links ${entry.links.join(", ")}` : ""}`;
   return `updated ${entry.path}`;
@@ -29,7 +31,13 @@ function describe(entry: LearnedNoticeEntry): string {
 export function formatLearnedNotice(notice: LearnedNotice): string | null {
   const total = Object.values(notice.counts).reduce((sum, count) => sum + count, 0);
   if (total === 0) return null;
-  const order: LearnedNoticeEntry["kind"][] = ["owner_rule", "skill", "canonical", "updated"];
+  const order: LearnedNoticeEntry["kind"][] = [
+    "owner_rule",
+    "skill",
+    "canonical",
+    "freshness",
+    "updated",
+  ];
   const entries = [...notice.entries].sort(
     (left, right) => order.indexOf(left.kind) - order.indexOf(right.kind),
   );

@@ -9,6 +9,7 @@ import {
 } from "@lervo/repository-knowledge";
 import type { FreshnessGenerationContext } from "./freshness-generation.js";
 import { generateFreshnessCandidate } from "./freshness-candidate-generation.js";
+import type { FreshnessRegenerationEvidence } from "./freshness-evidence-bundle.js";
 import { DocumentFreshnessOperationError } from "./freshness-document-io.js";
 import { appendFreshnessMaintenanceEvent } from "./freshness-maintenance-events.js";
 import type { FreshnessCycleState } from "./freshness-state-store.js";
@@ -27,6 +28,45 @@ export function freshnessRecoveryKey(
     ]),
   );
 }
+/**
+ * ADR-0561: the failure of the finding's latest candidate, as evidence for its regeneration. A
+ * cross-check disagreement passes each contested replacement with the reviewer's reason; an answer
+ * that could not determine the value passes its explanation.
+ */
+export function freshnessRegenerationEvidence(
+  candidates: readonly DocumentFreshnessCandidateV1[],
+  findingDigest: string,
+): FreshnessRegenerationEvidence | undefined {
+  const latest = candidates
+    .filter((candidate) => candidate.findingDigest === findingDigest)
+    .sort((left, right) => right.createdAt.localeCompare(left.createdAt))[0];
+  if (latest?.state !== "rejected") return undefined;
+  if (latest.rejection?.reasonCode === "cross_check_disagreement") {
+    const replacements = new Map(latest.hunks.map((hunk) => [hunk.hunkId, hunk.replacement]));
+    return {
+      predecessorCandidateId: latest.candidateId,
+      failure: "cross_check_disagreement",
+      items: (latest.crossCheckReview?.verdicts ?? [])
+        .filter((verdict) => verdict.verdict === "disagree")
+        .map((verdict) => ({
+          before: null,
+          after: replacements.get(verdict.hunkId) ?? null,
+          reason: verdict.reason,
+        })),
+    };
+  }
+  if (
+    latest.operation === "needs_owner_input" &&
+    latest.rejection?.reasonCode === "candidate_invalid"
+  )
+    return {
+      predecessorCandidateId: latest.candidateId,
+      failure: "evidence_undetermined",
+      items: [{ before: null, after: null, reason: latest.explanation ?? "No explanation." }],
+    };
+  return undefined;
+}
+
 export async function processFreshnessFindings(input: {
   context: FreshnessGenerationContext;
   admitted: PrioritizedDocumentFreshnessFinding[];
@@ -37,7 +77,6 @@ export async function processFreshnessFindings(input: {
   state: FreshnessCycleState;
   now: Date;
   autoApply: boolean;
-  mandateKinds: readonly string[];
 }) {
   const { context, candidates, contents, ownershipOf, policy, state, now, autoApply } = input;
   const storage = context.storage;
@@ -66,6 +105,7 @@ export async function processFreshnessFindings(input: {
       (candidate) => candidate.findingDigest === entry.finding.findingDigest,
     ).length;
     let outcome: Awaited<ReturnType<typeof generateFreshnessCandidate>>;
+    const regeneration = freshnessRegenerationEvidence(candidates, entry.finding.findingDigest);
     const predecessor = candidates.find(
       (candidate) =>
         candidate.documentPath === entry.finding.documentPath &&
@@ -80,10 +120,10 @@ export async function processFreshnessFindings(input: {
         documentOwnership: ownershipOf(entry.finding.documentPath),
         attempt,
         policy,
-        mandateKinds: input.mandateKinds,
         autoApply,
         ...(priorRecovery?.nextCursor == null ? {} : { evidenceCursor: priorRecovery.nextCursor }),
         ...(predecessor === undefined ? {} : { predecessorCandidateId: predecessor.candidateId }),
+        ...(regeneration === undefined ? {} : { regeneration }),
       });
     } catch (error) {
       if (error instanceof DocumentFreshnessOperationError) continue;
@@ -135,20 +175,20 @@ export async function processFreshnessFindings(input: {
     state.budget.tokensUsed += outcome.tokensObserved;
     state.budget.attempts += 1;
     if (
-      [
-        "verified",
-        "verified_pending_cross_check",
-        "waiting_authority",
-        "applied",
-        "partially_applied",
-      ].includes(outcome.candidate.state)
+      ["verified", "verified_pending_cross_check", "applied", "partially_applied"].includes(
+        outcome.candidate.state,
+      )
     ) {
       verifiedCount += 1;
       state.budget.verified += 1;
     }
     if (outcome.candidate.state === "applied" || outcome.candidate.state === "partially_applied")
       appliedCount += 1;
-    if (outcome.candidate.rejection?.reasonCode === "cross_check_disagreement") disagreements += 1;
+    // A disagreement or an undetermined answer regenerates once, so the stage runs again.
+    if (
+      freshnessRegenerationEvidence([outcome.candidate], entry.finding.findingDigest) !== undefined
+    )
+      disagreements += 1;
   }
   return {
     candidateCount,

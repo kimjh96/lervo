@@ -93,18 +93,21 @@ export interface RepositoryReplicaDivergenceAttentionItemV1 extends OperatingAtt
 }
 
 /**
- * A verified document freshness candidate that needs the owner (ADR-0463): user-owned bytes, a
- * safety or policy line, an archive, or a hunk held until the Tier 0 cross-check exists.
+ * A verified document freshness candidate Lervo still holds (ADR-0463, ADR-0561): its required
+ * cross-check waits for Lervo's retry, or the rest of a partial apply waits for it. It is Lervo
+ * debt shown with its age, never owner work.
  */
 export interface DocumentFreshnessCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "document_freshness_candidate";
-  state: "waiting_authority" | "verified_pending_cross_check" | "partially_applied";
+  state: "lervo_debt";
   candidateId: string;
   documentPath: string;
   priorityClass: "safety" | "entrypoint" | "canonical" | "other";
   changeClasses: Array<"factual_reference" | "statement" | "safety_or_policy" | "archive">;
   hunkCount: number;
-  ownerConsequence?: "repository_write" | "security_policy" | null;
+  /** Why Lervo holds it: the cross-check's unavailable reason, or `legacy_owner_authority`. */
+  heldReason: string;
+  retryAt: string | null;
   createdAt?: string;
 }
 
@@ -120,15 +123,23 @@ export interface DocumentFreshnessAppliedAttentionItemV1 extends OperatingAttent
 }
 
 /**
- * The freshness loop cannot make progress: zero verified candidates from five attempts today, or
- * a candidate and its single regeneration both met Tier 0 material disagreement (ADR-0557).
+ * Lervo debt of the freshness loop (ADR-0561), held with backoff and never owner work: five
+ * attempts today produced no verified candidate, so generation pauses; or a finding's candidate and
+ * its single regeneration both met cross-check disagreement, both left the value undetermined, or a
+ * candidate exhausted its token budget.
  */
 export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "document_freshness_blocked";
-  state: "action_required";
-  reasonCode: "zero_success_window" | "repeated_cross_check_disagreement";
+  state: "lervo_debt";
+  reasonCode:
+    | "zero_success_window"
+    | "cross_check_disagreement_repeated"
+    | "freshness_evidence_undetermined"
+    | "budget_exceeded";
   documentPath: string | null;
   attempts: number;
+  since: string;
+  retryAt: string;
 }
 
 /**

@@ -16,7 +16,7 @@ import {
   writeFreshnessCycleState,
   writeFreshnessCandidate,
 } from "../src/freshness-state-store.js";
-import { applyFreshnessCandidateByOwner } from "../src/freshness-apply.js";
+import { applyVerifiedFreshness } from "../src/freshness-auto-apply.js";
 import { recoverFreshnessCandidates } from "../src/freshness-candidate-recovery.js";
 import { runDocumentFreshnessCycle } from "../src/freshness-stage.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
@@ -227,35 +227,7 @@ it("preserves reader-first activation and rejects applying changed evidence", as
   expect(await freshnessDependenciesCurrent(f.root, witness!)).toBe(false);
 });
 
-it("reclassifies empty legacy owner input without clearing a real approval request", async () => {
-  const f = await setup();
-  await history(f);
-  await f.plan({ "docs/specs/runtime.md": { operation: "needs_owner_input" } });
-  await f.cycle();
-  const [base] = await listFreshnessCandidates(f.root);
-  const { dependencyWitness: _witness, ...legacy } = base!;
-  const empty = { ...legacy, evidenceCount: 0 };
-  await writeFreshnessCandidate(f.root, empty);
-  const context = {
-    storage: f.storage,
-    provider: "claude" as const,
-    signal: new AbortController().signal,
-    liveWorkPending: async () => false,
-    now: () => new Date(),
-  };
-  const [recovered] = await recoverFreshnessCandidates(context, [empty]);
-  expect(recovered).toMatchObject({
-    state: "superseded",
-    rejection: { reasonCode: "candidate_invalid" },
-  });
-  const genuine = { ...empty, evidenceCount: 1 };
-  expect((await recoverFreshnessCandidates(context, [genuine]))[0]!.state).toBe(
-    "waiting_authority",
-  );
-  expect(await f.providerCalls()).toHaveLength(1);
-});
-
-it("blocks owner apply when the exact reviewed source changed without a document edit", async () => {
+it("supersedes a legacy owner-authority candidate for regeneration and keeps an applied one", async () => {
   const f = await setup();
   await history(f);
   await f.plan({
@@ -268,21 +240,75 @@ it("blocks owner apply when the exact reviewed source changed without a document
           evidencePaths: ["src/runtime.ts"],
         },
       ],
+      crossCheck: "invalid",
+    },
+  });
+  await f.cycle();
+  const [base] = await listFreshnessCandidates(f.root);
+  expect(base).toMatchObject({ state: "verified_pending_cross_check" });
+  // Records written before ADR-0561 waited for the owner in `waiting_authority`.
+  const { dependencyWitness: _witness, ...stripped } = base!;
+  const legacy = { ...stripped, state: "waiting_authority" as const };
+  await writeFreshnessCandidate(f.root, legacy);
+  const context = {
+    storage: f.storage,
+    provider: "claude" as const,
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    now: () => new Date(),
+  };
+  const [recovered] = await recoverFreshnessCandidates(context, [legacy]);
+  expect(recovered).toMatchObject({
+    state: "superseded",
+    rejection: { reasonCode: "candidate_invalid" },
+  });
+  const applied = { ...legacy, state: "applied" as const, appliedHash: legacy.sourceHash };
+  expect((await recoverFreshnessCandidates(context, [applied]))[0]!.state).toBe("applied");
+  // A partial apply whose agreed remainder waited for the owner can never progress either.
+  const partial = {
+    ...stripped,
+    candidateId: "kfresh_0000000000000000000000ff",
+    state: "partially_applied" as const,
+    crossCheck: "agreement" as const,
+  };
+  expect((await recoverFreshnessCandidates(context, [partial]))[0]).toMatchObject({
+    state: "superseded",
+    rejection: { reasonCode: "candidate_invalid" },
+  });
+  // A held candidate whose cross-check is only unavailable is retried, not regenerated.
+  expect((await recoverFreshnessCandidates(context, [base!]))[0]!.state).toBe(
+    "verified_pending_cross_check",
+  );
+  expect(await f.providerCalls()).toHaveLength(2);
+});
+
+it("refuses Lervo's apply when the exact reviewed source changed without a document edit", async () => {
+  const f = await setup();
+  await history(f);
+  await f.plan({
+    "docs/specs/runtime.md": {
+      operation: "edit",
+      hunks: [
+        {
+          before: "The runtime stays alive.",
+          after: "The runtime stays alive with count 2.",
+          evidencePaths: ["src/runtime.ts"],
+        },
+      ],
+      // The cross-check stays unavailable, so the verified candidate is held before apply.
+      crossCheck: "invalid",
     },
   });
   await f.cycle();
   const [candidate] = await listFreshnessCandidates(f.root);
-  expect(candidate!.afterHash).not.toBeNull();
+  expect(candidate).toMatchObject({ state: "verified_pending_cross_check" });
   const before = await f.read(candidate!.documentPath);
   await f.write("src/runtime.ts", "export const alive = true;\nexport const count = 3;\n");
   await expect(
-    applyFreshnessCandidateByOwner({
-      storage: f.storage,
-      candidate: candidate!,
-      approvalHash: candidate!.afterHash!,
-      reviewer: "owner",
-      now: new Date(),
-    }),
+    applyVerifiedFreshness(
+      { storage: f.storage, now: () => new Date() },
+      { ...candidate!, state: "verified", crossCheck: "agreement" },
+    ),
   ).rejects.toMatchObject({ code: "source_changed" });
   expect(await f.read(candidate!.documentPath)).toBe(before);
   expect(f.eventsOf("document.freshness.candidate.applied")).toHaveLength(0);

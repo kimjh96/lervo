@@ -2,7 +2,7 @@ import { readPrivateStateJson, writePrivateStateJson } from "./private-state-fil
 
 /** ADR-0549: one thing Lervo committed, with the reason its commit records. */
 export interface LearnedNoticeEntry {
-  kind: "owner_rule" | "skill" | "canonical" | "updated";
+  kind: "owner_rule" | "skill" | "canonical" | "freshness" | "updated";
   path: string;
   title: string | null;
   /** Repository-relative Markdown link targets the change added; canonical documents only. */
@@ -11,6 +11,13 @@ export interface LearnedNoticeEntry {
   replaced?: string[];
   /** ADR-0561: the owner rule was retired (deleted) rather than stored. */
   retired?: true;
+  /** ADR-0561 freshness notice: what Lervo did, why, the cross-check, and the undo command. */
+  freshness?: {
+    effect: "refresh" | "archive";
+    reason: string;
+    crossCheck: string;
+    undo: string;
+  };
 }
 
 export interface LearnedNotice {
@@ -34,7 +41,7 @@ export interface LearnedNoticeCursor {
 const NOTICE = "learned-notice.json";
 const CURSOR = "learned-notice-cursor.json";
 const COMMIT = /^[a-f0-9]{40,64}$/u;
-const KINDS = ["owner_rule", "skill", "canonical", "updated"] as const;
+const KINDS = ["owner_rule", "skill", "canonical", "freshness", "updated"] as const;
 
 function validNotice(value: unknown): value is LearnedNotice {
   const notice = value as LearnedNotice | null;
@@ -56,7 +63,12 @@ function validNotice(value: unknown): value is LearnedNotice {
         (entry.replaced === undefined ||
           (Array.isArray(entry.replaced) &&
             entry.replaced.every((path) => typeof path === "string"))) &&
-        (entry.retired === undefined || entry.retired === true),
+        (entry.retired === undefined || entry.retired === true) &&
+        (entry.freshness === undefined ||
+          ((entry.freshness.effect === "refresh" || entry.freshness.effect === "archive") &&
+            [entry.freshness.reason, entry.freshness.crossCheck, entry.freshness.undo].every(
+              (value) => typeof value === "string",
+            ))),
     )
   );
 }

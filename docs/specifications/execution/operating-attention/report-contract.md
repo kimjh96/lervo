@@ -35,11 +35,11 @@ Under [ADR-0464](../../../decisions/knowledge/documents/0464-report-document-dri
 
 ## Document freshness
 
-[ADR-0463](../../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) defines three item kinds:
+[ADR-0463](../../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) defines three item kinds. Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) none requires user action or blocks, whatever the ownership or class of the bytes:
 
-- `document_freshness_candidate`: a verified held candidate, attributed to the resident freshness cycle unless pending hunks concern user-owned bytes, owner-authorized writes or safety/policy. Only those consequential effects require user action; the item is never blocking.
-- `document_freshness_applied`: an informational, agent-owned apply notice naming the revert command; resolves on acknowledgement or after 24 hours.
-- `document_freshness_blocked`: reports five attempts with no verified candidate in one day.
+- `document_freshness_candidate` (`lervo_debt`): a verified candidate Lervo holds until its retried cross-check agrees, attributed to the resident freshness cycle with its `heldReason` and `retryAt`.
+- `document_freshness_applied`: an informational, agent-owned apply notice naming the reason, the cross-check verdict, and the revert command; resolves on acknowledgement or after 24 hours.
+- `document_freshness_blocked` (`lervo_debt`): the zero-success hold, or a finding held as Lervo debt (`cross_check_disagreement_repeated`, `freshness_evidence_undetermined`, `budget_exceeded`), each with `since` and `retryAt`.
 
 These items carry candidate identifiers, relative paths, classes, and counts, never hunk text. The projection reads rebuildable freshness state in `lervo application attention` and on the cached retrieval prompt path. Unreadable state contributes no item. The compact prompt reads the shared health projection instead of rendering a freshness-review chore.
 

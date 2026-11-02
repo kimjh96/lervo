@@ -8,14 +8,10 @@ import {
 } from "./document-freshness-checks.js";
 import {
   classifyDocumentFreshnessHunk,
-  documentFreshnessAuthority,
   documentFreshnessCrossCheckRequired,
   documentFreshnessRangeOwnership,
 } from "./document-freshness-classification.js";
-import {
-  documentFreshnessCandidateAuthority,
-  documentFreshnessVerifiedState,
-} from "./document-freshness-candidate-state.js";
+import { documentFreshnessVerifiedState } from "./document-freshness-candidate-state.js";
 import type {
   DocumentFreshnessCandidateV1,
   DocumentFreshnessCheckResult,
@@ -56,8 +52,6 @@ export interface DocumentFreshnessCandidateInput {
   tokensObserved: number;
   policy: DocumentFreshnessPolicy;
   oracle: DocumentFreshnessTreeOracle;
-  /** Decision kinds of the installed principal mandate; empty in version 1. */
-  mandateKinds: readonly string[];
   /** Other current Markdown documents, read only when the proposal is an archive. */
   inboundDocuments: () => Array<{ path: string; content: string }>;
   now: string;
@@ -185,11 +179,7 @@ function editCandidate(
       changeClass,
       ownership: effectiveOwnership,
       managedBlockId: ownership?.managedBlockId ?? null,
-      authorityRequired: documentFreshnessAuthority({
-        ownership: effectiveOwnership,
-        changeClass,
-        mandateKinds: input.mandateKinds,
-      }),
+      authorityRequired: "none",
       crossCheckRequired: documentFreshnessCrossCheckRequired({
         ownership: effectiveOwnership,
         changeClass,
@@ -216,13 +206,7 @@ function editCandidate(
   const crossCheck = hunks.some((hunk) => hunk.crossCheckRequired)
     ? ("unavailable" as const)
     : ("not_required" as const);
-  const candidate = {
-    ...base,
-    hunks,
-    checks,
-    authorityRequired: documentFreshnessCandidateAuthority(hunks, crossCheck),
-    crossCheck,
-  };
+  const candidate = { ...base, hunks, checks, crossCheck };
   const failure = documentFreshnessCheckFailure(checks);
   if (failure !== null)
     return rejected(candidate, {
@@ -285,13 +269,17 @@ function archiveCandidate(
       detail: `banner=${bannerBytes};inbound=${plan.inboundLinkRewrites.length};outgoing=${plan.outgoingLinkRewrites.length}`,
     },
   ];
-  const authority = input.documentOwnership === "lervo_managed" ? "none" : "owner";
+  const crossCheckRequired = documentFreshnessCrossCheckRequired({
+    ownership: input.documentOwnership,
+    changeClass: null,
+    operation: "archive",
+    policy: input.policy,
+  });
   const candidate = {
     ...base,
     archive: plan,
     checks,
-    crossCheck: "unavailable" as const,
-    authorityRequired: "owner" as const,
+    crossCheck: crossCheckRequired ? ("unavailable" as const) : ("not_required" as const),
   };
   const failure = documentFreshnessCheckFailure(checks);
   if (failure !== null)
@@ -302,26 +290,19 @@ function archiveCandidate(
     });
   return finish({
     ...candidate,
-    // Archives always need the cross-check; Tier 0 covers edit hunks only, so the owner reviews.
-    authorityRequired: documentFreshnessCrossCheckRequired({
-      ownership: input.documentOwnership,
-      changeClass: null,
-      operation: "archive",
-      policy: input.policy,
-    })
-      ? "owner"
-      : authority,
     afterHash: sha256(applied.targetContent),
-    state: "verified_pending_cross_check",
+    // ADR-0561: the archive and its inbound link rewrites wait for two agreeing cross-checks.
+    state: crossCheckRequired ? "verified_pending_cross_check" : "verified",
   });
 }
 
 /**
- * Turns one provider proposal into a candidate: locate hunks by exact text, classify, derive
- * authority, apply in memory, and run every deterministic check. Pure apart from the read-only
- * tree oracle; nothing is written. A consequential hunk leaves with `crossCheck: unavailable`;
- * the runtime then runs the ADR-0557 Tier 0 cross-check and settles it with
- * `settleDocumentFreshnessCrossCheck`.
+ * Turns one provider proposal into a candidate: locate hunks by exact text, classify, apply in
+ * memory, and run every deterministic check. Pure apart from the read-only tree oracle; nothing is
+ * written. A consequential hunk or an archive leaves with `crossCheck: unavailable`; the runtime
+ * then runs the ADR-0557 Tier 0 cross-check and settles it with
+ * `settleDocumentFreshnessCrossCheck`. A `needs_owner_input` answer is rejected as
+ * `candidate_invalid`: the runtime recovers evidence and regenerates once (ADR-0561).
  */
 export function buildDocumentFreshnessCandidate(
   input: DocumentFreshnessCandidateInput,
@@ -343,12 +324,10 @@ export function buildDocumentFreshnessCandidate(
   if (proposal.operation === "no_change_needed")
     return finish({ ...base, explanation: proposal.explanation, state: "verified" });
   if (proposal.operation === "needs_owner_input")
-    return finish({
-      ...base,
-      explanation: proposal.explanation,
-      authorityRequired: "owner",
-      state: "waiting_authority",
-    });
+    return rejected(
+      { ...base, explanation: proposal.explanation },
+      { reasonCode: "candidate_invalid", rejectorKind: "deterministic", contestedHunkIds: [] },
+    );
   if (proposal.operation === "archive") return archiveCandidate(input, proposal, base);
   return editCandidate(input, proposal, base);
 }

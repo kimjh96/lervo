@@ -1,7 +1,6 @@
 import { parseManagedMarkdownBlocks } from "@lervo/documents";
 
 import type {
-  DocumentFreshnessAuthority,
   DocumentFreshnessChangeClass,
   DocumentFreshnessOperation,
   DocumentFreshnessOwnership,
@@ -13,7 +12,7 @@ import { documentFreshnessSafetyLine } from "./document-freshness-priority.js";
 /**
  * Leading verbs that make an `AGENTS.md` or `CLAUDE.md` line an instruction. The list is closed so
  * classification stays deterministic; an unlisted verb falls back to `statement`, which still
- * needs the owner on user-owned documents.
+ * needs two agreeing cross-checks on user-owned documents.
  */
 const imperativeVerbs = new Set([
   "add",
@@ -171,26 +170,7 @@ export function documentFreshnessRangeOwnership(input: {
 }
 
 /**
- * ADR-0463 authority matrix. Version 1 installs no `document_freshness` mandate kind, so a
- * user-owned `factual_reference` hunk needs the owner until a mandate lists the kind.
- */
-export function documentFreshnessAuthority(input: {
-  ownership: DocumentFreshnessOwnership;
-  changeClass: DocumentFreshnessChangeClass;
-  mandateKinds: readonly string[];
-}): DocumentFreshnessAuthority {
-  if (input.changeClass === "safety_or_policy") return "owner";
-  if (input.ownership === "lervo_managed") return "none";
-  if (
-    input.changeClass === "factual_reference" &&
-    input.mandateKinds.includes("document_freshness")
-  )
-    return "principal_mandate";
-  return "owner";
-}
-
-/**
- * Whether the ADR-0460 Tier 0 cross-check must agree before any authority applies the change:
+ * Whether the ADR-0460 Tier 0 cross-check must agree before Lervo applies the change:
  * consequential classes, user-owned bytes, and archives. `never` is refused for user-owned bytes.
  */
 export function documentFreshnessCrossCheckRequired(input: {
@@ -230,19 +210,18 @@ export function documentFreshnessDocumentOwnership(input: {
     : "user_owned";
 }
 
-const authorityRank: Record<DocumentFreshnessAuthority, number> = {
-  none: 0,
-  principal_mandate: 1,
-  owner: 2,
-};
-
-/** The strongest authority any part of the candidate needs. */
-export function strongestDocumentFreshnessAuthority(
-  authorities: readonly DocumentFreshnessAuthority[],
-): DocumentFreshnessAuthority {
-  return authorities.reduce<DocumentFreshnessAuthority>(
-    (strongest, authority) =>
-      authorityRank[authority] > authorityRank[strongest] ? authority : strongest,
-    "none",
-  );
+/**
+ * ADR-0561: how many independent agreeing cross-checks a required change needs. A safety or policy
+ * hunk, a user-owned statement hunk, and an archive need two; every other required change needs one.
+ */
+export function documentFreshnessRequiredAgreements(input: {
+  ownership: DocumentFreshnessOwnership;
+  changeClass: DocumentFreshnessChangeClass | null;
+  operation: DocumentFreshnessOperation;
+}): 1 | 2 {
+  return input.operation === "archive" ||
+    input.changeClass === "safety_or_policy" ||
+    (input.ownership === "user_owned" && input.changeClass === "statement")
+    ? 2
+    : 1;
 }

@@ -53,9 +53,17 @@ export interface RepositoryHealthProjectionV1 {
       cycleStale: number | null;
       safety: number | null;
       firstSafetyPath: string | null;
+      /** Candidates Lervo holds; the name predates ADR-0561, and none waits for the owner. */
       awaitingReview: number | null;
       refreshed: number | null;
       blocked: boolean | null;
+      /** Additive (ADR-0561): stale documents Lervo holds as its own debt, oldest first. */
+      debt?: Array<{
+        path: string;
+        reason: string;
+        since: string;
+        ageMilliseconds: number | null;
+      }> | null;
     }>;
     ownerReview: RepositoryHealthMeasureV1<{
       count: number | null;

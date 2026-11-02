@@ -28,6 +28,8 @@ export interface FreshnessPlanEntry {
   assessmentAgrees?: boolean;
   /** Tier 0 reviewer answer; `agree` when absent. */
   crossCheck?: "agree" | "disagree" | "invalid" | "fail" | "quota";
+  /** The nth cross-check call for the document answers with the nth mode; then `crossCheck`. */
+  crossCheckSequence?: Array<"agree" | "disagree" | "invalid" | "fail" | "quota">;
   /** With `disagree`, contest only the hunks with these `before` texts. */
   crossCheckDisagree?: string[];
   crossCheckInputTokens?: number;
@@ -83,7 +85,9 @@ export async function freshnessFixture(eventSchema: 4 | 5 = 4) {
         JSON.stringify(entries),
       );
     },
-    async providerCalls(): Promise<Array<{ task: string; document: string | null }>> {
+    async providerCalls(): Promise<
+      Array<{ task: string; document: string | null; regeneration?: string | null }>
+    > {
       try {
         return (
           await readFile(resolve(providerDirectory, "document-freshness-calls.jsonl"), "utf8")
@@ -91,7 +95,14 @@ export async function freshnessFixture(eventSchema: 4 | 5 = 4) {
           .trim()
           .split("\n")
           .filter(Boolean)
-          .map((line) => JSON.parse(line) as { task: string; document: string | null });
+          .map(
+            (line) =>
+              JSON.parse(line) as {
+                task: string;
+                document: string | null;
+                regeneration?: string | null;
+              },
+          );
       } catch {
         return [];
       }
