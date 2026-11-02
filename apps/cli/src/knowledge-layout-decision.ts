@@ -9,14 +9,22 @@ import {
   type RepositoryLayoutMigrationPlan,
 } from "@lervo/repository-knowledge";
 
-/** ADR-0559: the one command that accepts a layout decision, and the one that declines it. */
-export function repositoryLayoutDecisionCommands(decision: RepositoryLayoutDecision): {
-  accept: string;
-  decline: string;
-} {
+function shellWord(value: string): string {
+  return /^[A-Za-z0-9_./:@%+=,-]+$/u.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
+/**
+ * ADR-0559: the one command that accepts a layout decision, and the one that declines it. Both
+ * name the repository, so they act on it from any working directory.
+ */
+export function repositoryLayoutDecisionCommands(
+  decision: RepositoryLayoutDecision,
+  repositoryRoot: string,
+): { accept: string; decline: string } {
+  const base = `lervo migrate knowledge --root ${shellWord(repositoryRoot)}`;
   return {
-    accept: `lervo migrate knowledge --accept-layout ${repositoryLayoutDecisionToken(decision)}`,
-    decline: `lervo migrate knowledge --decline-layout ${decision.decisionId}`,
+    accept: `${base} --accept-layout ${repositoryLayoutDecisionToken(decision)}`,
+    decline: `${base} --decline-layout ${decision.decisionId}`,
   };
 }
 
@@ -30,8 +38,11 @@ export function repositoryLayoutDecisionSummary(decision: RepositoryLayoutDecisi
   return `Move ${decision.moveCount} documents (${destinations})${updates}, rewriting ${decision.referenceUpdateCount} references. Recommendation: accept.`;
 }
 
-export function formatRepositoryLayoutDecision(decision: RepositoryLayoutDecision): string[] {
-  const commands = repositoryLayoutDecisionCommands(decision);
+export function formatRepositoryLayoutDecision(
+  decision: RepositoryLayoutDecision,
+  repositoryRoot: string,
+): string[] {
+  const commands = repositoryLayoutDecisionCommands(decision, repositoryRoot);
   return [
     `Layout decision: ${decision.decisionId}`,
     `  ${repositoryLayoutDecisionSummary(decision)}`,
@@ -65,7 +76,7 @@ export async function pendingLayoutDecision(
   return {
     decisionId: decision.decisionId,
     summary: repositoryLayoutDecisionSummary(decision),
-    ...repositoryLayoutDecisionCommands(decision),
+    ...repositoryLayoutDecisionCommands(decision, repositoryRoot),
   };
 }
 

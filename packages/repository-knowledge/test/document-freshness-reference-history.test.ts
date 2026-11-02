@@ -266,6 +266,58 @@ describe("never-tracked reference targets (ADR-0558)", () => {
     });
   });
 
+  it("checks the whole line when a replacement edits part of a link past the cap", () => {
+    const path = "docs/evidence.md";
+    const fixtures = Array.from(
+      { length: MAXIMUM_DOCUMENT_REFERENCES },
+      (_, index) => `- \`fixtures/case-${index}.json\``,
+    );
+    const source = Buffer.from(`# Evidence\n\n${fixtures.join("\n")}\n\nSee [doc](old.md).\n`);
+    const start = source.indexOf("old.md");
+    const output = Buffer.concat([
+      source.subarray(0, start),
+      Buffer.from("invented"),
+      source.subarray(start + "old".length),
+    ]);
+    const oracle = { ...absentOracle, exists: (target: string) => target === "docs/old.md" };
+    const checks = runDocumentFreshnessChecks({
+      documentPath: path,
+      source,
+      sourceHash: sha256(source),
+      currentHash: sha256(source),
+      output,
+      hunks: [
+        {
+          hunkId: "h1",
+          range: { startByte: start, endByte: start + "old".length },
+          beforeHash: sha256(Buffer.from("old")),
+          replacement: "invented",
+          changeClass: "factual_reference",
+          ownership: "lervo_managed",
+          managedBlockId: null,
+          authorityRequired: "none",
+          crossCheckRequired: false,
+          claims: [],
+        },
+      ],
+      finding: {
+        references: documentFreshnessReferences({
+          path,
+          content: source.toString("utf8"),
+          oracle,
+          neverTracked: new Set(fixtures.map((_, index) => `fixtures/case-${index}.json`)),
+        }),
+      },
+      bundleEvidence: new Set(),
+      policy: defaultDocumentFreshnessPolicy,
+      oracle,
+    });
+    expect(checks.find((check) => check.code === "references_resolve")).toMatchObject({
+      status: "failed",
+      detail: "unresolved=docs/invented.md",
+    });
+  });
+
   it("observes an entrypoint finding only for the removed reference", async () => {
     const { root } = await repository();
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_referencehistory" }));

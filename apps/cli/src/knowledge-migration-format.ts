@@ -59,7 +59,8 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
     lines.push(`  blocker [${blocker.code}] ${blocker.path ?? blocker.pathDigest}${details}`);
   }
   const decision = repositoryLayoutDecision(plan);
-  if (decision !== null) lines.push(...formatRepositoryLayoutDecision(decision));
+  if (decision !== null)
+    lines.push(...formatRepositoryLayoutDecision(decision, plan.repositoryRoot));
   if (plan.status === "review_required")
     lines.push(
       "No files have been changed.",

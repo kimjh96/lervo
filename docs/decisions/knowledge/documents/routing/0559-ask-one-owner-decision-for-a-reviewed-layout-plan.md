@@ -26,6 +26,7 @@ A `review_required` layout plan with no blockers and at least one item approval 
 
 ### One accept command, one decline command
 
+- Both commands carry `--root <repository>`, so they act on the right repository from any working directory.
 - `lervo migrate knowledge --accept-layout <decisionId>=<decisionHash>` rebuilds the plan. If the token names the current decision, the command applies the plan with every item approval. This is exactly what passing each displayed `--approve-item` with `--apply <planId>` grants, through the same apply, lint, journal, and receipt.
 - `lervo migrate knowledge --decline-layout <decisionId>` records the decline and changes no repository bytes.
 - A malformed or stale token grants nothing. The flags cannot be combined with each other, with `--apply`, or with `--approve-item`. They work only when the layout stage is the pending stage; an earlier pending stage reports that the decision was not used.
@@ -36,7 +37,7 @@ A `review_required` layout plan with no blockers and at least one item approval 
 - The plan text prints `Layout decision`, the summary with `Recommendation: accept`, and both commands.
 - Terminal lifecycle inspection reports `repository_layout_decision_pending` instead of `repository_layout_review_required`. The command is the accept command plus the decline command, and the detail is the summary. Attention attributes it to the owner with consequence `repository_write`, so the existing health owner-authority line names it with the accept command.
 - `lervo upgrade` reports the knowledge stage as `pending_authority (layout_decision_pending)` with the summary and both commands. The other stages converge independently, as before.
-- A declined decision leaves attention. `lervo upgrade` reports the knowledge stage as `current (layout_decision_declined)`. A changed plan is a new decision and is asked again.
+- A declined decision is no longer asked. The later knowledge stages wait behind the layout stage and stay uninspected, so `lervo upgrade` reports the knowledge stage as `deferred (layout_decision_declined)`, not current, and attention keeps one non-gating `repository_layout_decision_declined` advisory with the accept command. A changed plan is a new decision and is asked again.
 
 ### Decline record
 

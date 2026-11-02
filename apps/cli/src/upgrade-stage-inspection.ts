@@ -261,11 +261,12 @@ async function knowledgeDisposition(
     envelope === null && planKind === "repository_layout" && status === "review_required"
       ? await pendingLayoutDecision(root, result.value)
       : null;
-  // A declined decision is settled: the rest of the upgrade is current until the plan changes.
+  // A declined decision is settled, not current: the later knowledge stages it holds back stay
+  // uninspected, so the stage reports them as deferred until the plan changes.
   if (decision !== null)
     return {
       ...(decision === "declined"
-        ? { disposition: "current", reason: "layout_decision_declined" }
+        ? { disposition: "deferred", reason: "layout_decision_declined" }
         : { disposition: "pending_authority", reason: "layout_decision_pending" }),
       planKind,
       planId,

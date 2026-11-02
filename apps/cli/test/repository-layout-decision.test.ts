@@ -36,8 +36,10 @@ async function repository() {
 
 function decisionLines(out: string): { decisionId: string; accept: string; decline: string } {
   const decisionId = /Layout decision: (klaydec_[a-f0-9]{24})/u.exec(out)?.[1];
-  const accept = /Accept: lervo (migrate knowledge --accept-layout \S+)/u.exec(out)?.[1];
-  const decline = /Decline: lervo (migrate knowledge --decline-layout \S+)/u.exec(out)?.[1];
+  const accept = /Accept: lervo (migrate knowledge --root \S+ --accept-layout \S+)/u.exec(out)?.[1];
+  const decline = /Decline: lervo (migrate knowledge --root \S+ --decline-layout \S+)/u.exec(
+    out,
+  )?.[1];
   if (decisionId === undefined || accept === undefined || decline === undefined)
     throw new Error(`no layout decision in:\n${out}`);
   return { decisionId, accept, decline };
@@ -97,11 +99,22 @@ describe("repository layout decision (ADR-0559)", () => {
     expect(declined.out).toContain(`Declined layout decision ${decision.decisionId}`);
     expect(await readFile(resolve(root, "ARCHITECTURE.md"), "utf8")).toContain("Runtime design.");
     const status = await run(["terminal", "status", "--json"]);
-    const codes = (JSON.parse(status.out).issues as Array<{ code: string }>).map(
-      (issue) => issue.code,
-    );
+    const declinedStatus = JSON.parse(status.out) as {
+      issues: Array<{ code: string }>;
+      knowledgeAdvisories?: Array<{ code: string }>;
+    };
+    const codes = declinedStatus.issues.map((issue) => issue.code);
     expect(codes).not.toContain("repository_layout_decision_pending");
     expect(codes).not.toContain("repository_layout_review_required");
+    // The decline holds the later knowledge stages back, so it stays visible without asking.
+    expect(declinedStatus.knowledgeAdvisories?.map((item) => item.code)).toContain(
+      "repository_layout_decision_declined",
+    );
+    const upgrade = await run(["upgrade", "--json"]);
+    expect(JSON.parse(upgrade.out).stages.knowledge).toMatchObject({
+      disposition: "deferred",
+      reason: "layout_decision_declined",
+    });
 
     // A changed plan is a new decision and is asked again.
     await writeFile(resolve(root, "CONTRIBUTING.md"), "# Contributing\n\nOpen a pull request.\n");

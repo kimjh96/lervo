@@ -155,6 +155,26 @@ function structureCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessCh
   return result("commonmark_structure", true, `headings=${after.length}`);
 }
 
+/** The complete output lines each hunk's replacement occupies, in output coordinates. */
+function replacedOutputLines(
+  output: Uint8Array,
+  hunks: readonly DocumentFreshnessHunk[],
+): string[] {
+  const bytes = Buffer.from(output);
+  const ordered = [...hunks].sort((left, right) => left.range.startByte - right.range.startByte);
+  const result: string[] = [];
+  let delta = 0;
+  for (const hunk of ordered) {
+    const length = Buffer.byteLength(hunk.replacement);
+    const start = hunk.range.startByte + delta;
+    delta += length - (hunk.range.endByte - hunk.range.startByte);
+    const lineStart = bytes.lastIndexOf(0x0a, start - 1) + 1;
+    const next = bytes.indexOf(0x0a, start + length);
+    result.push(bytes.subarray(lineStart, next === -1 ? bytes.length : next).toString("utf8"));
+  }
+  return result;
+}
+
 function referencesCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessCheckResult[] {
   const output = Buffer.from(input.output).toString("utf8");
   const neverTracked = new Set(
@@ -169,16 +189,17 @@ function referencesCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessC
     neverTracked,
   });
   // The extractor stops at its reference cap, so a reference an edit adds past the cap would go
-  // unseen. Then every replacement is checked on its own as well.
+  // unseen. Then the whole output lines of every replacement are checked on their own as well; a
+  // replacement can be part of a link target, so the replacement text alone is not enough.
   if (
     extractDocumentReferences({ path: input.documentPath, content: output }).length >=
     MAXIMUM_DOCUMENT_REFERENCES
   )
-    for (const hunk of input.hunks)
+    for (const lines of replacedOutputLines(input.output, input.hunks))
       unresolved.push(
         ...unresolvedDocumentReferences({
           path: input.documentPath,
-          content: hunk.replacement,
+          content: lines,
           oracle: input.oracle,
           neverTracked,
         }),

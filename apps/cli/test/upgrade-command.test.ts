@@ -501,8 +501,12 @@ describe("lervo upgrade", () => {
       reason: "layout_decision_pending",
       layoutDecision: {
         decisionId: expect.stringMatching(/^klaydec_/u),
-        accept: expect.stringContaining("lervo migrate knowledge --accept-layout klaydec_"),
-        decline: expect.stringContaining("lervo migrate knowledge --decline-layout klaydec_"),
+        accept: expect.stringMatching(
+          /^lervo migrate knowledge --root \S+ --accept-layout klaydec_/u,
+        ),
+        decline: expect.stringMatching(
+          /^lervo migrate knowledge --root \S+ --decline-layout klaydec_/u,
+        ),
       },
     });
 
