@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 import { canonicalJson } from "@lervo/event-contract";
-import { handleWorkstreamPublish, handleWorkstreamRead } from "@lervo/hub-sync";
+import {
+  handleWorkstreamPublish,
+  handleWorkstreamRead,
+  handleWorkstreamRevisionRead,
+} from "@lervo/hub-sync";
 import type { WorkstreamSnapshot } from "@lervo/schemas";
 import { planWorkstreamReconciliation } from "@lervo/sync";
 import { afterEach, expect, it } from "vitest";
@@ -73,16 +77,31 @@ it("reconciles both active fork heads, retains immutable history, and survives a
     });
   const first = revision(base, null);
   await publish(first);
-  const local = revision({ ...base, revision: 2, title: "Local task" }, first.snapshotContentHash);
+  const local = revision(
+    { ...base, revision: 2, title: "Local task", updatedAt: "2026-10-07T00:30:00.000Z" },
+    first.snapshotContentHash,
+  );
   const hub = revision({ ...base, revision: 2, title: "Hub task" }, first.snapshotContentHash);
   await publish(hub);
-  const remote = await handleWorkstreamRead({ store, ...scope });
+  const peer = await handleWorkstreamRevisionRead({
+    store,
+    ...scope,
+    snapshotContentHash: hub.snapshotContentHash,
+  });
+  expect(peer).toMatchObject({ isHead: true, snapshot: { title: "Hub task" } });
   const plan = planWorkstreamReconciliation({
     projectId: project.projectId,
     local,
-    remote,
-    keep: "local",
-    now: base.updatedAt,
+    peer: {
+      ...peer,
+      snapshotContentHash: hub.snapshotContentHash,
+      previousSnapshotContentHash: null,
+    },
+  });
+  // The newer local head is kept; the Hub head is preserved as an immutable parent.
+  expect(plan).toMatchObject({
+    kept: "local",
+    preserved: { snapshotContentHash: hub.snapshotContentHash },
   });
   await expect(publish(plan.revision)).rejects.toMatchObject({ code: "unknown_parent" });
   await publish(local);
@@ -115,10 +134,21 @@ it("reconciles both active fork heads, retains immutable history, and survives a
     status: "duplicate",
     heads: [{ revision: 2 }],
   });
+  // The preserved parent stays readable by its exact hash after it stopped being a head.
+  await expect(
+    handleWorkstreamRevisionRead({ store, ...scope, snapshotContentHash: hub.snapshotContentHash }),
+  ).resolves.toMatchObject({ isHead: false, snapshot: { title: "Hub task" } });
+  await expect(
+    handleWorkstreamRevisionRead({
+      store,
+      ...scope,
+      snapshotContentHash: `sha256:${"e".repeat(64)}`,
+    }),
+  ).rejects.toMatchObject({ code: "revision_not_found" });
   await store.close();
 });
 
-it("rejects reconciliation when either reviewed head has advanced", async () => {
+it("rejects reconciliation when either head has advanced", async () => {
   const project = manifest("prj_reconcile_hub_02");
   const registered = registration(project);
   const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
@@ -141,19 +171,7 @@ it("rejects reconciliation when either reviewed head has advanced", async () => 
   const hub = revision({ ...base, revision: 2, title: "Hub" }, first.snapshotContentHash);
   await publish(hub);
   const local = revision({ ...base, revision: 2, title: "Local" }, first.snapshotContentHash);
-  const remote = await handleWorkstreamRead({
-    store,
-    destinationId,
-    projectId: project.projectId,
-    repositoryIdentityHash: registered.projectIdentityHash,
-  });
-  const plan = planWorkstreamReconciliation({
-    projectId: project.projectId,
-    local,
-    remote,
-    keep: "hub",
-    now: base.updatedAt,
-  });
+  const plan = planWorkstreamReconciliation({ projectId: project.projectId, local, peer: hub });
   await publish(local);
   await publish(revision({ ...local.snapshot, revision: 3 }, local.snapshotContentHash));
   await expect(publish(plan.revision)).rejects.toMatchObject({ code: "workstream_conflict" });

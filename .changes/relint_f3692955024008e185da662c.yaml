@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f3692955024008e185da662c"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Lervo reconciles divergent workstream heads and replica conflicts itself after a backup, and its principal proxy decides supervision escalations past the bound"

@@ -56,11 +56,25 @@ export function matchHubSyncRoute(pathname: string): HubSyncHttpRoute | null {
   return { kind, projectId, contentHash: segments[6]! };
 }
 
-export function hubSyncQuery(parameters: URLSearchParams): {
+/**
+ * ADR-0561: a workstream read may name one stored revision by its exact content hash; every other
+ * route keeps the two fixed coordinates only.
+ */
+export function hubWorkstreamRevisionQuery(parameters: URLSearchParams): string | null {
+  const values = parameters.getAll("snapshotContentHash");
+  if (values.length === 0) return null;
+  if (values.length !== 1 || !HASH_PATTERN.test(values[0]!)) throw new InvalidHubHttpRequestError();
+  return values[0]!;
+}
+
+export function hubSyncQuery(
+  parameters: URLSearchParams,
+  optionalKeys: readonly string[] = [],
+): {
   destinationId: string;
   projectIdentityHash: string;
 } {
-  const allowed = new Set(["destinationId", "projectIdentityHash"]);
+  const allowed = new Set(["destinationId", "projectIdentityHash", ...optionalKeys]);
   for (const key of parameters.keys()) {
     if (!allowed.has(key)) throw new InvalidHubHttpRequestError();
   }

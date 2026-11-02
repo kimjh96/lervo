@@ -6,6 +6,7 @@ import {
   type WorkstreamReplicationPublishRequest,
   type WorkstreamReplicationPublishResponse,
   type WorkstreamReplicationReadResponse,
+  type WorkstreamReplicationRevisionResponse,
 } from "@lervo/schemas";
 
 export interface HubProjectCoordinate {
@@ -44,6 +45,14 @@ export interface HubWorkstreamReplicationStore {
     projectId: string;
     repositoryIdentityHash: string;
   }): Promise<WorkstreamReplicationReadResponse>;
+
+  /** ADR-0561: one immutable stored revision, head or not, by its exact content hash. */
+  readWorkstreamRevision(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+    snapshotContentHash: string;
+  }): Promise<WorkstreamReplicationRevisionResponse>;
 }
 
 /** Operational checks are deliberately separate from the request path. */

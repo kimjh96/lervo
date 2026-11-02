@@ -139,6 +139,8 @@ export class RepositoryReplicaDivergenceLedger {
     replicaId: string;
     localRoot: string;
     conflictPolicy: RepositoryReplicaConflictPolicy;
+    /** ADR-0561: the side preference the coordinator applied after saving the losing side. */
+    strategy?: "prefer_local" | "prefer_peer";
     status: "current" | "pushed" | "pulled" | "merged";
     snapshotHash: string;
   }): Promise<RepositoryReplicaReconciliationObservation | null> {
@@ -153,7 +155,7 @@ export class RepositoryReplicaDivergenceLedger {
           conflictPolicy: entry.conflictPolicy,
           occurredAt: entry.openedAt,
         });
-    const strategy = strategyFor(input.status, input.conflictPolicy);
+    const strategy = input.strategy ?? strategyFor(input.status, input.conflictPolicy);
     const event =
       diverged !== null && !settled(diverged)
         ? diverged

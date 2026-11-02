@@ -35,6 +35,9 @@ export function supervisionReasoningDecisionSchema(context: OwnerReasoningContex
   } else if (context.trigger.nextAction === "publish_result") {
     operations = ["prepare_publication", "escalate"];
   }
+  // Past the escalation bound the principal proxy decides within its mandate (ADR-0561).
+  if (context.trigger.reasonCode.startsWith("principal_proxy_"))
+    operations = operations.filter((operation) => operation !== "escalate");
   return {
     ...schema,
     properties: { ...schema.properties, operation: { type: "string", enum: [...operations] } },

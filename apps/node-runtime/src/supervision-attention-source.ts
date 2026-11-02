@@ -41,13 +41,17 @@ export async function readCanonicalSupervisionAttention(input: {
   return basis;
 }
 
-export async function hasPendingSupervisionAttention(
+/**
+ * When the earliest still-pending owner attention was recorded, or null when none is pending. The
+ * principal proxy decides once this is older than the escalation bound (ADR-0561).
+ */
+export async function pendingSupervisionAttentionSince(
   input: Omit<Parameters<typeof readCanonicalSupervisionAttention>[0], "plan">,
-) {
+): Promise<string | null> {
   const events = input.source.supervisionEvents.filter(
     (event) => event.type === "work.supervision.escalation.recorded",
   );
-  if (events.length === 0) return false;
+  if (events.length === 0) return null;
   const facts = await canonicalOwnerReasoningFacts(
     input.storage,
     input.binding,
@@ -64,7 +68,7 @@ export async function hasPendingSupervisionAttention(
     if (receipt.status !== "confirmed" || receipt.eventIds[0] !== event.eventId)
       throw new Error("Pending owner attention has no exact admitted receipt.");
     const basis = await readSupervisionAttentionArtifact(input.storage.artifacts, plan);
-    if (basis.effect.basisHash === facts.basisHash) return true;
+    if (basis.effect.basisHash === facts.basisHash) return event.occurredAt;
     if (basis.effect.reasonCode !== "retry_budget_requires_resolution") continue;
     const previousInstallation = input.source.events.findLast(
       (candidate) =>
@@ -108,7 +112,15 @@ export async function hasPendingSupervisionAttention(
         assignments: facts.facts.tasks.assignments,
       })
     )
-      return true;
+      return event.occurredAt;
   }
-  return false;
+  return null;
+}
+
+/** Snapshot fields for pending owner attention; the time lets the principal proxy apply its bound. */
+export async function readPendingSupervisionAttention(
+  input: Parameters<typeof pendingSupervisionAttentionSince>[0],
+): Promise<{ attentionPending: boolean; attentionPendingSince: string | null }> {
+  const since = await pendingSupervisionAttentionSince(input);
+  return { attentionPending: since !== null, attentionPendingSince: since };
 }

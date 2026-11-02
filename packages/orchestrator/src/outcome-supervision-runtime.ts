@@ -4,6 +4,7 @@ import {
   operatingContractHash,
   operatingDecisionId,
   projectOutcomeSupervision,
+  principalEscalationBoundElapsed,
   reviewOperatingAction,
   evaluateWorkerReadiness,
   operatingReadinessKind,
@@ -13,6 +14,7 @@ import {
 import type { OutcomeSupervisionPorts } from "./outcome-supervision-ports.js";
 import { SupervisionPreflightError } from "./outcome-supervision-ports.js";
 import { SupervisionReadinessHolds } from "./outcome-supervision-readiness-hold.js";
+import { supervisionEffectMapped } from "./outcome-supervision-effect-mapping.js";
 import {
   assertReceipt,
   boundedErrorCode,
@@ -89,6 +91,7 @@ export class OutcomeSupervisionRuntime {
             : replaySnapshot,
         now,
         maximumRecoveryDecisions: Math.min(3, mandate.maximumAttemptsPerAssignment - 1),
+        principal: { actionKinds: mandate.actionKinds, expiresAt: mandate.expiresAt },
       });
       const pendingStartDeadline =
         pending === null ? null : ((await this.ports.readEffectStartDeadline?.(pending)) ?? null);
@@ -150,6 +153,12 @@ export class OutcomeSupervisionRuntime {
         await this.ports.recordAttention(report, [report.reasonCode]);
         return { disposition: "blocked" as const, report };
       }
+      if (report.status === "lervo_debt") {
+        // Lervo's own held debt is visible in health; it is not owner work and nothing waits on it.
+        await this.ports.recordAttention(report, ["lervo_debt", report.reasonCode]);
+        remember(report, mandate.expiresAt, true);
+        return { disposition: "blocked" as const, report };
+      }
       if (report.nextAction === null) {
         remember(report, mandate.expiresAt);
         return { disposition: "idle" as const, report };
@@ -205,59 +214,25 @@ export class OutcomeSupervisionRuntime {
       ) {
         throw new Error("The owner proposal differs from its causal source binding.");
       }
-      const allowedActions =
-        report.reasonCode === "workforce_plan_required"
-          ? ["allocate_existing", "execute_as_owner", "hire_worker", "request_team_support"]
-          : // An exhausted rework may escalate or be replaced by a fresh assignment; each fresh
-            // assignment keeps its own attempt limit, and the owner spend epoch bounds the chain.
-            report.reasonCode === "acceptance_rejected" && report.nextAction === "escalate"
-            ? ["escalate", "allocate_existing"]
-            : report.nextAction === "complete_workstream"
-              ? // Accepted work may leave requested goal scope unallocated.
-                ["execute_as_owner", "allocate_existing", "hire_worker", "request_team_support"]
-              : report.nextAction === "review_artifacts"
-                ? ["execute_as_owner"]
-                : report.nextAction === "reconcile_cancellation"
-                  ? ["inspect_uncertain_effect"]
-                  : [report.nextAction];
-      const ownerReasoning =
-        plan.actionKind === "execute_as_owner" &&
-        plan.effectContract === "work.owner_reasoning.v1" &&
-        report.nextAction !== "reconcile_cancellation";
-      const workspacePreparation =
-        report.nextAction === "dispatch" &&
-        plan.actionKind === "execute_as_owner" &&
-        plan.effectContract === "work.workspace_preparation.v1";
-      const successorClaim =
-        ["allocate_existing", "dispatch", "inspect_uncertain_effect"].includes(report.nextAction) &&
-        plan.actionKind === "revise_responsibility" &&
-        ["work.responsibility_claim.v1", "work.assignment_amendment.v1"].includes(
-          plan.effectContract,
-        );
-      const scopedHandoff =
-        report.nextAction !== "reconcile_cancellation" &&
-        ((["request_team_support", "escalate"].includes(plan.actionKind) &&
-          plan.effectContract === "work.scoped_handoff.v1") ||
-          (plan.actionKind === "execute_as_owner" &&
-            plan.effectContract === "work.scoped_handoff_acceptance.v1"));
-      const ownerAttention =
-        report.nextAction !== "reconcile_cancellation" &&
-        plan.actionKind === "escalate" &&
-        plan.effectContract === "work.owner_attention.v1";
-      const blockedArtifactReview =
-        report.reasonCode === "acceptance_blocked" &&
-        report.nextAction === "escalate" &&
-        plan.actionKind === "execute_as_owner" &&
-        plan.effectContract === "work.artifact_review.v1";
       if (
-        !ownerReasoning &&
-        !workspacePreparation &&
-        !successorClaim &&
-        !scopedHandoff &&
-        !ownerAttention &&
-        !blockedArtifactReview &&
-        !allowedActions.includes(plan.actionKind)
+        plan.effectContract === "work.owner_attention.v1" &&
+        principalEscalationBoundElapsed({
+          escalationCount: snapshot.escalationCount,
+          attentionPendingSince: snapshot.attentionPendingSince ?? null,
+          now,
+        })
       ) {
+        // Past the bound the owner is never asked again; what the proxy left open is Lervo debt.
+        await this.ports.recordAttention(report, ["lervo_debt", "principal_scope_exceeded"]);
+        remember(report, mandate.expiresAt, true);
+        return { disposition: "blocked" as const, report };
+      }
+      const mapped = supervisionEffectMapped(
+        { reasonCode: report.reasonCode, nextAction: report.nextAction },
+        plan,
+        mandate.actionKinds,
+      );
+      if (!mapped) {
         await this.ports.recordAttention(report, ["effect_mapping_unavailable"]);
         return { disposition: "blocked" as const, report };
       }

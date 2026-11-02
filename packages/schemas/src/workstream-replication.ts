@@ -106,6 +106,33 @@ export const workstreamReplicationReadResponseSchema = {
   ],
 } as const;
 
+/**
+ * ADR-0561: one immutable stored revision by its exact content hash, so a Node can keep a newer
+ * divergent head or restore a preserved reconciliation parent without the owner choosing.
+ */
+export const workstreamReplicationRevisionResponseSchema = {
+  $schema: "https://json-schema.org/draft/2020-12/schema",
+  $id: "https://schemas.lervo.dev/v0/workstream-replication-revision-response.schema.json",
+  type: "object",
+  properties: {
+    schemaVersion: { const: 1 },
+    projectId: projectIdSchema,
+    repositoryIdentityHash: sha256Schema,
+    revision: replicatedWorkstreamHeadSchema,
+    isHead: { type: "boolean" },
+    snapshot: embeddedWorkstreamSnapshotSchema,
+  },
+  required: [
+    "schemaVersion",
+    "projectId",
+    "repositoryIdentityHash",
+    "revision",
+    "isHead",
+    "snapshot",
+  ],
+  additionalProperties: false,
+} as const;
+
 export type WorkstreamReplicationPublishRequest = FromSchema<
   typeof workstreamReplicationPublishRequestSchema
 >;
@@ -116,3 +143,6 @@ export type WorkstreamReplicationReadResponse = FromSchema<
   typeof workstreamReplicationReadResponseSchema
 >;
 export type ReplicatedWorkstreamHead = FromSchema<typeof replicatedWorkstreamHeadSchema>;
+export type WorkstreamReplicationRevisionResponse = FromSchema<
+  typeof workstreamReplicationRevisionResponseSchema
+>;

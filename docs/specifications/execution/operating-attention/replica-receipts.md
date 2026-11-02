@@ -26,15 +26,9 @@ The inspector adds no replica coverage field and does not convert project-storag
 
 ## Divergence item
 
-An open divergence produces one `repository_replica_divergence` item before global deduplication and truncation. It exposes `replicaId`, `divergenceId`, `reason`, `conflictPathCount`, `conflictPaths`, and `openedAt`, with schema version 1 and state `action_required`. Its ID combines `repository_replica_divergence_` with the first 24 characters after the divergence hash's `sha256:` prefix.
+An open divergence produces one `repository_replica_divergence` item before global deduplication and truncation. It exposes `replicaId`, `divergenceId`, `reason`, `conflictPathCount`, `conflictPaths`, and `openedAt`, with schema version 1 and state `lervo_debt`. Its ID combines `repository_replica_divergence_` with the first 24 characters after the divergence hash's `sha256:` prefix.
 
-The item has `actionOwner: user`, `requiresUserAction: true`, and `blocking: false`. User action alone neither makes the item a work blocker nor authorizes repository mutation.
-
-For `no_common_history`, the instruction asks the user to choose which host's repository to retain and re-seed the other. Otherwise, it directs the user to make conflicting paths agree or run the coordinator-host command:
-
-```text
-lervo-node repository-replica reconcile --config <coordinator-config> --replica <replica-id> --prefer local|peer
-```
+As amended by [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), the item has `actionOwner: agent`, `requiresUserAction: false`, and `blocking: false`. Attribution names the replica coordinator as the actor and shows the item's age from `openedAt`. The recorded instruction says that the coordinator saves the losing side to a `lervo/replica-backup` branch on its host and applies the configured side on its next cycle, and that the saved side is restored from that branch with Git. No owner command resolves it.
 
 The local report copies conflicting paths from the decoded receipt. Canonical replica events have a separate privacy contract using path digests.
 

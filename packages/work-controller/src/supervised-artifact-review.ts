@@ -4,7 +4,7 @@ import type {
   SupervisedAssignmentObservationV1,
 } from "@lervo/application-contract";
 import { operatingContractHash } from "./operating-mandate-admission.js";
-import { isSupervisedAssignmentAccepted } from "./outcome-supervision.js";
+import { isSupervisedAssignmentAccepted } from "./supervised-assignment-observation.js";
 
 function exactSet(left: readonly string[], right: readonly string[]): boolean {
   return left.length === right.length && left.every((value) => right.includes(value));

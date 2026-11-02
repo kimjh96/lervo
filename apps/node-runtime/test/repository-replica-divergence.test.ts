@@ -82,7 +82,7 @@ afterEach(async () => {
 });
 
 describe("repository replica divergence surfacing", () => {
-  it("records one diverged event per identity and one reconciled event on resolution", async () => {
+  it("records the divergence once, saves the peer side, and reconciles by preferring local", async () => {
     const fixture = await repositories();
     const events = recordingEvents();
     const coordinator = new RepositoryReplicaCoordinator({
@@ -97,37 +97,22 @@ describe("repository replica divergence surfacing", () => {
 
     await writeFile(join(fixture.local, "source.ts"), "local\n");
     await writeFile(join(fixture.peer, "source.ts"), "peer\n");
-    const cycles: RepositoryReplicaCycleResult[] = [];
-    for (let cycle = 0; cycle < 3; cycle += 1) cycles.push(await coordinator.reconcile(hold));
-
-    const divergent = cycles.map((result) => {
-      if (result.status !== "divergent") throw new Error("expected a held divergence");
-      return result;
-    });
-    const divergenceId = calculateRepositoryReplicaDivergenceId(
-      divergent[0]!.localHash,
-      divergent[0]!.peerHash,
-    );
-    expect(divergent.map((result) => result.divergence.firstObserved)).toEqual([
-      true,
-      false,
-      false,
+    const [localSnapshot, peerSnapshot] = await Promise.all([
+      new LocalRepositoryReplicaPeer().snapshot(fixture.local),
+      new LocalRepositoryReplicaPeer().snapshot(fixture.peer),
     ]);
-    expect(divergent.every((result) => result.divergence.divergenceId === divergenceId)).toBe(true);
-    expect(divergent[2]!.conflict).toMatchObject({ paths: ["source.ts"], pathCount: 1 });
-    expect(events.calls).toEqual([{ type: "diverged", divergenceId }]);
-    expect((await receipt(fixture.local)).openDivergence).toMatchObject({
-      divergenceId,
-      reason: "conflicting_paths",
-      conflictPaths: ["source.ts"],
-    });
-
-    await expect(
-      coordinator.reconcile({ ...hold, conflictPolicy: "prefer_local" }),
-    ).resolves.toMatchObject({
+    const divergenceId = calculateRepositoryReplicaDivergenceId(
+      localSnapshot.snapshotHash,
+      peerSnapshot.snapshotHash,
+    );
+    // ADR-0561: no owner choice; the cycle that observes the conflict also settles it.
+    const result = await coordinator.reconcile(hold);
+    expect(result).toMatchObject({
       status: "merged",
       reconciled: { divergenceId, strategy: "prefer_local", event: { status: "recorded" } },
+      backup: { side: "peer", snapshotHash: peerSnapshot.snapshotHash },
     });
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("local\n");
     await expect(coordinator.reconcile(hold)).resolves.toMatchObject({ status: "current" });
     expect(events.calls).toEqual([
       { type: "diverged", divergenceId },
@@ -140,12 +125,22 @@ describe("repository replica divergence surfacing", () => {
     expect(state.divergences ?? {}).toEqual({});
   }, 30_000);
 
-  it("records an external reconciliation when parity returns without the coordinator", async () => {
+  it("holds the divergence as Lervo debt when no backup can be saved, then records an external reconciliation", async () => {
     const fixture = await repositories();
     const events = recordingEvents();
+    // A local port without a backup cannot make the preference reversible, so nothing changes.
+    const local = new LocalRepositoryReplicaPeer();
     const coordinator = new RepositoryReplicaCoordinator({
       stateFile: fixture.stateFile,
-      local: new LocalRepositoryReplicaPeer(),
+      local: {
+        captureVersion: () => local.captureVersion(),
+        snapshot: (root) => local.snapshot(root),
+        bundle: (root, hash) => local.bundle(root, hash),
+        apply: (input) => local.apply(input),
+        merge: (input) => local.merge(input),
+        reconcileKnowledgeSupersession: (input) => local.reconcileKnowledgeSupersession(input),
+        recordReceipt: (input) => local.recordReceipt(input),
+      },
       peer: new LocalRepositoryReplicaPeer(),
       events: events.port,
     });
@@ -153,7 +148,21 @@ describe("repository replica divergence surfacing", () => {
     await coordinator.reconcile(hold);
     await writeFile(join(fixture.local, "source.ts"), "local\n");
     await writeFile(join(fixture.peer, "source.ts"), "peer\n");
-    await expect(coordinator.reconcile(hold)).resolves.toMatchObject({ status: "divergent" });
+    const cycles: RepositoryReplicaCycleResult[] = [];
+    for (let cycle = 0; cycle < 2; cycle += 1) cycles.push(await coordinator.reconcile(hold));
+    expect(cycles[0]).toMatchObject({
+      status: "divergent",
+      heldReason: "backup_unavailable",
+      conflict: { paths: ["source.ts"], pathCount: 1 },
+      divergence: { firstObserved: true },
+    });
+    expect(cycles[1]).toMatchObject({ status: "divergent", divergence: { firstObserved: false } });
+    expect(await readFile(join(fixture.local, "source.ts"), "utf8")).toBe("local\n");
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("peer\n");
+    expect((await receipt(fixture.local)).openDivergence).toMatchObject({
+      reason: "conflicting_paths",
+      conflictPaths: ["source.ts"],
+    });
 
     await writeFile(join(fixture.peer, "source.ts"), "local\n");
     await expect(coordinator.reconcile(hold)).resolves.toMatchObject({

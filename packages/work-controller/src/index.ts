@@ -67,7 +67,7 @@ export {
   supervisedManagedExecutionFields,
   supervisedManagedRetryCausality,
 } from "./supervised-managed-execution.js";
-export { isSupervisedAssignmentAccepted } from "./outcome-supervision.js";
+export { isSupervisedAssignmentAccepted } from "./supervised-assignment-observation.js";
 export { operatingReadinessKind, assertOwnerControlReadiness } from "./owner-control-readiness.js";
 export {
   supervisedGoalCompletionFields,
@@ -104,3 +104,4 @@ export * from "./supervised-owner-attention.js";
 
 export * from "./managed-execution-absence.js";
 export * from "./mandate-successor.js";
+export * from "./principal-decision-policy.js";

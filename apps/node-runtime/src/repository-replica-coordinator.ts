@@ -36,6 +36,11 @@ import type {
   RepositoryReplicaMergeResult,
 } from "./repository-replica-merge.js";
 import {
+  resolveRepositoryReplicaDivergence,
+  type RepositoryReplicaBackup,
+  type RepositoryReplicaResolvedPreference,
+} from "./repository-replica-divergence-resolution.js";
+import {
   recordRepositoryReplicaAttention,
   type RepositoryReplicaReceipt,
 } from "./repository-replica-receipt.js";
@@ -57,6 +62,13 @@ export interface RepositoryReplicaPeerPort
     allowHistoryReplacement?: boolean;
   }): Promise<RepositoryReplicaSnapshot>;
   recordReceipt(input: RepositoryReplicaReceipt): Promise<void>;
+  /** Local side only: saves one side's exact snapshot to a backup branch in this repository. */
+  backup?(input: {
+    repositoryRoot: string;
+    branch: string;
+    bundle: Uint8Array | null;
+    expectedSnapshotHash: string;
+  }): Promise<{ branch: string; snapshotHash: string }>;
   /** Local side only: merges the peer's bundle when both sides changed. */
   merge?(input: {
     repositoryRoot: string;
@@ -74,6 +86,8 @@ export type RepositoryReplicaCycleResult =
       /** Generated-projection conflicts the merge resolved to the local side. */
       generatedResolutionCount?: number;
       reconciled?: RepositoryReplicaReconciliationObservation;
+      /** ADR-0561: the branch on the local host that holds the side a conflict replaced. */
+      backup?: RepositoryReplicaBackup;
     }
   | {
       replicaId: string;
@@ -94,6 +108,8 @@ export type RepositoryReplicaCycleResult =
         pathCount: number;
       };
       divergence: RepositoryReplicaDivergenceObservation;
+      /** Why the automatic resolution changed nothing; Lervo's own debt, never the owner's. */
+      heldReason?: "stronger_check_disagreement" | "backup_unavailable";
     };
 
 /**
@@ -229,70 +245,21 @@ export class RepositoryReplicaCoordinator {
     let status: "current" | "pushed" | "pulled" | "merged" = "current";
     let generatedResolutionCount: number | undefined;
     let transferredSnapshotHash: string | null = null;
+    let preference: RepositoryReplicaResolvedPreference | null = null;
     if (decision.status === "divergent") {
-      const divergent = decision;
-      const held = async (conflict?: {
-        reason: "no_common_history" | "conflicting_paths";
-        paths: string[];
-        pathCount: number;
-      }): Promise<RepositoryReplicaCycleResult> => ({
-        replicaId: input.replicaId,
-        ...divergent,
-        ...(conflict === undefined ? {} : { conflict }),
-        divergence: await this.divergences.observeDivergence({
-          replicaId: input.replicaId,
-          localRoot: input.localRoot,
-          conflictPolicy: input.conflictPolicy,
-          localSnapshotHash: divergent.localHash,
-          peerSnapshotHash: divergent.peerHash,
-          commonSnapshotHash: divergent.commonHash,
-          reason: conflict?.reason ?? "merge_unavailable",
-          conflictPaths: conflict?.paths ?? [],
-          conflictPathCount: conflict?.pathCount ?? 0,
-        }),
-      });
-      // Both sides changed: merge the peer into the local side, then push the merged result.
-      if (this.options.local.merge === undefined) return held();
-      // The same snapshot pair under the same policy merges identically, so a held divergence
-      // is not re-merged on every cycle.
-      const open = await this.divergences.open({
-        replicaId: input.replicaId,
-        localSnapshotHash: divergent.localHash,
-        peerSnapshotHash: divergent.peerHash,
-        conflictPolicy: input.conflictPolicy,
-      });
-      if (open !== null && open.reason !== "merge_unavailable")
-        return held({
-          reason: open.reason,
-          paths: open.conflictPaths,
-          pathCount: open.conflictPathCount,
-        });
-      stage.current = "bundle";
-      const peerBundle = await this.options.peer.bundle(input.peerRoot, peer.snapshotHash);
-      stage.current = "merge";
-      const merged = await this.options.local.merge({
-        repositoryRoot: input.localRoot,
-        bundle: peerBundle,
-        expectedCurrentSnapshotHash: local.snapshotHash,
-        conflictPolicy: input.conflictPolicy,
-      });
-      if (merged.status === "conflict")
-        return held({ reason: merged.reason, paths: merged.paths, pathCount: merged.pathCount });
-      generatedResolutionCount = merged.generatedResolutionCount;
-      decision = reconcileRepositoryReplicas({
-        local: merged.snapshot,
+      const outcome = await resolveRepositoryReplicaDivergence({
+        ...input,
+        divergent: decision,
+        local,
         peer,
-        commonSnapshotHash: peer.snapshotHash,
+        localPort: this.options.local,
+        peerPort: this.options.peer,
+        divergences: this.divergences,
+        stage,
       });
-      // A merge whose result is exactly the peer's state, such as a fast-forward after the local
-      // side dropped superseded commits, imported the peer and leaves nothing to push.
-      if (decision.status !== "push" && decision.status !== "current")
-        throw new RepositoryReplicaCoordinatorError(
-          "repository_replica_verification_failed",
-          "The merged repository replica did not become the push source.",
-        );
-      if (decision.status === "current") transferredSnapshotHash = merged.snapshot.snapshotHash;
-      status = decision.status === "current" ? "pulled" : "merged";
+      if (outcome.kind === "held") return outcome.result;
+      ({ decision, status, generatedResolutionCount, transferredSnapshotHash, preference } =
+        outcome);
     }
     if (decision.status === "push" || decision.status === "pull") {
       const push = decision.status === "push";
@@ -380,7 +347,8 @@ export class RepositoryReplicaCoordinator {
     const reconciled = await this.divergences.observeParity({
       replicaId: input.replicaId,
       localRoot: input.localRoot,
-      conflictPolicy: input.conflictPolicy,
+      conflictPolicy: preference?.policy ?? input.conflictPolicy,
+      ...(preference === null ? {} : { strategy: preference.policy }),
       status,
       snapshotHash: verifiedLocal.snapshotHash,
     });
@@ -388,6 +356,7 @@ export class RepositoryReplicaCoordinator {
       replicaId: input.replicaId,
       status,
       snapshotHash: verifiedLocal.snapshotHash,
+      ...(preference === null ? {} : { backup: preference.backup }),
       ...(generatedResolutionCount === undefined || generatedResolutionCount === 0
         ? {}
         : { generatedResolutionCount }),

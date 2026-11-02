@@ -4,7 +4,7 @@ import type { OperatingActionPlanV1 } from "@lervo/application-contract";
 import { openProjectStorage } from "@lervo/project-storage";
 import { createWorkstreamUpdatePlan } from "@lervo/repository-knowledge";
 import { runCli } from "../../cli/src/main.js";
-import { operatingContractHash } from "@lervo/work-controller";
+import { operatingContractHash, principalEscalationBoundMs } from "@lervo/work-controller";
 import { supervisionFixture } from "./supervision.fixture.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-context.js";
@@ -43,12 +43,12 @@ it.each([
     const storage = await openProjectStorage(f.root);
     const tasks = new SupervisionTaskSource(storage, f.binding, f.ports.now);
     let proposals = 0;
-    const open = () =>
+    const open = (now = f.ports.now) =>
       openNodeOutcomeSupervisionRuntime({
         repositoryRoot: f.root,
         binding: f.binding,
         ports: {
-          now: f.ports.now,
+          now,
           recordAttention: f.ports.recordAttention,
           propose: async (report) => {
             proposals++;
@@ -112,13 +112,21 @@ it.each([
       try {
         await runtime.runCycle();
         expect(f.attention).toEqual([]);
-        expect((await tasks.readSnapshot()).attentionPending).toBe(true);
-        expect(
-          storage.events
-            .list()
-            .filter((event) => event.type === "work.supervision.escalation.recorded"),
-        ).toMatchObject([{ payload: { reasonCode: expectedReasonCode } }]);
-        expect((await runtime.runCycle()).report?.reasonCode).toBe("owner_attention_pending");
+        const escalations = storage.events
+          .list()
+          .filter((event) => event.type === "work.supervision.escalation.recorded");
+        expect(escalations).toMatchObject([{ payload: { reasonCode: expectedReasonCode } }]);
+        expect(await tasks.readSnapshot()).toMatchObject({
+          attentionPending: true,
+          attentionPendingSince: escalations[0]!.occurredAt,
+        });
+        // Owner attention is a notice: the principal proxy decides once the bound passes.
+        expect((await runtime.runCycle()).report).toMatchObject({
+          reasonCode: "owner_attention_pending",
+          nextCheckAt: new Date(
+            Date.parse(escalations[0]!.occurredAt) + principalEscalationBoundMs,
+          ).toISOString(),
+        });
         expect(proposals).toBe(1);
       } finally {
         await runtime.close();
@@ -160,7 +168,10 @@ it.each([
           ),
           errors.join("\n"),
         ).toBe(0);
-        expect((await tasks.readSnapshot()).attentionPending).toBe(false);
+        expect(await tasks.readSnapshot()).toMatchObject({
+          attentionPending: false,
+          attentionPendingSince: null,
+        });
         await restarted.runCycle();
         expect(proposals).toBe(2);
         expect(
@@ -171,6 +182,22 @@ it.each([
         expect(storage.events.list().some((event) => event.type === "adapter.started")).toBe(false);
       } finally {
         await restarted.close();
+      }
+      // Past the bound the pending attention no longer blocks, and the owner is never asked again.
+      const proxy = await open(() =>
+        new Date(Date.now() + principalEscalationBoundMs).toISOString(),
+      );
+      try {
+        expect((await proxy.runCycle()).disposition).toBe("blocked");
+        expect(proposals).toBe(3);
+        expect(f.attention.at(-1)).toEqual(["lervo_debt", "principal_scope_exceeded"]);
+        expect(
+          storage.events
+            .list()
+            .filter((event) => event.type === "work.supervision.escalation.recorded"),
+        ).toHaveLength(2);
+      } finally {
+        await proxy.close();
       }
     } finally {
       await storage.close();

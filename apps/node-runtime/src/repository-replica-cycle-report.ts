@@ -88,8 +88,10 @@ export class RepositoryReplicaCycleReporter {
           : result.conflict.reason === "no_common_history"
             ? "no common history"
             : `${result.conflict.pathCount} conflicting path(s): ${result.conflict.paths.join(", ")}`;
+      const held =
+        result.heldReason === undefined ? "" : `; held as Lervo debt: ${result.heldReason}`;
       lines.stderr.push(
-        `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}; ${conflict}; divergence ${result.divergence.divergenceId})${eventNote(result.divergence.event)}.`,
+        `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}; ${conflict}; divergence ${result.divergence.divergenceId}${held})${eventNote(result.divergence.event)}.`,
       );
       return lines;
     }
@@ -111,6 +113,12 @@ export class RepositoryReplicaCycleReporter {
     if (result.reconciled !== undefined) {
       lines.stdout.push(
         `Repository replica ${result.replicaId} reconciled divergence ${result.reconciled.divergenceId} by ${result.reconciled.strategy}${eventNote(result.reconciled.event)}.`,
+      );
+    }
+    // ADR-0561 notice: what replaced which side, and where the replaced side is kept.
+    if (result.backup !== undefined) {
+      lines.stdout.push(
+        `Repository replica ${result.replicaId} saved the ${result.backup.side} side (${result.backup.snapshotHash}) to branch ${result.backup.branch} on this host before preferring the other side; restore it with git merge or git checkout ${result.backup.branch}.`,
       );
     }
     return lines;

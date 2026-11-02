@@ -9,6 +9,7 @@ import {
   type WorkstreamReplicationPublishRequest,
   type WorkstreamReplicationPublishResponse,
   type WorkstreamReplicationReadResponse,
+  type WorkstreamReplicationRevisionResponse,
   type WorkstreamSnapshot,
 } from "@lervo/schemas";
 
@@ -184,20 +185,7 @@ export class HubWorkstreamSQLiteRepository {
     projectId: string;
     repositoryIdentityHash: string;
   }): WorkstreamReplicationReadResponse {
-    const registration = this.database
-      .prepare(
-        `
-      SELECT identity_hash FROM hub_projects
-      WHERE destination_id = ? AND project_id = ?
-    `,
-      )
-      .get(input.destinationId, input.projectId) as { identity_hash: string } | undefined;
-    if (registration === undefined || registration.identity_hash !== input.repositoryIdentityHash) {
-      throw new HubWorkstreamReplicationError(
-        "registration_required",
-        "No registered project identity matches the workstream query.",
-      );
-    }
+    this.assertRegistered(input);
     const heads = this.heads(input.projectId, input.repositoryIdentityHash);
     if (heads.length === 0) {
       return {
@@ -236,6 +224,40 @@ export class HubWorkstreamSQLiteRepository {
     };
   }
 
+  /** ADR-0561: any stored revision stays readable, so a preserved reconciliation parent restores. */
+  readRevision(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+    snapshotContentHash: string;
+  }): WorkstreamReplicationRevisionResponse {
+    this.assertRegistered(input);
+    const row = this.revision(
+      input.projectId,
+      input.repositoryIdentityHash,
+      input.snapshotContentHash,
+    );
+    if (row === undefined)
+      throw new HubWorkstreamReplicationError(
+        "revision_not_found",
+        "No stored workstream revision has that content hash.",
+      );
+    const snapshot = JSON.parse(row.snapshot_json) as unknown;
+    if (!validateSchema("workstreamSnapshot", snapshot).valid)
+      throw new HubWorkstreamReplicationError(
+        "workstream_conflict",
+        "The stored workstream snapshot is invalid.",
+      );
+    return {
+      schemaVersion: 1,
+      projectId: input.projectId,
+      repositoryIdentityHash: input.repositoryIdentityHash,
+      revision: headOf(row),
+      isHead: row.is_head === 1,
+      snapshot: snapshot as WorkstreamSnapshot,
+    };
+  }
+
   auditAll(): void {
     auditHubWorkstreams(this.database);
   }
@@ -252,6 +274,27 @@ export class HubWorkstreamSQLiteRepository {
       repositoryIdentityHash: identityHash,
       heads: this.heads(projectId, identityHash).map(headOf),
     };
+  }
+
+  private assertRegistered(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+  }): void {
+    const registration = this.database
+      .prepare(
+        `
+      SELECT identity_hash FROM hub_projects
+      WHERE destination_id = ? AND project_id = ?
+    `,
+      )
+      .get(input.destinationId, input.projectId) as { identity_hash: string } | undefined;
+    if (registration === undefined || registration.identity_hash !== input.repositoryIdentityHash) {
+      throw new HubWorkstreamReplicationError(
+        "registration_required",
+        "No registered project identity matches the workstream query.",
+      );
+    }
   }
 
   private revision(projectId: string, identityHash: string, hash: string): RevisionRow | undefined {

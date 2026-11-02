@@ -111,11 +111,11 @@ export function attributeOperatingAttention(
         recommendation = "Log gh in with an account that can push and merge this repository";
       }
       break;
+    // ADR-0561: the coordinator backs up the losing side and prefers the configured one itself.
     case "repository_replica_divergence":
       actor = "replica coordinator";
-      consequence = "repository_write";
       waitingSince = item.openedAt;
-      recommendation = "Choose the authoritative replica before overwriting conflicting bytes";
+      recommendation = "Save the losing side to a backup branch and apply the configured side";
       break;
   }
   if (prior?.waitingSince) waitingSince = prior.waitingSince;

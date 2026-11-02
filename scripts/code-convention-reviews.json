@@ -39,7 +39,7 @@
     },
     {
       "path": "apps/node-runtime/src/supervision-task-source.ts",
-      "contentHash": "sha256:7e3d26b4d9f91e56860cc85f867183bacbff26e17ceda0915d9d9bbcb6b02d66",
+      "contentHash": "sha256:b49aa6a6838199c0d91b6a027b7f41627b20de1597d09d95f1ee760322f1e97c",
       "responsibility": "Canonical supervised task observation",
       "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots, and audits its history projection's tail for the wake schedule. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
       "disposition": "cohesive"
@@ -102,9 +102,9 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:0b2cfceadee313a0e6e22f4dc47f96af84b4465ae82978d5c5f40bb175b776cb",
+      "contentHash": "sha256:4784963db3d4db566950b3ba80b7ae34a16ebb28fd64b72f479ea30659671eba",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease, instruction-candidate, ADR-0469 host-record, and ADR-0477 definition methods only open a transaction around their own repositories.",
+      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease, instruction-candidate, ADR-0469 host-record, ADR-0477 definition, and ADR-0561 exact workstream revision methods only open a transaction around their own repositories.",
       "disposition": "cohesive"
     },
     {
@@ -242,7 +242,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:15881e9bc06883762b2295408c6638ca36bfb61d35afca72b993450edc9fc2b2",
+      "contentHash": "sha256:1a416c20c91ded0fee241fca72e57c64b3c66e54af24e1fafff33b39352a61f8",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"

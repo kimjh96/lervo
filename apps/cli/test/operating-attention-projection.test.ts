@@ -200,7 +200,7 @@ describe("operating attention projection", () => {
     });
   });
 
-  it("projects one user-owned item for an open repository replica divergence", () => {
+  it("projects an open repository replica divergence as Lervo debt, never owner work (ADR-0561)", () => {
     const localSnapshotHash = `sha256:${"a".repeat(64)}`;
     const peerSnapshotHash = `sha256:${"b".repeat(64)}`;
     const divergence = {
@@ -229,12 +229,14 @@ describe("operating attention projection", () => {
       expect.objectContaining({
         kind: "repository_replica_divergence",
         divergenceId: divergence.divergenceId,
-        actionOwner: "user",
-        requiresUserAction: true,
+        state: "lervo_debt",
+        actionOwner: "agent",
+        requiresUserAction: false,
         conflictPaths: ["source.ts"],
       }),
     ]);
-    expect(report.items[0]!.instruction).toContain("--replica project --prefer local|peer");
+    expect(report.items[0]!.recordedInstruction).toContain("lervo/replica-backup");
+    expect(report.items[0]!.instruction).not.toContain("--prefer");
   });
 
   it("projects draft availability and target coordinates without exposing proposed content", () => {

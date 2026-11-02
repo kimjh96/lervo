@@ -4,113 +4,28 @@ import type {
   SupervisedAssignmentObservationV1,
 } from "@lervo/application-contract";
 import {
+  currentReview,
+  isSupervisedAssignmentAccepted,
+  validAssignment,
+} from "./supervised-assignment-observation.js";
+import {
   operatingHashPattern,
   operatingInteger,
   operatingTime,
 } from "./operating-contract-validation.js";
-
-function sameSet(left: readonly string[], right: readonly string[]): boolean {
-  return (
-    new Set(left).size === left.length &&
-    new Set(right).size === right.length &&
-    left.length === right.length &&
-    left.every((value) => right.includes(value))
-  );
-}
-
-function currentReview(assignment: SupervisedAssignmentObservationV1): boolean {
-  const review = assignment.review;
-  return (
-    review !== null &&
-    review.reviewerAgentId === assignment.acceptanceOwnerAgentId &&
-    review.acceptanceHash === assignment.acceptanceHash &&
-    sameSet(review.artifactHashes, assignment.artifactHashes)
-  );
-}
-
-export function isSupervisedAssignmentAccepted(
-  assignment: SupervisedAssignmentObservationV1,
-): boolean {
-  const review = assignment.review;
-  if (
-    assignment.status !== "completed" ||
-    assignment.effectDisposition !== "reconciled" ||
-    assignment.terminalEventId === null ||
-    assignment.artifactHashes.length === 0 ||
-    review === null ||
-    review.verdict !== "accepted" ||
-    review.reviewerAgentId !== assignment.acceptanceOwnerAgentId ||
-    review.acceptanceHash !== assignment.acceptanceHash ||
-    !sameSet(review.artifactHashes, assignment.artifactHashes)
-  )
-    return false;
-  const passed = assignment.verification.filter(
-    (item) =>
-      item.status === "passed" &&
-      sameSet(item.artifactHashes, assignment.artifactHashes) &&
-      review.verificationEventIds.includes(item.eventId),
-  );
-  return (
-    assignment.requiredVerificationSuiteIds.length > 0 &&
-    assignment.requiredVerificationSuiteIds.every((suite) =>
-      passed.some((item) => item.suiteId === suite),
-    ) &&
-    review.verificationEventIds.every((eventId) => passed.some((item) => item.eventId === eventId))
-  );
-}
-
-function validAssignment(item: SupervisedAssignmentObservationV1): boolean {
-  return (
-    /^asn_[a-f0-9]{24}$/u.test(item.assignmentId) &&
-    operatingInteger(item.revision, 1) &&
-    /^agt_[a-f0-9]{24}$/u.test(item.executorAgentId) &&
-    /^agt_[a-f0-9]{24}$/u.test(item.acceptanceOwnerAgentId) &&
-    operatingHashPattern.test(item.responsibilityArtifactHash) &&
-    operatingHashPattern.test(item.acceptanceHash) &&
-    ["queued", "leased", "blocked", "completed", "failed", "cancelled"].includes(item.status) &&
-    ["not_started", "known_safe_failure", "uncertain", "reconciled"].includes(
-      item.effectDisposition,
-    ) &&
-    [item.startDeadline, item.progressDeadline, item.completionDeadline].every(operatingTime) &&
-    Date.parse(item.startDeadline) <= Date.parse(item.progressDeadline) &&
-    Date.parse(item.progressDeadline) <= Date.parse(item.completionDeadline) &&
-    [item.dispatchedAt, item.startedAt].every((time) => time === null || operatingTime(time)) &&
-    (item.terminalEventId === null || /^evt_[a-f0-9]{32}$/u.test(item.terminalEventId)) &&
-    operatingInteger(item.recoveryDecisionCount, 0, 256) &&
-    Array.isArray(item.artifactHashes) &&
-    item.artifactHashes.length <= 64 &&
-    item.artifactHashes.every((hash) => operatingHashPattern.test(hash)) &&
-    Array.isArray(item.requiredVerificationSuiteIds) &&
-    item.requiredVerificationSuiteIds.length <= 32 &&
-    Array.isArray(item.verification) &&
-    item.verification.length <= 64 &&
-    item.verification.every(
-      (entry) =>
-        typeof entry.suiteId === "string" &&
-        entry.suiteId.length <= 128 &&
-        /^evt_[a-f0-9]{32}$/u.test(entry.eventId) &&
-        ["passed", "failed"].includes(entry.status) &&
-        Array.isArray(entry.artifactHashes) &&
-        entry.artifactHashes.length <= 64 &&
-        entry.artifactHashes.every((hash) => operatingHashPattern.test(hash)),
-    ) &&
-    (item.review === null ||
-      (["accepted", "rework", "blocked"].includes(item.review.verdict) &&
-        /^agt_[a-f0-9]{24}$/u.test(item.review.reviewerAgentId) &&
-        operatingHashPattern.test(item.review.acceptanceHash) &&
-        Array.isArray(item.review.artifactHashes) &&
-        item.review.artifactHashes.length <= 64 &&
-        item.review.artifactHashes.every((hash) => operatingHashPattern.test(hash)) &&
-        Array.isArray(item.review.verificationEventIds) &&
-        item.review.verificationEventIds.length <= 64 &&
-        item.review.verificationEventIds.every((id) => /^evt_[a-f0-9]{32}$/u.test(id))))
-  );
-}
+import {
+  principalEscalationBoundElapsed,
+  principalEscalationBoundMs,
+  settlePrincipalEscalation,
+  type PrincipalMandateScope,
+} from "./principal-decision-policy.js";
 
 export function projectOutcomeSupervision(input: {
   snapshot: OutcomeSupervisionSnapshotV1;
   now: string;
   maximumRecoveryDecisions: number;
+  /** The installed mandate; past the escalation bound its principal proxy decides (ADR-0561). */
+  principal?: PrincipalMandateScope;
 }): OutcomeSupervisionReportV1 {
   const { snapshot, now } = input;
   const unbound = snapshot.unboundAssignmentIds ?? [];
@@ -152,6 +67,9 @@ export function projectOutcomeSupervision(input: {
     (snapshot.deliveryRecoverySafe === true &&
       (snapshot.delivery !== "failed" || snapshot.deliveryNextCheckAt !== null)) ||
     (snapshot.attentionPending !== undefined && typeof snapshot.attentionPending !== "boolean") ||
+    (snapshot.attentionPendingSince !== undefined &&
+      snapshot.attentionPendingSince !== null &&
+      (snapshot.attentionPending !== true || !operatingTime(snapshot.attentionPendingSince))) ||
     (snapshot.handoffs !== undefined &&
       (snapshot.handoffs === null ||
         ![snapshot.handoffs.pendingIncoming, snapshot.handoffs.pendingOutgoing].every(
@@ -176,39 +94,61 @@ export function projectOutcomeSupervision(input: {
     item.recoveryDecisionCount >= input.maximumRecoveryDecisions;
   // Replaced rework assignments are already excluded by the observation (replacedAssignmentIds).
   const assignments = snapshot.assignments;
+  const since = snapshot.attentionPendingSince ?? null;
+  const proxy =
+    input.principal !== undefined &&
+    principalEscalationBoundElapsed({
+      escalationCount: snapshot.escalationCount,
+      attentionPendingSince: since,
+      now,
+    });
+  // Before the bound owner attention is a notice; it wakes the cycle when the proxy may decide.
+  const attentionPending = snapshot.attentionPending === true && !proxy;
+  const attentionCheckAt =
+    input.principal === undefined || since === null
+      ? null
+      : new Date(Date.parse(since) + principalEscalationBoundMs).toISOString();
   const report = (
     status: OutcomeSupervisionReportV1["status"],
     reasonCode: string,
     nextAction: OutcomeSupervisionReportV1["nextAction"],
     reported = assignments,
     nextCheckAt: string | null = null,
-  ): OutcomeSupervisionReportV1 => ({
-    schemaVersion: 1,
-    kind: "work.supervision.report",
-    supervisionId: snapshot.supervisionId,
-    sourceRevisionDigest: snapshot.sourceRevisionDigest,
-    ownerAgentId: snapshot.ownerAgentId,
-    causationEventIds: [...snapshot.causationEventIds],
-    status:
-      nextAction === "escalate" && snapshot.escalationCount >= 8 ? "waiting_decision" : status,
-    reasonCode:
-      nextAction === "escalate" && snapshot.escalationCount >= 8
-        ? "escalation_capacity_exceeded"
-        : reasonCode,
-    assignmentIds: reported.map((item) => item.assignmentId),
-    nextCheckAt,
-    nextAction: nextAction === "escalate" && snapshot.escalationCount >= 8 ? null : nextAction,
-  });
+  ): OutcomeSupervisionReportV1 =>
+    settlePrincipalEscalation({
+      report: {
+        schemaVersion: 1,
+        kind: "work.supervision.report",
+        supervisionId: snapshot.supervisionId,
+        sourceRevisionDigest: snapshot.sourceRevisionDigest,
+        ownerAgentId: snapshot.ownerAgentId,
+        causationEventIds: [...snapshot.causationEventIds],
+        status,
+        reasonCode,
+        assignmentIds: reported.map((item) => item.assignmentId),
+        nextCheckAt,
+        nextAction,
+      },
+      principal: proxy ? input.principal! : null,
+      escalationCount: snapshot.escalationCount,
+      now,
+    });
   if (snapshot.evidenceStatus !== "valid")
     return report("invalid", `evidence_${snapshot.evidenceStatus}`, null);
   const uncertain = snapshot.assignments.filter((item) => item.effectDisposition === "uncertain");
   if (
     uncertain.length > 0 &&
-    snapshot.attentionPending === true &&
+    attentionPending &&
     snapshot.workstreamStatus !== "cancelled" &&
     snapshot.authorityStatus === "active"
   )
-    return report("waiting_decision", "uncertain_effect_attention_pending", null, uncertain);
+    return report(
+      "waiting_decision",
+      "uncertain_effect_attention_pending",
+      null,
+      uncertain,
+      attentionCheckAt,
+    );
   if (uncertain.length > 0)
     return report("recovering", "effect_outcome_uncertain", "inspect_uncertain_effect", uncertain);
   if (snapshot.workstreamStatus === "cancelled") {
@@ -228,8 +168,14 @@ export function projectOutcomeSupervision(input: {
   }
   if (snapshot.authorityStatus !== "active")
     return report("waiting_decision", `authority_${snapshot.authorityStatus}`, null);
-  if (snapshot.attentionPending === true)
-    return report("waiting_decision", "owner_attention_pending", null);
+  if (attentionPending)
+    return report(
+      "waiting_decision",
+      "owner_attention_pending",
+      null,
+      assignments,
+      attentionCheckAt,
+    );
   if ((snapshot.handoffs?.pendingIncoming.length ?? 0) > 0)
     return report("planning", "scoped_handoff_acceptance_required", "allocate_existing");
   const rejected = assignments.filter(

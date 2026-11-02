@@ -253,6 +253,7 @@ import {
   workstreamReplicationPublishRequestSchema,
   workstreamReplicationPublishResponseSchema,
   workstreamReplicationReadResponseSchema,
+  workstreamReplicationRevisionResponseSchema,
 } from "./workstream-replication.js";
 
 export const schemaReferences = [
@@ -465,6 +466,7 @@ export const schemaCatalog = {
   workstreamReplicationPublishRequest: workstreamReplicationPublishRequestSchema,
   workstreamReplicationPublishResponse: workstreamReplicationPublishResponseSchema,
   workstreamReplicationReadResponse: workstreamReplicationReadResponseSchema,
+  workstreamReplicationRevisionResponse: workstreamReplicationRevisionResponseSchema,
   documentRegistry: documentRegistrySchema,
   documentStalenessResult: documentStalenessResultSchema,
   doctorReport: doctorReportSchema,

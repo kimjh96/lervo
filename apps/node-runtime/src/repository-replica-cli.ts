@@ -42,7 +42,6 @@ const PEER_ACTION_STAGES: Record<string, RepositoryReplicaStage> = {
   receipt: "verify",
   "knowledge-supersession": "supersession",
 };
-const PREFERENCES = { local: "prefer_local", peer: "prefer_peer" } as const;
 
 function oneOption(args: readonly string[], name: string): string {
   const index = args.indexOf(name);
@@ -120,6 +119,10 @@ async function runPeerAction(
   await new LocalRepositoryReplicaPeer().recordReceipt(receipt);
 }
 
+/** ADR-0561 removed the owner's side choice; the coordinator resolves conflicts itself. */
+const REMOVED_PREFER =
+  "--prefer was removed: the coordinator saves the losing side to a lervo/replica-backup/<replica>/<divergence> branch on this host and applies the configured side itself; restore the saved side from that branch with git.";
+
 function reconcileOptions(args: readonly string[]) {
   const { config, watch, replica, prefer } = parseArgs({
     args: args.slice(1),
@@ -132,26 +135,14 @@ function reconcileOptions(args: readonly string[]) {
       prefer: { type: "string" },
     },
   }).values;
+  if (prefer !== undefined) throw new Error(REMOVED_PREFER);
   if (config === undefined) throw new Error("Repository replica config is required.");
-  if (prefer !== undefined && !Object.hasOwn(PREFERENCES, prefer))
-    throw new Error("Repository replica --prefer must be local or peer.");
   if (replica !== undefined && watch === true)
     throw new Error("Repository replica --replica requires a one-shot run.");
-  if (prefer !== undefined && replica === undefined)
-    throw new Error("Repository replica --prefer requires --replica.");
   return {
     config,
     watch: watch === true,
-    ...(replica === undefined
-      ? {}
-      : {
-          only: {
-            replicaId: replica,
-            ...(prefer === undefined
-              ? {}
-              : { conflictPolicy: PREFERENCES[prefer as keyof typeof PREFERENCES] }),
-          },
-        }),
+    ...(replica === undefined ? {} : { only: { replicaId: replica } }),
   };
 }
 

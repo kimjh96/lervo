@@ -81,9 +81,13 @@ export interface KnowledgeLifecycleAttentionItemV1 extends OperatingAttentionIte
 }
 
 /** One open repository replica divergence identity (ADR-0456); at most one per replica. */
+/**
+ * A replica divergence the coordinator has not settled yet (ADR-0561): it saves the losing side to
+ * a backup branch and prefers the configured side itself, so an open one is Lervo debt.
+ */
 export interface RepositoryReplicaDivergenceAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "repository_replica_divergence";
-  state: "action_required";
+  state: "lervo_debt";
   replicaId: string;
   divergenceId: string;
   reason: "no_common_history" | "conflicting_paths" | "merge_unavailable";

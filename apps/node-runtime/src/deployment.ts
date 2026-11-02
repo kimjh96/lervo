@@ -285,6 +285,16 @@ export async function openNodeRuntime(
                       transport: workspaceTransport,
                     },
                   }),
+              onWorkstreamReconciled: (result) => {
+                process.stdout.write(
+                  `Lervo kept the newer ${result.kept} workstream head as ${result.workstreamId} and preserved ${result.preserved.snapshotContentHash}; undo with ${result.notice.undo}.\n`,
+                );
+              },
+              onWorkstreamReconcileHeld: (reasonCode) => {
+                process.stderr.write(
+                  `Lervo holds the divergent workstream heads as its own debt (${reasonCode}); the next sync cycle retries.\n`,
+                );
+              },
               ...(ports.onCycle === undefined ? {} : { onCycle: ports.onCycle }),
             }),
           });

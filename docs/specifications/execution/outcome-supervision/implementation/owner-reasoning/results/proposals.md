@@ -34,4 +34,4 @@ Malformed or mixed escalation detail shapes produce one `work.owner_attention.v1
 
 An invalid native task first uses bounded owner reasoning correction. Only exhaustion of that bound settles it as the same local attention. Its private bounded rationale references the exact reasoning plan and result hashes; public events carry only the normal bounded reason and hashes.
 
-This attention is a local decision need, not accepted model work or recipient delivery. Planning may resume only after the canonical task basis changes.
+This attention is a local decision need, not accepted model work or recipient delivery. Planning resumes after the canonical task basis changes, or after the escalation bound, when the principal proxy decides within its mandate ([ADR-0561](../../../../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)).

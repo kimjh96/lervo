@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Date: 2026-08-24
-Amended by: [ADR-0526](../../execution/orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (the default-branch workstream is the replicated lineage)
+Amended by: [ADR-0526](../../execution/orchestration/governed-work/workstream-concurrency/0526-bind-workstreams-to-branches.md) (the default-branch workstream is the replicated lineage), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (divergence reconciles to the newest valid head without the owner)
 
 ## Context
 
@@ -24,7 +24,7 @@ Local workstream checkpoints let new agent sessions resume without a named hando
 - Invalid hashes, identities, origins, revision gaps, unknown parents, or missing registrations fail closed.
 - An active or non-head predecessor, falsified successor coordinate, or unique remote successor unrelated to the completed local head fails closed. A separate root without the successor link remains a divergent head.
 - A lost response may be retried: exact content-addressed publication returns `duplicate`.
-- Divergence remains visible and blocks import. It is not a transport failure and requires a later explicit reconciliation design or user-authorized choice.
+- Divergence remains visible and blocks import. It is not a transport failure. As amended by ADR-0561, the [checkpoint reconciliation](../../../specifications/coordination/workstream-checkpoint-reconciliation.md) keeps the newest valid head and preserves the other without a user choice.
 - Hub integrity audit revalidates snapshot schemas and hashes, ancestry, origins, registrations, derived heads, and append-only triggers.
 
 ## Consequences

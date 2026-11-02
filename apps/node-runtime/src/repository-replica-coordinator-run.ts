@@ -26,7 +26,6 @@ import {
   describeRepositoryReplicaFailure,
   isRepositoryReplicaPeerTransportFailure,
 } from "./repository-replica-failure.js";
-import type { RepositoryReplicaConflictPolicy } from "./repository-replica-merge.js";
 import {
   replicaCycleOutcome,
   replicaFailureOutcome,
@@ -67,14 +66,14 @@ async function writeHealth(path: string, snapshot: RepositoryReplicaHealthSnapsh
 
 /**
  * Runs reconciliation for the configured repositories. `only` restricts a one-shot run to one
- * replica and may override its conflict policy, which is how a held divergence is resolved.
+ * replica; a conflict resolves through the configured side preference after a backup (ADR-0561).
  */
 export async function runRepositoryReplicaCoordinator(
   config: RepositoryReplicaCoordinatorConfig,
   ports: RepositoryReplicaRunPorts,
   options: {
     watch: boolean;
-    only?: { replicaId: string; conflictPolicy?: RepositoryReplicaConflictPolicy };
+    only?: { replicaId: string };
   },
 ): Promise<number> {
   const now = ports.now ?? (() => new Date());
@@ -85,9 +84,6 @@ export async function runRepositoryReplicaCoordinator(
     .map((item) => ({
       ...item,
       localRoot: resolve(ports.cwd, item.localRoot),
-      ...(options.only?.conflictPolicy === undefined
-        ? {}
-        : { conflictPolicy: options.only.conflictPolicy }),
     }));
   if (repositories.length === 0)
     throw new Error("The requested repository replica is not configured.");

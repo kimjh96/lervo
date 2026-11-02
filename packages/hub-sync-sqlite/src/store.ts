@@ -76,6 +76,7 @@ import {
   type WorkstreamReplicationPublishRequest,
   type WorkstreamReplicationPublishResponse,
   type WorkstreamReplicationReadResponse,
+  type WorkstreamReplicationRevisionResponse,
 } from "@lervo/schemas";
 
 import {
@@ -268,6 +269,16 @@ export class HubSyncSQLiteStore
   }): Promise<WorkstreamReplicationReadResponse> {
     this.assertOpen();
     return this.transactionRunner.read(() => this.workstreamRepository.read(input));
+  }
+
+  async readWorkstreamRevision(input: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+    snapshotContentHash: string;
+  }): Promise<WorkstreamReplicationRevisionResponse> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => this.workstreamRepository.readRevision(input));
   }
 
   async reserveWorkspace(input: {

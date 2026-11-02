@@ -85,20 +85,17 @@ function replicaDivergenceItem(
     schemaVersion: 1,
     kind: "repository_replica_divergence",
     itemId: `repository_replica_divergence_${divergence.divergenceId.slice("sha256:".length, "sha256:".length + 24)}`,
-    state: "action_required",
+    state: "lervo_debt",
     replicaId: divergence.replicaId,
     divergenceId: divergence.divergenceId,
     reason: divergence.reason,
     conflictPathCount: divergence.conflictPathCount,
     conflictPaths: [...divergence.conflictPaths],
     openedAt: divergence.openedAt,
-    actionOwner: "user",
-    requiresUserAction: true,
+    actionOwner: "agent",
+    requiresUserAction: false,
     blocking: false,
-    instruction:
-      divergence.reason === "no_common_history"
-        ? `Replica ${divergence.replicaId} has no common history with its peer; choose which host's repository to keep and re-seed the other before replication resumes.`
-        : `Make both hosts agree on the conflicting paths, or on the coordinator host run lervo-node repository-replica reconcile --config <coordinator-config> --replica ${divergence.replicaId} --prefer local|peer; the reconciling cycle records repository.replica.reconciled.`,
+    instruction: `The replica coordinator saves the losing side of replica ${divergence.replicaId} to a lervo/replica-backup branch on its host and applies the configured side on its next cycle; the saved side is restored from that branch with git.`,
   };
 }
 

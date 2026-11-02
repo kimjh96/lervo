@@ -55,6 +55,8 @@ export interface OutcomeSupervisionSnapshotV1 {
   escalationCount: number;
   pendingDecision: boolean;
   attentionPending?: boolean;
+  /** When the earliest still-pending owner attention was recorded; null when none is pending. */
+  attentionPendingSince?: string | null;
   delivery: "not_attempted" | "pending" | "failed" | "delivered";
   deliveryNextCheckAt?: string | null;
   /** One exhausted outbound can be replaced only when transport replay proves no send began. */
@@ -83,6 +85,8 @@ export interface OutcomeSupervisionReportV1 {
     | "reviewing"
     | "recovering"
     | "waiting_decision"
+    /** Held as Lervo's own unresolved debt (ADR-0561); never owner work and never awaited. */
+    | "lervo_debt"
     | "completed"
     | "cancelled"
     | "invalid";

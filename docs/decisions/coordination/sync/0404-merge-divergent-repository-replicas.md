@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-15
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md). A conflict no longer holds for an owner choice: the coordinator saves the losing side to a backup branch, then prefers the configured side (`hold` now prefers the local side). See the [divergence and merge specification](../../../specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md).
 
 ## Context
 

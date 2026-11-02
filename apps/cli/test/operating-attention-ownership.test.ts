@@ -69,7 +69,7 @@ describe("attention authority at consequential effects", () => {
     repository_replica_divergence: {
       ...base,
       kind: "repository_replica_divergence",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "replica",
       replicaId: "replica",
       divergenceId: "divergence",
@@ -185,7 +185,7 @@ describe("attention authority at consequential effects", () => {
     ["workstream_blocker", "working agent", false],
     ["canonicalization_review", "canonical reviewer", false],
     ["knowledge_lifecycle", "resident", false],
-    ["repository_replica_divergence", "owner", true],
+    ["repository_replica_divergence", "replica coordinator", false],
     ["document_freshness_candidate", "resident freshness cycle", false],
     ["document_freshness_applied", "resident freshness cycle", false],
     ["document_freshness_blocked", "resident freshness cycle", false],

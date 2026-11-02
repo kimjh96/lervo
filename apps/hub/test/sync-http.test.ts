@@ -192,6 +192,12 @@ describe("authenticated Hub event sync HTTP", () => {
       authentication: { status: "verified" },
       body: { status: "current", snapshot, heads: [{ snapshotContentHash }] },
     });
+    // ADR-0561: one exact stored revision is readable by its content hash.
+    await expect(transport.readWorkstreamRevision(snapshotContentHash)).resolves.toMatchObject({
+      authentication: { status: "verified" },
+      body: { isHead: true, snapshot, revision: { snapshotContentHash } },
+    });
+    await expect(transport.readWorkstreamRevision(`sha256:${"e".repeat(64)}`)).rejects.toThrow();
   });
 
   it("recovers a lost committed acknowledgement through the actual Node worker and Hub SQLite", async () => {

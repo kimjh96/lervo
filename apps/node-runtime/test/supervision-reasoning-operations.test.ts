@@ -28,3 +28,17 @@ it("lets the owner allocate remaining goal scope once every current assignment i
     "escalate",
   ]);
 });
+
+it("lets the principal proxy decide past the escalation bound without escalating again", () => {
+  const context = {
+    trigger: {
+      reasonCode: "principal_proxy_worker_failed",
+      nextAction: "revise_responsibility",
+      assignmentIds: [],
+    },
+  } as unknown as OwnerReasoningContext;
+  const operations = supervisionReasoningDecisionSchema(context).properties.operation.enum;
+  expect(operations).toContain("revise_responsibility");
+  expect(operations).toContain("allocate_existing");
+  expect(operations).not.toContain("escalate");
+});

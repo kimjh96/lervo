@@ -9,7 +9,11 @@ import {
   applyRepositoryReplicaBundle,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
-import { mergeRepositoryReplicaBundle } from "./repository-replica-merge.js";
+import { saveRepositoryReplicaBackup } from "./repository-replica-backup.js";
+import {
+  mergeRepositoryReplicaBundle,
+  type RepositoryReplicaConflictPolicy,
+} from "./repository-replica-merge.js";
 import {
   writeRepositoryReplicaReceipt,
   type RepositoryReplicaReceipt,
@@ -41,10 +45,20 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return applyRepositoryReplicaBundle(input);
   }
 
+  backup(input: {
+    repositoryRoot: string;
+    branch: string;
+    bundle: Uint8Array | null;
+    expectedSnapshotHash: string;
+  }) {
+    return saveRepositoryReplicaBackup(input);
+  }
+
   merge(input: {
     repositoryRoot: string;
     bundle: Uint8Array;
     expectedCurrentSnapshotHash: string;
+    conflictPolicy?: RepositoryReplicaConflictPolicy;
   }) {
     return mergeRepositoryReplicaBundle(input);
   }

@@ -1,4 +1,9 @@
-import { runWorkstreamReplicationCycle, type SyncCycleResult } from "@lervo/sync";
+import {
+  reconcileDivergentWorkstream,
+  runWorkstreamReplicationCycle,
+  type SyncCycleResult,
+  type WorkstreamDivergenceResult,
+} from "@lervo/sync";
 import { reconcileHubWorkspaceSummaries } from "@lervo/workspace-reservation-hub";
 import type { NodeRuntimeHealthPublisher } from "./health.js";
 
@@ -16,15 +21,36 @@ export function createSyncCycleObserver(input: {
   health: NodeRuntimeHealthPublisher;
   workstreams: () => Parameters<typeof runWorkstreamReplicationCycle>[0];
   workspaces?: Parameters<typeof reconcileHubWorkspaceSummaries>[0];
+  /** ADR-0561: the after-the-fact notice when divergent heads were reconciled without the owner. */
+  onWorkstreamReconciled?: (
+    result: Extract<WorkstreamDivergenceResult, { status: "reconciled" }>,
+  ) => void | Promise<void>;
+  /** A divergence that stays held as Lervo debt, with its bounded reason code. */
+  onWorkstreamReconcileHeld?: (reasonCode: string) => void | Promise<void>;
   onCycle?: (result: SyncCycleResult) => void | Promise<void>;
 }) {
   return async (result: SyncCycleResult): Promise<void> => {
     await input.health.observeSync(result);
     if (result.status === "idle" || result.status === "synchronized") {
       try {
-        await input.health.observeWorkstreamReplication(
-          await runWorkstreamReplicationCycle(input.workstreams()),
-        );
+        const cycle = input.workstreams();
+        let replicated = await runWorkstreamReplicationCycle(cycle);
+        if (replicated.status === "divergent") {
+          // Keep the newest valid head and preserve the other; never wait for the owner to choose.
+          // A failed attempt, such as against a Hub without exact revision reads, stays divergent.
+          const reconciled = await reconcileDivergentWorkstream(cycle).catch(
+            (error: unknown) =>
+              ({ status: "failed", code: failureCode(error, "reconciliation_failed") }) as const,
+          );
+          if (reconciled.status === "reconciled") {
+            await input.onWorkstreamReconciled?.(reconciled);
+            replicated = await runWorkstreamReplicationCycle(cycle);
+          } else if (reconciled.status !== "not_divergent")
+            await input.onWorkstreamReconcileHeld?.(
+              reconciled.status === "held" ? reconciled.reason : reconciled.code,
+            );
+        }
+        await input.health.observeWorkstreamReplication(replicated);
       } catch (error) {
         await input.health.observeWorkstreamReplicationFailure(
           failureCode(error, "workstream_replication_failed"),
