@@ -120,8 +120,11 @@ export {
 } from "./document-freshness-finding.js";
 export {
   documentFreshnessReferences,
+  freshnessReferenceMissing,
+  markNeverTrackedReferences,
   type DocumentFreshnessTreeOracle,
 } from "./document-freshness-references.js";
+export { neverTrackedReferenceTargets } from "./document-freshness-reference-history.js";
 export {
   activeDocumentFreshnessHold,
   admitDocumentFreshnessFindings,
@@ -146,12 +149,23 @@ export {
   parseDocumentFreshnessProposal,
   type DocumentFreshnessProposal,
 } from "./document-freshness-response.js";
+export { documentFreshnessAutoApplicableHunks } from "./document-freshness-candidate-state.js";
 export {
   buildDocumentFreshnessCandidate,
-  documentFreshnessAutoApplicableHunks,
   reviewIntervalOnlyFreshnessCandidate,
   type DocumentFreshnessEvidenceItem,
 } from "./document-freshness-candidate.js";
+export {
+  buildDocumentFreshnessCrossCheckInput,
+  documentFreshnessCandidateNeedsCrossCheck,
+  documentFreshnessCrossCheckBlocked,
+  documentFreshnessCrossCheckInstruction,
+  documentFreshnessCrossCheckResponseSchema,
+  parseDocumentFreshnessCrossCheckResponse,
+  pendingDocumentFreshnessCrossCheck,
+  settleDocumentFreshnessCrossCheck,
+  type DocumentFreshnessCrossCheckInputV1,
+} from "./document-freshness-cross-check.js";
 export {
   documentFreshnessOwnershipResolver,
   observeDocumentFreshnessFindings,
@@ -175,6 +189,7 @@ export * from "./refresh-review-candidate.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
 export * from "./repository-layout-migration.js";
+export * from "./repository-layout-decision.js";
 export * from "./scanner.js";
 export * from "./skill-contract-source-units.js";
 export * from "./source-lineage.js";

@@ -26,7 +26,7 @@ export function documentRouteDeferralInstruction(
   if (resolution === "destination_conflict")
     return `Resolve the occupied or ambiguous destination for ${document.path}, then rebuild the migration plan. The source remains in place.`;
   if (resolution === "delegation_scope")
-    return `The next delegation renewal proposes all exact file paths needed to move ${document.path}, including its destination and reference rewrites, for owner review.`;
+    return `The background knowledge resident classifies ${document.path}; its move then joins the one repository layout decision that lervo migrate knowledge shows, or the next delegation renewal's exact scope proposal when that fits the delegation limit.`;
   return resolution === "route_metadata"
     ? `The semantic classifier could not place ${document.path} with confidence. Add ${metadata} front matter naming a configured route, or exclude the path in .lervo/knowledge/policy.yaml if it is not repository documentation.`
     : `The background knowledge resident classifies ${document.path} semantically under its delegation. To place it now, add ${metadata} front matter naming a configured route, or exclude the path in .lervo/knowledge/policy.yaml if it is not repository documentation.`;

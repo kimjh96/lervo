@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:a330edcf84653e905e986aceb1f8b3a20ec6c114703fd8c4d0f40a0f9adc7230",
+      "contentHash": "sha256:a3e1f9b60a892ea6dfa4b5d045b03a44696e7e22cd74aebf29b5589aea5c18f2",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, and terminal integration retain dedicated modules. Host terminal runtime materialization is one call to its distribution adapter, and worker-entry provenance is delegated to its installation module; this entrypoint only refreshes those bindings.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, terminal integration, and ADR-0559 layout decisions retain dedicated modules. Terminal runtime materialization and worker-entry provenance are single calls to their adapters.",
       "disposition": "cohesive"
     },
     {

@@ -23,6 +23,10 @@ import {
 } from "./freshness-candidate-recovery.js";
 import { reviewPendingFreshnessAssessment } from "./freshness-assessment.js";
 import {
+  freshnessCrossCheckPending,
+  resumePendingFreshnessCrossChecks,
+} from "./freshness-cross-check.js";
+import {
   listFreshnessCandidates,
   listFreshnessHolds,
   pruneFreshnessState,
@@ -104,6 +108,7 @@ export async function runDocumentFreshnessCycle(input: {
         (candidate) => candidate.state === "verified" && candidate.operation === "edit",
       )
     ) &&
+    !candidates.some(freshnessCrossCheckPending) &&
     !Object.values(state.evidenceRecovery ?? {}).some(
       (item) => item.attempts < 2 || item.nextCursor !== null,
     )
@@ -113,6 +118,21 @@ export async function runDocumentFreshnessCycle(input: {
   candidates = await recoverFreshnessCandidates(context, await listFreshnessCandidates(root));
   candidates = await supersedeMovedCandidates(context, candidates);
   if (input.effects !== "prepare") await resumeVerifiedCandidates(context, candidates);
+  // A cross-check a previous turn left pending runs before new spend; its tokens were reserved
+  // inside the candidate budget when the finding was admitted.
+  const crossChecks = await resumePendingFreshnessCrossChecks({
+    context,
+    candidates,
+    maximumTokens: policy.maximumTokensPerCandidate,
+    dailyRemaining: Math.max(0, policy.maximumTokensPerDay - state.budget.tokensUsed),
+    // Each settled spend is written at once, before auto-apply or the next candidate can fail.
+    recordSpend: async (tokens) => {
+      state.budget.tokensUsed += tokens;
+      await writeFreshnessCycleState(root, state);
+    },
+    autoApply: input.effects !== "prepare",
+  });
+  state.budget.verified += crossChecks.verifiedCount;
   const pendingAssessment = candidates.find(
     (candidate) => candidate.state === "generated" && candidate.operation === "no_change_needed",
   );
@@ -143,11 +163,11 @@ export async function runDocumentFreshnessCycle(input: {
         findingCount: state.summary.staleCount,
         admittedCount: 0,
         candidateCount: 0,
-        verifiedCount: review.candidate.state === "verified" ? 1 : 0,
-        appliedCount: 0,
+        verifiedCount: (review.candidate.state === "verified" ? 1 : 0) + crossChecks.verifiedCount,
+        appliedCount: crossChecks.appliedCount,
         skippedForBudget: 0,
         skippedForHold: 0,
-        usageObserved: review.tokensObserved,
+        usageObserved: review.tokensObserved + crossChecks.tokensObserved,
         occurredAt: now.toISOString(),
       },
     });
@@ -162,8 +182,8 @@ export async function runDocumentFreshnessCycle(input: {
       findingCount: state.summary.staleCount,
       admittedCount: 0,
       candidateCount: 0,
-      verifiedCount: review.candidate.state === "verified" ? 1 : 0,
-      appliedCount: 0,
+      verifiedCount: (review.candidate.state === "verified" ? 1 : 0) + crossChecks.verifiedCount,
+      appliedCount: crossChecks.appliedCount,
       deferred: review.deferred,
     };
   }
@@ -210,19 +230,22 @@ export async function runDocumentFreshnessCycle(input: {
     now,
   });
   const activeRecoveryKeys = new Set(ordered.map((entry) => freshnessRecoveryKey(entry, policy)));
-  const { candidateCount, verifiedCount, appliedCount, tokensObserved, deferred, recovery } =
-    await processFreshnessFindings({
-      context,
-      admitted: admission.admitted,
-      candidates,
-      contents,
-      ownershipOf,
-      policy,
-      state,
-      now,
-      autoApply: input.effects !== "prepare",
-      mandateKinds: input.mandateKinds ?? [],
-    });
+  const findingWork = await processFreshnessFindings({
+    context,
+    admitted: admission.admitted,
+    candidates,
+    contents,
+    ownershipOf,
+    policy,
+    state,
+    now,
+    autoApply: input.effects !== "prepare",
+    mandateKinds: input.mandateKinds ?? [],
+  });
+  const { candidateCount, deferred, recovery } = findingWork;
+  const verifiedCount = findingWork.verifiedCount + crossChecks.verifiedCount;
+  const appliedCount = findingWork.appliedCount + crossChecks.appliedCount;
+  const tokensObserved = findingWork.tokensObserved + crossChecks.tokensObserved;
   const findingsDigest = documentFreshnessFindingsDigest(observation.findings);
   const blocked = state.budget.attempts >= ZERO_SUCCESS_ATTEMPTS && state.budget.verified === 0;
   const finalCandidates = await listFreshnessCandidates(root);
@@ -261,9 +284,13 @@ export async function runDocumentFreshnessCycle(input: {
     },
   });
   // The fence is recorded after this cycle's own writes, so only a later change runs the stage.
-  // A deferred call or findings left by the per-cycle count keep the stage running next cycle.
+  // A deferred call, findings left by the per-cycle count, a pending cross-check, or a cross-check
+  // disagreement (whose finding regenerates once) keep the stage running next cycle.
   next.observationKey =
-    deferred === null && admission.skippedForCycleLimit === 0
+    deferred === null &&
+    admission.skippedForCycleLimit === 0 &&
+    !crossChecks.pending &&
+    crossChecks.disagreements + findingWork.disagreements === 0
       ? await observationKey(root, {
           policy,
           evidenceContract: DOCUMENT_FRESHNESS_EVIDENCE_CONTRACT,

@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-05
 Builds on: [ADR-0464 document drift detection](0464-report-document-drift-and-historical-documents.md), [ADR-0462 stale attention](../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
 Amends: [ADR-0023](0023-evidence-based-document-staleness.md), [ADR-0457](0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md), [ADR-0453](../../coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0460](../../coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md), [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
+Amended by: [ADR-0557](freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md) (Tier 0 in an independent no-capability session)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 Contract: [Document freshness specification](../../../specifications/knowledge/document-freshness.md)
 
@@ -63,7 +64,7 @@ A candidate becomes `verified` only after these deterministic checks pass:
 
 Candidates containing `statement` or `safety_or_policy` hunks, targeting user-owned documents, or using `archive` also require an ADR-0460 Tier 0 cross-check: "does each hunk follow from its cited evidence and change nothing else". `material_disagreement` rejects the candidate with contested claims; regenerate once, then raise attention. Add `document_freshness` to `DecisionPointSignal.kind`.
 
-Until ADR-0460 Slice 1 ships Tier 0, version 1 records `crossCheck: unavailable`, holds every affected hunk as `verified_pending_cross_check`, and routes it to the owner. Owner approval substitutes for the missing cross-check; nothing in this state applies without it.
+[ADR-0557](freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md) runs this Tier 0 in an independent no-capability session. When it is unavailable, the candidate records `crossCheck: unavailable` and the reason, holds every affected hunk as `verified_pending_cross_check`, and routes it to the owner. Owner approval substitutes for the missing cross-check; nothing in this state applies without it.
 
 ### 3. Authority and ownership
 
@@ -110,7 +111,7 @@ Failure codes `claim_unbound`, `reference_unresolved`, `outside_bytes_changed`, 
 
 Reproduce Argo cases from Git history using fixture providers:
 
-- F1: `AGENTS.md` points at a removed `v2` engine while `v4/argo4/live/engine.py` contains `class Limits`. Expect `safety` class, owner authority, and one candidate in the first cycle; version 1 records `crossCheck: unavailable` instead of Tier 0 agreement.
+- F1: `AGENTS.md` points at a removed `v2` engine while `v4/argo4/live/engine.py` contains `class Limits`. Expect `safety` class, owner authority, and one candidate in the first cycle. Under ADR-0557, Tier 0 agreement leaves it waiting for the owner.
 - F2: `README.md` has a broken `v2/README.md` link and "every 6 hours" against `v4/README.md` saying "daily". Expect `factual_reference`, proxy-eligible.
 - F3: root `FINAL-DESIGN.md` references deleted handoff documents. Expect `archive`, a banner, and nine link rewrites.
 - F4: an unrelated change yields no candidate; a correct document yields `no_change_needed`.
@@ -135,7 +136,7 @@ Report metrics weekly from events:
 1. `wired`: finding mapping, candidate, event, policy-key, and attention-kind schemas; `lervo knowledge freshness status` over rebuildable state.
 2. `wired`: evidence bundle, governed generation, deterministic verification, CAS before-bytes, `review`, Lervo-managed auto-apply with commit, `revert`, and F1–F7 fixtures.
 3. Partly `wired`: attention items, compact line, and owner apply, reject, and acknowledge. The turn-report segment, escalation question, and reply parser have no consuming host yet (ADR-0459, ADR-0453).
-4. `contract-only`: Tier 0 and the `document_freshness` signal await ADR-0460 Slice 1; metrics projection is deferred.
+4. `wired` for edits by ADR-0557; archives are not cross-checked. The `document_freshness` signal awaits ADR-0460 Slice 1; metrics projection is deferred.
 5. `wired`: `archive` operation.
 6. Deferred by owner decision: `document_freshness` mandate kind.
 7. `wired`; installed proof pending: the [document freshness specification's correction](../../../specifications/knowledge/document-freshness.md#installed-journey-completion) reports one local fixture-provider run on a copy of the Lervo repository. This does not establish real-provider installed completion. A real-provider run and its evidence document under `docs/evidence/quality/` remain open, replacing the former `installed-proven` label.
@@ -144,7 +145,7 @@ Also deferred: freshness of pending workstream approvals in compact context (rec
 
 ## Owner decisions (2026-10-05)
 
-1. Accept the authority matrix. While Tier 0 is unavailable, Lervo-managed `statement` hunks also wait for the owner because they require a cross-check.
+1. Accept the authority matrix. While Tier 0 is unavailable, Lervo-managed `statement` hunks also wait for the owner because they require a cross-check. On 2026-11-02 the owner chose a separate Claude session as that cross-check (ADR-0557).
 2. Exclude `document_freshness` from version 1 principal mandate kinds. Every user-owned apply goes to the owner; defer the kind until ADR-0453 Slice 2 provides the mandate contract.
 3. Retain default safety patterns and the 150,000-token daily repository budget. Patterns match whole words without inflection; repositories add desired plural forms.
 4. Run the installed journey only on Lervo. Do not touch Argo.

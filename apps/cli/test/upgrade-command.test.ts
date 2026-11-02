@@ -495,9 +495,19 @@ describe("lervo upgrade", () => {
     // A new checkout writes schema 1; the event writer stage is ready beside the user decision.
     expect(first.status).toBe("ready");
     expect(first.stages.eventWriter.disposition).toBe("safe_apply");
+    // ADR-0559: the layout plan is one owner decision with its two commands.
     expect(first.stages.knowledge).toMatchObject({
       disposition: "pending_authority",
-      reason: "review_required",
+      reason: "layout_decision_pending",
+      layoutDecision: {
+        decisionId: expect.stringMatching(/^klaydec_/u),
+        accept: expect.stringMatching(
+          /^lervo migrate knowledge --root \S+ --accept-layout klaydec_/u,
+        ),
+        decline: expect.stringMatching(
+          /^lervo migrate knowledge --root \S+ --decline-layout klaydec_/u,
+        ),
+      },
     });
 
     const migrationOutput: string[] = [];

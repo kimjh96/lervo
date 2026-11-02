@@ -51,36 +51,62 @@ export type FreshnessGenerationResult =
         | "knowledge_capacity_unavailable"
         | "knowledge_provider_paused"
         | "provider_not_admitted";
+      /** True when the provider call was made and may have spent tokens before it failed. */
+      attempted?: true;
     };
 
+/** One document a freshness call injected, measured by its hash and injected byte count. */
+export interface FreshnessMeasuredDocument {
+  path: string;
+  hash: string;
+  text: string;
+}
+
+/** What one call sends: the source data and the documents it injects for ADR-0459 measurement. */
+export interface FreshnessCallSource {
+  sourceData: unknown;
+  documents: FreshnessMeasuredDocument[];
+  sourceRevision: string;
+}
+
+/** The generation bundle as a call source: the stale document and its related documents. */
+export function freshnessBundleCallSource(bundle: FreshnessEvidenceBundleV1): FreshnessCallSource {
+  return {
+    sourceData: bundle,
+    documents: [
+      { path: bundle.document.path, hash: bundle.document.hash, text: bundle.document.text },
+      ...bundle.relatedDocuments.map((document) => ({
+        path: document.path,
+        hash: document.hash,
+        text: document.excerpt,
+      })),
+    ],
+    sourceRevision: bundle.document.hash,
+  };
+}
+
+/** The ADR-0459 run identifier of one freshness call, correlating its usage record. */
+export function freshnessCallRunId(generationId: string): string {
+  return `run_freshness_${generationId.slice("kfg_".length)}`;
+}
+
 /**
- * ADR-0459 measurement for one generation call: the stale and related documents Lervo loaded and
- * the provider-reported usage, attributed to `knowledge_worker` / `document_freshness`. Missing
+ * ADR-0459 measurement for one freshness call: the documents Lervo injected and the
+ * provider-reported usage, attributed to `knowledge_worker` / `document_freshness`. Missing
  * usage is recorded as unavailable, never as zero.
  */
 async function recordFreshnessUsage(input: {
   context: FreshnessGenerationContext;
   generationId: string;
-  bundle: FreshnessEvidenceBundleV1;
+  source: FreshnessCallSource;
   admissionObservationHash: string;
   usage: ProviderJsonUsage | null;
 }): Promise<void> {
-  const documents = [
-    {
-      path: input.bundle.document.path,
-      hash: input.bundle.document.hash,
-      text: input.bundle.document.text,
-    },
-    ...input.bundle.relatedDocuments.map((document) => ({
-      path: document.path,
-      hash: document.hash,
-      text: document.excerpt,
-    })),
-  ];
+  const documents = input.source.documents;
   const measurement = createTurnMeasurement({
     coordinates: {
       projectId: input.context.storage.manifest.projectId,
-      runId: `run_freshness_${input.generationId.slice("kfg_".length)}`,
+      runId: freshnessCallRunId(input.generationId),
       sessionId: `ses_freshness_${input.generationId.slice("kfg_".length)}`,
     },
     attribution: {
@@ -103,7 +129,7 @@ async function recordFreshnessUsage(input: {
         ? { status: "unavailable", reasonCode: "knowledge_usage_unavailable" }
         : { status: "observed", source: "provider_reported", usage: input.usage },
     context: {
-      sourceRevision: input.bundle.document.hash,
+      sourceRevision: input.source.sourceRevision,
       documents: [...new Map(documents.map((document) => [document.path, document])).values()].map(
         (document) => ({
           documentId: documentIdForPath(document.path),
@@ -125,7 +151,8 @@ async function recordFreshnessUsage(input: {
  */
 export async function generateFreshnessProposal(input: {
   context: FreshnessGenerationContext;
-  bundle: FreshnessEvidenceBundleV1;
+  /** The generation bundle, or any other bounded call source such as a cross-check input. */
+  source: FreshnessEvidenceBundleV1 | FreshnessCallSource;
   generationId: string;
   task?: string;
   responseSchema?: unknown;
@@ -133,6 +160,8 @@ export async function generateFreshnessProposal(input: {
 }): Promise<FreshnessGenerationResult> {
   if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
     return { status: "deferred", reason: "knowledge_capacity_unavailable" };
+  const source =
+    "sourceData" in input.source ? input.source : freshnessBundleCallSource(input.source);
   let context;
   try {
     context = await admittedBackgroundContext(input.context);
@@ -197,7 +226,7 @@ export async function generateFreshnessProposal(input: {
           schemaVersion: 1,
           schema: input.responseSchema ?? documentFreshnessResponseSchema,
         },
-        untrustedSourceData: input.bundle,
+        untrustedSourceData: source.sourceData,
       };
       result =
         runner.resolveObserved === undefined
@@ -207,20 +236,20 @@ export async function generateFreshnessProposal(input: {
       await recordFreshnessUsage({
         context,
         generationId: input.generationId,
-        bundle: input.bundle,
+        source,
         admissionObservationHash: admission.observationHash,
         usage: null,
       });
       if (error instanceof KnowledgeProviderAvailabilityError) {
         await pauseKnowledgeProviderFailure(context, error);
-        return { status: "deferred", reason: "knowledge_provider_paused" };
+        return { status: "deferred", reason: "knowledge_provider_paused", attempted: true };
       }
       return { status: "failed", usage: null };
     }
     await recordFreshnessUsage({
       context,
       generationId: input.generationId,
-      bundle: input.bundle,
+      source,
       admissionObservationHash: admission.observationHash,
       usage: result.usage,
     });

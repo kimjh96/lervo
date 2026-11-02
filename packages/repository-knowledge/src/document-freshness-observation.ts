@@ -11,11 +11,18 @@ import type {
   DocumentFreshnessFindingV1,
   DocumentFreshnessOwnership,
   DocumentFreshnessPathChange,
+  DocumentFreshnessPublicationGroup,
+  DocumentFreshnessReference,
 } from "./document-freshness-contract.js";
 import { documentFreshnessFinding } from "./document-freshness-finding.js";
 import { filesystemDocumentFreshnessOracle } from "./document-freshness-filesystem-oracle.js";
 import { documentFreshnessPublicationGroup } from "./document-freshness-publication-group.js";
-import { documentFreshnessReferences } from "./document-freshness-references.js";
+import { neverTrackedReferenceTargets } from "./document-freshness-reference-history.js";
+import {
+  documentFreshnessReferences,
+  freshnessReferenceMissing,
+  markNeverTrackedReferences,
+} from "./document-freshness-references.js";
 import type { DocumentStalenessFinding } from "./document-staleness-evaluation.js";
 import { gitDocumentStalenessPort } from "./document-staleness-git.js";
 import { readRecordedDocumentStalenessReport } from "./document-staleness-state.js";
@@ -224,7 +231,13 @@ export async function observeDocumentFreshnessFindings(input: {
     roles: taxonomy?.documentPolicy.roles ?? [],
   });
   const paths = [...sources.keys()].filter((path) => !toolGenerated.has(path)).sort();
-  const findings: DocumentFreshnessFindingV1[] = [];
+  // The first pass keeps only what a finding needs, never the document bodies.
+  const documents: Array<{
+    path: string;
+    documentHash: string;
+    publicationGroup: DocumentFreshnessPublicationGroup;
+    references: DocumentFreshnessReference[];
+  }> = [];
   for (const path of paths.slice(0, MAXIMUM_FINDINGS)) {
     const bytes = (() => {
       try {
@@ -238,13 +251,39 @@ export async function observeDocumentFreshnessFindings(input: {
     })();
     if (bytes === null) continue;
     const content = bytes.toString("utf8");
-    const references = documentFreshnessReferences({ path, content, oracle });
+    documents.push({
+      path,
+      documentHash: sha256(bytes),
+      publicationGroup: documentFreshnessPublicationGroup({
+        path,
+        content,
+        publicationRoot: policy.publicationRoot,
+        archiveScopes: scopes,
+        rolePaths,
+      }),
+      references: documentFreshnessReferences({ path, content, oracle }),
+    });
+  }
+  // ADR-0558: one history lookup for every absent path mention in this observation.
+  const neverTracked = await neverTrackedReferenceTargets({
+    root,
+    head,
+    targets: documents.flatMap((document) =>
+      document.references
+        .filter((reference) => !reference.resolved && reference.kind === "path_mention")
+        .map((reference) => reference.target),
+    ),
+  });
+  const findings: DocumentFreshnessFindingV1[] = [];
+  for (const document of documents) {
+    const { path } = document;
+    const references = markNeverTrackedReferences(document.references, neverTracked);
     const missingTargets = [
-      ...new Set(references.filter((reference) => !reference.resolved).map((item) => item.target)),
+      ...new Set(references.filter(freshnessReferenceMissing).map((item) => item.target)),
     ].sort();
     const finding = documentFreshnessFinding({
       documentPath: path,
-      documentHash: sha256(bytes),
+      documentHash: document.documentHash,
       currentRevision: head,
       staleness: staleness.get(path) ?? null,
       sources: [...sources.get(path)!],
@@ -255,13 +294,7 @@ export async function observeDocumentFreshnessFindings(input: {
         missingTargets,
       }),
       references,
-      publicationGroup: documentFreshnessPublicationGroup({
-        path,
-        content,
-        publicationRoot: policy.publicationRoot,
-        archiveScopes: scopes,
-        rolePaths,
-      }),
+      publicationGroup: document.publicationGroup,
       supersededBy: successors.get(path) ?? null,
       detectedAt: input.now.toISOString(),
     });

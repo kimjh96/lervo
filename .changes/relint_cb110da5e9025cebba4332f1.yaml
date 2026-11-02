@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cb110da5e9025cebba4332f1"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A reviewed repository layout plan is now asked as one owner decision with a recommendation, shown in the plan, attention, health, and lervo upgrade, accepted or declined with one command each; a scope proposal over the delegation root limit is no longer asked."

@@ -82,7 +82,7 @@ Each host assesses its own owner turns; only the ADR-0466 convergence owner appl
 | Consolidation normalization | ADR-0457 | Evidence retired to projection, short documents below 100, one specification tree | Slice 0 intake |
 | Document freshness cross-check, `archive` operation, `document_freshness` mandate kind, installed journey | ADR-0463 | `installed-document-freshness-v1` on the Lervo repository; weekly freshness metrics reported | Slice 2 freshness, Slice 1 tiers, Slice 2 principal mandate |
 
-The `archive` operation is `wired`: fixture F3 applies an archive with nine inbound link rewrites through owner approval. Tier 0 cross-check is `contract-only` until ADR-0460 Slice 1. The owner's 2026-10-05 decision defers the `document_freshness` mandate kind. The installed journey ran once locally on a copy of the Lervo repository with the fixture provider; a real-provider installed run and weekly metrics projection remain open.
+The `archive` operation is `wired`: fixture F3 applies an archive with nine inbound link rewrites through owner approval. Tier 0 cross-check is `wired` for edit candidates by [ADR-0557](../../decisions/knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md): one call in an independent no-capability session, separate from generation. Archives are not cross-checked, and the `document_freshness` decision-point signal still awaits ADR-0460 Slice 1. The owner's 2026-10-05 decision defers the `document_freshness` mandate kind. The installed journey ran once locally on a copy of the Lervo repository with the fixture provider; a real-provider installed run and weekly metrics projection remain open.
 
 ## Slice 4: convergence
 

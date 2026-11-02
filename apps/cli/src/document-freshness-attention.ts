@@ -15,6 +15,12 @@ export interface DocumentFreshnessAttentionInput {
   awaiting: readonly DocumentFreshnessCandidateV1[];
   applied: readonly DocumentFreshnessCandidateV1[];
   blocked: { attempts: number } | null;
+  /** Findings whose candidate and regeneration both met Tier 0 disagreement; absent means none. */
+  crossCheckBlocked?: ReadonlyArray<{
+    documentPath: string;
+    candidateId: string;
+    attempts: number;
+  }>;
 }
 
 function changeClasses(
@@ -98,6 +104,26 @@ function blockedItem(attempts: number): DocumentFreshnessBlockedAttentionItemV1 
   };
 }
 
+function crossCheckBlockedItem(blocked: {
+  documentPath: string;
+  candidateId: string;
+  attempts: number;
+}): DocumentFreshnessBlockedAttentionItemV1 {
+  return {
+    schemaVersion: 1,
+    kind: "document_freshness_blocked",
+    itemId: `document_freshness_blocked_cross_check_${blocked.candidateId}`,
+    state: "action_required",
+    reasonCode: "repeated_cross_check_disagreement",
+    documentPath: blocked.documentPath,
+    attempts: blocked.attempts,
+    actionOwner: "user",
+    requiresUserAction: true,
+    blocking: false,
+    instruction: `The independent cross-check disagreed with ${blocked.attempts} freshness candidates for ${blocked.documentPath}; inspect lervo knowledge freshness review ${blocked.candidateId} and correct the document by hand if it is stale.`,
+  };
+}
+
 /** Maps the rebuildable freshness state to the three ADR-0463 attention kinds. */
 export function documentFreshnessAttentionItems(
   input: DocumentFreshnessAttentionInput,
@@ -106,6 +132,7 @@ export function documentFreshnessAttentionItems(
     ...input.awaiting.map(candidateItem),
     ...input.applied.map(appliedItem),
     ...(input.blocked === null ? [] : [blockedItem(input.blocked.attempts)]),
+    ...(input.crossCheckBlocked ?? []).map(crossCheckBlockedItem),
   ];
 }
 

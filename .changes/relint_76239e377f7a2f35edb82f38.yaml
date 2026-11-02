@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_76239e377f7a2f35edb82f38"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Document freshness candidates now get an independent no-capability Tier 0 cross-check, so agreed Lervo-managed statement hunks apply without the owner and contested candidates are rejected and regenerated once."

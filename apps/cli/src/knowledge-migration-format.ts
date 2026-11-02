@@ -1,9 +1,11 @@
-import type {
-  KnowledgeMigrationPlan,
-  RepositoryLayoutMigrationPlan,
+import {
+  repositoryLayoutDecision,
+  type KnowledgeMigrationPlan,
+  type RepositoryLayoutMigrationPlan,
 } from "@lervo/repository-knowledge";
 
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
+import { formatRepositoryLayoutDecision } from "./knowledge-layout-decision.js";
 
 export function printableKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): unknown {
   return {
@@ -56,10 +58,15 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
     ].join("");
     lines.push(`  blocker [${blocker.code}] ${blocker.path ?? blocker.pathDigest}${details}`);
   }
+  const decision = repositoryLayoutDecision(plan);
+  if (decision !== null)
+    lines.push(...formatRepositoryLayoutDecision(decision, plan.repositoryRoot));
   if (plan.status === "review_required")
     lines.push(
       "No files have been changed.",
-      `To apply, use --apply ${plan.planId} with every displayed --approve-item.`,
+      decision === null
+        ? `To apply, use --apply ${plan.planId} with every displayed --approve-item.`
+        : `Accept or decline the layout decision above with one command, or use --apply ${plan.planId} with every displayed --approve-item.`,
     );
   if (plan.status === "ready")
     lines.push("No files have been changed.", `To apply, use --apply ${plan.planId}.`);

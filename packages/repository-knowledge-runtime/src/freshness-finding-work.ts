@@ -46,6 +46,7 @@ export async function processFreshnessFindings(input: {
   let verifiedCount = 0;
   let appliedCount = 0;
   let tokensObserved = 0;
+  let disagreements = 0;
   let deferred: string | null = null;
   const recovery: NonNullable<FreshnessCycleState["evidenceRecovery"]> = {
     ...state.evidenceRecovery,
@@ -144,6 +145,15 @@ export async function processFreshnessFindings(input: {
     }
     if (outcome.candidate.state === "applied" || outcome.candidate.state === "partially_applied")
       appliedCount += 1;
+    if (outcome.candidate.rejection?.reasonCode === "cross_check_disagreement") disagreements += 1;
   }
-  return { candidateCount, verifiedCount, appliedCount, tokensObserved, deferred, recovery };
+  return {
+    candidateCount,
+    verifiedCount,
+    appliedCount,
+    tokensObserved,
+    disagreements,
+    deferred,
+    recovery,
+  };
 }

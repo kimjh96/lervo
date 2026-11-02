@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   documentFreshnessApplyCommand,
+  documentFreshnessCrossCheckBlocked,
   documentFreshnessPolicy,
   documentFreshnessReviewStates,
   loadRepositoryKnowledgePolicy,
@@ -174,22 +175,39 @@ export async function renderDocumentFreshnessDiff(
     ].join("\n");
   const source = await sourceText(storage, candidate);
   if (source === null) return "(source bytes changed; the candidate will be superseded)";
+  const verdicts = new Map(
+    (candidate.crossCheckReview?.verdicts ?? []).map((verdict) => [verdict.hunkId, verdict]),
+  );
   return candidate.hunks
     .map((hunk) => {
       const before = source.subarray(hunk.range.startByte, hunk.range.endByte).toString("utf8");
+      const verdict = verdicts.get(hunk.hunkId);
       return [
         `--- a/${candidate.documentPath}`,
         `+++ b/${candidate.documentPath}`,
-        `@@ ${hunk.hunkId} bytes ${hunk.range.startByte}-${hunk.range.endByte} ${hunk.changeClass} ${hunk.ownership}${hunk.crossCheckRequired ? " cross-check-pending" : ""} @@`,
+        `@@ ${hunk.hunkId} bytes ${hunk.range.startByte}-${hunk.range.endByte} ${hunk.changeClass} ${hunk.ownership}${hunkCrossCheckLabel(candidate, hunk.crossCheckRequired, verdict?.verdict)} @@`,
         ...before.split("\n").map((line) => `-${line}`),
         ...hunk.replacement.split("\n").map((line) => `+${line}`),
         ...hunk.claims.map(
           (claim) =>
             `# claim: ${claim.text} [${claim.evidence.map((item) => `${item.path}@${item.hash.slice(7, 19)}`).join(", ")}]`,
         ),
+        ...(verdict === undefined ? [] : [`# cross-check ${verdict.verdict}: ${verdict.reason}`]),
       ].join("\n");
     })
     .join("\n");
+}
+
+/** Per-hunk Tier 0 label: the reviewer's verdict, or why the hunk has none. */
+function hunkCrossCheckLabel(
+  candidate: DocumentFreshnessCandidateV1,
+  required: boolean,
+  verdict: "agree" | "disagree" | undefined,
+): string {
+  if (verdict !== undefined) return ` cross-check-${verdict}`;
+  if (!required) return "";
+  if (candidate.crossCheckReview?.status === "pending") return " cross-check-pending";
+  return " cross-check-unavailable";
 }
 
 /** Owner surfaces' counts from the rebuildable state; cheap enough for the prompt path. */
@@ -227,6 +245,7 @@ export async function documentFreshnessAttentionSources(
   awaiting: DocumentFreshnessCandidateV1[];
   applied: DocumentFreshnessCandidateV1[];
   blocked: { attempts: number } | null;
+  crossCheckBlocked: ReturnType<typeof documentFreshnessCrossCheckBlocked>;
 }> {
   const [cycle, candidates] = await Promise.all([
     readFreshnessCycleState(root),
@@ -243,6 +262,7 @@ export async function documentFreshnessAttentionSources(
         now.getTime() - Date.parse(candidate.approval.approvedAt) < APPLIED_NOTICE_MILLISECONDS,
     ),
     blocked: cycle.summary.blocked ? { attempts: cycle.budget.attempts } : null,
+    crossCheckBlocked: documentFreshnessCrossCheckBlocked(candidates),
   };
 }
 

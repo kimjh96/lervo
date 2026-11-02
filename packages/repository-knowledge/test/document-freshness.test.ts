@@ -64,7 +64,14 @@ function finding(overrides: Partial<Parameters<typeof documentFreshnessFinding>[
       },
     ],
     references: [
-      { line: 3, target: "v2/engine.py", kind: "path_mention", symbol: "Limits", resolved: false },
+      {
+        line: 3,
+        target: "v2/engine.py",
+        kind: "path_mention",
+        symbol: "Limits",
+        resolved: false,
+        neverTracked: false,
+      },
     ],
     publicationGroup: "entrypoint",
     supersededBy: null,
@@ -119,6 +126,7 @@ describe("document freshness priority and admission", () => {
               kind: "path_mention",
               symbol: null,
               resolved: false,
+              neverTracked: false,
             },
           ],
         }),

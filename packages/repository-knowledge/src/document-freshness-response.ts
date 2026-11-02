@@ -66,6 +66,7 @@ export const documentFreshnessGenerationInstruction = [
   "Prefer no_change_needed over speculation, and needs_owner_input when the evidence does not determine the new value.",
   "When untrustedSourceData.unresolvedReferences is not empty, no_change_needed is never accepted: edit every listed reference.",
   "Replace an unresolved reference with the current path or symbol the evidence shows. When its target was removed and the line still records a past fact, keep the reference text and append ` (removed)` to that same line, citing the evidence of the removal.",
+  "A path the document mentions that is not listed in unresolvedReferences was never removed; never append ` (removed)` to it or edit it for being absent.",
   "Use archive only when the document describes a superseded design that the evidence no longer supports.",
 ].join(" ");
 
