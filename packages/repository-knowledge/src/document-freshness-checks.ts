@@ -168,7 +168,8 @@ function replacedOutputLines(
     const length = Buffer.byteLength(hunk.replacement);
     const start = hunk.range.startByte + delta;
     delta += length - (hunk.range.endByte - hunk.range.startByte);
-    const lineStart = bytes.lastIndexOf(0x0a, start - 1) + 1;
+    // A negative `lastIndexOf` offset counts from the end, so byte 0 needs its own case.
+    const lineStart = start === 0 ? 0 : bytes.lastIndexOf(0x0a, start - 1) + 1;
     const next = bytes.indexOf(0x0a, start + length);
     result.push(bytes.subarray(lineStart, next === -1 ? bytes.length : next).toString("utf8"));
   }

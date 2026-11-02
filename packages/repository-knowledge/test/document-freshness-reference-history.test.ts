@@ -370,6 +370,44 @@ describe("never-tracked reference targets (ADR-0558)", () => {
     });
   });
 
+  it("checks the first line when a replacement starts at byte 0", () => {
+    const path = "docs/evidence.md";
+    const existing = Array.from(
+      { length: MAXIMUM_DOCUMENT_REFERENCES },
+      (_, index) => `\`docs/case-${index}.md\``,
+    );
+    const source = Buffer.from("# Evidence\n");
+    const replacement = `${existing.join(" ")} [doc](invented.md)\n`;
+    const output = Buffer.concat([Buffer.from(replacement), source]);
+    const oracle = { ...absentOracle, exists: (target: string) => target !== "docs/invented.md" };
+    const checks = runDocumentFreshnessChecks({
+      documentPath: path,
+      source,
+      sourceHash: sha256(source),
+      currentHash: sha256(source),
+      output,
+      hunks: [
+        {
+          hunkId: "h1",
+          range: { startByte: 0, endByte: 0 },
+          beforeHash: sha256(Buffer.alloc(0)),
+          replacement,
+          changeClass: "factual_reference",
+          ownership: "lervo_managed",
+          managedBlockId: null,
+          authorityRequired: "none",
+          crossCheckRequired: false,
+          claims: [],
+        },
+      ],
+      finding: { references: [] },
+      bundleEvidence: new Set(),
+      policy: defaultDocumentFreshnessPolicy,
+      oracle,
+    });
+    expect(checks.find((check) => check.code === "references_resolve")?.status).toBe("failed");
+  });
+
   it("observes an entrypoint finding only for the removed reference", async () => {
     const { root } = await repository();
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_referencehistory" }));
