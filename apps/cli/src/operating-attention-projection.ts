@@ -21,6 +21,7 @@ import {
   documentFreshnessAttentionItems,
   type DocumentFreshnessAttentionInput,
 } from "./document-freshness-attention.js";
+import { heldEffectAttentionItems, type HeldEffect } from "./held-effect-debt.js";
 import {
   instructionCaptureAttentionItems,
   type InstructionCaptureAttentionInput,
@@ -193,6 +194,8 @@ export function createOperatingAttentionReport(input: {
   instructionCapture?: InstructionCaptureAttentionInput | null;
   /** ADR-0466 ownership and publication state; null when unreadable. */
   knowledgeConvergence?: KnowledgeConvergenceAttentionInput | null;
+  /** ADR-0561 foreground effects Lervo holds as its own debt. */
+  heldEffects?: readonly HeldEffect[];
   workstreamCoverage?: OperatingAttentionReportV1["coverage"]["workstream"];
   health?: OperatingAttentionReportV1["health"];
   observedAt: Date;
@@ -241,6 +244,7 @@ export function createOperatingAttentionReport(input: {
         ...(input.knowledgeConvergence === undefined || input.knowledgeConvergence === null
           ? []
           : knowledgeConvergenceAttentionItems(input.knowledgeConvergence)),
+        ...heldEffectAttentionItems(input.heldEffects ?? []),
       ].map((item) => [item.itemId, attributeOperatingAttention(item, input.observedAt)]),
     ).values(),
   ]);

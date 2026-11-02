@@ -46,14 +46,10 @@ async function repositoryWithInstalledTerminalHooks(): Promise<string> {
   await writeFile(resolve(root, "main.ts"), "export const value = true;\n");
   expect(await runCli(["init", "--minimal", "--name", "argo-fixture"], io(root, [], []))).toBe(0);
   const install = await planTerminalIntegrationStage(root);
-  expect(install.plan.status).toBe("review_required");
+  expect(install.plan.status).toBe("ready");
   await applyTerminalIntegrationStage({
     repositoryRoot: root,
     prepared: install,
-    approval: {
-      operationId: install.plan.operationId,
-      approvalHash: install.plan.approvalHash!,
-    },
     now: new Date("2026-09-30T00:00:00Z"),
   });
   return root;
@@ -113,15 +109,11 @@ describe("lervo upgrade with a blocked stage", () => {
       "blocker [invalid_document_metadata] v3/REQUIREMENTS.md",
     );
     expect(humanOutput.join("")).toContain(
-      `Independent stages can still apply (terminal_integration): re-run with --apply --approval ${plan.planId}.`,
+      "Independent stages can still apply (terminal_integration): re-run with --apply.",
     );
 
     expect(
-      await runCli(
-        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
     ).toBe(1);
     expect(errors).toEqual([]);
     const receipt = JSON.parse(output.join("")) as {
@@ -161,11 +153,7 @@ describe("lervo upgrade with a blocked stage", () => {
     expect(after.stages.terminalIntegration.disposition).toBe("current");
     expect(after.applicableStages).toEqual([]);
     expect(
-      await runCli(
-        ["upgrade", "--apply", "--approval", after.planId, "--json"],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
     ).toBe(1);
     expect(errors).toEqual([]);
     expect(JSON.parse(output.join(""))).toMatchObject({

@@ -38,6 +38,10 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { runCli as runCliBase } from "../src/main.js";
+import {
+  applyTerminalIntegrationStage,
+  planTerminalIntegrationStage,
+} from "../src/terminal-integration-stage.js";
 import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import { terminalTurnDeclarationRequired } from "../src/terminal-lifecycle-inspection.js";
 import { terminalKnowledgeSnapshotId } from "../src/terminal-compact-context.js";
@@ -166,8 +170,6 @@ async function initializedRepository(): Promise<string> {
   await applyTerminalIntegrationPlan({
     plan: terminal,
     runtimeContent,
-    approvedOperationId: terminal.operationId,
-    approvedHash: terminal.approvalHash!,
     now: new Date(),
     recordApplied: () => undefined,
   });
@@ -781,25 +783,18 @@ describe("terminal integration CLI", () => {
         userUpdates?: Array<{ operationId: string; approvalHash: string }>;
       };
     };
-    // ADR-0561: only the terminal integration stage still binds an item approval.
-    const approvals = (plan: Awaited<ReturnType<typeof migrate>>) =>
-      plan.planKind === "terminal_integration" &&
-      plan.approvalHash !== undefined &&
-      plan.approvalHash !== null
-        ? ["--approve-item", `${plan.operationId}=${plan.approvalHash}`]
-        : [];
     const terminalPlan = async () => {
       for (let index = 0; index < 10; index += 1) {
         const plan = await migrate();
         if (plan.planKind === "terminal_integration") return plan;
-        await migrate("--apply", plan.planId, ...approvals(plan));
+        await migrate("--apply", plan.planId);
       }
       throw new Error("Terminal integration plan did not become reachable.");
     };
 
     const first = await terminalPlan();
-    expect(["ready", "review_required"]).toContain(first.status);
-    await migrate("--apply", first.planId, ...approvals(first));
+    expect(first.status).toBe("ready");
+    await migrate("--apply", first.planId);
     const installedRuntime = await readFile(
       resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.mjs"),
       "utf8",
@@ -1692,22 +1687,24 @@ describe("terminal integration CLI", () => {
       approvalHash: string;
     };
     expect(plan.planKind).toBe("terminal_integration");
+    const original = await readFile(resolve(root, ".claude/settings.json"), "utf8");
     messages.length = 0;
+    // ADR-0561: the removed item approval fails briefly and changes nothing.
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", plan.planId, "--approve-item", "ktermop_x=y"],
         io,
       ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("--approve-item was removed");
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+    errors.length = 0;
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io),
       errors.join(""),
     ).toBe(0);
+    const receipt = JSON.parse(messages.join("")) as { backupId: string };
+    expect(receipt.backupId).toMatch(/^lbk_[a-f0-9]{24}$/u);
     const settings = JSON.parse(await readFile(resolve(root, ".claude/settings.json"), "utf8"));
     expect(settings.permissions).toEqual({ deny: ["Bash"] });
     expect(
@@ -1720,7 +1717,29 @@ describe("terminal integration CLI", () => {
         item.hooks.some((hook) => hook.command === terminalHookCommand("claude")),
       ),
     ).toBe(true);
+    // The backup restores the provider hook file byte for byte.
+    expect(await runCli(["state", "restore", receipt.backupId], io), errors.join("")).toBe(0);
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
   }, 15_000);
+
+  it("restores the provider hook files from the backup when the applied integration does not verify", async () => {
+    const root = await initializedRepository();
+    const original = '{"permissions":{"deny":["Bash"]}}\n';
+    await writeFile(resolve(root, ".claude/settings.json"), original);
+    const codexHooks = await readFile(resolve(root, ".codex/hooks.json"), "utf8");
+    const prepared = await planTerminalIntegrationStage(root);
+    expect(prepared.plan.status).toBe("ready");
+    await expect(
+      applyTerminalIntegrationStage({
+        repositoryRoot: root,
+        prepared,
+        now: new Date(),
+        verify: async () => "the fixture reader rejected the hooks",
+      }),
+    ).rejects.toMatchObject({ code: "terminal_integration_verification_failed" });
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+    expect(await readFile(resolve(root, ".codex/hooks.json"), "utf8")).toBe(codexHooks);
+  });
 });
 
 describe("compact terminal prompt context", () => {

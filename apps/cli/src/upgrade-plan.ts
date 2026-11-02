@@ -47,15 +47,17 @@ export interface RepositoryUpgradePlan {
   planId: string;
   repositoryRoot: string;
   projectId: string;
-  status: "ready" | "current" | "pending_authority" | "blocked";
-  /** Stages an exact apply of this plan changes, even when another stage is blocked. */
+  status: "ready" | "current" | "lervo_debt" | "blocked";
+  /** Stages an apply of this plan changes, even when another stage is blocked. */
   applicableStages: UpgradeStageName[];
   cli: { version: string; buildHash: string; acquisition: "outside_repository_upgrade" };
   policy: {
     generatedOnlyAutomaticApply: true;
     maximumKnowledgeStages: 16;
-    userOwnedBytes: "exact_approval_required";
-    providerConfiguration: "exact_approval_required";
+    /** ADR-0561: an independent cross-check, then a Lervo Knowledge commit as the undo point. */
+    userOwnedBytes: "cross_checked_effect_commit";
+    /** ADR-0561: provider hook files are backed up, applied, verified, and restored on failure. */
+    providerConfiguration: "backup_apply_verify_restore";
     nodeService: "registered_instance_transactional_reconciliation";
     eventWriter: "backup_then_exact_event_contract_plan";
     hostService: "one_user_service_for_unserved_repositories";
@@ -107,7 +109,7 @@ function deferredWorkforce(reason: string): WorkforceStage {
     staleAssignmentCount: 0,
     status: "deferred",
     reason,
-    requiredApprovals: [],
+    repositoryRoleRefreshes: [],
   };
 }
 
@@ -226,13 +228,13 @@ export async function createRepositoryUpgradePlan(
     repositoryRoot,
     projectId: project.projectId,
     status: overallUpgradeStatus(Object.values(dispositions)),
-    applicableStages: applicableUpgradeStages(dispositions, workforce.requiredApprovals.length > 0),
+    applicableStages: applicableUpgradeStages(dispositions),
     cli: { version, buildHash, acquisition: "outside_repository_upgrade" as const },
     policy: {
       generatedOnlyAutomaticApply: true as const,
       maximumKnowledgeStages: 16 as const,
-      userOwnedBytes: "exact_approval_required" as const,
-      providerConfiguration: "exact_approval_required" as const,
+      userOwnedBytes: "cross_checked_effect_commit" as const,
+      providerConfiguration: "backup_apply_verify_restore" as const,
       nodeService: "registered_instance_transactional_reconciliation" as const,
       eventWriter: "backup_then_exact_event_contract_plan" as const,
       hostService: "one_user_service_for_unserved_repositories" as const,

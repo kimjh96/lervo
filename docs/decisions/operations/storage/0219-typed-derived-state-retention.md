@@ -6,6 +6,8 @@ Amended by: [ADR-0518](0518-retire-settled-convergence-checkouts-on-every-host.m
 
 Amended by: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md)
 
+Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md). `lervo state prune --apply` takes no `--approval`; it plans again and refuses changed bytes inside the same run. Prune removes only rebuildable derived artifacts its retention policy classified, so the canonical sources are their backup. `--recover` keeps its meaning.
+
 ## Context
 
 The deletable-state boundary made a full `.lervo/state` reset safe, but caches, reviewed candidates, completed deliberation workspaces, and observations still grew independently. A global reset could reach its smaller inventory bound before an operator reclaimed disposable state. Filename and age alone are insufficient deletion authority because pending review and recovery work share the derived root.

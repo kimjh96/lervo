@@ -2,7 +2,7 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { registerAgent } from "@lervo/agent-workforce";
+import { listAgents, registerAgent } from "@lervo/agent-workforce";
 import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -41,8 +41,8 @@ async function repository(): Promise<string> {
   return root;
 }
 
-/** Approves provider hooks once, so terminal integration no longer needs owner approval. */
-async function approveTerminalIntegration(root: string): Promise<void> {
+/** Applies the knowledge stages up to the terminal integration plan, then that plan. */
+async function applyTerminalIntegration(root: string): Promise<void> {
   const migrate = async (...args: string[]) => {
     const stdout: string[] = [];
     const stderr: string[] = [];
@@ -54,24 +54,11 @@ async function approveTerminalIntegration(root: string): Promise<void> {
       ),
       stderr.join(""),
     ).toBe(0);
-    return JSON.parse(stdout.join("")) as {
-      planKind?: string;
-      planId: string;
-      operationId?: string;
-      approvalHash?: string | null;
-      userUpdates?: Array<{ operationId: string; approvalHash: string }>;
-    };
+    return JSON.parse(stdout.join("")) as { planKind?: string; planId: string };
   };
-  // ADR-0561: only the terminal integration stage still binds an item approval.
-  const approvals = (plan: Awaited<ReturnType<typeof migrate>>) =>
-    plan.planKind === "terminal_integration" &&
-    plan.approvalHash !== undefined &&
-    plan.approvalHash !== null
-      ? ["--approve-item", `${plan.operationId}=${plan.approvalHash}`]
-      : [];
   for (let index = 0; index < 10; index += 1) {
     const plan = await migrate();
-    await migrate("--apply", plan.planId, ...approvals(plan));
+    await migrate("--apply", plan.planId);
     if (plan.planKind === "terminal_integration") return;
   }
   throw new Error("Terminal integration plan did not become reachable.");
@@ -80,7 +67,11 @@ async function approveTerminalIntegration(root: string): Promise<void> {
 async function presentedPlan(root: string): Promise<{
   planId: string;
   status: string;
-  stages: { terminalIntegration: { disposition: string }; knowledge: { disposition: string } };
+  stages: {
+    terminalIntegration: { disposition: string; reason: string };
+    knowledge: { disposition: string };
+    workforce: { disposition: string; reason: string };
+  };
 }> {
   const stdout: string[] = [];
   expect(await runCli(["upgrade", "--json"], io(root, stdout, []))).toBe(0);
@@ -113,10 +104,10 @@ async function applyWhileRepositoryMoves(
   return { code, stdout: stdout.join(""), stderr: stderr.join("") };
 }
 
-describe("lervo upgrade --apply --safe", () => {
+describe("lervo upgrade --apply (ADR-0561)", () => {
   it("plans and applies in one exclusive window when the plan changes while waiting", async () => {
     const root = await repository();
-    await approveTerminalIntegration(root);
+    await applyTerminalIntegration(root);
     // ADR-0539: an installed CLI publishes the host hook runtime at startup; runCli skips bin.ts.
     const hookReader = vi
       .spyOn(terminalRuntime, "hostTerminalHookReaderCurrent")
@@ -126,20 +117,17 @@ describe("lervo upgrade --apply --safe", () => {
     expect(presented.stages.terminalIntegration.disposition).toBe("current");
     expect(presented.stages.knowledge.disposition).toBe("safe_apply");
 
-    const result = await applyWhileRepositoryMoves(root, [
-      "upgrade",
-      "--apply",
-      "--safe",
-      "--json",
-    ]);
+    const result = await applyWhileRepositoryMoves(root, ["upgrade", "--apply", "--json"]);
     expect(result.code, result.stdout + result.stderr).toBe(0);
     const receipt = JSON.parse(result.stdout) as {
-      approvedPlanId: string;
+      planId: string;
       appliedStages: string[];
       timing: { applyMs: number };
       stageTimings: Array<{ stage: string; ms: number }>;
     };
-    expect(receipt.approvedPlanId).not.toBe(presented.planId);
+    // The plan recreated inside the window is what applied; no echoed plan ID can go stale.
+    expect(receipt.planId).not.toBe(presented.planId);
+    expect(receipt.appliedStages).toContain("knowledge_materialization");
     // ADR-0579: consecutive parts from the in-window plan to the final plan.
     const stages = receipt.stageTimings.map((timing) => timing.stage);
     expect(stages[0]).toBe("plan");
@@ -156,47 +144,27 @@ describe("lervo upgrade --apply --safe", () => {
       expect(Number.isInteger(timing.ms) && timing.ms >= 0).toBe(true);
     const measured = receipt.stageTimings.reduce((sum, timing) => sum + timing.ms, 0);
     expect(measured).toBeLessThanOrEqual(receipt.timing.applyMs + stages.length);
-    expect(receipt.appliedStages.length).toBeGreaterThan(0);
-    expect(receipt.appliedStages).toContain("knowledge_materialization");
     // The event writer stage reads the hook runtime of the isolated home, never the host's.
     expect(hookReader.mock.calls.length).toBeGreaterThan(0);
     for (const [store] of hookReader.mock.calls)
       expect(store).toMatch(/lervo-upgrade-home-[^/]+\/\.lervo\/terminal-hooks$/u);
   }, 60_000);
 
-  it("names the current plan and the changed stage when an exact approval went stale", async () => {
+  it("keeps --safe as an accepted spelling of the same one-window apply", async () => {
     const root = await repository();
-    const presented = await presentedPlan(root);
-
     const result = await applyWhileRepositoryMoves(root, [
       "upgrade",
       "--apply",
-      "--approval",
-      presented.planId,
+      "--safe",
       "--json",
     ]);
-    expect(result.code).toBe(1);
-    const failure = JSON.parse(result.stdout) as {
-      error: {
-        code: string;
-        message: string;
-        currentPlanId: string;
-        changes: string[];
-        ownerApprovalStages: string[];
-      };
-    };
-    expect(failure.error.code).toBe("upgrade_plan_changed");
-    expect(failure.error.currentPlanId).not.toBe(presented.planId);
-    expect(failure.error.message).toContain(`The current plan is ${failure.error.currentPlanId}.`);
-    expect(failure.error.changes).toEqual(
-      expect.arrayContaining([expect.stringMatching(/^knowledge \(.*plan .+ -> .+\)$/u)]),
-    );
-    // ADR-0589: the refusal tells the follower whether `--safe` would refuse too.
-    expect(failure.error.ownerApprovalStages).toEqual(expect.any(Array));
-    await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
+    expect(result.code, result.stdout + result.stderr).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      appliedStages: expect.arrayContaining(["knowledge_materialization"]),
+    });
   }, 60_000);
 
-  it("refuses a plan with a stage that needs owner approval and names it", async () => {
+  it("applies repository role bindings and provider hooks without an owner approval", async () => {
     const root = await repository();
     const roleDirectory = resolve(root, ".lervo/roles");
     const rolePath = resolve(roleDirectory, "release-developer.json");
@@ -212,40 +180,60 @@ describe("lervo upgrade --apply --safe", () => {
         checks: [],
       })}\n`;
     await writeFile(rolePath, roleSource("Prepares verified release artifacts."));
-    await registerAgent({ repositoryRoot: root, roleId: "release-developer" });
+    const agent = await registerAgent({ repositoryRoot: root, roleId: "release-developer" });
     await writeFile(rolePath, roleSource("Prepares verified and reproducible release artifacts."));
-    const before = await readFile(resolve(root, "AGENTS.md"), "utf8").catch(() => null);
+    await mkdir(resolve(root, ".claude"), { recursive: true });
+    const settings = '{ "permissions": { "allow": ["Read"] } }\n';
+    await writeFile(resolve(root, ".claude/settings.json"), settings);
+
+    const plan = await presentedPlan(root);
+    expect(plan.stages.terminalIntegration).toMatchObject({
+      disposition: "safe_apply",
+      reason: "provider_hooks_backed_up_and_verified",
+    });
+    expect(plan.stages.workforce).toMatchObject({
+      disposition: "safe_apply",
+      reason: "stale_repository_role_bindings",
+    });
 
     const stdout: string[] = [];
-    const code = await runCli(["upgrade", "--apply", "--safe", "--json"], io(root, stdout, []), {
+    const stderr: string[] = [];
+    const code = await runCli(["upgrade", "--apply", "--json"], io(root, stdout, stderr), {
       knowledgeCycleAdmission: { directory: await temporary("lervo-upgrade-safe-admission-") },
     });
-    expect(code).toBe(1);
-    const failure = JSON.parse(stdout.join("")) as {
-      error: { code: string; message: string; stages: Array<{ stage: string }> };
+    expect(code, stdout.join("") + stderr.join("")).toBe(0);
+    const receipt = JSON.parse(stdout.join("")) as {
+      appliedStages: string[];
+      notices: Array<{ stage: string; undo: string }>;
     };
-    expect(failure.error.code).toBe("upgrade_owner_approval_required");
-    // Every stage that needs an owner is named, including unapproved provider hooks.
-    expect(failure.error.stages).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ stage: "workforce" }),
-        { stage: "terminal_integration", reason: "provider_hook_approval_required" },
-      ]),
+    expect(receipt.appliedStages).toEqual(
+      expect.arrayContaining(["workforce_role_bindings", "terminal_integration"]),
     );
-    expect(failure.error.message).toContain("workforce (");
-    expect(await readFile(resolve(root, "AGENTS.md"), "utf8").catch(() => null)).toBe(before);
-    await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
+    expect((await listAgents(root))[0]).toMatchObject({ revision: agent.revision + 1 });
+    const hooks = await readFile(resolve(root, ".claude/settings.json"), "utf8");
+    expect(hooks).toContain("UserPromptSubmit");
+    const terminal = receipt.notices.find((item) => item.stage === "terminal_integration");
+    expect(terminal?.undo).toMatch(/^lervo state restore lbk_[a-f0-9]{24}$/u);
+
+    // The notice's undo restores the provider hook file from its backup.
+    expect(
+      await runCli(terminal!.undo.split(" ").slice(1), io(root, [], stderr)),
+      stderr.join(""),
+    ).toBe(0);
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(settings);
   }, 60_000);
 
-  it("rejects --safe combined with an exact approval", async () => {
+  it("fails the removed approval options briefly and points to the undo path", async () => {
     const root = await repository();
-    const stderr: string[] = [];
-    expect(
-      await runCli(
-        ["upgrade", "--apply", "--safe", "--approval", "upg_000000000000000000000000"],
-        io(root, [], stderr),
-      ),
-    ).toBe(1);
-    expect(stderr.join("")).toContain("--safe must be used with --apply and without --approval.");
+    for (const args of [
+      ["upgrade", "--apply", "--approval", "upg_000000000000000000000000"],
+      ["upgrade", "--apply", "--approve-role-binding=wrbop_x=sha256:0"],
+    ]) {
+      const stderr: string[] = [];
+      expect(await runCli(args, io(root, [], stderr))).toBe(1);
+      expect(stderr.join("")).toContain("--approval and --approve-role-binding were removed");
+      expect(stderr.join("")).toContain("undo a stage with the command its receipt prints");
+    }
+    await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
   });
 });

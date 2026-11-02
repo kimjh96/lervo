@@ -115,7 +115,7 @@ export async function runCli(
   if (command === "search") return runSearchCommand(args.slice(1), io);
   if (command === "state") return runStateCommand(args.slice(1), io, services);
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
-  if (command === "capability") return runCapabilityCommand(args.slice(1), io);
+  if (command === "capability") return runCapabilityCommand(args.slice(1), io, services);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
   if (command === "event-contract") return runEventContractCommand(args.slice(1), io);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);

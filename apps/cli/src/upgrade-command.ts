@@ -3,95 +3,37 @@ import { parseArgs } from "node:util";
 
 import { withRepositoryKnowledgeScanReuse } from "@lervo/repository-knowledge";
 
-import { CommandFailure, writeCommandError } from "./command-error-output.js";
+import { writeCommandError } from "./command-error-output.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
+import { hasRemovedOption, REMOVED_UPGRADE_APPROVAL } from "./removed-approval-options.js";
 import type { CliIo, CliServices } from "./types.js";
-import { applyRepositoryUpgrade, pendingStages } from "./upgrade-apply.js";
+import { applyRepositoryUpgrade } from "./upgrade-apply.js";
 import { formatUpgradePlan, formatUpgradeReceipt } from "./upgrade-format.js";
 import {
   createRepositoryUpgradePlan,
   knowledgeStageRefusedByMarker,
   type RepositoryUpgradePlan,
 } from "./upgrade-plan.js";
-import { recordPresentedUpgradePlan, upgradePlanChangedFailure } from "./upgrade-plan-change.js";
 import { upgradeHost } from "./upgrade-host.js";
 import { UpgradeStageClock } from "./upgrade-stage-timing.js";
 import { withKnowledgeResidentExclusion } from "./upgrade-resident-exclusion.js";
 
 export type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 
-export const upgradeUsage =
-  "  lervo upgrade [--root <path>] [--apply (--approval <plan-id> [--approve-role-binding <operation-id>=<sha256> ...] | --safe)] [--json]";
+export const upgradeUsage = "  lervo upgrade [--root <path>] [--apply] [--json]";
 
-function parseRoleBindingApprovals(
-  values: string[] | undefined,
-): Array<{ operationId: string; approvalHash: string }> {
-  return (values ?? []).map((value) => {
-    const match = /^(wrbop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(value);
-    if (match === null)
-      throw new Error("--approve-role-binding must use <operation-id>=<sha256-approval-hash>.");
-    return { operationId: match[1]!, approvalHash: match[2]! };
-  });
-}
-
-function assertApplicableUpgrade(initial: RepositoryUpgradePlan): void {
-  if (initial.status === "blocked" && initial.applicableStages.length === 0)
+function assertApplicableUpgrade(current: RepositoryUpgradePlan): void {
+  if (current.status === "blocked" && current.applicableStages.length === 0)
     throw new Error(
       "The current repository upgrade plan is blocked and has no independent stage to apply.",
     );
 }
 
-const ownerApprovals = (plan: RepositoryUpgradePlan) =>
-  pendingStages(plan).filter((stage) => stage.disposition === "pending_authority");
-
-/**
- * `--safe` applies the plan it computes inside the exclusive window only when no stage needs
- * an owner approval; otherwise it names every such stage and changes nothing.
- */
-function assertSafeUpgrade(initial: RepositoryUpgradePlan): void {
-  const approvals = ownerApprovals(initial);
-  if (approvals.length > 0)
-    throw new CommandFailure(
-      "upgrade_owner_approval_required",
-      `The upgrade plan ${initial.planId} has stages that need owner approval, so --safe applies nothing: ${approvals
-        .map((stage) => `${stage.stage} (${stage.reason})`)
-        .join(", ")}. Review it with \`lervo upgrade\` and apply it with --approval.`,
-      {
-        currentPlanId: initial.planId,
-        stages: approvals.map((stage) => ({ stage: stage.stage, reason: stage.reason })),
-      },
-    );
-  assertApplicableUpgrade(initial);
-}
-
-async function assertApprovedUpgrade(
-  initial: RepositoryUpgradePlan,
-  approval: string | undefined,
-  roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
-): Promise<void> {
-  if (approval !== initial.planId)
-    throw await upgradePlanChangedFailure(
-      approval,
-      initial,
-      ownerApprovals(initial).map((stage) => stage.stage),
-    );
-  assertApplicableUpgrade(initial);
-  for (const approved of roleBindingApprovals) {
-    if (
-      !initial.stages.workforce.requiredApprovals.some(
-        (required) =>
-          required.operationId === approved.operationId &&
-          required.approvalHash === approved.approvalHash,
-      )
-    )
-      throw new Error("A workforce role-binding approval is not in the approved upgrade plan.");
-  }
-}
-
 type UpgradeCommandServices = Pick<
   CliServices,
   "knowledgeMaterializationWait" | "knowledgeCycleAdmission" | "upgradeHost"
->;
+> &
+  Partial<Pick<CliServices, "crossCheckPlan">>;
 
 /**
  * ADR-0582: every plan, inspection, and lint of one command reuses one repository scan while its
@@ -105,20 +47,21 @@ export function runUpgradeCommand(
   return withRepositoryKnowledgeScanReuse(() => runRepositoryUpgradeCommand(args, io, services));
 }
 
+/**
+ * `lervo upgrade` prints the plan; `--apply` plans again inside the exclusive window and applies
+ * that plan (ADR-0487, ADR-0561). No stage waits for an owner approval: each stage plans again and
+ * compares before it writes, so the stale-plan guard is internal instead of an echoed plan ID.
+ */
 async function runRepositoryUpgradeCommand(
   args: string[],
   io: CliIo,
   services: UpgradeCommandServices,
 ): Promise<number> {
-  let values: {
-    root?: string;
-    apply?: boolean;
-    approval?: string;
-    safe?: boolean;
-    "approve-role-binding"?: string[];
-    json?: boolean;
-    help?: boolean;
-  };
+  if (hasRemovedOption(args, "approval", "approve-role-binding")) {
+    io.stderr(`${REMOVED_UPGRADE_APPROVAL}\n${upgradeUsage}\n`);
+    return 1;
+  }
+  let values: { root?: string; apply?: boolean; safe?: boolean; json?: boolean; help?: boolean };
   try {
     values = parseArgs({
       args,
@@ -127,9 +70,8 @@ async function runRepositoryUpgradeCommand(
       options: {
         root: { type: "string" },
         apply: { type: "boolean" },
-        approval: { type: "string" },
+        // ADR-0487's one-window apply is now what --apply does; --safe stays accepted.
         safe: { type: "boolean" },
-        "approve-role-binding": { type: "string", multiple: true },
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
       },
@@ -142,26 +84,12 @@ async function runRepositoryUpgradeCommand(
     io.stdout(`${upgradeUsage}\n`);
     return 0;
   }
-  if (values.safe === true && (values.apply !== true || values.approval !== undefined)) {
-    io.stderr(`--safe must be used with --apply and without --approval.\n${upgradeUsage}\n`);
-    return 1;
-  }
-  if (values.safe !== true && (values.apply === true) !== (values.approval !== undefined)) {
-    io.stderr(
-      `Upgrade apply requires both --apply and --approval, or --apply --safe.\n${upgradeUsage}\n`,
-    );
-    return 1;
-  }
-  if (
-    (values.apply !== true || values.safe === true) &&
-    (values["approve-role-binding"]?.length ?? 0) > 0
-  ) {
-    io.stderr(`--approve-role-binding must be used with --apply --approval.\n${upgradeUsage}\n`);
+  if (values.safe === true && values.apply !== true) {
+    io.stderr(`--safe must be used with --apply.\n${upgradeUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, values.root ?? ".");
   try {
-    const roleBindingApprovals = parseRoleBindingApprovals(values["approve-role-binding"]);
     const materialization = foregroundKnowledgeMaterializationSettlement({
       repositoryRoot: root,
       io,
@@ -175,13 +103,11 @@ async function runRepositoryUpgradeCommand(
       );
     if (!values.apply) {
       const initial = await plan();
-      await recordPresentedUpgradePlan(initial);
       io.stdout(values.json ? `${JSON.stringify(initial, null, 2)}\n` : formatUpgradePlan(initial));
       return initial.status === "blocked" ? 1 : 0;
     }
-    // The approval is checked against a plan recreated under the exclusion, so no resident
-    // change can land between that check and the last applied stage. `--safe` plans inside the
-    // same window, so a busy repository cannot move the plan between planning and applying.
+    // The plan is created under the exclusion, so no resident change can land between planning
+    // and the last applied stage, and a busy repository cannot move it in between.
     const requestedAt = Date.now();
     let admittedAt = requestedAt;
     const applied = await withKnowledgeResidentExclusion(
@@ -189,18 +115,14 @@ async function runRepositoryUpgradeCommand(
       async (exclusion) => {
         admittedAt = Date.now();
         const clock = new UpgradeStageClock();
-        const initial = await plan();
-        if (values.safe === true) assertSafeUpgrade(initial);
-        else await assertApprovedUpgrade(initial, values.approval, roleBindingApprovals);
+        const current = await plan();
+        assertApplicableUpgrade(current);
         clock.lap("plan");
-        return applyRepositoryUpgrade(
-          initial,
-          roleBindingApprovals,
-          materialization,
-          host,
-          exclusion,
-          clock,
-        );
+        return applyRepositoryUpgrade(current, materialization, host, exclusion, clock, {
+          ...(services.crossCheckPlan === undefined
+            ? {}
+            : { crossCheckPlan: services.crossCheckPlan }),
+        });
       },
     );
     const receipt = {

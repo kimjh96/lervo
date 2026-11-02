@@ -111,7 +111,7 @@ export async function passWithActiveCli(
   return (await runPassWithActiveCli(dependencies, roots, active, previous))?.pass ?? null;
 }
 
-/** ADR-0589: every registered repository, those waiting for an owner approval last. */
+/** ADR-0589: every registered repository, those left in Lervo debt last (ADR-0561). */
 export async function passRepositories(
   dependencies: HostFollowCycleDependencies,
   lastPass: HostFollowPass | null,

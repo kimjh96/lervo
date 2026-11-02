@@ -189,6 +189,26 @@ export interface InstructionCaptureBlockedAttentionItemV1 extends OperatingAtten
 }
 
 /**
+ * A foreground effect Lervo held instead of applying (ADR-0561): an upgrade stage whose
+ * cross-check disagreed, could not run, or did not verify after a restored backup, or a capability
+ * package whose stronger check disagreed. Lervo debt shown with its age, never owner work.
+ */
+export interface HeldEffectAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "held_effect";
+  state: "lervo_debt";
+  effect: "upgrade_knowledge" | "upgrade_terminal_integration" | "capability_install";
+  /** A plan ID or capability coordinate; never a path or content. */
+  subject: string;
+  reasonCode:
+    | "cross_check_disagreement_repeated"
+    | "stronger_check_disagreement"
+    | "cross_check_unavailable"
+    | "verification_failed";
+  attempts: number;
+  since: string;
+}
+
+/**
  * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
  * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
  */
@@ -246,6 +266,7 @@ export type OperatingAttentionItemV1 =
   | DurableInstructionCandidateAttentionItemV1
   | CapturedDecisionAttentionItemV1
   | InstructionCaptureBlockedAttentionItemV1
+  | HeldEffectAttentionItemV1
   | KnowledgeConvergenceOwnerAttentionItemV1
   | KnowledgePublicationAttentionItemV1
   | KnowledgeConvergenceContinuityAttentionItemV1;

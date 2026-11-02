@@ -3,6 +3,8 @@
 Status: `accepted`  
 Date: 2026-09-05
 
+Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md). `lervo capability authorize-skill` takes no `--approval`: `--skill --reviewer --apply` plans and applies in one run, and `--from <plan> --apply` applies a saved plan that still matches. The manifest is backed up first; `lervo state restore <backup-id>` undoes the authorization.
+
 Amended by: [ADR-0533](../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
 ## Context

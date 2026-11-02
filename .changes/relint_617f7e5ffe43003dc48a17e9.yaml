@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_617f7e5ffe43003dc48a17e9"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "lervo upgrade applies every cross-checked or backed-up stage without the owner, and upgrade, migrate, capability, and state commands remove their approval options"

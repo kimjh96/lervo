@@ -36,23 +36,23 @@ describe("terminal integration migration", () => {
   it("creates Codex and Claude hooks only after one exact content-bound approval", async () => {
     const root = await repository();
     const plan = await createTerminalIntegrationPlan(root, runtimeContent);
-    expect(plan.status).toBe("review_required");
+    expect(plan.status).toBe("ready");
     expect(plan.targets).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ provider: "codex", action: "create" }),
         expect.objectContaining({ provider: "claude", action: "create" }),
       ]),
     );
+    // ADR-0561: no approval is asked, but a plan that went stale after planning still writes
+    // nothing.
     await expect(
       applyTerminalIntegrationPlan({
-        plan,
+        plan: { ...plan, planId: "ktermplan_000000000000000000000000" },
         runtimeContent,
-        approvedOperationId: plan.operationId,
-        approvedHash: `sha256:${"0".repeat(64)}`,
         now: new Date(),
         recordApplied: () => undefined,
       }),
-    ).rejects.toMatchObject({ code: "knowledge_approval_required" });
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
     await expect(access(resolve(root, ".codex/hooks.json"))).rejects.toMatchObject({
       code: "ENOENT",
     });
@@ -60,8 +60,6 @@ describe("terminal integration migration", () => {
     await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
-      approvedOperationId: plan.operationId,
-      approvedHash: plan.approvalHash!,
       now: new Date("2026-08-24T00:01:00.000Z"),
       recordApplied: () => undefined,
     });
@@ -99,8 +97,6 @@ describe("terminal integration migration", () => {
     await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
-      approvedOperationId: plan.operationId,
-      approvedHash: plan.approvalHash!,
       now: new Date(),
       recordApplied: () => undefined,
     });
@@ -142,8 +138,6 @@ describe("terminal integration migration", () => {
     await applyTerminalIntegrationPlan({
       plan: initial,
       runtimeContent,
-      approvedOperationId: initial.operationId,
-      approvedHash: initial.approvalHash!,
       now: new Date(),
       recordApplied: () => undefined,
     });
@@ -171,8 +165,6 @@ describe("terminal integration migration", () => {
     await applyTerminalIntegrationPlan({
       plan: initial,
       runtimeContent,
-      approvedOperationId: initial.operationId,
-      approvedHash: initial.approvalHash!,
       now: new Date(),
       recordApplied: () => undefined,
     });
@@ -201,8 +193,6 @@ describe("terminal integration migration", () => {
     await applyTerminalIntegrationPlan({
       plan: initial,
       runtimeContent,
-      approvedOperationId: initial.operationId,
-      approvedHash: initial.approvalHash!,
       now: new Date(),
       recordApplied: () => undefined,
     });

@@ -15,14 +15,15 @@ export interface WorkforceRoleBindingMigrationPlan {
   schemaVersion: 1;
   planKind: "workforce_role_binding_migration";
   planId: string;
-  status: "current" | "ready" | "review_required" | "blocked";
+  status: "current" | "ready" | "blocked";
   staleAgentCount: number;
   staleAssignmentCount: number;
   conflictCount: number;
-  requiredApprovals: WorkforceRoleBindingApproval[];
+  /** Repository-defined roles whose bindings this plan refreshes to the current contract. */
+  repositoryRoleRefreshes: WorkforceRepositoryRoleRefresh[];
   reason: string;
   privacy: {
-    state: "counts_and_bounded_role_approval_coordinates";
+    state: "counts_and_bounded_role_refresh_coordinates";
     roleProse: "excluded";
     repositoryPaths: "excluded";
     providerConfiguration: "excluded";
@@ -30,9 +31,12 @@ export interface WorkforceRoleBindingMigrationPlan {
   failureMeaning: string;
 }
 
-export interface WorkforceRoleBindingApproval {
-  operationId: string;
-  approvalHash: string;
+/**
+ * ADR-0561: a repository role refresh applies like a built-in one. The role source is repository
+ * bytes validated by `lervo role validate`, and every binding-change event records the previous
+ * binding, so reverting the role source and upgrading again restores it.
+ */
+export interface WorkforceRepositoryRoleRefresh {
   roleId: string;
   roleVersion: string;
   roleContractHash: string;
@@ -46,13 +50,14 @@ interface AgentMigration {
     WorkforceAgent,
     "roleVersion" | "roleContractHash" | "roleProfileHash" | "capabilityHash" | "capabilityPackages"
   >;
-  approvalRoleIds: string[];
+  /** Repository-defined roles this refresh follows, for the reported refresh counts. */
+  repositoryRoleIds: string[];
 }
 
 interface AssignmentMigration {
   before: WorkforceAssignment;
   target: Pick<WorkforceAssignment, "roleVersion" | "roleContractHash" | "requiredCapabilityHash">;
-  approvalRoleIds: string[];
+  repositoryRoleIds: string[];
 }
 
 interface InternalPlan {
@@ -63,10 +68,6 @@ interface InternalPlan {
 
 function planId(material: unknown): string {
   return `wrbm_${createHash("sha256").update(stableJson(material)).digest("hex").slice(0, 24)}`;
-}
-
-function contentHash(material: unknown): string {
-  return `sha256:${createHash("sha256").update(stableJson(material)).digest("hex")}`;
 }
 
 async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan> {
@@ -82,10 +83,10 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
         staleAgentCount: 0,
         staleAssignmentCount: 0,
         conflictCount: 0,
-        requiredApprovals: [],
+        repositoryRoleRefreshes: [],
         reason: "role_bindings_current",
         privacy: {
-          state: "counts_and_bounded_role_approval_coordinates",
+          state: "counts_and_bounded_role_refresh_coordinates",
           roleProse: "excluded",
           repositoryPaths: "excluded",
           providerConfiguration: "excluded",
@@ -127,7 +128,7 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
         roleContractHash: contract.contractHash,
         ...capabilityBinding,
       },
-      approvalRoleIds: contract.sourceKind === "repository" ? [contract.roleId] : [],
+      repositoryRoleIds: contract.sourceKind === "repository" ? [contract.roleId] : [],
     });
     if (contract.sourceKind === "repository")
       repositoryRoleContracts.set(contract.roleId, contract);
@@ -149,7 +150,7 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
         )
         .map((migration) => migration.target.capabilityHash),
     );
-    const approvalRoleIds = [
+    const repositoryRoleIds = [
       ...new Set(
         agentMigrations
           .filter(
@@ -158,7 +159,7 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
               assignment.requiredCapabilityHash !== undefined &&
               migration.before.capabilityHash === assignment.requiredCapabilityHash,
           )
-          .flatMap((migration) => migration.approvalRoleIds),
+          .flatMap((migration) => migration.repositoryRoleIds),
       ),
     ].sort();
     if (capabilityTargets.size > 1) {
@@ -175,8 +176,8 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
     )
       continue;
     if (!roleBindingCurrent && contract.sourceKind === "repository") {
-      approvalRoleIds.push(contract.roleId);
-      approvalRoleIds.sort();
+      repositoryRoleIds.push(contract.roleId);
+      repositoryRoleIds.sort();
       repositoryRoleContracts.set(contract.roleId, contract);
     }
     assignmentMigrations.push({
@@ -186,41 +187,23 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
         roleContractHash: contract.contractHash,
         requiredCapabilityHash,
       },
-      approvalRoleIds: [...new Set(approvalRoleIds)],
+      repositoryRoleIds: [...new Set(repositoryRoleIds)],
     });
   }
 
-  const requiredApprovals = [...repositoryRoleContracts.values()]
+  const repositoryRoleRefreshes = [...repositoryRoleContracts.values()]
     .sort((left, right) => left.roleId.localeCompare(right.roleId))
-    .map((contract) => {
-      const material = {
-        schemaVersion: 1,
-        action: "refresh_repository_role_bindings",
-        projectId: registry.projectId,
-        roleId: contract.roleId,
-        roleVersion: contract.version,
-        roleContractHash: contract.contractHash,
-        agents: agentMigrations
-          .filter((migration) => migration.approvalRoleIds.includes(contract.roleId))
-          .map((migration) => ({ before: migration.before, target: migration.target })),
-        assignments: assignmentMigrations
-          .filter((migration) => migration.approvalRoleIds.includes(contract.roleId))
-          .map((migration) => ({ before: migration.before, target: migration.target })),
-      };
-      const operationId = `wrbop_${createHash("sha256")
-        .update(stableJson(material))
-        .digest("hex")
-        .slice(0, 24)}`;
-      return {
-        operationId,
-        approvalHash: contentHash({ operationId, ...material }),
-        roleId: contract.roleId,
-        roleVersion: contract.version,
-        roleContractHash: contract.contractHash,
-        staleAgentCount: material.agents.length,
-        staleAssignmentCount: material.assignments.length,
-      };
-    });
+    .map((contract) => ({
+      roleId: contract.roleId,
+      roleVersion: contract.version,
+      roleContractHash: contract.contractHash,
+      staleAgentCount: agentMigrations.filter((migration) =>
+        migration.repositoryRoleIds.includes(contract.roleId),
+      ).length,
+      staleAssignmentCount: assignmentMigrations.filter((migration) =>
+        migration.repositoryRoleIds.includes(contract.roleId),
+      ).length,
+    }));
 
   const material = {
     schemaVersion: 1,
@@ -228,24 +211,22 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
     agents: agentMigrations,
     assignments: assignmentMigrations,
     conflictCount,
-    requiredApprovals,
+    repositoryRoleRefreshes,
   };
   const status =
     conflictCount > 0
       ? "blocked"
-      : requiredApprovals.length > 0
-        ? "review_required"
-        : agentMigrations.length + assignmentMigrations.length > 0
-          ? "ready"
-          : "current";
+      : agentMigrations.length + assignmentMigrations.length > 0
+        ? "ready"
+        : "current";
   const reason =
     conflictCount > 0
       ? "role_binding_capability_target_ambiguous"
-      : status === "review_required"
-        ? "repository_role_binding_requires_exact_approval"
-        : status === "ready"
-          ? "stale_built_in_role_bindings"
-          : "role_bindings_current";
+      : status === "ready"
+        ? repositoryRoleRefreshes.length > 0
+          ? "stale_repository_role_bindings"
+          : "stale_built_in_role_bindings"
+        : "role_bindings_current";
   return {
     agents: agentMigrations,
     assignments: assignmentMigrations,
@@ -257,10 +238,10 @@ async function createInternalPlan(repositoryRoot: string): Promise<InternalPlan>
       staleAgentCount: agentMigrations.length,
       staleAssignmentCount: assignmentMigrations.length,
       conflictCount,
-      requiredApprovals,
+      repositoryRoleRefreshes,
       reason,
       privacy: {
-        state: "counts_and_bounded_role_approval_coordinates",
+        state: "counts_and_bounded_role_refresh_coordinates",
         roleProse: "excluded",
         repositoryPaths: "excluded",
         providerConfiguration: "excluded",
@@ -277,42 +258,24 @@ export async function createWorkforceRoleBindingMigrationPlan(
   return (await createInternalPlan(repositoryRoot)).publicPlan;
 }
 
+/**
+ * Refreshes every stale role binding, built-in or repository-defined (ADR-0561). The plan is
+ * created again and must still carry `planId`, so a workforce that changed after planning is
+ * refused. Each binding-change event records the previous binding.
+ */
 export async function applyWorkforceRoleBindingMigration(input: {
   repositoryRoot: string;
-  approval: string;
-  approvedRoleBindings?: Array<{ operationId: string; approvalHash: string }>;
+  planId: string;
   now?: Date;
   recordEvent: WorkforceEventRecorder;
 }): Promise<{ migratedAgentCount: number; migratedAssignmentCount: number }> {
   const plan = await createInternalPlan(input.repositoryRoot);
-  if (plan.publicPlan.planId !== input.approval)
+  if (plan.publicPlan.planId !== input.planId)
     fail("agent_state_conflict", "The workforce role-binding migration plan changed before apply.");
   if (plan.publicPlan.status === "blocked")
     fail("agent_state_conflict", "The workforce role-binding migration has unresolved conflicts.");
-  const approvedRoleIds = new Set<string>();
-  const approvalCoordinates = new Set<string>();
-  for (const approval of input.approvedRoleBindings ?? []) {
-    const coordinate = `${approval.operationId}=${approval.approvalHash}`;
-    if (approvalCoordinates.has(coordinate))
-      fail(
-        "agent_state_conflict",
-        "A workforce role-binding approval was supplied more than once.",
-      );
-    approvalCoordinates.add(coordinate);
-    const required = plan.publicPlan.requiredApprovals.find(
-      (item) =>
-        item.operationId === approval.operationId && item.approvalHash === approval.approvalHash,
-    );
-    if (required === undefined)
-      fail("agent_state_conflict", "A workforce role-binding approval is not in the current plan.");
-    approvedRoleIds.add(required.roleId);
-  }
-  const approved = (roleIds: string[]): boolean =>
-    roleIds.every((roleId) => approvedRoleIds.has(roleId));
-  const assignmentMigrations = plan.assignments.filter((migration) =>
-    approved(migration.approvalRoleIds),
-  );
-  const agentMigrations = plan.agents.filter((migration) => approved(migration.approvalRoleIds));
+  const assignmentMigrations = plan.assignments;
+  const agentMigrations = plan.agents;
   const now = input.now ?? new Date();
 
   // Assignments move first so an interrupted run still retains every old-to-new capability map

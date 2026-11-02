@@ -38,6 +38,7 @@ export async function applyRegisteredNodeUpgrade(
       configPath: inspection.configPath,
       allowHubUnavailableReadiness: true,
       ...(describeLauncher === undefined ? {} : { describeLauncher }),
+      ...(inspection.transitionLegacy === true ? { transitionLegacy: true } : {}),
       ...(inspection.pathDirectories === undefined
         ? {}
         : { pathDirectories: inspection.pathDirectories }),

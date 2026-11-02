@@ -216,7 +216,7 @@ describe("host resident service stage", () => {
     });
     const windows = await fixture({ platform: "win32" });
     expect(await inspectHostResidentService(windows.ports)).toMatchObject({
-      disposition: "pending_authority",
+      disposition: "lervo_debt",
       reason: "service_manager_unsupported",
     });
   });

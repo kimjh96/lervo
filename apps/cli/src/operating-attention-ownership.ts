@@ -76,6 +76,14 @@ export function attributeOperatingAttention(
       recommendation = "Assess queued owner turns once a convergence delegation is active";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
+    // ADR-0561: a held foreground effect is Lervo debt retried by the next run, never owner work.
+    case "held_effect":
+      actor = item.effect === "capability_install" ? "capability installer" : "repository upgrade";
+      waitingSince = item.since;
+      recommendation = `Retry ${item.subject} once its plan or provider changes`;
+      inspectCommand =
+        item.effect === "capability_install" ? "lervo capability list" : "lervo upgrade";
+      break;
     // ADR-0561: continuity renews within the installed policy limits; held continuity is Lervo debt.
     case "knowledge_convergence_continuity":
       actor = "knowledge resident";

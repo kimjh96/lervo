@@ -3,6 +3,9 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0214](0214-bounded-repository-upgrade-orchestration.md), [ADR-0484](0484-keep-upgrades-exclusive-with-background-knowledge-work.md)
+Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)
+
+> **Amended (2026-11-02).** Under ADR-0561, the one-window apply described here is what `lervo upgrade --apply` does for every plan; `--safe` stays accepted as the same apply. The exact `--approval` path, `--approve-role-binding`, `upgrade_owner_approval_required`, `upgrade_plan_changed`, and the presented-plan record are removed. A removed option fails with one line naming the undo path. The receipt's `approvedPlanId` becomes `planId`.
 
 ## Context
 

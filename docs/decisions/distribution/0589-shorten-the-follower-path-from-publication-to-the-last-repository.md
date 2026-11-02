@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-18
 Amends: [ADR-0575](0575-follow-published-releases-on-every-host.md) (a pass that installs no release yields to a newer one, a block on owner approval with nothing else to apply waits for another CLI, and owner-approval blocks run last), [ADR-0582](0582-reuse-one-repository-scan-across-an-upgrade-command.md) (the follower also skips a `--safe` fallback that the changed-plan refusal shows would refuse), [ADR-0547](../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md) (lint is skipped when an apply changed nothing before it and knowledge is current with no background debt)
+Amended by: [ADR-0561](../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (an owner-approval block becomes `upgrade_lervo_debt`, which still runs last but keeps the hourly recheck; the exact `--approval` apply and the `--safe` fallback are gone)
 Related: [ADR-0579](0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md) (the `stageTimings` this decision reads and extends), [ADR-0487](../operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (`--safe` and the changed-plan refusal), [ADR-0559](../knowledge/documents/routing/0559-ask-one-owner-decision-for-a-reviewed-layout-plan.md) (a layout decision binds exact source bytes)
 
 ## Context

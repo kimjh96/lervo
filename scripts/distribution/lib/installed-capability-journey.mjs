@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
-import { chmod, copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, copyFile, cp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { delimiter, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { promisify } from "node:util";
@@ -50,17 +50,31 @@ async function activateEventWriter(cli, root) {
   assert.equal(JSON.parse(applied.stdout).selectedEventSchemaVersion, 2);
 }
 
-async function installCapability(cli, root, source) {
-  const planned = await runCli(cli, root, [
-    "capability",
-    "install",
-    "--from",
-    source,
-    "--scope",
-    "project",
-    "--json",
-  ]);
-  const plan = JSON.parse(planned.stdout);
+/**
+ * ADR-0561: an install applies after two agreeing independent cross-checks. POSIX runs them in two
+ * sessions of a fixture Claude provider. The fixture is a POSIX script, so Windows places the same
+ * verified package bytes directly; unit tests cover the install cross-check itself.
+ */
+async function installCapability(cli, root, source, manifest) {
+  if (process.platform === "win32") {
+    await cp(
+      source,
+      resolve(
+        root,
+        ".lervo/capabilities/packages",
+        `${encodeURIComponent(manifest.capabilityId)}@${manifest.version}`,
+      ),
+      { recursive: true },
+    );
+    return { undo: null };
+  }
+  const reviewer = resolve(root, "capability-review-bin/claude");
+  await mkdir(resolve(reviewer, ".."), { recursive: true });
+  await copyFile(
+    resolve(import.meta.dirname, "../fixtures/capability-review-claude.mjs"),
+    reviewer,
+  );
+  await chmod(reviewer, 0o755);
   const applied = await runCli(cli, root, [
     "capability",
     "install",
@@ -69,11 +83,16 @@ async function installCapability(cli, root, source) {
     "--scope",
     "project",
     "--apply",
-    "--approval",
-    plan.planHash,
+    "--provider",
+    "claude",
+    "--executable",
+    reviewer,
     "--json",
   ]);
-  return JSON.parse(applied.stdout);
+  const receipt = JSON.parse(applied.stdout);
+  assert.equal(receipt.crossCheck.length, 2);
+  assert.ok(receipt.crossCheck.every((check) => check.verdict === "agree"));
+  return receipt;
 }
 
 async function createMcpPackage(root, hashCapabilityFiles) {
@@ -228,7 +247,7 @@ export async function verifyInstalledCapabilityJourney(consumerRoot, hashCapabil
     "utf8",
   );
   const mcp = await createMcpPackage(mcpSource, hashCapabilityFiles);
-  await installCapability(cli, root, mcpSource);
+  await installCapability(cli, root, mcpSource, mcp);
   const env = {
     ...process.env,
     ...codexFixtureEnvironment,

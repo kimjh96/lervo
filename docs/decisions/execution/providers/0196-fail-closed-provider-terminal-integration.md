@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Decision date: 2026-08-24
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (backup, apply, verify, and restore replace the provider hook approval)
+
+> **Amended (2026-11-02).** Under ADR-0561, provider hook changes take no `--approve-item`. `lervo migrate knowledge --apply <plan-id>` and `lervo upgrade --apply` back up the provider hook files to `.lervo/data/backups/`, apply the exact plan, and verify that the integration inspects as current. A failed verification restores the backup and fails with `terminal_integration_verification_failed`. `lervo state restore <backup-id>` undoes an applied change. Blocked configurations still block.
 
 ## Context
 

@@ -1,5 +1,9 @@
-export type StageDisposition =
-  "current" | "safe_apply" | "deferred" | "pending_authority" | "blocked";
+/**
+ * ADR-0561: no stage waits for the owner. `safe_apply` stages apply on `--apply` after their own
+ * cross-check, backup, or transaction; `lervo_debt` is a stage Lervo holds itself, with its
+ * reason, and never owner work.
+ */
+export type StageDisposition = "current" | "safe_apply" | "deferred" | "lervo_debt" | "blocked";
 
 export type UpgradeStageName =
   | "capabilities"
@@ -18,7 +22,7 @@ export type UpgradeStageName =
  * - `not_blocked`: the dependent may apply only when the prerequisite is not
  *   blocked after its own application in the same run.
  * - `ordered_after`: the dependent runs after the prerequisite in apply order,
- *   but a blocked or pending prerequisite never defers it.
+ *   but a blocked or held prerequisite never defers it.
  */
 export type UpgradeStageRequirement = "applied_first" | "not_blocked" | "ordered_after";
 
@@ -45,7 +49,7 @@ export const upgradeStageDependencies: Readonly<
   node: [{ stage: "knowledge", requires: "ordered_after" }],
   // ADR-0470: the generated hook runtime is a local event reader, and a Node reader must be
   // upgraded before its health can prove it reads the new schema. The stage's own hook reader
-  // preflight decides when the hook runtime still awaits an owner approval.
+  // preflight decides when the hook runtime is not current yet.
   event_writer: [
     { stage: "terminal_integration", requires: "applied_first" },
     { stage: "node", requires: "applied_first" },
@@ -93,25 +97,18 @@ export function deferralReason(dependency: UpgradeStageDependency): string {
 
 export function overallUpgradeStatus(
   dispositions: readonly StageDisposition[],
-): "ready" | "current" | "pending_authority" | "blocked" {
+): "ready" | "current" | "lervo_debt" | "blocked" {
   if (dispositions.includes("blocked")) return "blocked";
   if (dispositions.includes("safe_apply")) return "ready";
-  if (dispositions.includes("pending_authority")) return "pending_authority";
+  if (dispositions.includes("lervo_debt")) return "lervo_debt";
   return "current";
 }
 
-/** Stages an exact apply of this plan would change, in apply order. */
+/** Stages an apply of this plan would change, in apply order. */
 export function applicableUpgradeStages(
   dispositions: Record<UpgradeStageName, StageDisposition>,
-  hasDisplayedRoleApprovals: boolean,
 ): UpgradeStageName[] {
-  return upgradeStageApplyOrder.filter(
-    (stage) =>
-      dispositions[stage] === "safe_apply" ||
-      (stage === "workforce" &&
-        dispositions.workforce === "pending_authority" &&
-        hasDisplayedRoleApprovals),
-  );
+  return upgradeStageApplyOrder.filter((stage) => dispositions[stage] === "safe_apply");
 }
 
 /**

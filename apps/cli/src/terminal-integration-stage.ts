@@ -1,14 +1,23 @@
 import { randomUUID } from "node:crypto";
+import { resolve } from "node:path";
 
 import {
   applyTerminalIntegrationPlan,
   createTerminalIntegrationPlan,
+  inspectTerminalIntegration,
   type TerminalIntegrationPlan,
   type TerminalRuntimeAsset,
   type TerminalIntegrationReceipt,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
 
+import { CommandFailure } from "./command-error-output.js";
+import {
+  restoreEffectBackup,
+  sealEffectBackup,
+  takeEffectBackup,
+  type EffectBackup,
+} from "./effect-backup.js";
 import { loadTerminalHookLauncher } from "./terminal-runtime.js";
 import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 
@@ -59,18 +68,41 @@ export async function planTerminalIntegrationStage(
   };
 }
 
+export interface TerminalIntegrationApplication {
+  receipt: TerminalIntegrationReceipt;
+  /** The backup of the provider hook files, or null when only the generated runtime changed. */
+  backupId: string | null;
+}
+
+/** Why the applied integration is not current, or null when it verifies. */
+export type TerminalIntegrationVerifier = (repositoryRoot: string) => Promise<string | null>;
+
+const verifyTerminalIntegration: TerminalIntegrationVerifier = async (repositoryRoot) => {
+  const inspection = await inspectTerminalIntegration(repositoryRoot);
+  return inspection.status === "current"
+    ? null
+    : `the integration is ${inspection.status}${
+        inspection.blockers.length === 0
+          ? ""
+          : ` (${inspection.blockers.map((item) => `${item.provider} ${item.code}`).join(", ")})`
+      }`;
+};
+
 /**
- * Applies an exact terminal integration plan and records its canonical event.
- * Provider-owned hook bytes require the displayed approval; generated-only
- * runtime reconciliation accepts none.
+ * Applies an exact terminal integration plan and records its canonical event (ADR-0561). Provider
+ * hook files are backed up first; after the apply the integration must inspect as current, or the
+ * backup is restored and the apply fails. Nothing waits for an owner approval.
  */
 export async function applyTerminalIntegrationStage(input: {
   repositoryRoot: string;
   prepared: PreparedTerminalIntegration;
-  approval: { operationId: string; approvalHash: string } | null;
   now: Date;
-}): Promise<TerminalIntegrationReceipt> {
+  verify?: TerminalIntegrationVerifier;
+}): Promise<TerminalIntegrationApplication> {
   const { plan, runtimeContent, runtimeAssets } = input.prepared;
+  const hookPaths = plan.targets
+    .filter((target) => target.action === "create" || target.action === "update")
+    .map((target) => resolve(plan.repositoryRoot, target.path));
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     if (latestTerminalIntegrationApplicationEventId(storage) !== plan.priorApplicationEventId)
@@ -84,17 +116,21 @@ export async function applyTerminalIntegrationStage(input: {
         )
     )
       throw new Error("The same terminal integration plan was already applied.");
+    const backup: EffectBackup | null =
+      hookPaths.length === 0
+        ? null
+        : await takeEffectBackup({
+            repositoryRoot: input.repositoryRoot,
+            effect: "terminal_integration",
+            reason: `Terminal integration plan ${plan.planId} updates the provider hook files.`,
+            files: hookPaths,
+            now: input.now,
+          });
     const identity = randomUUID().replaceAll("-", "");
     const receipt = await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
       runtimeAssets,
-      ...(input.approval === null
-        ? {}
-        : {
-            approvedOperationId: input.approval.operationId,
-            approvedHash: input.approval.approvalHash,
-          }),
       now: input.now,
       recordApplied: (applied) => {
         storage.events.append({
@@ -104,7 +140,7 @@ export async function applyTerminalIntegrationStage(input: {
           sessionId: `ses_${identity}`,
           type: "terminal.integration.applied",
           occurredAt: applied.appliedAt,
-          actor: plan.status === "review_required" ? { kind: "user" } : { kind: "system" },
+          actor: { kind: "system" },
           schemaVersion: 1,
           policyVersion: plan.approvalHash ?? plan.runtime.afterHash,
           payload: {
@@ -122,8 +158,26 @@ export async function applyTerminalIntegrationStage(input: {
         });
       },
     });
+    const problem = await (input.verify ?? verifyTerminalIntegration)(input.repositoryRoot);
+    if (problem !== null) {
+      if (backup !== null)
+        await restoreEffectBackup({
+          repositoryRoot: input.repositoryRoot,
+          backupId: backup.backupId,
+        });
+      throw new CommandFailure(
+        "terminal_integration_verification_failed",
+        `The applied terminal integration did not verify: ${problem}. ${
+          backup === null
+            ? "No provider hook file was changed."
+            : "The provider hook files were restored from their backup."
+        }`,
+        { planId: plan.planId },
+      );
+    }
+    if (backup !== null) await sealEffectBackup(input.repositoryRoot, backup);
     await rememberTerminalWorkerEntry(input.repositoryRoot, process.env.LERVO_CLI_ENTRY);
-    return receipt;
+    return { receipt, backupId: backup?.backupId ?? null };
   } finally {
     await storage.close();
   }

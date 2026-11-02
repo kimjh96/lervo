@@ -34,6 +34,8 @@ function describe(item: OperatingAttentionItemV1): string {
     return `${item.captureSource} · ${item.title} · captured ${item.capturedAt}`;
   if (item.kind === "instruction_capture_blocked")
     return `${item.reasonCode} · queued ${item.queuedCount} · since ${item.since}`;
+  if (item.kind === "held_effect")
+    return `${item.effect} · ${item.subject} · ${item.reasonCode} · attempts ${item.attempts} · since ${item.since}`;
   return `${item.issueCode}${item.detail === null ? "" : ` · ${item.detail}`}`;
 }
 

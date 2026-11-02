@@ -4,7 +4,11 @@ import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/
 import { applyWorkforceRoleBindingMigration } from "@lervo/agent-workforce";
 import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowledge";
 
+import { CommandFailure } from "./command-error-output.js";
 import { applyEventWriterStage } from "./event-writer-activation-stage.js";
+import { effectBackupUndoCommand } from "./effect-backup.js";
+import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
+import { applyKnowledgeStages } from "./upgrade-knowledge-apply.js";
 import { applyHostResidentService } from "./knowledge-host-service.js";
 import {
   applyRepositoryReplicaService,
@@ -21,12 +25,9 @@ import {
 } from "./upgrade-plan.js";
 import type { UpgradeResidentExclusion } from "./upgrade-resident-exclusion.js";
 import {
-  applyKnowledgeStage,
-  inspectKnowledge,
   inspectTerminalIntegration,
   inspectWorkforce,
   lintKnowledge,
-  type KnowledgeStage,
   type UpgradeStageBlocker,
 } from "./upgrade-stage-inspection.js";
 import {
@@ -35,6 +36,7 @@ import {
   type UpgradeStageName,
 } from "./upgrade-stage-policy.js";
 import type { UpgradeStageClock } from "./upgrade-stage-timing.js";
+import type { CliServices } from "./types.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pending"] {
@@ -58,7 +60,7 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
     { stage: "replica_service", ...plan.stages.replicaService },
   ];
   return stages
-    .filter((stage) => stage.disposition === "pending_authority" || stage.disposition === "blocked")
+    .filter((stage) => stage.disposition === "lervo_debt" || stage.disposition === "blocked")
     .map((stage) => ({
       stage: stage.stage,
       disposition: stage.disposition,
@@ -67,26 +69,27 @@ export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pend
     }));
 }
 
-const knowledgeRefusedByMarker = (stage: KnowledgeStage): boolean =>
-  stage.reason === "knowledge_recovery_required";
-
 /**
- * Applies an exact, freshly recreated upgrade plan stage by stage in the published order. Every
- * knowledge step runs through the command's materialization settlement, so background knowledge
- * work that starts between stages delays the upgrade instead of failing it. ADR-0577: every stage
- * that changes the repository or a service first confirms the resident exclusion.
+ * Applies the plan recreated inside the exclusive window, stage by stage in the published order
+ * (ADR-0561). Each stage plans again and compares before it writes, so a stale stage refuses
+ * instead of applying. Reviewed knowledge plans are cross-checked first, provider hook files and
+ * service definitions are backed up and verified, and every undo is reported. Every knowledge step
+ * runs through the command's materialization settlement, so background knowledge work that starts
+ * between stages delays the upgrade instead of failing it. ADR-0577: every stage that changes the
+ * repository or a service first confirms the resident exclusion.
  */
 export async function applyRepositoryUpgrade(
   approved: RepositoryUpgradePlan,
-  roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
   materialization: KnowledgeMaterializationSettlement,
   host: UpgradeHost,
   exclusion: UpgradeResidentExclusion,
   clock: UpgradeStageClock,
+  services: Partial<Pick<CliServices, "crossCheckPlan">> = {},
 ): Promise<UpgradeReceipt> {
   const root = approved.repositoryRoot;
   const appliedStages: string[] = [];
   const skippedStages: UpgradeReceipt["skippedStages"] = [];
+  const notices: UpgradeReceipt["notices"] = [];
   const confirmExclusion = (nextStage: UpgradeStageName | "terminal_worker_entry" | null) =>
     exclusion.assertHeld({ nextStage, appliedStages });
   await confirmExclusion("terminal_worker_entry");
@@ -105,21 +108,26 @@ export async function applyRepositoryUpgrade(
   const workforce = await inspectWorkforce(root);
   if (workforce.disposition === "blocked")
     skippedStages.push({ stage: "workforce", reason: workforce.reason });
-  else if (
-    workforce.disposition === "safe_apply" ||
-    workforce.disposition === "pending_authority"
-  ) {
+  else if (workforce.disposition === "safe_apply") {
     await confirmExclusion("workforce");
     const migrated = await mutateWorkforceState(root, (recordEvent) =>
       applyWorkforceRoleBindingMigration({
         repositoryRoot: root,
-        approval: workforce.planId!,
-        approvedRoleBindings: roleBindingApprovals,
+        planId: workforce.planId!,
         recordEvent,
       }),
     );
-    if (migrated.migratedAgentCount + migrated.migratedAssignmentCount > 0)
+    if (migrated.migratedAgentCount + migrated.migratedAssignmentCount > 0) {
       appliedStages.push("workforce_role_bindings");
+      if (workforce.repositoryRoleRefreshes.length > 0)
+        notices.push({
+          stage: "workforce",
+          summary: `Refreshed bindings to the current repository roles ${workforce.repositoryRoleRefreshes
+            .map((item) => `${item.roleId}@${item.roleVersion}`)
+            .join(", ")}; each binding-change event records the previous binding.`,
+          undo: "Revert the role source in .lervo/roles with Git, then run lervo upgrade --apply.",
+        });
+    }
   }
   clock.lap("workforce");
 
@@ -128,36 +136,50 @@ export async function applyRepositoryUpgrade(
     if (terminal.stage.planId !== approved.stages.terminalIntegration.planId)
       throw new Error("The terminal integration plan changed before apply.");
     await confirmExclusion("terminal_integration");
-    await applyTerminalIntegrationStage({
-      repositoryRoot: root,
-      prepared: terminal.prepared,
-      approval: null,
-      now: new Date(),
-    });
-    appliedStages.push("terminal_integration");
+    try {
+      const { backupId } = await applyTerminalIntegrationStage({
+        repositoryRoot: root,
+        prepared: terminal.prepared,
+        now: new Date(),
+      });
+      appliedStages.push("terminal_integration");
+      await releaseHeldEffects(root, "upgrade_terminal_integration");
+      if (backupId !== null)
+        notices.push({
+          stage: "terminal_integration",
+          summary:
+            "Merged the Lervo hooks into the provider hook files after backing them up; the result verified current.",
+          undo: effectBackupUndoCommand(backupId),
+        });
+    } catch (error) {
+      if (!(
+        error instanceof CommandFailure && error.code === "terminal_integration_verification_failed"
+      ))
+        throw error;
+      // The backup is already restored; the independent stages still apply.
+      await holdEffect({
+        repositoryRoot: root,
+        effect: "upgrade_terminal_integration",
+        subject: terminal.stage.planId ?? "terminal_integration",
+        reasonCode: "verification_failed",
+      });
+      skippedStages.push({ stage: "terminal_integration", reason: "verification_failed_restored" });
+    }
   }
   clock.lap("terminal_integration");
 
-  let knowledge: KnowledgeStage | null = null;
-  for (let index = 0; index < approved.policy.maximumKnowledgeStages; index += 1) {
-    // A marker refusal happens before any write, so inspecting and applying again is safe.
-    const stage = await materialization.run(async () => {
-      const inspected = await inspectKnowledge(root);
-      if (inspected.disposition === "safe_apply") {
-        await confirmExclusion("knowledge");
-        await applyKnowledgeStage(root, inspected);
-      }
-      return inspected;
-    }, knowledgeRefusedByMarker);
-    clock.lap("knowledge");
-    knowledge = stage;
-    if (stage.disposition !== "safe_apply") break;
-    appliedStages.push(stage.planKind);
-    if (index === approved.policy.maximumKnowledgeStages - 1)
-      throw new Error(
-        "The bounded knowledge upgrade did not converge within 16 generated-only stages.",
-      );
-  }
+  const knowledgeOutcome = await applyKnowledgeStages({
+    repositoryRoot: root,
+    maximumStages: approved.policy.maximumKnowledgeStages,
+    materialization,
+    services,
+    confirmExclusion: () => confirmExclusion("knowledge"),
+    lap: () => clock.lap("knowledge"),
+  });
+  const knowledge = knowledgeOutcome.lastStage;
+  appliedStages.push(...knowledgeOutcome.appliedStages);
+  skippedStages.push(...knowledgeOutcome.skippedStages);
+  notices.push(...knowledgeOutcome.notices);
 
   // ADR-0546: the Node stage is ordered after knowledge without depending on it, and lint reports
   // a blocked knowledge stage instead of being skipped.
@@ -169,10 +191,17 @@ export async function applyRepositoryUpgrade(
   );
   clock.lap("node_inspection");
   if (node.stage.disposition === "safe_apply") {
+    // The service definition is backed up, applied as a transaction, verified ready, and rolled
+    // back on failure inside the guarded Node transition (ADR-0561).
     await confirmExclusion("node");
     const onboarding = await applyRegisteredNodeUpgrade(node, host.describeNodeLauncher);
     clock.lapNode(onboarding?.timing);
     appliedStages.push("repository_node");
+    notices.push({
+      stage: "node",
+      summary: `Moved the repository Node to ${approved.cli.version} after it verified ready; a failed readiness check would have restored the previous service definition.`,
+      undo: "Activate the previous Lervo CLI, whose runtime stays pinned, and run lervo upgrade --apply.",
+    });
   }
   const lintSkip = knowledgeLintSkipReason(appliedStages, knowledge);
   if (lintSkip !== null) skippedStages.push({ stage: "knowledge_lint", reason: lintSkip });
@@ -230,10 +259,11 @@ export async function applyRepositoryUpgrade(
   return {
     schemaVersion: 1,
     operation: "repository_upgrade",
-    approvedPlanId: approved.planId,
+    planId: approved.planId,
     status: final.status,
     appliedStages,
     skippedStages,
+    notices,
     knowledgeLint: lint,
     nextPlanId: final.status === "current" ? null : final.planId,
     pending: pendingStages(final),

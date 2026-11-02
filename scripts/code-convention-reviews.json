@@ -66,13 +66,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/agent-workforce/src/role-binding-migration.ts",
-      "contentHash": "sha256:8ba9c073a1883bf1e06e0370c3870d1d42d3bcbc0c2dda4653a43ee05fec1d8d",
-      "responsibility": "Workforce role-binding migration lifecycle",
-      "rationale": "Read-only planning, per-role approval binding, and atomic agent or assignment transitions are phases of one workforce migration lifecycle; role resolution, capability resolution, state storage, event schemas, and CLI presentation remain behind linked package boundaries.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
       "contentHash": "sha256:2ab45ffc7e3be382fb4143ce66c8ff78117db03989ecf88059c429945cc2da0f",
       "responsibility": "Conversation-platform binding persistence",

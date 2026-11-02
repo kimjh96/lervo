@@ -1,42 +1,38 @@
-import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
   capabilityRoot,
   discoverCapabilityRoot,
-  installCapabilityPackage,
   readCapabilityPackage,
   resolveCapabilities,
   writeCapabilityLock,
-  type LocalCapabilityScope,
   createCapabilityMigrationPlan,
   applyCapabilityMigration,
 } from "@lervo/capabilities";
 import { loadProjectManifest } from "@lervo/project";
 
+import { runCapabilityInstall } from "./capability-install-command.js";
+import { effectBackupUndoCommand, sealEffectBackup, takeEffectBackup } from "./effect-backup.js";
+import { hasRemovedOption, REMOVED_APPLY_APPROVAL } from "./removed-approval-options.js";
 import { runSkillAuthorizationCommand } from "./skill-authorization-command.js";
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 
 export const capabilityUsage = `  lervo capability list [--scope <project|user|all>] [--root <path>] [--json]
-  lervo capability authorize-skill --skill <skill-id> --reviewer <id> [--root <path>] [--json]
-  lervo capability authorize-skill --from <plan-json> --apply --approval <plan-id> [--root <path>] [--json]
-  lervo capability migrate [--apply --approval <plan-id>] [--root <path>] [--json]
+  lervo capability authorize-skill --skill <skill-id> --reviewer <id> [--apply] [--root <path>] [--json]
+  lervo capability authorize-skill --from <plan-json> --apply [--root <path>] [--json]
+  lervo capability migrate [--apply] [--root <path>] [--json]
   lervo capability validate --from <package-directory> [--json]
-  lervo capability install --from <package-directory> --scope <project|user> [--apply --approval <plan-hash>] [--root <path>] [--json]
+  lervo capability install --from <package-directory> --scope <project|user> [--apply [--provider <codex|claude>] [--executable <path>]] [--root <path>] [--json]
   lervo capability resolve --capability <package-id> [--capability <package-id> ...] --provider <codex|claude> [--root <path>] [--json]`;
 
-function planHash(value: object): string {
-  return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
-}
-
-function scope(value: string | undefined): LocalCapabilityScope {
-  if (value === "project" || value === "user") return value;
-  throw new Error("Capability scope must be project or user.");
-}
-
-export async function runCapabilityCommand(args: string[], io: CliIo): Promise<number> {
+export async function runCapabilityCommand(
+  args: string[],
+  io: CliIo,
+  services: Partial<Pick<CliServices, "crossCheckCapability">> = {},
+): Promise<number> {
   try {
+    if (hasRemovedOption(args, "approval")) throw new Error(REMOVED_APPLY_APPROVAL);
     if (args[0] === "authorize-skill") return await runSkillAuthorizationCommand(args.slice(1), io);
     const parsed = parseArgs({
       args,
@@ -49,9 +45,9 @@ export async function runCapabilityCommand(args: string[], io: CliIo): Promise<n
         scope: { type: "string" },
         from: { type: "string" },
         apply: { type: "boolean" },
-        approval: { type: "string" },
         capability: { type: "string", multiple: true },
         provider: { type: "string" },
+        executable: { type: "string" },
       },
     });
     if (parsed.values.help) {
@@ -71,13 +67,27 @@ export async function runCapabilityCommand(args: string[], io: CliIo): Promise<n
         );
         return 0;
       }
-      if (parsed.values.approval !== plan.planId)
-        throw new Error("--approval must equal the current capability migration plan ID.");
+      // The plan is bound internally: apply plans again and refuses a changed source. Each new
+      // package directory is recorded so `lervo state restore` removes it again.
+      const created = plan.items
+        .filter((item) => item.action === "create")
+        .map((item) => resolve(plan.repositoryRoot, item.targetPath));
+      const backup =
+        created.length === 0
+          ? null
+          : await takeEffectBackup({
+              repositoryRoot,
+              effect: "capability_migration",
+              reason: `Capability migration ${plan.planId} packages ${created.length} repository skill(s).`,
+              createdDirectories: created,
+            });
       const result = await applyCapabilityMigration(plan);
+      if (backup !== null) await sealEffectBackup(repositoryRoot, backup);
+      const undo = backup === null ? null : effectBackupUndoCommand(backup.backupId);
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify(result, null, 2)}\n`
-          : `Capability migration completed: ${result.status}.\n`,
+          ? `${JSON.stringify({ ...result, undo }, null, 2)}\n`
+          : `Capability migration completed: ${result.status}.\n${undo === null ? "" : `Undo: ${undo}\n`}`,
       );
       return 0;
     }
@@ -132,52 +142,15 @@ export async function runCapabilityCommand(args: string[], io: CliIo): Promise<n
       );
       return 0;
     }
-    if (action === "install") {
-      if (parsed.values.from === undefined) throw new Error("Capability install requires --from.");
-      const targetScope = scope(parsed.values.scope);
-      const verified = await readCapabilityPackage(resolve(io.cwd, parsed.values.from));
-      const planBody = {
-        schemaVersion: 1 as const,
-        operation: "capability.install" as const,
-        capabilityId: verified.manifest.capabilityId,
-        version: verified.manifest.version,
-        contentHash: verified.manifest.contentHash,
-        kind: verified.manifest.kind,
-        scope: targetScope,
-      };
-      const plan = {
-        ...planBody,
-        planHash: planHash(planBody),
-        requiresApply: true,
-        secretMaterial: "excluded" as const,
-      };
-      if (!parsed.values.apply) {
-        io.stdout(
-          parsed.values.json
-            ? `${JSON.stringify(plan, null, 2)}\n`
-            : `Install plan ${plan.planHash}\n${plan.capabilityId}@${plan.version} -> ${plan.scope}\nRe-run with --apply --approval ${plan.planHash}.\n`,
-        );
-        return 0;
-      }
-      if (parsed.values.approval !== plan.planHash)
-        throw new Error("--approval must equal the current install plan hash.");
-      await installCapabilityPackage({ repositoryRoot, scope: targetScope, package: verified });
-      const receipt = {
-        schemaVersion: 1,
-        operation: "capability.installed",
-        planHash: plan.planHash,
-        capabilityId: plan.capabilityId,
-        version: plan.version,
-        contentHash: plan.contentHash,
-        scope: targetScope,
-      };
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(receipt, null, 2)}\n`
-          : `Installed ${plan.capabilityId}@${plan.version} in ${targetScope} scope.\n`,
-      );
-      return 0;
-    }
+    if (action === "install")
+      return await runCapabilityInstall({
+        repositoryRoot,
+        io,
+        values: parsed.values,
+        ...(services.crossCheckCapability === undefined
+          ? {}
+          : { crossCheckCapability: services.crossCheckCapability }),
+      });
     if (action === "resolve") {
       const ids = parsed.values.capability ?? [];
       if (ids.length === 0 || !["codex", "claude"].includes(parsed.values.provider ?? ""))

@@ -1,4 +1,5 @@
 import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce";
+import { readWorkerProviderSelection } from "@lervo/repository-knowledge-runtime";
 import type {
   RepositoryLayoutCapacityFinding,
   RepositoryLayoutDeferredDocument,
@@ -8,6 +9,7 @@ import type {
 
 import { CommandFailure } from "./command-error-output.js";
 import { layoutDeferrals } from "./upgrade-deferred-documents.js";
+import { readHeldEffects } from "./held-effect-debt.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { MAXIMUM_LAYOUT_CAPACITY_ITEMS } from "./layout-capacity-lines.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
@@ -15,7 +17,7 @@ import {
   planTerminalIntegrationStage,
   type PreparedTerminalIntegration,
 } from "./terminal-integration-stage.js";
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
 const maximumReportedBlockers = 64;
@@ -69,9 +71,8 @@ export interface WorkforceStage {
   staleAssignmentCount: number;
   status: string;
   reason: string;
-  requiredApprovals: Array<{
-    operationId: string;
-    approvalHash: string;
+  /** Repository-defined roles the stage refreshes; the role source in Git is their undo. */
+  repositoryRoleRefreshes: Array<{
     roleId: string;
     roleVersion: string;
     roleContractHash: string;
@@ -242,7 +243,8 @@ async function knowledgeDisposition(
     };
   }
   // Provider selection and a reviewed lifecycle plan are background work whenever a background
-  // owner will normalize the debt or cross-check and apply the plan (ADR-0561).
+  // owner will normalize the debt or cross-check and apply the plan (ADR-0561). Without one,
+  // upgrade cross-checks and applies the reviewed plan itself.
   const backgroundOwner =
     envelope === null && (status === "provider_required" || status === "review_required")
       ? await knowledgeBackgroundOwner(root)
@@ -265,16 +267,37 @@ async function knowledgeDisposition(
       },
     };
   }
+  if (envelope === null && status === "review_required" && planId !== null) {
+    // A rejected exact plan regenerates identically, so it stays held until its bytes change; a
+    // plan no session could check waits until a provider is admitted.
+    const held = (await readHeldEffects(root)).find(
+      (item) => item.effect === "upgrade_knowledge" && item.subject === planId,
+    );
+    const heldReason =
+      held?.reasonCode === "cross_check_disagreement_repeated" ||
+      (held?.reasonCode === "cross_check_unavailable" &&
+        (await readWorkerProviderSelection(root)) === null)
+        ? held.reasonCode
+        : null;
+    return {
+      disposition: heldReason === null ? "safe_apply" : "lervo_debt",
+      planKind,
+      planId,
+      status,
+      reason: heldReason ?? "cross_checked_apply",
+      blockers: [],
+    };
+  }
   if (
     envelope === null &&
     ["review_required", "provider_required", "action_required"].includes(status)
   ) {
     return {
-      disposition: "pending_authority",
+      disposition: "lervo_debt",
       planKind,
       planId,
       status,
-      reason: status,
+      reason: status === "provider_required" ? "normalization_awaits_background_owner" : status,
       blockers: [],
     };
   }
@@ -299,13 +322,7 @@ export async function inspectTerminalIntegration(root: string): Promise<{
   const prepared = await planTerminalIntegrationStage(root);
   const { plan } = prepared;
   const disposition: StageDisposition =
-    plan.status === "ready"
-      ? "safe_apply"
-      : plan.status === "review_required"
-        ? "pending_authority"
-        : plan.status === "blocked"
-          ? "blocked"
-          : "current";
+    plan.status === "ready" ? "safe_apply" : plan.status === "blocked" ? "blocked" : "current";
   return {
     stage: {
       disposition,
@@ -313,12 +330,12 @@ export async function inspectTerminalIntegration(root: string): Promise<{
       status: plan.status,
       reason:
         plan.status === "ready"
-          ? "generated_runtime_only"
-          : plan.status === "review_required"
-            ? "provider_hook_approval_required"
-            : plan.status === "blocked"
-              ? "provider_configuration_blocked"
-              : "terminal_integration_current",
+          ? plan.approvalHash === null
+            ? "generated_runtime_only"
+            : "provider_hooks_backed_up_and_verified"
+          : plan.status === "blocked"
+            ? "provider_configuration_blocked"
+            : "terminal_integration_current",
       blockers: plan.blockers.map((item) => ({
         code: item.code,
         path: item.path,
@@ -333,36 +350,40 @@ export async function inspectWorkforce(root: string): Promise<WorkforceStage> {
   const plan = await createWorkforceRoleBindingMigrationPlan(root);
   return {
     disposition:
-      plan.status === "ready"
-        ? "safe_apply"
-        : plan.status === "review_required"
-          ? "pending_authority"
-          : plan.status === "blocked"
-            ? "blocked"
-            : "current",
+      plan.status === "ready" ? "safe_apply" : plan.status === "blocked" ? "blocked" : "current",
     planId: plan.planId,
     staleAgentCount: plan.staleAgentCount,
     staleAssignmentCount: plan.staleAssignmentCount,
     status: plan.status,
     reason: plan.reason,
-    requiredApprovals: plan.requiredApprovals,
+    repositoryRoleRefreshes: plan.repositoryRoleRefreshes,
   };
 }
 
-export async function applyKnowledgeStage(root: string, stage: KnowledgeStage): Promise<void> {
-  if (stage.planId === null)
-    throw new Error("A generated-only knowledge stage has no exact plan ID.");
+/**
+ * Applies one knowledge stage through `lervo migrate knowledge --apply`. A reviewed plan is
+ * cross-checked there first; the undo command its effect commit carries is returned.
+ */
+export async function applyKnowledgeStage(
+  root: string,
+  stage: KnowledgeStage,
+  services: Partial<Pick<CliServices, "crossCheckPlan">> = {},
+): Promise<{ undo: string | null }> {
+  if (stage.planId === null) throw new Error("An applicable knowledge stage has no exact plan ID.");
   const result = await capture(
     (io) =>
       runKnowledgeMigration({
         args: ["--root", root, "--integration-head", "--apply", stage.planId!, "--json"],
         io,
         mode: "migrate",
+        services,
       }),
     root,
   );
   if (result.code !== 0)
     throw capturedFailure(result, "The exact knowledge migration stage failed.");
+  const notice = record(result.value?.notice);
+  return { undo: typeof notice?.undo === "string" ? notice.undo : null };
 }
 
 /**

@@ -72,7 +72,7 @@ Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-
 Remaining boundaries:
 
 - Not yet observed on argo after release: the layout moves applying with no owner command, followed by a notice with the undo command.
-- The terminal integration `--approve-item` and `lervo upgrade --approval` remain for later slices.
+- The terminal integration `--approve-item` and `lervo upgrade --approval` are removed by slice A5 below.
 
 ### Owner-free canonicalization, delegation, and continuity
 
@@ -92,6 +92,15 @@ Remaining boundaries:
 
 - Not yet observed on an installed host after release: a renewal narrowed to the policy limits, a rolled horizon, or a held candidate shown as Lervo debt.
 - Owner-required attention that remains belongs to later slices or to credentials: Hub ownership verdicts and replica divergence (A6), and `gh` authentication for knowledge publication (credentials, notice-only).
+
+### Owner-free upgrade, provider hooks, services, capabilities, and state
+
+Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) slice A5, `lervo upgrade --apply` applies every stage without `--approval` or `--approve-role-binding`, planning again inside the exclusive window instead of binding an echoed plan ID. A reviewed knowledge plan without a background owner is cross-checked by a fresh no-capability session and applied; a disagreement or a missing provider holds it as Lervo debt (`lervo_debt`, `held_effect` attention item). Provider hook files are backed up, applied, verified, and restored on failure; `migrate knowledge --approve-item` is removed. Repository role bindings refresh like built-in ones. Node services keep their backup, transaction, readiness check, and rollback, and a legacy singleton transitions inside it. `lervo capability install` needs two agreeing independent checks and installs nothing on disagreement; `capability migrate`, `authorize-skill`, `state prune`, and `state reset` apply with `--apply` alone, and `lervo state restore <backup-id>` undoes each backed-up effect, including a reset. The deploy skill loops on `lervo upgrade --apply` and accepts `lervo_debt` as reported, not failed. CLI tests cover each replacement, rollback on failed verification, disagreement, restore, and the removed options.
+
+Remaining boundaries:
+
+- Not yet observed on the fleet after release: an upgrade applying provider hooks and a reviewed plan with no owner command, followed by notices with their undo commands.
+- `lervo init --onboard` still reports its own `pending_authority` onboarding status for a stage it does not apply; the Hub remote-command policy evaluator keeps its signed `require_approval` decisions for Hub-issued writes, which belong to the Hub and replica slice.
 
 ## Slice 3: self-organizing and standing
 

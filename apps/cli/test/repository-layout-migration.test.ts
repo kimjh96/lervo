@@ -176,25 +176,12 @@ describe("repository layout migration CLI", () => {
     const terminal = JSON.parse(messages.join("")) as {
       planKind: string;
       planId: string;
-      operationId: string;
-      approvalHash: string;
       status: string;
     };
-    expect(terminal).toMatchObject({ planKind: "terminal_integration", status: "review_required" });
+    expect(terminal).toMatchObject({ planKind: "terminal_integration", status: "ready" });
     messages.length = 0;
     expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          terminal.planId,
-          "--approve-item",
-          `${terminal.operationId}=${terminal.approvalHash}`,
-          "--json",
-        ],
-        io,
-      ),
+      await runCli(["migrate", "knowledge", "--apply", terminal.planId, "--json"], io),
       errors.join(""),
     ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({

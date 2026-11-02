@@ -58,6 +58,10 @@ Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cro
 
 `instruction_capture_blocked` (`lervo_debt`) appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when, and never requires owner action.
 
+## Held foreground effects
+
+Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), `held_effect` (`lervo_debt`) appears for each foreground effect Lervo held instead of applying, at most 32: an `upgrade_knowledge` plan whose cross-check disagreed (`cross_check_disagreement_repeated`) or found no admitted provider (`cross_check_unavailable`), an `upgrade_terminal_integration` change whose verification failed and was restored (`verification_failed`), or a `capability_install` whose two-session check disagreed (`stronger_check_disagreement`). It carries the effect, a plan ID or capability coordinate, the reason, attempts, and `since`, never a path or content. It is non-blocking, `requiresUserAction: false`, and resolves when the next upgrade or install applies or the plan changes. The projection reads `.lervo/data/held-effects.json`; an unreadable file contributes no item.
+
 On a Hub-coordinated host that does not own convergence, the candidate instruction names the owner host where the candidate is applied. The compact prompt includes capture upkeep in the cached health section; full applied owner rules remain in the instruction preamble.
 
 ## Cross-host knowledge convergence

@@ -74,8 +74,6 @@ async function repository(): Promise<string> {
   await applyTerminalIntegrationPlan({
     plan: terminal,
     runtimeContent,
-    approvedOperationId: terminal.operationId,
-    approvedHash: terminal.approvalHash!,
     now: new Date(),
     recordApplied: () => undefined,
   });

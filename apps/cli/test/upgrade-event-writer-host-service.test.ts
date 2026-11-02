@@ -80,24 +80,24 @@ describe("lervo upgrade event writer and host service stages", () => {
       stages: Record<string, { disposition: string; reason: string }>;
       policy: { stageDependencies: Record<string, unknown> };
     };
+    // ADR-0561: the provider hooks now apply in the same run, so the event writer is planned
+    // behind them and applies right after.
     expect(plan.stages.eventWriter).toMatchObject({
-      disposition: "safe_apply",
+      disposition: "deferred",
+      reason: "terminal_integration_must_apply_first",
       currentSchemaVersion: 1,
       targetSchemaVersion: 8,
-      authority: "local",
     });
     expect(plan.stages.hostService).toMatchObject({ disposition: "safe_apply" });
-    expect(plan.applicableStages).toEqual(expect.arrayContaining(["event_writer", "host_service"]));
+    expect(plan.applicableStages).toEqual(
+      expect.arrayContaining(["terminal_integration", "host_service"]),
+    );
     expect(plan.policy.stageDependencies.event_writer).toEqual([
       { stage: "terminal_integration", requires: "applied_first" },
       { stage: "node", requires: "applied_first" },
     ]);
 
-    await runCli(
-      ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-      io(root, output, errors),
-      isolatedAdmission,
-    );
+    await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission);
     const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
     expect(receipt.appliedStages).toEqual(expect.arrayContaining(["event_writer", "host_service"]));
     expect((await inspectEventWriterCoordinate(root)).coordinate.selectedEventSchemaVersion).toBe(
@@ -120,7 +120,7 @@ describe("lervo upgrade event writer and host service stages", () => {
     const errors: string[] = [];
     expect(await runCli(["upgrade"], io(root, output, errors))).toBe(1);
     const text = output.join("");
-    expect(text).toContain("event writer: safe_apply (event_writer_activation_ready)");
+    expect(text).toContain("event writer: deferred (terminal_integration_must_apply_first)");
     expect(text).toContain("host resident service: blocked (service_manager_unavailable)");
     expect(text).toContain("blocker [service_manager_unavailable]");
   });

@@ -154,7 +154,7 @@ describe("workforce role-binding migration", () => {
     await expect(
       applyWorkforceRoleBindingMigration({
         repositoryRoot: root,
-        approval: plan.planId,
+        planId: plan.planId,
         now: new Date("2026-09-16T00:00:00.000Z"),
         recordEvent: (event) => {
           events.push(event);
@@ -205,7 +205,7 @@ describe("workforce role-binding migration", () => {
         Object.values(value as Record<string, unknown>).some(undefinedValue));
     await applyWorkforceRoleBindingMigration({
       repositoryRoot: root,
-      approval: plan.planId,
+      planId: plan.planId,
       recordEvent: (event) => {
         // Canonical event storage rejects undefined payload values.
         if (undefinedValue(event.payload))
@@ -226,20 +226,20 @@ describe("workforce role-binding migration", () => {
     ]);
   });
 
-  it("rejects an approval after the bound workforce state changes", async () => {
+  it("rejects a stale plan after the bound workforce state changes", async () => {
     const root = await repository();
     const plan = await createWorkforceRoleBindingMigrationPlan(root);
     await registerAgent({ repositoryRoot: root, roleId: "developer" });
     await expect(
       applyWorkforceRoleBindingMigration({
         repositoryRoot: root,
-        approval: plan.planId,
+        planId: plan.planId,
         recordEvent: () => undefined,
       }),
     ).rejects.toMatchObject({ code: "agent_state_conflict" });
   });
 
-  it("requires an exact approval before refreshing repository role bindings", async () => {
+  it("refreshes repository role bindings without an owner approval (ADR-0561)", async () => {
     const root = await repository();
     const rolePath = resolve(root, ".lervo/roles/release-developer.json");
     await mkdir(resolve(root, ".lervo/roles"), { recursive: true });
@@ -272,11 +272,12 @@ describe("workforce role-binding migration", () => {
 
     const plan = await createWorkforceRoleBindingMigrationPlan(root);
     expect(plan).toMatchObject({
-      status: "review_required",
+      status: "ready",
+      reason: "stale_repository_role_bindings",
       staleAgentCount: 1,
       staleAssignmentCount: 1,
       conflictCount: 0,
-      requiredApprovals: [
+      repositoryRoleRefreshes: [
         {
           roleId: "release-developer",
           roleVersion: "1.0.0",
@@ -285,33 +286,13 @@ describe("workforce role-binding migration", () => {
         },
       ],
     });
-    await expect(
-      applyWorkforceRoleBindingMigration({
-        repositoryRoot: root,
-        approval: plan.planId,
-        recordEvent: () => undefined,
-      }),
-    ).resolves.toEqual({ migratedAgentCount: 0, migratedAssignmentCount: 0 });
-    expect((await createWorkforceRoleBindingMigrationPlan(root)).status).toBe("review_required");
-
-    const required = plan.requiredApprovals[0]!;
-    await expect(
-      applyWorkforceRoleBindingMigration({
-        repositoryRoot: root,
-        approval: plan.planId,
-        approvedRoleBindings: [
-          { operationId: required.operationId, approvalHash: `sha256:${"0".repeat(64)}` },
-        ],
-        recordEvent: () => undefined,
-      }),
-    ).rejects.toMatchObject({ code: "agent_state_conflict" });
+    expect(plan).not.toHaveProperty("requiredApprovals");
 
     const events: WorkforceEvent[] = [];
     await expect(
       applyWorkforceRoleBindingMigration({
         repositoryRoot: root,
-        approval: plan.planId,
-        approvedRoleBindings: [required],
+        planId: plan.planId,
         now: new Date("2026-09-16T01:00:00.000Z"),
         recordEvent: (event) => {
           events.push(event);
@@ -320,7 +301,7 @@ describe("workforce role-binding migration", () => {
     ).resolves.toEqual({ migratedAgentCount: 1, migratedAssignmentCount: 1 });
     expect(await createWorkforceRoleBindingMigrationPlan(root)).toMatchObject({
       status: "current",
-      requiredApprovals: [],
+      repositoryRoleRefreshes: [],
     });
     expect(await listAgents(root)).toEqual([
       expect.objectContaining({ agentId: agent.agentId, revision: agent.revision + 1 }),
@@ -332,6 +313,10 @@ describe("workforce role-binding migration", () => {
       "assignment.role.binding.changed",
       "agent.identity.changed",
     ]);
+    // The binding-change event keeps the previous binding as the preimage.
+    expect(events[1]).toMatchObject({
+      payload: { previousRoleContractHash: agent.roleContractHash },
+    });
     expect(await readFile(rolePath, "utf8")).toBe(preservedRoleSource);
   });
 });

@@ -57,14 +57,13 @@ const readinessTimeout: RepositoryUpgradeInvocation = {
 };
 
 describe("runRepositoryPass", () => {
-  it("plans, applies the exact plan, and falls back to --safe when the plan changed", async () => {
+  it("plans, then applies with --apply alone, which plans again in its window (ADR-0561)", async () => {
     const calls: string[][] = [];
     const result_ = await pass(
       ["/r/one", "/r/two"],
       {
         "/r/one": [
           result("ready", { planId: "plan_1" }),
-          { kind: "failed", code: "upgrade_plan_changed" },
           result("current", {
             appliedStages: ["repository_node"],
             timing: { admissionWaitMs: 4_000, applyMs: 9_000 },
@@ -85,8 +84,7 @@ describe("runRepositoryPass", () => {
     expect(result_.repositories[1]).toMatchObject({ waitMs: null, applyMs: null });
     expect(calls).toEqual([
       ["upgrade", "--root", "/r/one", "--json"],
-      ["upgrade", "--root", "/r/one", "--apply", "--approval", "plan_1", "--json"],
-      ["upgrade", "--root", "/r/one", "--apply", "--safe", "--json"],
+      ["upgrade", "--root", "/r/one", "--apply", "--json"],
       ["upgrade", "--root", "/r/two", "--json"],
     ]);
   });
@@ -132,10 +130,7 @@ describe("runRepositoryPass", () => {
         result("current"),
       ],
       "/r/two": [result("blocked")],
-      "/r/three": [
-        result("pending_authority"),
-        { kind: "failed", code: "upgrade_owner_approval_required" },
-      ],
+      "/r/three": [result("lervo_debt", { lervoDebtStages: ["knowledge"] })],
     });
     expect(
       result_.repositories.map((repository) => [repository.outcome, repository.rounds]),
@@ -145,6 +140,10 @@ describe("runRepositoryPass", () => {
       ["blocked", 1],
     ]);
     expect(result_.repositories[1]?.code).toBe("upgrade_plan_blocked");
+    expect(result_.repositories[2]).toMatchObject({
+      code: "upgrade_lervo_debt",
+      pendingStages: ["knowledge"],
+    });
     expect(result_.outcome).toBe("blocked");
   });
 
@@ -200,48 +199,20 @@ describe("runRepositoryPass", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("does not apply --safe when the plan shows a stage waiting for the owner", async () => {
-    const calls: string[][] = [];
-    const result_ = await pass(
-      ["/r/one"],
-      {
-        "/r/one": [
-          result("pending_authority", {
-            planId: "plan_a",
-            applicableStages: ["node"],
-            ownerApprovalStages: ["knowledge"],
-          }),
-        ],
-      },
-      calls,
-    );
-    expect(result_.repositories[0]).toMatchObject({
-      outcome: "blocked",
-      code: "upgrade_owner_approval_required",
-      planId: "plan_a",
-      pendingStages: ["knowledge"],
-    });
-    expect(calls).toEqual([["upgrade", "--root", "/r/one", "--json"]]);
-  });
-
-  it("skips a --safe apply that the changed plan's refusal shows would refuse, and times both runs", async () => {
-    // ADR-0589, Mac argo on v0.25.5: the plan was `ready` for `node` beside a layout decision, the
-    // exact apply found a changed plan, and a --safe apply then refused on the same decision.
+  it("applies a ready plan beside Lervo debt and reports the debt the apply leaves", async () => {
+    // ADR-0561: the Mac argo plan on v0.25.5 was `ready` for `node` beside a layout decision. No
+    // stage waits for the owner now, so one apply runs every stage and reports what Lervo holds.
     let clock = 0;
     const calls: string[][] = [];
     const runner = scriptedRunner(
       {
         "/r/argo": [
-          result("ready", {
-            planId: "plan_a",
-            applicableStages: ["node"],
-            ownerApprovalStages: ["knowledge"],
+          result("ready", { planId: "plan_a", applicableStages: ["node", "knowledge"] }),
+          result("lervo_debt", {
+            planId: "plan_b",
+            appliedStages: ["repository_node"],
+            pendingStages: ["knowledge"],
           }),
-          {
-            kind: "failed",
-            code: "upgrade_plan_changed",
-            ownerApprovalStages: ["knowledge"],
-          },
         ],
       },
       calls,
@@ -255,8 +226,9 @@ describe("runRepositoryPass", () => {
     });
     expect(result_.repositories[0]).toMatchObject({
       outcome: "blocked",
-      code: "upgrade_owner_approval_required",
-      planId: "plan_a",
+      code: "upgrade_lervo_debt",
+      planId: "plan_b",
+      appliedStages: ["repository_node"],
       pendingStages: ["knowledge"],
       elapsedMs: 648_000,
       stageTimings: [
@@ -266,40 +238,8 @@ describe("runRepositoryPass", () => {
     });
     expect(calls).toEqual([
       ["upgrade", "--root", "/r/argo", "--json"],
-      ["upgrade", "--root", "/r/argo", "--apply", "--approval", "plan_a", "--json"],
+      ["upgrade", "--root", "/r/argo", "--apply", "--json"],
     ]);
-  });
-
-  it("still falls back to --safe when the refusal names no owner approval, and times it", async () => {
-    let clock = 0;
-    const runner = scriptedRunner({
-      "/r/one": [
-        result("ready", { planId: "plan_1" }),
-        { kind: "failed", code: "upgrade_plan_changed", ownerApprovalStages: [] },
-        {
-          kind: "failed",
-          code: "upgrade_owner_approval_required",
-          ownerApprovalStages: ["terminal_integration"],
-        },
-      ],
-    });
-    const result_ = await runRepositoryPass(["/r/one"], {
-      run: async (args, signal) => {
-        clock += args.includes("--apply") ? 1_000 : 500;
-        return runner(args, signal);
-      },
-      now: () => clock,
-    });
-    expect(result_.repositories[0]).toMatchObject({
-      outcome: "blocked",
-      code: "upgrade_owner_approval_required",
-      pendingStages: ["terminal_integration"],
-      stageTimings: [
-        { round: 1, stage: "plan_command", ms: 500 },
-        { round: 1, stage: "apply_command", ms: 1_000 },
-        { round: 1, stage: "safe_apply_command", ms: 1_000 },
-      ],
-    });
   });
 
   it("stops at a repository boundary when a newer release is published", async () => {
@@ -371,21 +311,21 @@ describe("the linked lervo runner", () => {
       parseRepositoryUpgradeOutput(
         JSON.stringify({
           planKind: "repository_upgrade",
-          status: "pending_authority",
+          status: "lervo_debt",
           planId: "p",
           applicableStages: [],
           stages: {
-            runtimeRetention: { disposition: "pending_authority" },
-            knowledge: { disposition: "pending_authority" },
-            terminalIntegration: { disposition: "pending_authority" },
+            runtimeRetention: { disposition: "lervo_debt" },
+            knowledge: { disposition: "lervo_debt" },
+            terminalIntegration: { disposition: "lervo_debt" },
             node: { disposition: "blocked" },
           },
         }),
       ),
     ).toEqual(
-      result("pending_authority", {
+      result("lervo_debt", {
         planId: "p",
-        ownerApprovalStages: ["knowledge", "terminal_integration"],
+        lervoDebtStages: ["knowledge", "terminal_integration"],
       }),
     );
     expect(
@@ -422,39 +362,15 @@ describe("the linked lervo runner", () => {
         JSON.stringify({ status: "failed", error: { code: "node_fleet_readiness_timeout" } }),
       ),
     ).toEqual({ kind: "failed", code: "node_fleet_readiness_timeout" });
+    // Extra error fields never change the failure the follower reads.
     expect(
       parseRepositoryUpgradeOutput(
         JSON.stringify({
           status: "failed",
-          error: {
-            code: "upgrade_plan_changed",
-            currentPlanId: "upg_b",
-            ownerApprovalStages: ["knowledge", 3],
-          },
+          error: { code: "knowledge_cross_check_disagreed", stages: [{ stage: "knowledge" }] },
         }),
       ),
-    ).toEqual({ kind: "failed", code: "upgrade_plan_changed", ownerApprovalStages: ["knowledge"] });
-    expect(
-      parseRepositoryUpgradeOutput(
-        JSON.stringify({
-          status: "failed",
-          error: {
-            code: "upgrade_owner_approval_required",
-            stages: [{ stage: "knowledge", reason: "layout_decision_pending" }, { reason: "x" }],
-          },
-        }),
-      ),
-    ).toEqual({
-      kind: "failed",
-      code: "upgrade_owner_approval_required",
-      ownerApprovalStages: ["knowledge"],
-    });
-    // An earlier CLI's refusal names no stages, so the follower keeps its `--safe` fallback.
-    expect(
-      parseRepositoryUpgradeOutput(
-        JSON.stringify({ status: "failed", error: { code: "upgrade_plan_changed" } }),
-      ),
-    ).toEqual({ kind: "failed", code: "upgrade_plan_changed" });
+    ).toEqual({ kind: "failed", code: "knowledge_cross_check_disagreed" });
     expect(parseRepositoryUpgradeOutput("Segmentation fault")).toEqual({ kind: "unreadable" });
     expect(parseRepositoryUpgradeOutput("[]")).toEqual({ kind: "unreadable" });
   });

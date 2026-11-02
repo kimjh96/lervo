@@ -64,10 +64,13 @@ export async function runKnowledgeMigration(input: {
     io.stderr(`${REMOVED_LAYOUT_DECISION}\n`);
     return 1;
   }
+  if (input.args.some((arg) => /^--approve-item(?:=|$)/u.test(arg))) {
+    io.stderr(`${REMOVED_APPROVE_ITEM}\n`);
+    return 1;
+  }
   let values: {
     root?: string;
     apply?: string;
-    "approve-item"?: string[];
     "continuation-source"?: string;
     provider?: string;
     candidate?: string;
@@ -87,8 +90,6 @@ export async function runKnowledgeMigration(input: {
       options: {
         root: { type: "string" },
         apply: { type: "string" },
-        // Terminal integration still binds its exact provider-hook approval (ADR-0561 slice A5).
-        "approve-item": { type: "string", multiple: true },
         "continuation-source": { type: "string" },
         provider: { type: "string" },
         candidate: { type: "string" },
@@ -118,10 +119,6 @@ export async function runKnowledgeMigration(input: {
     )
       throw new Error("--provider must be codex or claude.");
     const provider = values.provider as "codex" | "claude" | undefined;
-    // Only the terminal integration stage still takes an exact item binding.
-    const terminalApprovals = values["approve-item"] ?? [];
-    if (terminalApprovals.some((value) => !value.startsWith("ktermop_")))
-      throw new Error(REMOVED_APPROVE_ITEM);
     if (input.mode === "migrate") {
       await ensureHostTerminalRuntime();
       await rememberTerminalWorkerEntry(repositoryRoot, process.env.LERVO_CLI_ENTRY);
@@ -227,8 +224,6 @@ export async function runKnowledgeMigration(input: {
       const terminal = prepared.plan;
       if (terminal.status !== "current") {
         if (values.apply === undefined) {
-          if ((values["approve-item"]?.length ?? 0) > 0)
-            throw new Error("--approve-item must be used with --apply.");
           io.stdout(
             values.json
               ? `${JSON.stringify(serializableTerminalIntegrationPlan(terminal), null, 2)}\n`
@@ -238,36 +233,21 @@ export async function runKnowledgeMigration(input: {
         }
         if (terminal.status === "blocked")
           throw new Error(
-            "The terminal integration plan is blocked; provider configuration must be reviewed before apply.",
+            "The terminal integration plan is blocked; provider configuration must be repaired before apply.",
           );
         if (values.apply !== terminal.planId)
           throw new Error(
             "The requested plan ID does not match the current terminal integration plan.",
           );
-        const approvalValues = values["approve-item"] ?? [];
-        if (terminal.status === "review_required" && approvalValues.length !== 1)
-          throw new Error("Terminal integration requires one exact --approve-item value.");
-        if (terminal.status === "ready" && approvalValues.length !== 0)
-          throw new Error(
-            "Generated-only terminal runtime reconciliation does not accept --approve-item.",
-          );
-        const approval =
-          terminal.status === "review_required"
-            ? /^(ktermop_[a-f0-9]{24})=(sha256:[a-f0-9]{64})$/u.exec(approvalValues[0]!)
-            : null;
-        if (terminal.status === "review_required" && approval === null)
-          throw new Error("--approve-item must use <operation-id>=<sha256-approval-hash>.");
-        const receipt = await applyTerminalIntegrationStage({
+        const { receipt, backupId } = await applyTerminalIntegrationStage({
           repositoryRoot,
           prepared,
-          approval:
-            approval === null ? null : { operationId: approval[1]!, approvalHash: approval[2]! },
           now: new Date(),
         });
         io.stdout(
           values.json
-            ? `${JSON.stringify({ ...receipt, activation: terminalActivation }, null, 2)}\n`
-            : formatTerminalIntegrationReceipt(receipt),
+            ? `${JSON.stringify({ ...receipt, backupId, activation: terminalActivation }, null, 2)}\n`
+            : formatTerminalIntegrationReceipt(receipt, backupId),
         );
         return 0;
       }
@@ -330,8 +310,6 @@ export async function runKnowledgeMigration(input: {
         }
       }
     }
-    if ((values["approve-item"]?.length ?? 0) > 0)
-      throw new Error("The current migration plan does not require item approvals.");
     if (values.apply === undefined) {
       io.stdout(
         values.json

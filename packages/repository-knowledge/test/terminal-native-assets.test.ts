@@ -57,8 +57,6 @@ async function legacy(schema = 3) {
   await applyTerminalIntegrationPlan({
     plan: initial,
     runtimeContent: launcher,
-    approvedOperationId: initial.operationId,
-    approvedHash: initial.approvalHash!,
     now: new Date(),
     recordApplied: () => undefined,
   });

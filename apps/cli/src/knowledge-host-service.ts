@@ -182,8 +182,10 @@ async function prepareHostService(ports: KnowledgeHostServicePorts): Promise<Pre
       counts,
     );
   const manager = managerFor(ports.platform);
+  // ADR-0561: Lervo cannot supervise a resident here; it reports that and continues every other
+  // stage, so the gap is Lervo debt rather than an owner approval.
   if (manager === null)
-    return notApplicable("service_manager_unsupported", counts, "pending_authority", [
+    return notApplicable("service_manager_unsupported", counts, "lervo_debt", [
       {
         code: "service_manager_unsupported",
         message:
