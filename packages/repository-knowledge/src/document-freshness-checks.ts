@@ -191,11 +191,18 @@ function referencesCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessC
   // The extractor stops at its reference cap, so a reference an edit adds past the cap would go
   // unseen. Then the whole output lines of every replacement are checked on their own as well; a
   // replacement can be part of a link target, so the replacement text alone is not enough.
+  // A replaced line that itself reaches the cap cannot be checked completely, so it fails closed.
+  let unchecked = false;
   if (
     extractDocumentReferences({ path: input.documentPath, content: output }).length >=
     MAXIMUM_DOCUMENT_REFERENCES
   )
-    for (const lines of replacedOutputLines(input.output, input.hunks))
+    for (const lines of replacedOutputLines(input.output, input.hunks)) {
+      if (
+        extractDocumentReferences({ path: input.documentPath, content: lines }).length >=
+        MAXIMUM_DOCUMENT_REFERENCES
+      )
+        unchecked = true;
       unresolved.push(
         ...unresolvedDocumentReferences({
           path: input.documentPath,
@@ -204,6 +211,7 @@ function referencesCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessC
           neverTracked,
         }),
       );
+    }
   // Unresolved references on a line that marks history were already excluded above.
   const remaining = input.finding.references.filter(
     (reference) =>
@@ -215,13 +223,15 @@ function referencesCheck(input: DocumentFreshnessCheckInput): DocumentFreshnessC
   return [
     result(
       "references_resolve",
-      unresolved.length === 0,
-      unresolved.length === 0
-        ? "all_references_resolve"
-        : `unresolved=${unresolved
-            .slice(0, 5)
-            .map((reference) => reference.target)
-            .join(",")}`,
+      unresolved.length === 0 && !unchecked,
+      unchecked
+        ? "reference_limit_reached"
+        : unresolved.length === 0
+          ? "all_references_resolve"
+          : `unresolved=${unresolved
+              .slice(0, 5)
+              .map((reference) => reference.target)
+              .join(",")}`,
     ),
     result(
       "missing_references_resolved",
