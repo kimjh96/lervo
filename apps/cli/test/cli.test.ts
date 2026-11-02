@@ -177,9 +177,9 @@ describe("lervo repository knowledge CLI", () => {
     expect(errors).toEqual([]);
   });
 
-  it("deletes an exact registered user document and deprecates its concept atomically", async () => {
+  // ADR-0561 commit-then-delete: Lervo deletes a document only where Git keeps its bytes.
+  async function planRegisteredUserDocumentDeletion() {
     const root = await temporaryRepository();
-    // ADR-0561 commit-then-delete: Lervo deletes a document only where Git keeps its bytes.
     const git = (...args: string[]) =>
       execFileSync("git", ["-C", root, ...args], {
         encoding: "utf8",
@@ -229,7 +229,12 @@ describe("lervo repository knowledge CLI", () => {
     );
     expect(plan.operations.every((operation) => operation.content === undefined)).toBe(true);
     expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
+    return { root, git, documentPath, messages, errors, io, plan };
+  }
 
+  it("keeps a registered user document when the cross-check disagrees with its deletion", async () => {
+    const { root, documentPath, messages, errors, io, plan } =
+      await planRegisteredUserDocumentDeletion();
     messages.length = 0;
     errors.length = 0;
     expect(
@@ -241,7 +246,11 @@ describe("lervo repository knowledge CLI", () => {
     ).toBe(1);
     expect(errors.join("")).toContain("disagreed with plan");
     expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
+  });
 
+  it("deletes an exact registered user document and deprecates its concept atomically", async () => {
+    const { root, git, documentPath, messages, errors, io, plan } =
+      await planRegisteredUserDocumentDeletion();
     messages.length = 0;
     errors.length = 0;
     expect(
@@ -307,7 +316,8 @@ describe("lervo repository knowledge CLI", () => {
       await storage.close();
     }
     expect(errors).toEqual([]);
-  });
+    // Nine CLI runs, including the preserving commit and replan of an uncommitted document.
+  }, 20_000);
 
   it("moves an exact registered user document while preserving identity and navigation", async () => {
     const root = await temporaryRepository();
