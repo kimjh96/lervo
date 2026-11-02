@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a7f739121050d45be4c07461"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Document freshness no longer treats a path mention that the repository never tracked, such as a fixture or example name, as a removed reference, so it creates no finding and no forced (removed) edit; deleted paths behave as before."
