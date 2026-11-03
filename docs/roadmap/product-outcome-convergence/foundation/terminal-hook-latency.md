@@ -2,9 +2,9 @@
 
 Outcome: terminal hooks meet reviewed latency budgets.
 
-State: `implemented`.
+State: `delivery required` (current hook qualification pending).
 
-The current Codex hook build passed a fresh fixed-request cohort of 30 complete Prompt/Stop pairs. Prompt p95 was 13,937.214 ms; Stop p95 was 1,942.938 ms. Both maxima were below 30 seconds.
+The Codex hook build observed on 2026-09-05 passed a fresh fixed-request cohort of 30 complete Prompt/Stop pairs. Prompt p95 was 13,937.214 ms; Stop p95 was 1,942.938 ms. Both maxima were below 30 seconds.
 
 Query projection runs concurrently with corpus preparation and repository snapshotting. Project and publication-language coordinates are checked before any result is used. Earlier failed and passing profiles remain retained. A 100-report view still blocks on the preceding build's p95 exhaustion; per-context token exhaustion also blocks at the inclusive configured boundary.
 

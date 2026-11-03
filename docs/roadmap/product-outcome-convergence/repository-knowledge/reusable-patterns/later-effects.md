@@ -2,7 +2,7 @@
 
 State: **historical**.
 
-Superseded by: [ADR-0533](../../../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. Background practice learning remains planned.
+Superseded by: [ADR-0533](../../../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. [Background practice learning](../../../knowledge/background-practice-learning.md) is `wired` in the standalone resident; Hub typed exchange and Mac/WSL installed acceptance remain pending.
 
 Pattern proposal, review, promotion, and two bounded local metrics exist. Proposal and promotion are explicit; attribution remains unestablished by contract.
 
