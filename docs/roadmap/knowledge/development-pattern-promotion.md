@@ -3,7 +3,7 @@
 Status: `historical`
 As of: 2026-08-26
 
-Superseded by: [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. Background practice learning remains planned.
+Superseded by: [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The implementation below is historical. [Background practice learning](background-practice-learning.md) is wired in the standalone resident; Hub typed exchange and installed acceptance remain open.
 
 ## Problem
 

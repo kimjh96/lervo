@@ -14,7 +14,7 @@
 
 - [ ] Execute the [ADR-0537](../../../../decisions/knowledge/repository/source-intake/0537-degrade-over-budget-scans-by-priority.md) regression tests for deterministic priority admission, query success with partial coverage, convergence and lifecycle refusal, and unchanged per-file/file-count limits. Tests are written but deliberately unexecuted in the [implementation report](../../../../evidence/quality/scan-budget-priority-implementation.md).
 - [ ] Execute the adversarial regression cases for complete freshness and baseline admission, public normalization and pattern guards, partial impact uncertainty, custom routes, binary exclusions, warm-cache recovery, metadata-only skips, virtual/real digest equality, and skipped publication reads.
-- [ ] Verify an installed `lervo knowledge query` in `axli` under its existing 32 MiB policy, reporting partial coverage and skipped classes without raising the budget.
+- [ ] Verify an installed `lervo knowledge query` in `axli` under its existing 32 MiB policy without raising the budget. Under [ADR-0544](../../../../decisions/knowledge/repository/source-intake/0544-observe-every-source-and-budget-only-retained-content.md), require `coverage: "complete"` when every eligible source is hashed and all knowledge-class sources (classes 1–4) are retained; require `coverage: "partial"` when a knowledge-class source cannot be retained. Verify the skipped-class summary and, when code or execution evidence is observed-only, the retention summary and Find gap. The earlier ADR-0537 expectation of unconditional partial coverage is superseded; no installed result is recorded here.
 
 ## Observed sources and retained-content budget
 
