@@ -14,7 +14,7 @@ The allowlist excludes request text, source bytes, provider output, credentials,
 
 This is reader-first compatibility only. The installed conversation writer retains its earlier synchronous knowledge disposition until the isolated background lifecycle and reader rollout pass [ADR-0427](../../../decisions/knowledge/repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md).
 
-The same reader accepts the bounded `work.supervision.preflight.blocked` payload proposed by [ADR-0431](../../../decisions/execution/orchestration/governed-work/owner-recovery/0431-fence-repeated-preflight-and-owner-spend.md). No writer or retry-barrier projection is active. This source change does not establish deployed reader support.
+The same reader accepts the bounded `work.supervision.preflight.blocked` payload proposed by [ADR-0431](../../../decisions/execution/orchestration/governed-work/owner-recovery/0431-fence-repeated-preflight-and-owner-spend.md). ADR-0431 also records source implementation that retains bounded inspection evidence and unresolved barriers after supersession. This source behavior is distinct from installed activation: source tests establish neither reader-first deployment nor installed acceptance. ADR-0431 requires compatible readers before the writer, passing activation fixtures, a reviewed mandate, and an installed canary showing that a persistent blocker prevents repeated owner invocation and that exact repair permits at most one admitted continuation. This compatibility document does not establish deployed reader support or installed writer and retry-barrier activation.
 
 ## Native skill reader boundary
 
