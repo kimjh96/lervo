@@ -9,6 +9,12 @@ The supervision loop uses `{ baseMs: 5_000, ceilingMs: 300_000 }`. A cycle count
 
 `busy`, `changed`, `effect_confirmed`, and `uncertain` cycles retain the five-second retry. A lapsed progress deadline therefore re-evaluates within 300 seconds. Local and peer event hints wake the owner immediately.
 
-While backing off, the 60-second authority tail audit waits for the next cycle. Outside backoff, the [observation gate](observation-gate.md) decides whether a wake-up runs a full cycle or only that audit. Every cycle re-reads authority, revocation, and mandate expiry before an effect can run, so a delayed wake-up cannot authorize work.
+## Evaluation backoff and authority audits
 
-Tests cover the backoff sequence and its resets.
+The 300-second ceiling governs unchanged evaluation retries. It does not permit delaying the authority tail audit to that ceiling. [ADR-0508](../../../../../../../decisions/operations/services/0508-observe-standing-supervision-only-when-its-source-can-differ.md) requires a skipped wake-up to run `NodeSupervisionStore.auditHistory` and detect a missed hint within 60 seconds. Scheduling must preserve that audit deadline during evaluation backoff. The [observation gate](observation-gate.md) determines whether a wake-up requires a full observation or can perform only the audit.
+
+Every cycle re-reads authority, revocation, and mandate expiry before an effect can run. These effect checks remain required, but they do not substitute for timely detection of appended authority events. This contract replaces the earlier statement that the 60-second audit waits for the next backed-off cycle.
+
+## Verification boundary
+
+The source reports tests for the backoff sequence and its resets. No supplied implementation or test evidence establishes the combined backoff and audit timing contract. Verification must exercise a lapsed progress deadline at maximum backoff, append an authority event without delivering a hint, and demonstrate detection within 60 seconds while preserving the evaluation retry ceiling and effect checks. This correction records the required behavior without claiming a passing test, deployment, or installed acceptance.
