@@ -1,6 +1,6 @@
 # Completed v0 follow-up
 
-The [v0 roadmap](../v0.md#completed-follow-up) links each topic's roadmap, decision, and evidence. Completion preserves the unresolved gates and authority boundaries documented below.
+The [v0 roadmap](../v0.md) links the completion, follow-up, and separate active and future scope documents. Completion preserves the unresolved gates and authority boundaries documented below.
 
 - [Grounding and retrieval](completed-follow-up/grounding-and-retrieval.md)
 - [Terminal flow, workforce, and deployment](completed-follow-up/terminal-workforce-deployment.md)
