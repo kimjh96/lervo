@@ -57,10 +57,13 @@ There is no event, history directory or append-only collection.
   and continuity findings. State, reason, stop time, resident state, actor and
   recovery condition remain distinct. Repeated same-reason stage events retain
   the first stop time. Missing recovery is `none recorded`, with an inspect command.
-  On a host the convergence fence does not make the owner, the measure reports
-  the owner peer's published resident state as `owner_elsewhere`; a missing or
-  older-than-90-minute owner observation is unknown with
-  `owner_observation_missing_or_stale` ([ADR-0548](../../../decisions/execution/applications/0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md)).
+  When the convergence fence reports `waiting_owner`, `yielding`, or `contended`,
+  the measure reads the owner peer's published continuity observation instead of
+  local stage records, reporting `owner_elsewhere` and `resident on <host label>`.
+  It reports a gap only when the owner's resident state is `attention` or `waiting`,
+  with reason `owner_resident_<state>`. A missing, older-than-90-minute, or future
+  owner observation is unknown with `owner_observation_missing_or_stale`; a local
+  record never substitutes for it ([ADR-0548](../../../decisions/execution/applications/0548-report-convergence-where-it-runs-and-record-when-stops-are-shown.md)).
 - **Longest stop:** bounded stage history closes an episode on recorded progress
   or resolution. Future events cannot open or close an episode. Stop duration
   does not establish reporting. Owner terminal turns record each stop's first
@@ -91,11 +94,16 @@ There is no event, history directory or append-only collection.
   `semantic_classification_pending` count, at most 32 relative paths and exact
   omissions. First-seen time is unrecorded, so age is unknown. Partial layout
   coverage cannot establish zero.
-- **Broken links:** the link web over current Markdown, rebuilt in the background
-  when tracked Markdown changes, gives broken links, amendments not linked back,
-  and unlinked canonical documents ([ADR-0551](../../../decisions/knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md)).
-  The first two are gaps. A summary older than one day, or a failed rebuild, is
-  unknown. This measure never invokes lint.
+- **Broken links:** the link web over current Markdown gives broken links,
+  amendments not linked back, and unlinked canonical documents
+  ([ADR-0551](../../../decisions/knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md)).
+  Background health prefetch rebuilds it only when its input digest changes:
+  the content hash of every tracked or untracked-but-not-ignored Markdown file,
+  the full path set that link targets resolve against, and the layout taxonomy
+  that decides canonical and archive scopes. An unchanged digest is re-observed
+  after an hour so an idle repository's measure does not expire.
+  The first two findings are gaps. A summary older than one day, or a failed
+  rebuild, is unknown. This measure never invokes lint.
 - **Find:** the reader keeps whole stage history and only eight days of per-turn
   activity, retaining at most 10,000 events from at most 250,000 scanned; overflow
   or failed reads are unknown. It establishes recorded last injection, seven-day

@@ -1,5 +1,7 @@
 # Managed Linked-Evidence Canary
 
+> Historical: This specification records the canary and shadow removed by ADR-0528; it does not describe current product behavior.
+
 Status: `historical_experiment`
 As of: 2026-08-30
 Removed by: [ADR-0528](../../decisions/search/activation/0528-remove-the-linked-evidence-canary-and-shadow.md). The canary and shadow no longer exist in the product; this specification records what they did.
