@@ -66,7 +66,7 @@ Strengths from the four reference products land where they serve an outcome. The
   - Migration completeness: each candidate is moved, kept with a reason, or deferred with a resolution condition, and no link is broken.
 - **Strengths.**
   - **Hermes immediate memory:** an instruction, correction, or verified work outcome is captured in its turn. A reviewable candidate or a reason to hold appears within a bounded time. This extends instruction capture ([ADR-0467](../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md)).
-  - **ADR-0458 learning:** a candidate comes from a single observation, and is promoted by used-in-practice evidence and independent review. This is the planned replacement for the development-pattern pipeline.
+  - **ADR-0458 learning:** a candidate comes from a single observation, and is promoted by used-in-practice evidence and independent review. The successor [background practice learning](../../roadmap/knowledge/background-practice-learning.md) is wired in the standalone resident; Hub typed exchange and installed acceptance remain open.
 
 ### 2. Find: the right documents are hit
 
