@@ -1,5 +1,11 @@
 # Dispatch and local inspection
 
+## Historical scope and command removal
+
+The descriptions under Routing, Local inspection, and Other errors below are retained historical wrapper descriptions. Their present-tense wording describes that historical surface, not verified current command availability. The executable sources were not supplied for this reassessment.
+
+[ADR-0529](../../decisions/knowledge/semantics/0529-remove-the-semantic-compilation-pipeline.md), accepted on 2026-10-24, removes `compile`, `compare`, `stability`, `merge-candidate`, `fuzzy-merge-candidate`, `reconcile`, `review-policy`, and `review`, plus `materialize <review-id>`. Consequently, the compilation routing, review forwarding, and Reconcile subsection below must not be used as current command instructions. The decision retains `materialize --recover` for interrupted knowledge materialization. It does not independently verify the remaining wrapper descriptions.
+
 ## Routing
 
 The dispatcher forwards export, import, and OKF commands with their original arguments. It removes the leading subcommand when forwarding convergence, worker, canonicalization, normalization, review-policy, review, materialization, structure, freshness, and instruction commands.
