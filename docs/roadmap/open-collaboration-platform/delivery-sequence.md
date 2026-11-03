@@ -49,14 +49,14 @@ Knowledge intake policy and per-file degradation are `wired` under the [per-chan
 
 Document freshness is `wired` under accepted [ADR-0463](../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) and its [specification](../../specifications/knowledge/document-freshness.md). The resident freshness stage maps ADR-0464 detection to findings, generates candidates through the governed provider path, verifies them deterministically, applies Lervo-managed `factual_reference` hunks with a `Lervo Knowledge` commit, and reverts with one command. Fixtures F1 to F7 pass on scratch repositories with the fixture provider. User-owned candidates appear in `lervo knowledge freshness review`, `lervo application attention`, and the compact prompt line.
 
-Two verification parts remain unmet:
+The remaining boundaries are:
 
 - The escalation batch does not exist (ADR-0453), leaving the escalation question and reply parser without a consumer.
-- Tier 0 does not exist (ADR-0460), so every consequential hunk, including a Lervo-managed `statement`, waits for the owner in `verified_pending_cross_check`.
+- General Tier 0 triggering still awaits ADR-0460 Slice 1. Freshness edit candidates have an independent no-capability cross-check under [ADR-0557](../../decisions/knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md). Agreement removes the cross-check substitution for Lervo-managed hunks that need no other authority; user-owned and `safety_or_policy` hunks retain their authority requirements. An unavailable cross-check leaves affected hunks in `verified_pending_cross_check` for owner approval. Archives remain outside this cross-check implementation.
 
 ### Owner-turn instruction capture evidence
 
-Owner-turn instruction capture is `wired` under [ADR-0467](../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) and its [specification](../../specifications/knowledge/instruction-capture.md). The terminal hook and managed conversations queue owner turns without a provider call. The knowledge resident's `instruction_capture` stage assesses them semantically and creates exact-review candidates or held decisions.
+Owner-turn instruction capture is `wired` under [ADR-0467](../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) and its [specification](../../specifications/knowledge/instruction-capture.md), as amended by ADR-0545. The terminal hook and managed conversations queue owner turns without a provider call. The knowledge resident's `instruction_capture` stage assesses them semantically and creates exact-hash candidates or held decisions. After candidate exchange, the convergence owner automatically applies eligible owner-stated rules through the existing plan gate; held items retain their resolution path.
 
 Fixture-provider tests cover English, Korean, paraphrased and implicit corrections, privacy, budget, and cross-provider visibility. A 28-case suite recorded 1.000 class agreement against Claude. Explicit intake succeeds on the reproduced English and Korean requests.
 
@@ -64,10 +64,10 @@ Remaining boundaries:
 
 - No installed run on the Lervo repository has converted a real Claude Code or Discord owner turn into a reviewed candidate.
 - Conversations use the queue rather than the ADR-0457 `knowledgeCandidate` turn field.
-- Captured rules await exact review because automatic application is deferred.
+- Eligible `explicit_user` candidates no longer require an owner or agent review command. Automatic application still requires current catalog bindings and a ready plan with matching rule, target and bytes. Installed verification remains open for the owner's 2026-11-01 rule to apply on WSL and reach the Mac through publication.
 - Cross-host exchange is tested against a fake Hub and the real Hub route, but has not run between the installed Mac and WSL hosts.
 
-Each host assesses its own owner turns; only the ADR-0466 convergence owner applies and commits a candidate.
+Each host assesses its own owner turns. On Hub-coordinated hosts, only the ADR-0466 convergence owner applies and commits a candidate. A standalone host applies locally without the Hub commit requirement.
 
 ## Slice 3: self-organizing and standing
 
@@ -86,4 +86,4 @@ The `archive` operation is `wired`: fixture F3 applies an archive with nine inbo
 
 ## Slice 4: convergence
 
-Run J1 to J7 end to end, record real-provider evidence for each under `docs/evidence`, add boundary regression tests, and relabel the journeys `converged`. Then apply ADR-0452 section 8 vision amendments through the reviewed exact-rewrite path.
+Run J1 to J7 end to end, record real-provider evidence for each under `docs/evidence`, add boundary regression tests, and relabel the journeys `converged`. ADR-0452 section 9 records that the section 8 vision amendments were already applied through reviewed exact rewrites; those amendments do not establish completion of the installed journeys.
