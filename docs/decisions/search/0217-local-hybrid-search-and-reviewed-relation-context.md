@@ -2,7 +2,12 @@
 
 Status: `accepted`
 Decision date: 2026-08-25
+Amended by: [ADR-0226](0226-retire-local-hybrid-and-evaluate-bounded-model-fallback.md) (local hybrid candidate and dedicated benchmark command retired)
 Amended by: [ADR-0523](activation/0523-retire-reviewed-relation-context.md) (reviewed relation context retired)
+
+## Current lifecycle status
+
+ADR-0226 retires `local-hybrid-v1` and removes its inactive candidate package, registry entry, dedicated `lervo search benchmark` command, and bundled dependency. The candidate design, benchmark procedure, verification description, and inactive/adoption-undetermined conclusions below are preserved as historical records of this decision. They are not current registration or CLI instructions, and the candidate's current disposition is retired. Historical reports and generic candidate-comparison and evaluation contracts remain preserved under ADR-0226. ADR-0523 separately retires the reviewed relation context described below.
 
 ## Context
 
