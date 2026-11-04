@@ -6,6 +6,8 @@ Default capture bounds are 20,000 paths, 64 MiB per ordinary file, and 256 MiB t
 
 [ADR-0436](../../../../decisions/knowledge/repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md) permits an exact reviewed delegation, through optional `sourceCapture`, to select a total capture ceiling up to 1 GiB and at most 32 reference-only repository links. Each link binds its exact relative target and kind. Targets must separately appear in the complete source inventory. Chains and escapes fail closed; links remain unchanged.
 
+[ADR-0546](../../../../decisions/knowledge/repository/source-intake/0546-capture-in-repository-links-without-a-reviewed-declaration.md) amends that reference contract: capture also derives descriptors for tracked links that the delegation does not declare. A declared reference takes precedence for the same path. A derived reference requires a relative stored target that normalizes inside the repository, stays outside `.git` and `.lervo`, and names an existing file or directory. The file target or every directory descendant must pass the complete Git-governed inventory check. Link chains remain unsupported. The 32-reference limit applies only to reviewed declarations; derived references remain bounded by the 20,000-path inventory limit. Capture hashes the descriptor without following or reading target bytes through the link. This grants neither semantic coverage nor authority for optional context readers to follow aliases.
+
 ## Worksets and dispositions
 
 Opaque descriptor capture establishes no asset acceptance. Canonical worksets must obey both reviewed document/source-byte ceilings and the existing canonical request bound, advancing a complete durable cursor.
