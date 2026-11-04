@@ -44,17 +44,17 @@ Owner approval binds `candidateId` and `afterHash`: `lervo knowledge freshness a
 - `lervo knowledge freshness review [<candidateId>] [--json]`: without an identifier, lists candidates awaiting the owner with exact apply commands and any `unavailable` cross-check reason; with one, prints each hunk as a unified diff with its cross-check verdict and reason, claims and evidence coordinates, the check table, and the cross-check outcome, reviewer, and run.
 - `lervo knowledge freshness apply|revert|reject|acknowledge <candidateId>`: operations above; `acknowledge` resolves an applied notice.
 
-Attention items appear in `lervo application attention` and the cached retrieval prompt path:
+Attention items appear in `lervo application attention` and the cached retrieval prompt path under the [operating attention report contract](../../execution/operating-attention/report-contract.md#document-freshness):
 
 | Item | Ownership and behavior | Fields |
 | --- | --- | --- |
-| `document_freshness_candidate` | `actionOwner: user`, `requiresUserAction: true`, `blocking: false` | `candidateId`, `documentPath`, `priorityClass`, `changeClasses`, `hunkCount`, `instruction` |
+| `document_freshness_candidate` | A verified held candidate is attributed to the resident freshness cycle unless pending hunks concern user-owned bytes, owner-authorized writes, or safety/policy. Only those consequential effects require user action; `blocking: false`. | `candidateId`, `documentPath`, `priorityClass`, `changeClasses`, `hunkCount`, `instruction` |
 | `document_freshness_applied` | `actionOwner: agent`, informational; resolves on acknowledgment or after 24 hours | `candidateId`, `documentPath`, `approvalSource`, `commitHash`, `revertInstruction` |
-| `document_freshness_blocked` | `actionOwner: user` | `reasonCode` (`zero_success_window` or `repeated_cross_check_disagreement`), `documentPath` or null, `attempts`, `instruction` |
+| `document_freshness_blocked` | Reports the failed-attempt or repeated-disagreement condition. Its reason code alone does not establish a structured consequential effect requiring user action. | `reasonCode` (`zero_success_window` or `repeated_cross_check_disagreement`), `documentPath` or null, `attempts`, `instruction` |
 
-None is blocking; all stay within the ADR-0462 twelve-item, 4 KiB attention budget.
+None is blocking. The application report returns at most 256 records, with classification and totals covering every loaded freshness candidate before that cap. Omitted candidates remain inspectable through `lervo knowledge freshness review <candidate-id>` and `lervo knowledge freshness status`.
 
-Compact terminal context adds one preamble line of at most 200 bytes only when any count is non-zero, for example `Document freshness: 2 stale (1 safety: AGENTS.md), 1 candidate awaits review; lervo knowledge freshness review`.
+The compact prompt reads the shared health projection instead of rendering a direct freshness-review preamble. The report contract does not establish an exact actor for blocked items or current compact byte and item limits; those details remain unverified here. The application report cap is not a compact-prompt limit. Attention attribution does not change the approval requirements in Authority and apply.
 
 `documentFreshnessTurnReportSegment` renders `docs: 1 refreshed (README.md), 1 awaiting owner`. No host renders an ADR-0459 turn report yet, so this segment has no consumer.
 
