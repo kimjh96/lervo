@@ -15,7 +15,7 @@ Examples, quotations, hypotheticals, complaints, questions, current-task command
 
 Eligible output is one deterministic Lervo-generated Markdown source under `docs/instructions/generated/`, with its path determined by semantic identity. It contains neither prompt prose nor per-run or snapshot identifiers. Local events retain only request and resolver digests plus materialized coordinates.
 
-Repeated identical intake is current; conflicting target bytes block. Uncertain durable proposals remain pending. Inferred reusable behavior has no active development-pattern intake after [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Background practice learning is planned separately.
+Repeated identical intake is current; conflicting target bytes block. Uncertain durable proposals remain pending. Inferred reusable behavior has no active development-pattern intake after [ADR-0533](../../decisions/knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). [ADR-0543](../../decisions/knowledge/repository/canonicalization/patterns/0543-learn-portable-skills-from-practice-in-the-knowledge-resident.md) defines separate background practice learning from completed work, with independent review and delegation-scoped materialization. Its standalone resident path is wired in source, with practice events gated by schema 8 reader activation. Hub typed candidate and usage exchange remains a bounded follow-up. Focused tests were written but not executed at the owner's request, and Mac and WSL installed evidence is missing.
 
 ## Consumer authority
 
