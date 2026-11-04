@@ -42,3 +42,11 @@ Debt counts are `null` when an interrupted journal prevents a stable scan. This 
 Worker health is independently `healthy`, `degraded`, or `not_running`, with state, heartbeat, and reason. A private bounded heartbeat projection updates every 15 seconds, expires after 120 seconds, verifies process liveness, and retains at most 64 residents. Queue emptiness, heartbeat, and zero lint errors alone never establish `baselineCurrent`.
 
 CLI inspection failure exits with status 1 and only a bounded normalized error code. It emits no successful status or currency claim, private source path, native message, or stack. Untyped failure is `knowledge_inspection_failed`; typed source-kind and capture-capacity stops remain distinguishable. Storage closes after an opened inspection fails. This diagnostic boundary adds no event or writer authority.
+
+## Capacity parking amendment
+
+[ADR-0532](../../../../decisions/knowledge/maintenance/0532-continue-background-review-past-capacity-and-optional-context-failures.md) extends the parked-source reasons listed above with `layout_capacity_exceeded` at stage `canonical`. It is a parked-source reason, not a new public failure code or stage state. Owner-local status may show the parked path and reason; final lifecycle attention retains `knowledge_sources_parked`.
+
+When the complete approved batch is blocked only by directory-file, directory-child, or repository capacity, it integrates no drafts. Candidate sources park, or all batch sources park when there is no candidate. Independently approved noncandidate coverage remains valid, and the cursor advances to later worksets or normalization. Unapplied drafts never count as integrated.
+
+The private parking evidence binds `layoutCapacityHash` over observed counts, capacity policy, routes, and roles, alongside the source bindings and bounded blocker evidence. Changed source bytes or a changed layout hash readmit the source in a later obligation. An unrelated document-body edit does not release capacity. Existing unrelated overflow alone does not block a write under the amendment recorded in ADR-0532, but adding a document to a full directory creates or grows overflow and remains blocked. Parking neither repairs the directory nor proves baseline currency.
