@@ -15,6 +15,8 @@ A skipped wake-up returns the previous disposition without a report and runs `No
 
 Duty deadlines are the cursor's next check, mandate expiry, the next peer audit and `SupervisionResultDelivery.nextRetryAt`. The same deadlines, with the history audit, set the loop's next wake-up.
 
+The gate retains the future deadlines it knew when a cycle settled. Any retained deadline lapsing forces a full observation even if its source no longer reports it. This includes a startup-grace deferral that settles without a report: dropping its deadline once it lapses must not prevent the deferred evaluation from running.
+
 The input stamp covers the files from `workforceSourcePaths`: the project manifest, `agents.json`, and every entry under the assignment, role, project capability and user capability trees. It records device, inode, mode, size, and nanosecond modification and change times. A missing path stamps as absent.
 
 Inputs of more than 4,096 entries are not stamped. Neither are inputs whose paths cannot be resolved or read. In both cases every wake-up observes in full.
