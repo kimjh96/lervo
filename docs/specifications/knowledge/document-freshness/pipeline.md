@@ -4,18 +4,21 @@
 
 ```text
 ADR-0464 detection ─► finding mapping ─► prioritize ─► admit (budget) ─► bundle evidence
-   ─► governed generation ─► deterministic checks ─► Tier 0 cross-check ─► authority ─► apply ─► commit
-                                         │                    │                   │
-                                         └─► rejected         ├─► rejected        └─► waiting for the owner
-                                                              │   (disagreement)
-                                                              └─► verified_pending_cross_check (unavailable)
+   ─► evidence preflight ─► governed generation ─► deterministic checks ─► Tier 0 cross-check ─► authority ─► apply ─► commit
+                                  │                      │                    │                   │
+                                  │                      └─► rejected         ├─► rejected        └─► waiting for the owner
+                                  │                                           │   (disagreement)
+                                  │                                           └─► verified_pending_cross_check (unavailable)
+                                  └─► no_change_needed ─► independent review ─► exact assessment receipt
 ```
 
 The knowledge resident owns the stage (`packages/repository-knowledge-runtime/src/freshness-stage.ts`), which follows per-change intake and convergence in `runAutonomousKnowledgeWorker`. Stage failure never blocks intake or convergence.
 
-Freshness and convergence share the worker's repository lock and never run concurrently. Freshness runs only while convergence is parked (`idle`, `current`, `waiting_authority`, or `attention_required`); otherwise the cycle reports `yielded`. A freshness commit moves HEAD like a developer commit. This rule prevents it from landing between an [ADR-0465](../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md) batch-boundary commit and the stage that commit re-queued under its `committedHead` fence. Documents with uncommitted settled outputs are never refreshed: their working bytes differ from HEAD. Owner operations also refuse while any live or interrupted materialization journal owns the repository.
+The first maintenance recovery delivery reserves a preparation turn after two convergence turns. Repository and host cycle locks remain around each bounded turn, and the parked-convergence effect gate remains: effects require convergence to be `idle`, `current`, `waiting_authority`, or `attention_required`. Queued convergence therefore does not exclude all freshness preparation. This initial counter does not establish the proposed eligible-provider-turn latency guarantee or concurrent provider execution. Releasing capture locks before provider calls and proving exclusive apply, journal recovery, checkpoint, and rebind remain open under [ADR-0493](../../../decisions/knowledge/maintenance/0493-schedule-knowledge-maintenance-by-ready-work-and-safe-effects.md).
 
-Candidate state lives under `.lervo/state/knowledge/freshness-candidates/<2-hex shard>/kfresh_<24 hex>.json`, holds under `.lervo/state/knowledge/freshness-holds/`, and the cycle record in `.lervo/state/knowledge/freshness-cycle.json`. Bundles and before-bytes live in CAS. All are rebuildable from events plus the repository. Retention removes terminal candidates after 30 days and keeps at most 512 candidates and 512 holds.
+A freshness commit moves HEAD like a developer commit. The retained effect gate prevents it from landing between an [ADR-0465](../../../decisions/knowledge/documents/0465-commit-settled-knowledge-documents-at-batch-boundaries.md) batch-boundary commit and the stage that commit re-queued under its `committedHead` fence. Documents with uncommitted settled outputs are never refreshed: their working bytes differ from HEAD. Owner operations also refuse while any live or interrupted materialization journal owns the repository. Preparation and review grant no authority to overwrite user-owned bytes; the [operations contract](operations.md#authority-and-apply) governs every apply.
+
+Candidate state lives under `.lervo/state/knowledge/freshness-candidates/<2-hex shard>/kfresh_<24 hex>.json`, holds under `.lervo/state/knowledge/freshness-holds/`, and the cycle record in `.lervo/state/knowledge/freshness-cycle.json`. Bundles and before-bytes live in CAS. Candidate, hold, and cycle projections are rebuildable from events plus the repository and retained artifacts. Retention removes terminal candidates after 30 days and keeps at most 512 candidates and 512 holds. Assessment receipts are canonical CAS evidence with an event; their private projection is rebuildable and is not itself settlement proof.
 
 The stage fence digests HEAD, working-tree status, policy, holds, and candidate states. An unchanged fence skips the stage without writing. The ADR-0461 resident fingerprint includes the recorded `findingsDigest` and hold store; the candidate store is already observed as a `*-candidates` directory.
 
@@ -46,18 +49,18 @@ Drop evaluator reasons that only report unobserved evidence. Historical document
 
 Compute `priorityClass` deterministically and record it on the candidate, in this order:
 
-1. `safety`: a line touched by a reason matches a `documentFreshness.safetyPatterns` entry as a case-insensitive whole word. Touched lines contain an unresolved reference or a reference into a changed connected path; `superseded_by` touches every line. Inflections are not implied: `live` does not match "lives".
+1. `safety`: a line touched by a reason matches a `documentFreshness.safetyPatterns` entry as a case-insensitive whole word. Touched lines contain a missing reference, excluding `neverTracked`, or a reference into a changed connected path; `superseded_by` touches every line. Inflections are not implied: `live` does not match "lives".
 2. `entrypoint`: `publicationGroup` is `entrypoint`: a root `README.md`, `AGENTS.md`, or `CLAUDE.md`, or one directly inside a package or app directory.
 3. `canonical`: `publicationGroup` is `canonical`.
 4. `other`.
 
 Within a class, sort by older `detectedAt`, then more `connectedPathChanges`, then path. Admit in that order until `maximumCandidatesPerCycle` or until the daily budget cannot cover another candidate at `maximumTokensPerCandidate`.
 
-Never admit a finding under an active hold, a document owned by an open candidate, a finding already applied, reverted, or settled as `no_change_needed`, an owner-rejected finding, or one with two rejected attempts. Those wait until the document or a connected path changes. A finding whose only reason is `review_interval_elapsed` settles deterministically as `no_change_needed`, without a provider call, and counts as a false positive.
+Never admit a finding under an active hold, a document owned by an open candidate, a finding already applied or reverted, an owner-rejected finding, or one with two rejected attempts. Dependency changes invalidate prior assessments. A generated `no_change_needed` response alone cannot settle a finding or suppress its warning; settlement requires the proof described below. A finding whose only reason is `review_interval_elapsed` settles deterministically as `no_change_needed`, without a provider call, and counts as a false positive. Missing-reference gates use the same `neverTracked` distinction as detection.
 
-Budget accounting follows ADR-0459 turn measurement: one `resource.usage.recorded` per provider call, with `channel: knowledge_worker`, `stage: document_freshness`, and `turnEventId` equal to the call's generation identifier (`kfg_` plus 24 hex), recorded on the candidate as `generationId`. The same measurement records `context.selected` and `document.loaded` receipts for stale and related documents. Unobserved usage is recorded as unavailable and charged at `maximumTokensPerCandidate`. An observed total above `maximumTokensPerCandidate` rejects the candidate with `freshness_budget_exhausted`.
+Budget accounting follows ADR-0459 turn measurement: one `resource.usage.recorded` per provider call, with `channel: knowledge_worker`, `stage: document_freshness`, and `turnEventId` equal to the call's generation identifier (`kfg_` plus 24 hex), recorded on the candidate as `generationId`. The same measurement records `context.selected` and `document.loaded` receipts for stale and related documents. Unobserved usage for a call that reached the model is charged at the applicable candidate bound. An observed total above `maximumTokensPerCandidate` rejects the candidate with `freshness_budget_exhausted`. Cross-check spending follows the [candidate contract](candidates.md#cross-check).
 
-Generation follows per-change review governance (ADR-0457): active convergence delegation listing the provider, shared host provider admission, and an unpaused provider are required. Missing delegation, contended admission, or a paused provider defers the finding without writing anything.
+Generation follows per-change review governance (ADR-0457): active convergence delegation listing the provider, shared host provider admission, and an unpaused provider are required. Missing delegation, contended admission, or a paused provider defers generation. A version-check, no-capability-probe, or admission failure before a model call defers with `provider_not_admitted`, creates no rejected candidate, spends no candidate budget, and counts no attempt, as specified in the [operations contract](operations.md#events).
 
 ## Evidence bundle
 
@@ -72,3 +75,19 @@ Write `FreshnessEvidenceBundleV1` to CAS before the provider call; its hash beco
 - `instructions`: fixed generation instruction.
 
 The provider never receives absolute paths, event history, credentials, or other documents' full bodies.
+
+The implemented related-document selector does not establish prepared-snapshot ranking or canonical-document eligibility. ADR-0463's intended requirement remains the top three related canonical documents from the prepared retrieval snapshot. Integrating and verifying that selection, or reviewing an amendment, remains open; path-and-hash bindings alone do not establish equivalence. See the [specification correction](../document-freshness.md#related-document-evidence-selection).
+
+## Evidence recovery and assessment settlement
+
+The first [maintenance recovery delivery](../document-freshness.md#recovery-and-assessment-implementation) expands changed Git trees into bounded regular-file evidence. Preflight prevents provider generation when evidence coverage is empty, unavailable, or incomplete. Complete directory-page assessments remain open in the [delivery plan](../../../roadmap/knowledge/maintenance-recovery-and-speed.md); bounded expansion does not prove complete coverage of every directory change.
+
+An evidence-empty `needs_owner_input` candidate with no hunks, archive, output, approval, or rejection becomes `superseded` with `candidate_invalid`. This narrow recovery preserves genuine owner-held patches and owner rejections. Technical evidence failure does not become authority to apply a patch or a request to approve a nonexistent one.
+
+A generated `no_change_needed` proposal requires a separate no-capability review and exact document, dependency, reference, policy, evidence, and verification bindings before detector settlement. The receipt lives in CAS with a `document.freshness.assessment.recorded` event. Reuse validates the private bounded projection against both. Missing or corrupt proof leaves the finding visible; dirty referenced sources invalidate reuse. Managed-input changes and unrelated staleness reasons remain unsuppressed.
+
+A document with a missing reference cannot accept `no_change_needed`. Generation must resolve each reference listed in `unresolvedReferences`, or append ` (removed)` to a line recording a past fact about a removed target. Under ADR-0558, a never-tracked path mention is excluded from that list and must not be marked removed merely because it is absent. An edit cannot introduce a new absent path using that exemption.
+
+Event schema 5 adds `document.freshness.evidence.recovered` and `document.freshness.assessment.recorded`. Both bind project, finding, document, evidence-contract, and receipt hashes with a timestamp. Recovery additionally records the predecessor candidate, bounded attempt, and `ready | incomplete | unavailable | exhausted`. Assessment records dependency and verification-contract hashes and `verified_no_change | changed | unavailable`. Payloads contain no document path or text. Writer selection remains unchanged until the exact configured reader inventory supports the complete history through version 5.
+
+`freshness_evidence_unavailable`, `freshness_evidence_incomplete`, and `freshness_evidence_recovery_exhausted` identify technical recovery states exposed by `lervo knowledge freshness status`; none requests owner approval. `freshness_assessment_reader_transition_required` means a schema-5 receipt cannot yet be written and establishes neither currency nor permission to select a new writer. Installed activation and supersession of legacy empty candidates do not by themselves prove replacement evidence recovery or a valid assessment receipt.
