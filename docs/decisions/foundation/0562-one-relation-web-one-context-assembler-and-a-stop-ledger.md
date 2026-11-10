@@ -15,6 +15,7 @@ The owner directed on 2026-11-02 that Know, Find, Connect, Do, Collaborate, and 
 - **Stops have no owner.** The Mac reports shiflo `knowledge_verification_failed` (27 days), plen `knowledge_semantic_review_rejected` (22 days), and digimon `document_directory_file_capacity_exceeded` (23 days), but the convergence lease for all three moved to the WSL host weeks ago. The Mac never retries them and keeps repeating them. Transient snapshot races are reported like stops. The failing verification command of the Mac lervo stop is not surfaced.
 - **The knowledge host is busy doing the same work again.** The freshness cycle fence hashes `git status` of the whole tree, so every edit reruns full lint, staleness, and `git grep`. 71 cycles in one log window admitted nothing. Health prefetch rehashes every Markdown file of 7 repositories every 5 minutes.
 - **Context delivery is seven assemblers and none measures use.** The terminal compact path never loads documents, resends the same owner rules and health blocks every turn, drops rules "omitted for space" because rule conditions get no task paths, and has no session-start or compaction hook. Only managed runs record `context.injected`; the last was on 2026-09-08 on the Mac. The prompt hook runs storage opens, event-chain checks, a snapshot walk, and health reads synchronously: p95 is 2.2 s by stage timers and about 3 to 4 s end to end.
+- **Plans are lost as a conversation grows.** On 2026-11-10 the owner observed that plans made at the start or in the middle of a conversation drop out, especially after the provider compacts it. The workstream on the Mac shows why. Its six next actions are long sentences an agent wrote by hand. Items the agent did not write down exist only in the conversation: the knowledge host CPU fix, the source-lineage cap, the Codex review, and the argo layout check. Notes are capped at nine, and 779 have been dropped. The title and references still describe a goal from months earlier. The last update was 2026-11-02, and Lervo itself marks it stale. After compaction the hook injects only the first next action. The provider writes the compaction summary, and Lervo never checks it against the plan.
 
 ## Decision
 
@@ -61,12 +62,26 @@ Every document has one lifecycle state in the web: `current`, `suspect` (with re
 - Health prefetch runs for repositories this host owns, and only when its inputs changed.
 - The resident records CPU and wall time per stage and repository.
 
+### 6. A plan ledger that Lervo keeps from the conversation
+
+Lervo, not the agent's memory, keeps the plan of a piece of work.
+
+- **Capture from the transcript.** After each turn the resident host reads the new transcript records, the same pass that finds `used` in section 4. It extracts three kinds of item: owner directives, plans the agent states (step lists and "next" commitments), and findings the turn marks for later repair. Each item records its source session and transcript position. Capture does not depend on the agent calling a command.
+- **A tree, not a list.** Items form a tree: objective, pillar, step, and sub-item. No item is dropped for space. An item closes only as `done`, `cancelled` (the owner withdrew it), or `superseded` (another item replaces it), and the reason is recorded.
+- **Done needs evidence.** An item becomes `done` only when Lervo observes its evidence: a commit reachable from the named branch, a passing test or check event, a published release, or a deployment record. A statement in the conversation is not enough.
+- **Uncertain extraction is a candidate.** An item the extractor is not sure of is held as a candidate and confirmed by an independent cross-check (ADR-0561). The owner is never asked to review it.
+- **Restore and compare after compaction.** When the assembler of section 4 starts a `compact` epoch, the base tier includes the open items of the ledger as one line each. Lervo compares the provider's summary with the ledger and names every open item the summary omitted.
+- **Drift at the end of a turn.** An owner directive with no item, or an open item untouched for a set number of turns, appears in the next delta as one line.
+- **The workstream is a view.** The workstream objective, next actions, and blockers are generated from the ledger. Agents may still add items with `lervo workstream update`, which writes to the ledger.
+- **One ledger on every host.** The ledger syncs through the Hub, so a session on another host or channel continues from the same items. It is the plan part of the continuation handoff.
+
 ## State, events, privacy, and failure meaning
 
 - The web and the stop ledger are private, rebuildable state. Deleting them loses nothing; the host rebuilds them.
 - `context.injected` gains `tier`, `byteCount`, and `estimatedTokens`. A new `context.epoch.started` records `{provider, cause: start|resume|clear|compact, preTokens?, postTokens?}`. Neither carries prompt or document bodies.
 - The socket carries prompt text in memory only. The host never writes prompt text to disk.
 - A web that fails to build leaves the previous web in place and reports `relation_web_stale` as Lervo debt. Consumers fall back to their previous behaviour for one release.
+- The plan ledger is durable state, not a projection, because provider transcripts can be rotated or deleted. Each item stores `{itemId, parentId, kind: directive|plan|finding, title, state: candidate|open|in_progress|done|cancelled|superseded, source: {provider, sessionId, transcriptOffset}, evidence?, closedReason?}`. The title is a short paraphrase. The ledger never stores prompt text or document bodies. New events are `plan.item.captured`, `plan.item.closed`, and `plan.summary.gap` (an open item missing from a compaction summary). A failed extraction records `plan_capture_failed` as Lervo debt and keeps the previous ledger; the next turn retries from the same transcript position.
 
 ## Consequences
 
@@ -75,6 +90,7 @@ Every document has one lifecycle state in the web: `current`, `suspect` (with re
 - The hook no longer pays for storage and Git on every prompt. Context is sent once per epoch, then only as it changes.
 - Name edges (packages, commands, ADR numbers) add false suspects. Deterministic resolution absorbs most of them, and precision is reported.
 - The order guarantees of ADR-0548 and ADR-0549 ("delivery recorded last") are restated for events the host commits after the hook returns.
+- A plan survives compaction, a new session, and a change of host. Extraction can misread an item, so extracted items carry their source position, and an uncertain item stays a candidate until it is cross-checked.
 
 ## Verification
 
@@ -83,3 +99,4 @@ Every document has one lifecycle state in the web: `current`, `suspect` (with re
 - Every reported stop has an owner host and a next action; the Mac no longer reports the shiflo, plen, and digimon stops.
 - Freshness cycles that admit nothing fall to under one per hour per repository; resident CPU is reported per repository.
 - Prompt hook p95 end to end is under 200 ms; unchanged blocks are never resent within an epoch; base context returns after a detected compaction; tokens per turn and the selected, injected, and used counts are reported for terminal and Discord.
+- **Plan ledger replay:** replaying the transcripts of the 2026-11-02 to 2026-11-10 core-loop conversation captures every item in the [core loop roadmap](../../roadmap/core-loop.md), including those absent from the workstream. After a compaction of that conversation, every open item is either in the provider summary or named as a gap. No item closes as `done` without recorded evidence.
