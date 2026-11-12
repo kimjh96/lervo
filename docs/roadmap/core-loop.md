@@ -24,6 +24,16 @@ The owner ruled on 2026-11-02 that nothing is released or deployed until every m
    - Rerun `pnpm quality:check`.
    - Hub remote-command approval stays a documented boundary until a Node two-check path exists.
 
+### Fix observed host defects
+
+Found on the Mac host on 2026-11-12. Each fix needs a regression test.
+
+1. **Replica watcher leak:** `apps/node-runtime/src/repository-change-watch.ts` opens one `fs.watch` per tracked directory, about 3,100 across 5 repositories. On macOS, libuv 1.52.1 (Node v26.5.1) keeps every directory watcher in one FSEvents stream. It rebuilds that stream with every path whenever a watcher opens or closes, and leaks one string per path on each rebuild (`src/unix/fsevents.c` line 463). A reproduction leaked exactly N+1 allocations per rebuild. The service reached 15.7 GB in 30 days. Fix: on macOS and Windows, one recursive watch per repository root with in-process path filtering; Linux keeps one inotify watch per directory. Test that the number of watchers stays constant under directory churn and memory stays bounded.
+2. **Stale replica service after upgrade:** the replica service definition names the floating `runtimes/node/current` path, so `lervo upgrade` sees an unchanged definition and never restarts it (`apps/cli/src/repository-replica-service.ts:297-299`). It ran code from 2026-10-13 through five releases. Fix: the service status returns the process id; a process without a binding in the current runtime is restarted; health reports `repository_replica_service_stale_runtime`; retention never prunes a runtime that a live process is bound to.
+3. **fseventsd growth:** the system file event daemon reached 18 GB, which needed an administrator restart. The leak in item 1 does not explain it. Measure regrowth after the restart and find the client that drives it.
+4. **Broken links from background knowledge:** the background commit `ce6cebc2` (2026-11-04) wrote 2 broken links in `docs/roadmap/natural-language-grounding-quality.md`. Background apply must pass link lint before it commits.
+5. **Owner rules not applied:** on the installed 0.23.5, two owner rules stay as local candidates because convergence waits for an owner decision. ADR-0561 removes the wait; verify both rules land after the release.
+
 ### One relation web (ADR-0562)
 
 Work happens on branch `core-loop`, stacked on the ADR-0561 branch.
