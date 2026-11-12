@@ -8,7 +8,7 @@ As of: 2026-11-10
 
 Make the Lervo core solid before widening it. Know, Find, Connect, Do, Collaborate, and Surface run as one loop over one verified relation web. The loop is fast and token-lean, and the owner is never a review or approval step. The same Lervo then continues on every host.
 
-Decisions: [ADR-0560 core hardening](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md), [ADR-0561 decide without the owner](../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), and [ADR-0562 one relation web](../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md).
+Decisions: [ADR-0560 core hardening](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md), [ADR-0561 decide without the owner](../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), [ADR-0562 one relation web](../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md), and [ADR-0563 plan ledger](../decisions/foundation/0563-keep-the-plan-in-a-ledger-lervo-owns-and-check-it-at-every-stop.md).
 
 ## Release rule
 
@@ -30,7 +30,7 @@ Work happens on branch `core-loop`, stacked on the ADR-0561 branch.
 
 1. **Relation web and replay:** done. The ADR-0560 replay reaches recall 85/85.
 2. **Document lifecycle** (section 2): in progress. Run the new resolution test, add tests, measure again, update the specification, add release intent, and commit. Fix the source-lineage limit of 256 records before its next write fails.
-3. **Plan ledger** (section 6): capture items from transcripts, keep them as a tree, close them only with evidence, and generate the workstream from the ledger. Restoring the ledger after compaction lands with milestone 9; until then the existing prompt hook prints the open items.
+3. **Plan ledger** ([ADR-0563](../decisions/foundation/0563-keep-the-plan-in-a-ledger-lervo-owns-and-check-it-at-every-stop.md)): capture items from transcripts, keep them as a tree, close them only with evidence, and generate the workstream from the ledger. Bring related open items into each turn. Make the Stop hook block a turn that skips an owner clause, a related item, a stated finding, or a delivered health line without acting on it or deferring it. Record repeated misses. Restoring the ledger after compaction lands with milestone 9; until then the existing prompt hook prints the open items.
 4. **Find misses and ADR numbers:** classify the 69 of 182 replay documents that are found only through prose, then add co-change edges, code identifiers, and a bounded model pass for the true misses. Renumber the duplicate ADR numbers (0222, 0353 to 0359, 0415, 0425) and add a lint for duplicates.
 5. **Stop ledger** (section 3): only the lease holder reports a stop. Every failure code maps to one action.
 6. **No repeated host work** (section 5): the freshness fence keys on HEAD and the committed Markdown digest, and health prefetch runs only on change. On 2026-11-08 the Mac knowledge host used 100 to 159 percent of a CPU core; record CPU per stage and repository and show the drop.
