@@ -27,7 +27,7 @@ Git processes count only in the innermost scope. Wall and CPU time are inclusive
 
 Git processes are attributed through the async context that started them, so work for another repository in the same host process is never counted. Asynchronous spawns are observed through Node's `child_process` diagnostics channel. Synchronous spawns publish nothing there, so each synchronous Git call site records itself. CPU time is the whole process's, so concurrent residents share it.
 
-A report holds at most 256 scopes and 48 subcommands per scope; further ones count under `other`. A label that is not a lowercase identifier also counts as `other`.
+A report holds at most 256 scopes and 48 subcommands per scope; further ones count under `other`. A label that is not a lowercase identifier also counts as `other`. A subcommand is named only when it is one of the Git commands Lervo runs; an alias, or a value read where a command was expected, counts as `other`. Report objects have no prototype, so no name can shadow an inherited property.
 
 ## Privacy and failure meaning
 
