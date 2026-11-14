@@ -139,6 +139,13 @@ it("reruns a closure that names a run-unique variable in its sources", () => {
       shadow.historyRun({ files: [shadow.record({ inputs: ["packages/core/src/ci.ts"] })] }),
     ]),
   ).toMatchObject({ reason: "run_environment_read", detail: "packages/core/src/ci.ts" });
+  // Only a whole token names a variable.
+  shadow.write("packages/core/src/near.ts", "export const MY_GITHUB_SHA_LIKE = 1;\n");
+  expect(
+    shadow.predict([
+      shadow.historyRun({ files: [shadow.record({ inputs: ["packages/core/src/near.ts"] })] }),
+    ]).reuse,
+  ).toBe(true);
 });
 
 it("reruns a closure whose loaded package names a run-unique variable or cannot be scanned", () => {

@@ -79,20 +79,24 @@ export const CI_TEST_RUN_UNIQUE_ENVIRONMENT = Object.freeze([
   "GITHUB_PATH",
   "GITHUB_STATE",
   "GITHUB_STEP_SUMMARY",
-  // The machine and the service manager's per-process identifiers.
+  // The machine that ran the job.
   "RUNNER_NAME",
   "RUNNER_TRACKING_ID",
-  "INVOCATION_ID",
-  "JOURNAL_STREAM",
 ]);
 
-/** A digest of every environment variable except the run-unique ones, and their names. */
-function environmentDigest(environment) {
+/**
+ * A digest of every environment variable except the run-unique ones. The names, never the values,
+ * are kept too, so a report can show which variables a changed environment added or removed.
+ */
+function environmentComponents(environment) {
   const excluded = new Set(CI_TEST_RUN_UNIQUE_ENVIRONMENT);
   const names = Object.keys(environment)
     .filter((name) => !excluded.has(name))
     .sort();
-  return sha256(JSON.stringify(names.map((name) => [name, String(environment[name])])));
+  return {
+    environment: sha256(JSON.stringify(names.map((name) => [name, String(environment[name])]))),
+    environmentNames: names,
+  };
 }
 
 /** Versions come from the running Node, the pnpm user agent and the Git on `PATH`. */
@@ -147,7 +151,7 @@ export async function computeCiTestToolchainDigest({
     ),
     nativeArtifacts:
       nativeArtifacts.length === 0 ? "absent" : await digestFiles(repositoryRoot, nativeArtifacts),
-    environment: environmentDigest(environment),
+    ...environmentComponents(environment),
     runtime: runtimeVersions(environment),
     platform: `${environment.ImageOS ?? process.platform} ${environment.ImageVersion ?? release()} ${process.arch}`,
   };

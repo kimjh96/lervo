@@ -25,8 +25,11 @@ export function ciTestDependencyDirectory(key) {
 
 /** `names`: the run-unique variable names. Returns memoized `source(path)` and `dependency(key)`. */
 export function createCiTestEnvironmentScan(repositoryRoot, names) {
+  // A name counts as a whole token, so `MY_GITHUB_SHA_LIKE` does not name `GITHUB_SHA`.
+  const pattern = new RegExp(`(?<![A-Za-z0-9_$])(?:${names.join("|")})(?![A-Za-z0-9_$])`, "u");
   const needles = names.map((name) => Buffer.from(name));
-  const mentions = (bytes) => needles.some((needle) => bytes.includes(needle));
+  const mentions = (bytes) =>
+    needles.some((needle) => bytes.includes(needle)) && pattern.test(bytes.toString("latin1"));
   const sources = new Map();
   const packages = new Map();
 
