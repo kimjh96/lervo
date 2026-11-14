@@ -45,10 +45,15 @@ export async function resolveIntegrationTarget(root: string, ref: string): Promi
  * at `HEAD` is the same transition as fast-forwarding an ancestor ref. The empty old value makes Git
  * refuse to replace a ref that another writer created meanwhile.
  */
-async function createIntegrationTarget(root: string, ref: string): Promise<void> {
+async function createIntegrationTarget(
+  root: string,
+  ref: string,
+  fenceRefWrite: () => void,
+): Promise<void> {
   const head = await resolveIntegrationTarget(root, "HEAD");
   if (head === null)
     throw new KnowledgeConvergenceRuntimeError("knowledge_integration_target_unavailable");
+  fenceRefWrite();
   await convergenceGit(root, ["update-ref", ref, head, ""]).catch(() => undefined);
   if ((await resolveIntegrationTarget(root, ref)) === null)
     throw new KnowledgeConvergenceRuntimeError("knowledge_integration_target_unavailable");
@@ -66,15 +71,21 @@ export async function synchronizeIntegrationTarget(input: {
   ref: string;
   /** Whether exact draft bytes settled integration, including their root apply. */
   integrated: (path: string, contentHash: string) => boolean;
+  /**
+   * Runs immediately before every ref write, after this function's own Git reads, so a source
+   * edit during those reads refuses the move. Absent, ref moves rely on their compare-and-swap.
+   */
+  fenceRefWrite?: () => void;
   /** Records an ADR-0482 squash absorption after the ref moved; absent records nothing. */
   recordAbsorbed?: (
     absorption: IntegrationTargetAbsorption & { backupRef: string; pathSetHash: string },
   ) => void;
 }): Promise<"unchanged" | "synchronized" | "created" | "absorbed" | "restored"> {
   const root = input.repositoryRoot;
+  const fenceRefWrite = input.fenceRefWrite ?? (() => {});
   const target = await resolveIntegrationTarget(root, input.ref);
   if (target === null) {
-    await createIntegrationTarget(root, input.ref);
+    await createIntegrationTarget(root, input.ref, fenceRefWrite);
     return "created";
   }
   const head = await convergenceGit(root, ["rev-parse", "HEAD"]);
@@ -91,10 +102,12 @@ export async function synchronizeIntegrationTarget(input: {
       target,
       head,
       integrated: input.integrated,
+      fenceRefWrite,
     });
     return restored.length === 0 ? "unchanged" : "restored";
   }
   if (await isAncestor(target, head)) {
+    fenceRefWrite();
     await convergenceGit(root, ["update-ref", input.ref, head, target]);
     return "synchronized";
   }
@@ -108,7 +121,7 @@ export async function synchronizeIntegrationTarget(input: {
     if (hash === null || !input.integrated(path, hash)) {
       const absorption = await inspectIntegrationTargetAbsorption(root, target, head);
       if (absorption === null) return "unchanged";
-      const moved = await absorbIntegrationTarget(root, input.ref, absorption);
+      const moved = await absorbIntegrationTarget(root, input.ref, absorption, fenceRefWrite);
       input.recordAbsorbed?.({ ...absorption, ...moved });
       return "absorbed";
     }
@@ -129,6 +142,7 @@ export async function synchronizeIntegrationTarget(input: {
     "-m",
     "Synchronize knowledge integration target with the reviewed working branch",
   ]);
+  fenceRefWrite();
   await convergenceGit(root, ["update-ref", input.ref, merge, target]);
   return "synchronized";
 }

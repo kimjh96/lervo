@@ -109,6 +109,7 @@ export async function integrateCanonicalBaseline(
               });
               context.assertSourceExact(state);
             },
+            fenceRefWrite: () => context.assertSourceExact(state),
           });
     if (retiredRefEffect !== undefined) context.sourceObservation?.noteChange();
     return parkCanonicalTargetBatch(context, state, batch, {

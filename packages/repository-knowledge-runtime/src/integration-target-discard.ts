@@ -42,6 +42,8 @@ export async function restoreDiscardedIntegratedDrafts(input: {
   target: string;
   head: string;
   integrated: (path: string, contentHash: string) => boolean;
+  /** Runs immediately before the ref write, after every Git read here. */
+  fenceRefWrite?: () => void;
 }): Promise<string[]> {
   const root = input.repositoryRoot;
   const changed = (await git(root, ["diff", "--name-only", "-z", input.head, input.target]))
@@ -82,6 +84,7 @@ export async function restoreDiscardedIntegratedDrafts(input: {
       "-m",
       "Return integrated drafts the working branch discarded to its committed bytes",
     ]);
+    input.fenceRefWrite?.();
     await git(root, ["update-ref", input.ref, commit, input.target]);
   } finally {
     await rm(directory, { recursive: true, force: true });

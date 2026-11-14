@@ -46,6 +46,7 @@ export async function preflightCanonicalTargets(
     repositoryRoot: root,
     ref: targetRef,
     integrated: (path, hash) => integrated.has(canonicalDraftKey(path, hash)),
+    fenceRefWrite: () => context.assertSourceExact(state),
     recordAbsorbed: (absorption) =>
       recordIntegrationTargetAbsorbed(context.storage, absorption, new Date().toISOString()),
   });

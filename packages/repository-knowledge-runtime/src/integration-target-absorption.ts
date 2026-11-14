@@ -83,14 +83,17 @@ export async function absorbIntegrationTarget(
   root: string,
   ref: string,
   absorption: IntegrationTargetAbsorption,
+  fenceRefWrite: () => void = () => {},
 ): Promise<{ backupRef: string; pathSetHash: string }> {
   const backupRef = `${ABSORBED_INTEGRATION_BACKUP_PREFIX}${absorption.target}`;
+  fenceRefWrite();
   await git(root, ["update-ref", backupRef, absorption.target, ""]).catch(() => undefined);
   if (
     (await git(root, ["rev-parse", "--verify", "--quiet", backupRef]).catch(() => "")) !==
     absorption.target
   )
     throw new Error("The absorbed integration tip could not be backed up.");
+  fenceRefWrite();
   await git(root, ["update-ref", ref, absorption.head, absorption.target]);
   const backups = (
     await git(root, [

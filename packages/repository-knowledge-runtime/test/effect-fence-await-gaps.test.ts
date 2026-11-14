@@ -162,6 +162,29 @@ vi.mock("../src/provider-call.js", async (load) => {
   };
 });
 
+vi.mock("../src/canonical-workspace.js", async (load) => {
+  const actual = await load<typeof import("../src/canonical-workspace.js")>();
+  return {
+    ...actual,
+    convergenceGit: async (...args: Parameters<typeof actual.convergenceGit>) => {
+      const [, gitArgs] = args;
+      const synchronizing = calledFrom("integration-target-sync.ts");
+      // Integration target synchronization moves the ref only after its own Git reads.
+      if (synchronizing && gitArgs[0] === "update-ref") fencedWrite("integration ref move");
+      const result = await actual.convergenceGit(...args);
+      // Edit only when synchronization is about to move the ref to a newer HEAD.
+      if (
+        synchronizing &&
+        gitArgs[0] === "rev-parse" &&
+        gitArgs[1] === "HEAD" &&
+        result !== git(plan.root, "rev-parse", "refs/heads/knowledge-integration")
+      )
+        editOnce("integration_sync");
+      return result;
+    },
+  };
+});
+
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 beforeEach(() => {
   Object.assign(plan, {
@@ -213,11 +236,17 @@ async function canonicalScenario() {
   return f;
 }
 
-it.each(["provider_call", "normalization_review", "integrated_ledger"])(
+it.each(["provider_call", "normalization_review", "integrated_ledger", "integration_sync"])(
   "fences every durable write after an edit during %s",
   { timeout: 600_000 },
   async (label) => {
     const f = await canonicalScenario();
+    // A developer commit puts HEAD ahead of the integration ref, so preflight fast-forwards it.
+    if (label === "integration_sync") {
+      await writeFile(resolve(f.root, "notes.md"), "# Notes\n");
+      git(f.root, "add", "notes.md");
+      git(f.root, "commit", "-qm", "developer change");
+    }
     plan.edit = label;
     await converge(f, 40);
     expect(plan.fired).toBe(true);
