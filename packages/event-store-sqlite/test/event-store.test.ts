@@ -438,7 +438,8 @@ describe("SQLite append-only event store", () => {
       database.exec("BEGIN IMMEDIATE;");
       database.prepare("INSERT INTO events (event_id, project_id, seq, run_id, session_id, type, occurred_at, actor_json, schema_version, policy_version, payload_json, previous_hash, event_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)").run("evt_99999999", process.argv[2], 1, "run_01234567", "ses_01234567", "run.requested", "2026-08-18T00:00:00Z", '{"kind":"user"}', 1, process.argv[3], '{}', null, "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd");
       process.stdout.write("READY\\n");
-      setInterval(() => {}, 10_000);
+      // Keeps the open transaction reachable until the kill; a garbage collection would end it.
+      setInterval(() => database, 10_000);
     `;
     const child = spawn(
       process.execPath,

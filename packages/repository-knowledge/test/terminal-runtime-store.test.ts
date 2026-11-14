@@ -212,7 +212,8 @@ it("recovers the host lock when its holding process dies", async () => {
     [
       "--input-type=module",
       "-e",
-      'import {DatabaseSync} from "node:sqlite"; const db=new DatabaseSync(process.argv[1]); db.exec("BEGIN IMMEDIATE"); process.stdout.write("locked"); setInterval(()=>{},1000);',
+      // The timer keeps `db` reachable: a garbage collection would close it and release the lock.
+      'import {DatabaseSync} from "node:sqlite"; const db=new DatabaseSync(process.argv[1]); db.exec("BEGIN IMMEDIATE"); process.stdout.write("locked"); setInterval(()=>db,1000);',
       resolve(root, ".materialize-lock.sqlite"),
     ],
     { stdio: ["ignore", "pipe", "pipe"] },

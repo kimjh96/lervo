@@ -74,7 +74,8 @@ async function startOwner(root: string, path: string) {
     import { SQLiteSupervisionOwnerLeaseStore } from "./supervision-owner-lease.js";
     const store = SQLiteSupervisionOwnerLeaseStore.open(process.argv[2]);
     process.send(store.acquire(${JSON.stringify(input)}));
-    setInterval(() => {}, 1000);
+    // Keeps the store, and so its process lock, reachable; a garbage collection would release it.
+    setInterval(() => store, 1000);
   `,
   );
   const child = fork(entry, [path], { execArgv: [], stdio: ["ignore", "ignore", "pipe", "ipc"] });

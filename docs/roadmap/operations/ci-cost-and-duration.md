@@ -103,14 +103,26 @@ Applied to that run's own per-file times, the new placement gives each shard 640
 
 The profile stays in the test digest. A refresh therefore changes the digest once, so the refreshing run executes every shard with the new placement and verifies the refresh itself. Release preparation never touches the profile, so prepared pull requests and merged main still reuse tests. Refresh the profile in its own change when shard times drift apart. The next full hosted run's shard times remain to be observed.
 
+### Per-file test input ledgers (2026-11-14)
+
+Shard balance from one run's test time alone does not hold: each shard also spends 390 to 606 seconds collecting files, and per-file test time varies between runs. In the latest run, shards took 7.9 to 14.4 minutes. [ADR-0565](../../decisions/operations/services/0565-record-what-each-ci-test-file-reads-before-reusing-its-result.md) proposes per-file result reuse keyed by what each file was observed to read, plus a toolchain digest. It is delivered in stages:
+
+1. Stage 1, delivered: a preloaded recorder and one ledger per shard. Each ledger lists every file's result, test and collection time, recorded inputs and closed uncacheable reasons. Ledgers upload with `if: always()` for seven days. The `LERVO_CI_TEST_LEDGER` repository variable set to `off` disables recording without a commit. The refresh script can build the timing profile from the median test plus collection time over recent ledgers. Nothing reads the ledgers to select, skip or judge tests.
+2. Stage 2: a shadow planner predicts reuse on every run, without skipping anything, for at least 14 days. It must record zero false reuses.
+3. Stage 3: per-file reuse, only through a separate decision after Stage 2.
+
+- [x] Stage 1 recorder, ledgers, toolchain digest and ledger-based weights pass local tests.
+- [ ] Hosted ledgers observed for every shard, and the profile refreshed from at least three runs.
+- [ ] Stage 2 shadow comparison: at least 14 days without a false reuse.
+
 ## Responsibility and evidence contracts
 
-| Owner              | Responsibility                                                                                                            |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------- |
-| `scripts/quality`  | Pure scope classification, exact build transfer validation, aggregate CI verification, bounded timing summaries.          |
-| `scripts/release`  | Release eligibility, generation, candidate verification handoff, Git effect admission, and PR evidence.                   |
-| Node-runtime tests | Test-only clock and native-completion assertions; no production lease-policy change.                                      |
-| GitHub workflows   | Event translation, job dependencies, pinned actions, least permissions, concurrency, and short owner-command entrypoints. |
+| Owner              | Responsibility                                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `scripts/quality`  | Pure scope classification, exact build transfer validation, aggregate CI verification, bounded timing summaries, test input ledgers. |
+| `scripts/release`  | Release eligibility, generation, candidate verification handoff, Git effect admission, and PR evidence.                              |
+| Node-runtime tests | Test-only clock and native-completion assertions; no production lease-policy change.                                                 |
+| GitHub workflows   | Event translation, job dependencies, pinned actions, least permissions, concurrency, and short owner-command entrypoints.            |
 
 The implementation defines versioned build-transfer and verification receipts. Required fields include schema version, verification contract version, source SHA, workflow/run identity, platform, Node version, build digest, required job dispositions, and coverage mode. Expose only identifiers, digests, counts, durations, and closed failure codes. Exclude credentials, user payload, and local host paths. Store bounded current artifacts in GitHub; do not add a tracked file per CI run or a Lervo runtime event.
 

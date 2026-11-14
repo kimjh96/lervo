@@ -198,6 +198,42 @@ it("starts the build beside lint while shards and the aggregate still require li
   }
 });
 
+it("records test input ledgers without changing which tests run or the verdict", async () => {
+  const source = await readFile(workflowPath, "utf8");
+  const workflow = parse(source);
+  const job = workflow.jobs.test;
+  assert.equal(job.env.LERVO_CI_TEST_LEDGER, "${{ vars.LERVO_CI_TEST_LEDGER || 'on' }}");
+  const names = job.steps.map(({ name }) => name);
+  const run = job.steps[names.indexOf("Run tests")];
+  assert.equal(run.env.LERVO_CI_TEST_LEDGER_DIRECTORY, "${{ runner.temp }}/lervo-ci-test-ledger");
+  assert.equal(
+    run.run,
+    "pnpm test --maxWorkers=2 --testTimeout=30000 --config=scripts/quality/ci-vitest.config.mjs --shard=${{ matrix.shard }}/4",
+  );
+  const upload = job.steps.at(-1);
+  assert.equal(upload.name, "Publish the test input ledger");
+  assert.equal(names.indexOf("Run tests"), names.length - 2);
+  assert.match(upload.uses, /^actions\/upload-artifact@[a-f0-9]{40}$/u);
+  assert.equal(upload.if, "env.REUSED_RUN == '' && always() && env.LERVO_CI_TEST_LEDGER != 'off'");
+  assert.equal(upload["continue-on-error"], true);
+  assert.deepEqual(upload.with, {
+    name: "lervo-ci-test-ledger-${{ matrix.shard }}",
+    path: "${{ runner.temp }}/lervo-ci-test-ledger/ledger",
+    "if-no-files-found": "ignore",
+    "retention-days": 7,
+    overwrite: true,
+  });
+  // Only the test job knows the ledger; planning, reuse and the aggregate never read it.
+  for (const [name, definition] of Object.entries(workflow.jobs))
+    if (name !== "test") assert.doesNotMatch(JSON.stringify(definition), /LEDGER|ledger/u, name);
+  for (const script of ["ci-plan.mjs", "ci-reuse.mjs", "ci-result.mjs", "ci-receipt.mjs"])
+    assert.doesNotMatch(
+      await readFile(resolve(repositoryRoot, "scripts/quality", script), "utf8"),
+      /ledger/iu,
+      script,
+    );
+});
+
 it("verifies distribution wherever main will reuse the result", async () => {
   const workflow = parse(await readFile(workflowPath, "utf8"));
   const step = workflow.jobs.plan.steps.find(({ id }) => id === "distribution");
