@@ -113,16 +113,29 @@ export function captureConvergenceChangedPaths(root: string): string[] {
   ].sort();
 }
 
-/** Git ignore evidence excludes only untracked paths; tracked opaque assets remain in the capture. */
-export function captureConvergenceSources(
-  root: string,
-  policyHash: string,
-): {
+export interface ConvergenceSourceCapture {
   head: string;
   snapshotId: string;
   snapshotHash: string;
   sources: KnowledgeConvergenceBaseline["sources"];
-} {
+}
+
+/** Git ignore evidence excludes only untracked paths; tracked opaque assets remain in the capture. */
+export function captureConvergenceSources(
+  root: string,
+  policyHash: string,
+): ConvergenceSourceCapture {
+  return captureConvergenceSourcesWithChangedPaths(root, policyHash).capture;
+}
+
+/**
+ * The capture together with the closing changed-path observation its snapshot hash binds, so a
+ * caller that needs both reads them from one closing observation instead of listing twice.
+ */
+export function captureConvergenceSourcesWithChangedPaths(
+  root: string,
+  policyHash: string,
+): { capture: ConvergenceSourceCapture; changedPaths: string[] } {
   const settings: ConvergenceSourceCaptureSettings = convergenceSourceCaptureSettings(root);
   const head = git(root, ["rev-parse", "HEAD"]).trim();
   const paths = [
@@ -170,5 +183,8 @@ export function captureConvergenceSources(
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const changedPaths = captureConvergenceChangedPaths(root);
   const snapshotHash = sha256(canonicalJson({ head, policyHash, sources, changedPaths }));
-  return { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources };
+  return {
+    capture: { head, snapshotId: `ksnap_${snapshotHash.slice(7, 31)}`, snapshotHash, sources },
+    changedPaths,
+  };
 }

@@ -12,8 +12,7 @@ import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { loadConvergenceDelegation } from "./delegation.js";
 import {
-  captureConvergenceChangedPaths,
-  captureConvergenceSources,
+  captureConvergenceSourcesWithChangedPaths,
   convergenceSourcePath,
 } from "./source-capture.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
@@ -38,15 +37,19 @@ function repositoryFence(root: string): string {
  * currency inspection. It reads only repository bytes, so it is reused while the repository fence
  * and the latest knowledge materialization are unchanged.
  */
-async function observeConvergenceRepository(root: string) {
-  const fence = repositoryFence(root);
+async function observeConvergenceRepository(root: string, openingFence?: string) {
+  // A caller's fence, observed synchronously right before this call, is that same opening.
+  const fence = openingFence ?? repositoryFence(root);
   const { manifest, policy, scan } = await scanCompleteConfiguredRepositoryKnowledge(root);
   const delegation = await loadConvergenceDelegation(root);
   const policyHash = sha256(
     canonicalJson({ contract: "background-knowledge-convergence-v1", policy }),
   );
-  const after = captureConvergenceSources(root, policyHash);
-  const afterChanged = captureConvergenceChangedPaths(root);
+  // The obligations are the closing changed paths that the capture's snapshot hash binds.
+  const { capture: after, changedPaths: afterChanged } = captureConvergenceSourcesWithChangedPaths(
+    root,
+    policyHash,
+  );
   const [normalization, currency, candidates] = await Promise.all([
     inspectConfiguredDocumentNormalization({ repositoryRoot: root, preparedScan: scan }),
     inspectRepositoryKnowledgeCurrency(root, { preparedScan: scan }),
@@ -197,10 +200,12 @@ const DISCOVERY_ATTEMPTS = 3;
  */
 async function observeStableConvergenceRepository(
   root: string,
+  openingFence: string | undefined,
 ): Promise<ConvergenceRepositoryObservation> {
   for (let attempt = 1; ; attempt++) {
     try {
-      return await observeConvergenceRepository(root);
+      // A retry follows a changed repository, so it observes its own opening fence.
+      return await observeConvergenceRepository(root, attempt === 1 ? openingFence : undefined);
     } catch (error) {
       if (
         attempt >= DISCOVERY_ATTEMPTS ||
@@ -246,10 +251,13 @@ export function cycleScopedConvergenceDiscovery(
   const materialization = materializationCursor(events);
   return async () => {
     let repositoryKey: string | null;
+    let digest: string | undefined;
     try {
-      repositoryKey = `${convergenceRepositoryDigest(root)}:${materialization()}`;
+      digest = convergenceRepositoryDigest(root);
+      repositoryKey = `${digest}:${materialization()}`;
     } catch {
       repositoryKey = null;
+      digest = undefined;
     }
     const key =
       repositoryKey === null ? null : `${repositoryKey}:${events.latest()?.eventHash ?? ""}`;
@@ -257,7 +265,7 @@ export function cycleScopedConvergenceDiscovery(
     const observation =
       repositoryKey !== null && repository?.key === repositoryKey
         ? repository.observation
-        : await observeStableConvergenceRepository(root);
+        : await observeStableConvergenceRepository(root, digest);
     repository = repositoryKey === null ? null : { key: repositoryKey, observation };
     const baseline = await discoverConvergenceBaseline(root, events, artifacts, observation);
     last = key === null ? null : { key, baseline };

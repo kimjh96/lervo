@@ -73,20 +73,36 @@ export async function knowledgeOutputCommitSafe(root: string): Promise<boolean> 
   } catch {
     return false;
   }
-  for (const marker of [
-    "MERGE_HEAD",
-    "CHERRY_PICK_HEAD",
-    "REVERT_HEAD",
-    "REBASE_HEAD",
-    "rebase-merge",
-    "rebase-apply",
-    "BISECT_LOG",
-    "index.lock",
-  ]) {
-    const path = (await git(root, ["rev-parse", "--git-path", marker])).trim();
+  for (const path of await operationMarkerPaths(root))
     if (existsSync(resolve(root, path))) return false;
-  }
   return true;
+}
+
+const OPERATION_MARKERS = [
+  "MERGE_HEAD",
+  "CHERRY_PICK_HEAD",
+  "REVERT_HEAD",
+  "REBASE_HEAD",
+  "rebase-merge",
+  "rebase-apply",
+  "BISECT_LOG",
+  "index.lock",
+];
+
+/**
+ * Each marker's `--git-path`, in marker order. One `rev-parse` prints every path as its own
+ * invocation would, one per line; a path containing a line break resolves marker by marker.
+ */
+async function operationMarkerPaths(root: string): Promise<string[]> {
+  const lines = (
+    await git(root, ["rev-parse", ...OPERATION_MARKERS.flatMap((marker) => ["--git-path", marker])])
+  ).split("\n");
+  if (lines.length === OPERATION_MARKERS.length + 1 && lines.at(-1) === "")
+    return lines.slice(0, -1).map((line) => line.trim());
+  const paths: string[] = [];
+  for (const marker of OPERATION_MARKERS)
+    paths.push((await git(root, ["rev-parse", "--git-path", marker])).trim());
+  return paths;
 }
 
 function dirtyPaths(status: string): Map<string, "deleted" | "present"> {
