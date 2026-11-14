@@ -1,7 +1,7 @@
 byteOwnership:
   owner: reviewer
   rewritePolicy: reviewed_exact
-candidateId: knorm_a079b7e3cb2c15a012c2bbda
+candidateId: knorm_2ea243ac499adefcad6f2c04
 compiler:
   compilerBuildId: sha256:574bcd6cc190db957222a9951c145c791541c2b33a44879f5714ed393df2afad
   compilerId: lervo.codex.document-normalizer
@@ -9,7 +9,7 @@ compiler:
   isolation: external_no_capabilities
   provider: codex
 formatVersion: lervo.document.v1
-operationId: knormop_627a970705b1b3e4fc0223f9
+operationId: knormop_b366938ed3659a97af29e949
 outputLanguage: en
 outputs:
   - byteCount: 7880
@@ -17,7 +17,7 @@ outputs:
     path: .agents/skills/deploy-lervo-release/SKILL.md
     userRegionHash: sha256:7728d0cf47b7cb61fcadd9ce3973aec729257aca2cf8bc7673298b7b11b9a6d7
 profile: portable_skill
-recordId: knormdoc_1246f0e19ae10fef838ff556
+recordId: knormdoc_c7afadcf2074fbd17f32e6f2
 resourceBindings:
   - contentHash: sha256:583d02b27d86d8c7e2e204b7e6b6357b32177cf98e35f87dce4b69f6e36798fa
     path: .agents/skills/deploy-lervo-release/scripts/hub-backup.py
