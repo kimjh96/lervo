@@ -8,3 +8,10 @@ import { resolve } from "node:path";
 if (process.env.LERVO_USER_STATE_DIRECTORY === undefined) {
   process.env.LERVO_USER_STATE_DIRECTORY = mkdtempSync(resolve(tmpdir(), "lervo-test-user-state-"));
 }
+// User capability discovery (ADR-0565) otherwise probes `~/.lervo/capabilities/packages`, so a
+// developer's installed capabilities could change results and the CI ledger records host state.
+if (process.env.LERVO_USER_CAPABILITY_ROOT === undefined) {
+  process.env.LERVO_USER_CAPABILITY_ROOT = mkdtempSync(
+    resolve(tmpdir(), "lervo-test-user-capabilities-"),
+  );
+}
