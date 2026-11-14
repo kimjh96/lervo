@@ -60,13 +60,14 @@ export async function prepareCanonicalGitIntegration(
       }),
   });
   await authority.assertCurrent();
-  context.assertSource(state);
+  context.assertSourceExact(state);
   await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
     effect: "integration_candidate",
     prepare: () => applyWorkspaceIntegrationCandidate({ plan, integrationHost }),
   });
+  context.sourceObservation?.noteChange();
   const verificationReceipt = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -114,7 +115,7 @@ export async function prepareCanonicalGitIntegration(
       }),
   });
   await authority.assertCurrent();
-  context.assertSource(state);
+  context.assertSourceExact(state);
   const integration = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -126,6 +127,7 @@ export async function prepareCanonicalGitIntegration(
         integrationHost,
       }),
   });
+  context.sourceObservation?.noteChange();
   const observedIntegration = await completeWorkspaceIntegration({
     plan,
     verificationReceipt,

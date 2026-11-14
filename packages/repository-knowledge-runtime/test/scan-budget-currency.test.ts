@@ -53,7 +53,8 @@ it("refuses both baseline discovery and lifecycle verification after a scan beco
     provider: "claude",
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource() {},
+    assertSourceExact() {},
+    assertSourceCurrent() {},
   };
   await expect(discoverConvergenceBaseline(f.root, f.events, f.artifacts)).rejects.toMatchObject({
     code: "knowledge_source_limit_exceeded",

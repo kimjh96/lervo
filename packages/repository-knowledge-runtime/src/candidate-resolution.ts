@@ -20,6 +20,7 @@ import {
   type CandidateReview,
 } from "./candidate-review-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /** Old candidate closure needs a distinct exact semantic decision; baseline coverage alone grants none. */
 export async function resolveConvergenceCandidates(
@@ -103,7 +104,7 @@ export async function resolveConvergenceCandidates(
             },
           });
         return completeConvergenceStage({
-          repositoryRoot: root,
+          sources: convergenceSourceObservation(context),
           artifacts: context.storage.artifacts,
           state,
           stage: "lifecycle_verification",
@@ -134,7 +135,7 @@ export async function resolveConvergenceCandidates(
       const receipts = [];
       for (const decision of review.decisions) {
         await authority.assertCurrent();
-        context.assertSource(state);
+        context.assertSourceExact(state);
         const current = (await listCanonicalizationCandidates(root)).find(
           (item) => item.candidateId === decision.candidateId,
         );
@@ -167,8 +168,9 @@ export async function resolveConvergenceCandidates(
           }),
         );
       }
+      context.sourceObservation?.noteChange();
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "lifecycle_verification",

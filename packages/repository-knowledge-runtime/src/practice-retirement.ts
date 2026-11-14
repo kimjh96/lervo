@@ -13,7 +13,7 @@ import { ordinaryConvergenceSourceBytes } from "./source-file.js";
 import { practiceWriteAuthority } from "./practice-materialization.js";
 import { discoverConvergenceBaseline } from "./baseline.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
-import { assertConvergenceSource } from "./host.js";
+import { assertConvergenceSourceCurrent, assertConvergenceSourceExact } from "./host.js";
 import { sealCanonicalDrafts } from "./canonical-workspace.js";
 import { withPracticeAssignment } from "./practice-assignment.js";
 import { prepareCanonicalGitIntegration } from "./canonical-integration-candidate.js";
@@ -64,7 +64,8 @@ export async function retirePracticeSkill(
   };
   const runtime: ConvergenceRuntimeContext = {
     ...context,
-    assertSource: (state) => assertConvergenceSource(runtime, state),
+    assertSourceExact: (state) => assertConvergenceSourceExact(runtime, state),
+    assertSourceCurrent: (state) => assertConvergenceSourceCurrent(runtime, state),
   };
   const sealed = await withPracticeAssignment({
     context,

@@ -10,11 +10,12 @@ import {
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
-import { captureConvergenceSources } from "./source-capture.js";
+import type { ConvergenceSourceObservation } from "./source-observation.js";
 import { convergenceEvaluationContract } from "./evaluation-contract.js";
 
 export async function completeConvergenceStage(input: {
-  repositoryRoot: string;
+  /** The receipt records a binding; settlement fences it exactly before the durable claim. */
+  sources: ConvergenceSourceObservation;
   artifacts: ArtifactStore;
   state: KnowledgeConvergenceInput;
   stage: KnowledgeConvergenceStage;
@@ -26,7 +27,7 @@ export async function completeConvergenceStage(input: {
   /** This stage's own commit of settled outputs, verified as a child of the observed HEAD. */
   committedHead?: { before: string; after: string };
 }): Promise<KnowledgeConvergenceStageResult> {
-  const capture = captureConvergenceSources(input.repositoryRoot, input.state.baseline.policyHash);
+  const capture = input.sources.current(input.state.baseline.policyHash);
   assertConvergenceEffectSources(input.state, capture, input.approvedEffects, input.committedHead);
   const proof = await input.artifacts.put(
     canonicalJson({

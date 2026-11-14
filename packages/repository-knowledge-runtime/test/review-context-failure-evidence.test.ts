@@ -41,7 +41,8 @@ it("binds a failing instruction path in private stage evidence without putting i
     provider: "claude",
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource: () => {},
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
   });
   const failure = await host
     .runStage("assessment", state, () => {})

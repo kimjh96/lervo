@@ -34,7 +34,7 @@ export async function preflightCanonicalTargets(
     expectedHash: state.baseline.delegationHash,
     provider: context.provider,
   });
-  context.assertSource(state);
+  context.assertSourceExact(state);
   const targetRef = delegation.integrationTarget.ref;
   // Integrate and verify drafts on the reviewed working branch, not on a stale target tree.
   const integrated = await integratedCanonicalDrafts(
@@ -48,6 +48,7 @@ export async function preflightCanonicalTargets(
     recordAbsorbed: (absorption) =>
       recordIntegrationTargetAbsorbed(context.storage, absorption, new Date().toISOString()),
   });
+  context.sourceObservation?.noteChange();
   const targetCommit = await convergenceGit(root, ["rev-parse", targetRef]);
   const sourceHashes = new Map(
     (
@@ -95,7 +96,7 @@ export async function preflightCanonicalTargets(
     "HEAD",
     diverged.map((target) => target.path),
   );
-  context.assertSource(state);
+  context.assertSourceCurrent(state);
   return diverged.map((target) => ({
     ref: target.ref,
     path: target.path,

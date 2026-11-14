@@ -36,6 +36,7 @@ import {
   normalizationCostKey,
   normalizationLearnedLimit,
 } from "./normalization-cost-controller.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 export interface NormalizationBatch {
   candidateId: string;
@@ -90,7 +91,7 @@ export async function generateNormalizationBatch(
   if (!available.length)
     // ADR-0479: parked documents never hold the pipeline; later stages still run.
     return completeConvergenceStage({
-      repositoryRoot: root,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "normalization_generation",
@@ -291,11 +292,12 @@ async function generate(
     },
   });
   await authority.assertCurrent();
-  context.assertSource(state);
+  context.assertSourceExact(state);
   await storeDocumentNormalizationCandidate({
     repositoryRoot: root,
     candidate: compilation.candidate,
   });
+  context.sourceObservation?.noteChange();
   const batch: NormalizationBatch = {
     candidateId: compilation.candidate.candidateId,
     batchId,
@@ -305,7 +307,7 @@ async function generate(
     costKey: regeneration.costKey,
   };
   return completeConvergenceStage({
-    repositoryRoot: root,
+    sources: convergenceSourceObservation(context),
     artifacts: context.storage.artifacts,
     state,
     stage: "normalization_generation",

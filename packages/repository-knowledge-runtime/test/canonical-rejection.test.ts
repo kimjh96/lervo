@@ -56,7 +56,8 @@ it.each([false, true])(
         admissionDirectory: f.admissionDirectory,
         signal: new AbortController().signal,
         liveWorkPending: async () => false,
-        assertSource: () => {},
+        assertSourceExact: () => {},
+        assertSourceCurrent: () => {},
       };
       const host = createConvergenceRuntimeHost(context);
       for (let i = 0; i < 8; i++) {

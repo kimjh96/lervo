@@ -18,6 +18,7 @@ import { recordConvergenceMaterialization } from "./materialization-event.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { NormalizationBatch } from "./normalization-generation.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 export async function applyNormalizationBatch(
   context: ConvergenceRuntimeContext,
@@ -29,7 +30,7 @@ export async function applyNormalizationBatch(
   const id = state.stageData.normalizationAcceptedCandidateId;
   if (batch === null || id === null)
     return completeConvergenceStage({
-      repositoryRoot: root,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "normalization_apply",
@@ -103,7 +104,7 @@ export async function applyNormalizationBatch(
       )
         throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
       await authority.assertCurrent();
-      context.assertSource(state);
+      context.assertSourceExact(state);
       const plan = await createDocumentNormalizationPlan({
         repositoryRoot: root,
         candidate,
@@ -150,9 +151,10 @@ export async function applyNormalizationBatch(
           });
         },
       });
+      context.sourceObservation?.noteChange();
       const pending = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "normalization_apply",

@@ -6,6 +6,7 @@ import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /** Each obligation regenerates a stale review at most this many times before it needs attention. */
 const MAXIMUM_CONTEXT_REGENERATIONS = 3;
@@ -48,7 +49,7 @@ export async function regenerateStaleReview(
   const regenerations = Number(state.stageData.reviewContextRegenerations ?? 0);
   if (plan === undefined || regenerations >= MAXIMUM_CONTEXT_REGENERATIONS) return null;
   return completeConvergenceStage({
-    repositoryRoot: context.storage.paths.repositoryRoot,
+    sources: convergenceSourceObservation(context),
     artifacts: context.storage.artifacts,
     state,
     stage,

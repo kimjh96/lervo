@@ -72,7 +72,8 @@ it("atomically applies all 277 asset declarations without expanding the grant, a
     provider: "claude",
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource() {},
+    assertSourceExact() {},
+    assertSourceCurrent() {},
   };
   const delegation = (await loadConvergenceDelegation(f.root))!.delegation;
   expect(classifyConvergenceAssets(f.root, state, delegation)).toEqual({

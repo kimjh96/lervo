@@ -6,6 +6,7 @@
 - [Observation and source cache](resident-cycle/observation-and-cache.md): reuse within full cycles, source capture and private hash-cache behavior.
 - [Host-wide admission](resident-cycle/admission.md): full-cycle serialization, waiting and lease recovery.
 - [Cycle cost observation](resident-cycle/cycle-cost.md): Git processes, wall time and CPU per cycle and scope.
+- [Source fences](resident-cycle/source-fences.md): exact fences for effects, current checks for decisions, and the site classification.
 
 ## Validation and expected effect
 

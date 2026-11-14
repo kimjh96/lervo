@@ -179,7 +179,7 @@ export async function sealCanonicalDrafts(
     links?: { path: string; target: string }[];
   },
 ): Promise<{ workspaceId: string; path: string; resultHash: string }> {
-  context.assertSource(state);
+  context.assertSourceExact(state);
   const plan = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -233,7 +233,7 @@ export async function sealCanonicalDrafts(
         )
           throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
         await authority.assertCurrent();
-        context.assertSource(state);
+        context.assertSourceCurrent(state);
         await safeDirectory(provision.path, dirname(resolve(provision.path, draft.path)));
         const file = await open(
           resolve(provision.path, draft.path),
@@ -278,7 +278,7 @@ export async function sealCanonicalDrafts(
         }),
       );
       await authority.assertCurrent();
-      context.assertSource(state);
+      context.assertSourceCurrent(state);
       return planWorkspaceSeal({
         repositoryRoot: context.storage.paths.repositoryRoot,
         workspacePath: provision.path,
@@ -302,8 +302,9 @@ export async function sealCanonicalDrafts(
     },
   });
   await authority.assertCurrent();
-  context.assertSource(state);
+  context.assertSourceExact(state);
   await applyWorkspaceSeal({ plan, host: new GitWorkspaceHostAdapter() });
+  context.sourceObservation?.noteChange();
   return {
     workspaceId: plan.workspaceId,
     path: plan.workspacePath,

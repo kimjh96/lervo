@@ -43,7 +43,8 @@ async function currentState() {
     admissionDirectory: f.admissionDirectory,
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource: () => {},
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
   });
   vi.mocked(captureConvergenceSources).mockClear();
   return { f, state, host };

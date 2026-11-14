@@ -38,9 +38,9 @@ import { assertConvergenceDelegation, pathWithinConvergenceRoots } from "./deleg
 import { completeConvergenceStage, waitingConvergenceStage } from "./stage-receipt.js";
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 import { verifyConvergenceEffect } from "./stage-verification.js";
-import { captureConvergenceSources } from "./source-capture.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /** Bootstrap and layout precede any semantic or normalization stage. One exact plan per continuation. */
 export async function prepareConvergenceLifecycle(
@@ -113,7 +113,7 @@ export async function prepareConvergenceLifecycle(
     const rejection = lifecyclePlanRejection(error);
     if (rejection === null) throw error;
     return completeConvergenceStage({
-      repositoryRoot: root,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "assessment",
@@ -176,7 +176,7 @@ export async function prepareConvergenceLifecycle(
         });
       };
       await authority.assertCurrent();
-      context.assertSource(state);
+      context.assertSourceExact(state);
       const receipt =
         plan.planKind === "repository_layout"
           ? await applyRepositoryLayoutMigrationPlan({
@@ -194,15 +194,18 @@ export async function prepareConvergenceLifecycle(
               now: new Date(),
               recordApplied: record,
             });
+      context.sourceObservation?.noteChange();
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "assessment",
         nextStage: "assessment",
         stageData: {
           canonicalOffset: 0,
-          assessmentSources: captureConvergenceSources(root, state.baseline.policyHash).sources,
+          assessmentSources: convergenceSourceObservation(context).current(
+            state.baseline.policyHash,
+          ).sources,
         },
         approvedEffects: convergenceOperationEffects(plan.operations),
         proof: { status: "lifecycle_prefix_applied", receipt, approval },

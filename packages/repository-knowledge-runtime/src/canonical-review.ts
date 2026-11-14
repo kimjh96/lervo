@@ -16,6 +16,7 @@ import type { SemanticReviewContextDocument, ReviewContextSkip } from "./review-
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { retainedCanonicalRejection } from "./canonical-rejection.js";
 import { isolateRejectedCanonicalBatch } from "./canonical-isolation.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 export interface CanonicalBatch {
   offset: number;
@@ -77,11 +78,10 @@ export async function reviewCanonicalBaseline(
   state: KnowledgeConvergenceInput,
   assertLease: () => void,
 ): Promise<KnowledgeConvergenceStageResult> {
-  const root = context.storage.paths.repositoryRoot;
   const batch = state.stageData.canonicalBatch as CanonicalBatch | null;
   if (batch === null)
     return completeConvergenceStage({
-      repositoryRoot: root,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "canonical_review",
@@ -142,7 +142,7 @@ export async function reviewCanonicalBaseline(
       )
         return rejectedCanonicalBatch(context, state, batch, result, { usage: observed.usage });
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "canonical_review",
@@ -183,7 +183,7 @@ async function rejectedCanonicalBatch(
     batch.assessment.decisions.some((decision) => decision.disposition === "needs_review");
   if (!ownerDecision && retried < 1)
     return completeConvergenceStage({
-      repositoryRoot: context.storage.paths.repositoryRoot,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "canonical_review",
