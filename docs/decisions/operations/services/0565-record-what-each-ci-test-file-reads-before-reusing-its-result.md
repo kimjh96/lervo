@@ -70,22 +70,21 @@ Only after Stage 2 meets its bar does a separate decision enable per-file reuse.
 
 ## Known gaps
 
-These gaps are recorded, not hidden:
-
 - `process.emit` becomes an own property of `process`, so `Object.hasOwn(process, "emit")` is true and `process.emit` no longer equals `EventEmitter.prototype.emit`. Listeners run with one recorder frame below them.
 - Hooks still call built-in prototype methods, such as `String.prototype.startsWith` or `Set.prototype.has`, at call time. A program that replaces those methods can observe the recorder.
 - A worker killed within a second of its file's last hook loses the observations made after that hook.
 - SQLite database paths are not observed. Replacing `DatabaseSync` would change its identity, and loading `node:sqlite` early would print its experimental warning in every process. A process that loaded it gets the note `sqlite_unobserved`. No database file is tracked in the repository.
 - Paths given as a Buffer or a file descriptor are not observed. Existence and listings are read when the record is spooled, so a repository path a test creates or deletes in between shows its later state.
-- Each wrapped synchronous call adds one recorder frame to stacks captured inside it. The limit rises by one during the call, so the caller's frames still fit, and is restored only if the call left it unchanged. Two differences remain. A stack captured inside the call has one extra line. A synchronous callback inside it, such as an `fs.cpSync` filter, reads an `Error.stackTraceLimit` one higher. `Function.prototype.toString` of a wrapped function or of `Date` prints `function () { [native code] }`. On 2026-11-14, no test asserted on `stack`, `stackTraceLimit`, `prepareStackTrace` or the source text of these functions. The one product reader of stack frames, `errorThrowSite`, skips errors that carry a string `code`, as every filesystem and child process error does.
+- Each wrapped synchronous call adds one recorder frame to stacks captured inside it. The limit rises by one during the call, so the caller's frames still fit, and is restored only if the call left it unchanged. Still, a stack captured inside the call has one extra line, and a synchronous callback inside it, such as an `fs.cpSync` filter, reads a limit one higher. `Function.prototype.toString` of a wrapped function or of `Date` prints `function () { [native code] }`. On 2026-11-14, no test asserted on stacks, limits or that source text, and `errorThrowSite`, the one product reader of stack frames, skips errors with a string `code`, as all filesystem and child process errors have.
 - `performance.now()`, `process.hrtime()`, `Date()` called as a function, `fs.watch` and `dgram` are not observed. Worker threads run the preload and spool their own records, but a thread stopped by `Worker#terminate()` can lose its record without any reason being recorded.
+- Garbage collection timing changes, because the preload allocates. A process that holds a resource only through an object it no longer references can lose it sooner. In CI, three test children lost an SQLite lock or transaction this way. They now keep the holder referenced, and a transparency row checks that only an unreferenced lock is released.
 - A record holds at most 50,000 paths per kind and 2,000 child entries. Children that cannot have a record of their own, such as Git or a child started without the recorder, collapse into one counted entry per identical command.
 
 ## Consequences
 
 The recorder changes each test process in ways that tests can detect only by looking for them. The process gains wrapped builtins whose prototypes' `constructor` points at the wrapper, a `Date` proxy, an own `process.emit` property, `NODE_OPTIONS` and `LERVO_CI_TEST_FILE`. If a recorder defect breaks tests, setting `LERVO_CI_TEST_LEDGER=off` restores the previous behavior without a commit.
 
-Measured on WSL with Node 22.13, the recorder's own CPU time in the worker for `apps/cli/test/cli.test.ts` was about 0.25 seconds of 18 seconds. With the Proxy wrappers, it adds about 1 µs to each repository fs call or listing, 0.5 µs to each temporary-path call or clock read, nothing measurable to a Git spawn, and about 7 ms to the startup and exit of each recorded Node child. A directory is digested once, when the record is spooled. Paired runs of three heavy files varied more from host load than from the recorder.
+Measured on WSL with Node 22.13, the recorder's own CPU time in the worker for `apps/cli/test/cli.test.ts` was about 0.25 seconds of 18 seconds. With the Proxy wrappers, it adds about 1 µs to each repository fs call or listing, 0.5 µs to each temporary-path call or clock read, nothing measurable to a Git spawn, and about 7 ms to the startup and exit of each recorded Node child. Paired runs of three heavy files varied more from host load than from the recorder.
 
 A local run of shard 1 of 4 on Node 22.13 with the recorder on passed 307 files. The two failing files failed the same way with the recorder off, because of the local environment. It wrote a 1.84 MB ledger for 315 files: 7,694 paths and 405 process records. The 27 MB spool stays on the runner. With this change's own files counted as tracked, 259 of the 315 files had a complete closure. The rest had these reasons:
 
@@ -94,7 +93,7 @@ A local run of shard 1 of 4 on Node 22.13 with the recorder on passed 307 files.
 - `git_in_repository` in 5 files.
 - `untracked_input` in 3 files, from four unmapped CLI build outputs: `.tsbuildinfo`, `bin.metafile.json`, `repository-runtime.json` and `terminal-hook-launcher.mjs`.
 
-That run predates the child collapse. Five files then exceeded the child bound and were also marked `module_graph_unavailable`.
+Five files then exceeded the child bound, before identical children were collapsed.
 
 ## Verification
 

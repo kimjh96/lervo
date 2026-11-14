@@ -226,6 +226,29 @@ for (const fn of [fs.existsSync, fs.readFile, net.Socket.prototype.connect, proc
   catch (error) { console.log(error.name); }
 }`,
   ],
+  [
+    // CI on 2026-11-14: children that held an SQLite lock only through an unreachable object lost
+    // it when the recorder's preload made a garbage collection come sooner. Garbage collection
+    // timing is not observable behavior the recorder can preserve, so this row forces the
+    // collection and requires the same outcome either way: only a reachable lock survives.
+    "a garbage collection releases only a lock its holder no longer references",
+    `const { spawn } = require("node:child_process"); const { DatabaseSync } = require("node:sqlite");
+const { mkdtempSync } = require("node:fs"); const { join } = require("node:path"); const { tmpdir } = require("node:os");
+const holder = (keep) => \`import { DatabaseSync } from "node:sqlite"; const db = new DatabaseSync(process.argv[1]);
+db.exec("BEGIN IMMEDIATE"); process.stdout.write("locked");
+setTimeout(() => { globalThis.gc(); setTimeout(() => process.stdout.write(" collected"), 50); }, 50);
+setInterval(() => \${keep ? "db" : "{}"}, 1000);\`;
+const check = async (keep) => {
+  const path = join(mkdtempSync(join(tmpdir(), "lervo-gc-lock-")), "lock.sqlite");
+  const child = spawn(process.execPath, ["--expose-gc", "--input-type=module", "-e", holder(keep), path], { stdio: ["ignore", "pipe", "ignore"] });
+  let out = ""; await new Promise((done) => child.stdout.on("data", (data) => { out += data; if (out.includes("collected")) done(); }));
+  await new Promise((done) => setTimeout(done, 200));
+  const database = new DatabaseSync(path, { timeout: 0 });
+  let state = "released"; try { database.exec("BEGIN IMMEDIATE"); database.exec("ROLLBACK"); } catch { state = "held"; }
+  database.close(); child.kill("SIGKILL"); return state;
+};
+(async () => console.log("unreachable", await check(false), "reachable", await check(true)))();`,
+  ],
 ];
 
 it.each(rows)("%s", (_, code) => {
