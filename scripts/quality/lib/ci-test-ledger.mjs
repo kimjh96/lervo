@@ -57,7 +57,6 @@ function createAccumulator() {
     dependencies: new Set(),
     host: new Set(),
     external: new Set(),
-    sqlite: new Set(),
     notes: new Set(),
     unobserved: new Map(),
     counts: {
@@ -74,7 +73,6 @@ function createAccumulator() {
       clockNow: 0,
       clockConstruct: 0,
       clockUnattributed: 0,
-      sqliteOpened: 0,
     },
     records: 0,
     finalRecords: 0,
@@ -102,7 +100,6 @@ function absorb(accumulator, record) {
   for (const [target, values] of [
     [accumulator.host, record.host],
     [accumulator.external, record.external],
-    [accumulator.sqlite, record.sqlite],
   ])
     for (const value of values ?? []) if (target.size < maximumSamples) target.add(value);
   for (const key of [
@@ -113,7 +110,6 @@ function absorb(accumulator, record) {
     "clockNow",
     "clockConstruct",
     "clockUnattributed",
-    "sqliteOpened",
   ])
     accumulator.counts[key] += record.counts?.[key] ?? 0;
   if (record.counts?.childrenDropped) accumulator.truncated = true;
@@ -145,7 +141,9 @@ function collectFile(file, index, boundRecords) {
         accumulator.counts.observed += 1;
         queue.push(...matched);
       } else if (child.command === "git") {
-        if (child.cwd.startsWith("<")) accumulator.counts.gitOutsideRepository += count;
+        // A working directory the recorder could not read may be the repository.
+        if (child.cwd.startsWith("<") && child.cwd !== "<unknown>")
+          accumulator.counts.gitOutsideRepository += count;
         else accumulator.counts.gitInRepository += count;
       } else {
         const name = child.inherited ? child.command : `${child.command} (no recorder)`;
@@ -287,7 +285,6 @@ export function createCiTestLedger({
         construct: counts.clockConstruct,
         unattributed: counts.clockUnattributed,
       },
-      sqlite: { opened: counts.sqliteOpened, locations: [...accumulator.sqlite].sort() },
       processes: { records: accumulator.records, final: accumulator.finalRecords },
       notes: [...accumulator.notes].sort(),
       uncacheableReasons: reasons,

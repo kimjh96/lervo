@@ -41,10 +41,9 @@ class CiTestInputRecord {
     clockNow: 0,
     clockConstruct: 0,
     clockUnattributed: 0,
-    sqliteOpened: 0,
     childrenDropped: 0,
   };
-  #sqlite = new Set();
+  #pending = new Map();
   #truncated = false;
 
   constructor(identity) {
@@ -65,8 +64,11 @@ class CiTestInputRecord {
     if (set.size < maximumSamples) set.add(value);
   }
 
-  /** Records one classified path; `access` is `read`, `probe`, `absent` or `tree`. */
-  path({ kind, path }, access) {
+  /**
+   * Records one classified path; `access` is `read`, `probe`, `list` or `tree`. Repository paths
+   * stay pending until `resolve`, so observing a call never inspects its result.
+   */
+  path({ kind, path }, access, absolute, recursive = false) {
     if (kind === "temporary") this.#counts.temporary += 1;
     else if (kind === "host") {
       this.#counts.host += 1;
@@ -74,19 +76,42 @@ class CiTestInputRecord {
     } else if (kind === "dependency") this.#add(this.#dependencies, path);
     else if (kind === "repository" || kind === "git") {
       const key = kind === "git" ? `.git:${path}` : path;
-      if (access === "absent") this.#add(this.#absent, key);
-      else if (access === "tree") this.#add(this.#trees, key);
-      else this.#add(this.#inputs, key);
+      let entry = this.#pending.get(key);
+      if (entry === undefined) {
+        if (this.#pending.size >= maximumPaths) {
+          this.#truncated = true;
+          return;
+        }
+        entry = { absolute, kind, accesses: new Set(), recursive: false, resolved: false };
+        this.#pending.set(key, entry);
+      }
+      if (!entry.accesses.has(access) || (access === "list" && recursive && !entry.recursive))
+        entry.resolved = false;
+      entry.accesses.add(access);
+      if (access === "list" && recursive) entry.recursive = true;
     }
   }
 
-  directory({ kind, path }, digest) {
-    if (kind !== "repository") return this.path({ kind, path }, "read");
-    if (this.#directories.size >= maximumPaths && !this.#directories.has(path))
-      this.#truncated = true;
-    // The same directory listed twice with different contents keeps its first and latest digests.
-    else if (!this.#directories.has(path)) this.#directories.set(path, [digest]);
-    else if (this.#directories.get(path).at(-1) !== digest) this.#directories.get(path)[1] = digest;
+  /**
+   * Resolves pending paths against the filesystem as it is now: `exists(absolute)` and
+   * `list(absolute, recursive)`, which returns a listing digest. A path that is gone is absent.
+   */
+  resolve({ exists, list }) {
+    for (const [key, entry] of this.#pending) {
+      if (entry.resolved) continue;
+      entry.resolved = true;
+      if (!exists(entry.absolute)) {
+        this.#add(this.#absent, key);
+        continue;
+      }
+      this.#absent.delete(key);
+      if (entry.accesses.has("tree")) this.#add(this.#trees, key);
+      if (entry.accesses.has("read") || entry.accesses.has("probe")) this.#add(this.#inputs, key);
+      if (entry.accesses.has("list")) {
+        if (entry.kind === "git") this.#add(this.#inputs, key);
+        else this.#directories.set(key, [list(entry.absolute, entry.recursive)]);
+      }
+    }
   }
 
   /** Records a module path that a loader observed without a filesystem read, such as vite-node. */
@@ -143,11 +168,6 @@ class CiTestInputRecord {
     else this.#counts.clockUnattributed += 1;
   }
 
-  sqlite(location) {
-    this.#counts.sqliteOpened += 1;
-    if (location) this.#sample(this.#sqlite, location);
-  }
-
   note(code) {
     this.#notes.add(code);
   }
@@ -169,7 +189,6 @@ class CiTestInputRecord {
       host: sorted(this.#host),
       children: this.#children,
       external: sorted(this.#external),
-      sqlite: sorted(this.#sqlite),
       counts: { ...this.#counts },
       notes: sorted(this.#notes),
       truncated: this.#truncated,

@@ -31,7 +31,6 @@ function worker(file, overrides = {}) {
     host: [],
     children: [],
     external: [],
-    sqlite: [],
     counts: {},
     notes: [],
     truncated: false,

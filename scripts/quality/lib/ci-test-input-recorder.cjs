@@ -5,8 +5,7 @@ const fs = require("node:fs");
 const Module = require("node:module");
 const net = require("node:net");
 const { homedir, tmpdir } = require("node:os");
-const { basename, dirname, relative, resolve } = require("node:path");
-const { fileURLToPath } = require("node:url");
+const { basename, dirname, resolve } = require("node:path");
 const { isMainThread, threadId } = require("node:worker_threads");
 
 const { installChildProcessObserver } = require("./ci-test-input-child-observer.cjs");
@@ -30,6 +29,8 @@ const writeFileSync = fs.writeFileSync;
 const renameSync = fs.renameSync;
 const mkdirSync = fs.mkdirSync;
 const realpathSync = fs.realpathSync;
+const statSync = fs.statSync;
+const readdirSync = fs.readdirSync;
 
 const realpath = (path) => {
   try {
@@ -92,32 +93,30 @@ function start() {
 
   installFilesystemObserver({
     fs,
-    observe(operation, argument, outcome, detail) {
+    observe(operation, argument, recursive) {
       const path = absoluteInputPath(argument, cwd());
-      if (path === null || outcome === "error") return;
-      const classified = classify(path);
-      if (outcome === "absent") return record.path(classified, "absent");
-      if (operation === "list" && classified.kind === "repository")
-        return record.directory(classified, listingDigest(argument, cwd(), detail));
-      record.path(classified, operation === "tree" ? "tree" : "read");
+      if (path !== null) record.path(classify(path), operation, path, recursive);
     },
   });
   installChildProcessObserver({
     childProcess,
     observe({ file, args, cwd: requested, environment, pid, synchronous, failed }) {
-      const location = absoluteInputPath(requested ?? cwd(), cwd());
+      // `null` is a working directory the observer could not read without running user code.
+      const location = requested === null ? null : absoluteInputPath(requested ?? cwd(), cwd());
       const gitTarget = gitDirectoryArgument(args);
       const target = gitTarget ? absoluteInputPath(gitTarget, location ?? cwd()) : location;
-      const where = target ? classify(target) : { kind: "host", path: null };
+      const where = target ? classify(target) : { kind: "unknown", path: null };
       record.child({
-        command: basename(String(file ?? "")),
-        args: [file, ...(args ?? [])].map(displayArgument),
+        command: basename(file),
+        args: [file, ...args].map(displayArgument),
         cwd: where.kind === "repository" ? where.path : `<${where.kind}>`,
         pid,
+        // An environment the observer could not read may still carry the recorder.
         inherited:
-          environment.LERVO_CI_TEST_LEDGER !== "off" &&
-          typeof environment.LERVO_CI_TEST_LEDGER_DIRECTORY === "string" &&
-          (environment.NODE_OPTIONS ?? "").includes("ci-test-input-recorder.cjs"),
+          environment === null ||
+          (environment.LERVO_CI_TEST_LEDGER !== "off" &&
+            typeof environment.LERVO_CI_TEST_LEDGER_DIRECTORY === "string" &&
+            (environment.NODE_OPTIONS ?? "").includes("ci-test-input-recorder.cjs")),
         synchronous,
         failed,
         // Before Vitest assigns a file, a worker runs only Vitest's own startup, such as tinypool
@@ -136,14 +135,7 @@ function start() {
     observe(event) {
       if (event.kind === "native") {
         const path = absoluteInputPath(event.filename, cwd());
-        if (path !== null) record.path(classify(path), "read");
-      } else if (event.kind === "sqlite") {
-        const location = String(event.location ?? "");
-        const path = location.startsWith(":") ? null : absoluteInputPath(location, cwd());
-        if (path === null) return record.sqlite(null);
-        const classified = classify(path);
-        record.sqlite(classified.path === null ? `<${classified.kind}>` : classified.path);
-        if (classified.kind !== "temporary") record.path(classified, "read");
+        if (path !== null) record.path(classify(path), "read", path);
       } else record.note("require_esm_unobserved");
     },
   });
@@ -183,8 +175,9 @@ function start() {
     flushing = true;
     try {
       recordWorkerModules();
-      if (!modules.sqlitePatched() && process.moduleLoadList?.includes("NativeModule sqlite"))
-        record.note("sqlite_unobserved");
+      modules.inspect();
+      if (modules.sqliteLoaded()) record.note("sqlite_unobserved");
+      record.resolve({ exists, list: listingDigest });
       mkdirSync(spoolDirectory, { recursive: true });
       const temporary = `${spoolFile}.partial`;
       writeFileSync(temporary, JSON.stringify({ ...record.toJSON(), final }));
@@ -231,22 +224,28 @@ function gitDirectoryArgument(args) {
   return null;
 }
 
+function exists(path) {
+  try {
+    return statSync(path, { throwIfNoEntry: false }) !== undefined;
+  } catch {
+    // A path that exists but cannot be inspected is still an input.
+    return true;
+  }
+}
+
 let hash;
-/** Digest of the sorted entry names, so a listing compares equal however it was requested. */
-function listingDigest(argument, cwd, { listing, options }) {
-  if (!Array.isArray(listing)) return "unlisted";
-  hash ??= process.getBuiltinModule("node:crypto").createHash;
-  const root = resolve(cwd, String(argument instanceof URL ? fileURLToPath(argument) : argument));
-  const names = listing.map((entry) => {
-    if (typeof entry === "string") return entry;
-    if (Buffer.isBuffer(entry)) return entry.toString();
-    if (!options.recursive) return entry.name;
-    return relative(root, resolve(cwd, entry.parentPath ?? entry.path, entry.name));
-  });
-  const prefix = options.recursive ? "recursive\n" : "";
-  return `sha256:${hash("sha256")
-    .update(`${prefix}${names.sort().join("\n")}`)
-    .digest("hex")}`;
+/** Digest of the sorted entry names, read when the record is spooled. */
+function listingDigest(path, recursive) {
+  try {
+    hash ??= process.getBuiltinModule("node:crypto").createHash;
+    const names = readdirSync(path, { recursive }).map(String).sort();
+    const prefix = recursive ? "recursive\n" : "";
+    return `sha256:${hash("sha256")
+      .update(`${prefix}${names.join("\n")}`)
+      .digest("hex")}`;
+  } catch {
+    return "unlisted";
+  }
 }
 
 if (

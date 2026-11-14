@@ -14,8 +14,11 @@ function installClockObserver({ observe, ownFiles }) {
 
   /** Reads at most a few frames, swapping in a raw formatter so source maps are not applied. */
   const fromCode = () => {
-    const prepare = Error.prepareStackTrace;
-    const limit = Error.stackTraceLimit;
+    const prepare = Object.getOwnPropertyDescriptor(Error, "prepareStackTrace");
+    const limit = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
+    // An accessor here is user code; reading or writing it would run that code.
+    if ((prepare && !("value" in prepare)) || !limit || !("value" in limit) || !limit.writable)
+      return null;
     const holder = {};
     try {
       Error.prepareStackTrace = captureCallSites;
@@ -28,27 +31,31 @@ function installClockObserver({ observe, ownFiles }) {
       }
       return false;
     } finally {
-      Error.prepareStackTrace = prepare;
-      Error.stackTraceLimit = limit;
+      if (prepare) Error.prepareStackTrace = prepare.value;
+      else delete Error.prepareStackTrace;
+      Error.stackTraceLimit = limit.value;
     }
   };
   const report = (kind) => {
     try {
       if (inspections >= maximumInspections) return observe("unattributed");
       inspections += 1;
-      if (fromCode()) observe(kind);
+      const attributed = fromCode();
+      if (attributed === null) observe("unattributed");
+      else if (attributed) observe(kind);
     } catch {
       // Observation never changes the observed call.
     }
   };
 
   const NativeDate = globalThis.Date;
-  const now = NativeDate.now;
-  NativeDate.now = function now_() {
-    report("now");
-    return now.call(this);
-  };
-  Object.defineProperty(NativeDate.now, "name", { value: "now" });
+  // A Proxy keeps `Date.now` non-constructible, with its own name and length.
+  NativeDate.now = new Proxy(NativeDate.now, {
+    apply(target, self, args) {
+      report("now");
+      return Reflect.apply(target, self, args);
+    },
+  });
   const RecordingDate = new Proxy(NativeDate, {
     construct(target, args, newTarget) {
       if (args.length === 0) report("construct");

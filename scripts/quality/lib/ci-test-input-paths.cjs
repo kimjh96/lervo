@@ -25,17 +25,12 @@ const unique = (roots) => [...new Set(roots.filter(Boolean).map((root) => resolv
 const within = (path, roots) =>
   roots.find((root) => path === root || path.startsWith(withSeparator(root)));
 
-/** Turns a filesystem API path argument into an absolute path, or `null` for descriptors. */
-function absoluteInputPath(argument, cwd) {
-  let path = argument;
-  if (path instanceof URL) {
-    if (path.protocol !== "file:") return null;
-    path = fileURLToPath(path);
-  } else if (Buffer.isBuffer(path)) path = path.toString();
+/** Turns a path string or `file:` URL string into an absolute path, or `null`. */
+function absoluteInputPath(path, cwd) {
   if (typeof path !== "string" || path === "") return null;
   if (path.startsWith("file:")) {
     try {
-      path = fileURLToPath(path);
+      return fileURLToPath(path);
     } catch {
       return null;
     }

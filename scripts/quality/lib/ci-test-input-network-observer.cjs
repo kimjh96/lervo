@@ -1,6 +1,9 @@
 "use strict";
 
 const { isIP } = require("node:net");
+const { types } = require("node:util");
+
+const { observeCalls, ownData } = require("./ci-test-input-transparent-call.cjs");
 
 /**
  * Translates outgoing socket connections into observations (ADR-0565). `net.connect`, HTTP
@@ -17,16 +20,39 @@ function loopback(host) {
   return isIP(name) === 4 && (name.startsWith("127.") || name === "0.0.0.0");
 }
 
-/** Mirrors `net.Socket#connect` overloads, including Node's pre-normalized argument array. */
+const primitive = (value) =>
+  value === undefined || value === null || typeof value === "object" || typeof value === "function"
+    ? undefined
+    : value;
+
+/**
+ * Mirrors `net.Socket#connect` overloads, including Node's pre-normalized argument array, from
+ * own data properties only: an options object is often the caller's, and its getters run once.
+ * An endpoint that cannot be read that way is unknown, which the ledger treats as external.
+ */
 function endpointOf(args) {
   const [first, second] = args;
-  const options = Array.isArray(first) ? first[0] : first;
+  const options = Array.isArray(first) ? ownData(first, 0) : first;
   if (typeof options === "object" && options !== null) {
-    if (options.path !== undefined) return { kind: "local" };
-    return { host: options.host ?? "localhost", port: options.port };
+    if (types.isProxy(options)) return { kind: "external", endpoint: "<unread>" };
+    const path = Object.getOwnPropertyDescriptor(options, "path");
+    if (path && "value" in path && path.value !== undefined) return { kind: "local" };
+    if (path && !("value" in path)) return { kind: "external", endpoint: "<unread>" };
+    const host = ownData(options, "host");
+    const port = ownData(options, "port");
+    const unread = (key) => {
+      const descriptor = Object.getOwnPropertyDescriptor(options, key);
+      return descriptor !== undefined && !("value" in descriptor);
+    };
+    if (unread("host") || unread("port") || (host !== undefined && primitive(host) === undefined))
+      return { kind: "external", endpoint: "<unread>" };
+    return { host: host ?? "localhost", port: primitive(port) };
   }
   if (typeof options === "string" && !/^\d+$/u.test(options)) return { kind: "local" };
-  return { host: typeof second === "string" ? second : "localhost", port: options };
+  return {
+    host: typeof second === "string" ? second : "localhost",
+    port: primitive(options),
+  };
 }
 
 function classifyCiTestEndpoint(args) {
@@ -37,15 +63,10 @@ function classifyCiTestEndpoint(args) {
 }
 
 function installNetworkObserver({ net, observe }) {
-  const connect = net.Socket.prototype.connect;
-  net.Socket.prototype.connect = function (...args) {
-    try {
-      observe(classifyCiTestEndpoint(args));
-    } catch {
-      // Observation never changes the observed call.
-    }
-    return connect.apply(this, args);
-  };
+  const { prototype } = net.Socket;
+  prototype.connect = observeCalls(prototype.connect, {
+    before: (args) => observe(classifyCiTestEndpoint(args)),
+  });
 }
 
 module.exports = { installNetworkObserver };

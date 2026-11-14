@@ -68,8 +68,8 @@ it("records reads, listings, absent probes, modules, children, sockets, SQLite a
   expect(main.inputs.some((input) => input.includes("lervo-recorder-program-"))).toBe(false);
   expect(main.counts.temporary).toBeGreaterThan(0);
   expect(main.host).toEqual(["~/.lervo-ci-recorder-absent-probe"]);
-  expect(main.counts).toMatchObject({ clockNow: 1, clockConstruct: 1, sqliteOpened: 2 });
-  expect(main.sqlite).toEqual(["<temporary>"]);
+  expect(main.counts).toMatchObject({ clockNow: 1, clockConstruct: 1 });
+  expect(main.notes).toContain("sqlite_unobserved");
   expect(main.counts.loopback).toBeGreaterThanOrEqual(1);
   expect(main.external).toEqual(["192.0.2.1:9"]);
 
