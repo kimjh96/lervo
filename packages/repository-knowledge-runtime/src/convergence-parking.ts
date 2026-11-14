@@ -9,7 +9,8 @@ import {
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { waitingConvergenceStage } from "./stage-receipt.js";
-import { integrationTargetBlobHash, resolveIntegrationTarget } from "./integration-target-sync.js";
+import { resolveIntegrationTarget } from "./integration-target-sync.js";
+import { committedBlobHashes } from "./committed-blob-hashes.js";
 import { workingTreeHash } from "./integration-target-discard.js";
 import { canonicalDocumentLayout } from "./canonical-layout.js";
 
@@ -204,14 +205,28 @@ async function targetsUnchanged(
   repositoryRoot: string | undefined,
   targets: readonly ParkedTargetObservation[],
 ): Promise<boolean> {
-  if (repositoryRoot === undefined) return true;
+  if (repositoryRoot === undefined || targets.length === 0) return true;
+  const paths = (ref: string) => targets.filter((t) => t.ref === ref).map((t) => t.path);
+  const observed = new Map<string, Map<string, string | null> | null>();
+  for (const ref of new Set(targets.map((target) => target.ref))) {
+    const commit = await resolveIntegrationTarget(repositoryRoot, ref).catch(() => null);
+    observed.set(
+      ref,
+      commit === null ? null : await committedBlobHashes(repositoryRoot, commit, paths(ref)),
+    );
+  }
+  const heads = await committedBlobHashes(
+    repositoryRoot,
+    "HEAD",
+    targets.map((target) => target.path),
+  );
   for (const target of targets) {
-    const commit = await resolveIntegrationTarget(repositoryRoot, target.ref).catch(() => null);
+    const atRef = observed.get(target.ref);
     if (
-      commit === null ||
-      (await integrationTargetBlobHash(repositoryRoot, commit, target.path)) !==
-        target.observedHash ||
-      (await integrationTargetBlobHash(repositoryRoot, "HEAD", target.path)) !== target.headHash ||
+      atRef === null ||
+      atRef === undefined ||
+      (atRef.get(target.path) ?? null) !== target.observedHash ||
+      (heads.get(target.path) ?? null) !== target.headHash ||
       (await workingTreeHash(repositoryRoot, target.path)) !== target.preimageHash
     )
       return false;

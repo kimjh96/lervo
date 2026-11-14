@@ -11,10 +11,8 @@ import { convergenceGit } from "./canonical-workspace.js";
 import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
-import {
-  integrationTargetBlobHash,
-  synchronizeIntegrationTarget,
-} from "./integration-target-sync.js";
+import { synchronizeIntegrationTarget } from "./integration-target-sync.js";
+import { committedBlobHashes } from "./committed-blob-hashes.js";
 import { recordIntegrationTargetAbsorbed } from "./integration-target-absorption-event.js";
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
 import type { ParkedTargetObservation } from "./convergence-parking.js";
@@ -57,7 +55,7 @@ export async function preflightCanonicalTargets(
         ?.sources ?? state.baseline.sources
     ).map((source) => [source.path, source.contentHash]),
   );
-  const diverged: ParkedTargetObservation[] = [];
+  const diverged: Omit<ParkedTargetObservation, "headHash">[] = [];
   for (const draft of drafts) {
     if (!pathWithinConvergenceRoots(draft.path, delegation.canonicalRoots))
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
@@ -89,10 +87,20 @@ export async function preflightCanonicalTargets(
         ref: targetRef,
         path: draft.path,
         observedHash: before,
-        headHash: await integrationTargetBlobHash(root, "HEAD", draft.path),
         preimageHash: draft.beforeHash,
       });
   }
+  const headHashes = await committedBlobHashes(
+    root,
+    "HEAD",
+    diverged.map((target) => target.path),
+  );
   context.assertSource(state);
-  return diverged;
+  return diverged.map((target) => ({
+    ref: target.ref,
+    path: target.path,
+    observedHash: target.observedHash,
+    headHash: headHashes.get(target.path) ?? null,
+    preimageHash: target.preimageHash,
+  }));
 }
