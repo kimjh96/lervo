@@ -1,0 +1,38 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a079b7e3cb2c15a012c2bbda
+compiler:
+  compilerBuildId: sha256:574bcd6cc190db957222a9951c145c791541c2b33a44879f5714ed393df2afad
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_627a970705b1b3e4fc0223f9
+outputLanguage: en
+outputs:
+  - byteCount: 7880
+    contentHash: sha256:7728d0cf47b7cb61fcadd9ce3973aec729257aca2cf8bc7673298b7b11b9a6d7
+    path: .agents/skills/deploy-lervo-release/SKILL.md
+    userRegionHash: sha256:7728d0cf47b7cb61fcadd9ce3973aec729257aca2cf8bc7673298b7b11b9a6d7
+profile: portable_skill
+recordId: knormdoc_1246f0e19ae10fef838ff556
+resourceBindings:
+  - contentHash: sha256:583d02b27d86d8c7e2e204b7e6b6357b32177cf98e35f87dce4b69f6e36798fa
+    path: .agents/skills/deploy-lervo-release/scripts/hub-backup.py
+  - contentHash: sha256:c198721759b49bb6aa5d3b839284f33ab128227bd97dddc9b894464153bc19f6
+    path: .agents/skills/deploy-lervo-release/scripts/upgrade-all.sh
+  - contentHash: sha256:71ed62b4d8800770dc50103568dd8d8681d10f947e6ab9616e6e97f8375f6e73
+    path: .agents/skills/deploy-lervo-release/scripts/wait-release.sh
+schemaVersion: 2
+sourceContentHash: sha256:cf49301376b28a0497e9b3044db668c6d99dd1a8421aaeabea6aa7f2a0500c6b
+sourcePath: .agents/skills/deploy-lervo-release/SKILL.md
+sourceUnitVersionIds:
+  - uv_06c33bd8d629a145a3b81db8
+  - uv_192316accf972d030394b4e3
+  - uv_3b8e3ec39cc2a3dad58c4efc
+  - uv_45032de8e800fa23a7d96fa9
+  - uv_9e162d1efa82e034b484600c
+  - uv_b705f7f4611b7e5fc945fc53
+  - uv_c0f2141b218568b51e9a6ad8

@@ -10,7 +10,7 @@ Search separates recommendation, engine execution, plan composition, and context
 - [V2 composition and operational resolution](search-and-context/composition.md)
 - [Linked-context disposition](search-and-context/linked-context.md)
 
-[Proposed cross-surface context quality](../specifications/execution/context-quality.md) separates applicable obligations from ranked evidence and assigns shared planning, exact section delivery, and verification to existing owners. [ADR-0501](../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md) and its delivery roadmap distinguish active preparation observations and applied owner-rule delivery from the remaining full-plan and installed acceptance work.
+[Proposed cross-surface context quality](../specifications/execution/context-quality.md) separates applicable obligations from ranked evidence and assigns shared planning, exact section delivery, and verification to existing owners. [ADR-0501](../decisions/execution/grounding/0501-share-context-quality-contracts-across-product-surfaces.md) and its delivery roadmap distinguish active preparation observations and applied owner-rule delivery from remaining full-plan and installed acceptance work.
 
 ## Decisions
 
