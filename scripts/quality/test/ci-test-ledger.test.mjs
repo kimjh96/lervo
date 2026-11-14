@@ -289,6 +289,12 @@ it("orders unseen writers: a file that finished before one started is untouched 
     worker("untimed.test.ts", { pid: 5 }),
   ]);
   expect(reasons["earlier.test.ts"]).toEqual([]);
+  expect(
+    ledgerOf([
+      worker("shell.test.ts", { pid: 1, startedAt: 9_000, spooledAt: 12_000, children: [shell] }),
+      worker("earlier.test.ts", { pid: 2, startedAt: 1_000, spooledAt: 8_000 }),
+    ]).summary.unseenWriters,
+  ).toEqual([{ owner: "shell.test.ts", writer: "bash in .", afterMs: 9_000 }]);
   // Within the one-second margin, and after the writer started, a file is uncertain.
   expect(reasons["close.test.ts"]).toEqual(["shard_written_input"]);
   expect(reasons["later.test.ts"]).toEqual(["shard_written_input"]);

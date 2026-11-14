@@ -365,6 +365,8 @@ export function createCiTestLedger({
       reasons: reasonCounts,
       records: records.length,
       shardWrites: shardWrites.size,
+      // Each unseen writer taints the files that finish after it starts; the first ones matter.
+      unseenWriters: shardWrites.unseenWriters.slice(0, maximumSamples),
       unboundRecords: records.filter((record) => record.file === null || !reached.has(record.file))
         .length,
     },
