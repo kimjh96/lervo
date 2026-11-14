@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5a1c6b36d5842630365f0c6d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Run fewer Git processes in knowledge scans and convergence fences without weakening any source check."
