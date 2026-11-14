@@ -180,4 +180,29 @@ describe("CI reuse receipts", () => {
       }),
     ).toEqual({ quality: true, build: 9, tests: 9, distribution: 9 });
   });
+
+  it("never reuses on the daily audit, which exists to catch time-dependent results", () => {
+    const digests = { tree: "t".repeat(40), tests: "s".repeat(40) };
+    const everything = () => 9;
+    const none = { quality: false, build: null, tests: null, distribution: null };
+    expect(
+      planCiReuse({
+        coverage: "full",
+        distributionRequired: true,
+        digests,
+        find: everything,
+        eventName: "schedule",
+      }),
+    ).toEqual(none);
+    for (const eventName of ["push", "pull_request", "workflow_dispatch"])
+      expect(
+        planCiReuse({
+          coverage: "full",
+          distributionRequired: true,
+          digests,
+          find: everything,
+          eventName,
+        }),
+      ).toEqual({ quality: true, build: 9, tests: 9, distribution: 9 });
+  });
 });

@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
@@ -162,4 +164,99 @@ it("reuses only components that an earlier run executed for identical content", 
       "lervo-ci-distribution-${{ needs.quality.outputs.tree }}",
     ],
   );
+});
+
+it("verifies distribution wherever main will reuse the result", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  const step = workflow.jobs.quality.steps.find(({ id }) => id === "distribution");
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-distribution-"));
+  const plan = async ({ eventName, coverage = "full", pendingIntent }) => {
+    await rm(resolve(root, ".changes"), { recursive: true, force: true });
+    await mkdir(resolve(root, ".changes"));
+    if (pendingIntent) await writeFile(resolve(root, ".changes/relint_a.yaml"), "impact: patch\n");
+    const output = resolve(root, "output");
+    await writeFile(output, "");
+    const script = step.run
+      .replaceAll("${{ steps.plan.outputs.coverage }}", coverage)
+      .replaceAll("${{ github.event_name }}", eventName);
+    const result = spawnSync("bash", ["-c", script], {
+      cwd: root,
+      env: { ...process.env, GITHUB_OUTPUT: output },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return (await readFile(output, "utf8")).trim();
+  };
+  try {
+    for (const eventName of ["pull_request", "push"]) {
+      assert.equal(await plan({ eventName, pendingIntent: false }), "required=true");
+      assert.equal(await plan({ eventName, pendingIntent: true }), "required=false");
+    }
+    for (const eventName of ["workflow_dispatch", "schedule"])
+      assert.equal(await plan({ eventName, pendingIntent: true }), "required=true");
+    assert.equal(
+      await plan({
+        eventName: "pull_request",
+        coverage: "documentation_only",
+        pendingIntent: false,
+      }),
+      "required=false",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it("shows a dispatched verification on its exact commit as a commit status", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  const job = workflow.jobs["dispatched-status"];
+  assert.deepEqual(job.needs, ["verification"]);
+  assert.deepEqual(job.permissions, { statuses: "write" });
+  assert.match(job.if, /always\(\)/u);
+  assert.match(job.if, /github\.event_name == 'workflow_dispatch'/u);
+  assert.match(job.if, /inputs\.expected_sha != ''/u);
+  const [step] = job.steps;
+  assert.equal(step.env.EXPECTED_SHA, "${{ inputs.expected_sha }}");
+  assert.equal(step.env.VERIFICATION, "${{ needs.verification.result }}");
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-status-"));
+  try {
+    const trace = resolve(root, "trace.log");
+    await writeFile(resolve(root, "gh"), `#!/bin/bash\nprintf '%s\\n' "$*" >>"${trace}"\n`, {
+      mode: 0o755,
+    });
+    const post = async (env) => {
+      await writeFile(trace, "");
+      const result = spawnSync("bash", ["-e", "-c", step.run], {
+        env: {
+          ...process.env,
+          PATH: `${root}:${process.env.PATH}`,
+          GITHUB_REPOSITORY: "owner/lervo",
+          GITHUB_RUN_ID: "42",
+          GITHUB_SERVER_URL: "https://github.com",
+          ...env,
+        },
+        encoding: "utf8",
+      });
+      return { status: result.status, calls: await readFile(trace, "utf8") };
+    };
+    const sha = "c".repeat(40);
+    const passed = await post({ EXPECTED_SHA: sha, VERIFICATION: "success" });
+    assert.equal(passed.status, 0);
+    assert.match(passed.calls, new RegExp(`--method POST repos/owner/lervo/statuses/${sha}`, "u"));
+    assert.match(passed.calls, /-f state=success -f context=CI verification \(lervo-ci-v1\)/u);
+    assert.match(
+      passed.calls,
+      /target_url=https:\/\/github\.com\/owner\/lervo\/actions\/runs\/42/u,
+    );
+    for (const result of ["failure", "cancelled"])
+      assert.match(
+        (await post({ EXPECTED_SHA: sha, VERIFICATION: result })).calls,
+        /-f state=failure /u,
+      );
+    const invalid = await post({ EXPECTED_SHA: "main", VERIFICATION: "success" });
+    assert.equal(invalid.status, 1);
+    assert.equal(invalid.calls, "");
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

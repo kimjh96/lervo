@@ -1,0 +1,135 @@
+import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
+
+import { afterEach, describe, it } from "vitest";
+
+const waitScript = resolve(
+  import.meta.dirname,
+  "../../../.agents/skills/deploy-lervo-release/scripts/wait-release.sh",
+);
+const head = "b".repeat(40);
+const roots = [];
+
+afterEach(async () =>
+  Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
+);
+
+// gh evaluates --jq itself, so this fake answers with the filtered text the script reads.
+const fakeGh = `#!/bin/bash
+printf '%s\\n' "$*" >>"$FAKE_TRACE"
+case "$1 $2" in
+  'run list')
+    case "$*" in
+      *release-pull-request.yml*) echo "$FAKE_PREPARATION" ;;
+      *code-quality.yml*) echo "$FAKE_DISPATCH" ;;
+    esac ;;
+  'run view') echo "$FAKE_AGGREGATE" ;;
+  'pr view')
+    case "$*" in
+      *baseRefName*) echo main ;;
+      *)
+        # FAKE_MOVED_HEAD replaces the head after the first read, as a concurrent push would.
+        reads=$(( $(cat "$FAKE_TRACE.reads" 2>/dev/null || echo 0) + 1 ))
+        echo "$reads" >"$FAKE_TRACE.reads"
+        if [ -n "\${FAKE_MOVED_HEAD:-}" ] && [ "$reads" -gt 1 ]; then echo "$FAKE_MOVED_HEAD"; else echo "$FAKE_HEAD"; fi ;;
+    esac ;;
+  'pr checks') echo "$FAKE_CHECKS"; exit "\${FAKE_CHECKS_STATUS:-0}" ;;
+  api\\ *compare*) echo "$FAKE_COMPARE" ;;
+  api\\ *commits*) echo "$FAKE_AUTHOR" ;;
+  *) exit 2 ;;
+esac
+`;
+
+async function wait(state) {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-wait-release-"));
+  roots.push(root);
+  await writeFile(resolve(root, "gh"), fakeGh);
+  await chmod(resolve(root, "gh"), 0o755);
+  const trace = resolve(root, "trace.log");
+  await writeFile(trace, "");
+  const result = spawnSync("bash", [waitScript, "pr", "7", "1"], {
+    cwd: root,
+    encoding: "utf8",
+    timeout: 20_000,
+    env: {
+      ...process.env,
+      PATH: `${root}:${process.env.PATH}`,
+      WAIT_RELEASE_POLL_SECONDS: "0.2",
+      FAKE_TRACE: trace,
+      FAKE_HEAD: head,
+      FAKE_PREPARATION: "completed/success",
+      FAKE_COMPARE: "ahead",
+      FAKE_AUTHOR: "lervo-release[bot]|chore(cli): prepare release",
+      FAKE_DISPATCH: "none",
+      FAKE_AGGREGATE: "1",
+      FAKE_CHECKS: "2 0 0 Conventional Commits=pass",
+      ...state,
+    },
+  });
+  return { status: result.status, stdout: result.stdout, trace: await readFile(trace, "utf8") };
+}
+
+describe("deploy-lervo-release pull-request wait", () => {
+  it("passes a prepared head only on its own successful dispatched verification", async () => {
+    const passed = await wait({ FAKE_DISPATCH: "11 completed success" });
+    assert.equal(passed.status, 0, passed.stdout);
+    assert.match(passed.stdout, /Code quality run 11 for b{40}: completed\/success/u);
+    assert.match(
+      passed.trace,
+      new RegExp(`code-quality\\.yml --commit ${head} --event workflow_dispatch`, "u"),
+    );
+    assert.doesNotMatch(passed.trace, /pr checks/u);
+
+    for (const state of [
+      { FAKE_DISPATCH: "11 completed failure" },
+      { FAKE_DISPATCH: "11 completed success", FAKE_AGGREGATE: "0" },
+    ])
+      assert.equal((await wait(state)).status, 1);
+  });
+
+  it("keeps waiting while a prepared head has no dispatch or an unfinished one", async () => {
+    const missing = await wait({});
+    assert.equal(missing.status, 2);
+    assert.match(missing.stdout, /waiting for its dispatched Code quality run/u);
+    assert.doesNotMatch(missing.trace, /pr checks/u);
+    assert.equal((await wait({ FAKE_DISPATCH: "11 in_progress " })).status, 2);
+  });
+
+  it("uses pull-request checks for an unprepared head without a dispatch", async () => {
+    const author = { FAKE_AUTHOR: "Owner|feat: add capability" };
+    assert.equal((await wait(author)).status, 0);
+    const failed = await wait({
+      ...author,
+      FAKE_CHECKS: "2 0 1 Tests=fail",
+      FAKE_CHECKS_STATUS: "1",
+    });
+    assert.equal(failed.status, 1);
+    assert.equal((await wait({ ...author, FAKE_CHECKS: "2 1 0 Tests=pending" })).status, 2);
+  });
+
+  it("judges the head again when it moves during the checks and binds the merge to it", async () => {
+    const moved = "c".repeat(40);
+    const result = await wait({ FAKE_DISPATCH: "11 completed success", FAKE_MOVED_HEAD: moved });
+    assert.equal(result.status, 0, result.stdout);
+    assert.match(result.stdout, new RegExp(`passed at ${moved}`, "u"));
+    assert.match(result.stdout, new RegExp(`--match-head-commit ${moved}`, "u"));
+    assert.match(result.trace, new RegExp(`compare/main\\.\\.\\.${moved}`, "u"));
+    assert.doesNotMatch(result.stdout, new RegExp(`passed at ${head}`, "u"));
+  });
+
+  it("reports stale heads and preparation results before any verification", async () => {
+    const stale = await wait({ FAKE_COMPARE: "behind", FAKE_DISPATCH: "11 completed success" });
+    assert.equal(stale.status, 3);
+    assert.match(stale.stdout, /gh pr update-branch 7/u);
+    assert.equal((await wait({ FAKE_PREPARATION: "completed/failure" })).status, 1);
+    const running = await wait({
+      FAKE_PREPARATION: "in_progress/",
+      FAKE_DISPATCH: "11 completed success",
+    });
+    assert.equal(running.status, 2);
+    assert.match(running.stdout, /release preparation in_progress/u);
+  });
+});

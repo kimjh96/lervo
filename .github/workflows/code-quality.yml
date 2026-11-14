@@ -68,7 +68,8 @@ jobs:
         run: |
           required=false
           if [ '${{ steps.plan.outputs.coverage }}' = full ]; then
-            if [ '${{ github.event_name }}' = workflow_dispatch ] || [ '${{ github.event_name }}' = schedule ] || { [ '${{ github.event_name }}' = push ] && ! compgen -G '.changes/*.yaml' > /dev/null; }; then
+            # Without pending intent, a pull request is what main will reuse, so it verifies distribution too.
+            if [ '${{ github.event_name }}' = workflow_dispatch ] || [ '${{ github.event_name }}' = schedule ] || { { [ '${{ github.event_name }}' = push ] || [ '${{ github.event_name }}' = pull_request ]; } && ! compgen -G '.changes/*.yaml' > /dev/null; }; then
               required=true
             fi
           fi
@@ -364,3 +365,28 @@ jobs:
           path: ${{ runner.temp }}/lervo-ci-receipts/distribution.json
           if-no-files-found: error
           retention-days: 30
+
+  dispatched-status:
+    name: Report dispatched verification on the commit
+    # A dispatched run is not evaluated as a pull-request check, so the prepared or candidate commit
+    # gets its aggregate result as a commit status that pull-request checks show.
+    needs: [verification]
+    if: ${{ always() && github.event_name == 'workflow_dispatch' && inputs.expected_sha != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      statuses: write
+    steps:
+      - name: Post the aggregate result as a commit status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          VERIFICATION: ${{ needs.verification.result }}
+        run: |
+          [[ "${EXPECTED_SHA}" =~ ^[a-f0-9]{40}$ ]] || { echo 'ci_revision_invalid' >&2; exit 1; }
+          state=failure
+          if [ "${VERIFICATION}" = success ]; then state=success; fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${EXPECTED_SHA}" \
+            -f state="${state}" -f context='CI verification (lervo-ci-v1)' \
+            -f description="Code quality run ${GITHUB_RUN_ID}: ${VERIFICATION}" \
+            -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"

@@ -42,10 +42,16 @@ describe("CLI release preparation workflow", () => {
       "node scripts/release/commands/reconcile-release-workflow.mjs candidate",
     );
     const prepare = {
-      run: await readFile(
-        resolve(import.meta.dirname, "../lib/reconcile-release-candidate.sh"),
-        "utf8",
-      ),
+      run: [
+        await readFile(
+          resolve(import.meta.dirname, "../lib/reconcile-release-candidate.sh"),
+          "utf8",
+        ),
+        await readFile(
+          resolve(import.meta.dirname, "../lib/release-preparation-commit.sh"),
+          "utf8",
+        ),
+      ].join("\n"),
     };
     assert.equal(install.run, "pnpm install --frozen-lockfile");
     assert.equal(completion.if, "steps.admission.outputs.status == 'ready'");
@@ -74,6 +80,10 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /render-release-pr\.mjs/u);
     assert.match(prepare.run, /gh workflow run code-quality\.yml .*expected_sha/u);
+    assert.match(
+      prepare.run,
+      /release_verification_dispatch lervo\/release-cli "\$\{release_commit\}" "\$\{RELEASE_SOURCE_SHA\}"/u,
+    );
     const body = renderReleasePrBody({
       repository: "owner/repo",
       sourceRevision: "a".repeat(40),

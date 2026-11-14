@@ -2,6 +2,7 @@
 
 Status: accepted
 Date: 2026-08-26
+Amended by: [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (the release pull request becomes the fallback)
 
 ## Context
 
@@ -25,7 +26,7 @@ Preparation aggregates the highest impact and sorted summaries into one CLI vers
 
 The exact preparation plan binds source revision, intent IDs and content hashes, current and next versions, file operations, and owner commands. Apply rechecks the plan, updates only the CLI manifest and current release note, consumes the exact intents, uses frozen lockfile generation, and invokes the build, release-manifest, and SBOM owners. Failure restores every owned input and output.
 
-The main-branch workflow reconciles one `lervo/release-cli` branch and one open pull request through an exact ref update. It has repository, pull-request, and workflow-dispatch authority, but no npm authority. The same source and intents produce the same plan and bytes. Additional merged intent replaces the branch with a newly bound plan.
+By default, [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) prepares the release inside the feature pull request with the same plan, apply, and owner commands. The main-branch path below is the fallback for intent that reaches `main` unprepared. The main-branch workflow reconciles one `lervo/release-cli` branch and one open pull request through an exact ref update. It has repository, pull-request, and workflow-dispatch authority, but no npm authority. The same source and intents produce the same plan and bytes. Additional merged intent replaces the branch with a newly bound plan.
 
 ### Tags and release handoff
 
@@ -43,7 +44,7 @@ Plans and receipts expose only bounded identifiers, counts, versions, digests, d
 
 Release impact is explicit and reviewable without independently versioning private packages. A private package in the CLI artifact closure still requires one coherent CLI intent; an unrelated private workspace change cannot create a public release. Version preparation, tag creation, npm stage approval, and npm publication remain separate authorities.
 
-V1 has no prereleases. A prerelease channel, multiple public packages, or automatic publication requires a separate reviewed contract. Emergency correction uses a new exact intent and the same release pull request. Automation never moves or deletes tags.
+V1 has no prereleases. A prerelease channel, multiple public packages, or automatic publication requires a separate reviewed contract. Emergency correction uses a new exact intent and the same preparation path. Automation never moves or deletes tags.
 
 ## Verification
 

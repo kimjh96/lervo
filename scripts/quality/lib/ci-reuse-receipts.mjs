@@ -67,11 +67,12 @@ export function findReusableRun({ repository, component, digest, request = githu
 /**
  * Decides what this run may reuse. Tests reuse by the release-metadata-normalized digest. The build
  * and quality checks reuse only for the exact tree, together with tests, and only when any required
- * distribution check can be reused too, because distribution consumes this run's build.
+ * distribution check can be reused too, because distribution consumes this run's build. The daily
+ * audit exists to catch results that change with time on unchanged content, so it reuses nothing.
  */
-export function planCiReuse({ coverage, distributionRequired, digests, find }) {
+export function planCiReuse({ coverage, distributionRequired, digests, find, eventName }) {
   const none = { quality: false, build: null, tests: null, distribution: null };
-  if (coverage !== "full") return none;
+  if (coverage !== "full" || eventName === "schedule") return none;
   const tests = find("tests", digests.tests);
   if (tests === null) return none;
   const build = find("build", digests.tree);

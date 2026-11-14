@@ -13,17 +13,19 @@ Verify every feature pull request before opening it, so CI is a confirmation rat
 
 1. Finish review fixes first, then run the full suite once: `pnpm test` with `TMPDIR` set to a real path (`python3 -c "import os,tempfile;print(os.path.realpath(tempfile.gettempdir()))"`). A failure that also fails on unmodified `main` on the same host is reported, not ignored.
 2. Run `pnpm quality:check`, `pnpm typecheck`, `pnpm architecture:check`, and `pnpm release:completion:check --base <task-base>`. CI runs the same typecheck against the supported Node minimum, so a passing focused test run does not prove it.
-3. Run `pnpm build` immediately before `pnpm release:manifest:update` and `pnpm release:sbom:update`, and commit the metadata separately. A manifest made from an older build fails CI.
+3. Run `pnpm build` immediately before `pnpm release:manifest:update` and `pnpm release:sbom:update`, and commit the metadata separately. A manifest made from an older build fails CI. A pull request with release intent can skip this step, because its preparation commit regenerates the metadata from a macOS build.
 4. Run `pnpm release:attestation:check` and the seven distribution smokes (`smoke:built-cli`, `smoke:built-hub`, `smoke:hub-distribution`, `smoke:built-node`, `smoke:node-distribution`, `smoke:packed-cli`, `smoke:registry-publish`).
 5. Get an adversarial review and re-judge each finding before fixing it.
 
 ## Wait for each release stage with the bundled script
 
-`scripts/wait-release.sh` always exits: 0 on success, 1 on failure, and 2 on timeout. Run each stage in the background and act on its exit:
+`scripts/wait-release.sh` always exits: 0 on success, 1 on failure, 2 on timeout, and 3 when the pull request head does not contain current `main`. Run each stage in the background and act on its exit:
 
-1. `scripts/wait-release.sh pr <number>`: the feature pull request checks. Merge on success.
-2. `scripts/wait-release.sh release-pr`: release preparation opens `lervo/release-cli` and dispatches candidate CI for that exact commit. Merge the release pull request on success. The pull-request-triggered runs on that branch show `action_required` without jobs; that is expected.
-3. `scripts/wait-release.sh tag <version>`: the `v<version>` tag, its CLI release matrix on any event, and the published GitHub Release.
+1. Prepare the release inside the feature pull request as soon as it is open, when it carries release intent: `gh pr edit <number> --add-label release`, or `gh workflow run release-pull-request.yml -f pull_request=<number>`. If the label does not exist yet, create it once with `gh label create release`. The workflow adds one `chore(cli): prepare release` commit on top of current `main` and dispatches full CI for that exact commit. Keep the intent commit separate from it; never squash them.
+2. `scripts/wait-release.sh pr <number>`: waits for that preparation run, then judges the current head. For a prepared head, the newest dispatched Code quality run for that exact SHA decides, because dispatched runs are not pull request checks; the run also posts its result as the `CI verification (lervo-ci-v1)` commit status. Other heads use the pull request checks. On exit 3, run `gh pr update-branch <number>` for a pull request without intent, or rerun preparation for a prepared one with `gh workflow run release-pull-request.yml -f pull_request=<number>`, then wait again. Freshness and verification judge one observed head, and a head that moves during the checks is judged again. Merge with a merge commit bound to the head the script printed (`gh pr merge <number> --merge --match-head-commit <sha>`), so main's tree equals the verified head and main reuses its CI.
+3. `scripts/wait-release.sh tag <version>`: the `v<version>` tag, its CLI release matrix on any event, and the published GitHub Release. Release preparation tags directly after main CI, because no intent remains on `main`.
+
+Use `scripts/wait-release.sh release-pr` only on the fallback path, when intent reached `main` unprepared. Release preparation then opens `lervo/release-cli` and dispatches candidate CI for that exact commit. Merge that release pull request on success. The pull-request-triggered runs on that branch show `action_required` without jobs; that is expected.
 
 Never write an ad hoc polling loop for these stages; earlier loops missed a finished stage by filtering the wrong event.
 
