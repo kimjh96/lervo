@@ -134,11 +134,12 @@ export async function resolveConvergenceCandidates(
         throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
       const receipts = [];
       for (const decision of review.decisions) {
-        await authority.assertCurrent();
-        context.assertSourceExact(state);
         const current = (await listCanonicalizationCandidates(root)).find(
           (item) => item.candidateId === decision.candidateId,
         );
+        await authority.assertCurrent();
+        // No other await separates this fence from the transition.
+        context.assertSourceExact(state);
         // A crashed application can already have written exactly this review; never repeat its transition.
         if (
           (current?.review?.reviewerId === review.reviewerAgentId &&

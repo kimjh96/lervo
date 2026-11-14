@@ -114,6 +114,7 @@ export async function reviewNormalizationBatch(
         observed = await reviewKnowledgeJson({ ...reviewInput, prompt: PROMPT });
       } catch (error) {
         if (!reviewTimedOut(error) || batch.paths.length < 2) throw error;
+        context.assertSourceExact(state);
         const smaller = await createStoredDocumentNormalizationSubsetCandidate({
           repositoryRoot: root,
           candidateId: candidate.candidateId,
@@ -183,6 +184,7 @@ export async function reviewNormalizationBatch(
           ceiling: authority.delegation.resourceCeilings.maximumDocuments,
           outcome: "success",
         });
+      if (accepted.length) context.assertSourceExact(state);
       const subset = accepted.length
         ? await createStoredDocumentNormalizationSubsetCandidate({
             repositoryRoot: root,

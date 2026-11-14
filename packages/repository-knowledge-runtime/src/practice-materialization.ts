@@ -203,15 +203,18 @@ export async function materializePractice(
         },
       ];
       const planId = `kstruct_${sha256(canonicalJson([candidate.candidateId, operations])).slice(7, 31)}`;
+      const documentLayoutPermit = await authorizeCurrentRepositoryDocumentLayout({
+        repositoryRoot: root,
+        operations,
+      });
+      // The root write, its link and the materialization event follow; another writer must refuse.
+      runtime.assertSourceExact(input);
       await applyDurableKnowledgeOperations({
         repositoryRoot: root,
         projectId: context.storage.manifest.projectId,
         planId,
         operations,
-        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
-          repositoryRoot: root,
-          operations,
-        }),
+        documentLayoutPermit,
         receipt: {
           candidateId: candidate.candidateId,
           draftHash: candidate.draftHash,

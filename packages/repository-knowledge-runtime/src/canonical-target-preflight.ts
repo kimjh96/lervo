@@ -34,13 +34,14 @@ export async function preflightCanonicalTargets(
     expectedHash: state.baseline.delegationHash,
     provider: context.provider,
   });
-  context.assertSourceExact(state);
   const targetRef = delegation.integrationTarget.ref;
   // Integrate and verify drafts on the reviewed working branch, not on a stale target tree.
   const integrated = await integratedCanonicalDrafts(
     context.storage.events,
     context.storage.artifacts,
   );
+  // Synchronization can move the integration ref; no other await separates it from this fence.
+  context.assertSourceExact(state);
   await synchronizeIntegrationTarget({
     repositoryRoot: root,
     ref: targetRef,

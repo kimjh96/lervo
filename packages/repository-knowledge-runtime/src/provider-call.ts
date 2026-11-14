@@ -158,7 +158,8 @@ export async function reviewKnowledgeJson(input: {
       if (result.usage === null)
         throw new KnowledgeConvergenceRuntimeError("knowledge_usage_unavailable");
       await input.authority.assertCurrent();
-      input.context.assertSourceCurrent(input.state);
+      // The observation artifact, the usage event and the review cache follow: exact.
+      input.context.assertSourceExact(input.state);
       const proof = await input.context.storage.artifacts.put(
         canonicalJson({
           schemaVersion: 1,

@@ -96,15 +96,18 @@ export async function retirePracticeSkill(
         { action: "delete" as const, path: skill.path, expectedCurrentHash: skill.versionHash },
       ];
       const planId = `kstruct_${sha256(`${skill.candidateId}:retire:${skill.versionHash}`).slice(7, 31)}`;
+      const documentLayoutPermit = await authorizeCurrentRepositoryDocumentLayout({
+        repositoryRoot: root,
+        operations,
+      });
+      // Root deletion, its commit and the retirement event follow; another writer must refuse them.
+      runtime.assertSourceExact(input);
       await applyDurableKnowledgeOperations({
         repositoryRoot: root,
         projectId: context.storage.manifest.projectId,
         planId,
         operations,
-        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
-          repositoryRoot: root,
-          operations,
-        }),
+        documentLayoutPermit,
         receipt: { candidateId: skill.candidateId, integration: result.integration },
         recordApplied: (receipt) =>
           recordConvergenceMaterialization(context.storage, {

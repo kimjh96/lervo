@@ -91,6 +91,7 @@ export async function classifyDeferredDocumentRoutes(
           untrustedSourceData: request,
         });
         const verdicts = interpretDocumentRouteClassificationResponse(request, observed.value);
+        context.assertSourceExact(state);
         await recordDocumentRouteClassifications({
           repositoryRoot: root,
           records: createDocumentRouteClassificationRecords({

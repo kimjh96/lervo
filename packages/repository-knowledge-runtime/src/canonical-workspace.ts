@@ -199,6 +199,7 @@ export async function sealCanonicalDrafts(
         const target = resolve(provision.path, deletion.path);
         if (!(await lstat(target)).isFile())
           throw new KnowledgeConvergenceRuntimeError("knowledge_source_kind_unsupported");
+        context.assertSourceExact(state);
         await unlink(target);
         extraPaths.push(deletion.path);
       }
@@ -207,6 +208,7 @@ export async function sealCanonicalDrafts(
         const target = resolve(dirname(resolve(provision.path, link.path)), link.target);
         if (!target.startsWith(`${provision.path}/`))
           throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
+        context.assertSourceExact(state);
         await symlink(link.target, resolve(provision.path, link.path));
         extraPaths.push(link.path);
       }
@@ -233,7 +235,8 @@ export async function sealCanonicalDrafts(
         )
           throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
         await authority.assertCurrent();
-        context.assertSourceCurrent(state);
+        // The draft write and the workspace commit are durable; another writer must refuse them.
+        context.assertSourceExact(state);
         await safeDirectory(provision.path, dirname(resolve(provision.path, draft.path)));
         const file = await open(
           resolve(provision.path, draft.path),
@@ -278,7 +281,8 @@ export async function sealCanonicalDrafts(
         }),
       );
       await authority.assertCurrent();
-      context.assertSourceCurrent(state);
+      // The seal plan becomes a durable checkpoint that a resumed seal applies.
+      context.assertSourceExact(state);
       return planWorkspaceSeal({
         repositoryRoot: context.storage.paths.repositoryRoot,
         workspacePath: provision.path,
