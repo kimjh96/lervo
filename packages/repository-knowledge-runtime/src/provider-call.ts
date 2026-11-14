@@ -5,7 +5,12 @@ import {
   createNoCapabilityProviderJsonRunner,
   KnowledgeProviderAvailabilityError,
 } from "@lervo/repository-knowledge-compiler";
-import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import {
+  canonicalJson,
+  sha256,
+  withProcessCostScope,
+  type KnowledgeConvergenceInput,
+} from "@lervo/repository-knowledge";
 
 import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
@@ -43,9 +48,9 @@ export async function withKnowledgeProviderAdmission<T>(input: {
   const timer = setInterval(() => {
     if (observing) return;
     observing = true;
-    void input.authority
-      .assertCurrent()
-      .then(() => context.assertSource(input.state))
+    void withProcessCostScope("provider_poll", () =>
+      input.authority.assertCurrent().then(() => context.assertSource(input.state)),
+    )
       .catch((error: unknown) => controller.abort(error))
       .finally(() => {
         observing = false;

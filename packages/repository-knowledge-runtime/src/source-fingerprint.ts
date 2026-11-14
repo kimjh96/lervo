@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
+import { canonicalJson, recordSynchronousGitProcess, sha256 } from "@lervo/repository-knowledge";
 import type { OutboxStore } from "@lervo/storage-contract";
 
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
@@ -21,6 +21,7 @@ export interface ConvergenceSourceFingerprint {
 }
 
 function git(root: string, args: string[]): string {
+  recordSynchronousGitProcess(args);
   return execFileSync("git", ["--no-optional-locks", "-C", root, ...args], {
     encoding: "utf8",
     maxBuffer: 64 * 1024 * 1024,

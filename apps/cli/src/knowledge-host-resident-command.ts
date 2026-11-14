@@ -52,7 +52,8 @@ export async function runHostKnowledgeResidentsCommand(
   const stop = startHostKnowledgeResidents({
     provider: fallback,
     launch,
-    onCycle: (root, result) => io.stdout(`${JSON.stringify({ repositoryRoot: root, result })}\n`),
+    onCycle: (root, result, cost) =>
+      io.stdout(`${JSON.stringify({ repositoryRoot: root, result, cost })}\n`),
     onFailure: (root, error) => io.stderr(knowledgeWorkerFailureLine(error, root)),
   });
   try {

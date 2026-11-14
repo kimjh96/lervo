@@ -1,6 +1,7 @@
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import type { ProcessCostMeasurement } from "@lervo/repository-knowledge";
 import { afterEach, expect, it } from "vitest";
 
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
@@ -73,6 +74,7 @@ it(
     const f = await fixture();
     fixtures.push(f);
     const cycles: unknown[] = [];
+    const costs: ProcessCostMeasurement[] = [];
     const failures: unknown[] = [];
     const stop = startAutonomousKnowledgeWorker({
       storage: f.storage,
@@ -81,7 +83,10 @@ it(
       executable: f.executable,
       admissionDirectory: f.admissionDirectory,
       subscribe: () => () => undefined,
-      onCycle: (result) => cycles.push(result),
+      onCycle: (result, cost) => {
+        cycles.push(result);
+        costs.push(cost);
+      },
       onFailure: (error) => failures.push(error),
       intervalMilliseconds: 100,
       reconcileCeilingMilliseconds: 5_000,
@@ -103,6 +108,18 @@ it(
       await writeFile(resolve(f.root, "README.md"), "# Repository\n\nEdited.\n");
       await until(() => cycles.length > settled);
       expect(failures).toEqual([]);
+      // Each completed cycle reports its own Git processes by scope, with no path or argument.
+      expect(costs.some((cost) => cost.scopes.convergence?.calls === 1)).toBe(true);
+      for (const cost of costs) {
+        expect(cost.scopes.fingerprint!.gitProcesses).toEqual({ "rev-parse": 1, status: 1 });
+        expect(cost.gitProcesses).toBe(
+          Object.values(cost.scopes)
+            .flatMap((scope) => Object.values(scope.gitProcesses))
+            .reduce((sum, count) => sum + count, 0),
+        );
+        expect(cost.wallMilliseconds).toBeGreaterThan(0);
+        expect(JSON.stringify(cost)).not.toContain(f.root);
+      }
     } finally {
       await stop();
     }

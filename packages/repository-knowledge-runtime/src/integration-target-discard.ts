@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { committedBlobHashes } from "./committed-blob-hashes.js";
 import { LERVO_KNOWLEDGE_COMMITTER_EMAIL } from "./integration-target-absorption.js";
 
 const execute = promisify(execFile);
@@ -40,16 +41,16 @@ export async function restoreDiscardedIntegratedDrafts(input: {
   ref: string;
   target: string;
   head: string;
-  blobHash: (commit: string, path: string) => Promise<string | null>;
   integrated: (path: string, contentHash: string) => boolean;
 }): Promise<string[]> {
   const root = input.repositoryRoot;
   const changed = (await git(root, ["diff", "--name-only", "-z", input.head, input.target]))
     .split("\0")
     .filter(Boolean);
+  const drafts = await committedBlobHashes(root, input.target, changed);
   const discarded: string[] = [];
   for (const path of changed) {
-    const draft = await input.blobHash(input.target, path);
+    const draft = drafts.get(path) ?? null;
     if (draft === null || !input.integrated(path, draft)) continue;
     if ((await workingTreeHash(root, path)) !== draft) discarded.push(path);
   }

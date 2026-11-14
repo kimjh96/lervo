@@ -10,6 +10,7 @@ import {
   processKnowledgeConvergence,
   processRepositoryKnowledgeJobs,
   requeueStalledRepositoryKnowledgeJobs,
+  withProcessCostScope,
   type KnowledgeConvergenceStatus,
   type RepositoryKnowledgeJobOutcome,
 } from "@lervo/repository-knowledge";
@@ -114,19 +115,23 @@ export async function runAutonomousKnowledgeWorker(input: {
 > {
   const root = input.storage.paths.repositoryRoot;
   // Transcript evidence is host-local observation; it requires no provider call or convergence authority.
-  await withRepositoryKnowledgeWorkerLock(root, async () => {
-    // Keep resident parsing lazy: hooks import the package's observation-only queue exports.
-    const { runTerminalSkillObservationCycle } = await import("./terminal-skill-stage.js");
-    return runTerminalSkillObservationCycle({ storage: input.storage, now: new Date() });
-  }).catch(() => {});
+  await withProcessCostScope("terminal_skills", () =>
+    withRepositoryKnowledgeWorkerLock(root, async () => {
+      // Keep resident parsing lazy: hooks import the package's observation-only queue exports.
+      const { runTerminalSkillObservationCycle } = await import("./terminal-skill-stage.js");
+      return runTerminalSkillObservationCycle({ storage: input.storage, now: new Date() });
+    }),
+  ).catch(() => {});
   const signal = input.signal ?? new AbortController().signal;
   const liveWorkPending =
     input.liveWorkPending ??
     (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now()));
-  await compactProjectConvergenceArtifacts(
-    input.storage,
-    async () =>
-      signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
+  await withProcessCostScope("artifact_retention", () =>
+    compactProjectConvergenceArtifacts(
+      input.storage,
+      async () =>
+        signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
+    ),
   ).catch(() => undefined);
   const providerQuantum = {
     remaining: input.maximumProviderCallsPerTurn ?? Number.MAX_SAFE_INTEGER,
@@ -144,20 +149,22 @@ export async function runAutonomousKnowledgeWorker(input: {
     now: () => new Date(),
   };
   const ownerTurnWork = () =>
-    runOwnerTurnCaptureWork({
-      storage: input.storage,
-      provider: input.provider,
-      ...(input.executable === undefined ? {} : { executable: input.executable }),
-      ...(input.admissionDirectory === undefined
-        ? {}
-        : { admissionDirectory: input.admissionDirectory }),
-      signal,
-      providerQuantum,
-      liveWorkPending,
-      ...(input.instructionCandidateTransport === undefined
-        ? {}
-        : { transport: input.instructionCandidateTransport }),
-    });
+    withProcessCostScope("owner_turns", () =>
+      runOwnerTurnCaptureWork({
+        storage: input.storage,
+        provider: input.provider,
+        ...(input.executable === undefined ? {} : { executable: input.executable }),
+        ...(input.admissionDirectory === undefined
+          ? {}
+          : { admissionDirectory: input.admissionDirectory }),
+        signal,
+        providerQuantum,
+        liveWorkPending,
+        ...(input.instructionCandidateTransport === undefined
+          ? {}
+          : { transport: input.instructionCandidateTransport }),
+      }),
+    );
   const owner = input.owner === undefined ? null : await input.owner();
   if (owner !== null && owner.role !== "owner") {
     // ADR-0467: assessing this host's own owner turns is not convergence work, so it runs here too.
@@ -228,11 +235,13 @@ export async function runAutonomousKnowledgeWorker(input: {
     if (transaction === "recovery_required")
       return { outcomes: [], convergence: convergenceRecoveryStatus(input.storage) };
     if (await reserveFreshnessPreparation(root)) {
-      const prepared = await runDocumentFreshnessCycle({
-        context: freshnessContext,
-        effects: "prepare",
-        maximumCandidates: 1,
-      });
+      const prepared = await withProcessCostScope("freshness_prepare", () =>
+        runDocumentFreshnessCycle({
+          context: freshnessContext,
+          effects: "prepare",
+          maximumCandidates: 1,
+        }),
+      );
       if (
         prepared.status === "completed" &&
         (context.providerQuantum!.remaining <= 0 ||
@@ -248,48 +257,58 @@ export async function runAutonomousKnowledgeWorker(input: {
         };
       }
     }
-    await compactConvergenceWorkspaces(input.storage);
-    await compactConvergenceWorkforce(input.storage);
-    await requeueStalledRepositoryKnowledgeJobs({
-      repositoryRoot: root,
-      events: input.storage.events,
+    await withProcessCostScope("retention", async () => {
+      await compactConvergenceWorkspaces(input.storage);
+      await compactConvergenceWorkforce(input.storage);
+      await requeueStalledRepositoryKnowledgeJobs({
+        repositoryRoot: root,
+        events: input.storage.events,
+      });
     });
     // Owner-turn capture (ADR-0467) runs first: it is small, bounded per cycle, and its result is
     // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
     const ownerTurns = await ownerTurnWork();
     // ADR-0545: the owner stated these rules, so no review command waits on the owner or an agent.
     // A failure leaves every candidate stored for the next cycle and blocks nothing.
-    await input.applyOwnerStatedInstructions?.().catch(() => undefined);
-    await runPracticeLearningCycle(practiceContext, "write");
+    await withProcessCostScope("owner_rules", async () =>
+      input.applyOwnerStatedInstructions?.(),
+    ).catch(() => undefined);
+    await withProcessCostScope("practice", () =>
+      runPracticeLearningCycle(practiceContext, "write"),
+    );
     // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
-    const outcomes = (await changeReviewDeferred(context))
-      ? []
-      : await processRepositoryKnowledgeJobs({
-          repositoryRoot: root,
-          events: input.storage.events,
-          artifacts: input.storage.artifacts,
-          workerId: input.workerId,
-          maximumJobs: 1,
-          host: createChangeReviewHost(context),
-        });
+    const outcomes = await withProcessCostScope("change_review", async () =>
+      (await changeReviewDeferred(context))
+        ? []
+        : processRepositoryKnowledgeJobs({
+            repositoryRoot: root,
+            events: input.storage.events,
+            artifacts: input.storage.artifacts,
+            workerId: input.workerId,
+            maximumJobs: 1,
+            host: createChangeReviewHost(context),
+          }),
+    );
     const delegation = await loadConvergenceDelegation(root);
     let convergence: KnowledgeConvergenceStatus;
     try {
-      convergence = await processKnowledgeConvergence({
-        events: input.storage.events,
-        artifacts: input.storage.artifacts,
-        workerId: input.workerId,
-        writableEventSchemaVersion: input.storage.writableEventSchemaVersion ?? 1,
-        host: createConvergenceRuntimeHost(context),
-        maximumStages: Math.min(
-          input.maximumStages ?? 8,
-          delegation?.delegation.resourceCeilings.maximumStages ?? 8,
-        ),
-        shouldYield: async () =>
-          context.providerQuantum!.remaining <= 0 ||
-          Date.now() - turnStartedAt >= 30_000 ||
-          ((await input.shouldYield?.()) ?? false),
-      });
+      convergence = await withProcessCostScope("convergence", () =>
+        processKnowledgeConvergence({
+          events: input.storage.events,
+          artifacts: input.storage.artifacts,
+          workerId: input.workerId,
+          writableEventSchemaVersion: input.storage.writableEventSchemaVersion ?? 1,
+          host: createConvergenceRuntimeHost(context),
+          maximumStages: Math.min(
+            input.maximumStages ?? 8,
+            delegation?.delegation.resourceCeilings.maximumStages ?? 8,
+          ),
+          shouldYield: async () =>
+            context.providerQuantum!.remaining <= 0 ||
+            Date.now() - turnStartedAt >= 30_000 ||
+            ((await input.shouldYield?.()) ?? false),
+        }),
+      );
     } catch (error) {
       // Another process's transaction can begin while discovery reads knowledge currency.
       if ((error as { code?: unknown } | null)?.code !== "knowledge_recovery_required") throw error;
@@ -304,9 +323,9 @@ export async function runAutonomousKnowledgeWorker(input: {
     // Freshness runs after intake and convergence (ADR-0463) and only while convergence is parked,
     // so its commit never lands inside an ADR-0465 batch boundary; its failure never blocks them.
     const freshness: DocumentFreshnessCycleResult = documentFreshnessMayRun(convergence)
-      ? await runDocumentFreshnessCycle({
-          context: freshnessContext,
-        }).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }))
+      ? await withProcessCostScope("freshness", () =>
+          runDocumentFreshnessCycle({ context: freshnessContext }),
+        ).catch((): DocumentFreshnessCycleResult => ({ status: "unavailable" }))
       : { status: "yielded" };
     return { outcomes, convergence, freshness, ownerTurns };
   });

@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { convergenceGit } from "./canonical-workspace.js";
+import { committedBlobHashes } from "./committed-blob-hashes.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import {
   absorbIntegrationTarget,
@@ -18,15 +18,7 @@ export async function integrationTargetBlobHash(
   commit: string,
   path: string,
 ): Promise<string | null> {
-  try {
-    const { stdout } = await execute("git", ["-C", root, "cat-file", "blob", `${commit}:${path}`], {
-      encoding: "buffer",
-      maxBuffer: 64 * 1024 * 1024,
-    });
-    return `sha256:${createHash("sha256").update(stdout).digest("hex")}`;
-  } catch {
-    return null;
-  }
+  return (await committedBlobHashes(root, commit, [path])).get(path) ?? null;
 }
 
 /** The commit a ref names, or `null` when this repository has no such ref. */
@@ -98,7 +90,6 @@ export async function synchronizeIntegrationTarget(input: {
       ref: input.ref,
       target,
       head,
-      blobHash: (commit, path) => integrationTargetBlobHash(root, commit, path),
       integrated: input.integrated,
     });
     return restored.length === 0 ? "unchanged" : "restored";
@@ -111,8 +102,9 @@ export async function synchronizeIntegrationTarget(input: {
   const changed = (await convergenceGit(root, ["diff", "--name-only", "-z", base, target]))
     .split("\0")
     .filter(Boolean);
+  const hashes = await committedBlobHashes(root, target, changed);
   for (const path of changed) {
-    const hash = await integrationTargetBlobHash(root, target, path);
+    const hash = hashes.get(path) ?? null;
     if (hash === null || !input.integrated(path, hash)) {
       const absorption = await inspectIntegrationTargetAbsorption(root, target, head);
       if (absorption === null) return "unchanged";

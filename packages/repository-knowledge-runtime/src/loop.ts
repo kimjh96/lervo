@@ -1,4 +1,9 @@
 import { watchProjectEventChanges, type ProjectStorage } from "@lervo/project-storage";
+import {
+  measureProcessCost,
+  withProcessCostScope,
+  type ProcessCostMeasurement,
+} from "@lervo/repository-knowledge";
 import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
@@ -65,7 +70,8 @@ export function startAutonomousKnowledgeWorker(input: {
   executable?: string;
   admissionDirectory?: string;
   subscribe?: (notify: () => void) => () => void;
-  onCycle?: (result: WorkerResult) => void;
+  /** `cost` covers the fence observation and the full cycle, attributed by scope. */
+  onCycle?: (result: WorkerResult, cost: ProcessCostMeasurement) => void;
   /**
    * Read-only projections run after every observation, including skipped and failed cycles, and
    * on their own cadence so a long cycle never leaves the projection older than its display window.
@@ -220,21 +226,29 @@ export function startAutonomousKnowledgeWorker(input: {
     // Continuity is rate-limited internally and never blocks the cycle; its findings are state.
     await reconcileContinuity();
     const observedOwner = await observeOwnership();
-    const cycle = await runResidentCycle({
-      repositoryRoot: root,
-      previous,
-      now: Date.now,
-      ceilingMilliseconds: ceiling,
-      observe: () =>
-        evaluationFingerprint(
-          ownershipFingerprint(
-            convergenceSourceFingerprint({ repositoryRoot: root, events: input.storage.events }),
-            observedOwner,
+    const observedPrevious = previous;
+    const { value: cycle, cost } = await measureProcessCost(() =>
+      runResidentCycle({
+        repositoryRoot: root,
+        previous: observedPrevious,
+        now: Date.now,
+        ceilingMilliseconds: ceiling,
+        observe: () =>
+          withProcessCostScope("fingerprint", () =>
+            evaluationFingerprint(
+              ownershipFingerprint(
+                convergenceSourceFingerprint({
+                  repositoryRoot: root,
+                  events: input.storage.events,
+                }),
+                observedOwner,
+              ),
+              convergenceEvaluationContract(),
+            ),
           ),
-          convergenceEvaluationContract(),
-        ),
-      runFull,
-    });
+        runFull,
+      }),
+    );
     if (cycle.outcome.kind === "skipped") {
       const state =
         cycle.state.lastResult === "waiting"
@@ -258,7 +272,7 @@ export function startAutonomousKnowledgeWorker(input: {
             ? nonOwnerHealth(result.owner).reason
             : null,
       );
-      input.onCycle?.(result);
+      input.onCycle?.(result, cost);
     } else {
       report("attention", "knowledge_resident_cycle_failed");
       if (!signal.aborted) input.onFailure(cycle.outcome.error);

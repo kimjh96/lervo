@@ -17,6 +17,15 @@ export * from "./agent-artifact-summary.js";
 export * from "./apply.js";
 export * from "./artifact-paths.js";
 export * from "./git-ignored-paths.js";
+export {
+  measureProcessCost,
+  observeProcessCost,
+  recordSynchronousGitProcess,
+  withProcessCostScope,
+  type ProcessCostMeasurement,
+  type ProcessCostScope,
+  type ProcessCostSnapshot,
+} from "./process-cost-observation.js";
 export * from "./canonicalization-candidate.js";
 export * from "./canonicalization-outcome.js";
 export * from "./canonicalization-responsibility.js";

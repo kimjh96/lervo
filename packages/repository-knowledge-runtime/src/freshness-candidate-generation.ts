@@ -8,6 +8,7 @@ import {
   filesystemDocumentFreshnessOracle,
   freshnessReferenceMissing,
   parseDocumentFreshnessProposal,
+  recordSynchronousGitProcess,
   reviewIntervalOnlyFreshnessCandidate,
   stableId,
   type DocumentFreshnessCandidateV1,
@@ -52,6 +53,7 @@ function inboundMarkdown(
   root: string,
   documentPath: string,
 ): Array<{ path: string; content: string }> {
+  recordSynchronousGitProcess(["ls-files"]);
   const listed = execFileSync("git", ["-C", root, "ls-files", "-z", "--", "*.md"], {
     encoding: "utf8",
     maxBuffer: 16 * 1024 * 1024,

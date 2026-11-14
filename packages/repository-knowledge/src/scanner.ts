@@ -1,5 +1,6 @@
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { extractUnits, supplementalEvidenceUnit, unit } from "./repository-source-units.js";
+import { withProcessCostScope } from "./process-cost-observation.js";
 import { observedOnlySource } from "./scan-retention.js";
 import {
   extractSkillContractUnitDescriptors,
@@ -27,7 +28,7 @@ export async function scanRepositoryKnowledge(
 ): Promise<RepositoryKnowledgeScan> {
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await scanRepositoryKnowledgeOnce(input);
+      return await withProcessCostScope("scan", () => scanRepositoryKnowledgeOnce(input));
     } catch (error) {
       if (
         attempt >= REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS ||

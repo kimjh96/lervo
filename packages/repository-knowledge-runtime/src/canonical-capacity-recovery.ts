@@ -2,7 +2,8 @@ import { sha256 } from "@lervo/repository-knowledge";
 import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import { convergenceGit } from "./canonical-workspace.js";
 import { restoreDiscardedIntegratedDrafts, workingTreeHash } from "./integration-target-discard.js";
-import { integrationTargetBlobHash, resolveIntegrationTarget } from "./integration-target-sync.js";
+import { resolveIntegrationTarget } from "./integration-target-sync.js";
+import { committedBlobHashes } from "./committed-blob-hashes.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
 /** Retire only exact, proven ref drafts that never reached root apply, using ADR-0530's CAS restoration. */
@@ -18,10 +19,15 @@ export async function retireCapacityBlockedRefDrafts(input: {
   await input.assertCurrent();
   if ((await resolveIntegrationTarget(root, input.ref)) !== input.target)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
+  const targetHashes = await committedBlobHashes(
+    root,
+    input.target,
+    input.drafts.map((draft) => draft.path),
+  );
   for (const draft of input.drafts) {
     if (
       (await workingTreeHash(root, draft.path)) !== draft.beforeHash ||
-      (await integrationTargetBlobHash(root, input.target, draft.path)) !== sha256(draft.content)
+      (targetHashes.get(draft.path) ?? null) !== sha256(draft.content)
     )
       throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   }
@@ -33,7 +39,6 @@ export async function retireCapacityBlockedRefDrafts(input: {
     ref: input.ref,
     target: input.target,
     head,
-    blobHash: (commit, path) => integrationTargetBlobHash(root, commit, path),
     integrated: (path, hash) => drafts.get(path) === hash,
   }).catch(async (error: unknown) => {
     if ((await resolveIntegrationTarget(root, input.ref)) !== input.target)
