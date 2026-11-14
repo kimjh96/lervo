@@ -217,13 +217,13 @@
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12724722,
-        "sha256": "sha256:fd6e9b3bd620ad43b616537ade6e4832bc93fb3ff44f1f8efe7368a53109d45f"
+        "size": 12729478,
+        "sha256": "sha256:4a8032eabf3cd075ad3077a2d03dd838c9994d73559d7fd66a697cddf2dae48b"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:d2612382570f1c277acbf8f92180e249a6abc829de2e08f33c85f310628b6eab"
+        "sha256": "sha256:e139fb35358182e4c8c0384d9520f409823710a792b8c7d1f721f910a9524c35"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -237,7 +237,7 @@
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:08b14feb03bf97f7182215f954657c95ed939efca1284120a8d9b11ef1765a3e"
+    "contentDigest": "sha256:b9a54aaaf60bf9c2444ede25388365c24d0aa405665ffb9e008ecd33a597dbf5"
   },
   "dependencies": {
     "portable": [
@@ -350,5 +350,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:acf3ea7f23bdac309dc3cfa4a038eaff23d16eac46c192dca65be40ef3bf458a"
+  "artifactDigest": "sha256:1c5dfeba82b69b545bdfd5d9c5cdd5240fb08b2fc77e3a3ae57d23fa9b4399e8"
 }
