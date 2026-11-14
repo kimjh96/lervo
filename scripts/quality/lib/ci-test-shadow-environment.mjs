@@ -4,9 +4,10 @@ import { resolve } from "node:path";
 /**
  * Finds closures that may read a run-unique environment variable (ADR-0565, Stage 2). G holds
  * every other variable, so such a read is the one environment input a reuse key cannot cover. A
- * process reads a variable by its name, so a file is reusable only when none of the names occurs
- * in its test file, its recorded inputs or the installed packages it loaded. A source or package
- * that cannot be read in full counts as naming them.
+ * process reads a variable by its name, so a file is reusable only when no name occurs where code
+ * could read it in its test file, its recorded inputs or the installed packages it loaded. A
+ * source or package that cannot be read in full counts as naming them. A name built at run time,
+ * or a scan of the whole environment, is not found; that is a known gap.
  */
 const maximumPackageBytes = 256 * 1024 * 1024;
 const maximumPackageFiles = 50_000;
@@ -25,11 +26,29 @@ export function ciTestDependencyDirectory(key) {
 
 /** `names`: the run-unique variable names. Returns memoized `source(path)` and `dependency(key)`. */
 export function createCiTestEnvironmentScan(repositoryRoot, names) {
-  // A name counts as a whole token, so `MY_GITHUB_SHA_LIKE` does not name `GITHUB_SHA`.
-  const pattern = new RegExp(`(?<![A-Za-z0-9_$])(?:${names.join("|")})(?![A-Za-z0-9_$])`, "u");
+  // In text, a name counts where code can read a variable by it: quoted, as a member, in a shell
+  // expansion, or destructured from an environment object. A constant that merely shares the
+  // name, such as `const INVOCATION_ID = /.../`, does not. Binary files hold strings without
+  // quotes, so in them any whole token counts.
+  const alternatives = names.join("|");
+  const token = `(?<![A-Za-z0-9_$])(?:${alternatives})(?![A-Za-z0-9_$])`;
+  const textPattern = new RegExp(
+    [
+      `["'\`](?:${alternatives})["'\`]`,
+      `\\.(?:${alternatives})(?![A-Za-z0-9_$])`,
+      `\\$\\{?(?:${alternatives})(?![A-Za-z0-9_])`,
+      `%(?:${alternatives})%`,
+      `\\{[^{}]*${token}[^{}]*\\}\\s*=[^;\\n]*\\benv\\b`,
+    ].join("|"),
+    "u",
+  );
+  const binaryPattern = new RegExp(token, "u");
   const needles = names.map((name) => Buffer.from(name));
-  const mentions = (bytes) =>
-    needles.some((needle) => bytes.includes(needle)) && pattern.test(bytes.toString("latin1"));
+  const mentions = (bytes) => {
+    if (!needles.some((needle) => bytes.includes(needle))) return false;
+    const pattern = bytes.includes(0) ? binaryPattern : textPattern;
+    return pattern.test(bytes.toString("latin1"));
+  };
   const sources = new Map();
   const packages = new Map();
 

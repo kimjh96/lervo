@@ -139,13 +139,25 @@ it("reruns a closure that names a run-unique variable in its sources", () => {
       shadow.historyRun({ files: [shadow.record({ inputs: ["packages/core/src/ci.ts"] })] }),
     ]),
   ).toMatchObject({ reason: "run_environment_read", detail: "packages/core/src/ci.ts" });
-  // Only a whole token names a variable.
-  shadow.write("packages/core/src/near.ts", "export const MY_GITHUB_SHA_LIKE = 1;\n");
-  expect(
-    shadow.predict([
-      shadow.historyRun({ files: [shadow.record({ inputs: ["packages/core/src/near.ts"] })] }),
-    ]).reuse,
-  ).toBe(true);
+  const reusedWith = (source, bytes = source) => {
+    shadow.write("packages/core/src/probe.ts", bytes);
+    return shadow.predict([
+      shadow.historyRun({ files: [shadow.record({ inputs: ["packages/core/src/probe.ts"] })] }),
+    ]).reuse;
+  };
+  // Only a name where code can read a variable counts: not a longer token or a local constant.
+  expect(reusedWith("export const MY_GITHUB_SHA_LIKE = 1;\n")).toBe(true);
+  expect(reusedWith("const INVOCATION_ID = /^rin_/u;\nINVOCATION_ID.test(id);\n")).toBe(true);
+  for (const read of [
+    'process.env["INVOCATION_ID"];\n',
+    "const { INVOCATION_ID } = process.env;\n",
+    "const env = process.env; env?.JOURNAL_STREAM;\n",
+    'echo "${GITHUB_SHA}"\n',
+    "echo %GITHUB_RUN_ID%\n",
+  ])
+    expect(reusedWith(read)).toBe(false);
+  // Binaries hold strings without quotes, so any whole token there counts.
+  expect(reusedWith("", Buffer.from("\0\0GITHUB_SHA\0"))).toBe(false);
 });
 
 it("reruns a closure whose loaded package names a run-unique variable or cannot be scanned", () => {

@@ -4,7 +4,10 @@ import { dirname, resolve } from "node:path";
 
 import { afterEach, beforeEach, expect, it } from "vitest";
 
-import { computeCiTestToolchainDigest } from "../lib/ci-test-toolchain-digest.mjs";
+import {
+  computeCiTestToolchainDigest,
+  observeCiTestToolchain,
+} from "../lib/ci-test-toolchain-digest.mjs";
 
 let root;
 const environment = {
@@ -72,8 +75,19 @@ it("is stable for the same toolchain and ignores the CLI version and workflow la
   await write("scripts/quality/lib/ci-test-shadow-prediction.mjs", "// changed shadow predictor\n");
   expect((await digest()).digest).toBe(first.digest);
   // Variables that differ on every run or revision stay out, so G can match between runs.
-  expect((await digest({ GITHUB_RUN_ID: "1", GITHUB_SHA: "a" })).digest).toBe(
-    (await digest({ GITHUB_RUN_ID: "2", GITHUB_SHA: "b" })).digest,
+  const perRun = (value) => ({
+    GITHUB_RUN_ID: value,
+    GITHUB_SHA: value,
+    ACTIONS_ORCHESTRATION_ID: value,
+    INVOCATION_ID: value,
+    JOURNAL_STREAM: value,
+    SYSTEMD_EXEC_PID: value,
+    MEMORY_PRESSURE_WATCH: value,
+  });
+  expect((await digest(perRun("1"))).digest).toBe((await digest(perRun("2"))).digest);
+  // The cloud a runner came from is a real difference, so it stays in G.
+  expect((await digest({ HCA_CLOUD_PROVIDER: "AWS" })).digest).not.toBe(
+    (await digest({ HCA_CLOUD_PROVIDER: "Azure" })).digest,
   );
   expect(JSON.stringify(await digest({ SECRET_VALUE: "do-not-store" }))).not.toContain(
     "do-not-store",
@@ -103,4 +117,14 @@ it("changes with every toolchain component", async () => {
   changed.push((await digest({ NODE_OPTIONS: "--conditions=development" })).digest);
   changed.push((await digest({ GITHUB_REF: "refs/heads/feature" })).digest);
   expect(new Set([base, ...changed]).size).toBe(changed.length + 1);
+});
+
+it("observes the kernel and every variable's value digest outside G, withholding credentials", () => {
+  const observed = observeCiTestToolchain({ PATH: "/usr/bin", GH_TOKEN: "do-not-store" });
+  expect(observed.kernel).toEqual(expect.any(String));
+  expect(observed.environmentValues).toEqual({
+    GH_TOKEN: "withheld",
+    PATH: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+  });
+  expect(JSON.stringify(observed)).not.toContain("/usr/bin");
 });

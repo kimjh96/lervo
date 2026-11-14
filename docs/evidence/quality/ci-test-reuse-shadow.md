@@ -62,3 +62,22 @@ Writes need version 2 ledgers. Shards 1 and 2 of the branch ran on WSL with Node
 | Shard 2 (273 files passed)           | 119 of 317        | 91 (29%)        | 175                   |
 
 `host_state` fell to 13 and 11 files per shard, from about 43, with the capability-root isolation.
+
+## Child processes and runner images (2026-11-15)
+
+**WSL umask.** The WSL shell used umask `0002`, so fixture directories were group-writable and failed the repository safety checks: about 41 files per shard failed before reaching their children. With umask `022`, as on hosted runners, 0 to 3 files per shard fail. The shard measurements above ran under `0002` and overstate reuse; the hosted ledgers of run 43635404608, with 5 complete closures in 1,271 files, agree with the corrected runs.
+
+**Three files.** `ci-test-ledger-reporter.test.mjs` now starts its recorder-free nested Vitest in its scratch directory with its cache there. `runtime-inspection.test.ts` runs from a temporary directory. The first test of `app-server-client.test.ts` passes the recorder's own variables in its explicit environment. In the corrected runs, the first two no longer start unseen writers. The app-server children still do: they inherit the recorder but are killed before their first spool, so no record exists.
+
+| Shard (umask `022`, all four on WSL) | Main: complete / reuse | Branch: complete / reuse | Files starting unseen writers |
+| ------------------------------------ | ---------------------- | ------------------------ | ----------------------------- |
+| 1                                    | 0 / 0                  | 0 / 0                    | 18 → 17                       |
+| 2                                    | 6 / 0                  | 0 / 0                    | 16 → 15                       |
+| 3                                    | 0 / 0                  | 0 / 0                    | 16 → 16                       |
+| 4                                    | 0 / 0                  | 0 / 0                    | 17 → 17                       |
+
+Main's native ledger in shard 2 counted 6 complete closures that the branch's rule, which no longer trusts an inherited child without a record in the shard, does not. Each shard has 15 to 18 files that start an unseen writer in the repository, the first 20 to 140 seconds in. Most are the provider fixtures of the `apps/node-runtime` supervision tests, about 25 files, followed by `ps` in the upgrade tests, `pnpm` in release tests, and `chmod`, `esbuild`, `tar`, `mv` and `bash`.
+
+**Runner images.** In run 43619547245, build `20261111.370.1` ran on Azure in centralus and `20261111.127.1` on AWS in us-west-2, by the job logs. Only `ubuntu24/20261111.370` has a published release and software manifest, so the two builds' tools cannot be compared. The ledgers record equal Node, pnpm, Git, lockfile and configuration. The environment differs in `HCA_CLOUD_PROVIDER`, in `SGX_AESM_ADDR`, which only Azure sets, and in `ImageVersion`. G keeps all three, and the kernel release is now observed outside G.
+
+**Environment.** In run 43635404608, every shard had another environment digest, even the three on one build, because systemd and the runner set per-process and per-job values. Those five variables are now excluded, and each value's digest is recorded outside G for the next comparison.

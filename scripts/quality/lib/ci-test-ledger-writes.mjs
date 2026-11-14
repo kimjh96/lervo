@@ -72,8 +72,12 @@ function gitInvocation(args) {
 const outsideRepository = (operand) =>
   operand.startsWith("<") && operand !== "<unknown>" && !operand.startsWith("<package:");
 
-/** Whether a child without its own record may have written inside the repository. */
-function blindRepositoryChild(child) {
+/**
+ * Whether a child may have written inside the repository without the shard seeing it. `observed`
+ * says whether the shard holds the child's own complete record; a child that inherited the
+ * recorder but spooled elsewhere, or not at all, is as unseen as one without it.
+ */
+function blindRepositoryChild(child, observed) {
   if (child.bootstrap || child.failed || String(child.cwd).startsWith("<")) return false;
   if (child.command === "git") {
     // The recorded tail holds at most eight arguments, so a longer command may hide its subcommand.
@@ -88,7 +92,7 @@ function blindRepositoryChild(child) {
       invocation.operands.every(outsideRepository)
     );
   }
-  return !child.inherited;
+  return !observed;
 }
 
 /**
@@ -97,8 +101,11 @@ function blindRepositoryChild(child) {
  */
 const orderingMarginMs = 1000;
 
-/** `records`: spool records with `file`, `writes`, `notes`, `startedAt` and `children`. */
-export function createCiTestShardWrites(records) {
+/**
+ * `records`: spool records with `file`, `writes`, `notes`, `startedAt` and `children`.
+ * `observed(record, child)`: whether the shard holds that child's own complete record.
+ */
+export function createCiTestShardWrites(records, observed = () => false) {
   const owners = new Map();
   const unseenWriters = [];
   for (const record of records) {
@@ -110,10 +117,14 @@ export function createCiTestShardWrites(records) {
     // A record that dropped writes past its bound could have written anything, from its start, and
     // so could a child without a record of its own, such as a shell, working in the repository.
     if ((record.notes ?? []).includes("unobserved_write") || record.writesDropped)
-      unseenWriters.push({ owner, from: record.startedAt ?? -Infinity });
+      unseenWriters.push({ owner, from: record.startedAt ?? -Infinity, writer: "process" });
     for (const child of record.children ?? [])
-      if (blindRepositoryChild(child))
-        unseenWriters.push({ owner, from: child.startedAt ?? -Infinity });
+      if (blindRepositoryChild(child, observed(record, child)))
+        unseenWriters.push({
+          owner,
+          from: child.startedAt ?? -Infinity,
+          writer: `${child.command} in ${child.cwd}`,
+        });
   }
   const written = [...owners.keys()].sort();
   const byOther = (path, file) => [...owners.get(path)].some((owner) => owner !== file);
@@ -134,8 +145,20 @@ export function createCiTestShardWrites(records) {
     return null;
   }
 
+  const shardStart = Math.min(
+    ...records.map((record) => record.startedAt).filter((time) => Number.isFinite(time)),
+    Infinity,
+  );
   return {
     size: written.length,
+    /** The unseen writers, earliest first, as `{ owner, writer, afterMs }` from the shard start. */
+    unseenWriters: unseenWriters
+      .toSorted((left, right) => left.from - right.from)
+      .map(({ owner, writer, from }) => ({
+        owner,
+        writer,
+        afterMs: Number.isFinite(from) && Number.isFinite(shardStart) ? from - shardStart : null,
+      })),
     /**
      * The first of `paths` that another process of the shard may have changed, or `null`.
      * `endedAt` is when the file's last process spooled its final record; unknown is `Infinity`.

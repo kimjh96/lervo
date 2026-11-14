@@ -4,7 +4,10 @@ import { relative, resolve } from "node:path";
 
 import { readBundleMetafile, readSchemaValidatorManifest } from "./ci-test-build-output-map.mjs";
 import { createCiTestLedger } from "./ci-test-ledger.mjs";
-import { computeCiTestToolchainDigest } from "./ci-test-toolchain-digest.mjs";
+import {
+  computeCiTestToolchainDigest,
+  observeCiTestToolchain,
+} from "./ci-test-toolchain-digest.mjs";
 
 /**
  * Vitest reporter that writes the shard's test input ledger (ADR-0565) after the run. It only
@@ -144,7 +147,10 @@ export default class CiTestLedgerReporter {
       tracked,
       generated: await readGeneratedOutputs(root),
       workspaces: await readWorkspaces(root, tracked),
-      toolchain: await computeCiTestToolchainDigest({ repositoryRoot: root, tracked, setupFiles }),
+      toolchain: {
+        ...(await computeCiTestToolchainDigest({ repositoryRoot: root, tracked, setupFiles })),
+        observed: observeCiTestToolchain(),
+      },
       run: {
         id: process.env.GITHUB_RUN_ID ?? "local",
         attempt: process.env.GITHUB_RUN_ATTEMPT ?? "local",

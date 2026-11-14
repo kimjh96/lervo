@@ -129,7 +129,9 @@ The ADR records the rules, the [shadow contract](../../foundation/ci-test-reuse-
 - [ ] Stage 2 shadow comparison: at least 14 days without a false reuse.
 - [ ] Decide whether G may ignore the runner image build number, from evidence that both builds install the same tools.
 - [ ] Observe the children that drop `NODE_OPTIONS`, the dominant remaining rerun time.
-- [ ] Make the unrecorded children of the three files listed in the [shadow gaps](../../foundation/ci-test-reuse-shadow-gaps.md) observable, and confirm the drop in `shard_written_input` with a shard ledger.
+- [x] Make the unrecorded children of the reporter and runtime-inspection tests start outside the repository. A corrected WSL run showed 15 to 18 more such files per shard, so shard reuse stays at 0%.
+- [ ] Remove the unseen writers listed in the [shadow gaps](../../foundation/ci-test-reuse-shadow-gaps.md), starting with the supervision provider fixtures, and confirm the drop in `shard_written_input` with a shard ledger.
+- [ ] Compare the environment value digests and kernel releases of hosted shards, then decide which differences may leave G.
 
 ## Responsibility and evidence contracts
 

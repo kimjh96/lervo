@@ -3,13 +3,28 @@ import { mkdtemp, rm, writeFile, chmod } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import {
   createProviderProcessEnvironment,
   inspectProviderExecutable,
   inspectRuntimeExecutable,
 } from "../src/index.js";
+
+// The probes start children with a fixed minimal environment and the current working directory.
+// Nothing here needs the repository as that directory, so the file runs from a temporary one. The
+// children, which the CI test input recorder cannot observe, then work outside the repository.
+let workingDirectory: string;
+let previousWorkingDirectory: string;
+beforeAll(async () => {
+  previousWorkingDirectory = process.cwd();
+  workingDirectory = await mkdtemp(resolve(tmpdir(), "lervo-runtime-inspection-"));
+  process.chdir(workingDirectory);
+});
+afterAll(async () => {
+  process.chdir(previousWorkingDirectory);
+  await rm(workingDirectory, { recursive: true, force: true });
+});
 
 describe("provider runtime inspection", () => {
   it("prepends the current Node runtime to a provider process environment", () => {

@@ -35,13 +35,15 @@ it("writes one bounded ledger for a real Vitest run with the recorder on", async
     await writeFile(
       configuration,
       `import { ciTestLedgerConfiguration } from ${JSON.stringify(library)};
-export default { root: ${JSON.stringify(root)}, test: { include: [${JSON.stringify(fixture)}], ...ciTestLedgerConfiguration() } };
+export default { root: ${JSON.stringify(root)}, cacheDir: ${JSON.stringify(resolve(scratch, "cache"))}, test: { include: [${JSON.stringify(fixture)}], ...ciTestLedgerConfiguration() } };
 `,
     );
     const run = spawnSync(
       process.execPath,
       [resolve(root, "node_modules/vitest/vitest.mjs"), "run", "--config", configuration],
-      { cwd: root, env: shardEnvironment(resolve(scratch, "ledger")), encoding: "utf8" },
+      // The nested run has no recorder of the enclosing one, so it starts and caches in its scratch
+      // directory; its root is explicit, and nothing it writes lands in the repository.
+      { cwd: scratch, env: shardEnvironment(resolve(scratch, "ledger")), encoding: "utf8" },
     );
     expect(run.status, `${run.stdout}\n${run.stderr}`).toBe(0);
     expect(run.stdout).toMatch(
