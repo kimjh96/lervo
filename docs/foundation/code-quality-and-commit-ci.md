@@ -14,7 +14,7 @@ Four test shards restore the exact build after validating revision, workflow/run
 
 Tests retain two workers, the 30-second default deadline, a 45-minute shard timeout, and per-process temporary user-state isolation. The bounded timing profile and CI-specific sequencer change placement and start order only. `scripts/quality/refresh-test-durations.mjs` rewrites the profile from one full run's `gh run view --log` output. Every discovered file is assigned exactly once; new files are included. Test assertions, pool, and isolation remain intact.
 
-Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Generated release candidates receive these checks through their explicit dispatch. Ordinary PRs retain full tests and metadata checks without adding the distribution suite.
+Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes and pull requests without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Prepared feature pull requests and fallback release candidates receive these checks through their explicit dispatch. Under [ADR-0564](../decisions/operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md), pull requests with pending `.changes/*.yaml` retain full tests and metadata checks but skip distribution until preparation verifies the prepared bytes.
 
 ## Source test package resolution
 
