@@ -93,6 +93,7 @@ describe("CI admission", () => {
 describe("aggregate verification", () => {
   const complete = {
     coverage: "full",
+    plan: "success",
     quality: "success",
     build: "success",
     tests: "success",
@@ -101,7 +102,7 @@ describe("aggregate verification", () => {
   };
   it("requires every required job and treats cancellation or unknown as failure", () => {
     expect(aggregateCiVerification(complete)).toBe("passed");
-    for (const job of ["quality", "build", "tests", "distribution"])
+    for (const job of ["plan", "quality", "build", "tests", "distribution"])
       for (const result of ["failure", "cancelled", "skipped", "unknown"])
         expect(aggregateCiVerification({ ...complete, [job]: result })).toBe("failed");
     expect(aggregateCiVerification({ ...complete, coverage: undefined })).toBe("failed");

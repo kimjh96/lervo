@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 import { describe, it } from "vitest";
 import { parse } from "yaml";
@@ -34,8 +34,8 @@ describe("code-quality workflow", () => {
     const workflow = parse(await readFile(workflowPath, "utf8"));
     const job = workflow.jobs["release-artifacts"];
     assert.equal(job["runs-on"], "ubuntu-latest");
-    assert.deepEqual(job.needs, ["quality", "native-runtime"]);
-    assert.match(job.if, /needs\.quality\.outputs\.coverage == 'full'/u);
+    assert.deepEqual(job.needs, ["plan", "native-runtime"]);
+    assert.match(job.if, /needs\.plan\.outputs\.coverage == 'full'/u);
     assert.match(job.if, /needs\.native-runtime\.result == 'success'/u);
     const commands = job.steps.map(({ run }) => run).filter(Boolean);
     assert.ok(commands.includes("pnpm build"));
@@ -105,11 +105,10 @@ it("keeps a full daily/manual fallback and rejects stale explicit candidates", a
   const workflow = parse(await readFile(workflowPath, "utf8"));
   assert.ok(workflow.on.schedule.length > 0);
   assert.ok(workflow.on.workflow_dispatch.inputs.expected_sha);
-  assert.ok(
-    workflow.jobs.quality.steps.some(({ run }) => run === "node scripts/quality/ci-plan.mjs"),
-  );
-  assert.ok(workflow.jobs.quality.if.includes("head.repo.full_name != github.repository"));
+  assert.ok(workflow.jobs.plan.steps.some(({ run }) => run === "node scripts/quality/ci-plan.mjs"));
+  assert.ok(workflow.jobs.plan.if.includes("head.repo.full_name != github.repository"));
   assert.deepEqual(workflow.jobs.verification.needs, [
+    "plan",
     "quality",
     "release-artifacts",
     "test",
@@ -121,10 +120,10 @@ it("keeps a full daily/manual fallback and rejects stale explicit candidates", a
 it("reuses only components that an earlier run executed for identical content", async () => {
   const workflow = parse(await readFile(workflowPath, "utf8"));
   assert.equal(workflow.permissions.actions, "read");
-  const quality = workflow.jobs.quality;
-  const plan = quality.steps.findIndex(({ id }) => id === "reuse");
-  assert.ok(plan > quality.steps.findIndex(({ id }) => id === "distribution"));
-  assert.equal(quality.steps[plan].run, "node scripts/quality/ci-reuse.mjs");
+  const { plan, quality } = workflow.jobs;
+  const reuse = plan.steps.findIndex(({ id }) => id === "reuse");
+  assert.ok(reuse > plan.steps.findIndex(({ id }) => id === "distribution"));
+  assert.equal(plan.steps[reuse].run, "node scripts/quality/ci-reuse.mjs");
   for (const name of [
     "Check code quality",
     "Check architecture boundaries",
@@ -133,7 +132,7 @@ it("reuses only components that an earlier run executed for identical content", 
   ])
     assert.equal(
       quality.steps.find((step) => step.name === name).if,
-      "steps.reuse.outputs.reuseQuality != 'true'",
+      "needs.plan.outputs.reuseQuality != 'true'",
     );
   for (const name of ["Check introduced commits", "Check pull-request release completion"])
     assert.ok(!quality.steps.find((step) => step.name === name).if?.includes("reuse"));
@@ -144,7 +143,7 @@ it("reuses only components that an earlier run executed for identical content", 
     ["distribution", "reuseDistribution"],
   ]) {
     const definition = workflow.jobs[job];
-    assert.equal(definition.env.REUSED_RUN, `\${{ needs.quality.outputs.${output} }}`);
+    assert.equal(definition.env.REUSED_RUN, `\${{ needs.plan.outputs.${output} }}`);
     const [reuse, ...rest] = definition.steps;
     assert.equal(reuse.if, "env.REUSED_RUN != ''");
     for (const step of rest) assert.match(step.if, /^env\.REUSED_RUN == ''/u);
@@ -159,16 +158,49 @@ it("reuses only components that an earlier run executed for identical content", 
   assert.deepEqual(
     uploads.map(({ with: options }) => options.name),
     [
-      "lervo-ci-build-${{ needs.quality.outputs.tree }}",
-      "lervo-ci-tests-${{ needs.quality.outputs.testDigest }}",
-      "lervo-ci-distribution-${{ needs.quality.outputs.tree }}",
+      "lervo-ci-build-${{ needs.plan.outputs.tree }}",
+      "lervo-ci-tests-${{ needs.plan.outputs.testDigest }}",
+      "lervo-ci-distribution-${{ needs.plan.outputs.tree }}",
     ],
   );
 });
 
+it("starts the build beside lint while shards and the aggregate still require lint", async () => {
+  const source = await readFile(workflowPath, "utf8");
+  const workflow = parse(source);
+  const { plan, quality } = workflow.jobs;
+  assert.equal(quality.needs, "plan");
+  assert.equal(workflow.jobs["native-runtime"].needs, "plan");
+  assert.ok(!workflow.jobs["release-artifacts"].needs.includes("quality"));
+  assert.doesNotMatch(JSON.stringify(workflow.jobs["release-artifacts"]), /needs\.quality\./u);
+  for (const job of ["test", "distribution"]) {
+    assert.ok(workflow.jobs[job].needs.includes("quality"));
+    assert.match(workflow.jobs[job].if, /needs\.quality\.result == 'success'/u);
+  }
+  assert.ok(["plan", "quality"].every((job) => workflow.jobs.verification.needs.includes(job)));
+  // Every plan output a job reads is declared, and no job reads outputs from the lint job.
+  assert.doesNotMatch(source, /needs\.quality\.outputs/u);
+  for (const [, output] of source.matchAll(/needs\.plan\.outputs\.(\w+)/gu))
+    assert.ok(output in plan.outputs, output);
+  // Planning runs before dependencies are installed, so its scripts import only Node and themselves.
+  assert.ok(!plan.steps.some(({ run, uses }) => run?.includes("pnpm") || uses?.includes("pnpm")));
+  const pending = ["scripts/quality/ci-plan.mjs", "scripts/quality/ci-reuse.mjs"];
+  for (const visited = new Set(); pending.length > 0;) {
+    const path = pending.pop();
+    if (visited.has(path)) continue;
+    visited.add(path);
+    const text = await readFile(resolve(repositoryRoot, path), "utf8");
+    for (const [, specifier] of text.matchAll(/^import [^;]*? from "([^"]+)";/gmu)) {
+      if (specifier.startsWith("."))
+        pending.push(relative(repositoryRoot, resolve(repositoryRoot, dirname(path), specifier)));
+      else assert.match(specifier, /^node:/u, `${path} imports ${specifier}`);
+    }
+  }
+});
+
 it("verifies distribution wherever main will reuse the result", async () => {
   const workflow = parse(await readFile(workflowPath, "utf8"));
-  const step = workflow.jobs.quality.steps.find(({ id }) => id === "distribution");
+  const step = workflow.jobs.plan.steps.find(({ id }) => id === "distribution");
   const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-distribution-"));
   const plan = async ({ eventName, coverage = "full", pendingIntent }) => {
     await rm(resolve(root, ".changes"), { recursive: true, force: true });

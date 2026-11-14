@@ -1,7 +1,7 @@
 # GitHub Actions cost and duration redesign
 
 Status: `active`
-As of: 2026-10-08
+As of: 2026-11-14
 Implementation authority: owner confirmed this design with “진행” on 2026-10-08.
 Task base: `7a5cce30966063861b2927be85d20be31f7e4627`.
 
@@ -32,7 +32,7 @@ Account-level invoices were unavailable to the current token. Payment/spending-l
 
 ```text
 PR, main push, explicit dispatch, or scheduled audit
-  -> resolve exact revision and comparison base
+  -> resolve exact revision, comparison base and reuse without installing dependencies
   -> always run quality, docs, commit and release-contract checks
   -> classify verification scope conservatively
   -> for code or uncertain changes: build once
@@ -85,6 +85,23 @@ Read-only verification may cancel superseded runs. Candidate ref updates and tag
 Replace the two three-minute expiry waits with a test-only time mechanism that advances both the supervisor and its CLI subprocesses consistently. Preserve lease generation, renewal-window, expiry, late-result, and recovery assertions. If consistent time cannot be established, isolate a bounded real-clock integration case rather than weakening authority checks or extending timeouts.
 
 Use recorded per-file durations to rebalance the four shards after the wait removal. Keep two workers per standard Linux runner initially. Increasing worker count, disabling isolation, or changing pools requires paired measurements and independent compatibility proof.
+
+### Shard rebalance and build start (2026-11-14)
+
+[Run 43579262574](https://github.com/kimjh96/lervo/actions/runs/43579262574), the dispatched verification of prepared pull request #227, took about 23 minutes. Lint took 2.5 minutes, native artifacts 0.3, the build 4.9, the four test shards 6.7, 9.6, 12.6 and 14.8, and the aggregate 0.3. Two causes made it slow:
+
+- The duration profile still held run 37706186392's October weights. Repository-knowledge runtime tests have grown since then, so shard test time ranged from 276 to 984 seconds.
+- The build waited for lint, although it uses nothing lint produces.
+
+The changes:
+
+- `scripts/quality/refresh-test-durations.mjs` rewrites the profile from a full run's `gh run view --log` output. It keeps the 128 slowest files. Every other file, including a new one, takes the planner's 1.5-second default weight. The profile from run 43579262574 keeps files of 2.4 seconds and longer.
+- The CI sequencer also starts each shard's slowest known files first, so both workers finish close together.
+- A `Plan verification` job resolves revision, scope, distribution and reuse without installing dependencies. Lint and the native artifact job both start from it. Test shards and distribution checks still wait for lint, which finishes before the build, so a lint failure spends no shard time. The aggregate requires the plan and lint.
+
+Applied to that run's own per-file times, the new placement gives each shard 640 to 659 seconds of test time. This is a placement estimate, not a measurement. Adding the run's average collection time, each shard job should take about 10 to 11.5 minutes instead of up to 14.8. The critical path becomes plan, native artifacts, build, slowest shard and aggregate: about 16.5 minutes instead of 23. The extra job costs about one billed runner-minute per run.
+
+The profile stays in the test digest. A refresh therefore changes the digest once, so the refreshing run executes every shard with the new placement and verifies the refresh itself. Release preparation never touches the profile, so prepared pull requests and merged main still reuse tests. Refresh the profile in its own change when shard times drift apart. The next full hosted run's shard times remain to be observed.
 
 ## Responsibility and evidence contracts
 

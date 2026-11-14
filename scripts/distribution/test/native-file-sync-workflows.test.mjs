@@ -9,9 +9,9 @@ it("shares one source-bound macOS artifact with the full CI build", async () => 
   const producer = workflow.jobs["native-runtime"],
     consumer = workflow.jobs["release-artifacts"];
   expect(producer["runs-on"]).toBe("macos-latest");
-  expect(producer.needs).toBe("quality");
+  expect(producer.needs).toBe("plan");
   expect(producer.if).toBe(
-    "needs.quality.outputs.coverage == 'full' && needs.quality.outputs.reuseBuild == ''",
+    "needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == ''",
   );
   expect(consumer.needs).toContain("native-runtime");
   expect(
