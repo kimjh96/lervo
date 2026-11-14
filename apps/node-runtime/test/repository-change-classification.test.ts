@@ -1,11 +1,14 @@
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { classifyRepositoryChange } from "../src/repository-change-classification.js";
+import {
+  classifyRepositoryChange,
+  createRepositoryChangeScope,
+} from "../src/repository-change-classification.js";
 
 const root = join("/", "repository");
 const gitDirectory = join(root, ".git");
-const scope = {
-  directories: new Set([
+const scopeInput = {
+  directories: [
     root,
     join(root, "source"),
     join(root, "source/nested"),
@@ -14,11 +17,15 @@ const scope = {
     join(gitDirectory, "refs"),
     join(gitDirectory, "refs/heads"),
     join(gitDirectory, "refs/heads/x"),
-  ]),
+    // Git under core.ignoreCase can record a directory in another case than the disk reports.
+    join(root, "Docs/Guide"),
+  ],
   state: join(root, ".lervo/state"),
-  gitRoots: new Set([gitDirectory]),
+  gitRoots: [gitDirectory],
 };
-const classify = (filename: string | undefined, event = "change", base = root) =>
+const exact = createRepositoryChangeScope({ ...scopeInput, foldCase: false });
+const folded = createRepositoryChangeScope({ ...scopeInput, foldCase: true });
+const classify = (filename: string | undefined, event = "change", base = root, scope = exact) =>
   classifyRepositoryChange(event, base, filename, scope);
 
 describe("repository change classification", () => {
@@ -58,5 +65,27 @@ describe("repository change classification", () => {
   it("notifies and refreshes conservatively when the native event names no file", () => {
     expect(classify(undefined)).toEqual({ notify: true, refresh: true });
     expect(classify("")).toEqual({ notify: true, refresh: true });
+  });
+
+  it("treats an event naming the watched base itself as a change", () => {
+    // Windows reports deletion of the watched directory with its absolute path.
+    expect(classify(root)).toEqual({ notify: true, refresh: true });
+    expect(classify(join(root, "source"), "rename", join(root, "source"))).toEqual({
+      notify: true,
+      refresh: true,
+    });
+  });
+
+  it("compares paths case-insensitively only when the host folds case", () => {
+    expect(classify("docs/guide/page.md").notify).toBe(false);
+    expect(classify("docs/guide/page.md", "change", root, folded).notify).toBe(true);
+    expect(classify("SOURCE/Nested/file.ts", "change", root, folded).notify).toBe(true);
+    expect(
+      classify(".LERVO/State/repository-replica-request.json", "change", root, folded),
+    ).toEqual({ notify: true, refresh: false });
+    expect(classify(".lervo/STATE/other.json", "change", root, folded).notify).toBe(false);
+    expect(classify(".GIT/HEAD", "change", root, folded).notify).toBe(true);
+    expect(classify(".GIT/objects/ab/cdef", "change", root, folded).notify).toBe(false);
+    expect(classify("CACHE/file", "change", root, folded).notify).toBe(false);
   });
 });
