@@ -29,8 +29,12 @@ case "$1 $2" in
   'run view') echo "$FAKE_AGGREGATE" ;;
   'pr view')
     case "$*" in
-      *baseRefName*) echo "main...$FAKE_HEAD" ;;
-      *) echo "$FAKE_HEAD" ;;
+      *baseRefName*) echo main ;;
+      *)
+        # FAKE_MOVED_HEAD replaces the head after the first read, as a concurrent push would.
+        reads=$(( $(cat "$FAKE_TRACE.reads" 2>/dev/null || echo 0) + 1 ))
+        echo "$reads" >"$FAKE_TRACE.reads"
+        if [ -n "\${FAKE_MOVED_HEAD:-}" ] && [ "$reads" -gt 1 ]; then echo "$FAKE_MOVED_HEAD"; else echo "$FAKE_HEAD"; fi ;;
     esac ;;
   'pr checks') echo "$FAKE_CHECKS"; exit "\${FAKE_CHECKS_STATUS:-0}" ;;
   api\\ *compare*) echo "$FAKE_COMPARE" ;;
@@ -104,6 +108,16 @@ describe("deploy-lervo-release pull-request wait", () => {
     });
     assert.equal(failed.status, 1);
     assert.equal((await wait({ ...author, FAKE_CHECKS: "2 1 0 Tests=pending" })).status, 2);
+  });
+
+  it("judges the head again when it moves during the checks and binds the merge to it", async () => {
+    const moved = "c".repeat(40);
+    const result = await wait({ FAKE_DISPATCH: "11 completed success", FAKE_MOVED_HEAD: moved });
+    assert.equal(result.status, 0, result.stdout);
+    assert.match(result.stdout, new RegExp(`passed at ${moved}`, "u"));
+    assert.match(result.stdout, new RegExp(`--match-head-commit ${moved}`, "u"));
+    assert.match(result.trace, new RegExp(`compare/main\\.\\.\\.${moved}`, "u"));
+    assert.doesNotMatch(result.stdout, new RegExp(`passed at ${head}`, "u"));
   });
 
   it("reports stale heads and preparation results before any verification", async () => {

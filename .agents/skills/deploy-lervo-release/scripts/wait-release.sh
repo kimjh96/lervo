@@ -33,10 +33,11 @@ pr_preparation() {
 }
 
 pr_fresh() {
-  # Main reuses PR verification only when the merged tree equals the PR head tree.
-  local refs status
-  refs=$(gh pr view "$1" --json headRefOid,baseRefName --jq '"\(.baseRefName)...\(.headRefOid)"' 2>/dev/null) || return 3
-  status=$(gh api "repos/{owner}/{repo}/compare/$refs" --jq .status 2>/dev/null) || return 3
+  # Main reuses PR verification only when the merged tree equals the PR head tree. The caller
+  # passes the head it observed so freshness and verification judge the same commit.
+  local base status
+  base=$(gh pr view "$1" --json baseRefName --jq .baseRefName 2>/dev/null) || return 3
+  status=$(gh api "repos/{owner}/{repo}/compare/$base...$2" --jq .status 2>/dev/null) || return 3
   case "$status" in ahead|identical) return 0;; behind|diverged) return 1;; *) return 3;; esac
 }
 
@@ -68,9 +69,7 @@ pr_dispatched() {
 
 pr_verified() {
   # A dispatch for the exact head decides; a prepared head waits for one; otherwise PR checks decide.
-  local head code
-  head=$(gh pr view "$1" --json headRefOid --jq .headRefOid 2>/dev/null)
-  [[ "$head" =~ ^[a-f0-9]{40}$ ]] || { last="head unknown"; return 3; }
+  local head="$2" code
   pr_dispatched "$head"; code=$?
   [ $code -ne 4 ] && return $code
   pr_prepared "$head"; code=$?
@@ -90,11 +89,16 @@ while [ "$(date +%s)" -lt "$deadline" ]; do
         completed/*) finish "PR #$target release preparation failed: $prep" 1;;
         *) last="release preparation ${prep:-unknown}"; sleep "$poll"; continue;;
       esac
-      pr_fresh "$target"; code=$?
+      head=$(gh pr view "$target" --json headRefOid --jq .headRefOid 2>/dev/null)
+      [[ "$head" =~ ^[a-f0-9]{40}$ ]] || { last="head unknown"; sleep "$poll"; continue; }
+      pr_fresh "$target" "$head"; code=$?
       [ $code -eq 1 ] && finish "PR #$target head does not contain current main: run 'gh pr update-branch $target', or rerun its release preparation if it is prepared, then wait again" 3
       [ $code -eq 3 ] && { last="freshness unknown"; sleep "$poll"; continue; }
-      pr_verified "$target"; code=$?
-      [ $code -eq 0 ] && finish "PR #$target passed: $last" 0
+      pr_verified "$target" "$head"; code=$?
+      # A head that moved during the checks was not the one judged: judge the new head next round.
+      now=$(gh pr view "$target" --json headRefOid --jq .headRefOid 2>/dev/null)
+      [ "$now" = "$head" ] || { last="head moved from $head to ${now:-unknown}"; sleep "$poll"; continue; }
+      [ $code -eq 0 ] && finish "PR #$target passed at $head (merge with: gh pr merge $target --merge --match-head-commit $head): $last" 0
       [ $code -eq 1 ] && finish "PR #$target failed: $last" 1
       ;;
     release-pr)
