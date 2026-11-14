@@ -158,7 +158,7 @@ class CiTestInputRecord {
    * A child that cannot have its own record, Git or one started without the recorder, needs no
    * PID to be matched, so identical ones collapse into one entry with a count.
    */
-  child({ command, args, cwd, pid, inherited, synchronous, failed, bootstrap }) {
+  child({ command, args, cwd, pid, inherited, synchronous, failed, bootstrap, startedAt }) {
     const entry = {
       command,
       args: ciTestInvocation(args),
@@ -172,6 +172,8 @@ class CiTestInputRecord {
     };
     const collapsible = command === "git" || !inherited || failed;
     const key = collapsible ? stringify({ ...entry, pid: null }) : null;
+    // Wall-clock start in milliseconds; a collapsed entry keeps the first, which is the earliest.
+    entry.startedAt = startedAt ?? null;
     if (key !== null && this.#collapsed.has(key)) {
       this.#collapsed.get(key).count += 1;
       return;

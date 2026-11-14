@@ -18,12 +18,14 @@ const {
   getBuiltinModule,
   global,
   hrtime,
+  NativeDate,
   ProxyConstructor,
   processObject,
   SafeMap,
   SafeSet,
   stringify,
   toText,
+  wallClock,
 } = require("./ci-test-input-intrinsics.cjs");
 const { ciTestListingDigest } = require("./ci-test-input-listing.cjs");
 const { installModuleObserver } = require("./ci-test-input-module-observer.cjs");
@@ -49,6 +51,8 @@ const RECORDER_KEY = Symbol.for("lervo.ciTestInputRecorder");
 const environment = process.env;
 const directory = environment.LERVO_CI_TEST_LEDGER_DIRECTORY;
 const startup = {
+  // Wall-clock milliseconds, so the ledger can order processes of one shard.
+  startedAt: Date.now(),
   pid: process.pid,
   ppid: process.ppid,
   execPath: process.execPath,
@@ -116,8 +120,10 @@ function start() {
     role,
     // Flags such as `-e <code>` live in execArgv; NODE_OPTIONS flags never appear in either.
     invocation: ciTestInvocation(startup.argv.map(displayArgument)),
+    startedAt: startup.startedAt,
   });
   record.file = startup.file;
+  const now = () => apply(wallClock, NativeDate, []);
   const cwd = () => apply(processCwd, processObject, []);
   const vitestWorker = () => ownData(global, "__vitest_worker__");
 
@@ -162,6 +168,7 @@ function start() {
       const target = gitTarget ? absoluteInputPath(gitTarget, location ?? cwd()) : location;
       const where = target ? classify(target) : { kind: "unknown", path: null };
       record.child({
+        startedAt: now(),
         command: basename(file),
         args: [file, ...args].map(displayArgument),
         cwd: where.kind === "repository" ? where.path : `<${where.kind}>`,
@@ -240,7 +247,7 @@ function start() {
       record.resolve({ exists, list: listingDigest });
       mkdirSync(spoolDirectory, { recursive: true });
       const temporary = `${spoolFile}.partial`;
-      writeFileSync(temporary, stringify({ ...record.toJSON(), end }));
+      writeFileSync(temporary, stringify({ ...record.toJSON(), end, spooledAt: now() }));
       renameSync(temporary, spoolFile);
     } catch {
       // A lost record is reported by the ledger as an unobserved process.

@@ -247,6 +247,31 @@ it("treats an unrecorded child working in the repository as a process that could
   expect(elsewhere["bystander.test.ts"]).toEqual([]);
 });
 
+it("orders unseen writers: a file that finished before one started is untouched by it", () => {
+  const shell = {
+    command: "bash",
+    args: ["bash"],
+    cwd: ".",
+    pid: null,
+    inherited: false,
+    synchronous: true,
+    failed: false,
+    startedAt: 10_000,
+  };
+  const reasons = reasonsOf([
+    worker("shell.test.ts", { pid: 1, startedAt: 9_000, spooledAt: 12_000, children: [shell] }),
+    worker("earlier.test.ts", { pid: 2, startedAt: 1_000, spooledAt: 8_000 }),
+    worker("close.test.ts", { pid: 3, startedAt: 1_000, spooledAt: 9_500 }),
+    worker("later.test.ts", { pid: 4, startedAt: 11_000, spooledAt: 13_000 }),
+    worker("untimed.test.ts", { pid: 5 }),
+  ]);
+  expect(reasons["earlier.test.ts"]).toEqual([]);
+  // Within the one-second margin, and after the writer started, a file is uncertain.
+  expect(reasons["close.test.ts"]).toEqual(["shard_written_input"]);
+  expect(reasons["later.test.ts"]).toEqual(["shard_written_input"]);
+  expect(reasons["untimed.test.ts"]).toEqual(["shard_written_input"]);
+});
+
 it("treats a record that dropped writes as a process that could have written anything", () => {
   const reasons = reasonsOf([
     worker("bounded.test.ts", { pid: 1, truncated: true, writesDropped: true }),

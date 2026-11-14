@@ -33,6 +33,8 @@ module.exports = Object.freeze({
   isProxy: types.isProxy,
   isUint8Array: types.isUint8Array,
   NativeDate: Date,
+  // The clock observer later wraps `Date.now`; the recorder's own timestamps use the original.
+  wallClock: Date.now,
   NativeError: Error,
   ProxyConstructor: Proxy,
   processObject: process,

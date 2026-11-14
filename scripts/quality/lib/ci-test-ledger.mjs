@@ -87,6 +87,7 @@ function createAccumulator() {
     },
     records: 0,
     completeRecords: 0,
+    endedAt: -Infinity,
     completeWorker: false,
     truncated: false,
   };
@@ -94,6 +95,7 @@ function createAccumulator() {
 
 function absorb(accumulator, record) {
   accumulator.records += 1;
+  accumulator.endedAt = Math.max(accumulator.endedAt, record.spooledAt ?? Infinity);
   if (isComplete(record)) accumulator.completeRecords += 1;
   if (record.role === "worker" && isComplete(record)) accumulator.completeWorker = true;
   if (record.truncated) accumulator.truncated = true;
@@ -209,14 +211,19 @@ function classify(accumulator, { file, tracked, trackedDirectories, mappings, sh
     reasons.add("module_graph_unavailable");
   if ([...accumulator.notes].some((note) => unobservedNotes.has(note)))
     reasons.add("unobserved_input");
-  const written = shardWrites.writtenByOthers(file, [
+  const endedAt = accumulator.records === 0 ? Infinity : accumulator.endedAt;
+  const written = shardWrites.writtenByOthers(
     file,
-    ...accumulator.inputs,
-    ...accumulator.trees,
-    ...listed,
-    ...accumulator.absent,
-    ...accumulator.dependencies,
-  ]);
+    [
+      file,
+      ...accumulator.inputs,
+      ...accumulator.trees,
+      ...listed,
+      ...accumulator.absent,
+      ...accumulator.dependencies,
+    ],
+    endedAt,
+  );
   if (written !== null) reasons.add("shard_written_input");
   return {
     reasons: CI_TEST_UNCACHEABLE_REASONS.filter((reason) => reasons.has(reason)),

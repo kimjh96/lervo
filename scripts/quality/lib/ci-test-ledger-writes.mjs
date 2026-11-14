@@ -7,7 +7,9 @@
  * above an input. Writes by a file's own processes do not count: they follow from its own inputs.
  * A process that wrote through a path the recorder could not read could have written anything.
  * A child without a record of its own, started inside the repository, is treated the same way;
- * one started elsewhere is assumed to write there, which is a known gap.
+ * one started elsewhere is assumed to write there, which is a known gap. Only such unseen writers
+ * are ordered: a file that finished before one started is untouched by it. Seen writes are not
+ * ordered, because a path may be read again after its file's last record.
  */
 // Git subcommands that change nothing outside `.git`. A file that reads `.git` is already
 // `git_in_repository`, so these cannot change another file's closure. `status` and `diff` may
@@ -76,7 +78,9 @@ function blindRepositoryChild(child) {
   if (child.command === "git") {
     // The recorded tail holds at most eight arguments, so a longer command may hide its subcommand.
     const invocation = gitInvocation(child.args);
-    if ((child.args?.length ?? 0) >= 8 || invocation === null) return true;
+    if ((child.args?.length ?? 0) >= 8) return true;
+    // Git with only global options, such as `--version`, runs no subcommand.
+    if (invocation === null) return false;
     if (readOnlyGit.has(invocation.subcommand)) return false;
     return !(
       pathWritingGit.has(invocation.subcommand) &&
@@ -87,21 +91,29 @@ function blindRepositoryChild(child) {
   return !child.inherited;
 }
 
-/** `records`: spool records with `file`, `writes` and `notes`. */
+/**
+ * Wall clocks of one machine order a shard's processes. A file whose processes all spooled their
+ * final record more than this margin before an unseen writer started cannot have read its writes.
+ */
+const orderingMarginMs = 1000;
+
+/** `records`: spool records with `file`, `writes`, `notes`, `startedAt` and `children`. */
 export function createCiTestShardWrites(records) {
   const owners = new Map();
-  const unknownWriters = new Set();
+  const unseenWriters = [];
   for (const record of records) {
     const owner = record.file ?? null;
     for (const path of record.writes ?? []) {
       if (!owners.has(path)) owners.set(path, new Set());
       owners.get(path).add(owner);
     }
-    // A record that dropped writes past its bound could have written anything too, and so could
-    // a child without a record of its own, such as Git or a shell, working inside the repository.
-    const blindChild = (record.children ?? []).some(blindRepositoryChild);
-    if ((record.notes ?? []).includes("unobserved_write") || record.writesDropped || blindChild)
-      unknownWriters.add(owner);
+    // A record that dropped writes past its bound could have written anything, from its start, and
+    // so could a child without a record of its own, such as a shell, working in the repository.
+    if ((record.notes ?? []).includes("unobserved_write") || record.writesDropped)
+      unseenWriters.push({ owner, from: record.startedAt ?? -Infinity });
+    for (const child of record.children ?? [])
+      if (blindRepositoryChild(child))
+        unseenWriters.push({ owner, from: child.startedAt ?? -Infinity });
   }
   const written = [...owners.keys()].sort();
   const byOther = (path, file) => [...owners.get(path)].some((owner) => owner !== file);
@@ -124,9 +136,17 @@ export function createCiTestShardWrites(records) {
 
   return {
     size: written.length,
-    /** The first of `paths` that another process of the shard may have changed, or `null`. */
-    writtenByOthers(file, paths) {
-      if ([...unknownWriters].some((owner) => owner !== file)) return "<unobserved write>";
+    /**
+     * The first of `paths` that another process of the shard may have changed, or `null`.
+     * `endedAt` is when the file's last process spooled its final record; unknown is `Infinity`.
+     */
+    writtenByOthers(file, paths, endedAt = Infinity) {
+      if (
+        unseenWriters.some(
+          ({ owner, from }) => owner !== file && !(endedAt + orderingMarginMs < from),
+        )
+      )
+        return "<unobserved write>";
       for (const path of paths) {
         if (owners.has(path) && byOther(path, file)) return path;
         if (owners.has(".") && byOther(".", file)) return path;
