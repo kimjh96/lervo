@@ -5,6 +5,20 @@ import { describe, expect, it } from "vitest";
 import { CodexStdioAppServerClient } from "../src/index.js";
 import { codexStoredLoginEnvironment } from "../src/index.js";
 
+/**
+ * The CI test input recorder's own variables (ADR-0565), when a ledger is being recorded. A child
+ * started with an explicit environment keeps them, so the recorder observes it; nothing else of
+ * the parent environment reaches the child.
+ */
+function testInputRecorderEnvironment(): Record<string, string> {
+  if (process.env.LERVO_CI_TEST_LEDGER_DIRECTORY === undefined) return {};
+  return Object.fromEntries(
+    ["NODE_OPTIONS", "LERVO_CI_TEST_LEDGER", "LERVO_CI_TEST_LEDGER_DIRECTORY", "LERVO_CI_TEST_FILE"]
+      .map((key) => [key, process.env[key]])
+      .filter((entry): entry is [string, string] => entry[1] !== undefined),
+  );
+}
+
 describe("Codex stdio app-server client", () => {
   it("uses the selected stored-login environment without parent credentials", async () => {
     const previous = process.env.LERVO_TEST_INHERITED_CREDENTIAL;
@@ -18,10 +32,13 @@ describe("Codex stdio app-server client", () => {
         ],
         cwd: process.cwd(),
         requestTimeoutMs: 1000,
-        environment: codexStoredLoginEnvironment({
-          homeDirectory: "/fixture/owner-home",
-          configurationDirectory: "/fixture/owner-config",
-        }),
+        environment: {
+          ...codexStoredLoginEnvironment({
+            homeDirectory: "/fixture/owner-home",
+            configurationDirectory: "/fixture/owner-config",
+          }),
+          ...testInputRecorderEnvironment(),
+        },
       });
       await client.close();
     } finally {
