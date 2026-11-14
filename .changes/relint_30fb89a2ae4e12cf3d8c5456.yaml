@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_30fb89a2ae4e12cf3d8c5456"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Every durable knowledge convergence write has an exact source fence right before it, and settled outputs are committed from exactly the fenced bytes, without hooks or filters."

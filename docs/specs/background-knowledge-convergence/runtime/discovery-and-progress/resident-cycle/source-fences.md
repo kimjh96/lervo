@@ -1,5 +1,7 @@
 # Source fences
 
+[ADR-0566](../../../../../decisions/operations/services/0566-fence-every-durable-convergence-write-exactly.md) defines these rules.
+
 A source fence compares a complete capture of the repository with the snapshot a convergence state is bound to. A mismatch fails with `source_bytes_changed`. Each fence site is one of two kinds.
 
 - **Exact** (`assertSourceExact`, `ConvergenceSourceObservation.exact`): a complete capture taken now. It guards a durable write, the settlement claim, or verification evidence. No unrelated await separates the fence from the first write it guards.
@@ -14,8 +16,8 @@ The snapshot hash binds HEAD, the policy hash, the path, content hash and kind o
 No effect depends on those:
 
 - **Refs other than HEAD.** Every integration ref move is a compare-and-swap on the exact old value: target synchronization and absorption (`update-ref <ref> <new> <old>`), integration completion (`compareAndSwapTarget`), capacity retirement (which also rereads the ref before and after), and target creation (an empty old value). A concurrent ref change makes the move fail instead of acting on a stale ref.
-- **The index.** The settled-output commit runs `git add -A -- <paths>` and `git commit --only -- <paths>`, so the commit holds HEAD plus the working-tree bytes of those paths only; staged work on other paths never enters it (`knowledge-output-commit.test.ts`). Seals commit in private worktrees. Root applies write working-tree files with a per-operation expected hash.
-- **Git config.** Config is the repository's own policy, and Lervo's commits apply it as a developer's commit would. The private seal commit disables hooks. One residual risk remains: a clean filter or hook added between the fence and the settled-output commit can change committed blobs without changing working-tree bytes, and neither a fence nor the receipt sees committed blobs.
+- **The index.** The settled-output commit never reads the working tree or the developer's index. It builds its tree in a private index from the fenced HEAD and blobs written from memory (`git hash-object -w --no-filters`), commits with `commit-tree`, and moves HEAD by compare-and-swap from the fenced HEAD. Each blob's bytes are the fenced snapshot's bytes, or their formatted form, checked by content hash after every await; a mismatch refuses with `source_bytes_changed`. Afterwards `git reset -- <paths>` makes the developer's index follow the commit for those paths only, so other staged work stays staged (`knowledge-output-commit.test.ts`). Seals commit in private worktrees. Root applies write working-tree files with a per-operation expected hash.
+- **Git config.** Config is the repository's own policy. No hook runs for Lervo's commits: the private seal commit disables them, and `commit-tree` runs none. Blobs skip clean filters and line-ending conversion, so committed bytes are exactly the reviewed bytes. `commit.gpgsign` is honoured.
 
 ## Classification
 
@@ -44,7 +46,7 @@ No effect depends on those:
 | Target preflight result, retained integration inspection            | Current | Parking and retirement decisions; their effects fence     |
 | Lifecycle currency pair, assessment sources after a lifecycle apply | Current | Stable inputs for currency and lint; settlement fences    |
 
-Two sites read before their fence so that no await separates the fence from the write: target preflight reads the integrated-draft ledger, and candidate resolution lists the stored candidates.
+Two sites read before their fence so that no await separates the fence from the write: target preflight reads the integrated-draft ledger, and candidate resolution lists the stored candidates. Integration target synchronization, absorption and the capacity retirement's restore run their own Git reads, so an exact fence runs again immediately before each of their ref writes.
 
 ## Durable write census
 
@@ -73,9 +75,10 @@ Every durable write reachable between a current check and the next exact fence i
 
 ## Evidence that exact fences alone protect durable writes
 
-A test session whose validation always answers "unchanged" drives full convergences. Its answer is fixed before any edit, even on the first call and right after `noteChange()`, so it never notices another writer. Exact captures stay real. `test/durable-effect-state.ts` observes HEAD, every ref, every source but the edited one, every file under `.lervo/state/` that the census does not exempt, effect checkpoints, each private workspace's HEAD and files, and the event store.
+A test session whose validation always answers "unchanged" drives full convergences. Its answer is fixed before any edit, even on the first call and right after `noteChange()`, so it never notices another writer. Exact captures stay real. `test/durable-effect-state.ts` observes HEAD, every ref, every source but the edited one, every file under `.lervo/state/` that the census does not exempt, every artifact in `.lervo/data/cas/` except the census-exempt kinds (stage receipts, stage results, convergence inputs, stage and assignment failure proofs, waiting dependencies), effect checkpoints, each private workspace's HEAD and files, and the event store. Every `source_bytes_changed` refusal is recorded with the stack that raised it, so each edit is credited only to the exact fence that refused it, never to a later decision check.
 
-- `test/effect-fence-exact-sweep.test.ts` edits just before the first exact fence at each site. Each fence must refuse with `source_bytes_changed`, and no durable state may change before the next observation.
-- `test/effect-fence-decision-sweep.test.ts` edits at the first decision check of each site. Until the next exact fence, no durable state may change and no event outside the census exemptions may be appended. That fence must refuse. An edit whose stage ends in a waiting or attention record reaches no further fence; the sweep checks that it wrote nothing durable.
-- `test/effect-fence-await-gaps.test.ts` edits inside the awaits a sweep cannot reach: after a provider answer, after a normalization review or a timed-out one, while target preflight reads its ledger, and while candidate resolution lists candidates. Every later durable write must follow an exact fence that saw the edit.
+- `test/effect-fence-exact-sweep.test.ts` edits just before the first exact fence at each site. That fence must refuse with `source_bytes_changed`, and no durable state may change and no unexempt event may be appended before the next observation. Verification evidence refuses through its stage receipt.
+- `test/effect-fence-decision-sweep.test.ts` edits at the first decision check of each site. Until the next exact fence, no durable state may change and no event outside the census exemptions may be appended. That fence must refuse.
+- `test/effect-fence-sweep-harness.test.ts` checks the sweep itself: it sees content-store artifacts, events after a refusal, and a decision check refusing in place of an exact fence. An edit whose stage ends in a waiting or attention record reaches no further fence; the sweep checks that it wrote nothing durable.
+- `test/effect-fence-await-gaps.test.ts` edits inside the awaits a sweep cannot reach: after a provider answer, after a normalization review or a timed-out one, while target preflight reads its ledger, during integration target synchronization's own reads, and while candidate resolution lists candidates. Every later durable write must follow an exact fence that saw the edit. `test/knowledge-output-commit-fence.test.ts` edits a selected output during each await between the settled-output fence and its commit; the commit may only hold the reviewed bytes.
 - `test/document-route-classification.test.ts`, `test/practice-root-apply-fence.test.ts` and `test/canonical-layout-parking.test.ts` cover classification records, practice retirement and capacity retirement, which no full scenario reaches.
