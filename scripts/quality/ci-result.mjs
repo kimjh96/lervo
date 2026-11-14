@@ -4,25 +4,27 @@ import { CI_VERIFICATION_CONTRACT } from "./lib/ci-verification-plan.mjs";
 import { aggregateCiVerification } from "./lib/ci-verification-result.mjs";
 
 const jobs = JSON.parse(process.env.CI_JOBS);
+const plan = jobs.plan.outputs;
 const status = aggregateCiVerification({
-  coverage: jobs.quality.outputs.coverage,
+  coverage: plan.coverage,
+  plan: jobs.plan.result,
   quality: jobs.quality.result,
   build: jobs["release-artifacts"].result,
   tests: jobs.test.result,
   distribution: jobs.distribution.result,
-  distributionRequired: jobs.quality.outputs.distribution === "true",
+  distributionRequired: plan.distribution === "true",
 });
 const receipt = {
   schemaVersion: 1,
   verificationContract: CI_VERIFICATION_CONTRACT,
-  revision: jobs.quality.outputs.revision ?? process.env.GITHUB_SHA,
+  revision: plan.revision ?? process.env.GITHUB_SHA,
   runId: process.env.GITHUB_RUN_ID,
-  coverage: jobs.quality.outputs.coverage ?? "unknown",
+  coverage: plan.coverage ?? "unknown",
   // Runs whose own jobs verified identical content; null means this run executed the component.
   reusedRuns: {
-    build: jobs.quality.outputs.reuseBuild || null,
-    tests: jobs.quality.outputs.reuseTests || null,
-    distribution: jobs.quality.outputs.reuseDistribution || null,
+    build: plan.reuseBuild || null,
+    tests: plan.reuseTests || null,
+    distribution: plan.reuseDistribution || null,
   },
   status,
   jobs: Object.fromEntries(Object.entries(jobs).map(([name, job]) => [name, job.result])),
