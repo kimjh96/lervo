@@ -79,14 +79,24 @@ export const CI_TEST_RUN_UNIQUE_ENVIRONMENT = Object.freeze([
   "GITHUB_PATH",
   "GITHUB_STATE",
   "GITHUB_STEP_SUMMARY",
-  // The machine that ran the job.
+  // The machine that ran the job, and the job's orchestration identifier.
   "RUNNER_NAME",
   "RUNNER_TRACKING_ID",
+  "ACTIONS_ORCHESTRATION_ID",
+  // Set by systemd for the runner service: a random invocation identifier, the journal stream's
+  // device and inode, the service's PID and its cgroup's memory pressure file.
+  "INVOCATION_ID",
+  "JOURNAL_STREAM",
+  "SYSTEMD_EXEC_PID",
+  "MEMORY_PRESSURE_WATCH",
 ]);
 
+// Names that may hold a credential; their values are never digested one by one.
+const credentialName = /TOKEN|SECRET|PASSWORD|PASSPHRASE|CREDENTIAL|AUTH|KEY|COOKIE|SESSION/iu;
+
 /**
- * A digest of every environment variable except the run-unique ones. The names, never the values,
- * are kept too, so a report can show which variables a changed environment added or removed.
+ * A digest of every environment variable except the run-unique ones, and the names of the
+ * variables it covers. Values are never kept.
  */
 function environmentComponents(environment) {
   const excluded = new Set(CI_TEST_RUN_UNIQUE_ENVIRONMENT);
@@ -96,6 +106,26 @@ function environmentComponents(environment) {
   return {
     environment: sha256(JSON.stringify(names.map((name) => [name, String(environment[name])]))),
     environmentNames: names,
+  };
+}
+
+/**
+ * Observations that are not part of G (ADR-0565): what a reader needs to find why G differs
+ * between shards, without deciding reuse. Each variable's value appears only as its SHA-256, and a
+ * variable whose name may hold a credential appears only as `withheld`. The kernel release is kept
+ * because hosted runners of one image release run on different clouds.
+ */
+export function observeCiTestToolchain(environment = process.env) {
+  return {
+    kernel: release(),
+    environmentValues: Object.fromEntries(
+      Object.keys(environment)
+        .sort()
+        .map((name) => [
+          name,
+          credentialName.test(name) ? "withheld" : sha256(String(environment[name])),
+        ]),
+    ),
   };
 }
 
