@@ -198,6 +198,96 @@ describe("CLI release completion", () => {
     });
   });
 
+  it("accepts a prepared feature pull request on its base and on main after the merge", async () => {
+    const { root, base } = await fixture();
+    await git(root, "switch", "-c", "feature");
+    await changeBundledSource(root);
+    await createReleaseIntent(root, {
+      impact: "patch",
+      summary: "Correct a bundled behavior inside the feature pull request.",
+    });
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "fix: correct bundled behavior");
+    await prepareFixtureRelease(root, "0.2.3");
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "chore(cli): prepare release");
+    const expected = {
+      valid: true,
+      disposition: "release_prepared",
+      preparedRelease: { valid: true, impact: "patch", version: "0.2.3" },
+    };
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: base }),
+    ).resolves.toMatchObject(expected);
+
+    await git(root, "switch", "main");
+    await git(
+      root,
+      "merge",
+      "--no-ff",
+      "-m",
+      "Merge pull request #1 from owner/feature",
+      "feature",
+    );
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: base }),
+    ).resolves.toMatchObject(expected);
+  });
+
+  it("blocks a squashed intent and preparation because no reviewed intent reached history", async () => {
+    const { root, base } = await fixture();
+    await changeBundledSource(root);
+    await createReleaseIntent(root, {
+      impact: "patch",
+      summary: "Correct a bundled behavior with a squashed preparation commit.",
+    });
+    await prepareFixtureRelease(root, "0.2.3");
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "fix: correct bundled behavior and prepare release");
+
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: base }),
+    ).resolves.toMatchObject({
+      valid: false,
+      disposition: "blocked",
+      diagnostics: ["missing_release_intent", "reviewed_release_intent_missing"],
+    });
+  });
+
+  it("blocks the second of two pull requests prepared on the same version line", async () => {
+    const { root, base } = await fixture();
+    for (const [branch, value] of [
+      ["first", 2],
+      ["second", 3],
+    ]) {
+      await git(root, "switch", "-c", branch, base);
+      await writeFile(
+        resolve(root, "packages/bundled/src/index.ts"),
+        `export const bundled = ${value};\n`,
+      );
+      await createReleaseIntent(root, {
+        impact: "patch",
+        summary: `Correct bundled behavior number ${value} in its own pull request.`,
+      });
+      await git(root, "add", ".");
+      await git(root, "commit", "-m", `fix: correct bundled behavior ${value}`);
+      await prepareFixtureRelease(root, "0.2.3");
+      await git(root, "add", ".");
+      await git(root, "commit", "-m", "chore(cli): prepare release");
+    }
+    await git(root, "switch", "main");
+    await git(root, "merge", "--no-ff", "-m", "Merge pull request #1 from owner/first", "first");
+    const firstMain = await git(root, "rev-parse", "HEAD");
+    await git(root, "switch", "second");
+
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: firstMain }),
+    ).resolves.toMatchObject({
+      valid: false,
+      diagnostics: ["missing_release_intent", "prepared_release_version_mismatch"],
+    });
+  });
+
   it("rejects a manual version bump without reviewed intent history", async () => {
     const { root, base } = await fixture();
     await changeBundledSource(root);

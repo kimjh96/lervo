@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
-# Waits for one release stage and always exits: 0 success, 1 failure, 2 timeout.
+# Waits for one release stage and always exits: 0 success, 1 failure, 2 timeout, 3 stale.
 # Usage:
-#   wait-release.sh pr <number> [timeout-seconds]   feature or release PR checks
-#   wait-release.sh release-pr [timeout-seconds]     lervo/release-cli PR and its dispatched candidate CI
+#   wait-release.sh pr <number> [timeout-seconds]   PR release preparation, then the PR head checks
+#                                                   on a head that contains current main
+#   wait-release.sh release-pr [timeout-seconds]     fallback lervo/release-cli PR and its candidate CI
 #   wait-release.sh tag <version> [timeout-seconds]  tag v<version>, its CLI release matrix (any event), and the GitHub Release
 set -u
 stage="${1:?stage}"; shift
@@ -23,9 +24,35 @@ pr_checks() {
   [ "$failed" -eq 0 ] && return 0 || return 1
 }
 
+pr_preparation() {
+  # The newest non-skipped "CLI release in pull request" run for this PR; other labels skip.
+  local runs; runs=$(gh run list --workflow release-pull-request.yml --limit 50 \
+    --json displayTitle,status,conclusion,createdAt 2>/dev/null) || return 3
+  jq -r --arg title "Prepare release in PR #$1" '[.[] | select(.displayTitle == $title and .conclusion != "skipped")]
+    | max_by(.createdAt) | if . == null then "none" else "\(.status)/\(.conclusion)" end' <<<"$runs"
+}
+
+pr_fresh() {
+  # Main reuses PR verification only when the merged tree equals the PR head tree.
+  local json head base status
+  json=$(gh pr view "$1" --json headRefOid,baseRefName 2>/dev/null) || return 3
+  head=$(jq -r .headRefOid <<<"$json"); base=$(jq -r .baseRefName <<<"$json")
+  status=$(gh api "repos/{owner}/{repo}/compare/$base...$head" --jq .status 2>/dev/null) || return 3
+  case "$status" in ahead|identical) return 0;; behind|diverged) return 1;; *) return 3;; esac
+}
+
 while [ "$(date +%s)" -lt "$deadline" ]; do
   case "$stage" in
     pr)
+      prep=$(pr_preparation "$target") || prep="unknown"
+      case "$prep" in
+        completed/success|none) ;;
+        completed/*) finish "PR #$target release preparation failed: $prep" 1;;
+        *) last="release preparation $prep"; sleep 30; continue;;
+      esac
+      pr_fresh "$target"; code=$?
+      [ $code -eq 1 ] && finish "PR #$target head does not contain current main: run 'gh pr update-branch $target', or rerun its release preparation if it is prepared, then wait again" 3
+      [ $code -eq 3 ] && { last="freshness unknown"; sleep 30; continue; }
       pr_checks "$target"; code=$?
       [ $code -eq 0 ] && finish "PR #$target passed: $last" 0
       [ $code -eq 1 ] && finish "PR #$target failed: $last" 1

@@ -68,7 +68,8 @@ jobs:
         run: |
           required=false
           if [ '${{ steps.plan.outputs.coverage }}' = full ]; then
-            if [ '${{ github.event_name }}' = workflow_dispatch ] || [ '${{ github.event_name }}' = schedule ] || { [ '${{ github.event_name }}' = push ] && ! compgen -G '.changes/*.yaml' > /dev/null; }; then
+            # Without pending intent, a pull request is what main will reuse, so it verifies distribution too.
+            if [ '${{ github.event_name }}' = workflow_dispatch ] || [ '${{ github.event_name }}' = schedule ] || { { [ '${{ github.event_name }}' = push ] || [ '${{ github.event_name }}' = pull_request ]; } && ! compgen -G '.changes/*.yaml' > /dev/null; }; then
               required=true
             fi
           fi

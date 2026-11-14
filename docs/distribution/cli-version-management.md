@@ -27,9 +27,15 @@ pnpm release:completion:check --base <task-base-revision>
 
 The local default uses the configured upstream merge base, then the latest reachable version tag, and includes staged, unstaged, and untracked work. Explicit bases remain authoritative for agents and CI. The check permits only no-change, pending-intent, or exact prepared-release state. A prior document read, current workstream, successful check from an older revision, or terminal Stop result is not release evidence.
 
-## Release pull request
+## Prepared feature pull request
 
-On `main`, `.github/workflows/release-preparation.yml` aggregates pending intent into the fixed `lervo/release-cli` branch. Review the public version, sorted summaries in `.changes/current-release.md`, lockfile, release artifact manifest, SBOM, consumed intent, and exact source revision. New intent updates the same pull request.
+Prepare the release inside the feature pull request, so one full CI run covers the exact bytes that the tag later names. Add the `release` label to a same-repository pull request (create the label once with `gh label create release`), or run `gh workflow run release-pull-request.yml -f pull_request=<number>`. `.github/workflows/release-pull-request.yml` runs on macOS, so its build includes the darwin native files that CI verifies. It adds one `lervo-release[bot]` commit, `chore(cli): prepare release`, on top of current `main`. That commit holds the version, `.changes/current-release.md`, the consumed intent, the lockfile, the manifest, and the SBOM. The workflow then dispatches full Code quality for that exact commit, distribution checks included.
+
+The intent commit and the preparation commit must stay separate, because the completion checker rebuilds intent from the commit that added it. Squashing them into one commit blocks completion. Merge with a merge commit after the dispatched run passes. When `main` moves first, rerun preparation: it replaces its own commit, merges `main`, and prepares again. After the merge, main reuses the build, tests, and distribution checks by exact tree. Release preparation then goes straight to the tag check. See [ADR-0564](../decisions/operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) for triggers, failure codes, and the same-version race.
+
+## Fallback release pull request
+
+Intent that reaches `main` unprepared takes the fallback path, for example from an external contribution. On `main`, `.github/workflows/release-preparation.yml` aggregates that pending intent into the fixed `lervo/release-cli` branch. Review the public version, sorted summaries in `.changes/current-release.md`, lockfile, release artifact manifest, SBOM, consumed intent, and exact source revision. New intent updates the same pull request.
 
 Preparation now follows successful verification of the exact current main push, rather than every push immediately. It generates a reviewable candidate and explicitly dispatches full CI for that exact candidate. The PR leaves verification pending until those checks pass. Generation no longer repeats `pnpm check`; source-main success does not prove the generated candidate passed. Manual preparation retries require current main and exact successful CI evidence. See [ADR-0496](../decisions/operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md).
 
@@ -37,16 +43,16 @@ Preparation consumes every pending item. Creation and loading fail closed above 
 
 Preparation may consume intent only into the version calculated by the reviewed impact policy. The completion checker reconstructs intent from bounded Git ancestry and requires exact release-note, manifest, and SBOM versions. Deleting intent and manually editing a package version does not satisfy completion.
 
-Generated files retain their owners. The workflow runs frozen-lockfile installation, the build, `release:manifest:update`, and `release:sbom:update`. Do not manually edit version-bound fields. A conflict or failed generator restores local inputs and fails the workflow for correction.
+Generated files retain their owners. Both preparation workflows run frozen-lockfile installation, the build, `release:manifest:update`, and `release:sbom:update`. Do not manually edit version-bound fields. A conflict or failed generator restores local inputs and fails the workflow for correction.
 
 ## Tag handoff and recovery
 
-After the release pull request merges, the workflow verifies clean `main`, the versioned current release note, matching generated metadata, no remaining intent, and tag absence. It creates and pushes the annotated `v<version>` tag, then ensures one exact-revision, tag-bound run exists for the three-platform packed-consumer pipeline, supported attestation work, and idempotent GitHub Release creation. Explicit dispatch is required because GitHub does not emit another workflow trigger for a tag pushed with the repository workflow token.
+After a prepared pull request or the fallback release pull request merges, the workflow verifies clean `main`, the versioned current release note, matching generated metadata, no remaining intent, and tag absence. It creates and pushes the annotated `v<version>` tag, then ensures one exact-revision, tag-bound run exists for the three-platform packed-consumer pipeline, supported attestation work, and idempotent GitHub Release creation. Explicit dispatch is required because GitHub does not emit another workflow trigger for a tag pushed with the repository workflow token.
 
-The tag effect also requires full successful Code quality evidence for the exact merged main revision, including all four test shards, manifest/SBOM, distribution smokes, and aggregate verification. A successful candidate or documentation-only run cannot substitute for that evidence. Superseded main or unavailable CI stops the effect; retry after the current full verification completes.
+The tag effect also requires full successful Code quality evidence for the exact merged main revision, including all four test shards, manifest/SBOM, distribution smokes, and aggregate verification. A successful candidate or documentation-only run cannot substitute for that evidence; main satisfies it by reusing a prepared pull request's run only for the identical tree. Superseded main or unavailable CI stops the effect; retry after the current full verification completes.
 
 If tag creation or matrix dispatch has an uncertain result, rerun the workflow. An exact annotated tag at the planned revision and an existing matrix run for that revision are recoverable replays. A lightweight tag or a tag at another revision is a conflict. Do not move or delete it automatically; resolve Git authority separately, then rerun the exact plan.
 
-Emergency corrections require new `patch` or reviewed higher-impact intent and the ordinary release pull request. V1 has no prerelease channel. Version preparation and tag creation prove only those Git operations; npm stage approval, Trusted Publisher configuration, and publication retain independent authorization.
+Emergency corrections require new `patch` or reviewed higher-impact intent and the ordinary preparation path. V1 has no prerelease channel. Version preparation and tag creation prove only those Git operations; npm stage approval, Trusted Publisher configuration, and publication retain independent authorization.
 
 See [ADR-0223](../decisions/release/packaging/0223-base-bound-cli-release-completion.md) for the base-selection, privacy, failure, and direct-main enforcement contract.

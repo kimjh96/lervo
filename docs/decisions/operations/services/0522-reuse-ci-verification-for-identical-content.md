@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-18
+Amended by: [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (the daily audit reuses nothing)
 Amends: [ADR-0496](0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) (verification reuse)
 
 ## Context and authority
@@ -25,7 +26,7 @@ A reused job keeps its name and succeeds through one step that names the earlier
 
 The verification job publishes one receipt per component that the run executed itself: `lervo-ci-build-<tree>`, `lervo-ci-tests-<test digest>` and `lervo-ci-distribution-<tree>`. Each receipt binds contract, component, digest, revision and run ID, and is kept for 30 days. The aggregate receipt records which runs it reused. Reused components publish no new receipt, so reuse always points at a run that executed the work.
 
-The daily audit stays scheduled. On an unchanged main it reuses the earlier results and costs about ten billed minutes, compared with 57 for a full run.
+The daily audit stays scheduled. [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) amends its reuse: a scheduled run reuses nothing, because reused results hid a clock-dependent test failure for six days. It costs a full run again, about 57 billed minutes instead of about ten.
 
 ## Failure and verification
 

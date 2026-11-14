@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 const scripts = {
   candidate: new URL("../lib/reconcile-release-candidate.sh", import.meta.url),
+  "pull-request": new URL("../lib/reconcile-release-pull-request.sh", import.meta.url),
   tag: new URL("../lib/reconcile-release-tag.sh", import.meta.url),
 };
 const script = scripts[process.argv[2]];

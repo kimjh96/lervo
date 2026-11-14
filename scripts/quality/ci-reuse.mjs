@@ -13,6 +13,7 @@ const reuse = planCiReuse({
   coverage: process.env.COVERAGE,
   distributionRequired: process.env.DISTRIBUTION_REQUIRED === "true",
   digests,
+  eventName: process.env.GITHUB_EVENT_NAME,
   find: (component, digest) => findReusableRun({ repository, component, digest }),
 });
 const outputs = {

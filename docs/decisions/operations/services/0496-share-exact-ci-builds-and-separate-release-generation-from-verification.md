@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-08
-Amended by: [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (verification reuse for identical content)
+Amended by: [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (verification reuse for identical content), [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (one verification covers a prepared feature pull request)
 Amends: [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) (CI), [ADR-0221](../../release/packaging/0221-reviewed-cli-release-preparation.md) (release workflow)
 
 ## Context and authority
@@ -21,7 +21,7 @@ Explicit dispatch and daily audit force full coverage: minimum-Node typechecking
 
 The `CI verification (lervo-ci-v1)` job runs after all required results are available, including after failure. Its version-1 receipt names the contract `lervo-ci-v1`, exact revision, workflow-run ID, coverage, aggregate disposition, and job results. `passed` requires quality and every required job to succeed. `failed`, cancelled jobs, missing coverage, and unknown results block consequential release effects. Documentation-only success never claims a full test run.
 
-Distribution smoke checks use the shared build on dispatch, daily audit, and full main pushes without pending release intent. They retain attestation, built CLI/Hub/Node, standalone distributions, packed-consumer, isolated-registry, and knowledge-lint checks. Code changes with pending intent receive full tests and metadata checks; the generated candidate then receives the full distribution suite.
+Distribution smoke checks use the shared build on dispatch, daily audit, and full main pushes and pull requests without pending release intent. They retain attestation, built CLI/Hub/Node, standalone distributions, packed-consumer, isolated-registry, and knowledge-lint checks. Code changes with pending intent receive full tests and metadata checks; the prepared feature pull request, or the fallback candidate, then receives the full distribution suite.
 
 ### Exact build transfer
 
@@ -41,7 +41,7 @@ Candidate PRs preserve every template section, report observed generation eviden
 
 The workflow explicitly dispatches Code quality for the exact candidate and source base; a moved branch is rejected. Same-repository automated release-branch PR events delegate verification to that dispatch to prevent a second heavy route. Fork PRs with the same branch name retain ordinary verification. Successful or active matching dispatches suppress duplicates; failed or cancelled dispatches remain retryable.
 
-Mandatory full verification of the generated candidate replaces whole-repository checks before candidate creation. Creation establishes a reviewable version proposal, not release readiness. After merge, tag creation independently requires the exact current main's full CI, all four shards, metadata, distribution checks, and aggregate success. Source, candidate, and merged-main success are not interchangeable. Exact tag replay and the three-platform handoff remain intact. No npm authority is added.
+Mandatory full verification of the generated candidate replaces whole-repository checks before candidate creation. Creation establishes a reviewable version proposal, not release readiness. After merge, tag creation independently requires the exact current main's full CI, all four shards, metadata, distribution checks, and aggregate success. Source, candidate, and merged-main success are not interchangeable. Under [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md), one dispatched verification of a prepared feature pull request covers the bytes that merge. Merged main reuses it only for the exact tree, and the tag still requires the exact main run. Exact tag replay and the three-platform handoff remain intact. No npm authority is added.
 
 ### Test time and module boundaries
 

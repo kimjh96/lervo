@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { describe, it } from "vitest";
@@ -162,4 +164,45 @@ it("reuses only components that an earlier run executed for identical content", 
       "lervo-ci-distribution-${{ needs.quality.outputs.tree }}",
     ],
   );
+});
+
+it("verifies distribution wherever main will reuse the result", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  const step = workflow.jobs.quality.steps.find(({ id }) => id === "distribution");
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-distribution-"));
+  const plan = async ({ eventName, coverage = "full", pendingIntent }) => {
+    await rm(resolve(root, ".changes"), { recursive: true, force: true });
+    await mkdir(resolve(root, ".changes"));
+    if (pendingIntent) await writeFile(resolve(root, ".changes/relint_a.yaml"), "impact: patch\n");
+    const output = resolve(root, "output");
+    await writeFile(output, "");
+    const script = step.run
+      .replaceAll("${{ steps.plan.outputs.coverage }}", coverage)
+      .replaceAll("${{ github.event_name }}", eventName);
+    const result = spawnSync("bash", ["-c", script], {
+      cwd: root,
+      env: { ...process.env, GITHUB_OUTPUT: output },
+      encoding: "utf8",
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return (await readFile(output, "utf8")).trim();
+  };
+  try {
+    for (const eventName of ["pull_request", "push"]) {
+      assert.equal(await plan({ eventName, pendingIntent: false }), "required=true");
+      assert.equal(await plan({ eventName, pendingIntent: true }), "required=false");
+    }
+    for (const eventName of ["workflow_dispatch", "schedule"])
+      assert.equal(await plan({ eventName, pendingIntent: true }), "required=true");
+    assert.equal(
+      await plan({
+        eventName: "pull_request",
+        coverage: "documentation_only",
+        pendingIntent: false,
+      }),
+      "required=false",
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
