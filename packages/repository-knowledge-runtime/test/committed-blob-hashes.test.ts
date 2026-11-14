@@ -44,6 +44,14 @@ const PATHS = [
   "with space/file name.md",
   "unicodé/ファイル.md",
   "line\nbreak.md",
+  "trailing-cr\r",
+  "trailing-space ",
+  " leading-space",
+  "tab\there",
+  "plain.md\r",
+  "plain.md ",
+  " plain.md",
+  "plain.md\n",
   "link.md",
   "dangling-link",
   "directory",
@@ -72,6 +80,11 @@ async function repository(): Promise<string> {
   await mkdir(resolve(root, "unicodé"));
   await writeFile(resolve(root, "unicodé/ファイル.md"), "unicode\n");
   await writeFile(resolve(root, "line\nbreak.md"), "newline path\n");
+  // `cat-file --batch` drops a CR before its line feed; these names must still read exactly.
+  await writeFile(resolve(root, "trailing-cr\r"), "carriage return\n");
+  await writeFile(resolve(root, "trailing-space "), "trailing space\n");
+  await writeFile(resolve(root, " leading-space"), "leading space\n");
+  await writeFile(resolve(root, "tab\there"), "tab\n");
   await symlink("plain.md", resolve(root, "link.md"));
   await symlink("nowhere", resolve(root, "dangling-link"));
   await mkdir(resolve(root, "directory"));
@@ -96,8 +109,19 @@ it("answers every path exactly as a separate `cat-file blob` does", async () => 
   expect(answers.get("link.md")).toBe(
     `sha256:${createHash("sha256").update("plain.md").digest("hex")}`,
   );
-  for (const absent of ["directory", "submodule", "missing.md", "../escape.md"])
+  for (const absent of [
+    "directory",
+    "submodule",
+    "missing.md",
+    "../escape.md",
+    "plain.md\r",
+    "plain.md ",
+    " plain.md",
+    "plain.md\n",
+  ])
     expect(answers.get(absent)).toBeNull();
+  for (const present of ["trailing-cr\r", "trailing-space ", " leading-space", "tab\there"])
+    expect(answers.get(present)).not.toBeNull();
 });
 
 it("answers absent for an unknown revision and an empty request without a process", async () => {
@@ -114,25 +138,35 @@ it("answers absent for an unknown revision and an empty request without a proces
   }
 });
 
-it("reads one process per call and none for a remembered object identity", async () => {
+it("reads through one process per call and remembers nothing between calls", async () => {
   const root = await repository();
   const head = git(root, "rev-parse", "HEAD");
   const observation = observeProcessCost();
   try {
     const first = await committedBlobHashes(root, head, ["plain.md", "binary.bin"]);
     expect(observation.snapshot().gitProcesses).toBe(1);
-    expect(await committedBlobHashes(root, head, ["binary.bin", "plain.md"])).toEqual(
-      new Map([
-        ["binary.bin", first.get("binary.bin")!],
-        ["plain.md", first.get("plain.md")!],
-      ]),
-    );
-    expect(observation.snapshot().gitProcesses).toBe(1);
-    // A remembered tree does not stand in for an absent path, which is read again.
-    await committedBlobHashes(root, head, ["plain.md", "missing.md"]);
+    expect(await committedBlobHashes(root, head, ["binary.bin", "plain.md"])).toEqual(first);
     expect(observation.snapshot().gitProcesses).toBe(2);
   } finally {
     observation.close();
+  }
+});
+
+it("answers a failing repository as absent even after an earlier success", async () => {
+  const root = await repository();
+  const head = git(root, "rev-parse", "HEAD");
+  expect((await committedBlobHashes(root, head, ["plain.md"])).get("plain.md")).not.toBeNull();
+  const saved = process.env.GIT_OBJECT_DIRECTORY;
+  process.env.GIT_OBJECT_DIRECTORY = resolve(root, "no-such-object-directory");
+  try {
+    expect(await perPathHash(root, head, "plain.md")).toBeNull();
+    expect([...(await committedBlobHashes(root, head, ["plain.md", "binary.bin"]))]).toEqual([
+      ["plain.md", null],
+      ["binary.bin", null],
+    ]);
+  } finally {
+    if (saved === undefined) delete process.env.GIT_OBJECT_DIRECTORY;
+    else process.env.GIT_OBJECT_DIRECTORY = saved;
   }
 });
 

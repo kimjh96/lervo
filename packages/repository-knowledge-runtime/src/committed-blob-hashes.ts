@@ -5,21 +5,12 @@ import { promisify } from "node:util";
 const execute = promisify(execFile);
 /** A blob larger than this reads as absent, exactly as the former per-path read's output bound. */
 const MAXIMUM_BLOB_BYTES = 64 * 1024 * 1024;
-const MAXIMUM_REMEMBERED = 4_096;
 const OBJECT_ID = /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/u;
-
 /**
- * Object identities fix their content, so a commit's tree and a tree path's blob hash stay valid
- * for the process lifetime. Absent answers are not remembered: in a partial clone, a missing
- * object can arrive later.
+ * `cat-file --batch` reads one request per line and drops a CR before the LF, so a name with a
+ * line break would be read differently. Every control character takes the separate read instead.
  */
-const rememberedTrees = new Map<string, string>();
-const rememberedHashes = new Map<string, string>();
-
-function remember(map: Map<string, string>, key: string, value: string): void {
-  if (map.size >= MAXIMUM_REMEMBERED) map.clear();
-  map.set(key, value);
-}
+const NOT_A_BATCH_LINE = /[\x00-\x1f\x7f]/u;
 
 interface BatchAnswer {
   objectId: string | null;
@@ -98,10 +89,10 @@ function openObjectBatch(root: string) {
   };
 }
 
-/** One `cat-file blob`, for a path that a `--batch` request line cannot carry. */
-async function singleBlobHash(root: string, tree: string, path: string): Promise<string | null> {
+/** One `cat-file blob`, for a name that a `--batch` request line cannot carry verbatim. */
+async function singleBlobHash(root: string, name: string): Promise<string | null> {
   try {
-    const { stdout } = await execute("git", ["-C", root, "cat-file", "blob", `${tree}:${path}`], {
+    const { stdout } = await execute("git", ["-C", root, "cat-file", "blob", name], {
       encoding: "buffer",
       maxBuffer: MAXIMUM_BLOB_BYTES,
     });
@@ -114,8 +105,8 @@ async function singleBlobHash(root: string, tree: string, path: string): Promise
 /**
  * The SHA-256 of each path's committed bytes at `revision`, or `null` where it has no such blob:
  * each answer equals one `git cat-file blob <revision>:<path>`. `revision` resolves to its tree
- * once, so every path is read from the same tree, through at most one Git process; a known object
- * identity whose answers are all remembered starts none.
+ * once, so every path is read from the same tree through one Git process. Nothing is remembered
+ * between calls, so a repository that can no longer answer is never answered from an earlier read.
  */
 export async function committedBlobHashes(
   root: string,
@@ -125,39 +116,24 @@ export async function committedBlobHashes(
   const hashes = new Map<string, string | null>();
   const unique = [...new Set(paths)];
   if (unique.length === 0) return hashes;
-  const knownTree = OBJECT_ID.test(revision)
-    ? rememberedTrees.get(`${root}\0${revision}`)
-    : undefined;
-  const key = (tree: string, path: string) => `${root}\0${tree}\0${path}`;
-  if (
-    knownTree !== undefined &&
-    unique.every((path) => rememberedHashes.has(key(knownTree, path)))
-  ) {
-    for (const path of unique) hashes.set(path, rememberedHashes.get(key(knownTree, path))!);
+  if (NOT_A_BATCH_LINE.test(revision)) {
+    for (const path of unique) hashes.set(path, await singleBlobHash(root, `${revision}:${path}`));
     return hashes;
   }
   const batch = openObjectBatch(root);
   try {
-    const tree = knownTree ?? (await batch.request(`${revision}^{tree}`)).objectId;
-    if (tree === null) {
-      for (const path of unique) hashes.set(path, null);
-      return hashes;
-    }
-    if (OBJECT_ID.test(revision)) remember(rememberedTrees, `${root}\0${revision}`, tree);
+    const tree = (await batch.request(`${revision}^{tree}`)).objectId;
     // Requests are pipelined; Git answers them in order.
     const answers = await Promise.all(
-      unique.map((path) => {
-        const known = rememberedHashes.get(key(tree, path));
-        if (known !== undefined) return known;
-        if (path.includes("\n")) return singleBlobHash(root, tree, path);
-        return batch.request(`${tree}:${path}`).then((answer) => answer.hash);
-      }),
+      unique.map((path) =>
+        tree === null
+          ? null
+          : NOT_A_BATCH_LINE.test(path)
+            ? singleBlobHash(root, `${tree}:${path}`)
+            : batch.request(`${tree}:${path}`).then((answer) => answer.hash),
+      ),
     );
-    unique.forEach((path, index) => {
-      const hash = answers[index]!;
-      if (hash !== null) remember(rememberedHashes, key(tree, path), hash);
-      hashes.set(path, hash);
-    });
+    unique.forEach((path, index) => hashes.set(path, answers[index]!));
   } finally {
     await batch.close();
   }
