@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
 import { createCiTestLedger } from "../lib/ci-test-ledger.mjs";
+import { createCiTestInputSnapshot } from "../lib/ci-test-shadow-inputs.mjs";
 
 const program = resolve(import.meta.dirname, "fixtures/ci-test-input-program.mjs");
 const programPath = "scripts/quality/test/fixtures/ci-test-input-program.mjs";
@@ -63,6 +64,11 @@ it("records reads, listings, absent probes, modules, children, sockets, SQLite a
     expect(main.inputs).toContain(input);
   expect(Object.keys(main.directories)).toEqual(["scripts/quality"]);
   expect(main.directories["scripts/quality"][0]).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  // The shadow predictor recomputes the same listing digest for the unchanged directory.
+  const repositoryRoot = resolve(import.meta.dirname, "../../..");
+  expect(createCiTestInputSnapshot(repositoryRoot).listing("scripts/quality", false)).toBe(
+    main.directories["scripts/quality"][0],
+  );
   expect(main.absent).toContain("scripts/quality/absent-recorder-probe.mjs");
   expect(main.dependencies.some((key) => key.startsWith("pnpm:yaml@"))).toBe(true);
   expect(main.inputs.some((input) => input.includes("lervo-recorder-program-"))).toBe(false);

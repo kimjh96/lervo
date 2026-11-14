@@ -25,6 +25,7 @@ const {
   stringify,
   toText,
 } = require("./ci-test-input-intrinsics.cjs");
+const { ciTestListingText } = require("./ci-test-input-listing.cjs");
 const { installModuleObserver } = require("./ci-test-input-module-observer.cjs");
 const { installNetworkObserver } = require("./ci-test-input-network-observer.cjs");
 const { absoluteInputPath, createCiTestPathClassifier } = require("./ci-test-input-paths.cjs");
@@ -278,13 +279,8 @@ let hash;
 function listingDigest(path, recursive) {
   try {
     hash ??= apply(getBuiltinModule, processObject, ["node:crypto"]).createHash;
-    const names = readdirSync(path, { recursive })
-      .map((name) => toText(name))
-      .sort();
-    const prefix = recursive ? "recursive\n" : "";
-    return `sha256:${hash("sha256")
-      .update(`${prefix}${names.join("\n")}`)
-      .digest("hex")}`;
+    const names = readdirSync(path, { recursive }).map((name) => toText(name));
+    return `sha256:${hash("sha256").update(ciTestListingText(names, recursive)).digest("hex")}`;
   } catch {
     return "unlisted";
   }

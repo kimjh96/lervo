@@ -1,6 +1,6 @@
 # ADR-0565: Record what each CI test file reads before reusing its result
 
-Status: `proposed` (Stage 1, observation only, is accepted; reuse is not enabled)
+Status: `proposed` (Stages 1 and 2, observation and shadow comparison, are accepted; reuse is not enabled)
 Decision date: 2026-11-14
 Builds on: [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (whole-tree reuse), [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (the daily audit reuses nothing)
 
@@ -12,7 +12,7 @@ Reusing one file's result needs a key that changes whenever anything the file de
 
 ## Decision
 
-Delivery happens in three stages. This ADR accepts Stage 1 only.
+Delivery happens in three stages. This ADR accepts Stages 1 and 2. Neither skips a test or changes a verdict.
 
 ### Stage 1: recorder and ledgers (observation only)
 
@@ -62,7 +62,20 @@ Git outside the repository runs on test-owned fixtures with the Git version in G
 
 ### Stage 2: shadow comparison
 
-A shadow planner computes, for every run, which files Stage 3 would have reused. It does not skip any of them. It compares each predicted reuse with the file's actual result. A false reuse is a predicted reuse whose actual result or test counts differ. Stage 2 runs for at least 14 days. It refines the recorded surfaces and generated-output mappings until there have been zero false reuses over the whole period.
+A shadow job predicts, on every run, which test files Stage 3 would have reused, without skipping any. Because every test still runs, it compares each predicted reuse with the file's actual result. A false reuse is a predicted reuse whose actual result or test counts differ; a changed duration is not one. Stage 2 runs for at least 14 days. It refines the recorded surfaces and generated-output mappings until there have been zero false reuses over the whole period. [CI test reuse shadow](../../../foundation/ci-test-reuse-shadow.md) specifies the job, the input index, the digests, the reasons and the report.
+
+The `Test reuse shadow` job runs after the shards with `continue-on-error`. No job needs it, and it uses only the workflow's read-only token. It rebuilds the tree each shard started from (the revision, a frozen install and the run's build), digests every file and copied tree that the run's ledgers name, and publishes that input index for seven days. An earlier run is trusted when it verified `main`, by a push or the daily audit, or when it is a pull request whose four shards passed.
+
+An earlier result of a file is reusable only when all of the following hold:
+
+1. Its run is trusted and finished before the current run started.
+2. Its shard recorded the file at most 24 hours before the current run started.
+3. It recorded the G that the file has in the current run. Shards of one run can have different G, so each file is compared under its own shard's G.
+4. The file passed, and its closure had no uncacheable reason.
+5. The run's input index covers the test file and every recorded input and copied tree, and the head has the same digests. Each recorded listing digest equals the plain or recursive listing at the head, and no recorded absent path exists.
+6. No fetched run, trusted or not, recorded the file failing under the same G within those 24 hours.
+
+Candidates are tried newest first. A file without a reusable candidate reruns with its newest candidate's reason from a closed list. Built outputs are compared by their own bytes in the restored build. The build-output map cannot see a build script, an esbuild define, or a TypeScript import elided because of another file. The report, kept for 30 days, holds the predicted reuse count, the false reuses before any other table, rerun reasons ranked with file time, and estimated shard time. Neither the predictor nor the report enters G.
 
 ### Stage 3: reuse
 
@@ -70,15 +83,7 @@ Only after Stage 2 meets its bar does a separate decision enable per-file reuse.
 
 ## Known gaps
 
-- `process.emit` becomes an own property of `process`, so `Object.hasOwn(process, "emit")` is true and `process.emit` no longer equals `EventEmitter.prototype.emit`. Listeners run with one recorder frame below them.
-- Hooks still call built-in prototype methods, such as `String.prototype.startsWith` or `Set.prototype.has`, at call time. A program that replaces those methods can observe the recorder.
-- A worker killed within a second of its file's last hook loses the observations made after that hook.
-- SQLite database paths are not observed. Replacing `DatabaseSync` would change its identity, and loading `node:sqlite` early would print its experimental warning in every process. A process that loaded it gets the note `sqlite_unobserved`. No database file is tracked in the repository.
-- Paths given as a Buffer or a file descriptor are not observed. Existence and listings are read when the record is spooled, so a repository path a test creates or deletes in between shows its later state.
-- Each wrapped synchronous call adds one recorder frame to stacks captured inside it. The limit rises by one during the call, so the caller's frames still fit, and is restored only if the call left it unchanged. Still, a stack captured inside the call has one extra line, and a synchronous callback inside it, such as an `fs.cpSync` filter, reads a limit one higher. `Function.prototype.toString` of a wrapped function or of `Date` prints `function () { [native code] }`. On 2026-11-14, no test asserted on stacks, limits or that source text, and `errorThrowSite`, the one product reader of stack frames, skips errors with a string `code`, as all filesystem and child process errors have.
-- `performance.now()`, `process.hrtime()`, `Date()` called as a function, `fs.watch` and `dgram` are not observed. Worker threads run the preload and spool their own records, but a thread stopped by `Worker#terminate()` can lose its record without any reason being recorded.
-- Garbage collection timing changes, because the preload allocates. A process that holds a resource only through an object it no longer references can lose it sooner. In CI, three test children lost an SQLite lock or transaction this way. They now keep the holder referenced, and a transparency row checks that only an unreferenced lock is released.
-- A record holds at most 50,000 paths per kind and 2,000 child entries. Children that cannot have a record of their own, such as Git or a child started without the recorder, collapse into one counted entry per identical command.
+[CI test reuse shadow](../../../foundation/ci-test-reuse-shadow.md#known-gaps) lists the known gaps of the recorder and of the shadow comparison.
 
 ## Consequences
 
@@ -86,15 +91,8 @@ The recorder changes each test process in ways that tests can detect only by loo
 
 Measured on WSL with Node 22.13, the recorder's own CPU time in the worker for `apps/cli/test/cli.test.ts` was about 0.25 seconds of 18 seconds. With the Proxy wrappers, it adds about 1 µs to each repository fs call or listing, 0.5 µs to each temporary-path call or clock read, nothing measurable to a Git spawn, and about 7 ms to the startup and exit of each recorded Node child. Paired runs of three heavy files varied more from host load than from the recorder.
 
-A local run of shard 1 of 4 on Node 22.13 with the recorder on passed 307 files. The two failing files failed the same way with the recorder off, because of the local environment. It wrote a 1.84 MB ledger for 315 files: 7,694 paths and 405 process records. The 27 MB spool stays on the runner. With this change's own files counted as tracked, 259 of the 315 files had a complete closure. The rest had these reasons:
-
-- `host_state` in 43 files. In 37 of them, capability discovery probes `~/.lervo/capabilities/packages`, because the test setup isolates `LERVO_USER_STATE_DIRECTORY` but not `LERVO_USER_CAPABILITY_ROOT`. TypeScript's case-sensitivity probe and a `/.dockerenv` probe were also recorded.
-- `unobserved_child` in 26 files, mostly fixtures and providers started with an environment that drops `NODE_OPTIONS`.
-- `git_in_repository` in 5 files.
-- `untracked_input` in 3 files, from four unmapped CLI build outputs: `.tsbuildinfo`, `bin.metafile.json`, `repository-runtime.json` and `terminal-hook-launcher.mjs`.
-
-Five files then exceeded the child bound, before identical children were collapsed.
+The first hosted ledgers had 1,021 complete closures in 1,267 files. In 77 other files, the only reason was `host_state` from the capability probe, which isolating `LERVO_USER_CAPABILITY_ROOT` in the test setup removes. A dry run of the shadow predictor predicted 80.6% reuse for an unchanged rerun and 80.3% for the next real push, with no false reuse. A strict G halved that when shards ran on different runner image builds. Files that still rerun hold most of the time, mainly through unobserved children. [Shadow evidence](../../../evidence/quality/ci-test-reuse-shadow.md) records the local ledger, the hosted ledgers and the dry run.
 
 ## Verification
 
-`ci-test-input-recorder.test.mjs` runs a real program with the recorder and checks reads, listings, absent probes, ESM and CommonJS loads, dependency keys, children with and without the recorder, Git inside and outside the repository, loopback and external connections, clock counts and the SQLite note. It also checks byte-identical results with and without the recorder, the final record and exit signal on SIGTERM, and inertness when the switch is off. `ci-test-ledger-reporter.test.mjs` runs a nested Vitest with the ledger on, checks the ledger written for it, checks that a write failure never fails the run, and checks the configuration switch. `ci-test-ledger.test.mjs` covers the path table, each reason, child matching, output mappings and the size bound. `ci-test-toolchain-digest.test.mjs` covers digest stability and every component. `ci-test-shards.test.mjs` and `ci-test-duration-profile.test.mjs` cover weights, medians and exact-once assignment. `ci-test-input-transparency.test.mjs` holds one row per transparency defect found in review, including thrown values whose `code` getter throws, non-enumerable environment getters, small stack limits, connect option getters, a constructible `Date.now`, SQLite constructor identity, function shapes, getter and Proxy trap counts, promise ordering, unhandled rejections and stack formatters. `code-quality-workflow.test.mjs` checks the switch, the upload and that no other job reads ledgers.
+`ci-test-input-recorder.test.mjs` runs a real program with the recorder and checks reads, listings, absent probes, ESM and CommonJS loads, dependency keys, children with and without the recorder, Git inside and outside the repository, loopback and external connections, clock counts and the SQLite note. It also checks byte-identical results with and without the recorder, the final record and exit signal on SIGTERM, and inertness when the switch is off. `ci-test-ledger-reporter.test.mjs` runs a nested Vitest with the ledger on, checks the ledger written for it, checks that a write failure never fails the run, and checks the configuration switch. `ci-test-ledger.test.mjs` covers the path table, each reason, child matching, output mappings and the size bound. `ci-test-toolchain-digest.test.mjs` covers digest stability and every component. `ci-test-shards.test.mjs` and `ci-test-duration-profile.test.mjs` cover weights, medians and exact-once assignment. `ci-test-input-transparency.test.mjs` holds one row per transparency defect found in review, including thrown values whose `code` getter throws, non-enumerable environment getters, small stack limits, connect option getters, a constructible `Date.now`, SQLite constructor identity, function shapes, getter and Proxy trap counts, promise ordering, unhandled rejections and stack formatters. `code-quality-workflow.test.mjs` checks the switch, the upload, that only the test and shadow jobs read ledgers, that no job needs the shadow job, its pinned actions, conditions, token use and retention. [CI test reuse shadow](../../../foundation/ci-test-reuse-shadow.md#verification) lists the Stage 2 tests.

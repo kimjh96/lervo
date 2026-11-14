@@ -338,3 +338,35 @@ export function readCiTestLedgerWeights(ledger) {
   }
   return weights;
 }
+
+/**
+ * Resolves a ledger's files against its path table, for readers that compare closures. Each file
+ * keeps its shard's observation time, so a reader can age every result separately.
+ */
+export function readCiTestLedgerFiles(ledger) {
+  if (ledger?.contract !== CI_TEST_LEDGER_CONTRACT || !Array.isArray(ledger.files))
+    throw new Error("ci_test_ledger_invalid");
+  const paths = ledger.paths ?? [];
+  const path = (id) => {
+    if (!Number.isSafeInteger(id) || id < 0 || id >= paths.length)
+      throw new Error("ci_test_ledger_invalid");
+    return paths[id];
+  };
+  const observedAt = Date.parse(ledger.run?.observedAt ?? "");
+  return ledger.files.map((file) => ({
+    file: file.file,
+    shard: ledger.run?.shard?.index ?? null,
+    observedAt,
+    result: file.result,
+    tests: file.tests,
+    durationMs: Number(file.durationMs) || 0,
+    collectMs: Number(file.collectMs) || 0,
+    inputs: (file.inputs ?? []).map(path),
+    trees: (file.trees ?? []).map(path),
+    absent: (file.absent ?? []).map(path),
+    directories: (file.directories ?? []).map(([id, ...digests]) => [path(id), digests]),
+    uncacheableReasons: file.uncacheableReasons ?? [],
+    toolchainDigest: file.toolchainDigest ?? null,
+    toolchainComponents: ledger.toolchain?.components ?? null,
+  }));
+}

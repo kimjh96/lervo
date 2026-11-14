@@ -1,7 +1,7 @@
 # GitHub Actions cost and duration redesign
 
 Status: `active`
-As of: 2026-11-14
+As of: 2026-11-15
 Implementation authority: owner confirmed this design with “진행” on 2026-10-08.
 Task base: `7a5cce30966063861b2927be85d20be31f7e4627`.
 
@@ -108,21 +108,34 @@ The profile stays in the test digest. A refresh therefore changes the digest onc
 Shard balance from one run's test time alone does not hold: each shard also spends 390 to 606 seconds collecting files, and per-file test time varies between runs. In the latest run, shards took 7.9 to 14.4 minutes. [ADR-0565](../../decisions/operations/services/0565-record-what-each-ci-test-file-reads-before-reusing-its-result.md) proposes per-file result reuse keyed by what each file was observed to read, plus a toolchain digest. It is delivered in stages:
 
 1. Stage 1, delivered: a preloaded recorder and one ledger per shard. Each ledger lists every file's result, test and collection time, recorded inputs and closed uncacheable reasons. Ledgers upload with `if: always()` for seven days. The `LERVO_CI_TEST_LEDGER` repository variable set to `off` disables recording without a commit. The refresh script can build the timing profile from the median test plus collection time over recent ledgers. Nothing reads the ledgers to select, skip or judge tests.
-2. Stage 2: a shadow planner predicts reuse on every run, without skipping anything, for at least 14 days. It must record zero false reuses.
+2. Stage 2, delivered locally: the `Test reuse shadow` job runs after the shards and never fails the run. It reconstructs the shards' tree, publishes the run's input index for seven days, and predicts reuse from trusted runs of the last 24 hours. Trusted runs are pushes and daily audits of `main`, and pull requests whose four shards passed. A result is reusable only under the same G, with a passed result, a complete closure, equal digests for every recorded input and copied tree, equal listings, still-absent probes, and no failure of the file under that G within 24 hours. The job compares every prediction with this run's results and publishes a ranked report for 30 days; a false reuse is listed first and annotated. It must record zero false reuses for at least 14 days.
 3. Stage 3: per-file reuse, only through a separate decision after Stage 2.
+
+Test isolation now also sets `LERVO_USER_CAPABILITY_ROOT`. In the first hosted ledgers, 77 of 1,267 files had `host_state` only from probing `~/.lervo/capabilities/packages`. With the fix, complete closures rise from 1,021 to an expected 1,098.
+
+A dry run against hosted ledgers predicted 80.6% reuse for an unchanged rerun and 80.3% for the next real push, with no false reuse. One edit in a leaf package, a CLI command or `packages/core` left 80.4%, 77.4% and 52.0%. Two findings limit the effect:
+
+- Shards of one run landed on two runner image builds of the same release, so a strict G cut the next-push rate to 40.0%.
+- The rerun files hold most of the time. In the unchanged rerun, the estimated shard jobs only drop from 477–734 seconds to 312–523 seconds, because unobserved children alone hold 1,820 of the remaining 2,620 seconds of file time.
+
+The ADR records the rules, the [shadow contract](../../foundation/ci-test-reuse-shadow.md) the job, digests, reasons and report, and the [shadow evidence](../../evidence/quality/ci-test-reuse-shadow.md) the dry run.
 
 - [x] Stage 1 recorder, ledgers, toolchain digest and ledger-based weights pass local tests.
 - [ ] Hosted ledgers observed for every shard, and the profile refreshed from at least three runs.
+- [x] Stage 2 shadow job, input index, predictor and report pass local tests and a dry run against hosted ledgers.
+- [ ] Hosted shadow reports observed, including the reuse rate after the capability-root fix.
 - [ ] Stage 2 shadow comparison: at least 14 days without a false reuse.
+- [ ] Decide whether G may ignore the runner image build number, from evidence that both builds install the same tools.
+- [ ] Observe the children that drop `NODE_OPTIONS`, the dominant remaining rerun time.
 
 ## Responsibility and evidence contracts
 
-| Owner              | Responsibility                                                                                                                       |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `scripts/quality`  | Pure scope classification, exact build transfer validation, aggregate CI verification, bounded timing summaries, test input ledgers. |
-| `scripts/release`  | Release eligibility, generation, candidate verification handoff, Git effect admission, and PR evidence.                              |
-| Node-runtime tests | Test-only clock and native-completion assertions; no production lease-policy change.                                                 |
-| GitHub workflows   | Event translation, job dependencies, pinned actions, least permissions, concurrency, and short owner-command entrypoints.            |
+| Owner              | Responsibility                                                                                                                                            |
+| ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `scripts/quality`  | Pure scope classification, exact build transfer validation, aggregate CI verification, bounded timing summaries, test input ledgers and the reuse shadow. |
+| `scripts/release`  | Release eligibility, generation, candidate verification handoff, Git effect admission, and PR evidence.                                                   |
+| Node-runtime tests | Test-only clock and native-completion assertions; no production lease-policy change.                                                                      |
+| GitHub workflows   | Event translation, job dependencies, pinned actions, least permissions, concurrency, and short owner-command entrypoints.                                 |
 
 The implementation defines versioned build-transfer and verification receipts. Required fields include schema version, verification contract version, source SHA, workflow/run identity, platform, Node version, build digest, required job dispositions, and coverage mode. Expose only identifiers, digests, counts, durations, and closed failure codes. Exclude credentials, user payload, and local host paths. Store bounded current artifacts in GitHub; do not add a tracked file per CI run or a Lervo runtime event.
 

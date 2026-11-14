@@ -12,7 +12,9 @@ All jobs use Node 22.13.0 on Ubuntu. Full coverage adds source typechecking and 
 
 Four test shards restore the exact build after validating revision, workflow/run identity, Node version, OS, architecture, digest, allowed paths, regular-file types, and destination parents. Failed-consumer retries may reuse a successful producer from an earlier attempt of the same run; future-attempt or different-run artifacts are rejected. A rerun producer replaces its same-run artifact. Restore removes stale output files only after validation. macOS and Windows release checks build independently.
 
-Tests retain two workers, the 30-second default deadline, a 45-minute shard timeout, and per-process temporary user-state isolation. The bounded timing profile and CI-specific sequencer change placement and start order only. `scripts/quality/refresh-test-durations.mjs` rewrites the profile from one full run's `gh run view --log` output. Every discovered file is assigned exactly once; new files are included. Test assertions, pool, and isolation remain intact.
+Tests retain two workers, the 30-second default deadline, a 45-minute shard timeout, and per-process temporary user-state and user capability-root isolation. The bounded timing profile and CI-specific sequencer change placement and start order only. `scripts/quality/refresh-test-durations.mjs` rewrites the profile from one full run's `gh run view --log` output. Every discovered file is assigned exactly once; new files are included. Test assertions, pool, and isolation remain intact.
+
+Each shard records a test input ledger ([ADR-0565](../decisions/operations/services/0565-record-what-each-ci-test-file-reads-before-reusing-its-result.md)). After the shards, the `Test reuse shadow` job predicts which files earlier trusted runs could have replaced and compares that with this run's results. It publishes the run's input index for seven days and its shadow report for 30 days. No job needs it, and it never fails the run or changes which tests run.
 
 Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes and pull requests without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Prepared feature pull requests and fallback release candidates receive these checks through their explicit dispatch. Under [ADR-0564](../decisions/operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md), pull requests with pending `.changes/*.yaml` retain full tests and metadata checks but skip distribution until preparation verifies the prepared bytes.
 
@@ -24,25 +26,25 @@ Local Vitest and the CI config share the root `vitest.config.ts` aliases. Source
 
 The phase-zero audit found 104 workspace packages and 17 missing root aliases. All 15 library packages below export only `.` through `dist/index.js`, have `src/index.ts`, and define no private `#` imports. Each now has a source alias. The two distribution-only packages remain exact-name exceptions with reasons in `scripts/quality/lib/test-source-aliases.mjs`.
 
-| Package under `@lervo/` | Resolution and reason |
-| --- | --- |
-| `agent-organization` | Source; organization and deliberation contracts. |
-| `application-contract` | Source; shared application types and runtime contracts. |
-| `assignment-connector-conformance` | Source; connector conformance helpers. |
-| `conversation-deliberation-contract` | Source; deliberation identity and state contracts. |
-| `discord-gateway` | Source; gateway adapter and transport contracts. |
-| `execution-reliability` | Source; reliability evaluation contracts. |
-| `filesystem-durability` | Source; synchronization behavior and optional native fallback. |
-| `hub-runtime` | Source; importable runtime API. Launcher subprocesses retain built binaries. |
-| `identity-migration` | Source; migration planning and apply API. |
-| `node-work-admission` | Source; admission storage API. |
-| `organization-credential-source-file` | Source; credential file adapter. |
-| `organization-deployment-contract` | Source; deployment and credential contracts. |
-| `organization-deployment-sqlite` | Source; deployment storage adapter. |
-| `product-surface-projection` | Source; product projections. |
-| `request-grounding` | Source; request grounding contracts. |
-| `cli` | Built executable or packed files; no library export or source index. |
-| `node-runtime-dependencies` | Distribution dependency manifest; no source or runtime export. |
+| Package under `@lervo/`               | Resolution and reason                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------- |
+| `agent-organization`                  | Source; organization and deliberation contracts.                             |
+| `application-contract`                | Source; shared application types and runtime contracts.                      |
+| `assignment-connector-conformance`    | Source; connector conformance helpers.                                       |
+| `conversation-deliberation-contract`  | Source; deliberation identity and state contracts.                           |
+| `discord-gateway`                     | Source; gateway adapter and transport contracts.                             |
+| `execution-reliability`               | Source; reliability evaluation contracts.                                    |
+| `filesystem-durability`               | Source; synchronization behavior and optional native fallback.               |
+| `hub-runtime`                         | Source; importable runtime API. Launcher subprocesses retain built binaries. |
+| `identity-migration`                  | Source; migration planning and apply API.                                    |
+| `node-work-admission`                 | Source; admission storage API.                                               |
+| `organization-credential-source-file` | Source; credential file adapter.                                             |
+| `organization-deployment-contract`    | Source; deployment and credential contracts.                                 |
+| `organization-deployment-sqlite`      | Source; deployment storage adapter.                                          |
+| `product-surface-projection`          | Source; product projections.                                                 |
+| `request-grounding`                   | Source; request grounding contracts.                                         |
+| `cli`                                 | Built executable or packed files; no library export or source index.         |
+| `node-runtime-dependencies`           | Distribution dependency manifest; no source or runtime export.               |
 
 Built-artifact tests retain explicit `dist` paths, packed-consumer resolution, and subprocess launchers. Vitest aliases do not apply inside those subprocesses or external bundlers. Native distribution tests retain built modules and native artifacts; source tests can exercise the optional native fallback. Schema source imports retain `#compiled-validators` and `#coordinate-data-validation` package imports. The existing global setup verifies or generates validators as required by [ADR-0503](../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md).
 
