@@ -31,6 +31,7 @@ module.exports = Object.freeze({
   isArray: Array.isArray,
   isModuleNamespaceObject: types.isModuleNamespaceObject,
   isProxy: types.isProxy,
+  isUint8Array: types.isUint8Array,
   NativeDate: Date,
   NativeError: Error,
   ProxyConstructor: Proxy,
@@ -39,5 +40,8 @@ module.exports = Object.freeze({
   SafeSet: Set,
   stringify: JSON.stringify,
   toText: String,
+  // A Buffer path names the file its bytes spell; invalid UTF-8 throws instead of guessing.
+  utf8Decode: TextDecoder.prototype.decode,
+  utf8Decoder: new TextDecoder("utf-8", { fatal: true }),
   values: Object.values,
 });

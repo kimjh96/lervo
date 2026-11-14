@@ -163,16 +163,23 @@ fs.open("README.md", () => {});`);
 });
 
 // r5 of the 2026-11-15 review: a Buffer path was read without being recorded, so the closure
-// looked complete. Every path the recorder cannot read as text now leaves the closure open.
-it("r5: marks reads and writes through paths it cannot read as text", async () => {
-  const record = await recordProgram(`const fs = require("node:fs");
+// looked complete. A Buffer path is now read as the file it names, a descriptor is covered by its
+// observed `open`, and any other path the recorder cannot read leaves the closure open.
+it("r5: records Buffer paths and marks paths it cannot read as text", async () => {
+  const readsBuffer = await recordProgram(`const fs = require("node:fs");
 fs.readFileSync(Buffer.from("README.md"));
-fs.readFileSync(fs.openSync("README.md", "r"));
-fs.existsSync(Buffer.from("missing"));`);
-  expect(record.notes).toContain("unobserved_path");
-  expect(record.notes).not.toContain("unobserved_write");
-  const writer = await recordProgram(`const fs = require("node:fs"); const os = require("node:os");
-fs.writeFileSync(Buffer.from(require("node:path").join(os.tmpdir(), "lervo-r5-" + process.pid)), "x");`);
+fs.readFileSync(fs.openSync("package.json", "r"));
+fs.existsSync(Buffer.from("scripts/quality/absent-buffer-probe"));`);
+  expect(readsBuffer.inputs).toEqual(expect.arrayContaining(["README.md", "package.json"]));
+  expect(readsBuffer.absent).toContain("scripts/quality/absent-buffer-probe");
+  expect(readsBuffer.notes).not.toContain("unobserved_path");
+  const unreadable = await recordProgram(`const fs = require("node:fs");
+try { fs.readFileSync(Buffer.from([0x52, 0xff])); } catch {}
+fs.promises.open("README.md").then(async (handle) => { await fs.promises.readFile(handle); await handle.close(); });`);
+  expect(unreadable.notes).toContain("unobserved_path");
+  expect(unreadable.notes).not.toContain("unobserved_write");
+  const writer = await recordProgram(`const fs = require("node:fs");
+try { fs.writeFileSync(Buffer.from([0x2f, 0xff]), "x"); } catch {}`);
   expect(writer.notes).toContain("unobserved_write");
   const ledger = createCiTestLedger({
     results: [testFile, "scripts/quality/test/bystander.test.mjs"].map((file) => ({

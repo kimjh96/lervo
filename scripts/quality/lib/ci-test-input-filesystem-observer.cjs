@@ -11,10 +11,11 @@ const { observeCalls, ownDataState, pathText } = require("./ci-test-input-transp
  * public `readFileSync` (CommonJS, and ESM from Node 22.15) or `fs.promises.readFile` (ESM on
  * Node 22.13), so module loads are observed here too.
  *
- * Every argument position that names a path is observed. A path the recorder cannot read as text
- * (a Buffer, a file descriptor, a `FileHandle`, a non-URL object) is reported as `unobserved`, and
- * so is a call to an API whose inputs cannot be named (`glob`, `watch`). The ledger then never
- * treats the process's closure as complete.
+ * Every argument position that names a path is observed. A file descriptor needs no observation:
+ * the `open` call that returned it named the path and its flags. A path the recorder cannot read
+ * as text (a `FileHandle`, a non-URL object, a Buffer that is not UTF-8) is reported as
+ * `unobserved`, and so is a call to an API whose inputs cannot be named (`glob`, `watch`). The
+ * ledger then never treats the process's closure as complete.
  */
 
 // `read` reads bytes, `probe` reads metadata, `list` reads a directory listing, `tree` copies a
@@ -100,6 +101,8 @@ function installFilesystemObserver({ fs, observe }) {
     before(args) {
       for (const [operation, index] of positions) {
         const value = args[index];
+        // A descriptor names the file its `open` call named, and that call was observed.
+        if (typeof value === "number") continue;
         const path = pathText(value);
         if (path === null) {
           // A missing optional argument names nothing; anything else is a path not observed.
