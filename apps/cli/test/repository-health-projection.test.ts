@@ -376,14 +376,17 @@ describe("health projection from recorded sources", () => {
       value: null,
     });
     let calls = 0;
-    const history = readHealthEventHistory({
-      list: ({ afterSeq = 0, limit = 1000 } = {}) => {
-        calls++;
-        return Array.from({ length: limit }, (_, i) =>
-          event("context.referenced", afterSeq + i + 1, healthNow.toISOString(), {}),
-        );
+    const history = readHealthEventHistory(
+      {
+        list: ({ afterSeq = 0, limit = 1000 } = {}) => {
+          calls++;
+          return Array.from({ length: limit }, (_, i) =>
+            event("context.referenced", afterSeq + i + 1, healthNow.toISOString(), {}),
+          );
+        },
       },
-    });
+      healthNow,
+    );
     expect(history.complete).toBe(false);
     expect(calls).toBeLessThanOrEqual(11);
   });

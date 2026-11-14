@@ -1,20 +1,37 @@
 import { execFile } from "node:child_process";
 import { watch, type FSWatcher } from "node:fs";
-import { basename, dirname, resolve, sep } from "node:path";
+import { realpath } from "node:fs/promises";
+import { basename, resolve } from "node:path";
 import { promisify } from "node:util";
+import {
+  locateRepositoryEvent,
+  needsRecursiveWatch,
+  type RepositoryWatchBase,
+} from "./repository-change-bases.js";
+import {
+  classifyRepositoryChange,
+  createRepositoryChangeScope,
+} from "./repository-change-classification.js";
+import { listRepositoryChangeDirectories } from "./repository-change-directories.js";
 import { observeRepositoryChangeHint } from "./repository-change-observation.js";
+import {
+  defaultRepositoryChangeWatchMode,
+  foldsRepositoryPathCase,
+  type RepositoryChangeWatchMode,
+} from "./repository-change-platform.js";
 
 const execute = promisify(execFile);
-const maximumDirectories = 4_096;
 
-/** Watches source directories and Git coordinates without recursively watching ignored caches. */
+/** Watches source directories and Git coordinates, ignoring caches and Git object storage. */
 export async function watchRepositoryChanges(
   root: string,
   notify: () => void,
   failed: () => void = notify,
-  options: { recoveryIntervalMs?: number } = {},
+  options: { recoveryIntervalMs?: number; watchMode?: RepositoryChangeWatchMode } = {},
 ): Promise<() => void> {
   const recoveryInterval = options.recoveryIntervalMs ?? 60_000;
+  const watchMode = options.watchMode ?? defaultRepositoryChangeWatchMode(process.platform);
+  const foldCase = foldsRepositoryPathCase(process.platform);
   if (
     !Number.isSafeInteger(recoveryInterval) ||
     recoveryInterval < 100 ||
@@ -32,6 +49,9 @@ export async function watchRepositoryChanges(
   const commonDirectory = resolve(root, (await git(["rev-parse", "--git-common-dir"])).trim());
   const state = resolve(root, ".lervo/state");
   const gitRoots = new Set([gitDirectory, commonDirectory]);
+  let scope = createRepositoryChangeScope({ directories: [], state, gitRoots, foldCase });
+  // Logical bases with a known real path; events from any handle are classified in their frame.
+  const bases = new Map<string, RepositoryWatchBase>();
 
   const close = () => {
     stopped = true;
@@ -58,73 +78,85 @@ export async function watchRepositoryChanges(
         });
     }, 250);
   };
+  const open = (
+    key: string,
+    path: string,
+    recursive: boolean,
+    listener: (event: string, name?: string) => void,
+  ) => {
+    try {
+      const watcher = watch(path, { persistent: false, recursive }, (event, filename) =>
+        listener(event, filename?.toString()),
+      );
+      watcher.on("error", () => {
+        close();
+        failed();
+      });
+      watchers.set(key, watcher);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  };
+  // Opens only bases without a handle: a missing base is retried on the next refresh, while an
+  // open handle is never closed or reopened, which would rebuild the macOS FSEventStream.
+  const openRecursive = async () => {
+    for (const logical of [root, commonDirectory, gitDirectory, state]) {
+      if (watchers.has(logical)) continue;
+      let real: string;
+      try {
+        real = await realpath(logical);
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+        throw error;
+      }
+      if (stopped) return;
+      if (watchers.has(logical)) continue;
+      const candidate = { logical, real };
+      bases.set(logical, candidate);
+      const watched = [...watchers.keys()].flatMap((key) => bases.get(key) ?? []);
+      if (!needsRecursiveWatch(candidate, watched, foldCase)) continue;
+      open(logical, real, true, (event, name) => {
+        const location = locateRepositoryEvent(candidate, name, [...bases.values()], foldCase);
+        const decision = classifyRepositoryChange(event, location.base, location.filename, scope);
+        if (!decision.notify) return;
+        notify();
+        if (decision.refresh) scheduleRefresh();
+      });
+    }
+  };
+  const openDirectory = (path: string) =>
+    open(path, path, false, (event, name) => {
+      const decision = classifyRepositoryChange(event, path, name, scope);
+      if (!decision.notify) return;
+      if (event === "rename" && name !== undefined) {
+        const changedDirectory = name === basename(path) ? path : resolve(path, name);
+        watchers.get(changedDirectory)?.close();
+        watchers.delete(changedDirectory);
+      }
+      notify();
+      if (decision.refresh) scheduleRefresh();
+    });
   const refresh = async () => {
-    const paths = (await git(["ls-files", "--cached", "--others", "--exclude-standard", "-z"]))
-      .split("\0")
-      .filter(Boolean);
-    const directories = new Set([
+    const directories = await listRepositoryChangeDirectories({
       root,
       state,
-      ...gitRoots,
-      resolve(commonDirectory, "refs"),
-      resolve(commonDirectory, "refs/heads"),
-    ]);
-    for (const path of paths) {
-      let parent = dirname(resolve(root, path));
-      while (parent !== root && parent.startsWith(`${root}${sep}`)) {
-        directories.add(parent);
-        parent = dirname(parent);
-      }
-    }
-    for (const reference of (await git(["for-each-ref", "--format=%(refname)", "refs/heads"]))
-      .trim()
-      .split("\n")
-      .filter(Boolean)) {
-      let parent = dirname(resolve(commonDirectory, reference));
-      while (parent.startsWith(`${commonDirectory}${sep}refs${sep}heads`)) {
-        directories.add(parent);
-        parent = dirname(parent);
-      }
-    }
-    if (directories.size > maximumDirectories)
-      throw new Error("Repository watcher directory limit exceeded.");
+      gitRoots,
+      commonDirectory,
+      git,
+    });
     if (stopped) return;
+    scope = createRepositoryChangeScope({ directories, state, gitRoots, foldCase });
+    if (watchMode === "recursive") {
+      await openRecursive();
+      return;
+    }
     for (const [path, watcher] of watchers) {
       if (!directories.has(path)) {
         watcher.close();
         watchers.delete(path);
       }
     }
-    for (const path of directories) {
-      if (watchers.has(path)) continue;
-      try {
-        const watcher = watch(path, { persistent: false }, (event, filename) => {
-          const name = filename?.toString();
-          if (path === state && name !== undefined && name !== "repository-replica-request.json")
-            return;
-          if (
-            gitRoots.has(path) &&
-            name !== undefined &&
-            !["HEAD", "index", "packed-refs", "config"].includes(name)
-          )
-            return;
-          if (event === "rename" && name !== undefined) {
-            const changedDirectory = name === basename(path) ? path : resolve(path, name);
-            watchers.get(changedDirectory)?.close();
-            watchers.delete(changedDirectory);
-          }
-          notify();
-          if (event === "rename" || name === ".gitignore" || name === "exclude") scheduleRefresh();
-        });
-        watcher.on("error", () => {
-          close();
-          failed();
-        });
-        watchers.set(path, watcher);
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-      }
-    }
+    for (const path of directories) if (!watchers.has(path)) openDirectory(path);
   };
   try {
     await refresh();
