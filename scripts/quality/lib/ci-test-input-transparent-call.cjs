@@ -8,8 +8,11 @@ const {
   hasOwn,
   hrefGetter,
   isProxy,
+  isUint8Array,
   NativeError,
   ProxyConstructor,
+  utf8Decode,
+  utf8Decoder,
 } = require("./ci-test-input-intrinsics.cjs");
 
 /**
@@ -57,10 +60,19 @@ function inheritsProperty(object, key) {
   return false;
 }
 
-/** A path argument as a string: a primitive string, or a WHATWG URL read through its own getter. */
+/**
+ * A path argument as a string: a primitive string, the UTF-8 text of a Buffer or other byte view,
+ * or a WHATWG URL read through its own getter. Node's own `fs.rm` passes Buffers.
+ */
 function pathText(value) {
   if (typeof value === "string") return value;
   if (value === null || typeof value !== "object" || isProxy(value)) return null;
+  if (isUint8Array(value))
+    try {
+      return apply(utf8Decode, utf8Decoder, [value]);
+    } catch {
+      return null;
+    }
   try {
     return apply(hrefGetter, value, []);
   } catch {

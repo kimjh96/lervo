@@ -8,8 +8,8 @@ import {
   CI_TEST_LEDGER_CONTRACT,
   CI_TEST_UNCACHEABLE_REASONS,
   createCiTestLedger,
-  readCiTestLedgerWeights,
 } from "../lib/ci-test-ledger.mjs";
+import { readCiTestLedgerFiles, readCiTestLedgerWeights } from "../lib/ci-test-ledger-read.mjs";
 
 const toolchain = { digest: "sha256:toolchain", components: { lockfile: "sha256:lock" } };
 
@@ -25,7 +25,8 @@ function worker(file, overrides = {}) {
     inputs: [],
     modules: [],
     absent: [],
-    directories: {},
+    listings: {},
+    writes: [],
     trees: [],
     dependencies: [],
     host: [],
@@ -70,7 +71,10 @@ it("stores each path once and lists every file's closure by index", () => {
   const tracked = ["shared.ts", "a.ts", "b.ts", "docs"];
   const ledger = ledgerOf(
     [
-      worker("a.test.ts", { inputs: ["shared.ts", "a.ts"], directories: { docs: ["sha256:1"] } }),
+      worker("a.test.ts", {
+        inputs: ["shared.ts", "a.ts"],
+        listings: { docs: { plain: "sha256:1", recursive: "sha256:2" } },
+      }),
       worker("b.test.ts", { pid: 101, inputs: ["shared.ts", "b.ts"], modules: ["a.ts"] }),
     ],
     { tracked: [...tracked, "a.test.ts", "b.test.ts", "docs/x.md"] },
@@ -80,7 +84,15 @@ it("stores each path once and lists every file's closure by index", () => {
   const [a, b] = ledger.files;
   expect(a.inputs.map((index) => ledger.paths[index])).toEqual(["a.ts", "shared.ts"]);
   expect(b.inputs.map((index) => ledger.paths[index])).toEqual(["a.ts", "b.ts", "shared.ts"]);
-  expect(a.directories).toEqual([[ledger.paths.indexOf("docs"), "sha256:1"]]);
+  // Plain and recursive listings stay apart, each with its kind.
+  expect(a.listings).toEqual([
+    [ledger.paths.indexOf("docs"), "plain", "sha256:1"],
+    [ledger.paths.indexOf("docs"), "recursive", "sha256:2"],
+  ]);
+  expect(readCiTestLedgerFiles(ledger)[0].listings).toEqual([
+    ["docs", "plain", ["sha256:1"]],
+    ["docs", "recursive", ["sha256:2"]],
+  ]);
   expect(a).toMatchObject({
     result: "passed",
     durationMs: 10,
@@ -99,6 +111,8 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     "host_state",
     "untracked_input",
     "module_graph_unavailable",
+    "unobserved_input",
+    "shard_written_input",
   ]);
   const child = (command, overrides = {}) => ({
     command,
@@ -112,7 +126,6 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
   });
   const records = [
     worker("unobserved.test.ts", { pid: 1, children: [child("bash")] }),
-    worker("git.test.ts", { pid: 2, children: [child("git", { cwd: "." })] }),
     worker("git-file.test.ts", { pid: 3, inputs: [".git:HEAD"] }),
     worker("network.test.ts", {
       pid: 4,
@@ -132,10 +145,10 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     }),
     // A process bound to a file but without any worker record leaves its graph unknown.
     { ...worker("no-worker.test.ts", { pid: 11 }), role: "process" },
+    worker("buffer-path.test.ts", { pid: 13, notes: ["unobserved_path"] }),
   ];
   expect(reasonsOf(records)).toEqual({
     "unobserved.test.ts": ["unobserved_child"],
-    "git.test.ts": ["git_in_repository"],
     "git-file.test.ts": ["git_in_repository"],
     "network.test.ts": ["network"],
     "host.test.ts": ["host_state"],
@@ -146,7 +159,126 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     "legacy-esm.test.ts": ["module_graph_unavailable"],
     "clean.test.ts": [],
     "no-worker.test.ts": ["module_graph_unavailable"],
+    "buffer-path.test.ts": ["unobserved_input"],
   });
+  // Git inside the repository can change the tree, so it also taints the rest of its shard,
+  // unless its subcommand only reads or writes inside `.git`.
+  const git = (args) =>
+    reasonsOf([
+      worker("git.test.ts", { pid: 2, children: [child("git", { cwd: ".", args })] }),
+      worker("bystander.test.ts", { pid: 3 }),
+    ]);
+  expect(git(["git", "checkout", "-q", "main"])).toEqual({
+    "git.test.ts": ["git_in_repository"],
+    "bystander.test.ts": ["shard_written_input"],
+  });
+  expect(git(["git", "-C", ".", "rev-parse", "HEAD"])["bystander.test.ts"]).toEqual([]);
+  // A clone between temporary paths writes only there; one into the repository does not.
+  expect(
+    git(["git", "clone", "--quiet", "<temporary>", "<temporary>"])["bystander.test.ts"],
+  ).toEqual([]);
+  expect(
+    git(["git", "init", "--quiet", "--bare", "-b", "main", "<temporary>"])["bystander.test.ts"],
+  ).toEqual([]);
+  expect(git(["git", "clone", "<temporary>", "fixtures/copy"])["bystander.test.ts"]).toEqual([
+    "shard_written_input",
+  ]);
+  expect(git(["git", "a", "b", "c", "d", "e", "f", "rev-parse"])["bystander.test.ts"]).toEqual([
+    "shard_written_input",
+  ]);
+});
+
+// r3 of the 2026-11-15 review: an index of the reconstructed tree cannot see what another file of
+// the shard wrote before a file read it, so such a closure is never complete.
+it("r3: marks a closure that touches a path another process of the shard wrote", () => {
+  const tracked = ["shared", "dir/a", "dir/b", "own", "other"];
+  const reasons = reasonsOf(
+    [
+      worker("writer.test.ts", { pid: 1, writes: ["shared", "dir/new", "own"] }),
+      worker("reader.test.ts", { pid: 2, inputs: ["shared"] }),
+      worker("lister.test.ts", { pid: 3, listings: { dir: { plain: "sha256:1" } } }),
+      worker("prober.test.ts", { pid: 4, absent: ["dir/new"] }),
+      worker("parent.test.ts", { pid: 5, inputs: ["dir/a"], writes: [] }),
+      worker("own.test.ts", { pid: 6, inputs: ["other"], writes: ["other"] }),
+      worker("writer-reads.test.ts", { pid: 7, inputs: ["own"] }),
+      worker(null, { pid: 8, role: "process", writes: ["dir"] }),
+    ],
+    { tracked: [...tracked, "writer.test.ts", "reader.test.ts"] },
+  );
+  expect(reasons["reader.test.ts"]).toEqual(["shard_written_input"]);
+  expect(reasons["lister.test.ts"]).toContain("shard_written_input");
+  expect(reasons["prober.test.ts"]).toEqual(["shard_written_input"]);
+  // An unbound process removed `dir`, so every file below it is uncertain too.
+  expect(reasons["parent.test.ts"]).toEqual(["shard_written_input"]);
+  // A file's own writes follow from its own inputs.
+  expect(reasons["own.test.ts"]).not.toContain("shard_written_input");
+  expect(reasons["writer-reads.test.ts"]).toContain("shard_written_input");
+});
+
+it("marks every other file when a process wrote through a path the recorder could not read", () => {
+  const reasons = reasonsOf([
+    worker("blind.test.ts", { pid: 1, notes: ["unobserved_write"] }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(reasons["blind.test.ts"]).toEqual(["unobserved_input"]);
+  expect(reasons["bystander.test.ts"]).toEqual(["shard_written_input"]);
+});
+
+it("treats an unrecorded child working in the repository as a process that could write anything", () => {
+  const child = (overrides) => ({
+    command: "bash",
+    args: ["bash"],
+    cwd: "packages/core",
+    pid: null,
+    inherited: false,
+    synchronous: true,
+    failed: false,
+    ...overrides,
+  });
+  const inRepository = reasonsOf([
+    worker("shell.test.ts", { pid: 1, children: [child()] }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(inRepository["bystander.test.ts"]).toEqual(["shard_written_input"]);
+  const elsewhere = reasonsOf([
+    worker("shell.test.ts", { pid: 1, children: [child({ cwd: "<temporary>" })] }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(elsewhere["bystander.test.ts"]).toEqual([]);
+});
+
+it("orders unseen writers: a file that finished before one started is untouched by it", () => {
+  const shell = {
+    command: "bash",
+    args: ["bash"],
+    cwd: ".",
+    pid: null,
+    inherited: false,
+    synchronous: true,
+    failed: false,
+    startedAt: 10_000,
+  };
+  const reasons = reasonsOf([
+    worker("shell.test.ts", { pid: 1, startedAt: 9_000, spooledAt: 12_000, children: [shell] }),
+    worker("earlier.test.ts", { pid: 2, startedAt: 1_000, spooledAt: 8_000 }),
+    worker("close.test.ts", { pid: 3, startedAt: 1_000, spooledAt: 9_500 }),
+    worker("later.test.ts", { pid: 4, startedAt: 11_000, spooledAt: 13_000 }),
+    worker("untimed.test.ts", { pid: 5 }),
+  ]);
+  expect(reasons["earlier.test.ts"]).toEqual([]);
+  // Within the one-second margin, and after the writer started, a file is uncertain.
+  expect(reasons["close.test.ts"]).toEqual(["shard_written_input"]);
+  expect(reasons["later.test.ts"]).toEqual(["shard_written_input"]);
+  expect(reasons["untimed.test.ts"]).toEqual(["shard_written_input"]);
+});
+
+it("treats a record that dropped writes as a process that could have written anything", () => {
+  const reasons = reasonsOf([
+    worker("bounded.test.ts", { pid: 1, truncated: true, writesDropped: true }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(reasons["bounded.test.ts"]).toEqual(["module_graph_unavailable"]);
+  expect(reasons["bystander.test.ts"]).toEqual(["shard_written_input"]);
 });
 
 it("follows observed children by PID or argument tail and absorbs their inputs", () => {
@@ -292,7 +424,7 @@ it("keeps a full shard's ledger within a few megabytes", () => {
       pid: 1000 + file,
       inputs: Array.from({ length: 400 }, (_, i) => pool[(file * 37 + i * 11) % pool.length]),
       dependencies: Array.from({ length: 40 }, (_, i) => `pnpm:dependency-${i}@1.0.0`),
-      directories: { [`packages/p${file % 120}`]: ["sha256:".padEnd(71, "0")] },
+      listings: { [`packages/p${file % 120}`]: { plain: "sha256:".padEnd(71, "0") } },
     }),
   );
   const ledger = ledgerOf(records, { tracked: pool });

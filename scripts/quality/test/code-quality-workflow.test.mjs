@@ -223,15 +223,59 @@ it("records test input ledgers without changing which tests run or the verdict",
     "retention-days": 7,
     overwrite: true,
   });
-  // Only the test job knows the ledger; planning, reuse and the aggregate never read it.
-  for (const [name, definition] of Object.entries(workflow.jobs))
-    if (name !== "test") assert.doesNotMatch(JSON.stringify(definition), /LEDGER|ledger/u, name);
+  // Only the test job and the shadow comparison know the ledger; planning, reuse and the
+  // aggregate never read it, and no job consumes the shadow comparison.
+  for (const [name, definition] of Object.entries(workflow.jobs)) {
+    if (name !== "test" && name !== "test-shadow")
+      assert.doesNotMatch(JSON.stringify(definition), /LEDGER|ledger/u, name);
+    assert.ok(![definition.needs ?? []].flat().includes("test-shadow"), name);
+  }
   for (const script of ["ci-plan.mjs", "ci-reuse.mjs", "ci-result.mjs", "ci-receipt.mjs"])
     assert.doesNotMatch(
       await readFile(resolve(repositoryRoot, "scripts/quality", script), "utf8"),
       /ledger/iu,
       script,
     );
+});
+
+it("compares predicted test reuse in a shadow job that can never fail the run", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  const job = workflow.jobs["test-shadow"];
+  assert.deepEqual(job.needs, ["plan", "release-artifacts", "test"]);
+  assert.equal(job["continue-on-error"], true);
+  assert.equal(job.permissions, undefined);
+  assert.deepEqual(workflow.permissions, { contents: "read", actions: "read" });
+  for (const condition of [
+    "!cancelled()",
+    "needs.plan.outputs.coverage == 'full'",
+    "needs.plan.outputs.reuseTests == ''",
+    "needs.release-artifacts.result == 'success'",
+    "vars.LERVO_CI_TEST_LEDGER != 'off'",
+  ])
+    assert.ok(job.if.includes(condition), condition);
+  for (const step of job.steps.filter(({ uses }) => uses))
+    assert.match(step.uses, /^[a-z-]+\/[a-z-]+@[a-f0-9]{40}$/u, step.name);
+  const names = job.steps.map(({ name }) => name);
+  assert.ok(
+    names.indexOf("Restore and validate exact build outputs") <
+      names.indexOf("Compare predicted reuse with this run's results"),
+  );
+  const compare = job.steps[names.indexOf("Compare predicted reuse with this run's results")];
+  assert.deepEqual(compare.env, { GH_TOKEN: "${{ github.token }}" });
+  assert.match(compare.run, /^node scripts\/quality\/ci-test-shadow\.mjs /u);
+  const uploads = job.steps.filter(({ uses }) => uses?.startsWith("actions/upload-artifact@"));
+  assert.deepEqual(
+    uploads.map(({ if: condition, with: options }) => [
+      condition,
+      options.name,
+      options["retention-days"],
+    ]),
+    [
+      ["always()", "lervo-ci-test-input-index", 7],
+      ["always()", "lervo-ci-test-shadow", 30],
+    ],
+  );
+  assert.ok(!workflow.jobs.verification.needs.includes("test-shadow"));
 });
 
 it("verifies distribution wherever main will reuse the result", async () => {
