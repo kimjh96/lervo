@@ -3,7 +3,9 @@ import { lstatSync } from "node:fs";
 
 import {
   canonicalJson,
+  recordSynchronousGitProcess,
   sha256,
+  withProcessCostScope,
   type KnowledgeConvergenceBaseline,
 } from "@lervo/repository-knowledge";
 
@@ -46,6 +48,7 @@ export function convergenceSourceBytes(
 }
 
 function git(root: string, args: string[]): string {
+  recordSynchronousGitProcess(args);
   try {
     return execFileSync("git", ["-C", root, ...args], {
       encoding: "utf8",
@@ -133,6 +136,13 @@ export function captureConvergenceSources(
  * caller that needs both reads them from one closing observation instead of listing twice.
  */
 export function captureConvergenceSourcesWithChangedPaths(
+  root: string,
+  policyHash: string,
+): { capture: ConvergenceSourceCapture; changedPaths: string[] } {
+  return withProcessCostScope("capture", () => captureSourcesAndChangedPaths(root, policyHash));
+}
+
+function captureSourcesAndChangedPaths(
   root: string,
   policyHash: string,
 ): { capture: ConvergenceSourceCapture; changedPaths: string[] } {

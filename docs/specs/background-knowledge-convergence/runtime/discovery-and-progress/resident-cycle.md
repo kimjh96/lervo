@@ -5,6 +5,7 @@
 - [Change fence and scheduling](resident-cycle/fence-and-scheduling.md): fingerprint, skip conditions, adaptive timer, wakeups, private cycle state and health evidence.
 - [Observation and source cache](resident-cycle/observation-and-cache.md): reuse within full cycles, source capture and private hash-cache behavior.
 - [Host-wide admission](resident-cycle/admission.md): full-cycle serialization, waiting and lease recovery.
+- [Cycle cost observation](resident-cycle/cycle-cost.md): Git processes, wall time and CPU per cycle and scope.
 
 ## Validation and expected effect
 

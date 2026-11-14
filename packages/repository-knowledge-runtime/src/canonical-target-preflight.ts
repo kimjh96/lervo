@@ -1,5 +1,9 @@
 import { execFileSync } from "node:child_process";
-import { sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import {
+  recordSynchronousGitProcess,
+  sha256,
+  type KnowledgeConvergenceInput,
+} from "@lervo/repository-knowledge";
 import { assertConvergenceDelegation, pathWithinConvergenceRoots } from "./delegation.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { captureConvergenceSources } from "./source-capture.js";
@@ -60,6 +64,7 @@ export async function preflightCanonicalTargets(
     if ((sourceHashes.get(draft.path) ?? null) !== draft.beforeHash)
       throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
     let before: string | null = null;
+    recordSynchronousGitProcess(["show"]);
     try {
       before = sha256(
         execFileSync("git", ["-C", root, "show", `${targetCommit}:${draft.path}`], {

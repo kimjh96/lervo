@@ -7,6 +7,7 @@ import {
 } from "@lervo/agent-workforce";
 import {
   canonicalJson,
+  recordSynchronousGitProcess,
   sha256,
   type KnowledgeConvergenceInput,
   type KnowledgeConvergenceStageResult,
@@ -136,6 +137,7 @@ export async function inspectRetainedCanonicalIntegration(
     if (sha256(bytes) !== result.resultContentHash)
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   }
+  recordSynchronousGitProcess(["rev-parse"]);
   const target = execFileSync("git", ["-C", root, "rev-parse", plan.targetRef], {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -144,6 +146,7 @@ export async function inspectRetainedCanonicalIntegration(
   for (const draft of drafts) {
     if (!pathWithinConvergenceRoots(draft.path, delegation.canonicalRoots))
       throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+    recordSynchronousGitProcess(["show"]);
     const after = sha256(
       execFileSync("git", ["-C", root, "show", `${target}:${draft.path}`], {
         maxBuffer: 256 * 1024,
@@ -151,6 +154,7 @@ export async function inspectRetainedCanonicalIntegration(
       }),
     );
     let before: string | null = null;
+    recordSynchronousGitProcess(["show"]);
     try {
       before = sha256(
         execFileSync("git", ["-C", root, "show", `${plan.targetBeforeCommit}:${draft.path}`], {
