@@ -6,7 +6,49 @@
  * write below a listed directory or into a copied tree counts, and so does removing a directory
  * above an input. Writes by a file's own processes do not count: they follow from its own inputs.
  * A process that wrote through a path the recorder could not read could have written anything.
+ * A child without a record of its own, started inside the repository, is treated the same way;
+ * one started elsewhere is assumed to write there, which is a known gap.
  */
+// Git subcommands that change nothing outside `.git`. A file that reads `.git` is already
+// `git_in_repository`, so these cannot change another file's closure. `status` and `diff` may
+// refresh the index, which is inside `.git`.
+const readOnlyGit = new Set([
+  "cat-file",
+  "describe",
+  "diff",
+  "for-each-ref",
+  "log",
+  "ls-files",
+  "ls-tree",
+  "merge-base",
+  "rev-list",
+  "rev-parse",
+  "show",
+  "show-ref",
+  "status",
+  "symbolic-ref",
+]);
+
+/** The subcommand of a recorded Git invocation, or `null` when the tail does not show it. */
+function gitSubcommand(args) {
+  const [, ...rest] = args ?? [];
+  for (let index = 0; index < rest.length; index += 1) {
+    const argument = rest[index];
+    if (argument === "-C" || argument === "-c") index += 1;
+    else if (!argument.startsWith("-")) return argument;
+  }
+  return null;
+}
+
+/** Whether a child without its own record may have written inside the repository. */
+function blindRepositoryChild(child) {
+  if (child.bootstrap || child.failed || String(child.cwd).startsWith("<")) return false;
+  if (child.command === "git")
+    // The recorded tail holds at most eight arguments, so a longer command may hide its subcommand.
+    return (child.args?.length ?? 0) >= 8 || !readOnlyGit.has(gitSubcommand(child.args));
+  return !child.inherited;
+}
+
 /** `records`: spool records with `file`, `writes` and `notes`. */
 export function createCiTestShardWrites(records) {
   const owners = new Map();
@@ -17,7 +59,11 @@ export function createCiTestShardWrites(records) {
       if (!owners.has(path)) owners.set(path, new Set());
       owners.get(path).add(owner);
     }
-    if ((record.notes ?? []).includes("unobserved_write")) unknownWriters.add(owner);
+    // A record that dropped writes past its bound could have written anything too, and so could
+    // a child without a record of its own, such as Git or a shell, working inside the repository.
+    const blindChild = (record.children ?? []).some(blindRepositoryChild);
+    if ((record.notes ?? []).includes("unobserved_write") || record.writesDropped || blindChild)
+      unknownWriters.add(owner);
   }
   const written = [...owners.keys()].sort();
   const byOther = (path, file) => [...owners.get(path)].some((owner) => owner !== file);

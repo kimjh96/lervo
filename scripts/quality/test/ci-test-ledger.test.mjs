@@ -126,7 +126,6 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
   });
   const records = [
     worker("unobserved.test.ts", { pid: 1, children: [child("bash")] }),
-    worker("git.test.ts", { pid: 2, children: [child("git", { cwd: "." })] }),
     worker("git-file.test.ts", { pid: 3, inputs: [".git:HEAD"] }),
     worker("network.test.ts", {
       pid: 4,
@@ -150,7 +149,6 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
   ];
   expect(reasonsOf(records)).toEqual({
     "unobserved.test.ts": ["unobserved_child"],
-    "git.test.ts": ["git_in_repository"],
     "git-file.test.ts": ["git_in_repository"],
     "network.test.ts": ["network"],
     "host.test.ts": ["host_state"],
@@ -163,6 +161,21 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     "no-worker.test.ts": ["module_graph_unavailable"],
     "buffer-path.test.ts": ["unobserved_input"],
   });
+  // Git inside the repository can change the tree, so it also taints the rest of its shard,
+  // unless its subcommand only reads or writes inside `.git`.
+  const git = (args) =>
+    reasonsOf([
+      worker("git.test.ts", { pid: 2, children: [child("git", { cwd: ".", args })] }),
+      worker("bystander.test.ts", { pid: 3 }),
+    ]);
+  expect(git(["git", "checkout", "-q", "main"])).toEqual({
+    "git.test.ts": ["git_in_repository"],
+    "bystander.test.ts": ["shard_written_input"],
+  });
+  expect(git(["git", "-C", ".", "rev-parse", "HEAD"])["bystander.test.ts"]).toEqual([]);
+  expect(git(["git", "a", "b", "c", "d", "e", "f", "rev-parse"])["bystander.test.ts"]).toEqual([
+    "shard_written_input",
+  ]);
 });
 
 // r3 of the 2026-11-15 review: an index of the reconstructed tree cannot see what another file of
@@ -198,6 +211,38 @@ it("marks every other file when a process wrote through a path the recorder coul
     worker("bystander.test.ts", { pid: 2 }),
   ]);
   expect(reasons["blind.test.ts"]).toEqual(["unobserved_input"]);
+  expect(reasons["bystander.test.ts"]).toEqual(["shard_written_input"]);
+});
+
+it("treats an unrecorded child working in the repository as a process that could write anything", () => {
+  const child = (overrides) => ({
+    command: "bash",
+    args: ["bash"],
+    cwd: "packages/core",
+    pid: null,
+    inherited: false,
+    synchronous: true,
+    failed: false,
+    ...overrides,
+  });
+  const inRepository = reasonsOf([
+    worker("shell.test.ts", { pid: 1, children: [child()] }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(inRepository["bystander.test.ts"]).toEqual(["shard_written_input"]);
+  const elsewhere = reasonsOf([
+    worker("shell.test.ts", { pid: 1, children: [child({ cwd: "<temporary>" })] }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(elsewhere["bystander.test.ts"]).toEqual([]);
+});
+
+it("treats a record that dropped writes as a process that could have written anything", () => {
+  const reasons = reasonsOf([
+    worker("bounded.test.ts", { pid: 1, truncated: true, writesDropped: true }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(reasons["bounded.test.ts"]).toEqual(["module_graph_unavailable"]);
   expect(reasons["bystander.test.ts"]).toEqual(["shard_written_input"]);
 });
 

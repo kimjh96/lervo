@@ -34,6 +34,7 @@ class CiTestInputRecord {
   #listings = new SafeMap();
   #trees = new SafeSet();
   #writes = new SafeSet();
+  #writesDropped = false;
   #dependencies = new SafeSet();
   #modules = new SafeSet();
   #host = new SafeSet();
@@ -81,9 +82,10 @@ class CiTestInputRecord {
    */
   path({ kind, path }, access, absolute, recursive = false) {
     if (access === "write") {
-      if (kind === "repository") this.#add(this.#writes, path);
-      else if (kind === "git") this.#add(this.#writes, `.git:${path}`);
-      else if (kind === "dependency") this.#add(this.#writes, path);
+      const key = kind === "git" ? `.git:${path}` : path;
+      if (kind !== "repository" && kind !== "git" && kind !== "dependency") return;
+      if (!this.#writes.has(key) && this.#writes.size >= maximumPaths) this.#writesDropped = true;
+      this.#add(this.#writes, key);
       return;
     }
     if (kind === "temporary") this.#counts.temporary += 1;
@@ -216,6 +218,7 @@ class CiTestInputRecord {
       listings: fromEntries([...this.#listings].sort(([left], [right]) => (left < right ? -1 : 1))),
       trees: sorted(this.#trees),
       writes: sorted(this.#writes),
+      writesDropped: this.#writesDropped,
       dependencies: sorted(this.#dependencies),
       host: sorted(this.#host),
       children: this.#children,
