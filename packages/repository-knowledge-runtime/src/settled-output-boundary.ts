@@ -5,6 +5,7 @@ import type {
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 
 import { commitSettledKnowledgeOutputs } from "./knowledge-output-commit.js";
+import type { ConvergenceSourceCapture } from "./source-capture.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceSourceObservation } from "./source-observation.js";
@@ -37,11 +38,24 @@ export async function commitSettledOutputsAtBoundary(
 ): Promise<KnowledgeConvergenceStageResult | null> {
   const root = context.storage.paths.repositoryRoot;
   context.assertSourceExact(state);
+  // The fence just proved the repository equals this snapshot; the commit records only its bytes.
+  const snapshot = state.stageData.sourceCapture as ConvergenceSourceCapture | undefined;
+  const head = snapshot?.head ?? state.baseline.sourceCommit;
+  if (head === undefined) return null;
   const output = await commitSettledKnowledgeOutputs({
     repositoryRoot: root,
     events: context.storage.events,
     artifacts: context.storage.artifacts,
     obligationId: state.obligationId,
+    reviewed: {
+      head,
+      sources: new Map(
+        (snapshot?.sources ?? state.baseline.sources).map((source) => [
+          source.path,
+          source.contentHash,
+        ]),
+      ),
+    },
   });
   if (output.head === null) return null;
   context.sourceObservation?.noteChange();

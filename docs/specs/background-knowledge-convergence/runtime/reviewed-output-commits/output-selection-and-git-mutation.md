@@ -24,20 +24,23 @@ Formatted paths join the commit pathspec. The stage receipt records each formatt
 
 ## Staging and commit
 
-The helper stages selected paths with `git add -A --`, then uses `git commit --only` with:
+The boundary stage's exact source fence proves that the repository equals the obligation's snapshot. The helper commits exactly that snapshot's bytes for the selected paths, or nothing:
+
+- After every await of selection and formatting, each selected path is checked against the fenced snapshot. A present path's bytes must hash to its snapshot hash; a formatted path's replaced content must, and its formatted content is what is committed; a deleted path must be absent from the snapshot. Any mismatch restores the formatted files and refuses with `source_bytes_changed`.
+- The checked bytes stay in memory. Blobs are written from them with `git hash-object -w --no-filters`, so no clean filter or line-ending conversion runs and the working tree is never read again. A private index starts from the fenced HEAD (`read-tree`), takes those blobs (`update-index --cacheinfo`) or removals, and `write-tree` builds the tree.
+- `commit-tree` records it with the fenced HEAD as parent. No hook runs; `commit.gpgsign` is honoured. HEAD moves by `update-ref HEAD <new> <fenced HEAD>`, so a concurrent commit makes the helper return an empty result.
+- `git reset -q -- <paths>` then makes the developer's index follow the commit for those paths only. Other staged work stays staged.
+
+The commit carries:
 
 - Subject: `docs: apply reviewed background knowledge`.
 - Body: the obligation ID.
 - Author and committer: `Lervo Knowledge <knowledge@lervo.invalid>`.
 
-The commit does not depend on a developer or runner Git identity. Without an explicit committer, Git refuses commits on hosts without a configured or derivable identity, such as CI runners. Other paths are omitted from the commit pathspec.
-
-After success, the helper reads HEAD and its first parent. It returns committed paths and before/after coordinates only if that parent equals the observed pre-commit HEAD.
+The commit does not depend on a developer or runner Git identity. An edit made after the fence stays in the working tree, uncommitted.
 
 ## Failure and concurrency limits
 
-The inspected source does not establish an atomic selection-to-commit boundary. Safety markers are inspected before selection; the helper does not rehash selected content immediately before Git mutation. `headBlob` returns null for every caught Git read failure, not only confirmed path absence.
-
-Staging or commit failure returns an empty result with null HEAD coordinates, without explicit rollback of staging changes. Earlier inspection or selection errors can propagate. A post-commit parent mismatch also returns an empty result without undoing the commit. A null result therefore does not prove that Git or index bytes were unchanged.
+Safety markers are inspected before selection. `headBlob` returns null for every caught Git read failure, not only confirmed path absence. A failure while writing blobs, building the tree or moving HEAD returns an empty result and restores the formatted files; blobs already written stay as unreachable objects. If updating the developer's index fails after HEAD moved, the commit stands and the index entries for those paths keep their old content until the next `git reset` or `git add`.
 
 Outer serialization, recovery, and authority require separate verification before claiming protection against concurrent developer edits or uncertain effects.

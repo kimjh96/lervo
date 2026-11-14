@@ -16,6 +16,8 @@ import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
 import { CONVERGENCE_HOST_TRAILER, knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import type { ConvergenceApprovedEffect } from "./effect-source-fence.js";
+import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { commitExactKnowledgeBytes } from "./knowledge-output-exact-commit.js";
 import {
   knowledgeOutputFormatTargets,
   readRevisionFiles,
@@ -180,15 +182,15 @@ export async function selectSettledKnowledgeOutputs(
  * Formats the selected outputs that the repository formatter owns after the commit, plus clean
  * paths a retired normalization record released from lifecycle ownership, so the commit never
  * hands the formatter unformatted bytes. Lifecycle-owned outputs stay byte-exact, and a released
- * path with uncommitted edits is left to its developer. Returns the paths to commit and the
- * replaced content of every formatted path.
+ * path with uncommitted edits is left to its developer. Returns the paths to commit, the
+ * replaced content of every formatted path, and the formatted content written in its place.
  */
 export async function formatSettledKnowledgeOutputs(input: {
   repositoryRoot: string;
   formatter: KnowledgeOutputFormatter;
   selected: readonly string[];
   dirty: ReadonlyMap<string, "deleted" | "present">;
-}): Promise<{ paths: string[]; replaced: Map<string, string> }> {
+}): Promise<{ paths: string[]; replaced: Map<string, string>; formatted: Map<string, string> }> {
   const root = input.repositoryRoot;
   const after = await revisionFormatOwnershipSources(root, "HEAD");
   const changedSources = input.selected.filter(isDocumentFormatOwnershipSource);
@@ -202,12 +204,18 @@ export async function formatSettledKnowledgeOutputs(input: {
     changedSourcesBefore: before,
     sourcesAfter: after,
   }).filter((path) => selected.has(path) || !input.dirty.has(path));
+  const formatted = new Map<string, string>();
   const replaced = await formatKnowledgeOutputFiles({
     formatter: input.formatter,
     directory: root,
     paths: targets,
+    written: formatted,
   });
-  return { paths: [...new Set([...input.selected, ...replaced.keys()])].sort(), replaced };
+  return {
+    paths: [...new Set([...input.selected, ...replaced.keys()])].sort(),
+    replaced,
+    formatted,
+  };
 }
 
 async function observeDirtyPaths(root: string) {
@@ -287,6 +295,11 @@ export async function commitSettledKnowledgeOutputs(input: {
   events: OutboxStore;
   artifacts: ArtifactStore;
   obligationId: string;
+  /**
+   * The snapshot the caller's exact fence just proved: its HEAD and every source's content hash.
+   * The commit holds exactly these bytes, formatted, or nothing.
+   */
+  reviewed: { head: string; sources: ReadonlyMap<string, string> };
   /** The repository formatter; omitted loads the repository's own, null skips formatting. */
   formatter?: KnowledgeOutputFormatter | null;
 }): Promise<{
@@ -307,44 +320,70 @@ export async function commitSettledKnowledgeOutputs(input: {
     input.formatter === undefined
       ? await loadRepositoryKnowledgeOutputFormatter(root)
       : input.formatter;
-  const { paths, replaced } =
+  const { paths, replaced, formatted } =
     formatter === null
-      ? { paths: selected, replaced: new Map<string, string>() }
+      ? {
+          paths: selected,
+          replaced: new Map<string, string>(),
+          formatted: new Map<string, string>(),
+        }
       : await formatSettledKnowledgeOutputs({ repositoryRoot: root, formatter, selected, dirty });
-  const before = (await git(root, ["rev-parse", "HEAD"])).trim();
-  try {
-    await git(root, ["add", "-A", "--", ...paths]);
-    await git(
-      root,
-      [
-        "commit",
-        "--only",
-        "--quiet",
-        "-m",
-        "docs: apply reviewed background knowledge",
-        "-m",
-        `Lervo convergence ${input.obligationId} settled these reviewed outputs.`,
-        ...(grant.hostHash === null
-          ? []
-          : ["-m", `${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
-        "--",
-        ...paths,
-      ],
-      KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
-    );
-  } catch {
+  // Every byte the commit records is checked against the fenced snapshot and then held in memory,
+  // so an edit made after the fence, during any await above, never reaches the commit.
+  const entries: { path: string; bytes: Buffer | null }[] = [];
+  for (const path of paths) {
+    const reviewed = input.reviewed.sources.get(path) ?? null;
+    const written = formatted.get(path);
+    const bytes =
+      written !== undefined
+        ? sha256(replaced.get(path)!) === reviewed
+          ? Buffer.from(written, "utf8")
+          : undefined
+        : dirty.get(path) === "deleted"
+          ? reviewed === null
+            ? null
+            : undefined
+          : readReviewed(root, path, reviewed);
+    if (bytes === undefined) {
+      await restoreKnowledgeOutputFiles(root, replaced).catch(() => undefined);
+      throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
+    }
+    entries.push({ path, bytes });
+  }
+  const before = input.reviewed.head;
+  const after = await commitExactKnowledgeBytes({
+    repositoryRoot: root,
+    parent: before,
+    entries,
+    messages: [
+      "docs: apply reviewed background knowledge",
+      `Lervo convergence ${input.obligationId} settled these reviewed outputs.`,
+      ...(grant.hostHash === null ? [] : [`${CONVERGENCE_HOST_TRAILER}: ${grant.hostHash}`]),
+    ],
+    identity: KNOWLEDGE_OUTPUT_COMMIT_IDENTITY,
+  }).catch(() => null);
+  if (after === null) {
     // A concurrent developer Git operation wins; the next idle cycle retries from the reviewed
     // bytes, which settled selection recognizes only before formatting.
     await restoreKnowledgeOutputFiles(root, replaced).catch(() => undefined);
     return { committed: [], head: null };
   }
-  const after = (await git(root, ["rev-parse", "HEAD"])).trim();
-  const parent = (await git(root, ["rev-parse", `${after}^`])).trim();
-  if (parent !== before) return { committed: [], head: null };
   const formatEffects = [...replaced].map(([path, content]) => ({
     path,
     beforeHash: sha256(content),
-    afterHash: sha256(readFileSync(resolve(root, path))),
+    afterHash: sha256(formatted.get(path)!),
   }));
   return { committed: paths, head: { before, after }, formatEffects };
+}
+
+/** The file's bytes, if they still hash to the reviewed content; undefined otherwise. */
+function readReviewed(root: string, path: string, reviewed: string | null): Buffer | undefined {
+  if (reviewed === null) return undefined;
+  let bytes: Buffer;
+  try {
+    bytes = readFileSync(resolve(root, path));
+  } catch {
+    return undefined;
+  }
+  return sha256(bytes) === reviewed ? bytes : undefined;
 }
