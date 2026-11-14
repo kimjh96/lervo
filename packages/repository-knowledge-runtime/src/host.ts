@@ -85,6 +85,15 @@ export function createConvergenceRuntimeHost(
 ): KnowledgeConvergenceHost {
   const root = context.storage.paths.repositoryRoot;
   const source = (state: KnowledgeConvergenceInput) => assertConvergenceSource(context, state);
+  // The owner calls `assertCurrent` right after `prepareStage` verified the same state. A
+  // verification survives only while nothing but promise continuations has run; any I/O turn
+  // clears it first, so no effect or wait can fall between the reused capture and its use.
+  let prepared: KnowledgeConvergenceInput | null = null;
+  const sourceUnlessJustPrepared = (state: KnowledgeConvergenceInput) => {
+    const reuse = prepared === state;
+    prepared = null;
+    if (!reuse) source(state);
+  };
   const discover = cycleScopedConvergenceDiscovery(
     root,
     context.storage.events,
@@ -98,7 +107,7 @@ export function createConvergenceRuntimeHost(
       assertConvergenceSettlementAuthority(context, state);
     },
     assertCurrent: async (state) => {
-      source(state);
+      sourceUnlessJustPrepared(state);
       if (state.baseline.delegationHash !== null && state.receipts.length > 0)
         await assertConvergenceDelegation({
           repositoryRoot: root,
@@ -114,6 +123,10 @@ export function createConvergenceRuntimeHost(
     prepareStage: async (stage, state) => {
       try {
         source(state);
+        prepared = state;
+        setImmediate(() => {
+          if (prepared === state) prepared = null;
+        });
         return null;
       } catch (error) {
         return staleReviewContext(error) ? regenerateStaleReview(context, state, stage) : null;

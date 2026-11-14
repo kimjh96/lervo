@@ -26,6 +26,15 @@ export async function runInstalledCli(cliEntry, args, cwd) {
   return { stdout, stderr };
 }
 
+// pnpm sets npm_execpath to its own entry point. That is a JavaScript file for an npm-installed
+// pnpm but a native executable for the standalone build, which node cannot load.
+function pnpmCommand(args) {
+  const entry = process.env.npm_execpath;
+  return entry && /\.[cm]?js$/.test(entry)
+    ? { executable: process.execPath, args: [entry, ...args] }
+    : { executable: entry || "pnpm", args };
+}
+
 export async function runPnpm(args, options = {}) {
   const commandOptions = {
     cwd: repositoryRoot,
@@ -33,10 +42,8 @@ export async function runPnpm(args, options = {}) {
     maxBuffer: 10 * 1024 * 1024,
     ...options,
   };
-  if (process.env.npm_execpath) {
-    return execFileAsync(process.execPath, [process.env.npm_execpath, ...args], commandOptions);
-  }
-  return execFileAsync("pnpm", args, commandOptions);
+  const command = pnpmCommand(args);
+  return execFileAsync(command.executable, command.args, commandOptions);
 }
 
 export async function runPnpmWithInput(args, input, options = {}) {
@@ -45,10 +52,9 @@ export async function runPnpmWithInput(args, input, options = {}) {
     env: process.env,
     ...options,
   };
-  const executable = process.env.npm_execpath ? process.execPath : "pnpm";
-  const commandArgs = process.env.npm_execpath ? [process.env.npm_execpath, ...args] : args;
+  const command = pnpmCommand(args);
   return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(executable, commandArgs, {
+    const child = spawn(command.executable, command.args, {
       cwd: commandOptions.cwd,
       env: commandOptions.env,
       stdio: ["pipe", "pipe", "pipe"],
