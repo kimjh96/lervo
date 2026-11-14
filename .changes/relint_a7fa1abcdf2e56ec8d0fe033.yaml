@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a7fa1abcdf2e56ec8d0fe033"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Watch each repository with one recursive watcher on macOS and Windows so the replica and knowledge services stop leaking memory."
