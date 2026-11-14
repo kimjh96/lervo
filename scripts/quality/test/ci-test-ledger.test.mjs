@@ -173,6 +173,16 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     "bystander.test.ts": ["shard_written_input"],
   });
   expect(git(["git", "-C", ".", "rev-parse", "HEAD"])["bystander.test.ts"]).toEqual([]);
+  // A clone between temporary paths writes only there; one into the repository does not.
+  expect(
+    git(["git", "clone", "--quiet", "<temporary>", "<temporary>"])["bystander.test.ts"],
+  ).toEqual([]);
+  expect(
+    git(["git", "init", "--quiet", "--bare", "-b", "main", "<temporary>"])["bystander.test.ts"],
+  ).toEqual([]);
+  expect(git(["git", "clone", "<temporary>", "fixtures/copy"])["bystander.test.ts"]).toEqual([
+    "shard_written_input",
+  ]);
   expect(git(["git", "a", "b", "c", "d", "e", "f", "rev-parse"])["bystander.test.ts"]).toEqual([
     "shard_written_input",
   ]);

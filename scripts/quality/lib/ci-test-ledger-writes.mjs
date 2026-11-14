@@ -29,23 +29,61 @@ const readOnlyGit = new Set([
   "symbolic-ref",
 ]);
 
-/** The subcommand of a recorded Git invocation, or `null` when the tail does not show it. */
-function gitSubcommand(args) {
+// Git subcommands that write only to the paths they are given, and their options that take a
+// separate value, which is not a path to write.
+const pathWritingGit = new Set(["clone", "init"]);
+const valuedOptions = new Set([
+  "-b",
+  "--branch",
+  "--initial-branch",
+  "-o",
+  "--origin",
+  "-c",
+  "--config",
+  "--depth",
+  "--template",
+  "--reference",
+  "--separate-git-dir",
+  "-u",
+  "--upload-pack",
+  "--object-format",
+]);
+
+/** The subcommand of a recorded Git invocation and the operands after it, or `null`. */
+function gitInvocation(args) {
   const [, ...rest] = args ?? [];
   for (let index = 0; index < rest.length; index += 1) {
     const argument = rest[index];
     if (argument === "-C" || argument === "-c") index += 1;
-    else if (!argument.startsWith("-")) return argument;
+    else if (!argument.startsWith("-")) {
+      const operands = [];
+      for (let next = index + 1; next < rest.length; next += 1)
+        if (valuedOptions.has(rest[next])) next += 1;
+        else if (!rest[next].startsWith("-")) operands.push(rest[next]);
+      return { subcommand: argument, operands };
+    }
   }
   return null;
 }
 
+/** A recorded path argument that the recorder classified outside the repository. */
+const outsideRepository = (operand) =>
+  operand.startsWith("<") && operand !== "<unknown>" && !operand.startsWith("<package:");
+
 /** Whether a child without its own record may have written inside the repository. */
 function blindRepositoryChild(child) {
   if (child.bootstrap || child.failed || String(child.cwd).startsWith("<")) return false;
-  if (child.command === "git")
+  if (child.command === "git") {
     // The recorded tail holds at most eight arguments, so a longer command may hide its subcommand.
-    return (child.args?.length ?? 0) >= 8 || !readOnlyGit.has(gitSubcommand(child.args));
+    const invocation = gitInvocation(child.args);
+    if ((child.args?.length ?? 0) >= 8 || invocation === null) return true;
+    if (readOnlyGit.has(invocation.subcommand)) return false;
+    return !(
+      pathWritingGit.has(invocation.subcommand) &&
+      invocation.operands.length > 0 &&
+      invocation.operands.every(outsideRepository)
+    );
+  }
   return !child.inherited;
 }
 
