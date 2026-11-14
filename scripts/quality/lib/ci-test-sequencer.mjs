@@ -7,13 +7,16 @@ import { assignCiTestShards } from "./ci-test-shards.mjs";
 
 const profileUrl = new URL("../ci-test-durations.json", import.meta.url);
 
-/** Places files by the committed duration profile; selection and isolation stay Vitest's own. */
+/**
+ * Places files by the committed profile's weights, which are test plus collection time once the
+ * profile comes from test ledgers (ADR-0565); selection and isolation stay Vitest's own.
+ */
 export default class CiTestSequencer extends BaseSequencer {
-  #durations;
+  #profile;
 
-  durations() {
-    this.#durations ??= readCiTestDurationProfile(JSON.parse(readFileSync(profileUrl, "utf8")));
-    return this.#durations;
+  profile() {
+    this.#profile ??= readCiTestDurationProfile(JSON.parse(readFileSync(profileUrl, "utf8")));
+    return this.#profile;
   }
 
   path(file) {
@@ -26,16 +29,14 @@ export default class CiTestSequencer extends BaseSequencer {
       id: `${file.project.name}:${file.moduleId}`,
       path: this.path(file),
     }));
-    const selected = new Set(
-      assignCiTestShards(specifications, this.durations(), count)[index - 1],
-    );
+    const selected = new Set(assignCiTestShards(specifications, this.profile(), count)[index - 1]);
     return files.filter((file) => selected.has(`${file.project.name}:${file.moduleId}`));
   }
 
   /** Starts the slowest known files first so both workers of a shard finish close together. */
   async sort(files) {
-    const durations = this.durations();
-    const duration = (file) => durations[this.path(file)] ?? 0;
-    return (await super.sort(files)).sort((left, right) => duration(right) - duration(left));
+    const { weights, defaultWeight } = this.profile();
+    const weight = (file) => weights[this.path(file)] ?? defaultWeight;
+    return (await super.sort(files)).sort((left, right) => weight(right) - weight(left));
   }
 }

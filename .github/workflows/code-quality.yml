@@ -247,6 +247,9 @@ jobs:
         shard: [1, 2, 3, 4]
     env:
       REUSED_RUN: ${{ needs.plan.outputs.reuseTests }}
+      # Observe-only test input ledger (ADR-0565). Set the repository variable to `off` to stop
+      # recording without a commit; it never changes which tests run or the verdict.
+      LERVO_CI_TEST_LEDGER: ${{ vars.LERVO_CI_TEST_LEDGER || 'on' }}
     steps:
       - name: Reuse verified tests for identical content
         if: env.REUSED_RUN != ''
@@ -286,7 +289,20 @@ jobs:
         run: node scripts/quality/ci-build.mjs restore "${RUNNER_TEMP}/lervo-ci-build"
       - name: Run tests
         if: env.REUSED_RUN == ''
+        env:
+          LERVO_CI_TEST_LEDGER_DIRECTORY: ${{ runner.temp }}/lervo-ci-test-ledger
         run: pnpm test --maxWorkers=2 --testTimeout=30000 --config=scripts/quality/ci-vitest.config.mjs --shard=${{ matrix.shard }}/4
+      - name: Publish the test input ledger
+        # Failed and cancelled shards have ledgers too; a missing or failed upload never fails the shard.
+        if: env.REUSED_RUN == '' && always() && env.LERVO_CI_TEST_LEDGER != 'off'
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-ci-test-ledger-${{ matrix.shard }}
+          path: ${{ runner.temp }}/lervo-ci-test-ledger/ledger
+          if-no-files-found: ignore
+          retention-days: 7
+          overwrite: true
 
   distribution:
     name: Distribution smoke checks
