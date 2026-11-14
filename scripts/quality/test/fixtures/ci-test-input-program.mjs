@@ -107,7 +107,11 @@ async function describeResults() {
 if (mode === "child") readFileSync(resolve(root, "pnpm-workspace.yaml"));
 else if (mode === "wait") {
   readFileSync(resolve(root, "tsconfig.json"));
-  process.stdout.write("ready\n");
+  setTimeout(() => {
+    // The first observation after the spool interval writes the record so far.
+    readFileSync(resolve(root, "package.json"));
+    process.stdout.write("spooled\n");
+  }, 1200);
   setInterval(() => {}, 1000);
 } else if (mode === "results") process.stdout.write(`${JSON.stringify(await describeResults())}\n`);
 else await observeEverything();

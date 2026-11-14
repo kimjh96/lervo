@@ -1,5 +1,13 @@
 "use strict";
 
+const {
+  fromEntries,
+  SafeMap,
+  SafeSet,
+  stringify,
+  toText,
+} = require("./ci-test-input-intrinsics.cjs");
+
 /**
  * One process's bounded observation (ADR-0565). Records hold repository-relative paths, package
  * keys, counts and closed codes only: never file contents, environment values or credentials.
@@ -18,20 +26,20 @@ const maximumArguments = 8;
  * own, so the ledger can match a child that a synchronous API started without exposing its PID.
  */
 const ciTestInvocation = (args) =>
-  args.slice(-maximumArguments).map((argument) => String(argument).slice(0, maximumArgumentLength));
+  args.slice(-maximumArguments).map((argument) => toText(argument).slice(0, maximumArgumentLength));
 
 class CiTestInputRecord {
-  #inputs = new Set();
-  #absent = new Set();
-  #directories = new Map();
-  #trees = new Set();
-  #dependencies = new Set();
-  #modules = new Set();
-  #host = new Set();
+  #inputs = new SafeSet();
+  #absent = new SafeSet();
+  #directories = new SafeMap();
+  #trees = new SafeSet();
+  #dependencies = new SafeSet();
+  #modules = new SafeSet();
+  #host = new SafeSet();
   #children = [];
-  #collapsed = new Map();
-  #external = new Set();
-  #notes = new Set();
+  #collapsed = new SafeMap();
+  #external = new SafeSet();
+  #notes = new SafeSet();
   #counts = {
     temporary: 0,
     host: 0,
@@ -43,7 +51,7 @@ class CiTestInputRecord {
     clockUnattributed: 0,
     childrenDropped: 0,
   };
-  #pending = new Map();
+  #pending = new SafeMap();
   #truncated = false;
 
   constructor(identity) {
@@ -82,7 +90,7 @@ class CiTestInputRecord {
           this.#truncated = true;
           return;
         }
-        entry = { absolute, kind, accesses: new Set(), recursive: false, resolved: false };
+        entry = { absolute, kind, accesses: new SafeSet(), recursive: false, resolved: false };
         this.#pending.set(key, entry);
       }
       if (!entry.accesses.has(access) || (access === "list" && recursive && !entry.recursive))
@@ -137,7 +145,7 @@ class CiTestInputRecord {
       count: 1,
     };
     const collapsible = command === "git" || !inherited || failed;
-    const key = collapsible ? JSON.stringify({ ...entry, pid: null }) : null;
+    const key = collapsible ? stringify({ ...entry, pid: null }) : null;
     if (key !== null && this.#collapsed.has(key)) {
       this.#collapsed.get(key).count += 1;
       return;
@@ -181,7 +189,7 @@ class CiTestInputRecord {
       inputs: sorted(this.#inputs),
       modules: sorted(this.#modules),
       absent: sorted(this.#absent),
-      directories: Object.fromEntries(
+      directories: fromEntries(
         [...this.#directories].sort(([left], [right]) => (left < right ? -1 : 1)),
       ),
       trees: sorted(this.#trees),

@@ -1,8 +1,9 @@
 import { spawnSync } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import ts from "typescript";
 import { afterAll, beforeAll, expect, it } from "vitest";
 
 // Each row runs one program with the recorder off and on; everything the program prints, and how
@@ -160,6 +161,71 @@ console.log(Error.stackTraceLimit);`,
 function victim() { require("node:fs").readFileSync("missing"); }
 try { victim(); } catch (error) { console.log(error.stack); }`,
   ],
+  [
+    "a handled signal is not delivered again",
+    `const { spawnSync } = require("node:child_process");
+const code = \`process.prependOnceListener("SIGTERM", () => console.log("handled"));
+process.kill(process.pid, "SIGTERM"); setTimeout(() => console.log("alive"), 50);\`;
+const result = spawnSync(process.execPath, ["-e", code], { encoding: "utf8" });
+console.log(JSON.stringify({ stdout: result.stdout, status: result.status, signal: result.signal }));`,
+  ],
+  [
+    "the recorder adds no process listeners",
+    `const events = ["exit", "beforeExit", "SIGTERM", "SIGINT", "SIGHUP", "SIGQUIT", "SIGUSR2",
+  "uncaughtException", "unhandledRejection", "warning", "message", "disconnect"];
+console.log(events.map((name) => name + "=" + process.listenerCount(name)).join(","));
+console.log(process.eventNames().map(String).join(","));`,
+  ],
+  [
+    "an explicit exit keeps its code",
+    `process.on("exit", (code) => console.log("exit", code)); process.exit(3);`,
+  ],
+  ["an exit code set without exiting is kept", `process.exitCode = 4;`],
+  ["an uncaught exception still ends the process", `throw new TypeError("boom");`],
+  [
+    "a Proxy over the global Error never sees recorder traps",
+    `const fs = require("node:fs"); let traps = 0;
+globalThis.Error = new Proxy(Error, { getOwnPropertyDescriptor() { traps++; throw "trap"; }, get(target, key) { traps++; return Reflect.get(target, key); } });
+try { console.log("result", fs.existsSync("/dev/null"), Date.now() > 0, new Date() instanceof Date); } catch (error) { console.log("threw", error); }
+console.log("traps", traps);`,
+  ],
+  [
+    "a getter on Error.captureStackTrace is never read",
+    `let reads = 0; const original = Error.captureStackTrace;
+Object.defineProperty(Error, "captureStackTrace", { configurable: true, get() { reads++; return original; } });
+Date.now(); new Date(); require("node:fs").existsSync("/dev/null"); console.log("reads", reads);`,
+  ],
+  [
+    "replaced globals and process methods are not called by the recorder",
+    `const fs = require("node:fs"); const calls = [];
+const cwd = process.cwd; process.cwd = () => { calls.push("cwd"); return cwd(); };
+for (const name of ["Object", "Reflect", "Array", "JSON", "String", "Set", "Map"]) {
+  const value = globalThis[name];
+  globalThis[name] = new Proxy(value, { get(target, key) { calls.push(name + "." + String(key)); return Reflect.get(target, key); },
+    apply(target, self, args) { calls.push(name + "()"); return Reflect.apply(target, self, args); },
+    construct(target, args, newTarget) { calls.push("new " + name); return Reflect.construct(target, args, newTarget); } });
+}
+fs.readFileSync("README.md"); fs.readdirSync("scripts"); fs.existsSync("missing-recorder-file");
+require("node:child_process").spawnSync(process.execPath, ["-e", ""]);
+for (const name of ["Object", "Reflect", "Array", "JSON", "String", "Set", "Map"]) globalThis[name] = undefined;
+console.log(calls.length);`,
+  ],
+  [
+    "child spawn reads environment pairs once",
+    `const { ChildProcess } = require("node:child_process"); let reads = 0;
+const envPairs = ["A=B"]; Object.defineProperty(envPairs, 0, { get() { reads++; return "A=B"; } });
+const child = new ChildProcess();
+child.spawn({ file: "/usr/bin/true", args: ["true"], envPairs, stdio: "ignore" });
+child.on("close", (code) => console.log("exit", code, "reads", reads));`,
+  ],
+  [
+    "an object constructed from a wrapped function names it as its constructor",
+    `const fs = require("node:fs"); const net = require("node:net");
+for (const fn of [fs.existsSync, fs.readFile, net.Socket.prototype.connect, process.dlopen]) {
+  try { const value = Reflect.construct(fn, ["/dev/null"]); console.log(value instanceof fn, value.constructor === fn); }
+  catch (error) { console.log(error.name); }
+}`,
+  ],
 ];
 
 it.each(rows)("%s", (_, code) => {
@@ -172,4 +238,74 @@ it("compares a running recorder with an inert one", () => {
   const code = `console.log(typeof globalThis[Symbol.for("lervo.ciTestInputRecorder")]);`;
   expect(run("off", code).stdout).toBe("undefined\n");
   expect(run("on", code).stdout).toBe("object\n");
+});
+
+// Recorder hooks run inside the observed program, so every recorder function may use only
+// built-ins captured at preload. A global named inside any function body is a defect.
+const callTimeGlobals = new Set([
+  "Array",
+  "Boolean",
+  "Buffer",
+  "Date",
+  "Error",
+  "Function",
+  "JSON",
+  "Map",
+  "Math",
+  "Number",
+  "Object",
+  "Promise",
+  "Proxy",
+  "Reflect",
+  "Set",
+  "String",
+  "Symbol",
+  "URL",
+  "WeakMap",
+  "WeakSet",
+  "globalThis",
+  "process",
+  "require",
+]);
+
+function callTimeGlobalReads(path, text) {
+  const source = ts.createSourceFile(path, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+  const found = [];
+  const deferred = (node) =>
+    ts.isFunctionLike(node) ||
+    ts.isPropertyDeclaration(node) ||
+    ts.isClassStaticBlockDeclaration(node);
+  const visit = (node, inside) => {
+    if (ts.isIdentifier(node) && inside && callTimeGlobals.has(node.text)) {
+      const parent = node.parent;
+      const isName =
+        (ts.isPropertyAccessExpression(parent) && parent.name === node) ||
+        (ts.isPropertyAssignment(parent) && parent.name === node) ||
+        (ts.isMethodDeclaration(parent) && parent.name === node) ||
+        (ts.isBindingElement(parent) && parent.propertyName === node);
+      if (!isName) {
+        const { line } = source.getLineAndCharacterOfPosition(node.getStart());
+        found.push(`${path}:${line + 1} ${node.text}`);
+      }
+    }
+    ts.forEachChild(node, (child) => visit(child, inside || deferred(node)));
+  };
+  visit(source, false);
+  return found;
+}
+
+it("lets recorder functions use only built-ins captured at preload", async () => {
+  const directory = resolve(import.meta.dirname, "../lib");
+  const modules = (await readdir(directory)).filter((name) =>
+    /^ci-test-input-.+\.cjs$/u.test(name),
+  );
+  expect(modules.length).toBeGreaterThanOrEqual(9);
+  const found = [];
+  for (const name of modules)
+    found.push(...callTimeGlobalReads(name, await readFile(resolve(directory, name), "utf8")));
+  expect(found).toEqual([]);
+  // The scan itself recognizes a call-time read.
+  expect(
+    callTimeGlobalReads("probe.cjs", "const a = Error; function f() { return Object.keys(a); }"),
+  ).toEqual(["probe.cjs:1 Object"]);
 });

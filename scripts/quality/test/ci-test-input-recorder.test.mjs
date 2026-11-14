@@ -51,7 +51,7 @@ it("records reads, listings, absent probes, modules, children, sockets, SQLite a
   execFileSync(process.execPath, [program, "all"], { cwd: scratch, env: environment() });
   const records = await spool();
   const main = records.find((record) => record.invocation.at(-1) === "all");
-  expect(main).toMatchObject({ file: testFile, role: "process", final: true, truncated: false });
+  expect(main).toMatchObject({ file: testFile, role: "process", end: "exit", truncated: false });
   for (const input of [
     "package.json",
     "README.md",
@@ -88,7 +88,7 @@ it("records reads, listings, absent probes, modules, children, sockets, SQLite a
   const childRecords = records.filter((record) => record.invocation.at(-1) === "child");
   expect(childRecords).toHaveLength(2);
   for (const child of childRecords) {
-    expect(child).toMatchObject({ ppid: main.pid, file: testFile, final: true });
+    expect(child).toMatchObject({ ppid: main.pid, file: testFile, end: "exit" });
     expect(child.inputs).toContain("pnpm-workspace.yaml");
   }
 
@@ -137,21 +137,25 @@ it("keeps every result and failure identical with the recorder on", () => {
   });
 });
 
-it("spools a final record on SIGTERM and still exits by that signal", async () => {
+it("keeps an incomplete record of a process killed without warning", async () => {
   const child = spawn(process.execPath, [program, "wait"], {
     cwd: scratch,
     env: environment(),
     stdio: ["ignore", "pipe", "inherit"],
   });
-  await new Promise((done) => child.stdout.once("data", done));
-  child.kill("SIGTERM");
+  // The program reads again after the recorder's one-second spool interval, then says so.
+  await new Promise((done) =>
+    child.stdout.on("data", (data) => String(data).includes("spooled") && done()),
+  );
+  child.kill("SIGKILL");
   const [code, signal] = await new Promise((done) =>
     child.on("exit", (...outcome) => done(outcome)),
   );
-  expect({ code, signal }).toEqual({ code: null, signal: "SIGTERM" });
+  expect({ code, signal }).toEqual({ code: null, signal: "SIGKILL" });
   const [record] = await spool();
-  expect(record).toMatchObject({ pid: child.pid, final: true });
+  expect(record).toMatchObject({ pid: child.pid, end: null });
   expect(record.inputs).toContain("tsconfig.json");
+  expect(record.inputs).toContain("package.json");
 });
 
 it("stays inert when the repository variable switches the ledger off", () => {

@@ -1,8 +1,13 @@
 "use strict";
 
 const { isIP } = require("node:net");
-const { types } = require("node:util");
 
+const {
+  getOwnPropertyDescriptor,
+  isArray,
+  isProxy,
+  toText,
+} = require("./ci-test-input-intrinsics.cjs");
 const { observeCalls, ownData } = require("./ci-test-input-transparent-call.cjs");
 
 /**
@@ -11,7 +16,7 @@ const { observeCalls, ownData } = require("./ci-test-input-transparent-call.cjs"
  * is recorded by name; loopback and local sockets are counted.
  */
 function loopback(host) {
-  const name = String(host)
+  const name = toText(host)
     .toLowerCase()
     .replace(/^\[|\]$/gu, "");
   if (name === "localhost" || name.endsWith(".localhost") || name === "::1" || name === "::")
@@ -32,16 +37,16 @@ const primitive = (value) =>
  */
 function endpointOf(args) {
   const [first, second] = args;
-  const options = Array.isArray(first) ? ownData(first, 0) : first;
+  const options = isArray(first) ? ownData(first, 0) : first;
   if (typeof options === "object" && options !== null) {
-    if (types.isProxy(options)) return { kind: "external", endpoint: "<unread>" };
-    const path = Object.getOwnPropertyDescriptor(options, "path");
+    if (isProxy(options)) return { kind: "external", endpoint: "<unread>" };
+    const path = getOwnPropertyDescriptor(options, "path");
     if (path && "value" in path && path.value !== undefined) return { kind: "local" };
     if (path && !("value" in path)) return { kind: "external", endpoint: "<unread>" };
     const host = ownData(options, "host");
     const port = ownData(options, "port");
     const unread = (key) => {
-      const descriptor = Object.getOwnPropertyDescriptor(options, key);
+      const descriptor = getOwnPropertyDescriptor(options, key);
       return descriptor !== undefined && !("value" in descriptor);
     };
     if (unread("host") || unread("port") || (host !== undefined && primitive(host) === undefined))

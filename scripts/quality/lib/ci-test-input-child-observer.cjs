@@ -1,7 +1,13 @@
 "use strict";
 
-const { types } = require("node:util");
-
+const {
+  arrayFrom,
+  getOwnPropertyDescriptor,
+  hasOwn,
+  isArray,
+  isProxy,
+  processObject,
+} = require("./ci-test-input-intrinsics.cjs");
 const {
   observeCalls,
   ownData,
@@ -11,10 +17,11 @@ const {
 
 /**
  * Translates child process creation into observations (ADR-0565). Asynchronous APIs all reach
- * `ChildProcess.prototype.spawn` with options Node has already normalized; each synchronous API
- * is wrapped at its public name and read without running user code. A value that would need a
- * getter, a Proxy trap or a string conversion is reported as unknown instead. Observations carry
- * only the variables that decide whether the child inherits the recorder, never the environment.
+ * `ChildProcess.prototype.spawn`; each synchronous API is wrapped at its public name. Options,
+ * arguments and environment pairs are read without running user code, because callers can pass
+ * their own objects to every one of them. A value that would need a getter, a Proxy trap or a
+ * string conversion is reported as unknown. Observations carry only the variables that decide
+ * whether the child inherits the recorder, never the environment.
  */
 const inheritedVariables = [
   "NODE_OPTIONS",
@@ -24,24 +31,38 @@ const inheritedVariables = [
 
 /** Reads the variables as Node would: own enumerable keys only, primitive values only. */
 function fromObject(env) {
-  if (types.isProxy(env)) return null;
+  if (env === null || typeof env !== "object" || isProxy(env)) return null;
   const values = {};
   for (const name of inheritedVariables) {
-    const descriptor = Object.getOwnPropertyDescriptor(env, name);
-    if (!descriptor || !descriptor.enumerable) continue;
-    if (!("value" in descriptor)) return null;
+    const descriptor = getOwnPropertyDescriptor(env, name);
+    if (descriptor === undefined || !descriptor.enumerable) continue;
+    if (!hasOwn(descriptor, "value")) return null;
     const { value } = descriptor;
-    if (value !== null && (typeof value === "object" || typeof value === "function")) return null;
+    if (value !== null && ["object", "function", "symbol"].includes(typeof value)) return null;
     values[name] = `${value}`;
   }
   return values;
 }
 
+/** The current `process.env`, read as a data property of the process object. */
+const processEnvironment = () => fromObject(ownData(processObject, "env"));
+
+/** Elements of a non-Proxy array through own data properties; others are `undefined`. */
+function elements(values) {
+  if (!isArray(values) || isProxy(values)) return null;
+  const length = ownData(values, "length");
+  return typeof length === "number"
+    ? arrayFrom({ length }, (_, index) => ownData(values, index))
+    : null;
+}
+
 function fromPairs(pairs) {
-  if (!Array.isArray(pairs)) return null;
+  const list = elements(pairs);
+  // A pair the hook cannot read may set NODE_OPTIONS, so the environment is unknown.
+  if (list === null || list.some((pair) => typeof pair !== "string")) return null;
   const values = {};
-  for (const pair of pairs) {
-    const separator = typeof pair === "string" ? pair.indexOf("=") : -1;
+  for (const pair of list) {
+    const separator = pair.indexOf("=");
     const name = separator > 0 ? pair.slice(0, separator) : null;
     if (inheritedVariables.includes(name)) values[name] = pair.slice(separator + 1);
   }
@@ -50,17 +71,12 @@ function fromPairs(pairs) {
 
 /** String elements of a non-Proxy array; any other element is shown, never converted. */
 function argumentList(values) {
-  if (!Array.isArray(values) || types.isProxy(values)) return [];
-  const length = ownData(values, "length") ?? 0;
-  return Array.from({ length }, (_, index) => {
-    const value = ownData(values, index);
-    return typeof value === "string" ? value : "<unread>";
-  });
+  return (elements(values) ?? []).map((value) => (typeof value === "string" ? value : "<unread>"));
 }
 
 /** Mirrors Node's optional `args` and `options` positions for the synchronous APIs. */
 function describeFile(file, maybeArgs, maybeOptions) {
-  const args = Array.isArray(maybeArgs) ? maybeArgs : undefined;
+  const args = isArray(maybeArgs) ? maybeArgs : undefined;
   const options = args === undefined ? (maybeArgs ?? maybeOptions) : maybeOptions;
   const env = ownDataState(options, "env");
   const cwd = ownDataState(options, "cwd");
@@ -69,7 +85,7 @@ function describeFile(file, maybeArgs, maybeOptions) {
     args: argumentList(args),
     // `undefined` runs in this process's directory; `null` is a directory the hook cannot read.
     cwd: !cwd.known ? null : cwd.value == null ? undefined : pathText(cwd.value),
-    environment: !env.known ? null : env.value ? fromObject(env.value) : fromObject(process.env),
+    environment: !env.known ? null : env.value ? fromObject(env.value) : processEnvironment(),
     synchronous: true,
   };
 }

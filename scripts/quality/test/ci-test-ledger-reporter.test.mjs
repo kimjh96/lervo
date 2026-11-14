@@ -66,7 +66,7 @@ export default { root: ${JSON.stringify(root)}, test: { include: [${JSON.stringi
     // The worker fetches repository modules from Vitest over RPC; the ledger still lists them.
     expect(inputs).toContain("scripts/quality/lib/generated-text.mjs");
     expect(file.children).toMatchObject({ spawned: 1, observed: 1, unobserved: {} });
-    expect(file.processes.final).toBeGreaterThanOrEqual(2);
+    expect(file.processes.complete).toBeGreaterThanOrEqual(2);
     expect(file.uncacheableReasons).not.toContain("module_graph_unavailable");
     expect(file.uncacheableReasons).not.toContain("unobserved_child");
   } finally {

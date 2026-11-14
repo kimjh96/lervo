@@ -1,5 +1,14 @@
 "use strict";
 
+const {
+  apply,
+  construct,
+  getCallSites,
+  global,
+  NativeDate,
+  ProxyConstructor,
+} = require("./ci-test-input-intrinsics.cjs");
+
 /**
  * Counts real-clock reads by test and product code (ADR-0565): `Date.now()` and `new Date()`
  * without arguments. A fake clock installs its own `Date` whose constructor always passes a
@@ -10,31 +19,19 @@ const maximumInspections = 5_000;
 
 function installClockObserver({ observe, ownFiles }) {
   let inspections = 0;
-  const captureCallSites = (_, callSites) => callSites;
 
-  /** Reads at most a few frames, swapping in a raw formatter so source maps are not applied. */
+  /**
+   * Reads at most a few frames through `util.getCallSites`, which creates no Error, so neither
+   * `Error.prepareStackTrace` nor `Error.stackTraceLimit` is read or written.
+   */
   const fromCode = () => {
-    const prepare = Object.getOwnPropertyDescriptor(Error, "prepareStackTrace");
-    const limit = Object.getOwnPropertyDescriptor(Error, "stackTraceLimit");
-    // An accessor here is user code; reading or writing it would run that code.
-    if ((prepare && !("value" in prepare)) || !limit || !("value" in limit) || !limit.writable)
-      return null;
-    const holder = {};
-    try {
-      Error.prepareStackTrace = captureCallSites;
-      Error.stackTraceLimit = 8;
-      Error.captureStackTrace(holder, fromCode);
-      for (const callSite of holder.stack ?? []) {
-        const file = callSite.getFileName?.();
-        if (file && ownFiles.has(file)) continue;
-        return Boolean(file) && !file.startsWith("node:") && !file.includes("/node_modules/");
-      }
-      return false;
-    } finally {
-      if (prepare) Error.prepareStackTrace = prepare.value;
-      else delete Error.prepareStackTrace;
-      Error.stackTraceLimit = limit.value;
+    if (typeof getCallSites !== "function") return null;
+    for (const callSite of getCallSites(8)) {
+      const file = callSite.scriptName;
+      if (file === "" || ownFiles.has(file)) continue;
+      return !!file && !file.startsWith("node:") && !file.includes("/node_modules/");
     }
+    return false;
   };
   const report = (kind) => {
     try {
@@ -48,21 +45,21 @@ function installClockObserver({ observe, ownFiles }) {
     }
   };
 
-  const NativeDate = globalThis.Date;
   // A Proxy keeps `Date.now` non-constructible, with its own name and length.
-  NativeDate.now = new Proxy(NativeDate.now, {
+  NativeDate.now = new ProxyConstructor(NativeDate.now, {
     apply(target, self, args) {
       report("now");
-      return Reflect.apply(target, self, args);
+      return apply(target, self, args);
     },
   });
-  const RecordingDate = new Proxy(NativeDate, {
+  // Construction is forwarded unchanged, so `new.target` and the prototype stay the caller's.
+  const RecordingDate = new ProxyConstructor(NativeDate, {
     construct(target, args, newTarget) {
       if (args.length === 0) report("construct");
-      return Reflect.construct(target, args, newTarget === RecordingDate ? target : newTarget);
+      return construct(target, args, newTarget === RecordingDate ? target : newTarget);
     },
   });
-  globalThis.Date = RecordingDate;
+  global.Date = RecordingDate;
   // Keeps `new Date().constructor === Date` true for code that compares constructors.
   NativeDate.prototype.constructor = RecordingDate;
 }

@@ -1,5 +1,6 @@
 "use strict";
 
+const { entries } = require("./ci-test-input-intrinsics.cjs");
 const { observeCalls, ownData, pathText } = require("./ci-test-input-transparent-call.cjs");
 
 /**
@@ -53,7 +54,7 @@ function installFilesystemObserver({ fs, observe }) {
     if (typeof owner[name] !== "function") return;
     owner[name] = observeCalls(owner[name], hooksFor(operation));
   };
-  for (const [name, operation] of Object.entries(operations)) {
+  for (const [name, operation] of entries(operations)) {
     wrap(fs, name, operation);
     wrap(fs, `${name}Sync`, operation);
     if (name !== "exists" && name !== "createReadStream") wrap(fs.promises, name, operation);

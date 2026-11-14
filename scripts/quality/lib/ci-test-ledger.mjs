@@ -20,6 +20,13 @@ export const CI_TEST_UNCACHEABLE_REASONS = Object.freeze([
 const maximumSamples = 32;
 const incompleteNotes = new Set(["module_graph_unavailable", "require_esm_unobserved"]);
 
+/**
+ * A process record is complete once it spooled at `exit`. A Vitest worker's record is complete
+ * once it spooled after its file's last hook, because the pool kills workers after that.
+ */
+const isComplete = (record) =>
+  record.end === "exit" || (record.role === "worker" && record.end === "file");
+
 const tailMatches = (parent, child) =>
   child.length > 0 &&
   child.length <= parent.length &&
@@ -75,16 +82,16 @@ function createAccumulator() {
       clockUnattributed: 0,
     },
     records: 0,
-    finalRecords: 0,
+    completeRecords: 0,
+    completeWorker: false,
     truncated: false,
-    worker: false,
   };
 }
 
 function absorb(accumulator, record) {
   accumulator.records += 1;
-  if (record.final) accumulator.finalRecords += 1;
-  if (record.role === "worker") accumulator.worker = true;
+  if (isComplete(record)) accumulator.completeRecords += 1;
+  if (record.role === "worker" && isComplete(record)) accumulator.completeWorker = true;
   if (record.truncated) accumulator.truncated = true;
   for (const path of [...(record.inputs ?? []), ...(record.modules ?? [])])
     accumulator.inputs.add(path);
@@ -137,8 +144,13 @@ function collectFile(file, index, boundRecords) {
         continue;
       }
       const matched = child.inherited ? childRecords(index, record, child, file) : [];
-      if (matched.length > 0) {
+      if (matched.some(isComplete)) {
         accumulator.counts.observed += 1;
+        queue.push(...matched);
+      } else if (matched.length > 0) {
+        // Its record never got the end marker: the child was killed or is still running.
+        const name = `${child.command} (incomplete record)`;
+        accumulator.unobserved.set(name, (accumulator.unobserved.get(name) ?? 0) + count);
         queue.push(...matched);
       } else if (child.command === "git") {
         // A working directory the recorder could not read may be the repository.
@@ -181,9 +193,8 @@ function classify(accumulator, { tracked, trackedDirectories, mappings }) {
     .sort();
   if (untracked.length > 0) reasons.add("untracked_input");
   if (
-    !accumulator.worker ||
+    !accumulator.completeWorker ||
     accumulator.truncated ||
-    accumulator.finalRecords === 0 ||
     [...accumulator.notes].some((note) => incompleteNotes.has(note))
   )
     reasons.add("module_graph_unavailable");
@@ -285,7 +296,7 @@ export function createCiTestLedger({
         construct: counts.clockConstruct,
         unattributed: counts.clockUnattributed,
       },
-      processes: { records: accumulator.records, final: accumulator.finalRecords },
+      processes: { records: accumulator.records, complete: accumulator.completeRecords },
       notes: [...accumulator.notes].sort(),
       uncacheableReasons: reasons,
       toolchainDigest: toolchain.digest,

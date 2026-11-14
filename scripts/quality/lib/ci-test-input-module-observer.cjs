@@ -1,7 +1,11 @@
 "use strict";
 
-const { types } = require("node:util");
-
+const {
+  isArray,
+  isModuleNamespaceObject,
+  processObject,
+  values,
+} = require("./ci-test-input-intrinsics.cjs");
 const { observeCalls, ownData, pathText } = require("./ci-test-input-transparent-call.cjs");
 
 /**
@@ -15,7 +19,7 @@ const { observeCalls, ownData, pathText } = require("./ci-test-input-transparent
  * was loaded.
  */
 function installModuleObserver({ Module, observe, legacyRequireEsm }) {
-  process.dlopen = observeCalls(process.dlopen, {
+  processObject.dlopen = observeCalls(processObject.dlopen, {
     before([, filename]) {
       const path = pathText(filename);
       if (path !== null) observe({ kind: "native", filename: path });
@@ -25,11 +29,15 @@ function installModuleObserver({ Module, observe, legacyRequireEsm }) {
     /** Reports `require()`-loaded ESM graphs that this Node version read internally. */
     inspect() {
       if (!legacyRequireEsm) return;
-      for (const module of Object.values(Module._cache))
-        if (types.isModuleNamespaceObject(ownData(module, "exports")))
+      const cache = ownData(Module, "_cache");
+      for (const module of cache === undefined ? [] : values(cache))
+        if (isModuleNamespaceObject(ownData(module, "exports")))
           observe({ kind: "require_esm", filename: ownData(module, "id") });
     },
-    sqliteLoaded: () => process.moduleLoadList?.includes("NativeModule sqlite") === true,
+    sqliteLoaded() {
+      const loaded = ownData(processObject, "moduleLoadList");
+      return isArray(loaded) && loaded.includes("NativeModule sqlite");
+    },
   };
 }
 

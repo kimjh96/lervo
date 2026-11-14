@@ -3,6 +3,8 @@
 const { isAbsolute, resolve, sep } = require("node:path");
 const { fileURLToPath } = require("node:url");
 
+const { SafeSet } = require("./ci-test-input-intrinsics.cjs");
+
 const systemRoots = [
   "/bin",
   "/dev",
@@ -21,7 +23,9 @@ const systemRoots = [
 ];
 
 const withSeparator = (root) => (root.endsWith(sep) ? root : `${root}${sep}`);
-const unique = (roots) => [...new Set(roots.filter(Boolean).map((root) => resolve(root)))];
+const unique = (roots) => [
+  ...new SafeSet(roots.filter((root) => !!root).map((root) => resolve(root))),
+];
 const within = (path, roots) =>
   roots.find((root) => path === root || path.startsWith(withSeparator(root)));
 

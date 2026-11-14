@@ -21,7 +21,7 @@ function worker(file, overrides = {}) {
     role: "worker",
     invocation: ["<pnpm:tinypool@1.1.1>"],
     file,
-    final: true,
+    end: "exit",
     inputs: [],
     modules: [],
     absent: [],
@@ -121,7 +121,8 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     }),
     worker("host.test.ts", { pid: 5, host: ["~/.gitconfig"], counts: { host: 1 } }),
     worker("untracked.test.ts", { pid: 6, inputs: ["local-notes.md"] }),
-    worker("partial.test.ts", { pid: 7, final: false }),
+    worker("partial.test.ts", { pid: 7, end: null }),
+    worker("file-complete.test.ts", { pid: 12, end: "file" }),
     worker("truncated.test.ts", { pid: 8, truncated: true }),
     worker("legacy-esm.test.ts", { pid: 9, notes: ["require_esm_unobserved"] }),
     worker("clean.test.ts", {
@@ -140,6 +141,7 @@ it("classifies every closed uncacheable reason from the recorded closure", () =>
     "host.test.ts": ["host_state"],
     "untracked.test.ts": ["untracked_input"],
     "partial.test.ts": ["module_graph_unavailable"],
+    "file-complete.test.ts": [],
     "truncated.test.ts": ["module_graph_unavailable"],
     "legacy-esm.test.ts": ["module_graph_unavailable"],
     "clean.test.ts": [],
@@ -340,4 +342,39 @@ it("counts collapsed children by their recorded count", () => {
     unobserved: { "ps (no recorder)": 4 },
   });
   expect(ledger.files[0].uncacheableReasons).toEqual(["unobserved_child", "git_in_repository"]);
+});
+
+it("treats a matched child without an end marker as unobserved", () => {
+  const child = {
+    command: "node",
+    args: ["<toolchain>", "server.js"],
+    cwd: "<temporary>",
+    pid: 41,
+    inherited: true,
+    synchronous: false,
+    failed: false,
+  };
+  const ledger = ledgerOf(
+    [
+      worker("killed.test.ts", { pid: 40, children: [child] }),
+      {
+        ...worker("killed.test.ts", { pid: 41, ppid: 40, inputs: ["server.js"], end: null }),
+        role: "process",
+      },
+      // A process ending with its file's hook is complete only when it is the worker.
+      {
+        ...worker("killed.test.ts", { pid: 42, ppid: 40, end: "file" }),
+        role: "process",
+      },
+    ],
+    { tracked: ["server.js"] },
+  );
+  const [file] = ledger.files;
+  expect(file.children).toMatchObject({
+    observed: 0,
+    unobserved: { "node (incomplete record)": 1 },
+  });
+  expect(file.inputs.map((index) => ledger.paths[index])).toEqual(["server.js"]);
+  expect(file.processes).toEqual({ records: 3, complete: 1 });
+  expect(file.uncacheableReasons).toEqual(["unobserved_child"]);
 });
