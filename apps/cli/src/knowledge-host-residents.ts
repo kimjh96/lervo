@@ -62,7 +62,8 @@ interface HeldResident {
 export function startHostKnowledgeResidents(input: {
   provider: ResidentProvider | null;
   launch?: "service" | "manual";
-  onCycle?: (root: string, result: unknown) => void;
+  /** `cost` holds counts, scope names, and timings only; it carries no path or argument. */
+  onCycle?: (root: string, result: unknown, cost: unknown) => void;
   onFailure: (root: string, error: unknown) => void;
   scanMilliseconds?: number;
   heartbeatMilliseconds?: number;
@@ -121,7 +122,7 @@ export function startHostKnowledgeResidents(input: {
         }),
       publish: createKnowledgePublisher(storage.paths.repositoryRoot),
       refreshHealth: () => prefetchRepositoryHealth(root),
-      onCycle: (result) => input.onCycle?.(root, result),
+      onCycle: (result, cost) => input.onCycle?.(root, result, cost),
       onFailure: (error) => input.onFailure(root, error),
     });
     residents.set(root, { storage, stop });
