@@ -17,7 +17,7 @@ it("passes every host call through unchanged and attributes it to the claimed st
   const calls: unknown[][] = [];
   const work = (name: string, ...args: unknown[]) => {
     calls.push([name, ...args]);
-    recordSynchronousGitProcess([name]);
+    recordSynchronousGitProcess(["rev-parse"]);
   };
   const lease = () => undefined;
   const host: KnowledgeConvergenceHost = {
@@ -73,14 +73,14 @@ it("passes every host call through unchanged and attributes it to the claimed st
       ]),
     );
     expect(scopes).toEqual({
-      discover: { discover: 1 },
-      "discovery.assert_current": { current: 1 },
-      "discovery.settle": { settle: 1 },
-      "canonical_review.prepare": { prepare: 1 },
-      "canonical_review.assert_current": { current: 1 },
-      "canonical_review.run": { run: 1 },
-      "canonical_review.settle": { settle: 1 },
-      dependency: { dependency: 1 },
+      discover: { "rev-parse": 1 },
+      "discovery.assert_current": { "rev-parse": 1 },
+      "discovery.settle": { "rev-parse": 1 },
+      "canonical_review.prepare": { "rev-parse": 1 },
+      "canonical_review.assert_current": { "rev-parse": 1 },
+      "canonical_review.run": { "rev-parse": 1 },
+      "canonical_review.settle": { "rev-parse": 1 },
+      dependency: { "rev-parse": 1 },
     });
   } finally {
     observation.close();

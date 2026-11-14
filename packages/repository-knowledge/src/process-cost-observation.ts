@@ -26,8 +26,15 @@ export interface ProcessCostMeasurement extends ProcessCostSnapshot {
   cpuMicroseconds: number;
 }
 
+interface ScopeTally {
+  calls: number;
+  wallMilliseconds: number;
+  cpuMicroseconds: number;
+  gitProcesses: Map<string, number>;
+}
+
 interface CostTally {
-  scope(scope: string): ProcessCostScope;
+  scope(scope: string): ScopeTally;
   gitProcess(scope: string, subcommand: string): void;
   snapshot(): ProcessCostSnapshot;
 }
@@ -44,15 +51,85 @@ const MAXIMUM_SCOPES = 256;
 const MAXIMUM_SUBCOMMANDS = 48;
 const MAXIMUM_SCOPE_DEPTH = 4;
 const SCOPE_NAME = /^[a-z][a-z0-9_.-]{0,47}$/u;
-const SUBCOMMAND = /^[a-z][a-z0-9-]{0,39}$/u;
+/** Git's global options that consume the next argument as their value. */
 const GLOBAL_OPTIONS_WITH_VALUE = new Set([
   "-C",
   "-c",
   "--git-dir",
   "--work-tree",
   "--namespace",
+  "--super-prefix",
   "--config-env",
-  "--exec-path",
+  "--shallow-file",
+  "--attr-source",
+]);
+/**
+ * Git commands Lervo runs. Any other name, such as an alias or a value read where a command was
+ * expected, counts as `other`, so no argument value can reach a report.
+ */
+const GIT_SUBCOMMANDS = new Set([
+  "add",
+  "apply",
+  "archive",
+  "branch",
+  "bundle",
+  "cat-file",
+  "check-attr",
+  "check-ignore",
+  "checkout",
+  "checkout-index",
+  "cherry",
+  "cherry-pick",
+  "clean",
+  "clone",
+  "commit",
+  "commit-tree",
+  "config",
+  "describe",
+  "diff",
+  "diff-index",
+  "diff-tree",
+  "fetch",
+  "for-each-ref",
+  "grep",
+  "hash-object",
+  "init",
+  "log",
+  "ls-files",
+  "ls-remote",
+  "ls-tree",
+  "merge",
+  "merge-base",
+  "merge-tree",
+  "mv",
+  "notes",
+  "patch-id",
+  "prune",
+  "pull",
+  "push",
+  "read-tree",
+  "remote",
+  "replace",
+  "reset",
+  "restore",
+  "rev-list",
+  "rev-parse",
+  "revert",
+  "rm",
+  "shortlog",
+  "show",
+  "show-ref",
+  "stash",
+  "status",
+  "switch",
+  "symbolic-ref",
+  "tag",
+  "update-index",
+  "update-ref",
+  "var",
+  "version",
+  "worktree",
+  "write-tree",
 ]);
 
 const contexts = new AsyncLocalStorage<CostContext>();
@@ -60,14 +137,21 @@ const processObservers = new Set<CostTally>();
 let activeMeasurements = 0;
 let subscribed = false;
 
+/** A report object without a prototype, so no key can shadow or reach `Object.prototype`. */
+function record<T>(entries: Iterable<readonly [string, T]>): Record<string, T> {
+  const value = Object.create(null) as Record<string, T>;
+  for (const [key, item] of entries) value[key] = item;
+  return value;
+}
+
 function createTally(): CostTally {
   let gitProcesses = 0;
-  const scopes = new Map<string, ProcessCostScope>();
+  const scopes = new Map<string, ScopeTally>();
   const scope = (name: string) => {
     const key = scopes.has(name) || scopes.size < MAXIMUM_SCOPES ? name : OVERFLOW;
     let entry = scopes.get(key);
     if (entry === undefined) {
-      entry = { calls: 0, wallMilliseconds: 0, cpuMicroseconds: 0, gitProcesses: {} };
+      entry = { calls: 0, wallMilliseconds: 0, cpuMicroseconds: 0, gitProcesses: new Map() };
       scopes.set(key, entry);
     }
     return entry;
@@ -78,20 +162,19 @@ function createTally(): CostTally {
       gitProcesses += 1;
       const counts = scope(name).gitProcesses;
       const key =
-        subcommand in counts || Object.keys(counts).length < MAXIMUM_SUBCOMMANDS
-          ? subcommand
-          : OVERFLOW;
-      counts[key] = (counts[key] ?? 0) + 1;
+        counts.has(subcommand) || counts.size < MAXIMUM_SUBCOMMANDS ? subcommand : OVERFLOW;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
     },
     snapshot: () => ({
       gitProcesses,
-      scopes: Object.fromEntries(
+      scopes: record(
         [...scopes].map(([name, entry]) => [
           name,
           {
-            ...entry,
+            calls: entry.calls,
             wallMilliseconds: Math.round(entry.wallMilliseconds),
-            gitProcesses: { ...entry.gitProcesses },
+            cpuMicroseconds: entry.cpuMicroseconds,
+            gitProcesses: record(entry.gitProcesses),
           },
         ]),
       ),
@@ -103,7 +186,7 @@ function observing(): boolean {
   return processObservers.size > 0 || activeMeasurements > 0;
 }
 
-/** The Git subcommand after global options, or `other` when it is not a plain command name. */
+/** The Git command after global options when it is one Lervo runs; otherwise `other`. */
 function gitSubcommand(args: readonly string[]): string {
   for (let index = 0; index < args.length; index++) {
     const arg = args[index]!;
@@ -112,7 +195,7 @@ function gitSubcommand(args: readonly string[]): string {
       continue;
     }
     if (arg.startsWith("-")) continue;
-    return SUBCOMMAND.test(arg) ? arg : OVERFLOW;
+    return GIT_SUBCOMMANDS.has(arg) ? arg : OVERFLOW;
   }
   return OVERFLOW;
 }
@@ -186,9 +269,17 @@ export function withProcessCostScope<T>(name: string, run: () => T): T {
       entry.cpuMicroseconds += cpu.user + cpu.system;
     }
   };
-  const result = contexts.run({ scope, tallies }, run);
-  if (result instanceof Promise) return result.finally(settle) as T;
-  settle();
+  let result: T;
+  try {
+    result = contexts.run({ scope, tallies }, run);
+  } catch (error) {
+    settle();
+    throw error;
+  }
+  // The caller receives the very promise `run` returned, with any properties it carries; the
+  // settlement branch handles a rejection itself, so it can never be reported as unhandled.
+  if (result instanceof Promise) result.then(settle, settle);
+  else settle();
   return result;
 }
 
