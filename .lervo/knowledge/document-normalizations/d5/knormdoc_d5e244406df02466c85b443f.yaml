@@ -1,0 +1,51 @@
+byteOwnership:
+  owner: reviewer
+  rewritePolicy: reviewed_exact
+candidateId: knorm_a079b7e3cb2c15a012c2bbda
+compiler:
+  compilerBuildId: sha256:574bcd6cc190db957222a9951c145c791541c2b33a44879f5714ed393df2afad
+  compilerId: lervo.codex.document-normalizer
+  compilerVersion: 3+codex-cli 0.156.1
+  isolation: external_no_capabilities
+  provider: codex
+formatVersion: lervo.document.v1
+operationId: knormop_a83bea809c298e8115424839
+outputLanguage: en
+outputs:
+  - byteCount: 518
+    contentHash: sha256:99e48988aa877e38866f65620c19345d8494ea83783705b74bc54210590d79df
+    path: docs/architecture/search-and-context/composition.md
+    userRegionHash: sha256:99e48988aa877e38866f65620c19345d8494ea83783705b74bc54210590d79df
+  - byteCount: 442
+    contentHash: sha256:91cfb8ccfe365caa9705695b0df1238a37eeb35e079e6df446d16cbd01a6d5b1
+    path: docs/architecture/search-and-context/composition/adapter-authorization.md
+    userRegionHash: sha256:91cfb8ccfe365caa9705695b0df1238a37eeb35e079e6df446d16cbd01a6d5b1
+  - byteCount: 951
+    contentHash: sha256:60bdaad08f714527a182a701373b4138416099bb7f6d32fd0504cea4394e5205
+    path: docs/architecture/search-and-context/composition/contract.md
+    userRegionHash: sha256:60bdaad08f714527a182a701373b4138416099bb7f6d32fd0504cea4394e5205
+  - byteCount: 813
+    contentHash: sha256:7470dff11881be68612053433a38e3cb2a722afdd62953b55272abcbb2fc0ca0
+    path: docs/architecture/search-and-context/composition/operational-resolution.md
+    userRegionHash: sha256:7470dff11881be68612053433a38e3cb2a722afdd62953b55272abcbb2fc0ca0
+  - byteCount: 829
+    contentHash: sha256:27b24fa54d73f89b83aee0df1fde9da1ed97e08f4630a366ee910c1c4dde3352
+    path: docs/architecture/search-and-context/composition/repository-knowledge-ranking.md
+    userRegionHash: sha256:27b24fa54d73f89b83aee0df1fde9da1ed97e08f4630a366ee910c1c4dde3352
+  - byteCount: 788
+    contentHash: sha256:4bf2d6502ba363a0cd1660423cf0cc47d4e3d5bfddddb956385b08c76a5e434b
+    path: docs/architecture/search-and-context/composition/terminal-projection.md
+    userRegionHash: sha256:4bf2d6502ba363a0cd1660423cf0cc47d4e3d5bfddddb956385b08c76a5e434b
+profile: architecture_document
+recordId: knormdoc_d5e244406df02466c85b443f
+resourceBindings: []
+schemaVersion: 2
+sourceContentHash: sha256:42a62c0ff02f7223a6f5934a2c8990d8a4adfb9e802acd42f407ee1357809bf8
+sourcePath: docs/architecture/search-and-context/composition.md
+sourceUnitVersionIds:
+  - uv_52dfe67ca895bd89100d2589
+  - uv_60510fa64a9a5c117a6e5b83
+  - uv_b37cce9407879ba9c1439061
+  - uv_c931812369021bd1ec5056bc
+  - uv_ccd4061c75409cfb210c6ca5
+  - uv_f491d9eee126235bca827314
