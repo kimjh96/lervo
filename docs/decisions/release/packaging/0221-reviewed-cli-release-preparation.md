@@ -16,7 +16,7 @@ Lervo verifies packed CLI bytes, manifests, SBOMs, attestations, and publication
 
 Use repository-native `lervo-release-intent` v1 as a justified Changesets-style equivalent. `.changes/config.json` pins its schema, tool version, sole public package, pre-1.0 policy, bounded current release-note target, history authority, maximum 128 pending intents, and generated-file owners. Preparation consumes all pending intents. Creation and loading fail closed at the limit, preventing an unbounded one-file-per-change archive. This avoids another release runtime while preserving exact Lervo plan and recheck semantics.
 
-Each `.changes/relint_<digest>.yaml` contains only the schema version, content-derived ID, `@lervo/cli`, `patch|minor|major`, and a 20–280 character printable-English user summary. CLI or bundled-private implementation changes require one or more records. Only tests, documentation, release-management files, and refactors outside the CLI bundle are exempt. Reject intent without a publishable change.
+Each `.changes/relint_<digest>.yaml` contains only the schema version, content-derived ID, `@lervo/cli`, `patch|minor|major`, and a 20–280 character printable-English user summary. Public CLI behavior, implementation in private workspace packages bundled into released artifacts, standalone Hub or Node distribution tooling or copied assets, and the runtime service renderer or manager bundled by the CLI require one or more records. Release-impact inspection includes standalone builders, verifiers, installers, copied assets, and runtime workspace closures. Only tests, documentation, release-management files, and internal refactors outside every released-artifact closure are exempt. Refactors inside the CLI, Hub, or Node closure require intent because the checker cannot prove packaged behavior is unchanged. Reject intent without a publishable change.
 
 Before 1.0, `patch` increments the patch number; `minor` and `major` increment the minor number. Conventional Commit `!` or `BREAKING CHANGE` evidence requires a reviewed `major` intent; commit text never creates or raises intent automatically. At and after 1.0, use ordinary semantic-version increments.
 
@@ -42,7 +42,7 @@ Plans and receipts expose only bounded identifiers, counts, versions, digests, d
 
 ## Consequences
 
-Release impact is explicit and reviewable without independently versioning private packages. A private package in the CLI artifact closure still requires one coherent CLI intent; an unrelated private workspace change cannot create a public release. Version preparation, tag creation, npm stage approval, and npm publication remain separate authorities.
+Release impact is explicit and reviewable without independently versioning private packages. A private package in the CLI, Hub, or Node artifact closure still requires one coherent `@lervo/cli` intent. A private workspace change unrelated to every released-artifact closure and its distribution tooling or copied assets cannot create a public release. Hub and Node use `@lervo/cli` as their sole product release coordinate; private workspace versions remain implementation coordinates. Version preparation, tag creation, npm stage approval, and npm publication remain separate authorities.
 
 V1 has no prereleases. A prerelease channel, multiple public packages, or automatic publication requires a separate reviewed contract. Emergency correction uses a new exact intent and the same preparation path. Automation never moves or deletes tags.
 
