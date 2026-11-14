@@ -71,6 +71,13 @@ it("is stable for the same toolchain and ignores the CLI version and workflow la
   // The shadow predictor only reads finished ledgers, so changing it invalidates nothing.
   await write("scripts/quality/lib/ci-test-shadow-prediction.mjs", "// changed shadow predictor\n");
   expect((await digest()).digest).toBe(first.digest);
+  // Variables that differ on every run or revision stay out, so G can match between runs.
+  expect((await digest({ GITHUB_RUN_ID: "1", GITHUB_SHA: "a" })).digest).toBe(
+    (await digest({ GITHUB_RUN_ID: "2", GITHUB_SHA: "b" })).digest,
+  );
+  expect(JSON.stringify(await digest({ SECRET_VALUE: "do-not-store" }))).not.toContain(
+    "do-not-store",
+  );
 });
 
 it("changes with every toolchain component", async () => {
@@ -93,5 +100,7 @@ it("changes with every toolchain component", async () => {
   }
   changed.push((await digest({ ImageVersion: "20261117.1" })).digest);
   changed.push((await digest({ npm_config_user_agent: "pnpm/11.19.0" })).digest);
+  changed.push((await digest({ NODE_OPTIONS: "--conditions=development" })).digest);
+  changed.push((await digest({ GITHUB_REF: "refs/heads/feature" })).digest);
   expect(new Set([base, ...changed]).size).toBe(changed.length + 1);
 });

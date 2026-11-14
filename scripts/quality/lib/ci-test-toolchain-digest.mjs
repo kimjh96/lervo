@@ -11,6 +11,7 @@ import { parse } from "yaml";
  * still change its result. A future reuse key is the recorded closure plus G, so any change here
  * invalidates every file at once. The CLI package version is left out, as in the test digest of
  * ADR-0522, because release preparation changes it without changing behavior under test.
+ * Components hold digests and versions only, never an environment value.
  */
 const sha256 = (value) => `sha256:${createHash("sha256").update(value).digest("hex")}`;
 const VERSIONED_MANIFEST = "apps/cli/package.json";
@@ -56,6 +57,42 @@ async function filesBelow(root, directory) {
   return entries
     .filter((entry) => entry.isFile())
     .map((entry) => relative(root, resolve(entry.parentPath, entry.name)).split("\\").join("/"));
+}
+
+/**
+ * Variables whose value differs on every run or revision by construction, so a key that held them
+ * could never match. Every other variable of the test process is part of G, including the ref,
+ * the event and `NODE_OPTIONS`, so results are reused only within one environment. A test that
+ * names one of these variables cannot be reused at all: the shadow predictor finds the names in
+ * the file's recorded sources and in its dependencies (`run_environment_read`).
+ */
+export const CI_TEST_RUN_UNIQUE_ENVIRONMENT = Object.freeze([
+  // The run, its attempt and number, and the revision under test.
+  "GITHUB_RUN_ID",
+  "GITHUB_RUN_NUMBER",
+  "GITHUB_RUN_ATTEMPT",
+  "GITHUB_SHA",
+  "GITHUB_WORKFLOW_SHA",
+  // Per-step command files; their names hold a fresh identifier for every step.
+  "GITHUB_ENV",
+  "GITHUB_OUTPUT",
+  "GITHUB_PATH",
+  "GITHUB_STATE",
+  "GITHUB_STEP_SUMMARY",
+  // The machine and the service manager's per-process identifiers.
+  "RUNNER_NAME",
+  "RUNNER_TRACKING_ID",
+  "INVOCATION_ID",
+  "JOURNAL_STREAM",
+]);
+
+/** A digest of every environment variable except the run-unique ones, and their names. */
+function environmentDigest(environment) {
+  const excluded = new Set(CI_TEST_RUN_UNIQUE_ENVIRONMENT);
+  const names = Object.keys(environment)
+    .filter((name) => !excluded.has(name))
+    .sort();
+  return sha256(JSON.stringify(names.map((name) => [name, String(environment[name])])));
 }
 
 /** Versions come from the running Node, the pnpm user agent and the Git on `PATH`. */
@@ -110,6 +147,7 @@ export async function computeCiTestToolchainDigest({
     ),
     nativeArtifacts:
       nativeArtifacts.length === 0 ? "absent" : await digestFiles(repositoryRoot, nativeArtifacts),
+    environment: environmentDigest(environment),
     runtime: runtimeVersions(environment),
     platform: `${environment.ImageOS ?? process.platform} ${environment.ImageVersion ?? release()} ${process.arch}`,
   };

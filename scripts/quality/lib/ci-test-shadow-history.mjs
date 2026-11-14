@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { readCiTestLedgerFiles } from "./ci-test-ledger.mjs";
+import { readCiTestLedgerFiles } from "./ci-test-ledger-read.mjs";
 import { readCiTestLedgers } from "./ci-test-ledger-runs.mjs";
 import { readCiTestInputIndex } from "./ci-test-shadow-index.mjs";
 
@@ -12,13 +12,13 @@ import { readCiTestInputIndex } from "./ci-test-shadow-index.mjs";
  * A run is trusted when it verified `main` (a push or the daily audit) or when it is a pull request
  * whose four test shards all succeeded. Untrusted runs still load their ledgers, because a failure
  * they recorded revokes reuse; a reused result only ever comes from a trusted run. Any API or
- * download failure skips that run and is reported, so it can only cause reruns.
+ * download failure makes the whole history incomplete, so every file reruns.
  */
 const WORKFLOW_PATH = ".github/workflows/code-quality.yml";
 const SHARD_JOBS = [1, 2, 3, 4].map((shard) => `Tests (shard ${shard}/4)`);
 export const CI_TEST_INPUT_INDEX_ARTIFACT = "lervo-ci-test-input-index";
 const ledgerArtifact = /^lervo-ci-test-ledger-\d+$/u;
-const defaultRunLimit = 25;
+const defaultMaximumPages = 10;
 
 /** Reads one Actions API path with the job's read-only token. */
 export function readCiTestHistoryApi(path) {
@@ -99,63 +99,90 @@ export async function readCiTestHistoryRun({ run, trusted, directory }) {
   };
 }
 
+const failureCode = (error) =>
+  error?.message?.startsWith("ci_") ? error.message : "ci_test_history_unavailable";
+const shardJob = /^Tests \(shard (\d+)\/4\)$/u;
+
+/** Shards whose `Run tests` step started in this run, so their ledgers must exist. */
+function shardsThatRanTests(jobs) {
+  const shards = [];
+  for (const job of jobs) {
+    const shard = shardJob.exec(job.name ?? "")?.[1];
+    const step = (job.steps ?? []).find(({ name }) => name === "Run tests");
+    if (shard && step && ["success", "failure", "cancelled"].includes(step.conclusion))
+      shards.push(Number(shard));
+  }
+  return shards;
+}
+
 /**
- * Lists completed runs created since `since` (milliseconds), newest first, skipping the current
- * run, and loads at most `limit` that published ledgers. Returns `{ entries, skipped }`.
+ * Loads every completed run of this workflow created since `since` (milliseconds), except the
+ * current run. Loading fails closed: a page, run, job list, ledger or index that cannot be read,
+ * a shard that ran tests without a ledger, or more than `maximumPages` pages of runs makes the
+ * history incomplete, because the missing run could hold a failure. Returns
+ * `{ complete, entries, problems }`.
  */
 export async function loadCiTestShadowHistory({
   repository,
   currentRunId,
   since,
   directory,
-  limit = defaultRunLimit,
+  maximumPages = defaultMaximumPages,
   request = readCiTestHistoryApi,
   download = downloadCiTestHistoryArtifacts,
 }) {
   if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository))
     throw new Error("ci_test_history_repository_invalid");
   const created = encodeURIComponent(`>=${new Date(since).toISOString()}`);
-  const { workflow_runs: runs = [] } = request(
-    `repos/${repository}/actions/workflows/code-quality.yml/runs?status=completed&created=${created}&per_page=100`,
-  );
+  const problems = [];
+  const runs = [];
+  try {
+    for (let page = 1; ; page += 1) {
+      if (page > maximumPages) throw new Error("ci_test_history_too_many_runs");
+      const { workflow_runs: batch } = request(
+        `repos/${repository}/actions/workflows/code-quality.yml/runs?status=completed&created=${created}&per_page=100&page=${page}`,
+      );
+      if (!Array.isArray(batch)) throw new Error("ci_test_history_unavailable");
+      runs.push(...batch);
+      if (batch.length < 100) break;
+    }
+  } catch (error) {
+    return { complete: false, entries: [], problems: [{ run: null, code: failureCode(error) }] };
+  }
   const entries = [];
-  const skipped = [];
   for (const run of runs
     .filter((candidate) => String(candidate.id) !== String(currentRunId))
     .sort((left, right) => Date.parse(right.created_at) - Date.parse(left.created_at))) {
-    if (entries.length >= limit) break;
+    // A fork or another workflow is not this repository's verification at all.
+    if (!classifyCiTestHistoryRun({ run, jobs: [], repository }).use) continue;
     try {
-      const { artifacts = [] } = request(
+      const { artifacts } = request(
         `repos/${repository}/actions/runs/${run.id}/artifacts?per_page=100`,
       );
+      const { jobs } = request(
+        `repos/${repository}/actions/runs/${run.id}/jobs?filter=latest&per_page=100`,
+      );
+      if (!Array.isArray(artifacts) || !Array.isArray(jobs))
+        throw new Error("ci_test_history_unavailable");
       const live = artifacts
         .filter((artifact) => !artifact.expired)
         .map((artifact) => artifact.name);
       const ledgers = live.filter((name) => ledgerArtifact.test(name));
+      if (
+        shardsThatRanTests(jobs).some((shard) => !ledgers.includes(`lervo-ci-test-ledger-${shard}`))
+      )
+        throw new Error("ci_test_history_ledger_missing");
       if (ledgers.length === 0) continue;
-      const { jobs = [] } = request(
-        `repos/${repository}/actions/runs/${run.id}/jobs?filter=latest&per_page=100`,
-      );
-      const classification = classifyCiTestHistoryRun({ run, jobs, repository });
-      if (!classification.use) continue;
+      const { trusted } = classifyCiTestHistoryRun({ run, jobs, repository });
       const names = [...ledgers];
-      if (classification.trusted && live.includes(CI_TEST_INPUT_INDEX_ARTIFACT))
+      if (trusted && live.includes(CI_TEST_INPUT_INDEX_ARTIFACT))
         names.push(CI_TEST_INPUT_INDEX_ARTIFACT);
       const runDirectory = resolve(directory, String(run.id));
       await download({ repository, runId: run.id, names, directory: runDirectory });
-      entries.push(
-        await readCiTestHistoryRun({
-          run,
-          trusted: classification.trusted,
-          directory: runDirectory,
-        }),
-      );
+      entries.push(await readCiTestHistoryRun({ run, trusted, directory: runDirectory }));
     } catch (error) {
-      skipped.push({
-        run: String(run.id),
-        code: error?.message?.startsWith("ci_") ? error.message : "ci_test_history_unavailable",
-      });
+      problems.push({ run: String(run.id), code: failureCode(error) });
     }
   }
-  return { entries, skipped };
+  return { complete: problems.length === 0, entries, problems };
 }

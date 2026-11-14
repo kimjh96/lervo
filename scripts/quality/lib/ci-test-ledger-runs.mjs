@@ -1,7 +1,7 @@
 import { readFile, readdir } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { readCiTestLedgerWeights } from "./ci-test-ledger.mjs";
+import { readCiTestLedgerWeights } from "./ci-test-ledger-read.mjs";
 
 async function ledgerFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true, recursive: true });

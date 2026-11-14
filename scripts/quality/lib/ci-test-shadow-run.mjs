@@ -3,17 +3,19 @@ import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { readCiTestLedgerFiles } from "./ci-test-ledger.mjs";
+import { readCiTestLedgerFiles } from "./ci-test-ledger-read.mjs";
 import { readCiTestLedgers } from "./ci-test-ledger-runs.mjs";
 import {
   downloadCiTestHistoryArtifacts,
   loadCiTestShadowHistory,
   readCiTestHistoryApi,
 } from "./ci-test-shadow-history.mjs";
+import { createCiTestEnvironmentScan } from "./ci-test-shadow-environment.mjs";
 import { createCiTestInputIndex } from "./ci-test-shadow-index.mjs";
 import { createCiTestInputSnapshot } from "./ci-test-shadow-inputs.mjs";
 import { CI_TEST_SHADOW_TTL_MS, predictCiTestReuse } from "./ci-test-shadow-prediction.mjs";
 import { createCiTestShadowReport, renderCiTestShadowReport } from "./ci-test-shadow-report.mjs";
+import { CI_TEST_RUN_UNIQUE_ENVIRONMENT } from "./ci-test-toolchain-digest.mjs";
 
 /**
  * One shadow comparison in the CI job that follows the test shards (ADR-0565, Stage 2). The job
@@ -90,8 +92,9 @@ export async function runCiTestShadow({
         file: record.file,
         toolchain: { digest: record.toolchainDigest, components: record.toolchainComponents },
       })),
-      history: history.entries,
+      history,
       head: snapshot,
+      environment: createCiTestEnvironmentScan(repositoryRoot, CI_TEST_RUN_UNIQUE_ENVIRONMENT),
       now,
     });
     const { jobs = [] } = request(
@@ -105,10 +108,11 @@ export async function runCiTestShadow({
         startedAt: current.run_started_at,
       },
       toolchainDigests: [...new Set(ledgers.map((ledger) => ledger.toolchain?.digest))].sort(),
-      history: [
-        ...history.entries.map(({ run: entry, index }) => ({ ...entry, index: index !== null })),
-        ...history.skipped.map((entry) => ({ id: entry.run, skipped: entry.code })),
-      ],
+      history: {
+        complete: history.complete,
+        runs: history.entries.map(({ run: entry, index }) => ({ ...entry, index: index !== null })),
+        problems: history.problems,
+      },
       predictions,
       actual: new Map(files.map((record) => [record.file, record])),
       jobSeconds: shardJobSeconds(jobs),

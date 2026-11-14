@@ -161,9 +161,14 @@ export function renderCiTestShadowReport(report) {
     "## Test reuse shadow (ADR-0565, Stage 2)",
     "",
     `Predicted reuse: ${summary.predictedReuse} of ${summary.files} files (${(summary.reuseRate * 100).toFixed(1)}%). ` +
-      `Trusted history runs: ${report.history.filter((entry) => entry.trusted).length}.`,
+      `Trusted history runs: ${report.history.runs.filter((entry) => entry.trusted).length}.`,
     "",
   ];
+  if (!report.history.complete)
+    lines.push(
+      `History incomplete, so every file reruns: ${report.history.problems.map(({ run, code }) => `${run ?? "run list"} ${code}`).join("; ")}.`,
+      "",
+    );
   if (summary.falseReuses > 0) {
     lines.push(
       `### FALSE REUSE: ${summary.falseReuses} files`,

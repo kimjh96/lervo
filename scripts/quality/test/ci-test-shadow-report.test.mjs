@@ -20,6 +20,12 @@ const actual = (file, shard, overrides = {}) => [
   },
 ];
 
+const completeHistory = {
+  complete: true,
+  runs: [{ id: "8", trusted: true, index: true }],
+  problems: [],
+};
+
 function report(
   predictions,
   records,
@@ -27,11 +33,12 @@ function report(
     [1, 300],
     [2, 200],
   ]),
+  history = completeHistory,
 ) {
   return createCiTestShadowReport({
     run: { id: "9", attempt: "1", revision: "b".repeat(40) },
     toolchainDigests: ["sha256:toolchain"],
-    history: [{ id: "8", trusted: true, index: true }],
+    history,
     predictions: new Map(predictions),
     actual: new Map(records),
     jobSeconds,
@@ -161,4 +168,18 @@ it("leaves the job estimate empty when the shard job duration is unknown", () =>
       estimatedJobSeconds: null,
     },
   ]);
+});
+
+it("says first that an incomplete history made every file rerun", () => {
+  const result = report(
+    [["a.test.ts", { reuse: false, reason: "history_incomplete" }]],
+    [actual("a.test.ts", 1)],
+    new Map(),
+    { complete: false, runs: [], problems: [{ run: "7", code: "ci_test_history_unavailable" }] },
+  );
+  const markdown = renderCiTestShadowReport(result);
+  expect(markdown).toContain(
+    "History incomplete, so every file reruns: 7 ci_test_history_unavailable.",
+  );
+  expect(markdown.indexOf("History incomplete")).toBeLessThan(markdown.indexOf("| Shard |"));
 });

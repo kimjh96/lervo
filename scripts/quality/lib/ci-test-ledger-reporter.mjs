@@ -98,7 +98,7 @@ function reduce(ledger) {
     files: ledger.files.map((file) => ({
       ...file,
       inputs: [],
-      directories: [],
+      listings: [],
       trees: [],
       absent: [],
       dependencies: [],

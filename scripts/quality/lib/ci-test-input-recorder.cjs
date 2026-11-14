@@ -5,7 +5,7 @@ const fs = require("node:fs");
 const Module = require("node:module");
 const net = require("node:net");
 const { homedir, tmpdir } = require("node:os");
-const { basename, dirname, resolve } = require("node:path");
+const { basename, dirname, isAbsolute, resolve } = require("node:path");
 const { threadId } = require("node:worker_threads");
 
 const { installChildProcessObserver } = require("./ci-test-input-child-observer.cjs");
@@ -25,7 +25,7 @@ const {
   stringify,
   toText,
 } = require("./ci-test-input-intrinsics.cjs");
-const { ciTestListingText } = require("./ci-test-input-listing.cjs");
+const { ciTestListingDigest } = require("./ci-test-input-listing.cjs");
 const { installModuleObserver } = require("./ci-test-input-module-observer.cjs");
 const { installNetworkObserver } = require("./ci-test-input-network-observer.cjs");
 const { absoluteInputPath, createCiTestPathClassifier } = require("./ci-test-input-paths.cjs");
@@ -121,11 +121,35 @@ function start() {
   const cwd = () => apply(processCwd, processObject, []);
   const vitestWorker = () => ownData(global, "__vitest_worker__");
 
+  /** A path the recorder cannot place, or an observation that failed, leaves the closure open. */
+  const writing = new SafeSet(["write", "write-prefix", "open"]);
+  const observePath = (operation, argument, extra) => {
+    try {
+      if (operation === "unobserved")
+        return record.note(writing.has(extra) ? "unobserved_write" : "unobserved_path");
+      const path = absoluteInputPath(argument, cwd());
+      if (path === null)
+        return record.note(writing.has(operation) ? "unobserved_write" : "unobserved_path");
+      if (operation === "write-prefix") {
+        const parent = dirname(path);
+        return record.path(classify(parent), "write", parent);
+      }
+      if (operation === "link-target") {
+        // A relative symlink target resolves against the link's own directory.
+        const link = extra === null ? null : absoluteInputPath(extra, cwd());
+        if (!isAbsolute(argument) && link === null) return record.note("unobserved_path");
+        const target = isAbsolute(argument) ? path : resolve(dirname(link), argument);
+        return record.path(classify(target), "read", target);
+      }
+      record.path(classify(path), operation, path, extra);
+    } catch {
+      record.note(writing.has(operation) ? "unobserved_write" : "unobserved_path");
+    }
+  };
   installFilesystemObserver({
     fs,
-    observe(operation, argument, recursive) {
-      const path = absoluteInputPath(argument, cwd());
-      if (path !== null) record.path(classify(path), operation, path, recursive);
+    observe(operation, argument, extra) {
+      observePath(operation, argument, extra);
       spoolWhenDue();
     },
   });
@@ -275,12 +299,11 @@ function exists(path) {
 }
 
 let hash;
-/** Digest of the sorted entry names, read when the record is spooled. */
+/** Digest of the typed entries, read when the record is spooled; `unlisted` on failure. */
 function listingDigest(path, recursive) {
   try {
     hash ??= apply(getBuiltinModule, processObject, ["node:crypto"]).createHash;
-    const names = readdirSync(path, { recursive }).map((name) => toText(name));
-    return `sha256:${hash("sha256").update(ciTestListingText(names, recursive)).digest("hex")}`;
+    return ciTestListingDigest({ readdirSync, createHash: hash }, path, recursive) ?? "unlisted";
   } catch {
     return "unlisted";
   }

@@ -227,6 +227,48 @@ for (const fn of [fs.existsSync, fs.readFile, net.Socket.prototype.connect, proc
 }`,
   ],
   [
+    "write calls return, throw and call back as without the recorder",
+    `const fs = require("node:fs"); const { join } = require("node:path"); const os = require("node:os");
+const dir = fs.mkdtempSync(join(os.tmpdir(), "lervo-write-row-")); const at = (name) => join(dir, name);
+const out = []; const note = (label, fn) => { try { out.push(label + ":" + JSON.stringify(fn() ?? null)); } catch (error) { out.push(label + "!" + error.code); } };
+note("write", () => fs.writeFileSync(at("a"), "x")); note("append", () => fs.appendFileSync(at("a"), "y"));
+note("mkdir", () => fs.mkdirSync(at("d/e"), { recursive: true }) === at("d"));
+note("mkdtemp", () => fs.mkdtempSync(at("t-")).startsWith(at("t-")));
+note("rename", () => fs.renameSync(at("a"), at("b"))); note("copy", () => fs.copyFileSync(at("b"), at("c")));
+note("symlink", () => fs.symlinkSync("b", at("l"))); note("link", () => fs.linkSync(at("b"), at("h")));
+note("readlink", () => fs.readlinkSync(at("l"))); note("truncate", () => fs.truncateSync(at("c"), 1));
+note("chmod", () => fs.chmodSync(at("c"), 0o600)); note("utimes", () => fs.utimesSync(at("c"), 1, 1));
+note("open-w", () => typeof fs.openSync(at("w"), "w")); note("unlink", () => fs.unlinkSync(at("h")));
+note("missing", () => fs.writeFileSync(at("no/such"), "x")); note("rename-missing", () => fs.renameSync(at("none"), at("x")));
+note("rm", () => fs.rmSync(at("d"), { recursive: true })); note("read", () => fs.readFileSync(at("b"), "utf8"));
+const stream = fs.createWriteStream(at("s"));
+stream.end("z", () => fs.promises.writeFile(at("p"), "q").then(() => fs.promises.readFile(at("p"), "utf8"))
+  .then((text) => { out.push("stream:" + fs.readFileSync(at("s"), "utf8") + text); fs.open(at("p"), (error, fd) => {
+    out.push("open-callback:" + (error === null) + typeof fd); fs.rmSync(dir, { recursive: true }); console.log(out.join("\\n")); }); }));`,
+  ],
+  [
+    "Buffer, descriptor, URL and FileHandle paths read the same bytes",
+    `const fs = require("node:fs"); const { pathToFileURL } = require("node:url");
+const fd = fs.openSync("README.md", "r");
+console.log(fs.readFileSync(Buffer.from("README.md")).length === fs.readFileSync(fd).length,
+  fs.readFileSync(pathToFileURL("README.md")).length > 0, fs.existsSync(Buffer.from("README.md")),
+  fs.existsSync(Buffer.from("missing-recorder-file")), fs.statSync(Buffer.from("README.md")).isFile());
+fs.closeSync(fd);
+fs.promises.open("README.md").then(async (handle) => { const text = await fs.promises.readFile(handle);
+  await handle.close(); console.log("handle", text.length > 0); });`,
+  ],
+  [
+    "newly observed filesystem functions keep their shapes",
+    `${shapeOf}
+const fs = require("node:fs");
+const names = ["writeFile", "writeFileSync", "appendFile", "mkdtempSync", "renameSync", "symlinkSync", "linkSync",
+  "rmSync", "unlinkSync", "chmodSync", "utimesSync", "truncateSync", "createWriteStream", "openAsBlob",
+  "statfsSync", "globSync", "watch", "watchFile", "lutimesSync", "lchownSync"];
+for (const name of names) console.log(name, typeof fs[name] === "function" ? shape(fs[name]) : "absent");
+for (const name of ["writeFile", "glob", "rename", "mkdtemp", "statfs"])
+  console.log("promises." + name, typeof fs.promises[name] === "function" ? shape(fs.promises[name]) : "absent");`,
+  ],
+  [
     // CI on 2026-11-14: children that held an SQLite lock only through an unreachable object lost
     // it when the recorder's preload made a garbage collection come sooner. Garbage collection
     // timing is not observable behavior the recorder can preserve, so this row forces the

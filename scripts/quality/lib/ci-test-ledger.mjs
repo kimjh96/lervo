@@ -1,4 +1,5 @@
 import { mapCiTestBuildOutputs } from "./ci-test-build-output-map.mjs";
+import { createCiTestShardWrites } from "./ci-test-ledger-writes.mjs";
 
 /**
  * Builds one shard's test input ledger (ADR-0565) from Vitest's per-file results and the process
@@ -7,7 +8,7 @@ import { mapCiTestBuildOutputs } from "./ci-test-build-output-map.mjs";
  * repository paths stored once in a shared path table, and the closed reasons why its recorded
  * closure could not yet key a reuse.
  */
-export const CI_TEST_LEDGER_CONTRACT = "lervo-ci-test-ledger-v1";
+export const CI_TEST_LEDGER_CONTRACT = "lervo-ci-test-ledger-v2";
 export const CI_TEST_UNCACHEABLE_REASONS = Object.freeze([
   "unobserved_child",
   "git_in_repository",
@@ -15,10 +16,13 @@ export const CI_TEST_UNCACHEABLE_REASONS = Object.freeze([
   "host_state",
   "untracked_input",
   "module_graph_unavailable",
+  "unobserved_input",
+  "shard_written_input",
 ]);
 
 const maximumSamples = 32;
 const incompleteNotes = new Set(["module_graph_unavailable", "require_esm_unobserved"]);
+const unobservedNotes = new Set(["unobserved_path", "unobserved_write"]);
 
 /**
  * A process record is complete once it spooled at `exit`. A Vitest worker's record is complete
@@ -60,7 +64,7 @@ function createAccumulator() {
     inputs: new Set(),
     absent: new Set(),
     trees: new Set(),
-    directories: new Map(),
+    listings: new Map(),
     dependencies: new Set(),
     host: new Set(),
     external: new Set(),
@@ -97,11 +101,13 @@ function absorb(accumulator, record) {
     accumulator.inputs.add(path);
   for (const path of record.absent ?? []) accumulator.absent.add(path);
   for (const path of record.trees ?? []) accumulator.trees.add(path);
-  for (const [path, digests] of Object.entries(record.directories ?? {})) {
-    const known = accumulator.directories.get(path) ?? new Set();
-    for (const digest of digests) known.add(digest);
-    accumulator.directories.set(path, known);
-  }
+  for (const [path, kinds] of Object.entries(record.listings ?? {}))
+    for (const [kind, digest] of Object.entries(kinds)) {
+      const key = `${kind}\0${path}`;
+      const known = accumulator.listings.get(key) ?? new Set();
+      known.add(digest);
+      accumulator.listings.set(key, known);
+    }
   for (const key of record.dependencies ?? []) accumulator.dependencies.add(key);
   for (const note of record.notes ?? []) accumulator.notes.add(note);
   for (const [target, values] of [
@@ -176,7 +182,9 @@ function trackedDirectoriesOf(tracked) {
   return directories;
 }
 
-function classify(accumulator, { tracked, trackedDirectories, mappings }) {
+const listingPath = (key) => key.slice(key.indexOf("\0") + 1);
+
+function classify(accumulator, { file, tracked, trackedDirectories, mappings, shardWrites }) {
   const reasons = new Set();
   const unobservedChildren = [...accumulator.unobserved.values()].reduce((sum, n) => sum + n, 0);
   if (unobservedChildren > 0) reasons.add("unobserved_child");
@@ -188,7 +196,8 @@ function classify(accumulator, { tracked, trackedDirectories, mappings }) {
   if (accumulator.counts.host > 0) reasons.add("host_state");
   const known = (path) =>
     path === "." || tracked.has(path) || trackedDirectories.has(path) || mappings.has(path);
-  const untracked = [...accumulator.inputs, ...accumulator.trees, ...accumulator.directories.keys()]
+  const listed = [...accumulator.listings.keys()].map(listingPath);
+  const untracked = [...accumulator.inputs, ...accumulator.trees, ...listed]
     .filter((path) => !path.startsWith(".git:") && !known(path))
     .sort();
   if (untracked.length > 0) reasons.add("untracked_input");
@@ -198,9 +207,21 @@ function classify(accumulator, { tracked, trackedDirectories, mappings }) {
     [...accumulator.notes].some((note) => incompleteNotes.has(note))
   )
     reasons.add("module_graph_unavailable");
+  if ([...accumulator.notes].some((note) => unobservedNotes.has(note)))
+    reasons.add("unobserved_input");
+  const written = shardWrites.writtenByOthers(file, [
+    file,
+    ...accumulator.inputs,
+    ...accumulator.trees,
+    ...listed,
+    ...accumulator.absent,
+    ...accumulator.dependencies,
+  ]);
+  if (written !== null) reasons.add("shard_written_input");
   return {
     reasons: CI_TEST_UNCACHEABLE_REASONS.filter((reason) => reasons.has(reason)),
     untracked,
+    written,
   };
 }
 
@@ -230,12 +251,13 @@ export function createCiTestLedger({
     result,
     accumulator: collectFile(result.file, index, boundRecords),
   }));
+  const shardWrites = createCiTestShardWrites(records);
   const repositoryPaths = new Set();
   for (const { accumulator } of collected)
     for (const path of [
       ...accumulator.inputs,
       ...accumulator.trees,
-      ...accumulator.directories.keys(),
+      ...[...accumulator.listings.keys()].map(listingPath),
     ])
       if (!path.startsWith(".git:")) repositoryPaths.add(path);
   const trackedDirectories = trackedDirectoriesOf(tracked);
@@ -259,7 +281,13 @@ export function createCiTestLedger({
   const ids = (values) => [...values].sort().map(id);
   const reasonCounts = Object.fromEntries(CI_TEST_UNCACHEABLE_REASONS.map((reason) => [reason, 0]));
   const files = collected.map(({ result, accumulator }) => {
-    const { reasons, untracked } = classify(accumulator, { tracked, trackedDirectories, mappings });
+    const { reasons, untracked, written } = classify(accumulator, {
+      file: result.file,
+      tracked,
+      trackedDirectories,
+      mappings,
+      shardWrites,
+    });
     for (const reason of reasons) reasonCounts[reason] += 1;
     const { counts } = accumulator;
     return {
@@ -269,13 +297,18 @@ export function createCiTestLedger({
       durationMs: result.durationMs,
       collectMs: result.collectMs,
       inputs: ids(accumulator.inputs),
-      directories: [...accumulator.directories]
+      listings: [...accumulator.listings]
         .sort(([left], [right]) => (left < right ? -1 : 1))
-        .map(([path, digests]) => [id(path), ...[...digests].sort()]),
+        .map(([key, digests]) => [
+          id(listingPath(key)),
+          key.slice(0, key.indexOf("\0")),
+          ...[...digests].sort(),
+        ]),
       trees: ids(accumulator.trees),
       absent: ids(accumulator.absent),
       dependencies: ids(accumulator.dependencies),
       untracked: untracked.slice(0, maximumSamples).map(id),
+      shardWritten: written,
       children: {
         bootstrap: counts.bootstrap,
         spawned: counts.spawned,
@@ -319,54 +352,9 @@ export function createCiTestLedger({
       cacheable: files.filter((file) => file.uncacheableReasons.length === 0).length,
       reasons: reasonCounts,
       records: records.length,
+      shardWrites: shardWrites.size,
       unboundRecords: records.filter((record) => record.file === null || !reached.has(record.file))
         .length,
     },
   };
-}
-
-/** Reads `{ path: durationMs + collectMs }` for the files a ledger executed. */
-export function readCiTestLedgerWeights(ledger) {
-  if (ledger?.contract !== CI_TEST_LEDGER_CONTRACT || !Array.isArray(ledger.files))
-    throw new Error("ci_test_ledger_invalid");
-  const weights = new Map();
-  for (const file of ledger.files) {
-    if (!["passed", "failed"].includes(file.result)) continue;
-    const weight = Number(file.durationMs) + Number(file.collectMs);
-    if (typeof file.file === "string" && Number.isFinite(weight) && weight >= 0)
-      weights.set(file.file, weight);
-  }
-  return weights;
-}
-
-/**
- * Resolves a ledger's files against its path table, for readers that compare closures. Each file
- * keeps its shard's observation time, so a reader can age every result separately.
- */
-export function readCiTestLedgerFiles(ledger) {
-  if (ledger?.contract !== CI_TEST_LEDGER_CONTRACT || !Array.isArray(ledger.files))
-    throw new Error("ci_test_ledger_invalid");
-  const paths = ledger.paths ?? [];
-  const path = (id) => {
-    if (!Number.isSafeInteger(id) || id < 0 || id >= paths.length)
-      throw new Error("ci_test_ledger_invalid");
-    return paths[id];
-  };
-  const observedAt = Date.parse(ledger.run?.observedAt ?? "");
-  return ledger.files.map((file) => ({
-    file: file.file,
-    shard: ledger.run?.shard?.index ?? null,
-    observedAt,
-    result: file.result,
-    tests: file.tests,
-    durationMs: Number(file.durationMs) || 0,
-    collectMs: Number(file.collectMs) || 0,
-    inputs: (file.inputs ?? []).map(path),
-    trees: (file.trees ?? []).map(path),
-    absent: (file.absent ?? []).map(path),
-    directories: (file.directories ?? []).map(([id, ...digests]) => [path(id), digests]),
-    uncacheableReasons: file.uncacheableReasons ?? [],
-    toolchainDigest: file.toolchainDigest ?? null,
-    toolchainComponents: ledger.toolchain?.components ?? null,
-  }));
 }

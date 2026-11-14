@@ -1,5 +1,5 @@
 import { execFileSync, spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, rmSync } from "node:fs";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -62,12 +62,14 @@ it("records reads, listings, absent probes, modules, children, sockets, SQLite a
     "scripts/quality/ci-test-durations.json",
   ])
     expect(main.inputs).toContain(input);
-  expect(Object.keys(main.directories)).toEqual(["scripts/quality"]);
-  expect(main.directories["scripts/quality"][0]).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  expect(Object.keys(main.listings)).toEqual(["scripts/quality"]);
+  expect(main.listings["scripts/quality"]).toEqual({
+    plain: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+  });
   // The shadow predictor recomputes the same listing digest for the unchanged directory.
   const repositoryRoot = resolve(import.meta.dirname, "../../..");
   expect(createCiTestInputSnapshot(repositoryRoot).listing("scripts/quality", false)).toBe(
-    main.directories["scripts/quality"][0],
+    main.listings["scripts/quality"].plain,
   );
   expect(main.absent).toContain("scripts/quality/absent-recorder-probe.mjs");
   expect(main.dependencies.some((key) => key.startsWith("pnpm:yaml@"))).toBe(true);
@@ -126,6 +128,81 @@ it("records reads, listings, absent probes, modules, children, sockets, SQLite a
   });
   expect(Object.values(file.children.unobserved)).toEqual([1]);
   expect(file.inputs.map((index) => ledger.paths[index])).toContain("pnpm-workspace.yaml");
+});
+
+/** Runs `code` under the recorder from the repository root and returns its main record. */
+async function recordProgram(code) {
+  await rm(resolve(scratch, "ledger"), { recursive: true, force: true });
+  execFileSync(process.execPath, ["-e", code], {
+    cwd: resolve(import.meta.dirname, "../../.."),
+    env: environment(),
+  });
+  const records = await spool();
+  expect(records).toHaveLength(1);
+  return records[0];
+}
+
+it("records repository writes and dependency writes from every process", async () => {
+  const probe = `node_modules/.lervo-ci-write-probe-${process.pid}`;
+  try {
+    const record = await recordProgram(`const fs = require("node:fs");
+fs.mkdirSync(${JSON.stringify(probe)}, { recursive: true });
+fs.writeFileSync(${JSON.stringify(`${probe}/x`)}, "x");
+fs.renameSync(${JSON.stringify(`${probe}/x`)}, ${JSON.stringify(`${probe}/y`)});
+fs.symlinkSync("../../package.json", ${JSON.stringify(`${probe}/link`)});
+fs.openSync("README.md", "r");
+fs.open("README.md", () => {});`);
+    expect(record.writes).toEqual([`package:.lervo-ci-write-probe-${process.pid}`]);
+    // A link target is read under the link's name, and a callback in the flags slot means `r`.
+    expect(record.inputs).toContain("package.json");
+    expect(record.inputs).toContain("README.md");
+    expect(record.notes).not.toContain("unobserved_write");
+  } finally {
+    rmSync(resolve(import.meta.dirname, "../../..", probe), { recursive: true, force: true });
+  }
+});
+
+// r5 of the 2026-11-15 review: a Buffer path was read without being recorded, so the closure
+// looked complete. Every path the recorder cannot read as text now leaves the closure open.
+it("r5: marks reads and writes through paths it cannot read as text", async () => {
+  const record = await recordProgram(`const fs = require("node:fs");
+fs.readFileSync(Buffer.from("README.md"));
+fs.readFileSync(fs.openSync("README.md", "r"));
+fs.existsSync(Buffer.from("missing"));`);
+  expect(record.notes).toContain("unobserved_path");
+  expect(record.notes).not.toContain("unobserved_write");
+  const writer = await recordProgram(`const fs = require("node:fs"); const os = require("node:os");
+fs.writeFileSync(Buffer.from(require("node:path").join(os.tmpdir(), "lervo-r5-" + process.pid)), "x");`);
+  expect(writer.notes).toContain("unobserved_write");
+  const ledger = createCiTestLedger({
+    results: [testFile, "scripts/quality/test/bystander.test.mjs"].map((file) => ({
+      file,
+      result: "passed",
+      tests: { passed: 1, failed: 0, skipped: 0, pending: 0 },
+      durationMs: 1,
+      collectMs: 1,
+    })),
+    records: [
+      { ...writer, role: "worker", end: "exit" },
+      {
+        ...writer,
+        pid: writer.pid + 1,
+        file: "scripts/quality/test/bystander.test.mjs",
+        notes: [],
+        role: "worker",
+        end: "exit",
+      },
+    ],
+    tracked: new Set([testFile, "README.md"]),
+    generated: new Map(),
+    workspaces: new Map(),
+    toolchain: { digest: "sha256:g", components: {} },
+    run: { id: "1", shard: { index: 1, count: 1 } },
+  });
+  expect(ledger.files.map((file) => file.uncacheableReasons)).toEqual([
+    ["unobserved_input"],
+    ["shard_written_input"],
+  ]);
 });
 
 it("keeps every result and failure identical with the recorder on", () => {

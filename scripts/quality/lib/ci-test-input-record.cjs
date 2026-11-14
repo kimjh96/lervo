@@ -13,7 +13,7 @@ const {
  * keys, counts and closed codes only: never file contents, environment values or credentials.
  * Reaching a bound sets `truncated`, which the ledger treats as an incomplete module graph.
  */
-const CI_TEST_INPUT_RECORD_SCHEMA = 1;
+const CI_TEST_INPUT_RECORD_SCHEMA = 2;
 
 const maximumPaths = 50_000;
 const maximumSamples = 64;
@@ -31,8 +31,9 @@ const ciTestInvocation = (args) =>
 class CiTestInputRecord {
   #inputs = new SafeSet();
   #absent = new SafeSet();
-  #directories = new SafeMap();
+  #listings = new SafeMap();
   #trees = new SafeSet();
+  #writes = new SafeSet();
   #dependencies = new SafeSet();
   #modules = new SafeSet();
   #host = new SafeSet();
@@ -73,10 +74,18 @@ class CiTestInputRecord {
   }
 
   /**
-   * Records one classified path; `access` is `read`, `probe`, `list` or `tree`. Repository paths
-   * stay pending until `resolve`, so observing a call never inspects its result.
+   * Records one classified path. `access` is `read`, `probe`, `list` (with `recursive` true, false
+   * or `"unknown"`), `tree` or `write`. Read paths stay pending until `resolve`, so observing a call
+   * never inspects its result. A write is recorded at once: repository paths and dependency keys
+   * that any process changes make every other file's closure that touches them uncertain.
    */
   path({ kind, path }, access, absolute, recursive = false) {
+    if (access === "write") {
+      if (kind === "repository") this.#add(this.#writes, path);
+      else if (kind === "git") this.#add(this.#writes, `.git:${path}`);
+      else if (kind === "dependency") this.#add(this.#writes, path);
+      return;
+    }
     if (kind === "temporary") this.#counts.temporary += 1;
     else if (kind === "host") {
       this.#counts.host += 1;
@@ -90,19 +99,26 @@ class CiTestInputRecord {
           this.#truncated = true;
           return;
         }
-        entry = { absolute, kind, accesses: new SafeSet(), recursive: false, resolved: false };
+        entry = { absolute, kind, accesses: new SafeSet(), resolved: false };
         this.#pending.set(key, entry);
       }
-      if (!entry.accesses.has(access) || (access === "list" && recursive && !entry.recursive))
-        entry.resolved = false;
-      entry.accesses.add(access);
-      if (access === "list" && recursive) entry.recursive = true;
+      const accesses =
+        access !== "list"
+          ? [access]
+          : recursive === "unknown"
+            ? ["list", "listRecursive"]
+            : [recursive === true ? "listRecursive" : "list"];
+      for (const each of accesses) {
+        if (!entry.accesses.has(each)) entry.resolved = false;
+        entry.accesses.add(each);
+      }
     }
   }
 
   /**
    * Resolves pending paths against the filesystem as it is now: `exists(absolute)` and
    * `list(absolute, recursive)`, which returns a listing digest. A path that is gone is absent.
+   * Plain and recursive listings are kept apart, because their digests mean different things.
    */
   resolve({ exists, list }) {
     for (const [key, entry] of this.#pending) {
@@ -115,9 +131,17 @@ class CiTestInputRecord {
       this.#absent.delete(key);
       if (entry.accesses.has("tree")) this.#add(this.#trees, key);
       if (entry.accesses.has("read") || entry.accesses.has("probe")) this.#add(this.#inputs, key);
-      if (entry.accesses.has("list")) {
+      for (const [access, kind] of [
+        ["list", "plain"],
+        ["listRecursive", "recursive"],
+      ]) {
+        if (!entry.accesses.has(access)) continue;
         if (entry.kind === "git") this.#add(this.#inputs, key);
-        else this.#directories.set(key, [list(entry.absolute, entry.recursive)]);
+        else {
+          const listing = this.#listings.get(key) ?? {};
+          listing[kind] = list(entry.absolute, kind === "recursive");
+          this.#listings.set(key, listing);
+        }
       }
     }
   }
@@ -189,10 +213,9 @@ class CiTestInputRecord {
       inputs: sorted(this.#inputs),
       modules: sorted(this.#modules),
       absent: sorted(this.#absent),
-      directories: fromEntries(
-        [...this.#directories].sort(([left], [right]) => (left < right ? -1 : 1)),
-      ),
+      listings: fromEntries([...this.#listings].sort(([left], [right]) => (left < right ? -1 : 1))),
       trees: sorted(this.#trees),
+      writes: sorted(this.#writes),
       dependencies: sorted(this.#dependencies),
       host: sorted(this.#host),
       children: this.#children,
