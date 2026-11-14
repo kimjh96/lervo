@@ -32,3 +32,33 @@ A Stage 2 dry run on WSL applied the committed predictor to hosted ledgers. It r
 Run 43614766532 had a failed shard, so the rules would not trust it; the dry run trusted it to measure input changes, and none of its failed files was predicted reusable. Every unchanged rerun reused exactly the complete closures. The pair of pushes reran three files through `input_changed` on the changed fixture, and 633 files through `toolchain_changed` (`platform`) when each shard kept its own runner image build. The edit rows predict only; their tests were not run.
 
 Reuse by file count overstates the time saved. In the unchanged rerun, the 246 rerun files still took 2,620 of the 4,076 seconds of file time. `uncacheable_unobserved_child` alone took 1,820 seconds in 105 files, `uncacheable_host_state` 592 seconds and `uncacheable_git_in_repository` 139 seconds. With the current placement, the shard jobs of 734, 477, 537 and 624 seconds would take an estimated 523, 312, 360 and 449 seconds. The `packages/core` edit would leave 661, 412, 474 and 566 seconds. Three to five minutes per shard therefore needs children observed and fewer host reads, not only reuse.
+
+## Fail-closed follow-up (2026-11-15)
+
+An adversarial review demonstrated nine false reuses, each with a script: an unreadable link target, a copied link to a directory, writes by another file of the shard, a history run that failed to download, a Buffer path, the environment, a file replaced by a link, listing text collisions, and permission bits. The [shadow contract](../../foundation/ci-test-reuse-shadow.md) now fails closed on each, and the tests keep them as r1 to r9. The dry run was repeated with the same trees and Node 22.13.
+
+Hosted ledgers are version 1, so they hold no writes. Their listings have no kind and count as unverifiable. G is compared as recorded, because version 1 G has no environment component.
+
+| History → head (run 43619547245's files)                          | Before | After       | False reuses |
+| ----------------------------------------------------------------- | ------ | ----------- | ------------ |
+| Same run, unchanged rerun                                         | 80.6%  | 983 (77.6%) | 0            |
+| Run 43614766532 → next push                                       | 80.3%  | 979 (77.3%) | 0            |
+| Unchanged rerun plus one edit in `packages/execution-reliability` | 80.4%  | 982 (77.5%) | not run      |
+| Unchanged rerun plus one edit in a CLI command                    | 77.4%  | 944 (74.5%) | not run      |
+| Unchanged rerun plus one edit in `packages/core`                  | 52.0%  | 623 (49.2%) | not run      |
+
+The loss is 36 files whose closure names a run-unique variable, 30 of them through `.github/workflows/cli-release-matrix.yml`, which names `GITHUB_SHA`, and two packages that could not be scanned. A first scan matched `INVOCATION_ID` inside unrelated constants and cost 230 files; names now count only as whole tokens, and the two systemd variables stay in G.
+
+Writes need version 2 ledgers. Shards 1 and 2 of the branch ran on WSL with Node 22.13 and the recorder on, from the branch revision with run 43619547245's build. About 41 files per shard failed there for local reasons, as before. Findings, in the order they were fixed:
+
+- Node's own `fs.rm` passes child paths as Buffers, so the first run noted `unobserved_write` in 184 of 318 files and no closure was complete. The recorder now reads a Buffer path as UTF-8, and a file descriptor as covered by its observed `open`.
+- No test wrote a repository path that another file read: shard 1 recorded no repository writes at all, and shard 2 recorded one, a write to the repository root.
+- Every shard still held children without a record of their own working in the repository, so without ordering every file of both shards was `shard_written_input`. Git clones and inits into temporary paths, and `git --version`, are now exempt. What remained came from three files that start children with a clean environment: `scripts/quality/test/ci-test-ledger-reporter.test.mjs`, `packages/adapter-codex/test/app-server-client.test.ts` and `packages/adapter-contract/test/runtime-inspection.test.ts`. In shard 1, dropping only the first would leave 280 of 318 closures complete.
+- With wall-clock ordering, files that finished before the first unseen writer, 374 and 324 seconds into each shard, stay reusable.
+
+| Branch shard on WSL, unchanged rerun | Complete closures | Predicted reuse | `shard_written_input` |
+| ------------------------------------ | ----------------- | --------------- | --------------------- |
+| Shard 1 (271 files passed)           | 131 of 318        | 100 (31%)       | 166                   |
+| Shard 2 (273 files passed)           | 119 of 317        | 91 (29%)        | 175                   |
+
+`host_state` fell to 13 and 11 files per shard, from about 43, with the capability-root isolation.

@@ -118,6 +118,8 @@ A dry run against hosted ledgers predicted 80.6% reuse for an unchanged rerun an
 - Shards of one run landed on two runner image builds of the same release, so a strict G cut the next-push rate to 40.0%.
 - The rerun files hold most of the time. In the unchanged rerun, the estimated shard jobs only drop from 477–734 seconds to 312–523 seconds, because unobserved children alone hold 1,820 of the remaining 2,620 seconds of file time.
 
+An adversarial review then demonstrated nine false reuses. The shadow now fails closed on each: typed digests with metadata, both views of copied trees, typed listings, recorded writes and unreadable paths, an incomplete history, and the environment in G. On the same hosted ledgers, an unchanged rerun fell to 77.6% and the next push to 77.3%, with no false reuse. With writes recorded, two branch shards on WSL predicted about 30%: three test files start unrecorded children inside the repository, and every file finishing after them reruns.
+
 The ADR records the rules, the [shadow contract](../../foundation/ci-test-reuse-shadow.md) the job, digests, reasons and report, and the [shadow evidence](../../evidence/quality/ci-test-reuse-shadow.md) the dry run.
 
 - [x] Stage 1 recorder, ledgers, toolchain digest and ledger-based weights pass local tests.
@@ -127,6 +129,7 @@ The ADR records the rules, the [shadow contract](../../foundation/ci-test-reuse-
 - [ ] Stage 2 shadow comparison: at least 14 days without a false reuse.
 - [ ] Decide whether G may ignore the runner image build number, from evidence that both builds install the same tools.
 - [ ] Observe the children that drop `NODE_OPTIONS`, the dominant remaining rerun time.
+- [ ] Make the unrecorded children of the three files listed in the [shadow gaps](../../foundation/ci-test-reuse-shadow-gaps.md) observable, and confirm the drop in `shard_written_input` with a shard ledger.
 
 ## Responsibility and evidence contracts
 

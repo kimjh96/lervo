@@ -3,7 +3,9 @@
 Status: `active`
 As of: 2026-11-15
 
-This document specifies Stage 2 of [ADR-0565](../decisions/operations/services/0565-record-what-each-ci-test-file-reads-before-reusing-its-result.md): the shadow comparison that predicts per-file test reuse on every CI run without skipping any test. The ADR holds the decision and the reuse rules. [Shadow evidence](../evidence/quality/ci-test-reuse-shadow.md) holds the measurements.
+This document specifies Stage 2 of [ADR-0565](../decisions/operations/services/0565-record-what-each-ci-test-file-reads-before-reusing-its-result.md): the shadow comparison that predicts per-file test reuse on every CI run without skipping any test. The ADR holds the decision and the reuse rules. [Shadow evidence](../evidence/quality/ci-test-reuse-shadow.md) holds the measurements, and [known gaps](ci-test-reuse-shadow-gaps.md) lists what is not yet observed.
+
+One rule governs every part: anything the recorder or the predictor cannot prove identical means rerun. A shadow run that observed no false reuse proves nothing on its own, because inputs rarely change in the ways a defect needs, so each kind of input and change is also covered by a test matrix.
 
 ## Shadow job
 
@@ -11,78 +13,101 @@ This document specifies Stage 2 of [ADR-0565](../decisions/operations/services/0
 
 **Reconstructed tree.** The job checks out the run's revision, installs with the frozen lockfile and restores the run's validated build. That is the tree each shard started from, before any test could change it. It refuses ledgers recorded for another revision.
 
-**Input index.** Ledgers name inputs but hold no contents. The job therefore digests every file input, every test file and every copied tree that this run's ledgers name, in the reconstructed tree, and publishes them as `lervo-ci-test-input-index` (`input-index.json`, contract `lervo-ci-test-input-index-v1`) for seven days. It holds the run ID, the revision and one closed digest string per repository-relative path, and no contents. Anyone holding a run's ledgers, revision and build artifact can rebuild it. `ci-test-shadow-inputs.mjs` defines the digests, so two values are the same input exactly when the strings are equal:
+## What the recorder adds for reuse
 
-| Digest                         | Meaning                                                                                                                 |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| `file:<x\|->:<sha256>`         | A regular file's bytes, and whether its owner may execute it.                                                           |
-| `link:<target>><digest>`       | A symbolic link's target text, and the digest of what it resolves to.                                                   |
-| `tree:<sha256>`                | A copied directory: each entry's relative path and digest, without following links. A copied file keeps its own digest. |
-| `directory`, `absent`, `other` | A directory, a missing path, or a socket, FIFO or device.                                                               |
-| `unreadable`                   | Inspection failed or passed a bound (512 MB per file, 50,000 tree entries). It never matches.                           |
+Ledgers use contract `lervo-ci-test-ledger-v2`. A version 1 closure is never compared (`ledger_outdated`); its timings are still read.
 
-Listings and absent paths need no index. The predictor recomputes a listing digest at the head with the recorder's own text from `ci-test-input-listing.cjs`, and checks absent paths with the recorder's existence rule. Built outputs are compared by their own bytes in the restored build, not through the build-output map. A source mapping cannot see a changed build script, an esbuild define, or a TypeScript import whose elision depends on another file. The map still decides which outputs are `untracked_input`.
+- **Writes.** Every process records the repository paths and dependency keys it writes: `writeFile`, `appendFile`, `open` with any writing flag, `mkdir`, the parent of `mkdtemp`, `rm`, `rmdir`, `unlink`, both sides of `rename`, the destination of `copyFile`, `cp`, `symlink` and `link`, `truncate`, `chmod`, `chown`, `utimes` and their variants, and `createWriteStream`. The source of `rename` and `link`, and a symlink's target, are also read inputs, because the bytes become readable under another name.
+- **Unreadable paths.** A Buffer path is read as the UTF-8 text it spells, because Node's own `fs.rm` passes Buffers. A file descriptor needs no observation, because the `open` call that returned it was recorded with its path and flags. Every other path argument the recorder cannot read as text, such as a `FileHandle`, a Buffer that is not UTF-8 or an object it cannot inspect, is noted `unobserved_path`, or `unobserved_write` for a writing call. So is a call to `glob` or `watch`, whose inputs cannot be named, and any observation that fails, such as a relative path when the working directory is gone. An `open` with an unreadable path counts as a write unless its flags only read.
+- **Listings.** A plain and a recursive listing of one directory are separate entries. A `recursive` option that the hook cannot read records both.
 
-**History.** The job lists completed Code quality runs of this repository created in the last 30 hours, newest first, skips the current run and forks, and loads at most 25 runs that published ledgers. A run is trusted when it verified `main` (a push or the daily audit) or when it is a pull request whose four test shards all succeeded. A dispatched candidate and a pull request with a failed shard are untrusted. Trusted runs also load their input index. A ledger or index naming another run, or an index for another revision, rejects that run. Any API or download failure skips the run and is listed in the report, so it can only cause reruns.
+Two uncacheable reasons join the Stage 1 list. `unobserved_input` means the file's closure holds an unobserved path. `shard_written_input` means another process of the shard may have changed a path in the closure: the test file, an input, a copied tree, a listed directory, an absent path or a dependency key. Paths overlap when they are equal or one contains the other, and the repository root contains everything. Writes by the file's own processes do not count, because they follow from its own inputs. Some writers cannot be seen: a process with an `unobserved_write`, a record that dropped writes past its bound, and a child without a record of its own working inside the repository. Read-only Git subcommands such as `rev-parse`, `ls-files` or `status` are exempt, because they write only inside `.git`, whose readers are already `git_in_repository`. Git with only global options such as `--version` and `git clone` or `git init` whose every operand is outside the repository are also exempt. Every other unseen writer makes every other file of the shard `shard_written_input`, unless the file finished first. Records carry wall-clock times taken with the original `Date.now`, so a file whose processes all spooled their final record more than one second before the writer started cannot have read its writes. Seen writes are not ordered, because a file can read a path again after its last record.
+
+## Digests
+
+**Input index.** Ledgers name inputs but hold no contents. The job digests, in the reconstructed tree, the test file and every recorded input, the `package.json` scopes of each, the resolution neighbourhood of each, and every copied tree. It publishes them as `lervo-ci-test-input-index` (`input-index.json`, contract `lervo-ci-test-input-index-v2`) for seven days. The index holds the run ID, the revision and one digest per repository-relative path, and no contents. Anyone holding a run's ledgers, revision and build artifact can rebuild it.
+
+`ci-test-shadow-inputs.mjs` defines each digest as a JSON value with a `kind`. Values are compared after a canonical serialization with sorted keys, and only when both are certain:
+
+| Kind         | Holds                                                                                                  |
+| ------------ | ------------------------------------------------------------------------------------------------------ |
+| `file`       | Full permission bits, size and the SHA-256 of the bytes.                                               |
+| `directory`  | Full permission bits.                                                                                  |
+| `link`       | Its own permission bits, the target text and the digest of what it resolves to.                        |
+| `other`      | A FIFO, socket or device, with its permission bits.                                                    |
+| `absent`     | Nothing exists at the path.                                                                            |
+| `tree`       | A copied path, seen both as a copy that keeps links and as one that follows them, plus its top entry.  |
+| `neighbours` | The typed entries that share the input's stem, and for an `index.*` input also those of its directory. |
+| `unknown`    | Inspection failed or passed a bound (512 MB per file, 50,000 tree entries). It never equals anything.  |
+
+A digest with `unknown` anywhere inside, such as a link to an unreadable target, is uncertain. Modification times are left out, because every checkout changes them, so a test that asserts on a repository file's time is not reusable.
+
+Module resolution probes files it never reads, and Vite resolves in the main Vitest process, which no file's record sees. A neighbourhood therefore holds every entry next to an input that `./name` could resolve to, so a new `x.js` beside an imported `x.ts` is a change. Node also reads the nearest `package.json` for a module's type, so each `package.json` from an input's directory up to the repository root is an input.
+
+**Listings.** The listing digest hashes the JSON of the kind and every entry's relative name and type, from `ci-test-input-listing.cjs`, which the recorder and the predictor share. Names containing newlines, a plain listing that looks like a recursive one, and a file replaced by a link cannot collide. A recursive listing walks without following links and gives up past 100,000 entries. A listing the recorder could not take is `unlisted`, which never matches.
+
+**Built outputs** are compared by their own bytes in the restored build, not through the build-output map. A source mapping cannot see a changed build script, an esbuild define, or a TypeScript import elided because of another file. The map still decides which outputs are `untracked_input`.
+
+## Environment
+
+G holds a digest of the whole environment of the test process except the run-unique variables in `CI_TEST_RUN_UNIQUE_ENVIRONMENT`, and the variable names. It never holds a value. The ref, the event and `NODE_OPTIONS` are therefore part of G, so results are reused only within one ref and event. The excluded variables differ on every run or revision by construction, so a key holding them could never match:
+
+- `GITHUB_RUN_ID`, `GITHUB_RUN_NUMBER`, `GITHUB_RUN_ATTEMPT`, `GITHUB_SHA` and `GITHUB_WORKFLOW_SHA`;
+- the step command files `GITHUB_ENV`, `GITHUB_OUTPUT`, `GITHUB_PATH`, `GITHUB_STATE` and `GITHUB_STEP_SUMMARY`, whose names hold a fresh identifier;
+- `RUNNER_NAME` and `RUNNER_TRACKING_ID`.
+
+A process reads a variable by its name, so a closure is `run_environment_read` when one of those names occurs as a whole token in the test file, a recorded input, or a package it loaded. A package that cannot be found or scanned in full counts as naming them. Recording the reads themselves would need a Proxy of `process.env`, an exotic object whose replacement tests can observe.
+
+## History
+
+The job lists every completed Code quality run of this repository created in the last 30 hours, skipping the current run, forks and other workflows. A run is trusted when it verified `main` (a push or the daily audit) or when it is a pull request whose four test shards all succeeded. Untrusted runs still load their ledgers, because a failure they recorded revokes reuse. Trusted runs also load their input index. A ledger or index naming another run, or an index for another revision, is a load failure.
+
+Loading fails closed. Each of the following makes the history incomplete and every file `history_incomplete`:
+
+- a run list that cannot be read, or more than ten pages of runs;
+- a run whose artifacts or jobs cannot be read;
+- a shard whose `Run tests` step ran without a ledger artifact, which includes runs with the ledger switched off;
+- a download or a ledger that fails to read.
 
 ## Rerun reasons
 
-The ADR's rules are applied by the pure `ci-test-shadow-prediction.mjs`. Candidates are tried newest first, and the first reusable one is the prediction. Otherwise the file reruns with its newest candidate's reason, so a reason names the result Stage 3 would have tried first. Only a recent failure, the ADR's rule 6, can override a reusable candidate. The reasons are closed:
+`ci-test-shadow-prediction.mjs` applies the ADR's rules. It is pure; the head arrives as digest lookups and an environment scan. Candidates are tried newest first, and the first reusable one is the prediction. Otherwise the file reruns with its newest candidate's reason. Only a recent unpassed result, the ADR's rule 7, overrides a reusable candidate. The reasons are closed:
 
-| Reason                      | Meaning                                                                         |
-| --------------------------- | ------------------------------------------------------------------------------- |
-| `no_history`                | No loaded run recorded the file, or none had finished when this run started.    |
-| `untrusted_history`         | Only untrusted runs recorded the file.                                          |
-| `history_expired`           | The newest trusted record is older than 24 hours, or has no time.               |
-| `toolchain_changed`         | G differs; the detail names the differing components.                           |
-| `not_passed`                | The record did not pass, for example a skipped file.                            |
-| `uncacheable_<reason>`      | The record had that Stage 1 reason, for example `uncacheable_host_state`.       |
-| `input_digests_unavailable` | The run published no input index, or the index lacks a recorded path.           |
-| `input_changed`             | A recorded file input or the test file has another digest, or was unreadable.   |
-| `tree_changed`              | A copied tree has another digest.                                               |
-| `listing_changed`           | A recorded listing digest matches neither listing of the directory at the head. |
-| `absent_path_appeared`      | A path the file found absent now exists.                                        |
-| `prior_failure`             | A run recorded the file failing under the same G within 24 hours.               |
+| Reason                      | Meaning                                                                        |
+| --------------------------- | ------------------------------------------------------------------------------ |
+| `history_incomplete`        | A run of the window failed to load.                                            |
+| `no_history`                | No loaded run recorded the file, or none had finished when this run started.   |
+| `untrusted_history`         | Only untrusted runs recorded the file.                                         |
+| `history_expired`           | The newest trusted record is older than 24 hours, or has no time.              |
+| `ledger_outdated`           | The record comes from a version 1 ledger.                                      |
+| `toolchain_changed`         | G differs; the detail names the differing components.                          |
+| `not_passed`                | The record did not pass, for example a skipped file.                           |
+| `uncacheable_<reason>`      | The record had that uncacheable reason, for example `uncacheable_host_state`.  |
+| `input_digests_unavailable` | The run published no input index, or the index lacks a path.                   |
+| `input_unverifiable`        | A recorded or current digest, or a listing, is uncertain or has no kind.       |
+| `input_changed`             | The test file, an input or a `package.json` scope has another digest.          |
+| `resolution_changed`        | An input's resolution neighbourhood changed.                                   |
+| `tree_changed`              | A copied tree has another digest in either view.                               |
+| `listing_changed`           | A recorded listing differs from the head's listing of the same kind.           |
+| `absent_path_appeared`      | A path the file found absent now exists.                                       |
+| `run_environment_read`      | The closure names a run-unique variable.                                       |
+| `prior_failure`             | A run recorded the file failed or unfinished under the same G within 24 hours. |
 
 ## Report
 
 The job publishes `lervo-ci-test-shadow` (`shadow-report.json` and `shadow-report.md`, contract `lervo-ci-test-shadow-v1`) for 30 days, so the 14-day bar can be read from reports without keeping ledgers longer than seven days. The report holds:
 
-- the run, its shards' distinct G, and each history run with its event, branch, trust and index, or the code that skipped it;
+- the run, its shards' distinct G, whether the history is complete, each history run with its event, branch, trust and index, and each load problem;
 - the predicted reuse count and rate, false reuses, and predicted reuses that have no result in this run;
 - each false reuse with its source run, expected result and actual result;
 - rerun reasons ranked by file count, with this run's file time and the 10 most common details;
 - per shard, the file time executed, the file time that would still run and, when the shard job's duration is known, an estimated job duration: that duration less the reusable file time divided by the shard's two workers, under the current placement;
 - one line per file.
 
-The job summary shows the same tables, with false reuses first, and each false reuse adds an error annotation. Reports and indexes hold repository-relative paths, digests, run IDs, counts and closed codes only. A missing report is missing evidence, never a verdict.
-
-Neither the predictor nor the report enters G. The planner pattern excludes `ci-test-shadow-*` modules, because they only read finished ledgers and cannot change a test's result.
+The job summary shows an incomplete history and false reuses before every table, and each false reuse adds an error annotation. Reports and indexes hold repository-relative paths, digests, run IDs, counts and closed codes only. A missing report is missing evidence, never a verdict. Neither the predictor nor the report enters G: the planner pattern excludes `ci-test-shadow-*` modules, because they only read finished ledgers.
 
 ## Verification
 
-`ci-test-shadow-prediction.test.mjs` builds real trees and indexes and checks reuse for unchanged inputs and a rerun with the right reason and detail for a source edit, a rebuilt output, the test file itself, a deleted input, an executable bit, a retargeted link, a changed or extended copied tree, a new entry in a plain or recursive listing and an absent path that appears. It also covers the TTL, a missing time, a toolchain change and its component, an unpassed or uncacheable record, a missing index or index entry, an unreadable digest, untrusted and unfinished runs, revocation by failures under the same G within the TTL only, and newest-first candidates. `ci-test-shadow-report.test.mjs` checks false reuses by result and test counts, unverified predictions, reason ranking with file time, and shard estimates. `ci-test-shadow-run.test.mjs` checks trust for each event, branch, fork and shard outcome, and runs the whole job against a Git fixture with fake API and downloads: index first, a skipped run, a false reuse annotation, and refusal of another revision. `ci-test-input-recorder.test.mjs` checks that the shadow listing digest equals the recorder's for the same directory.
+`ci-test-shadow-false-reuse.test.mjs` is the property matrix. For a file, a symlink, a copied tree, a plain and a recursive listing, an absent path and a directory's metadata, it applies each of content, type, mode, rename, create, delete and link retarget changes in a real tree and requires a rerun. Each cell a kind cannot observe, such as a file's content for a listing, is named with its reason and must stay reusable. The environment and toolchain rows change a variable's value, add, remove or rename one, change the ref, and change, add, remove, replace or rename a toolchain file. The same file keeps the review regressions r1, r2 and r6 to r9; `ci-test-ledger.test.mjs` keeps r3, `ci-test-shadow-run.test.mjs` r4 and `ci-test-input-recorder.test.mjs` r5.
 
-## Known gaps
-
-The recorder (Stage 1):
-
-- `process.emit` becomes an own property of `process`, so `Object.hasOwn(process, "emit")` is true and `process.emit` no longer equals `EventEmitter.prototype.emit`. Listeners run with one recorder frame below them.
-- Hooks still call built-in prototype methods, such as `String.prototype.startsWith` or `Set.prototype.has`, at call time. A program that replaces those methods can observe the recorder.
-- A worker killed within a second of its file's last hook loses the observations made after that hook.
-- SQLite database paths are not observed. Replacing `DatabaseSync` would change its identity, and loading `node:sqlite` early would print its experimental warning in every process. A process that loaded it gets the note `sqlite_unobserved`. No database file is tracked in the repository.
-- Paths given as a Buffer or a file descriptor are not observed. Existence and listings are read when the record is spooled, so a repository path a test creates or deletes in between shows its later state.
-- Each wrapped synchronous call adds one recorder frame to stacks captured inside it. The limit rises by one during the call, so the caller's frames still fit, and is restored only if the call left it unchanged. Still, a stack captured inside the call has one extra line, and a synchronous callback inside it, such as an `fs.cpSync` filter, reads a limit one higher. `Function.prototype.toString` of a wrapped function or of `Date` prints `function () { [native code] }`. On 2026-11-14, no test asserted on stacks, limits or that source text, and `errorThrowSite`, the one product reader of stack frames, skips errors with a string `code`, as all filesystem and child process errors have.
-- `performance.now()`, `process.hrtime()`, `Date()` called as a function, `fs.watch` and `dgram` are not observed. Worker threads run the preload and spool their own records, but a thread stopped by `Worker#terminate()` can lose its record without any reason being recorded.
-- Garbage collection timing changes, because the preload allocates. A process that holds a resource only through an object it no longer references can lose it sooner. In CI, three test children lost an SQLite lock or transaction this way. They now keep the holder referenced, and a transparency row checks that only an unreferenced lock is released.
-- A record holds at most 50,000 paths per kind and 2,000 child entries. Children that cannot have a record of their own, such as Git or a child started without the recorder, collapse into one counted entry per identical command.
-
-The shadow comparison (Stage 2):
-
-- G is strict. In run 43619547245, shards 1 and 4 ran on runner image build `20261111.370.1` and shards 2 and 3 on `20261111.127.1` of the same release. Such files rerun as `toolchain_changed` with the detail `platform`. Whether G may drop the build number needs separate evidence that both builds install the same tools.
-- The predictor takes each file's G from the current run's ledger. Stage 3 must compute G in the shard before it decides.
-- The index digests the reconstructed tree. A file that reads a repository path another file in its shard wrote is compared against the unwritten content. Listings are recorded when the record is spooled, so a listing that includes such a write reruns instead.
-- A rerun attempt overwrites its shard's ledger, so a failure in an earlier attempt is lost as revocation evidence.
-- A run cancelled before its shadow job publishes no index, so its results are never reused.
-- Real-clock reads are counted but are not a reason. A result that depends on the date can be predicted reusable for 24 hours. The daily audit still reuses nothing.
-- The estimated shard duration keeps the current placement and two workers. It does not rebalance the files that would still run.
+`ci-test-shadow-prediction.test.mjs` covers each rule: the TTL, a missing time, an outdated ledger, a toolchain change and its component, unpassed and uncacheable records, missing indexes and entries, unknown digests and listings, an incomplete history, untrusted and unfinished runs, revocation by unpassed results under the same G within the TTL only, newest-first candidates, package scopes, and run-unique names in sources and packages. `ci-test-shadow-run.test.mjs` covers trust for each event, branch, fork and shard outcome, every load failure, and runs the whole job against a Git fixture with fake API and downloads. `ci-test-input-recorder.test.mjs` checks recorded writes, link targets, open flags and unreadable paths through a real recorder, and that the shadow listing digest equals the recorder's. `ci-test-input-transparency.test.mjs` adds rows for the write calls, unreadable path shapes and the shapes of every newly wrapped function.

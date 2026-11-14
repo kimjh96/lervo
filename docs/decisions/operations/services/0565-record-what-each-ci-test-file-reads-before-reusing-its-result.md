@@ -51,6 +51,8 @@ A file's closure joins its worker with every child the ledger can match, by PID 
 | `host_state`               | A read or probe outside the repository, temporary directories, the toolchain and system image paths, for example under `~`. |
 | `untracked_input`          | A repository path that Git does not track and no generated-output mapping explains.                                         |
 | `module_graph_unavailable` | No complete worker record exists, a record hit its bound, or Node 22.13 loaded an ESM graph through `require()`.            |
+| `unobserved_input`         | A path argument could not be read as text, or a call names no inputs, such as `glob` or `watch`.                            |
+| `shard_written_input`      | Another process of the shard wrote a path that the closure reads, lists, copies or found absent.                            |
 
 Git outside the repository runs on test-owned fixtures with the Git version in G, so it is not a reason. Loopback connections, temporary paths and clock reads are recorded without making a file uncacheable.
 
@@ -62,20 +64,21 @@ Git outside the repository runs on test-owned fixtures with the Git version in G
 
 ### Stage 2: shadow comparison
 
-A shadow job predicts, on every run, which test files Stage 3 would have reused, without skipping any. Because every test still runs, it compares each predicted reuse with the file's actual result. A false reuse is a predicted reuse whose actual result or test counts differ; a changed duration is not one. Stage 2 runs for at least 14 days. It refines the recorded surfaces and generated-output mappings until there have been zero false reuses over the whole period. [CI test reuse shadow](../../../foundation/ci-test-reuse-shadow.md) specifies the job, the input index, the digests, the reasons and the report.
+A shadow job predicts, on every run, which test files Stage 3 would have reused, without skipping any. Because every test still runs, it compares each predicted reuse with the file's actual result. A false reuse is a predicted reuse whose actual result or test counts differ; a changed duration is not one. Stage 2 runs for at least 14 days, until zero false reuses over the whole period. Because inputs rarely change in the ways a defect needs, zero observed false reuses proves nothing alone: anything the recorder or the predictor cannot prove identical means rerun, and a property matrix covers each input kind against each kind of change. [CI test reuse shadow](../../../foundation/ci-test-reuse-shadow.md) specifies the job, the recorded writes, the digests, the environment, the history and the reasons.
 
-The `Test reuse shadow` job runs after the shards with `continue-on-error`. No job needs it, and it uses only the workflow's read-only token. It rebuilds the tree each shard started from (the revision, a frozen install and the run's build), digests every file and copied tree that the run's ledgers name, and publishes that input index for seven days. An earlier run is trusted when it verified `main`, by a push or the daily audit, or when it is a pull request whose four shards passed.
+The `Test reuse shadow` job runs after the shards with `continue-on-error`; no job needs it, and it uses only the read-only token. It digests every input the run's ledgers name in the shards' starting tree and publishes that index for seven days. An earlier run is trusted when it verified `main`, by a push or the daily audit, or when it is a pull request whose four shards passed. G now also holds the whole test environment except listed run-unique variables.
 
 An earlier result of a file is reusable only when all of the following hold:
 
-1. Its run is trusted and finished before the current run started.
-2. Its shard recorded the file at most 24 hours before the current run started.
-3. It recorded the G that the file has in the current run. Shards of one run can have different G, so each file is compared under its own shard's G.
-4. The file passed, and its closure had no uncacheable reason.
-5. The run's input index covers the test file and every recorded input and copied tree, and the head has the same digests. Each recorded listing digest equals the plain or recursive listing at the head, and no recorded absent path exists.
-6. No fetched run, trusted or not, recorded the file failing under the same G within those 24 hours.
+1. Every run of the last 30 hours loaded, with a ledger for every shard that ran tests.
+2. Its run is trusted and finished before the current run started, and its ledger has the current contract.
+3. Its shard recorded the file at most 24 hours before the current run started, under the G the file has in the current run. Shards of one run can have different G.
+4. The file passed, and its closure had no uncacheable reason, including `unobserved_input` and `shard_written_input`.
+5. The index covers the closure, every digest is certain, and the head has equal digests for the test file, every input, their `package.json` scopes and resolution neighbourhoods, and every copied tree in both views. Every listing equals the head's listing of the same kind, and no absent path exists.
+6. No source or loaded package of the closure names a run-unique variable.
+7. No run, trusted or not, recorded the file failed or unfinished under the same G within those 24 hours.
 
-Candidates are tried newest first. A file without a reusable candidate reruns with its newest candidate's reason from a closed list. Built outputs are compared by their own bytes in the restored build. The build-output map cannot see a build script, an esbuild define, or a TypeScript import elided because of another file. The report, kept for 30 days, holds the predicted reuse count, the false reuses before any other table, rerun reasons ranked with file time, and estimated shard time. Neither the predictor nor the report enters G.
+Candidates are tried newest first. A file without a reusable candidate reruns with its newest candidate's reason from a closed list. Built outputs are compared by their own bytes in the restored build. The report, kept for 30 days, holds the predicted reuse count, the false reuses before any other table, rerun reasons ranked with file time, and estimated shard time. Neither the predictor nor the report enters G.
 
 ### Stage 3: reuse
 
@@ -83,7 +86,7 @@ Only after Stage 2 meets its bar does a separate decision enable per-file reuse.
 
 ## Known gaps
 
-[CI test reuse shadow](../../../foundation/ci-test-reuse-shadow.md#known-gaps) lists the known gaps of the recorder and of the shadow comparison.
+[CI test reuse shadow gaps](../../../foundation/ci-test-reuse-shadow-gaps.md) lists the known gaps of the recorder and of the shadow comparison.
 
 ## Consequences
 
@@ -91,7 +94,7 @@ The recorder changes each test process in ways that tests can detect only by loo
 
 Measured on WSL with Node 22.13, the recorder's own CPU time in the worker for `apps/cli/test/cli.test.ts` was about 0.25 seconds of 18 seconds. With the Proxy wrappers, it adds about 1 µs to each repository fs call or listing, 0.5 µs to each temporary-path call or clock read, nothing measurable to a Git spawn, and about 7 ms to the startup and exit of each recorded Node child. Paired runs of three heavy files varied more from host load than from the recorder.
 
-The first hosted ledgers had 1,021 complete closures in 1,267 files. In 77 other files, the only reason was `host_state` from the capability probe, which isolating `LERVO_USER_CAPABILITY_ROOT` in the test setup removes. A dry run of the shadow predictor predicted 80.6% reuse for an unchanged rerun and 80.3% for the next real push, with no false reuse. A strict G halved that when shards ran on different runner image builds. Files that still rerun hold most of the time, mainly through unobserved children. [Shadow evidence](../../../evidence/quality/ci-test-reuse-shadow.md) records the local ledger, the hosted ledgers and the dry run.
+The first hosted ledgers had 1,021 complete closures in 1,267 files; isolating `LERVO_USER_CAPABILITY_ROOT` adds 77. Failing closed on every unproven input lowered the dry-run reuse of an unchanged rerun from 80.6% to 77.6% before shard writes, and to about 30% once writes were recorded, with no false reuse. [Shadow evidence](../../../evidence/quality/ci-test-reuse-shadow.md) records the measurements.
 
 ## Verification
 
