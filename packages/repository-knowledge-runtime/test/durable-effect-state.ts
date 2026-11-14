@@ -7,6 +7,7 @@ import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import type { OutboxStore } from "@lervo/storage-contract";
 
 import { captureConvergenceSources } from "../src/source-capture.js";
+import { fenceSiteOfStack } from "./lying-source-observation.js";
 
 const digest = (bytes: Buffer | string) => createHash("sha256").update(bytes).digest("hex");
 
@@ -76,6 +77,58 @@ function workspaces(root: string): string[] {
   return found;
 }
 
+/**
+ * Content-addressed artifact kinds a stage may store before its exact fence or while it settles a
+ * refusal: receipts and result inputs that only a fenced settlement trusts, failure proofs, and
+ * provider budget bookkeeping. Every other artifact is a durable write that needs a fence.
+ */
+export const CENSUS_EXEMPT_ARTIFACT_KINDS: ReadonlySet<string> = new Set([
+  "stage_receipt",
+  "stage_result",
+  "convergence_input",
+  "stage_failure",
+  "private_stage_failure",
+  // The failed assignment's own proof, written while a refusal settles.
+  "convergence_assignment_failure",
+  // A waiting or attention record's dependency; it claims no currency.
+  "lifecycle_currency",
+]);
+
+function artifactKind(bytes: Buffer): string {
+  try {
+    const value = JSON.parse(bytes.toString("utf8")) as Record<string, unknown>;
+    if (typeof value.kind === "string") return value.kind;
+    if ("baseline" in value && "receipts" in value && "snapshotHash" in value)
+      return "convergence_input";
+    if ("stage" in value && "sourceSnapshotHash" in value && "resultSnapshotHash" in value)
+      return "stage_receipt";
+    if ("input" in value && "nextStage" in value && "failureCode" in value) return "stage_result";
+    return `unclassified(${Object.keys(value).sort().slice(0, 6).join(",")})`;
+  } catch {
+    return "opaque";
+  }
+}
+
+/** Every artifact in the content store that the census does not exempt, by kind and hash. */
+function artifacts(root: string): string[] {
+  const cas = resolve(root, ".lervo/data/cas");
+  if (!existsSync(cas)) return [];
+  const found: string[] = [];
+  const visit = (directory: string) => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      const path = resolve(directory, entry.name);
+      if (entry.isDirectory()) visit(path);
+      else if (entry.isFile()) {
+        const bytes = readFileSync(path);
+        const kind = artifactKind(bytes);
+        if (!CENSUS_EXEMPT_ARTIFACT_KINDS.has(kind)) found.push(`${kind}:${digest(bytes)}`);
+      }
+    }
+  };
+  visit(cas);
+  return found.sort();
+}
+
 function checkpoints(root: string): string[] {
   const path = resolve(root, ".lervo/state/knowledge/convergence-effects.sqlite");
   if (!existsSync(path)) return [];
@@ -97,9 +150,10 @@ function checkpoints(root: string): string[] {
 
 /**
  * Everything a convergence effect can make durable, except the event store, which callers read
- * through `eventsAfter`: HEAD, every ref, every captured source but the edited one, private
- * knowledge state (candidate, disposition, classification and normalization stores among it),
- * effect checkpoints, and each private workspace's HEAD and files.
+ * through `unexemptEventsAfter`: HEAD, every ref, every captured source but the edited one,
+ * private knowledge state (candidate, disposition, classification and normalization stores among
+ * it), artifacts outside the census exemptions, effect checkpoints, and each private workspace's
+ * HEAD and files.
  */
 export function durableEffectState(root: string, editedPath: string): Record<string, unknown> {
   const git = (...args: string[]) =>
@@ -117,6 +171,7 @@ export function durableEffectState(root: string, editedPath: string): Record<str
         name.startsWith("knowledge/convergence-workspaces") ||
         EXEMPT_STATE_PATHS.some((pattern) => pattern.test(name)),
     ),
+    artifacts: artifacts(root),
     checkpoints: checkpoints(root),
     workspaces: workspaces(root),
   };
@@ -168,4 +223,22 @@ export function unexemptEventsAfter(events: OutboxStore, seq: number): string[] 
     if (page.length < 1000) return types;
     afterSeq = page.at(-1)!.seq;
   }
+}
+
+/** A source fence refusal and the fence site whose stack raised it. */
+export interface FenceRefusal {
+  kind: "exact" | "effect_sources" | "other";
+  site: string;
+}
+
+/** Classifies a refusal by the stack that raised it. */
+export function fenceRefusal(stack: string): FenceRefusal {
+  return {
+    kind: stack.includes("assertConvergenceSourceExact")
+      ? "exact"
+      : stack.includes("assertConvergenceEffectSources")
+        ? "effect_sources"
+        : "other",
+    site: fenceSiteOfStack(stack),
+  };
 }

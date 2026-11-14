@@ -1,9 +1,9 @@
 import { captureConvergenceSources, type ConvergenceSourceCapture } from "../src/source-capture.js";
 import type { ConvergenceSourceObservation } from "../src/source-observation.js";
 
-/** The `src/` frame that asked for a capture, named by file and line. */
-function observationSite(): string {
-  for (const frame of (new Error().stack ?? "").split("\n").slice(1)) {
+/** The `src/` frame in `stack` that asked for a capture or a fence, named by file and line. */
+export function fenceSiteOfStack(stack: string): string {
+  for (const frame of stack.split("\n").slice(1)) {
     const match = /repository-knowledge-runtime\/src\/([\w-]+\.ts):(\d+)/u.exec(frame);
     if (match === null || match[1] === "source-observation.ts") continue;
     // The assertion helpers sit between every check and its caller; host methods name their own.
@@ -18,6 +18,8 @@ function observationSite(): string {
   }
   return "unknown";
 }
+
+const observationSite = () => fenceSiteOfStack(new Error().stack ?? "");
 
 export interface LyingObservationTrace {
   /** Exact captures in call order, by the site that asked. */

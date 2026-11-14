@@ -4,33 +4,19 @@ import { expect } from "vitest";
 
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import type { fixture } from "./fixture.js";
+import type { ConvergenceSourceObservation } from "../src/source-observation.js";
 import {
   durableEffectState,
   durableStateChanges,
+  fenceRefusal,
   latestEventSeq,
   unexemptEventsAfter,
+  type FenceRefusal,
 } from "./durable-effect-state.js";
+import { fenceRefusalLog } from "./fence-refusal-recorder.js";
 import { lyingSourceObservation } from "./lying-source-observation.js";
 
 export type Fixture = Awaited<ReturnType<typeof fixture>>;
-
-function refusals(f: Fixture): number {
-  let count = 0;
-  let afterSeq = 0;
-  for (;;) {
-    const page = f.events.list({
-      afterSeq,
-      limit: 1000,
-      types: ["repository.knowledge.stage.recorded"],
-    });
-    for (const event of page) {
-      const payload = event.payload as { state?: string; failureCode?: string };
-      if (payload.state === "stale" && payload.failureCode === "source_bytes_changed") count += 1;
-    }
-    if (page.length < 1000) return count;
-    afterSeq = page.at(-1)!.seq;
-  }
-}
 
 /**
  * Drives a scenario with a session whose validation never notices another writer. A developer edit
@@ -40,8 +26,11 @@ function refusals(f: Fixture): number {
  * - `decision`: at a decision check the session answers "unchanged". Until the next exact fence,
  *   no durable state may change and no event outside the census exemptions may be appended.
  *
- * Every edit must reach an exact fence, that fence must refuse with `source_bytes_changed`, and
- * no durable state may change between the refusal and the next observation.
+ * Every edit must reach an exact fence, and that very fence must refuse with
+ * `source_bytes_changed`: the refusal's stack names it. Callers mock `../src/failure.js` with
+ * `recordingFailureModule` so refusals are recorded as they are raised. Verification evidence refuses through its
+ * stage receipt instead. Between the refusing fence and the next observation, no durable state may
+ * change and no event outside the census exemptions may be appended.
  */
 export async function sweepSourceFences(input: {
   f: Fixture;
@@ -50,15 +39,26 @@ export async function sweepSourceFences(input: {
   at: "exact" | "decision";
   inject(site: string): boolean;
   done(f: Fixture): Promise<boolean>;
+  /** One worker cycle; replaced only by the harness's own tests. */
+  run?: (observation: ConvergenceSourceObservation) => Promise<unknown>;
 }) {
   const { f } = input;
   const mutated = resolve(f.root, input.mutatedPath);
   const state = () => durableEffectState(f.root, input.mutatedPath);
+  const run =
+    input.run ??
+    ((observation: ConvergenceSourceObservation) =>
+      runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: `lying-${Date.now()}`,
+        provider: "claude",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+        sourceObservation: observation,
+      }));
   const injected: string[] = [];
   const unfenced: string[] = [];
   const violations: string[] = [];
-  let thrown = 0;
-  let fencedThisCycle = 0;
   const edit = (site: string) => {
     injected.push(site);
     appendFileSync(mutated, `// concurrent developer edit ${injected.length}\n`);
@@ -66,10 +66,18 @@ export async function sweepSourceFences(input: {
   // An edit made at a decision check, until the next exact fence observes it.
   let armed: { site: string; state: Record<string, unknown>; seq: number } | null = null;
   // An exact fence that observed an edit, until the next observation shows what followed it.
-  let pending: { site: string; state: Record<string, unknown>; evidence: boolean } | null = null;
-  const fence = (site: string) => {
-    fencedThisCycle += 1;
-    pending = { site, state: state(), evidence: site.includes("stage-verification.ts") };
+  let pending: {
+    label: string;
+    state: Record<string, unknown>;
+    seq: number;
+    evidence: boolean;
+  } | null = null;
+  // Fences that observed an edit during the current cycle, each owed its own refusal.
+  let fenced: { label: string; site: string; evidence: boolean }[] = [];
+  const fence = (label: string, site: string) => {
+    const evidence = site.startsWith("stage-verification.ts");
+    fenced.push({ label, site, evidence });
+    pending = { label, state: state(), seq: latestEventSeq(f.events), evidence };
   };
   const settlePending = (kind: string) => {
     if (armed !== null && kind === "note_change") {
@@ -79,11 +87,13 @@ export async function sweepSourceFences(input: {
     if (pending === null) return;
     const settled = pending;
     pending = null;
-    // Verification evidence is taken after its effect wrote; only the refusal applies.
+    // Verification evidence is taken after its effect wrote; its stage receipt refuses instead.
     if (settled.evidence) return;
-    if (kind === "note_change") violations.push(`${settled.site}: an effect ran after the edit`);
+    if (kind === "note_change") violations.push(`${settled.label}: an effect ran after the edit`);
     for (const change of durableStateChanges(settled.state, state()))
-      violations.push(`${settled.site}: ${change} after the refusing fence`);
+      violations.push(`${settled.label}: ${change} after the refusing fence`);
+    for (const type of unexemptEventsAfter(f.events, settled.seq))
+      violations.push(`${settled.label}: event ${type} after the refusing fence`);
   };
   const observation = lyingSourceObservation(f.root, {
     onObservation: (kind) => settlePending(kind),
@@ -99,38 +109,38 @@ export async function sweepSourceFences(input: {
           violations.push(`${armed.site}: ${change} before ${site}`);
         for (const type of unexemptEventsAfter(f.events, armed.seq))
           violations.push(`${armed.site}: event ${type} before ${site}`);
-        const site_ = `${armed.site} -> ${site}`;
+        const label = `${armed.site} -> ${site}`;
         armed = null;
-        fence(site_);
+        fence(label, site);
         return;
       }
       if (input.at !== "exact" || injected.includes(site) || !input.inject(site)) return;
       edit(site);
-      fence(site);
+      fence(site, site);
     },
   });
   for (let i = 0; i < input.cycles; i++) {
     const injectedBefore = injected.length;
-    const refusedBefore = refusals(f) + thrown;
-    fencedThisCycle = 0;
+    const logged = fenceRefusalLog.length;
+    fenced = [];
     try {
-      await runAutonomousKnowledgeWorker({
-        storage: f.storage,
-        workerId: `lying-${i}`,
-        provider: "claude",
-        executable: f.executable,
-        admissionDirectory: f.admissionDirectory,
-        sourceObservation: observation,
-      });
+      await run(observation);
     } catch (error) {
       expect((error as { code?: string }).code).toBe("source_bytes_changed");
-      thrown += 1;
     }
-    // Each fence that saw an edit refused: decision checks never refuse, they lie.
-    if (refusals(f) + thrown - refusedBefore < fencedThisCycle)
-      violations.push(
-        `cycle ${i}: ${fencedThisCycle} exact fences saw an edit, ${refusals(f) + thrown - refusedBefore} refused`,
+    // Each fence that saw an edit must have refused itself; a later decision check that refused
+    // instead is no evidence for the fence.
+    const refusals: FenceRefusal[] = fenceRefusalLog.slice(logged).map(fenceRefusal);
+    for (const owed of fenced) {
+      const index = refusals.findIndex((refusal) =>
+        owed.evidence
+          ? refusal.kind === "effect_sources" || refusal.kind === "exact"
+          : refusal.kind === "exact" && refusal.site === owed.site,
       );
+      if (index === -1)
+        violations.push(`${owed.label}: no refusal by this fence (${JSON.stringify(refusals)})`);
+      else refusals.splice(index, 1);
+    }
     // An edit whose obligation settled without another exact fence, such as a waiting or
     // attention record, wrote nothing durable: check that, count it as unfenced, and let the
     // session answer truthfully again so later obligations can reach their fences.

@@ -1,11 +1,18 @@
 import { execFileSync } from "node:child_process";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { sweepSourceFences } from "./effect-fence-sweep.js";
 import { fixture } from "./fixture.js";
+
+// Every refusal is recorded where it is raised, so the sweep can tell which fence refused.
+vi.mock("../src/failure.js", async (load) =>
+  (await import("./fence-refusal-recorder.js")).recordingFailureModule(
+    await load<typeof import("../src/failure.js")>(),
+  ),
+);
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
