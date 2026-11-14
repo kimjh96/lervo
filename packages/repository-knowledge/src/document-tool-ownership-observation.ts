@@ -14,6 +14,7 @@ import {
   releasePleaseChangelogPaths,
   type DocumentToolOwnershipEvidence,
 } from "./document-tool-ownership.js";
+import { withProcessCostScope } from "./process-cost-observation.js";
 
 const execute = promisify(execFile);
 
@@ -189,11 +190,13 @@ export async function observeToolGeneratedDocuments(input: {
       (taxonomy) => taxonomy.documentPolicy.roles,
       () => [] as RepositoryDocumentRole[],
     ));
-  const [outputs, attributes, history] = await Promise.all([
-    generatorOutputs(root, paths),
-    generatedAttributes(root, paths),
-    authorHistory(root, paths),
-  ]);
+  const [outputs, attributes, history] = await withProcessCostScope("tool_ownership", () =>
+    Promise.all([
+      generatorOutputs(root, paths),
+      generatedAttributes(root, paths),
+      authorHistory(root, paths),
+    ]),
+  );
   for (const path of paths) {
     const evidence = documentToolOwnership({
       path,

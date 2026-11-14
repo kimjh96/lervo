@@ -27,6 +27,7 @@ import {
   type KnowledgeConvergenceProjection,
 } from "./knowledge-convergence-replay.js";
 import { discoverKnowledgeConvergenceObligation } from "./knowledge-convergence-discovery.js";
+import { costScopedConvergenceHost } from "./knowledge-convergence-cost-scope.js";
 import {
   convergenceEventId,
   queuedConvergenceStage,
@@ -118,6 +119,8 @@ export async function processKnowledgeConvergence(
   input: OwnerInput,
 ): Promise<KnowledgeConvergenceStatus> {
   const now = input.now ?? (() => new Date());
+  const scoped = costScopedConvergenceHost(input.host);
+  input = { ...input, host: scoped.host };
   if (
     !Number.isSafeInteger(input.maximumStages ?? 8) ||
     (input.maximumStages ?? 8) < 1 ||
@@ -181,6 +184,7 @@ export async function processKnowledgeConvergence(
       delivery.event.type === "repository.knowledge.baseline.requested"
         ? "assessment"
         : (delivery.event.payload as { stage: KnowledgeConvergenceStage }).stage;
+    scoped.enterStage(stage);
     const state = await loadInput(
       input.artifacts,
       delivery.event.payload.inputArtifactHash as string,
