@@ -20,7 +20,7 @@ Periodic health, retry, and integrity observations must not be described as enti
 ## Acceptance
 
 - Idle subscribed workers do not run at their former short polling interval.
-- Source changes and readiness requests wake the intended replica; ignored file contents do not allocate recursive watches.
+- Source changes and readiness requests wake the intended replica. Ignored file edits wake nothing, and directory churn never reopens a macOS or Windows watch handle.
 - Bursts coalesce, changes during work remain pending, and cancellation releases local and remote resources.
 - A freed reconciliation slot admits a newly eligible repository without waiting for unrelated active work. Owner-lease release wakes request admission without a 100 ms retry loop.
 - Concurrent unrelated event writes preserve a supervision observation. Changed workstream, assignment, agent, authority, or task-digest coordinates still reject it.
