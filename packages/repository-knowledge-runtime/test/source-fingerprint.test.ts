@@ -10,7 +10,7 @@ import { convergenceSourceFingerprint } from "../src/source-fingerprint.js";
 import { writeResidentCycleState } from "../src/resident-cycle-state.js";
 import { recordKnowledgeResidentHealth } from "../src/resident-health.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
-import { fixture } from "./fixture.js";
+import { clearOfFenceTimeWindowBoundary, fixture } from "./fixture.js";
 
 const execute = promisify(execFile);
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -21,7 +21,9 @@ afterEach(async () => {
   }
 });
 
-function observer(f: Awaited<ReturnType<typeof fixture>>) {
+async function observer(f: Awaited<ReturnType<typeof fixture>>) {
+  // Each comparison spans real time, and the fence changes at every 30-minute window boundary.
+  await clearOfFenceTimeWindowBoundary();
   const observe = () =>
     convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events }).fingerprint;
   let last = observe();
@@ -40,7 +42,7 @@ function observer(f: Awaited<ReturnType<typeof fixture>>) {
 it("changes for every repository, policy, delegation and candidate input and nothing else", async () => {
   const f = await fixture(true);
   fixtures.push(f);
-  const fence = observer(f);
+  const fence = await observer(f);
   fence.unchanged("untouched tree");
   await writeResidentCycleState(f.root, {
     schemaVersion: 1,
@@ -121,7 +123,7 @@ it("changes for every repository, policy, delegation and candidate input and not
 it("changes for new canonical events and outbox work, and reports due deliveries", async () => {
   const f = await fixture();
   fixtures.push(f);
-  const fence = observer(f);
+  const fence = await observer(f);
   await fence.changed("new event", () =>
     runAutonomousKnowledgeWorker({
       storage: f.storage,

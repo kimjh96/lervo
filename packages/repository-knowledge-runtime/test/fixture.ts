@@ -239,3 +239,17 @@ console.log(JSON.stringify({is_error:false,result:JSON.stringify(response),struc
     admissionDirectory: resolve(directory, "admission"),
   };
 }
+
+const FENCE_TIME_WINDOW_MILLISECONDS = 30 * 60_000;
+
+/**
+ * The convergence fence includes the 30-minute practice assessment window and the UTC day, both
+ * aligned to 30-minute boundaries (see `convergenceSourceFingerprint`). A boundary inside a test
+ * that expects an unchanged fence or a skipped cycle legitimately changes the fingerprint, so such
+ * a test first waits out a boundary closer than `marginMilliseconds`.
+ */
+export async function clearOfFenceTimeWindowBoundary(marginMilliseconds = 30_000): Promise<void> {
+  const remaining = FENCE_TIME_WINDOW_MILLISECONDS - (Date.now() % FENCE_TIME_WINDOW_MILLISECONDS);
+  if (remaining < marginMilliseconds)
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, remaining + 100));
+}

@@ -8,7 +8,7 @@ import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
 import { startAutonomousKnowledgeWorker } from "../src/loop.js";
 import { readResidentCycleState } from "../src/resident-cycle-state.js";
 import { inspectKnowledgeResidentHealth } from "../src/resident-health.js";
-import { fixture } from "./fixture.js";
+import { clearOfFenceTimeWindowBoundary, fixture } from "./fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -73,6 +73,8 @@ it(
   async () => {
     const f = await fixture();
     fixtures.push(f);
+    // A 30-minute fence window boundary before the idle check would run one more full cycle.
+    await clearOfFenceTimeWindowBoundary();
     const cycles: unknown[] = [];
     const costs: ProcessCostMeasurement[] = [];
     const failures: unknown[] = [];
