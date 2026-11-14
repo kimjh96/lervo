@@ -247,6 +247,29 @@ it("treats an unrecorded child working in the repository as a process that could
   expect(elsewhere["bystander.test.ts"]).toEqual([]);
 });
 
+it("treats an inherited child without a record in this shard as unseen", () => {
+  const node = {
+    command: "node",
+    args: ["node", "child.mjs"],
+    cwd: ".",
+    pid: 77,
+    inherited: true,
+    synchronous: false,
+    failed: false,
+  };
+  const lost = reasonsOf([
+    worker("parent.test.ts", { pid: 1, children: [node] }),
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(lost["bystander.test.ts"]).toEqual(["shard_written_input"]);
+  const seen = reasonsOf([
+    worker("parent.test.ts", { pid: 1, children: [node] }),
+    { ...worker("parent.test.ts", { pid: 77, ppid: 1 }), role: "process" },
+    worker("bystander.test.ts", { pid: 2 }),
+  ]);
+  expect(seen["bystander.test.ts"]).toEqual([]);
+});
+
 it("orders unseen writers: a file that finished before one started is untouched by it", () => {
   const shell = {
     command: "bash",

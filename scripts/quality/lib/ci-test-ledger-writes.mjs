@@ -72,8 +72,12 @@ function gitInvocation(args) {
 const outsideRepository = (operand) =>
   operand.startsWith("<") && operand !== "<unknown>" && !operand.startsWith("<package:");
 
-/** Whether a child without its own record may have written inside the repository. */
-function blindRepositoryChild(child) {
+/**
+ * Whether a child may have written inside the repository without the shard seeing it. `observed`
+ * says whether the shard holds the child's own complete record; a child that inherited the
+ * recorder but spooled elsewhere, or not at all, is as unseen as one without it.
+ */
+function blindRepositoryChild(child, observed) {
   if (child.bootstrap || child.failed || String(child.cwd).startsWith("<")) return false;
   if (child.command === "git") {
     // The recorded tail holds at most eight arguments, so a longer command may hide its subcommand.
@@ -88,7 +92,7 @@ function blindRepositoryChild(child) {
       invocation.operands.every(outsideRepository)
     );
   }
-  return !child.inherited;
+  return !observed;
 }
 
 /**
@@ -97,8 +101,11 @@ function blindRepositoryChild(child) {
  */
 const orderingMarginMs = 1000;
 
-/** `records`: spool records with `file`, `writes`, `notes`, `startedAt` and `children`. */
-export function createCiTestShardWrites(records) {
+/**
+ * `records`: spool records with `file`, `writes`, `notes`, `startedAt` and `children`.
+ * `observed(record, child)`: whether the shard holds that child's own complete record.
+ */
+export function createCiTestShardWrites(records, observed = () => false) {
   const owners = new Map();
   const unseenWriters = [];
   for (const record of records) {
@@ -112,7 +119,7 @@ export function createCiTestShardWrites(records) {
     if ((record.notes ?? []).includes("unobserved_write") || record.writesDropped)
       unseenWriters.push({ owner, from: record.startedAt ?? -Infinity });
     for (const child of record.children ?? [])
-      if (blindRepositoryChild(child))
+      if (blindRepositoryChild(child, observed(record, child)))
         unseenWriters.push({ owner, from: child.startedAt ?? -Infinity });
   }
   const written = [...owners.keys()].sort();

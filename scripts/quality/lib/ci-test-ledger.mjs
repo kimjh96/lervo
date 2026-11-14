@@ -258,7 +258,12 @@ export function createCiTestLedger({
     result,
     accumulator: collectFile(result.file, index, boundRecords),
   }));
-  const shardWrites = createCiTestShardWrites(records);
+  const shardWrites = createCiTestShardWrites(
+    records,
+    (record, child) =>
+      child.inherited === true &&
+      childRecords(index, record, child, record.file).some((match) => isComplete(match)),
+  );
   const repositoryPaths = new Set();
   for (const { accumulator } of collected)
     for (const path of [
