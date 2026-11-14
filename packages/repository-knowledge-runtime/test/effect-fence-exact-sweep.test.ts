@@ -25,12 +25,18 @@ const FULL_CONVERGENCE_FENCES: Record<string, number> = {
   "settled-output-boundary.ts": 1,
   "lifecycle-prefix.ts": 1,
   "canonical-target-preflight.ts": 1,
-  // Seal and its application, candidate and completion, apply and asset settlement.
-  "canonical-workspace.ts": 2,
+  // Seal start, the per-draft write, the seal plan and the seal application.
+  "canonical-workspace.ts": 4,
+  // Candidate apply and completion.
   "canonical-integration-candidate.ts": 2,
   "canonical-integration-effect.ts": 1,
+  // The provider observation, usage event and review cache.
+  "provider-call.ts": 1,
   "normalization-generation.ts": 1,
+  // The approved subset candidate.
+  "normalization-review-stage.ts": 1,
   "normalization-apply-stage.ts": 1,
+  // Ordered lifecycle apply and asset settlement.
   "lifecycle-final.ts": 2,
   "stage-verification.ts": 1,
 };

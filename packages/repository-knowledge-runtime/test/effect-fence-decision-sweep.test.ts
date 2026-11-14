@@ -24,6 +24,7 @@ it(
   async () => {
     const sites = new Set<string>();
     const seen = new Set<string>();
+    const unfenced = new Set<string>();
     // Each round edits at decision sites no earlier round edited, until none is left.
     for (let round = 0; round < 6; round++) {
       const f = await fixture(true, true);
@@ -44,10 +45,14 @@ it(
           (await inspectAutonomousKnowledgeStatus(f.storage)).baselineCurrent,
       });
       expect(result.violations).toEqual([]);
+      for (const site of result.unfenced) unfenced.add(site);
       for (const site of result.injected) sites.add(site);
       for (const site of result.trace.currentSites) seen.add(site);
       if ([...seen].every((site) => sites.has(site))) break;
     }
     expect([...seen].filter((site) => !sites.has(site))).toEqual([]);
+    // The lifecycle currency pair's second check may let a stage reach a waiting or attention
+    // record with no further fence; the sweep proved it wrote nothing durable and no current claim.
+    expect([...unfenced].filter((site) => !site.startsWith("lifecycle-final.ts:"))).toEqual([]);
   },
 );

@@ -1,8 +1,3 @@
-import { execFileSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
-import { resolve } from "node:path";
-
 import { captureConvergenceSources, type ConvergenceSourceCapture } from "../src/source-capture.js";
 import type { ConvergenceSourceObservation } from "../src/source-observation.js";
 
@@ -24,39 +19,6 @@ function observationSite(): string {
   return "unknown";
 }
 
-/**
- * Repository state an effect could change: HEAD, every ref, every captured source except the
- * mutated one, and the private candidate stores that effect sites write.
- */
-export function effectObservableState(root: string, mutatedPath: string): string {
-  const git = (...args: string[]) =>
-    execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
-  const candidates: string[] = [];
-  const knowledge = resolve(root, ".lervo/state/knowledge");
-  const walk = (directory: string) => {
-    for (const entry of readdirSync(directory, { withFileTypes: true })) {
-      const path = resolve(directory, entry.name);
-      if (entry.isDirectory()) walk(path);
-      else if (entry.isFile())
-        candidates.push(
-          `${path.slice(knowledge.length)}:${createHash("sha256").update(readFileSync(path)).digest("hex")}`,
-        );
-    }
-  };
-  if (existsSync(knowledge))
-    for (const entry of readdirSync(knowledge))
-      if (entry.endsWith("candidates") && statSync(resolve(knowledge, entry)).isDirectory())
-        walk(resolve(knowledge, entry));
-  return JSON.stringify({
-    head: git("rev-parse", "HEAD"),
-    refs: git("for-each-ref", "--format=%(refname) %(objectname)"),
-    sources: captureConvergenceSources(root, "effect-state")
-      .sources.filter((source) => source.path !== mutatedPath)
-      .map((source) => `${source.path}:${source.contentHash}`),
-    candidates: candidates.sort(),
-  });
-}
-
 export interface LyingObservationTrace {
   /** Exact captures in call order, by the site that asked. */
   exactSites: string[];
@@ -68,8 +30,9 @@ export interface LyingObservationTrace {
 /**
  * A session whose validation always answers "unchanged": `current` returns the last capture without
  * looking at the repository, so it never notices another writer. It honours `noteChange`, as the
- * session does for this process's own effects. `exact` stays a complete capture, so only exact
- * fences can refuse. `beforeExact` and `beforeCurrent` may mutate the repository first.
+ * session does for this process's own effects: the next answer is a capture taken after them, but
+ * before `beforeCurrent` runs. `exact` stays a complete capture, so only exact fences can refuse.
+ * `beforeExact` and `beforeCurrent` may mutate the repository.
  */
 export function lyingSourceObservation(
   root: string,
@@ -78,7 +41,7 @@ export function lyingSourceObservation(
     beforeCurrent?(site: string, trace: LyingObservationTrace): void;
     onObservation?(kind: "exact" | "current" | "note_change", trace: LyingObservationTrace): void;
   } = {},
-): ConvergenceSourceObservation & { trace: LyingObservationTrace } {
+): ConvergenceSourceObservation & { trace: LyingObservationTrace; resync(): void } {
   const trace: LyingObservationTrace = { exactSites: [], currentSites: [], noteChanges: 0 };
   const last = new Map<string, ConvergenceSourceCapture>();
   const capture = (policyHash: string) => {
@@ -99,8 +62,15 @@ export function lyingSourceObservation(
       hooks.onObservation?.("current", trace);
       const site = observationSite();
       if (!trace.currentSites.includes(site)) trace.currentSites.push(site);
+      // The answer is fixed before the hook can edit, so even a first call or one right after
+      // noteChange() answers with bytes the edit made stale.
+      const answer = last.get(policyHash) ?? capture(policyHash);
       hooks.beforeCurrent?.(site, trace);
-      return last.get(policyHash) ?? capture(policyHash);
+      return answer;
+    },
+    /** Forgets every answer, as a session would after an edit no exact fence reached. */
+    resync() {
+      last.clear();
     },
     noteChange() {
       hooks.onObservation?.("note_change", trace);

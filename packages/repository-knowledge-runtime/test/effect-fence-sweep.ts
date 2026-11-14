@@ -4,7 +4,13 @@ import { expect } from "vitest";
 
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import type { fixture } from "./fixture.js";
-import { effectObservableState, lyingSourceObservation } from "./lying-source-observation.js";
+import {
+  durableEffectState,
+  durableStateChanges,
+  latestEventSeq,
+  unexemptEventsAfter,
+} from "./durable-effect-state.js";
+import { lyingSourceObservation } from "./lying-source-observation.js";
 
 export type Fixture = Awaited<ReturnType<typeof fixture>>;
 
@@ -31,10 +37,11 @@ function refusals(f: Fixture): number {
  * lands at the first observation of each selected site and stays:
  *
  * - `exact`: right before an exact fence, the latest moment before its effect.
- * - `decision`: at a decision check the session answers "unchanged". No repository effect may
- *   follow before the next exact fence, which must refuse.
+ * - `decision`: at a decision check the session answers "unchanged". Until the next exact fence,
+ *   no durable state may change and no event outside the census exemptions may be appended.
  *
- * Each edit must end in `source_bytes_changed`, and no effect may act on the bytes it made stale.
+ * Every edit must reach an exact fence, that fence must refuse with `source_bytes_changed`, and
+ * no durable state may change between the refusal and the next observation.
  */
 export async function sweepSourceFences(input: {
   f: Fixture;
@@ -46,17 +53,24 @@ export async function sweepSourceFences(input: {
 }) {
   const { f } = input;
   const mutated = resolve(f.root, input.mutatedPath);
-  const state = () => effectObservableState(f.root, input.mutatedPath);
+  const state = () => durableEffectState(f.root, input.mutatedPath);
   const injected: string[] = [];
+  const unfenced: string[] = [];
   const violations: string[] = [];
+  let thrown = 0;
+  let fencedThisCycle = 0;
   const edit = (site: string) => {
     injected.push(site);
     appendFileSync(mutated, `// concurrent developer edit ${injected.length}\n`);
   };
   // An edit made at a decision check, until the next exact fence observes it.
-  let armed: { site: string; state: string } | null = null;
+  let armed: { site: string; state: Record<string, unknown>; seq: number } | null = null;
   // An exact fence that observed an edit, until the next observation shows what followed it.
-  let pending: { site: string; state: string; evidence: boolean } | null = null;
+  let pending: { site: string; state: Record<string, unknown>; evidence: boolean } | null = null;
+  const fence = (site: string) => {
+    fencedThisCycle += 1;
+    pending = { site, state: state(), evidence: site.includes("stage-verification.ts") };
+  };
   const settlePending = (kind: string) => {
     if (armed !== null && kind === "note_change") {
       violations.push(`${armed.site}: an effect ran with no exact fence after the edit`);
@@ -65,11 +79,11 @@ export async function sweepSourceFences(input: {
     if (pending === null) return;
     const settled = pending;
     pending = null;
-    // Verification evidence is taken after its effect wrote; only the refusal below applies.
+    // Verification evidence is taken after its effect wrote; only the refusal applies.
     if (settled.evidence) return;
     if (kind === "note_change") violations.push(`${settled.site}: an effect ran after the edit`);
-    else if (state() !== settled.state)
-      violations.push(`${settled.site}: repository effect state changed after the edit`);
+    for (const change of durableStateChanges(settled.state, state()))
+      violations.push(`${settled.site}: ${change} after the refusing fence`);
   };
   const observation = lyingSourceObservation(f.root, {
     onObservation: (kind) => settlePending(kind),
@@ -77,28 +91,28 @@ export async function sweepSourceFences(input: {
       if (input.at !== "decision" || armed !== null || pending !== null) return;
       if (injected.includes(site) || !input.inject(site)) return;
       edit(site);
-      armed = { site, state: state() };
+      armed = { site, state: state(), seq: latestEventSeq(f.events) };
     },
     beforeExact: (site) => {
       if (armed !== null) {
-        if (state() !== armed.state)
-          violations.push(`${armed.site}: repository effect state changed before ${site}`);
-        pending = {
-          site: `${armed.site} -> ${site}`,
-          state: state(),
-          evidence: site.startsWith("stage-verification.ts"),
-        };
+        for (const change of durableStateChanges(armed.state, state()))
+          violations.push(`${armed.site}: ${change} before ${site}`);
+        for (const type of unexemptEventsAfter(f.events, armed.seq))
+          violations.push(`${armed.site}: event ${type} before ${site}`);
+        const site_ = `${armed.site} -> ${site}`;
         armed = null;
+        fence(site_);
         return;
       }
       if (input.at !== "exact" || injected.includes(site) || !input.inject(site)) return;
       edit(site);
-      pending = { site, state: state(), evidence: site.startsWith("stage-verification.ts") };
+      fence(site);
     },
   });
-  let thrown = 0;
   for (let i = 0; i < input.cycles; i++) {
     const injectedBefore = injected.length;
+    const refusedBefore = refusals(f) + thrown;
+    fencedThisCycle = 0;
     try {
       await runAutonomousKnowledgeWorker({
         storage: f.storage,
@@ -112,12 +126,26 @@ export async function sweepSourceFences(input: {
       expect((error as { code?: string }).code).toBe("source_bytes_changed");
       thrown += 1;
     }
+    // Each fence that saw an edit refused: decision checks never refuse, they lie.
+    if (refusals(f) + thrown - refusedBefore < fencedThisCycle)
+      violations.push(
+        `cycle ${i}: ${fencedThisCycle} exact fences saw an edit, ${refusals(f) + thrown - refusedBefore} refused`,
+      );
+    // An edit whose obligation settled without another exact fence, such as a waiting or
+    // attention record, wrote nothing durable: check that, count it as unfenced, and let the
+    // session answer truthfully again so later obligations can reach their fences.
+    const open = armed as { site: string; state: Record<string, unknown>; seq: number } | null;
+    if (open !== null) {
+      for (const change of durableStateChanges(open.state, state()))
+        violations.push(`${open.site}: ${change} with no exact fence after the edit`);
+      for (const type of unexemptEventsAfter(f.events, open.seq))
+        violations.push(`${open.site}: event ${type} with no exact fence after the edit`);
+      unfenced.push(open.site);
+      armed = null;
+      observation.resync();
+    }
     if (injected.length === injectedBefore && (await input.done(f))) break;
   }
   settlePending("end");
-  // Every edit was refused. A decision-check edit can wait for the next cycle's first fence.
-  expect(refusals(f) + thrown, JSON.stringify(injected)).toBeGreaterThanOrEqual(injected.length);
-  if (armed !== null && state() !== (armed as { state: string }).state)
-    violations.push(`${(armed as { site: string }).site}: an effect ran after the edit`);
-  return { injected, violations, trace: observation.trace };
+  return { injected, unfenced, violations, trace: observation.trace };
 }
