@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0eb5b1f49c4dd716adf9cec0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse a fully initialized coordination home and validated plain-checkout Git coordinates, so workforce reads stop repeating locks, fsyncs, and Git subprocesses."
