@@ -293,7 +293,8 @@ export async function processKnowledgeConvergence(
     }
     const stored = await input.artifacts.put(canonicalJson(result.input));
     assertLease();
-    if (result.state === "current") input.host.assertSettlement(result.input);
+    // The settlement transaction asserts this settlement after taking its lock, right before the
+    // append; an earlier observation here would guard no effect of its own.
     settleKnowledgeConvergenceStage({
       events: input.events,
       delivery,

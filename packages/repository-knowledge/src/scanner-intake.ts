@@ -23,7 +23,8 @@ import {
   type ObserveGitRevision,
 } from "./git-revision-source.js";
 import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
-import { observeGitIgnoredPaths, type ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
+import type { ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
+import { observeGitScanOpening } from "./git-scan-opening.js";
 import { defaultDecisionTaxonomy } from "@lervo/project";
 import { loadDocumentLayoutContract } from "./document-layout-contract.js";
 import { compareScanPaths, repositoryScanPriority } from "./scan-priority.js";
@@ -51,12 +52,13 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
     projectId: input.projectId,
   });
   const observeRevision = input.observeRevision ?? observeGitHeadRevision;
-  const revisionBefore = await observeRevision(root);
+  const opening = await observeGitScanOpening(root, input);
+  const revisionBefore = opening.revisionBefore;
   const sources: RepositorySource[] = [];
   const excludes = compileKnowledgeScannerExclusion(input.policy);
   // Git-ignored untracked paths carry no repository knowledge (ADR-0433), so the scan never reads
   // them. Without this, a virtual environment or build output fills the read budget.
-  const gitIgnored = await (input.observeIgnoredPaths ?? observeGitIgnoredPaths)(root);
+  const gitIgnored = await opening.observeIgnoredPaths();
   const taxonomy = (await loadDocumentLayoutContract(root)).taxonomy ?? defaultDecisionTaxonomy;
   const candidates: ScanRetentionCandidate[] = [];
   const supplementalByPath = new Map<string, RepositorySupplementalSource>();
