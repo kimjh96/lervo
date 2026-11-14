@@ -13,6 +13,21 @@ const workflowPath = resolve(
   "../../../.github/workflows/release-pull-request.yml",
 );
 const scriptPath = resolve(import.meta.dirname, "../lib/reconcile-release-pull-request.sh");
+const entrypointPath = resolve(import.meta.dirname, "../commands/reconcile-release-workflow.mjs");
+// The workflow entrypoint as it existed before the pull-request operation.
+const legacyEntrypoint = `import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+
+const scripts = {
+  candidate: new URL("../lib/reconcile-release-candidate.sh", import.meta.url),
+  tag: new URL("../lib/reconcile-release-tag.sh", import.meta.url),
+};
+const script = scripts[process.argv[2]];
+if (!script) throw new Error("release_workflow_operation_invalid");
+const result = spawnSync("bash", [fileURLToPath(script)], { stdio: "inherit" });
+if (result.error) throw result.error;
+process.exitCode = result.status ?? 1;
+`;
 const bot = "lervo-release[bot]";
 const roots = [];
 
@@ -38,22 +53,30 @@ describe("CLI release in pull request workflow", () => {
     assert.equal(job["runs-on"], "macos-latest");
     assert.match(job.if, /github\.event\.label\.name == 'release'/u);
     assert.match(job.if, /pull_request\.head\.repo\.full_name == github\.repository/u);
-    const [resolveStep, checkout] = job.steps;
+    const [resolveStep, tooling, checkout] = job.steps;
     assert.match(resolveStep.run, /isCrossRepository == false/u);
     assert.match(resolveStep.run, /baseRefName == "main"/u);
     assert.match(resolveStep.run, /IN\("main", "lervo\/release-cli"\)/u);
-    assert.equal(checkout.with.ref, "${{ steps.target.outputs.head_sha }}");
-    assert.equal(checkout.with["fetch-depth"], 0);
+    assert.deepEqual(tooling.with, {
+      ref: "${{ github.sha }}",
+      path: "tooling",
+      "persist-credentials": false,
+    });
+    assert.deepEqual(checkout.with, {
+      ref: "${{ steps.target.outputs.head_sha }}",
+      path: "pr",
+      "fetch-depth": 0,
+      "persist-credentials": true,
+    });
+    const install = job.steps.find(({ name }) => name === "Install dependencies");
+    assert.equal(install["working-directory"], "pr");
     const prepare = job.steps.find(({ id }) => id === "prepare");
     assert.equal(
       prepare.run,
-      "node scripts/release/commands/reconcile-release-workflow.mjs pull-request",
+      'node tooling/scripts/release/commands/reconcile-release-workflow.mjs pull-request "${GITHUB_WORKSPACE}/pr"',
     );
     assert.equal(prepare.env.PR_HEAD_SHA, "${{ steps.target.outputs.head_sha }}");
-    assert.ok(
-      job.steps.findIndex(({ name }) => name === "Install dependencies") <
-        job.steps.indexOf(prepare),
-    );
+    assert.ok(job.steps.indexOf(install) < job.steps.indexOf(prepare));
   });
 
   it("pushes one preparation commit on current main and dispatches its exact verification", async () => {
@@ -107,6 +130,24 @@ describe("CLI release in pull request workflow", () => {
     assert.match(await readFile(repo.trace, "utf8"), new RegExp(`base_sha=${movedMain}`, "u"));
   });
 
+  it("prepares a head that predates the pull-request operation with this revision's tooling", async () => {
+    const repo = await fixture({ legacyHead: true });
+    const own = repo.run(
+      {},
+      { entrypoint: resolve(repo.work, "scripts/release/commands/reconcile-release-workflow.mjs") },
+    );
+    assert.notEqual(own.status, 0);
+    assert.match(own.stderr, /release_workflow_operation_invalid/u);
+    assert.equal(repo.remoteHead(), repo.featureSha);
+
+    const result = repo.run();
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(await readFile(repo.output, "utf8"), /^disposition=prepared$/mu);
+    assert.equal(repo.git("rev-parse", `${repo.remoteHead()}^`), repo.featureSha);
+    const direct = await fixture();
+    assert.equal(direct.run({}, { entrypoint: scriptPath }).status, 0);
+  });
+
   it("stops before any write when current main does not merge cleanly", async () => {
     const repo = await fixture();
     repo.advanceMain("feature.txt", "conflicting\n");
@@ -136,7 +177,7 @@ describe("CLI release in pull request workflow", () => {
   });
 });
 
-async function fixture({ prState = "OPEN" } = {}) {
+async function fixture({ prState = "OPEN", legacyHead = false } = {}) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-release-pr-"));
   roots.push(root);
   const remote = resolve(root, "remote.git");
@@ -172,6 +213,13 @@ async function fixture({ prState = "OPEN" } = {}) {
   const mainSha = git("rev-parse", "HEAD");
   git("switch", "--quiet", "-c", "feature");
   await writeFile(resolve(work, "feature.txt"), "feature\n");
+  if (legacyHead) {
+    await mkdir(resolve(work, "scripts/release/commands"), { recursive: true });
+    await writeFile(
+      resolve(work, "scripts/release/commands/reconcile-release-workflow.mjs"),
+      legacyEntrypoint,
+    );
+  }
   await writeFile(
     resolve(work, ".changes/relint_aaaaaaaaaaaaaaaaaaaaaaaa.yaml"),
     "impact: patch\n",
@@ -215,6 +263,7 @@ esac
   return {
     trace,
     output,
+    work,
     mainSha,
     featureSha,
     git,
@@ -229,11 +278,16 @@ esac
       this.mainSha = git("rev-parse", "HEAD");
       return this.mainSha;
     },
-    run(overrides = {}) {
+    run(overrides = {}, { entrypoint = entrypointPath } = {}) {
       const head = overrides.PR_HEAD_SHA ?? featureSha;
       git("checkout", "--quiet", "--detach", remoteHead());
-      return spawnSync("bash", [scriptPath], {
-        cwd: work,
+      // Like the workflow, run outside the worktree and name it explicitly.
+      const command =
+        entrypoint === scriptPath
+          ? ["bash", [scriptPath, work]]
+          : [process.execPath, [entrypoint, "pull-request", work]];
+      return spawnSync(command[0], command[1], {
+        cwd: root,
         encoding: "utf8",
         timeout: 20_000,
         env: {

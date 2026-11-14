@@ -47,10 +47,19 @@ jobs:
           [ -n "${target}" ] || { echo 'release_pull_request_ineligible' >&2; exit 1; }
           echo "head_sha=${target%% *}" >>"${GITHUB_OUTPUT}"
           echo "head_ref=${target#* }" >>"${GITHUB_OUTPUT}"
+      # Orchestration comes from this workflow's own revision, so a pull request branched before an
+      # operation existed can still be prepared. Only the pull-request checkout receives credentials.
+      - name: Check out release tooling from this workflow revision
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.sha }}
+          path: tooling
+          persist-credentials: false
       - name: Check out exact pull-request head
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           ref: ${{ steps.target.outputs.head_sha }}
+          path: pr
           fetch-depth: 0
           persist-credentials: true
       - name: Set up Node
@@ -60,7 +69,10 @@ jobs:
           package-manager-cache: false
       - name: Set up pnpm
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
+        with:
+          package_json_file: pr/package.json
       - name: Install dependencies
+        working-directory: pr
         run: pnpm install --frozen-lockfile
       - name: Prepare the release on the pull-request head
         id: prepare
@@ -68,4 +80,4 @@ jobs:
         env:
           PR_HEAD_REF: ${{ steps.target.outputs.head_ref }}
           PR_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
-        run: node scripts/release/commands/reconcile-release-workflow.mjs pull-request
+        run: node tooling/scripts/release/commands/reconcile-release-workflow.mjs pull-request "${GITHUB_WORKSPACE}/pr"

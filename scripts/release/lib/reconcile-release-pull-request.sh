@@ -2,9 +2,13 @@
 # Prepares the CLI release inside one same-repository pull request. The checked-out head gains one
 # bot-authored preparation commit on top of current main, and full Code quality is dispatched for
 # that exact commit, so the bytes a later tag names are verified before merge.
+# Usage: reconcile-release-pull-request.sh <pull-request-worktree>
+# This tooling may come from a newer revision than the worktree it prepares; every pnpm owner
+# command runs from the worktree, so the prepared bytes come from that revision's owners.
 set -euo pipefail
 # shellcheck source=release-preparation-commit.sh
 source "$(dirname "${BASH_SOURCE[0]}")/release-preparation-commit.sh"
+cd "${1:?pull-request worktree}"
 
 fail() {
   echo "$1" >&2
