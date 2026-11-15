@@ -13,32 +13,20 @@ import {
 import { discoverConvergenceBaseline } from "../src/baseline.js";
 import { resolveConvergenceCandidates } from "../src/candidate-resolution.js";
 import { reviewKnowledgeJson } from "../src/provider-call.js";
-import type { ConvergenceDelegation } from "../src/delegation.js";
-import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 import { fixture } from "./fixture.js";
-
-let delegation: ConvergenceDelegation | null = null;
+import { obligationInput, seamContext, workforceSeam } from "./stage-seam-fixture.js";
 
 vi.mock("../src/provider-call.js", () => ({ reviewKnowledgeJson: vi.fn() }));
-// Each role is staffed by its own agent, as the delegation's role bindings require.
-vi.mock("../src/workforce.js", () => ({
-  withConvergenceAssignment: async (input: {
-    role: string;
-    run(authority: unknown): Promise<unknown>;
-  }) =>
-    input.run({
-      assignment: { assignmentId: `asn_candidate_${input.role}` },
-      agent: { agentId: `agt_candidate_${input.role}` },
-      delegation,
-      assertCurrent: async () => {},
-    }),
-}));
+vi.mock(
+  "../src/workforce.js",
+  async () => (await import("./stage-seam-fixture.js")).workforceSeam.module,
+);
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
   vi.mocked(reviewKnowledgeJson).mockReset();
-  delegation = null;
+  workforceSeam.reset();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
@@ -52,7 +40,7 @@ const RATIONALE =
 async function candidates(sources: Record<string, string>) {
   const f = await fixture(true);
   fixtures.push(f);
-  delegation = f.delegation;
+  workforceSeam.delegation = f.delegation;
   for (const [index, [path, content]] of Object.entries(sources).entries()) {
     await writeFile(resolve(f.root, path), content);
     await assessCanonicalization({
@@ -67,22 +55,9 @@ async function candidates(sources: Record<string, string>) {
   }
   expect(await listCanonicalizationCandidates(f.root)).toHaveLength(Object.keys(sources).length);
   const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
-  const state: KnowledgeConvergenceInput = {
-    schemaVersion: 1,
-    obligationId: "kconv_candidate_resolution",
-    baseline,
-    snapshotHash: baseline.sourceSnapshotHash,
-    stageData: {},
-    receipts: [],
-  };
-  const context: ConvergenceRuntimeContext = {
-    storage: f.storage,
-    provider: "claude",
-    signal: new AbortController().signal,
-    liveWorkPending: async () => false,
-    assertSourceExact: () => {},
-    assertSourceCurrent: () => {},
-  };
+  expect(baseline.debtCounts.canonicalization).toBe(Object.keys(sources).length);
+  const state = obligationInput("kconv_candidate_resolution", baseline);
+  const context = seamContext(f.storage);
   vi.mocked(reviewKnowledgeJson).mockImplementation(async (input) => {
     const { candidates } = input.untrustedSourceData as {
       candidates: { candidateId: string; contentHash: string }[];
@@ -128,7 +103,7 @@ it("independently closes an old exact candidate and never repeats its transition
   const reviewed = (await resolveFrom(state))!;
   expect(reviewed).toMatchObject({ state: "current", nextStage: "lifecycle_verification" });
   expect(reviewed.input.stageData.candidateReview).toMatchObject({
-    reviewerAgentId: "agt_candidate_reviewer",
+    reviewerAgentId: "agt_seam_reviewer",
     decisions: [{ decision: "reject" }],
   });
   expect((await listCanonicalizationCandidates(f.root))[0]!.state).not.toBe("rejected");
@@ -154,6 +129,23 @@ it("independently closes an old exact candidate and never repeats its transition
   // The closed candidate leaves no debt, so a later lifecycle pass asks no provider.
   expect(await resolveFrom(applied.input)).toBeNull();
   expect(reviewKnowledgeJson).toHaveBeenCalledOnce();
+  expect(
+    (await discoverConvergenceBaseline(f.root, f.events, f.artifacts)).debtCounts.canonicalization,
+  ).toBe(0);
+});
+
+it("refuses to apply a candidate review with the reviewer's own agent", async () => {
+  const { f, state, resolveFrom } = await candidates({
+    "src.ts": "export const localRuntime = true;\n",
+  });
+  workforceSeam.sharedAgent = true;
+  const reviewed = (await resolveFrom(state))!;
+  const transition = vi.spyOn(knowledge, "transitionCanonicalizationCandidate");
+  await expect(resolveFrom(reviewed.input)).rejects.toMatchObject({
+    code: "knowledge_authority_unavailable",
+  });
+  expect(transition).not.toHaveBeenCalled();
+  expect((await listCanonicalizationCandidates(f.root))[0]!.state).not.toBe("rejected");
 });
 
 it("reviews old candidates with separate source-specific contexts", async () => {

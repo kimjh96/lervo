@@ -1,32 +1,24 @@
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
-import { sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import { sha256 } from "@lervo/repository-knowledge";
 import { assessCanonicalBaseline } from "../src/canonical-assessment.js";
 import { discoverConvergenceBaseline } from "../src/baseline.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 import { reviewKnowledgeJson } from "../src/provider-call.js";
-import type { ConvergenceDelegation } from "../src/delegation.js";
-import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 import { fixture } from "./fixture.js";
-
-let delegation: ConvergenceDelegation | null = null;
+import { obligationInput, seamContext, workforceSeam } from "./stage-seam-fixture.js";
 
 vi.mock("../src/provider-call.js", () => ({ reviewKnowledgeJson: vi.fn() }));
-vi.mock("../src/workforce.js", () => ({
-  withConvergenceAssignment: async (input: { run(authority: unknown): Promise<unknown> }) =>
-    input.run({
-      assignment: { assignmentId: "asn_canonical_assessment_fixture" },
-      agent: { agentId: "agt_canonical_generator_fixture" },
-      delegation,
-      assertCurrent: async () => {},
-    }),
-}));
+vi.mock(
+  "../src/workforce.js",
+  async () => (await import("./stage-seam-fixture.js")).workforceSeam.module,
+);
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
   vi.mocked(reviewKnowledgeJson).mockReset();
-  delegation = null;
+  workforceSeam.reset();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
@@ -40,26 +32,12 @@ const RATIONALE =
 async function assessment() {
   const f = await fixture(true);
   fixtures.push(f);
-  delegation = f.delegation;
+  workforceSeam.delegation = f.delegation;
   await writeFile(resolve(f.root, SOURCE), "export const observed = true;\n");
   const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
   baseline.assessmentPaths = [SOURCE];
-  const state: KnowledgeConvergenceInput = {
-    schemaVersion: 1,
-    obligationId: "kconv_canonical_assessment_retry",
-    baseline,
-    snapshotHash: baseline.sourceSnapshotHash,
-    stageData: {},
-    receipts: [],
-  };
-  const context: ConvergenceRuntimeContext = {
-    storage: f.storage,
-    provider: "claude",
-    signal: new AbortController().signal,
-    liveWorkPending: async () => false,
-    assertSourceExact: () => {},
-    assertSourceCurrent: () => {},
-  };
+  const state = obligationInput("kconv_canonical_assessment_retry", baseline);
+  const context = seamContext(f.storage);
   const source = baseline.sources.find((item) => item.path === SOURCE)!;
   return {
     context,
@@ -106,9 +84,11 @@ it("retries an invalid canonical assessment once without accepting its source ha
     failureCode: null,
   });
   expect(reviewKnowledgeJson).toHaveBeenCalledTimes(2);
-  const retry = vi.mocked(reviewKnowledgeJson).mock.calls[1]![0];
-  expect(retry.prompt).toContain("The previous response failed the exact assessment contract.");
-  expect(retry.untrustedSourceData).toHaveProperty("existingDraftTargets");
+  const [first, retry] = vi.mocked(reviewKnowledgeJson).mock.calls.map(([input]) => input);
+  // The retry spends the same durable batch budget instead of opening a new one.
+  expect(retry!.budget).toEqual(first!.budget);
+  expect(retry!.prompt).toContain("The previous response failed the exact assessment contract.");
+  expect(retry!.untrustedSourceData).toHaveProperty("existingDraftTargets");
   expect(
     (
       result.input.stageData.canonicalBatch as {
