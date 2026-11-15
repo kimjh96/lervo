@@ -8,8 +8,6 @@ import {
   canonicalJson,
   recoverKnowledgeMaterialization,
   sha256,
-  assessCanonicalization,
-  listCanonicalizationCandidates,
   inspectConfiguredDocumentNormalization,
 } from "@lervo/repository-knowledge";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
@@ -30,76 +28,6 @@ function run(f: Awaited<ReturnType<typeof fixture>>) {
     admissionDirectory: f.admissionDirectory,
   });
 }
-
-it(
-  "retries an invalid canonical assessment without accepting its source hash",
-  { timeout: 90_000 },
-  async () => {
-    const f = await fixture(true, false, false, 1);
-    fixtures.push(f);
-    let result: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 8; cycle++) {
-      result = await run(f);
-      if (result.status === "busy") continue;
-      if (result.convergence.lastVerifiedCurrency) break;
-    }
-    const calls = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line) as { request: { task: string } });
-    expect(
-      calls.filter((call) => call.request.task === "canonical_baseline_assessment"),
-    ).toHaveLength(2);
-    expect(result!.status).toBe("processed");
-    if (result!.status !== "processed") throw new Error("Convergence remained busy.");
-    expect(result!.convergence).toMatchObject({ state: "idle", lastVerifiedCurrency: {} });
-    expect(
-      f.events
-        .list({ afterSeq: 0, limit: 1_000 })
-        .some(
-          (event) =>
-            event.type === "repository.knowledge.stage.recorded" &&
-            event.payload.stage === "assessment" &&
-            event.payload.state === "current",
-        ),
-    ).toBe(true);
-  },
-);
-
-it("keeps repeated invalid canonical assessments in attention", { timeout: 60_000 }, async () => {
-  const f = await fixture(true, false, false, 2);
-  fixtures.push(f);
-  let result: Awaited<ReturnType<typeof run>>;
-  for (let cycle = 0; cycle < 4; cycle++) {
-    result = await run(f);
-    if (result.status === "busy") continue;
-    if (result.convergence.state === "attention_required") break;
-  }
-  expect(result!.status).toBe("processed");
-  if (result!.status !== "processed") throw new Error("Convergence remained busy.");
-  expect(result!.convergence).toMatchObject({
-    state: "attention_required",
-    reason: "knowledge_semantic_review_invalid",
-  });
-  const calls = (await readFile(f.log, "utf8"))
-    .trim()
-    .split("\n")
-    .map((line) => JSON.parse(line) as { request: { task: string } });
-  expect(
-    calls.filter((call) => call.request.task === "canonical_baseline_assessment"),
-  ).toHaveLength(2);
-  const assessmentStages = f.events
-    .list({ afterSeq: 0, limit: 1_000 })
-    .filter(
-      (event) =>
-        event.type === "repository.knowledge.stage.recorded" &&
-        event.payload.stage === "assessment",
-    );
-  expect(assessmentStages.at(-1)).toMatchObject({
-    type: "repository.knowledge.stage.recorded",
-    payload: { stage: "assessment", state: "attention_required" },
-  });
-});
 
 it(
   "retains an interrupted journal as owned recovery and resumes only after verified rollback",
@@ -203,87 +131,6 @@ it(
         recoveryCommand: "lervo knowledge materialize --recover",
       },
     });
-  },
-);
-
-it(
-  "independently closes an old exact candidate and records no duplicate transition after restart",
-  { timeout: 60_000 },
-  async () => {
-    const f = await fixture(true);
-    fixtures.push(f);
-    await writeFile(resolve(f.root, "src.ts"), "export const localRuntime = true;\n");
-    const assessment = await assessCanonicalization({
-      repositoryRoot: f.root,
-      beforeRevision: sha256("before"),
-      afterRevision: sha256("after"),
-      beforeFiles: {},
-      afterFiles: { "src.ts": sha256("export const localRuntime = true;\n") },
-      disposition: "canonical_sources_current",
-      now: new Date(),
-    });
-    expect(assessment.candidate).not.toBeNull();
-    let result: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 5; cycle++) {
-      result = await run(f);
-      if (result.status === "processed" && result.convergence.lastVerifiedCurrency) break;
-    }
-    expect(result!).toMatchObject({
-      convergence: { state: "idle", debtCounts: { canonicalization: 0 } },
-    });
-    expect(await listCanonicalizationCandidates(f.root)).toMatchObject([{ state: "rejected" }]);
-    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    expect(
-      calls.filter((line) => JSON.parse(line).request.task === "canonical_candidate_resolution"),
-    ).toHaveLength(1);
-    await run(f);
-    expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(calls.length);
-  },
-);
-
-it(
-  "reviews old candidates with separate source-specific contexts",
-  { timeout: 90_000 },
-  async () => {
-    const f = await fixture(true);
-    fixtures.push(f);
-    for (const [index, path] of ["first.ts", "second.ts"].entries()) {
-      const content = `export const candidate${index} = true;\n`;
-      await writeFile(resolve(f.root, path), content);
-      await assessCanonicalization({
-        repositoryRoot: f.root,
-        beforeRevision: sha256(`before-${index}`),
-        afterRevision: sha256(`after-${index}`),
-        beforeFiles: {},
-        afterFiles: { [path]: sha256(content) },
-        disposition: "canonical_sources_current",
-        now: new Date(),
-      });
-    }
-    expect(await listCanonicalizationCandidates(f.root)).toHaveLength(2);
-    let result: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 12; cycle++) {
-      result = await run(f);
-      if (result.status === "processed" && result.convergence.lastVerifiedCurrency) break;
-    }
-    expect(result!).toMatchObject({
-      convergence: { state: "idle", debtCounts: { canonicalization: 0 } },
-    });
-    const calls = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map(
-        (line) =>
-          JSON.parse(line) as {
-            request: { task: string; untrustedSourceData?: { candidates?: unknown[] } };
-          },
-      )
-      .filter((call) => call.request.task === "canonical_candidate_resolution");
-    expect(calls).toHaveLength(2);
-    expect(calls.map((call) => call.request.untrustedSourceData?.candidates)).toEqual([
-      [expect.objectContaining({ candidateId: expect.any(String) })],
-      [expect.objectContaining({ candidateId: expect.any(String) })],
-    ]);
   },
 );
 

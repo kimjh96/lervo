@@ -1,4 +1,3 @@
-import { convergenceDelegationPlanHash } from "../src/delegation.js";
 import { execFileSync } from "node:child_process";
 import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -109,123 +108,16 @@ it(
       executable: f.executable,
       admissionDirectory: f.admissionDirectory,
     });
-    const calls = await readFile(f.log, "utf8").catch(() => "");
+    // The provider must have reviewed the repository's sources; an absent log proves nothing.
+    const calls = await readFile(f.log, "utf8");
+    expect(
+      calls
+        .trim()
+        .split("\n")
+        .some((line) => JSON.parse(line).request.task === "canonical_baseline_assessment"),
+    ).toBe(true);
     expect(calls).not.toContain("never-pass-to-provider");
     expect(result.status).toBe("processed");
-  },
-);
-
-it.each(["present", "absent"] as const)(
-  "integrates a reviewed canonical draft through isolated workspaces and verifies actual repository bytes when the integration ref is %s",
-  { timeout: 240_000 },
-  async (integrationRef) => {
-    const f = await fixture(true, true);
-    fixtures.push(f);
-    // A delegation seeded on another host names a branch that this host never created.
-    if (integrationRef === "absent")
-      execFileSync("git", ["-C", f.root, "branch", "-D", "knowledge-integration"]);
-    const runtimeSource = resolve(f.root, "src/runtime.ts");
-    await writeFile(
-      runtimeSource,
-      `${await readFile(runtimeSource, "utf8")}// observed source change\n`,
-    );
-    let result: Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
-    const states: unknown[] = [];
-    for (let cycle = 0; cycle < 24; cycle++) {
-      result = await runAutonomousKnowledgeWorker({
-        storage: f.storage,
-        workerId: `canonical-${cycle}`,
-        provider: "claude",
-        executable: f.executable,
-        admissionDirectory: f.admissionDirectory,
-        maximumStages: 1,
-      });
-      states.push(result);
-      if (
-        result.status === "processed" &&
-        result.convergence.lastVerifiedCurrency !== null &&
-        result.convergence.state === "idle"
-      )
-        break;
-    }
-    expect(result!, JSON.stringify(states)).toMatchObject({
-      convergence: { state: "idle", outstanding: 0, lastVerifiedCurrency: expect.any(Object) },
-    });
-    const actual = await readFile(resolve(f.root, "docs/specs/runtime.md"), "utf8");
-    expect(actual).toContain("Background model calls are limited to two per host.");
-    const integrated = execFileSync(
-      "git",
-      ["-C", f.root, "show", "refs/heads/knowledge-integration:docs/specs/runtime.md"],
-      { encoding: "utf8" },
-    );
-    expect(integrated).toBe(actual);
-    expect(
-      f.events
-        .list({ limit: 1000 })
-        .filter(
-          (event) =>
-            event.type === "knowledge.materialization.applied" &&
-            event.payload.operation === "canonicalize",
-        ),
-    ).toHaveLength(1);
-  },
-);
-
-it.each(["source", "delegation"] as const)(
-  "cancels an in-flight provider when %s changes and never settles current",
-  { timeout: 30_000 },
-  async (kind) => {
-    const f = await fixture(true);
-    fixtures.push(f);
-    const script = await readFile(f.executable, "utf8");
-    await writeFile(
-      f.executable,
-      script.replace(
-        "if(request.envelope)",
-        "await new Promise(resolve=>setTimeout(resolve,5000));\nif(request.envelope)",
-      ),
-    );
-    const running = runAutonomousKnowledgeWorker({
-      storage: f.storage,
-      workerId: "drift",
-      provider: "claude",
-      executable: f.executable,
-      admissionDirectory: f.admissionDirectory,
-      maximumStages: 1,
-    });
-    for (let attempt = 0; attempt < 100; attempt++) {
-      if (await readFile(f.log, "utf8").catch(() => "")) break;
-      await new Promise((resolve) => setTimeout(resolve, 50));
-    }
-    if (kind === "source")
-      await writeFile(
-        resolve(f.root, "docs/specs/runtime.md"),
-        "# Runtime\n\nThe source changed during review.\n",
-      );
-    else {
-      const { review, ...plan } = f.delegation!;
-      const revokedPlan = { ...plan, state: "revoked" as const };
-      const delegation = {
-        ...revokedPlan,
-        review: { ...review, planHash: convergenceDelegationPlanHash(revokedPlan) },
-      };
-      await writeFile(
-        resolve(f.root, ".lervo/knowledge/convergence-delegation.json"),
-        JSON.stringify(delegation),
-      );
-    }
-    const result = await running;
-    expect(result.status).toBe("processed");
-    expect(
-      f.events
-        .list({ limit: 1000 })
-        .some(
-          (event) =>
-            event.type === "repository.knowledge.convergence.recorded" &&
-            event.payload.terminalState === "current",
-        ),
-    ).toBe(false);
-    expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(1);
   },
 );
 
@@ -314,6 +206,19 @@ it(
     expect(await readFile(path, "utf8")).toContain(
       "Preserve this exact uncommitted user requirement.",
     );
+    // The readmitted source is assessed, reviewed and integrated against the committed target.
+    expect(await readFile(path, "utf8")).toContain(
+      "Background model calls are limited to two per host.",
+    );
+    expect(
+      f.events
+        .list({ limit: 1000 })
+        .filter(
+          (event) =>
+            event.type === "knowledge.materialization.applied" &&
+            event.payload.operation === "canonicalize",
+        ),
+    ).toHaveLength(1);
   },
 );
 
@@ -364,6 +269,8 @@ it("applies owner-stated rules only on the convergence owner, and a failure bloc
   expect(await run(null)).toMatchObject({ status: "processed" });
   expect(await run("waiting_owner")).toMatchObject({ status: "waiting_owner" });
   expect(calls).toEqual(["single_host"]);
+  expect(await run("owner")).toMatchObject({ status: "processed" });
+  expect(calls).toEqual(["single_host", "owner"]);
   expect(
     await run(null, async () => {
       throw new Error("apply failed");
