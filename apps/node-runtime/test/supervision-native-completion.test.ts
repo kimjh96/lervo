@@ -47,10 +47,11 @@ afterEach(async () => {
 interface NativeCompletionVariation extends NativeCompletionProviderVerdicts {
   /** The owner completes after the original lease expired, as a settled v3 completion. */
   late?: true;
-  /** One durable receipt append fails, so its round is uncertain until a restarted runtime. */
+  /** The first append of one durable receipt fails, so that exact round is uncertain until a
+   * restarted runtime recovers it. */
   receiptFailure?: {
     type: "assignment.completion.reconciled" | "assignment.reopened";
-    occurrence: number;
+    round: number;
     assignmentStatus: "leased" | "completed";
   };
   /** A transport without an origin conversation never sends the locally accepted result. */
@@ -70,19 +71,35 @@ const variations: Record<string, NativeCompletionVariation> = {
     late: true,
     receiptFailure: {
       type: "assignment.completion.reconciled",
-      occurrence: 1,
+      round: 2,
       assignmentStatus: "leased",
     },
     localTransport: true,
     parallelReview: true,
   },
+  // A reviewed rejection reopens the completed root attempt.
   rework: {
-    writingRejections: 1,
+    writingRejections: 0,
     reviewRejections: 1,
-    receiptFailure: { type: "assignment.reopened", occurrence: 2, assignmentStatus: "completed" },
+    receiptFailure: { type: "assignment.reopened", round: 6, assignmentStatus: "completed" },
+  },
+  // A writing rejection reopens the still-leased root attempt under a successor mandate.
+  writing_rework: {
+    writingRejections: 1,
+    reviewRejections: 0,
     successorAfterWritingRejection: true,
   },
-  publication_retry: { writingRejections: 0, reviewRejections: 0, publication: true },
+  // The v1 completion receipt is recovered here; normal recovers a late v3 receipt.
+  publication_retry: {
+    writingRejections: 0,
+    reviewRejections: 0,
+    publication: true,
+    receiptFailure: {
+      type: "assignment.completion.reconciled",
+      round: 2,
+      assignmentStatus: "leased",
+    },
+  },
 };
 
 /** Owner decisions and supervision rounds implied by the rejected attempts before acceptance. */
@@ -165,7 +182,8 @@ async function installSuccessorMandate(f: Awaited<ReturnType<typeof dispatchFixt
     mandate: {
       ...f.mandate,
       version: f.mandate.version + 1,
-      maximumAttemptsPerAssignment: f.mandate.maximumAttemptsPerAssignment + 1,
+      // Exactly the two attempts of a single rework, so the retry limit boundary is exercised.
+      maximumAttemptsPerAssignment: 2,
     },
     supervisionId: f.binding.supervisionId,
     reviewerId: f.mandate.appointingAuthorityId,
@@ -226,15 +244,13 @@ it.each(Object.keys(variations))(
     const rework = expected.attempts > 1;
     const failure = variation.receiptFailure;
     let receiptFailures = 0;
-    let recoveredReceiptFailures = 0;
     if (failure !== undefined) {
       const append = SQLiteEventStore.prototype.append;
-      let occurrences = 0;
       vi.spyOn(SQLiteEventStore.prototype, "append").mockImplementation(function (
         this: SQLiteEventStore,
         draft,
       ) {
-        if (draft.type === failure.type && ++occurrences === failure.occurrence) {
+        if (draft.type === failure.type && receiptFailures === 0) {
           receiptFailures++;
           throw new Error("fixture_event_failure");
         }
@@ -355,7 +371,8 @@ it.each(Object.keys(variations))(
           await expiryClock!.advancePast(f.assignment.lease!.expiresAt);
         }
         let cycle = await runtime.runCycle();
-        if (receiptFailures > recoveredReceiptFailures) {
+        expect(receiptFailures).toBe(failure !== undefined && i >= failure.round ? 1 : 0);
+        if (failure !== undefined && i === failure.round) {
           expect(cycle.disposition).toBe("uncertain");
           expect(await listAssignments(f.root)).toMatchObject([
             { status: failure!.assignmentStatus },
@@ -363,7 +380,6 @@ it.each(Object.keys(variations))(
           await runtime.close();
           runtime = await openRuntime();
           cycle = await runtime.runCycle();
-          recoveredReceiptFailures++;
         }
         cycles.push(cycle);
         expect(cycle.disposition, JSON.stringify({ cycles, attention: f.attention })).toBe(
@@ -390,7 +406,6 @@ it.each(Object.keys(variations))(
         }
       }
       expect(receiptFailures).toBe(failure === undefined ? 0 : 1);
-      expect(recoveredReceiptFailures).toBe(receiptFailures);
       if (variation.publication) {
         for (let i = 0; i < 2; i++)
           expect((await runtime.runCycle()).disposition, JSON.stringify(f.attention)).toBe(
