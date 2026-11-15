@@ -102,12 +102,17 @@ it("parks an always-rejected document, carries it to the next obligation, and re
   expect(f.events.latest()!.eventHash).toBe(head);
   expect(await providerRequests(f)).toHaveLength(calls);
 
-  // An unrelated change opens a new obligation; the parked bytes are not generated again.
+  // An unrelated change opens a new obligation; the parked bytes are neither generated nor
+  // reviewed again, so the provider sees only the new source's canonical assessment and review.
   await writeFile(resolve(f.root, "note.ts"), "export const note = 1;\n");
   expect(await settleParking(f)).toMatchObject({
     convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
   });
   expect(await generations()).toBe(3);
+  expect((await providerRequests(f)).slice(calls).map((request) => request.task)).toEqual([
+    "canonical_baseline_assessment",
+    "independent_canonical_review",
+  ]);
 
   // Editing the parked document is the recovery: its new bytes are generated again.
   await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this exact local contract.\n");

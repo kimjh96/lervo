@@ -6,7 +6,7 @@ import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import type { fixture } from "./fixture.js";
 
 /** Readers and drivers shared by the end-to-end parking and canonical rejection cases. */
-export type ConvergenceFixture = Awaited<ReturnType<typeof fixture>>;
+type ConvergenceFixture = Awaited<ReturnType<typeof fixture>>;
 
 export function runParkingWorker(f: ConvergenceFixture) {
   return runAutonomousKnowledgeWorker({

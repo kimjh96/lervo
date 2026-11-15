@@ -182,14 +182,6 @@ it(
         .filter((request) => request.task === "canonical_baseline_assessment")
         .flatMap((request) => request.untrustedSourceData!.independentReviewFeedback ?? []),
     ).toEqual([legacyRationale]);
-    // Parking the last canonical batch still normalizes the rest.
-    expect((await providerRequests(f)).some((request) => request.envelope)).toBe(false);
-    await run();
-    expect(
-      (await providerRequests(f)).some((request) =>
-        request.envelope?.documents.some((document) => document.path === "docs/specs/runtime.md"),
-      ),
-    ).toBe(true);
     // The obligation runs to its final attention with only the parked source left.
     let result: Awaited<ReturnType<typeof run>> | undefined;
     for (let i = 0; i < 32; i++) {
@@ -215,6 +207,12 @@ it(
         },
       ],
     });
+    // Parking the last canonical batch still normalizes the rest before the final attention.
+    expect(
+      (await providerRequests(f)).some((request) =>
+        request.envelope?.documents.some((document) => document.path === "docs/specs/runtime.md"),
+      ),
+    ).toBe(true);
     expect(
       (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
     ).toEqual([]);
