@@ -46,6 +46,7 @@ it(
     };
     const host = createConvergenceRuntimeHost(context);
     let legacyRationale: string | undefined;
+    let legacyDependency: string | undefined;
     for (let i = 0; i < 8; i++) {
       const status = await processKnowledgeConvergence({
         events: f.events,
@@ -75,6 +76,7 @@ it(
                 result: proof.proof.review,
               }),
             );
+            legacyDependency = dependency.contentHash;
             return {
               state: "attention_required" as const,
               input: state,
@@ -107,35 +109,42 @@ it(
           (line) =>
             JSON.parse(line).request as {
               task: string;
+              envelope?: { documents: { path: string }[] };
               untrustedSourceData: { independentReviewFeedback?: unknown };
             },
         );
     const reviews = async () =>
       (await requests()).filter((request) => request.task === "independent_canonical_review");
     expect(await reviews()).toHaveLength(1);
-    // The upgraded worker requeues the stall once and judges the retained rejection again. The case
-    // stops once the single source is parked; convergence-parking.test.ts covers what follows.
-    const parked = async () => {
-      const review = f.events
-        .list({ limit: 1000, types: ["repository.knowledge.stage.recorded"] })
-        .findLast((e) => e.payload.stage === "canonical_review" && e.payload.state === "current");
-      if (review === undefined) return [];
-      const result = JSON.parse(
+    const artifact = async <T>(hash: unknown) =>
+      JSON.parse(
         Buffer.from(
-          await f.artifacts.get(
-            `lervo-cas://sha256/${(review.payload.resultArtifactHash as string).slice(7)}`,
-          ),
+          await f.artifacts.get(`lervo-cas://sha256/${(hash as string).slice(7)}`),
         ).toString("utf8"),
-      ) as KnowledgeConvergenceInput;
-      return obligationParkedSources(result).map(({ stage, path, reason, attempts }) => ({
-        stage,
-        path,
-        reason,
-        attempts,
-      }));
+      ) as T;
+    const settledReviews = async () =>
+      Promise.all(
+        f.events
+          .list({ limit: 1000, types: ["repository.knowledge.stage.recorded"] })
+          .filter((e) => e.payload.stage === "canonical_review" && e.payload.state === "current")
+          .map((e) => artifact<KnowledgeConvergenceInput>(e.payload.resultArtifactHash)),
+      );
+    // The upgraded worker requeues the stall once and judges the retained rejection again. The case
+    // stops after the parked source hands over to normalization; convergence-parking.test.ts covers
+    // the rest of the obligation.
+    const parked = async () => {
+      const latest = (await settledReviews()).at(-1);
+      return latest === undefined
+        ? []
+        : obligationParkedSources(latest).map(({ stage, path, reason, attempts }) => ({
+            stage,
+            path,
+            reason,
+            attempts,
+          }));
     };
-    for (let i = 0; i < 8 && (await parked()).length === 0; i++)
-      await runAutonomousKnowledgeWorker({
+    const run = () =>
+      runAutonomousKnowledgeWorker({
         storage: f.storage,
         workerId: "rejection",
         provider: "claude",
@@ -143,17 +152,43 @@ it(
         admissionDirectory: f.admissionDirectory,
         maximumStages: 1,
       });
+    for (let i = 0; i < 8 && (await parked()).length === 0; i++) await run();
     expect(await parked()).toEqual([
       { stage: "canonical", path: "docs/specs/runtime.md", reason: "review_rejected", attempts: 2 },
     ]);
-    // The retained rejection is the first attempt: one fresh review, after one re-assessment
-    // that carries the retained reviewer's rationale.
+    // The requeued review settles from the retained artifact, so it neither calls the provider nor
+    // replays a cached review; that retained rejection is the first of the two bounded attempts.
+    const proofs = await Promise.all(
+      (await settledReviews()).map(
+        async (input) =>
+          (
+            await artifact<{
+              proof: { status: string; evidence?: { retainedArtifact?: { artifactHash: string } } };
+            }>(input.receipts.find((receipt) => receipt.stage === "canonical_review")!.artifactHash)
+          ).proof,
+      ),
+    );
+    expect(
+      proofs.map((proof) => [proof.status, proof.evidence?.retainedArtifact?.artifactHash ?? null]),
+    ).toEqual([
+      ["review_rejected_for_bounded_retry", legacyDependency],
+      ["source_parked", null],
+    ]);
     expect(await reviews()).toHaveLength(2);
+    // One re-assessment carries the retained reviewer's rationale.
     expect(
       (await requests())
         .filter((request) => request.task === "canonical_baseline_assessment")
         .flatMap((request) => request.untrustedSourceData.independentReviewFeedback ?? []),
     ).toEqual([legacyRationale]);
+    // Parking the last canonical batch still normalizes the rest.
+    expect((await requests()).some((request) => request.envelope)).toBe(false);
+    await run();
+    expect(
+      (await requests()).some((request) =>
+        request.envelope?.documents.some((document) => document.path === "docs/specs/runtime.md"),
+      ),
+    ).toBe(true);
   },
 );
 
