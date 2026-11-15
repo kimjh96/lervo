@@ -52,7 +52,7 @@ it("reports each top-level statement that is not a declaration", () => {
       "export const table = new Map([[1, 2]]);",
       "let counter = 0;",
       "export function run() { counter += 1; }",
-      "export class Engine { static instance = new Engine(); }",
+      "export class Engine { static mode = 1; }",
       "export enum Mode { A }",
       "export interface Shape {}",
       "export type Alias = string;",
@@ -95,7 +95,7 @@ it("finds every value-import cycle, including a module importing itself", () => 
   ).toEqual([]);
 });
 
-function repository(files) {
+function repository(files, reviewedCallees = new Map()) {
   writeFiles(root, {
     "vitest.config.ts": `import { defineConfig } from "vitest/config";
 const fromRoot = (path: string) => path;
@@ -120,6 +120,7 @@ export default defineConfig({
   return inspectSourceModuleEvaluation({
     repositoryRoot: root,
     reviewedSideEffects: new Map([["packages/two/src/reviewed.ts", ["assertReady(ready);"]]]),
+    reviewedCallees,
   });
 }
 
@@ -147,5 +148,50 @@ it("fails a new or changed top-level side effect, and a stale review", () => {
     "packages/one/src/value.ts:3: top-level side effect: globalThis.one = one;",
     "packages/two/src/reviewed.ts:2: top-level side effect: assertReady(!ready);",
     "packages/two/src/reviewed.ts: reviewed side effect no longer present: assertReady(ready);",
+  ]);
+});
+
+it("fails a module that registers into another module's state behind a barrel", () => {
+  // Review repro: with direct imports a test reaches zz-b.ts without evaluating zz-a.ts.
+  const { issues } = repository({
+    "packages/one/src/index.ts":
+      'export * from "./value.js";\nexport * from "./zz-a.js";\nexport * from "./zz-b.js";\n',
+    "packages/one/src/zz-registry.ts": "export const zzRegistry: string[] = [];\n",
+    "packages/one/src/zz-a.ts":
+      'import { zzRegistry } from "./zz-registry.js";\nexport const zzRegisteredA = zzRegistry.push("a");\n',
+    "packages/one/src/zz-b.ts":
+      'import { zzRegistry } from "./zz-registry.js";\nexport function zzRegisteredNames() {\n  return [...zzRegistry];\n}\n',
+  });
+  expect(issues).toEqual([
+    'packages/one/src/zz-a.ts:2: top-level side effect: zzRegistry.push("a")',
+  ]);
+});
+
+it("fails a class static block that acts when the module is evaluated", () => {
+  const { issues } = repository({
+    "packages/one/src/value.ts":
+      'import { two } from "@lervo/two";\nimport { zzRegistry } from "./zz-registry.js";\nexport const one = two;\nexport class Registered {\n  static {\n    zzRegistry.push("registered");\n  }\n}\n',
+    "packages/one/src/zz-registry.ts": "export const zzRegistry: string[] = [];\n",
+  });
+  expect(issues).toEqual([
+    'packages/one/src/value.ts:5: top-level side effect: static {\n    zzRegistry.push("registered");\n  }',
+  ]);
+});
+
+it("passes a reviewed repository callee by its declaring module, and fails a stale review", () => {
+  const files = {
+    "packages/two/src/index.ts":
+      'export const two = 2;\nexport * from "./reviewed.js";\nexport { digest } from "./digest.js";\n',
+    "packages/two/src/digest.ts": "export function digest(value: string) {\n  return value;\n}\n",
+    "packages/one/src/value.ts":
+      'import { two, digest } from "@lervo/two";\nexport const one = digest(String(two));\n',
+  };
+  expect(repository(files).issues).toEqual([
+    "packages/one/src/value.ts:2: top-level side effect: digest(String(two))",
+  ]);
+  const reviewed = new Map([["packages/two/src/digest.ts#digest", "Returns its argument."]]);
+  expect(repository(files, reviewed).issues).toEqual([]);
+  expect(repository({}, reviewed).issues).toEqual([
+    "packages/two/src/digest.ts#digest: reviewed callee is no longer called",
   ]);
 });
