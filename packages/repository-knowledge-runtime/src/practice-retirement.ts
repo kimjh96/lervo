@@ -13,7 +13,7 @@ import { ordinaryConvergenceSourceBytes } from "./source-file.js";
 import { practiceWriteAuthority } from "./practice-materialization.js";
 import { discoverConvergenceBaseline } from "./baseline.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
-import { assertConvergenceSource } from "./host.js";
+import { assertConvergenceSourceCurrent, assertConvergenceSourceExact } from "./host.js";
 import { sealCanonicalDrafts } from "./canonical-workspace.js";
 import { withPracticeAssignment } from "./practice-assignment.js";
 import { prepareCanonicalGitIntegration } from "./canonical-integration-candidate.js";
@@ -64,7 +64,8 @@ export async function retirePracticeSkill(
   };
   const runtime: ConvergenceRuntimeContext = {
     ...context,
-    assertSource: (state) => assertConvergenceSource(runtime, state),
+    assertSourceExact: (state) => assertConvergenceSourceExact(runtime, state),
+    assertSourceCurrent: (state) => assertConvergenceSourceCurrent(runtime, state),
   };
   const sealed = await withPracticeAssignment({
     context,
@@ -95,15 +96,18 @@ export async function retirePracticeSkill(
         { action: "delete" as const, path: skill.path, expectedCurrentHash: skill.versionHash },
       ];
       const planId = `kstruct_${sha256(`${skill.candidateId}:retire:${skill.versionHash}`).slice(7, 31)}`;
+      const documentLayoutPermit = await authorizeCurrentRepositoryDocumentLayout({
+        repositoryRoot: root,
+        operations,
+      });
+      // Root deletion, its commit and the retirement event follow; another writer must refuse them.
+      runtime.assertSourceExact(input);
       await applyDurableKnowledgeOperations({
         repositoryRoot: root,
         projectId: context.storage.manifest.projectId,
         planId,
         operations,
-        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
-          repositoryRoot: root,
-          operations,
-        }),
+        documentLayoutPermit,
         receipt: { candidateId: skill.candidateId, integration: result.integration },
         recordApplied: (receipt) =>
           recordConvergenceMaterialization(context.storage, {

@@ -17,6 +17,7 @@ import {
 } from "./convergence-parking.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /** While the cursor is inside a rejected span, worksets hold at most `limit` sources. */
 interface CanonicalIsolation {
@@ -76,7 +77,7 @@ export async function isolateRejectedCanonicalBatch(input: {
   const { batch, state } = input;
   const assessmentHash = sha256(canonicalJson(batch.assessment));
   const common = {
-    repositoryRoot: input.context.storage.paths.repositoryRoot,
+    sources: convergenceSourceObservation(input.context),
     artifacts: input.context.storage.artifacts,
     state,
     stage: "canonical_review" as const,

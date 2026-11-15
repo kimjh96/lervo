@@ -48,17 +48,19 @@ export async function integrateCanonicalWorkspace(
     integration,
     operations: operations.map(({ path, desiredHash }) => ({ path, desiredHash })),
   };
+  const documentLayoutPermit = await authorizeCurrentRepositoryDocumentLayout({
+    repositoryRoot: root,
+    operations,
+  });
   await authority.assertCurrent();
-  context.assertSource(state);
+  // No other await separates this fence from the first write.
+  context.assertSourceExact(state);
   await applyDurableKnowledgeOperations({
     repositoryRoot: root,
     projectId: state.baseline.projectId,
     planId,
     operations,
-    documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
-      repositoryRoot: root,
-      operations,
-    }),
+    documentLayoutPermit,
     receipt,
     recordApplied: async (effect) => {
       await authority.assertCurrent();
@@ -90,5 +92,6 @@ export async function integrateCanonicalWorkspace(
       });
     },
   });
+  context.sourceObservation?.noteChange();
   return receipt;
 }

@@ -188,7 +188,7 @@ export async function inspectRetainedCanonicalIntegration(
     integratedWorkspaceIds: attempt.sources.map((item) => item.workspaceId),
     recordedAt: attempt.updatedAt,
   };
-  context.assertSource(state);
+  context.assertSourceCurrent(state);
   return {
     sealedInput,
     plan,

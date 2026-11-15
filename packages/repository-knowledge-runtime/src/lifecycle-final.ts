@@ -42,9 +42,9 @@ import { recordConvergenceMaterialization } from "./materialization-event.js";
 import { verifyConvergenceEffect } from "./stage-verification.js";
 import { pathWithinConvergenceRoots } from "./delegation.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
-import { captureConvergenceSources } from "./source-capture.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 export async function verifyConvergenceLifecycle(
   context: ConvergenceRuntimeContext,
@@ -56,7 +56,7 @@ export async function verifyConvergenceLifecycle(
   // A pre-ADR-0479 obligation retained a canonical rejection here; canonical isolation resumes it.
   if (state.stageData.canonicalRejection != null)
     return completeConvergenceStage({
-      repositoryRoot: root,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "lifecycle_verification",
@@ -102,7 +102,7 @@ export async function verifyConvergenceLifecycle(
       const rejection = lifecyclePlanRejection(error);
       if (rejection === null || !bridgePlan) throw error;
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "lifecycle_verification",
@@ -143,7 +143,7 @@ export async function verifyConvergenceLifecycle(
         )
           throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
         await authority.assertCurrent();
-        context.assertSource(state);
+        context.assertSourceExact(state);
         const record = async (receipt: unknown) => {
           await authority.assertCurrent();
           const validation = await lintRepositoryKnowledge(
@@ -179,8 +179,9 @@ export async function verifyConvergenceLifecycle(
                 : {}),
             })
           : await applyKnowledgeMigrationPlan(plan, new Date(), record);
+        context.sourceObservation?.noteChange();
         return completeConvergenceStage({
-          repositoryRoot: root,
+          sources: convergenceSourceObservation(context),
           artifacts: context.storage.artifacts,
           state,
           stage: "lifecycle_verification",
@@ -192,10 +193,12 @@ export async function verifyConvergenceLifecycle(
       },
     });
   }
-  const before = captureConvergenceSources(root, state.baseline.policyHash);
+  // The pair proves currency and lint read one stable snapshot; the asset settlement below fences.
+  const sources = convergenceSourceObservation(context);
+  const before = sources.current(state.baseline.policyHash);
   const currency = await inspectRepositoryKnowledgeCurrency(root);
   const lint = await lintRepositoryKnowledge(root);
-  const after = captureConvergenceSources(root, state.baseline.policyHash);
+  const after = sources.current(state.baseline.policyHash);
   const expectedSources = convergenceAssessmentSources(state);
   const offset = Number(state.stageData.canonicalOffset ?? 0);
   if (before.snapshotHash !== after.snapshotHash)
@@ -283,14 +286,14 @@ export async function verifyConvergenceLifecycle(
         authority,
         state.baseline.policyHash,
       );
-      context.assertSource(state);
+      context.assertSourceExact(state);
       const assetSettlement = await recordConvergenceAssetSettlement(
         context.storage.artifacts,
         assets,
         verification,
       );
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "lifecycle_verification",

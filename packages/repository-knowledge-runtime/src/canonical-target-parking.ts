@@ -16,6 +16,7 @@ import {
 } from "./convergence-parking.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /**
  * ADR-0530: an approved batch whose draft targets diverged on the integration ref integrates
@@ -82,7 +83,7 @@ export async function parkCanonicalTargetBatch(
     }));
   const end = batch.offset + batch.count;
   return completeConvergenceStage({
-    repositoryRoot: context.storage.paths.repositoryRoot,
+    sources: convergenceSourceObservation(context),
     artifacts: context.storage.artifacts,
     state,
     stage: "canonical_integration",

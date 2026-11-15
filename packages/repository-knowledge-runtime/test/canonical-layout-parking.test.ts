@@ -1,3 +1,4 @@
+import { appendFileSync } from "node:fs";
 import { access, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { parse, stringify } from "yaml";
@@ -12,6 +13,10 @@ import { carriedParkedSources, type ParkedConvergenceSource } from "../src/conve
 import type { CanonicalBatch } from "../src/canonical-review.js";
 import * as recovery from "../src/canonical-integration-recovery.js";
 import * as capacityRecovery from "../src/canonical-capacity-recovery.js";
+import { assertConvergenceSourceCurrent, assertConvergenceSourceExact } from "../src/host.js";
+import { captureConvergenceSources } from "../src/source-capture.js";
+import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
+import { lyingSourceObservation } from "./lying-source-observation.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -110,7 +115,8 @@ it.each([
         provider: "claude",
         signal: new AbortController().signal,
         liveWorkPending: async () => false,
-        assertSource: () => {},
+        assertSourceExact: () => {},
+        assertSourceCurrent: () => {},
       },
       state,
       () => {},
@@ -213,4 +219,79 @@ it("carries capacity parking until source bytes, counts, or policy change", asyn
   await writeFile(layoutPath, stringify(layout));
   await rm(resolve(f.root, "docs/specs/existing-1.md"));
   expect(await carriedParkedSources(store, state)).toEqual([]);
+});
+
+it("refuses the retained ref retirement when an edit lands before its exact fence", async () => {
+  const { f, state } = await repository(32);
+  const sources = state.baseline.assessmentPaths!.map((path) =>
+    state.baseline.sources.find((source) => source.path === path)!,
+  );
+  const batch: CanonicalBatch = {
+    offset: 0,
+    count: 2,
+    sources,
+    context: [],
+    batchId: "layout",
+    generatorAgentId: "generator",
+    assessment: {
+      decisions: sources.map((source) => ({
+        path: source.path,
+        contentHash: source.contentHash,
+        disposition: "candidate",
+        rationale: "Exact fixture decision.",
+        canonicalReferences: [],
+      })),
+      drafts: ["docs/specs/new-a.md", "docs/specs/new-b.md"].map((path) => ({
+        path,
+        beforeHash: null,
+        content: "# Reviewed draft\n",
+      })),
+    },
+  };
+  state.snapshotHash = captureConvergenceSources(f.root, state.baseline.policyHash).snapshotHash;
+  state.stageData = {
+    canonicalBatch: batch,
+    canonicalApproval: {
+      assessmentHash: sha256(canonicalJson(batch.assessment)),
+      delegationHash: state.baseline.delegationHash,
+      policyHash: state.baseline.policyHash,
+    },
+  };
+  vi.spyOn(recovery, "inspectRetainedCanonicalIntegration").mockResolvedValueOnce({
+    plan: { targetRef: "refs/heads/knowledge-integration" },
+    completion: { targetAfterCommit: "1".repeat(40) },
+  } as unknown as NonNullable<
+    Awaited<ReturnType<typeof recovery.inspectRetainedCanonicalIntegration>>
+  >);
+  let retired = false;
+  vi.spyOn(capacityRecovery, "retireCapacityBlockedRefDrafts").mockImplementationOnce(
+    async (input) => {
+      await input.assertCurrent();
+      retired = true;
+      return { ref: input.ref, before: input.target, after: input.target, paths: [] };
+    },
+  );
+  // The session never notices the edit; only the retirement's exact fence can refuse it.
+  const observation = lyingSourceObservation(f.root, {
+    beforeExact: (site) => {
+      if (site.startsWith("canonical-integration-stage.ts"))
+        appendFileSync(resolve(f.root, "covered.ts"), "// concurrent developer edit\n");
+    },
+  });
+  const context: ConvergenceRuntimeContext = {
+    storage: f.storage,
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    sourceObservation: observation,
+    assertSourceExact: (input) => assertConvergenceSourceExact(context, input),
+    assertSourceCurrent: (input) => assertConvergenceSourceCurrent(context, input),
+  };
+  await expect(integrateCanonicalBaseline(context, state, () => {})).rejects.toMatchObject({
+    code: "source_bytes_changed",
+  });
+  expect(retired).toBe(false);
+  expect(observation.trace.exactSites).toEqual([
+    expect.stringMatching(/^canonical-integration-stage\.ts:/u),
+  ]);
 });

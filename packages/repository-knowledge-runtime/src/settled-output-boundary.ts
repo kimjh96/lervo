@@ -5,8 +5,10 @@ import type {
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 
 import { commitSettledKnowledgeOutputs } from "./knowledge-output-commit.js";
+import { assertConvergenceEffectSources } from "./effect-source-fence.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /**
  * Stages that open a new unit of work. Every earlier materializing stage (canonical integration,
@@ -35,16 +37,25 @@ export async function commitSettledOutputsAtBoundary(
   stage: KnowledgeConvergenceStage,
 ): Promise<KnowledgeConvergenceStageResult | null> {
   const root = context.storage.paths.repositoryRoot;
-  context.assertSource(state);
+  context.assertSourceExact(state);
   const output = await commitSettledKnowledgeOutputs({
     repositoryRoot: root,
     events: context.storage.events,
     artifacts: context.storage.artifacts,
     obligationId: state.obligationId,
+    // Every await of selection and formatting has run; nothing else separates this from `git add`.
+    fenceBeforeStaging: (formatEffects) => {
+      assertConvergenceEffectSources(
+        state,
+        convergenceSourceObservation(context).exact(state.baseline.policyHash),
+        formatEffects,
+      );
+    },
   });
   if (output.head === null) return null;
+  context.sourceObservation?.noteChange();
   return completeConvergenceStage({
-    repositoryRoot: root,
+    sources: convergenceSourceObservation(context),
     artifacts: context.storage.artifacts,
     state,
     stage,

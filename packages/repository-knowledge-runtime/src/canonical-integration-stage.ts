@@ -21,6 +21,7 @@ import {
 } from "./canonical-target-parking.js";
 import { canonicalDocumentLayout, capacityBlocked } from "./canonical-layout.js";
 import { retireCapacityBlockedRefDrafts } from "./canonical-capacity-recovery.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 export async function integrateCanonicalBaseline(
   context: ConvergenceRuntimeContext,
@@ -33,7 +34,7 @@ export async function integrateCanonicalBaseline(
   const end = batch === null ? expectedSources.length : batch.offset + batch.count;
   const finish = (proof: unknown, additional: Record<string, unknown> = {}) =>
     completeConvergenceStage({
-      repositoryRoot: root,
+      sources: convergenceSourceObservation(context),
       artifacts: context.storage.artifacts,
       state,
       stage: "canonical_integration",
@@ -106,9 +107,11 @@ export async function integrateCanonicalBaseline(
                 expectedHash: state.baseline.delegationHash,
                 provider: context.provider,
               });
-              context.assertSource(state);
+              context.assertSourceExact(state);
             },
+            fenceRefWrite: () => context.assertSourceExact(state),
           });
+    if (retiredRefEffect !== undefined) context.sourceObservation?.noteChange();
     return parkCanonicalTargetBatch(context, state, batch, {
       reason: "layout_capacity_exceeded",
       layoutCapacityHash: layout.capacityHash,

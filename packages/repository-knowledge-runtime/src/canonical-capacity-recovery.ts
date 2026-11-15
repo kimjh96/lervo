@@ -14,6 +14,8 @@ export async function retireCapacityBlockedRefDrafts(input: {
   drafts: readonly CanonicalDraft[];
   /** The caller has verified the retained integration proof and rechecks its delegation and source lease. */
   assertCurrent(): Promise<void>;
+  /** An exact source fence, run immediately before the restoring ref write. */
+  fenceRefWrite?: () => void;
 }) {
   const root = input.repositoryRoot;
   await input.assertCurrent();
@@ -40,6 +42,7 @@ export async function retireCapacityBlockedRefDrafts(input: {
     target: input.target,
     head,
     integrated: (path, hash) => drafts.get(path) === hash,
+    ...(input.fenceRefWrite === undefined ? {} : { fenceRefWrite: input.fenceRefWrite }),
   }).catch(async (error: unknown) => {
     if ((await resolveIntegrationTarget(root, input.ref)) !== input.target)
       throw new KnowledgeConvergenceRuntimeError("source_bytes_changed", { cause: error });

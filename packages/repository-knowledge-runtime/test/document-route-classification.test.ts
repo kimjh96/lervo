@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { appendFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -13,9 +15,14 @@ import {
 import { afterEach, expect, it, vi } from "vitest";
 
 import { classifyDeferredDocumentRoutes } from "../src/document-route-classification.js";
+import { assertConvergenceSourceCurrent, assertConvergenceSourceExact } from "../src/host.js";
+import { captureConvergenceSources } from "../src/source-capture.js";
+import { lyingSourceObservation } from "./lying-source-observation.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 
 const providerRequests: Array<{ task: string; request: DocumentRouteClassificationRequest }> = [];
+/** Runs while the provider answers, as another writer would. */
+let duringReview: (() => void) | null = null;
 const assignedPaths: string[][] = [];
 
 vi.mock("../src/delegation.js", async (importOriginal) => {
@@ -44,6 +51,7 @@ vi.mock("../src/provider-call.js", () => ({
   reviewKnowledgeJson: async (input: { task: string; untrustedSourceData: unknown }) => {
     const request = input.untrustedSourceData as DocumentRouteClassificationRequest;
     providerRequests.push({ task: input.task, request });
+    duringReview?.();
     return {
       value: {
         classifications: request.documents.map((document) => ({
@@ -72,6 +80,7 @@ const roots: string[] = [];
 afterEach(async () => {
   providerRequests.length = 0;
   assignedPaths.length = 0;
+  duringReview = null;
   await Promise.all(
     roots
       .splice(0)
@@ -92,6 +101,8 @@ it("classifies outside delegation roots and never queries uncertain bytes twice"
   const context = {
     storage: { paths: { repositoryRoot: root } },
     provider: "codex",
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
   } as unknown as ConvergenceRuntimeContext;
   const state = {
     obligationId: "kobl_fixture",
@@ -145,4 +156,42 @@ it("classifies outside delegation roots and never queries uncertain bytes twice"
   // Uncertain documents are never asked about again for the same bytes.
   expect(await classifyDeferredDocumentRoutes(context, state, () => undefined, after)).toBe(0);
   expect(providerRequests).toHaveLength(1);
+});
+
+it("refuses to record classifications when another writer edits during the review", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-route-classification-"));
+  roots.push(root);
+  await applyInitPlan(await createInitPlan({ root, projectId: "prj_route_classification" }));
+  await mkdir(resolve(root, "notes"), { recursive: true });
+  await writeFile(resolve(root, "notes/runbook.md"), "# Recovery runbook\n\nRestart steps.\n");
+  for (const args of [
+    ["init", "-q", "-b", "main"],
+    ["add", "."],
+    ["-c", "user.name=T", "-c", "user.email=t@lervo.invalid", "commit", "-qm", "fixture"],
+  ])
+    execFileSync("git", ["-C", root, ...args]);
+  const policyHash = "sha256:policy";
+  const state = {
+    obligationId: "kobl_fixture",
+    snapshotHash: captureConvergenceSources(root, policyHash).snapshotHash,
+    stageData: {},
+    baseline: { projectId: "prj_route_classification", delegationHash: null, policyHash },
+  } as unknown as KnowledgeConvergenceInput;
+  // Only an exact fence can notice the edit: decision checks are answered with the old capture.
+  const context = {
+    storage: { paths: { repositoryRoot: root } },
+    provider: "codex",
+    signal: new AbortController().signal,
+    sourceObservation: lyingSourceObservation(root),
+    assertSourceExact: (input: KnowledgeConvergenceInput) =>
+      assertConvergenceSourceExact(context, input),
+    assertSourceCurrent: (input: KnowledgeConvergenceInput) =>
+      assertConvergenceSourceCurrent(context, input),
+  } as unknown as ConvergenceRuntimeContext;
+  duringReview = () => appendFileSync(resolve(root, "notes/runbook.md"), "Edited.\n");
+  const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  await expect(
+    classifyDeferredDocumentRoutes(context, state, () => undefined, plan),
+  ).rejects.toMatchObject({ code: "source_bytes_changed" });
+  expect([...(await loadDocumentRouteClassifications(root)).values()]).toEqual([]);
 });

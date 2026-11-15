@@ -47,7 +47,8 @@ async function waitingReview(contextPath: string) {
     admissionDirectory: f.admissionDirectory,
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource: () => {},
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
   });
   return { f, state, host };
 }

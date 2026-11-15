@@ -1,5 +1,5 @@
 import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
-import { captureConvergenceSources } from "./source-capture.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { withVerificationSourceChanges } from "./verification-source-changes.js";
@@ -11,8 +11,10 @@ export async function verifyConvergenceEffect(
   policyHash: string,
 ): Promise<string[]> {
   const root = context.storage.paths.repositoryRoot;
+  const sources = convergenceSourceObservation(context);
+  // Verification evidence binds exact bytes, so it never reuses a validated observation.
   const observe = async () => {
-    const capture = captureConvergenceSources(root, policyHash);
+    const capture = sources.exact(policyHash);
     return {
       revision: capture.snapshotHash,
       files: new Map(capture.sources.map((source) => [source.path, source.contentHash])),

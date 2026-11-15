@@ -31,7 +31,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
   if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
     throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
   await input.authority.assertCurrent();
-  context.assertSource(input.state);
+  context.assertSourceCurrent(input.state);
   const admission = await acquireKnowledgeProviderAdmission({
     repositoryRoot: context.storage.paths.repositoryRoot,
     provider: context.provider,
@@ -49,7 +49,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
     if (observing) return;
     observing = true;
     void withProcessCostScope("provider_poll", () =>
-      input.authority.assertCurrent().then(() => context.assertSource(input.state)),
+      input.authority.assertCurrent().then(() => context.assertSourceCurrent(input.state)),
     )
       .catch((error: unknown) => controller.abort(error))
       .finally(() => {
@@ -59,7 +59,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
   timer.unref();
   try {
     await input.authority.assertCurrent();
-    context.assertSource(input.state);
+    context.assertSourceCurrent(input.state);
     await reserveConvergenceProviderCall({
       repositoryRoot: context.storage.paths.repositoryRoot,
       obligationId: input.state.obligationId,
@@ -103,7 +103,7 @@ export async function reviewKnowledgeJson(input: {
 }> {
   input = { ...input, context: await admittedBackgroundContext(input.context) };
   await input.authority.assertCurrent();
-  input.context.assertSource(input.state);
+  input.context.assertSourceCurrent(input.state);
   const cache = {
     root: input.context.storage.paths.repositoryRoot,
     artifacts: input.context.storage.artifacts,
@@ -158,7 +158,8 @@ export async function reviewKnowledgeJson(input: {
       if (result.usage === null)
         throw new KnowledgeConvergenceRuntimeError("knowledge_usage_unavailable");
       await input.authority.assertCurrent();
-      input.context.assertSource(input.state);
+      // The observation artifact, the usage event and the review cache follow: exact.
+      input.context.assertSourceExact(input.state);
       const proof = await input.context.storage.artifacts.put(
         canonicalJson({
           schemaVersion: 1,

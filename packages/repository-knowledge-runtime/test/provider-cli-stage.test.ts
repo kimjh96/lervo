@@ -25,7 +25,8 @@ it("runs and staffs the stage with the admitted fallback instead of the rejected
     provider: "codex",
     storage: { paths: { repositoryRoot: "/fixture" }, events: {}, artifacts: {} },
     signal: new AbortController().signal,
-    assertSource: () => {},
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
     liveWorkPending: async () => false,
   } as unknown as ConvergenceRuntimeContext;
   const selected = {

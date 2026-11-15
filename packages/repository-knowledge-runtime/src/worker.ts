@@ -16,9 +16,14 @@ import {
 } from "@lervo/repository-knowledge";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { createChangeReviewHost } from "./change-review-host.js";
-import { createConvergenceRuntimeHost, assertConvergenceSource } from "./host.js";
+import {
+  assertConvergenceSourceCurrent,
+  assertConvergenceSourceExact,
+  createConvergenceRuntimeHost,
+} from "./host.js";
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import type { ConvergenceSourceObservation } from "./source-observation.js";
 import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
@@ -96,6 +101,8 @@ export async function runAutonomousKnowledgeWorker(input: {
    * the convergence owner, after capture and the Hub exchange; absent leaves candidates stored.
    */
   applyOwnerStatedInstructions?: () => Promise<unknown>;
+  /** How convergence observes repository sources; absent, every observation is a full capture. */
+  sourceObservation?: ConvergenceSourceObservation;
 }): Promise<
   | { status: "busy" }
   | {
@@ -213,7 +220,11 @@ export async function runAutonomousKnowledgeWorker(input: {
       : { admissionDirectory: input.admissionDirectory }),
     signal,
     liveWorkPending,
-    assertSource: (state) => assertConvergenceSource(context, state),
+    ...(input.sourceObservation === undefined
+      ? {}
+      : { sourceObservation: input.sourceObservation }),
+    assertSourceExact: (state) => assertConvergenceSourceExact(context, state),
+    assertSourceCurrent: (state) => assertConvergenceSourceCurrent(context, state),
     providerQuantum,
   };
   const freshnessContext = {

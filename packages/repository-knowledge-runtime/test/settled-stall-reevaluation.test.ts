@@ -90,7 +90,8 @@ it("reevaluates a dependency settled by earlier logic once, then keeps the new s
     admissionDirectory: f.admissionDirectory,
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource: () => {},
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
   });
   expect(host.evaluationContract).toBe(convergenceEvaluationContract());
   const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);

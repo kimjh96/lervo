@@ -19,7 +19,7 @@ import { loadPracticeCatalog } from "./practice-catalog.js";
 import { ordinaryConvergenceSourceBytes } from "./source-file.js";
 import { withPracticeAssignment } from "./practice-assignment.js";
 import { discoverConvergenceBaseline } from "./baseline.js";
-import { assertConvergenceSource } from "./host.js";
+import { assertConvergenceSourceCurrent, assertConvergenceSourceExact } from "./host.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { sealCanonicalDrafts } from "./canonical-workspace.js";
 import { prepareCanonicalGitIntegration } from "./canonical-integration-candidate.js";
@@ -159,7 +159,8 @@ export async function materializePractice(
   const runtime: ConvergenceRuntimeContext = {
     ...context,
     liveWorkPending: context.liveWorkPending,
-    assertSource: (state) => assertConvergenceSource(runtime, state),
+    assertSourceExact: (state) => assertConvergenceSourceExact(runtime, state),
+    assertSourceCurrent: (state) => assertConvergenceSourceCurrent(runtime, state),
   };
   const drafts = [{ path, beforeHash: current, content: candidate.draft }];
   const paths = [path, ...links.map((l) => l.path)];
@@ -202,15 +203,18 @@ export async function materializePractice(
         },
       ];
       const planId = `kstruct_${sha256(canonicalJson([candidate.candidateId, operations])).slice(7, 31)}`;
+      const documentLayoutPermit = await authorizeCurrentRepositoryDocumentLayout({
+        repositoryRoot: root,
+        operations,
+      });
+      // The root write, its link and the materialization event follow; another writer must refuse.
+      runtime.assertSourceExact(input);
       await applyDurableKnowledgeOperations({
         repositoryRoot: root,
         projectId: context.storage.manifest.projectId,
         planId,
         operations,
-        documentLayoutPermit: await authorizeCurrentRepositoryDocumentLayout({
-          repositoryRoot: root,
-          operations,
-        }),
+        documentLayoutPermit,
         receipt: {
           candidateId: candidate.candidateId,
           draftHash: candidate.draftHash,

@@ -87,6 +87,7 @@ it(
         events: f.events,
         artifacts: f.artifacts,
         obligationId: "kconv_test",
+        fenceBeforeStaging: () => {},
       }),
     ).toEqual({ committed: [], head: null });
     expect(git(f.root, "rev-parse", "HEAD")).toBe(commit);
@@ -186,4 +187,12 @@ it("follows committed preimage, integrated draft, and reviewed normalization as 
   expect(
     await selection(new Map([["docs/spec.md\0sha256:drafted", "sha256:uncommitted"]])),
   ).toEqual([]);
+});
+
+it("rejects an asynchronous staging fence at compile time", () => {
+  type Fence = Parameters<typeof commitSettledKnowledgeOutputs>[0]["fenceBeforeStaging"];
+  // @ts-expect-error A promise is not `undefined`; an awaited fence would leave a gap before staging.
+  const asynchronous: Fence = async () => {};
+  const synchronous: Fence = () => undefined;
+  expect([typeof asynchronous, typeof synchronous]).toEqual(["function", "function"]);
 });

@@ -20,6 +20,7 @@ import {
   type CandidateReview,
 } from "./candidate-review-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
+import { convergenceSourceObservation } from "./source-observation.js";
 
 /** Old candidate closure needs a distinct exact semantic decision; baseline coverage alone grants none. */
 export async function resolveConvergenceCandidates(
@@ -103,7 +104,7 @@ export async function resolveConvergenceCandidates(
             },
           });
         return completeConvergenceStage({
-          repositoryRoot: root,
+          sources: convergenceSourceObservation(context),
           artifacts: context.storage.artifacts,
           state,
           stage: "lifecycle_verification",
@@ -133,11 +134,12 @@ export async function resolveConvergenceCandidates(
         throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
       const receipts = [];
       for (const decision of review.decisions) {
-        await authority.assertCurrent();
-        context.assertSource(state);
         const current = (await listCanonicalizationCandidates(root)).find(
           (item) => item.candidateId === decision.candidateId,
         );
+        await authority.assertCurrent();
+        // No other await separates this fence from the transition.
+        context.assertSourceExact(state);
         // A crashed application can already have written exactly this review; never repeat its transition.
         if (
           (current?.review?.reviewerId === review.reviewerAgentId &&
@@ -167,8 +169,9 @@ export async function resolveConvergenceCandidates(
           }),
         );
       }
+      context.sourceObservation?.noteChange();
       return completeConvergenceStage({
-        repositoryRoot: root,
+        sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
         state,
         stage: "lifecycle_verification",

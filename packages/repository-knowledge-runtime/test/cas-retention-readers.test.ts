@@ -163,7 +163,8 @@ it("preserves historical normalization lineage, parked carry/status and settled-
       provider: "codex",
       signal: new AbortController().signal,
       liveWorkPending: async () => false,
-      assertSource: () => {},
+      assertSourceExact: () => {},
+      assertSourceCurrent: () => {},
     };
     expect(await hasCanonicalNormalizationLineage(context, state, "docs/a.md", before, after)).toBe(
       true,

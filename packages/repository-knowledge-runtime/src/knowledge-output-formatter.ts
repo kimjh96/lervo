@@ -1,3 +1,4 @@
+import { readFileSync, writeFileSync } from "node:fs";
 import { readFile, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -59,12 +60,14 @@ export async function loadRepositoryKnowledgeOutputFormatter(
 
 /**
  * Formats `paths` in place under `directory`. Returns each path whose bytes changed, in path
- * order, mapped to its previous content so a caller whose commit fails can restore it.
+ * order, mapped to its previous content so a caller whose commit fails can restore it. When
+ * given, `written` receives the exact content written to each changed path.
  */
 export async function formatKnowledgeOutputFiles(input: {
   formatter: KnowledgeOutputFormatter;
   directory: string;
   paths: Iterable<string>;
+  written?: Map<string, string>;
 }): Promise<Map<string, string>> {
   const changed = new Map<string, string>();
   const ignorePath = resolve(input.directory, ".prettierignore");
@@ -76,6 +79,7 @@ export async function formatKnowledgeOutputFiles(input: {
     if (formatted === null || formatted === content) continue;
     await writeFile(absolute, formatted, "utf8");
     changed.set(path, content);
+    input.written?.set(path, formatted);
   }
   return changed;
 }
@@ -87,6 +91,27 @@ export async function restoreKnowledgeOutputFiles(
 ): Promise<void> {
   for (const [path, content] of previous)
     await writeFile(resolve(directory, path), content, "utf8");
+}
+
+/**
+ * Puts back the content `formatKnowledgeOutputFiles` replaced, but only into a file that still
+ * holds exactly what the formatter wrote. A file someone edited or deleted since stays as it is.
+ * A failed read or write skips that file only, so the caller's original error is what it rethrows.
+ */
+export function restoreUnchangedKnowledgeOutputFiles(
+  directory: string,
+  previous: ReadonlyMap<string, string>,
+  written: ReadonlyMap<string, string>,
+): void {
+  for (const [path, content] of previous) {
+    const absolute = resolve(directory, path);
+    try {
+      if (readFileSync(absolute, "utf8") === written.get(path))
+        writeFileSync(absolute, content, "utf8");
+    } catch {
+      // Leave this file as it is and keep restoring the rest.
+    }
+  }
 }
 
 /** The subset of `contents` whose bytes the formatter would change, sorted; nothing is written. */

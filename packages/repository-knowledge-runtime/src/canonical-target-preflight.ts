@@ -34,20 +34,23 @@ export async function preflightCanonicalTargets(
     expectedHash: state.baseline.delegationHash,
     provider: context.provider,
   });
-  context.assertSource(state);
   const targetRef = delegation.integrationTarget.ref;
   // Integrate and verify drafts on the reviewed working branch, not on a stale target tree.
   const integrated = await integratedCanonicalDrafts(
     context.storage.events,
     context.storage.artifacts,
   );
+  // Synchronization can move the integration ref; no other await separates it from this fence.
+  context.assertSourceExact(state);
   await synchronizeIntegrationTarget({
     repositoryRoot: root,
     ref: targetRef,
     integrated: (path, hash) => integrated.has(canonicalDraftKey(path, hash)),
+    fenceRefWrite: () => context.assertSourceExact(state),
     recordAbsorbed: (absorption) =>
       recordIntegrationTargetAbsorbed(context.storage, absorption, new Date().toISOString()),
   });
+  context.sourceObservation?.noteChange();
   const targetCommit = await convergenceGit(root, ["rev-parse", targetRef]);
   const sourceHashes = new Map(
     (
@@ -95,7 +98,7 @@ export async function preflightCanonicalTargets(
     "HEAD",
     diverged.map((target) => target.path),
   );
-  context.assertSource(state);
+  context.assertSourceCurrent(state);
   return diverged.map((target) => ({
     ref: target.ref,
     path: target.path,

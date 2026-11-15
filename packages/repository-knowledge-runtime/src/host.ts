@@ -15,7 +15,11 @@ import {
 } from "@lervo/repository-knowledge";
 import { cycleScopedConvergenceDiscovery } from "./baseline.js";
 import { knowledgeProviderAdmissionState } from "./provider-admission.js";
-import { captureConvergenceSources } from "./source-capture.js";
+import type { ConvergenceSourceCapture } from "./source-capture.js";
+import {
+  convergenceSourceObservation,
+  type ConvergenceSourceObservation,
+} from "./source-observation.js";
 import { assertConvergenceDelegation, loadConvergenceDelegation } from "./delegation.js";
 import { assessCanonicalBaseline } from "./canonical-assessment.js";
 import { reviewCanonicalBaseline } from "./canonical-review.js";
@@ -43,15 +47,29 @@ import {
   settledOutputBoundary,
 } from "./settled-output-boundary.js";
 
-export function assertConvergenceSource(
+/** Effect fence: a complete capture taken now. */
+export function assertConvergenceSourceExact(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
 ): void {
+  assertObservedSource(context, state, (sources) => sources.exact(state.baseline.policyHash));
+}
+
+/** Decision check: a validated observation may answer; the next exact fence guards the effect. */
+export function assertConvergenceSourceCurrent(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+): void {
+  assertObservedSource(context, state, (sources) => sources.current(state.baseline.policyHash));
+}
+
+function assertObservedSource(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+  observe: (sources: ConvergenceSourceObservation) => ConvergenceSourceCapture,
+): void {
   if (context.signal.aborted) throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
-  const observed = captureConvergenceSources(
-    context.storage.paths.repositoryRoot,
-    state.baseline.policyHash,
-  );
+  const observed = observe(convergenceSourceObservation(context));
   if (observed.snapshotHash !== state.snapshotHash)
     throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   const bindings = [
@@ -84,7 +102,9 @@ export function createConvergenceRuntimeHost(
   context: ConvergenceRuntimeContext,
 ): KnowledgeConvergenceHost {
   const root = context.storage.paths.repositoryRoot;
-  const source = (state: KnowledgeConvergenceInput) => assertConvergenceSource(context, state);
+  const exact = (state: KnowledgeConvergenceInput) => assertConvergenceSourceExact(context, state);
+  const current = (state: KnowledgeConvergenceInput) =>
+    assertConvergenceSourceCurrent(context, state);
   // The owner calls `assertCurrent` right after `prepareStage` verified the same state. A
   // verification survives only while nothing but promise continuations has run; any I/O turn
   // clears it first, so no effect or wait can fall between the reused capture and its use.
@@ -92,7 +112,7 @@ export function createConvergenceRuntimeHost(
   const sourceUnlessJustPrepared = (state: KnowledgeConvergenceInput) => {
     const reuse = prepared === state;
     prepared = null;
-    if (!reuse) source(state);
+    if (!reuse) current(state);
   };
   const discover = cycleScopedConvergenceDiscovery(
     root,
@@ -102,8 +122,9 @@ export function createConvergenceRuntimeHost(
   return {
     discover,
     evaluationContract: convergenceEvaluationContract(),
+    // Settlement guards the durable claim inside the event lock, so it alone stays exact here.
     assertSettlement: (state) => {
-      source(state);
+      exact(state);
       assertConvergenceSettlementAuthority(context, state);
     },
     assertCurrent: async (state) => {
@@ -116,13 +137,13 @@ export function createConvergenceRuntimeHost(
           provider: context.provider,
         });
       await captureConvergenceSettlementAuthority(context, state);
-      source(state);
+      current(state);
     },
     // ADR-0490: the owner's pre-stage currency check would reject a stale review context before
     // `runStage` could regenerate it, so a stale review is regenerated here first.
     prepareStage: async (stage, state) => {
       try {
-        source(state);
+        current(state);
         prepared = state;
         setImmediate(() => {
           if (prepared === state) prepared = null;
@@ -291,7 +312,7 @@ export function createConvergenceRuntimeHost(
       });
       assertLease();
       try {
-        source(state);
+        current(state);
       } catch (error) {
         const regenerated = staleReviewContext(error)
           ? await regenerateStaleReview(context, state, stage)

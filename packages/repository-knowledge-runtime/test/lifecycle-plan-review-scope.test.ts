@@ -87,7 +87,8 @@ it("reviews a lifecycle plan with its own paths, not every repository source", a
     admissionDirectory: f.admissionDirectory,
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource() {},
+    assertSourceExact() {},
+    assertSourceCurrent() {},
   };
   const approval = await reviewLifecyclePlan(
     context,
@@ -131,7 +132,8 @@ it("binds a stale multi-megabyte generated projection by hash instead of disclos
     admissionDirectory: f.admissionDirectory,
     signal: new AbortController().signal,
     liveWorkPending: async () => false,
-    assertSource() {},
+    assertSourceExact() {},
+    assertSourceCurrent() {},
   };
   const plan = {
     planId: "klayout_generated",

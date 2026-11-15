@@ -99,7 +99,8 @@ afterEach(() => {
 it("refuses an outside-root move until the owner adds exactly the source file to the delegation", async () => {
   const context = {
     storage: { paths: { repositoryRoot: "/fixture" } },
-    assertSource() {},
+    assertSourceExact() {},
+    assertSourceCurrent() {},
   } as unknown as ConvergenceRuntimeContext;
   const state = {
     baseline: { policyHash: "sha256:" + "a".repeat(64) },
