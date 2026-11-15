@@ -147,8 +147,18 @@ export default defineConfig({
     },
   },
   test: {
-    globalSetup: ["./packages/schemas/scripts/generate-validators.mjs"],
+    globalSetup: [
+      "./packages/schemas/scripts/generate-validators.mjs",
+      "./scripts/quality/lib/test-compile-cache-directory.mjs",
+    ],
     include: ["apps/**/*.test.ts", "packages/**/*.test.ts", "scripts/**/*.test.mjs"],
-    setupFiles: ["./scripts/quality/lib/test-user-state-isolation.mjs"],
+    // The ADR-0503 validators are self-contained generated ES modules; the full set is about
+    // 6 MB. Inlined, vite-node rewrites them and every isolated test process compiles that copy
+    // inside one wrapper function, about four times slower than Node's loader on the same bytes.
+    server: { deps: { external: [/\/packages\/schemas\/dist\/generated\/[^/]+\.js$/] } },
+    setupFiles: [
+      "./scripts/quality/lib/test-compile-cache.mjs",
+      "./scripts/quality/lib/test-user-state-isolation.mjs",
+    ],
   },
 });

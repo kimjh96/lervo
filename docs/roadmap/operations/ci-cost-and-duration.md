@@ -133,6 +133,37 @@ The ADR records the rules, the [shadow contract](../../foundation/ci-test-reuse-
 - [ ] Remove the unseen writers listed in the [shadow gaps](../../foundation/ci-test-reuse-shadow-gaps.md), starting with the supervision provider fixtures, and confirm the drop in `shard_written_input` with a shard ledger.
 - [ ] Compare the environment value digests and kernel releases of hosted shards, then decide which differences may leave G.
 
+### Test module loading (2026-11-15)
+
+In [run 43652187030](https://github.com/kimjh96/lervo/actions/runs/43652187030), collection took 455 to 613 seconds per shard: 2,037 of 5,158 seconds of worker time. Every one of the 1,271 test files loads its module graph again in its own process. A WSL run of shard 1 with per-module execution timing found three causes:
+
+| Cause                                               | Evidence on shard 1 (312 of 318 files measured)                                                                                                                                                                                                                   |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The 6 MB generated validators, inlined by vite-node | Loaded by 227 files. Their own execution took 171 of 381 seconds of collection, about 750 ms per file. The importing `validate.ts` added 20 seconds, mostly fetching it. Node loads the same file in about 200 ms.                                                |
+| Cross-package barrels                               | Static graphs load 741,924 modules across all files. Importing each name from its declaring module cuts that by 44%. Barrels that tests mock or use as module objects must stay, which limits the cut to 36%. The rest of collection costs about 1 ms per module. |
+| Repeated native compilation                         | Parser dependencies and the validators compile again in every process.                                                                                                                                                                                            |
+
+The [CI reference](../../foundation/code-quality-and-commit-ci.md#source-test-module-loading) describes the two fixes that ship and why each preserves behavior: native loading of the generated validators and one Node compile cache per run. A third fix, a Vitest plugin that imports barrel names from their declaring modules, is held back: an independent review found that its rewrites hide barrel files from the ADR-0565 ledger closure and that some import and mock forms bypass its pins.
+
+Each shard below ran on WSL with two workers and the CI timeout, first under the original `vitest.config.ts` and then under the configuration with all three fixes, back to back on the same files. Times are Vitest's Duration and collect totals, in seconds:
+
+| Shard | Duration before | Duration after | Collect before | Collect after |
+| ----- | --------------- | -------------- | -------------- | ------------- |
+| 1     | 523.5           | 465.8          | 323.5          | 194.6         |
+| 2     | 497.3           | 372.4          | 364.8          | 174.6         |
+| 3     | 454.7           | 354.8          | 359.9          | 174.7         |
+| 4     | 561.0           | 461.1          | 354.8          | 179.6         |
+| Total | 2,036.5         | 1,654.1        | 1,402.9        | 723.4         |
+
+With all three fixes, collection fell by 48% and shard duration by 19%. Both configurations ran the same 1,272 files and 7,163 tests: the 1,271 earlier files plus the plugin's unit tests. The release tests that fail on this WSL host failed under both. Four `apps/cli/test/upgrade-*` tests failed only in the new configuration's shard runs, and other upgrade tests failed only in original-configuration runs. Their upgrade plans observe host runtime directories and processes, so a file running at the same time can change the plan between two calls. Run alone, alternating configurations, the failed upgrade files passed under the new configuration every time; the original configuration failed once.
+
+In a separate back-to-back pair on shard 1, the plugin alone cut module executions from 194,352 to 136,545 and collection from 221 to 184 seconds. Without it, the two shipped fixes account for the rest: native loading removed about 191 of 381 seconds of shard-1 collection, and the compile cache cut collection on 297 shared files from 251 to 226-229 seconds on top of native loading. The next hosted run measures the shipped pair.
+
+- [x] Measure collection by module and fix its two largest causes without changing test selection, assertions, pool, or isolation.
+- [ ] Ship the direct barrel import plugin only after its rewrites record the barrels they read in the ledger closure and its pins cover `import d, * as ns`, assigned dynamic imports, and mocks in setup files.
+- [ ] Observe collection time in the next hosted run and refresh the duration profile.
+- [ ] Decide whether the generated validators should build each schema's validator lazily. Evaluating all 219 still takes about 135 ms of the remaining 200 ms per file. The CLI pays the same cost on each start that validates.
+
 ## Responsibility and evidence contracts
 
 | Owner              | Responsibility                                                                                                                                            |

@@ -50,6 +50,15 @@ Built-artifact tests retain explicit `dist` paths, packed-consumer resolution, a
 
 This closes an alias omission within the existing source-test setup. It does not amend ADR-0496's exact shared-build transfer or ADR-0503's generated-validator boundary. Static success proves alias coverage for observed literal imports; it does not prove test assertions or built artifacts passed.
 
+## Source test module loading
+
+Every test file runs in its own isolated process, so each one loads its whole module graph again. Before this change, collection took about 40% of all test worker time. Two settings in the root `vitest.config.ts` cut that repeated work. They do not change test selection, assertions, pool, isolation, or product sources.
+
+- **Generated validators load natively.** `server.deps.external` matches `packages/schemas/dist/generated/*.js`. These files are the self-contained ES modules from ADR-0503, about 6 MB each. When vite-node inlines one, it rewrites it, and every process then compiles that copy inside a single wrapper function. That made it the most expensive module in most test files. Node now loads the same bytes, so the module instance and its exports stay the same.
+- **One compile cache per run.** The `test-compile-cache-directory.mjs` global setup creates a temporary directory and removes it at teardown. The `test-compile-cache.mjs` setup file enables Node's compile cache in each worker and flushes it after the file's hooks. Workers are usually killed rather than exiting, so without that flush Node would never write the cache. V8 rejects any entry whose source or flags differ, and child processes do not inherit the cache.
+
+The toolchain digest of ADR-0565 includes the `scripts/quality/lib/test-*.mjs` setup modules that the configuration loads, so changing them invalidates every recorded closure. The [roadmap](../roadmap/operations/ci-cost-and-duration.md#test-module-loading-2026-11-15) records the measurements.
+
 ## Aggregate, events, and release effects
 
 `CI verification (lervo-ci-v1)` always evaluates the required job results. Its versioned receipt distinguishes `full` and `documentation_only`; failed, cancelled, skipped-required, and unknown results cannot become success. Hosted required-check configuration must be reconciled with this aggregate during rollout; local source checks do not establish that branch protection was changed.
