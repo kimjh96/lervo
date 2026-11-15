@@ -67,7 +67,8 @@ export function directImportDeclaration({ code, declaration, importer, barrel, o
 }
 
 /**
- * Vitest-only Vite plugin (see docs/foundation/code-quality-and-commit-ci.md). Repository modules
+ * Vite plugin for the CI shard configuration only, because a single-file run would not earn back
+ * its one-time pin scan (see docs/foundation/code-quality-and-commit-ci.md). Repository modules
  * import other packages through their `src/index.ts` barrels, so one named import evaluates the
  * whole package graph in every isolated test process. After TypeScript is stripped, this plugin
  * points each named import at the module that declares it. Bindings, module instances, and
@@ -77,7 +78,7 @@ export function directImportDeclaration({ code, declaration, importer, barrel, o
  * see them. `api.ciTestModuleInputs()` hands them to the ADR-0565 ledger reporter, which adds them
  * to the closure of every test file that loaded the module. They are not Vite watch files: Vite
  * resolves every watch file into the module graph on each transform, which measured slower than
- * the loading this plugin saves, so watch mode needs a restart after a barrel's exports change.
+ * the loading this plugin saves.
  */
 export function directBarrelImports() {
   let rootPrefix;

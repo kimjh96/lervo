@@ -2,13 +2,9 @@ import { fileURLToPath } from "node:url";
 
 import { defineConfig } from "vitest/config";
 
-// @ts-expect-error The Vitest loading plugin intentionally remains plain ESM beside its tests.
-import { directBarrelImports } from "./scripts/quality/lib/test-direct-barrel-imports.mjs";
-
 const fromRoot = (path: string) => fileURLToPath(new URL(path, import.meta.url));
 
 export default defineConfig({
-  plugins: [directBarrelImports()],
   resolve: {
     alias: {
       "@lervo/agent-organization": fromRoot("./packages/agent-organization/src/index.ts"),

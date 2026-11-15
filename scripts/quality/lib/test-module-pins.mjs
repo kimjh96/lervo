@@ -15,7 +15,8 @@ import { relativeSourceFile } from "./test-barrel-export-origins.mjs";
  * Scanned files are every test path below `apps`, `packages`, and `scripts`, every file there that
  * imports `vitest` (no other file can call `vi.mock`, because Vitest globals are off), and every
  * configured setup and global setup file wherever it lives. A dynamic import with a computed
- * specifier names no fixed module and stays unpinned; see the CI reference for that limit.
+ * specifier names no fixed module and stays unpinned; the CI reference lists every form the
+ * scan does not see.
  */
 const mockCalls = new Set(["mock", "doMock", "unmock", "doUnmock", "importActual", "importMock"]);
 const promiseMembers = new Set(["then", "catch", "finally"]);

@@ -26,12 +26,15 @@ it("keeps every barrel a rewrite consulted in the importing file's ledger closur
     const configuration = resolve(scratch, "vitest.config.mjs");
     const base = resolve(root, "vitest.config.ts");
     const library = new URL("../lib/ci-test-ledger-configuration.mjs", import.meta.url).href;
-    // The repository's own plugins and aliases, without its global setup, which writes outputs.
+    const plugin = new URL("../lib/test-direct-barrel-imports.mjs", import.meta.url).href;
+    // The CI shard's plugin and the repository's aliases, without its global setup, which writes
+    // generated outputs.
     await writeFile(
       configuration,
       `import base from ${JSON.stringify(base)};
 import { ciTestLedgerConfiguration } from ${JSON.stringify(library)};
-export default { root: ${JSON.stringify(root)}, cacheDir: ${JSON.stringify(resolve(scratch, "cache"))}, plugins: base.plugins, resolve: base.resolve, test: { include: [${JSON.stringify(fixture)}], ...ciTestLedgerConfiguration() } };
+import { directBarrelImports } from ${JSON.stringify(plugin)};
+export default { root: ${JSON.stringify(root)}, cacheDir: ${JSON.stringify(resolve(scratch, "cache"))}, plugins: [directBarrelImports()], resolve: base.resolve, test: { include: [${JSON.stringify(fixture)}], ...ciTestLedgerConfiguration() } };
 `,
     );
     const run = spawnSync(

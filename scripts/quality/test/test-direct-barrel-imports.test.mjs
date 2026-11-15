@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { parseAst } from "vitest/node";
 import { afterEach, beforeEach, expect, it } from "vitest";
 
+import base from "../../../vitest.config.ts";
+import ciConfiguration from "../ci-vitest.config.mjs";
 import { createBarrelExportOrigins } from "../lib/test-barrel-export-origins.mjs";
 import {
   directBarrelImports,
@@ -132,4 +134,14 @@ it("rewrites nothing when Vitest never reported the setup files it runs", () => 
   const { transform, warnings } = vitestPlugin({ reportSetup: false });
   expect(transform(consumer, consumerCode)).toBeNull();
   expect(warnings).toEqual([expect.stringMatching(/setup files are unknown/u)]);
+});
+
+it("loads only in the CI shard configuration, whose ledger reporter reads its inputs", () => {
+  const names = (configuration) => (configuration.plugins ?? []).map((plugin) => plugin.name);
+  // A single-file run would pay the pin scan's fixed cost without the shard-wide saving.
+  expect(names(base)).not.toContain("lervo:direct-barrel-imports");
+  const plugin = ciConfiguration.plugins.find(
+    (entry) => entry.name === "lervo:direct-barrel-imports",
+  );
+  expect(plugin?.api.ciTestModuleInputs()).toEqual(new Map());
 });
