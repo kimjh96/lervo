@@ -297,6 +297,33 @@ it("stores an owned dependency without busy retrying when write authority is una
   }
 });
 
+it.each([
+  ["knowledge_semantic_review_invalid", "attention_required"],
+  ["knowledge_effect_uncertain", "recovery_required"],
+] as const)("settles a stage that throws %s as %s without rerunning it", async (code, state) => {
+  const f = await fixture();
+  const evidence = sha256(`${code} observation`);
+  let runs = 0;
+  f.host.runStage = async () => {
+    runs++;
+    throw Object.assign(new Error(code), { code, dependencyHash: evidence });
+  };
+  try {
+    expect(await f.cycle()).toMatchObject({ state, reason: code, outstanding: 1 });
+    expect(f.events.outstandingCount(KNOWLEDGE_CONVERGENCE_DESTINATION)).toBe(0);
+    const stage = f.events
+      .list({ limit: 100 })
+      .findLast((event) => event.type === "repository.knowledge.stage.recorded")!;
+    expect(stage.payload).toMatchObject({ stage: "assessment", state, failureCode: code });
+    const head = f.events.latest()!.eventHash;
+    await f.cycle();
+    expect(runs).toBe(1);
+    expect(f.events.latest()!.eventHash).toBe(head);
+  } finally {
+    f.events.close();
+  }
+});
+
 it("rejects lifecycle success with missing canonical or normalization stage receipts", async () => {
   const f = await fixture();
   f.host.runStage = async (_stage, input) => ({
