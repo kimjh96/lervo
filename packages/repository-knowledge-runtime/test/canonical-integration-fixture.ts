@@ -17,12 +17,6 @@ import { assessCanonicalBaseline } from "../src/canonical-assessment.js";
 import { integrateCanonicalBaseline } from "../src/canonical-integration-stage.js";
 import { reviewCanonicalBaseline, type CanonicalBatch } from "../src/canonical-review.js";
 import {
-  carriedParkedSources,
-  mergeParkedSources,
-  obligationParkedSources,
-  parkedSourcesAttention,
-} from "../src/convergence-parking.js";
-import {
   assertConvergenceSourceCurrent,
   assertConvergenceSourceExact,
   createConvergenceRuntimeHost,
@@ -56,10 +50,15 @@ const SETTLED_STATES: readonly KnowledgeConvergenceStatus["state"][] = [
  * - `integrate()` calls the stage directly with a hand-opened obligation and a reviewed draft, for
  *   cases that observe only the stage.
  * - `converge()` runs the real convergence owner over the real runtime host: discovery, fences,
- *   dependency evaluation, assessment, review and canonical integration are product code, with the
- *   provider call replaced by the test file's `vi.mock`. Normalization stages and lifecycle
- *   verification are stand-ins that settle receipts; lifecycle keeps the real parked-source
- *   attention, so the owner records the same terminal events and stalls as a worker turn.
+ *   dependency evaluation, assessment, review and canonical integration are product code. The
+ *   test file's `vi.mock` replaces `reviewKnowledgeJson`, and with it provider admission and the
+ *   batch budget reservation inside it.
+ *
+ * Normalization stages and lifecycle verification are receipt stand-ins, so this fixture guards
+ * neither normalization nor lifecycle behavior, including parking and readmission, and it does
+ * not produce the normalized documents that later review context depends on. The kept worker
+ * case "parks a source whose draft meets a dirty canonical target and readmits it…" and
+ * `workspace-recovery.test.ts` cover those paths end to end.
  */
 export async function canonicalIntegrationFixture(
   options: { integrationRef?: "present" | "absent"; ownerTargetEdit?: string } = {},
@@ -161,17 +160,11 @@ function settleReceipt(
   });
 }
 
-/** Lifecycle verification's parking decision (`lifecycle-final.ts`) for canonical sources. */
+/** Settles lifecycle verification with the final snapshot the owner requires; see above. */
 async function settleLifecycle(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
 ): Promise<KnowledgeConvergenceStageResult> {
-  const hashes = new Map(state.baseline.sources.map((source) => [source.path, source.contentHash]));
-  const parked = mergeParkedSources(
-    await carriedParkedSources(context.storage, state),
-    obligationParkedSources(state),
-  ).filter((item) => item.stage === "canonical" && hashes.get(item.path) === item.contentHash);
-  if (parked.length) return parkedSourcesAttention(context.storage.artifacts, state, parked);
   const result = await settleReceipt(context, state, "lifecycle_verification");
   return { ...result, knowledgeSnapshotHash: result.input.snapshotHash };
 }

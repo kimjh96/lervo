@@ -9,7 +9,6 @@ import { planWorkspaceCleanup } from "@lervo/orchestrator";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import * as workspace from "../src/canonical-workspace.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
-import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { compactConvergenceWorkspaces } from "../src/workspace-retention.js";
 import {
   CANONICAL_SOURCE,
@@ -17,8 +16,9 @@ import {
   INTEGRATED_REQUIREMENT,
   canonicalIntegrationFixture,
 } from "./canonical-integration-fixture.js";
+import { canonicalProviderCalls } from "./canonical-integration-provider.js";
 
-// Only the provider boundary is replaced; see `canonicalIntegrationFixture().converge`.
+// `reviewKnowledgeJson` is replaced; see `canonicalIntegrationFixture().converge`.
 vi.mock("../src/provider-call.js", async () => ({
   reviewKnowledgeJson: (await import("./canonical-integration-provider.js")).canonicalFixtureReview,
 }));
@@ -26,6 +26,7 @@ vi.mock("../src/provider-call.js", async () => ({
 const harnesses: Awaited<ReturnType<typeof canonicalIntegrationFixture>>[] = [];
 afterEach(async () => {
   vi.restoreAllMocks();
+  canonicalProviderCalls.length = 0;
   for (const { f } of harnesses.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
@@ -138,54 +139,6 @@ it(
 );
 
 it(
-  "parks a source whose draft meets a dirty canonical target and readmits it after the owner commits",
-  { timeout: 60_000 },
-  async () => {
-    const requirement = "Preserve this exact uncommitted user requirement.";
-    const { f, converge } = await harness({ ownerTargetEdit: `\n${requirement}\n` });
-    const path = resolve(f.root, CANONICAL_TARGET);
-    const dirty = await readFile(path, "utf8");
-    // ADR-0530: the divergent draft parks its source and every later stage still runs.
-    expect(await converge()).toMatchObject({
-      state: "attention_required",
-      reason: "knowledge_sources_parked",
-    });
-    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
-      count: 1,
-      sources: [
-        { stage: "canonical", path: CANONICAL_SOURCE, reason: "target_diverged", attempts: 1 },
-      ],
-    });
-    expect(await readFile(path, "utf8")).toBe(dirty);
-    expect(
-      (await listAssignments(f.root)).some(
-        (item) => item.convergence?.stage === "canonical_integration",
-      ),
-    ).toBe(false);
-    const parkedHead = f.events.latest()!.eventHash;
-    expect(await converge()).toMatchObject({ state: "attention_required" });
-    expect(f.events.latest()!.eventHash).toBe(parkedHead);
-
-    // Committing the owner's requirement changes HEAD's target bytes, which readmits the source.
-    git(
-      f.root,
-      "-c",
-      "user.name=Test",
-      "-c",
-      "user.email=test@lervo.invalid",
-      "commit",
-      "-qm",
-      "Owner requirement",
-      "--",
-      CANONICAL_TARGET,
-    );
-    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
-    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toBeUndefined();
-    expect(await readFile(path, "utf8")).toContain(requirement);
-  },
-);
-
-it(
   "reuses durable provision and seal plans without a second workspace or commit",
   { timeout: 60_000 },
   async () => {
@@ -247,6 +200,11 @@ it(
       (item) => item.taskType === "repository.integration",
     )!;
     expect(failed).toMatchObject({ status: "failed", lease: null, lastLeaseGeneration: 1 });
+    const canonicalCalls = canonicalProviderCalls.map((call) => call.task);
+    expect(canonicalCalls).toEqual([
+      "canonical_baseline_assessment",
+      "independent_canonical_review",
+    ]);
 
     // The runtime host holds the owner's recorded stall while the ref integration cannot be
     // verified, and releases it once it can; the owner then redelivers the same stage input.
@@ -257,7 +215,11 @@ it(
     git(f.root, "update-ref", "refs/heads/knowledge-integration", ref);
     expect(await runtime.dependencyCurrent(dependency)).toBe(false);
 
-    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
+    // Released, the owner redelivers the same stage input.
+    const resumed = await converge();
+    // Resuming the retained integration asks the provider for no new assessment or review.
+    expect(canonicalProviderCalls.map((call) => call.task)).toEqual(canonicalCalls);
+    expect(resumed).toMatchObject({ state: "idle", outstanding: 0 });
     expect(git(f.root, "rev-parse", "knowledge-integration")).toBe(ref);
     expect(await readFile(resolve(f.root, CANONICAL_TARGET), "utf8")).toContain(
       INTEGRATED_REQUIREMENT,

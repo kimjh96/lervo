@@ -10,6 +10,9 @@ const NO_CHANGE =
 const APPROVAL =
   "Each supplied source has been independently compared with the exact current instructions and documentation. The current durable runtime requirement remains fully preserved.";
 
+/** Every provider call the stand-in answered, in order; a test file resets it per case. */
+export const canonicalProviderCalls: { task: string; untrustedSourceData: unknown }[] = [];
+
 /** The canonical stage that this fixture's text provider would draft for the observed source. */
 export function reviewedRuntimeDraft(target: {
   path: string;
@@ -26,9 +29,11 @@ export function reviewedRuntimeDraft(target: {
 /**
  * Answers canonical assessment and review like the repository's provider fixture: the observed
  * runtime source asks for one reviewed specification draft and every other source needs no change.
- * Only the provider boundary is replaced; workforce, budgets and stage contracts stay real.
+ * It replaces all of `reviewKnowledgeJson`, so provider admission, the batch budget reservation,
+ * the review cache and usage measurement do not run; workforce and stage contracts stay real.
  */
 export const canonicalFixtureReview: typeof reviewKnowledgeJson = async (input) => {
+  canonicalProviderCalls.push({ task: input.task, untrustedSourceData: input.untrustedSourceData });
   const data = input.untrustedSourceData as {
     sources: { path: string; contentHash: string; content?: string }[];
     context: { path: string; contentHash: string; content: string }[];
