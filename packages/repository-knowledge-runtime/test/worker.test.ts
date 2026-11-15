@@ -109,7 +109,14 @@ it(
       executable: f.executable,
       admissionDirectory: f.admissionDirectory,
     });
-    const calls = await readFile(f.log, "utf8").catch(() => "");
+    // The provider must have reviewed the repository's sources; an absent log proves nothing.
+    const calls = await readFile(f.log, "utf8");
+    expect(
+      calls
+        .trim()
+        .split("\n")
+        .some((line) => JSON.parse(line).request.task === "canonical_baseline_assessment"),
+    ).toBe(true);
     expect(calls).not.toContain("never-pass-to-provider");
     expect(result.status).toBe("processed");
   },
@@ -364,6 +371,8 @@ it("applies owner-stated rules only on the convergence owner, and a failure bloc
   expect(await run(null)).toMatchObject({ status: "processed" });
   expect(await run("waiting_owner")).toMatchObject({ status: "waiting_owner" });
   expect(calls).toEqual(["single_host"]);
+  expect(await run("owner")).toMatchObject({ status: "processed" });
+  expect(calls).toEqual(["single_host", "owner"]);
   expect(
     await run(null, async () => {
       throw new Error("apply failed");
