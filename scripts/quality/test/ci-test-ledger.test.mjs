@@ -48,7 +48,10 @@ const result = (file, overrides = {}) => ({
   ...overrides,
 });
 
-function ledgerOf(records, { tracked = [], generated = new Map(), workspaces = new Map() } = {}) {
+function ledgerOf(
+  records,
+  { tracked = [], generated = new Map(), workspaces = new Map(), moduleInputs } = {},
+) {
   return createCiTestLedger({
     results: [...new Set(records.map((record) => record.file).filter(Boolean))].map((file) =>
       result(file),
@@ -59,6 +62,7 @@ function ledgerOf(records, { tracked = [], generated = new Map(), workspaces = n
     workspaces,
     toolchain,
     run: { id: "1", shard: { index: 1, count: 4 } },
+    ...(moduleInputs ? { moduleInputs } : {}),
   });
 }
 
@@ -101,6 +105,37 @@ it("stores each path once and lists every file's closure by index", () => {
     toolchainDigest: "sha256:toolchain",
   });
   expect(ledger.summary).toMatchObject({ files: 2, cacheable: 2, records: 2, unboundRecords: 0 });
+});
+
+it("adds the files a transform read for each loaded module to the file's closure", () => {
+  // A test-only transform resolved `consumer.ts`'s barrel import without loading the barrel.
+  const moduleInputs = new Map([
+    ["src/consumer.ts", ["pkg/src/index.ts", "pkg/src/nested/index.ts", "pkg/src/value.ts"]],
+    ["src/unloaded.ts", ["other/src/index.ts"]],
+  ]);
+  const tracked = [
+    "a.test.ts",
+    "src/consumer.ts",
+    "src/unloaded.ts",
+    "pkg/src/index.ts",
+    "pkg/src/nested/index.ts",
+    "pkg/src/value.ts",
+    "other/src/index.ts",
+  ];
+  const ledger = ledgerOf(
+    [worker("a.test.ts", { modules: ["a.test.ts", "src/consumer.ts", "pkg/src/value.ts"] })],
+    { tracked, moduleInputs },
+  );
+  const [file] = ledger.files;
+  expect(file.inputs.map((index) => ledger.paths[index])).toEqual([
+    "a.test.ts",
+    "pkg/src/index.ts",
+    "pkg/src/nested/index.ts",
+    "pkg/src/value.ts",
+    "src/consumer.ts",
+  ]);
+  expect(file.uncacheableReasons).toEqual([]);
+  expect(ledger.paths).not.toContain("other/src/index.ts");
 });
 
 it("classifies every closed uncacheable reason from the recorded closure", () => {

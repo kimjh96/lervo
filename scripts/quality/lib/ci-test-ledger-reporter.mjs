@@ -90,6 +90,23 @@ async function readGeneratedOutputs(root) {
   ]);
 }
 
+/**
+ * Files that test-only Vite plugins read on behalf of a transformed module, which the module's
+ * test workers therefore never read. A plugin reports them through `api.ciTestModuleInputs()`.
+ */
+function pluginModuleInputs(vitest, root) {
+  const inputs = new Map();
+  for (const project of vitest.projects ?? [])
+    for (const plugin of project.vite.config.plugins)
+      for (const [id, files] of plugin.api?.ciTestModuleInputs?.() ?? []) {
+        const module = repositoryPath(root, id);
+        const known = inputs.get(module) ?? new Set();
+        for (const file of files) known.add(repositoryPath(root, file));
+        inputs.set(module, known);
+      }
+  return new Map([...inputs].map(([module, files]) => [module, [...files].sort()]));
+}
+
 /** Drops per-file path lists while keeping results, reasons and counts. */
 function reduce(ledger) {
   return {
@@ -147,6 +164,7 @@ export default class CiTestLedgerReporter {
       tracked,
       generated: await readGeneratedOutputs(root),
       workspaces: await readWorkspaces(root, tracked),
+      moduleInputs: pluginModuleInputs(this.#vitest, root),
       toolchain: {
         ...(await computeCiTestToolchainDigest({ repositoryRoot: root, tracked, setupFiles })),
         observed: observeCiTestToolchain(),

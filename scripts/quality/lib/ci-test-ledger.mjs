@@ -93,14 +93,17 @@ function createAccumulator() {
   };
 }
 
-function absorb(accumulator, record) {
+function absorb(accumulator, record, moduleInputs) {
   accumulator.records += 1;
   accumulator.endedAt = Math.max(accumulator.endedAt, record.spooledAt ?? Infinity);
   if (isComplete(record)) accumulator.completeRecords += 1;
   if (record.role === "worker" && isComplete(record)) accumulator.completeWorker = true;
   if (record.truncated) accumulator.truncated = true;
-  for (const path of [...(record.inputs ?? []), ...(record.modules ?? [])])
+  for (const path of record.inputs ?? []) accumulator.inputs.add(path);
+  for (const path of record.modules ?? []) {
     accumulator.inputs.add(path);
+    for (const input of moduleInputs.get(path) ?? []) accumulator.inputs.add(input);
+  }
   for (const path of record.absent ?? []) accumulator.absent.add(path);
   for (const path of record.trees ?? []) accumulator.trees.add(path);
   for (const [path, kinds] of Object.entries(record.listings ?? {}))
@@ -131,7 +134,7 @@ function absorb(accumulator, record) {
 }
 
 /** Walks a file's worker and every child it can match, so each observed descendant contributes. */
-function collectFile(file, index, boundRecords) {
+function collectFile(file, index, boundRecords, moduleInputs) {
   const accumulator = createAccumulator();
   const visited = new Set();
   const queue = [...(boundRecords.get(file) ?? [])];
@@ -139,7 +142,7 @@ function collectFile(file, index, boundRecords) {
     const record = queue.shift();
     if (visited.has(record)) continue;
     visited.add(record);
-    absorb(accumulator, record);
+    absorb(accumulator, record, moduleInputs);
     for (const child of record.children ?? []) {
       const count = child.count ?? 1;
       if (child.bootstrap) {
@@ -236,7 +239,9 @@ function classify(accumulator, { file, tracked, trackedDirectories, mappings, sh
  * `results`: `[{ file, result, tests, durationMs, collectMs }]` from Vitest. `records`: parsed
  * spool records. `tracked`: Git-tracked paths. `generated`: generated outputs and their sources,
  * from `readBundleMetafile` and `readSchemaValidatorManifest`.
- * `workspaces`: workspace package name to directory.
+ * `workspaces`: workspace package name to directory. `moduleInputs`: repository files that a
+ * test-only transform read on behalf of a loaded module, such as the barrels a direct import was
+ * resolved through; they join the closure of every file that loaded the module.
  */
 export function createCiTestLedger({
   results,
@@ -246,6 +251,7 @@ export function createCiTestLedger({
   workspaces,
   toolchain,
   run,
+  moduleInputs = new Map(),
 }) {
   const index = indexRecords(records);
   const boundRecords = new Map();
@@ -256,7 +262,7 @@ export function createCiTestLedger({
   }
   const collected = results.map((result) => ({
     result,
-    accumulator: collectFile(result.file, index, boundRecords),
+    accumulator: collectFile(result.file, index, boundRecords, moduleInputs),
   }));
   const shardWrites = createCiTestShardWrites(
     records,
