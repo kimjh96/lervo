@@ -3,7 +3,6 @@
 Status: `accepted`
 Decision date: 2026-10-03
 Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0449](0449-synchronize-integration-target-with-working-branch.md), and [ADR-0357](../../../execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md)
-Amended by: [ADR-0566](../../../operations/services/0566-fence-every-durable-convergence-write-exactly.md) (settled outputs are committed from the fenced bytes, not with `git commit --only`)
 
 ## Context
 

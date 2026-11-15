@@ -29,7 +29,8 @@ const git = (root: string, ...args: string[]) =>
 /** Exact fences a full convergence of a reviewed canonical draft reaches, by file and count. */
 const FULL_CONVERGENCE_FENCES: Record<string, number> = {
   "host.ts": 1,
-  "settled-output-boundary.ts": 1,
+  // At the boundary, and again right before staging settled outputs.
+  "settled-output-boundary.ts": 2,
   "lifecycle-prefix.ts": 1,
   // Before synchronization, and again right before its ref move.
   "canonical-target-preflight.ts": 2,

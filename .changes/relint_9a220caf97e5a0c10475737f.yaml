@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9a220caf97e5a0c10475737f"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Every durable knowledge convergence write has an exact source fence right before it, including a fence right before settled outputs are staged."

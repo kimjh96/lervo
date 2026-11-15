@@ -5,8 +5,7 @@ import type {
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 
 import { commitSettledKnowledgeOutputs } from "./knowledge-output-commit.js";
-import { fencedFileModes } from "./knowledge-output-exact-commit.js";
-import type { ConvergenceSourceCapture } from "./source-capture.js";
+import { assertConvergenceEffectSources } from "./effect-source-fence.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceSourceObservation } from "./source-observation.js";
@@ -39,26 +38,18 @@ export async function commitSettledOutputsAtBoundary(
 ): Promise<KnowledgeConvergenceStageResult | null> {
   const root = context.storage.paths.repositoryRoot;
   context.assertSourceExact(state);
-  // The fence just proved the repository equals this snapshot; the commit records only its bytes.
-  const snapshot = state.stageData.sourceCapture as ConvergenceSourceCapture | undefined;
-  const sources = snapshot?.sources ?? state.baseline.sources;
-  // Modes are read with no await after the fence, so they are the modes the fence saw.
-  const modes = fencedFileModes(
-    root,
-    sources.map((source) => source.path),
-  );
-  const head = snapshot?.head ?? state.baseline.sourceCommit;
-  if (head === undefined) return null;
   const output = await commitSettledKnowledgeOutputs({
     repositoryRoot: root,
     events: context.storage.events,
     artifacts: context.storage.artifacts,
     obligationId: state.obligationId,
-    reviewed: {
-      head,
-      sources: new Map(sources.map((source) => [source.path, source.contentHash])),
-      modes,
-    },
+    // Every await of selection and formatting has run; nothing else separates this from `git add`.
+    fenceBeforeStaging: (formatEffects) =>
+      assertConvergenceEffectSources(
+        state,
+        convergenceSourceObservation(context).exact(state.baseline.policyHash),
+        formatEffects,
+      ),
   });
   if (output.head === null) return null;
   context.sourceObservation?.noteChange();

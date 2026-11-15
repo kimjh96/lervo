@@ -9,8 +9,6 @@ import {
   commitSettledKnowledgeOutputs,
   selectSettledKnowledgeOutputs,
 } from "../src/knowledge-output-commit.js";
-import { fencedFileModes } from "../src/knowledge-output-exact-commit.js";
-import { captureConvergenceSources } from "../src/source-capture.js";
 import { fixture } from "./fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -89,19 +87,7 @@ it(
         events: f.events,
         artifacts: f.artifacts,
         obligationId: "kconv_test",
-        reviewed: {
-          head: commit,
-          sources: new Map(
-            captureConvergenceSources(f.root, "policy").sources.map((source) => [
-              source.path,
-              source.contentHash,
-            ]),
-          ),
-          modes: fencedFileModes(
-            f.root,
-            captureConvergenceSources(f.root, "policy").sources.map((source) => source.path),
-          ),
-        },
+        fenceBeforeStaging: () => {},
       }),
     ).toEqual({ committed: [], head: null });
     expect(git(f.root, "rev-parse", "HEAD")).toBe(commit);

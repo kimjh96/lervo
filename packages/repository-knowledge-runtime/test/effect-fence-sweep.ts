@@ -132,10 +132,15 @@ export async function sweepSourceFences(input: {
     // instead is no evidence for the fence.
     const refusals: FenceRefusal[] = fenceRefusalLog.slice(logged).map(fenceRefusal);
     for (const owed of fenced) {
+      const file = (site: string) => site.split(":")[0];
       const index = refusals.findIndex((refusal) =>
         owed.evidence
           ? refusal.kind === "effect_sources" || refusal.kind === "exact"
-          : refusal.kind === "exact" && refusal.site === owed.site,
+          : refusal.site === owed.site
+            ? refusal.kind === "exact"
+            : // A fence that compares through the effect check, such as the settled-output
+              // staging fence, raises its refusal a statement away from its capture.
+              refusal.kind === "effect_sources" && file(refusal.site) === file(owed.site),
       );
       if (index === -1)
         violations.push(`${owed.label}: no refusal by this fence (${JSON.stringify(refusals)})`);

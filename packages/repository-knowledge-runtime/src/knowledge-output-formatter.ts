@@ -59,14 +59,12 @@ export async function loadRepositoryKnowledgeOutputFormatter(
 
 /**
  * Formats `paths` in place under `directory`. Returns each path whose bytes changed, in path
- * order, mapped to its previous content so a caller whose commit fails can restore it. When
- * given, `written` receives the exact formatted content of each changed path.
+ * order, mapped to its previous content so a caller whose commit fails can restore it.
  */
 export async function formatKnowledgeOutputFiles(input: {
   formatter: KnowledgeOutputFormatter;
   directory: string;
   paths: Iterable<string>;
-  written?: Map<string, string>;
 }): Promise<Map<string, string>> {
   const changed = new Map<string, string>();
   const ignorePath = resolve(input.directory, ".prettierignore");
@@ -78,7 +76,6 @@ export async function formatKnowledgeOutputFiles(input: {
     if (formatted === null || formatted === content) continue;
     await writeFile(absolute, formatted, "utf8");
     changed.set(path, content);
-    input.written?.set(path, formatted);
   }
   return changed;
 }

@@ -16,35 +16,43 @@ The snapshot hash binds HEAD, the policy hash, the path, content hash and kind o
 No effect depends on those:
 
 - **Refs other than HEAD.** Every integration ref move is a compare-and-swap on the exact old value: target synchronization and absorption (`update-ref <ref> <new> <old>`), integration completion (`compareAndSwapTarget`), capacity retirement (which also rereads the ref before and after), and target creation (an empty old value). A concurrent ref change makes the move fail instead of acting on a stale ref.
-- **The index.** The settled-output commit never reads the working tree after its checks and never commits the developer's index. It builds its tree in a private index from the fenced HEAD and blobs written from memory (`git hash-object -w --no-filters`), commits with `commit-tree`, and moves HEAD by compare-and-swap from the fenced HEAD while holding the developer's `index.lock`. Each blob's bytes are the fenced snapshot's bytes, or their formatted form, checked by content hash after every await, with the mode the fence saw; a mismatch refuses with `source_bytes_changed`. Under the lock the developer's index takes the committed entry only where it still equals the fenced HEAD's, so staged work stays staged. Seals commit in private worktrees. Root applies write working-tree files with a per-operation expected hash.
-- **Git config.** Config is the repository's own policy. No hook runs for Lervo's commits: the private seal commit disables them, and `commit-tree` runs none. Blobs skip clean filters and line-ending conversion, so committed bytes are exactly the reviewed bytes. `commit.gpgsign` is honoured.
+- **The index.** The settled-output commit runs `git add -A -- <paths>` and `git commit --only -- <paths>`, so the commit holds HEAD plus the working-tree bytes of those paths only; staged work on other paths never enters it (`knowledge-output-commit.test.ts`). An exact fence runs immediately before `git add`, after every await of selection and formatting, and accepts only the bound snapshot plus the formatter's approved effects. Seals commit in private worktrees. Root applies write working-tree files with a per-operation expected hash.
+- **Git config.** Config is the repository's own policy, and Lervo's settled-output commits apply it as a developer's commit would, hooks and filters included. The private seal commit disables hooks.
+
+## Known pre-existing races
+
+These windows predate the exact and current split and stay out of its scope; [ADR-0566](../../../../../decisions/operations/services/0566-fence-every-durable-convergence-write-exactly.md) records them:
+
+- **Edit during staging.** An edit to a selected output after the staging fence, while `git add` and `git commit --only` read the working tree, is committed unreviewed. The window runs from the fence through the end of `git commit`.
+- **Formatter over a developer edit.** The formatter reads, formats and writes each target file in turn; a developer edit between that read and write is overwritten. A failed commit's restore writes the pre-format content back over any edit made after formatting.
+- **Detached HEAD or branch switch.** `git checkout --detach` or a branch switch between the staging fence and `git commit` commits on whatever HEAD then names; the post-commit parent check returns an empty result but does not undo the commit.
 
 ## Classification
 
-| Site                                                                | Kind    | Guards                                                    |
-| ------------------------------------------------------------------- | ------- | --------------------------------------------------------- |
-| Host settlement (`assertSettlement`)                                | Exact   | The durable claim, inside the event lock                  |
-| Settled output commit (`settled-output-boundary.ts`)                | Exact   | The knowledge commit                                      |
-| Seal start, each private deletion, link and draft, the seal plan    | Exact   | Private workspace writes, its commit and the seal plan    |
-| Seal application                                                    | Exact   | The seal                                                  |
-| Integration candidate and completion                                | Exact   | The candidate apply and the integration ref move          |
-| Root apply (`canonical-integration-effect.ts`)                      | Exact   | Working-tree writes                                       |
-| Provider result (`provider-call.ts`, after the call)                | Exact   | The observation artifact, usage event and review cache    |
-| Normalization subset, after an approval or a timed-out review       | Exact   | The smaller candidate in the candidate store              |
-| Document route classification                                       | Exact   | Classification records                                    |
-| Normalization generation and apply                                  | Exact   | Candidate storage and working-tree writes                 |
-| Lifecycle prefix and ordered lifecycle apply                        | Exact   | Working-tree writes                                       |
-| Lifecycle asset settlement (`lifecycle-final.ts`)                   | Exact   | The asset settlement record                               |
-| Candidate resolution                                                | Exact   | Candidate transitions                                     |
-| Capacity ref retirement (`canonical-integration-stage.ts`)          | Exact   | The restoring ref commit                                  |
-| Target preflight, before synchronization                            | Exact   | Integration ref synchronization, absorption or restore    |
-| Practice retirement and materialization root apply                  | Exact   | Root deletion or write, its commit and the practice event |
-| Stage verification observation                                      | Exact   | Verification evidence                                     |
-| Host `prepareStage`, both `assertCurrent` checks, `runStage`        | Current | Whether a stage runs; settlement fences its result        |
-| Stage receipt                                                       | Current | The receipt binding, fenced by settlement                 |
-| Provider checks before and during the call                          | Current | Whether a provider call starts or continues               |
-| Target preflight result, retained integration inspection            | Current | Parking and retirement decisions; their effects fence     |
-| Lifecycle currency pair, assessment sources after a lifecycle apply | Current | Stable inputs for currency and lint; settlement fences    |
+| Site                                                                                     | Kind    | Guards                                                    |
+| ---------------------------------------------------------------------------------------- | ------- | --------------------------------------------------------- |
+| Host settlement (`assertSettlement`)                                                     | Exact   | The durable claim, inside the event lock                  |
+| Settled output commit (`settled-output-boundary.ts`), at the boundary and before staging | Exact   | The knowledge commit                                      |
+| Seal start, each private deletion, link and draft, the seal plan                         | Exact   | Private workspace writes, its commit and the seal plan    |
+| Seal application                                                                         | Exact   | The seal                                                  |
+| Integration candidate and completion                                                     | Exact   | The candidate apply and the integration ref move          |
+| Root apply (`canonical-integration-effect.ts`)                                           | Exact   | Working-tree writes                                       |
+| Provider result (`provider-call.ts`, after the call)                                     | Exact   | The observation artifact, usage event and review cache    |
+| Normalization subset, after an approval or a timed-out review                            | Exact   | The smaller candidate in the candidate store              |
+| Document route classification                                                            | Exact   | Classification records                                    |
+| Normalization generation and apply                                                       | Exact   | Candidate storage and working-tree writes                 |
+| Lifecycle prefix and ordered lifecycle apply                                             | Exact   | Working-tree writes                                       |
+| Lifecycle asset settlement (`lifecycle-final.ts`)                                        | Exact   | The asset settlement record                               |
+| Candidate resolution                                                                     | Exact   | Candidate transitions                                     |
+| Capacity ref retirement (`canonical-integration-stage.ts`)                               | Exact   | The restoring ref commit                                  |
+| Target preflight, before synchronization                                                 | Exact   | Integration ref synchronization, absorption or restore    |
+| Practice retirement and materialization root apply                                       | Exact   | Root deletion or write, its commit and the practice event |
+| Stage verification observation                                                           | Exact   | Verification evidence                                     |
+| Host `prepareStage`, both `assertCurrent` checks, `runStage`                             | Current | Whether a stage runs; settlement fences its result        |
+| Stage receipt                                                                            | Current | The receipt binding, fenced by settlement                 |
+| Provider checks before and during the call                                               | Current | Whether a provider call starts or continues               |
+| Target preflight result, retained integration inspection                                 | Current | Parking and retirement decisions; their effects fence     |
+| Lifecycle currency pair, assessment sources after a lifecycle apply                      | Current | Stable inputs for currency and lint; settlement fences    |
 
 Two sites read before their fence so that no await separates the fence from the write: target preflight reads the integrated-draft ledger, and candidate resolution lists the stored candidates. Integration target synchronization, absorption and the capacity retirement's restore run their own Git reads, so an exact fence runs again immediately before each of their ref writes.
 
@@ -80,5 +88,5 @@ A test session whose validation always answers "unchanged" drives full convergen
 - `test/effect-fence-exact-sweep.test.ts` edits just before the first exact fence at each site. That fence must refuse with `source_bytes_changed`, and no durable state may change and no unexempt event may be appended before the next observation. Verification evidence refuses through its stage receipt.
 - `test/effect-fence-decision-sweep.test.ts` edits at the first decision check of each site. Until the next exact fence, no durable state may change and no event outside the census exemptions may be appended. That fence must refuse.
 - `test/effect-fence-sweep-harness.test.ts` checks the sweep itself: it sees content-store artifacts, events after a refusal, and a decision check refusing in place of an exact fence. An edit whose stage ends in a waiting or attention record reaches no further fence; the sweep checks that it wrote nothing durable.
-- `test/effect-fence-await-gaps.test.ts` edits inside the awaits a sweep cannot reach: after a provider answer, after a normalization review or a timed-out one, while target preflight reads its ledger, during integration target synchronization's own reads, and while candidate resolution lists candidates. Every later durable write must follow an exact fence that saw the edit. `test/knowledge-output-commit-fence.test.ts` edits a selected output during each await between the settled-output fence and its commit; the commit may only hold the reviewed bytes.
+- `test/effect-fence-await-gaps.test.ts` edits inside the awaits a sweep cannot reach: after a provider answer, after a normalization review or a timed-out one, while target preflight reads its ledger, during integration target synchronization's own reads, and while candidate resolution lists candidates. Every later durable write must follow an exact fence that saw the edit. `test/knowledge-output-commit-fence.test.ts` edits a selected output during each await between the boundary fence and the staging fence (commit grant, ledger, formatter lookup, formatting); the staging fence must refuse, so that commit never holds the edit.
 - `test/document-route-classification.test.ts`, `test/practice-root-apply-fence.test.ts` and `test/canonical-layout-parking.test.ts` cover classification records, practice retirement and capacity retirement, which no full scenario reaches.

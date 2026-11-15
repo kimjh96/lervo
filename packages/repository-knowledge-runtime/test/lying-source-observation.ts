@@ -5,7 +5,12 @@ import type { ConvergenceSourceObservation } from "../src/source-observation.js"
 export function fenceSiteOfStack(stack: string): string {
   for (const frame of stack.split("\n").slice(1)) {
     const match = /repository-knowledge-runtime\/src\/([\w-]+\.ts):(\d+)/u.exec(frame);
-    if (match === null || match[1] === "source-observation.ts") continue;
+    if (
+      match === null ||
+      match[1] === "source-observation.ts" ||
+      match[1] === "effect-source-fence.ts"
+    )
+      continue;
     // The assertion helpers sit between every check and its caller; host methods name their own.
     if (/assertObservedSource|assertConvergenceSource|assertSource(Exact|Current)/u.test(frame))
       continue;

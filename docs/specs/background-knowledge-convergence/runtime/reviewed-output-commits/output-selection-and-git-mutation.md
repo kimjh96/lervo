@@ -24,26 +24,20 @@ Formatted paths join the commit pathspec. The stage receipt records each formatt
 
 ## Staging and commit
 
-The boundary stage's exact source fence proves that the repository equals the obligation's snapshot. The helper commits exactly that snapshot's bytes for the selected paths, or nothing:
-
-- Right after the fence, with no await, the helper records each source's file type and executable bit. A committed path must still be a regular file with that mode; its tree entry is `100755` or `100644` accordingly, or the committed mode when `core.fileMode` is false.
-- After every await of selection and formatting, each selected path is checked against the fenced snapshot. A present path is read without following links, and its bytes must hash to its snapshot hash; a formatted path's replaced content must, and its formatted content is what is committed; a deleted path must be absent from the snapshot. Any mismatch restores the formatted files and refuses with `source_bytes_changed`.
-- The checked bytes stay in memory. Blobs are written from them with `git hash-object -w --no-filters`, so no clean filter or line-ending conversion runs and the working tree is never read again. A private index starts from the fenced HEAD (`read-tree`), takes those blobs (`update-index --cacheinfo`) or removals, and `write-tree` builds the tree.
-- `commit-tree` records it with the fenced HEAD as parent. No hook runs. `commit.gpgsign` is read as a boolean: an invalid value, or a signing failure, gives way without a commit; a true value signs with `-S` under the repository's own `gpg.format` and `user.signingkey`.
-- The helper then takes the developer's `index.lock` exclusively, as `git commit` does, and holds it until the developer's index is updated. An existing lock, or any merge, cherry-pick, revert, rebase, sequencer or bisect marker seen under the lock, gives way before HEAD moves. A split index gives way too.
-- Under the lock, a copy of the developer's index takes the committed entry for each path only where its entry still equals the fenced HEAD's. A path the developer staged differently keeps the developer's entry and shows as a staged change. The copy becomes the lock's content.
-- HEAD moves by `update-ref HEAD <new> <fenced HEAD>` under Lervo's identity, so the reflog names Lervo Knowledge and a concurrent commit makes the helper return an empty result. Renaming the lock over the index then publishes the developer's index; if that fails, HEAD moves back.
-
-The commit carries:
+The helper stages selected paths with `git add -A --`, then uses `git commit --only` with:
 
 - Subject: `docs: apply reviewed background knowledge`.
 - Body: the obligation ID.
 - Author and committer: `Lervo Knowledge <knowledge@lervo.invalid>`.
 
-The commit does not depend on a developer or runner Git identity. An edit made after the fence stays in the working tree, uncommitted.
+The commit does not depend on a developer or runner Git identity. Without an explicit committer, Git refuses commits on hosts without a configured or derivable identity, such as CI runners. Other paths are omitted from the commit pathspec.
+
+After success, the helper reads HEAD and its first parent. It returns committed paths and before/after coordinates only if that parent equals the observed pre-commit HEAD.
 
 ## Failure and concurrency limits
 
-Safety markers are inspected before selection. `headBlob` returns null for every caught Git read failure, not only confirmed path absence. A failure while writing blobs, building the tree, signing or moving HEAD returns an empty result and restores the formatted files; blobs already written stay as unreachable objects. A developer Git command that needs the index while the helper holds the lock fails with Git's usual `index.lock` message.
+The helper does not establish an atomic selection-to-commit boundary. Safety markers are inspected before selection. After selection and formatting, an exact source fence runs immediately before `git add` and accepts only the bound snapshot plus the formatter's approved effects ([ADR-0566](../../../../decisions/operations/services/0566-fence-every-durable-convergence-write-exactly.md)); a refusal restores the formatted files. An edit from that fence through `git commit` is still committed. `headBlob` returns null for every caught Git read failure, not only confirmed path absence.
+
+Staging or commit failure returns an empty result with null HEAD coordinates, without explicit rollback of staging changes. Earlier inspection or selection errors can propagate. A post-commit parent mismatch also returns an empty result without undoing the commit. A null result therefore does not prove that Git or index bytes were unchanged.
 
 Outer serialization, recovery, and authority require separate verification before claiming protection against concurrent developer edits or uncertain effects.
