@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -14,6 +15,7 @@ import {
   normalizationRejections,
 } from "../src/normalization-rejection.js";
 import { canonicalWorksetWindow } from "../src/canonical-isolation.js";
+import { settledCanonicalDispositions } from "../src/canonical-disposition-ledger.js";
 import type { ParkedConvergenceSource } from "../src/convergence-parking.js";
 import { fixture } from "./fixture.js";
 
@@ -114,9 +116,10 @@ it("regenerates a rejected document with the reviewer's reasons and converges", 
 it("parks an always-rejected document, carries it to the next obligation, and readmits it when edited", async () => {
   const f = await fixture(true);
   fixtures.push(f);
-  await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this local contract.\n");
+  const rejected = "# A\n\nKeep this local contract.\n";
+  await writeFile(resolve(f.root, "docs/specs/a.md"), rejected);
   await rejectWhen(f, "item.sourcePath==='docs/specs/a.md'");
-  expect(await settle(f)).toMatchObject({
+  expect(await settle(f, 8)).toMatchObject({
     convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
   });
   expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
@@ -130,6 +133,23 @@ it("parks an always-rejected document, carries it to the next obligation, and re
       request.envelope?.documents.some((document) => document.path === "docs/specs/a.md"),
     ).length;
   expect(await generations()).toBe(3);
+  const reviews = (await requests(f)).filter(
+    (request) =>
+      request.task === "independent_normalization_review" &&
+      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.some(
+        (item) => item.sourcePath === "docs/specs/a.md",
+      ),
+  );
+  expect(reviews).toHaveLength(3);
+  // Only the rejected leading family stays pending with its exact bytes; runtime.md is applied.
+  expect(
+    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+  ).toEqual(["docs/specs/a.md"]);
+  expect(await readFile(resolve(f.root, "docs/specs/a.md"), "utf8")).toBe(rejected);
+  // The settled parking asks the provider nothing on the next run.
+  const calls = (await requests(f)).length;
+  await run(f);
+  expect(await requests(f)).toHaveLength(calls);
 
   // An unrelated change opens a new obligation; the parked bytes are not generated again.
   await writeFile(resolve(f.root, "note.ts"), "export const note = 1;\n");
@@ -153,8 +173,20 @@ it("isolates one rejected canonical source by halving its workset and integrates
       `# ${name.toUpperCase()}\n\nThe ${name} contract stays local.\n`,
     );
   await rejectWhen(f, "false", "data.sources.some(source=>source.path==='docs/specs/b.md')");
+  const integrationRef = () =>
+    execFileSync("git", ["-C", f.root, "rev-parse", "refs/heads/knowledge-integration"], {
+      encoding: "utf8",
+    }).trim();
+  const refBefore = integrationRef();
+  const runtime = resolve(f.root, "docs/specs/runtime.md");
+  const runtimeBefore = await readFile(runtime, "utf8");
   expect(await settle(f, 48)).toMatchObject({
-    convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+    status: "processed",
+    convergence: {
+      state: "attention_required",
+      reason: "knowledge_sources_parked",
+      lastVerifiedCurrency: null,
+    },
   });
   expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
     count: 1,
@@ -174,9 +206,88 @@ it("isolates one rejected canonical source by halving its workset and integrates
     withB.map((paths) => paths.length).toSorted((left, right) => right - left),
   );
   expect(reviewed.flat()).toEqual(expect.arrayContaining(["docs/specs/a.md", "docs/specs/c.md"]));
+  // Each rejected workset is reviewed twice around one re-assessment that carries the reviewer's
+  // rationale; no other assessment receives feedback.
+  const worksets = [...new Set(withB.map((paths) => paths.join(",")))];
+  expect(withB.map((paths) => paths.join(","))).toEqual(
+    worksets.flatMap((paths) => [paths, paths]),
+  );
+  expect(
+    (await requests(f))
+      .filter((request) => request.task === "canonical_baseline_assessment")
+      .flatMap((request) => request.untrustedSourceData!.independentReviewFeedback ?? []),
+  ).toEqual(
+    worksets.map(
+      () =>
+        "The workset claims coverage for docs/specs/b.md that no exact canonical quotation supports.",
+    ),
+  );
   expect(
     (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
   ).toEqual([]);
+  expect((await requests(f)).some((request) => request.envelope)).toBe(true);
+  // The approved siblings are integrated; the parked source settles nothing canonical.
+  const events = [];
+  for (let page = f.events.list({ limit: 1_000 }); page.length;) {
+    events.push(...page);
+    page = f.events.list({ afterSeq: page.at(-1)!.seq, limit: 1_000 });
+  }
+  const integration = events.find(
+    (event) =>
+      event.type === "repository.knowledge.stage.recorded" &&
+      event.payload.stage === "canonical_integration" &&
+      event.payload.state === "current",
+  );
+  const integratedInput = JSON.parse(
+    Buffer.from(
+      await f.artifacts.get(
+        `lervo-cas://sha256/${(integration!.payload.inputArtifactHash as string).slice(7)}`,
+      ),
+    ).toString("utf8"),
+  ) as { baseline: { projectId: string; policyHash: string } };
+  const reviewedSources = new Map(
+    (await requests(f))
+      .filter((request) => request.task === "independent_canonical_review")
+      .flatMap(
+        (request) =>
+          request.untrustedSourceData!.sources as { path: string; contentHash: string }[],
+      )
+      .map((source) => [source.path, source.contentHash]),
+  );
+  const settled = await settledCanonicalDispositions({
+    repositoryRoot: f.root,
+    events: f.events,
+    artifacts: f.artifacts,
+    projectId: integratedInput.baseline.projectId,
+    policyHash: integratedInput.baseline.policyHash,
+    sources: ["a", "b", "c"].map((name) => ({
+      path: `docs/specs/${name}.md`,
+      contentHash: reviewedSources.get(`docs/specs/${name}.md`)!,
+    })),
+  });
+  expect(settled.map((item) => item.path)).toEqual(["docs/specs/a.md", "docs/specs/c.md"]);
+  expect(await readFile(runtime, "utf8")).toBe(runtimeBefore);
+  expect(integrationRef()).toBe(refBefore);
+  expect(
+    events.some(
+      (event) =>
+        event.type === "knowledge.materialization.applied" &&
+        event.payload.operation === "canonicalize",
+    ),
+  ).toBe(false);
+  expect(
+    events.some(
+      (event) =>
+        event.type === "repository.knowledge.convergence.recorded" &&
+        event.payload.terminalState === "current",
+    ),
+  ).toBe(false);
+  // A restart after parking appends nothing and asks the provider nothing.
+  const head = f.events.latest()!.eventHash;
+  const log = await readFile(f.log, "utf8");
+  await run(f);
+  expect(f.events.latest()!.eventHash).toBe(head);
+  expect(await readFile(f.log, "utf8")).toBe(log);
 }, 300_000);
 
 it("settles an undeclared opaque asset by the passing pinned suite instead of stopping", async () => {
