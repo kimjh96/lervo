@@ -80,7 +80,11 @@ pr_verified() {
   esac
 }
 
-while [ "$(date +%s)" -lt "$deadline" ]; do
+# Judge the stage at least once, so a timeout always reports an observed state, even when the
+# whole-second deadline has already passed by the time the loop starts.
+judged=""
+while [ -z "$judged" ] || [ "$(date +%s)" -lt "$deadline" ]; do
+  judged=1
   case "$stage" in
     pr)
       prep=$(pr_preparation "$target") || prep="unknown"

@@ -43,14 +43,14 @@ case "$1 $2" in
 esac
 `;
 
-async function wait(state) {
+async function wait(state, timeoutSeconds = "1") {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-wait-release-"));
   roots.push(root);
   await writeFile(resolve(root, "gh"), fakeGh);
   await chmod(resolve(root, "gh"), 0o755);
   const trace = resolve(root, "trace.log");
   await writeFile(trace, "");
-  const result = spawnSync("bash", [waitScript, "pr", "7", "1"], {
+  const result = spawnSync("bash", [waitScript, "pr", "7", timeoutSeconds], {
     cwd: root,
     encoding: "utf8",
     timeout: 20_000,
@@ -96,6 +96,13 @@ describe("deploy-lervo-release pull-request wait", () => {
     assert.match(missing.stdout, /waiting for its dispatched Code quality run/u);
     assert.doesNotMatch(missing.trace, /pr checks/u);
     assert.equal((await wait({ FAKE_DISPATCH: "11 in_progress " })).status, 2);
+  });
+
+  it("judges the head once before reporting a deadline that already passed", async () => {
+    const expired = await wait({}, "0");
+    assert.equal(expired.status, 2);
+    assert.match(expired.stdout, /^TIMEOUT pr 7: prepared head b{40}: waiting for its dispatched/u);
+    assert.equal((await wait({ FAKE_DISPATCH: "11 completed success" }, "0")).status, 0);
   });
 
   it("uses pull-request checks for an unprepared head without a dispatch", async () => {
