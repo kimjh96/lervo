@@ -116,6 +116,10 @@ it(
             event.payload.operation === "canonicalize",
         ),
     ).toHaveLength(2);
+    // The turn after canonical convergence finds no work and asks the provider nothing.
+    const providerCalls = (await readFile(f.log, "utf8")).trim().split("\n").length;
+    expect(await run(f)).toMatchObject({ status: "processed", convergence: { state: "idle" } });
+    expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(providerCalls);
     const stage = f.events
       .list({ limit: 1000 })
       .findLast(
