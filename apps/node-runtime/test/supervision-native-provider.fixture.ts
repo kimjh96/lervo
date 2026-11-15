@@ -2,14 +2,23 @@ import { readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { dispatchFixture } from "./supervision-dispatch.fixture.js";
 
+/** Which attempts the fake native owner rejects, counted from the first attempt. */
+export interface NativeCompletionProviderVerdicts {
+  /** Leading attempts whose independent writing judgement fails before any completion. */
+  writingRejections: number;
+  /** Following attempts whose owner review requests rework after a completed result. */
+  reviewRejections: number;
+}
+
 export async function configureNativeCompletionProvider(
   f: Awaited<ReturnType<typeof dispatchFixture>>,
-  scenario: string,
+  verdicts: NativeCompletionProviderVerdicts,
   log: string,
   promptLog: string,
 ) {
-  const completedRework = scenario.startsWith("rework");
-  const writingRework = scenario === "writing_rework";
+  const attempt = "(context.facts.assignments[0].recovery?.attemptNumber ?? 1)";
+  const writingFailed = `${attempt} <= ${verdicts.writingRejections}`;
+  const reviewRejected = `${attempt} <= ${verdicts.writingRejections + verdicts.reviewRejections}`;
   const login = (await readFile(f.login.executable, "utf8")).replace(
     "const args=",
     "function inspectLogin(){\nconst args=",
@@ -40,8 +49,8 @@ export async function configureNativeCompletionProvider(
         details={assignmentId:task.assignmentId,task:{roleId:before.roleId,taskPurpose:"Recheck and correct the rejected result while preserving the saved value.",deliverables:before.deliverables,acceptanceCriteria:before.acceptanceCriteria,decisionLatitude:before.decisionLatitude,expectedPaths:before.expectedPaths,requiredCapabilities:before.requiredCapabilities,verificationSuiteIds:before.verificationSuiteIds,completionSeconds:600}};
       } else if (task.status === "leased") {
         operation = "prepare_completion";
-        details = {assignmentId:task.assignmentId,resultContentHash:task.artifactHashes[0],writingPolicyId:context.facts.writingContract.writingPolicyId,checks:context.facts.writingContract.verification.semanticChecks.filter(check=>check.required).map(check=>({checkId:check.checkId,status:${scenario === "failed_writing" ? '"failed"' : writingRework ? 'context.facts.assignments[0].recovery === undefined ? "failed" : "passed"' : '"passed"'},violationCount:${scenario === "failed_writing" ? "1" : writingRework ? "context.facts.assignments[0].recovery === undefined ? 1 : 0" : "0"}}))};
-      } else if (task.review === null) {operation="review_artifacts";details={assignmentId:task.assignmentId,verdict:${completedRework ? 'context.facts.assignments[0].recovery === undefined ? "rework" : "accepted"' : '"accepted"'}};}
+        details = {assignmentId:task.assignmentId,resultContentHash:task.artifactHashes[0],writingPolicyId:context.facts.writingContract.writingPolicyId,checks:context.facts.writingContract.verification.semanticChecks.filter(check=>check.required).map(check=>({checkId:check.checkId,status:${writingFailed} ? "failed" : "passed",violationCount:${writingFailed} ? 1 : 0}))};
+      } else if (task.review === null) {operation="review_artifacts";details={assignmentId:task.assignmentId,verdict:${reviewRejected} ? "rework" : "accepted"};}
 
       else {operation="complete_workstream";details={result:"The saved value was updated and verified in the assigned workspace. The original repository remains available for integration."};}
       await appendFile(${JSON.stringify(log)}, operation+"\\n");
