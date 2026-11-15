@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync, existsSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, chmodSync, existsSync, readFileSync, rmSync } from "node:fs";
 import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -14,7 +14,7 @@ import { fixture } from "./fixture.js";
 const MARKER = "concurrent developer edit";
 const FORMATTED = "<!-- formatted -->\n";
 const plan = vi.hoisted(() => ({
-  mode: "" as "" | "edit_x" | "edit_x_and_y" | "delete_x",
+  mode: "" as "" | "edit_x" | "edit_x_and_y" | "delete_x" | "readonly_x_edit_y",
   fired: false,
   root: "",
   error: null as unknown,
@@ -66,8 +66,10 @@ vi.mock("../src/knowledge-output-formatter.js", async (load) => {
         plan.fired = true;
         const x = resolve(plan.root, "docs/specs/runtime.md");
         if (plan.mode === "delete_x") rmSync(x);
+        // A formatted output the restore cannot write, refused for an unrelated edit.
+        else if (plan.mode === "readonly_x_edit_y") chmodSync(x, 0o444);
         else appendFileSync(x, `\n${MARKER}\n`);
-        if (plan.mode === "edit_x_and_y")
+        if (plan.mode === "edit_x_and_y" || plan.mode === "readonly_x_edit_y")
           appendFileSync(resolve(plan.root, "README.md"), "\nunrelated developer edit\n");
       }
       return replaced;
@@ -79,6 +81,8 @@ const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 beforeEach(() => Object.assign(plan, { mode: "", fired: false, error: null, commits: [] }));
 afterEach(async () => {
   for (const f of fixtures.splice(0)) {
+    if (existsSync(resolve(f.root, "docs/specs/runtime.md")))
+      chmodSync(resolve(f.root, "docs/specs/runtime.md"), 0o644);
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
@@ -138,3 +142,12 @@ it("never recreates a formatted output the developer deleted", { timeout: 600_00
   expect(r.error).toBe("source_bytes_changed");
   expect(r.workingTreeExists).toBe(false);
 });
+it(
+  "keeps the fence's classified refusal when a restore cannot write",
+  { timeout: 600_000 },
+  async () => {
+    const r = await runUntilFired("readonly_x_edit_y");
+    expect(r.error).toBe("source_bytes_changed");
+    expect(r.committedWithMarker).toEqual([]);
+  },
+);

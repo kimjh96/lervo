@@ -96,6 +96,7 @@ export async function restoreKnowledgeOutputFiles(
 /**
  * Puts back the content `formatKnowledgeOutputFiles` replaced, but only into a file that still
  * holds exactly what the formatter wrote. A file someone edited or deleted since stays as it is.
+ * A failed read or write skips that file only, so the caller's original error is what it rethrows.
  */
 export function restoreUnchangedKnowledgeOutputFiles(
   directory: string,
@@ -104,13 +105,12 @@ export function restoreUnchangedKnowledgeOutputFiles(
 ): void {
   for (const [path, content] of previous) {
     const absolute = resolve(directory, path);
-    let current: string;
     try {
-      current = readFileSync(absolute, "utf8");
+      if (readFileSync(absolute, "utf8") === written.get(path))
+        writeFileSync(absolute, content, "utf8");
     } catch {
-      continue;
+      // Leave this file as it is and keep restoring the rest.
     }
-    if (current === written.get(path)) writeFileSync(absolute, content, "utf8");
   }
 }
 
