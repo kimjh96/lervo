@@ -43,7 +43,9 @@ case "$1 $2" in
 esac
 `;
 
-async function wait(state, timeoutSeconds = "1") {
+// A concluding wait exits at once, so the default deadline only bounds a broken run. Cases that
+// expect a timeout pass "0", which judges the head exactly once and never depends on the clock.
+async function wait(state, timeoutSeconds = "10") {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-wait-release-"));
   roots.push(root);
   await writeFile(resolve(root, "gh"), fakeGh);
@@ -91,11 +93,11 @@ describe("deploy-lervo-release pull-request wait", () => {
   });
 
   it("keeps waiting while a prepared head has no dispatch or an unfinished one", async () => {
-    const missing = await wait({});
+    const missing = await wait({}, "0");
     assert.equal(missing.status, 2);
     assert.match(missing.stdout, /waiting for its dispatched Code quality run/u);
     assert.doesNotMatch(missing.trace, /pr checks/u);
-    assert.equal((await wait({ FAKE_DISPATCH: "11 in_progress " })).status, 2);
+    assert.equal((await wait({ FAKE_DISPATCH: "11 in_progress " }, "0")).status, 2);
   });
 
   it("judges the head once before reporting a deadline that already passed", async () => {
@@ -114,7 +116,7 @@ describe("deploy-lervo-release pull-request wait", () => {
       FAKE_CHECKS_STATUS: "1",
     });
     assert.equal(failed.status, 1);
-    assert.equal((await wait({ ...author, FAKE_CHECKS: "2 1 0 Tests=pending" })).status, 2);
+    assert.equal((await wait({ ...author, FAKE_CHECKS: "2 1 0 Tests=pending" }, "0")).status, 2);
   });
 
   it("judges the head again when it moves during the checks and binds the merge to it", async () => {
@@ -132,10 +134,10 @@ describe("deploy-lervo-release pull-request wait", () => {
     assert.equal(stale.status, 3);
     assert.match(stale.stdout, /gh pr update-branch 7/u);
     assert.equal((await wait({ FAKE_PREPARATION: "completed/failure" })).status, 1);
-    const running = await wait({
-      FAKE_PREPARATION: "in_progress/",
-      FAKE_DISPATCH: "11 completed success",
-    });
+    const running = await wait(
+      { FAKE_PREPARATION: "in_progress/", FAKE_DISPATCH: "11 completed success" },
+      "0",
+    );
     assert.equal(running.status, 2);
     assert.match(running.stdout, /release preparation in_progress/u);
   });

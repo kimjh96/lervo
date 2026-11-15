@@ -5,6 +5,7 @@
 #                                                   current head, which must contain current main
 #   wait-release.sh release-pr [timeout-seconds]     fallback lervo/release-cli PR and its candidate CI
 #   wait-release.sh tag <version> [timeout-seconds]  tag v<version>, its CLI release matrix (any event), and the GitHub Release
+# Every stage is judged at least once, so a timeout of 0 judges it exactly once.
 # Only gh and its built-in --jq are needed, so the script behaves the same on every host.
 set -u
 stage="${1:?stage}"; shift
