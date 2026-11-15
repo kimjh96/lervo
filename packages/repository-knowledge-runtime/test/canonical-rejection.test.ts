@@ -33,8 +33,8 @@ afterEach(async () => {
 });
 
 it(
-  "reuses a pre-ADR-0479 canonical rejection as the first bounded attempt without another review",
-  { timeout: 180_000 },
+  "reuses a pre-ADR-0479 canonical rejection as the first attempt and parks the last batch to the end",
+  { timeout: 300_000 },
   async () => {
     const f = await fixture(true, true);
     fixtures.push(f);
@@ -43,6 +43,9 @@ it(
       "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
     expect(script).toContain(marker);
     await writeFile(f.executable, script.replace(marker, marker.replace("'approve'", "'reject'")));
+    const refBefore = integrationRef(f);
+    const target = resolve(f.root, "docs/specs/runtime.md");
+    const targetBefore = await readFile(target, "utf8");
     // A pre-ADR-0479 owner stopped the whole obligation at its first rejected review.
     const context = {
       storage: f.storage,
@@ -125,9 +128,8 @@ it(
             casJson<KnowledgeConvergenceInput>(f.artifacts, e.payload.resultArtifactHash),
           ),
       );
-    // The upgraded worker requeues the stall once and judges the retained rejection again. The case
-    // stops after the parked source hands over to normalization; convergence-parking.test.ts covers
-    // the rest of the obligation.
+    // The upgraded worker requeues the stall once and judges the retained rejection again. The
+    // parked source is the only and last canonical batch, a geometry the halving case never reaches.
     const parked = async () => {
       const latest = (await settledReviews()).at(-1);
       return latest === undefined
@@ -152,8 +154,8 @@ it(
     expect(await parked()).toEqual([
       { stage: "canonical", path: "docs/specs/runtime.md", reason: "review_rejected", attempts: 2 },
     ]);
-    // The requeued review settles from the retained artifact, so it neither calls the provider nor
-    // replays a cached review; that retained rejection is the first of the two bounded attempts.
+    // The receipt names the retained artifact, so the requeued review settled from it rather than
+    // from a new or cached review; that retained rejection is the first of two bounded attempts.
     const proofs = await Promise.all(
       (await settledReviews()).map(
         async (input) =>
@@ -188,6 +190,42 @@ it(
         request.envelope?.documents.some((document) => document.path === "docs/specs/runtime.md"),
       ),
     ).toBe(true);
+    // The obligation runs to its final attention with only the parked source left.
+    let result: Awaited<ReturnType<typeof run>> | undefined;
+    for (let i = 0; i < 32; i++) {
+      result = await run();
+      if (result.status === "processed" && result.convergence.state === "attention_required") break;
+    }
+    expect(result).toMatchObject({
+      status: "processed",
+      convergence: {
+        state: "attention_required",
+        reason: "knowledge_sources_parked",
+        lastVerifiedCurrency: null,
+      },
+    });
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+      count: 1,
+      sources: [
+        {
+          stage: "canonical",
+          path: "docs/specs/runtime.md",
+          reason: "review_rejected",
+          attempts: 2,
+        },
+      ],
+    });
+    expect(
+      (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+    ).toEqual([]);
+    expect(await readFile(target, "utf8")).toBe(targetBefore);
+    expect(integrationRef(f)).toBe(refBefore);
+    expect(canonicalSettlementEffects(f.events)).toEqual({ canonicalize: false, current: false });
+    const head = f.events.latest()!.eventHash;
+    const log = await readFile(f.log, "utf8");
+    await run();
+    expect(f.events.latest()!.eventHash).toBe(head);
+    expect(await readFile(f.log, "utf8")).toBe(log);
   },
 );
 
@@ -235,6 +273,12 @@ it("isolates one rejected canonical source by halving its workset and integrates
   expect(withB.map((paths) => paths.join(","))).toEqual(
     worksets.flatMap((paths) => [paths, paths]),
   );
+  // Each isolation halves the rejected workset.
+  expect(worksets).toEqual([
+    "docs/specs/a.md,docs/specs/b.md,docs/specs/c.md,docs/specs/runtime.md",
+    "docs/specs/a.md,docs/specs/b.md",
+    "docs/specs/b.md",
+  ]);
   expect(
     (await providerRequests(f))
       .filter((request) => request.task === "canonical_baseline_assessment")

@@ -95,9 +95,11 @@ it("parks an always-rejected document, carries it to the next obligation, and re
     (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
   ).toEqual(["docs/specs/a.md"]);
   expect(await readFile(resolve(f.root, "docs/specs/a.md"), "utf8")).toBe(rejected);
-  // The settled parking asks the provider nothing on the next run.
+  // The settled parking appends nothing and asks the provider nothing on the next run.
+  const head = f.events.latest()!.eventHash;
   const calls = (await providerRequests(f)).length;
   await runParkingWorker(f);
+  expect(f.events.latest()!.eventHash).toBe(head);
   expect(await providerRequests(f)).toHaveLength(calls);
 
   // An unrelated change opens a new obligation; the parked bytes are not generated again.
