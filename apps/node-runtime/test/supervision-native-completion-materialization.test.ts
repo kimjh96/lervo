@@ -221,6 +221,12 @@ it.each([
   });
 });
 
+it("treats preparation exactly at lease expiry as late", async () => {
+  const { output } = await completion({ now: 900 });
+  expect(output.fields.effectContract).toBe("work.assignment_completion.v3");
+  expect(output.effect).toMatchObject({ preparedAt: iso(900), settlementDeadline: iso(1020) });
+});
+
 it("treats preparation after the responsibility deadline as late before lease expiry", async () => {
   const { output } = await completion({ now: 700, completionDeadline: 600 });
   expect(output.effect).toMatchObject({ schemaVersion: 3, settlementDeadline: iso(820) });

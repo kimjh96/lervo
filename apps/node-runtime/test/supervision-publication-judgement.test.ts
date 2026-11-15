@@ -14,8 +14,10 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { resultWritingContract } from "../src/conversation-result-publication.js";
 import { assertNativePublicationJudgement } from "../src/supervision-publication-judgement.js";
 
-// The settled owner-reasoning receipt has its own coverage; this suite isolates what the publication
-// permit must additionally prove about the exact model result behind it.
+// This suite isolates what the publication permit must prove about the exact model result, so the
+// owner-reasoning receipt lookup is replaced. It therefore does not prove that the receipt is read
+// for the reasoning plan rather than another plan; the publication_retry scenario in
+// supervision-native-completion.test.ts covers that binding with real recorded evidence.
 const receipt = vi.hoisted(() => ({ status: "confirmed" }));
 vi.mock("../src/supervision-reasoning-receipt.js", () => ({
   inspectOwnerReasoning: async () => ({ status: receipt.status }),
