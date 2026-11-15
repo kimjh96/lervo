@@ -39,7 +39,7 @@ Wrappers follow `ci-test-input-transparent-call.cjs`. Each wrapped function is a
 - `files[]`: `file`, `result`, `tests` counts, `durationMs`, `collectMs`, `inputs`, `directories` (path and listing digests), `trees`, `absent`, `dependencies`, `untracked`, `children`, `network`, `host`, `clock`, `processes`, `notes`, `uncacheableReasons` and `toolchainDigest`.
 - `summary`: counts of files, complete closures, reasons and records.
 
-A file's closure joins its worker with every child the ledger can match, by PID or, for synchronous APIs, by parent PID and argument tail. Children that Vitest's worker starts before it is given a file, such as tinypool counting CPUs, belong to the toolchain. A ledger above 32 MB keeps results and reasons but drops the path lists, and every file in it is then marked `module_graph_unavailable`.
+A file's closure joins its worker with every child the ledger can match, by PID or, for synchronous APIs, by parent PID and argument tail. Files a test-only Vite plugin read for a module (`api.ciTestModuleInputs()`) join the closure of each file loading it. Children that Vitest's worker starts before it is given a file, such as tinypool counting CPUs, belong to the toolchain. A ledger above 32 MB keeps results and reasons but drops the path lists, and every file in it is then marked `module_graph_unavailable`.
 
 **Uncacheable reasons.** Each file lists the reasons its closure cannot yet key a reuse. The list is closed:
 

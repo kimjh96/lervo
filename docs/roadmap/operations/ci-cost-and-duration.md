@@ -143,7 +143,7 @@ In [run 43652187030](https://github.com/kimjh96/lervo/actions/runs/43652187030),
 | Cross-package barrels                               | Static graphs load 741,924 modules across all files. Importing each name from its declaring module cuts that by 44%. Barrels that tests mock or use as module objects must stay, which limits the cut to 36%. The rest of collection costs about 1 ms per module. |
 | Repeated native compilation                         | Parser dependencies and the validators compile again in every process.                                                                                                                                                                                            |
 
-The [CI reference](../../foundation/code-quality-and-commit-ci.md#source-test-module-loading) describes the two fixes that ship and why each preserves behavior: native loading of the generated validators and one Node compile cache per run. A third fix, a Vitest plugin that imports barrel names from their declaring modules, is held back: an independent review found that its rewrites hide barrel files from the ADR-0565 ledger closure and that some import and mock forms bypass its pins.
+The [CI reference](../../foundation/code-quality-and-commit-ci.md#source-test-module-loading) describes the two fixes that ship and why each preserves behavior: native loading of the generated validators and one Node compile cache per run. A third fix, a Vitest plugin that imports barrel names from their declaring modules, was held back: an independent review found that its rewrites hid barrel files from the ADR-0565 ledger closure, that `import d, * as ns`, assigned dynamic imports, and mocks in setup files bypassed its pins, and that evaluation order changes had no guard. The reference now describes how each is closed.
 
 Each shard below ran on WSL with two workers and the CI timeout, first under the original `vitest.config.ts` and then under the configuration with all three fixes, back to back on the same files. Times are Vitest's Duration and collect totals, in seconds:
 
@@ -159,8 +159,19 @@ With all three fixes, collection fell by 48% and shard duration by 19%. Both con
 
 In a separate back-to-back pair on shard 1, the plugin alone cut module executions from 194,352 to 136,545 and collection from 221 to 184 seconds. Without it, the two shipped fixes account for the rest: native loading removed about 191 of 381 seconds of shard-1 collection, and the compile cache cut collection on 297 shared files from 251 to 226-229 seconds on top of native loading. The next hosted run measures the shipped pair.
 
+After those fixes, the plugin ran on WSL shard 1 against the configuration of current main, in two back-to-back pairs in opposite orders. Both configurations ran the same 321 files and 1,717 tests. Times are Vitest's Duration and phase totals, in seconds:
+
+| Pair and order | Configuration | Duration | Collect | Transform | Tests |
+| -------------- | ------------- | -------- | ------- | --------- | ----- |
+| 1, off first   | main          | 502.9    | 183.9   | 11.7      | 766.7 |
+| 1, off first   | plugin        | 475.1    | 146.5   | 15.1      | 752.9 |
+| 2, on first    | plugin        | 570.9    | 185.1   | 20.9      | 892.5 |
+| 2, on first    | main          | 638.2    | 227.2   | 22.6      | 983.9 |
+
+The plugin cut collection by 20% and 19% and shard duration by 6% and 11%. The owner's jobs share this host, so the two pairs differ by about 25% in absolute time. On a 60-file slice of the same shard, the workers loaded 43,056 modules instead of 59,913. The plugin adds 3 to 5 seconds of transform time to parse the barrels and scan the tests. An earlier version that also registered each consulted barrel as a Vite watch file made both pairs slower, with Duration 586.6 against 537.8 and 584.8 against 514.5: Vite resolves every watch file into its module graph on each transform. In every run, the only failures were `scripts/release/test/release-publication-authorization.test.mjs`, which fails on this host under both configurations, and tests in `apps/cli/test/upgrade-command.test.ts`, `upgrade-knowledge-materialization-wait.test.ts`, `upgrade-resident-exclusion.test.ts`, and `knowledge-host-residents.test.ts`. Run alone in four alternating runs, those four files failed two, one, two, and two tests, a different set each time under either configuration. They observe host runtime directories and processes.
+
 - [x] Measure collection by module and fix its two largest causes without changing test selection, assertions, pool, or isolation.
-- [ ] Ship the direct barrel import plugin only after its rewrites record the barrels they read in the ledger closure and its pins cover `import d, * as ns`, assigned dynamic imports, and mocks in setup files.
+- [x] Ship the direct barrel import plugin only after its rewrites record the barrels they read in the ledger closure and its pins cover `import d, * as ns`, assigned dynamic imports, and mocks in setup files.
 - [ ] Observe collection time in the next hosted run and refresh the duration profile.
 - [ ] Decide whether the generated validators should build each schema's validator lazily. Evaluating all 219 still takes about 135 ms of the remaining 200 ms per file. The CLI pays the same cost on each start that validates.
 
