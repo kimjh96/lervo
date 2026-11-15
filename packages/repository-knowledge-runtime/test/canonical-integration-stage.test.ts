@@ -9,7 +9,7 @@ import { planWorkspaceCleanup } from "@lervo/orchestrator";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import * as workspace from "../src/canonical-workspace.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
-import { createConvergenceRuntimeHost } from "../src/host.js";
+import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { compactConvergenceWorkspaces } from "../src/workspace-retention.js";
 import {
   CANONICAL_SOURCE,
@@ -17,6 +17,11 @@ import {
   INTEGRATED_REQUIREMENT,
   canonicalIntegrationFixture,
 } from "./canonical-integration-fixture.js";
+
+// Only the provider boundary is replaced; see `canonicalIntegrationFixture().converge`.
+vi.mock("../src/provider-call.js", async () => ({
+  reviewKnowledgeJson: (await import("./canonical-integration-provider.js")).canonicalFixtureReview,
+}));
 
 const harnesses: Awaited<ReturnType<typeof canonicalIntegrationFixture>>[] = [];
 afterEach(async () => {
@@ -35,6 +40,14 @@ async function harness(options?: Parameters<typeof canonicalIntegrationFixture>[
 
 const git = (root: string, ...args: string[]) =>
   execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
+
+/** The private dependency the owner recorded with the latest stage stall. */
+function latestDependency(f: Awaited<ReturnType<typeof harness>>["f"]) {
+  return f.events
+    .list({ limit: 1000 })
+    .findLast((event) => event.type === "repository.knowledge.stage.recorded")!.payload
+    .dependencyHash as string;
+}
 
 function canonicalizations(f: Awaited<ReturnType<typeof harness>>["f"]) {
   return f.events
@@ -125,17 +138,65 @@ it(
 );
 
 it(
+  "parks a source whose draft meets a dirty canonical target and readmits it after the owner commits",
+  { timeout: 60_000 },
+  async () => {
+    const requirement = "Preserve this exact uncommitted user requirement.";
+    const { f, converge } = await harness({ ownerTargetEdit: `\n${requirement}\n` });
+    const path = resolve(f.root, CANONICAL_TARGET);
+    const dirty = await readFile(path, "utf8");
+    // ADR-0530: the divergent draft parks its source and every later stage still runs.
+    expect(await converge()).toMatchObject({
+      state: "attention_required",
+      reason: "knowledge_sources_parked",
+    });
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+      count: 1,
+      sources: [
+        { stage: "canonical", path: CANONICAL_SOURCE, reason: "target_diverged", attempts: 1 },
+      ],
+    });
+    expect(await readFile(path, "utf8")).toBe(dirty);
+    expect(
+      (await listAssignments(f.root)).some(
+        (item) => item.convergence?.stage === "canonical_integration",
+      ),
+    ).toBe(false);
+    const parkedHead = f.events.latest()!.eventHash;
+    expect(await converge()).toMatchObject({ state: "attention_required" });
+    expect(f.events.latest()!.eventHash).toBe(parkedHead);
+
+    // Committing the owner's requirement changes HEAD's target bytes, which readmits the source.
+    git(
+      f.root,
+      "-c",
+      "user.name=Test",
+      "-c",
+      "user.email=test@lervo.invalid",
+      "commit",
+      "-qm",
+      "Owner requirement",
+      "--",
+      CANONICAL_TARGET,
+    );
+    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toBeUndefined();
+    expect(await readFile(path, "utf8")).toContain(requirement);
+  },
+);
+
+it(
   "reuses durable provision and seal plans without a second workspace or commit",
   { timeout: 60_000 },
   async () => {
-    const { f, integrate, settleObligation, runRetentionTurn } = await harness();
+    const { f, converge, runTurnWithoutDelegation } = await harness();
     const seal = workspace.sealCanonicalDrafts;
     vi.spyOn(workspace, "sealCanonicalDrafts").mockImplementation(async (...args) => {
       const first = await seal(...args);
       expect(await seal(...args)).toEqual(first);
       return first;
     });
-    expect(await integrate()).toMatchObject({ state: "current" });
+    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
     expect(workspace.sealCanonicalDrafts).toHaveBeenCalledOnce();
     const workspaces = await listWorkspaces(f.root);
     expect(workspaces).toHaveLength(2);
@@ -145,9 +206,8 @@ it(
     expect(
       workspaces.every((item) => item.state === "integrated" && item.writerSession === null),
     ).toBe(true);
-    // ADR-0518: the owner's next turn retires every checkout of the settled obligation.
-    settleObligation();
-    expect(await runRetentionTurn()).toMatchObject({ status: "processed" });
+    // ADR-0518: the owner's next turn retires every checkout of the obligation the owner settled.
+    expect(await runTurnWithoutDelegation()).toMatchObject({ status: "processed" });
     const remaining = (await listWorkspaces(f.root)).filter((item) => item.state !== "removed");
     const blocked = await Promise.all(
       remaining.map((item) =>
@@ -164,7 +224,6 @@ it(
     );
     expect(remaining, JSON.stringify(blocked.map((item) => item.blockedReasons))).toHaveLength(0);
     expect(workspaces.every((item) => !existsSync(item.ownerWorkspacePath!))).toBe(true);
-    await expect(readFile(f.log)).rejects.toMatchObject({ code: "ENOENT" });
   },
 );
 
@@ -172,13 +231,12 @@ it(
   "resumes a verified ref integration before root apply under a new exact lease",
   { timeout: 60_000 },
   async () => {
-    const { f, state, context, integrate } = await harness();
+    const { f, runtime, converge } = await harness();
     const interruption = interruptFirstRootApply();
-    const uncertain = (await integrate().catch((error: unknown) => error)) as {
-      code?: string;
-      dependencyHash?: string;
-    };
-    expect(uncertain).toMatchObject({ code: "knowledge_effect_uncertain" });
+    expect(await converge()).toMatchObject({
+      state: "recovery_required",
+      reason: "knowledge_effect_uncertain",
+    });
     expect(interruption.happened).toBe(true);
     expect(await readFile(resolve(f.root, CANONICAL_TARGET), "utf8")).not.toContain(
       INTEGRATED_REQUIREMENT,
@@ -190,28 +248,16 @@ it(
     )!;
     expect(failed).toMatchObject({ status: "failed", lease: null, lastLeaseGeneration: 1 });
 
-    // The owner settles the failure as `recovery_required` with this dependency. The runtime host
-    // holds it while the ref integration cannot be verified and releases it once it can.
-    const host = createConvergenceRuntimeHost(context);
-    const dependency = await f.artifacts.put(
-      knowledge.canonicalJson({
-        schemaVersion: 1,
-        kind: "stage_failure",
-        code: uncertain.code,
-        evaluationContract: host.evaluationContract,
-        snapshotHash: state.snapshotHash,
-        delegationHash: state.baseline.delegationHash,
-        evidenceHash: uncertain.dependencyHash,
-      }),
-    );
+    // The runtime host holds the owner's recorded stall while the ref integration cannot be
+    // verified, and releases it once it can; the owner then redelivers the same stage input.
+    const dependency = latestDependency(f);
     const base = git(f.root, "rev-list", "--max-parents=0", "HEAD");
     git(f.root, "update-ref", "refs/heads/knowledge-integration", base);
-    expect(await host.dependencyCurrent(dependency.contentHash)).toBe(true);
+    expect(await runtime.dependencyCurrent(dependency)).toBe(true);
     git(f.root, "update-ref", "refs/heads/knowledge-integration", ref);
-    expect(await host.dependencyCurrent(dependency.contentHash)).toBe(false);
+    expect(await runtime.dependencyCurrent(dependency)).toBe(false);
 
-    // Released, the owner redelivers the same stage input.
-    expect(await integrate()).toMatchObject({ state: "current", failureCode: null });
+    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
     expect(git(f.root, "rev-parse", "knowledge-integration")).toBe(ref);
     expect(await readFile(resolve(f.root, CANONICAL_TARGET), "utf8")).toContain(
       INTEGRATED_REQUIREMENT,
@@ -232,9 +278,9 @@ it(
   "retires a failed attempt's dirty draft checkout once its obligation settles",
   { timeout: 60_000 },
   async () => {
-    const { f, integrate, settleObligation, runRetentionTurn } = await harness();
+    const { f, converge, runTurnWithoutDelegation } = await harness();
     const interruption = interruptFirstRootApply();
-    await expect(integrate()).rejects.toMatchObject({ code: "knowledge_effect_uncertain" });
+    expect(await converge()).toMatchObject({ state: "recovery_required" });
     expect(interruption.happened).toBe(true);
     const failed = (await listAssignments(f.root)).find(
       (item) => item.taskType === "repository.integration",
@@ -245,10 +291,9 @@ it(
     )!;
     // A failed verification can leave rewritten bytes behind, as a lockfile install does.
     await writeFile(resolve(checkout.ownerWorkspacePath!, "pnpm-lock.yaml"), "rewritten\n");
-    expect(await integrate()).toMatchObject({ state: "current" });
+    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
 
-    settleObligation();
-    expect(await runRetentionTurn()).toMatchObject({ status: "processed" });
+    expect(await runTurnWithoutDelegation()).toMatchObject({ status: "processed" });
     const removed = (await listWorkspaces(f.root)).find(
       (item) => item.workspaceId === checkout.workspaceId,
     )!;
@@ -264,19 +309,18 @@ it(
   "retires integrated checkouts on a non-owner host after the target was absorbed",
   { timeout: 60_000 },
   async () => {
-    const { f, integrate, settleObligation, runRetentionTurn } = await harness();
-    expect(await integrate()).toMatchObject({ state: "current" });
+    const { f, converge, runTurnWithoutDelegation } = await harness();
+    expect(await converge()).toMatchObject({ state: "idle", outstanding: 0 });
     const integrated = await listWorkspaces(f.root);
     expect(integrated.length).toBeGreaterThan(0);
     expect(integrated.every((item) => item.state === "integrated")).toBe(true);
-    settleObligation();
     // ADR-0482 absorption moves the target to a base that never contained the sealed heads.
     const base = git(f.root, "rev-list", "--max-parents=0", "HEAD");
     git(f.root, "update-ref", "refs/heads/knowledge-integration", base);
 
     // Checkouts are host-local, so a host that no longer owns convergence still retires its own.
     expect(
-      await runRetentionTurn(
+      await runTurnWithoutDelegation(
         async () => ({ role: "waiting_owner", reason: "convergence_owner_elsewhere" }) as never,
       ),
     ).toMatchObject({ status: "waiting_owner" });

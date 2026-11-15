@@ -3,29 +3,63 @@ import { readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
   canonicalJson,
+  processKnowledgeConvergence,
   sha256,
   stableId,
+  type KnowledgeConvergenceHost,
   type KnowledgeConvergenceInput,
+  type KnowledgeConvergenceStageResult,
+  type KnowledgeConvergenceStatus,
 } from "@lervo/repository-knowledge";
+import { knowledgeConvergenceStages, type KnowledgeConvergenceStage } from "@lervo/schemas";
 import { discoverConvergenceBaseline } from "../src/baseline.js";
+import { assessCanonicalBaseline } from "../src/canonical-assessment.js";
 import { integrateCanonicalBaseline } from "../src/canonical-integration-stage.js";
-import type { CanonicalBatch } from "../src/canonical-review.js";
-import { assertConvergenceSourceCurrent, assertConvergenceSourceExact } from "../src/host.js";
-import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import { reviewCanonicalBaseline, type CanonicalBatch } from "../src/canonical-review.js";
+import {
+  carriedParkedSources,
+  mergeParkedSources,
+  obligationParkedSources,
+  parkedSourcesAttention,
+} from "../src/convergence-parking.js";
+import {
+  assertConvergenceSourceCurrent,
+  assertConvergenceSourceExact,
+  createConvergenceRuntimeHost,
+} from "../src/host.js";
+import { convergenceSourceObservation } from "../src/source-observation.js";
+import { completeConvergenceStage } from "../src/stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
+import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import {
+  CANONICAL_SOURCE,
+  CANONICAL_TARGET,
+  INTEGRATED_REQUIREMENT,
+  reviewedRuntimeDraft,
+} from "./canonical-integration-provider.js";
 import { fixture } from "./fixture.js";
 
-export const CANONICAL_SOURCE = "src/runtime.ts";
-export const CANONICAL_TARGET = "docs/specs/runtime.md";
-export const INTEGRATED_REQUIREMENT = "Background model calls are limited to two per host.";
+export { CANONICAL_SOURCE, CANONICAL_TARGET, INTEGRATED_REQUIREMENT };
 
-const RATIONALE = "The observed runtime limit is a durable requirement for this repository.";
-const REVIEWER_AGENT_ID = "agt_independent_canonical_reviewer";
+const SETTLED_STATES: readonly KnowledgeConvergenceStatus["state"][] = [
+  "idle",
+  "attention_required",
+  "recovery_required",
+  "waiting_authority",
+  "retry_scheduled",
+];
 
 /**
- * Reaches `canonical_integration` directly: a real repository, delegation and integration ref, an
- * opened obligation and a reviewed draft of the runtime specification. Assessment, review and the
- * provider never run, so a case pays only for the stage it observes.
+ * A real repository, delegation and integration ref whose observed runtime source asks for one
+ * reviewed specification draft. Two ways reach `canonical_integration`:
+ *
+ * - `integrate()` calls the stage directly with a hand-opened obligation and a reviewed draft, for
+ *   cases that observe only the stage.
+ * - `converge()` runs the real convergence owner over the real runtime host: discovery, fences,
+ *   dependency evaluation, assessment, review and canonical integration are product code, with the
+ *   provider call replaced by the test file's `vi.mock`. Normalization stages and lifecycle
+ *   verification are stand-ins that settle receipts; lifecycle keeps the real parked-source
+ *   attention, so the owner records the same terminal events and stalls as a worker turn.
  */
 export async function canonicalIntegrationFixture(
   options: { integrationRef?: "present" | "absent"; ownerTargetEdit?: string } = {},
@@ -40,7 +74,113 @@ export async function canonicalIntegrationFixture(
   const targetPath = resolve(f.root, CANONICAL_TARGET);
   if (options.ownerTargetEdit !== undefined)
     await writeFile(targetPath, `${await readFile(targetPath, "utf8")}${options.ownerTargetEdit}`);
-  const reviewed = await readFile(targetPath, "utf8");
+  // The runtime host's own exact and current fences guard every effect, as in a worker turn.
+  const context: ConvergenceRuntimeContext = {
+    storage: f.storage,
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: (input) => assertConvergenceSourceExact(context, input),
+    assertSourceCurrent: (input) => assertConvergenceSourceCurrent(context, input),
+  };
+  const runtime = createConvergenceRuntimeHost(context);
+  const host: KnowledgeConvergenceHost = {
+    ...runtime,
+    runStage: (stage, state, assertLease) => {
+      if (stage === "assessment") return assessCanonicalBaseline(context, state, assertLease);
+      if (stage === "canonical_review") return reviewCanonicalBaseline(context, state, assertLease);
+      if (stage === "canonical_integration") return runtime.runStage(stage, state, assertLease);
+      if (stage === "lifecycle_verification") return settleLifecycle(context, state);
+      return settleReceipt(context, state, stage);
+    },
+  };
+  const cycle = () =>
+    processKnowledgeConvergence({
+      events: f.events,
+      artifacts: f.artifacts,
+      host,
+      workerId: "canonical-integration-fixture",
+      writableEventSchemaVersion: 4,
+      maximumStages: 8,
+    });
+  let direct: Promise<KnowledgeConvergenceInput> | null = null;
+  return {
+    f,
+    context,
+    runtime,
+    /** Calls `canonical_integration` directly; the obligation is opened by hand once. */
+    integrate: async () =>
+      integrateCanonicalBaseline(
+        context,
+        await (direct ??= openReviewedObligation(f, await readFile(targetPath, "utf8"))),
+        () => {},
+      ),
+    cycle,
+    /** Owner cycles until the obligation settles, waits, or needs attention or recovery. */
+    converge: async () => {
+      let status = await cycle();
+      for (let index = 1; index < 6 && !SETTLED_STATES.includes(status.state); index++)
+        status = await cycle();
+      return status;
+    },
+    /**
+     * Deletes the delegation, then runs one real worker turn, on the owner path unless `owner` says
+     * otherwise. Without a delegation, convergence waits for authority before any provider call,
+     * so the turn exercises retention and inspection only; retirement itself never reads the
+     * delegation (ADR-0518).
+     */
+    runTurnWithoutDelegation: async (
+      owner?: Parameters<typeof runAutonomousKnowledgeWorker>[0]["owner"],
+    ) => {
+      await rm(resolve(f.root, ".lervo/knowledge/convergence-delegation.json"), { force: true });
+      return runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        provider: "claude",
+        workerId: "canonical-retention",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+        ...(owner === undefined ? {} : { owner }),
+      });
+    },
+  };
+}
+
+function settleReceipt(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+  stage: KnowledgeConvergenceStage,
+): Promise<KnowledgeConvergenceStageResult> {
+  return completeConvergenceStage({
+    sources: convergenceSourceObservation(context),
+    artifacts: context.storage.artifacts,
+    state,
+    stage,
+    nextStage: knowledgeConvergenceStages[knowledgeConvergenceStages.indexOf(stage) + 1] ?? null,
+    stageData: {},
+    proof: { status: "outside_canonical_integration_fixture" },
+  });
+}
+
+/** Lifecycle verification's parking decision (`lifecycle-final.ts`) for canonical sources. */
+async function settleLifecycle(
+  context: ConvergenceRuntimeContext,
+  state: KnowledgeConvergenceInput,
+): Promise<KnowledgeConvergenceStageResult> {
+  const hashes = new Map(state.baseline.sources.map((source) => [source.path, source.contentHash]));
+  const parked = mergeParkedSources(
+    await carriedParkedSources(context.storage, state),
+    obligationParkedSources(state),
+  ).filter((item) => item.stage === "canonical" && hashes.get(item.path) === item.contentHash);
+  if (parked.length) return parkedSourcesAttention(context.storage.artifacts, state, parked);
+  const result = await settleReceipt(context, state, "lifecycle_verification");
+  return { ...result, knowledgeSnapshotHash: result.input.snapshotHash };
+}
+
+/** Opens an obligation by hand whose canonical batch was already reviewed and approved. */
+async function openReviewedObligation(
+  f: Awaited<ReturnType<typeof fixture>>,
+  reviewed: string,
+): Promise<KnowledgeConvergenceInput> {
   const baseline = await discoverConvergenceBaseline(f.root, f.events, f.artifacts);
   baseline.assessmentPaths = [CANONICAL_SOURCE];
   const obligationId = stableId("kconv", { fixture: "canonical-integration", baseline });
@@ -52,14 +192,11 @@ export async function canonicalIntegrationFixture(
     stageData: {},
     receipts: [],
   };
-  const baselineEvent = {
-    runId: `run_${sha256(obligationId).slice(7, 39)}`,
-    sessionId: `ses_${sha256(`session:${obligationId}`).slice(7, 39)}`,
-  };
-  const opened = f.events.append({
+  f.events.append({
     eventId: stableId("evt", [obligationId, "baseline"], 32),
     projectId: baseline.projectId,
-    ...baselineEvent,
+    runId: `run_${sha256(obligationId).slice(7, 39)}`,
+    sessionId: `ses_${sha256(`session:${obligationId}`).slice(7, 39)}`,
     actor: { kind: "system" },
     schemaVersion: 4,
     policyVersion: baseline.policyHash,
@@ -91,16 +228,16 @@ export async function canonicalIntegrationFixture(
           path: source.path,
           contentHash: source.contentHash,
           disposition: "candidate",
-          rationale: RATIONALE,
+          rationale: "The observed runtime limit is a durable requirement for this repository.",
           canonicalReferences: [],
         },
       ],
       drafts: [
-        {
+        reviewedRuntimeDraft({
           path: CANONICAL_TARGET,
-          beforeHash: sha256(reviewed),
-          content: `${reviewed}\n${INTEGRATED_REQUIREMENT}\n`,
-        },
+          content: reviewed,
+          contentHash: sha256(reviewed),
+        }),
       ],
     },
   };
@@ -108,70 +245,10 @@ export async function canonicalIntegrationFixture(
     canonicalBatch: batch,
     canonicalApproval: {
       assessmentHash: sha256(canonicalJson(batch.assessment)),
-      reviewerAgentId: REVIEWER_AGENT_ID,
+      reviewerAgentId: "agt_independent_canonical_reviewer",
       delegationHash: baseline.delegationHash,
       policyHash: baseline.policyHash,
     },
   };
-  // The runtime host's own exact and current fences guard every effect, as in a worker turn.
-  const context: ConvergenceRuntimeContext = {
-    storage: f.storage,
-    provider: "claude",
-    signal: new AbortController().signal,
-    liveWorkPending: async () => false,
-    assertSourceExact: (input) => assertConvergenceSourceExact(context, input),
-    assertSourceCurrent: (input) => assertConvergenceSourceCurrent(context, input),
-  };
-  return {
-    f,
-    state,
-    batch,
-    context,
-    integrate: () => integrateCanonicalBaseline(context, state, () => {}),
-    /** Records the terminal outcome that ADR-0518 retention waits for before retiring checkouts. */
-    settleObligation: () =>
-      f.events.append({
-        eventId: stableId("evt", [obligationId, "terminal"], 32),
-        projectId: baseline.projectId,
-        ...baselineEvent,
-        actor: { kind: "system" },
-        schemaVersion: 4,
-        policyVersion: baseline.policyHash,
-        type: "repository.knowledge.convergence.recorded",
-        occurredAt: new Date().toISOString(),
-        payload: {
-          obligationId,
-          originalEventId: opened.event.eventId,
-          originalEventHash: opened.event.eventHash,
-          scope: "baseline",
-          terminalState: "superseded",
-          snapshotHash: state.snapshotHash,
-          canonicalDispositionDigest: sha256("superseded"),
-          normalizationCoverageDigest: sha256("superseded"),
-          lifecycleReceiptDigest: sha256("superseded"),
-          knowledgeSnapshotHash: null,
-          successorId: stableId("kconv", { fixture: "successor", obligationId }),
-          failureCode: "source_bytes_changed",
-          resolvedAt: new Date().toISOString(),
-        },
-      }),
-    /**
-     * One real worker turn, on the owner path unless `owner` says otherwise. Without a delegation,
-     * convergence waits for authority before any provider call, so the turn exercises retention
-     * and inspection only; retirement itself never reads the delegation (ADR-0518).
-     */
-    runRetentionTurn: async (
-      owner?: Parameters<typeof runAutonomousKnowledgeWorker>[0]["owner"],
-    ) => {
-      await rm(resolve(f.root, ".lervo/knowledge/convergence-delegation.json"));
-      return runAutonomousKnowledgeWorker({
-        storage: f.storage,
-        provider: "claude",
-        workerId: "canonical-retention",
-        executable: f.executable,
-        admissionDirectory: f.admissionDirectory,
-        ...(owner === undefined ? {} : { owner }),
-      });
-    },
-  };
+  return state;
 }
