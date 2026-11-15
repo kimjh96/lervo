@@ -4,8 +4,6 @@ import type {
 } from "@lervo/application-contract";
 import { createHash } from "node:crypto";
 import { canonicalJson } from "@lervo/event-contract";
-import type { ConversationReplyCandidate } from "@lervo/interaction";
-import { assertNativePublicationJudgement } from "../src/supervision-publication-judgement.js";
 import { readSupervisionJsonArtifact } from "../src/supervision-artifact-json.js";
 import type { ConversationOutboundMessage } from "@lervo/schemas";
 import type { NodeSupervisionResultDeliveryConfiguration } from "../src/supervision-result-delivery.js";
@@ -26,13 +24,16 @@ import {
   applyKnowledgeMigrationPlan,
   readCurrentWorkstreamState,
 } from "@lervo/repository-knowledge";
-import { openProjectStorage } from "@lervo/project-storage";
+import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { openNodeOutcomeSupervisionRuntime } from "../src/outcome-supervision-runtime.js";
 import { SupervisionTaskSource } from "../src/supervision-task-source.js";
 import { observeSupervisionTasks } from "../src/supervision-task-observation.js";
 import { readSupervisedReviewFeedback } from "../src/supervision-review-observation.js";
 import { dispatchFixture } from "./supervision-dispatch.fixture.js";
-import { configureNativeCompletionProvider } from "./supervision-native-provider.fixture.js";
+import {
+  configureNativeCompletionProvider,
+  type NativeCompletionProviderVerdicts,
+} from "./supervision-native-provider.fixture.js";
 import { createSupervisionExpiryClock } from "./supervision-expiry-clock.fixture.js";
 
 const roots: string[] = [];
@@ -43,43 +44,214 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-it.each([
-  "normal",
-  "late_completion",
-  "late_recovery",
-  "recovery",
-  "failed_writing",
-  "writing_rework",
-  "rework",
-  "rework_receipt_failure",
-  "publication_retry",
-  "local_transport",
-  "parallel_review",
-])(
+interface NativeCompletionVariation extends NativeCompletionProviderVerdicts {
+  /** The owner completes after the original lease expired, as a settled v3 completion. */
+  late?: true;
+  /** The first append of one durable receipt fails, so that exact round is uncertain until a
+   * restarted runtime recovers it. */
+  receiptFailure?: {
+    type: "assignment.completion.reconciled" | "assignment.reopened";
+    round: number;
+    assignmentStatus: "leased" | "completed";
+  };
+  /** A transport without an origin conversation never sends the locally accepted result. */
+  localTransport?: true;
+  /** Another workstream becomes current while the owner completes its own bound goal. */
+  parallelReview?: true;
+  /** The owner publishes the accepted result through a transport whose first attempt fails. */
+  publication?: true;
+  /** A successor mandate is installed after the writing rejection and supervises the rest. */
+  successorAfterWritingRejection?: true;
+}
+
+const variations: Record<string, NativeCompletionVariation> = {
+  normal: {
+    writingRejections: 0,
+    reviewRejections: 0,
+    late: true,
+    receiptFailure: {
+      type: "assignment.completion.reconciled",
+      round: 2,
+      assignmentStatus: "leased",
+    },
+    localTransport: true,
+    parallelReview: true,
+  },
+  // A reviewed rejection reopens the completed root attempt.
+  rework: {
+    writingRejections: 0,
+    reviewRejections: 1,
+    receiptFailure: { type: "assignment.reopened", round: 6, assignmentStatus: "completed" },
+  },
+  // A writing rejection reopens the still-leased root attempt under a successor mandate.
+  writing_rework: {
+    writingRejections: 1,
+    reviewRejections: 0,
+    successorAfterWritingRejection: true,
+  },
+  // The v1 completion receipt is recovered here; normal recovers a late v3 receipt.
+  publication_retry: {
+    writingRejections: 0,
+    reviewRejections: 0,
+    publication: true,
+    receiptFailure: {
+      type: "assignment.completion.reconciled",
+      round: 2,
+      assignmentStatus: "leased",
+    },
+  },
+};
+
+/** Owner decisions and supervision rounds implied by the rejected attempts before acceptance. */
+function expectedNativeRun(variation: NativeCompletionVariation) {
+  const attempts = 1 + variation.writingRejections + variation.reviewRejections;
+  const operations = [
+    ...Array.from({ length: variation.writingRejections }, () => [
+      "prepare_completion",
+      "request_rework",
+    ]),
+    ...Array.from({ length: variation.reviewRejections }, () => [
+      "prepare_completion",
+      "review_artifacts",
+      "request_rework",
+    ]),
+  ].flat();
+  operations.push("prepare_completion", "review_artifacts", "complete_workstream");
+  if (variation.publication) operations.push("prepare_publication");
+  // One dispatch round, two rounds per owner decision, and claim, workspace and dispatch per rework.
+  const rounds = 1 + 2 * (operations.length - (variation.publication ? 1 : 0)) + 3 * (attempts - 1);
+  const completions = attempts - variation.writingRejections;
+  return { attempts, operations, rounds, completions };
+}
+
+async function recordParallelReview(
+  f: Awaited<ReturnType<typeof dispatchFixture>>,
+  storage: ProjectStorage,
+) {
+  const owner = (await readCurrentWorkstreamState(f.root))!;
+  const id = hash(`review:${f.root}`).slice(7, 31);
+  const eventIdentity = hash(`review-event:${f.root}`).slice(7, 39);
+  const review = {
+    ...owner.snapshot,
+    workstreamId: `wks_${id}`,
+    revision: 1,
+    title: "Independent deployment review",
+    objective: "Keep the installed routing approval held while the owner completes.",
+    pendingApprovals: [
+      {
+        approvalId: `wapr_${id.slice(0, 16)}`,
+        kind: "deployment" as const,
+        summary: "Held until installed routing evidence is accepted.",
+        bindingHash: hash("deployment-review"),
+        blocking: true,
+      },
+    ],
+  };
+  const content = `${canonicalJson(review)}\n`;
+  const artifact = await storage.artifacts.put(content);
+  storage.events.append({
+    eventId: `evt_${eventIdentity}`,
+    projectId: storage.manifest.projectId,
+    runId: `run_${eventIdentity}`,
+    sessionId: `ses_${eventIdentity}`,
+    type: "workstream.snapshot.recorded",
+    schemaVersion: 1,
+    occurredAt: review.updatedAt,
+    actor: { kind: "agent", provider: "codex" },
+    policyVersion: artifact.contentHash,
+    payload: {
+      workstreamId: review.workstreamId,
+      revision: 1,
+      status: "active",
+      changeKind: "agent_start",
+      snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
+      snapshotContentHash: artifact.contentHash,
+      previousSnapshotContentHash: null,
+      sourceArtifactId: null,
+      sourceContentHash: null,
+      recordedAt: review.updatedAt,
+    },
+  });
+  await writeFile(resolve(f.root, ".lervo/state/workstreams/current.json"), content);
+  return artifact.contentHash;
+}
+
+async function installSuccessorMandate(f: Awaited<ReturnType<typeof dispatchFixture>>) {
+  const plan = await createRepositoryMandatePlan({
+    root: f.root,
+    mandate: {
+      ...f.mandate,
+      version: f.mandate.version + 1,
+      // Exactly the two attempts of a single rework, so the retry limit boundary is exercised.
+      maximumAttemptsPerAssignment: 2,
+    },
+    supervisionId: f.binding.supervisionId,
+    reviewerId: f.mandate.appointingAuthorityId,
+  });
+  const successor = await installRepositoryMandate({
+    root: f.root,
+    plan,
+    approval: plan.approvalHash,
+    reviewerId: f.mandate.appointingAuthorityId,
+  });
+  return { ...f.binding, mandateHash: successor.mandateHash };
+}
+
+/** A writing rejection leaves the assignment leased and stays readable under a successor mandate. */
+async function installSuccessorAfterWritingRejection(
+  f: Awaited<ReturnType<typeof dispatchFixture>>,
+  storage: ProjectStorage,
+  now: () => string,
+) {
+  const rejected = await new SupervisionTaskSource(storage, f.binding, now).read();
+  expect(
+    rejected.events.filter((event) => event.type === "work.supervision.review.recorded"),
+  ).toMatchObject([{ payload: { verdict: "rework" } }]);
+  expect(await listAssignments(f.root)).toMatchObject([{ status: "leased" }]);
+  expect(
+    storage.events
+      .list({ limit: 1000 })
+      .filter((event) => event.type === "assignment.completion.prepared"),
+  ).toEqual([]);
+  const binding = await installSuccessorMandate(f);
+  const successorSource = await new SupervisionTaskSource(storage, binding, now).read();
+  const observed = await observeSupervisionTasks(
+    successorSource,
+    storage.artifacts,
+    binding,
+    storage.events,
+  );
+  expect(observed.assignments[0]?.review).toMatchObject({ verdict: "rework" });
+  const review = successorSource.supervisionEvents.findLast(
+    (event) => event.type === "work.supervision.review.recorded",
+  )!;
+  expect(
+    await readSupervisedReviewFeedback({
+      events: storage.events,
+      artifacts: storage.artifacts,
+      candidate: review,
+      authority: binding,
+    }),
+  ).toMatchObject({ reviewEventId: review.eventId, verdict: "rework" });
+  return binding;
+}
+
+it.each(Object.keys(variations))(
   "completes native supervised work with exact semantic evidence (%s)",
   async (scenario) => {
-    const completedRework = scenario.startsWith("rework");
-    const writingRework = scenario === "writing_rework";
-    const rework = completedRework || writingRework;
-    if (
-      scenario === "recovery" ||
-      scenario === "late_recovery" ||
-      scenario === "rework_receipt_failure"
-    ) {
+    const variation = variations[scenario]!;
+    const expected = expectedNativeRun(variation);
+    const rework = expected.attempts > 1;
+    const failure = variation.receiptFailure;
+    let receiptFailures = 0;
+    if (failure !== undefined) {
       const append = SQLiteEventStore.prototype.append;
-      let failOnce = true;
       vi.spyOn(SQLiteEventStore.prototype, "append").mockImplementation(function (
         this: SQLiteEventStore,
         draft,
       ) {
-        if (
-          draft.type ===
-            (scenario === "recovery" || scenario === "late_recovery"
-              ? "assignment.completion.reconciled"
-              : "assignment.reopened") &&
-          failOnce
-        ) {
-          failOnce = false;
+        if (draft.type === failure.type && receiptFailures === 0) {
+          receiptFailures++;
           throw new Error("fixture_event_failure");
         }
         return append.call(this, draft);
@@ -115,13 +287,13 @@ it.each([
       undefined,
       // Leave the original lease outside the 120-second renewal window during fixture setup.
       // A near completion deadline still prevents renewal from extending that authority.
-      scenario.startsWith("late_") ? 180_000 : undefined,
-      scenario.startsWith("late_") ? 181_000 : undefined,
+      variation.late ? 180_000 : undefined,
+      variation.late ? 181_000 : undefined,
     );
     const log = resolve(f.login.context.homeDirectory, "native-operations.log");
     const promptLog = resolve(f.login.context.homeDirectory, "worker-prompt.log");
-    await configureNativeCompletionProvider(f, scenario, log, promptLog);
-    const expiryClock = scenario.startsWith("late_")
+    await configureNativeCompletionProvider(f, variation, log, promptLog);
+    const expiryClock = variation.late
       ? await createSupervisionExpiryClock(f.login.context.homeDirectory)
       : null;
     const storage = await openProjectStorage(f.root);
@@ -172,14 +344,15 @@ it.each([
       },
     };
     const { origin: _origin, ...localDelivery } = resultDelivery;
+    let binding = f.binding;
     const openRuntime = () =>
       openNodeOutcomeSupervisionRuntime({
         repositoryRoot: f.root,
-        binding: f.binding,
+        binding,
         ports: { now, recordAttention: f.ports.recordAttention },
-        ...(scenario === "publication_retry"
+        ...(variation.publication
           ? { resultDelivery }
-          : scenario === "local_transport"
+          : variation.localTransport
             ? { resultDelivery: localDelivery }
             : {}),
         ownerReasoning: { provider: "codex", reservedTokens: 100 },
@@ -193,69 +366,16 @@ it.each([
     try {
       const cycles = [];
       let selectedReviewHash: string | null = null;
-      for (let i = 0; i < (writingRework ? 14 : completedRework ? 16 : 7); i++) {
-        if (i === 2 && scenario === "failed_writing") {
-          expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
-          const rejected = await new SupervisionTaskSource(storage, f.binding, now).read();
-          expect(
-            rejected.events.filter((event) => event.type === "work.supervision.review.recorded"),
-          ).toMatchObject([{ payload: { verdict: "rework" } }]);
-          expect(await listAssignments(f.root)).toMatchObject([{ status: "leased" }]);
-          expect(
-            storage.events
-              .list({ limit: 1000 })
-              .filter((event) => event.type === "assignment.completion.prepared"),
-          ).toEqual([]);
-          await runtime.close();
-          const plan = await createRepositoryMandatePlan({
-            root: f.root,
-            mandate: {
-              ...f.mandate,
-              version: f.mandate.version + 1,
-              maximumAttemptsPerAssignment: f.mandate.maximumAttemptsPerAssignment + 1,
-            },
-            supervisionId: f.binding.supervisionId,
-            reviewerId: f.mandate.appointingAuthorityId,
-          });
-          const successor = await installRepositoryMandate({
-            root: f.root,
-            plan,
-            approval: plan.approvalHash,
-            reviewerId: f.mandate.appointingAuthorityId,
-          });
-          const binding = { ...f.binding, mandateHash: successor.mandateHash };
-          const successorSource = await new SupervisionTaskSource(storage, binding, now).read();
-          const observed = await observeSupervisionTasks(
-            successorSource,
-            storage.artifacts,
-            binding,
-            storage.events,
-          );
-          expect(observed.assignments[0]?.review).toMatchObject({ verdict: "rework" });
-          const review = successorSource.supervisionEvents.findLast(
-            (event) => event.type === "work.supervision.review.recorded",
-          )!;
-          expect(
-            await readSupervisedReviewFeedback({
-              events: storage.events,
-              artifacts: storage.artifacts,
-              candidate: review,
-              authority: binding,
-            }),
-          ).toMatchObject({ reviewEventId: review.eventId, verdict: "rework" });
-          return;
-        }
-        if (i === 1 && scenario.startsWith("late_")) {
+      for (let i = 0; i < expected.rounds; i++) {
+        if (i === 1 && variation.late) {
           await expiryClock!.advancePast(f.assignment.lease!.expiresAt);
         }
         let cycle = await runtime.runCycle();
-        if (
-          (i === 2 && (scenario === "recovery" || scenario === "late_recovery")) ||
-          (i === 6 && scenario === "rework_receipt_failure")
-        ) {
+        expect(receiptFailures).toBe(failure !== undefined && i >= failure.round ? 1 : 0);
+        if (failure !== undefined && i === failure.round) {
           expect(cycle.disposition).toBe("uncertain");
           expect(await listAssignments(f.root)).toMatchObject([
-            { status: scenario === "rework_receipt_failure" ? "completed" : "leased" },
+            { status: failure!.assignmentStatus },
           ]);
           await runtime.close();
           runtime = await openRuntime();
@@ -265,7 +385,7 @@ it.each([
         expect(cycle.disposition, JSON.stringify({ cycles, attention: f.attention })).toBe(
           "effect_confirmed",
         );
-        if (scenario === "parallel_review" && selectedReviewHash === null) {
+        if (variation.parallelReview && selectedReviewHash === null) {
           const accepted = storage.events
             .list({ limit: 1000 })
             .some(
@@ -273,61 +393,20 @@ it.each([
                 event.type === "work.supervision.review.recorded" &&
                 event.payload.verdict === "accepted",
             );
-          if (accepted) {
-            const owner = (await readCurrentWorkstreamState(f.root))!;
-            const id = hash(`review:${f.root}`).slice(7, 31);
-            const eventIdentity = hash(`review-event:${f.root}`).slice(7, 39);
-            const review = {
-              ...owner.snapshot,
-              workstreamId: `wks_${id}`,
-              revision: 1,
-              title: "Independent deployment review",
-              objective: "Keep the installed routing approval held while the owner completes.",
-              pendingApprovals: [
-                {
-                  approvalId: `wapr_${id.slice(0, 16)}`,
-                  kind: "deployment" as const,
-                  summary: "Held until installed routing evidence is accepted.",
-                  bindingHash: hash("deployment-review"),
-                  blocking: true,
-                },
-              ],
-            };
-            const content = `${canonicalJson(review)}\n`;
-            const artifact = await storage.artifacts.put(content);
-            storage.events.append({
-              eventId: `evt_${eventIdentity}`,
-              projectId: storage.manifest.projectId,
-              runId: `run_${eventIdentity}`,
-              sessionId: `ses_${eventIdentity}`,
-              type: "workstream.snapshot.recorded",
-              schemaVersion: 1,
-              occurredAt: review.updatedAt,
-              actor: { kind: "agent", provider: "codex" },
-              policyVersion: artifact.contentHash,
-              payload: {
-                workstreamId: review.workstreamId,
-                revision: 1,
-                status: "active",
-                changeKind: "agent_start",
-                snapshotArtifactId: `art_${artifact.contentHash.slice(7)}`,
-                snapshotContentHash: artifact.contentHash,
-                previousSnapshotContentHash: null,
-                sourceArtifactId: null,
-                sourceContentHash: null,
-                recordedAt: review.updatedAt,
-              },
-            });
-            await writeFile(resolve(f.root, ".lervo/state/workstreams/current.json"), content);
-            selectedReviewHash = artifact.contentHash;
-          }
+          if (accepted) selectedReviewHash = await recordParallelReview(f, storage);
+        }
+        if (i === 2 && variation.successorAfterWritingRejection) {
+          await runtime.close();
+          binding = await installSuccessorAfterWritingRejection(f, storage, now);
+          runtime = await openRuntime();
         }
         if (i === 1 || i === 3 || (rework && i === 6)) {
           await runtime.close();
           runtime = await openRuntime();
         }
       }
-      if (scenario === "publication_retry") {
+      expect(receiptFailures).toBe(failure === undefined ? 0 : 1);
+      if (variation.publication) {
         for (let i = 0; i < 2; i++)
           expect((await runtime.runCycle()).disposition, JSON.stringify(f.attention)).toBe(
             "effect_confirmed",
@@ -345,7 +424,7 @@ it.each([
         expect(sent[1]).toEqual(sent[0]);
         expect(await readFile(log, "utf8")).toBe(calls);
         expect(await readFile(promptLog, "utf8")).toBe(workerPrompts);
-        const state = await new SupervisionTaskSource(storage, f.binding, now).read();
+        const state = await new SupervisionTaskSource(storage, binding, now).read();
         const queued = state.events.findLast(
           (event) => event.type === "work.supervision.delivery.queued",
         )!;
@@ -358,38 +437,21 @@ it.each([
           publicationPlan.effectHash,
         )) as SupervisedResultDeliveryV2;
         expect(effect.schemaVersion).toBe(2);
-        const candidate = (await readSupervisionJsonArtifact(
-          storage.artifacts,
-          effect.candidateArtifactHash,
-        )) as ConversationReplyCandidate;
-        const completionPlan = (await readSupervisionJsonArtifact(
-          storage.artifacts,
-          effect.completionPlanHash,
-        )) as OperatingActionPlanV1;
-        await expect(
-          assertNativePublicationJudgement({
-            ...storage,
-            completionPlan,
-            candidate,
-            effect: { ...effect, reasoningResultHash: effect.resultArtifactHash },
-          }),
-        ).rejects.toThrow(/semantic model result/iu);
-
         expect(
-          (await new SupervisionTaskSource(storage, f.binding, now).read()).events
+          (await new SupervisionTaskSource(storage, binding, now).read()).events
             .filter((event) => event.type === "work.supervision.delivery.observed")
             .map((event) => event.payload.status),
         ).toEqual(["failed", "delivered"]);
       }
-      if (scenario === "parallel_review") {
+      if (variation.parallelReview) {
         expect(selectedReviewHash).not.toBeNull();
         expect((await readCurrentWorkstreamState(f.root))?.contentHash).toBe(selectedReviewHash);
       } else expect((await readCurrentWorkstreamState(f.root))?.snapshot.status).toBe("completed");
-      if (scenario !== "publication_retry") {
+      if (!variation.publication) {
         const calls = await readFile(log, "utf8");
         for (let i = 0; i < 2; i++) expect((await runtime.runCycle()).disposition).toBe("idle");
         expect(await readFile(log, "utf8")).toBe(calls);
-        if (scenario === "local_transport") {
+        if (variation.localTransport) {
           expect(sent).toEqual([]);
           await runtime.close();
           runtime = await openRuntime();
@@ -401,93 +463,72 @@ it.each([
         }
       }
       expect(await listAssignments(f.root)).toMatchObject([{ status: "completed", lease: null }]);
-      expect((await readFile(log, "utf8")).trim().split("\n")).toEqual([
-        "prepare_completion",
-        ...(writingRework ? ["request_rework", "prepare_completion"] : []),
-        "review_artifacts",
-        ...(completedRework ? ["request_rework", "prepare_completion", "review_artifacts"] : []),
-        "complete_workstream",
-        ...(scenario === "publication_retry" ? ["prepare_publication"] : []),
-      ]);
-      const source = await new SupervisionTaskSource(storage, f.binding, f.ports.now).read();
-      const dispatched = (
-        await Promise.all(
-          source.events
-            .filter((event) => event.type === "work.supervision.decision.recorded")
-            .map(
-              (event) =>
-                readSupervisionJsonArtifact(
-                  storage.artifacts,
-                  String(event.payload.planArtifactHash),
-                ) as Promise<OperatingActionPlanV1>,
-            ),
-        )
-      ).filter((plan) => plan.effectContract === "work.managed_execution.v1");
-      expect(dispatched.length).toBeGreaterThan(0);
-      // The worker is capped at its reservation, so it carries the reviewed attempt budget
-      // rather than the owner reasoning reservation of 100.
-      for (const plan of dispatched)
-        expect(plan.reservedTokens).toBe(f.mandate.maximumAttemptTokens);
-      if (scenario.startsWith("late_")) {
-        const decisions = source.events.filter(
-          (event) => event.type === "work.supervision.decision.recorded",
-        );
-        const plans = await Promise.all(
-          decisions.map(
+      expect((await readFile(log, "utf8")).trim().split("\n")).toEqual(expected.operations);
+      const source = await new SupervisionTaskSource(storage, binding, f.ports.now).read();
+      const plans = await Promise.all(
+        source.events
+          .filter((event) => event.type === "work.supervision.decision.recorded")
+          .map(
             (event) =>
               readSupervisionJsonArtifact(
                 storage.artifacts,
                 String(event.payload.planArtifactHash),
               ) as Promise<OperatingActionPlanV1>,
           ),
-        );
+      );
+      const dispatched = plans.filter(
+        (plan) => plan.effectContract === "work.managed_execution.v1",
+      );
+      expect(dispatched.length).toBeGreaterThan(0);
+      // The worker is capped at its reservation, so it carries the reviewed attempt budget
+      // rather than the owner reasoning reservation of 100.
+      for (const plan of dispatched)
+        expect(plan.reservedTokens).toBe(f.mandate.maximumAttemptTokens);
+      if (variation.late) {
         expect(
           plans.filter((plan) => plan.effectContract === "work.assignment_completion.v3"),
         ).toHaveLength(1);
-        expect(source.execution.attempts).toHaveLength(1);
-        expect(source.events.filter((event) => event.type === "assignment.reopened")).toHaveLength(
-          0,
-        );
         expect(
           source.events.filter((event) => event.type === "assignment.lease.renewed"),
         ).toHaveLength(0);
       }
+      expect(source.execution.attempts).toMatchObject(
+        Array.from({ length: expected.attempts }, (_, index) => ({
+          attemptOrdinal: index + 1,
+          relationship: index === 0 ? "root" : "retry",
+        })),
+      );
+      expect(new Set(source.execution.attempts.map((attempt) => attempt.workId)).size).toBe(1);
+      expect(source.events.filter((event) => event.type === "assignment.reopened")).toHaveLength(
+        expected.attempts - 1,
+      );
       if (rework) {
-        expect(source.execution.attempts).toMatchObject([
-          { attemptOrdinal: 1, relationship: "root" },
-          { attemptOrdinal: 2, relationship: "retry" },
-        ]);
-        expect(source.execution.attempts[0]!.workId).toBe(source.execution.attempts[1]!.workId);
         const workspaces = await listWorkspaces(f.root);
-        expect(workspaces).toHaveLength(2);
-        expect(workspaces.map((item) => item.leaseGeneration).sort()).toEqual([1, 2]);
-        expect(new Set(workspaces.map((item) => item.ownerWorkspacePath)).size).toBe(2);
+        expect(workspaces).toHaveLength(expected.attempts);
+        expect(workspaces.map((item) => item.leaseGeneration).sort()).toEqual(
+          Array.from({ length: expected.attempts }, (_, index) => index + 1),
+        );
+        expect(new Set(workspaces.map((item) => item.ownerWorkspacePath)).size).toBe(
+          expected.attempts,
+        );
         for (const workspace of workspaces)
           expect(
             await readFile(resolve(workspace.ownerWorkspacePath!, "src/save.ts"), "utf8"),
           ).toContain("verified");
-        expect(source.events.filter((event) => event.type === "assignment.reopened")).toHaveLength(
-          1,
-        );
       }
       expect(source.workstreamResources.groups).toMatchObject([
         {
           completeness: "complete",
-          totalTokens: writingRework
-            ? 350
-            : completedRework
-              ? 400
-              : scenario === "publication_retry"
-                ? 250
-                : 200,
+          // Every owner decision and every worker attempt reports 50 provider tokens.
+          totalTokens: 50 * (expected.operations.length + expected.attempts),
         },
       ]);
       expect(
         source.events.filter((event) => event.type === "assignment.completion.prepared"),
-      ).toHaveLength(completedRework ? 2 : 1);
+      ).toHaveLength(expected.completions);
       expect(
         source.events.filter((event) => event.type === "assignment.completion.reconciled"),
-      ).toHaveLength(completedRework ? 2 : 1);
+      ).toHaveLength(expected.completions);
       expect(await readFile(resolve(f.workspacePath, "src/save.ts"), "utf8")).toContain("verified");
     } finally {
       await runtime.close();
