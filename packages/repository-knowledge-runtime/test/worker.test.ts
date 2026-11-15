@@ -5,6 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import { listAssignments, listAgents } from "@lervo/agent-workforce";
 import { providerCliDispatchContext } from "@lervo/repository-knowledge-compiler";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
+import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -117,6 +118,107 @@ it(
     ).toBe(true);
     expect(calls).not.toContain("never-pass-to-provider");
     expect(result.status).toBe("processed");
+  },
+);
+
+it(
+  "parks a source whose draft meets a dirty canonical target and readmits it after the owner commits",
+  { timeout: 240_000 },
+  async () => {
+    const f = await fixture(true, true);
+    fixtures.push(f);
+    const runtimeSource = resolve(f.root, "src/runtime.ts");
+    await writeFile(
+      runtimeSource,
+      `${await readFile(runtimeSource, "utf8")}// observed source change\n`,
+    );
+    const path = resolve(f.root, "docs/specs/runtime.md");
+    const original = await readFile(path, "utf8");
+    const dirty = original + "\nPreserve this exact uncommitted user requirement.\n";
+    await writeFile(path, dirty);
+    const run = () =>
+      runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: "dirty-target",
+        provider: "claude",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+      });
+    // ADR-0530: the divergent draft parks its source and every later stage still runs.
+    let parked: Awaited<ReturnType<typeof run>>;
+    for (let cycle = 0; cycle < 12; cycle++) {
+      parked = await run();
+      if (parked.status === "processed" && parked.convergence.state === "attention_required") break;
+    }
+    expect(parked!).toMatchObject({
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+    });
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+      count: 1,
+      sources: [
+        { stage: "canonical", path: "src/runtime.ts", reason: "target_diverged", attempts: 1 },
+      ],
+    });
+    // Normalization may still rewrite the pending document, but never drops the owner's requirement.
+    expect(await readFile(path, "utf8")).toContain(
+      "Preserve this exact uncommitted user requirement.",
+    );
+    const assignments = await listAssignments(f.root);
+    expect(assignments.some((item) => item.convergence?.stage === "canonical_integration")).toBe(
+      false,
+    );
+    const calls = await readFile(f.log, "utf8");
+    expect(await run()).toMatchObject({
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+    });
+    expect(await readFile(f.log, "utf8")).toBe(calls);
+    // Committing the owner's requirement changes HEAD's target bytes, which readmits the source.
+    execFileSync(
+      "git",
+      [
+        "-C",
+        f.root,
+        "-c",
+        "user.name=Test",
+        "-c",
+        "user.email=test@lervo.invalid",
+        "commit",
+        "-qm",
+        "Owner requirement",
+        "--",
+        "docs/specs/runtime.md",
+      ],
+      { encoding: "utf8" },
+    );
+    let resumed: Awaited<ReturnType<typeof run>>;
+    for (let cycle = 0; cycle < 16; cycle++) {
+      resumed = await run();
+      if (
+        resumed.status === "processed" &&
+        resumed.convergence.state === "idle" &&
+        resumed.convergence.lastVerifiedCurrency
+      )
+        break;
+    }
+    expect(resumed!).toMatchObject({
+      convergence: { state: "idle", outstanding: 0, lastVerifiedCurrency: expect.any(Object) },
+    });
+    expect(await readFile(path, "utf8")).toContain(
+      "Preserve this exact uncommitted user requirement.",
+    );
+    // The readmitted source is assessed, reviewed and integrated against the committed target.
+    expect(await readFile(path, "utf8")).toContain(
+      "Background model calls are limited to two per host.",
+    );
+    expect(
+      f.events
+        .list({ limit: 1000 })
+        .filter(
+          (event) =>
+            event.type === "knowledge.materialization.applied" &&
+            event.payload.operation === "canonicalize",
+        ),
+    ).toHaveLength(1);
   },
 );
 
