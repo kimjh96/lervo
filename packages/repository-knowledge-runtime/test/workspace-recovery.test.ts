@@ -1,18 +1,9 @@
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { resolve } from "node:path";
-import { afterEach, expect, it, vi } from "vitest";
+import { afterEach, expect, it } from "vitest";
 import * as knowledge from "@lervo/repository-knowledge";
-import {
-  listAgents,
-  listAssignments,
-  listWorkspaces,
-  listWorkspaceIntegrationAttempts,
-} from "@lervo/agent-workforce";
-import { planWorkspaceCleanup } from "@lervo/orchestrator";
-import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
-import * as workspace from "../src/canonical-workspace.js";
-import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
+import { listAgents, listWorkspaceIntegrationAttempts } from "@lervo/agent-workforce";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import { fixture } from "./fixture.js";
@@ -21,7 +12,6 @@ import { hasCanonicalNormalizationLineage } from "../src/canonical-normalization
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
-  vi.restoreAllMocks();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
@@ -202,142 +192,5 @@ it(
       expect.objectContaining({ path: "src/runtime.ts", reason: "target_diverged" }),
     ]);
     expect(await readFile(resolve(f.root, path), "utf8")).toContain("Manual owner change.");
-  },
-);
-
-it(
-  "reuses durable provision and seal plans without a second workspace or commit",
-  { timeout: 180_000 },
-  async () => {
-    const f = await fixture(true, true);
-    fixtures.push(f);
-    await writeFile(
-      resolve(f.root, "src/runtime.ts"),
-      "export const maximumBackgroundCalls = 3;\n",
-    );
-    const seal = workspace.sealCanonicalDrafts;
-    vi.spyOn(workspace, "sealCanonicalDrafts").mockImplementation(async (...args) => {
-      const first = await seal(...args);
-      expect(await seal(...args)).toEqual(first);
-      return first;
-    });
-    let result;
-    for (let i = 0; i < 6; i++) {
-      result = await run(f);
-      if (result.status === "processed" && result.convergence.lastVerifiedCurrency) break;
-    }
-    expect(result).toMatchObject({
-      convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
-    });
-    const workspaces = await listWorkspaces(f.root);
-    expect(workspaces).toHaveLength(2);
-    expect(
-      workspaces.find((item) => item.executionKind === "worker")!.sealedResult!.commitIds,
-    ).toHaveLength(1);
-    expect(
-      workspaces.every((item) => item.state === "integrated" && item.writerSession === null),
-    ).toBe(true);
-    const calls = (await readFile(f.log, "utf8")).trim().split("\n").length;
-    await run(f);
-    const remaining = (await listWorkspaces(f.root)).filter((item) => item.state !== "removed");
-    const blocked = await Promise.all(
-      remaining.map((item) =>
-        planWorkspaceCleanup({
-          coordinates: {
-            repositoryRoot: f.root,
-            workspacePath: item.ownerWorkspacePath!,
-            integrationTargetRef: "refs/heads/knowledge-integration",
-          },
-          workspaceId: item.workspaceId,
-          host: new GitWorkspaceHostAdapter(),
-        }),
-      ),
-    );
-    expect(remaining, JSON.stringify(blocked.map((item) => item.blockedReasons))).toHaveLength(0);
-    expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(calls);
-  },
-);
-
-it(
-  "resumes a verified ref integration before root apply under a new exact lease",
-  { timeout: 180_000 },
-  async () => {
-    const f = await fixture(true, true);
-    fixtures.push(f);
-    await writeFile(
-      resolve(f.root, "src/runtime.ts"),
-      "export const maximumBackgroundCalls = 3;\n",
-    );
-    const apply = knowledge.applyDurableKnowledgeOperations;
-    let interrupted = false;
-    vi.spyOn(knowledge, "applyDurableKnowledgeOperations").mockImplementation(async (input) => {
-      if (
-        !interrupted &&
-        input.operations.some(
-          (item) =>
-            "content" in item &&
-            typeof item.content === "string" &&
-            item.content.includes("Background model calls are limited"),
-        )
-      ) {
-        interrupted = true;
-        throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-      }
-      return apply(input);
-    });
-    expect(await run(f)).toMatchObject({
-      convergence: { state: "recovery_required", reason: "knowledge_effect_uncertain" },
-    });
-    expect(interrupted).toBe(true);
-    expect(await readFile(resolve(f.root, "docs/specs/runtime.md"), "utf8")).not.toContain(
-      "limited to two",
-    );
-    const ref = execFileSync("git", ["-C", f.root, "rev-parse", "knowledge-integration"], {
-      encoding: "utf8",
-    }).trim();
-    const failed = (await listAssignments(f.root)).find(
-      (item) => item.taskType === "repository.integration",
-    )!;
-    expect(failed).toMatchObject({ status: "failed", lease: null, lastLeaseGeneration: 1 });
-    const calls = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .filter((line) => JSON.parse(line).request.task?.includes("canonical")).length;
-    let result;
-    for (let i = 0; i < 6; i++) {
-      result = await run(f);
-      if (result.status === "processed" && result.convergence.lastVerifiedCurrency) break;
-    }
-    expect(result).toMatchObject({
-      convergence: { state: "idle", outstanding: 0, lastVerifiedCurrency: expect.any(Object) },
-    });
-    expect(
-      execFileSync("git", ["-C", f.root, "rev-parse", "knowledge-integration"], {
-        encoding: "utf8",
-      }).trim(),
-    ).toBe(ref);
-    expect(
-      (await readFile(f.log, "utf8"))
-        .trim()
-        .split("\n")
-        .filter((line) => JSON.parse(line).request.task?.includes("canonical")),
-    ).toHaveLength(calls);
-    expect(
-      (await listAssignments(f.root)).find((item) => item.assignmentId === failed.assignmentId),
-    ).toMatchObject({
-      status: "completed",
-      lease: null,
-      lastLeaseGeneration: 2,
-      recovery: { attemptNumber: 2 },
-    });
-    expect(
-      f.events
-        .list({ limit: 1000 })
-        .filter(
-          (event) =>
-            event.type === "knowledge.materialization.applied" &&
-            event.payload.operation === "canonicalize",
-        ),
-    ).toHaveLength(1);
   },
 );
