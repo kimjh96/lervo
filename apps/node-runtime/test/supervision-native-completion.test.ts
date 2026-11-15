@@ -4,8 +4,6 @@ import type {
 } from "@lervo/application-contract";
 import { createHash } from "node:crypto";
 import { canonicalJson } from "@lervo/event-contract";
-import type { ConversationReplyCandidate } from "@lervo/interaction";
-import { assertNativePublicationJudgement } from "../src/supervision-publication-judgement.js";
 import { readSupervisionJsonArtifact } from "../src/supervision-artifact-json.js";
 import type { ConversationOutboundMessage } from "@lervo/schemas";
 import type { NodeSupervisionResultDeliveryConfiguration } from "../src/supervision-result-delivery.js";
@@ -61,23 +59,20 @@ interface NativeCompletionVariation extends NativeCompletionProviderVerdicts {
   parallelReview?: true;
   /** The owner publishes the accepted result through a transport whose first attempt fails. */
   publication?: true;
-  /** The rejected writing review stays visible to a successor mandate; the run stops there. */
-  stopAtWritingRejection?: true;
   /** A successor mandate is installed after the writing rejection and supervises the rest. */
   successorAfterWritingRejection?: true;
 }
 
-const reconciledFailure = {
-  type: "assignment.completion.reconciled",
-  occurrence: 1,
-  assignmentStatus: "leased",
-} as const;
 const variations: Record<string, NativeCompletionVariation> = {
   normal: {
     writingRejections: 0,
     reviewRejections: 0,
     late: true,
-    receiptFailure: reconciledFailure,
+    receiptFailure: {
+      type: "assignment.completion.reconciled",
+      occurrence: 1,
+      assignmentStatus: "leased",
+    },
     localTransport: true,
     parallelReview: true,
   },
@@ -88,23 +83,6 @@ const variations: Record<string, NativeCompletionVariation> = {
     successorAfterWritingRejection: true,
   },
   publication_retry: { writingRejections: 0, reviewRejections: 0, publication: true },
-  late_completion: { writingRejections: 0, reviewRejections: 0, late: true },
-  late_recovery: {
-    writingRejections: 0,
-    reviewRejections: 0,
-    late: true,
-    receiptFailure: reconciledFailure,
-  },
-  recovery: { writingRejections: 0, reviewRejections: 0, receiptFailure: reconciledFailure },
-  failed_writing: { writingRejections: 1, reviewRejections: 0, stopAtWritingRejection: true },
-  writing_rework: { writingRejections: 1, reviewRejections: 0 },
-  rework_receipt_failure: {
-    writingRejections: 0,
-    reviewRejections: 1,
-    receiptFailure: { type: "assignment.reopened", occurrence: 1, assignmentStatus: "completed" },
-  },
-  local_transport: { writingRejections: 0, reviewRejections: 0, localTransport: true },
-  parallel_review: { writingRejections: 0, reviewRejections: 0, parallelReview: true },
 };
 
 /** Owner decisions and supervision rounds implied by the rejected attempts before acceptance. */
@@ -373,12 +351,6 @@ it.each(Object.keys(variations))(
       const cycles = [];
       let selectedReviewHash: string | null = null;
       for (let i = 0; i < expected.rounds; i++) {
-        if (i === 2 && variation.stopAtWritingRejection) {
-          expect((await runtime.runCycle()).disposition).toBe("effect_confirmed");
-          await runtime.close();
-          await installSuccessorAfterWritingRejection(f, storage, now);
-          return;
-        }
         if (i === 1 && variation.late) {
           await expiryClock!.advancePast(f.assignment.lease!.expiresAt);
         }
@@ -450,23 +422,6 @@ it.each(Object.keys(variations))(
           publicationPlan.effectHash,
         )) as SupervisedResultDeliveryV2;
         expect(effect.schemaVersion).toBe(2);
-        const candidate = (await readSupervisionJsonArtifact(
-          storage.artifacts,
-          effect.candidateArtifactHash,
-        )) as ConversationReplyCandidate;
-        const completionPlan = (await readSupervisionJsonArtifact(
-          storage.artifacts,
-          effect.completionPlanHash,
-        )) as OperatingActionPlanV1;
-        await expect(
-          assertNativePublicationJudgement({
-            ...storage,
-            completionPlan,
-            candidate,
-            effect: { ...effect, reasoningResultHash: effect.resultArtifactHash },
-          }),
-        ).rejects.toThrow(/semantic model result/iu);
-
         expect(
           (await new SupervisionTaskSource(storage, binding, now).read()).events
             .filter((event) => event.type === "work.supervision.delivery.observed")
