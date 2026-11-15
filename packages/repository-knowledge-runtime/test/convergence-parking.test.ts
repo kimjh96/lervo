@@ -90,6 +90,32 @@ it("parks an always-rejected document, carries it to the next obligation, and re
       ),
   );
   expect(reviews).toHaveLength(3);
+  // The first review approves runtime.md and rejects a.md in one batch; only a.md is regenerated,
+  // alone and each time with the reviewer's reason and its next attempt number.
+  expect(
+    (await providerRequests(f))
+      .filter((request) => request.task === "independent_normalization_review")
+      .map((request) =>
+        (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.map(
+          (item) => item.sourcePath,
+        ),
+      ),
+  ).toEqual([
+    ["docs/specs/a.md", "docs/specs/runtime.md"],
+    ["docs/specs/a.md"],
+    ["docs/specs/a.md"],
+  ]);
+  const reason =
+    "The link to runtime.md#local-runtime loses its anchor in this rewrite. (failed checks: links)";
+  expect(
+    (await providerRequests(f))
+      .flatMap((request) => request.envelope?.documents ?? [])
+      .filter((document) => document.independentReviewFeedback !== undefined)
+      .map(({ path, independentReviewFeedback }) => ({ path, independentReviewFeedback })),
+  ).toEqual([
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 2, reasons: [reason] } },
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 3, reasons: [reason] } },
+  ]);
   // Only the rejected leading family stays pending with its exact bytes; runtime.md is applied.
   expect(
     (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
