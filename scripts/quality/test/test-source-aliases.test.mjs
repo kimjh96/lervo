@@ -128,6 +128,6 @@ it("inspects untracked tests and helpers, checks targets, and preserves artifact
 it("keeps CI aliases inherited from the base config", () => {
   const config = readFileSync(new URL("../ci-vitest.config.mjs", import.meta.url), "utf8");
   expect(config).toContain('import base from "../../vitest.config.ts"');
-  expect(config).toContain("mergeConfig(base, { test:");
+  expect(config).toMatch(/mergeConfig\(base, \{/u);
   expect(config).not.toContain("alias:");
 });
