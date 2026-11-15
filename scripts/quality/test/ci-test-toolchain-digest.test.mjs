@@ -33,6 +33,7 @@ const files = {
   "scripts/quality/lib/ci-test-input-recorder.cjs": "// recorder\n",
   "scripts/quality/lib/ci-test-shadow-prediction.mjs": "// shadow predictor\n",
   "scripts/quality/lib/test-user-state-isolation.mjs": "// setup\n",
+  "scripts/quality/lib/test-compile-cache.mjs": "// compile cache\n",
   ".github/workflows/code-quality.yml": workflow("pnpm test"),
 };
 
@@ -102,6 +103,7 @@ it("changes with every toolchain component", async () => {
     ["packages/core/package.json", '{"name":"@lervo/core","type":"module"}'],
     ["tsconfig.json", '{"compilerOptions":{"strict":true}}'],
     ["scripts/quality/lib/test-user-state-isolation.mjs", "// changed setup\n"],
+    ["scripts/quality/lib/test-compile-cache.mjs", "// changed compile cache\n"],
     ["scripts/quality/lib/ci-test-input-recorder.cjs", "// changed recorder\n"],
     [".github/workflows/code-quality.yml", workflow("pnpm test --shard=1/4")],
     ["packages/cas/dist/native/cas.node", "binary"],

@@ -21,7 +21,9 @@ const NATIVE_ARTIFACT_DIRECTORIES = [
 ];
 const workspaceManifest =
   /^(?:package\.json|pnpm-workspace\.yaml|(?:apps|packages)\/[^/]+\/package\.json)$/u;
-const testConfiguration = /(?:^|\/)(?:tsconfig[^/]*\.json|vitest\.config\.[cm]?[jt]s)$/u;
+// The Vitest configuration also loads its own setup modules beside it.
+const testConfiguration =
+  /(?:^|\/)(?:tsconfig[^/]*\.json|vitest\.config\.[cm]?[jt]s)$|^scripts\/quality\/lib\/test-[a-z-]+\.mjs$/u;
 // The shadow predictor and its report read finished ledgers; they cannot change a test's result.
 const planner =
   /^scripts\/quality\/(?:ci-vitest\.config\.mjs|lib\/ci-test-(?!shadow-)[a-z-]+\.[cm]js)$/u;
