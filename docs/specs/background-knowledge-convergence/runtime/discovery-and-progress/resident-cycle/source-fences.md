@@ -16,7 +16,7 @@ The snapshot hash binds HEAD, the policy hash, the path, content hash and kind o
 No effect depends on those:
 
 - **Refs other than HEAD.** Every integration ref move is a compare-and-swap on the exact old value: target synchronization and absorption (`update-ref <ref> <new> <old>`), integration completion (`compareAndSwapTarget`), capacity retirement (which also rereads the ref before and after), and target creation (an empty old value). A concurrent ref change makes the move fail instead of acting on a stale ref.
-- **The index.** The settled-output commit runs `git add -A -- <paths>` and `git commit --only -- <paths>`, so the commit holds HEAD plus the working-tree bytes of those paths only; staged work on other paths never enters it (`knowledge-output-commit.test.ts`). An exact fence runs immediately before `git add`, after every await of selection and formatting, and accepts only the bound snapshot plus the formatter's approved effects. Seals commit in private worktrees. Root applies write working-tree files with a per-operation expected hash.
+- **The index.** The settled-output commit runs `git add -A -- <paths>` and `git commit --only -- <paths>`, so the commit holds HEAD plus the working-tree bytes of the files those pathspecs match; staged work on other paths never enters it, but a path with glob characters can match more files (see the known races below) (`knowledge-output-commit.test.ts`). An exact fence runs immediately before `git add`, after every await of selection and formatting, and accepts only the bound snapshot plus the formatter's approved effects. Seals commit in private worktrees. Root applies write working-tree files with a per-operation expected hash.
 - **Git config.** Config is the repository's own policy, and Lervo's settled-output commits apply it as a developer's commit would, hooks and filters included. The private seal commit disables hooks.
 
 ## Known pre-existing races
@@ -24,7 +24,8 @@ No effect depends on those:
 These windows predate the exact and current split and stay out of its scope; [ADR-0566](../../../../../decisions/operations/services/0566-fence-every-durable-convergence-write-exactly.md) records them:
 
 - **Edit during staging.** An edit to a selected output after the staging fence, while `git add` and `git commit --only` read the working tree, is committed unreviewed. The window runs from the fence through the end of `git commit`.
-- **Formatter over a developer edit.** The formatter reads, formats and writes each target file in turn; a developer edit between that read and write is overwritten. A failed commit's restore writes the pre-format content back over any edit made after formatting.
+- **Formatter over a developer edit.** The formatter reads, formats and writes each target file in turn; a developer edit between that read and write is overwritten. If `git add` or `git commit` then fails, the restore writes the pre-format content back over any edit made after formatting. A staging fence refusal restores a formatted file only while it still holds the formatter's bytes, so an edit or deletion made after formatting stays.
+- **Glob pathspecs.** `git add -A -- <paths>` and `git commit --only -- <paths>` read each path as a pathspec, so a selected `x[A].md` also matches `xA.md` and can stage and commit it. Follow-up: run both calls with `GIT_LITERAL_PATHSPECS=1` and test a selected path that contains glob characters next to a file it would match.
 - **Detached HEAD or branch switch.** `git checkout --detach` or a branch switch between the staging fence and `git commit` commits on whatever HEAD then names; the post-commit parent check returns an empty result but does not undo the commit.
 
 ## Classification

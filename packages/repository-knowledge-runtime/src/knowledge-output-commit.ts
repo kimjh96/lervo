@@ -16,6 +16,7 @@ import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
 import { CONVERGENCE_HOST_TRAILER, knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import type { ConvergenceApprovedEffect } from "./effect-source-fence.js";
+import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import {
   knowledgeOutputFormatTargets,
   readRevisionFiles,
@@ -25,6 +26,7 @@ import {
   formatKnowledgeOutputFiles,
   loadRepositoryKnowledgeOutputFormatter,
   restoreKnowledgeOutputFiles,
+  restoreUnchangedKnowledgeOutputFiles,
   type KnowledgeOutputFormatter,
 } from "./knowledge-output-formatter.js";
 
@@ -180,15 +182,15 @@ export async function selectSettledKnowledgeOutputs(
  * Formats the selected outputs that the repository formatter owns after the commit, plus clean
  * paths a retired normalization record released from lifecycle ownership, so the commit never
  * hands the formatter unformatted bytes. Lifecycle-owned outputs stay byte-exact, and a released
- * path with uncommitted edits is left to its developer. Returns the paths to commit and the
- * replaced content of every formatted path.
+ * path with uncommitted edits is left to its developer. Returns the paths to commit, the
+ * replaced content of every formatted path, and the content written in its place.
  */
 export async function formatSettledKnowledgeOutputs(input: {
   repositoryRoot: string;
   formatter: KnowledgeOutputFormatter;
   selected: readonly string[];
   dirty: ReadonlyMap<string, "deleted" | "present">;
-}): Promise<{ paths: string[]; replaced: Map<string, string> }> {
+}): Promise<{ paths: string[]; replaced: Map<string, string>; formatted: Map<string, string> }> {
   const root = input.repositoryRoot;
   const after = await revisionFormatOwnershipSources(root, "HEAD");
   const changedSources = input.selected.filter(isDocumentFormatOwnershipSource);
@@ -202,12 +204,18 @@ export async function formatSettledKnowledgeOutputs(input: {
     changedSourcesBefore: before,
     sourcesAfter: after,
   }).filter((path) => selected.has(path) || !input.dirty.has(path));
+  const formatted = new Map<string, string>();
   const replaced = await formatKnowledgeOutputFiles({
     formatter: input.formatter,
     directory: root,
     paths: targets,
+    written: formatted,
   });
-  return { paths: [...new Set([...input.selected, ...replaced.keys()])].sort(), replaced };
+  return {
+    paths: [...new Set([...input.selected, ...replaced.keys()])].sort(),
+    replaced,
+    formatted,
+  };
 }
 
 async function observeDirtyPaths(root: string) {
@@ -289,9 +297,10 @@ export async function commitSettledKnowledgeOutputs(input: {
   obligationId: string;
   /**
    * An exact source fence run immediately before `git add`, after every other await here. It must
-   * accept only the snapshot the caller bound plus these formatting effects.
+   * accept only the snapshot the caller bound plus these formatting effects. It is synchronous:
+   * the `undefined` return type rejects an async function, and a returned value fails closed.
    */
-  fenceBeforeStaging: (formatEffects: readonly ConvergenceApprovedEffect[]) => void;
+  fenceBeforeStaging: (formatEffects: readonly ConvergenceApprovedEffect[]) => undefined;
   /** The repository formatter; omitted loads the repository's own, null skips formatting. */
   formatter?: KnowledgeOutputFormatter | null;
 }): Promise<{
@@ -312,21 +321,29 @@ export async function commitSettledKnowledgeOutputs(input: {
     input.formatter === undefined
       ? await loadRepositoryKnowledgeOutputFormatter(root)
       : input.formatter;
-  const { paths, replaced } =
+  const { paths, replaced, formatted } =
     formatter === null
-      ? { paths: selected, replaced: new Map<string, string>() }
+      ? {
+          paths: selected,
+          replaced: new Map<string, string>(),
+          formatted: new Map<string, string>(),
+        }
       : await formatSettledKnowledgeOutputs({ repositoryRoot: root, formatter, selected, dirty });
   const before = (await git(root, ["rev-parse", "HEAD"])).trim();
   try {
-    input.fenceBeforeStaging(
+    // A formatted path may hold only what the formatter wrote; anything else is refused.
+    const fenced: unknown = input.fenceBeforeStaging(
       [...replaced].map(([path, content]) => ({
         path,
         beforeHash: sha256(content),
-        afterHash: sha256(readFileSync(resolve(root, path))),
+        afterHash: sha256(formatted.get(path)!),
       })),
     );
+    if (fenced !== undefined) throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
   } catch (error) {
-    await restoreKnowledgeOutputFiles(root, replaced).catch(() => undefined);
+    // Only a file still holding the formatter's bytes is restored; a developer's later edit or
+    // deletion stays.
+    restoreUnchangedKnowledgeOutputFiles(root, replaced, formatted);
     throw error;
   }
   try {
@@ -358,10 +375,11 @@ export async function commitSettledKnowledgeOutputs(input: {
   const after = (await git(root, ["rev-parse", "HEAD"])).trim();
   const parent = (await git(root, ["rev-parse", `${after}^`])).trim();
   if (parent !== before) return { committed: [], head: null };
+  // The receipt approves only the formatter's own bytes, never whatever the file holds by now.
   const formatEffects = [...replaced].map(([path, content]) => ({
     path,
     beforeHash: sha256(content),
-    afterHash: sha256(readFileSync(resolve(root, path))),
+    afterHash: sha256(formatted.get(path)!),
   }));
   return { committed: paths, head: { before, after }, formatEffects };
 }

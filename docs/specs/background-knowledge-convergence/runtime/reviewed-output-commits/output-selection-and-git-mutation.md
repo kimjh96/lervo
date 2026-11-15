@@ -20,7 +20,7 @@ When the repository depends on Prettier, the helper loads it from the repository
 
 Post-commit lifecycle ownership comes from normalization record outputs and managed or generated documents in the document ownership registry, mirroring `scripts/quality/lib/format-ownership.mjs`. Those outputs and the ownership sources themselves retain their reviewed bytes.
 
-Formatted paths join the commit pathspec. The stage receipt records each formatting change as an approved effect with before and after hashes, allowing the source fence to accept it. If the commit fails, the helper restores the replaced bytes, and the next cycle selects the reviewed bytes again. Repositories without Prettier commit reviewed bytes unchanged.
+Formatted paths join the commit pathspec. The stage receipt records each formatting change as an approved effect with before and after hashes, the after hash being exactly the bytes the formatter wrote, allowing the source fence to accept it. If the commit fails, the helper restores the replaced bytes, and the next cycle selects the reviewed bytes again. Repositories without Prettier commit reviewed bytes unchanged.
 
 ## Staging and commit
 
@@ -36,7 +36,7 @@ After success, the helper reads HEAD and its first parent. It returns committed 
 
 ## Failure and concurrency limits
 
-The helper does not establish an atomic selection-to-commit boundary. Safety markers are inspected before selection. After selection and formatting, an exact source fence runs immediately before `git add` and accepts only the bound snapshot plus the formatter's approved effects ([ADR-0566](../../../../decisions/operations/services/0566-fence-every-durable-convergence-write-exactly.md)); a refusal restores the formatted files. An edit from that fence through `git commit` is still committed. `headBlob` returns null for every caught Git read failure, not only confirmed path absence.
+The helper does not establish an atomic selection-to-commit boundary. Safety markers are inspected before selection. After selection and formatting, an exact source fence runs immediately before `git add` and accepts only the bound snapshot plus the formatter's effects, each binding a formatted path to exactly the bytes the formatter wrote ([ADR-0566](../../../../decisions/operations/services/0566-fence-every-durable-convergence-write-exactly.md)). On a refusal, a formatted file is restored only while it still holds those bytes; an edit or deletion made after formatting stays. An edit from that fence through `git commit` is still committed. `headBlob` returns null for every caught Git read failure, not only confirmed path absence.
 
 Staging or commit failure returns an empty result with null HEAD coordinates, without explicit rollback of staging changes. Earlier inspection or selection errors can propagate. A post-commit parent mismatch also returns an empty result without undoing the commit. A null result therefore does not prove that Git or index bytes were unchanged.
 

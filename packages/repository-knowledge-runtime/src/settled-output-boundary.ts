@@ -44,12 +44,13 @@ export async function commitSettledOutputsAtBoundary(
     artifacts: context.storage.artifacts,
     obligationId: state.obligationId,
     // Every await of selection and formatting has run; nothing else separates this from `git add`.
-    fenceBeforeStaging: (formatEffects) =>
+    fenceBeforeStaging: (formatEffects) => {
       assertConvergenceEffectSources(
         state,
         convergenceSourceObservation(context).exact(state.baseline.policyHash),
         formatEffects,
-      ),
+      );
+    },
   });
   if (output.head === null) return null;
   context.sourceObservation?.noteChange();
