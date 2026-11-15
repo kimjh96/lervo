@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { readFile, writeFile, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
@@ -6,11 +5,24 @@ import {
   canonicalJson,
   inspectConfiguredDocumentNormalization,
   processKnowledgeConvergence,
+  type KnowledgeConvergenceInput,
 } from "@lervo/repository-knowledge";
 import { createConvergenceRuntimeHost } from "../src/host.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
+import { obligationParkedSources } from "../src/convergence-parking.js";
+import { settledCanonicalDispositions } from "../src/canonical-disposition-ledger.js";
 import { fixture } from "./fixture.js";
+import {
+  allEvents,
+  canonicalSettlementEffects,
+  casJson,
+  integrationRef,
+  providerRequests,
+  rejectWhen,
+  runParkingWorker,
+  settleParking,
+} from "./convergence-parking-fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -20,10 +32,10 @@ afterEach(async () => {
   }
 });
 
-it.each([false, true])(
-  "parks rejected canonical sources and still normalizes the rest; legacy upgrade=%s",
+it(
+  "reuses a pre-ADR-0479 canonical rejection as the first attempt and parks the last batch to the end",
   { timeout: 300_000 },
-  async (legacy) => {
+  async () => {
     const f = await fixture(true, true);
     fixtures.push(f);
     const script = await readFile(f.executable, "utf8");
@@ -31,13 +43,104 @@ it.each([false, true])(
       "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
     expect(script).toContain(marker);
     await writeFile(f.executable, script.replace(marker, marker.replace("'approve'", "'reject'")));
-    const ref = () =>
-      execFileSync("git", ["-C", f.root, "rev-parse", "refs/heads/knowledge-integration"], {
-        encoding: "utf8",
-      }).trim();
-    const beforeRef = ref();
+    const refBefore = integrationRef(f);
     const target = resolve(f.root, "docs/specs/runtime.md");
-    const before = await readFile(target, "utf8");
+    const targetBefore = await readFile(target, "utf8");
+    // A pre-ADR-0479 owner stopped the whole obligation at its first rejected review.
+    const context = {
+      storage: f.storage,
+      provider: "claude" as const,
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      signal: new AbortController().signal,
+      liveWorkPending: async () => false,
+      assertSourceExact: () => {},
+      assertSourceCurrent: () => {},
+    };
+    const host = createConvergenceRuntimeHost(context);
+    let legacyRationale: string | undefined;
+    let legacyDependency: string | undefined;
+    for (let i = 0; i < 8; i++) {
+      const status = await processKnowledgeConvergence({
+        events: f.events,
+        artifacts: f.artifacts,
+        workerId: "legacy",
+        writableEventSchemaVersion: 4,
+        maximumStages: 1,
+        host: {
+          ...host,
+          runStage: async (stage, state, assertLease) => {
+            const result = await host.runStage(stage, state, assertLease);
+            const receipt = result.input.receipts.find((item) => item.stage === stage);
+            if (stage !== "canonical_review" || receipt === undefined) return result;
+            const proof = JSON.parse(
+              Buffer.from(
+                await f.artifacts.get(`lervo-cas://sha256/${receipt.artifactHash.slice(7)}`),
+              ).toString("utf8"),
+            );
+            if (proof.proof.status !== "review_rejected_for_bounded_retry") return result;
+            legacyRationale = proof.proof.review.rationale;
+            // The pre-ADR runtime settled this dependency without an evaluation contract.
+            const dependency = await f.artifacts.put(
+              canonicalJson({
+                kind: "canonical_rejection",
+                snapshotHash: state.snapshotHash,
+                assessmentHash: proof.proof.assessmentHash,
+                result: proof.proof.review,
+              }),
+            );
+            legacyDependency = dependency.contentHash;
+            return {
+              state: "attention_required" as const,
+              input: state,
+              assignmentId: null,
+              leaseGeneration: null,
+              failureCode: "knowledge_semantic_review_rejected",
+              dependencyHash: dependency.contentHash,
+              nextStage: null,
+            };
+          },
+        },
+      });
+      if (status.reason === "knowledge_semantic_review_rejected") break;
+    }
+    expect(
+      f.events
+        .list({ limit: 1000 })
+        .some(
+          (e) =>
+            e.type === "repository.knowledge.stage.recorded" &&
+            e.payload.stage === "canonical_review" &&
+            e.payload.state === "attention_required",
+        ),
+    ).toBe(true);
+    const reviews = async () =>
+      (await providerRequests(f)).filter(
+        (request) => request.task === "independent_canonical_review",
+      );
+    expect(await reviews()).toHaveLength(1);
+    const settledReviews = async () =>
+      Promise.all(
+        f.events
+          .list({ limit: 1000, types: ["repository.knowledge.stage.recorded"] })
+          .filter((e) => e.payload.stage === "canonical_review" && e.payload.state === "current")
+          .map((e) =>
+            casJson<KnowledgeConvergenceInput>(f.artifacts, e.payload.resultArtifactHash),
+          ),
+      );
+    // The upgraded worker requeues the stall once and judges the retained rejection again. The
+    // parked source is the only and last canonical batch, a geometry the halving case never reaches.
+    const parked = async () => {
+      const latest = (await settledReviews()).at(-1);
+      return latest === undefined
+        ? []
+        : obligationParkedSources(latest).map(({ stage, path, reason, attempts }) => ({
+            stage,
+            path,
+            reason,
+            attempts,
+          }));
+    };
     const run = () =>
       runAutonomousKnowledgeWorker({
         storage: f.storage,
@@ -47,81 +150,43 @@ it.each([false, true])(
         admissionDirectory: f.admissionDirectory,
         maximumStages: 1,
       });
-    if (legacy) {
-      // A pre-ADR-0479 owner stopped the whole obligation at its first rejected review.
-      const context = {
-        storage: f.storage,
-        provider: "claude" as const,
-        executable: f.executable,
-        admissionDirectory: f.admissionDirectory,
-        signal: new AbortController().signal,
-        liveWorkPending: async () => false,
-        assertSourceExact: () => {},
-        assertSourceCurrent: () => {},
-      };
-      const host = createConvergenceRuntimeHost(context);
-      for (let i = 0; i < 8; i++) {
-        const status = await processKnowledgeConvergence({
-          events: f.events,
-          artifacts: f.artifacts,
-          workerId: "legacy",
-          writableEventSchemaVersion: 4,
-          maximumStages: 1,
-          host: {
-            ...host,
-            runStage: async (stage, state, assertLease) => {
-              const result = await host.runStage(stage, state, assertLease);
-              const receipt = result.input.receipts.find((item) => item.stage === stage);
-              if (stage !== "canonical_review" || receipt === undefined) return result;
-              const proof = JSON.parse(
-                Buffer.from(
-                  await f.artifacts.get(`lervo-cas://sha256/${receipt.artifactHash.slice(7)}`),
-                ).toString("utf8"),
-              );
-              if (proof.proof.status !== "review_rejected_for_bounded_retry") return result;
-              // The pre-ADR runtime settled this dependency without an evaluation contract.
-              const dependency = await f.artifacts.put(
-                canonicalJson({
-                  kind: "canonical_rejection",
-                  snapshotHash: state.snapshotHash,
-                  assessmentHash: proof.proof.assessmentHash,
-                  result: proof.proof.review,
-                }),
-              );
-              return {
-                state: "attention_required" as const,
-                input: state,
-                assignmentId: null,
-                leaseGeneration: null,
-                failureCode: "knowledge_semantic_review_rejected",
-                dependencyHash: dependency.contentHash,
-                nextStage: null,
-              };
-            },
-          },
-        });
-        if (status.reason === "knowledge_semantic_review_rejected") break;
-      }
-      expect(
-        f.events
-          .list({ limit: 1000 })
-          .some(
-            (e) =>
-              e.type === "repository.knowledge.stage.recorded" &&
-              e.payload.stage === "canonical_review" &&
-              e.payload.state === "attention_required",
-          ),
-      ).toBe(true);
-    }
+    for (let i = 0; i < 8 && (await parked()).length === 0; i++) await run();
+    expect(await parked()).toEqual([
+      { stage: "canonical", path: "docs/specs/runtime.md", reason: "review_rejected", attempts: 2 },
+    ]);
+    // The receipt names the retained artifact, so the requeued review settled from it rather than
+    // from a new or cached review; that retained rejection is the first of two bounded attempts.
+    const proofs = await Promise.all(
+      (await settledReviews()).map(
+        async (input) =>
+          (
+            await casJson<{
+              proof: { status: string; evidence?: { retainedArtifact?: { artifactHash: string } } };
+            }>(
+              f.artifacts,
+              input.receipts.find((receipt) => receipt.stage === "canonical_review")!.artifactHash,
+            )
+          ).proof,
+      ),
+    );
+    expect(
+      proofs.map((proof) => [proof.status, proof.evidence?.retainedArtifact?.artifactHash ?? null]),
+    ).toEqual([
+      ["review_rejected_for_bounded_retry", legacyDependency],
+      ["source_parked", null],
+    ]);
+    expect(await reviews()).toHaveLength(2);
+    // One re-assessment carries the retained reviewer's rationale.
+    expect(
+      (await providerRequests(f))
+        .filter((request) => request.task === "canonical_baseline_assessment")
+        .flatMap((request) => request.untrustedSourceData!.independentReviewFeedback ?? []),
+    ).toEqual([legacyRationale]);
+    // The obligation runs to its final attention with only the parked source left.
     let result: Awaited<ReturnType<typeof run>> | undefined;
-    for (let i = 0; i < 64; i++) {
+    for (let i = 0; i < 32; i++) {
       result = await run();
-      if (
-        result.status === "processed" &&
-        result.convergence.state === "attention_required" &&
-        result.convergence.reason !== "knowledge_semantic_review_rejected"
-      )
-        break;
+      if (result.status === "processed" && result.convergence.state === "attention_required") break;
     }
     expect(result).toMatchObject({
       status: "processed",
@@ -131,8 +196,7 @@ it.each([false, true])(
         lastVerifiedCurrency: null,
       },
     });
-    const status = await inspectAutonomousKnowledgeStatus(f.storage);
-    expect(status.parked).toEqual({
+    expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
       count: 1,
       sources: [
         {
@@ -143,91 +207,130 @@ it.each([false, true])(
         },
       ],
     });
+    // Parking the last canonical batch still normalizes the rest before the final attention.
+    expect(
+      (await providerRequests(f)).some((request) =>
+        request.envelope?.documents.some((document) => document.path === "docs/specs/runtime.md"),
+      ),
+    ).toBe(true);
     expect(
       (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
     ).toEqual([]);
-    expect(await readFile(target, "utf8")).toBe(before);
-    expect(ref()).toBe(beforeRef);
-    const events = [];
-    for (let page = f.events.list({ limit: 1000 }); page.length;) {
-      events.push(...page);
-      page = f.events.list({ afterSeq: page.at(-1)!.seq, limit: 1000 });
-    }
-    expect(
-      events.some(
-        (e) =>
-          e.type === "knowledge.materialization.applied" && e.payload.operation === "canonicalize",
-      ),
-    ).toBe(false);
-    expect(
-      events.some(
-        (e) =>
-          e.type === "repository.knowledge.convergence.recorded" &&
-          e.payload.terminalState === "current",
-      ),
-    ).toBe(false);
-    const calls = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-    // Every review judged a workset no larger than its predecessor; single sources end parked.
-    const reviewed = calls
-      .filter((c) => c.request.task === "independent_canonical_review")
-      .map((c) => c.request.untrustedSourceData.sources.length as number);
-    expect(reviewed.at(-1)).toBe(1);
-    expect(calls.some((c) => c.request.envelope)).toBe(true);
+    expect(await readFile(target, "utf8")).toBe(targetBefore);
+    expect(integrationRef(f)).toBe(refBefore);
+    expect(canonicalSettlementEffects(f.events)).toEqual({ canonicalize: false, current: false });
     const head = f.events.latest()!.eventHash;
-    const logBeforeRestart = await readFile(f.log, "utf8");
+    const log = await readFile(f.log, "utf8");
     await run();
     expect(f.events.latest()!.eventHash).toBe(head);
-    expect(await readFile(f.log, "utf8")).toBe(logBeforeRestart);
+    expect(await readFile(f.log, "utf8")).toBe(log);
   },
 );
 
-it(
-  "passes semantic rejection feedback to one bounded re-assessment",
-  { timeout: 180_000 },
-  async () => {
-    const f = await fixture(true, false);
-    fixtures.push(f);
-    const policyPath = resolve(f.root, ".lervo/knowledge/policy.yaml");
-    const policy = JSON.parse(await readFile(policyPath, "utf8"));
-    policy.normalization.exclude.push("docs/specs/runtime.md");
-    await writeFile(policyPath, JSON.stringify(policy));
-    const readme = resolve(f.root, "README.md");
-    await writeFile(readme, `${await readFile(readme, "utf8")}\nThe runtime starts locally.\n`);
-    const script = await readFile(f.executable, "utf8");
-    const marker =
-      "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
-    expect(script).toContain(marker);
-    await writeFile(f.executable, script.replace(marker, marker.replace("'approve'", "'reject'")));
-    let result: Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>> | undefined;
-    for (let i = 0; i < 48; i++) {
-      result = await runAutonomousKnowledgeWorker({
-        storage: f.storage,
-        workerId: "bounded-review-retry",
-        provider: "claude",
-        executable: f.executable,
-        admissionDirectory: f.admissionDirectory,
-        maximumStages: 1,
-      });
-      if (result.status === "processed" && result.convergence.state === "attention_required") break;
-    }
-    expect(result).toMatchObject({
-      status: "processed",
-      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
-    });
-    const calls = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line));
-    expect(calls.filter((c) => c.request.task === "independent_canonical_review")).toHaveLength(2);
-    expect(
-      calls.filter(
-        (c) =>
-          c.request.task === "canonical_baseline_assessment" &&
-          typeof c.request.untrustedSourceData.independentReviewFeedback === "string",
-      ),
-    ).toHaveLength(1);
-  },
-);
+it("isolates one rejected canonical source by halving its workset and integrates the rest", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  for (const name of ["a", "b", "c"])
+    await writeFile(
+      resolve(f.root, `docs/specs/${name}.md`),
+      `# ${name.toUpperCase()}\n\nThe ${name} contract stays local.\n`,
+    );
+  await rejectWhen(f, "false", "data.sources.some(source=>source.path==='docs/specs/b.md')");
+  const refBefore = integrationRef(f);
+  const runtime = resolve(f.root, "docs/specs/runtime.md");
+  const runtimeBefore = await readFile(runtime, "utf8");
+  expect(await settleParking(f, 48)).toMatchObject({
+    status: "processed",
+    convergence: {
+      state: "attention_required",
+      reason: "knowledge_sources_parked",
+      lastVerifiedCurrency: null,
+    },
+  });
+  expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
+    count: 1,
+    sources: [
+      { stage: "canonical", path: "docs/specs/b.md", reason: "review_rejected", attempts: 2 },
+    ],
+  });
+  const reviewed = (await providerRequests(f))
+    .filter((request) => request.task === "independent_canonical_review")
+    .map((request) =>
+      (request.untrustedSourceData!.sources as { path: string }[]).map((source) => source.path),
+    );
+  // Reviews containing b.md shrink until b.md alone is judged, then it is parked.
+  const withB = reviewed.filter((paths) => paths.includes("docs/specs/b.md"));
+  expect(withB.at(-1)).toEqual(["docs/specs/b.md"]);
+  expect(withB.map((paths) => paths.length)).toEqual(
+    withB.map((paths) => paths.length).toSorted((left, right) => right - left),
+  );
+  expect(reviewed.flat()).toEqual(expect.arrayContaining(["docs/specs/a.md", "docs/specs/c.md"]));
+  // Each rejected workset is reviewed twice around one re-assessment that carries the reviewer's
+  // rationale; no other assessment receives feedback.
+  const worksets = [...new Set(withB.map((paths) => paths.join(",")))];
+  expect(withB.map((paths) => paths.join(","))).toEqual(
+    worksets.flatMap((paths) => [paths, paths]),
+  );
+  // Each isolation halves the rejected workset.
+  expect(worksets).toEqual([
+    "docs/specs/a.md,docs/specs/b.md,docs/specs/c.md,docs/specs/runtime.md",
+    "docs/specs/a.md,docs/specs/b.md",
+    "docs/specs/b.md",
+  ]);
+  expect(
+    (await providerRequests(f))
+      .filter((request) => request.task === "canonical_baseline_assessment")
+      .flatMap((request) => request.untrustedSourceData!.independentReviewFeedback ?? []),
+  ).toEqual(
+    worksets.map(
+      () =>
+        "The workset claims coverage for docs/specs/b.md that no exact canonical quotation supports.",
+    ),
+  );
+  expect(
+    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+  ).toEqual([]);
+  expect((await providerRequests(f)).some((request) => request.envelope)).toBe(true);
+  // The approved siblings are integrated; the parked source settles nothing canonical.
+  const events = allEvents(f.events);
+  const integration = events.find(
+    (event) =>
+      event.type === "repository.knowledge.stage.recorded" &&
+      event.payload.stage === "canonical_integration" &&
+      event.payload.state === "current",
+  );
+  const integratedInput = await casJson<{ baseline: { projectId: string; policyHash: string } }>(
+    f.artifacts,
+    integration!.payload.inputArtifactHash,
+  );
+  const reviewedSources = new Map(
+    (await providerRequests(f))
+      .filter((request) => request.task === "independent_canonical_review")
+      .flatMap(
+        (request) =>
+          request.untrustedSourceData!.sources as { path: string; contentHash: string }[],
+      )
+      .map((source) => [source.path, source.contentHash]),
+  );
+  const settled = await settledCanonicalDispositions({
+    repositoryRoot: f.root,
+    events: f.events,
+    artifacts: f.artifacts,
+    projectId: integratedInput.baseline.projectId,
+    policyHash: integratedInput.baseline.policyHash,
+    sources: ["a", "b", "c"].map((name) => ({
+      path: `docs/specs/${name}.md`,
+      contentHash: reviewedSources.get(`docs/specs/${name}.md`)!,
+    })),
+  });
+  expect(settled.map((item) => item.path)).toEqual(["docs/specs/a.md", "docs/specs/c.md"]);
+  expect(await readFile(runtime, "utf8")).toBe(runtimeBefore);
+  expect(integrationRef(f)).toBe(refBefore);
+  expect(canonicalSettlementEffects(f.events)).toEqual({ canonicalize: false, current: false });
+  // A restart after parking appends nothing and asks the provider nothing.
+  const head = f.events.latest()!.eventHash;
+  const log = await readFile(f.log, "utf8");
+  await runParkingWorker(f);
+  expect(f.events.latest()!.eventHash).toBe(head);
+  expect(await readFile(f.log, "utf8")).toBe(log);
+}, 300_000);

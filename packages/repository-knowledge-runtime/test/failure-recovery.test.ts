@@ -8,7 +8,6 @@ import {
   canonicalJson,
   recoverKnowledgeMaterialization,
   sha256,
-  inspectConfiguredDocumentNormalization,
 } from "@lervo/repository-knowledge";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
@@ -131,56 +130,6 @@ it(
         recoveryCommand: "lervo knowledge materialize --recover",
       },
     });
-  },
-);
-
-it(
-  "isolates a rejected leading family while applying another exact accepted family",
-  { timeout: 60_000 },
-  async () => {
-    const f = await fixture(true);
-    fixtures.push(f);
-    await writeFile(
-      resolve(f.root, "docs/specs/a.md"),
-      "# Leading family\n\nRetain this exact first family.\n",
-    );
-    const script = await readFile(f.executable, "utf8");
-    await writeFile(
-      f.executable,
-      script.replace(
-        "console.log(JSON.stringify({is_error:false",
-        "if(request.task==='independent_normalization_review'){const decision=response.decisions.find(item=>data.candidate.items.find(source=>source.operationId===item.operationId)?.sourcePath==='docs/specs/a.md');if(decision){decision.decision='reject';decision.checks.meaning=false;}}\nconsole.log(JSON.stringify({is_error:false",
-      ),
-    );
-    let result: Awaited<ReturnType<typeof run>>;
-    for (let cycle = 0; cycle < 8; cycle++) {
-      result = await run(f);
-      if (result.status === "processed" && result.convergence.state === "attention_required") break;
-    }
-    // ADR-0479: bounded regeneration, then only the rejected family is parked at the very end.
-    expect(result!).toMatchObject({
-      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
-    });
-    expect(
-      (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
-    ).toEqual(["docs/specs/a.md"]);
-    const reviews = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line).request)
-      .filter((request) => request.task === "independent_normalization_review")
-      .filter((request) =>
-        request.untrustedSourceData.candidate.items.some(
-          (item: { sourcePath: string }) => item.sourcePath === "docs/specs/a.md",
-        ),
-      );
-    expect(reviews).toHaveLength(3);
-    expect(await readFile(resolve(f.root, "docs/specs/a.md"), "utf8")).toContain(
-      "Retain this exact first family.",
-    );
-    const calls = (await readFile(f.log, "utf8")).trim().split("\n");
-    await run(f);
-    expect((await readFile(f.log, "utf8")).trim().split("\n")).toHaveLength(calls.length);
   },
 );
 

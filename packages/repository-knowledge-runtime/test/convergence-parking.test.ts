@@ -3,7 +3,6 @@ import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { inspectConfiguredDocumentNormalization } from "@lervo/repository-knowledge";
 
-import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { inspectAutonomousKnowledgeStatus } from "../src/status.js";
 import {
   convergenceEvaluationContract,
@@ -16,6 +15,12 @@ import {
 import { canonicalWorksetWindow } from "../src/canonical-isolation.js";
 import type { ParkedConvergenceSource } from "../src/convergence-parking.js";
 import { fixture } from "./fixture.js";
+import {
+  providerRequests,
+  rejectWhen,
+  runParkingWorker,
+  settleParking,
+} from "./convergence-parking-fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -24,60 +29,6 @@ afterEach(async () => {
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
-
-type Fixture = Awaited<ReturnType<typeof fixture>>;
-
-function run(f: Fixture) {
-  return runAutonomousKnowledgeWorker({
-    storage: f.storage,
-    workerId: "parking",
-    provider: "claude",
-    executable: f.executable,
-    admissionDirectory: f.admissionDirectory,
-  });
-}
-
-async function settle(f: Fixture, cycles = 16) {
-  let result: Awaited<ReturnType<typeof run>> | undefined;
-  for (let cycle = 0; cycle < cycles; cycle++) {
-    result = await run(f);
-    if (
-      result.status === "processed" &&
-      (result.convergence.state === "attention_required" ||
-        (result.convergence.state === "idle" && result.convergence.lastVerifiedCurrency !== null))
-    )
-      break;
-  }
-  return result!;
-}
-
-async function requests(f: Fixture) {
-  return (await readFile(f.log, "utf8"))
-    .trim()
-    .split("\n")
-    .map(
-      (line) =>
-        JSON.parse(line).request as {
-          task?: string;
-          envelope?: { documents: { path: string; independentReviewFeedback?: unknown }[] };
-          untrustedSourceData?: Record<string, unknown>;
-        },
-    );
-}
-
-/** Rewrites the fixture provider so the exact reviewer rejects selected sources. */
-async function rejectWhen(f: Fixture, normalization: string, canonical = "false") {
-  const script = await readFile(f.executable, "utf8");
-  await writeFile(
-    f.executable,
-    script.replace(
-      "console.log(JSON.stringify({is_error:false",
-      `if(request.task==='independent_normalization_review'){for(const decision of response.decisions){const item=data.candidate.items.find(source=>source.operationId===decision.operationId);if(${normalization}){decision.decision='reject';decision.checks.links=false;decision.rationale='The link to runtime.md#local-runtime loses its anchor in this rewrite.';}}}
-if(request.task==='independent_canonical_review'&&(${canonical})){response.decision='reject';response.rationale='The workset claims coverage for docs/specs/b.md that no exact canonical quotation supports.';}
-console.log(JSON.stringify({is_error:false`,
-    ),
-  );
-}
 
 it("regenerates a rejected document with the reviewer's reasons and converges", async () => {
   const f = await fixture(true);
@@ -90,12 +41,12 @@ it("regenerates a rejected document with the reviewer's reasons and converges", 
       JSON.stringify(f.log) +
       ",'utf8').includes('independentReviewFeedback')",
   );
-  const result = await settle(f);
+  const result = await settleParking(f);
   expect(result).toMatchObject({
     status: "processed",
     convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
   });
-  const regenerated = (await requests(f))
+  const regenerated = (await providerRequests(f))
     .flatMap((request) => request.envelope?.documents ?? [])
     .filter((document) => document.independentReviewFeedback !== undefined);
   expect(regenerated).toEqual([
@@ -114,9 +65,10 @@ it("regenerates a rejected document with the reviewer's reasons and converges", 
 it("parks an always-rejected document, carries it to the next obligation, and readmits it when edited", async () => {
   const f = await fixture(true);
   fixtures.push(f);
-  await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this local contract.\n");
+  const rejected = "# A\n\nKeep this local contract.\n";
+  await writeFile(resolve(f.root, "docs/specs/a.md"), rejected);
   await rejectWhen(f, "item.sourcePath==='docs/specs/a.md'");
-  expect(await settle(f)).toMatchObject({
+  expect(await settleParking(f, 8)).toMatchObject({
     convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
   });
   expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
@@ -126,64 +78,53 @@ it("parks an always-rejected document, carries it to the next obligation, and re
     ],
   });
   const generations = async () =>
-    (await requests(f)).filter((request) =>
+    (await providerRequests(f)).filter((request) =>
       request.envelope?.documents.some((document) => document.path === "docs/specs/a.md"),
     ).length;
   expect(await generations()).toBe(3);
+  const reviews = (await providerRequests(f)).filter(
+    (request) =>
+      request.task === "independent_normalization_review" &&
+      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.some(
+        (item) => item.sourcePath === "docs/specs/a.md",
+      ),
+  );
+  expect(reviews).toHaveLength(3);
+  // Only the rejected leading family stays pending with its exact bytes; runtime.md is applied.
+  expect(
+    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+  ).toEqual(["docs/specs/a.md"]);
+  expect(await readFile(resolve(f.root, "docs/specs/a.md"), "utf8")).toBe(rejected);
+  // The settled parking appends nothing and asks the provider nothing on the next run.
+  const head = f.events.latest()!.eventHash;
+  const calls = (await providerRequests(f)).length;
+  await runParkingWorker(f);
+  expect(f.events.latest()!.eventHash).toBe(head);
+  expect(await providerRequests(f)).toHaveLength(calls);
 
-  // An unrelated change opens a new obligation; the parked bytes are not generated again.
+  // An unrelated change opens a new obligation; the parked bytes are neither generated nor
+  // reviewed again, so the provider sees only the new source's canonical assessment and review.
   await writeFile(resolve(f.root, "note.ts"), "export const note = 1;\n");
-  expect(await settle(f)).toMatchObject({
+  expect(await settleParking(f)).toMatchObject({
     convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
   });
   expect(await generations()).toBe(3);
+  expect((await providerRequests(f)).slice(calls).map((request) => request.task)).toEqual([
+    "canonical_baseline_assessment",
+    "independent_canonical_review",
+  ]);
 
   // Editing the parked document is the recovery: its new bytes are generated again.
   await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this exact local contract.\n");
-  await settle(f);
+  await settleParking(f);
   expect(await generations()).toBeGreaterThan(3);
-}, 300_000);
-
-it("isolates one rejected canonical source by halving its workset and integrates the rest", async () => {
-  const f = await fixture(true);
-  fixtures.push(f);
-  for (const name of ["a", "b", "c"])
-    await writeFile(
-      resolve(f.root, `docs/specs/${name}.md`),
-      `# ${name.toUpperCase()}\n\nThe ${name} contract stays local.\n`,
-    );
-  await rejectWhen(f, "false", "data.sources.some(source=>source.path==='docs/specs/b.md')");
-  expect(await settle(f, 48)).toMatchObject({
-    convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
-  });
-  expect((await inspectAutonomousKnowledgeStatus(f.storage)).parked).toEqual({
-    count: 1,
-    sources: [
-      { stage: "canonical", path: "docs/specs/b.md", reason: "review_rejected", attempts: 2 },
-    ],
-  });
-  const reviewed = (await requests(f))
-    .filter((request) => request.task === "independent_canonical_review")
-    .map((request) =>
-      (request.untrustedSourceData!.sources as { path: string }[]).map((source) => source.path),
-    );
-  // Reviews containing b.md shrink until b.md alone is judged, then it is parked.
-  const withB = reviewed.filter((paths) => paths.includes("docs/specs/b.md"));
-  expect(withB.at(-1)).toEqual(["docs/specs/b.md"]);
-  expect(withB.map((paths) => paths.length)).toEqual(
-    withB.map((paths) => paths.length).toSorted((left, right) => right - left),
-  );
-  expect(reviewed.flat()).toEqual(expect.arrayContaining(["docs/specs/a.md", "docs/specs/c.md"]));
-  expect(
-    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
-  ).toEqual([]);
 }, 300_000);
 
 it("settles an undeclared opaque asset by the passing pinned suite instead of stopping", async () => {
   const f = await fixture(true);
   fixtures.push(f);
   await writeFile(resolve(f.root, "icon.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3]));
-  const result = await settle(f);
+  const result = await settleParking(f);
   expect(result).toMatchObject({
     status: "processed",
     convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
