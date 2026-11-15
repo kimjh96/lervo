@@ -1,5 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { readFile, writeFile } from "node:fs/promises";
+import { readdir, readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
@@ -45,6 +46,46 @@ export async function providerRequests(f: ConvergenceFixture) {
           envelope?: { documents: { path: string; independentReviewFeedback?: unknown }[] };
           untrustedSourceData?: Record<string, unknown>;
         },
+    );
+}
+
+/** The source paths of each independent normalization review, in call order. */
+export async function reviewedBatches(f: ConvergenceFixture) {
+  return (await providerRequests(f))
+    .filter((request) => request.task === "independent_normalization_review")
+    .map((request) =>
+      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.map(
+        (item) => item.sourcePath,
+      ),
+    );
+}
+
+/** Every generated envelope document that carried reviewer feedback, in call order. */
+export async function regenerationFeedback(f: ConvergenceFixture) {
+  return (await providerRequests(f))
+    .flatMap((request) => request.envelope?.documents ?? [])
+    .filter((document) => document.independentReviewFeedback !== undefined)
+    .map(({ path, independentReviewFeedback }) => ({ path, independentReviewFeedback }));
+}
+
+/** Every stored suite-bound asset settlement in the project's private CAS. */
+export async function suiteBoundSettlements(f: ConvergenceFixture) {
+  const cas = resolve(f.storage.paths.cas, "sha256");
+  return (
+    await Promise.all(
+      (await readdir(cas)).map(async (prefix) =>
+        Promise.all(
+          (await readdir(resolve(cas, prefix))).map((name) =>
+            readFile(resolve(cas, prefix, name), "utf8"),
+          ),
+        ),
+      ),
+    )
+  )
+    .flat()
+    .filter((text) => text.includes('"kind":"suite_bound_assets"'))
+    .map(
+      (text) => JSON.parse(text) as { sources: { path: string }[]; verificationReceipts: string[] },
     );
 }
 

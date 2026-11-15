@@ -17,9 +17,12 @@ import type { ParkedConvergenceSource } from "../src/convergence-parking.js";
 import { fixture } from "./fixture.js";
 import {
   providerRequests,
+  regenerationFeedback,
   rejectWhen,
+  reviewedBatches,
   runParkingWorker,
   settleParking,
+  suiteBoundSettlements,
 } from "./convergence-parking-fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -29,6 +32,54 @@ afterEach(async () => {
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
+
+/** The reason the patched fixture reviewer gives for every rejection of a.md. */
+const REASON =
+  "The link to runtime.md#local-runtime loses its anchor in this rewrite. (failed checks: links)";
+
+it("regenerates a once-rejected document with the reviewer's reasons, applies the approved regeneration, and converges with an undeclared opaque asset settled by the pinned suite", async () => {
+  const f = await fixture(true);
+  fixtures.push(f);
+  await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this local contract.\n");
+  // An owner's new, still untracked asset that no declaration covers.
+  await writeFile(resolve(f.root, "icon.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3]));
+  // The first review of a.md rejects it; the regeneration carries the reason and is approved.
+  await rejectWhen(
+    f,
+    "item.sourcePath==='docs/specs/a.md'&&!readFileSync(" +
+      JSON.stringify(f.log) +
+      ",'utf8').includes('independentReviewFeedback')",
+  );
+  expect(await settleParking(f)).toMatchObject({
+    status: "processed",
+    convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
+  });
+  // a.md is rejected beside the approved runtime.md, regenerated alone once with the reason, and
+  // approved; nothing is reviewed or regenerated after that approval.
+  expect(await reviewedBatches(f)).toEqual([
+    ["docs/specs/a.md", "docs/specs/runtime.md"],
+    ["docs/specs/a.md"],
+  ]);
+  expect(await regenerationFeedback(f)).toEqual([
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 2, reasons: [REASON] } },
+  ]);
+  // The approved regeneration is applied, so no document stays pending.
+  expect(
+    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+  ).toEqual([]);
+  // Runtime src never raises asset_verification_required; this guard only keeps the old contract.
+  const stages = f.events
+    .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
+    .map((event) => event.payload as { failureCode: string | null });
+  expect(stages.some((stage) => stage.failureCode === "asset_verification_required")).toBe(false);
+  // The private suite-bound evidence names the exact asset bytes and the passing suite receipts.
+  expect(await suiteBoundSettlements(f)).toEqual([
+    expect.objectContaining({
+      sources: [expect.objectContaining({ path: "icon.png" })],
+      verificationReceipts: [expect.stringMatching(/^sha256:/u)],
+    }),
+  ]);
+}, 180_000);
 
 it("parks an always-rejected document, carries it to the next obligation, and readmits it when edited", async () => {
   const f = await fixture(true);
@@ -60,29 +111,14 @@ it("parks an always-rejected document, carries it to the next obligation, and re
   expect(reviews).toHaveLength(3);
   // The first review approves runtime.md and rejects a.md in one batch; only a.md is regenerated,
   // alone and each time with the reviewer's reason and its next attempt number.
-  expect(
-    (await providerRequests(f))
-      .filter((request) => request.task === "independent_normalization_review")
-      .map((request) =>
-        (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.map(
-          (item) => item.sourcePath,
-        ),
-      ),
-  ).toEqual([
+  expect(await reviewedBatches(f)).toEqual([
     ["docs/specs/a.md", "docs/specs/runtime.md"],
     ["docs/specs/a.md"],
     ["docs/specs/a.md"],
   ]);
-  const reason =
-    "The link to runtime.md#local-runtime loses its anchor in this rewrite. (failed checks: links)";
-  expect(
-    (await providerRequests(f))
-      .flatMap((request) => request.envelope?.documents ?? [])
-      .filter((document) => document.independentReviewFeedback !== undefined)
-      .map(({ path, independentReviewFeedback }) => ({ path, independentReviewFeedback })),
-  ).toEqual([
-    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 2, reasons: [reason] } },
-    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 3, reasons: [reason] } },
+  expect(await regenerationFeedback(f)).toEqual([
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 2, reasons: [REASON] } },
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 3, reasons: [REASON] } },
   ]);
   // Only the rejected leading family stays pending with its exact bytes; runtime.md is applied.
   expect(
