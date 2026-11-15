@@ -215,8 +215,23 @@ it(
     git(f.root, "update-ref", "refs/heads/knowledge-integration", ref);
     expect(await runtime.dependencyCurrent(dependency)).toBe(false);
 
-    // Released, the owner redelivers the same stage input.
+    // Released, the owner redelivers the same stage with the failed attempt's exact input.
+    const stalled = f.events
+      .list({ limit: 1000 })
+      .findLast((event) => event.type === "repository.knowledge.stage.recorded")!;
+    expect(stalled.payload).toMatchObject({
+      stage: "canonical_integration",
+      state: "recovery_required",
+    });
     const resumed = await converge();
+    expect(
+      f.events
+        .list({ afterSeq: stalled.seq, limit: 1000 })
+        .find((event) => event.type === "repository.knowledge.stage.recorded")!.payload,
+    ).toMatchObject({
+      stage: "canonical_integration",
+      inputArtifactHash: stalled.payload.inputArtifactHash,
+    });
     // Resuming the retained integration asks the provider for no new assessment or review.
     expect(canonicalProviderCalls.map((call) => call.task)).toEqual(canonicalCalls);
     expect(resumed).toMatchObject({ state: "idle", outstanding: 0 });
