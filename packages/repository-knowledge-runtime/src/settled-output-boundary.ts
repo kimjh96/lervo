@@ -5,6 +5,7 @@ import type {
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
 
 import { commitSettledKnowledgeOutputs } from "./knowledge-output-commit.js";
+import { fencedFileModes } from "./knowledge-output-exact-commit.js";
 import type { ConvergenceSourceCapture } from "./source-capture.js";
 import { completeConvergenceStage } from "./stage-receipt.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -40,6 +41,12 @@ export async function commitSettledOutputsAtBoundary(
   context.assertSourceExact(state);
   // The fence just proved the repository equals this snapshot; the commit records only its bytes.
   const snapshot = state.stageData.sourceCapture as ConvergenceSourceCapture | undefined;
+  const sources = snapshot?.sources ?? state.baseline.sources;
+  // Modes are read with no await after the fence, so they are the modes the fence saw.
+  const modes = fencedFileModes(
+    root,
+    sources.map((source) => source.path),
+  );
   const head = snapshot?.head ?? state.baseline.sourceCommit;
   if (head === undefined) return null;
   const output = await commitSettledKnowledgeOutputs({
@@ -49,12 +56,8 @@ export async function commitSettledOutputsAtBoundary(
     obligationId: state.obligationId,
     reviewed: {
       head,
-      sources: new Map(
-        (snapshot?.sources ?? state.baseline.sources).map((source) => [
-          source.path,
-          source.contentHash,
-        ]),
-      ),
+      sources: new Map(sources.map((source) => [source.path, source.contentHash])),
+      modes,
     },
   });
   if (output.head === null) return null;

@@ -9,6 +9,7 @@ import {
   commitSettledKnowledgeOutputs,
   selectSettledKnowledgeOutputs,
 } from "../src/knowledge-output-commit.js";
+import { fencedFileModes } from "../src/knowledge-output-exact-commit.js";
 import { captureConvergenceSources } from "../src/source-capture.js";
 import { fixture } from "./fixture.js";
 
@@ -95,6 +96,10 @@ it(
               source.path,
               source.contentHash,
             ]),
+          ),
+          modes: fencedFileModes(
+            f.root,
+            captureConvergenceSources(f.root, "policy").sources.map((source) => source.path),
           ),
         },
       }),

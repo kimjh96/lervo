@@ -17,7 +17,11 @@ import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-dispos
 import { CONVERGENCE_HOST_TRAILER, knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import type { ConvergenceApprovedEffect } from "./effect-source-fence.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
-import { commitExactKnowledgeBytes } from "./knowledge-output-exact-commit.js";
+import {
+  commitExactKnowledgeBytes,
+  reviewedEntry,
+  type FencedFileMode,
+} from "./knowledge-output-exact-commit.js";
 import {
   knowledgeOutputFormatTargets,
   readRevisionFiles,
@@ -299,7 +303,12 @@ export async function commitSettledKnowledgeOutputs(input: {
    * The snapshot the caller's exact fence just proved: its HEAD and every source's content hash.
    * The commit holds exactly these bytes, formatted, or nothing.
    */
-  reviewed: { head: string; sources: ReadonlyMap<string, string> };
+  reviewed: {
+    head: string;
+    sources: ReadonlyMap<string, string>;
+    /** Each source's file type and executable bit, read right after the fence. */
+    modes: ReadonlyMap<string, FencedFileMode>;
+  };
   /** The repository formatter; omitted loads the repository's own, null skips formatting. */
   formatter?: KnowledgeOutputFormatter | null;
 }): Promise<{
@@ -330,25 +339,22 @@ export async function commitSettledKnowledgeOutputs(input: {
       : await formatSettledKnowledgeOutputs({ repositoryRoot: root, formatter, selected, dirty });
   // Every byte the commit records is checked against the fenced snapshot and then held in memory,
   // so an edit made after the fence, during any await above, never reaches the commit.
-  const entries: { path: string; bytes: Buffer | null }[] = [];
+  const entries: { path: string; bytes: Buffer | null; mode: FencedFileMode | null }[] = [];
   for (const path of paths) {
-    const reviewed = input.reviewed.sources.get(path) ?? null;
-    const written = formatted.get(path);
-    const bytes =
-      written !== undefined
-        ? sha256(replaced.get(path)!) === reviewed
-          ? Buffer.from(written, "utf8")
-          : undefined
-        : dirty.get(path) === "deleted"
-          ? reviewed === null
-            ? null
-            : undefined
-          : readReviewed(root, path, reviewed);
-    if (bytes === undefined) {
+    const entry = reviewedEntry({
+      root,
+      path,
+      reviewed: input.reviewed.sources.get(path) ?? null,
+      mode: input.reviewed.modes.get(path),
+      replaced: replaced.get(path),
+      formatted: formatted.get(path),
+      deleted: dirty.get(path) === "deleted",
+    });
+    if (entry === undefined) {
       await restoreKnowledgeOutputFiles(root, replaced).catch(() => undefined);
       throw new KnowledgeConvergenceRuntimeError("source_bytes_changed");
     }
-    entries.push({ path, bytes });
+    entries.push({ path, ...entry });
   }
   const before = input.reviewed.head;
   const after = await commitExactKnowledgeBytes({
@@ -374,16 +380,4 @@ export async function commitSettledKnowledgeOutputs(input: {
     afterHash: sha256(formatted.get(path)!),
   }));
   return { committed: paths, head: { before, after }, formatEffects };
-}
-
-/** The file's bytes, if they still hash to the reviewed content; undefined otherwise. */
-function readReviewed(root: string, path: string, reviewed: string | null): Buffer | undefined {
-  if (reviewed === null) return undefined;
-  let bytes: Buffer;
-  try {
-    bytes = readFileSync(resolve(root, path));
-  } catch {
-    return undefined;
-  }
-  return sha256(bytes) === reviewed ? bytes : undefined;
 }
