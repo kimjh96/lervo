@@ -496,3 +496,133 @@ it("probes an unreachable peer once per back-off period and resumes every replic
     await running;
   }
 });
+
+it.each([
+  { concurrency: 4, failMs: 500 },
+  { concurrency: 2, failMs: 500 },
+  { concurrency: 1, failMs: 500 },
+  { concurrency: 4, failMs: 60_000 },
+  { concurrency: 1, failMs: 60_000 },
+])(
+  "keeps a replica whose own transport keeps failing on its own back-off ($concurrency, $failMs ms)",
+  async ({ concurrency, failMs }) => {
+    vi.useFakeTimers();
+    const peer = new SshRepositoryReplicaPeer({
+      executable: "ssh",
+      arguments: [],
+      destination: "fixture",
+      remoteNodeExecutable: "node",
+      remoteRuntimeExecutable: "runtime",
+    });
+    const abort = new AbortController();
+    const cycles: Record<string, number> = {};
+    let probes = 0;
+    let closures = 0;
+    let closedSince: number | null = null;
+    let closedMs = 0;
+    const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    const running = watchReplicaReconciliation({
+      repositories: ["broken", "a", "b", "c", "d"].map((replicaId) => ({
+        replicaId,
+        localRoot: `/${replicaId}`,
+        peerRoot: `/peer/${replicaId}`,
+      })),
+      peer,
+      fallbackIntervalMs: 30_000,
+      idleRecoveryCeilingMs: 600_000,
+      maximumConcurrency: concurrency,
+      watch: true,
+      peerWatch: false,
+      signal: abort.signal,
+      probePeer: async () => {
+        probes += 1;
+        await delay(300);
+        return true;
+      },
+      onPeerBackoff: (state) => {
+        if (state.retryAt !== null && closedSince === null) {
+          closures += 1;
+          closedSince = Date.now();
+        } else if (state.retryAt === null && closedSince !== null) {
+          closedMs += Date.now() - closedSince;
+          closedSince = null;
+        }
+      },
+      reconcile: async (repository) => {
+        cycles[repository.replicaId] = (cycles[repository.replicaId] ?? 0) + 1;
+        if (repository.replicaId === "broken") {
+          await delay(failMs);
+          return "peer_unreachable";
+        }
+        await delay(1_000);
+        return "current";
+      },
+    });
+    try {
+      for (let minute = 0; minute < 60; minute += 1) await vi.advanceTimersByTimeAsync(60_000);
+      // Before this rule: 3,601 broken and 1,800 sibling cycles an hour at concurrency 4, and
+      // siblings stuck at 55 an hour at concurrency 1. An idle replica runs 10 in its first hour.
+      expect(cycles.broken).toBeLessThanOrEqual(11);
+      for (const sibling of ["a", "b", "c", "d"]) expect(cycles[sibling]).toBeLessThanOrEqual(10);
+      expect(probes).toBeLessThanOrEqual(1);
+      expect(closures).toBe(1);
+      expect(closedMs).toBeLessThanOrEqual(31_000);
+    } finally {
+      abort.abort();
+      await vi.advanceTimersByTimeAsync(failMs);
+      await running;
+    }
+  },
+);
+
+it("keeps scheduling a replica that was still running when the peer gate reopened", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  const started = Date.now();
+  const slowRuns: number[] = [];
+  let reopenedAt: number | null = null;
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const running = watchReplicaReconciliation({
+    repositories: [
+      { replicaId: "fails", localRoot: "/fails", peerRoot: "/peer/fails" },
+      { replicaId: "slow", localRoot: "/slow", peerRoot: "/peer/slow" },
+    ],
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 600_000,
+    maximumConcurrency: 2,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    probePeer: async () => true,
+    onPeerBackoff: (state) => {
+      if (state.retryAt === null && reopenedAt === null) reopenedAt = Date.now() - started;
+    },
+    reconcile: async (repository) => {
+      if (repository.replicaId === "fails") {
+        await delay(500);
+        return "peer_unreachable";
+      }
+      slowRuns.push(Date.now() - started);
+      await delay(40_000);
+      return "current";
+    },
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(200_000);
+    // The probe reopened the gate at 30.5 s while `slow` was still running until 40 s.
+    expect(reopenedAt).toBe(30_500);
+    expect(slowRuns).toEqual([0, 70_000, 170_000]);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(40_000);
+    await running;
+  }
+});

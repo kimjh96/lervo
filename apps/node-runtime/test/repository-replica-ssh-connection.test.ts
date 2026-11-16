@@ -106,7 +106,16 @@ describe("Lervo-managed SSH connection reuse (ADR-0570)", () => {
       platform: "win32",
       controlPath: "C:/s/%C",
     });
-    expect(windows).toEqual({ mode: "unavailable", reason: "platform_unsupported" });
+    expect(windows).toEqual({ mode: "unavailable", reason: "windows_client" });
+    // WSL interop runs Windows OpenSSH from Linux; it cannot multiplex either.
+    expect(
+      planSshConnectionReuse({
+        ...transport,
+        executable: "/mnt/c/Windows/System32/OpenSSH/ssh.exe",
+        platform: "linux",
+        controlPath: "/s/%C",
+      }),
+    ).toEqual({ mode: "unavailable", reason: "windows_client" });
   });
 
   it("fits the control socket into the platform's socket path limit", () => {

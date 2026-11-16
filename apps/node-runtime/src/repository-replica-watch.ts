@@ -66,27 +66,23 @@ export async function watchReplicaReconciliation(input: {
   };
   reportInterval();
   const hinted = new Set<string>();
-  // Replicas skipped while the gate was closed run once as soon as the peer answers again.
+  // Only replicas the gate parked run again when it reopens; every other replica keeps its own
+  // schedule, and a parked replica with a queued run already has one.
   const reopen = () => {
-    pool.notifyAll(
-      input.repositories
-        .map((repository) => repository.replicaId)
-        .filter((replicaId) => !pool.busy(replicaId)),
-    );
-  };
-  const observePeer = (outcome: ReplicaReconcileOutcome | "probe_reachable") => {
-    if (peerGate === null) return;
-    if (outcome === "peer_unreachable") peerGate.observeUnreachable(Date.now());
-    else if (peerGate.observeReachable()) reopen();
-    reportPeer();
+    pool.notifyAll(peerGate!.takeParked().filter((replicaId) => !pool.busy(replicaId)));
   };
   const pool = new RepositoryReconciliationPool(input.repositories, {
     concurrency: input.maximumConcurrency ?? 4,
     coalesceMs: 250,
     reconcile: async (repository) => {
       const trigger = hinted.delete(repository.replicaId) ? "change" : "recovery";
-      const outcome = (await input.reconcile(repository, { trigger })) ?? "not_current";
-      observePeer(outcome);
+      let outcome = (await input.reconcile(repository, { trigger })) ?? "not_current";
+      if (peerGate !== null) {
+        const observed = peerGate.observeCycle(repository.replicaId, outcome, Date.now());
+        outcome = observed.outcome;
+        if (observed.reopened) reopen();
+        reportPeer();
+      }
       schedule.observe(repository.replicaId, outcome, Date.now());
       reportInterval();
     },
@@ -97,7 +93,8 @@ export async function watchReplicaReconciliation(input: {
     probe = (input.probePeer ?? (async () => true))()
       .catch(() => false)
       .then((reachable) => {
-        observePeer(reachable ? "probe_reachable" : "peer_unreachable");
+        if (peerGate!.observeProbe(reachable, Date.now())) reopen();
+        reportPeer();
         probe = null;
         wakeup.notify();
       });

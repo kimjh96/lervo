@@ -27,7 +27,7 @@ export type SshConnectionReuse =
       mode: "unavailable";
       reason:
         | "client_not_openssh"
-        | "platform_unsupported"
+        | "windows_client"
         | "control_path_unsupported"
         | "control_directory_unsafe";
     };
@@ -98,8 +98,9 @@ export function planSshConnectionReuse(input: {
   const configured = configuredSshOptions(input.arguments);
   if ([...MULTIPLEXING_OPTIONS].some((option) => configured.has(option)))
     return { mode: "configured" };
-  // Windows OpenSSH has no connection multiplexing.
-  if (input.platform === "win32") return { mode: "unavailable", reason: "platform_unsupported" };
+  // Windows OpenSSH has no connection multiplexing, including `ssh.exe` reached through WSL interop.
+  if (input.platform === "win32" || input.executable.toLowerCase().endsWith(".exe"))
+    return { mode: "unavailable", reason: "windows_client" };
   if (input.controlPath === null)
     return { mode: "unavailable", reason: "control_path_unsupported" };
   return { mode: "managed", controlPath: input.controlPath };
