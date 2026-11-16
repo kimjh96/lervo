@@ -12,11 +12,13 @@ import {
   type HostLinkChange,
 } from "./host-cli-activation.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
+import { STARTUP_EFFECTS_VARIABLE } from "./startup-effects.js";
 
 /**
  * ADR-0571 health gate. `version` runs the `lervo` link as a user's shell would: through its
  * `#!/usr/bin/env node` line, the executable bit, and the `node` on PATH, so a too-old `node` or a
- * lost executable bit fails here; `--version` has no startup effects. `syntax` is only a link and
+ * lost executable bit fails here; the probe sets `LERVO_STARTUP_EFFECTS=skip`, so it has no startup
+ * effects. `syntax` is only a link and
  * parse check of `lervo-node`, not runtime health: starting a Node runtime binds runtime
  * records and has no side-effect-free mode.
  */
@@ -27,18 +29,20 @@ export interface HostCliProbes {
 
 const probeTimeoutMilliseconds = 60_000;
 
-const run = (command: string, args: string[]) =>
+const run = (command: string, args: string[], env: NodeJS.ProcessEnv = process.env) =>
   new Promise<string>((resolvePromise, reject) => {
     execFile(
       command,
       args,
-      { timeout: probeTimeoutMilliseconds, encoding: "utf8", maxBuffer: 1024 * 1024 },
+      { env, timeout: probeTimeoutMilliseconds, encoding: "utf8", maxBuffer: 1024 * 1024 },
       (error, stdout) => (error === null ? resolvePromise(stdout) : reject(error)),
     );
   });
 
 export const installedCliProbes: HostCliProbes = {
-  version: (executable) => run(executable, ["--version"]),
+  // The candidate must not publish its terminal-hook runtime before the gate decides to keep it.
+  version: (executable) =>
+    run(executable, ["--version"], { ...process.env, [STARTUP_EFFECTS_VARIABLE]: "skip" }),
   syntax: async (executable) => {
     await run("node", ["--check", executable]);
   },

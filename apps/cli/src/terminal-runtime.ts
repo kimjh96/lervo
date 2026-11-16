@@ -9,6 +9,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { readFile, realpath } from "node:fs/promises";
 import { isInstalledTerminalRuntimeCli } from "./terminal-runtime-installation.js";
+import { STARTUP_EFFECTS_VARIABLE } from "./startup-effects.js";
 
 const testRuntime =
   "#!/usr/bin/env node\nprocess.stderr.write('terminal runtime fixture must not execute');\n";
@@ -89,9 +90,10 @@ export async function ensureStartupHostTerminalRuntime(
   entry: string,
   argv: readonly string[],
 ): Promise<void> {
-  // `--version` must stay side-effect free: ADR-0571's health gate runs a candidate with it
-  // before deciding to keep it, and restoring links cannot undo a published host runtime.
-  if (argv.length === 1 && (argv[0] === "--version" || argv[0] === "-v")) return;
+  // ADR-0571's health gate runs a candidate before deciding to keep it, and restoring links cannot
+  // undo a published host runtime, so only the gate's probe skips startup effects. Every ordinary
+  // invocation, `--version` included, still refreshes the host runtime after an upgrade.
+  if (process.env[STARTUP_EFFECTS_VARIABLE] === "skip") return;
   if (!(await isInstalledTerminalRuntimeCli(entry))) return;
   await ensureHostTerminalRuntime({
     authority:
