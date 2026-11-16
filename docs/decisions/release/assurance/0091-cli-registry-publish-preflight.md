@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-20
+Amended by: [ADR-0569](../packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (inherited pnpm configuration is cleared, and failures print the tool error and output)
 
 ## Context
 

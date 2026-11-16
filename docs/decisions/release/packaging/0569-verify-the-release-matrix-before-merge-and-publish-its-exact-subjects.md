@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-16
-Amends: [ADR-0089](0089-cli-multi-platform-release-matrix.md) (the matrix runs before merge, and a tag run can publish without rebuilding), [ADR-0221](0221-reviewed-cli-release-preparation.md) (the GitHub Release carries the verified files), [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (preparation also dispatches the matrix, and the merge waits for it)
+Amends: [ADR-0089](0089-cli-multi-platform-release-matrix.md) (the matrix runs before merge, and a tag run can publish without rebuilding), [ADR-0091](../assurance/0091-cli-registry-publish-preflight.md) (the registry smoke clears inherited pnpm configuration and prints its failure), [ADR-0221](0221-reviewed-cli-release-preparation.md) (the GitHub Release carries the verified files), [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (preparation also dispatches the matrix, and the merge waits for it)
 
 ## Context
 
@@ -36,6 +36,7 @@ The Ubuntu leg of `packed-cli` keeps the files a release publishes:
 
 1. After the manifest, SBOM, and local statement checks, `pnpm release:attestation:prepare` writes `lervo-cli-<version>.tgz`, `release-artifact-manifest.json`, and `release-sbom.cdx.json`. `cli-release-subjects.mjs bind` then adds `release-subjects.json`. That file records the version, tag, commit, tree, and each file's size and SHA-256.
 2. The packed-consumer and isolated-registry smokes run with `--release-subjects`, so they install and publish the bound tarball file itself. `pnpm pack` output is not byte-stable: with pnpm 11.18.0, four packs of one build gave four tarball digests, because the resolved `workspace:` keys in `devDependencies` come out in a different order each time. Repacking and comparing would therefore always fail. Testing the subject file makes "published equals smoke-tested" hold by construction. The macOS and Windows legs still pack their own tarball.
+   The Linux leg starts the smokes with `node` instead of `pnpm run`, so they no longer inherit the `pnpm_config_verify_deps_before_run=false` that `pnpm run` exports. Without it, the consumer's `pnpm exec lervo --version` in the registry smoke first verified and reinstalled dependencies and printed that into the output, which failed the exact version check. `isolatedRegistryEnvironment` now clears inherited `pnpm_config_*` variables as it already cleared `npm_config_*`, and sets that one value explicitly, so the smoke behaves the same however it starts. The version check stays exact. A failed registry smoke now prints the error and the failed command's output, at most 4,000 characters per stream, instead of only `registry_publish_preflight_failed`. It uses a loopback registry and an empty user configuration, so that output holds no credentials; this replaces ADR-0091's opt-in `LERVO_REGISTRY_PREFLIGHT_DEBUG`.
 3. `cli-release-subjects.mjs confirm` checks that the directory still holds exactly the bound bytes after the smokes, with every publication check below.
 4. The four files upload as artifact `lervo-cli-release-<tree>` with 30-day retention.
 
