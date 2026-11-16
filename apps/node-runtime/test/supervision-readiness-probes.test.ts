@@ -32,6 +32,7 @@ import {
   inspectSupervisionKnowledgeReadiness,
   observeSupervisionKnowledgeReadiness,
 } from "../src/supervision-knowledge-readiness.js";
+import { observeFinalSupervisionReadiness } from "../src/supervision-final-readiness.js";
 import { observeSupervisionLoginReadiness } from "../src/supervision-login-readiness.js";
 import { observeSupervisionRepositoryReadiness } from "../src/supervision-repository-readiness.js";
 import { observeSupervisionRuntimeReadiness } from "../src/supervision-runtime-readiness.js";
@@ -294,17 +295,49 @@ describe("runtime executable observation", () => {
     async (status) => {
       const input = await readiness();
       checkOf(input, "provider").status = status;
-      // The final readiness composition runs the login probe before the runtime probe.
-      const result = await observe(
-        await observeSupervisionLoginReadiness({
+      const knowledge = await inspectSupervisionKnowledgeReadiness({
+        repositoryRoot: f.root,
+        projectId: plan.projectId,
+        requiredPaths: plan.expectedPaths,
+        now: f.ports.now,
+      });
+      expect(knowledge.evidenceHash).toMatch(/^sha256:[a-f0-9]{64}$/u);
+      // Application context outlives the knowledge inspection, so the composition must cap it.
+      input.observation.validUntil = new Date(
+        Date.parse(knowledge.validUntil) + 10_000,
+      ).toISOString();
+      const storage = await openReadOnlyProjectStorage(f.root);
+      try {
+        const result = await observeFinalSupervisionReadiness({
+          repositoryRoot: f.root,
+          projectId: plan.projectId,
           plan,
           readiness: input,
           configuration: configuration(),
+          knowledge,
           now: f.ports.now,
-        }),
-      );
-      expectChecks(result, input, { tools: "rehashed" });
-      expect(checkOf(result, "provider")).toEqual(checkOf(input, "provider"));
+          workspaceEvidenceStorage: storage,
+          canonicalPrepared: false,
+        });
+        expectChecks(
+          result,
+          input,
+          {
+            tools: "rehashed",
+            verification: "rehashed",
+            knowledge: "rehashed",
+            lease: "rehashed",
+            ancestry: "rehashed",
+            workspace: "rehashed",
+            read_scope: "rehashed",
+            write_scope: "rehashed",
+          },
+          knowledge.validUntil,
+        );
+        expect(checkOf(result, "provider")).toEqual(checkOf(input, "provider"));
+      } finally {
+        await storage.close();
+      }
     },
   );
 
