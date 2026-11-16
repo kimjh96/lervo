@@ -9,8 +9,6 @@ import {
   hostUpgradeStatus,
   newHostActivationId,
   planReleaseUpgrade,
-  probeInstalledCli,
-  rollbackActivation,
   type HostUpgradeDependencies,
 } from "./host-upgrade.js";
 import {
@@ -20,19 +18,22 @@ import {
   formatHostUpgradeStatus,
 } from "./host-upgrade-format.js";
 import { hostUpgradeLayout } from "./host-upgrade-layout.js";
+import { installedCliProbes } from "./host-link-activation.js";
+import { rollbackActivation } from "./host-upgrade-rollback.js";
 import type { CliIo } from "./types.js";
 
 export const hostUsage = `  lervo host upgrade --from-release <tag> --repository <owner/name> [--apply] [--bin-directory <path>] [--json]
   lervo host upgrade --rollback <activation-id> [--apply] [--bin-directory <path>] [--json]
   lervo host upgrade --status [--bin-directory <path>] [--json]`;
 
-/** Test seam: the release source, host paths, installer, and health probe. */
+/** Test seam: the release source, host paths, installer, health probes, and PATH. */
 export interface HostCommandOverrides {
   createSource?: (repository: string) => HostReleaseSource;
   homeDirectory?: string;
   platform?: NodeJS.Platform;
   installer?: HostUpgradeDependencies["installer"];
-  probe?: HostUpgradeDependencies["probe"];
+  probes?: HostUpgradeDependencies["probes"];
+  pathEnvironment?: string;
   now?: () => Date;
   newActivationId?: () => string;
 }
@@ -122,7 +123,7 @@ async function runHostUpgrade(
   const dependencies: HostUpgradeDependencies = {
     layout,
     installer: overrides.installer ?? pnpmInstaller,
-    probe: overrides.probe ?? probeInstalledCli,
+    probes: overrides.probes ?? installedCliProbes,
     now: overrides.now ?? (() => new Date()),
     newActivationId: overrides.newActivationId ?? newHostActivationId,
     readCliPointer: () => readCurrentCliInstall(overrides.homeDirectory, platform),
@@ -146,7 +147,10 @@ async function runHostUpgrade(
       const result = await applyReleaseUpgrade(source, mode.tag, dependencies);
       write("host_upgrade", result, formatHostUpgradeResult(result));
     } else {
-      const plan = await planReleaseUpgrade(source, mode.tag, dependencies);
+      const plan = await planReleaseUpgrade(source, mode.tag, {
+        layout,
+        pathEnvironment: overrides.pathEnvironment ?? process.env.PATH,
+      });
       write("host_upgrade_plan", plan, formatHostReleasePlan(plan));
     }
   }

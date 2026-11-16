@@ -37,7 +37,11 @@ function checksumValid(header: Buffer): boolean {
   return sum === octal(header, 148, 8);
 }
 
-/** Reads the `path` record of a POSIX pax extended header, the only record npm packers emit. */
+/**
+ * Reads the `path` record of a POSIX pax extended header, the only record npm packers emit. Any
+ * other key (`size`, `linkpath`, ...) is rejected: a reader that honored it would see different
+ * files than this one, so the installed bytes could differ from the verified ones.
+ */
 function paxPath(contents: Buffer): string | undefined {
   let offset = 0;
   let path: string | undefined;
@@ -50,7 +54,8 @@ function paxPath(contents: Buffer): string | undefined {
     const record = contents.subarray(space + 1, offset + length - 1).toString("utf8");
     const equals = record.indexOf("=");
     if (equals === -1) fail();
-    if (record.slice(0, equals) === "path") path = record.slice(equals + 1);
+    if (record.slice(0, equals) !== "path") fail();
+    path = record.slice(equals + 1);
     offset += length;
   }
   return path;
@@ -101,7 +106,6 @@ export function readNpmTarballEntries(gzipContents: Buffer): Map<string, Buffer>
       pendingPath = paxPath(data);
       continue;
     }
-    if (type === "g") continue;
     const prefix = field(header, 345, 155);
     const name = field(header, 0, 100);
     const path = pendingPath ?? (prefix ? `${prefix}/${name}` : name);

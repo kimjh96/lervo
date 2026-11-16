@@ -1,16 +1,12 @@
-import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { resolve } from "node:path";
+import { delimiter, resolve } from "node:path";
+import { lstat } from "node:fs/promises";
 
-import { CommandFailure } from "./command-error-output.js";
 import {
   inspectHostLinks,
   packageLinkTargets,
   readActivationJournal,
   readHostLinks,
-  recordActivation,
-  settleActivation,
-  switchHostLinks,
   withHostUpgradeLock,
   type HostActivationRecord,
   type HostLinkChange,
@@ -24,6 +20,11 @@ import {
 } from "./host-cli-install.js";
 import { intakeVerifiedRelease, readPublishedRelease } from "./host-release-intake.js";
 import {
+  activateLinks,
+  reconcilePendingActivations,
+  type HostCliProbes,
+} from "./host-link-activation.js";
+import {
   activationReferences,
   pruneHostReleases,
   referencedReleaseDirectories,
@@ -31,13 +32,10 @@ import {
 import type { HostReleaseSource } from "./host-release-source.js";
 import { HOST_CLI_LINKS, type HostUpgradeLayout } from "./host-upgrade-layout.js";
 
-/** Runs an installed executable with `--version` and returns its standard output. */
-export type HostCliProbe = (executable: string) => Promise<string>;
-
 export interface HostUpgradeDependencies {
   layout: HostUpgradeLayout;
   installer: HostCliInstaller;
-  probe: HostCliProbe;
+  probes: HostCliProbes;
   now: () => Date;
   newActivationId: () => string;
   /** The install root ADR-0488's `current` pointer names, which pruning must keep. */
@@ -53,39 +51,19 @@ export interface HostReleasePlan {
   tree: string;
   installDirectory: string;
   links: HostLinkChange[];
+  /** An earlier `lervo` on PATH that would still run instead of the activated link, if any. */
+  pathShadow: string | null;
 }
 
-export type HostUpgradeResult =
-  | (HostReleasePlan & { status: "current"; reusedInstall: boolean })
+export type HostUpgradeResult = { reconciledActivations: string[] } & (
+  | (Omit<HostReleasePlan, "pathShadow"> & { status: "current"; reusedInstall: boolean })
   | {
       status: "activated";
       activation: HostActivationRecord;
       reusedInstall: boolean;
       pruned: string[];
-    };
-
-export interface HostRollbackResult {
-  status: "ready" | "rolled_back";
-  rolledBackActivationId: string;
-  links: HostLinkChange[];
-  activation?: HostActivationRecord;
-}
-
-const probeTimeoutMilliseconds = 60_000;
-
-/**
- * Runs the link itself, as a user's shell would: through its `#!/usr/bin/env node` line, the
- * executable bit, and the `node` on PATH, so a too-old `node` or a lost executable bit fails here.
- */
-export const probeInstalledCli: HostCliProbe = (executable) =>
-  new Promise((resolvePromise, reject) => {
-    execFile(
-      executable,
-      ["--version"],
-      { timeout: probeTimeoutMilliseconds, encoding: "utf8" },
-      (error, stdout) => (error === null ? resolvePromise(stdout) : reject(error)),
-    );
-  });
+    }
+);
 
 export function newHostActivationId(): string {
   return `hact_${randomBytes(12).toString("hex")}`;
@@ -106,14 +84,30 @@ function linkChanges(
 
 const unchanged = (changes: HostLinkChange[]) =>
   changes.every((change) => change.previous === change.current);
-const targetsOf = (changes: HostLinkChange[], side: "previous" | "current") =>
-  new Map(changes.map((change) => [change.name, change[side]]));
+
+/**
+ * The first `lervo` on PATH when it is not the managed link: activation would then not change
+ * what a shell runs. A bin directory missing from PATH reports null too, since nothing shadows it.
+ */
+export async function findPathShadow(
+  layout: HostUpgradeLayout,
+  pathEnvironment: string | undefined,
+): Promise<string | null> {
+  const managed = resolve(layout.binDirectory, "lervo");
+  for (const directory of (pathEnvironment ?? "").split(delimiter)) {
+    if (directory === "") continue;
+    const candidate = resolve(directory, "lervo");
+    if (candidate === managed) return null;
+    if ((await lstat(candidate).catch(() => null)) !== null) return candidate;
+  }
+  return null;
+}
 
 /** Read-only: what applying `tag` would install and which links it would switch. */
 export async function planReleaseUpgrade(
   source: HostReleaseSource,
   tag: string,
-  dependencies: Pick<HostUpgradeDependencies, "layout">,
+  dependencies: Pick<HostUpgradeDependencies, "layout"> & { pathEnvironment?: string | undefined },
 ): Promise<HostReleasePlan> {
   const { layout } = dependencies;
   const { version, commit } = await readPublishedRelease(source, tag);
@@ -133,50 +127,8 @@ export async function planReleaseUpgrade(
     tree: commit.tree,
     installDirectory,
     links,
+    pathShadow: await findPathShadow(layout, dependencies.pathEnvironment),
   };
-}
-
-/** A null expectation means no `lervo` link remains to probe, as after undoing a first install. */
-async function linksHealthy(dependencies: HostUpgradeDependencies, expected: RegExp | null) {
-  if (expected === null) return true;
-  const executable = resolve(dependencies.layout.binDirectory, "lervo");
-  const output = await dependencies.probe(executable).catch(() => null);
-  return output !== null && expected.test(output.trim());
-}
-
-function healthFailure(layout: HostUpgradeLayout): CommandFailure {
-  const executable = resolve(layout.binDirectory, "lervo");
-  return new CommandFailure(
-    "host_upgrade_health_failed",
-    `${executable} failed its health check after the switch; the previous links were restored.`,
-    { executable },
-  );
-}
-
-/**
- * Switches links under a `pending` record, health-checks them, and settles the record: `active`
- * on success, or `restored` after putting the previous links back.
- */
-async function activateLinks(
-  dependencies: HostUpgradeDependencies,
-  record: HostActivationRecord,
-  expected: RegExp | null,
-): Promise<HostActivationRecord[]> {
-  const { layout } = dependencies;
-  await recordActivation(layout, record);
-  const previous = targetsOf(record.links, "previous");
-  try {
-    await switchHostLinks(layout, targetsOf(record.links, "current"), previous);
-  } catch (error) {
-    await settleActivation(layout, record.activationId, "restored");
-    throw error;
-  }
-  if (!(await linksHealthy(dependencies, expected))) {
-    await switchHostLinks(layout, previous, previous);
-    await settleActivation(layout, record.activationId, "restored");
-    throw healthFailure(layout);
-  }
-  return settleActivation(layout, record.activationId, "active");
 }
 
 /** Downloads, verifies, installs, switches, health-checks, and records one published release. */
@@ -187,6 +139,7 @@ export async function applyReleaseUpgrade(
 ): Promise<HostUpgradeResult> {
   const { layout } = dependencies;
   return withHostUpgradeLock(layout, async () => {
+    const reconciledActivations = await reconcilePendingActivations(layout);
     const { commit } = await readPublishedRelease(source, tag);
     const { release, downloadDirectory } = await intakeVerifiedRelease(source, tag, layout, commit);
     const install = await installReleasePackage({
@@ -211,6 +164,7 @@ export async function applyReleaseUpgrade(
         installDirectory: install.installDirectory,
         links,
         reusedInstall: install.reused,
+        reconciledActivations,
       };
     const record: HostActivationRecord = {
       activationId: dependencies.newActivationId(),
@@ -230,7 +184,7 @@ export async function applyReleaseUpgrade(
       },
     };
     const expected = new RegExp(`^lervo ${release.version.replaceAll(".", "\\.")}$`, "u");
-    const journal = await activateLinks(dependencies, record, expected);
+    const journal = await activateLinks(layout, dependencies.probes, record, expected);
     const referenced = await referencedReleaseDirectories(layout, [
       ...(await readHostLinks(layout)).values(),
       await dependencies.readCliPointer(),
@@ -242,66 +196,9 @@ export async function applyReleaseUpgrade(
       activation: journal.find((entry) => entry.activationId === record.activationId) ?? record,
       reusedInstall: install.reused,
       pruned,
+      reconciledActivations,
     };
   });
-}
-
-/**
- * Restores exactly the links one activation replaced. It refuses when any link has moved since,
- * because restoring then would silently undo a later activation; roll that one back first.
- */
-export async function rollbackActivation(
-  activationId: string,
-  apply: boolean,
-  dependencies: HostUpgradeDependencies,
-): Promise<HostRollbackResult> {
-  const { layout } = dependencies;
-  const run = async (): Promise<HostRollbackResult> => {
-    const target = (await readActivationJournal(layout)).find(
-      (candidate) => candidate.activationId === activationId,
-    );
-    if (target === undefined)
-      throw new CommandFailure(
-        "host_upgrade_activation_unknown",
-        `No retained activation ${activationId} exists on this host; see lervo host upgrade --status.`,
-        { activationId },
-      );
-    const current = await readHostLinks(layout);
-    for (const change of target.links)
-      if ((current.get(change.name) ?? null) !== change.current)
-        throw new CommandFailure(
-          "host_upgrade_rollback_superseded",
-          `${change.path} changed after activation ${activationId}; roll back the newer activation first.`,
-          { activationId, path: change.path },
-        );
-    const links = target.links.map((change) => ({
-      ...change,
-      previous: change.current,
-      current: change.previous,
-    }));
-    if (!apply) return { status: "ready", rolledBackActivationId: activationId, links };
-    const record: HostActivationRecord = {
-      activationId: dependencies.newActivationId(),
-      kind: "rollback",
-      outcome: "pending",
-      activatedAt: dependencies.now().toISOString(),
-      links,
-      rolledBackActivationId: activationId,
-    };
-    const restoresLervo = links.some((link) => link.name === "lervo" && link.current !== null);
-    const journal = await activateLinks(
-      dependencies,
-      record,
-      restoresLervo ? /^lervo \d+\.\d+\.\d+$/u : null,
-    );
-    return {
-      status: "rolled_back",
-      rolledBackActivationId: activationId,
-      links,
-      activation: journal.find((entry) => entry.activationId === record.activationId) ?? record,
-    };
-  };
-  return apply ? withHostUpgradeLock(layout, run) : run();
 }
 
 export async function hostUpgradeStatus(layout: HostUpgradeLayout): Promise<{

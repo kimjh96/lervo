@@ -54,6 +54,11 @@ export interface VerifiedRelease {
   dependencies: Record<string, string>;
   /** Every npm package the install may contain, from the tag's committed manifest. */
   dependencyClosure: ReleaseDependencyClosure;
+  /**
+   * Every file the installed package must hold, with its size and digest: the manifest's files
+   * plus the tarball's `package.json`. The install is checked against these before activation.
+   */
+  packageFiles: { path: string; size: number; sha256: string }[];
 }
 
 interface BindingFile {
@@ -280,7 +285,7 @@ function verifyArchive(
   tarball: Buffer,
   contract: ArchiveContract,
   committedPackageManifest: Buffer,
-): Record<string, string> {
+): { dependencies: Record<string, string>; packageManifest: Buffer } {
   let entries: Map<string, Buffer>;
   try {
     entries = readNpmTarballEntries(tarball);
@@ -322,7 +327,10 @@ function verifyArchive(
       "release_subjects_package_manifest_mismatch",
       "The release tarball runtime dependencies are invalid.",
     );
-  return dependencies as Record<string, string>;
+  return {
+    dependencies: dependencies as Record<string, string>,
+    packageManifest: entries.get("package.json") as Buffer,
+  };
 }
 
 /** Proves that downloaded release files are the published, bound bytes of the requested tag. */
@@ -356,7 +364,7 @@ export function verifyPublishedRelease(evidence: PublishedReleaseEvidence): Veri
     fail("release_subjects_metadata_mismatch", "The release manifest names another version.");
   const tarballName = releaseTarballName(binding.version);
   const tarball = evidence.files.get(tarballName) as Buffer;
-  const dependencies = verifyArchive(tarball, contract, evidence.committed.packageManifest);
+  const archive = verifyArchive(tarball, contract, evidence.committed.packageManifest);
   return {
     tag: binding.tag,
     version: binding.version,
@@ -364,7 +372,15 @@ export function verifyPublishedRelease(evidence: PublishedReleaseEvidence): Veri
     tree: binding.tree,
     tarballName,
     tarballSha256: sha256(tarball),
-    dependencies,
+    dependencies: archive.dependencies,
     dependencyClosure: contract.closure,
+    packageFiles: [
+      ...contract.files.map(({ path, size, sha256: digest }) => ({ path, size, sha256: digest })),
+      {
+        path: "package.json",
+        size: archive.packageManifest.length,
+        sha256: sha256(archive.packageManifest),
+      },
+    ],
   };
 }

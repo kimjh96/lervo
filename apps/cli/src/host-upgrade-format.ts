@@ -1,5 +1,11 @@
 import type { HostActivationRecord, HostLinkChange, HostLinkState } from "./host-cli-activation.js";
-import type { HostReleasePlan, HostRollbackResult, HostUpgradeResult } from "./host-upgrade.js";
+import type { HostReleasePlan, HostUpgradeResult } from "./host-upgrade.js";
+import type { HostRollbackResult } from "./host-upgrade-rollback.js";
+
+const reconciledLine = (ids: string[]): string =>
+  ids.length === 0
+    ? ""
+    : `Restored the links of ${ids.length} unfinished activation(s) left by a crashed run: ${ids.join(", ")}.\n`;
 
 const linkLines = (links: HostLinkChange[]): string =>
   links
@@ -9,7 +15,11 @@ const linkLines = (links: HostLinkChange[]): string =>
     .join("");
 
 export function formatHostReleasePlan(plan: HostReleasePlan): string {
-  const header = `Host upgrade plan (${plan.status}): ${plan.tag} from ${plan.repository}\n  commit ${plan.commit}, tree ${plan.tree}\n  install: ${plan.installDirectory}\n`;
+  const shadow =
+    plan.pathShadow === null
+      ? ""
+      : `  warning: ${plan.pathShadow} comes earlier on PATH and would still run instead of the activated link.\n`;
+  const header = `Host upgrade plan (${plan.status}): ${plan.tag} from ${plan.repository}\n  commit ${plan.commit}, tree ${plan.tree}\n  install: ${plan.installDirectory}\n${shadow}`;
   return plan.status === "current"
     ? `${header}This host already runs ${plan.tag}. Nothing was changed.\n`
     : `${header}${linkLines(plan.links)}Run again with --apply to download, verify, install, and switch. Nothing was changed.\n`;
@@ -17,13 +27,14 @@ export function formatHostReleasePlan(plan: HostReleasePlan): string {
 
 export function formatHostUpgradeResult(result: HostUpgradeResult): string {
   if (result.status === "current")
-    return `This host already runs ${result.tag} from ${result.installDirectory}. No links changed.\n`;
+    return `${reconciledLine(result.reconciledActivations)}This host already runs ${result.tag} from ${result.installDirectory}. No links changed.\n`;
   const release = result.activation.release;
   const pruned =
     result.pruned.length === 0
       ? ""
       : `Removed ${result.pruned.length} unreferenced release directories.\n`;
   return (
+    reconciledLine(result.reconciledActivations) +
     `Activated ${release?.tag ?? "release"} (activation ${result.activation.activationId}).\n` +
     linkLines(result.activation.links) +
     pruned +
@@ -32,9 +43,11 @@ export function formatHostUpgradeResult(result: HostUpgradeResult): string {
 }
 
 export function formatHostRollbackResult(result: HostRollbackResult): string {
+  if (result.status === "rolled_back" && result.links.length === 0)
+    return `${reconciledLine(result.reconciledActivations)}Activation ${result.rolledBackActivationId} has no links left to restore. Nothing was changed.\n`;
   return result.status === "ready"
     ? `Rollback plan for activation ${result.rolledBackActivationId}:\n${linkLines(result.links)}Run again with --apply to restore these links. Nothing was changed.\n`
-    : `Rolled back activation ${result.rolledBackActivationId} (activation ${result.activation?.activationId ?? "unknown"}).\n${linkLines(result.links)}`;
+    : `${reconciledLine(result.reconciledActivations)}Rolled back activation ${result.rolledBackActivationId} (activation ${result.activation?.activationId ?? "unknown"}).\n${linkLines(result.links)}`;
 }
 
 function activationLine(record: HostActivationRecord): string {

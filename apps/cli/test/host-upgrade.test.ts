@@ -16,14 +16,19 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { recordActivation, readActivationJournal } from "../src/host-cli-activation.js";
-import { pnpmInstaller } from "../src/host-cli-install.js";
+import {
+  readActivationJournal,
+  readHostLinks,
+  recordActivation,
+} from "../src/host-cli-activation.js";
+import { createPnpmInstaller } from "../src/host-cli-install.js";
+import { installedCliProbes } from "../src/host-link-activation.js";
+import { rollbackActivation } from "../src/host-upgrade-rollback.js";
 import { runHostCommand } from "../src/host-command.js";
 import {
   applyReleaseUpgrade,
   planReleaseUpgrade,
-  probeInstalledCli,
-  rollbackActivation,
+  findPathShadow,
   type HostUpgradeDependencies,
 } from "../src/host-upgrade.js";
 import { hostUpgradeLayout } from "../src/host-upgrade-layout.js";
@@ -32,6 +37,7 @@ import {
   extractingInstallerWith,
   fakeReleaseSource,
   releaseFixture,
+  startFixtureRegistry,
 } from "./host-release-fixture.js";
 
 const directories: string[] = [];
@@ -55,7 +61,7 @@ function dependencies(
   return {
     layout: hostUpgradeLayout({ homeDirectory: home, platform: "linux" }),
     installer: extractingInstaller,
-    probe: probeInstalledCli,
+    probes: installedCliProbes,
     now: () => new Date("2026-11-16T00:00:00.000Z"),
     newActivationId: () => `hact_${String((counter += 1)).padStart(24, "0")}`,
     readCliPointer: async () => null,
@@ -205,6 +211,39 @@ describe("applyReleaseUpgrade", () => {
     ).resolves.toMatchObject({ status: "activated" });
   });
 
+  it("restores the links when lervo-node does not parse", async () => {
+    const home = await temporaryHome();
+    const deps = dependencies(home);
+    const broken = releaseFixture({ nodeRuntimeSource: "export {;\n" });
+    await expect(
+      applyReleaseUpgrade(fakeReleaseSource([broken]), "v9.9.9", deps),
+    ).rejects.toMatchObject({
+      code: "host_upgrade_health_failed",
+    });
+    expect(await exists(resolve(deps.layout.binDirectory, "lervo"))).toBe(false);
+  });
+
+  it("refuses an install whose package bytes differ from the verified files", async () => {
+    const home = await temporaryHome();
+    const deps = dependencies(home, {
+      installer: async (input) => {
+        await extractingInstaller(input);
+        const root = await realpath(resolve(input.directory, "node_modules", "@lervo", "cli"));
+        await writeFile(resolve(root, "dist", "node-runtime.js"), "export const changed = 1;\n");
+      },
+    });
+    await expect(
+      applyReleaseUpgrade(fakeReleaseSource([releaseFixture()]), "v9.9.9", deps),
+    ).rejects.toMatchObject({
+      code: "host_upgrade_installed_bytes_mismatch",
+    });
+    expect(await exists(resolve(deps.layout.binDirectory, "lervo"))).toBe(false);
+    expect(await exists(deps.layout.installsDirectory)).toBe(true);
+    expect(execFileSync("ls", ["-A", deps.layout.installsDirectory], { encoding: "utf8" })).toBe(
+      "",
+    );
+  });
+
   it("never replaces a user-owned executable file", async () => {
     const home = await temporaryHome();
     const deps = dependencies(home);
@@ -321,6 +360,78 @@ describe("rollbackActivation", () => {
     expect(await exists(resolve(deps.layout.binDirectory, "lervo-node"))).toBe(false);
   });
 
+  it("rolls back and reconciles an activation that crashed between its two link renames", async () => {
+    const home = await temporaryHome();
+    const deps = dependencies(home);
+    const source = fakeReleaseSource([releaseFixture()]);
+    await applyReleaseUpgrade(source, "v9.9.9", deps);
+    const before = await readHostLinks(deps.layout);
+    const crashed = {
+      activationId: `hact_${"c".repeat(24)}`,
+      kind: "release" as const,
+      outcome: "pending" as const,
+      activatedAt: "2026-11-16T00:00:00.000Z",
+      links: ["lervo", "lervo-node"].map((name) => ({
+        name,
+        path: resolve(deps.layout.binDirectory, name),
+        previous: before.get(name) ?? null,
+        current: resolve(home, "next", name),
+      })),
+    };
+    await recordActivation(deps.layout, crashed);
+    // The crash: lervo was renamed to the new target, lervo-node was not.
+    await rm(resolve(deps.layout.binDirectory, "lervo"));
+    await symlink(resolve(home, "next", "lervo"), resolve(deps.layout.binDirectory, "lervo"));
+
+    const plan = await rollbackActivation(crashed.activationId, false, deps);
+    expect(plan.links.map((link) => [link.name, link.current])).toEqual([
+      ["lervo", before.get("lervo")],
+    ]);
+
+    const result = await applyReleaseUpgrade(source, "v9.9.9", deps);
+    expect(result).toMatchObject({
+      status: "current",
+      reconciledActivations: [crashed.activationId],
+    });
+    expect(await readHostLinks(deps.layout)).toEqual(before);
+    const settled = (await readActivationJournal(deps.layout)).find(
+      (record) => record.activationId === crashed.activationId,
+    );
+    expect(settled?.outcome).toBe("restored");
+    await expect(rollbackActivation(crashed.activationId, true, deps)).resolves.toMatchObject({
+      status: "rolled_back",
+      links: [],
+    });
+  });
+
+  it("restores a crashed activation's links through its own rollback", async () => {
+    const home = await temporaryHome();
+    const deps = dependencies(home);
+    await applyReleaseUpgrade(fakeReleaseSource([releaseFixture()]), "v9.9.9", deps);
+    const before = await readHostLinks(deps.layout);
+    const crashed = {
+      activationId: `hact_${"d".repeat(24)}`,
+      kind: "release" as const,
+      outcome: "pending" as const,
+      activatedAt: "2026-11-16T00:00:00.000Z",
+      links: ["lervo", "lervo-node"].map((name) => ({
+        name,
+        path: resolve(deps.layout.binDirectory, name),
+        previous: before.get(name) ?? null,
+        current: resolve(home, "next", name),
+      })),
+    };
+    await recordActivation(deps.layout, crashed);
+    // The crash: both renames happened, then the health gate never ran.
+    for (const name of ["lervo", "lervo-node"]) {
+      await rm(resolve(deps.layout.binDirectory, name));
+      await symlink(resolve(home, "next", name), resolve(deps.layout.binDirectory, name));
+    }
+    const result = await rollbackActivation(crashed.activationId, true, deps);
+    expect(result.reconciledActivations).toEqual([crashed.activationId]);
+    expect(await readHostLinks(deps.layout)).toEqual(before);
+  });
+
   it("names an unknown activation", async () => {
     const home = await temporaryHome();
     await expect(
@@ -328,6 +439,21 @@ describe("rollbackActivation", () => {
     ).rejects.toMatchObject({
       code: "host_upgrade_activation_unknown",
     });
+  });
+});
+
+describe("findPathShadow", () => {
+  it("names an earlier lervo on PATH and nothing when the managed link comes first", async () => {
+    const home = await temporaryHome();
+    const layout = hostUpgradeLayout({ homeDirectory: home, platform: "linux" });
+    const other = resolve(home, "other-bin");
+    await mkdir(other, { recursive: true });
+    await writeFile(resolve(other, "lervo"), "#!/bin/sh\n");
+    expect(await findPathShadow(layout, `${other}:${layout.binDirectory}`)).toBe(
+      resolve(other, "lervo"),
+    );
+    expect(await findPathShadow(layout, `${layout.binDirectory}:${other}`)).toBeNull();
+    expect(await findPathShadow(layout, undefined)).toBeNull();
   });
 });
 
@@ -434,7 +560,7 @@ const pnpmAvailable = (() => {
 
 describe("pnpmInstaller", () => {
   it.skipIf(!pnpmAvailable)(
-    "installs a verified tarball without lifecycle scripts in an isolated home",
+    "installs from one pinned registry with the closure pinned by overrides, in an isolated home",
     async () => {
       const home = await temporaryHome();
       // pnpm keeps its store, cache, and configuration under the XDG directories; point them at
@@ -447,18 +573,29 @@ describe("pnpmInstaller", () => {
         ["XDG_STATE_HOME", resolve(home, "state")],
       ];
       for (const [name, path] of isolatedEnvironment) vi.stubEnv(name, path);
-      const deps = dependencies(home, { installer: pnpmInstaller });
-      const result = await applyReleaseUpgrade(
-        fakeReleaseSource([releaseFixture()]),
-        "v9.9.9",
-        deps,
-      );
-      expect(result.status).toBe("activated");
-      expect(
-        execFileSync(process.execPath, [resolve(deps.layout.binDirectory, "lervo"), "--version"], {
-          encoding: "utf8",
-        }),
-      ).toBe("lervo 9.9.9\n");
+      // The caret range alone would resolve 1.1.0, the registry's latest; the manifest closure
+      // names 1.0.0, so only working overrides let the closure check pass.
+      const registry = await startFixtureRegistry("lervo-fixture-dep", ["1.0.0", "1.1.0"]);
+      try {
+        const deps = dependencies(home, { installer: createPnpmInstaller(registry.url) });
+        const fixture = releaseFixture({
+          dependencies: { "lervo-fixture-dep": "^1.0.0" },
+          portable: ["lervo-fixture-dep@1.0.0"],
+        });
+        const result = await applyReleaseUpgrade(fakeReleaseSource([fixture]), "v9.9.9", deps);
+        expect(result.status).toBe("activated");
+        expect(
+          execFileSync(resolve(deps.layout.binDirectory, "lervo"), ["--version"], {
+            encoding: "utf8",
+          }),
+        ).toBe("lervo 9.9.9\n");
+        const installDirectory = resolve(deps.layout.installsDirectory, `9.9.9-${"c".repeat(12)}`);
+        expect(await readFile(resolve(installDirectory, ".npmrc"), "utf8")).toBe(
+          `registry=${registry.url}\n`,
+        );
+      } finally {
+        await registry.close();
+      }
     },
     120_000,
   );

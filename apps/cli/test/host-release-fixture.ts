@@ -1,6 +1,8 @@
 import { createHash } from "node:crypto";
 import { chmod, mkdir, readFile, symlink, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
+import { createServer } from "node:http";
+import type { AddressInfo } from "node:net";
 import { gzipSync } from "node:zlib";
 
 import type { HostCliInstaller } from "../src/host-cli-install.js";
@@ -14,10 +16,10 @@ function octal(value: number, length: number): string {
   return `${value.toString(8).padStart(length - 1, "0")}\0`;
 }
 
-/** A minimal ustar archive of regular files, as npm packers write it. */
-export function ustarArchive(entries: [string, Buffer][]): Buffer {
+/** A minimal ustar archive of regular files (or the given entry type), as npm packers write it. */
+export function ustarArchive(entries: ([string, Buffer] | [string, Buffer, string])[]): Buffer {
   const blocks: Buffer[] = [];
-  for (const [path, contents] of entries) {
+  for (const [path, contents, type = "0"] of entries) {
     const header = Buffer.alloc(512);
     header.write(path, 0, 100, "utf8");
     header.write(octal(0o644, 8), 100);
@@ -26,7 +28,7 @@ export function ustarArchive(entries: [string, Buffer][]): Buffer {
     header.write(octal(contents.length, 12), 124);
     header.write(octal(0, 12), 136);
     header.fill(0x20, 148, 156);
-    header.write("0", 156);
+    header.write(type, 156);
     header.write("ustar\0", 257);
     header.write("00", 263);
     let sum = 0;
@@ -57,6 +59,7 @@ export interface ReleaseFixtureOptions {
   /** The manifest's portable closure, as `name@version`. */
   portable?: string[];
   binSource?: string;
+  nodeRuntimeSource?: string;
 }
 
 export function releaseFixture(options: ReleaseFixtureOptions = {}): ReleaseFixture {
@@ -80,7 +83,7 @@ export function releaseFixture(options: ReleaseFixtureOptions = {}): ReleaseFixt
   );
   const packageFiles: [string, Buffer][] = [
     ["dist/bin.js", bin],
-    ["dist/node-runtime.js", Buffer.from("export {};\n")],
+    ["dist/node-runtime.js", Buffer.from(options.nodeRuntimeSource ?? "export {};\n")],
   ];
   const tarball = ustarArchive([
     ["package/package.json", Buffer.from(`${JSON.stringify(packedPackage, null, 2)}\n`)],
@@ -227,3 +230,65 @@ export function extractingInstallerWith(storeEntries: string[] = []): HostCliIns
 }
 
 export const extractingInstaller = extractingInstallerWith();
+
+/**
+ * A loopback npm registry serving fixed package versions, so a real pnpm install can resolve a
+ * registry dependency without the network. `latest` is the newest version, which an unpinned
+ * caret range would pick.
+ */
+export async function startFixtureRegistry(
+  name: string,
+  versions: string[],
+): Promise<{ url: string; close: () => Promise<void> }> {
+  const tarballs = new Map(
+    versions.map((version) => [
+      version,
+      ustarArchive([
+        ["package/package.json", Buffer.from(JSON.stringify({ name, version }))],
+        ["package/index.js", Buffer.from(`module.exports = "${version}";\n`)],
+      ]),
+    ]),
+  );
+  let base = "";
+  const server = createServer((request, response) => {
+    const path = decodeURIComponent((request.url ?? "").split("?")[0] ?? "");
+    if (path === `/${name}`) {
+      const packument = {
+        name,
+        "dist-tags": { latest: versions.at(-1) },
+        time: Object.fromEntries(versions.map((version) => [version, "2020-01-01T00:00:00.000Z"])),
+        versions: Object.fromEntries(
+          [...tarballs].map(([version, tarball]) => [
+            version,
+            {
+              name,
+              version,
+              dist: {
+                tarball: `${base}/${name}/-/${name}-${version}.tgz`,
+                shasum: createHash("sha1").update(tarball).digest("hex"),
+                integrity: `sha512-${createHash("sha512").update(tarball).digest("base64")}`,
+              },
+            },
+          ]),
+        ),
+      };
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify(packument));
+      return;
+    }
+    const version = /-(\d+\.\d+\.\d+)\.tgz$/u.exec(path)?.[1];
+    const tarball = version === undefined ? undefined : tarballs.get(version);
+    if (tarball === undefined) {
+      response.writeHead(404).end();
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/octet-stream" });
+    response.end(tarball);
+  });
+  await new Promise<void>((resolvePromise) => server.listen(0, "127.0.0.1", resolvePromise));
+  base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  return {
+    url: `${base}/`,
+    close: () => new Promise((resolvePromise) => server.close(() => resolvePromise())),
+  };
+}

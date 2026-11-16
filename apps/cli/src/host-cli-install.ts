@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import {
   lstat,
   mkdir,
@@ -196,6 +197,7 @@ export async function installReleasePackage(input: {
         `The install of ${input.release.tag} does not hold @lervo/cli ${input.release.version}; nothing was activated.`,
       );
     await requireInstalledClosure(staging, input.release);
+    await requireInstalledPackageBytes(stagedRoot as string, input.release);
     await writeFile(
       resolve(staging, installMarker),
       `${JSON.stringify({ tag: input.release.tag, commit: input.release.commit, tree: input.release.tree, tarballSha256: input.release.tarballSha256 }, null, 2)}\n`,
@@ -230,30 +232,103 @@ async function requireInstalledClosure(directory: string, release: VerifiedRelea
   );
 }
 
-/** The production installer: pnpm, without lifecycle scripts, in the staging directory. */
-export const pnpmInstaller: HostCliInstaller = async ({ directory, logPath }) => {
-  // Inherited package-manager configuration, for example from `pnpm exec lervo`, would change how
-  // the install resolves; the install runs with the user's own configuration only.
-  const env = Object.fromEntries(
-    Object.entries(process.env).filter(
-      ([key]) => !/^(npm|pnpm)_config_/iu.test(key) && key !== "npm_lifecycle_event",
-    ),
+async function installedFiles(root: string, prefix = ""): Promise<Map<string, string> | null> {
+  const files = new Map<string, string>();
+  for (const entry of await readdir(resolve(root, prefix), { withFileTypes: true })) {
+    // pnpm writes the package's own node_modules (bin shims, dependency links) beside its files;
+    // npm packing never ships a top-level node_modules, so it is the installer's, not the package's.
+    if (prefix === "" && entry.name === "node_modules") continue;
+    const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
+    if (entry.isDirectory()) {
+      const nested = await installedFiles(root, path);
+      if (nested === null) return null;
+      for (const [nestedPath, digest] of nested) files.set(nestedPath, digest);
+    } else if (entry.isFile()) {
+      const contents = await readFile(resolve(root, path));
+      files.set(
+        path,
+        `${contents.length}:sha256:${createHash("sha256").update(contents).digest("hex")}`,
+      );
+    } else return null;
+  }
+  return files;
+}
+
+/**
+ * The installed package must hold exactly the verified files with their verified bytes, so trust
+ * never rests on the installer's tar reader agreeing with the verifier's.
+ */
+async function requireInstalledPackageBytes(root: string, release: VerifiedRelease): Promise<void> {
+  const installed = await installedFiles(root);
+  const expected = new Map(
+    release.packageFiles.map((file) => [file.path, `${file.size}:${file.sha256}`]),
   );
-  const output = await new Promise<string>((resolvePromise, reject) => {
-    execFile(
-      "pnpm",
-      ["install", "--ignore-scripts", "--prefer-offline", "--reporter=append-only"],
-      { cwd: directory, env, timeout: installTimeoutMilliseconds, maxBuffer: 4 * 1024 * 1024 },
-      (error, stdout, stderr) => {
-        const text = `${stdout}${stderr}`;
-        if (error === null) resolvePromise(text);
-        else
-          writeFile(logPath, text).then(
-            () => reject(error),
-            () => reject(error),
-          );
-      },
+  const differing =
+    installed === null
+      ? ["(a non-regular file)"]
+      : [
+          ...[...expected]
+            .filter(([path, digest]) => installed.get(path) !== digest)
+            .map(([path]) => path),
+          ...[...installed.keys()].filter((path) => !expected.has(path)),
+        ].sort();
+  if (differing.length > 0)
+    throw new CommandFailure(
+      "host_upgrade_installed_bytes_mismatch",
+      `The installed @lervo/cli ${release.version} differs from the verified release files; nothing was activated.`,
+      { paths: differing.slice(0, maximumReportedPackages) },
     );
-  });
-  await writeFile(logPath, output);
-};
+}
+
+/** The public npm registry the release CI resolved the closure from. */
+export const RELEASE_REGISTRY = "https://registry.npmjs.org/";
+
+/**
+ * The production installer: pnpm, without lifecycle scripts, in the staging directory, against
+ * one explicit registry. Inherited package-manager variables (for example from `pnpm exec lervo`)
+ * are dropped, and the user and global npm configuration are replaced by a file naming only the
+ * registry, so a host's own mirror or scoped registry cannot change what a tag installs.
+ */
+export function createPnpmInstaller(registry: string = RELEASE_REGISTRY): HostCliInstaller {
+  return async ({ directory, logPath }) => {
+    const npmrc = resolve(directory, ".npmrc");
+    await writeFile(npmrc, `registry=${registry}\n`);
+    const env = {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([key]) =>
+            !/^(npm|pnpm)_config_/iu.test(key) &&
+            !/^(npm|node)_auth_token$/iu.test(key) &&
+            key !== "npm_lifecycle_event",
+        ),
+      ),
+      npm_config_userconfig: npmrc,
+      npm_config_globalconfig: npmrc,
+    };
+    const output = await new Promise<string>((resolvePromise, reject) => {
+      execFile(
+        "pnpm",
+        [
+          "install",
+          "--ignore-scripts",
+          "--prefer-offline",
+          "--reporter=append-only",
+          `--registry=${registry}`,
+        ],
+        { cwd: directory, env, timeout: installTimeoutMilliseconds, maxBuffer: 4 * 1024 * 1024 },
+        (error, stdout, stderr) => {
+          const text = `${stdout}${stderr}`;
+          if (error === null) resolvePromise(text);
+          else
+            writeFile(logPath, text).then(
+              () => reject(error),
+              () => reject(error),
+            );
+        },
+      );
+    });
+    await writeFile(logPath, output);
+  };
+}
+
+export const pnpmInstaller = createPnpmInstaller();

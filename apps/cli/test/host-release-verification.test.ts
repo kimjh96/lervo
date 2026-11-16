@@ -208,4 +208,39 @@ describe("readNpmTarballEntries", () => {
       /tarball is invalid/u,
     );
   });
+
+  it("reads a pax path record and rejects any other pax key or a global header", () => {
+    const pax = (record: string) => {
+      const line = ` ${record}\n`;
+      let length = line.length + 2;
+      while (`${length}${line}`.length !== length) length += 1;
+      return Buffer.from(`${length}${line}`);
+    };
+    const longPath = `package/${"d/".repeat(60)}file.js`;
+    expect([
+      ...readNpmTarballEntries(
+        ustarArchive([
+          ["PaxHeader", pax(`path=${longPath}`), "x"],
+          ["truncated", Buffer.from("x")],
+        ]),
+      ).keys(),
+    ]).toEqual([longPath.slice("package/".length)]);
+    for (const record of ["size=1", "linkpath=/etc/passwd", "mtime=1"])
+      expect(() =>
+        readNpmTarballEntries(
+          ustarArchive([
+            ["PaxHeader", pax(record), "x"],
+            ["package/a", Buffer.from("x")],
+          ]),
+        ),
+      ).toThrow(/tarball is invalid/u);
+    expect(() =>
+      readNpmTarballEntries(
+        ustarArchive([
+          ["GlobalHead", pax("comment=x"), "g"],
+          ["package/a", Buffer.from("x")],
+        ]),
+      ),
+    ).toThrow(/tarball is invalid/u);
+  });
 });

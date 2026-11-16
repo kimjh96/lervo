@@ -89,6 +89,9 @@ export async function ensureStartupHostTerminalRuntime(
   entry: string,
   argv: readonly string[],
 ): Promise<void> {
+  // `--version` must stay side-effect free: ADR-0571's health gate runs a candidate with it
+  // before deciding to keep it, and restoring links cannot undo a published host runtime.
+  if (argv.length === 1 && (argv[0] === "--version" || argv[0] === "-v")) return;
   if (!(await isInstalledTerminalRuntimeCli(entry))) return;
   await ensureHostTerminalRuntime({
     authority:
