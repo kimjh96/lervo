@@ -5,7 +5,7 @@ import type { HostActivationRecord } from "./host-cli-activation.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
 
 /**
- * ADR-0570 retention: kept downloads and installs live only while a retained activation, an
+ * ADR-0571 retention: kept downloads and installs live only while a retained activation, an
  * executable link, or ADR-0488's `current` pointer references them. Only directory names this
  * layout creates are removed, and staging directories only while the host upgrade lock is held.
  */

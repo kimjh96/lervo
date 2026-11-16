@@ -16,7 +16,7 @@ import { CommandFailure } from "./command-error-output.js";
 import { HOST_CLI_LINKS, type HostUpgradeLayout } from "./host-upgrade-layout.js";
 
 /**
- * ADR-0570: one activation switches every executable link of a host to one installed package and
+ * ADR-0571: one activation switches every executable link of a host to one installed package and
  * is recorded under an activation id, so `--rollback <id>` can restore exactly the links it
  * replaced. The record is written as `pending` before any link moves, so a crash mid-switch still
  * leaves an id to roll back. The journal keeps the newest records only; it is a bounded

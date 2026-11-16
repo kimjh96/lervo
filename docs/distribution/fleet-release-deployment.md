@@ -52,7 +52,7 @@ Verify `/v1/health/live`, `/v1/health/ready`, and the newly readable event schem
 
 ### Global CLI on every host
 
-When the installed CLI provides `lervo host upgrade` ([ADR-0570](../decisions/distribution/0570-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md)), run `lervo host upgrade --from-release v<version> --repository <owner/name> --apply --json` on each host and keep its output in the release directory. The command verifies the published assets against the tag, installs side by side, switches `lervo` and `lervo-node`, checks `--version`, and records an activation id; `lervo host upgrade --rollback <activation-id> --apply` restores the replaced links. It replaces the manual steps below, which remain for hosts whose CLI predates it.
+When the installed CLI provides `lervo host upgrade` ([ADR-0571](../decisions/distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md)), run `lervo host upgrade --from-release v<version> --repository <owner/name> --apply --json` on each host and keep its output in the release directory. The command verifies the published assets against the tag, installs side by side, switches `lervo` and `lervo-node`, checks `--version`, and records an activation id; `lervo host upgrade --rollback <activation-id> --apply` restores the replaced links. It replaces the manual steps below, which remain for hosts whose CLI predates it.
 
 Install side by side in a new versioned directory. Preserve the previous installation's `package.json` dependency set and point `@lervo/cli` at the new tarball using an absolute `file:` path. Inspect that path before installation; the source records a prior doubled-home-directory expansion error.
 

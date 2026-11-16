@@ -10,7 +10,7 @@ export const HOST_CLI_LINKS = [
 ] as const;
 
 /**
- * ADR-0570: where one host keeps the release files it verified, the side-by-side installs it made
+ * ADR-0571: where one host keeps the release files it verified, the side-by-side installs it made
  * from them, and the activation journal. Everything lives beside ADR-0488's `current` CLI pointer;
  * the executable links live in the user's bin directory, `~/.local/bin` by default on every host.
  */

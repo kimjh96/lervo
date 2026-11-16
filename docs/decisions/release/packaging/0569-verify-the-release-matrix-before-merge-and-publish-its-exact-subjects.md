@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-16
 Amends: [ADR-0089](0089-cli-multi-platform-release-matrix.md) (the matrix runs before merge, and a tag run can publish without rebuilding), [ADR-0091](../assurance/0091-cli-registry-publish-preflight.md) (the registry smoke clears inherited pnpm configuration and prints its failure), [ADR-0221](0221-reviewed-cli-release-preparation.md) (the GitHub Release carries the verified files), [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (preparation also dispatches the matrix, and the merge waits for it)
-Amended by: [ADR-0570](../../distribution/0570-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (hosts install the release subjects themselves)
+Amended by: [ADR-0571](../../distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (hosts install the release subjects themselves)
 
 ## Context
 

@@ -21,7 +21,7 @@ export interface PublishedRelease {
 }
 
 /**
- * ADR-0570 admission: only a published, non-draft, non-prerelease release with exactly the
+ * ADR-0571 admission: only a published, non-draft, non-prerelease release with exactly the
  * verified subjects counts, so following a tag the owner never released is impossible.
  */
 export async function readPublishedRelease(

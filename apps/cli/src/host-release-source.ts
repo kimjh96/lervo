@@ -11,7 +11,7 @@ export interface PublishedReleaseListing {
 }
 
 /**
- * ADR-0570: the port through which a host learns about and fetches a published release. Every
+ * ADR-0571: the port through which a host learns about and fetches a published release. Every
  * read names one exact tag or commit, so a moving tag can only make verification fail.
  */
 export interface HostReleaseSource {

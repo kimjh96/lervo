@@ -153,7 +153,7 @@ async function runHostUpgrade(
   return 0;
 }
 
-/** `lervo host upgrade`: install a verified published release on this host (ADR-0570). */
+/** `lervo host upgrade`: install a verified published release on this host (ADR-0571). */
 export async function runHostCommand(
   args: string[],
   io: CliIo,

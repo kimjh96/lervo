@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0214](0214-bounded-repository-upgrade-orchestration.md) (repository Node stage), [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (host pointers)
 Related: [ADR-0207](0207-transactional-repository-node-apply-and-readiness.md)
-Amended by: [ADR-0489](0489-migrate-node-configurations-only-inside-the-service-transition.md) (configuration changes only inside the guarded service transition), [ADR-0570](../../distribution/0570-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (host installs beside the `current` pointer, which `lervo upgrade` keeps owning)
+Amended by: [ADR-0489](0489-migrate-node-configurations-only-inside-the-service-transition.md) (configuration changes only inside the guarded service transition), [ADR-0571](../../distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (host installs beside the `current` pointer, which `lervo upgrade` keeps owning)
 
 ## Context
 

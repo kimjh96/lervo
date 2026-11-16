@@ -1,7 +1,7 @@
 import type { ReleaseDependencyClosure } from "./host-release-verification.js";
 
 /**
- * ADR-0570: the npm packages installed beside the verified tarball must be exactly the closure
+ * ADR-0571: the npm packages installed beside the verified tarball must be exactly the closure
  * the tag's committed manifest names. The tarball pins only its direct dependencies, so without
  * this check a later registry publish deep in the tree would change what a host runs for the same
  * tag. Overrides steer pnpm to the closure; the check after install decides.

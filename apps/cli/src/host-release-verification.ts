@@ -4,7 +4,7 @@ import { CommandFailure } from "./command-error-output.js";
 import { readNpmTarballEntries } from "./host-release-tarball.js";
 
 /**
- * ADR-0570: a host installs only the release files that the tag's published GitHub Release
+ * ADR-0571: a host installs only the release files that the tag's published GitHub Release
  * carries and that verify against the tag's own committed bytes. The checks repeat ADR-0569's
  * publication checks from the host's side, without a repository checkout: the binding must name
  * the published tag and the tree that tag points at, every file must match its bound size and

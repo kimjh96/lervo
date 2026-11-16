@@ -1,4 +1,4 @@
-# ADR-0570: Install the verified CLI on each host and roll back by activation id
+# ADR-0571: Install the verified CLI on each host and roll back by activation id
 
 Status: `proposed` (Stage 1, `lervo host upgrade --from-release`, is implemented; Stages 2 and 3 are not)
 Decision date: 2026-11-16
