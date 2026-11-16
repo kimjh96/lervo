@@ -50,7 +50,7 @@ export function isolatedRegistryEnvironment(
   const environment = { ...sourceEnvironment };
   for (const name of Object.keys(environment)) {
     if (
-      /^npm_config_/iu.test(name) ||
+      /^(?:npm|pnpm)_config_/iu.test(name) ||
       /^(?:npm|node)_auth_token$/iu.test(name) ||
       /^(?:npm|pnpm)_token$/iu.test(name)
     ) {
@@ -64,5 +64,10 @@ export function isolatedRegistryEnvironment(
     NPM_CONFIG_FUND: "false",
     npm_config_provenance: "false",
     NPM_CONFIG_USERCONFIG: userConfigPath,
+    // pnpm passes this to scripts it runs, so the smokes inherited it only under `pnpm run`. Without
+    // it, `pnpm exec` in a consumer first verifies and reinstalls dependencies and prints that into
+    // the output of the command it runs. Setting it here keeps the result independent of how the
+    // smoke was started.
+    pnpm_config_verify_deps_before_run: "false",
   };
 }

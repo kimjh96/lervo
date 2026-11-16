@@ -31,6 +31,8 @@ describe("local package registry boundary", () => {
       NPM_TOKEN: "secret",
       NODE_AUTH_TOKEN: "secret",
       PNPM_TOKEN: "secret",
+      pnpm_config_registry: "https://unexpected.invalid/",
+      pnpm_config_verify_deps_before_run: "install",
     });
     assert.equal(environment.PATH, "/bin");
     assert.equal(environment.NPM_CONFIG_REGISTRY, undefined);
@@ -42,5 +44,15 @@ describe("local package registry boundary", () => {
     assert.equal(environment.NPM_CONFIG_CACHE, "/fixture/cache");
     assert.equal(environment.NPM_CONFIG_AUDIT, "false");
     assert.equal(environment.NPM_CONFIG_FUND, "false");
+    assert.equal(environment.pnpm_config_registry, undefined);
+  });
+
+  it("keeps consumer commands from reinstalling regardless of how the smoke started", () => {
+    for (const source of [{}, { pnpm_config_verify_deps_before_run: "install" }])
+      assert.equal(
+        isolatedRegistryEnvironment("/fixture/npmrc", "/fixture/cache", source)
+          .pnpm_config_verify_deps_before_run,
+        "false",
+      );
   });
 });

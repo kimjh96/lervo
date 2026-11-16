@@ -105,6 +105,13 @@ describe("CLI release in pull request workflow", () => {
         "u",
       ),
     );
+    assert.match(
+      await readFile(repo.trace, "utf8"),
+      new RegExp(
+        `workflow run cli-release-matrix\\.yml --ref feature -f expected_sha=${prepared}$`,
+        "mu",
+      ),
+    );
 
     await writeFile(repo.trace, "");
     const replay = repo.run({ PR_HEAD_SHA: prepared });

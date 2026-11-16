@@ -37,16 +37,25 @@ release_plan_id() {
   printf '%s' "${BASH_REMATCH[1]}"
 }
 
-# Dispatches full Code quality for the exact prepared commit unless a successful or active
-# dispatch for that commit on that branch already exists.
-release_verification_dispatch() {
-  local branch="$1" commit="$2" base="$3" runs total
-  runs="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/code-quality.yml/runs" \
+# Dispatches one workflow for the exact prepared commit unless a successful or active dispatch for
+# that commit on that branch already exists. Extra arguments are further workflow inputs.
+release_dispatch_once() {
+  local workflow="$1" branch="$2" commit="$3" runs total
+  shift 3
+  runs="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
     -f head_sha="${commit}" -f event=workflow_dispatch -F per_page=100 \
     --jq '"total \(.total_count)", (.workflow_runs[] | select(.conclusion == "success" or .status == "queued" or .status == "in_progress" or .status == "waiting" or .status == "pending" or .status == "requested") | "\(.head_sha) \(.head_branch)")')"
   total="$(sed -n 's/^total //p' <<<"${runs}")"
   test "${total}" -le 100
   if ! grep -Fxq "${commit} ${branch}" <<<"${runs}"; then
-    gh workflow run code-quality.yml --ref "${branch}" -f expected_sha="${commit}" -f base_sha="${base}"
+    gh workflow run "${workflow}" --ref "${branch}" -f expected_sha="${commit}" "$@"
   fi
+}
+
+# Dispatches full Code quality and the CLI release matrix for the exact prepared commit. The matrix
+# keeps the release subjects that the tag later publishes, so it also runs before merge.
+release_verification_dispatch() {
+  local branch="$1" commit="$2" base="$3"
+  release_dispatch_once code-quality.yml "${branch}" "${commit}" -f base_sha="${base}"
+  release_dispatch_once cli-release-matrix.yml "${branch}" "${commit}"
 }
