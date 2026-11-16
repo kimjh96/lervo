@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_16f4a291f96e9d4c7c429901"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Knowledge convergence classifies each source fence as an exact effect fence or a current decision check; every check still captures in full."

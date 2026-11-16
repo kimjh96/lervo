@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_dc51eb707b00f5af98eb4f56"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Report each knowledge resident cycle's Git processes and CPU by stage, read committed blob hashes in one Git process, and keep the repository watch hint from rewriting the index."
