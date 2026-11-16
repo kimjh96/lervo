@@ -136,6 +136,19 @@ it("weighs each file by its median over the newest ledger runs", () => {
     "kept.test.ts": 8000,
   });
   expect(partial.defaultWeight).toBe(1500);
+  // Only an older run measured `c.test.ts`, so the newest complete run shows it is gone. A newer
+  // partial run still vouches for the files it measured, and current weights stay out.
+  const deleted = createCiTestWeightProfile({
+    runs: [
+      run("8", { "new.test.ts": 70 }, false),
+      run("7", { "a.test.ts": 100 }),
+      run("6", { "a.test.ts": 300, "c.test.ts": 50 }),
+    ],
+    current,
+    limit: 3,
+    observedAt: "2026-11-14",
+  });
+  expect(deleted.weights).toEqual({ "a.test.ts": 200, "new.test.ts": 70 });
   expect(() => createCiTestWeightProfile({ runs: [], current, observedAt: "2026-11-14" })).toThrow(
     "ci_duration_ledgers_empty",
   );

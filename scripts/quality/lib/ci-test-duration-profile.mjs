@@ -89,9 +89,10 @@ function median(values) {
 /**
  * Builds a version 2 profile from the ledgers of recent full runs (ADR-0565). Each file weighs the
  * median of its test plus collection time over the newest `window` runs, so one noisy run cannot
- * move it. A file that no selected run measured keeps its current weight only while a selected run
- * is missing a shard; otherwise it no longer exists. Files below the slowest `limit` take the
- * median of their own weights as the default.
+ * move it. The newest complete run, together with any newer partial run, decides which files
+ * still exist: a file that only older runs measured was deleted or renamed. Current weights fill
+ * in only when no selected run is complete. Files below the slowest `limit` take the median of
+ * their own weights as the default.
  */
 export function createCiTestWeightProfile({ runs, current, window = 5, limit, observedAt }) {
   const maximumEntries = limit ?? CI_TEST_DURATION_PROFILE_LIMIT;
@@ -107,9 +108,19 @@ export function createCiTestWeightProfile({ runs, current, window = 5, limit, ob
       if (!samples.has(path)) samples.set(path, []);
       samples.get(path).push(weight);
     }
-  const measured = new Map([...samples].map(([path, values]) => [path, median(values)]));
+  const newestComplete = selected.findIndex((run) => run.complete);
+  const existing = new Set(
+    selected
+      .slice(0, newestComplete === -1 ? selected.length : newestComplete + 1)
+      .flatMap((run) => [...run.weights.keys()]),
+  );
+  const measured = new Map(
+    [...samples]
+      .filter(([path]) => existing.has(path))
+      .map(([path, values]) => [path, median(values)]),
+  );
   const weights = new Map(measured);
-  if (selected.some((run) => !run.complete))
+  if (newestComplete === -1)
     for (const [path, weight] of Object.entries(current.weights))
       if (!weights.has(path)) weights.set(path, weight);
   const ranked = [...weights]

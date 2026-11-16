@@ -123,7 +123,7 @@ An adversarial review then demonstrated nine false reuses. The shadow now fails 
 The ADR records the rules, the [shadow contract](../../foundation/ci-test-reuse-shadow.md) the job, digests, reasons and report, and the [shadow evidence](../../evidence/quality/ci-test-reuse-shadow.md) the dry run.
 
 - [x] Stage 1 recorder, ledgers, toolchain digest and ledger-based weights pass local tests.
-- [ ] Hosted ledgers observed for every shard, and the profile refreshed from at least three runs.
+- [x] Hosted ledgers observed for every shard, and the profile refreshed from at least three runs.
 - [x] Stage 2 shadow job, input index, predictor and report pass local tests and a dry run against hosted ledgers.
 - [ ] Hosted shadow reports observed, including the reuse rate after the capability-root fix.
 - [ ] Stage 2 shadow comparison: at least 14 days without a false reuse.
@@ -161,8 +161,24 @@ In a separate back-to-back pair on shard 1, the plugin alone cut module executio
 
 - [x] Measure collection by module and fix its two largest causes without changing test selection, assertions, pool, or isolation.
 - [ ] Ship the direct barrel import plugin only after its rewrites record the barrels they read in the ledger closure and its pins cover `import d, * as ns`, assigned dynamic imports, and mocks in setup files.
-- [ ] Observe collection time in the next hosted run and refresh the duration profile.
+- [x] Observe collection time in the next hosted run and refresh the duration profile.
 - [ ] Decide whether the generated validators should build each schema's validator lazily. Evaluating all 219 still takes about 135 ms of the remaining 200 ms per file. The CLI pays the same cost on each start that validates.
+
+### Median ledger profile (2026-11-16)
+
+The version 1 profile from [run 43782506613](https://github.com/kimjh96/lervo/actions/runs/43782506613) held one run's test time for 128 files and gave every other file 1.5 seconds. The next two full runs placed by it were uneven. In run 43805251574, shard test plus collection time was 770, 1,101, 1,061 and 673 seconds, and the shard jobs took 6.8 to 10.6 minutes. Collection, 249 to 413 seconds per shard, was not weighted, and per-file times move between hosted runs.
+
+`refresh-test-durations.mjs --from-ci` now builds the version 2 profile that ADR-0565 specifies. It selects the newest five full runs: successful runs of commits that main contains, whose four shards all ran `Run tests` and still have their ledgers. Reuse-only runs and unmerged pull requests are skipped; with fewer qualifying runs, it warns and records the window it used. Each file weighs its median test plus collection time over those runs. Files that the newest complete run no longer has are dropped; the seven readiness files deleted in pull request #251 were otherwise still listed from older runs.
+
+An offline replay checked the change on 12 full runs from 43680880865 to 43805251574. It places each run's files with a profile it was not built from, then sums that run's own ledger times per shard. The replay reproduces the hosted shard sums of runs 43801546591 and 43805251574 exactly. Each figure below is how far the slowest shard exceeds a perfect four-way split, in seconds of test plus collection time:
+
+| Profile                                    | Placements | Mean | Median | 90th percentile | Worst |
+| ------------------------------------------ | ---------- | ---- | ------ | --------------- | ----- |
+| Committed version 1 (run 43782506613)      | 11         | 83.8 | 70.7   | 98.9            | 200.2 |
+| Version 1 built from any single run        | 132        | 89.3 | 80.4   | 157.7           | 235.2 |
+| Version 2, median of five consecutive runs | 56         | 60.9 | 59.2   | 96.2            | 151.9 |
+
+A three-run or seven-run window, more than 128 entries, and normalizing each run's total did not do clearly better. The committed profile comes from runs 43743056907 to 43805251574. On run 43805251574, which it includes, it gives 930, 871, 873 and 930 seconds. On the seven older runs it excludes, its slowest shard exceeds a perfect split by 57 seconds on average, against 71 for the committed version 1. The next hosted full run measures the change.
 
 ## Responsibility and evidence contracts
 
