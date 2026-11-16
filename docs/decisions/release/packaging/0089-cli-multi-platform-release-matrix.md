@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-20
+Amended by: [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the matrix runs before merge, and a tag run can publish without rebuilding)
 
 ## Context
 
@@ -58,7 +59,7 @@ The job then generates exact publication-authorization coordinates for the `late
 
 The `github-release` job requires a `v*` tag, successful packed verification, and attestation success or skip; attestation failure blocks it. It uses Ubuntu, a ten-minute timeout, and `contents: write`.
 
-The job validates the current release note against the expected tag, then edits an existing GitHub Release or creates one with `--verify-tag`, using `.changes/current-release.md` and the title `@lervo/cli <tag>`.
+The job validates the current release note against the expected tag, then edits an existing GitHub Release or creates one with `--verify-tag`, using `.changes/current-release.md` and the title `@lervo/cli <tag>`. [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) adds a `plan` job and an `expected_sha` dispatch input, keeps the Ubuntu leg's exact release subjects, and has this job publish them as release assets. A tag run whose tree a pre-merge run already verified publishes that run's subjects without rebuilding.
 
 ### Evidence boundaries
 
