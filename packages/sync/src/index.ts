@@ -6,6 +6,7 @@ export * from "./polling-runtime.js";
 export * from "./peer-capabilities.js";
 export * from "./project-registration.js";
 export * from "./repository-replica-divergence.js";
+export * from "./repository-replica-peer-launcher.js";
 export * from "./repository-replication.js";
 export * from "./transport.js";
 export * from "./types.js";
