@@ -53,6 +53,7 @@ Readers update before writers, because `lervo upgrade` activates new event schem
    - Switch with `scripts/distribution/manage-runtime-service.mjs --action upgrade ... --write`.
    - Verify `/v1/health/live`, `/v1/health/ready`, and that `/v1/health/capabilities` lists the new readable event schema versions. On failure, upgrade back to the previous definition.
 2. **Global CLI on every host.**
+   - When the installed CLI has `lervo host upgrade` ([ADR-0570](../../../docs/decisions/distribution/0570-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md)), run `lervo host upgrade --from-release v<version> --repository kimjh96/lervo --apply --json > <release-dir>/<host>-host-upgrade.json` on each host instead of the three steps below. It downloads and verifies the release assets itself, installs them side by side, switches both links, checks `--version`, and prints the activation id. Roll back with `lervo host upgrade --rollback <activation-id> --apply`.
    - Install the tarball side by side in a new versioned directory, using the previous install's `package.json` dependency set with `@lervo/cli` pointing at the new tarball. The `file:` path must be the tarball's absolute path; check it with `grep -o 'file:[^"]*' package.json` before installing, because a shell-expanded home directory has been doubled before.
    - Atomically relink `lervo` and `lervo-node` to the new `dist/bin.js` and `dist/node-runtime.js`.
    - Record the previous and new targets in `<host>-global-cli-activation.json` in the release directory.
