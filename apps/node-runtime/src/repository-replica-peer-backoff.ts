@@ -1,5 +1,12 @@
 import type { ReplicaReconcileOutcome } from "./repository-replica-recovery-backoff.js";
 
+/** What the gate made of a finished cycle; see `ReplicaPeerBackoff.observeCycle`. */
+export interface ReplicaPeerCycleVerdict {
+  outcome: ReplicaReconcileOutcome;
+  reopened: boolean;
+  confirm: boolean;
+}
+
 /**
  * ADR-0570: one admission gate for the whole peer transport. Every configured replica shares the
  * peer host, so a replica's first transport failure closes the gate for all of them: while closed,
@@ -8,9 +15,11 @@ import type { ReplicaReconcileOutcome } from "./repository-replica-recovery-back
  * peer therefore sees one connection attempt per back-off period instead of one per replica and
  * cycle.
  *
- * A replica whose transport failure recurs after the peer answered anyone has a problem of its
- * own. From then until it completes a cycle again, its failures are `held`: it backs off on its own
- * schedule and never closes the gate for the replicas that work.
+ * A replica whose transport failure recurs after the peer answered anyone may have a problem of
+ * its own. From then until it completes a cycle again, each of its transport failures is confirmed
+ * with one immediate probe: if the peer answers, the failure is `held` on the replica's own
+ * schedule and the gate stays open for the replicas that work; if not, it is a peer outage and
+ * closes the gate like any first failure.
  */
 export class ReplicaPeerBackoff {
   private failures = 0;
@@ -50,26 +59,30 @@ export class ReplicaPeerBackoff {
 
   /**
    * Records a finished cycle and returns the outcome the replica's schedule should use, and
-   * whether the cycle reopened a closed gate. Only a `peer_unreachable` result returned here parks
-   * the replica behind the gate.
+   * whether the cycle reopened a closed gate. `confirm` asks the caller to probe the peer now and
+   * pass the result to `confirmIsolated`. Only a `peer_unreachable` result parks the replica.
    */
   observeCycle(
     replicaId: string,
     outcome: ReplicaReconcileOutcome,
     now: number,
-  ): { outcome: ReplicaReconcileOutcome; reopened: boolean } {
+  ): ReplicaPeerCycleVerdict {
     if (outcome !== "peer_unreachable") {
       this.failedAtAnswer.delete(replicaId);
       this.isolated.delete(replicaId);
-      return { outcome, reopened: this.answered() };
+      return { outcome, reopened: this.answered(), confirm: false };
     }
     const first = this.failedAtAnswer.get(replicaId);
     if (first === undefined) this.failedAtAnswer.set(replicaId, this.answers);
     else if (this.answers > first) this.isolated.add(replicaId);
-    if (this.isolated.has(replicaId)) return { outcome: "held", reopened: false };
-    this.close(now);
-    this.parked.add(replicaId);
-    return { outcome, reopened: false };
+    if (this.isolated.has(replicaId)) return { outcome: "held", reopened: false, confirm: true };
+    return this.park(replicaId, now);
+  }
+
+  /** Settles an isolated replica's transport failure with the confirming probe's result. */
+  confirmIsolated(replicaId: string, reachable: boolean, now: number): ReplicaPeerCycleVerdict {
+    if (reachable) return { outcome: "held", reopened: this.answered(), confirm: false };
+    return this.park(replicaId, now);
   }
 
   /** Records the probe's result; returns true when the peer answered and the gate reopened. */
@@ -91,6 +104,12 @@ export class ReplicaPeerBackoff {
     const parked = [...this.parked];
     this.parked.clear();
     return parked;
+  }
+
+  private park(replicaId: string, now: number): ReplicaPeerCycleVerdict {
+    this.close(now);
+    this.parked.add(replicaId);
+    return { outcome: "peer_unreachable", reopened: false, confirm: false };
   }
 
   /**

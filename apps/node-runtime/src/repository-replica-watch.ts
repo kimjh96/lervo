@@ -67,10 +67,11 @@ export async function watchReplicaReconciliation(input: {
   reportInterval();
   const hinted = new Set<string>();
   // Only replicas the gate parked run again when it reopens; every other replica keeps its own
-  // schedule, and a parked replica with a queued run already has one.
+  // schedule. A parked replica whose run is still finishing in the pool gets one follow-up run.
   const reopen = () => {
-    pool.notifyAll(peerGate!.takeParked().filter((replicaId) => !pool.busy(replicaId)));
+    pool.notifyAll(peerGate!.takeParked());
   };
+  const probePeer = () => (input.probePeer ?? (async () => true))().catch(() => false);
   const pool = new RepositoryReconciliationPool(input.repositories, {
     concurrency: input.maximumConcurrency ?? 4,
     coalesceMs: 250,
@@ -78,7 +79,9 @@ export async function watchReplicaReconciliation(input: {
       const trigger = hinted.delete(repository.replicaId) ? "change" : "recovery";
       let outcome = (await input.reconcile(repository, { trigger })) ?? "not_current";
       if (peerGate !== null) {
-        const observed = peerGate.observeCycle(repository.replicaId, outcome, Date.now());
+        let observed = peerGate.observeCycle(repository.replicaId, outcome, Date.now());
+        if (observed.confirm)
+          observed = peerGate.confirmIsolated(repository.replicaId, await probePeer(), Date.now());
         outcome = observed.outcome;
         if (observed.reopened) reopen();
         reportPeer();
@@ -90,14 +93,12 @@ export async function watchReplicaReconciliation(input: {
   });
   let probe: Promise<void> | null = null;
   const startProbe = () => {
-    probe = (input.probePeer ?? (async () => true))()
-      .catch(() => false)
-      .then((reachable) => {
-        if (peerGate!.observeProbe(reachable, Date.now())) reopen();
-        reportPeer();
-        probe = null;
-        wakeup.notify();
-      });
+    probe = probePeer().then((reachable) => {
+      if (peerGate!.observeProbe(reachable, Date.now())) reopen();
+      reportPeer();
+      probe = null;
+      wakeup.notify();
+    });
   };
   const localStops: Array<() => void> = [];
   const remote = new Map<string, { stop: () => void; ready: boolean; retryAt: number }>();

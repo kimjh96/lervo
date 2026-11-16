@@ -10,6 +10,7 @@ describe("replica peer back-off", () => {
     expect(gate.observeCycle("only", "peer_unreachable", 0)).toEqual({
       outcome: "peer_unreachable",
       reopened: false,
+      confirm: false,
     });
     const waits: number[] = [];
     let now = 0;
@@ -43,11 +44,12 @@ describe("replica peer back-off", () => {
     expect(gate.observeCycle("fourth", "current", 25)).toEqual({
       outcome: "current",
       reopened: true,
+      confirm: false,
     });
     expect(gate.takeParked().sort()).toEqual(["first", "second", "third"]);
   });
 
-  it("holds a replica that fails again after the peer answered instead of closing the gate", () => {
+  it("confirms an isolated replica's failure with a probe before keeping the gate open", () => {
     const gate = new ReplicaPeerBackoff(30_000, 600_000);
     gate.observeCycle("broken", "peer_unreachable", 0);
     gate.observeCycle("sibling", "current", 1);
@@ -56,22 +58,32 @@ describe("replica peer back-off", () => {
       expect(gate.observeCycle("broken", "peer_unreachable", 2 + attempt)).toEqual({
         outcome: "held",
         reopened: false,
+        confirm: true,
+      });
+      expect(gate.confirmIsolated("broken", true, 2 + attempt)).toEqual({
+        outcome: "held",
+        reopened: false,
+        confirm: false,
       });
       expect(gate.closed).toBe(false);
-      gate.observeCycle("sibling", "current", 3 + attempt);
     }
-    // It stays isolated even after its siblings back off and stop answering in between.
-    expect(gate.observeCycle("broken", "peer_unreachable", 10).outcome).toBe("held");
-    expect(gate.observeCycle("broken", "peer_unreachable", 11).outcome).toBe("held");
-    expect(gate.closed).toBe(false);
-    // Another replica's first failure still closes the gate for an outage.
-    expect(gate.observeCycle("sibling", "peer_unreachable", 12).outcome).toBe("peer_unreachable");
+    // A probe that fails too proves an outage: the gate closes and the replica is parked.
+    expect(gate.observeCycle("broken", "peer_unreachable", 10).confirm).toBe(true);
+    expect(gate.confirmIsolated("broken", false, 10)).toEqual({
+      outcome: "peer_unreachable",
+      reopened: false,
+      confirm: false,
+    });
     expect(gate.closed).toBe(true);
+    expect(gate.retryAt).toBe(30_010);
+    expect(gate.observeProbe(true, 30_010)).toBe(true);
+    expect(gate.takeParked()).toEqual(["broken"]);
     // A completed cycle clears the replica's history; its next failure is a first one.
-    gate.observeProbe(true, 40_000);
-    gate.observeCycle("broken", "not_current", 40_001);
-    expect(gate.observeCycle("broken", "peer_unreachable", 40_002).outcome).toBe(
-      "peer_unreachable",
-    );
+    gate.observeCycle("broken", "not_current", 30_011);
+    expect(gate.observeCycle("broken", "peer_unreachable", 30_012)).toEqual({
+      outcome: "peer_unreachable",
+      reopened: false,
+      confirm: false,
+    });
   });
 });

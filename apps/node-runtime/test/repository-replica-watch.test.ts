@@ -564,7 +564,8 @@ it.each([
       // siblings stuck at 55 an hour at concurrency 1. An idle replica runs 10 in its first hour.
       expect(cycles.broken).toBeLessThanOrEqual(11);
       for (const sibling of ["a", "b", "c", "d"]) expect(cycles[sibling]).toBeLessThanOrEqual(10);
-      expect(probes).toBeLessThanOrEqual(1);
+      // One gate probe, plus one confirming probe per failure after the replica was isolated.
+      expect(probes).toBeLessThanOrEqual(cycles.broken!);
       expect(closures).toBe(1);
       expect(closedMs).toBeLessThanOrEqual(31_000);
     } finally {
@@ -623,6 +624,148 @@ it("keeps scheduling a replica that was still running when the peer gate reopene
   } finally {
     abort.abort();
     await vi.advanceTimersByTimeAsync(40_000);
+    await running;
+  }
+});
+
+/** Five replicas against a peer that goes down; `d` is the one the mocked local watch notifies. */
+async function outage(input: {
+  concurrency: number;
+  /** Replicas whose transport fails on their own while the peer is up. */
+  broken: readonly string[];
+  /** Probe results while the peer is down, in order; later probes fail. */
+  flaps: readonly boolean[];
+  upForMs: number;
+  downForMs: number;
+}) {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  const started = Date.now();
+  let down = false;
+  const flaps = [...input.flaps];
+  const attempts: Record<string, number> = {};
+  let probes = 0;
+  const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+  const running = watchReplicaReconciliation({
+    repositories: ["a", "b", "c", "e", "d"].map((replicaId) => ({
+      replicaId,
+      localRoot: `/${replicaId}`,
+      peerRoot: `/peer/${replicaId}`,
+    })),
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 600_000,
+    maximumConcurrency: input.concurrency,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    probePeer: async () => {
+      if (down) probes += 1;
+      await delay(300);
+      return down ? (flaps.shift() ?? false) : true;
+    },
+    reconcile: async (repository) => {
+      if (down) attempts[repository.replicaId] = (attempts[repository.replicaId] ?? 0) + 1;
+      await delay(500);
+      return down || input.broken.includes(repository.replicaId) ? "peer_unreachable" : "current";
+    },
+  });
+  try {
+    for (let elapsed = 0; elapsed < input.upForMs; elapsed += 1_000) {
+      if (input.broken.includes("d")) callbacks.local();
+      await vi.advanceTimersByTimeAsync(1_000);
+    }
+    down = true;
+    for (let elapsed = 0; elapsed < input.downForMs; elapsed += 1_000) {
+      callbacks.local();
+      await vi.advanceTimersByTimeAsync(1_000);
+    }
+    expect(Date.now() - started).toBe(input.upForMs + input.downForMs);
+    return { attempts, probes };
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(1_000);
+    await running;
+  }
+}
+
+it("still closes the gate when a probe flap during an outage isolated every replica", async () => {
+  // Round-2 review: `d` made 420 connection attempts in 449 s; the original incident made 494.
+  const { attempts, probes } = await outage({
+    concurrency: 5,
+    broken: [],
+    flaps: [true],
+    upForMs: 60_000,
+    downForMs: 449_000,
+  });
+  expect(attempts.d ?? 0).toBeLessThanOrEqual(5);
+  expect(Object.values(attempts).reduce((sum, count) => sum + count, 0)).toBeLessThanOrEqual(15);
+  expect(probes).toBeLessThanOrEqual(10);
+});
+
+it("closes the gate on the first failure of a replica that was already isolated", async () => {
+  // Round-2 review: `d` made 333 attempts in a 30-minute outage before another replica failed.
+  const { attempts, probes } = await outage({
+    concurrency: 1,
+    broken: ["d"],
+    flaps: [],
+    upForMs: 120_000,
+    downForMs: 1_800_000,
+  });
+  expect(attempts.d ?? 0).toBeLessThanOrEqual(3);
+  expect(Object.values(attempts).reduce((sum, count) => sum + count, 0)).toBeLessThanOrEqual(10);
+  // Confirmation probe plus the doubling retries: 30, 90, 210, 450, 930 and 1,530 seconds.
+  expect(probes).toBeLessThanOrEqual(8);
+});
+
+it("gives a parked replica whose run was still finishing a follow-up when the gate reopens", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  const cycles: Record<string, number> = {};
+  let first = true;
+  const running = watchReplicaReconciliation({
+    repositories: ["big", "a", "b", "c", "d"].map((replicaId) => ({
+      replicaId,
+      localRoot: `/${replicaId}`,
+      peerRoot: `/peer/${replicaId}`,
+    })),
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 600_000,
+    maximumConcurrency: 5,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    probePeer: async () => true,
+    // Every cycle finishes in the same microtask drain, so siblings reopen the gate while `big`
+    // is still active in the pool.
+    reconcile: async (repository) => {
+      cycles[repository.replicaId] = (cycles[repository.replicaId] ?? 0) + 1;
+      if (repository.replicaId !== "big" || !first) return "current";
+      first = false;
+      return "peer_unreachable";
+    },
+  });
+  try {
+    for (let minute = 0; minute < 60; minute += 1) await vi.advanceTimersByTimeAsync(60_000);
+    expect(cycles.big).toBeGreaterThanOrEqual(10);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
     await running;
   }
 });
