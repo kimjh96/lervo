@@ -125,10 +125,19 @@ jobs:
           pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release-subjects"
           node scripts/release/commands/cli-release-subjects.mjs bind "${RUNNER_TEMP}/lervo-release-subjects"
       - name: Install packed CLI as a consumer
+        if: matrix.os != 'ubuntu-latest'
         run: pnpm smoke:packed-cli
       - name: Publish and install through an isolated registry
+        if: matrix.os != 'ubuntu-latest'
         run: pnpm smoke:registry-publish
-      - name: Confirm the smokes installed the bound tarball bytes
+      # pnpm pack output is not byte-stable, so the Linux smokes install the bound subject file itself.
+      - name: Install the bound release tarball as a consumer
+        if: matrix.os == 'ubuntu-latest'
+        run: node scripts/release/commands/check-packed-cli.mjs --release-subjects "${RUNNER_TEMP}/lervo-release-subjects"
+      - name: Publish and install the bound release tarball through an isolated registry
+        if: matrix.os == 'ubuntu-latest'
+        run: node scripts/release/commands/check-registry-publish.mjs --release-subjects "${RUNNER_TEMP}/lervo-release-subjects"
+      - name: Confirm the smoke-tested subjects are still the bound bytes
         if: matrix.os == 'ubuntu-latest'
         run: node scripts/release/commands/cli-release-subjects.mjs confirm "${RUNNER_TEMP}/lervo-release-subjects"
       - name: Keep exact release subjects for publication
@@ -220,7 +229,7 @@ jobs:
 
   github-release:
     name: GitHub release
-    if: ${{ always() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && needs.plan.result == 'success' && (needs.plan.outputs.reuse != '' || needs.packed-cli.result == 'success') && (needs.attested-cli.result == 'success' || needs.attested-cli.result == 'skipped') }}
+    if: ${{ !cancelled() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && needs.plan.result == 'success' && (needs.plan.outputs.reuse != '' || needs.packed-cli.result == 'success') && (needs.attested-cli.result == 'success' || needs.attested-cli.result == 'skipped') }}
     needs: [plan, packed-cli, attested-cli]
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -249,6 +258,17 @@ jobs:
           github-token: ${{ github.token }}
       - name: Verify subjects against the tagged tree
         run: node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"
+      # attested-cli signs its own rebuild, and pnpm pack output is not byte-stable, so publishing
+      # verified subjects beside a different attested digest is refused rather than left silent.
+      - name: Download attested release files
+        if: needs.attested-cli.result == 'success'
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: lervo-cli-${{ github.ref_name }}
+          path: ${{ runner.temp }}/lervo-attested
+      - name: Require attested files to equal the verified subjects
+        if: needs.attested-cli.result == 'success'
+        run: bash scripts/release/lib/compare-attested-subjects.sh "${RUNNER_TEMP}/lervo-release-subjects" "${RUNNER_TEMP}/lervo-attested/lervo-release"
       - name: Create or reconcile the GitHub release with verified subjects
         env:
           GH_TOKEN: ${{ github.token }}

@@ -20,6 +20,7 @@ import {
   installMixedEventReaderFixture,
 } from "../../distribution/lib/mixed-event-reader-fixture.mjs";
 import { packCliArtifact } from "../../distribution/lib/packed-cli-artifact.mjs";
+import { parseSmokeTarballSource, smokeTarball } from "../lib/smoke-tarball-source.mjs";
 import { verifyPackedProductHostConsumer } from "../../distribution/lib/product-host-consumer.mjs";
 import { verifyInstalledCapabilityJourney } from "../../distribution/lib/installed-capability-journey.mjs";
 import { verifyInstalledCrossProviderContinuation } from "../../distribution/lib/installed-cross-provider-continuation.mjs";
@@ -250,7 +251,12 @@ async function main() {
     const archiveRoot = resolve(fixtureRoot, "archive");
     const consumerRoot = resolve(fixtureRoot, "consumer");
     await Promise.all([mkdir(archiveRoot), mkdir(consumerRoot)]);
-    const tarballPath = await packCliArtifact(archiveRoot, cliManifest.version);
+    const tarballPath = await smokeTarball({
+      archiveRoot,
+      version: cliManifest.version,
+      releaseSubjects: parseSmokeTarballSource(process.argv.slice(2)).releaseSubjects,
+      pack: packCliArtifact,
+    });
     await installTarball(consumerRoot, tarballPath);
     await verifyInstalledPackage(consumerRoot, cliManifest);
     await verifyPackageGuide(consumerRoot);

@@ -73,6 +73,7 @@ function release({ tarball = tarballFor(), manifest = manifestFor(), sbom } = {}
       repository: {
         manifest: files.get("release-artifact-manifest.json"),
         sbom: files.get("release-sbom.cdx.json"),
+        packageManifest: { name: "@lervo/cli", version },
       },
     },
   };
@@ -159,6 +160,44 @@ describe("CLI release subjects", () => {
       release({ tarball: Buffer.from("not a tarball") }).input,
       "release_subjects_archive_mismatch",
     );
+  });
+});
+
+describe("CLI release tarball package manifest", () => {
+  const source = {
+    name: "@lervo/cli",
+    version,
+    bin: { lervo: "./dist/bin.js" },
+    scripts: { build: "tsc" },
+    dependencies: { zod: "4.4.3" },
+    devDependencies: { "@lervo/core": "0.1.0", esbuild: "0.28.2" },
+  };
+  const withManifest = (packageManifest) => {
+    const { input } = release({ tarball: tarballFor(packageFiles, packageManifest) });
+    return { ...input, repository: { ...input.repository, packageManifest: source } };
+  };
+
+  it("accepts the expected fields in any key order", () => {
+    const reordered = {
+      devDependencies: { esbuild: "0.28.2", "@lervo/core": "0.1.0" },
+      scripts: { build: "tsc" },
+      version,
+      name: "@lervo/cli",
+      dependencies: { zod: "4.4.3" },
+      bin: { lervo: "./dist/bin.js" },
+    };
+    assert.equal(verifyReleaseSubjects(withManifest(reordered)).tag, `v${version}`);
+  });
+
+  it("rejects changed scripts, bin, dependencies, or extra fields", () => {
+    for (const change of [
+      { scripts: { build: "tsc", postinstall: "node evil.js" } },
+      { bin: { lervo: "./dist/other.js" } },
+      { dependencies: { zod: "4.4.4" } },
+      { devDependencies: { esbuild: "0.28.2" } },
+      { main: "./dist/bin.js" },
+    ])
+      rejects(withManifest({ ...source, ...change }), "release_subjects_package_manifest_mismatch");
   });
 });
 

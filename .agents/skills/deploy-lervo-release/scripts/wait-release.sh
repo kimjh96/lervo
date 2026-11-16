@@ -77,7 +77,11 @@ pr_matrix() {
     --json databaseId,headSha,status,conclusion,createdAt \
     --jq "[.[] | select(.headSha == \"$sha\")] | max_by(.createdAt)
       | if . == null then \"none\" else \"\(.databaseId) \(.status) \(.conclusion)\" end" 2>/dev/null) || return 3
-  if [ "$run" = none ]; then last="$last; waiting for its dispatched CLI release matrix run"; return 3; fi
+  # A head prepared before preparation dispatched the matrix never gets one by waiting.
+  if [ "$run" = none ]; then
+    last="$last; waiting for its dispatched CLI release matrix run; if none starts, rerun release preparation (gh workflow run release-pull-request.yml -f pull_request=$target), which dispatches the missing matrix without a new commit"
+    return 3
+  fi
   read -r id status conclusion <<<"$run"
   [[ "${id:-}" =~ ^[0-9]+$ ]] || return 3
   last="$last; CLI release matrix run $id: $status/${conclusion:-}"

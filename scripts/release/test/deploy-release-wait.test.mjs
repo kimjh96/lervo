@@ -177,6 +177,10 @@ describe("deploy-lervo-release pull-request wait", () => {
     }
     const missing = await wait({ FAKE_DISPATCH: "11 completed success", FAKE_MATRIX: "none" }, "0");
     assert.match(missing.stdout, /waiting for its dispatched CLI release matrix run/u);
+    assert.match(
+      missing.stdout,
+      /rerun release preparation \(gh workflow run release-pull-request\.yml -f pull_request=7\)/u,
+    );
   });
 
   it("does not require a release matrix for an unprepared head", async () => {

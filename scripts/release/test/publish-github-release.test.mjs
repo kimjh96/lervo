@@ -105,3 +105,29 @@ describe("GitHub release publication", () => {
       assert.doesNotMatch(result.trace, /release (upload|edit)/u);
   });
 });
+
+describe("attested release comparison", () => {
+  const comparePath = resolve(import.meta.dirname, "../lib/compare-attested-subjects.sh");
+
+  async function compare(attestedTarball) {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-attested-compare-"));
+    roots.push(root);
+    const subjects = resolve(root, "subjects");
+    const attested = resolve(root, "attested");
+    await Promise.all([mkdir(subjects), mkdir(attested)]);
+    for (const name of subjectNames) await writeFile(resolve(subjects, name), `${name}\n`);
+    for (const name of subjectNames.slice(1, 3))
+      await writeFile(resolve(attested, name), `${name}\n`);
+    if (attestedTarball !== undefined)
+      await writeFile(resolve(attested, subjectNames[0]), attestedTarball);
+    return spawnSync("bash", [comparePath, subjects, attested], { encoding: "utf8" });
+  }
+
+  it("passes only when the attested files equal the verified subjects", async () => {
+    assert.equal((await compare(`${subjectNames[0]}\n`)).status, 0);
+    for (const result of [await compare("rebuilt bytes\n"), await compare(undefined)]) {
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /release_subjects_attestation_mismatch/u);
+    }
+  });
+});

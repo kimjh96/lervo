@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { readNpmTarballEntries } from "./npm-tarball-entries.mjs";
+import { canonicalPackageManifestJson } from "./packed-package-manifest.mjs";
 
 export const releaseSubjectsBindingName = "release-subjects.json";
 const releaseSubjectsSchemaVersion = 1;
@@ -127,7 +128,7 @@ function readArchiveContract(contents) {
   return manifest;
 }
 
-function verifyArchive(tarball, manifest) {
+function verifyArchive(tarball, manifest, expectedPackageManifest) {
   let entries;
   try {
     entries = readNpmTarballEntries(tarball);
@@ -162,13 +163,22 @@ function verifyArchive(tarball, manifest) {
     packageManifest?.version !== manifest.artifact.version
   )
     fail("release_subjects_archive_mismatch", "The release tarball package identity differs.");
+  if (
+    canonicalPackageManifestJson(packageManifest) !==
+    canonicalPackageManifestJson(expectedPackageManifest)
+  )
+    fail(
+      "release_subjects_package_manifest_mismatch",
+      "The release tarball package manifest differs from the released tree.",
+    );
 }
 
 /**
  * Proves that downloaded release files are exactly the bound bytes, that they belong to the tree
  * being released, and that the tarball holds exactly the files the tree's committed manifest names.
- * `files` maps every file name found beside the binding to its bytes; `repository` holds the
- * committed manifest and SBOM bytes of the tree being released.
+ * `files` maps every file name found beside the binding to its bytes. `repository` holds the
+ * committed manifest and SBOM bytes of the tree being released and `packageManifest`, the package
+ * manifest that packing that tree must produce (see `expectedPackedPackageManifest`).
  */
 export function verifyReleaseSubjects({ expectedTag, tree, bindingContents, files, repository }) {
   const binding = parseBinding(bindingContents);
@@ -200,6 +210,10 @@ export function verifyReleaseSubjects({ expectedTag, tree, bindingContents, file
   const manifest = readArchiveContract(manifestContents);
   if (manifest.artifact.name !== binding.artifact || manifest.artifact.version !== binding.version)
     fail("release_subjects_metadata_mismatch", "The release manifest names another version.");
-  verifyArchive(files.get(releaseTarballName(binding.version)), manifest);
+  verifyArchive(
+    files.get(releaseTarballName(binding.version)),
+    manifest,
+    repository.packageManifest,
+  );
   return binding;
 }

@@ -84,52 +84,53 @@ describe("CLI release matrix workflow", () => {
   it("builds once and checks both the release manifest and consumer install", async () => {
     const workflow = await readWorkflow();
     const steps = workflow.jobs["packed-cli"].steps;
-    const everyPlatform = steps.filter(({ run, if: condition }) => run && !condition);
-    assert.deepEqual(
-      everyPlatform.map(({ run }) => run),
-      [
-        "pnpm install --frozen-lockfile",
-        'node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"',
-        "pnpm build",
-        "pnpm release:manifest:check",
-        "pnpm release:sbom:check",
-        "pnpm release:attestation:check",
-        "pnpm smoke:packed-cli",
-        "pnpm smoke:registry-publish",
-      ],
-    );
+    const runs = (condition) =>
+      steps.filter((step) => step.run && step.if === condition).map(({ run }) => run);
+    assert.deepEqual(runs(undefined), [
+      "pnpm install --frozen-lockfile",
+      'node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"',
+      "pnpm build",
+      "pnpm release:manifest:check",
+      "pnpm release:sbom:check",
+      "pnpm release:attestation:check",
+    ]);
+    assert.deepEqual(runs("matrix.os != 'ubuntu-latest'"), [
+      "pnpm smoke:packed-cli",
+      "pnpm smoke:registry-publish",
+    ]);
   });
 
-  it("binds the Linux leg's release subjects before the smokes and keeps them after", async () => {
+  it("smoke-tests the Linux leg's bound subject file itself and keeps it after", async () => {
     const workflow = await readWorkflow();
     const steps = workflow.jobs["packed-cli"].steps;
-    const index = (name) => steps.findIndex((step) => step.name === name);
-    const bind = steps[index("Prepare and bind exact release subjects")];
-    const confirm = steps[index("Confirm the smokes installed the bound tarball bytes")];
-    const keep = steps[index("Keep exact release subjects for publication")];
-    for (const step of [bind, confirm, keep]) assert.equal(step.if, "matrix.os == 'ubuntu-latest'");
-    assert.deepEqual(bind.run.trim().split("\n"), [
+    const linux = steps.filter((step) => step.if === "matrix.os == 'ubuntu-latest'");
+    assert.deepEqual(
+      linux.map(({ name }) => name),
+      [
+        "Prepare and bind exact release subjects",
+        "Install the bound release tarball as a consumer",
+        "Publish and install the bound release tarball through an isolated registry",
+        "Confirm the smoke-tested subjects are still the bound bytes",
+        "Keep exact release subjects for publication",
+      ],
+    );
+    assert.deepEqual(linux[0].run.trim().split("\n"), [
       'pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release-subjects"',
       'node scripts/release/commands/cli-release-subjects.mjs bind "${RUNNER_TEMP}/lervo-release-subjects"',
     ]);
-    assert.equal(
-      confirm.run,
-      'node scripts/release/commands/cli-release-subjects.mjs confirm "${RUNNER_TEMP}/lervo-release-subjects"',
+    assert.deepEqual(
+      linux.slice(1, 4).map(({ run }) => run),
+      [
+        'node scripts/release/commands/check-packed-cli.mjs --release-subjects "${RUNNER_TEMP}/lervo-release-subjects"',
+        'node scripts/release/commands/check-registry-publish.mjs --release-subjects "${RUNNER_TEMP}/lervo-release-subjects"',
+        'node scripts/release/commands/cli-release-subjects.mjs confirm "${RUNNER_TEMP}/lervo-release-subjects"',
+      ],
     );
     assert.ok(
-      index("Verify local release statement") < index("Prepare and bind exact release subjects"),
+      steps.findIndex(({ name }) => name === "Verify local release statement") <
+        steps.indexOf(linux[0]),
     );
-    assert.ok(
-      index("Prepare and bind exact release subjects") < index("Install packed CLI as a consumer"),
-    );
-    assert.ok(
-      index("Publish and install through an isolated registry") <
-        index("Confirm the smokes installed the bound tarball bytes"),
-    );
-    assert.ok(
-      index("Confirm the smokes installed the bound tarball bytes") <
-        index("Keep exact release subjects for publication"),
-    );
+    const keep = linux[4];
     assert.equal(keep.uses, "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a");
     assert.deepEqual(keep.with, {
       name: "lervo-cli-release-${{ needs.plan.outputs.tree }}",
@@ -230,6 +231,8 @@ describe("CLI release matrix workflow", () => {
     const job = workflow.jobs["github-release"];
     assert.deepEqual(job.needs, ["plan", "packed-cli", "attested-cli"]);
     assert.deepEqual(job.permissions, { contents: "write", actions: "read" });
+    assert.match(job.if, /^\$\{\{ !cancelled\(\) && /u);
+    assert.doesNotMatch(job.if, /always\(\)/u);
     assert.match(job.if, /needs\.plan\.result == 'success'/u);
     assert.match(
       job.if,
@@ -243,6 +246,8 @@ describe("CLI release matrix workflow", () => {
       "Verify exact current release notes",
       "Download verified release subjects",
       "Verify subjects against the tagged tree",
+      "Download attested release files",
+      "Require attested files to equal the verified subjects",
       "Create or reconcile the GitHub release with verified subjects",
     ]);
     const step = (name) => job.steps[names.indexOf(name)];
@@ -264,6 +269,18 @@ describe("CLI release matrix workflow", () => {
     assert.equal(
       step("Verify subjects against the tagged tree").run,
       'node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"',
+    );
+    const attested = step("Download attested release files");
+    assert.equal(attested.if, "needs.attested-cli.result == 'success'");
+    assert.deepEqual(attested.with, {
+      name: "lervo-cli-${{ github.ref_name }}",
+      path: "${{ runner.temp }}/lervo-attested",
+    });
+    const compare = step("Require attested files to equal the verified subjects");
+    assert.equal(compare.if, "needs.attested-cli.result == 'success'");
+    assert.equal(
+      compare.run,
+      'bash scripts/release/lib/compare-attested-subjects.sh "${RUNNER_TEMP}/lervo-release-subjects" "${RUNNER_TEMP}/lervo-attested/lervo-release"',
     );
     const release = step("Create or reconcile the GitHub release with verified subjects");
     assert.deepEqual(release.env, { GH_TOKEN: "${{ github.token }}" });

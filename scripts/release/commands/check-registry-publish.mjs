@@ -9,6 +9,7 @@ import {
   startLocalPackageRegistry,
 } from "../../distribution/lib/local-package-registry.mjs";
 import { packCliArtifact } from "../../distribution/lib/packed-cli-artifact.mjs";
+import { parseSmokeTarballSource, smokeTarball } from "../lib/smoke-tarball-source.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
@@ -133,7 +134,12 @@ async function main() {
       userConfigPath,
       resolve(fixtureRoot, "package-cache"),
     );
-    const tarballPath = await packCliArtifact(archiveRoot, cliManifest.version);
+    const tarballPath = await smokeTarball({
+      archiveRoot,
+      version: cliManifest.version,
+      releaseSubjects: parseSmokeTarballSource(process.argv.slice(2)).releaseSubjects,
+      pack: packCliArtifact,
+    });
 
     await publishCli(tarballPath, registry.url, environment);
     const integrity = await verifyPublishedMetadata(
