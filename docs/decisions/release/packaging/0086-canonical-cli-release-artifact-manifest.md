@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-20
+Amended by: [ADR-0572](0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (release preparation commits the manifest; CI generates it for other changes)
 
 ADR-0087–0092 evolve the manifest through bundle, README/metadata, and SBOM source schemas. Version 1 below records the pre-bundle archive contract.
 

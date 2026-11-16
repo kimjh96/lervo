@@ -2,6 +2,7 @@
 
 Status: `accepted`  
 Decision date: 2026-08-20
+Amended by: [ADR-0572](../packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (release preparation commits the SBOM; CI generates it for other changes)
 
 ## Context
 

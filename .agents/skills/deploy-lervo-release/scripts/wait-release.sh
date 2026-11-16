@@ -35,8 +35,10 @@ pr_preparation() {
 }
 
 pr_fresh() {
-  # Main reuses PR verification only when the merged tree equals the PR head tree. The caller
-  # passes the head it observed so freshness and verification judge the same commit.
+  # Main reuses PR verification only when the merged tree equals the PR head tree. A head on
+  # current main also ran the exact release metadata check that main runs after a release merge
+  # (ADR-0572). The caller passes the head it observed so freshness and verification judge the
+  # same commit.
   local base status
   base=$(gh pr view "$1" --json baseRefName --jq .baseRefName 2>/dev/null) || return 3
   status=$(gh api "repos/{owner}/{repo}/compare/$base...$2" --jq .status 2>/dev/null) || return 3

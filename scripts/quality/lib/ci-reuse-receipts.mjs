@@ -5,6 +5,8 @@ const WORKFLOW_PATH = ".github/workflows/code-quality.yml";
 /** Each reusable component, the jobs that executed it, and the artifact name prefix. */
 export const CI_REUSE_COMPONENTS = Object.freeze({
   build: { prefix: "lervo-ci-build-", jobs: ["Release manifest and SBOM"] },
+  // A build that generated the release metadata instead of matching the committed files.
+  generatedBuild: { prefix: "lervo-ci-build-generated-", jobs: ["Release manifest and SBOM"] },
   tests: {
     prefix: "lervo-ci-tests-",
     jobs: [1, 2, 3, 4].map((shard) => `Tests (shard ${shard}/4)`),
@@ -64,18 +66,31 @@ export function findReusableRun({ repository, component, digest, request = githu
   return null;
 }
 
+/** The build receipt component for a run's release metadata mode (ADR-0572). */
+export const ciBuildComponent = (releaseMetadata) =>
+  releaseMetadata === "generated" ? "generatedBuild" : "build";
+
 /**
  * Decides what this run may reuse. Tests reuse by the release-metadata-normalized digest. The build
  * and quality checks reuse only for the exact tree, together with tests, and only when any required
- * distribution check can be reused too, because distribution consumes this run's build. The daily
- * audit exists to catch results that change with time on unchanged content, so it reuses nothing.
+ * distribution check can be reused too, because distribution consumes this run's build. A run that
+ * must match the committed release metadata reuses only a build that matched it; any other mode
+ * counts as that one. The daily audit exists to catch results that change with time on unchanged
+ * content, so it reuses nothing.
  */
-export function planCiReuse({ coverage, distributionRequired, digests, find, eventName }) {
+export function planCiReuse({
+  coverage,
+  distributionRequired,
+  digests,
+  find,
+  eventName,
+  releaseMetadata,
+}) {
   const none = { quality: false, build: null, tests: null, distribution: null };
   if (coverage !== "full" || eventName === "schedule") return none;
   const tests = find("tests", digests.tests);
   if (tests === null) return none;
-  const build = find("build", digests.tree);
+  const build = find(ciBuildComponent(releaseMetadata), digests.tree);
   const distribution = distributionRequired ? find("distribution", digests.tree) : null;
   if (build === null || (distributionRequired && distribution === null)) return { ...none, tests };
   return { quality: true, build, tests, distribution };

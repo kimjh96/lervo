@@ -39,6 +39,8 @@ jobs:
       distribution: ${{ steps.distribution.outputs.required }}
       tree: ${{ steps.reuse.outputs.tree }}
       testDigest: ${{ steps.reuse.outputs.testDigest }}
+      releaseMetadata: ${{ steps.plan.outputs.releaseMetadata }}
+      buildReceipt: ${{ steps.reuse.outputs.buildReceipt }}
       reuseQuality: ${{ steps.reuse.outputs.reuseQuality }}
       reuseBuild: ${{ steps.reuse.outputs.reuseBuild }}
       reuseTests: ${{ steps.reuse.outputs.reuseTests }}
@@ -78,6 +80,7 @@ jobs:
         env:
           COVERAGE: ${{ steps.plan.outputs.coverage }}
           DISTRIBUTION_REQUIRED: ${{ steps.distribution.outputs.required }}
+          RELEASE_METADATA: ${{ steps.plan.outputs.releaseMetadata }}
           GH_TOKEN: ${{ github.token }}
         run: node scripts/quality/ci-reuse.mjs
 
@@ -174,6 +177,12 @@ jobs:
     env:
       REUSED_RUN: ${{ needs.plan.outputs.reuseBuild }}
     steps:
+      # Tag admission requires this step's exact name in the run it admits (ADR-0572). An exact run
+      # reuses only a build that was itself exact.
+      - name: "Release metadata mode: ${{ needs.plan.outputs.releaseMetadata == 'generated' && 'generated' || 'exact' }}"
+        run: echo "This run verifies the committed CLI release metadata as ${RELEASE_METADATA:-exact}."
+        env:
+          RELEASE_METADATA: ${{ needs.plan.outputs.releaseMetadata }}
       - name: Reuse the exact tree's verified build
         if: env.REUSED_RUN != ''
         run: echo "Run ${REUSED_RUN} built and verified this exact tree; see its Release manifest and SBOM job."
@@ -206,12 +215,42 @@ jobs:
       - name: Build release artifact
         if: env.REUSED_RUN == ''
         run: pnpm build
+      # A release candidate, or a change that edits the files, must commit this build's exact bytes.
       - name: Verify release manifest
-        if: env.REUSED_RUN == ''
+        id: manifest
+        if: env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata != 'generated'
         run: pnpm release:manifest:check
       - name: Verify release SBOM
-        if: env.REUSED_RUN == ''
+        id: sbom
+        if: env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata != 'generated'
         run: pnpm release:sbom:check
+      # Any other tree may keep older committed bytes; release preparation commits new ones. It still
+      # rejects a platform package family that the committed manifest does not approve (ADR-0572).
+      - name: Generate release manifest and SBOM from this build
+        id: generate
+        if: env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata == 'generated'
+        run: pnpm release:manifest:update --committed-families && pnpm release:sbom:update
+      # A failed check or generation gets the files to commit, so the fix needs no other build.
+      - name: Generate release metadata to commit
+        if: env.REUSED_RUN == '' && failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure' || steps.generate.outcome == 'failure')
+        run: pnpm release:manifest:update && pnpm release:sbom:update
+      - name: Report generated release metadata
+        if: env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure' || steps.generate.outcome == 'failure')))
+        shell: bash
+        env:
+          REPORT_MODE: ${{ (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure' || steps.generate.outcome == 'failure') && 'exact' || needs.plan.outputs.releaseMetadata }}
+        run: node scripts/release/commands/report-cli-release-metadata.mjs "${REPORT_MODE}" | tee -a "${GITHUB_STEP_SUMMARY}"
+      - name: Share generated release metadata
+        if: env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure' || steps.generate.outcome == 'failure')))
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-cli-release-metadata
+          path: |
+            apps/cli/release-artifact-manifest.json
+            apps/cli/release-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
       - name: Configure Git identity for release metadata tests
         if: env.REUSED_RUN == '' && needs.plan.outputs.reuseTests != ''
         run: |
@@ -442,7 +481,7 @@ jobs:
         if: needs.plan.outputs.reuseBuild == '' && needs.release-artifacts.result == 'success'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: lervo-ci-build-${{ needs.plan.outputs.tree }}
+          name: ${{ needs.plan.outputs.buildReceipt }}
           path: ${{ runner.temp }}/lervo-ci-receipts/build.json
           if-no-files-found: error
           retention-days: 30

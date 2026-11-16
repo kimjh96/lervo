@@ -43,10 +43,19 @@ it("reports an actual dangling reference without guessing from a partial invento
 it("binds the archived CLI guide to its complete captured README bytes", async () => {
   const manifestPath = "apps/cli/release-artifact-manifest.json";
   const readmePath = "apps/cli/README.md";
-  const [manifest, readme] = await Promise.all([
+  const [committedManifest, readme] = await Promise.all([
     readFile(manifestPath, "utf8"),
     readFile(readmePath, "utf8"),
   ]);
+  // The committed manifest describes the last prepared build and may predate a README edit
+  // (ADR-0572), so the matching case archives the current README bytes explicitly.
+  const current = JSON.parse(committedManifest) as {
+    archive: { files: { path: string; size: number; sha256: string }[] };
+  };
+  const archivedReadme = current.archive.files.find((item) => item.path === "README.md")!;
+  archivedReadme.sha256 = sha256(readme);
+  archivedReadme.size = Buffer.byteLength(readme);
+  const manifest = JSON.stringify(current);
   const input = {
     repositoryRoot: process.cwd(),
     sources: [

@@ -2,6 +2,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { cliReleaseManifestMode } from "../lib/cli-release-manifest-mode.mjs";
 import { createCliReleaseManifest } from "../lib/cli-release-snapshot.mjs";
 import {
   releaseArchiveFileDifferences,
@@ -12,7 +13,7 @@ import {
 import { deployBuiltCli, readJson, repositoryRoot } from "../../distribution/lib/installed-cli.mjs";
 
 const releaseManifestPath = resolve(repositoryRoot, "apps/cli/release-artifact-manifest.json");
-const writeMode = process.argv.slice(2).includes("--write");
+const mode = cliReleaseManifestMode(process.argv.slice(2));
 
 async function main() {
   const fixtureRoot = await mkdtemp(resolve(tmpdir(), "lervo-release-artifact-"));
@@ -20,15 +21,16 @@ async function main() {
     const deploymentRoot = resolve(fixtureRoot, "installation");
     await deployBuiltCli(deploymentRoot);
     let expected;
-    if (!writeMode) expected = validateReleaseArtifactManifest(await readJson(releaseManifestPath));
+    if (mode.readCommitted)
+      expected = validateReleaseArtifactManifest(await readJson(releaseManifestPath));
     const actual = validateReleaseArtifactManifest(
       await createCliReleaseManifest(
         deploymentRoot,
         expected?.dependencies.platformSpecificFamilies ?? [],
-        writeMode,
+        mode.inferFamilies,
       ),
     );
-    if (writeMode) {
+    if (mode.write) {
       await writeFile(releaseManifestPath, `${JSON.stringify(actual, null, 2)}\n`, "utf8");
       console.log("Updated the CLI release artifact manifest.");
       return;
