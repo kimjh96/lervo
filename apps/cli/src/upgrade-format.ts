@@ -1,3 +1,5 @@
+import { repositoryReplicaPerCallLauncherGuidance } from "@lervo/sync";
+
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
 import type { NodeConfigExecutablesStage } from "./node-config-executable-upgrade.js";
 import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
@@ -112,6 +114,9 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
           "  The peer runtime stays an explicit path outside any runtimes directory, so it will not follow later deploys. Set peer.remoteRuntimesDirectory to follow them.",
         ]
       : []),
+    ...(plan.stages.replicaService.peerLauncher === null
+      ? []
+      : [`  ${repositoryReplicaPerCallLauncherGuidance(plan.stages.replicaService.peerLauncher)}`]),
     ...blockerLines(plan.stages.replicaService.blockers, "  "),
     ...(plan.stages.hostService.unmanagedResidentRunning
       ? [

@@ -301,6 +301,25 @@ describe("legacy coordinator configuration migration (ADR-0483)", () => {
     });
   });
 
+  it("reports a peer that launches wsl.exe for every step without rewriting the configuration", async () => {
+    const { ports, environment } = await fixture({ coordinator: true });
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({ peerLauncher: null });
+    const configuration = JSON.stringify({
+      ...legacy,
+      peer: { ...legacy.peer, remoteCommandPrefix: ["wsl.exe", "-d", "Ubuntu", "--"] },
+    });
+    await writeFile(repositoryReplicaConfigPath(environment), configuration, { mode: 0o600 });
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({ peerLauncher: "wsl.exe" });
+    expect(await readFile(repositoryReplicaConfigPath(environment), "utf8")).toBe(configuration);
+    const migrating = await fixture({
+      legacy: { ...legacy, peer: { ...legacy.peer, remoteCommandPrefix: ["wsl.exe"] } },
+    });
+    expect(await inspectRepositoryReplicaService(migrating.ports)).toMatchObject({
+      configMigration: "migrate",
+      peerLauncher: "wsl.exe",
+    });
+  });
+
   it("blocks on an unreadable legacy file and prefers an existing managed configuration", async () => {
     const broken = await fixture({ legacy: "{not json" });
     expect(await inspectRepositoryReplicaService(broken.ports)).toMatchObject({

@@ -170,6 +170,22 @@ export function describeRepositoryReplicaFailure(
   };
 }
 
+const PEER_TRANSPORT_FAILURE_CODES = new Set([
+  "repository_replica_transfer_failed",
+  "repository_replica_transfer_timeout",
+]);
+
+/**
+ * ADR-0570: the SSH transport failed before the peer runtime could report anything, so the peer
+ * host, not one repository, is unavailable. A failure the peer runtime reported keeps its own
+ * code and stage and is never a transport failure.
+ */
+export function isRepositoryReplicaPeerTransportFailure(
+  failure: RepositoryReplicaFailure,
+): boolean {
+  return failure.stage === "transfer" && PEER_TRANSPORT_FAILURE_CODES.has(failure.code);
+}
+
 /** One log line naming the code, stage, Git exit code, cause chain, and stderr digest. */
 export function formatRepositoryReplicaFailure(failure: RepositoryReplicaFailure): string {
   return [

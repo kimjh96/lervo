@@ -28,7 +28,7 @@ import {
   type RepositoryReplicaCaptureVersionPort,
 } from "./repository-replica-capture-compatibility.js";
 import {
-  reconcileReplicaKnowledgeSupersession,
+  ReplicaKnowledgeSupersessionExchange,
   type RepositoryReplicaKnowledgeSupersessionPort,
 } from "./repository-replica-knowledge-supersession.js";
 import type {
@@ -123,6 +123,9 @@ export class RepositoryReplicaCoordinator {
   private readonly capture: RepositoryReplicaCaptureCompatibility;
   /** The last peer receipt identity this process wrote, per replica. */
   private readonly peerReceipts = new Map<string, string>();
+  private readonly supersession = new ReplicaKnowledgeSupersessionExchange(() =>
+    this.now().getTime(),
+  );
 
   constructor(
     private readonly options: {
@@ -208,11 +211,11 @@ export class RepositoryReplicaCoordinator {
     let [local, peer] = await observe();
     // Superseded knowledge commits leave both branches before either side's history can move.
     stage.current = "supersession";
-    const supersession = await reconcileReplicaKnowledgeSupersession({
+    const supersession = await this.supersession.exchange({
+      ...input,
       local: this.options.local,
       peer: this.options.peer,
-      localRoot: input.localRoot,
-      peerRoot: input.peerRoot,
+      snapshotHashes: [local.snapshotHash, peer.snapshotHash],
     });
     stage.current = "snapshot";
     if (supersession.droppedCommitCount > 0) [local, peer] = await observe();
@@ -330,12 +333,7 @@ export class RepositoryReplicaCoordinator {
     // Without a transfer both sides were just observed equal; observing them again proves nothing
     // more, and a later change reaches the next cycle through its hint or recovery sweep.
     const [verifiedLocal, verifiedPeer] =
-      transferredSnapshotHash === null
-        ? [local, peer]
-        : await Promise.all([
-            this.options.local.snapshot(input.localRoot),
-            this.options.peer.snapshot(input.peerRoot),
-          ]);
+      transferredSnapshotHash === null ? [local, peer] : await observe();
     if (verifiedLocal.snapshotHash !== verifiedPeer.snapshotHash) {
       if (transferredSnapshotHash !== null)
         return {

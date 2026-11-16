@@ -2,8 +2,9 @@ import { ChangeWakeup } from "./change-wakeup.js";
 import { RepositoryReconciliationPool } from "./repository-reconciliation-pool.js";
 import { watchRepositoryChanges } from "./repository-change-watch.js";
 import type { RepositoryReplicaCycleTrigger } from "./repository-replica-coordinator.js";
+import { ReplicaPeerBackoff } from "./repository-replica-peer-backoff.js";
 import {
-  ReplicaRecoveryBackoff,
+  ReplicaRecoverySchedule,
   type ReplicaReconcileOutcome,
 } from "./repository-replica-recovery-backoff.js";
 import type { SshRepositoryReplicaPeer } from "./repository-replica-ssh-peer.js";
@@ -14,6 +15,12 @@ type WatchedRepository = {
   peerRoot: string;
   conflictPolicy?: "hold" | "prefer_local" | "prefer_peer";
 };
+
+/** The peer gate as health reports it; `retryAt` is null while the peer is reachable. */
+export interface ReplicaPeerBackoffState {
+  retryAt: number | null;
+  consecutiveFailures: number;
+}
 
 export async function watchReplicaReconciliation(input: {
   repositories: WatchedRepository[];
@@ -26,6 +33,12 @@ export async function watchReplicaReconciliation(input: {
   peerWatch?: boolean;
   signal?: AbortSignal;
   onRecoveryInterval?(recoveryIntervalMs: number): void;
+  /**
+   * One cheap peer request that resolves true when the peer transport answered. It runs once per
+   * back-off period while the peer is unreachable; omitted, the queued cycles themselves probe.
+   */
+  probePeer?(): Promise<boolean>;
+  onPeerBackoff?(state: ReplicaPeerBackoffState): void;
   reconcile(
     repository: WatchedRepository,
     context: { trigger: RepositoryReplicaCycleTrigger },
@@ -33,32 +46,75 @@ export async function watchReplicaReconciliation(input: {
 }): Promise<void> {
   const wakeup = new ChangeWakeup();
   const baseRecoveryIntervalMs = input.peerWatch === false ? input.fallbackIntervalMs : 60_000;
-  const backoff = new ReplicaRecoveryBackoff(
+  const ceilingMs = input.idleRecoveryCeilingMs ?? baseRecoveryIntervalMs;
+  const schedule = new ReplicaRecoverySchedule(
     input.repositories.map((repository) => repository.replicaId),
     baseRecoveryIntervalMs,
-    input.idleRecoveryCeilingMs ?? baseRecoveryIntervalMs,
+    ceilingMs,
   );
-  // Only a watching coordinator runs recovery sweeps, so only it reports their interval.
-  const reportInterval = (intervalMs: number) => {
-    if (input.watch) input.onRecoveryInterval?.(intervalMs);
+  // A one-shot run contacts the peer once per replica and stops, so only watching backs off.
+  const peerGate = input.watch ? new ReplicaPeerBackoff(baseRecoveryIntervalMs, ceilingMs) : null;
+  const reportInterval = () => {
+    if (input.watch) input.onRecoveryInterval?.(schedule.recoveryIntervalMs);
   };
-  reportInterval(backoff.recoveryIntervalMs);
+  const reportPeer = () => {
+    if (peerGate !== null)
+      input.onPeerBackoff?.({
+        retryAt: peerGate.retryAt,
+        consecutiveFailures: peerGate.consecutiveFailures,
+      });
+  };
+  reportInterval();
   const hinted = new Set<string>();
-  let reconcileBy = Date.now() + baseRecoveryIntervalMs;
-  const recoverAtBase = () => {
-    reconcileBy = Math.min(reconcileBy, Date.now() + backoff.recoveryIntervalMs);
-    reportInterval(backoff.recoveryIntervalMs);
+  // Only replicas the gate parked run again when it reopens; every other replica keeps its own
+  // schedule. A parked replica whose run is still finishing in the pool gets one follow-up run.
+  const reopen = () => {
+    pool.notifyAll(peerGate!.takeParked());
   };
+  let lastProbe: { at: number; reachable: boolean } | null = null;
+  const probePeer = async () => {
+    const reachable = await (input.probePeer ?? (async () => true))().catch(() => false);
+    lastProbe = { at: Date.now(), reachable };
+    return reachable;
+  };
+  // An isolated replica that fails on every local edit reuses a probe result younger than the
+  // base interval, so its confirmations cost at most one peer request per interval.
+  const confirmPeer = () =>
+    lastProbe !== null && Date.now() - lastProbe.at < baseRecoveryIntervalMs
+      ? Promise.resolve(lastProbe.reachable)
+      : probePeer();
   const pool = new RepositoryReconciliationPool(input.repositories, {
     concurrency: input.maximumConcurrency ?? 4,
     coalesceMs: 250,
     reconcile: async (repository) => {
       const trigger = hinted.delete(repository.replicaId) ? "change" : "recovery";
-      const outcome = (await input.reconcile(repository, { trigger })) ?? "not_current";
-      if (backoff.observe(repository.replicaId, outcome)) recoverAtBase();
+      let outcome = (await input.reconcile(repository, { trigger })) ?? "not_current";
+      if (peerGate !== null) {
+        let observed = peerGate.observeCycle(repository.replicaId, outcome, Date.now());
+        if (observed.confirm)
+          observed = peerGate.confirmIsolated(
+            repository.replicaId,
+            await confirmPeer(),
+            Date.now(),
+          );
+        outcome = observed.outcome;
+        if (observed.reopened) reopen();
+        reportPeer();
+      }
+      schedule.observe(repository.replicaId, outcome, Date.now());
+      reportInterval();
     },
     notify: () => wakeup.notify(),
   });
+  let probe: Promise<void> | null = null;
+  const startProbe = () => {
+    probe = probePeer().then((reachable) => {
+      if (peerGate!.observeProbe(reachable, Date.now())) reopen();
+      reportPeer();
+      probe = null;
+      wakeup.notify();
+    });
+  };
   const localStops: Array<() => void> = [];
   const remote = new Map<string, { stop: () => void; ready: boolean; retryAt: number }>();
   let localAvailable = true;
@@ -66,7 +122,8 @@ export async function watchReplicaReconciliation(input: {
   let startup = true;
   const changed = (id: string) => {
     hinted.add(id);
-    if (backoff.reset()) recoverAtBase();
+    schedule.hint(id);
+    reportInterval();
     pool.notify(id);
   };
   try {
@@ -89,20 +146,14 @@ export async function watchReplicaReconciliation(input: {
       }
     }
     while (!input.signal?.aborted) {
-      if (Date.now() >= reconcileBy) {
-        let delay = backoff.recoveryIntervalMs;
-        if (pool.idle()) {
-          pool.notifyAll();
-          delay = backoff.sweep();
-          reportInterval(delay);
-        }
-        reconcileBy = Date.now() + delay;
-      }
+      const peerClosed = peerGate?.closed === true;
+      const due = schedule.takeDue(Date.now()).filter((replicaId) => !pool.busy(replicaId));
+      if (due.length > 0) pool.notifyAll(due);
       if (fallbackBy !== null && Date.now() >= fallbackBy) {
         if (pool.idle()) pool.notifyAll();
         fallbackBy = Date.now() + input.fallbackIntervalMs;
       }
-      if (input.watch && input.peerWatch !== false) {
+      if (input.watch && input.peerWatch !== false && !peerClosed) {
         for (const repository of input.repositories) {
           const previous = remote.get(repository.replicaId);
           if (previous !== undefined && (previous.ready || previous.retryAt > Date.now())) continue;
@@ -127,7 +178,8 @@ export async function watchReplicaReconciliation(input: {
         pool.notifyAll();
         startup = false;
       }
-      pool.startReady();
+      if (peerGate?.beginProbe(Date.now())) startProbe();
+      if (!peerClosed) pool.startReady();
       if (!input.watch) {
         if (pool.idle() || input.signal?.aborted) break;
         const revision = wakeup.revision;
@@ -138,18 +190,27 @@ export async function watchReplicaReconciliation(input: {
       const available = localAvailable && [...remote.values()].every((entry) => entry.ready);
       fallbackBy = available ? null : (fallbackBy ?? Date.now() + input.fallbackIntervalMs);
       const revision = wakeup.revision;
-      const due = [
-        reconcileBy,
-        fallbackBy,
-        pool.nextReadyAt(),
-        ...[...remote.values()].filter((entry) => !entry.ready).map((entry) => entry.retryAt),
-      ].filter((value): value is number => value !== null);
-      await wakeup.wait(revision, Math.max(0, Math.min(...due) - Date.now()), input.signal);
+      // While the peer gate is closed, queued work and subscription retries wait for its probe.
+      const deadlines = peerClosed
+        ? [schedule.nextDueAt(), fallbackBy, probe === null ? peerGate!.retryAt : null]
+        : [
+            schedule.nextDueAt(),
+            fallbackBy,
+            pool.nextReadyAt(),
+            ...[...remote.values()].filter((entry) => !entry.ready).map((entry) => entry.retryAt),
+          ];
+      const next = deadlines.filter((value): value is number => value !== null);
+      await wakeup.wait(
+        revision,
+        next.length === 0 ? 60_000 : Math.max(0, Math.min(...next) - Date.now()),
+        input.signal,
+      );
     }
   } finally {
     for (const stop of localStops) stop();
     for (const entry of remote.values()) entry.stop();
     await pool.settle();
+    await probe;
   }
   if (pool.error() !== null) throw pool.error();
 }

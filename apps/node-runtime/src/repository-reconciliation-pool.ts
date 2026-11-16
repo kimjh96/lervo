@@ -39,12 +39,20 @@ export class RepositoryReconciliationPool<T extends RepositoryReconciliationItem
     this.options.notify();
   }
 
-  notifyAll(): void {
+  /** Makes the given items, or every item, eligible now without the coalescing window. */
+  notifyAll(replicaIds: Iterable<string> = this.items.keys()): void {
     const now = (this.options.now ?? Date.now)();
-    for (const replicaId of this.items.keys()) {
+    for (const replicaId of replicaIds) {
+      if (!this.items.has(replicaId))
+        throw new Error("The repository reconciliation hint is not configured.");
       this.pendingAt.set(replicaId, Math.min(this.pendingAt.get(replicaId) ?? now, now));
     }
     this.options.notify();
+  }
+
+  /** Whether the item already has a pending or active run. */
+  busy(replicaId: string): boolean {
+    return this.pendingAt.has(replicaId) || this.active.has(replicaId);
   }
 
   startReady(): number {
