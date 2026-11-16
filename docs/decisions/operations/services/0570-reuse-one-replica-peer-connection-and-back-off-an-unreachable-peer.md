@@ -32,12 +32,12 @@ Measured with a counting peer port in the node-runtime suite, an unchanged curre
 
 The coordinator composes its SSH arguments through `repository-replica-ssh-connection.ts`. Every install receives this behavior without configuration changes.
 
-- When the transport executable is an OpenSSH client (`ssh` or `ssh.exe`) on a host other than Windows, Lervo appends `ControlMaster=auto`, `ControlPath=<state directory>/replica-ssh/%C`, and `ControlPersist=600`. Every peer step and every peer watch is then a channel on one master connection. The state directory is the one that holds the coordinator `stateFile`.
+- When the transport executable is an OpenSSH `ssh` client on a host other than Windows, Lervo appends `ControlMaster=auto`, `ControlPath=<state directory>/replica-ssh/%C`, and `ControlPersist=600`. Every peer step and every peer watch is then a channel on one master connection. The state directory is the one that holds the coordinator `stateFile`.
 - The control directory is created with mode `0700`. An existing directory that is not a real directory owned by the user, or that grants group or other access, disables reuse (`control_directory_unsafe`), because a control socket grants command execution on the peer.
 - A path too long for the platform socket limit falls back to a 16-character hash of the configured transport. If even that path is too long, reuse is disabled (`control_path_unsupported`). The limit is 103 bytes on macOS, including OpenSSH's 17-byte temporary master suffix. Paths with whitespace are quoted, and `%` is escaped.
 - Configured options always win. If coordinator arguments set any of `ControlMaster`, `ControlPath`, `ControlPersist`, `-M`, or `-S`, Lervo adds none of them (`configured`). The owner's mitigation keeps working unchanged.
 - Lervo also adds `ConnectTimeout=15`, `ServerAliveInterval=15`, and `ServerAliveCountMax=3` when they are not configured. A master on a dead link exits within 45 seconds, so the next step connects afresh instead of waiting on the dead master until its deadline.
-- Other clients, such as a test double, receive no options (`client_not_openssh`). Windows OpenSSH has no multiplexing and receives only the keepalive options (`platform_unsupported`). A disabled reuse mode other than `client_not_openssh` is logged once at startup.
+- Other clients, such as a test double, receive no options (`client_not_openssh`). Windows OpenSSH has no multiplexing, including `ssh.exe` run from WSL through interop, and receives only the keepalive options (`windows_client`). A disabled reuse mode other than `client_not_openssh` is logged once at startup.
 
 Each step remains a bounded process with its own 512 MiB output bound, its 60-second default deadline, exit code, and structured failure. ADR-0415 is otherwise unchanged.
 
@@ -81,14 +81,15 @@ A cycle whose structured failure is a transport failure closes `ReplicaPeerBacko
 - At the retry time, exactly one probe runs: `capture-version`, the cheapest peer request.
 - The wait starts at the base recovery interval and doubles up to `idleRecoveryCeilingMs`, which defaults to 10 minutes.
 - Cycles that fail during one outage count once.
-- A probe or cycle that reaches the peer reopens the gate and queues every replica once.
+- A probe or cycle that reaches the peer reopens the gate. Only the replicas the gate parked run once more; every other replica stays on its own schedule.
+- A replica whose transport failure recurs after the peer answered anyone has a problem of its own. Until it completes a cycle again, its failures are `held` on its own schedule and never close the gate. Another replica's first transport failure still closes it. Without this rule, one replica failing faster than a sibling succeeds would close and reopen the gate continuously and rerun every replica at once.
 - One-shot `reconcile` runs are not gated.
 
 A stopped or restarting WSL therefore receives one connection attempt per back-off period instead of one per replica per cycle.
 
 ### Per-call launchers are surfaced, never rewritten
 
-`repositoryReplicaPeerLauncher` in `@lervo/sync` detects a peer remote command whose prefix or Node executable is `wsl`, `wsl.exe`, `wslhost.exe`, `bash.exe`, or `ubuntu*.exe`. Each of these starts or wakes WSL for every step. The advisory is `repository_replica_peer_per_call_launcher`, and its guidance is: each replica peer step launches the launcher, so point `peer.destination` at the WSL `sshd` and remove `peer.remoteCommandPrefix`. It surfaces:
+`repositoryReplicaPeerLauncher` in `@lervo/sync` detects a peer remote command whose prefix or Node executable is `wsl`, `wsl.exe`, or `ubuntu*.exe`. Each of these starts or wakes WSL for every step. `bash.exe` is not matched, because Git for Windows ships a `bash.exe` that never touches WSL. The advisory is `repository_replica_peer_per_call_launcher`, and its guidance is: each replica peer step launches the launcher, so point `peer.destination` at the WSL `sshd` and remove `peer.remoteCommandPrefix`. It surfaces:
 
 - once on coordinator stderr at startup;
 - in health `advisories`;
@@ -139,3 +140,5 @@ Peer-side changes on a replica without peer watches are still noticed within the
 
 - [Subscriptions and recovery](../../../specifications/coordination/node-change-driven-work/repository-replicas/subscriptions-and-recovery.md)
 - [Failure fidelity](../../../specifications/coordination/node-change-driven-work/repository-replicas/failure-fidelity.md)
+
+ADR-0461 carries no "Amended by" back-link to this decision because it is already at the 16 KiB documentation bound.
