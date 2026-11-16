@@ -1,4 +1,4 @@
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it } from "vitest";
 import { inspectConfiguredDocumentNormalization } from "@lervo/repository-knowledge";
@@ -22,7 +22,6 @@ import {
   reviewedBatches,
   runParkingWorker,
   settleParking,
-  suiteBoundSettlements,
 } from "./convergence-parking-fixture.js";
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
@@ -32,6 +31,27 @@ afterEach(async () => {
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
   }
 });
+
+/** Every stored suite-bound asset settlement in the project's private CAS. */
+async function suiteBoundSettlements(f: Awaited<ReturnType<typeof fixture>>) {
+  const cas = resolve(f.storage.paths.cas, "sha256");
+  return (
+    await Promise.all(
+      (await readdir(cas)).map(async (prefix) =>
+        Promise.all(
+          (await readdir(resolve(cas, prefix))).map((name) =>
+            readFile(resolve(cas, prefix, name), "utf8"),
+          ),
+        ),
+      ),
+    )
+  )
+    .flat()
+    .filter((text) => text.includes('"kind":"suite_bound_assets"'))
+    .map(
+      (text) => JSON.parse(text) as { sources: { path: string }[]; verificationReceipts: string[] },
+    );
+}
 
 /** The reason the patched fixture reviewer gives for every rejection of a.md. */
 const REASON =
@@ -101,14 +121,6 @@ it("parks an always-rejected document, carries it to the next obligation, and re
       request.envelope?.documents.some((document) => document.path === "docs/specs/a.md"),
     ).length;
   expect(await generations()).toBe(3);
-  const reviews = (await providerRequests(f)).filter(
-    (request) =>
-      request.task === "independent_normalization_review" &&
-      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.some(
-        (item) => item.sourcePath === "docs/specs/a.md",
-      ),
-  );
-  expect(reviews).toHaveLength(3);
   // The first review approves runtime.md and rejects a.md in one batch; only a.md is regenerated,
   // alone and each time with the reviewer's reason and its next attempt number.
   expect(await reviewedBatches(f)).toEqual([

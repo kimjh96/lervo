@@ -1,12 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { readdir, readFile, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { readFile, writeFile } from "node:fs/promises";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import type { fixture } from "./fixture.js";
 
-/** Readers and drivers shared by the end-to-end parking and canonical rejection cases. */
+/** Readers and drivers shared by the end-to-end parking, canonical rejection, and timeout cases. */
 type ConvergenceFixture = Awaited<ReturnType<typeof fixture>>;
 
 export function runParkingWorker(f: ConvergenceFixture) {
@@ -66,27 +65,6 @@ export async function regenerationFeedback(f: ConvergenceFixture) {
     .flatMap((request) => request.envelope?.documents ?? [])
     .filter((document) => document.independentReviewFeedback !== undefined)
     .map(({ path, independentReviewFeedback }) => ({ path, independentReviewFeedback }));
-}
-
-/** Every stored suite-bound asset settlement in the project's private CAS. */
-export async function suiteBoundSettlements(f: ConvergenceFixture) {
-  const cas = resolve(f.storage.paths.cas, "sha256");
-  return (
-    await Promise.all(
-      (await readdir(cas)).map(async (prefix) =>
-        Promise.all(
-          (await readdir(resolve(cas, prefix))).map((name) =>
-            readFile(resolve(cas, prefix, name), "utf8"),
-          ),
-        ),
-      ),
-    )
-  )
-    .flat()
-    .filter((text) => text.includes('"kind":"suite_bound_assets"'))
-    .map(
-      (text) => JSON.parse(text) as { sources: { path: string }[]; verificationReceipts: string[] },
-    );
 }
 
 /** Rewrites the fixture provider so the exact reviewer rejects selected sources. */
