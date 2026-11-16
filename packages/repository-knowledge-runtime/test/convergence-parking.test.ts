@@ -17,7 +17,9 @@ import type { ParkedConvergenceSource } from "../src/convergence-parking.js";
 import { fixture } from "./fixture.js";
 import {
   providerRequests,
+  regenerationFeedback,
   rejectWhen,
+  reviewedBatches,
   runParkingWorker,
   settleParking,
 } from "./convergence-parking-fixture.js";
@@ -30,10 +32,37 @@ afterEach(async () => {
   }
 });
 
-it("regenerates a rejected document with the reviewer's reasons and converges", async () => {
+/** Every stored suite-bound asset settlement in the project's private CAS. */
+async function suiteBoundSettlements(f: Awaited<ReturnType<typeof fixture>>) {
+  const cas = resolve(f.storage.paths.cas, "sha256");
+  return (
+    await Promise.all(
+      (await readdir(cas)).map(async (prefix) =>
+        Promise.all(
+          (await readdir(resolve(cas, prefix))).map((name) =>
+            readFile(resolve(cas, prefix, name), "utf8"),
+          ),
+        ),
+      ),
+    )
+  )
+    .flat()
+    .filter((text) => text.includes('"kind":"suite_bound_assets"'))
+    .map(
+      (text) => JSON.parse(text) as { sources: { path: string }[]; verificationReceipts: string[] },
+    );
+}
+
+/** The reason the patched fixture reviewer gives for every rejection of a.md. */
+const REASON =
+  "The link to runtime.md#local-runtime loses its anchor in this rewrite. (failed checks: links)";
+
+it("regenerates a once-rejected document with the reviewer's reasons, applies the approved regeneration, and converges with an undeclared opaque asset settled by the pinned suite", async () => {
   const f = await fixture(true);
   fixtures.push(f);
   await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this local contract.\n");
+  // An owner's new, still untracked asset that no declaration covers.
+  await writeFile(resolve(f.root, "icon.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3]));
   // The first review of a.md rejects it; the regeneration carries the reason and is approved.
   await rejectWhen(
     f,
@@ -41,23 +70,33 @@ it("regenerates a rejected document with the reviewer's reasons and converges", 
       JSON.stringify(f.log) +
       ",'utf8').includes('independentReviewFeedback')",
   );
-  const result = await settleParking(f);
-  expect(result).toMatchObject({
+  expect(await settleParking(f)).toMatchObject({
     status: "processed",
     convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
   });
-  const regenerated = (await providerRequests(f))
-    .flatMap((request) => request.envelope?.documents ?? [])
-    .filter((document) => document.independentReviewFeedback !== undefined);
-  expect(regenerated).toEqual([
+  // a.md is rejected beside the approved runtime.md, regenerated alone once with the reason, and
+  // approved; nothing is reviewed or regenerated after that approval.
+  expect(await reviewedBatches(f)).toEqual([
+    ["docs/specs/a.md", "docs/specs/runtime.md"],
+    ["docs/specs/a.md"],
+  ]);
+  expect(await regenerationFeedback(f)).toEqual([
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 2, reasons: [REASON] } },
+  ]);
+  // The approved regeneration is applied, so no document stays pending.
+  expect(
+    (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
+  ).toEqual([]);
+  // Runtime src never raises asset_verification_required; this guard only keeps the old contract.
+  const stages = f.events
+    .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
+    .map((event) => event.payload as { failureCode: string | null });
+  expect(stages.some((stage) => stage.failureCode === "asset_verification_required")).toBe(false);
+  // The private suite-bound evidence names the exact asset bytes and the passing suite receipts.
+  expect(await suiteBoundSettlements(f)).toEqual([
     expect.objectContaining({
-      path: "docs/specs/a.md",
-      independentReviewFeedback: {
-        attempt: 2,
-        reasons: [
-          "The link to runtime.md#local-runtime loses its anchor in this rewrite. (failed checks: links)",
-        ],
-      },
+      sources: [expect.objectContaining({ path: "icon.png" })],
+      verificationReceipts: [expect.stringMatching(/^sha256:/u)],
     }),
   ]);
 }, 180_000);
@@ -82,14 +121,17 @@ it("parks an always-rejected document, carries it to the next obligation, and re
       request.envelope?.documents.some((document) => document.path === "docs/specs/a.md"),
     ).length;
   expect(await generations()).toBe(3);
-  const reviews = (await providerRequests(f)).filter(
-    (request) =>
-      request.task === "independent_normalization_review" &&
-      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.some(
-        (item) => item.sourcePath === "docs/specs/a.md",
-      ),
-  );
-  expect(reviews).toHaveLength(3);
+  // The first review approves runtime.md and rejects a.md in one batch; only a.md is regenerated,
+  // alone and each time with the reviewer's reason and its next attempt number.
+  expect(await reviewedBatches(f)).toEqual([
+    ["docs/specs/a.md", "docs/specs/runtime.md"],
+    ["docs/specs/a.md"],
+    ["docs/specs/a.md"],
+  ]);
+  expect(await regenerationFeedback(f)).toEqual([
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 2, reasons: [REASON] } },
+    { path: "docs/specs/a.md", independentReviewFeedback: { attempt: 3, reasons: [REASON] } },
+  ]);
   // Only the rejected leading family stays pending with its exact bytes; runtime.md is applied.
   expect(
     (await inspectConfiguredDocumentNormalization({ repositoryRoot: f.root })).pendingDocuments,
@@ -114,50 +156,16 @@ it("parks an always-rejected document, carries it to the next obligation, and re
     "independent_canonical_review",
   ]);
 
-  // Editing the parked document is the recovery: its new bytes are generated again.
+  // Editing the parked document is the recovery: its new bytes are generated again, as a fresh
+  // generation without the old bytes' feedback. The rest of that obligation repeats phase one.
   await writeFile(resolve(f.root, "docs/specs/a.md"), "# A\n\nKeep this exact local contract.\n");
-  await settleParking(f);
+  for (let cycle = 0; cycle < 16 && (await generations()) <= 3; cycle++) await runParkingWorker(f);
   expect(await generations()).toBeGreaterThan(3);
+  const readmitted = (await providerRequests(f))
+    .flatMap((request) => request.envelope?.documents ?? [])
+    .filter((document) => document.path === "docs/specs/a.md")[3]!;
+  expect(readmitted.independentReviewFeedback).toBeUndefined();
 }, 300_000);
-
-it("settles an undeclared opaque asset by the passing pinned suite instead of stopping", async () => {
-  const f = await fixture(true);
-  fixtures.push(f);
-  await writeFile(resolve(f.root, "icon.png"), Buffer.from([0x89, 0x50, 0x4e, 0x47, 0, 1, 2, 3]));
-  const result = await settleParking(f);
-  expect(result).toMatchObject({
-    status: "processed",
-    convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
-  });
-  const stages = f.events
-    .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
-    .map((event) => event.payload as { stage: string; state: string; failureCode: string | null });
-  expect(stages.some((stage) => stage.failureCode === "asset_verification_required")).toBe(false);
-  // The private suite-bound evidence names the exact asset bytes and the passing suite receipts.
-  const cas = resolve(f.storage.paths.cas, "sha256");
-  const artifacts = (
-    await Promise.all(
-      (await readdir(cas)).map(async (prefix) =>
-        Promise.all(
-          (await readdir(resolve(cas, prefix))).map((name) =>
-            readFile(resolve(cas, prefix, name), "utf8"),
-          ),
-        ),
-      ),
-    )
-  )
-    .flat()
-    .filter((text) => text.includes('"kind":"suite_bound_assets"'))
-    .map(
-      (text) => JSON.parse(text) as { sources: { path: string }[]; verificationReceipts: string[] },
-    );
-  expect(artifacts).toEqual([
-    expect.objectContaining({
-      sources: [expect.objectContaining({ path: "icon.png" })],
-      verificationReceipts: [expect.stringMatching(/^sha256:/u)],
-    }),
-  ]);
-}, 180_000);
 
 it("reevaluates a stall settled by any earlier evaluation logic exactly once", () => {
   const current = convergenceEvaluationContract();

@@ -5,7 +5,7 @@ import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import type { fixture } from "./fixture.js";
 
-/** Readers and drivers shared by the end-to-end parking and canonical rejection cases. */
+/** Readers and drivers shared by the end-to-end parking, canonical rejection, and timeout cases. */
 type ConvergenceFixture = Awaited<ReturnType<typeof fixture>>;
 
 export function runParkingWorker(f: ConvergenceFixture) {
@@ -46,6 +46,25 @@ export async function providerRequests(f: ConvergenceFixture) {
           untrustedSourceData?: Record<string, unknown>;
         },
     );
+}
+
+/** The source paths of each independent normalization review, in call order. */
+export async function reviewedBatches(f: ConvergenceFixture) {
+  return (await providerRequests(f))
+    .filter((request) => request.task === "independent_normalization_review")
+    .map((request) =>
+      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.map(
+        (item) => item.sourcePath,
+      ),
+    );
+}
+
+/** Every generated envelope document that carried reviewer feedback, in call order. */
+export async function regenerationFeedback(f: ConvergenceFixture) {
+  return (await providerRequests(f))
+    .flatMap((request) => request.envelope?.documents ?? [])
+    .filter((document) => document.independentReviewFeedback !== undefined)
+    .map(({ path, independentReviewFeedback }) => ({ path, independentReviewFeedback }));
 }
 
 /** Rewrites the fixture provider so the exact reviewer rejects selected sources. */
