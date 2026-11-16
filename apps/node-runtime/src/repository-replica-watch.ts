@@ -71,7 +71,18 @@ export async function watchReplicaReconciliation(input: {
   const reopen = () => {
     pool.notifyAll(peerGate!.takeParked());
   };
-  const probePeer = () => (input.probePeer ?? (async () => true))().catch(() => false);
+  let lastProbe: { at: number; reachable: boolean } | null = null;
+  const probePeer = async () => {
+    const reachable = await (input.probePeer ?? (async () => true))().catch(() => false);
+    lastProbe = { at: Date.now(), reachable };
+    return reachable;
+  };
+  // An isolated replica that fails on every local edit reuses a probe result younger than the
+  // base interval, so its confirmations cost at most one peer request per interval.
+  const confirmPeer = () =>
+    lastProbe !== null && Date.now() - lastProbe.at < baseRecoveryIntervalMs
+      ? Promise.resolve(lastProbe.reachable)
+      : probePeer();
   const pool = new RepositoryReconciliationPool(input.repositories, {
     concurrency: input.maximumConcurrency ?? 4,
     coalesceMs: 250,
@@ -81,7 +92,11 @@ export async function watchReplicaReconciliation(input: {
       if (peerGate !== null) {
         let observed = peerGate.observeCycle(repository.replicaId, outcome, Date.now());
         if (observed.confirm)
-          observed = peerGate.confirmIsolated(repository.replicaId, await probePeer(), Date.now());
+          observed = peerGate.confirmIsolated(
+            repository.replicaId,
+            await confirmPeer(),
+            Date.now(),
+          );
         outcome = observed.outcome;
         if (observed.reopened) reopen();
         reportPeer();

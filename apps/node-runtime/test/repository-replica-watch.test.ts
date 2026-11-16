@@ -719,8 +719,10 @@ it("closes the gate on the first failure of a replica that was already isolated"
     upForMs: 120_000,
     downForMs: 1_800_000,
   });
-  expect(attempts.d ?? 0).toBeLessThanOrEqual(3);
-  expect(Object.values(attempts).reduce((sum, count) => sum + count, 0)).toBeLessThanOrEqual(10);
+  // A confirming probe answer is reused for up to one base interval (30 s), so the edits in that
+  // window still reach the peer before the next probe closes the gate.
+  expect(attempts.d ?? 0).toBeLessThanOrEqual(10);
+  expect(Object.values(attempts).reduce((sum, count) => sum + count, 0)).toBeLessThanOrEqual(15);
   // Confirmation probe plus the doubling retries: 30, 90, 210, 450, 930 and 1,530 seconds.
   expect(probes).toBeLessThanOrEqual(8);
 });
@@ -763,6 +765,56 @@ it("gives a parked replica whose run was still finishing a follow-up when the ga
   try {
     for (let minute = 0; minute < 60; minute += 1) await vi.advanceTimersByTimeAsync(60_000);
     expect(cycles.big).toBeGreaterThanOrEqual(10);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
+it("confirms an isolated replica's failures with at most one probe per base interval", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  let probes = 0;
+  let cycles = 0;
+  const running = watchReplicaReconciliation({
+    // The mocked local watch notifies the last registered repository.
+    repositories: ["a", "broken"].map((replicaId) => ({
+      replicaId,
+      localRoot: `/${replicaId}`,
+      peerRoot: `/peer/${replicaId}`,
+    })),
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 600_000,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    probePeer: async () => {
+      probes += 1;
+      return true;
+    },
+    reconcile: async (repository) => {
+      if (repository.replicaId !== "broken") return "current";
+      cycles += 1;
+      return "peer_unreachable";
+    },
+  });
+  try {
+    for (let elapsed = 0; elapsed < 3_600_000; elapsed += 1_000) {
+      callbacks.local();
+      await vi.advanceTimersByTimeAsync(1_000);
+    }
+    // Round-3 review: one confirming probe per edit made 3,562 probes in this hour.
+    expect(cycles).toBeGreaterThan(3_000);
+    expect(probes).toBeLessThanOrEqual(121);
   } finally {
     abort.abort();
     await vi.advanceTimersByTimeAsync(0);
