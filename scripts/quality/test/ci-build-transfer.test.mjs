@@ -109,6 +109,49 @@ it("rejects a destination parent symlink without changing its target", async () 
   expect(await readFile(resolve(external, "sentinel"), "utf8")).toBe("preserve");
 });
 
+it("carries this build's release metadata so every consumer verifies the same files", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-build-"));
+  roots.push(root);
+  const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" });
+  git("init", "--quiet");
+  git("config", "user.name", "CI Fixture");
+  git("config", "user.email", "ci@lervo.invalid");
+  const manifest = resolve(root, "apps/cli/release-artifact-manifest.json");
+  const sbom = resolve(root, "apps/cli/release-sbom.cdx.json");
+  await mkdir(resolve(root, "apps/cli/dist"), { recursive: true });
+  await mkdir(resolve(root, "packages"));
+  await writeFile(manifest, "committed manifest\n");
+  await writeFile(sbom, "committed sbom\n");
+  git("add", "apps/cli");
+  git("commit", "--quiet", "-m", "fixture: initial");
+  await writeFile(resolve(root, "apps/cli/dist/bin.js"), "built\n");
+  await writeFile(manifest, "generated manifest\n");
+  const input = { repositoryRoot: root, artifactDirectory: resolve(root, "archive") };
+  const receipt = await createCiBuildTransfer(input);
+  expect(receipt.files).toEqual([
+    "apps/cli/release-artifact-manifest.json",
+    "apps/cli/release-sbom.cdx.json",
+  ]);
+  git("checkout", "--", "apps/cli");
+  await restoreCiBuildTransfer(input);
+  expect(await readFile(manifest, "utf8")).toBe("generated manifest\n");
+  expect(await readFile(sbom, "utf8")).toBe("committed sbom\n");
+
+  const receiptPath = resolve(input.artifactDirectory, "receipt.json");
+  for (const files of [
+    undefined,
+    ["apps/cli/package.json"],
+    [receipt.files[0], receipt.files[0]],
+  ]) {
+    await writeFile(receiptPath, JSON.stringify({ ...receipt, files }));
+    await expect(restoreCiBuildTransfer(input)).rejects.toThrow("ci_build_files_invalid");
+  }
+  // A listed file outside the archive's receipt is an out-of-scope member.
+  await writeFile(receiptPath, JSON.stringify({ ...receipt, files: [receipt.files[1]] }));
+  await expect(restoreCiBuildTransfer(input)).rejects.toThrow("ci_build_archive_path_invalid");
+  expect(await readFile(manifest, "utf8")).toBe("generated manifest\n");
+});
+
 it("rejects corrupt or missing archives", async () => {
   const f = await fixture();
   await writeFile(resolve(f.input.artifactDirectory, "workspace-build.tar"), "corrupt");

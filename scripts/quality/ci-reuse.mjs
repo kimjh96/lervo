@@ -2,7 +2,12 @@ import { appendFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { computeCiContentDigests } from "./lib/ci-content-digest.mjs";
-import { findReusableRun, planCiReuse } from "./lib/ci-reuse-receipts.mjs";
+import {
+  ciBuildComponent,
+  ciReuseArtifactName,
+  findReusableRun,
+  planCiReuse,
+} from "./lib/ci-reuse-receipts.mjs";
 
 const repository = process.env.GITHUB_REPOSITORY;
 const digests = computeCiContentDigests({
@@ -14,11 +19,13 @@ const reuse = planCiReuse({
   distributionRequired: process.env.DISTRIBUTION_REQUIRED === "true",
   digests,
   eventName: process.env.GITHUB_EVENT_NAME,
+  releaseMetadata: process.env.RELEASE_METADATA,
   find: (component, digest) => findReusableRun({ repository, component, digest }),
 });
 const outputs = {
   tree: digests.tree,
   testDigest: digests.tests,
+  buildReceipt: ciReuseArtifactName(ciBuildComponent(process.env.RELEASE_METADATA), digests.tree),
   reuseQuality: String(reuse.quality),
   reuseBuild: reuse.build ?? "",
   reuseTests: reuse.tests ?? "",

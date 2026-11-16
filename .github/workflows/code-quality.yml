@@ -39,6 +39,8 @@ jobs:
       distribution: ${{ steps.distribution.outputs.required }}
       tree: ${{ steps.reuse.outputs.tree }}
       testDigest: ${{ steps.reuse.outputs.testDigest }}
+      releaseMetadata: ${{ steps.plan.outputs.releaseMetadata }}
+      buildReceipt: ${{ steps.reuse.outputs.buildReceipt }}
       reuseQuality: ${{ steps.reuse.outputs.reuseQuality }}
       reuseBuild: ${{ steps.reuse.outputs.reuseBuild }}
       reuseTests: ${{ steps.reuse.outputs.reuseTests }}
@@ -78,6 +80,7 @@ jobs:
         env:
           COVERAGE: ${{ steps.plan.outputs.coverage }}
           DISTRIBUTION_REQUIRED: ${{ steps.distribution.outputs.required }}
+          RELEASE_METADATA: ${{ steps.plan.outputs.releaseMetadata }}
           GH_TOKEN: ${{ github.token }}
         run: node scripts/quality/ci-reuse.mjs
 
@@ -206,12 +209,37 @@ jobs:
       - name: Build release artifact
         if: env.REUSED_RUN == ''
         run: pnpm build
+      # A release candidate, or a change that edits the files, must commit this build's exact bytes.
       - name: Verify release manifest
-        if: env.REUSED_RUN == ''
+        id: manifest
+        if: env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata != 'generated'
         run: pnpm release:manifest:check
       - name: Verify release SBOM
-        if: env.REUSED_RUN == ''
+        id: sbom
+        if: env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata != 'generated'
         run: pnpm release:sbom:check
+      # Any other tree may keep older committed bytes; release preparation commits new ones. A failed
+      # exact check also gets the generated files, so committing them needs no other build (ADR-0572).
+      - name: Generate release manifest and SBOM from this build
+        if: env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure')))
+        run: pnpm release:manifest:update && pnpm release:sbom:update
+      - name: Report generated release metadata
+        if: env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure')))
+        shell: bash
+        env:
+          RELEASE_METADATA: ${{ needs.plan.outputs.releaseMetadata }}
+        run: node scripts/release/commands/report-cli-release-metadata.mjs "${RELEASE_METADATA}" | tee -a "${GITHUB_STEP_SUMMARY}"
+      - name: Share generated release metadata
+        if: env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure')))
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-cli-release-metadata
+          path: |
+            apps/cli/release-artifact-manifest.json
+            apps/cli/release-sbom.cdx.json
+          if-no-files-found: error
+          retention-days: 7
+          overwrite: true
       - name: Configure Git identity for release metadata tests
         if: env.REUSED_RUN == '' && needs.plan.outputs.reuseTests != ''
         run: |
@@ -442,7 +470,7 @@ jobs:
         if: needs.plan.outputs.reuseBuild == '' && needs.release-artifacts.result == 'success'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: lervo-ci-build-${{ needs.plan.outputs.tree }}
+          name: ${{ needs.plan.outputs.buildReceipt }}
           path: ${{ runner.temp }}/lervo-ci-receipts/build.json
           if-no-files-found: error
           retention-days: 30

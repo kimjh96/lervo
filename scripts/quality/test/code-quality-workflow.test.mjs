@@ -51,7 +51,7 @@ describe("code-quality workflow", () => {
         uses?.startsWith("actions/download-artifact@") && options?.name === "native-runtime",
     );
     assert.ok(nativeDownload);
-    const upload = job.steps.find(({ uses }) => uses?.startsWith("actions/upload-artifact@"));
+    const upload = job.steps.find(({ name }) => name === "Share exact build with test consumers");
     assert.equal(upload.with["retention-days"], 3);
     for (const consumer of [workflow.jobs.test, workflow.jobs.distribution]) {
       assert.ok(consumer.needs.includes("release-artifacts"));
@@ -158,10 +158,71 @@ it("reuses only components that an earlier run executed for identical content", 
   assert.deepEqual(
     uploads.map(({ with: options }) => options.name),
     [
-      "lervo-ci-build-${{ needs.plan.outputs.tree }}",
+      "${{ needs.plan.outputs.buildReceipt }}",
       "lervo-ci-tests-${{ needs.plan.outputs.testDigest }}",
       "lervo-ci-distribution-${{ needs.plan.outputs.tree }}",
     ],
+  );
+});
+
+it("checks committed release metadata exactly or generates it, as the plan decides", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  const reuse = workflow.jobs.plan.steps.find(({ id }) => id === "reuse");
+  assert.equal(reuse.env.RELEASE_METADATA, "${{ steps.plan.outputs.releaseMetadata }}");
+  assert.equal(
+    workflow.jobs.plan.outputs.releaseMetadata,
+    "${{ steps.plan.outputs.releaseMetadata }}",
+  );
+  assert.equal(workflow.jobs.plan.outputs.buildReceipt, "${{ steps.reuse.outputs.buildReceipt }}");
+  const steps = workflow.jobs["release-artifacts"].steps;
+  const names = steps.map(({ name }) => name);
+  const step = (name) => steps[names.indexOf(name)];
+  // Anything but an explicit `generated` decision checks the committed bytes.
+  for (const name of ["Verify release manifest", "Verify release SBOM"])
+    assert.equal(
+      step(name).if,
+      "env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata != 'generated'",
+    );
+  const generated = [
+    "Generate release manifest and SBOM from this build",
+    "Report generated release metadata",
+    "Share generated release metadata",
+  ];
+  // Generated mode always produces them; an exact run produces them only when its check failed.
+  assert.deepEqual(
+    [step("Verify release manifest").id, step("Verify release SBOM").id],
+    ["manifest", "sbom"],
+  );
+  for (const name of generated)
+    assert.equal(
+      step(name).if,
+      "env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure')))",
+    );
+  assert.equal(step(generated[0]).run, "pnpm release:manifest:update && pnpm release:sbom:update");
+  assert.equal(step(generated[1]).shell, "bash");
+  assert.equal(
+    step(generated[1]).env.RELEASE_METADATA,
+    "${{ needs.plan.outputs.releaseMetadata }}",
+  );
+  assert.match(
+    step(generated[1]).run,
+    /report-cli-release-metadata\.mjs "\$\{RELEASE_METADATA\}" \| tee -a/u,
+  );
+  assert.equal(step(generated[2]).with.name, "lervo-cli-release-metadata");
+  assert.deepEqual(step(generated[2]).with.path.trim().split("\n"), [
+    "apps/cli/release-artifact-manifest.json",
+    "apps/cli/release-sbom.cdx.json",
+  ]);
+  // Generation follows the build and precedes the metadata tests and the shared archive, so the
+  // tests and every consumer of the archive see the same release metadata.
+  const order = [
+    "Build release artifact",
+    ...generated,
+    "Test release metadata that reused test results do not cover",
+    "Archive exact build outputs",
+  ].map((name) => names.indexOf(name));
+  assert.ok(
+    order.every((index, position) => index >= 0 && (position === 0 || index > order[position - 1])),
   );
 });
 

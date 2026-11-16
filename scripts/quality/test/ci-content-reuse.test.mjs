@@ -5,7 +5,12 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { computeCiContentDigests } from "../lib/ci-content-digest.mjs";
-import { findReusableRun, planCiReuse } from "../lib/ci-reuse-receipts.mjs";
+import {
+  ciBuildComponent,
+  ciReuseArtifactName,
+  findReusableRun,
+  planCiReuse,
+} from "../lib/ci-reuse-receipts.mjs";
 
 const roots = [];
 afterEach(async () =>
@@ -179,6 +184,34 @@ describe("CI reuse receipts", () => {
         find: available(["build", "tests", "distribution"]),
       }),
     ).toEqual({ quality: true, build: 9, tests: 9, distribution: 9 });
+  });
+
+  it("reuses a build only when it verified the release metadata the same way", () => {
+    const digests = { tree: "t".repeat(40), tests: "s".repeat(40) };
+    const plan = (releaseMetadata, components) =>
+      planCiReuse({
+        coverage: "full",
+        distributionRequired: true,
+        digests,
+        find: (component) => (components.includes(component) ? 9 : null),
+        eventName: "pull_request",
+        releaseMetadata,
+      });
+    const all = { quality: true, build: 9, tests: 9, distribution: 9 };
+    const testsOnly = { quality: false, build: null, tests: 9, distribution: null };
+    // An exact run never trusts a build that only generated the metadata.
+    for (const releaseMetadata of ["exact", undefined, "unknown"]) {
+      expect(plan(releaseMetadata, ["build", "tests", "distribution"])).toEqual(all);
+      expect(plan(releaseMetadata, ["generatedBuild", "tests", "distribution"])).toEqual(testsOnly);
+    }
+    expect(plan("generated", ["generatedBuild", "tests", "distribution"])).toEqual(all);
+    expect(plan("generated", ["build", "tests", "distribution"])).toEqual(testsOnly);
+    expect(ciReuseArtifactName(ciBuildComponent("generated"), digests.tree)).toBe(
+      `lervo-ci-build-generated-${digests.tree}`,
+    );
+    expect(ciReuseArtifactName(ciBuildComponent("exact"), digests.tree)).toBe(
+      `lervo-ci-build-${digests.tree}`,
+    );
   });
 
   it("never reuses on the daily audit, which exists to catch time-dependent results", () => {
