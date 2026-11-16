@@ -235,9 +235,13 @@ async function requireInstalledClosure(directory: string, release: VerifiedRelea
 async function installedFiles(root: string, prefix = ""): Promise<Map<string, string> | null> {
   const files = new Map<string, string>();
   for (const entry of await readdir(resolve(root, prefix), { withFileTypes: true })) {
-    // pnpm writes the package's own node_modules (bin shims, dependency links) beside its files;
-    // npm packing never ships a top-level node_modules, so it is the installer's, not the package's.
-    if (prefix === "" && entry.name === "node_modules") continue;
+    // pnpm writes bin shims to the package's own node_modules/.bin; npm packing never ships a
+    // top-level node_modules. Anything else there could shadow a dependency, so it is reported.
+    if (prefix === "" && entry.name === "node_modules" && entry.isDirectory()) {
+      for (const name of await readdir(resolve(root, "node_modules")))
+        if (name !== ".bin") files.set(`node_modules/${name}`, "unexpected");
+      continue;
+    }
     const path = prefix === "" ? entry.name : `${prefix}/${entry.name}`;
     if (entry.isDirectory()) {
       const nested = await installedFiles(root, path);

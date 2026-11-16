@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { gunzipSync, gzipSync } from "node:zlib";
 
 import { describe, expect, it } from "vitest";
 
@@ -207,6 +208,26 @@ describe("readNpmTarballEntries", () => {
     expect(() => readNpmTarballEntries(ustarArchive([["package/../a", Buffer.from("x")]]))).toThrow(
       /tarball is invalid/u,
     );
+  });
+
+  it("rejects entries after the end-of-archive marker and package-root node_modules entries", () => {
+    const raw = (entries: [string, Buffer][]) => gunzipSync(ustarArchive(entries));
+    const first = raw([["package/a", Buffer.from("x")]]);
+    const hidden = raw([["package/node_modules/zod/index.js", Buffer.from("y")]]);
+    const smuggled = gzipSync(
+      Buffer.concat([first.subarray(0, first.length - 1024), Buffer.alloc(512), hidden]),
+    );
+    expect(() => readNpmTarballEntries(smuggled)).toThrow(/tarball is invalid/u);
+    expect(() =>
+      readNpmTarballEntries(
+        ustarArchive([["package/node_modules/zod/index.js", Buffer.from("y")]]),
+      ),
+    ).toThrow(/tarball is invalid/u);
+    expect([
+      ...readNpmTarballEntries(
+        ustarArchive([["package/lib/node_modules/x.js", Buffer.from("z")]]),
+      ).keys(),
+    ]).toEqual(["lib/node_modules/x.js"]);
   });
 
   it("reads a pax path record and rejects any other pax key or a global header", () => {

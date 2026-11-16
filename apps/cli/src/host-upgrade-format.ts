@@ -5,7 +5,7 @@ import type { HostRollbackResult } from "./host-upgrade-rollback.js";
 const reconciledLine = (ids: string[]): string =>
   ids.length === 0
     ? ""
-    : `Restored the links of ${ids.length} unfinished activation(s) left by a crashed run: ${ids.join(", ")}.\n`;
+    : `Settled ${ids.length} unfinished activation(s) left by a crashed run (restored or abandoned; see --status): ${ids.join(", ")}.\n`;
 
 const linkLines = (links: HostLinkChange[]): string =>
   links

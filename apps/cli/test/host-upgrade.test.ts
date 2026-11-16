@@ -244,6 +244,28 @@ describe("applyReleaseUpgrade", () => {
     );
   });
 
+  it("refuses an install with anything but bin shims in the package-root node_modules", async () => {
+    const home = await temporaryHome();
+    const deps = dependencies(home, {
+      installer: async (input) => {
+        await extractingInstaller(input);
+        const root = await realpath(resolve(input.directory, "node_modules", "@lervo", "cli"));
+        await mkdir(resolve(root, "node_modules", ".bin"), { recursive: true });
+        await mkdir(resolve(root, "node_modules", "zod"), { recursive: true });
+        await writeFile(resolve(root, "node_modules", "zod", "index.js"), "module.exports = 1;\n");
+      },
+    });
+    const failure = await applyReleaseUpgrade(
+      fakeReleaseSource([releaseFixture()]),
+      "v9.9.9",
+      deps,
+    ).catch((error: unknown) => error);
+    expect(failure).toMatchObject({
+      code: "host_upgrade_installed_bytes_mismatch",
+      details: { paths: ["node_modules/zod"] },
+    });
+  });
+
   it("never replaces a user-owned executable file", async () => {
     const home = await temporaryHome();
     const deps = dependencies(home);
@@ -430,6 +452,76 @@ describe("rollbackActivation", () => {
     const result = await rollbackActivation(crashed.activationId, true, deps);
     expect(result.reconciledActivations).toEqual([crashed.activationId]);
     expect(await readHostLinks(deps.layout)).toEqual(before);
+  });
+
+  it("abandons a crash record whose links moved, so a later apply of the same targets stays", async () => {
+    const home = await temporaryHome();
+    const deps = dependencies(home);
+    const releases = [
+      releaseFixture({ version: "1.0.1", commit: "1".repeat(40) }),
+      releaseFixture({ version: "1.0.2", commit: "2".repeat(40) }),
+      releaseFixture({ version: "1.0.3", commit: "3".repeat(40) }),
+    ];
+    const source = fakeReleaseSource(releases);
+    await applyReleaseUpgrade(source, "v1.0.1", deps);
+    const v1 = await readHostLinks(deps.layout);
+    await applyReleaseUpgrade(source, "v1.0.2", deps);
+    const v2 = await readHostLinks(deps.layout);
+    // A crash record for v1 -> v2, then the owner relinks both links to a third target.
+    const crashed = {
+      activationId: `hact_${"e".repeat(24)}`,
+      kind: "release" as const,
+      outcome: "pending" as const,
+      activatedAt: "2026-11-16T00:00:00.000Z",
+      links: ["lervo", "lervo-node"].map((name) => ({
+        name,
+        path: resolve(deps.layout.binDirectory, name),
+        previous: v1.get(name) ?? null,
+        current: v2.get(name) ?? null,
+      })),
+    };
+    await recordActivation(deps.layout, crashed);
+    const third = resolve(home, "third");
+    await mkdir(third, { recursive: true });
+    await writeFile(resolve(third, "lervo"), '#!/usr/bin/env node\nconsole.log("lervo 0.9.0");\n');
+    await chmod(resolve(third, "lervo"), 0o755);
+    await writeFile(resolve(third, "lervo-node"), "void 0;\n");
+    for (const name of ["lervo", "lervo-node"]) {
+      await rm(resolve(deps.layout.binDirectory, name));
+      await symlink(resolve(third, name), resolve(deps.layout.binDirectory, name));
+    }
+    const thirdLinks = await readHostLinks(deps.layout);
+
+    const again = await applyReleaseUpgrade(source, "v1.0.2", deps);
+    if (again.status !== "activated") throw new Error("expected activation");
+    expect(again.reconciledActivations).toEqual([crashed.activationId]);
+    const outcome = async () =>
+      (await readActivationJournal(deps.layout)).find(
+        (record) => record.activationId === crashed.activationId,
+      )?.outcome;
+    expect(await outcome()).toBe("abandoned");
+    expect(await readHostLinks(deps.layout)).toEqual(v2);
+
+    // A different tag now records v2, not v1, as what it replaced.
+    const next = await applyReleaseUpgrade(source, "v1.0.3", deps);
+    if (next.status !== "activated") throw new Error("expected activation");
+    expect(new Map(next.activation.links.map((link) => [link.name, link.previous]))).toEqual(v2);
+    await rollbackActivation(next.activation.activationId, true, deps);
+    expect(await readHostLinks(deps.layout)).toEqual(v2);
+
+    // Rolling back the re-apply returns to the owner's third target, never to v1.
+    await expect(
+      rollbackActivation(again.activation.activationId, true, deps),
+    ).resolves.toMatchObject({
+      status: "rolled_back",
+      reconciledActivations: [],
+    });
+    expect(await readHostLinks(deps.layout)).toEqual(thirdLinks);
+    expect(await outcome()).toBe("abandoned");
+    await expect(rollbackActivation(crashed.activationId, true, deps)).resolves.toMatchObject({
+      links: [],
+    });
+    expect(await readHostLinks(deps.layout)).toEqual(thirdLinks);
   });
 
   it("names an unknown activation", async () => {

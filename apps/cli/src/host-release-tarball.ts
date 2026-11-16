@@ -93,7 +93,12 @@ export function readNpmTarballEntries(gzipContents: Buffer): Map<string, Buffer>
   let pendingPath: string | undefined;
   while (offset + blockSize <= archive.length) {
     const header = archive.subarray(offset, offset + blockSize);
-    if (header.every((byte) => byte === 0)) return entries;
+    // Everything after the end-of-archive marker must be zero: an extractor that keeps reading
+    // past one zero block would otherwise install entries this reader never saw.
+    if (header.every((byte) => byte === 0))
+      return archive.subarray(offset).every((byte) => byte === 0) && pendingPath === undefined
+        ? entries
+        : fail();
     if (!field(header, 257, 6).startsWith("ustar") || !checksumValid(header)) fail();
     const size = octal(header, 124, 12);
     const type = String.fromCharCode(header[156] ?? 0);
@@ -113,7 +118,9 @@ export function readNpmTarballEntries(gzipContents: Buffer): Map<string, Buffer>
     if (type === "5") continue;
     if (type !== "0" && type !== "\0") fail();
     const relative = packageRelativePath(path);
-    if (entries.has(relative)) fail();
+    // A package-root node_modules entry would land beside the installer's own links and could
+    // shadow a dependency; npm packing never ships one.
+    if (entries.has(relative) || relative.split("/")[0] === "node_modules") fail();
     entries.set(relative, Buffer.from(data));
   }
   fail();

@@ -16,8 +16,8 @@ import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
 /**
  * ADR-0571 health gate. `version` runs the `lervo` link as a user's shell would: through its
  * `#!/usr/bin/env node` line, the executable bit, and the `node` on PATH, so a too-old `node` or a
- * lost executable bit fails here; `--version` has no startup effects. `syntax` checks that the
- * `lervo-node` link parses without running it, because starting a Node runtime binds runtime
+ * lost executable bit fails here; `--version` has no startup effects. `syntax` is only a link and
+ * parse check of `lervo-node`, not runtime health: starting a Node runtime binds runtime
  * records and has no side-effect-free mode.
  */
 export interface HostCliProbes {
@@ -101,9 +101,9 @@ export async function activateLinks(
 }
 
 /**
- * For a `pending` or `restored` record, each link may be at its previous or its new target (a
- * crash can stop between two renames); only links at the new target need restoring. Null when a
- * link is at neither, which means something else moved it since.
+ * For a `pending` record, each link may be at its previous or its new target (a crash can stop
+ * between two renames); only links at the new target need restoring. Null when a link is at
+ * neither, which means something else moved it since.
  */
 export function unfinishedRestore(
   record: HostActivationRecord,
@@ -119,20 +119,37 @@ export function unfinishedRestore(
   return restore;
 }
 
+/** Whether a record is pending and no record after it has settled, so its crash is the newest. */
+export function isUnfinished(
+  journal: readonly HostActivationRecord[],
+  record: HostActivationRecord,
+): boolean {
+  const index = journal.indexOf(record);
+  return (
+    record.outcome === "pending" &&
+    journal.slice(index + 1).every((later) => later.outcome === "pending")
+  );
+}
+
 /**
- * Puts back the links of `pending` records left by a crashed run and marks them `restored`. Call
- * only under the host upgrade lock, where no other run can own a pending record. A record whose
- * links something else moved since is left for the owner.
+ * Settles every `pending` record left by a crashed run, under the host upgrade lock where no other
+ * run can own one. Only a pending record newer than every settled record is restored: its links
+ * go back and it becomes `restored`. Any other pending record becomes `abandoned` without touching
+ * links, as does one whose links something else moved since, so a later activation that happens to
+ * install the same targets can never be undone by an old crash record.
  */
 export async function reconcilePendingActivations(layout: HostUpgradeLayout): Promise<string[]> {
   const reconciled: string[] = [];
-  const pending = (await readActivationJournal(layout))
-    .filter((record) => record.outcome === "pending")
-    .reverse();
+  const journal = await readActivationJournal(layout);
+  const pending = journal.filter((record) => record.outcome === "pending").reverse();
   for (const record of pending) {
     const current = await readHostLinks(layout);
-    const restore = unfinishedRestore(record, current);
-    if (restore === null) continue;
+    const restore = isUnfinished(journal, record) ? unfinishedRestore(record, current) : null;
+    if (restore === null) {
+      await settleActivation(layout, record.activationId, "abandoned");
+      reconciled.push(record.activationId);
+      continue;
+    }
     if (restore.length > 0)
       await switchHostLinks(layout, targetsOf(restore, "current"), targetsOf(restore, "previous"));
     await settleActivation(layout, record.activationId, "restored");

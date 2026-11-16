@@ -8,6 +8,7 @@ import {
 } from "./host-cli-activation.js";
 import {
   activateLinks,
+  isUnfinished,
   reconcilePendingActivations,
   unfinishedRestore,
   type HostCliProbes,
@@ -30,12 +31,19 @@ function superseded(activationId: string, path: string): CommandFailure {
   );
 }
 
-/** The link changes that undo one record, given where the links are now. */
+/**
+ * The link changes that undo one record, given where the links are now. A `restored` or
+ * `abandoned` record has nothing left to undo: its links already went back or were never its own,
+ * and matching links would belong to a later activation of the same targets.
+ */
 function undoChanges(
+  journal: readonly HostActivationRecord[],
   target: HostActivationRecord,
   current: ReadonlyMap<string, string | null>,
 ): HostLinkChange[] {
-  if (target.outcome !== "active") {
+  if (target.outcome === "restored" || target.outcome === "abandoned") return [];
+  if (target.outcome === "pending") {
+    if (!isUnfinished(journal, target)) return [];
     const restore = unfinishedRestore(target, current);
     if (restore === null) throw superseded(target.activationId, target.links[0]?.path ?? "a link");
     return restore;
@@ -53,7 +61,8 @@ function undoChanges(
 /**
  * Restores exactly the links one activation replaced. An `active` record requires every link
  * still at its target, because restoring otherwise would silently undo a later activation. A
- * `pending` or `restored` record restores only the links still at its target. Applying first
+ * `pending` record restores only the links still at its target, and only while no later record
+ * has settled; a `restored` or `abandoned` record has nothing left to undo. Applying first
  * reconciles pending records left by a crashed run.
  */
 export async function rollbackActivation(
@@ -69,16 +78,15 @@ export async function rollbackActivation(
   const { layout } = dependencies;
   const execute = async (): Promise<HostRollbackResult> => {
     const reconciledActivations = apply ? await reconcilePendingActivations(layout) : [];
-    const target = (await readActivationJournal(layout)).find(
-      (candidate) => candidate.activationId === activationId,
-    );
+    const journal = await readActivationJournal(layout);
+    const target = journal.find((candidate) => candidate.activationId === activationId);
     if (target === undefined)
       throw new CommandFailure(
         "host_upgrade_activation_unknown",
         `No retained activation ${activationId} exists on this host; see lervo host upgrade --status.`,
         { activationId },
       );
-    const links = undoChanges(target, await readHostLinks(layout));
+    const links = undoChanges(journal, target, await readHostLinks(layout));
     const base = { rolledBackActivationId: activationId, links, reconciledActivations };
     if (!apply) return { status: "ready", ...base };
     if (links.length === 0) return { status: "rolled_back", ...base };
@@ -91,7 +99,7 @@ export async function rollbackActivation(
       rolledBackActivationId: activationId,
     };
     const restoresLervo = links.some((link) => link.name === "lervo" && link.current !== null);
-    const journal = await activateLinks(
+    const settled = await activateLinks(
       layout,
       dependencies.probes,
       record,
@@ -100,7 +108,7 @@ export async function rollbackActivation(
     return {
       status: "rolled_back",
       ...base,
-      activation: journal.find((entry) => entry.activationId === record.activationId) ?? record,
+      activation: settled.find((entry) => entry.activationId === record.activationId) ?? record,
     };
   };
   return apply ? withHostUpgradeLock(layout, execute) : execute();

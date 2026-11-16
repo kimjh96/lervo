@@ -31,8 +31,12 @@ export interface HostLinkChange {
   current: string | null;
 }
 
-/** `pending` until the health check passes; `restored` when it failed and links went back. */
-export type HostActivationOutcome = "pending" | "active" | "restored";
+/**
+ * `pending` until the health check passes; `restored` when it failed or a crash left it and its
+ * links went back; `abandoned` when a crash left it but its links had already moved elsewhere,
+ * or a later record settled first, so nothing of it may ever be undone or redone.
+ */
+export type HostActivationOutcome = "pending" | "active" | "restored" | "abandoned";
 
 export interface HostActivationRecord {
   activationId: string;
@@ -157,7 +161,7 @@ function validRecord(value: unknown): value is HostActivationRecord {
     isRecord(value) &&
     typeof value.activationId === "string" &&
     (value.kind === "release" || value.kind === "rollback") &&
-    (value.outcome === "pending" || value.outcome === "active" || value.outcome === "restored") &&
+    ["pending", "active", "restored", "abandoned"].includes(value.outcome as string) &&
     typeof value.activatedAt === "string" &&
     Array.isArray(value.links) &&
     value.links.every(
