@@ -36,7 +36,8 @@ PR, main push, explicit dispatch, or scheduled audit
   -> always run quality, docs, commit and release-contract checks
   -> classify verification scope conservatively
   -> for code or uncertain changes: build once
-       -> manifest and SBOM validation
+       -> manifest and SBOM: exact check for an unreleased version or an edit,
+          otherwise generated from the build and reported (ADR-0572)
        -> four test shards consuming that exact build
   -> one aggregate success/failure result
 

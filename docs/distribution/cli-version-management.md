@@ -45,6 +45,15 @@ Preparation may consume intent only into the version calculated by the reviewed 
 
 Generated files retain their owners. Both preparation workflows run frozen-lockfile installation, the build, `release:manifest:update`, and `release:sbom:update`. Do not manually edit version-bound fields. A conflict or failed generator restores local inputs and fails the workflow for correction.
 
+## Release metadata between releases
+
+Release preparation is the only routine writer of `apps/cli/release-artifact-manifest.json` and `apps/cli/release-sbom.cdx.json`. An ordinary pull request does not regenerate or commit them, even when it changes bundled code, the CLI README, or the CLI's dependencies. Code quality decides per run how to verify them:
+
+- `exact`: the committed files must equal the build. This applies when the tree's CLI version has no `v<version>` tag yet, when the change edits either file, or when the change cannot be determined. Prepared pull requests, the fallback candidate, and `main` between a release merge and its tag are always `exact`.
+- `generated`: the build generates both files, and the run summary lists what changed against the committed ones. The generated files are uploaded as `lervo-cli-release-metadata`, and the test shards and distribution checks of that run use them.
+
+The committed files on `main` can therefore describe an older build until the next preparation. Nothing publishes or installs from them in that state: a release commits exact metadata, and its tag is checked against it. See [ADR-0572](../decisions/release/packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md).
+
 ## Tag handoff and recovery
 
 After a prepared pull request or the fallback release pull request merges, the workflow verifies clean `main`, the versioned current release note, matching generated metadata, no remaining intent, and tag absence. It creates and pushes the annotated `v<version>` tag, then ensures one exact-revision, tag-bound run exists for the three-platform packed-consumer pipeline, supported attestation work, and idempotent GitHub Release creation. Explicit dispatch is required because GitHub does not emit another workflow trigger for a tag pushed with the repository workflow token.

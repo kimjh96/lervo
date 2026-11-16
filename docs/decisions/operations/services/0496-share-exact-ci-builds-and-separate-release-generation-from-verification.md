@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-08
-Amended by: [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (verification reuse for identical content), [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (one verification covers a prepared feature pull request)
+Amended by: [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (verification reuse for identical content), [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (one verification covers a prepared feature pull request), [ADR-0572](../../release/packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (the build job checks or generates release metadata, and the shared build carries it)
 Amends: [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) (CI), [ADR-0221](../../release/packaging/0221-reviewed-cli-release-preparation.md) (release workflow)
 
 ## Context and authority

@@ -8,7 +8,7 @@ Before opening a feature pull request:
 
 1. Finish review fixes, then run the full `pnpm test` suite once with `TMPDIR` set to a real path. Resolve that path with `python3 -c "import os,tempfile;print(os.path.realpath(tempfile.gettempdir()))"`. Report failures that also reproduce on unmodified `main` on the same host.
 2. Run `pnpm quality:check`, `pnpm typecheck`, `pnpm architecture:check`, and `pnpm release:completion:check --base <task-base>`. Focused tests do not establish minimum-supported-Node typecheck success.
-3. Run `pnpm build` immediately before `pnpm release:manifest:update` and `pnpm release:sbom:update`, and commit metadata separately. A pull request carrying release intent may defer this regeneration to its macOS preparation commit.
+3. Do not regenerate or commit the CLI release manifest or SBOM. CI generates them for an ordinary pull request, and release preparation commits them. A run checks the committed files exactly only for an unreleased CLI version or an edit to the files ([ADR-0572](../decisions/release/packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md)).
 4. Run `pnpm release:attestation:check` and all seven distribution smokes: `smoke:built-cli`, `smoke:built-hub`, `smoke:hub-distribution`, `smoke:built-node`, `smoke:node-distribution`, `smoke:packed-cli`, and `smoke:registry-publish`.
 5. Obtain an adversarial review and assess each finding before applying fixes.
 

@@ -50,6 +50,7 @@ The criteria below record the original release-automation delivery. The [CI cost
 - `.changes/config.json`, the intent checker, deterministic preparation and tag commands, fixed release-branch workflow, and tag-triggered release matrix implement the lifecycle. Tests cover publishable and exempt paths, bundled private packages, deterministic aggregation, generated-owner rollback, stale inputs, tag mismatch, conflict, replay, recovery, and workflow permissions.
 - [ADR-0223](../../decisions/release/packaging/0223-base-bound-cli-release-completion.md), `release:completion:check`, and workflow fixtures bind local and CI completion to exact Git evidence and close the direct-main gap.
 - [ADR-0330](../../decisions/release/packaging/0330-release-bound-standalone-runtime-version.md) binds standalone Hub and Node manifests, SBOM roots, and artifact sidecars to the public release coordinate.
+- [ADR-0572](../../decisions/release/packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) makes release preparation the routine writer of the CLI manifest and SBOM. CI checks the committed files exactly for an unreleased version or an edit, and otherwise generates and reports them, so ordinary pull requests carry no metadata commit.
 - Repository checks, documentation migration and lint, and the clean-copy rehearsal completed without creating a release tag, granting npm stage approval, or publishing a package.
 
 ## References
