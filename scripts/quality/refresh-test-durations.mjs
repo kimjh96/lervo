@@ -41,20 +41,42 @@ const execFileAsync = promisify(execFile);
 
 async function profileFromLedgers(directories) {
   if (directories.length === 0) throw new Error("ci_duration_ledgers_empty");
+  if (directories.length < window)
+    process.stderr.write(`Only ${directories.length} of ${window} runs have ledgers.\n`);
   const runs = [];
   for (const directory of directories) runs.push(await readCiTestLedgerRun(directory));
   return createCiTestWeightProfile({
     runs,
     current: readCiTestDurationProfile(JSON.parse(await readFile(profilePath, "utf8"))),
-    window,
+    window: Math.min(window, directories.length),
     observedAt,
   });
+}
+
+/** Fetches main, then says whether it contains a commit; a commit Git lacks is not on main. */
+async function mainContains() {
+  await execFileAsync("git", ["fetch", "--quiet", "origin", "main"]);
+  return async (sha) => {
+    if (!/^[a-f0-9]{40}$/u.test(sha ?? "")) return false;
+    try {
+      await execFileAsync("git", ["cat-file", "-e", `${sha}^{commit}`]);
+    } catch {
+      return false;
+    }
+    try {
+      await execFileAsync("git", ["merge-base", "--is-ancestor", sha, "origin/main"]);
+      return true;
+    } catch (error) {
+      if (error.code === 1) return false;
+      throw error;
+    }
+  };
 }
 
 async function profileFromCi() {
   const gh = async (args) =>
     (await execFileAsync("gh", args, { maxBuffer: 64 * 1024 * 1024 })).stdout;
-  const runIds = await findCiTestLedgerRuns({ gh, count: window });
+  const runIds = await findCiTestLedgerRuns({ gh, isOnMain: await mainContains(), count: window });
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-ci-test-ledgers-"));
   try {
     return await profileFromLedgers(await downloadCiTestLedgerRuns({ gh, runIds, directory }));

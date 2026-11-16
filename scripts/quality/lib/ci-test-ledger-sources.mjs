@@ -4,7 +4,9 @@ import { resolve } from "node:path";
  * Finds and downloads the shard ledgers of recent full Code quality runs for the timing profile
  * (ADR-0565). A run that reused an earlier run's results skips `Run tests` and uploads no ledger,
  * and a run with a failed or cancelled shard measured only part of that shard, so only successful
- * runs whose every shard ran its tests count. `gh(args)` runs the GitHub CLI and returns stdout.
+ * runs whose every shard ran its tests count. A run of an unmerged pull request could drop files
+ * that main still has, so the tested head must be reachable from main. `gh(args)` runs the GitHub
+ * CLI and returns stdout; `isOnMain(sha)` says whether main contains a commit.
  * The job, step and artifact names are the ones `code-quality-workflow.test.mjs` pins.
  */
 const WORKFLOW = "code-quality.yml";
@@ -39,8 +41,11 @@ export function isFullCiTestRun({ conclusion, jobs, artifacts }) {
   );
 }
 
-/** Returns the IDs of the newest `count` full runs among the newest `candidates` successful runs. */
-export async function findCiTestLedgerRuns({ gh, count, candidates = 100 }) {
+/**
+ * Returns the IDs of the newest `count` full runs whose head main contains, among the newest
+ * `candidates` successful runs.
+ */
+export async function findCiTestLedgerRuns({ gh, isOnMain, count, candidates = 100 }) {
   if (!Number.isInteger(count) || count < 1 || !Number.isInteger(candidates) || candidates < 1)
     throw new Error("ci_duration_source_invalid");
   const listed = JSON.parse(
@@ -54,15 +59,15 @@ export async function findCiTestLedgerRuns({ gh, count, candidates = 100 }) {
       "--limit",
       String(candidates),
       "--json",
-      "databaseId,conclusion",
+      "databaseId,conclusion,headSha",
     ]),
   );
   const selected = [];
-  for (const { databaseId, conclusion } of listed.toSorted(
+  for (const { databaseId, conclusion, headSha } of listed.toSorted(
     (left, right) => right.databaseId - left.databaseId,
   )) {
     if (selected.length === count) break;
-    if (conclusion !== "success") continue;
+    if (conclusion !== "success" || !(await isOnMain(headSha))) continue;
     const runId = String(databaseId);
     const { jobs } = JSON.parse(await gh(["run", "view", runId, "--json", "jobs"]));
     const { artifacts } = JSON.parse(

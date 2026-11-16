@@ -51,7 +51,9 @@ function fakeGh(runs) {
     calls.push(args);
     const [command, subcommand] = args;
     if (command === "run" && subcommand === "list")
-      return JSON.stringify(runs.map(({ databaseId, conclusion }) => ({ databaseId, conclusion })));
+      return JSON.stringify(
+        runs.map(({ databaseId, conclusion, headSha }) => ({ databaseId, conclusion, headSha })),
+      );
     if (command === "run" && subcommand === "view")
       return JSON.stringify({ jobs: runs.find((run) => String(run.databaseId) === args[2]).jobs });
     if (command === "api") {
@@ -65,10 +67,11 @@ function fakeGh(runs) {
   return { gh, calls };
 }
 
-it("selects the newest full runs, skipping reuse-only runs, and stops once it has enough", async () => {
+it("selects the newest full runs of main and stops once it has enough", async () => {
   const run = (databaseId, jobs = fullJobs(), artifacts = ledgerArtifacts()) => ({
     databaseId,
     conclusion: "success",
+    headSha: String(databaseId).padStart(40, "0"),
     jobs,
     artifacts,
   });
@@ -78,9 +81,12 @@ it("selects the newest full runs, skipping reuse-only runs, and stops once it ha
     run(50, reused, ledgerArtifacts([])),
     run(10),
     run(40),
+    run(60),
     run(20),
   ]);
-  expect(await findCiTestLedgerRuns({ gh, count: 3 })).toEqual(["40", "30", "20"]);
+  // Run 60 tested an unmerged pull request head, so its file list and timings never count.
+  const isOnMain = async (sha) => sha !== "60".padStart(40, "0");
+  expect(await findCiTestLedgerRuns({ gh, isOnMain, count: 3 })).toEqual(["40", "30", "20"]);
   expect(calls[0]).toEqual([
     "run",
     "list",
@@ -91,13 +97,16 @@ it("selects the newest full runs, skipping reuse-only runs, and stops once it ha
     "--limit",
     "100",
     "--json",
-    "databaseId,conclusion",
+    "databaseId,conclusion,headSha",
   ]);
+  expect(calls.some((args) => args.includes("60"))).toBe(false);
   // Run 10 is never inspected once three full runs are found.
   expect(calls.some((args) => args.includes("10"))).toBe(false);
-  expect(await findCiTestLedgerRuns({ gh, count: 9 })).toEqual(["40", "30", "20", "10"]);
+  expect(await findCiTestLedgerRuns({ gh, isOnMain, count: 9 })).toEqual(["40", "30", "20", "10"]);
   for (const count of [0, 1.5])
-    await expect(findCiTestLedgerRuns({ gh, count })).rejects.toThrow("ci_duration_source_invalid");
+    await expect(findCiTestLedgerRuns({ gh, isOnMain, count })).rejects.toThrow(
+      "ci_duration_source_invalid",
+    );
 });
 
 it("downloads each selected run's ledgers into its own directory", async () => {
