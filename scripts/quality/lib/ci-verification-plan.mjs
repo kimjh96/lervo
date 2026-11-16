@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 
 import { classifyCiChanges } from "./ci-change-classification.mjs";
+import { planReleaseMetadataVerification } from "./ci-release-metadata.mjs";
 
 export const CI_VERIFICATION_CONTRACT = "lervo-ci-v1";
 const revisionPattern = /^[a-f0-9]{40}$/u;
@@ -41,6 +42,7 @@ export function createCiVerificationPlan({ repositoryRoot, event, expectedRevisi
     baseRevision,
     commitHead: event.pull_request?.head?.sha ?? revision,
     ...classification,
+    releaseMetadata: planReleaseMetadataVerification({ git, revision, paths }),
     changedPathCount: paths?.length ?? null,
   };
 }

@@ -22,7 +22,13 @@ const jobs = [
   "Release manifest and SBOM",
   "Distribution smoke checks",
   ...[1, 2, 3, 4].map((shard) => `Tests (shard ${shard}/4)`),
-].map((name) => ({ name, conclusion: "success" }));
+].map((name) => ({
+  name,
+  conclusion: "success",
+  ...(name === "Release manifest and SBOM"
+    ? { steps: [{ name: "Release metadata mode: exact", conclusion: "success" }] }
+    : {}),
+}));
 const input = { repository, revision, workflowId: 3, run, jobs, requireFull: true };
 
 describe("release effect CI admission", () => {
@@ -50,6 +56,28 @@ describe("release effect CI admission", () => {
         evaluateReleaseCi({ ...input, jobs: jobs.filter((job) => job !== missing) }).status,
       ).toBe("blocked");
   });
+  it("tags only from a run that checked the committed release metadata exactly", () => {
+    const withBuildSteps = (steps) =>
+      jobs.map((job) => (job.name === "Release manifest and SBOM" ? { ...job, steps } : job));
+    for (const steps of [
+      undefined,
+      [],
+      [{ name: "Release metadata mode: generated", conclusion: "success" }],
+      [{ name: "Release metadata mode: exact", conclusion: "skipped" }],
+    ])
+      expect(evaluateReleaseCi({ ...input, jobs: withBuildSteps(steps) }).reason).toBe(
+        "release_ci_metadata_not_exact",
+      );
+    // Source generation does not tag, so it does not need an exact run.
+    expect(
+      evaluateReleaseCi({
+        ...input,
+        jobs: withBuildSteps([{ name: "Release metadata mode: generated", conclusion: "success" }]),
+        requireFull: false,
+      }).status,
+    ).toBe("ready");
+  });
+
   it("stops before querying runs when main has moved", () => {
     const requested = [];
     expect(

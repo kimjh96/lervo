@@ -1,4 +1,7 @@
 const revisionPattern = /^[a-f0-9]{40}$/u;
+// The always-run step of the build job that names how the run verified the committed release
+// metadata (ADR-0572). Only an exact run may admit a tag.
+const exactReleaseMetadataStep = "Release metadata mode: exact";
 
 export function evaluateReleaseCi({ repository, revision, workflowId, run, jobs, requireFull }) {
   if (
@@ -28,5 +31,13 @@ export function evaluateReleaseCi({ repository, revision, workflowId, run, jobs,
     ].every((name) => successful.has(name))
   )
     return { status: "blocked", reason: "release_ci_full_coverage_missing" };
+  const build = jobs.find((job) => job.name === "Release manifest and SBOM");
+  if (
+    requireFull &&
+    !build?.steps?.some(
+      (step) => step.name === exactReleaseMetadataStep && step.conclusion === "success",
+    )
+  )
+    return { status: "blocked", reason: "release_ci_metadata_not_exact" };
   return { status: "ready", reason: "exact_main_ci_passed", runId: run.id };
 }

@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { RELEASE_METADATA_FILES } from "./ci-release-metadata.mjs";
 import { CI_VERIFICATION_CONTRACT } from "./ci-verification-plan.mjs";
 
 const maximumArchiveBytes = 512 * 1024 * 1024;
@@ -27,6 +28,23 @@ async function buildDirectories(root) {
   return directories.sort();
 }
 
+/**
+ * The release manifest and SBOM as this build left them: equal to the committed files when the run
+ * checked them, generated from this build when it generated them (ADR-0572). Consumers restore
+ * them, so every job of the run verifies the same metadata.
+ */
+async function releaseMetadataFiles(root) {
+  const files = [];
+  for (const path of RELEASE_METADATA_FILES) {
+    try {
+      if ((await lstat(resolve(root, path))).isFile()) files.push(path);
+    } catch (error) {
+      if (error.code !== "ENOENT") throw error;
+    }
+  }
+  return files;
+}
+
 function identity(root) {
   return {
     schemaVersion: 1,
@@ -43,9 +61,10 @@ function identity(root) {
 
 export async function createCiBuildTransfer({ repositoryRoot, artifactDirectory }) {
   const directories = await buildDirectories(repositoryRoot);
+  const files = await releaseMetadataFiles(repositoryRoot);
   await mkdir(artifactDirectory, { recursive: true });
   const archive = resolve(artifactDirectory, "workspace-build.tar");
-  execFileSync("tar", ["-cf", archive, "-C", repositoryRoot, ...directories]);
+  execFileSync("tar", ["-cf", archive, "-C", repositoryRoot, ...directories, ...files]);
   if ((await lstat(archive)).size > maximumArchiveBytes)
     throw new Error("ci_build_archive_too_large");
   const bytes = await readFile(archive);
@@ -54,6 +73,7 @@ export async function createCiBuildTransfer({ repositoryRoot, artifactDirectory 
     ...identity(repositoryRoot),
     buildDigest: digest(bytes),
     directories,
+    files,
   };
   await writeFile(resolve(artifactDirectory, "receipt.json"), `${JSON.stringify(receipt)}\n`);
   return receipt;
@@ -83,6 +103,12 @@ export async function restoreCiBuildTransfer({ repositoryRoot, artifactDirectory
     !receipt.directories.every((path) => /^(?:apps|packages)\/[a-z0-9-]+\/dist$/u.test(path))
   )
     throw new Error("ci_build_directories_invalid");
+  if (
+    !Array.isArray(receipt.files) ||
+    new Set(receipt.files).size !== receipt.files.length ||
+    !receipt.files.every((path) => RELEASE_METADATA_FILES.includes(path))
+  )
+    throw new Error("ci_build_files_invalid");
   const archive = resolve(artifactDirectory, "workspace-build.tar");
   const stat = await lstat(archive);
   if (!stat.isFile() || stat.size > maximumArchiveBytes)
@@ -100,9 +126,10 @@ export async function restoreCiBuildTransfer({ repositoryRoot, artifactDirectory
       (path) =>
         path.includes("\\") ||
         path.split("/").some((part) => part === "..") ||
-        !receipt.directories.some(
-          (directory) => path === directory || path.startsWith(`${directory}/`),
-        ),
+        (!receipt.files.includes(path) &&
+          !receipt.directories.some(
+            (directory) => path === directory || path.startsWith(`${directory}/`),
+          )),
     )
   )
     throw new Error("ci_build_archive_path_invalid");
@@ -117,17 +144,20 @@ export async function restoreCiBuildTransfer({ repositoryRoot, artifactDirectory
       .some((line) => !["d", "-"].includes(line[0]))
   )
     throw new Error("ci_build_archive_entry_invalid");
-  for (const path of receipt.directories) {
+  for (const path of [...receipt.directories, ...receipt.files]) {
     const [group, project] = path.split("/");
     for (const parent of [group, `${group}/${project}`])
       if (!(await lstat(resolve(repositoryRoot, parent))).isDirectory())
         throw new Error("ci_build_destination_invalid");
   }
-  for (const path of receipt.directories)
+  for (const path of [...receipt.directories, ...receipt.files])
     await rm(resolve(repositoryRoot, path), { recursive: true, force: true });
   execFileSync("tar", ["-xf", archive, "-C", repositoryRoot]);
   for (const path of receipt.directories)
     if (!(await lstat(resolve(repositoryRoot, path))).isDirectory())
+      throw new Error("ci_build_outputs_missing");
+  for (const path of receipt.files)
+    if (!(await lstat(resolve(repositoryRoot, path))).isFile())
       throw new Error("ci_build_outputs_missing");
   return receipt;
 }

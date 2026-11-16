@@ -24,6 +24,7 @@ for (const [component, ran] of Object.entries(executed)) {
       digest: component === "tests" ? plan.testDigest : plan.tree,
       revision: plan.revision,
       runId: process.env.GITHUB_RUN_ID,
+      ...(component === "build" ? { releaseMetadata: plan.releaseMetadata } : {}),
     })}\n`,
   );
 }
