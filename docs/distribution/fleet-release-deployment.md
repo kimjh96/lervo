@@ -21,7 +21,7 @@ Use `scripts/wait-release.sh` in the background and inspect its exit status: 0 m
 - `scripts/wait-release.sh pr <number>` waits for preparation and judges the observed head. A prepared head requires its newest exact-SHA dispatched Code quality run and CLI release matrix run; the Code quality run posts `CI verification (lervo-ci-v1)` as a commit status. A prepared head with no matrix dispatch keeps waiting until preparation is rerun. Other heads use pull request checks. Moving heads are judged again.
 - On exit 3, update a pull request without intent using `gh pr update-branch <number>`, or rerun preparation for a prepared pull request, then wait again.
 - Merge using `gh pr merge <number> --merge --match-head-commit <sha>`, binding the merge to the head printed by the script.
-- `scripts/wait-release.sh tag <version>` waits for the tag, its CLI release matrix on any event, and the published GitHub Release with the tarball, manifest, SBOM, and `release-subjects.json` attached.
+- `scripts/wait-release.sh tag <version>` waits for the tag, its CLI release matrix on any event, and the published GitHub Release with the tarball, manifest, SBOM, and `release-subjects.json` attached. If the tag's matrix run fails, re-run all of its jobs (`gh run rerun <run-id>`), not only the failed ones, so its reuse plan is decided again.
 
 Use `scripts/wait-release.sh release-pr` only when intent reached `main` unprepared. The fallback creates `lervo/release-cli` and dispatches candidate verification. Merge it after success. Pull-request-triggered runs on that branch may show `action_required` without jobs; verification comes from the dispatch.
 

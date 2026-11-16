@@ -35,8 +35,8 @@ The matrix runs in parallel with Code quality. The matrix took 12.8 minutes and 
 The Ubuntu leg of `packed-cli` keeps the files a release publishes:
 
 1. After the manifest, SBOM, and local statement checks, `pnpm release:attestation:prepare` writes `lervo-cli-<version>.tgz`, `release-artifact-manifest.json`, and `release-sbom.cdx.json`. `cli-release-subjects.mjs bind` then adds `release-subjects.json`. That file records the version, tag, commit, tree, and each file's size and SHA-256.
-2. The packed-consumer and isolated-registry smokes run.
-3. `cli-release-subjects.mjs confirm` packs the same build again and requires byte-identical tarball bytes. The smokes pack their own tarball from that build, so equal bytes prove that the published tarball is the one the smokes installed.
+2. The packed-consumer and isolated-registry smokes run with `--release-subjects`, so they install and publish the bound tarball file itself. `pnpm pack` output is not byte-stable: with pnpm 11.18.0, four packs of one build gave four tarball digests, because the resolved `workspace:` keys in `devDependencies` come out in a different order each time. Repacking and comparing would therefore always fail. Testing the subject file makes "published equals smoke-tested" hold by construction. The macOS and Windows legs still pack their own tarball.
+3. `cli-release-subjects.mjs confirm` checks that the directory still holds exactly the bound bytes after the smokes, with every publication check below.
 4. The four files upload as artifact `lervo-cli-release-<tree>` with 30-day retention.
 
 The binding names the tree, not the commit. The prepared head and the merge commit have different IDs, but `wait-release.sh pr` only passes a head that contains current `main`, so the merge has the same tree.
@@ -51,13 +51,15 @@ With a reusable run, `native-runtime` and `packed-cli` are skipped. Without one,
 - The directory holds exactly the three subjects and the binding.
 - Every subject matches the binding's size and digest.
 - The manifest and SBOM equal the tag's committed bytes.
-- The tarball holds exactly the files that the committed manifest lists, with matching sizes and digests, and its `package.json` names `@lervo/cli` at the release version.
+- The tarball holds exactly the files that the committed manifest lists, with matching sizes and digests, and its `package.json` equals the tag's `apps/cli/package.json` after key sorting, with each `workspace:*`, `workspace:^`, or `workspace:~` range replaced by that workspace package's version. A changed script, bin entry, dependency, or extra field fails.
 
 The last check ties the tarball to the tagged tree without trusting the run that built it. The verification runs before any install or build, so it does not load the manifest module, which imports built packages. The tag tree is already bound to that manifest, and main Code quality checked it.
 
 `publish-github-release.sh` then creates the release with all four files in one `gh release create`, which keeps the release a draft until the uploads finish. On replay, an existing asset must be byte-identical, and an asset outside the subject set is an error. The script uploads only missing assets and never replaces a published file. Only then does it update the notes and publish, so a draft left by an interrupted creation becomes public with every subject attached.
 
-Reuse applies only where `attested-cli` would be skipped: a private, personally owned repository, which is the current state. Where attestation applies, the tag run still builds, because that job signs its own build. Signing reused subjects is follow-up work. `attested-cli` itself is unchanged.
+Reuse applies only where `attested-cli` would be skipped: a private, personally owned repository, which is the current state. Where attestation applies, the tag run still builds, because that job signs its own build. `attested-cli` itself is unchanged, so its digests could differ from the published subjects. When it succeeds, `github-release` downloads its files and requires the tarball, manifest, and SBOM to be byte-identical to the verified subjects (`compare-attested-subjects.sh`). Because packing is not byte-stable, that comparison is expected to fail, so a repository where attestation applies publishes nothing until `attested-cli` signs the verified subjects instead of a rebuild. That change is follow-up work; a mismatch can never publish silently.
+
+`github-release` runs under `!cancelled()`, not `always()`, so a cancelled tag run never publishes on the reuse path.
 
 ### Merge gate
 
@@ -67,23 +69,25 @@ For a prepared head, `wait-release.sh pr` also requires the newest `CLI release 
 
 The `plan` job writes `tree` and `reuse`; `reuse` is the run ID or empty. Failure codes:
 
-| Code                                 | Meaning                                                                                       |
-| ------------------------------------ | --------------------------------------------------------------------------------------------- |
-| `release_matrix_revision_invalid`    | `expected_sha` is not a full commit ID.                                                       |
-| `release_matrix_revision_moved`      | The dispatched branch moved away from `expected_sha`; nothing is built.                       |
-| `release_subjects_input_invalid`     | `bind` received an invalid version, commit, or tree.                                          |
-| `release_subjects_file_set_mismatch` | The subject directory is not exactly the three subjects and the binding, or is already bound. |
-| `release_subjects_binding_invalid`   | The binding is missing, too large, malformed, or has unexpected fields.                       |
-| `release_subjects_tag_mismatch`      | The binding belongs to another tag.                                                           |
-| `release_subjects_tree_mismatch`     | The subjects were built from another tree, for example because `main` moved before merge.     |
-| `release_subjects_digest_mismatch`   | A subject differs from its binding.                                                           |
-| `release_subjects_metadata_mismatch` | The manifest or SBOM differs from the tag's committed bytes, or the manifest is unreadable.   |
-| `release_subjects_archive_mismatch`  | The tarball is unreadable or differs from the committed manifest.                             |
-| `release_subjects_pack_unstable`     | Packing the verified build again produced different bytes.                                    |
-| `release_asset_conflict`             | A published asset differs from the verified subject of the same name.                         |
-| `release_asset_unexpected`           | The release has an asset outside the verified subject set.                                    |
+| Code                                         | Meaning                                                                                       |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `release_matrix_revision_invalid`            | `expected_sha` is not a full commit ID.                                                       |
+| `release_matrix_revision_moved`              | The dispatched branch moved away from `expected_sha`; nothing is built.                       |
+| `release_subjects_input_invalid`             | `bind` received an invalid version, commit, or tree.                                          |
+| `release_subjects_file_set_mismatch`         | The subject directory is not exactly the three subjects and the binding, or is already bound. |
+| `release_subjects_binding_invalid`           | The binding is missing, too large, malformed, or has unexpected fields.                       |
+| `release_subjects_tag_mismatch`              | The binding belongs to another tag.                                                           |
+| `release_subjects_tree_mismatch`             | The subjects were built from another tree, for example because `main` moved before merge.     |
+| `release_subjects_digest_mismatch`           | A subject differs from its binding.                                                           |
+| `release_subjects_metadata_mismatch`         | The manifest or SBOM differs from the tag's committed bytes, or the manifest is unreadable.   |
+| `release_subjects_archive_mismatch`          | The tarball is unreadable or differs from the committed manifest.                             |
+| `release_subjects_package_manifest_mismatch` | The tarball's `package.json` differs from the tag's resolved `apps/cli/package.json`.         |
+| `release_subjects_attestation_mismatch`      | The files `attested-cli` signed differ from the verified subjects.                            |
+| `smoke_tarball_missing`                      | A smoke was given release subjects without the tarball for this version.                      |
+| `release_asset_conflict`                     | A published asset differs from the verified subject of the same name.                         |
+| `release_asset_unexpected`                   | The release has an asset outside the verified subject set.                                    |
 
-Every verification failure stops before publication. If an upload fails partway, a rerun of the job keeps the identical assets, uploads the missing ones, and rejects any different bytes. If the artifact expires between `plan` and the download, the download fails. A rerun of the tag workflow then finds no reusable run and runs the full matrix. When `main` moves before merge, the merged tree differs. The tag run then finds no artifact for its tree and runs the full matrix. Nothing is published from another tree.
+Every verification failure stops before publication. If an upload fails partway, a rerun of the job keeps the identical assets, uploads the missing ones, and rejects any different bytes. If the artifact expires between `plan` and the download, the download fails. Re-running only the failed job keeps the old `plan` output and fails again, so re-run all jobs of the tag run; `plan` then finds no reusable run and runs the full matrix. When `main` moves before merge, the merged tree differs. The tag run then finds no artifact for its tree and runs the full matrix. Nothing is published from another tree.
 
 Outputs and logs carry only commit IDs, trees, run IDs, versions, file names, sizes, digests, and failure codes. The subjects are the package and metadata that the release publishes. They contain no credentials or user data. This decision adds no Lervo runtime event and no persistent state. Workflow runs, their artifacts, and the GitHub Release are the record.
 
@@ -99,4 +103,4 @@ Authority changes stay narrow. `plan` and `github-release` gain `actions: read` 
 
 ## Verification
 
-`scripts/release/test/cli-release-subjects.test.mjs` covers the binding and each failure: tag, tree, file set, binding format, digest, metadata, and a consistently bound tarball whose contents differ from the manifest. It also reads a tarball produced by `pnpm pack` with long nested paths, and it rejects links, escapes, duplicates, and paths outside `package/`. `cli-release-matrix-reuse.test.mjs` checks that only a successful, same-repository, same-tree run with all four verified jobs is reused, that API failure means no reuse, that only private personal tag runs reuse, and that a moved dispatch is rejected. `publish-github-release.test.mjs` covers creation with all assets, a replay that uploads only missing assets, a conflicting asset, and an unknown asset. `cli-release-matrix.test.mjs` pins the new jobs, step order, permissions, and artifact coordinates. `deploy-release-wait.test.mjs` covers the matrix gate and the asset-complete tag wait. `release-pull-request-workflow.test.mjs` checks the exact matrix dispatch.
+`scripts/release/test/cli-release-subjects.test.mjs` covers the binding and each failure: tag, tree, file set, binding format, digest, metadata, and a consistently bound tarball whose contents differ from the manifest. It also checks the tarball's `package.json` against the expected fields in any key order, reads a tarball produced by `pnpm pack` with long nested paths, and it rejects links, escapes, duplicates, and paths outside `package/`. `packed-package-manifest.test.mjs` packs the real CLI with pnpm and requires its `package.json` to equal the manifest derived from `apps/cli/package.json`. `cli-release-subject-directory.test.mjs` covers bind once, confirm after the smokes, and refusal of changed, added, nested, or unbound files. `smoke-tarball-source.test.mjs` checks that the smokes use the subject file itself and never pack again. `cli-release-matrix-reuse.test.mjs` checks that only a successful, same-repository, same-tree run with all four verified jobs is reused, that API failure means no reuse, that only private personal tag runs reuse, and that a moved dispatch is rejected. `publish-github-release.test.mjs` covers creation with all assets, a replay that uploads only missing assets, a conflicting asset, an unknown asset, and the attested-bytes comparison. `cli-release-matrix.test.mjs` pins the new jobs, step order, permissions, and artifact coordinates. `deploy-release-wait.test.mjs` covers the matrix gate and the asset-complete tag wait. `release-pull-request-workflow.test.mjs` checks the exact matrix dispatch.
