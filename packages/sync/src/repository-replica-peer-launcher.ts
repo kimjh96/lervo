@@ -1,10 +1,10 @@
 /**
  * Launchers that start a whole operating-system environment for every command. On Windows,
- * `wsl.exe` and the distribution executables boot or attach to the WSL virtual machine each time,
- * so a peer reached through one of them pays that launch on every replica step and wakes a stopped
- * WSL again.
+ * `wsl.exe` and the Ubuntu distribution executables boot or attach to the WSL virtual machine each
+ * time, so a peer reached through one of them pays that launch on every replica step and wakes a
+ * stopped WSL again. `bash.exe` is excluded: the same name also belongs to Git for Windows.
  */
-const PER_CALL_LAUNCHER = /^(?:wsl|wsl\.exe|wslhost\.exe|bash\.exe|ubuntu[0-9.]*\.exe)$/u;
+const PER_CALL_LAUNCHER = /^(?:wsl|wsl\.exe|ubuntu[0-9.]*\.exe)$/u;
 
 /** Advisory code for a replica peer whose every step goes through a per-call launcher. */
 export const REPOSITORY_REPLICA_PER_CALL_LAUNCHER = "repository_replica_peer_per_call_launcher";
