@@ -38,9 +38,6 @@ async function expectPublishConflict(tarballPath, registryUrl, environment) {
     await publishCli(tarballPath, registryUrl, environment);
   } catch (error) {
     const output = `${error.stdout ?? ""}${error.stderr ?? ""}`;
-    if (process.env.LERVO_REGISTRY_PREFLIGHT_DEBUG === "1") {
-      console.error(output);
-    }
     assert.match(output, /\[E409\]\s+409 Conflict/u);
     return;
   }
@@ -168,10 +165,27 @@ async function main() {
   console.log(`CLI registry publication preflight passed (${cliManifest.version})`);
 }
 
+// The smoke talks only to a loopback registry with an empty user configuration, so a failed
+// command's message and output carry no credentials. Printing them keeps CI failures diagnosable.
+const maximumFailureOutput = 4000;
+
+function describeFailure(error) {
+  const lines = [error instanceof Error ? `${error.name}: ${error.message}` : String(error)];
+  for (const stream of ["stdout", "stderr"]) {
+    const output = error?.[stream];
+    if (typeof output === "string" && output.length > 0)
+      lines.push(
+        `${stream} (last ${maximumFailureOutput} characters):`,
+        output.slice(-maximumFailureOutput),
+      );
+  }
+  return lines.join("\n");
+}
+
 try {
   await main();
 } catch (error) {
-  if (process.env.LERVO_REGISTRY_PREFLIGHT_DEBUG === "1") console.error(error);
+  console.error(describeFailure(error));
   console.error(
     "registry_publish_preflight_failed: The CLI registry publication preflight could not be completed.",
   );
