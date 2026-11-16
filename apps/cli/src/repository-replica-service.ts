@@ -29,6 +29,7 @@ import {
   writeMigratedReplicaConfig,
   type ReplicaConfigMigration,
 } from "./repository-replica-config-migration.js";
+import { configuredReplicaPeerLauncher } from "./repository-replica-peer-launcher.js";
 import {
   currentNodeRuntimePayload,
   pointCurrentNodeRuntime,
@@ -114,6 +115,8 @@ export interface RepositoryReplicaServiceStage {
   migratedConfigHash: string | null;
   /** The migrated peer keeps an explicit runtime path, which goes stale at the next deploy. */
   peerRuntimeOverride: boolean;
+  /** ADR-0570: the per-call launcher name, such as `wsl.exe`, every peer step runs through. */
+  peerLauncher: string | null;
   blockers: UpgradeStageBlocker[];
 }
 
@@ -186,6 +189,7 @@ async function prepareReplicaService(
     configMigration: "none",
     migratedConfigHash: null,
     peerRuntimeOverride: false,
+    peerLauncher: null,
     blockers: [],
   };
   const unchanged = { definition: null, installed: null, coordinates: null, migration: null };
@@ -216,6 +220,7 @@ async function prepareReplicaService(
     configMigration: migration === null ? "none" : "migrate",
     migratedConfigHash: migration?.contentHash ?? null,
     peerRuntimeOverride: migration?.peerRuntime === "explicit_override",
+    peerLauncher: coordinates ? await configuredReplicaPeerLauncher(configPath, migration) : null,
   } as RepositoryReplicaServiceStage;
   if (!coordinates)
     return {
