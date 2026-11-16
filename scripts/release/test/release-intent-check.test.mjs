@@ -161,6 +161,47 @@ describe("release intent change classification", () => {
     ).toMatchObject({ valid: false, diagnostics: ["unnecessary_release_intent"] });
   });
 
+  it("requires intent for a package the CLI depends on before the manifest lists it", async () => {
+    const root = await fixture(false);
+    await mkdir(resolve(root, "packages/newly-bundled"), { recursive: true });
+    await writeFile(
+      resolve(root, "packages/newly-bundled/package.json"),
+      JSON.stringify({
+        name: "@lervo/newly-bundled",
+        version: "0.1.0",
+        private: true,
+        dependencies: { "@lervo/newly-shared": "workspace:*" },
+      }),
+    );
+    await mkdir(resolve(root, "apps/newly-shared"), { recursive: true });
+    await writeFile(
+      resolve(root, "apps/newly-shared/package.json"),
+      JSON.stringify({ name: "@lervo/newly-shared", version: "0.1.0", private: true }),
+    );
+    const unlisted = {
+      repositoryRoot: root,
+      changedPaths: ["packages/newly-bundled/src/index.ts", "apps/newly-shared/src/index.ts"],
+    };
+    expect(await inspectReleaseIntent(unlisted)).toMatchObject({
+      valid: true,
+      publishablePathCount: 0,
+    });
+    await writeFile(
+      resolve(root, "apps/cli/package.json"),
+      JSON.stringify({
+        name: "@lervo/cli",
+        version: "0.1.0",
+        private: false,
+        devDependencies: { "@lervo/newly-bundled": "workspace:*", vitest: "3.2.7" },
+      }),
+    );
+    expect(await inspectReleaseIntent(unlisted)).toMatchObject({
+      valid: false,
+      publishablePathCount: 2,
+      diagnostics: ["missing_release_intent"],
+    });
+  });
+
   it("treats tests, documentation, and release management as exact exemptions", async () => {
     const root = await fixture(false);
     const report = await inspectReleaseIntent({

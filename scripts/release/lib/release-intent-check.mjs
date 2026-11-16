@@ -143,8 +143,17 @@ export async function inspectReleaseIntent(input) {
     ),
   );
   const catalog = await workspaceCatalog(repositoryRoot);
+  // The committed manifest names what the last prepared build bundled (ADR-0572). The CLI's own
+  // workspace dependencies cover a package bundled since then, and workspace apps that the bundle
+  // inlines but the manifest does not list.
+  const cliManifest = catalog.get("@lervo/cli")?.manifest ?? {};
+  const cliWorkspaceDependencies = Object.keys({
+    ...cliManifest.dependencies,
+    ...cliManifest.devDependencies,
+  }).filter((name) => catalog.has(name));
   const releaseArtifactDirectories = workspaceClosure(catalog, [
     ...bundledNames,
+    ...cliWorkspaceDependencies,
     "@lervo/hub-runtime",
     "@lervo/node-runtime",
     "@lervo/node-runtime-dependencies",
