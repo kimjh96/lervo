@@ -1,14 +1,14 @@
 import { execFileSync } from "node:child_process";
-import { readFile, rm, writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import { RepositoryKnowledgeError } from "@lervo/repository-knowledge";
 
 import { halvedNormalizationDocumentLimit } from "../src/normalization-generation.js";
-import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
+import { reviewedBatches, settleParking } from "./convergence-parking-fixture.js";
 
-const timedOutReviews: number[] = [];
+const timedOutBatches: string[][] = [];
 
 vi.mock("../src/provider-call.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../src/provider-call.js")>();
@@ -19,7 +19,7 @@ vi.mock("../src/provider-call.js", async (importOriginal) => {
         ?.items;
       // The installed failure: every review of a multi-document batch outran the runner timeout.
       if (input.task === "independent_normalization_review" && (items?.length ?? 0) > 1) {
-        timedOutReviews.push(items!.length);
+        timedOutBatches.push((items as { sourcePath: string }[]).map((item) => item.sourcePath));
         throw Object.assign(
           new RepositoryKnowledgeError(
             "knowledge_compile_failed",
@@ -46,16 +46,26 @@ it("halves the document limit down to one", () => {
 });
 
 it(
-  "regenerates a smaller batch after a review timeout instead of retrying the same batch",
+  "reviews the stored halved subset after a review timeout and carries the halved limit into the next generation",
   { timeout: 300_000 },
   async () => {
     const f = await fixture(true);
     fixtures.push(f);
+    // The large document puts the first batch in a larger learned-cost class than the two small
+    // ones, so only the obligation's halved limit, not the learned limit, bounds the next batch.
+    await writeFile(
+      resolve(f.root, "docs/specs/archive.md"),
+      `# Archive\n\n${Array.from({ length: 44 }, (_, index) =>
+        `Archived runtime record ${index} keeps the local event history readable.`
+          .repeat(6)
+          .replaceAll(".A", ". A"),
+      ).join("\n\n")}\n`,
+    );
     await writeFile(
       resolve(f.root, "docs/specs/storage.md"),
       "# Storage\n\nThe runtime keeps durable history in the local event store.\n",
     );
-    execFileSync("git", ["-C", f.root, "add", "docs/specs/storage.md"]);
+    execFileSync("git", ["-C", f.root, "add", "docs/specs"]);
     execFileSync("git", [
       "-C",
       f.root,
@@ -65,43 +75,39 @@ it(
       "user.email=test@lervo.invalid",
       "commit",
       "-m",
-      "add storage spec",
+      "add archive and storage specs",
     ]);
-    let result: Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>> | undefined;
-    for (let cycle = 0; cycle < 20; cycle++) {
-      result = await runAutonomousKnowledgeWorker({
-        storage: f.storage,
-        workerId: `timeout-${cycle}`,
-        provider: "claude",
-        executable: f.executable,
-        admissionDirectory: f.admissionDirectory,
-      });
-      if (
-        result.status === "processed" &&
-        result.convergence.state === "idle" &&
-        result.convergence.lastVerifiedCurrency !== null
-      )
-        break;
-    }
-    // One timed-out two-document batch, then single-document batches that complete.
-    expect(timedOutReviews).toEqual([2]);
-    expect(result).toMatchObject({
+    expect(await settleParking(f, 30)).toMatchObject({
       status: "processed",
       convergence: { state: "idle", lastVerifiedCurrency: expect.any(Object) },
     });
+    // One three-document batch timed out; every later review holds one document.
+    expect(timedOutBatches).toEqual([
+      ["docs/specs/archive.md", "docs/specs/runtime.md", "docs/specs/storage.md"],
+    ]);
+    expect(await reviewedBatches(f)).toEqual([
+      ["docs/specs/archive.md"],
+      ["docs/specs/runtime.md"],
+      ["docs/specs/storage.md"],
+    ]);
     const stages = f.events
       .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
-      .map((event) => event.payload as { stage: string; state: string; failureCode: string });
+      .map(
+        (event) => event.payload as { stage: string; state: string; failureCode: string | null },
+      );
     expect(stages.some((stage) => stage.failureCode === "knowledge_job_transient_failure")).toBe(
       false,
     );
-    const reviews = (await readFile(f.log, "utf8"))
-      .trim()
-      .split("\n")
-      .map((line) => JSON.parse(line).request)
-      .filter((request) => request.task === "independent_normalization_review");
-    expect(reviews.map((request) => request.untrustedSourceData.candidate.items.length)).toEqual([
-      1, 1,
+    // The timed-out review hands its stored first half straight to another review: no generation
+    // runs between them, and the half is applied before the next generation.
+    const normalization = stages
+      .filter((stage) => stage.state === "current" && stage.stage.startsWith("normalization_"))
+      .map((stage) => stage.stage);
+    expect(normalization.slice(0, normalization.indexOf("normalization_apply") + 1)).toEqual([
+      "normalization_generation",
+      "normalization_review",
+      "normalization_review",
+      "normalization_apply",
     ]);
   },
 );
