@@ -21,9 +21,20 @@ export interface RepositoryReplicaHealthSnapshot {
   schemaVersion: 1;
   status: "ready" | "degraded";
   updatedAt: string;
-  /** Current idle recovery sweep interval in watch mode; informational only. */
+  /** Shortest per-replica recovery interval in watch mode; informational only. */
   recoveryIntervalMs?: number;
+  /** Present only while the unreachable peer is backed off (ADR-0570). */
+  peer?: { status: "backing_off"; consecutiveFailures: number; retryAt: string };
+  /** Stable advisory codes about the coordinator configuration, such as a per-call launcher. */
+  advisories?: string[];
   replicas: Record<string, RepositoryReplicaHealthEntry>;
+}
+
+/** Watch-mode context the health snapshot carries beside the replica entries. */
+export interface RepositoryReplicaHealthContext {
+  recoveryIntervalMs?: number | undefined;
+  peer?: RepositoryReplicaHealthSnapshot["peer"] | undefined;
+  advisories?: string[] | undefined;
 }
 
 export interface RepositoryReplicaReportLines {
@@ -147,7 +158,15 @@ export class RepositoryReplicaCycleReporter {
     };
   }
 
-  snapshot(now: Date, recoveryIntervalMs?: number): RepositoryReplicaHealthSnapshot {
+  /** Consecutive identical failures of the replica's latest cycles; zero after a success. */
+  failureStreak(replicaId: string): number {
+    return this.failures.get(replicaId)?.count ?? 0;
+  }
+
+  snapshot(
+    now: Date,
+    context: RepositoryReplicaHealthContext = {},
+  ): RepositoryReplicaHealthSnapshot {
     const replicas = Object.fromEntries(
       [...this.health.entries()].sort(([left], [right]) => left.localeCompare(right)),
     );
@@ -159,7 +178,13 @@ export class RepositoryReplicaCycleReporter {
         ? "degraded"
         : "ready",
       updatedAt: now.toISOString(),
-      ...(recoveryIntervalMs === undefined ? {} : { recoveryIntervalMs }),
+      ...(context.recoveryIntervalMs === undefined
+        ? {}
+        : { recoveryIntervalMs: context.recoveryIntervalMs }),
+      ...(context.peer === undefined ? {} : { peer: context.peer }),
+      ...(context.advisories === undefined || context.advisories.length === 0
+        ? {}
+        : { advisories: context.advisories }),
       replicas,
     };
   }

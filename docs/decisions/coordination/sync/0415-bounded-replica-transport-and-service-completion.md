@@ -2,6 +2,7 @@
 
 - Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-16
+- Amended by: [ADR-0570](../../operations/services/0570-reuse-one-replica-peer-connection-and-back-off-an-unreachable-peer.md) (one reused peer connection and a shared back-off for an unreachable peer)
 
 ## Context
 

@@ -16,6 +16,6 @@ The coordinator prints the code, stage, Git exit code, cause chain, and digest. 
 
 In watch mode, each distinct failure is logged once. Repeats report only a counter at 10, 100, 1,000, and later powers of ten; the first successful cycle logs the recovery count.
 
-The coordinator writes owner-only health beside its state file (`<state>.health.json`): `degraded` while any configured replica is divergent or failing, otherwise `ready`. It includes each replica's status, open `divergenceId`, or failure code, stage, and consecutive count. In watch mode, it also includes `recoveryIntervalMs`, the current idle recovery sweep interval. This informational field proves neither parity nor freshness.
+The coordinator writes owner-only health beside its state file (`<state>.health.json`): `degraded` while any configured replica is divergent or failing, otherwise `ready`. It includes each replica's status, open `divergenceId`, or failure code, stage, and consecutive count. In watch mode, it also includes `recoveryIntervalMs`, the shortest per-replica recovery interval. While the peer gate is closed it includes `peer` with `status: "backing_off"`, the consecutive failure count, and the next probe time. Stable configuration advisory codes appear in `advisories` ([ADR-0570](../../../../decisions/operations/services/0570-reuse-one-replica-peer-connection-and-back-off-an-unreachable-peer.md)). These informational fields prove neither parity nor freshness.
 
 Diagnostic text stays in local logs and receipts and never enters canonical events.
