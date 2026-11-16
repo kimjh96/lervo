@@ -5,6 +5,7 @@ import {
 } from "../../shared/release-artifact-manifest.mjs";
 
 const maximumListedEntries = 40;
+const familyCoordinate = ({ prefix, version }) => `${prefix}*@${version}`;
 
 function listed(title, entries) {
   if (entries.length === 0) return [];
@@ -34,7 +35,9 @@ const guidance = {
     "and commits them, so this change needs no metadata commit.",
   exact:
     "This run requires the committed CLI release manifest and SBOM to equal this build, because " +
-    "the CLI version is not released yet or the change edits them. Commit the generated files.",
+    "the CLI version is not released yet, the change edits them, or the build installs a " +
+    "platform package family that the committed manifest does not approve. Commit the " +
+    "generated files.",
 };
 
 /**
@@ -68,6 +71,17 @@ export function describeCliReleaseMetadataChange({
       sections.includes("archive")
         ? releaseArchiveFileDifferences(committedManifest.archive, generatedManifest.archive)
         : [],
+    ),
+    ...listed(
+      "Platform package families",
+      setChanges(
+        committedManifest.dependencies?.platformSpecificFamilies?.map(familyCoordinate),
+        generatedManifest.dependencies?.platformSpecificFamilies?.map(familyCoordinate),
+      ),
+    ),
+    ...listed(
+      "Direct dependencies",
+      setChanges(committedManifest.directDependencies, generatedManifest.directDependencies),
     ),
     ...listed(
       "Bundled workspace packages",

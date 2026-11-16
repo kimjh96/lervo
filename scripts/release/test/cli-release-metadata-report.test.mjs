@@ -39,6 +39,12 @@ it("names changed sections, packaged files, and coordinates without contents", a
   ].sort();
   const [removed] = generatedManifest.dependencies.portable.splice(0, 1);
   generatedManifest.dependencies.portable.push("zz-added@1.0.0");
+  generatedManifest.directDependencies = [
+    ...generatedManifest.directDependencies,
+    "zz-direct@1.0.0",
+  ];
+  const [family] = generatedManifest.dependencies.platformSpecificFamilies;
+  generatedManifest.dependencies.platformSpecificFamilies = [{ ...family, version: "99.0.0" }];
   const generatedSbom = structuredClone(committedSbom);
   generatedSbom.components.pop();
   const report = describeCliReleaseMetadataChange({
@@ -60,7 +66,12 @@ it("names changed sections, packaged files, and coordinates without contents", a
     expect(exact).toContain("Commit the generated files.");
     expect(exact).not.toContain("needs no metadata commit");
   }
-  expect(report).toContain("- Manifest sections: bundle, archive, dependencies");
+  expect(report).toContain(
+    "- Manifest sections: directDependencies, bundle, archive, dependencies",
+  );
+  expect(report).toContain("- `+ zz-direct@1.0.0`");
+  expect(report).toContain(`- \`+ ${family.prefix}*@99.0.0\``);
+  expect(report).toContain(`- \`- ${family.prefix}*@${family.version}\``);
   expect(report).toContain(
     `- SBOM components: ${committedSbom.components.length} → ${committedSbom.components.length - 1}`,
   );

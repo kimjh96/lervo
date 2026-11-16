@@ -144,7 +144,8 @@ it("reuses only components that an earlier run executed for identical content", 
   ]) {
     const definition = workflow.jobs[job];
     assert.equal(definition.env.REUSED_RUN, `\${{ needs.plan.outputs.${output} }}`);
-    const [reuse, ...rest] = definition.steps;
+    // The build job first names its release metadata mode, which tag admission reads.
+    const [reuse, ...rest] = definition.steps.slice(job === "release-artifacts" ? 1 : 0);
     assert.equal(reuse.if, "env.REUSED_RUN != ''");
     for (const step of rest) assert.match(step.if, /^env\.REUSED_RUN == ''/u);
   }
@@ -176,6 +177,18 @@ it("checks committed release metadata exactly or generates it, as the plan decid
   assert.equal(workflow.jobs.plan.outputs.buildReceipt, "${{ steps.reuse.outputs.buildReceipt }}");
   const steps = workflow.jobs["release-artifacts"].steps;
   const names = steps.map(({ name }) => name);
+  // Tag admission (ci-release-admission.mjs) requires "Release metadata mode: exact"; the step runs
+  // whether or not the build is reused, and anything but `generated` renders as exact.
+  assert.equal(
+    steps[0].name,
+    "Release metadata mode: ${{ needs.plan.outputs.releaseMetadata == 'generated' && 'generated' || 'exact' }}",
+  );
+  assert.equal(steps[0].if, undefined);
+  const admission = await readFile(
+    resolve(repositoryRoot, "scripts/release/lib/ci-release-admission.mjs"),
+    "utf8",
+  );
+  assert.match(admission, /"Release metadata mode: exact"/u);
   const step = (name) => steps[names.indexOf(name)];
   // Anything but an explicit `generated` decision checks the committed bytes.
   for (const name of ["Verify release manifest", "Verify release SBOM"])
@@ -188,25 +201,39 @@ it("checks committed release metadata exactly or generates it, as the plan decid
     "Report generated release metadata",
     "Share generated release metadata",
   ];
-  // Generated mode always produces them; an exact run produces them only when its check failed.
   assert.deepEqual(
-    [step("Verify release manifest").id, step("Verify release SBOM").id],
-    ["manifest", "sbom"],
+    [step("Verify release manifest").id, step("Verify release SBOM").id, step(generated[0]).id],
+    ["manifest", "sbom", "generate"],
   );
-  for (const name of generated)
+  // Generated mode keeps the committed platform families, so a new family fails like the check.
+  assert.equal(
+    step(generated[0]).if,
+    "env.REUSED_RUN == '' && needs.plan.outputs.releaseMetadata == 'generated'",
+  );
+  assert.equal(
+    step(generated[0]).run,
+    "pnpm release:manifest:update --committed-families && pnpm release:sbom:update",
+  );
+  // Any failed check or generation gets the files to commit, with families inferred as release
+  // preparation infers them.
+  const failed =
+    "steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure' || steps.generate.outcome == 'failure'";
+  const toCommit = step("Generate release metadata to commit");
+  assert.equal(toCommit.if, `env.REUSED_RUN == '' && failure() && (${failed})`);
+  assert.equal(toCommit.run, "pnpm release:manifest:update && pnpm release:sbom:update");
+  for (const name of generated.slice(1))
     assert.equal(
       step(name).if,
-      "env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (steps.manifest.outcome == 'failure' || steps.sbom.outcome == 'failure')))",
+      `env.REUSED_RUN == '' && ((success() && needs.plan.outputs.releaseMetadata == 'generated') || (failure() && (${failed})))`,
     );
-  assert.equal(step(generated[0]).run, "pnpm release:manifest:update && pnpm release:sbom:update");
   assert.equal(step(generated[1]).shell, "bash");
   assert.equal(
-    step(generated[1]).env.RELEASE_METADATA,
-    "${{ needs.plan.outputs.releaseMetadata }}",
+    step(generated[1]).env.REPORT_MODE,
+    `\${{ (${failed}) && 'exact' || needs.plan.outputs.releaseMetadata }}`,
   );
   assert.match(
     step(generated[1]).run,
-    /report-cli-release-metadata\.mjs "\$\{RELEASE_METADATA\}" \| tee -a/u,
+    /report-cli-release-metadata\.mjs "\$\{REPORT_MODE\}" \| tee -a/u,
   );
   assert.equal(step(generated[2]).with.name, "lervo-cli-release-metadata");
   assert.deepEqual(step(generated[2]).with.path.trim().split("\n"), [
@@ -217,7 +244,9 @@ it("checks committed release metadata exactly or generates it, as the plan decid
   // tests and every consumer of the archive see the same release metadata.
   const order = [
     "Build release artifact",
-    ...generated,
+    generated[0],
+    "Generate release metadata to commit",
+    ...generated.slice(1),
     "Test release metadata that reused test results do not cover",
     "Archive exact build outputs",
   ].map((name) => names.indexOf(name));
