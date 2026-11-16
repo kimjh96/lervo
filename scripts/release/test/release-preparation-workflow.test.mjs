@@ -79,7 +79,15 @@ describe("CLI release preparation workflow", () => {
     assert.match(prepare.run, /gh pr create .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /gh pr edit .*--body-file "\$\{body_file\}"/u);
     assert.match(prepare.run, /render-release-pr\.mjs/u);
-    assert.match(prepare.run, /gh workflow run code-quality\.yml .*expected_sha/u);
+    assert.match(prepare.run, /gh workflow run "\$\{workflow\}" .*-f expected_sha="\$\{commit\}"/u);
+    assert.match(
+      prepare.run,
+      /release_dispatch_once code-quality\.yml "\$\{branch\}" "\$\{commit\}" -f base_sha="\$\{base\}"/u,
+    );
+    assert.match(
+      prepare.run,
+      /release_dispatch_once cli-release-matrix\.yml "\$\{branch\}" "\$\{commit\}"\n/u,
+    );
     assert.match(
       prepare.run,
       /release_verification_dispatch lervo\/release-cli "\$\{release_commit\}" "\$\{RELEASE_SOURCE_SHA\}"/u,

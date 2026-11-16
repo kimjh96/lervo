@@ -5,6 +5,7 @@
 #                                                   current head, which must contain current main
 #   wait-release.sh release-pr [timeout-seconds]     fallback lervo/release-cli PR and its candidate CI
 #   wait-release.sh tag <version> [timeout-seconds]  tag v<version>, its CLI release matrix (any event), and the GitHub Release
+#                                                   with its verified release subjects attached
 # Every stage is judged at least once, so a timeout of 0 judges it exactly once.
 # Only gh and its built-in --jq are needed, so the script behaves the same on every host.
 set -u
@@ -68,17 +69,45 @@ pr_dispatched() {
   [ "${aggregate:-0}" -gt 0 ] && return 0 || return 1
 }
 
+pr_matrix() {
+  # A prepared head also needs its own dispatched CLI release matrix, because the tag publishes the
+  # release subjects that run verified. 0 passed, 1 failed, 3 pending or not dispatched yet.
+  local sha="$1" run id status conclusion
+  run=$(gh run list --workflow cli-release-matrix.yml --commit "$sha" --event workflow_dispatch \
+    --json databaseId,headSha,status,conclusion,createdAt \
+    --jq "[.[] | select(.headSha == \"$sha\")] | max_by(.createdAt)
+      | if . == null then \"none\" else \"\(.databaseId) \(.status) \(.conclusion)\" end" 2>/dev/null) || return 3
+  if [ "$run" = none ]; then last="$last; waiting for its dispatched CLI release matrix run"; return 3; fi
+  read -r id status conclusion <<<"$run"
+  [[ "${id:-}" =~ ^[0-9]+$ ]] || return 3
+  last="$last; CLI release matrix run $id: $status/${conclusion:-}"
+  [ "$status" = completed ] || return 3
+  [ "$conclusion" = success ] && return 0 || return 1
+}
+
 pr_verified() {
-  # A dispatch for the exact head decides; a prepared head waits for one; otherwise PR checks decide.
-  local head="$2" code
+  # A dispatch for the exact head decides; a prepared head waits for one and for its release matrix;
+  # otherwise PR checks decide.
+  local head="$2" code matrix
   pr_dispatched "$head"; code=$?
-  [ $code -ne 4 ] && return $code
-  pr_prepared "$head"; code=$?
-  case $code in
-    0) last="prepared head $head: waiting for its dispatched Code quality run"; return 3;;
-    1) pr_checks "$1"; return $?;;
+  if [ $code -eq 4 ]; then
+    pr_prepared "$head"; code=$?
+    case $code in
+      0) last="prepared head $head: waiting for its dispatched Code quality run"; return 3;;
+      1) pr_checks "$1"; return $?;;
+      *) last="head $head author unknown"; return 3;;
+    esac
+  fi
+  pr_prepared "$head"
+  case $? in
+    0) ;;
+    1) return $code;;
     *) last="head $head author unknown"; return 3;;
   esac
+  pr_matrix "$head"; matrix=$?
+  if [ $code -eq 1 ] || [ $matrix -eq 1 ]; then return 1; fi
+  if [ $code -eq 0 ] && [ $matrix -eq 0 ]; then return 0; fi
+  return 3
 }
 
 # Judge the stage at least once, so a timeout always reports an observed state, even when the
@@ -132,9 +161,12 @@ while [ -z "$judged" ] || [ "$(date +%s)" -lt "$deadline" ]; do
         last="$tag matrix $run"
         case "$run" in
           completed/success)
-            draft=$(gh release view "$tag" --json isDraft --jq .isDraft 2>/dev/null)
-            [ "$draft" = "false" ] && finish "$tag released: matrix success, release published" 0
-            last="$tag matrix success; release draft=$draft";;
+            # The release counts only once every verified subject is attached, so hosts can fetch it.
+            release=$(gh release view "$tag" --json isDraft,assets \
+              --jq '"\(.isDraft) \([.assets[].name] | sort | join(","))"' 2>/dev/null)
+            expected="false lervo-cli-$target.tgz,release-artifact-manifest.json,release-sbom.cdx.json,release-subjects.json"
+            [ "$release" = "$expected" ] && finish "$tag released: matrix success, release published with verified subjects" 0
+            last="$tag matrix success; release draft and assets: ${release:-unknown}";;
           completed/*) finish "$tag matrix failed: $run" 1;;
         esac
       else

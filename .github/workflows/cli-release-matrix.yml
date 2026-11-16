@@ -5,6 +5,11 @@ on:
   push:
     tags: ["v*"]
   workflow_dispatch:
+    inputs:
+      expected_sha:
+        description: Exact prepared revision to verify; a moved branch is rejected
+        type: string
+        required: false
 
 permissions:
   contents: read
@@ -14,9 +19,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  plan:
+    name: Plan release verification
+    if: github.event_name != 'pull_request' || github.head_ref == 'lervo/release-cli'
+    outputs:
+      tree: ${{ steps.plan.outputs.tree }}
+      reuse: ${{ steps.plan.outputs.reuse }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # Reuse lookup reads earlier runs, jobs and release-subject artifacts of this repository.
+      actions: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Plan exact release verification or reuse
+        id: plan
+        env:
+          EXPECTED_REVISION: ${{ inputs.expected_sha }}
+          ATTESTATION_APPLICABLE: ${{ github.event.repository.private != true || github.event.repository.owner.type != 'User' }}
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/release/commands/plan-cli-release-matrix.mjs
+
   native-runtime:
     name: Native runtime artifacts
-    if: github.event_name != 'pull_request' || github.head_ref == 'lervo/release-cli'
+    needs: plan
+    if: needs.plan.outputs.reuse == ''
     runs-on: macos-latest
     timeout-minutes: 10
     steps:
@@ -45,9 +81,9 @@ jobs:
           overwrite: true
 
   packed-cli:
-    needs: native-runtime
+    needs: [plan, native-runtime]
     name: Packed CLI (${{ matrix.os }})
-    if: github.event_name != 'pull_request' || github.head_ref == 'lervo/release-cli'
+    if: needs.plan.outputs.reuse == ''
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     strategy:
@@ -83,10 +119,27 @@ jobs:
         run: pnpm release:sbom:check
       - name: Verify local release statement
         run: pnpm release:attestation:check
+      - name: Prepare and bind exact release subjects
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release-subjects"
+          node scripts/release/commands/cli-release-subjects.mjs bind "${RUNNER_TEMP}/lervo-release-subjects"
       - name: Install packed CLI as a consumer
         run: pnpm smoke:packed-cli
       - name: Publish and install through an isolated registry
         run: pnpm smoke:registry-publish
+      - name: Confirm the smokes installed the bound tarball bytes
+        if: matrix.os == 'ubuntu-latest'
+        run: node scripts/release/commands/cli-release-subjects.mjs confirm "${RUNNER_TEMP}/lervo-release-subjects"
+      - name: Keep exact release subjects for publication
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: lervo-cli-release-${{ needs.plan.outputs.tree }}
+          path: ${{ runner.temp }}/lervo-release-subjects
+          if-no-files-found: error
+          retention-days: 30
+          overwrite: true
 
   attested-cli:
     name: Attested CLI release
@@ -166,13 +219,15 @@ jobs:
           retention-days: 30
 
   github-release:
-    name: GitHub release notes
-    if: ${{ always() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && needs.packed-cli.result == 'success' && (needs.attested-cli.result == 'success' || needs.attested-cli.result == 'skipped') }}
-    needs: [packed-cli, attested-cli]
+    name: GitHub release
+    if: ${{ always() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && needs.plan.result == 'success' && (needs.plan.outputs.reuse != '' || needs.packed-cli.result == 'success') && (needs.attested-cli.result == 'success' || needs.attested-cli.result == 'skipped') }}
+    needs: [plan, packed-cli, attested-cli]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
       contents: write
+      # Downloads the verified release subjects, possibly from the pre-merge run that verified them.
+      actions: read
     steps:
       - name: Check out exact tag
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -185,12 +240,16 @@ jobs:
           package-manager-cache: false
       - name: Verify exact current release notes
         run: node scripts/release/commands/check-cli-release-notes.mjs --expected-tag "${GITHUB_REF_NAME}"
-      - name: Create or reconcile the GitHub release
+      - name: Download verified release subjects
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: lervo-cli-release-${{ needs.plan.outputs.tree }}
+          path: ${{ runner.temp }}/lervo-release-subjects
+          run-id: ${{ needs.plan.outputs.reuse || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify subjects against the tagged tree
+        run: node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"
+      - name: Create or reconcile the GitHub release with verified subjects
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
-            gh release edit "${GITHUB_REF_NAME}" --title "@lervo/cli ${GITHUB_REF_NAME}" --notes-file .changes/current-release.md
-          else
-            gh release create "${GITHUB_REF_NAME}" --verify-tag --title "@lervo/cli ${GITHUB_REF_NAME}" --notes-file .changes/current-release.md
-          fi
+        run: bash scripts/release/lib/publish-github-release.sh "${GITHUB_REF_NAME}" "${RUNNER_TEMP}/lervo-release-subjects"

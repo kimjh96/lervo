@@ -47,12 +47,19 @@ describe("CLI release matrix workflow", () => {
       "workflow_dispatch",
     ]);
     assert.deepEqual(workflow.on.push, { tags: ["v*"] });
+    assert.deepEqual(workflow.on.workflow_dispatch.inputs.expected_sha, {
+      description: "Exact prepared revision to verify; a moved branch is rejected",
+      type: "string",
+      required: false,
+    });
     assert.deepEqual(workflow.permissions, { contents: "read" });
-    const job = workflow.jobs["packed-cli"];
     assert.equal(
-      job.if,
+      workflow.jobs.plan.if,
       "github.event_name != 'pull_request' || github.head_ref == 'lervo/release-cli'",
     );
+    const job = workflow.jobs["packed-cli"];
+    assert.deepEqual(job.needs, ["plan", "native-runtime"]);
+    assert.equal(job.if, "needs.plan.outputs.reuse == ''");
     assert.equal(job.strategy["fail-fast"], false);
     assert.deepEqual(job.strategy.matrix.os, ["ubuntu-latest", "macos-latest", "windows-latest"]);
     assert.equal(job["timeout-minutes"], 20);
@@ -76,17 +83,81 @@ describe("CLI release matrix workflow", () => {
 
   it("builds once and checks both the release manifest and consumer install", async () => {
     const workflow = await readWorkflow();
-    const commands = workflow.jobs["packed-cli"].steps.map(({ run }) => run).filter(Boolean);
-    assert.deepEqual(commands, [
-      "pnpm install --frozen-lockfile",
-      'node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"',
-      "pnpm build",
-      "pnpm release:manifest:check",
-      "pnpm release:sbom:check",
-      "pnpm release:attestation:check",
-      "pnpm smoke:packed-cli",
-      "pnpm smoke:registry-publish",
+    const steps = workflow.jobs["packed-cli"].steps;
+    const everyPlatform = steps.filter(({ run, if: condition }) => run && !condition);
+    assert.deepEqual(
+      everyPlatform.map(({ run }) => run),
+      [
+        "pnpm install --frozen-lockfile",
+        'node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"',
+        "pnpm build",
+        "pnpm release:manifest:check",
+        "pnpm release:sbom:check",
+        "pnpm release:attestation:check",
+        "pnpm smoke:packed-cli",
+        "pnpm smoke:registry-publish",
+      ],
+    );
+  });
+
+  it("binds the Linux leg's release subjects before the smokes and keeps them after", async () => {
+    const workflow = await readWorkflow();
+    const steps = workflow.jobs["packed-cli"].steps;
+    const index = (name) => steps.findIndex((step) => step.name === name);
+    const bind = steps[index("Prepare and bind exact release subjects")];
+    const confirm = steps[index("Confirm the smokes installed the bound tarball bytes")];
+    const keep = steps[index("Keep exact release subjects for publication")];
+    for (const step of [bind, confirm, keep]) assert.equal(step.if, "matrix.os == 'ubuntu-latest'");
+    assert.deepEqual(bind.run.trim().split("\n"), [
+      'pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release-subjects"',
+      'node scripts/release/commands/cli-release-subjects.mjs bind "${RUNNER_TEMP}/lervo-release-subjects"',
     ]);
+    assert.equal(
+      confirm.run,
+      'node scripts/release/commands/cli-release-subjects.mjs confirm "${RUNNER_TEMP}/lervo-release-subjects"',
+    );
+    assert.ok(
+      index("Verify local release statement") < index("Prepare and bind exact release subjects"),
+    );
+    assert.ok(
+      index("Prepare and bind exact release subjects") < index("Install packed CLI as a consumer"),
+    );
+    assert.ok(
+      index("Publish and install through an isolated registry") <
+        index("Confirm the smokes installed the bound tarball bytes"),
+    );
+    assert.ok(
+      index("Confirm the smokes installed the bound tarball bytes") <
+        index("Keep exact release subjects for publication"),
+    );
+    assert.equal(keep.uses, "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a");
+    assert.deepEqual(keep.with, {
+      name: "lervo-cli-release-${{ needs.plan.outputs.tree }}",
+      path: "${{ runner.temp }}/lervo-release-subjects",
+      "if-no-files-found": "error",
+      "retention-days": 30,
+      overwrite: true,
+    });
+  });
+
+  it("plans reuse with read-only authority and rejects a moved dispatch", async () => {
+    const workflow = await readWorkflow();
+    const plan = workflow.jobs.plan;
+    assert.deepEqual(plan.permissions, { contents: "read", actions: "read" });
+    assert.deepEqual(plan.outputs, {
+      tree: "${{ steps.plan.outputs.tree }}",
+      reuse: "${{ steps.plan.outputs.reuse }}",
+    });
+    const step = plan.steps.find(({ id }) => id === "plan");
+    assert.equal(step.run, "node scripts/release/commands/plan-cli-release-matrix.mjs");
+    assert.deepEqual(step.env, {
+      EXPECTED_REVISION: "${{ inputs.expected_sha }}",
+      ATTESTATION_APPLICABLE:
+        "${{ github.event.repository.private != true || github.event.repository.owner.type != 'User' }}",
+      GH_TOKEN: "${{ github.token }}",
+    });
+    assert.equal(workflow.jobs["native-runtime"].needs, "plan");
+    assert.equal(workflow.jobs["native-runtime"].if, "needs.plan.outputs.reuse == ''");
   });
 
   it("signs exact release subjects for an exact pushed or manually selected tag", async () => {
@@ -154,32 +225,51 @@ describe("CLI release matrix workflow", () => {
     ]);
   });
 
-  it("publishes one idempotent GitHub Release from the bounded current note", async () => {
+  it("publishes one idempotent GitHub Release with the verified subjects", async () => {
     const workflow = await readWorkflow();
     const job = workflow.jobs["github-release"];
-    assert.deepEqual(job.needs, ["packed-cli", "attested-cli"]);
-    assert.deepEqual(job.permissions, { contents: "write" });
-    assert.match(job.if, /needs\.packed-cli\.result == 'success'/u);
+    assert.deepEqual(job.needs, ["plan", "packed-cli", "attested-cli"]);
+    assert.deepEqual(job.permissions, { contents: "write", actions: "read" });
+    assert.match(job.if, /needs\.plan\.result == 'success'/u);
+    assert.match(
+      job.if,
+      /\(needs\.plan\.outputs\.reuse != '' \|\| needs\.packed-cli\.result == 'success'\)/u,
+    );
     assert.match(job.if, /needs\.attested-cli\.result == 'skipped'/u);
-    const verify = job.steps.find(({ name }) => name === "Verify exact current release notes");
+    const names = job.steps.map(({ name }) => name);
+    assert.deepEqual(names, [
+      "Check out exact tag",
+      "Set up Node",
+      "Verify exact current release notes",
+      "Download verified release subjects",
+      "Verify subjects against the tagged tree",
+      "Create or reconcile the GitHub release with verified subjects",
+    ]);
+    const step = (name) => job.steps[names.indexOf(name)];
     assert.equal(
-      verify.run,
+      step("Verify exact current release notes").run,
       'node scripts/release/commands/check-cli-release-notes.mjs --expected-tag "${GITHUB_REF_NAME}"',
     );
-    const release = job.steps.find(({ name }) => name === "Create or reconcile the GitHub release");
+    const download = step("Download verified release subjects");
+    assert.equal(
+      download.uses,
+      "actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0",
+    );
+    assert.deepEqual(download.with, {
+      name: "lervo-cli-release-${{ needs.plan.outputs.tree }}",
+      path: "${{ runner.temp }}/lervo-release-subjects",
+      "run-id": "${{ needs.plan.outputs.reuse || github.run_id }}",
+      "github-token": "${{ github.token }}",
+    });
+    assert.equal(
+      step("Verify subjects against the tagged tree").run,
+      'node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"',
+    );
+    const release = step("Create or reconcile the GitHub release with verified subjects");
     assert.deepEqual(release.env, { GH_TOKEN: "${{ github.token }}" });
-    assert.match(release.run, /gh release view/u);
-    assert.match(release.run, /gh release edit/u);
-    assert.match(release.run, /gh release create/u);
-    assert.match(
+    assert.equal(
       release.run,
-      /gh release edit "\$\{GITHUB_REF_NAME\}" --title "@lervo\/cli \$\{GITHUB_REF_NAME\}"/u,
+      'bash scripts/release/lib/publish-github-release.sh "${GITHUB_REF_NAME}" "${RUNNER_TEMP}/lervo-release-subjects"',
     );
-    assert.match(
-      release.run,
-      /gh release create "\$\{GITHUB_REF_NAME\}" --verify-tag --title "@lervo\/cli \$\{GITHUB_REF_NAME\}"/u,
-    );
-    assert.doesNotMatch(release.run, /--title "Lervo CLI /u);
-    assert.match(release.run, /--notes-file \.changes\/current-release\.md/u);
   });
 });

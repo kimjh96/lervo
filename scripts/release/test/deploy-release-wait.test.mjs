@@ -25,7 +25,10 @@ case "$1 $2" in
     case "$*" in
       *release-pull-request.yml*) echo "$FAKE_PREPARATION" ;;
       *code-quality.yml*) echo "$FAKE_DISPATCH" ;;
+      *cli-release-matrix.yml*) echo "$FAKE_MATRIX" ;;
+      *"CLI release matrix"*) echo "$FAKE_TAG_MATRIX" ;;
     esac ;;
+  'release view') echo "$FAKE_RELEASE" ;;
   'run view') echo "$FAKE_AGGREGATE" ;;
   'pr view')
     case "$*" in
@@ -45,14 +48,22 @@ esac
 
 // A concluding wait exits at once, so the default deadline only bounds a broken run. Cases that
 // expect a timeout pass "0", which judges the head exactly once and never depends on the clock.
-async function wait(state, timeoutSeconds = "10") {
+// The tag stage asks git whether the tag exists on origin; this fake always finds it.
+const fakeGit = `#!/bin/bash
+[ "$1" = ls-remote ] && exit 0
+exit 2
+`;
+
+async function wait(state, timeoutSeconds = "10", stage = ["pr", "7"]) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-wait-release-"));
   roots.push(root);
   await writeFile(resolve(root, "gh"), fakeGh);
+  await writeFile(resolve(root, "git"), fakeGit);
   await chmod(resolve(root, "gh"), 0o755);
+  await chmod(resolve(root, "git"), 0o755);
   const trace = resolve(root, "trace.log");
   await writeFile(trace, "");
-  const result = spawnSync("bash", [waitScript, "pr", "7", timeoutSeconds], {
+  const result = spawnSync("bash", [waitScript, ...stage, timeoutSeconds], {
     cwd: root,
     encoding: "utf8",
     timeout: 20_000,
@@ -66,6 +77,7 @@ async function wait(state, timeoutSeconds = "10") {
       FAKE_COMPARE: "ahead",
       FAKE_AUTHOR: "lervo-release[bot]|chore(cli): prepare release",
       FAKE_DISPATCH: "none",
+      FAKE_MATRIX: "21 completed success",
       FAKE_AGGREGATE: "1",
       FAKE_CHECKS: "2 0 0 Conventional Commits=pass",
       ...state,
@@ -140,5 +152,63 @@ describe("deploy-lervo-release pull-request wait", () => {
     );
     assert.equal(running.status, 2);
     assert.match(running.stdout, /release preparation in_progress/u);
+  });
+
+  it("requires a prepared head's own dispatched release matrix before it passes", async () => {
+    const passed = await wait({ FAKE_DISPATCH: "11 completed success" });
+    assert.equal(passed.status, 0, passed.stdout);
+    assert.match(passed.stdout, /CLI release matrix run 21: completed\/success/u);
+    assert.match(
+      passed.trace,
+      new RegExp(`cli-release-matrix\\.yml --commit ${head} --event workflow_dispatch`, "u"),
+    );
+    const failed = await wait({
+      FAKE_DISPATCH: "11 in_progress ",
+      FAKE_MATRIX: "21 completed failure",
+    });
+    assert.equal(failed.status, 1, failed.stdout);
+    assert.match(failed.stdout, /CLI release matrix run 21: completed\/failure/u);
+    for (const matrix of ["none", "21 in_progress "]) {
+      const pending = await wait(
+        { FAKE_DISPATCH: "11 completed success", FAKE_MATRIX: matrix },
+        "0",
+      );
+      assert.equal(pending.status, 2, pending.stdout);
+    }
+    const missing = await wait({ FAKE_DISPATCH: "11 completed success", FAKE_MATRIX: "none" }, "0");
+    assert.match(missing.stdout, /waiting for its dispatched CLI release matrix run/u);
+  });
+
+  it("does not require a release matrix for an unprepared head", async () => {
+    const result = await wait({
+      FAKE_AUTHOR: "Owner|feat: add capability",
+      FAKE_DISPATCH: "11 completed success",
+      FAKE_MATRIX: "none",
+    });
+    assert.equal(result.status, 0, result.stdout);
+    assert.doesNotMatch(result.trace, /cli-release-matrix\.yml/u);
+  });
+});
+
+describe("deploy-lervo-release tag wait", () => {
+  const subjects =
+    "lervo-cli-1.2.3.tgz,release-artifact-manifest.json,release-sbom.cdx.json,release-subjects.json";
+
+  it("passes only once the published release carries every verified subject", async () => {
+    const tag = (state, timeout = "10") =>
+      wait({ FAKE_TAG_MATRIX: "completed/success", ...state }, timeout, ["tag", "1.2.3"]);
+    const released = await tag({ FAKE_RELEASE: `false ${subjects}` });
+    assert.equal(released.status, 0, released.stdout);
+    assert.match(released.stdout, /release published with verified subjects/u);
+    for (const release of [
+      "false lervo-cli-1.2.3.tgz",
+      `true ${subjects}`,
+      "false lervo-cli-1.2.4.tgz,release-artifact-manifest.json,release-sbom.cdx.json,release-subjects.json",
+    ]) {
+      const waiting = await tag({ FAKE_RELEASE: release }, "0");
+      assert.equal(waiting.status, 2, waiting.stdout);
+    }
+    const failed = await tag({ FAKE_TAG_MATRIX: "completed/failure" });
+    assert.equal(failed.status, 1, failed.stdout);
   });
 });
