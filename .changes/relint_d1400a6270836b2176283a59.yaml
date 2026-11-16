@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d1400a6270836b2176283a59"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add lervo host upgrade to install a verified published CLI release on one host, with activation ids and rollback."

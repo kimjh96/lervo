@@ -52,6 +52,8 @@ Verify `/v1/health/live`, `/v1/health/ready`, and the newly readable event schem
 
 ### Global CLI on every host
 
+Use `lervo host upgrade` ([ADR-0571](../decisions/distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md)) only when the installed CLI provides it and its plan, `lervo host upgrade --from-release v<version> --repository <owner/name> --json`, succeeds. Until the first ADR-0569 release passes that plan, use the manual steps below. Then run the same command with `--apply` on each host and keep its output in the release directory. It verifies the published assets against the tag, installs side by side, switches `lervo` and `lervo-node`, runs `lervo --version` and a `node --check` parse check of `lervo-node` (not a runtime health check), and records an activation id; `lervo host upgrade --rollback <activation-id> --apply` restores the replaced links. Resolve a PATH-shadowing warning from the plan before applying.
+
 Install side by side in a new versioned directory. Preserve the previous installation's `package.json` dependency set and point `@lervo/cli` at the new tarball using an absolute `file:` path. Inspect that path before installation; the source records a prior doubled-home-directory expansion error.
 
 Atomically relink `lervo` and `lervo-node` to the new `dist/bin.js` and `dist/node-runtime.js`. Record previous and new targets in `<host>-global-cli-activation.json` inside the release directory.

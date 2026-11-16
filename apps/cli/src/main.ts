@@ -69,6 +69,7 @@ import {
   projectProductionSearchQueries,
 } from "./provider-query-projector.js";
 import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
+import { hostUsage, runHostCommand } from "./host-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
 import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
 import { runWorkspaceCommand, workspaceUsage } from "./workspace-command.js";
@@ -78,6 +79,7 @@ const usage = `Usage:
 ${versionUsage}
 ${initUsage}
 ${upgradeUsage}
+${hostUsage}
 ${migrateUsage}
 ${knowledgeUsage}
 ${applicationUsage}
@@ -146,6 +148,7 @@ export async function runCli(
   }
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io, services);
+  if (command === "host") return runHostCommand(args.slice(1), io);
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
