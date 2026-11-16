@@ -362,21 +362,134 @@ it("backs idle recovery off to its ceiling and returns to the base on a change",
       { at: 450_000, trigger: "recovery" },
       { at: 690_000, trigger: "recovery" },
     ]);
-    expect(intervals).toEqual([30_000, 60_000, 120_000, 240_000, 240_000, 240_000]);
+    expect(intervals.at(-1)).toBe(240_000);
 
-    // A local change reconciles promptly and returns the next sweep to the base interval.
+    // A local change reconciles promptly; that replica's next sweep starts from the base again.
     callbacks.local();
+    expect(intervals.at(-1)).toBe(30_000);
     await vi.advanceTimersByTimeAsync(250);
     expect(sweeps.at(-1)).toEqual({ at: 690_250, trigger: "change" });
-    expect(intervals.at(-1)).toBe(30_000);
     await vi.advanceTimersByTimeAsync(30_000);
-    expect(sweeps.at(-1)).toEqual({ at: 720_000, trigger: "recovery" });
-    expect(intervals.at(-1)).toBe(60_000);
+    expect(sweeps.at(-1)).toEqual({ at: 720_250, trigger: "recovery" });
 
-    // A non-current outcome returns the following sweeps to the base interval.
+    // A non-current outcome keeps the following sweeps at the base interval.
     outcome = "not_current";
     await vi.advanceTimersByTimeAsync(120_000);
-    expect(sweeps.slice(-3).map((sweep) => sweep.at)).toEqual([780_000, 810_000, 840_000]);
+    expect(sweeps.slice(-3).map((sweep) => sweep.at)).toEqual([780_250, 810_250, 840_250]);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
+it("backs a held replica off even while another replica keeps changing", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  const started = Date.now();
+  const heldSweeps: number[] = [];
+  const running = watchReplicaReconciliation({
+    repositories: [
+      { replicaId: "held", localRoot: "/held", peerRoot: "/peer/held" },
+      // The mocked local watch notifies the last registered repository.
+      { replicaId: "busy", localRoot: "/busy", peerRoot: "/peer/busy" },
+    ],
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 600_000,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    reconcile: async (repository) => {
+      if (repository.replicaId !== "held") return "not_current";
+      heldSweeps.push(Date.now() - started);
+      return "held";
+    },
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    for (let elapsed = 0; elapsed < 3_600_000; elapsed += 20_000) {
+      callbacks.local();
+      await vi.advanceTimersByTimeAsync(20_000);
+    }
+    // ADR-0461 reset every replica to the base on any hint; now only the changed one resets.
+    expect(heldSweeps).toEqual([
+      0, 30_000, 90_000, 210_000, 450_000, 930_000, 1_530_000, 2_130_000, 2_730_000, 3_330_000,
+    ]);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
+it("probes an unreachable peer once per back-off period and resumes every replica", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const abort = new AbortController();
+  const started = Date.now();
+  let down = true;
+  const cycles: Array<{ at: number; replicaId: string }> = [];
+  const probes: number[] = [];
+  const states: Array<number | null> = [];
+  const running = watchReplicaReconciliation({
+    repositories: ["first", "second", "third"].map((replicaId) => ({
+      replicaId,
+      localRoot: `/${replicaId}`,
+      peerRoot: `/peer/${replicaId}`,
+    })),
+    peer,
+    fallbackIntervalMs: 30_000,
+    idleRecoveryCeilingMs: 240_000,
+    maximumConcurrency: 1,
+    watch: true,
+    peerWatch: false,
+    signal: abort.signal,
+    probePeer: async () => {
+      probes.push(Date.now() - started);
+      return !down;
+    },
+    onPeerBackoff: (state) => states.push(state.retryAt === null ? null : state.retryAt - started),
+    reconcile: async (repository) => {
+      cycles.push({ at: Date.now() - started, replicaId: repository.replicaId });
+      return down ? "peer_unreachable" : "current";
+    },
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    expect(cycles).toEqual([{ at: 0, replicaId: "first" }]);
+    // Local changes during the outage wait for the peer instead of contacting it.
+    for (let elapsed = 0; elapsed < 449_000; elapsed += 1_000) {
+      callbacks.local();
+      await vi.advanceTimersByTimeAsync(1_000);
+    }
+    expect(cycles).toHaveLength(1);
+    expect(probes).toEqual([30_000, 90_000, 210_000]);
+    expect(states.filter((state) => state !== null).at(-1)).toBe(450_000);
+
+    down = false;
+    await vi.advanceTimersByTimeAsync(1_000 + 1_000);
+    expect(probes).toEqual([30_000, 90_000, 210_000, 450_000]);
+    expect(states.at(-1)).toBeNull();
+    expect(
+      cycles
+        .slice(1)
+        .map((cycle) => cycle.replicaId)
+        .sort(),
+    ).toEqual(["first", "second", "third"]);
   } finally {
     abort.abort();
     await vi.advanceTimersByTimeAsync(0);
