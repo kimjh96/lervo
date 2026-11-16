@@ -114,6 +114,16 @@ describe("remembered coordination homes", () => {
 
   it("serializes concurrent first initializations on the lock", async () => {
     const root = await gitRepository();
+    // Hold the first initialization inside the lock until the other two callers reach it. A caller
+    // that started after the first one finished would reuse its remembered home and skip the lock.
+    const { acquireInitializationLock: acquire } = await vi.importActual<
+      typeof import("../src/coordination-initialization-lock.js")
+    >("../src/coordination-initialization-lock.js");
+    vi.mocked(acquireInitializationLock).mockImplementationOnce(async (lockRoot) => {
+      const release = await acquire(lockRoot);
+      await vi.waitFor(() => expect(lockCalls()).toBe(3), { timeout: 5_000, interval: 5 });
+      return release;
+    });
     const homes = await Promise.all([0, 1, 2].map(() => resolveRepositoryCoordinationHome(root)));
     expect(lockCalls()).toBe(3);
     expect(new Set(homes.map((home) => home.repositoryInstanceId)).size).toBe(1);
