@@ -52,9 +52,9 @@ Stage 1 deliberately leaves out:
 
 The release source is a port; its first adapter calls `gh` (`release view`, `api` for tag, commit, and raw contents at the exact commit, `release download`), so credentials stay in `gh`. A `gh` failure becomes `host_release_unavailable` without `gh` output, which can name credentials. The tarball reader is a TypeScript copy of `scripts/release/lib/npm-tarball-entries.mjs`. Publication verifies before any build and cannot import the bundle, and the bundle cannot import repository scripts.
 
-### Stages 2 and 3 (core-loop)
+### Stage 2 (main) and Stage 3 (core-loop)
 
-Stage 2 (S3) gives upgrades priority full-cycle admission, moves in-upgrade knowledge materialization to the next normal cycle, and restarts replicas running a stale runtime. Stage 3 (S4) is `lervo host upgrade --follow`: every host runs the same follower and none is excluded, because by owner rule cross-host conflicts are solved by coordination, never by restricting Lervo to one host. Hosts poll GitHub Releases; a Hub hint only triggers an earlier poll, so following works without a Hub. The Hub host upgrades the Hub first, and other hosts wait until it reports the release's readable schema versions. A failing host rolls back its own activation by id. Publication is the owner's release decision: a follower installs only published releases, never creates tags or releases, and can be paused or pinned. Delivery order, completion criteria, projected times, and open owner decisions are in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
+Stage 2 (S3) gives upgrades priority full-cycle admission ([ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md)), moves in-upgrade knowledge materialization to the next normal cycle, and restarts replicas running a stale runtime. Stage 3 (S4) is `lervo host upgrade --follow`: every host runs the same follower and none is excluded, because by owner rule cross-host conflicts are solved by coordination, never by restricting Lervo to one host. Hosts poll GitHub Releases; a Hub hint only triggers an earlier poll, so following works without a Hub. The Hub host upgrades the Hub first, and other hosts wait until it reports the release's readable schema versions. A failing host rolls back its own activation by id. Publication is the owner's release decision: a follower installs only published releases, never creates tags or releases, and can be paused or pinned. Delivery order, completion criteria, projected times, and open owner decisions are in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
 
 ## States, failures, and privacy
 
@@ -83,7 +83,7 @@ Failure codes:
 
 ## Where it lands
 
-Stage 1 lands on `main` now. It adds new modules and one route in `main.ts`, and it changes no file that `core-loop` rewrites except that route. It needs no further product decision, works without a Hub, and the skill can call it once a release carries it. Stages 2 and 3 land on `core-loop` with its integration release, as planned, because they change upgrade stages and Hub-ordered rollout that `core-loop` reshapes.
+Stage 1 lands on `main` now. It adds new modules and one route in `main.ts`, and it changes no file that `core-loop` rewrites except that route. It needs no further product decision, works without a Hub, and the skill can call it once a release carries it. Stage 2 also lands on `main`: release speed is the owner's priority, and `core-loop` integration has no date. Stage 3 lands on `core-loop` with its integration release, as planned, because it changes upgrade stages and Hub-ordered rollout that `core-loop` reshapes.
 
 ## Consequences
 
