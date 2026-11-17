@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_cb03c9b3099d3548694870cf"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Let runtime retention read the --config of the host follower, host resident, and replica coordinator services, so lervo upgrade retires unreferenced Node runtimes again instead of always reporting runtime_references_unavailable."
