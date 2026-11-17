@@ -3,7 +3,7 @@ import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledg
 import { sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { acquireKnowledgeProviderAdmission } from "../src/provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
-import { reviewKnowledgeJson } from "../src/provider-call.js";
+import { reviewKnowledgeJson, withKnowledgeProviderAdmission } from "../src/provider-call.js";
 import type { ConvergenceAssignmentAuthority } from "../src/workforce.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 
@@ -179,4 +179,51 @@ it("ends the source poll, including one in flight, before the exact fence and it
   expect(exact).toBeGreaterThan(-1);
   // No decision check may land between the exact fence and the effects it guards.
   expect(checks.slice(exact)).toEqual(["exact", "effect"]);
+});
+
+it("returns from provider admission only after a poll in flight, before the caller's fence", async () => {
+  vi.useFakeTimers();
+  vi.mocked(acquireKnowledgeProviderAdmission).mockResolvedValue({
+    observationHash: sha256("admission"),
+    release: async () => {},
+  });
+  // As normalization generation does: the run is only the provider call, and the caller fences
+  // and writes after the wrapper returns. The answer lands while a poll waits on authority.
+  let answered = false;
+  const checks: string[] = [];
+  const context = {
+    storage: { paths: { repositoryRoot: "/repository" }, events: {}, artifacts: {} },
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: () => checks.push("exact"),
+    assertSourceCurrent: () => checks.push("current"),
+  } as unknown as ConvergenceRuntimeContext;
+  const authority = {
+    assertCurrent: () =>
+      answered
+        ? Promise.resolve()
+        : new Promise<void>((resolveCheck) => setTimeout(resolveCheck, 300)),
+  } as unknown as ConvergenceAssignmentAuthority;
+  const caller = (async () => {
+    await withKnowledgeProviderAdmission({
+      context,
+      state,
+      authority,
+      budget: { batchId: "batch", maximumCalls: 3 },
+      run: () =>
+        new Promise((resolveAnswer) =>
+          setTimeout(() => {
+            answered = true;
+            resolveAnswer(undefined);
+          }, 800),
+        ),
+    });
+    context.assertSourceExact(state);
+    await new Promise((resolveWrite) => setTimeout(resolveWrite, 500));
+    checks.push("effect");
+  })();
+  await vi.advanceTimersByTimeAsync(5_000);
+  await caller;
+  expect(checks.slice(checks.indexOf("exact"))).toEqual(["exact", "effect"]);
 });

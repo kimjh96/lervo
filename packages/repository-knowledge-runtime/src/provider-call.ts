@@ -84,7 +84,8 @@ export async function withKnowledgeProviderAdmission<T>(input: {
     }
     throw error;
   } finally {
-    clearInterval(timer);
+    // Callers fence and write after this returns; no poll may still be in flight then.
+    await endPolling();
     context.signal.removeEventListener("abort", abort);
     await admission.release();
   }
