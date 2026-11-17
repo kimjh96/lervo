@@ -4,7 +4,7 @@ const objectIdPattern = /^[a-f0-9]{40}$/u;
 /** The jobs whose success makes a run's release subjects publishable. */
 export const verifiedReleaseJobs = Object.freeze([
   "Native runtime artifacts",
-  ...["ubuntu-latest", "macos-latest", "windows-latest"].map((os) => `Packed CLI (${os})`),
+  ...["ubuntu-latest", "macos-15", "windows-latest"].map((os) => `Packed CLI (${os})`),
 ]);
 
 export const releaseSubjectsArtifactName = (tree) => `lervo-cli-release-${tree}`;

@@ -33,8 +33,12 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event.label.name == 'release' &&
        github.event.pull_request.head.repo.full_name == github.repository)
-    runs-on: macos-latest
+    # Preparation commits the manifest of darwin native files built here, so it uses the image and
+    # Xcode that CI's native-runtime job uses (ADR-0581).
+    runs-on: macos-15
     timeout-minutes: 30
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - name: Resolve the same-repository pull request
         id: target
@@ -74,6 +78,8 @@ jobs:
       - name: Install dependencies
         working-directory: pr
         run: pnpm install --frozen-lockfile
+      - name: Check the pinned darwin toolchain
+        run: node tooling/scripts/distribution/check-darwin-toolchain.mjs
       - name: Prepare the release on the pull-request head
         id: prepare
         shell: bash

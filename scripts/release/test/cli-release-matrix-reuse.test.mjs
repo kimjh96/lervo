@@ -59,7 +59,7 @@ describe("CLI release matrix reuse", () => {
     assert.deepEqual(verifiedReleaseJobs, [
       "Native runtime artifacts",
       "Packed CLI (ubuntu-latest)",
-      "Packed CLI (macos-latest)",
+      "Packed CLI (macos-15)",
       "Packed CLI (windows-latest)",
     ]);
   });

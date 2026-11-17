@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-14
-Amended by: [ADR-0569](../../release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (preparation also dispatches the CLI release matrix, and the merge waits for it)
+Amended by: [ADR-0569](../../release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (preparation also dispatches the CLI release matrix, and the merge waits for it), [ADR-0581](../../release/packaging/0581-build-darwin-native-files-with-one-pinned-xcode.md) (preparation runs on `macos-15` with a pinned Xcode)
 Amends: [ADR-0221](../../release/packaging/0221-reviewed-cli-release-preparation.md) (the release pull request becomes the fallback), [ADR-0496](0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) (one verification covers a prepared feature pull request), [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (the daily audit reuses nothing)
 
 ## Context
@@ -37,7 +37,7 @@ The default release path prepares the release inside the feature pull request be
 - Adding the `release` label to a same-repository pull request.
 - `workflow_dispatch` with the `pull_request` input set to the pull request number.
 
-The workflow resolves the pull request through the GitHub API. The pull request must be open, target `main`, come from this repository, and have a head branch other than `main` or `lervo/release-cli`. Fork pull requests never qualify, and their `pull_request` token cannot write anyway. The job runs on `macos-latest`, like the fallback preparation, so `pnpm build` produces the darwin native files that CI's restored `native-runtime` artifact contains. The manifest and SBOM therefore match CI byte for byte.
+The workflow resolves the pull request through the GitHub API. The pull request must be open, target `main`, come from this repository, and have a head branch other than `main` or `lervo/release-cli`. Fork pull requests never qualify, and their `pull_request` token cannot write anyway. The job runs on macOS, like the fallback preparation, with the image and Xcode that CI's `native-runtime` job uses ([ADR-0581](../../release/packaging/0581-build-darwin-native-files-with-one-pinned-xcode.md) replaced `macos-latest` with `macos-15` and Xcode 26.3), so `pnpm build` produces the darwin native files that CI's restored `native-runtime` artifact contains. The manifest and SBOM therefore match CI byte for byte.
 
 The workflow checks out two revisions. Its own revision goes to `tooling/` without credentials, and the observed pull request head goes to `pr/` with push credentials. `scripts/release/lib/reconcile-release-pull-request.sh` runs from `tooling/` and receives `pr/` as an explicit argument. A pull request branched before an operation existed can therefore still be prepared. Every `pnpm` owner command runs inside `pr/`, so the prepared bytes come from the pull request's own build, release, manifest, and SBOM owners. Running that build with a write token is the existing trust model for same-repository pull requests; forks stay excluded.
 

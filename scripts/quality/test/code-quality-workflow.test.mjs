@@ -45,7 +45,7 @@ describe("code-quality workflow", () => {
       run.includes("native-runtime-transfer.mjs restore"),
     );
     assert.ok(nativeRestore >= 0 && nativeRestore < commands.indexOf("pnpm build"));
-    assert.equal(workflow.jobs["native-runtime"]["runs-on"], "macos-latest");
+    assert.equal(workflow.jobs["native-runtime"]["runs-on"], "macos-15");
     const nativeDownload = job.steps.find(
       ({ uses, with: options }) =>
         uses?.startsWith("actions/download-artifact@") && options?.name === "native-runtime",

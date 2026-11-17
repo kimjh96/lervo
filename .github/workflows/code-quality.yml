@@ -114,6 +114,10 @@ jobs:
         run: pnpm quality:check
       - name: Check types against the supported Node minimum
         if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseQuality != 'true'
+        # The whole-repository type check outgrew Node 22's default heap on the 16 GB runner
+        # (out of memory on 2026-11-17); give it an explicit, bounded heap.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm typecheck
       - name: Check architecture boundaries
         if: needs.plan.outputs.reuseQuality != 'true'
@@ -140,8 +144,12 @@ jobs:
     name: Native runtime artifacts
     needs: plan
     if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == ''
-    runs-on: macos-latest
+    # The release manifest records these bytes, so the job names an image and an Xcode instead of
+    # following macos-latest and its default Xcode (ADR-0581).
+    runs-on: macos-15
     timeout-minutes: 10
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -152,6 +160,8 @@ jobs:
         with:
           node-version: 22.13.0
           package-manager-cache: false
+      - name: Check the pinned darwin toolchain
+        run: node scripts/distribution/check-darwin-toolchain.mjs
       - name: Compile universal native runtime artifacts
         run: |
           node packages/filesystem-durability/scripts/build-native.mjs
