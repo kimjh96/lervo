@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-17
 Amends: [ADR-0214](../operations/services/0214-bounded-repository-upgrade-orchestration.md) (how the knowledge stage is inspected), [ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md) (narrows its held hand-off of knowledge materialization)
+Amended by: [ADR-0582](0582-reuse-one-repository-scan-across-an-upgrade-command.md) (one command reuses one scan across inspections and lint while its fingerprint holds)
 Related: [ADR-0487](../operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (planning inside the window), [ADR-0575](0575-follow-published-releases-on-every-host.md) (host follower), [ADR-0579](0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md) (per-stage timings and the plen-sized inspection cost)
 
 ## Context

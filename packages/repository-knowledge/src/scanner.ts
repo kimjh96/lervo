@@ -1,7 +1,12 @@
+import { resolve } from "node:path";
+
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { extractUnits, supplementalEvidenceUnit, unit } from "./repository-source-units.js";
 import { withProcessCostScope } from "./process-cost-observation.js";
 import { observedOnlySource } from "./scan-retention.js";
+import { compileKnowledgeScannerExclusion } from "./knowledge-intake-policy.js";
+import { RepositoryScanFingerprintRecorder } from "./scan-fingerprint.js";
+import { reuseRepositoryKnowledgeScan, type FingerprintedScan } from "./scan-reuse.js";
 import {
   extractSkillContractUnitDescriptors,
   SKILL_CONTRACT_SOURCE_UNIT_ADAPTER,
@@ -16,6 +21,11 @@ import {
   type RepositorySource,
 } from "./types.js";
 
+const negate =
+  (excluded: (path: string) => boolean) =>
+  (path: string): boolean =>
+    !excluded(path);
+
 /** Attempts per scan when another writer moves the revision or a file under it. */
 const REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS = 3;
 
@@ -26,9 +36,28 @@ const REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS = 3;
 export async function scanRepositoryKnowledge(
   input: RepositoryKnowledgeScanInput,
 ): Promise<RepositoryKnowledgeScan> {
+  return reuseRepositoryKnowledgeScan(input, (recordFingerprint) =>
+    scanRepositoryKnowledgeWithRetries(input, recordFingerprint),
+  );
+}
+
+async function scanRepositoryKnowledgeWithRetries(
+  input: RepositoryKnowledgeScanInput,
+  recordFingerprint: boolean,
+): Promise<FingerprintedScan> {
   for (let attempt = 1; ; attempt += 1) {
+    const fingerprint = recordFingerprint
+      ? new RepositoryScanFingerprintRecorder(
+          resolve(input.repositoryRoot),
+          input.projectId,
+          negate(compileKnowledgeScannerExclusion(input.policy)),
+        )
+      : undefined;
     try {
-      return await withProcessCostScope("scan", () => scanRepositoryKnowledgeOnce(input));
+      const scan = await withProcessCostScope("scan", () =>
+        scanRepositoryKnowledgeOnce(input, fingerprint),
+      );
+      return { scan, fingerprint: fingerprint?.finish() ?? null };
     } catch (error) {
       if (
         attempt >= REPOSITORY_KNOWLEDGE_SCAN_ATTEMPTS ||
@@ -42,6 +71,7 @@ export async function scanRepositoryKnowledge(
 
 async function scanRepositoryKnowledgeOnce(
   input: RepositoryKnowledgeScanInput,
+  fingerprint: RepositoryScanFingerprintRecorder | undefined,
 ): Promise<RepositoryKnowledgeScan> {
   const {
     sources,
@@ -51,7 +81,7 @@ async function scanRepositoryKnowledgeOnce(
     coverage,
     skippedForBudget,
     retention,
-  } = await readRepositoryKnowledgeSources(input);
+  } = await readRepositoryKnowledgeSources(input, fingerprint);
   const root = input.repositoryRoot;
   const extractSourceUnits =
     input.sourceUnitCache?.begin(input) ??
@@ -74,6 +104,9 @@ async function scanRepositoryKnowledgeOnce(
     repositoryRoot: root,
     sources: included,
     budgetSkippedPaths: sources.filter(observedOnlySource).map((source) => source.path),
+    ...(fingerprint === undefined
+      ? {}
+      : { onPackageHashed: fingerprint.skillPackage.bind(fingerprint) }),
   });
   const skillDescriptorByPath = new Map<string, typeof skillDescriptors>();
   for (const descriptor of skillDescriptors) {

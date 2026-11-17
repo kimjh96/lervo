@@ -1,6 +1,8 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
+import { withRepositoryKnowledgeScanReuse } from "@lervo/repository-knowledge";
+
 import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import type { CliIo, CliServices } from "./types.js";
@@ -80,13 +82,27 @@ async function assertApprovedUpgrade(
   }
 }
 
-export async function runUpgradeCommand(
+type UpgradeCommandServices = Pick<
+  CliServices,
+  "knowledgeMaterializationWait" | "knowledgeCycleAdmission" | "upgradeHost"
+>;
+
+/**
+ * ADR-0582: every plan, inspection, and lint of one command reuses one repository scan while its
+ * fingerprint holds, and scans again after any change to what it read.
+ */
+export function runUpgradeCommand(
   args: string[],
   io: CliIo,
-  services: Pick<
-    CliServices,
-    "knowledgeMaterializationWait" | "knowledgeCycleAdmission" | "upgradeHost"
-  > = {},
+  services: UpgradeCommandServices = {},
+): Promise<number> {
+  return withRepositoryKnowledgeScanReuse(() => runRepositoryUpgradeCommand(args, io, services));
+}
+
+async function runRepositoryUpgradeCommand(
+  args: string[],
+  io: CliIo,
+  services: UpgradeCommandServices,
 ): Promise<number> {
   let values: {
     root?: string;

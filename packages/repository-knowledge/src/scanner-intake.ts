@@ -25,8 +25,10 @@ import {
 import { repositoryAgentArtifactForPath } from "./agent-artifact-profile.js";
 import type { ObserveGitIgnoredPaths } from "./git-ignored-paths.js";
 import { observeGitScanOpening } from "./git-scan-opening.js";
-import { defaultDecisionTaxonomy } from "@lervo/project";
-import { loadDocumentLayoutContract } from "./document-layout-contract.js";
+import {
+  scanDocumentTaxonomy,
+  type RepositoryScanFingerprintRecorder,
+} from "./scan-fingerprint.js";
 import { compareScanPaths, repositoryScanPriority } from "./scan-priority.js";
 import { admitRetainedContent, type ScanRetentionCandidate } from "./scan-retention.js";
 import type { SourceUnitCache } from "./source-unit-cache.js";
@@ -45,7 +47,10 @@ export interface RepositoryKnowledgeScanInput {
   sourceUnitCache?: SourceUnitCache;
 }
 
-export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeScanInput) {
+export async function readRepositoryKnowledgeSources(
+  input: RepositoryKnowledgeScanInput,
+  fingerprint?: RepositoryScanFingerprintRecorder,
+) {
   const root = resolve(input.repositoryRoot);
   const sourceLineages = await loadDocumentMoveLineages({
     repositoryRoot: root,
@@ -59,13 +64,16 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
   // Git-ignored untracked paths carry no repository knowledge (ADR-0433), so the scan never reads
   // them. Without this, a virtual environment or build output fills the read budget.
   const gitIgnored = await opening.observeIgnoredPaths();
-  const taxonomy = (await loadDocumentLayoutContract(root)).taxonomy ?? defaultDecisionTaxonomy;
+  const taxonomy = await scanDocumentTaxonomy(root);
+  fingerprint?.layout(sourceLineages, taxonomy);
+  fingerprint?.git(revisionBefore, gitIgnored);
   const candidates: ScanRetentionCandidate[] = [];
   const supplementalByPath = new Map<string, RepositorySupplementalSource>();
   let visitedFiles = 0;
 
   const walk = async (directory: string): Promise<void> => {
     const entries = await readdir(directory, { withFileTypes: true });
+    fingerprint?.directory(directory, entries);
     entries.sort((left, right) => left.name.localeCompare(right.name));
     for (const entry of entries) {
       if (isIgnorableFilesystemMetadata(entry)) continue;
@@ -115,6 +123,7 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
       }
       if (entry.isDirectory()) {
         if (!(await isNestedGitWorkingTree(absolute))) await walk(absolute);
+        else fingerprint?.nestedWorkingTree(absolute);
         continue;
       }
       if (!entry.isFile()) continue;
@@ -125,13 +134,17 @@ export async function readRepositoryKnowledgeSources(input: RepositoryKnowledgeS
           "The repository file count exceeds the policy limit.",
         );
       }
-      const stats = await lstat(absolute).catch((error: NodeJS.ErrnoException) => {
-        throw error.code === "ENOENT" ? concurrentSourceChange(path) : error;
-      });
+      const exactStats = await lstat(absolute, { bigint: true }).catch(
+        (error: NodeJS.ErrnoException) => {
+          throw error.code === "ENOENT" ? concurrentSourceChange(path) : error;
+        },
+      );
+      const stats = { size: Number(exactStats.size) };
       const id = sourceId;
       if (input.generatedPaths?.has(path)) {
         continue;
       }
+      fingerprint?.file(path, absolute, exactStats);
       if (secretCandidatePath(path)) {
         sources.push({
           sourceId: id,
