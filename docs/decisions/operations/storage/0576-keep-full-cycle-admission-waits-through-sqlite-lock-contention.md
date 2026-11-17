@@ -9,7 +9,7 @@ Related: [ADR-0509](0509-install-the-sqlite-busy-handler-before-any-other-statem
 
 `lervo upgrade --apply` failed twice on the Mac with `ERR_SQLITE_ERROR: database is locked`: in `lervo` during the v0.24.0 rollout, and in `axli-lab` during the v0.24.1 rollout. In `axli-lab`, the command printed the full-cycle admission wait notice and failed 13 minutes later. Its plan was `pending_authority`, so `--safe` should have ended with `upgrade_owner_approval_required`.
 
-The error came from `full-cycle-admission.sqlite`:
+The evidence points to `full-cycle-admission.sqlite`. No stack was captured: the CLI reports only the code and message, and the failed apply was not rerun. The `lervo` failure left no receipt, so its cause is inferred from the same path. Other host-wide databases that a full apply opens after admission were not traced; the traced plan-only run does not cover the apply stages.
 
 - A traced plan-only run of `axli-lab` opened one database, the repository's `events.sqlite`. It is in WAL mode, and its writes use `BEGIN IMMEDIATE`. An apply adds only the host's full-cycle admission database.
 - Every connection to the admission database already used `openSqliteDatabase` with the 5-second busy wait and `BEGIN IMMEDIATE`. Neither a missing wait nor a deferred read-then-write transaction caused the error.
@@ -34,16 +34,17 @@ Readers, including `contended()`, `preempted()`, and schema checks, no longer wa
 ### Lock contention delays admission instead of failing it
 
 - **Waiting.** A poll that fails with `SQLITE_BUSY` or `SQLITE_LOCKED` counts as not admitted, and the waiter polls again. Abort or the caller's deadline still ends the wait: `knowledge_cancelled` for a resident, `knowledge_cycle_admission_wait_expired` for an upgrade. Other SQLite failures still fail the wait.
-- **Releasing.** `release()` retries a contended delete until it succeeds or the lease lapses. A lapsed lease no longer blocks any waiter, so the release then returns. Other SQLite failures still throw.
+- **Releasing.** `release()` retries a contended delete until it succeeds or the lease lapses. A lapsed lease no longer blocks any waiter, so the release then returns. Other SQLite failures still throw. A short-lived caller can shorten the retry with `releaseContentionWaitMilliseconds`. `lervo upgrade --apply` uses 30 seconds, so a stuck writer cannot hold back its receipt for the rest of the lease. If the release gives up, the row stops counting when the upgrade process exits, under the existing dead-holder rule. The resident keeps the lease-bounded retry, because its live process keeps the row held.
+- **Naming.** A SQLite failure that leaves the admission module carries the prefix `full-cycle-admission.sqlite: ` in its message and keeps its `code` and `errcode`. The next failure names its database without a stack.
 - **Holding.** `contended()`, `preempted()`, and lease renewal keep their behavior: an unreadable database answers false, and a failed renewal waits for the next minute.
 
-`@lervo/sqlite-connection` exports `isSqliteLockContention(error)`. It is true for primary result codes 5 and 6, including extended codes. The supervision process lock, the repository source gate, and the terminal runtime store lock use it instead of their own copies.
+`@lervo/sqlite-connection` exports `isSqliteLockContention(error)`. It is true for primary result codes 5 and 6, including extended codes. The supervision process lock, the repository source gate, and the terminal runtime store lock use it instead of their own copies. The first two already masked extended codes. The terminal runtime store lock compared the exact codes 5 and 6, so it now also treats extended codes such as `SQLITE_BUSY_RECOVERY` as a held lock and returns null instead of throwing.
 
 The admission database helper closes its connection when any later setup step fails.
 
 ## States, privacy, and failure meaning
 
-No event, column, or state is added. The admission directory gains the SQLite `-wal` and `-shm` files next to the database. SQLite creates them with the database file's `0600` mode in the `0700` directory, and they hold the same process IDs, nonces, path hashes, and times.
+No event, column, or state is added. The admission directory gains the SQLite `-wal` and `-shm` files next to the database. SQLite creates them with the database file's `0600` mode, and they hold the same process IDs, nonces, path hashes, and times. The directory is `0700` only when Lervo creates it, because `mkdir` applies the mode only to a new directory.
 
 - `database is locked` from the full-cycle admission no longer ends an upgrade or a resident cycle. A wait still ends only by admission, abort, or deadline.
 - A non-contention SQLite failure, such as a corrupt file or a permission error, still fails the wait or the release with its original error.
@@ -56,6 +57,7 @@ A host with many residents no longer turns admission polling into upgrade failur
 ## Verification
 
 - `full-cycle-admission.test.ts`: another process holds the write lock for 6.5 seconds, past the 5-second busy wait. An upgrade waiting through it is admitted after the lock is released, and a release through it removes the holder row. The holder answers `preempted()` and `contended()` within the busy wait while another process holds `BEGIN EXCLUSIVE`. A rollback-journal database from an earlier release becomes WAL. On origin/main, the first three tests fail: the wait and the release with `database is locked`, and `preempted()` with false.
+- `full-cycle-admission.test.ts` also covers the short release wait: it returns while another process still holds the lock and leaves the row for the dead-holder rule. A file that is not a database fails with `ERR_SQLITE_ERROR` and a message that starts with `full-cycle-admission.sqlite: `.
 - `sqlite-connection.test.ts`: `isSqliteLockContention` is true for a held lock and false for a missing table or a plain `Error`.
 - Existing tests for the source gate, the terminal runtime store, the supervision locks, ADR-0574 priority, the resident loop, upgrade exclusion, and the upgrade command still pass.
 
