@@ -20,7 +20,7 @@ The follower writes two files in `<cli>`. Each has one writer and is replaced at
 - `consecutiveSourceFailures`: release-source failures in a row.
 - `lastOutcome`: `at`, `outcome`, `tag`, and `code`.
 - `failedTags`: the newest 16 entries of `tag`, `failedAt`, `code`, and `activationId`.
-- `inFlight`: the intent written before an install, with `tag`, `activationId` (null until known), `startedAt`, `rollback` (`code` while a rollback waits), and `interruptions`.
+- `inFlight`: the intent written before an install, with `tag`, `activationId` (chosen before the install and given to it), `startedAt`, `rollback` (`code` while a rollback waits), and `interruptions`.
 - `installFailures`: `tag`, `count`, and `code` of consecutive installer failures.
 - `lastPass`: `cliTarget`, `version`, `finishedAt`, `outcome`, and one entry per repository. Each entry holds `repositoryRoot`, `outcome`, `status`, `code`, `rounds`, `appliedStages`, `pendingStages`, `planId`, `attempts`, `nextAttemptAt`, `waitMs`, `applyMs`, and `elapsedMs`. `waitMs` and `applyMs` are null when no receipt carried `timing`.
 
@@ -33,7 +33,7 @@ Failed tags have a fixed bound, and repository entries are bounded by the host r
 - Holding: `paused`, `handover`, `interrupted`, `busy`, `waiting`, and `host_blocked`.
 - Nothing to install: `current`, `no_published_release`, `release_failed_on_host`, `pinned_release_unavailable`, and `pinned_release_reached`.
 - Retrying: `source_unavailable` and `install_retry`.
-- Settling an intent: `install_abandoned` (no activation of the intent exists) and `in_flight_superseded` (the links moved elsewhere since).
+- Settling an intent: `install_abandoned` (no active record has the intent's activation id, after any pending one was reconciled) and `in_flight_superseded` (the links moved elsewhere since).
 - Results: `release_failed`, `upgraded`, `rolled_back`, `rollback_pending`, `rollback_failed`, `repositories_upgraded`, and `repositories_retried`.
 
 A `--once` run exits 1 for `host_blocked`, `release_failed`, `rolled_back`, `rollback_pending`, and `rollback_failed`. The service loop exits 75 after a handover and 0 after a stop request.
