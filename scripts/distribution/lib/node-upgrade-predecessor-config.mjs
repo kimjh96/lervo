@@ -9,9 +9,12 @@ function decodeSystemd(value) {
       if (next !== "\\" && next !== '"') return null;
       decoded += next;
       index += 1;
-    } else if (character === "%" && value[index + 1] === "%") {
-      decoded += "%";
+    } else if ((character === "%" || character === "$") && value[index + 1] === character) {
+      decoded += character;
       index += 1;
+    } else if (character === "%" || character === "$") {
+      // systemd expands a lone specifier or variable, so the literal path is unknown.
+      return null;
     } else decoded += character;
   }
   return decoded;

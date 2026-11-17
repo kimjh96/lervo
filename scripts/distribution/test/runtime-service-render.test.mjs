@@ -429,3 +429,27 @@ describe("repository replica coordinator service definition (ADR-0483)", () => {
     );
   });
 });
+
+describe("systemd command escaping (ADR-0579)", () => {
+  it("writes a literal $ as $$ in ExecStart, and the upgrade fence reads the exact config back", async () => {
+    const { nodeUpgradePredecessorConfig } =
+      await import("../lib/node-upgrade-predecessor-config.mjs");
+    const config = "/srv/node$1/50%/config.json";
+    const definition = formatRuntimeServiceDefinition({
+      manager: "systemd",
+      runtime: "node",
+      instance: nodeInstance,
+      executable: "/opt/runtime$x/lervo-node-launcher",
+      config,
+      pathDirectories: [],
+    });
+    expect(definition).toContain(
+      'ExecStart="/opt/runtime$$x/lervo-node-launcher" --config "/srv/node$$1/50%%/config.json"',
+    );
+    expect(definition).toContain('Environment="PATH=/opt/runtime$x:');
+    expect(nodeUpgradePredecessorConfig("systemd", Buffer.from(definition))).toBe(config);
+    expect(
+      nodeUpgradePredecessorConfig("systemd", Buffer.from('ExecStart="/a" --config "/b/$HOME"\n')),
+    ).toBeNull();
+  });
+});

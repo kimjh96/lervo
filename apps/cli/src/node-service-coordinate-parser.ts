@@ -38,9 +38,12 @@ function decodeSystemd(value: string): string | null {
       if (next !== "\\" && next !== '"') return null;
       decoded += next;
       index += 1;
-    } else if (character === "%" && value[index + 1] === "%") {
-      decoded += "%";
+    } else if ((character === "%" || character === "$") && value[index + 1] === character) {
+      decoded += character;
       index += 1;
+    } else if (character === "%" || character === "$") {
+      // A lone specifier or variable is expanded by systemd, so the literal path is unknown.
+      return null;
     } else decoded += character;
   }
   return decoded;

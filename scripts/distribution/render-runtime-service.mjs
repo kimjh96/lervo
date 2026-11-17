@@ -180,6 +180,11 @@ function systemdEscape(value) {
   return `"${value.replaceAll("%", "%%").replaceAll("\\", "\\\\").replaceAll('"', '\\"')}"`;
 }
 
+/** An `ExecStart=` argument: systemd also expands `$` there, so a literal one is written `$$`. */
+function systemdCommandEscape(value) {
+  return systemdEscape(value).replaceAll("$", "$$$$");
+}
+
 function xml(value) {
   return value
     .replaceAll("&", "&amp;")
@@ -235,10 +240,10 @@ function systemd(input) {
   const command = [
     ...[input.nodeExecutable, input.executable]
       .filter((value) => value !== null)
-      .map(systemdEscape),
+      .map(systemdCommandEscape),
     ...runtimeSubcommand(input),
   ].join(" ");
-  return `[Unit]\nDescription=${title(input)}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironment=${systemdEscape(`PATH=${runtimePath(input)}`)}\nExecStart=${command} --config ${systemdEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=${runtimeServiceStopTimeoutMs / 1000}s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
+  return `[Unit]\nDescription=${title(input)}\nAfter=network-online.target\nWants=network-online.target\n\n[Service]\nType=simple\nEnvironment=${systemdEscape(`PATH=${runtimePath(input)}`)}\nExecStart=${command} --config ${systemdCommandEscape(input.config)}\nExecReload=/bin/kill -HUP $MAINPID\nKillSignal=SIGTERM\nRestart=on-failure\nRestartSec=5s\nTimeoutStopSec=${runtimeServiceStopTimeoutMs / 1000}s\nUMask=0077\nNoNewPrivileges=true\n\n[Install]\nWantedBy=default.target\n`;
 }
 
 function launchd(input) {

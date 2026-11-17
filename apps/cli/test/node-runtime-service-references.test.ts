@@ -200,6 +200,23 @@ describe("runtime retention service references", () => {
     });
   });
 
+  it("renders a literal $ in a systemd command as $$ and reads it back", () => {
+    const config = "/srv/a$b/50%/config.json";
+    const rendered = formatRuntimeServiceDefinition({
+      manager: "systemd",
+      runtime: "host-follow",
+      nodeExecutable: "/opt/node/bin/node",
+      executable: "/opt/lervo$1/dist/bin.js",
+      config,
+      pathDirectories: [],
+    }) as string;
+    expect(rendered).toContain('ExecStart="/opt/node/bin/node" "/opt/lervo$$1/dist/bin.js"');
+    expect(rendered).toContain('--config "/srv/a$$b/50%%/config.json"');
+    expect(rendered).toContain('Environment="PATH=/opt/node/bin:/opt/lervo$1/dist:');
+    expect(parseServiceConfigPath("systemd", rendered)).toBe(config);
+    expect(parseServiceConfigPath("systemd", 'ExecStart="/a" --config "/b/$HOME"\n')).toBeNull();
+  });
+
   it("reads the configuration after subcommand words, quotes, escapes, and percent signs", () => {
     const config = '/home/o\'wner/50% "state"/config.json';
     for (const manager of ["systemd", "launchd"] as const)
