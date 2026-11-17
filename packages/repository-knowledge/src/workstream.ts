@@ -22,6 +22,7 @@ import {
 import {
   RepositoryKnowledgeError,
   type KnowledgeFileOperation,
+  type RepositoryKnowledgePreparedScanOptions,
   type RepositoryKnowledgeScanOptions,
   type RepositorySource,
 } from "./types.js";
@@ -820,6 +821,7 @@ export async function createContinuationWorkstreamMigrationPlan(input: {
   projectId: string;
   sourcePath?: string;
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
+  preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
 }): Promise<ContinuationWorkstreamMigrationPlan> {
   const root = resolve(input.repositoryRoot);
   let current: WorkstreamSnapshot | null = null;
@@ -837,6 +839,7 @@ export async function createContinuationWorkstreamMigrationPlan(input: {
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),
+    ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
   });
   const candidates = scan.scan.sources
     .flatMap((item) => {

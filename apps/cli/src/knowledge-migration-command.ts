@@ -10,12 +10,15 @@ import {
   applyContinuationWorkstreamMigrationPlan,
   canonicalJson,
   createKnowledgeInstructionBridgePlan,
+  type RepositoryKnowledgeScan,
+  type RepositoryLayoutMigrationPlan,
   createKnowledgeMigrationPlan,
   createContinuationWorkstreamMigrationPlan,
   lintRepositoryKnowledge,
   inspectConfiguredDocumentNormalization,
   sha256,
   RepositoryKnowledgeError,
+  scanConfiguredRepositoryKnowledge,
   serializableRepositoryLayoutMigrationPlan,
   serializableTerminalIntegrationPlan,
 } from "@lervo/repository-knowledge";
@@ -75,6 +78,8 @@ export async function runKnowledgeMigration(input: {
   args: string[];
   io: CliIo;
   mode: "migrate" | "refresh";
+  /** Receives the layout plan this run evaluated, so a caller need not plan it again. */
+  observeLayout?: (layout: RepositoryLayoutMigrationPlan) => void;
 }): Promise<number> {
   let io = input.io;
   let values: {
@@ -140,6 +145,12 @@ export async function runKnowledgeMigration(input: {
       throw new Error("--rebuild is supported only by lervo knowledge refresh.");
     await foregroundKnowledgeMaterializationSettlement({ repositoryRoot, io }).settle();
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
+    // ADR-0578: the stage plans before the first write read one scan. Every apply recreates its
+    // plan from a fresh scan and refuses a different plan ID, so the shared scan cannot go stale.
+    // An apply releases it first, so it never doubles the apply's peak memory.
+    let preparedScan: RepositoryKnowledgeScan | undefined = (
+      await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources })
+    ).scan;
     if (input.mode === "migrate") {
       const projectStorage = await openProjectStorage(repositoryRoot);
       let continuation;
@@ -151,6 +162,7 @@ export async function runKnowledgeMigration(input: {
             ? {}
             : { sourcePath: values["continuation-source"] }),
           supplementalSources,
+          preparedScan,
         });
       } finally {
         await projectStorage.close();
@@ -258,6 +270,7 @@ export async function runKnowledgeMigration(input: {
     const instructionBootstrapResult = await runInstructionBootstrapStage({
       repositoryRoot,
       supplementalSources,
+      preparedScan,
       ...(values.apply === undefined ? {} : { applyPlanId: values.apply }),
       approvalItems: values["approve-item"] ?? [],
       json: values.json ?? false,
@@ -297,6 +310,7 @@ export async function runKnowledgeMigration(input: {
         ? await planKnowledgeMigrationRouting({
             repositoryRoot,
             supplementalSources,
+            preparedScan,
             classify: values.apply === undefined && !layoutDecisionRequested,
             ...(values.provider === undefined ? {} : { provider: values.provider }),
             ...(values.model === undefined ? {} : { model: values.model }),
@@ -304,6 +318,7 @@ export async function runKnowledgeMigration(input: {
             ...(values["timeout-ms"] === undefined ? {} : { timeoutMs: values["timeout-ms"] }),
           })
         : null;
+    if (layout !== null) input.observeLayout?.(layout);
     if (layoutDecisionRequested && (layout === null || layout.status === "current"))
       throw new Error("No layout decision is pending for the current plan.");
     let decidedApprovals: Array<{ operationId: string; approvalHash: string }> | undefined;
@@ -338,6 +353,7 @@ export async function runKnowledgeMigration(input: {
       if (decidedApprovals === undefined && values.apply !== layout.planId)
         throw new Error("The requested plan ID does not match the current repository layout plan.");
       const approvals = decidedApprovals ?? parseLayoutApprovals(values["approve-item"]);
+      preparedScan = undefined;
       const baselineValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
         supplementalSources,
       });
@@ -451,6 +467,7 @@ export async function runKnowledgeMigration(input: {
       reconciliationMode:
         values["integration-head"] === true ? "integration_head_incremental" : "full",
       supplementalSources,
+      preparedScan,
     });
     const structuralCurrent = plan.operations.every(
       (operation) => operation.action === "unchanged",
@@ -460,6 +477,7 @@ export async function runKnowledgeMigration(input: {
         repositoryRoot,
         provider: "claude",
         supplementalSources,
+        preparedScan,
       });
       if (bridge.status !== "current") {
         if ((values["approve-item"]?.length ?? 0) > 1)
@@ -565,6 +583,7 @@ export async function runKnowledgeMigration(input: {
         const normalization = await inspectConfiguredDocumentNormalization({
           repositoryRoot,
           supplementalSources,
+          preparedScan,
         });
         if (normalization.pendingDocuments.length > 0) {
           const result = {
@@ -615,6 +634,7 @@ export async function runKnowledgeMigration(input: {
             .map(({ path, reason }) => ({ path, reason })),
         },
       );
+    preparedScan = undefined;
     const baselineValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
       supplementalSources,
     });

@@ -1,5 +1,6 @@
 import {
   createRepositoryLayoutMigrationPlan,
+  type RepositoryKnowledgeScan,
   type RepositoryKnowledgeScanOptions,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -13,6 +14,8 @@ import {
 export async function planKnowledgeMigrationRouting(input: {
   repositoryRoot: string;
   supplementalSources: RepositoryKnowledgeScanOptions["supplementalSources"];
+  /** Classification writes only host-private evidence, so the re-plan may reuse this scan. */
+  preparedScan: RepositoryKnowledgeScan;
   provider?: string;
   model?: string;
   executable?: string;
@@ -35,6 +38,7 @@ export async function planKnowledgeMigrationRouting(input: {
     ...(input.supplementalSources === undefined
       ? {}
       : { supplementalSources: input.supplementalSources }),
+    preparedScan: input.preparedScan,
     documentRouteContext,
   };
   let layout = await createRepositoryLayoutMigrationPlan(options);

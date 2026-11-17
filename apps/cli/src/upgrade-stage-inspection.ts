@@ -1,12 +1,12 @@
 import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce";
-import {
-  createRepositoryLayoutMigrationPlan,
-  type RepositoryLayoutDeferredDocument,
-  type DocumentRouteDeferralResolution,
+import type {
+  RepositoryLayoutDeferredDocument,
+  RepositoryLayoutMigrationPlan,
+  DocumentRouteDeferralResolution,
 } from "@lervo/repository-knowledge";
 
 import { CommandFailure } from "./command-error-output.js";
-import { deferredDocuments } from "./upgrade-deferred-documents.js";
+import { layoutDeferrals } from "./upgrade-deferred-documents.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { pendingLayoutDecision } from "./knowledge-layout-decision.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
@@ -157,30 +157,22 @@ function knowledgePlanBlockers(value: Record<string, unknown>): UpgradeStageBloc
     .slice(0, maximumReportedBlockers);
 }
 
-/** The layout plan's deferrals; an unavailable layout reports none rather than failing the stage. */
-async function layoutDeferrals(
-  root: string,
-  value: Record<string, unknown> | null,
-): Promise<NonNullable<KnowledgeStage["deferredDocuments"]>> {
-  if (Array.isArray(value?.deferredDocuments)) return deferredDocuments(value.deferredDocuments);
-  return createRepositoryLayoutMigrationPlan({ repositoryRoot: root }).then(
-    (plan) => deferredDocuments(plan.deferredDocuments),
-    () => [],
-  );
-}
-
 export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
+  let planned: RepositoryLayoutMigrationPlan | null = null;
   const result = await capture(
     (io) =>
       runKnowledgeMigration({
         args: ["--root", root, "--integration-head", "--json"],
         io,
         mode: "migrate",
+        observeLayout: (layout) => {
+          planned = layout;
+        },
       }),
     root,
   );
   const stage = await knowledgeDisposition(root, result);
-  const deferred = await layoutDeferrals(root, result.value);
+  const deferred = await layoutDeferrals(root, result.value, planned);
   return deferred.length === 0
     ? stage
     : { ...stage, deferredDocuments: deferred.slice(0, maximumReportedBlockers) };
