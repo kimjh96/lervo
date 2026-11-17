@@ -5,6 +5,12 @@ import { resolve } from "node:path";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import {
+  CasRetentionBoundError,
+  REFERENCE_SCAN_LIMITS,
+  REPORT_READ_LIMITS,
+  referenceReadBudget,
+} from "./cas-retention-budget.js";
 import { convergenceArtifactRoots, reachableConvergenceArtifacts } from "./cas-retention-policy.js";
 import {
   CAS_RETENTION_OBSERVATION,
@@ -20,6 +26,11 @@ export interface CasRetentionObservation {
   schemaVersion: 1;
   observedAt: string;
   status: "yielded" | "collected" | "unavailable";
+  /**
+   * Set only with `unavailable` (ADR-0584): `bound_exceeded` names a finite collector bound, and
+   * `failed` any other stop. Neither carries a path, hash or exception text.
+   */
+  failure: "bound_exceeded" | "failed" | null;
   removedObjects: number;
   reclaimedBytes: number;
 }
@@ -56,34 +67,37 @@ async function collect(
   if (!eligible.size) return;
   const keys = new Set(files.map((file) => file.key));
   for (const key of Object.keys(scan.files)) if (!keys.has(key)) delete scan.files[key];
-  let chunks = 0;
-  let scannedBytes = 0;
-  const started = Date.now();
+  // Probes of live work run between reads and never spend the read budget (ADR-0584).
+  const budget = referenceReadBudget(REFERENCE_SCAN_LIMITS, shouldYield);
+  let restarted = false;
   for (const file of files) {
     let entry = scan.files[file.key];
     if (!entry || entry.identity !== file.identity)
       entry = { identity: file.identity, complete: false, offset: 0, tail: "", references: [] };
     while (!entry.complete) {
-      const remainingBytes = 8 * 1024 * 1024 - scannedBytes;
-      if (
-        chunks >= 64 ||
-        remainingBytes <= 0 ||
-        (file.hash === null &&
-          /\.(?:sqlite|db)$/u.test(file.path) &&
-          remainingBytes < 1024 * 1024) ||
-        Date.now() - started >= 100 ||
-        (await shouldYield())
-      ) {
+      const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
+      if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) {
         await saveScan(statePath, scan);
         return;
       }
-      const read = await scanReferenceChunk(file, entry, eligible, remainingBytes);
+      const prior = entry;
+      const read = await budget.read(
+        () => scanReferenceChunk(file, prior, eligible, budget.remainingBytes()),
+        (result) => result?.bytesRead ?? 0,
+      );
+      // A live writer replaced, removed or locked it: restart this file next cycle, keep the rest.
+      if (read === null) {
+        delete scan.files[file.key];
+        restarted = true;
+        break;
+      }
       entry = read.scan;
-      scannedBytes += read.bytesRead;
       scan.files[file.key] = entry;
-      chunks++;
     }
-    scan.files[file.key] = entry;
+  }
+  if (restarted) {
+    await saveScan(statePath, scan);
+    return;
   }
   const reachable = new Set(roots.reachable);
   const edges = new Map<string, string[]>();
@@ -99,8 +113,7 @@ async function collect(
       reachable,
       scan,
       casHashes: new Set(files.flatMap((file) => (file.hash === null ? [] : [file.hash]))),
-      deadline: started + 100,
-      shouldYield,
+      budget: referenceReadBudget(REPORT_READ_LIMITS, shouldYield),
     }))
   ) {
     await saveScan(statePath, scan);
@@ -175,13 +188,15 @@ export async function compactProjectConvergenceArtifacts(
       schemaVersion: 1,
       observedAt: new Date().toISOString(),
       status: "yielded",
+      failure: null,
       removedObjects: 0,
       reclaimedBytes: 0,
     };
     try {
       await collect(storage, observation, shouldYield);
-    } catch {
+    } catch (error) {
       observation.status = "unavailable";
+      observation.failure = error instanceof CasRetentionBoundError ? "bound_exceeded" : "failed";
     }
     await writeRetentionProjection(
       resolve(storage.paths.knowledgeState, CAS_RETENTION_OBSERVATION),
