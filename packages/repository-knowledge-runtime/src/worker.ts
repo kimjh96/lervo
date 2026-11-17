@@ -42,6 +42,8 @@ import { readMaintenanceObservation } from "./maintenance-observation.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
 const MATERIALIZATION_BUSY = Symbol("materialization_busy");
+/** ADR-0574: an upgrade waits for the host's full-cycle admission; the cycle stopped between stages. */
+const YIELDED_TO_UPGRADE = Symbol("yielded_to_upgrade");
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
 import {
   compactConvergenceWorkspaces,
@@ -90,6 +92,11 @@ export async function runAutonomousKnowledgeWorker(input: {
   /** ADR-0485: another repository waits for the host's full-cycle admission; yield between stages. */
   shouldYield?: () => Promise<boolean>;
   /**
+   * ADR-0574: an upgrade waits for the host's full-cycle admission. Asked before each stage of
+   * the cycle; each stage finishes its own durable writes first, and the rest stays due.
+   */
+  yieldToUpgrade?: () => Promise<boolean>;
+  /**
    * ADR-0466 cross-host owner gate. When present, a non-owner runs only read-only debt detection;
    * when absent, the legacy single-host behavior applies.
    */
@@ -104,7 +111,7 @@ export async function runAutonomousKnowledgeWorker(input: {
   /** How convergence observes repository sources; absent, every observation is a full capture. */
   sourceObservation?: ConvergenceSourceObservation;
 }): Promise<
-  | { status: "busy" }
+  | { status: "busy"; reason?: "knowledge_cycle_yielded_to_upgrade" }
   | {
       status: "waiting_owner";
       owner: ConvergenceOwnerVerdict;
@@ -172,8 +179,14 @@ export async function runAutonomousKnowledgeWorker(input: {
           : { transport: input.instructionCandidateTransport }),
       }),
     );
+  const upgradeWaiting = async () => (await input.yieldToUpgrade?.()) ?? false;
+  const yieldedToUpgrade = {
+    status: "busy",
+    reason: "knowledge_cycle_yielded_to_upgrade",
+  } as const;
   const owner = input.owner === undefined ? null : await input.owner();
   if (owner !== null && owner.role !== "owner") {
+    if (await upgradeWaiting()) return yieldedToUpgrade;
     // ADR-0467: assessing this host's own owner turns is not convergence work, so it runs here too.
     // A non-owner with no queued turn and no Hub exchange has nothing to do and takes no lock.
     const pending =
@@ -190,6 +203,7 @@ export async function runAutonomousKnowledgeWorker(input: {
           return captured;
         })
       : null;
+    if (await upgradeWaiting()) return yieldedToUpgrade;
     // ADR-0518: convergence checkouts are host-local, so a non-owner still retires its own.
     if (await hasConvergenceWorkspaceRetention(input.storage))
       await withRepositoryKnowledgeWorkerLock(root, () =>
@@ -245,6 +259,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     if (transaction === "busy") return MATERIALIZATION_BUSY;
     if (transaction === "recovery_required")
       return { outcomes: [], convergence: convergenceRecoveryStatus(input.storage) };
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     if (await reserveFreshnessPreparation(root)) {
       const prepared = await withProcessCostScope("freshness_prepare", () =>
         runDocumentFreshnessCycle({
@@ -268,6 +283,7 @@ export async function runAutonomousKnowledgeWorker(input: {
         };
       }
     }
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     await withProcessCostScope("retention", async () => {
       await compactConvergenceWorkspaces(input.storage);
       await compactConvergenceWorkforce(input.storage);
@@ -284,9 +300,11 @@ export async function runAutonomousKnowledgeWorker(input: {
     await withProcessCostScope("owner_rules", async () =>
       input.applyOwnerStatedInstructions?.(),
     ).catch(() => undefined);
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     await withProcessCostScope("practice", () =>
       runPracticeLearningCycle(practiceContext, "write"),
     );
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     // Live work or a paused provider leaves change jobs queued instead of spending their attempts.
     const outcomes = await withProcessCostScope("change_review", async () =>
       (await changeReviewDeferred(context))
@@ -300,6 +318,7 @@ export async function runAutonomousKnowledgeWorker(input: {
             host: createChangeReviewHost(context),
           }),
     );
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     const delegation = await loadConvergenceDelegation(root);
     let convergence: KnowledgeConvergenceStatus;
     try {
@@ -333,6 +352,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
     // Freshness runs after intake and convergence (ADR-0463) and only while convergence is parked,
     // so its commit never lands inside an ADR-0465 batch boundary; its failure never blocks them.
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     const freshness: DocumentFreshnessCycleResult = documentFreshnessMayRun(convergence)
       ? await withProcessCostScope("freshness", () =>
           runDocumentFreshnessCycle({ context: freshnessContext }),
@@ -341,6 +361,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     return { outcomes, convergence, freshness, ownerTurns };
   });
   if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
+  if (result.result === YIELDED_TO_UPGRADE) return yieldedToUpgrade;
   await recordMaintenanceObservation({
     root,
     projectId: input.storage.manifest.projectId,

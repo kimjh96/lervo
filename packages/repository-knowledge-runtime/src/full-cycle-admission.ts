@@ -15,6 +15,19 @@ const RENEW_MILLISECONDS = 60_000;
 const POLL_MILLISECONDS = 1_000;
 /** A waiter that has not polled for this long has gone and no longer holds its turn. */
 const WAITER_STALE_MILLISECONDS = 30_000;
+/**
+ * ADR-0574: an upgrade registers its turn this far in the past. Every reader orders waiters by
+ * `since`, including residents of earlier releases, so the upgrade is admitted before every
+ * waiting resident without a schema change, and upgrades keep arrival order among themselves.
+ */
+const PRIORITY_ADVANCE_MILLISECONDS = 365 * 24 * 60 * 60_000;
+
+/**
+ * - `resident`: a background full cycle; it takes its turn in arrival order.
+ * - `upgrade`: `lervo upgrade --apply`; it goes ahead of waiting residents, and a running cycle
+ *   stops at its next stage boundary.
+ */
+export type FullCycleAdmissionPriority = "resident" | "upgrade";
 
 export interface FullCycleAdmission {
   release(): Promise<void>;
@@ -23,6 +36,11 @@ export interface FullCycleAdmission {
    * stage boundary, so one long cycle cannot starve every other resident on the host.
    */
   contended(): Promise<boolean>;
+  /**
+   * ADR-0574: whether an upgrade is waiting. The holder stops at its next stage boundary, before
+   * starting any further stage, instead of after its next convergence stage.
+   */
+  preempted(): Promise<boolean>;
 }
 
 function alive(pid: number): boolean {
@@ -62,6 +80,7 @@ async function tryAcquire(input: {
   directory: string;
   repositoryHash: string;
   nonce: string;
+  since: number;
   now: number;
 }): Promise<boolean> {
   const db = await database(input.directory);
@@ -79,7 +98,7 @@ async function tryAcquire(input: {
       );
       db.prepare(
         "INSERT INTO waiters VALUES(?,?,?,?,?) ON CONFLICT(nonce) DO UPDATE SET heartbeat=excluded.heartbeat",
-      ).run(input.nonce, process.pid, input.repositoryHash, input.now, input.now);
+      ).run(input.nonce, process.pid, input.repositoryHash, input.since, input.now);
       const first = sqliteRow(
         db.prepare("SELECT nonce FROM waiters ORDER BY since, nonce LIMIT 1").get(),
       );
@@ -105,14 +124,22 @@ async function tryAcquire(input: {
   }
 }
 
-async function othersWaiting(directory: string, nonce: string, now: number): Promise<boolean> {
+/** `registeredBefore` limits the answer to upgrades, whose turn is registered a year back. */
+async function othersWaiting(
+  directory: string,
+  nonce: string,
+  now: number,
+  registeredBefore = Number.MAX_SAFE_INTEGER,
+): Promise<boolean> {
   const db = await database(directory);
   try {
     return (
       sqliteRow(
         db
-          .prepare("SELECT 1 AS waiting FROM waiters WHERE nonce<>? AND heartbeat>=? LIMIT 1")
-          .get(nonce, now - WAITER_STALE_MILLISECONDS),
+          .prepare(
+            "SELECT 1 AS waiting FROM waiters WHERE nonce<>? AND heartbeat>=? AND since<? LIMIT 1",
+          )
+          .get(nonce, now - WAITER_STALE_MILLISECONDS, registeredBefore),
       ) !== undefined
     );
   } finally {
@@ -143,27 +170,29 @@ function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
 
 /**
  * One full knowledge cycle per host at a time, so co-hosted residents serialise their bursts.
- * Waiters are admitted in arrival order. Waiting ends on abort with `knowledge_cancelled`, which
- * withdraws the waiter; a dead or expired holder never blocks.
+ * Upgrades are admitted first, then residents, each in arrival order. Waiting ends on abort with
+ * `knowledge_cancelled`, which withdraws the waiter; a dead or expired holder never blocks.
  */
 export async function acquireFullCycleAdmission(input: {
   repositoryRoot: string;
   signal: AbortSignal;
   directory?: string;
   pollMilliseconds?: number;
+  priority?: FullCycleAdmissionPriority;
   onWait?: () => void;
 }): Promise<FullCycleAdmission> {
   const directory =
     input.directory ?? resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
   const repositoryHash = sha256(resolve(input.repositoryRoot));
   const nonce = randomUUID();
+  const since = Date.now() - (input.priority === "upgrade" ? PRIORITY_ADVANCE_MILLISECONDS : 0);
   let waited = false;
   for (;;) {
     if (input.signal.aborted) {
       await update(directory, "DELETE FROM waiters WHERE nonce=?", nonce).catch(() => undefined);
       throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
     }
-    if (await tryAcquire({ directory, repositoryHash, nonce, now: Date.now() })) break;
+    if (await tryAcquire({ directory, repositoryHash, nonce, since, now: Date.now() })) break;
     if (!waited) input.onWait?.();
     waited = true;
     await delay(
@@ -183,6 +212,12 @@ export async function acquireFullCycleAdmission(input: {
   let released = false;
   return {
     contended: () => othersWaiting(directory, nonce, Date.now()).catch(() => false),
+    preempted: () => {
+      const now = Date.now();
+      return othersWaiting(directory, nonce, now, now - PRIORITY_ADVANCE_MILLISECONDS / 2).catch(
+        () => false,
+      );
+    },
     release: async () => {
       if (released) return;
       released = true;
