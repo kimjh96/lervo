@@ -3,7 +3,6 @@ import {
   canonicalJson,
   evaluateCurrentRepositoryDocumentLayout,
   sha256,
-  worseningDocumentLayoutBlockers,
 } from "@lervo/repository-knowledge";
 import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 
@@ -34,7 +33,7 @@ export async function canonicalDocumentLayout(
   return {
     guidance,
     evaluation,
-    worseningBlockers: worseningDocumentLayoutBlockers(evaluation),
+    worseningBlockers: evaluation.blockers,
     // Document edits do not release capacity; layout policy, routing, and counts do.
     capacityHash: sha256(canonicalJson(guidance)),
   };

@@ -299,6 +299,58 @@ describe("repository layout migration", () => {
     );
   });
 
+  it("holds moves that would overfill a destination and reports existing overflow", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "v6/notes"), { recursive: true });
+    const notes = Array.from(
+      { length: 33 },
+      (_, index) => `v6/notes/r${String(index).padStart(2, "0")}.md`,
+    );
+    await Promise.all(notes.map((path) => writeFile(resolve(root, path), `# Review ${path}\n`)));
+    // A classification batch holds at most eight documents.
+    for (let index = 0; index < notes.length; index += 8)
+      await recordSemanticRoutes(
+        root,
+        notes.slice(index, index + 8).map((path) => ({ path, routeId: "operations" })),
+      );
+
+    const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+
+    expect(plan.blockers).toEqual([]);
+    expect(plan.moves.some((move) => move.toPath.startsWith("docs/operations/"))).toBe(false);
+    expect(plan.moves).toContainEqual(
+      expect.objectContaining({ fromPath: "EXAMPLE_ARCHITECTURE.md" }),
+    );
+    expect(
+      plan.deferredDocuments.filter((item) => item.reason === "destination_capacity"),
+    ).toHaveLength(33);
+    expect(plan.deferredDocuments).toContainEqual(
+      expect.objectContaining({
+        path: "v6/notes/r00.md",
+        resolution: "destination_capacity",
+        destination: "docs/operations/r00.md",
+      }),
+    );
+    expect(plan.layoutCapacity).toEqual([
+      {
+        code: "document_directory_file_capacity_exceeded",
+        directory: "docs/operations",
+        observed: 0,
+        projected: 33,
+        limit: 32,
+        disposition: "moves_held",
+      },
+      {
+        code: "document_directory_file_capacity_exceeded",
+        directory: "v6/notes",
+        observed: 33,
+        projected: 33,
+        limit: 32,
+        disposition: "existing_overflow",
+      },
+    ]);
+  });
+
   it("moves discovered documents from docs and nested repository locations into semantic routes", async () => {
     const root = await repository();
     await mkdir(resolve(root, "apps/web/notes"), { recursive: true });

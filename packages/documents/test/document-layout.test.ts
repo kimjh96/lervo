@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   createDocumentLayoutPermit,
+  describeDocumentLayoutFinding,
   evaluateDocumentLayout,
   validateDocumentLayoutPermit,
-  worseningDocumentLayoutBlockers,
   type DocumentLayoutSnapshotEntry,
 } from "../src/index.js";
 
@@ -70,7 +70,7 @@ describe("projected document layout", () => {
     );
   });
 
-  it("keeps existing overflow visible without blocking writes that do not grow it", () => {
+  it("reports overflow the operations leave alone as an advisory, never a blocker", () => {
     const snapshot = [
       entry("README.md"),
       entry("notes/a.md"),
@@ -86,6 +86,13 @@ describe("projected document layout", () => {
         roles: defaultRepositoryDocumentPolicy.roles,
       });
     const hash = `sha256:${"b".repeat(64)}`;
+    const existing = expect.objectContaining({
+      code: "document_directory_file_capacity_exceeded",
+      directory: "notes",
+      observed: 3,
+      projected: 3,
+      limit: 2,
+    });
 
     const unrelated = write({
       operationId: "create-b",
@@ -94,10 +101,8 @@ describe("projected document layout", () => {
       contentHash: hash,
     });
     expect(unrelated.status).toBe("bounded");
-    expect(unrelated.blockers).toContainEqual(
-      expect.objectContaining({ directory: "notes", observed: 3, projected: 3 }),
-    );
-    expect(worseningDocumentLayoutBlockers(unrelated)).toEqual([]);
+    expect(unrelated.blockers).toEqual([]);
+    expect(unrelated.advisories).toEqual([existing]);
     expect(() => createDocumentLayoutPermit(unrelated)).not.toThrow();
 
     const inPlace = write({
@@ -107,9 +112,11 @@ describe("projected document layout", () => {
       contentHash: hash,
     });
     expect(inPlace.status).toBe("bounded");
+    expect(inPlace.advisories).toEqual([existing]);
 
     const shrink = write({ operationId: "delete-a", action: "delete", path: "notes/a.md" });
     expect(shrink.status).toBe("bounded");
+    expect(shrink.blockers).toEqual([]);
 
     const grow = write({
       operationId: "create-d",
@@ -118,10 +125,112 @@ describe("projected document layout", () => {
       contentHash: hash,
     });
     expect(grow.status).toBe("blocked");
-    expect(worseningDocumentLayoutBlockers(grow)).toEqual([
+    expect(grow.blockers).toEqual([
       expect.objectContaining({ directory: "notes", observed: 3, projected: 4 }),
     ]);
+    expect(grow.advisories).toEqual([]);
     expect(() => createDocumentLayoutPermit(grow)).toThrow();
+  });
+
+  it("blocks a document moved or created into an over-limit directory at an equal count", () => {
+    const snapshot = [
+      entry("README.md"),
+      entry("notes/a.md"),
+      entry("notes/b.md"),
+      entry("notes/c.md"),
+      entry("docs/x.md"),
+    ];
+    const hash = `sha256:${"b".repeat(64)}`;
+    const swapIn = evaluateDocumentLayout({
+      snapshot,
+      operations: [
+        { operationId: "delete-a", action: "delete", path: "notes/a.md" },
+        {
+          operationId: "move-x",
+          action: "move",
+          path: "docs/x.md",
+          destinationPath: "notes/x.md",
+          contentHash: hash,
+        },
+      ],
+      policy,
+      roles: defaultRepositoryDocumentPolicy.roles,
+    });
+    expect(swapIn.status).toBe("blocked");
+    expect(swapIn.blockers).toEqual([
+      expect.objectContaining({ directory: "notes", observed: 3, projected: 3 }),
+    ]);
+
+    const createIn = evaluateDocumentLayout({
+      snapshot,
+      operations: [
+        { operationId: "delete-a", action: "delete", path: "notes/a.md" },
+        { operationId: "create-y", action: "create", path: "notes/y.md", contentHash: hash },
+      ],
+      policy,
+      roles: defaultRepositoryDocumentPolicy.roles,
+    });
+    expect(createIn.status).toBe("blocked");
+
+    const children = [
+      entry("README.md"),
+      entry("docs/a/one.md"),
+      entry("docs/b/two.md"),
+      entry("docs/c/three.md"),
+    ];
+    const childLeftAlone = evaluateDocumentLayout({
+      snapshot: children,
+      operations: [
+        { operationId: "update-one", action: "update", path: "docs/a/one.md", contentHash: hash },
+      ],
+      policy,
+      roles: defaultRepositoryDocumentPolicy.roles,
+    });
+    expect(childLeftAlone.status).toBe("bounded");
+    expect(childLeftAlone.advisories).toEqual([
+      expect.objectContaining({
+        code: "document_directory_child_capacity_exceeded",
+        directory: "docs",
+        observed: 3,
+        projected: 3,
+      }),
+    ]);
+    const childSwap = evaluateDocumentLayout({
+      snapshot: children,
+      operations: [
+        {
+          operationId: "move-three",
+          action: "move",
+          path: "docs/c/three.md",
+          destinationPath: "docs/d/three.md",
+          contentHash: hash,
+        },
+      ],
+      policy,
+      roles: defaultRepositoryDocumentPolicy.roles,
+    });
+    expect(childSwap.status).toBe("blocked");
+    expect(childSwap.blockers).toEqual([
+      expect.objectContaining({
+        code: "document_directory_child_capacity_exceeded",
+        directory: "docs",
+      }),
+    ]);
+  });
+
+  it("names the directory, counts, and limit of a capacity finding", () => {
+    expect(
+      describeDocumentLayoutFinding({
+        code: "document_directory_file_capacity_exceeded",
+        directory: "v8/notes",
+        observed: 181,
+        projected: 181,
+        limit: 32,
+        operationIds: [],
+      }),
+    ).toBe(
+      "document_directory_file_capacity_exceeded in v8/notes (observed 181, projected 181, limit 32)",
+    );
   });
 
   it("counts document-bearing direct children and honors a bounded catalog override", () => {
@@ -146,15 +255,15 @@ describe("projected document layout", () => {
       policy,
       roles: defaultRepositoryDocumentPolicy.roles,
     });
-    expect(blocked.blockers).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: "document_directory_child_capacity_exceeded" }),
-        expect.objectContaining({
-          code: "document_directory_file_capacity_exceeded",
-          directory: "catalog",
-        }),
-      ]),
-    );
+    expect(blocked.blockers).toEqual([
+      expect.objectContaining({ code: "document_directory_child_capacity_exceeded" }),
+    ]);
+    expect(blocked.advisories).toEqual([
+      expect.objectContaining({
+        code: "document_directory_file_capacity_exceeded",
+        directory: "catalog",
+      }),
+    ]);
 
     const bounded = evaluateDocumentLayout({
       snapshot: snapshot.slice(0, -1),

@@ -1,5 +1,6 @@
 import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce";
 import type {
+  RepositoryLayoutCapacityFinding,
   RepositoryLayoutDeferredDocument,
   RepositoryLayoutMigrationPlan,
   DocumentRouteDeferralResolution,
@@ -9,6 +10,7 @@ import { CommandFailure } from "./command-error-output.js";
 import { layoutDeferrals } from "./upgrade-deferred-documents.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { pendingLayoutDecision } from "./knowledge-layout-decision.js";
+import { MAXIMUM_LAYOUT_CAPACITY_ITEMS } from "./layout-capacity-lines.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
 import {
   planTerminalIntegrationStage,
@@ -47,6 +49,8 @@ export interface KnowledgeStage {
       resolution: DocumentRouteDeferralResolution;
     }
   >;
+  /** ADR-0583: directories over document capacity, with their counts and limits. */
+  layoutCapacity?: RepositoryLayoutCapacityFinding[];
   /** ADR-0559: the one owner decision a layout plan asks for, with its two commands. */
   layoutDecision?: { decisionId: string; summary: string; accept: string; decline: string };
 }
@@ -173,9 +177,18 @@ export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
   );
   const stage = await knowledgeDisposition(root, result);
   const deferred = await layoutDeferrals(root, result.value, planned);
-  return deferred.length === 0
-    ? stage
-    : { ...stage, deferredDocuments: deferred.slice(0, maximumReportedBlockers) };
+  const capacity =
+    (planned as RepositoryLayoutMigrationPlan | null)?.layoutCapacity?.slice(
+      0,
+      MAXIMUM_LAYOUT_CAPACITY_ITEMS,
+    ) ?? [];
+  return {
+    ...stage,
+    ...(deferred.length === 0
+      ? {}
+      : { deferredDocuments: deferred.slice(0, maximumReportedBlockers) }),
+    ...(capacity.length === 0 ? {} : { layoutCapacity: capacity }),
+  };
 }
 
 async function knowledgeDisposition(

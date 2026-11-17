@@ -6,6 +6,7 @@ import {
 
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
 import { formatRepositoryLayoutDecision } from "./knowledge-layout-decision.js";
+import { layoutCapacityLines } from "./layout-capacity-lines.js";
 
 export function printableKnowledgeMigrationPlan(plan: KnowledgeMigrationPlan): unknown {
   return {
@@ -36,6 +37,7 @@ export function formatRepositoryLayoutMigrationPlan(plan: RepositoryLayoutMigrat
       `  approval: ${move.operationId}=${move.approvalHash}`,
     );
   }
+  lines.push(...layoutCapacityLines(plan.layoutCapacity ?? [], ""));
   if (plan.retainedDocumentCount > 0)
     lines.push(
       `Retained in place: ${plan.retainedDocumentCount}`,

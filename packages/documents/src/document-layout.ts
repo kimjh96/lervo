@@ -52,6 +52,11 @@ export type DocumentLayoutBlocker =
       candidatePathDigests: string[];
     };
 
+export type DocumentLayoutCapacityFinding = Exclude<
+  DocumentLayoutBlocker,
+  { code: "document_role_conflict" }
+>;
+
 export interface DocumentLayoutCounts {
   repositoryDocuments: number;
   directDocuments: Record<string, number>;
@@ -67,7 +72,10 @@ export interface DocumentLayoutEvaluation {
   operationSetHash: string;
   observed: DocumentLayoutCounts;
   projected: DocumentLayoutCounts;
+  /** Only findings the operations create or grow; any blocker makes the evaluation `blocked`. */
   blockers: DocumentLayoutBlocker[];
+  /** Existing capacity overflow the operations leave alone: reported, never blocking. */
+  advisories: DocumentLayoutCapacityFinding[];
 }
 
 export interface DocumentLayoutPermit {
@@ -109,33 +117,49 @@ function sortedOperations(
     .sort((left, right) => left.operationId.localeCompare(right.operationId));
 }
 
-function counts(paths: Iterable<string>): DocumentLayoutCounts {
+interface DocumentLayoutMembers {
+  documents: string[];
+  direct: Map<string, Set<string>>;
+  children: Map<string, Set<string>>;
+}
+
+function members(paths: Iterable<string>): DocumentLayoutMembers {
   const documents = [...new Set(paths)].filter(documentPath).sort();
-  const direct = new Map<string, number>();
-  const childDirectories = new Map<string, Set<string>>();
+  const direct = new Map<string, Set<string>>();
+  const children = new Map<string, Set<string>>();
   for (const path of documents) {
     const directory = posix.dirname(path) === "." ? "." : posix.dirname(path);
-    direct.set(directory, (direct.get(directory) ?? 0) + 1);
+    direct.set(directory, (direct.get(directory) ?? new Set<string>()).add(path));
     const segments = directory === "." ? [] : directory.split("/");
     for (let index = 0; index < segments.length; index += 1) {
       const parent = index === 0 ? "." : segments.slice(0, index).join("/");
       const child = segments.slice(0, index + 1).join("/");
-      const children = childDirectories.get(parent) ?? new Set<string>();
-      children.add(child);
-      childDirectories.set(parent, children);
+      children.set(parent, (children.get(parent) ?? new Set<string>()).add(child));
     }
   }
-  return {
-    repositoryDocuments: documents.length,
-    directDocuments: Object.fromEntries(
-      [...direct].sort(([left], [right]) => left.localeCompare(right)),
-    ),
-    documentBearingChildDirectories: Object.fromEntries(
-      [...childDirectories]
+  return { documents, direct, children };
+}
+
+function counts(layout: DocumentLayoutMembers): DocumentLayoutCounts {
+  const sized = (map: Map<string, Set<string>>) =>
+    Object.fromEntries(
+      [...map]
         .sort(([left], [right]) => left.localeCompare(right))
-        .map(([path, children]) => [path, children.size]),
-    ),
+        .map(([path, items]) => [path, items.size]),
+    );
+  return {
+    repositoryDocuments: layout.documents.length,
+    directDocuments: sized(layout.direct),
+    documentBearingChildDirectories: sized(layout.children),
   };
+}
+
+/** True when the projection holds a member the observed directory did not: a create or move in. */
+function receivesMembers(
+  observed: ReadonlySet<string> | undefined,
+  projected: ReadonlySet<string> | undefined,
+): boolean {
+  return [...(projected ?? [])].some((member) => !(observed?.has(member) ?? false));
 }
 
 function applicableLimit(
@@ -187,16 +211,12 @@ function roleBlockers(
   return blockers;
 }
 
-/**
- * A capacity overflow the operations did not create or grow is existing debt: it stays visible to
- * lint, but it does not block unrelated writes. Role conflicts always block.
- */
-export function worseningDocumentLayoutBlockers(
-  evaluation: Pick<DocumentLayoutEvaluation, "blockers">,
-): DocumentLayoutBlocker[] {
-  return evaluation.blockers.filter(
-    (blocker) => blocker.code === "document_role_conflict" || blocker.projected > blocker.observed,
-  );
+/** One bounded line naming the code, the directory, its counts, and the limit. */
+export function describeDocumentLayoutFinding(blocker: DocumentLayoutBlocker): string {
+  if (blocker.code === "document_role_conflict")
+    return `${blocker.code} (role ${blocker.roleId} in ${blocker.scope})`;
+  const where = "directory" in blocker ? ` in ${blocker.directory}` : "";
+  return `${blocker.code}${where} (observed ${blocker.observed}, projected ${blocker.projected}, limit ${blocker.limit})`;
 }
 
 export function evaluateDocumentLayout(input: {
@@ -215,51 +235,70 @@ export function evaluateDocumentLayout(input: {
       projectedPaths.add(operation.destinationPath);
     } else projectedPaths.add(operation.path);
   }
-  const observed = counts(snapshot.map((entry) => entry.path));
-  const projected = counts(projectedPaths);
+  const observedMembers = members(snapshot.map((entry) => entry.path));
+  const projectedMembers = members(projectedPaths);
+  const observed = counts(observedMembers);
+  const projected = counts(projectedMembers);
   const blockers: DocumentLayoutBlocker[] = roleBlockers(projectedPaths, input.roles);
+  const advisories: DocumentLayoutCapacityFinding[] = [];
+  // ADR-0583: overflow blocks only when the operations grow it or put a document into it;
+  // overflow they leave alone is user-owned debt, reported as an advisory.
+  const record = (finding: DocumentLayoutCapacityFinding, receives: boolean) => {
+    if (finding.projected <= finding.limit) return;
+    if (finding.projected > finding.observed || receives) blockers.push(finding);
+    else advisories.push(finding);
+  };
   const directories = new Set([
-    ...Object.keys(observed.directDocuments),
-    ...Object.keys(projected.directDocuments),
-    ...Object.keys(observed.documentBearingChildDirectories),
-    ...Object.keys(projected.documentBearingChildDirectories),
+    ...observedMembers.direct.keys(),
+    ...projectedMembers.direct.keys(),
+    ...observedMembers.children.keys(),
+    ...projectedMembers.children.keys(),
   ]);
   for (const directory of [...directories].sort()) {
     const limit = applicableLimit(directory, input.policy);
-    const observedFiles = observed.directDocuments[directory] ?? 0;
-    const projectedFiles = projected.directDocuments[directory] ?? 0;
-    if (projectedFiles > limit.maxDirectDocuments)
-      blockers.push({
+    const operationIds = operationsForDirectory(directory, operations);
+    record(
+      {
         code: "document_directory_file_capacity_exceeded",
         directory,
-        observed: observedFiles,
-        projected: projectedFiles,
+        observed: observed.directDocuments[directory] ?? 0,
+        projected: projected.directDocuments[directory] ?? 0,
         limit: limit.maxDirectDocuments,
-        operationIds: operationsForDirectory(directory, operations),
-      });
-    const observedChildren = observed.documentBearingChildDirectories[directory] ?? 0;
-    const projectedChildren = projected.documentBearingChildDirectories[directory] ?? 0;
-    if (projectedChildren > limit.maxDocumentBearingChildDirectories)
-      blockers.push({
+        operationIds,
+      },
+      receivesMembers(
+        observedMembers.direct.get(directory),
+        projectedMembers.direct.get(directory),
+      ),
+    );
+    record(
+      {
         code: "document_directory_child_capacity_exceeded",
         directory,
-        observed: observedChildren,
-        projected: projectedChildren,
+        observed: observed.documentBearingChildDirectories[directory] ?? 0,
+        projected: projected.documentBearingChildDirectories[directory] ?? 0,
         limit: limit.maxDocumentBearingChildDirectories,
-        operationIds: operationsForDirectory(directory, operations),
-      });
+        operationIds,
+      },
+      receivesMembers(
+        observedMembers.children.get(directory),
+        projectedMembers.children.get(directory),
+      ),
+    );
   }
-  if (projected.repositoryDocuments > input.policy.maxRepositoryDocuments)
-    blockers.push({
+  record(
+    {
       code: "document_repository_capacity_exceeded",
       observed: observed.repositoryDocuments,
       projected: projected.repositoryDocuments,
       limit: input.policy.maxRepositoryDocuments,
       operationIds: operations.map((operation) => operation.operationId),
-    });
+    },
+    false,
+  );
   return {
     evaluatorVersion: 1,
-    status: worseningDocumentLayoutBlockers({ blockers }).length === 0 ? "bounded" : "blocked",
+    status: blockers.length === 0 ? "bounded" : "blocked",
     snapshotHash: sha256(canonicalJsonBytes(snapshot)),
     policyHash: sha256(canonicalJsonBytes(input.policy)),
     roleRegistryHash: sha256(canonicalJsonBytes(input.roles)),
@@ -267,6 +306,7 @@ export function evaluateDocumentLayout(input: {
     observed,
     projected,
     blockers,
+    advisories,
   };
 }
 
