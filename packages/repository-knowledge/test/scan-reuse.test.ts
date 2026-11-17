@@ -3,6 +3,8 @@ import { mkdir, mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import type { SkillManifest } from "@lervo/schemas";
+import { hashSkillPackage } from "@lervo/skills";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -176,5 +178,52 @@ describe("repository scan reuse (ADR-0582)", () => {
     expect(content(result.value[1], "@git/HEAD")).not.toBe(
       content(result.value[0], "@git/HEAD"),
     );
+  });
+
+  it("hashes project skill packages again, including files the walk skips", async () => {
+    const root = await repository();
+    await writeFile(resolve(root, ".gitignore"), "*.local\n");
+    const directory = resolve(root, ".agents/skills/repository-testing");
+    await mkdir(directory, { recursive: true });
+    await writeFile(resolve(directory, "SKILL.md"), "# Repository testing\n\nRun the checks.\n");
+    await writeFile(resolve(directory, "notes.local"), "first\n");
+    const manifest: SkillManifest = {
+      schemaVersion: 1,
+      skillId: "repository/testing",
+      version: "1.2.3",
+      contentHash: await hashSkillPackage(directory),
+      source: {
+        kind: "project",
+        uri: ".agents/skills/repository-testing",
+        publisher: { id: "fixture", name: "Fixture" },
+      },
+      supportedRoles: ["developer"],
+      compatibility: {
+        providers: { mode: "any" },
+        minimumRuntimeVersion: "0.1.0",
+        platforms: [process.platform as "darwin" | "linux" | "win32"],
+        requiredTools: [],
+        unknownIsCompatible: false,
+      },
+      requiredCapabilities: ["filesystem.read"],
+      contracts: {
+        inputSchemaRef: "lervo-schema://skill/input/v1",
+        outputSchemaRef: "lervo-schema://skill/output/v1",
+      },
+      trust: { level: "untrusted", signatureStatus: "unsigned" },
+      enabledScope: { kind: "user" },
+      pinned: false,
+    };
+    await writeFile(resolve(directory, "lervo-skill.json"), `${JSON.stringify(manifest)}\n`);
+    await withRepositoryKnowledgeScanReuse(async () => {
+      const first = await scan(root);
+      expect(first.units.some((unit) => unit.unitKind === "skill_contract")).toBe(true);
+      expect(first.sources.map((source) => source.path)).not.toContain(
+        ".agents/skills/repository-testing/notes.local",
+      );
+      // The Git-ignored file is never walked, but it is part of the package the manifest binds.
+      await writeFile(resolve(directory, "notes.local"), "second\n");
+      await expect(scan(root)).rejects.toMatchObject({ code: "knowledge_unit_extraction_failed" });
+    });
   });
 });

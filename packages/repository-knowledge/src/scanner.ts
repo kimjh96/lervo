@@ -104,6 +104,9 @@ async function scanRepositoryKnowledgeOnce(
     repositoryRoot: root,
     sources: included,
     budgetSkippedPaths: sources.filter(observedOnlySource).map((source) => source.path),
+    ...(fingerprint === undefined
+      ? {}
+      : { onPackageHashed: fingerprint.skillPackage.bind(fingerprint) }),
   });
   const skillDescriptorByPath = new Map<string, typeof skillDescriptors>();
   for (const descriptor of skillDescriptors) {

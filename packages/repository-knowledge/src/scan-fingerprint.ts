@@ -3,6 +3,7 @@ import type { BigIntStats, Dirent } from "node:fs";
 import { lstat, readdir, readFile } from "node:fs/promises";
 
 import { defaultDecisionTaxonomy, type DecisionTaxonomy } from "@lervo/project";
+import { hashSkillPackage } from "@lervo/skills";
 
 import { loadDocumentLayoutContract } from "./document-layout-contract.js";
 import { isIgnorableFilesystemMetadata, isNestedGitWorkingTree } from "./filesystem-metadata.js";
@@ -45,6 +46,11 @@ export interface RepositoryScanFingerprint {
   directories: Map<string, string>;
   nestedWorkingTrees: string[];
   files: Map<string, FileStamp>;
+  /**
+   * Project skill package hashes by absolute directory. A package hash covers files the walk
+   * skips, such as Git-ignored, excluded, or `.DS_Store` files, so it is observed by hashing.
+   */
+  skillPackages: Map<string, string>;
 }
 
 function listingDigest(entries: readonly Dirent[]): string {
@@ -93,6 +99,7 @@ export class RepositoryScanFingerprintRecorder {
   private readonly directories = new Map<string, string>();
   private readonly nestedWorkingTrees: string[] = [];
   private readonly files = new Map<string, FileStamp>();
+  private readonly skillPackages = new Map<string, string>();
   private revision: string | null = null;
   private ignored: string | null = null;
   private lineages: string | null = null;
@@ -136,6 +143,10 @@ export class RepositoryScanFingerprintRecorder {
     });
   }
 
+  skillPackage(absolute: string, contentHash: string): void {
+    this.skillPackages.set(absolute, contentHash);
+  }
+
   finish(): RepositoryScanFingerprint | null {
     if (
       !this.observable ||
@@ -156,6 +167,7 @@ export class RepositoryScanFingerprintRecorder {
       directories: this.directories,
       nestedWorkingTrees: this.nestedWorkingTrees,
       files: this.files,
+      skillPackages: this.skillPackages,
     };
   }
 }
@@ -197,6 +209,8 @@ export async function repositoryScanFingerprintHolds(
     for (const absolute of fingerprint.nestedWorkingTrees)
       if (!(await isNestedGitWorkingTree(absolute))) return false;
     if (!(await filesUnchanged(fingerprint, scan))) return false;
+    for (const [directory, contentHash] of fingerprint.skillPackages)
+      if ((await hashSkillPackage(directory)) !== contentHash) return false;
     const lineages = await loadDocumentMoveLineages({
       repositoryRoot: fingerprint.root,
       projectId: fingerprint.projectId,
