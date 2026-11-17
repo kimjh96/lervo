@@ -201,6 +201,7 @@ export * from "./repository-layout-migration.js";
 export type { RepositoryLayoutCapacityFinding } from "./repository-layout-capacity.js";
 export * from "./repository-layout-decision.js";
 export * from "./scanner.js";
+export { withRepositoryKnowledgeScanReuse } from "./scan-reuse.js";
 export * from "./skill-contract-source-units.js";
 export * from "./source-lineage.js";
 export * from "./state-projections.js";

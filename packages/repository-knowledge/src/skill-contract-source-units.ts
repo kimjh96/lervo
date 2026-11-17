@@ -27,6 +27,11 @@ export async function extractSkillContractUnitDescriptors(input: {
   repositoryRoot: string;
   budgetSkippedPaths?: readonly string[];
   sources: readonly (RepositorySource & { content: string; contentHash: string })[];
+  /**
+   * ADR-0582: each package hash the descriptors rely on. The package reads files the walk never
+   * observes, such as Git-ignored or excluded ones, so a scan reuse must hash it again.
+   */
+  onPackageHashed?: (packageDirectory: string, contentHash: string) => void;
 }): Promise<SkillContractUnitDescriptor[]> {
   const byPath = new Map(input.sources.map((source) => [source.path, source]));
   const descriptors: SkillContractUnitDescriptor[] = [];
@@ -47,6 +52,7 @@ export async function extractSkillContractUnitDescriptors(input: {
       const firstHash = await hashSkillPackage(packageDirectory);
       const secondHash = await hashSkillPackage(packageDirectory);
       if (firstHash !== secondHash || firstHash !== manifest.contentHash) return fail();
+      input.onPackageHashed?.(packageDirectory, firstHash);
     } catch {
       return fail();
     }

@@ -351,6 +351,9 @@ export async function lintRepositoryKnowledge(
     ...(options.allowTransactionPlanId === undefined
       ? {}
       : { allowTransactionPlanId: options.allowTransactionPlanId }),
+    ...(options.supplementalSources === undefined
+      ? {}
+      : { supplementalSources: options.supplementalSources }),
   });
   for (const blocker of rewrite.blockers) {
     issues.push({

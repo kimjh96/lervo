@@ -200,6 +200,30 @@ describe("runRepositoryPass", () => {
     expect(calls).toHaveLength(1);
   });
 
+  it("does not apply --safe when the plan shows a stage waiting for the owner", async () => {
+    const calls: string[][] = [];
+    const result_ = await pass(
+      ["/r/one"],
+      {
+        "/r/one": [
+          result("pending_authority", {
+            planId: "plan_a",
+            applicableStages: ["node"],
+            ownerApprovalStages: ["knowledge"],
+          }),
+        ],
+      },
+      calls,
+    );
+    expect(result_.repositories[0]).toMatchObject({
+      outcome: "blocked",
+      code: "upgrade_owner_approval_required",
+      planId: "plan_a",
+      pendingStages: ["knowledge"],
+    });
+    expect(calls).toEqual([["upgrade", "--root", "/r/one", "--json"]]);
+  });
+
   it("stops without a result when a run is interrupted or the stop signal is set", async () => {
     const interrupted = await pass(["/r/one", "/r/two"], {
       "/r/one": [result("ready", { planId: "plan_1" }), { kind: "interrupted" }],
@@ -238,6 +262,27 @@ describe("the linked lervo runner", () => {
       ),
     ).toEqual(
       result("blocked", { planId: "p", applicableStages: ["node"], pendingStages: ["knowledge"] }),
+    );
+    expect(
+      parseRepositoryUpgradeOutput(
+        JSON.stringify({
+          planKind: "repository_upgrade",
+          status: "pending_authority",
+          planId: "p",
+          applicableStages: [],
+          stages: {
+            runtimeRetention: { disposition: "pending_authority" },
+            knowledge: { disposition: "pending_authority" },
+            terminalIntegration: { disposition: "pending_authority" },
+            node: { disposition: "blocked" },
+          },
+        }),
+      ),
+    ).toEqual(
+      result("pending_authority", {
+        planId: "p",
+        ownerApprovalStages: ["knowledge", "terminal_integration"],
+      }),
     );
     expect(
       parseRepositoryUpgradeOutput(

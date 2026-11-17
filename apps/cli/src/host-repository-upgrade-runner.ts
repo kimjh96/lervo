@@ -19,6 +19,11 @@ export type RepositoryUpgradeInvocation =
       timing: { admissionWaitMs: number; applyMs: number } | null;
       /** ADR-0579: the receipt's consecutive apply parts; absent for a plan or an earlier CLI. */
       stageTimings?: Array<{ stage: string; ms: number }>;
+      /**
+       * ADR-0582: a plan's stages that wait for an owner approval, which make `--safe` refuse
+       * before it changes anything; absent for a receipt.
+       */
+      ownerApprovalStages?: string[];
     }
   | { kind: "failed"; code: string }
   | { kind: "unreadable" }
@@ -52,6 +57,17 @@ function stageTimings(value: unknown): Array<{ stage: string; ms: number }> {
       ? [{ stage, ms }]
       : [];
   });
+}
+
+/** The stages `lervo upgrade --apply --safe` refuses on, named as a receipt names them. */
+function ownerApprovalStages(value: unknown): string[] {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return [];
+  return Object.entries(value as Record<string, unknown>).flatMap(([stage, plan]) =>
+    stage !== "runtimeRetention" &&
+    (plan as { disposition?: unknown } | null)?.disposition === "pending_authority"
+      ? [stage.replace(/[A-Z]/gu, (letter) => `_${letter.toLowerCase()}`)]
+      : [],
+  );
 }
 
 export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeInvocation {
@@ -94,6 +110,9 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
       return typeof stage === "string" ? [stage] : [];
     }),
     ...(parts.length === 0 ? {} : { stageTimings: parts }),
+    ...(record.planKind === "repository_upgrade"
+      ? { ownerApprovalStages: ownerApprovalStages(record.stages) }
+      : {}),
   };
 }
 
