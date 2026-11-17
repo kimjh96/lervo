@@ -293,6 +293,8 @@ export function startAutonomousKnowledgeWorker(input: {
       idleStreak: cycle.state.idleStreak,
       now,
       earliestAvailableAt: cycle.earliestAvailableAt,
+      // Publication and projection refresh run in between, so a due time can pass meanwhile.
+      observedAt: cycle.observedAt,
       baseMilliseconds: base,
       ceilingMilliseconds: ceiling,
     });

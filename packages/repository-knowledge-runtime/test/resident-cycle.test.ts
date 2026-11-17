@@ -130,6 +130,24 @@ describe("adaptive reconciliation", () => {
     expect(delay(NOW + 10)).toBe(1_000);
     expect(delay(NOW - 10)).toBe(900_000);
   });
+
+  it("wakes at once when a due time passes between the cycle and its scheduling", () => {
+    const delay = (earliestAvailableAt: number, observedAt: number) =>
+      residentReconcileDelay({
+        idleStreak: 5,
+        now: NOW,
+        earliestAvailableAt,
+        observedAt,
+        baseMilliseconds: BASE,
+        ceilingMilliseconds: CEILING,
+      });
+    // Future when the cycle finished, past once publication and the projection refresh returned.
+    expect(delay(NOW - 10, NOW - 5_000)).toBe(1_000);
+    expect(delay(NOW, NOW - 5_000)).toBe(1_000);
+    // Already due when observed: deferred work keeps backing off instead of busy-looping.
+    expect(delay(NOW - 10_000, NOW - 5_000)).toBe(900_000);
+    expect(delay(NOW + 90_000, NOW - 5_000)).toBe(90_000);
+  });
 });
 
 describe("change fence", () => {

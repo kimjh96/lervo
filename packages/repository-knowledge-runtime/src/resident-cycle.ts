@@ -90,14 +90,26 @@ export function residentCycleSkippable(input: {
  * `min(ceiling, base × 2^(idleStreak − 1), earliestAvailableAt − now)`, never a busy loop. The
  * streak counts consecutive idle-class cycles including the latest, so idle delays run 1, 2, 4, 8
  * and then 15 minutes, and a working cycle returns to the base.
+ *
+ * `observedAt` is when `earliestAvailableAt` was read. A delivery that was still in the future
+ * then but fell due before the delay is computed wakes the resident at once (ADR-0580); one that
+ * was already due when observed keeps the backoff, so deferred work never busy-loops.
  */
 export function residentReconcileDelay(input: {
   idleStreak: number;
   now: number;
   earliestAvailableAt: number | null;
+  observedAt?: number;
   baseMilliseconds: number;
   ceilingMilliseconds: number;
 }): number {
+  if (
+    input.earliestAvailableAt !== null &&
+    input.observedAt !== undefined &&
+    input.earliestAvailableAt > input.observedAt &&
+    input.earliestAvailableAt <= input.now
+  )
+    return MINIMUM_DUE_DELAY_MILLISECONDS;
   let delay = Math.min(
     input.ceilingMilliseconds,
     input.baseMilliseconds * 2 ** Math.min(Math.max(0, input.idleStreak - 1), 30),
@@ -127,6 +139,8 @@ export async function runResidentCycle(input: {
   outcome: ResidentCycleOutcome;
   state: Omit<ResidentCycleState, "nextReconcileAt">;
   earliestAvailableAt: number | null;
+  /** When `earliestAvailableAt` was last known to be accurate. */
+  observedAt: number;
 }> {
   const startedAt = input.now();
   let observed: ConvergenceSourceFingerprint | null;
@@ -149,6 +163,7 @@ export async function runResidentCycle(input: {
       outcome: { kind: "skipped" },
       state: { ...input.previous!, idleStreak: nextIdleStreak(previousStreak, "skipped") },
       earliestAvailableAt: observed!.earliestAvailableAt,
+      observedAt: startedAt,
     };
   const lastCycleAt = new Date(startedAt).toISOString();
   try {
@@ -170,6 +185,7 @@ export async function runResidentCycle(input: {
         parkedRetryAt(result, finishedAt),
         finishedAt,
       ),
+      observedAt: finishedAt,
     };
   } catch (error) {
     return {
@@ -186,6 +202,7 @@ export async function runResidentCycle(input: {
         idleStreak: nextIdleStreak(previousStreak, "failed"),
       },
       earliestAvailableAt: null,
+      observedAt: input.now(),
     };
   }
 }
