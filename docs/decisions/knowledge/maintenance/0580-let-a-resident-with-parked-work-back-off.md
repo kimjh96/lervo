@@ -39,6 +39,7 @@ The attempt itself is never delayed:
 - The fence was observed before the cycle, so it cannot see a retry the cycle itself rescheduled. The next timer therefore takes the earliest future moment of the fence's `earliestAvailableAt` and the parked retry's `nextAttemptAt`, and ADR-0461's delay formula wakes the resident no later than that moment.
 - A delivery that is already due is never skipped, so the cycle that wakes for the attempt always runs in full.
 - A `retry_scheduled` state whose next attempt is already due stays `processed`. The resident keeps its base cadence until the delivery is claimed.
+- Publication and the health projection refresh run between the cycle's end and the timer's computation. A due time that was still in the future when the cycle ended, but has passed by then, sets a one-second delay instead of the idle backoff. A delivery that was already due when observed keeps the backoff, so deferred work never busy-loops.
 
 Health is unchanged: a full cycle already reported `retry_scheduled` as `idle`, and a skipped cycle now reports `idle` with reason `source_unchanged`.
 
@@ -47,6 +48,12 @@ Health is unchanged: a full cycle already reported `retry_scheduled` as `idle`, 
 The freshness stage's fence bypass for a `generated` `no_change_needed` candidate now applies only while today's budget covers one more candidate at `maximumTokensPerCandidate`. When it does not, an unchanged fence returns `unchanged`. The stage observes nothing, runs no lint, and appends no event.
 
 No work is lost. The stage fence includes the day, so the first cycle of a new day reopens the stage with a fresh budget. The assessment branch itself keeps checking the budget after any cross-check spend in the same cycle, as before.
+
+### A deferral without progress records no cycle event
+
+A freshness pass can be deferred before any provider call: live work holds the provider, the provider is paused or not admitted, or delegation is missing. When the deferred pass generated, verified, and applied nothing and observed no token use, it appends no `document.freshness.cycle.completed` event. Its stage key stays null, so the next cycle that runs retries the pass, but the event head and the resident's fence stay where they were. Without this, every deferral appended a zero-result event with a new cycle ID, and the resident ran a full cycle every 30 to 60 seconds while the owner worked or a provider was rate-limited.
+
+A full observation that ends deferred still records its event when its findings digest differs from the stored one, so new findings are never silent.
 
 ### What still costs CPU
 
@@ -58,6 +65,7 @@ No event, file, field, or reason code is added.
 
 - `resident-cycle.json` keeps its schema. `lastResult: idle` may now follow a parked `retry_scheduled` convergence state.
 - The freshness stage may return `unchanged` while a `generated` `no_change_needed` candidate waits for budget. Previously it always returned `completed` with an identical payload.
+- A deferred freshness pass that made no progress appends no `document.freshness.cycle.completed`. Previously it appended one with zero counts on every deferral.
 - Neither change reads or stores repository content, paths, or provider output.
 - An unparseable `nextAttemptAt` counts as not parked, so the cycle stays `processed`. Ambiguity costs a full cycle, never a skipped one.
 
@@ -89,3 +97,5 @@ The exact fences before durable writes (ADR-0566) and the convergence stage cont
 
 - `packages/repository-knowledge-runtime/test/resident-cycle.test.ts`: a parked retry records `idle`, its attempt bounds the next delay, the next unchanged cycle is skipped, and a due retry stays `processed`. Fails on origin/main.
 - `packages/repository-knowledge-runtime/test/maintenance-recovery.test.ts`: with the budget spent, two cycles return `unchanged` and append no cycle event; restoring the budget runs the pending review at once. Fails on origin/main.
+- The same file: two reviews deferred by live work append no cycle event and make no provider call; the next unblocked cycle runs the review and records its event.
+- `packages/repository-knowledge-runtime/test/resident-cycle.test.ts`: a due time that passes between the cycle's end and the timer's computation sets a one-second delay, and one already due when observed keeps the backoff.

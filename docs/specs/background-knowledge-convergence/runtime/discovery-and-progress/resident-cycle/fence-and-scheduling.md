@@ -32,7 +32,7 @@ Inputs outside the fingerprint, including generated registries below `docs/knowl
 
 ## Adaptive reconciliation
 
-A one-shot timer replaces the fixed 60-second interval. Its delay is `min(ceiling, base × 2^(idleStreak − 1), earliestAvailableAt − now)`, with `base = 60_000` and `ceiling = 900_000` milliseconds. A future delivery wakes the resident no sooner than one second ahead. After a cycle that left a parked retry, `earliestAvailableAt` is the earlier future moment of the fence's observation and the retry's `nextAttemptAt`, because the fence was observed before the cycle rescheduled it. An already-due delivery never shortens the delay, preventing deferred work from busy-looping.
+A one-shot timer replaces the fixed 60-second interval. Its delay is `min(ceiling, base × 2^(idleStreak − 1), earliestAvailableAt − now)`, with `base = 60_000` and `ceiling = 900_000` milliseconds. A future delivery wakes the resident no sooner than one second ahead. After a cycle that left a parked retry, `earliestAvailableAt` is the earlier future moment of the fence's observation and the retry's `nextAttemptAt`, because the fence was observed before the cycle rescheduled it. A due time that was still in the future at the cycle's end but has passed when the timer is computed sets a one-second delay. An already-due delivery never shortens the delay, preventing deferred work from busy-looping.
 
 `idleStreak` counts consecutive idle-class, skipped or failed cycles, producing delays of 1, 2, 4, 8 and then 15 minutes. Change-job outcomes, a non-idle convergence state, a retry that is already due, or a busy repository lock reset the streak. A retry parked in the future is idle-class. Failed cycles keep backing off but are never skippable because they record no fingerprint.
 
