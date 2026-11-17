@@ -134,10 +134,19 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("terminal_integration");
 
+  // ADR-0578: the approved plan inspected knowledge inside this exclusion. When no stage wrote
+  // since and that inspection left nothing to apply, it still holds, so it is not repeated. A
+  // generated-only stage is inspected again right before its apply, as before.
+  let unchangedSincePlan =
+    appliedStages.length === 0 &&
+    ["current", "pending_authority", "blocked"].includes(approved.stages.knowledge.disposition);
   for (let index = 0; index < approved.policy.maximumKnowledgeStages; index += 1) {
     // A marker refusal happens before any write, so inspecting and applying again is safe.
     const stage = await materialization.run(async () => {
-      const inspected = await inspectKnowledge(root);
+      const inspected = unchangedSincePlan
+        ? approved.stages.knowledge
+        : await inspectKnowledge(root);
+      unchangedSincePlan = false;
       if (inspected.disposition === "safe_apply") {
         await confirmExclusion("knowledge");
         await applyKnowledgeStage(root, inspected);

@@ -1,6 +1,8 @@
-import type {
-  DocumentRouteDeferralReason,
-  DocumentRouteDeferralResolution,
+import {
+  createRepositoryLayoutMigrationPlan,
+  type DocumentRouteDeferralReason,
+  type DocumentRouteDeferralResolution,
+  type RepositoryLayoutMigrationPlan,
 } from "@lervo/repository-knowledge";
 
 import type { KnowledgeStage } from "./upgrade-stage-inspection.js";
@@ -26,9 +28,7 @@ const DEFERRAL_RESOLUTIONS: readonly DocumentRouteDeferralResolution[] = [
   "destination_conflict",
 ];
 
-export function deferredDocuments(
-  value: unknown,
-): NonNullable<KnowledgeStage["deferredDocuments"]> {
+function deferredDocuments(value: unknown): NonNullable<KnowledgeStage["deferredDocuments"]> {
   return Array.isArray(value)
     ? value.flatMap((item) => {
         const document = record(item);
@@ -53,4 +53,21 @@ export function deferredDocuments(
           : [];
       })
     : [];
+}
+
+/**
+ * The layout plan's deferrals; an unavailable layout reports none rather than failing the stage.
+ * ADR-0578: a layout the migration run already planned is not planned again.
+ */
+export async function layoutDeferrals(
+  root: string,
+  value: Record<string, unknown> | null,
+  planned: RepositoryLayoutMigrationPlan | null,
+): Promise<NonNullable<KnowledgeStage["deferredDocuments"]>> {
+  if (Array.isArray(value?.deferredDocuments)) return deferredDocuments(value.deferredDocuments);
+  if (planned !== null) return deferredDocuments(planned.deferredDocuments);
+  return createRepositoryLayoutMigrationPlan({ repositoryRoot: root }).then(
+    (plan) => deferredDocuments(plan.deferredDocuments),
+    () => [],
+  );
 }

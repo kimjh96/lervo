@@ -4,9 +4,9 @@
   "reviews": [
     {
       "path": "apps/cli/src/knowledge-migration-command.ts",
-      "contentHash": "sha256:a3e1f9b60a892ea6dfa4b5d045b03a44696e7e22cd74aebf29b5589aea5c18f2",
+      "contentHash": "sha256:1f388352f822e1d74b0cc307e1a91417c8d7816fc2fc06502302173edf26f113",
       "responsibility": "Knowledge migration plan/apply orchestration",
-      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, terminal integration, and ADR-0559 layout decisions retain dedicated modules. Terminal runtime materialization and worker-entry provenance are single calls to their adapters.",
+      "rationale": "The module composes the migration lifecycle and shares exact approval, rollback, storage cleanup, and materialization evidence. Classification and admission stay in runtime adapters. Routing, deferred output, rendering, bootstrap, terminal integration, and ADR-0559 layout decisions retain dedicated modules. Terminal runtime, worker-entry provenance, and the ADR-0578 shared pre-write scan are single calls to their owners.",
       "disposition": "cohesive"
     },
     {
@@ -263,7 +263,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/workstream.ts",
-      "contentHash": "sha256:0fd811e008ed1a28eed4e024a2f5f035493aa05f5ff61537a0eb443fe4919bff",
+      "contentHash": "sha256:972f4cadb81f8cf6f5aed900ce9eab62b167c20b563555bf09bff3e62438c4cd",
       "responsibility": "Revisioned workstream snapshot lifecycle",
       "rationale": "Current state, continuation import, start, update, and replicated import preserve one WorkstreamSnapshot aggregate, exact origin and predecessor invariants, CAS binding, intent-bound plan identity, and durable apply protocol. Snapshot construction, bookkeeping, revision derivation, freshness, branch-binding storage, and context rendering live in sibling modules, so this module keeps durable lifecycle orchestration only.",
       "disposition": "cohesive"

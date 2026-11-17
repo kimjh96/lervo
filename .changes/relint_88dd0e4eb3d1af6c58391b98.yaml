@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_88dd0e4eb3d1af6c58391b98"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Plan the lervo upgrade knowledge stage from one repository scan instead of one scan per migration stage, and skip the repeated knowledge inspection when the plan made inside the upgrade window left nothing to apply."

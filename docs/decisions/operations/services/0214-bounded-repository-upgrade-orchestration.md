@@ -10,6 +10,7 @@ Amended by:
 - [ADR-0488](0488-point-node-configurations-at-one-current-cli.md): the Node stage maintains the host CLI pointer and migrates pinned configuration paths.
 - [ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md): the Node stage is ordered after knowledge without depending on it; lint always runs and reports content errors in the receipt.
 - [ADR-0574](../../distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md): apply asks for the full-cycle admission with priority; the knowledge stage stays inside the window.
+- [ADR-0578](../../distribution/0578-plan-the-upgrade-knowledge-stage-from-one-scan.md): the knowledge stage is planned from one scan, and apply does not inspect it again when nothing changed and nothing is due.
 
 ## Context
 

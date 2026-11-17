@@ -4,6 +4,7 @@ import {
   applyKnowledgeInstructionBootstrapPlan,
   createKnowledgeInstructionBootstrapPlan,
   serializableKnowledgeInstructionBootstrapPlan,
+  type RepositoryKnowledgeScan,
   type RepositorySupplementalSource,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
@@ -13,6 +14,7 @@ import type { CliIo } from "./types.js";
 export async function runInstructionBootstrapStage(input: {
   repositoryRoot: string;
   supplementalSources: RepositorySupplementalSource[];
+  preparedScan: RepositoryKnowledgeScan;
   applyPlanId?: string;
   approvalItems: string[];
   json: boolean;
@@ -21,6 +23,7 @@ export async function runInstructionBootstrapStage(input: {
   const plan = await createKnowledgeInstructionBootstrapPlan({
     repositoryRoot: input.repositoryRoot,
     supplementalSources: input.supplementalSources,
+    preparedScan: input.preparedScan,
   });
   if (plan.status === "not_applicable") return null;
   if (input.applyPlanId === undefined) {
