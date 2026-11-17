@@ -167,7 +167,7 @@ describe("trusted publisher readiness contract", () => {
     const report = JSON.parse(result.stdout);
     assert.equal(report.status, "blocked");
     assert.deepEqual(report.checks[0].reasons, [
-      "package_repository_missing",
+      "package_repository_mismatch",
       "package_license_unresolved",
       "package_registry_unpinned",
     ]);

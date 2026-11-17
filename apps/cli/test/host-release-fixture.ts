@@ -157,6 +157,13 @@ export function fakeReleaseSource(
   const source = {
     repository: "owner/lervo",
     downloads: 0,
+    async listReleases() {
+      return releases.map((release) => ({
+        tag: release.tag,
+        draft: overrides.draft ?? false,
+        prerelease: overrides.prerelease ?? false,
+      }));
+    },
     async readRelease(tag: string) {
       const release = find(tag);
       return {

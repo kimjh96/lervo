@@ -21,6 +21,15 @@ export interface HostUpgradeLayout {
   journalPath: string;
   lockPath: string;
   binDirectory: string;
+  /** ADR-0575 follower files: its state, the owner's pause or pin, its lock, and its runtime. */
+  follow: {
+    statePath: string;
+    controlPath: string;
+    lockPath: string;
+    /** A link to the package root the follower service runs; the service definition names it. */
+    runtimePointer: string;
+    configPath: string;
+  };
 }
 
 export function hostUpgradeLayout(input: {
@@ -39,6 +48,13 @@ export function hostUpgradeLayout(input: {
     journalPath: resolve(cliDirectory, "host-activations.json"),
     lockPath: resolve(cliDirectory, "host-upgrade.lock"),
     binDirectory: input.binDirectory ?? resolve(home, ".local", "bin"),
+    follow: {
+      statePath: resolve(cliDirectory, "host-follow.json"),
+      controlPath: resolve(cliDirectory, "host-follow-control.json"),
+      lockPath: resolve(cliDirectory, "host-follow.lock"),
+      runtimePointer: resolve(cliDirectory, "host-follow-runtime"),
+      configPath: resolve(cliDirectory, "host-follow-service.json"),
+    },
   };
 }
 

@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { delimiter, resolve } from "node:path";
-import { lstat } from "node:fs/promises";
+import { lstat, readlink } from "node:fs/promises";
 
 import {
   inspectHostLinks,
@@ -188,6 +188,8 @@ export async function applyReleaseUpgrade(
     const referenced = await referencedReleaseDirectories(layout, [
       ...(await readHostLinks(layout)).values(),
       await dependencies.readCliPointer(),
+      // ADR-0575: the install the follower service still runs until it hands over.
+      await readlink(layout.follow.runtimePointer).catch(() => null),
       ...activationReferences(journal),
     ]);
     const pruned = await pruneHostReleases(layout, referenced);

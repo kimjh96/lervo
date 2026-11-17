@@ -465,6 +465,66 @@ describe("runtime user service management", () => {
     await expect(readFile(target)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
+  it("installs and removes the follower through its runtime link directory", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-service-manage-"));
+    roots.push(root);
+    const install = resolve(root, "installs", "1.0.0-cccccccccccc");
+    await mkdir(resolve(install, "dist"), { recursive: true });
+    await writeFile(resolve(install, "dist", "bin.js"), "#!/usr/bin/env node\n", { mode: 0o700 });
+    const pointer = resolve(root, "host-follow-runtime");
+    await symlink(install, pointer);
+    const executable = resolve(pointer, "dist", "bin.js");
+    const config = resolve(root, "host-follow-service.json");
+    await writeFile(config, "{}", { mode: 0o600 });
+    const definition = resolve(root, "host-follow.service");
+    await renderRuntimeService([
+      "--manager",
+      "systemd",
+      "--runtime",
+      "host-follow",
+      "--executable",
+      executable,
+      "--config",
+      config,
+      "--output",
+      definition,
+    ]);
+    const writeArgs = (action) => [
+      "--action",
+      action,
+      "--manager",
+      "systemd",
+      "--runtime",
+      "host-follow",
+      "--definition",
+      definition,
+      "--executable",
+      executable,
+      "--config",
+      config,
+      "--write",
+    ];
+    const manager = systemdManager();
+    const options = {
+      platform: "linux",
+      homeDirectory: root,
+      runCommand: manager.run.bind(manager),
+      wait: async () => {},
+    };
+    await expect(manageRuntimeService(writeArgs("install"), options)).resolves.toMatchObject({
+      runtime: "host-follow",
+      installed: true,
+      active: true,
+      change: "installed",
+    });
+    const target = resolve(root, ".config/systemd/user/lervo-host-follow.service");
+    expect(await readFile(target, "utf8")).toContain("host upgrade --follow --apply --config");
+    await expect(manageRuntimeService(writeArgs("remove"), options)).resolves.toMatchObject({
+      change: "removed",
+      installed: false,
+    });
+  });
+
   it("compensates when a newly activated systemd service is only transiently active", async () => {
     const value = await fixture("systemd", "hub");
     let enabled = false;

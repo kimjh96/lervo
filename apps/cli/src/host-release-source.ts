@@ -10,12 +10,29 @@ export interface PublishedReleaseListing {
   assetNames: string[];
 }
 
+// Each segment is a GitHub owner or repository name; dot-only segments would change the API path.
+const repositoryPattern = /^(?!\.+\/)[A-Za-z0-9_.-]+\/(?!\.+$)[A-Za-z0-9_.-]+$/u;
+
+/** Whether `value` is an `<owner>/<name>` coordinate safe to place in a GitHub API path. */
+export function isRepositoryCoordinate(value: string): boolean {
+  return repositoryPattern.test(value);
+}
+
+/** One entry of the repository's release list, newest first as GitHub returns it. */
+export interface ReleaseListEntry {
+  tag: string;
+  draft: boolean;
+  prerelease: boolean;
+}
+
 /**
  * ADR-0571: the port through which a host learns about and fetches a published release. Every
  * read names one exact tag or commit, so a moving tag can only make verification fail.
  */
 export interface HostReleaseSource {
   readonly repository: string;
+  /** ADR-0575: the newest releases of the repository, drafts and prereleases included. */
+  listReleases(): Promise<ReleaseListEntry[]>;
   readRelease(tag: string): Promise<PublishedReleaseListing>;
   /** The commit and tree the tag points at, following an annotated tag to its commit. */
   resolveTag(tag: string): Promise<{ sha: string; tree: string }>;
@@ -30,6 +47,8 @@ export type GhRunner = (args: readonly string[]) => Promise<Buffer>;
 const maximumGhOutputBytes = 8 * 1024 * 1024;
 const ghTimeoutMilliseconds = 5 * 60_000;
 const objectIdPattern = /^[a-f0-9]{40}$/u;
+/** Enough to see past a burst of releases; the follower installs only the newest one. */
+const releaseListLimit = 30;
 
 export const runGh: GhRunner = (args) =>
   new Promise((resolvePromise, reject) => {
@@ -88,6 +107,49 @@ export function createGhReleaseSource(
   };
   return {
     repository,
+    async listReleases() {
+      const what = "the release list";
+      let entries: unknown;
+      try {
+        entries = JSON.parse(
+          (
+            await read(
+              [
+                "release",
+                "list",
+                "--repo",
+                repository,
+                "--limit",
+                String(releaseListLimit),
+                "--json",
+                "tagName,isDraft,isPrerelease",
+              ],
+              what,
+            )
+          ).toString("utf8"),
+        ) as unknown;
+      } catch (error) {
+        if (error instanceof CommandFailure) throw error;
+        throw unavailable(repository, what);
+      }
+      if (
+        !Array.isArray(entries) ||
+        !entries.every((entry: unknown) => {
+          const value = entry as Record<string, unknown> | null;
+          return (
+            value !== null &&
+            typeof value === "object" &&
+            typeof value.tagName === "string" &&
+            typeof value.isDraft === "boolean" &&
+            typeof value.isPrerelease === "boolean"
+          );
+        })
+      )
+        throw unavailable(repository, what);
+      return (entries as { tagName: string; isDraft: boolean; isPrerelease: boolean }[]).map(
+        (entry) => ({ tag: entry.tagName, draft: entry.isDraft, prerelease: entry.isPrerelease }),
+      );
+    },
     async readRelease(tag) {
       const what = `release ${tag}`;
       const listing = parseObject(

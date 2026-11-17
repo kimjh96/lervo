@@ -68,6 +68,47 @@ describe("createGhReleaseSource", () => {
     expect(calls[1]).toContain("Accept: application/vnd.github.raw+json");
   });
 
+  it("lists releases with exact gh arguments and rejects a malformed list", async () => {
+    const calls: string[][] = [];
+    const source = createGhReleaseSource(
+      "owner/lervo",
+      runner(
+        {
+          "release list": [
+            { tagName: "v1.2.4", isDraft: true, isPrerelease: false },
+            { tagName: "v1.2.3", isDraft: false, isPrerelease: false },
+          ],
+        },
+        calls,
+      ),
+    );
+    await expect(source.listReleases()).resolves.toEqual([
+      { tag: "v1.2.4", draft: true, prerelease: false },
+      { tag: "v1.2.3", draft: false, prerelease: false },
+    ]);
+    expect(calls[0]).toEqual([
+      "release",
+      "list",
+      "--repo",
+      "owner/lervo",
+      "--limit",
+      "30",
+      "--json",
+      "tagName,isDraft,isPrerelease",
+    ]);
+    const malformed = createGhReleaseSource(
+      "owner/lervo",
+      runner({ "release list": [{ tagName: "v1.2.3" }] }),
+    );
+    await expect(malformed.listReleases()).rejects.toMatchObject({
+      code: "host_release_unavailable",
+    });
+    const failing = createGhReleaseSource("owner/lervo", runner({}));
+    const failure = await failing.listReleases().catch((error: unknown) => error);
+    expect(failure).toMatchObject({ code: "host_release_unavailable" });
+    expect(String((failure as Error).message)).not.toContain("ghp_secret");
+  });
+
   it("translates a gh failure without its output, which can name credentials", async () => {
     const source = createGhReleaseSource("owner/lervo", runner({}));
     const failure = await source.resolveTag("v1.2.3").catch((error: unknown) => error);

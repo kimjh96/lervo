@@ -1,9 +1,20 @@
+import { homedir } from "node:os";
 import { isAbsolute } from "node:path";
 
 import { readCurrentCliInstall } from "./cli-install-pointer.js";
 import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import { pnpmInstaller } from "./host-cli-install.js";
-import { createGhReleaseSource, type HostReleaseSource } from "./host-release-source.js";
+import { hostFollowUsage, parseHostFollowArguments } from "./host-follow-arguments.js";
+import {
+  runHostFollowCommand,
+  type HostFollowContext,
+  type HostFollowOverrides,
+} from "./host-follow-command.js";
+import {
+  createGhReleaseSource,
+  isRepositoryCoordinate,
+  type HostReleaseSource,
+} from "./host-release-source.js";
 import {
   applyReleaseUpgrade,
   hostUpgradeStatus,
@@ -17,14 +28,15 @@ import {
   formatHostUpgradeResult,
   formatHostUpgradeStatus,
 } from "./host-upgrade-format.js";
-import { hostUpgradeLayout } from "./host-upgrade-layout.js";
+import { hostUpgradeLayout, type HostUpgradeLayout } from "./host-upgrade-layout.js";
 import { installedCliProbes } from "./host-link-activation.js";
 import { rollbackActivation } from "./host-upgrade-rollback.js";
 import type { CliIo } from "./types.js";
 
 export const hostUsage = `  lervo host upgrade --from-release <tag> --repository <owner/name> [--apply] [--bin-directory <path>] [--json]
   lervo host upgrade --rollback <activation-id> [--apply] [--bin-directory <path>] [--json]
-  lervo host upgrade --status [--bin-directory <path>] [--json]`;
+  lervo host upgrade --status [--bin-directory <path>] [--json]
+${hostFollowUsage}`;
 
 /** Test seam: the release source, host paths, installer, health probes, and PATH. */
 export interface HostCommandOverrides {
@@ -36,6 +48,7 @@ export interface HostCommandOverrides {
   pathEnvironment?: string;
   now?: () => Date;
   newActivationId?: () => string;
+  follow?: HostFollowOverrides;
 }
 
 type HostUpgradeMode =
@@ -50,8 +63,6 @@ interface HostUpgradeArguments {
   binDirectory?: string;
 }
 
-// Each segment is a GitHub owner or repository name; dot-only segments would change the API path.
-const repositoryPattern = /^(?!\.+\/)[A-Za-z0-9_.-]+\/(?!\.+$)[A-Za-z0-9_.-]+$/u;
 const activationIdPattern = /^hact_[a-f0-9]{24}$/u;
 
 function invalid(message: string): never {
@@ -82,7 +93,7 @@ function parseHostUpgradeArguments(args: string[]): HostUpgradeArguments {
   if (modes.length !== 1) invalid("Pass exactly one of --from-release, --rollback, or --status.");
   let mode: HostUpgradeMode;
   if (tag !== undefined) {
-    if (repository === undefined || !repositoryPattern.test(repository))
+    if (repository === undefined || !isRepositoryCoordinate(repository))
       invalid("--from-release needs --repository <owner/name>.");
     mode = { kind: "release", tag, repository };
   } else if (activationId !== undefined) {
@@ -104,23 +115,22 @@ function parseHostUpgradeArguments(args: string[]): HostUpgradeArguments {
   };
 }
 
-async function runHostUpgrade(
-  parsed: HostUpgradeArguments,
-  io: CliIo,
-  overrides: HostCommandOverrides,
-): Promise<number> {
+function hostPlatform(overrides: HostCommandOverrides): NodeJS.Platform {
   const platform = overrides.platform ?? process.platform;
   if (platform === "win32")
     throw new CommandFailure(
       "host_upgrade_platform_unsupported",
       "lervo host upgrade supports macOS and Linux hosts.",
     );
-  const layout = hostUpgradeLayout({
-    homeDirectory: overrides.homeDirectory,
-    platform,
-    binDirectory: parsed.binDirectory,
-  });
-  const dependencies: HostUpgradeDependencies = {
+  return platform;
+}
+
+function upgradeDependencies(
+  layout: HostUpgradeLayout,
+  platform: NodeJS.Platform,
+  overrides: HostCommandOverrides,
+): HostUpgradeDependencies {
+  return {
     layout,
     installer: overrides.installer ?? pnpmInstaller,
     probes: overrides.probes ?? installedCliProbes,
@@ -128,6 +138,33 @@ async function runHostUpgrade(
     newActivationId: overrides.newActivationId ?? newHostActivationId,
     readCliPointer: () => readCurrentCliInstall(overrides.homeDirectory, platform),
   };
+}
+
+function followContext(overrides: HostCommandOverrides): HostFollowContext {
+  const platform = hostPlatform(overrides);
+  return {
+    homeDirectory: overrides.homeDirectory ?? homedir(),
+    platform,
+    layout: (binDirectory) =>
+      hostUpgradeLayout({ homeDirectory: overrides.homeDirectory, platform, binDirectory }),
+    upgradeDependencies: (layout) => upgradeDependencies(layout, platform, overrides),
+    createSource: overrides.createSource ?? createGhReleaseSource,
+    follow: overrides.follow ?? {},
+  };
+}
+
+async function runHostUpgrade(
+  parsed: HostUpgradeArguments,
+  io: CliIo,
+  overrides: HostCommandOverrides,
+): Promise<number> {
+  const platform = hostPlatform(overrides);
+  const layout = hostUpgradeLayout({
+    homeDirectory: overrides.homeDirectory,
+    platform,
+    binDirectory: parsed.binDirectory,
+  });
+  const dependencies = upgradeDependencies(layout, platform, overrides);
   const write = (operation: string, result: object, text: string) =>
     io.stdout(
       parsed.json
@@ -157,7 +194,10 @@ async function runHostUpgrade(
   return 0;
 }
 
-/** `lervo host upgrade`: install a verified published release on this host (ADR-0571). */
+/**
+ * `lervo host upgrade`: install a verified published release on this host (ADR-0571), or follow
+ * the newest one (ADR-0575).
+ */
 export async function runHostCommand(
   args: string[],
   io: CliIo,
@@ -166,6 +206,12 @@ export async function runHostCommand(
   const json = args.includes("--json");
   try {
     if (args[0] !== "upgrade") invalid(`Usage:\n${hostUsage}`);
+    if (args.includes("--follow"))
+      return await runHostFollowCommand(
+        parseHostFollowArguments(args.slice(1)),
+        io,
+        followContext(overrides),
+      );
     return await runHostUpgrade(parseHostUpgradeArguments(args.slice(1)), io, overrides);
   } catch (error) {
     writeCommandError(io, error, { json });

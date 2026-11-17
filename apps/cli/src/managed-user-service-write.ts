@@ -13,8 +13,8 @@ export interface ManagedServiceStatus {
 }
 
 /**
- * Installs, transactionally replaces, or restarts one Lervo user service through the
- * release-tested service manager (ADR-0470, ADR-0483, ADR-0573). An upgrade passes the installed
+ * Installs, transactionally replaces, restarts, or removes one Lervo user service through the
+ * release-tested service manager (ADR-0470, ADR-0483, ADR-0573, ADR-0575). An upgrade passes the installed
  * bytes as the exact predecessor, so the manager restores them if the new service does not stay
  * active; a restart keeps the exact installed definition. Returns the manager's observed status;
  * the caller decides what an inactive result means.
@@ -24,7 +24,7 @@ export async function writeManagedUserService(input: {
   options: { homeDirectory: string; platform: NodeJS.Platform; uid: number | null };
   manager: "launchd" | "systemd";
   runtime: string;
-  action: "install" | "activate" | "upgrade" | "restart";
+  action: "install" | "activate" | "upgrade" | "restart" | "remove";
   definition: string;
   installed: Buffer | null;
   coordinates: {

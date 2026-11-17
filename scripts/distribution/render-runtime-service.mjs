@@ -4,8 +4,9 @@ import { dirname, isAbsolute, resolve } from "node:path";
 
 export const runtimeServiceStopTimeoutMs = 120_000;
 
-// `knowledge-host` is the ADR-0470 host knowledge resident: one per user, no instance.
-const runtimes = new Set(["hub", "node", "knowledge-host", "repository-replica"]);
+// `knowledge-host` is the ADR-0470 host knowledge resident and `host-follow` the ADR-0575 release
+// follower: one per user each, no instance.
+const runtimes = new Set(["hub", "node", "knowledge-host", "repository-replica", "host-follow"]);
 
 function fail(message) {
   throw new Error(message);
@@ -54,7 +55,7 @@ function parse(args) {
       values.has(key)
     ) {
       fail(
-        "Usage: --manager <systemd|launchd> --runtime <hub|node|knowledge-host|repository-replica> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] [--path-directories <dir:dir>] [--log-file <absolute-path>] --config <absolute-path> --output <new-absolute-path>",
+        "Usage: --manager <systemd|launchd> --runtime <hub|node|knowledge-host|repository-replica|host-follow> [--instance <nfi-id>] --executable <absolute-path> [--node-executable <absolute-path>] [--path-directories <dir:dir>] [--log-file <absolute-path>] --config <absolute-path> --output <new-absolute-path>",
       );
     }
     values.set(key, value);
@@ -199,9 +200,10 @@ function runtimePath(input) {
     .join(":");
 }
 
-/** Fixed words before `--config`: the host resident and the replica coordinator run one subcommand. */
+/** Fixed words before `--config`: the host resident, the replica coordinator, and the follower run one subcommand. */
 function runtimeSubcommand(input) {
   if (input.runtime === "knowledge-host") return ["knowledge", "worker", "--watch", "--host"];
+  if (input.runtime === "host-follow") return ["host", "upgrade", "--follow", "--apply"];
   if (input.runtime === "repository-replica") return ["repository-replica", "reconcile", "--watch"];
   return [];
 }
@@ -214,6 +216,7 @@ function title(input) {
   if (input.runtime === "hub") return "Lervo Hub";
   if (input.runtime === "knowledge-host") return "Lervo host knowledge resident";
   if (input.runtime === "repository-replica") return "Lervo repository replica coordinator";
+  if (input.runtime === "host-follow") return "Lervo host release follower";
   return `Lervo Node ${input.instance}`;
 }
 
