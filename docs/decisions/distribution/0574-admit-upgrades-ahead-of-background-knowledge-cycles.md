@@ -70,9 +70,9 @@ An upgrade now waits at most for the stage the holder is in, instead of for one 
 ## Verification
 
 - `full-cycle-admission.test.ts`: upgrades go ahead of residents that waited longer and keep arrival order; `preempted()` is true only for an upgrade.
-- `upgrade-priority-yield.test.ts`: a running cycle stops before its next stage for a waiting upgrade with no convergence stage run; the upgrade is admitted before a resident that waited first; the next cycle runs the work left behind. An upgrade that arrives during a convergence stage lets that stage finish and stops the cycle after it. A non-owner's cycle stops before retention and debt inspection.
+- `upgrade-priority-yield.test.ts`: a running cycle stops before its next stage for a waiting upgrade with no convergence stage run; the upgrade is admitted before a resident that waited first; the next cycle runs the work left behind. An upgrade that arrives during a convergence stage lets that stage finish and stops the cycle after it. A non-owner's cycle stops before retention and debt inspection. Separate tests fail without the check before owner-turn capture and without the check before owner-rule application.
 - `loop.test.ts`: a waiting resident stays behind an upgrade that asked later, then runs its cycle.
 - `upgrade-resident-exclusion.test.ts`: `lervo upgrade --apply` goes ahead of a resident that waited first; `knowledge_cycle_admission_wait_expired` still ends a wait.
-- CLI upgrade tests pass the `upgradeHost` service: a temporary home and an empty process listing for runtime retention, the host resident service, and the replica service, plus a private admission directory. They never read or change the host they run on.
+- CLI upgrade tests pass the `upgradeHost` service: a temporary home and an empty process listing for runtime retention, the host resident service, the replica service, and the event writer's terminal hook runtime, plus a private admission directory. They never read or change the host they run on.
 
 Installed verification: run `upgrade-all.sh` on Mac and WSL after the release that carries this change, and record each run's wait notice and duration in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
