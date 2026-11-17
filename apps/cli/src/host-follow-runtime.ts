@@ -37,8 +37,9 @@ export async function readActiveCli(layout: HostUpgradeLayout): Promise<ActiveCl
 }
 
 /**
- * ADR-0575: the follower service runs `<cli>/host-follow-runtime/dist/bin.js`, so its definition
- * never changes across releases. Only the follower moves this link, and only to the package the
+ * ADR-0575: the follower service runs `<cli>/host-follow-runtime/dist/bin.js`, so a release
+ * changes its definition only when the renderer changes, as ADR-0577 did; `--status` then reports
+ * `definition_outdated` until the owner reinstalls the service. Only the follower moves this link, and only to the package the
  * `lervo` link already runs, right before it exits for the service manager to restart it there.
  * The swap is one rename, so a start meanwhile sees the old or the new package.
  */

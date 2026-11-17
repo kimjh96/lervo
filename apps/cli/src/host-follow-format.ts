@@ -1,6 +1,6 @@
 import type { HostFollowCycleResult } from "./host-follow-cycle.js";
 import type { HostFollowInspection, HostFollowStatus } from "./host-follow-inspection.js";
-import type { HostFollowServicePlan } from "./host-follow-service.js";
+import type { FollowServiceDefinition, HostFollowServicePlan } from "./host-follow-service.js";
 import type { HostFollowControl, HostFollowPass } from "./host-follow-state.js";
 
 function passLines(pass: HostFollowPass | null): string[] {
@@ -22,6 +22,13 @@ function controlLine(control: HostFollowControl): string {
   return "following: newest published release";
 }
 
+function serviceDefinitionLine(definition: FollowServiceDefinition): string {
+  if (definition === "definition_outdated")
+    return "service definition: outdated (definition_outdated); when no pass is in flight, run lervo host upgrade --follow --service install --apply";
+  if (definition === "not_installed") return "service definition: not installed";
+  return `service definition: ${definition ?? "unknown"}`;
+}
+
 export function formatFollowCycle(result: HostFollowCycleResult): string {
   return `${[
     `Follow cycle: ${result.outcome}${result.tag === null ? "" : ` ${result.tag}`}${
@@ -33,13 +40,17 @@ export function formatFollowCycle(result: HostFollowCycleResult): string {
   ].join("\n")}\n`;
 }
 
-export function formatFollowInspection(inspection: HostFollowInspection): string {
+export function formatFollowInspection(
+  inspection: HostFollowInspection,
+  serviceDefinition: FollowServiceDefinition,
+): string {
   return `${[
     `Follow plan for ${inspection.repository}: ${inspection.next}${
       inspection.tag === null ? "" : ` ${inspection.tag}`
     }${inspection.code === null ? "" : ` (${inspection.code})`}`,
     `active CLI: ${inspection.activeVersion ?? "unknown"}`,
     controlLine(inspection.control),
+    serviceDefinitionLine(serviceDefinition),
     "Nothing was changed. Run with --apply to follow, or install the service with --service install --apply.",
   ].join("\n")}\n`;
 }
@@ -58,6 +69,7 @@ export function formatFollowStatus(status: HostFollowStatus): string {
             ? "installed, inactive"
             : "not installed"
     }`,
+    serviceDefinitionLine(status.serviceDefinition),
     `last check: ${state.lastCheckAt ?? "never"}${
       state.lastSeenTag === null ? "" : `, newest ${state.lastSeenTag}`
     }`,

@@ -26,6 +26,7 @@ import {
   applyFollowService,
   defaultHostFollowServicePorts,
   hostFollowLogPath,
+  inspectFollowServiceDefinition,
   planFollowService,
   readFollowServiceConfig,
   type HostFollowServicePorts,
@@ -145,7 +146,12 @@ export async function runHostFollowCommand(
   const source = context.createSource(await repository());
   if (!parsed.apply) {
     const inspection = await inspectFollowCycle({ layout, source, runningInstallRoot });
-    write("host_follow_plan", inspection, formatFollowInspection(inspection));
+    const serviceDefinition = await inspectFollowServiceDefinition(layout, servicePorts());
+    write(
+      "host_follow_plan",
+      { ...inspection, serviceDefinition },
+      formatFollowInspection(inspection, serviceDefinition),
+    );
     return 0;
   }
   // `--once` runs from a shell, where Ctrl-C ends the process as usual; the service loop turns a

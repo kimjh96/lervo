@@ -1,7 +1,12 @@
 import { errorCode } from "./command-error-output.js";
 import { chooseFollowTarget, repositoryPassDue } from "./host-follow-policy.js";
 import { readActiveCli } from "./host-follow-runtime.js";
-import { readFollowServiceStatus, type HostFollowServicePorts } from "./host-follow-service.js";
+import {
+  inspectFollowServiceDefinition,
+  readFollowServiceStatus,
+  type FollowServiceDefinition,
+  type HostFollowServicePorts,
+} from "./host-follow-service.js";
 import {
   readFollowControl,
   readFollowState,
@@ -90,6 +95,7 @@ export interface HostFollowStatus {
   control: HostFollowControl;
   activeVersion: string | null;
   service: ManagedServiceStatus | null;
+  serviceDefinition: FollowServiceDefinition;
 }
 
 /** Read-only: the follower files, the active CLI, and the service manager's view. */
@@ -97,11 +103,12 @@ export async function readFollowStatus(
   layout: HostUpgradeLayout,
   ports: HostFollowServicePorts,
 ): Promise<HostFollowStatus> {
-  const [state, control, active, service] = await Promise.all([
+  const [state, control, active, service, serviceDefinition] = await Promise.all([
     readFollowState(layout),
     readFollowControl(layout),
     readActiveCli(layout).catch(() => null),
     readFollowServiceStatus(ports),
+    inspectFollowServiceDefinition(layout, ports),
   ]);
-  return { state, control, activeVersion: active?.version ?? null, service };
+  return { state, control, activeVersion: active?.version ?? null, service, serviceDefinition };
 }

@@ -150,13 +150,12 @@ interface PreparedFollowService {
   definition: string;
 }
 
-async function prepareFollowService(
+/** The definition this CLI renders for the follower, and the installed bytes, if any. */
+async function followDefinitions(
   layout: HostUpgradeLayout,
   ports: HostFollowServicePorts,
-  input: { operation: "install" | "remove"; repository: string | null },
-): Promise<PreparedFollowService> {
-  const manager = managerOf(ports.platform);
-  const identity = { manager, runtime: RUNTIME, instance: null };
+): Promise<{ definition: string; installed: Buffer | null }> {
+  const identity = { manager: managerOf(ports.platform), runtime: RUNTIME, instance: null };
   const service = coordinates(layout, ports, await ports.nodeExecutable());
   const definition = formatRuntimeServiceDefinition({
     ...identity,
@@ -169,6 +168,37 @@ async function prepareFollowService(
   const installed = await readFile(
     runtimeServiceTargetPath(identity, ports.homeDirectory) as string,
   ).catch(() => null);
+  return { definition, installed };
+}
+
+/**
+ * ADR-0577, read-only: whether the installed follower definition is the one this CLI renders.
+ * The follower never re-renders its own service, because replacing it would stop the running
+ * `lervo upgrade`; `definition_outdated` asks the owner to run `--service install --apply` while
+ * no pass is in flight. Null when the definition cannot be rendered or read.
+ */
+export type FollowServiceDefinition = "current" | "definition_outdated" | "not_installed" | null;
+
+export async function inspectFollowServiceDefinition(
+  layout: HostUpgradeLayout,
+  ports: HostFollowServicePorts,
+): Promise<FollowServiceDefinition> {
+  try {
+    const { definition, installed } = await followDefinitions(layout, ports);
+    if (installed === null) return "not_installed";
+    return sha256(installed) === sha256(definition) ? "current" : "definition_outdated";
+  } catch {
+    return null;
+  }
+}
+
+async function prepareFollowService(
+  layout: HostUpgradeLayout,
+  ports: HostFollowServicePorts,
+  input: { operation: "install" | "remove"; repository: string | null },
+): Promise<PreparedFollowService> {
+  const manager = managerOf(ports.platform);
+  const { definition, installed } = await followDefinitions(layout, ports);
   const status = await ports.manage(
     ["--action", "status", "--manager", manager, "--runtime", RUNTIME],
     { homeDirectory: ports.homeDirectory, platform: ports.platform, uid: ports.uid },
