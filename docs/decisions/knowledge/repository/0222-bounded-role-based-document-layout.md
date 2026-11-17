@@ -3,7 +3,7 @@
 - Status: accepted
 - Decision date: 2026-08-26
 
-Amended by: [ADR-0533](canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain. [ADR-0547](layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md). Only overflow a write creates or grows blocks it; existing overflow stays a lint error.
+Amended by: [ADR-0533](canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain. [ADR-0547](layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md). Only overflow a write creates or grows blocks it; existing overflow stays a lint error. [ADR-0583](layout/0583-hold-moves-that-overfill-a-directory-and-report-existing-overflow.md). A move or create into an over-limit directory also blocks; untouched overflow is a non-blocking advisory and a lint warning, and layout migration holds moves that would overfill a directory.
 
 ## Context
 

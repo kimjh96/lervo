@@ -58,6 +58,10 @@ import {
 } from "./types.js";
 import { repositoryInstructionRouteBlock } from "./instruction-routes.js";
 import { accountRepositoryLayoutCandidates } from "./repository-layout-accounting.js";
+import {
+  holdRepositoryLayoutMovesOverCapacity,
+  type RepositoryLayoutCapacityFinding,
+} from "./repository-layout-capacity.js";
 import { projectRebuildableKnowledgeIgnore } from "./projection-ignore.js";
 import { isWithinPublicationRoot } from "./repository-publication-files.js";
 import { observedOnlySource } from "./scan-retention.js";
@@ -160,6 +164,8 @@ export interface RepositoryLayoutMigrationPlan {
   retainedDocumentCount: number;
   /** Recorded classifications this plan relies on or waits for; any other record is stale. */
   semanticClassificationIds: string[];
+  /** ADR-0583: directories over capacity, with the moves held for them or left as user debt. */
+  layoutCapacity?: RepositoryLayoutCapacityFinding[];
   blockers: Array<{
     code:
       | "destination_exists"
@@ -572,9 +578,15 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   // projected into the virtual post-migration scan. In particular, two source
   // documents that select the same destination would otherwise make the
   // second projection throw instead of returning a reviewable blocked plan.
+  const capacity = holdRepositoryLayoutMovesOverCapacity({
+    scan,
+    taxonomy,
+    candidates: candidates.filter((item) => !blockedDestinations.has(item.toPath)),
+  });
   const { executableCandidates, deferredDocuments } = accountRepositoryLayoutCandidates({
     classified,
     blockedDestinations,
+    heldDestinations: capacity.heldDestinations,
   });
   const movePaths = executableCandidates.map(({ source, toPath }) => ({
     fromPath: source.path,
@@ -1176,6 +1188,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
     retainedDocuments: classified.retainedDocuments,
     retainedDocumentCount: classified.retainedDocumentCount,
     semanticClassificationIds: [...classified.liveClassificationIds].sort(),
+    layoutCapacity: capacity.findings,
     blockers,
     operations,
   };

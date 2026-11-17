@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -116,6 +116,37 @@ describe("repository document layout enforcement", () => {
     }));
     await expect(
       authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations }),
-    ).rejects.toMatchObject({ code: "document_directory_file_capacity_exceeded" });
+    ).rejects.toMatchObject({
+      code: "document_directory_file_capacity_exceeded",
+      message: expect.stringContaining("in catalog (observed 0, projected 4096, limit 32)"),
+    });
+  });
+
+  it("permits writes beside a user directory already over capacity and names it when grown", async () => {
+    const root = await repository();
+    await mkdir(resolve(root, "notes"));
+    await Promise.all(
+      Array.from({ length: 33 }, (_, index) =>
+        writeFile(resolve(root, `notes/${String(index).padStart(2, "0")}.md`), `# ${index}\n`),
+      ),
+    );
+    const evaluation = await evaluateCurrentRepositoryDocumentLayout({
+      repositoryRoot: root,
+      operations: [],
+    });
+    expect(evaluation.blockers).toEqual([]);
+    expect(evaluation.advisories).toEqual([
+      expect.objectContaining({ directory: "notes", observed: 33, projected: 33, limit: 32 }),
+    ]);
+    const beside = { path: "guides/a.md", action: "create" as const, desiredHash: sha256("# A\n") };
+    await expect(
+      authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations: [beside] }),
+    ).resolves.toMatchObject({ schemaVersion: 1 });
+    const into = { path: "notes/34.md", action: "create" as const, desiredHash: sha256("# B\n") };
+    await expect(
+      authorizeCurrentRepositoryDocumentLayout({ repositoryRoot: root, operations: [into] }),
+    ).rejects.toThrow(
+      "blocked by document_directory_file_capacity_exceeded in notes (observed 33, projected 34, limit 32)",
+    );
   });
 });

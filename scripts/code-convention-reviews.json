@@ -228,9 +228,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:8271019d426cbb7779cc6090af634118a531ec74e1aab127629957f770d5c1f5",
+      "contentHash": "sha256:d4a150f1c3ef5a67376bd7741307a3e70469f6a7f50ff65b451c154641452e77",
       "responsibility": "Repository knowledge lifecycle lint",
-      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the remaining functions exclusively validate manifests, layout, normalization, lineage, and semantic sidecars and compose the extracted drift and publication-root lint. Coverage is returned as reporting metadata independently of validity; pure completeness admission remains in scan-completeness.ts, and receipt and baseline consumers own promotion.",
+      "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the rest validates manifests, layout, normalization, lineage, and semantic sidecars and composes drift and publication-root lint. Layout lint maps the shared evaluator's blocking findings to errors and its capacity advisories to warnings (ADR-0583) and owns no capacity rule. Coverage is reporting metadata; completeness admission stays in scan-completeness.ts.",
       "disposition": "cohesive"
     },
     {
@@ -242,9 +242,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:b7f7e53a41525429781ecd6113c9cbc6d87173c54583ae6109e1bae468fad775",
+      "contentHash": "sha256:7530894d7daa5c8bc736745fad6b56df112f7abfd82d609fc5d75ac721ad5835",
       "responsibility": "Repository document-layout migration",
-      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and one-to-one candidate accounting are isolated in repository-layout-accounting.ts. Classification, route evidence, durable apply, providers, lifecycle authority, scope, and health keep separate owners. Reference rewriting rereads observed-only sources through the scanner-owned hash-verified reader. No independent provider or persistence policy was added.",
+      "rationale": "The module composes one exact layout transaction with virtual scanning, approval binding, and apply-time revalidation. Conflict outcomes and candidate accounting live in repository-layout-accounting.ts, and the capacity hold for moves in repository-layout-capacity.ts (ADR-0583). Classification, route evidence, durable apply, providers, lifecycle authority, scope, and health keep separate owners. Reference rewriting rereads observed-only sources through the scanner's verified reader.",
       "disposition": "cohesive"
     },
     {
