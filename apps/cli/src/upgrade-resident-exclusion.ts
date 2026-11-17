@@ -6,6 +6,12 @@ import type { CliIo } from "./types.js";
 /** How long an upgrade waits for a running background knowledge cycle to yield before refusing. */
 export const UPGRADE_RESIDENT_EXCLUSION_WAIT_MS = 15 * 60_000;
 
+/**
+ * ADR-0576: how long releasing the admission retries SQLite lock contention before the upgrade
+ * reports its result anyway. The holder row stops counting once this process exits.
+ */
+export const UPGRADE_RESIDENT_EXCLUSION_RELEASE_WAIT_MS = 30_000;
+
 /** Test seam: the admission directory and timing; production uses the resident's defaults. */
 export interface UpgradeResidentExclusionOptions {
   directory?: string;
@@ -37,6 +43,7 @@ export async function withKnowledgeResidentExclusion<T>(
       repositoryRoot: input.repositoryRoot,
       signal: deadline,
       priority: "upgrade",
+      releaseContentionWaitMilliseconds: UPGRADE_RESIDENT_EXCLUSION_RELEASE_WAIT_MS,
       ...(input.options?.directory === undefined ? {} : { directory: input.options.directory }),
       ...(input.options?.pollMilliseconds === undefined
         ? {}
