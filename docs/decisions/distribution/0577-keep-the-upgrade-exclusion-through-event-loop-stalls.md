@@ -24,21 +24,29 @@ The process type comes from the runtime, not from a caller argument. The service
 
 No systemd unit sets `Nice`, `CPUWeight`, `CPUSchedulingPolicy`, `IOSchedulingClass`, or `IOWeight`, so the follower already runs at normal priority on Linux. Nothing changes there.
 
-The follower's definition bytes change, and the follower does not rewrite its own definition. Each macOS host runs `lervo host upgrade --follow --service install --apply` once after this release. Its plan shows the action `upgrade`.
+The follower's definition bytes change. The follower does not replace its own service, because a launchd `bootout` or a systemd restart would also stop its running `lervo upgrade`. Instead, `--follow --status` and the follow plan report `serviceDefinition`: `current`, `definition_outdated`, `not_installed`, or null when it cannot be read. `definition_outdated` means the installed bytes differ from what the active CLI renders. Each macOS host runs `lervo host upgrade --follow --service install --apply` once after this release, while no pass is in flight; its plan shows the action `upgrade`. The deploy skill carries that step.
 
 ### A holder detects a lost lease
 
 - **Renewal checks the row.** Renewal runs `UPDATE holder SET expires_at=max(expires_at,?) WHERE slot=1 AND nonce=?` and reads the changed row count. Zero rows mean another holder was admitted after this lease lapsed. The admission is then lost for good, and renewal stops. `max` keeps a slower renewal from shortening a later one.
-- **`held()`.** `FullCycleAdmission.held()` runs the same statement and returns whether it changed one row. Admission replaces the holder row in one transaction, and a nonce never comes back. So `true` also proves that nobody else was admitted since this holder, even if its lease lapsed while no one was waiting. Such a lease is renewed and still held. Under SQLite lock contention, `held()` answers from the last confirmed expiry. Other database failures throw, because a holder that cannot be confirmed must not act as the holder. After `release()`, `held()` is false.
+- **`held()`.** `FullCycleAdmission.held()` runs the same statement and returns whether it changed one row. Admission replaces the holder row in one transaction, and a nonce never comes back. So `true` also proves that nobody else was admitted since this holder, even if its lease lapsed while no one was waiting. Such a lease is renewed and still held. `held()` fails closed. Lock contention is retried for up to 5 seconds, measured on the monotonic clock, and then answers false without marking the admission lost. Other database failures throw. A holder that cannot be confirmed must not act as the holder, and an answer from the last confirmed expiry would trust a wall clock that can step back. Only the renewal timer treats contention optimistically: it skips that tick. After `release()`, `held()` is false.
 - **Lease length is an option.** `leaseMilliseconds` defaults to 10 minutes. Renewal runs every minute, or ten times per lease when the lease is shorter.
 
 ### The upgrade checks before every consequential stage
 
 - `lervo upgrade --apply` asks for a 2-hour lease. That outlasts the follower's 90-minute bound on one run, so a starved renewal timer cannot let the lease lapse while the follower still waits for the command. Residents of every release read `expires_at` from the same row, so no schema change is needed. A crashed or killed upgrade still frees the slot at once, because its process is gone.
 - The apply confirms the exclusion before its first write. It confirms it again before each stage that changes the repository or a service: capabilities, workforce, terminal integration, each knowledge stage, the Node stage, the event writer, the host service, the replica service, and runtime retention. A lost admission fails the command with `knowledge_cycle_admission_lost`, and the next stage does not start.
-- The upgrade confirms the exclusion once more after the last stage, before it reports a result. A holder that still holds was never replaced, so this one check proves that the whole apply ran under the exclusion. A loss during the last stage is reported as a failure, not as success.
+- The upgrade confirms the exclusion once more after the last stage, before it reports a result. A holder that still holds was never replaced, so this one check proves that the whole apply ran under the exclusion. A loss during the last stage is reported as a failure that lists every applied stage, not as success.
 
-The checks cannot stop a stage that is already running. A stage could overlap a resident cycle only if one stage stalls for more than 2 hours. The final check then reports the failure, and the follower retries.
+The checks cannot stop a stage that is already running. A stage can overlap a resident cycle without an immediate stop in three cases:
+
+- One stage stalls for more than 2 hours.
+- The wall clock jumps forward past the lease.
+- The host sleeps. The lease is measured on the wall clock, which keeps moving during sleep, while libuv timers do not advance, so no renewal runs.
+
+In each case, the next check or the final check reports the loss, and the follower retries.
+
+A live upgrade that is stuck awaiting, rather than blocked, keeps renewing its lease indefinitely. The follower stops its own runs at 90 minutes with SIGTERM. A manual run has no such bound, as before.
 
 ### Takeover stays as it is
 
@@ -50,7 +58,12 @@ The checks cannot stop a stage that is already running. A stage could overlap a 
 
 ## Failure code, states, and privacy
 
-`knowledge_cycle_admission_lost`: `lervo upgrade --apply` lost the host's full-cycle admission to another holder. A background knowledge cycle may have started, so the upgrade stopped before its next stage. Stages applied before the loss stay applied. The next run plans again from the repository's state. The message carries no path, process ID, nonce, or repository hash. The host follower classifies the code as `failed` and retries the repository after 10, 20, and 40 minutes. It never counts as a host failure and never rolls back the CLI.
+`knowledge_cycle_admission_lost`: `lervo upgrade --apply` lost the host's full-cycle admission to another holder, or could not confirm it through lock contention. A background knowledge cycle may have started. The error details say where the apply stood:
+
+- `phase: "before_stage"`, with `nextStage` and `appliedStages`: the upgrade stopped before `nextStage`. The applied stages ran, and the last of them may have overlapped that cycle.
+- `phase: "after_last_stage"`, with `appliedStages`: every stage ran, and some may have overlapped that cycle. No receipt is reported.
+
+Applied stages stay applied. The next run plans again from the repository's state. The message and details name stages only: no path, process ID, nonce, or repository hash. The host follower classifies the code as `failed` and retries the repository after 10, 20, and 40 minutes. It never counts as a host failure and never rolls back the CLI.
 
 No event, column, table, or state file is added. The holder row keeps its fields; only the upgrade's `expires_at` is further ahead.
 
@@ -59,13 +72,15 @@ No event, column, table, or state file is added. The holder row keeps its fields
 - A live but hung upgrade can hold residents back for up to 2 hours instead of 10 minutes. The follower's 90-minute bound kills its own runs before that.
 - If a crashed upgrade's process ID is reused by another process, its row blocks residents until the lease expires: now up to 2 hours instead of 10 minutes.
 - Residents do not call `held()` yet. A resident that stalls past its 10-minute lease can still lose the slot to an upgrade or another resident and keep working. That risk predates this change, and the incident did not show it. Follow-up: the resident loop checks `held()` at each stage boundary and stops with its own health reason; verify it with a blocked-timer resident test in `loop.test.ts`.
+- A reused process ID also keeps a crashed holder counted as alive. Follow-up: record the holder's process birth identity in a side table keyed by nonce, not in a new holder column, because earlier releases write the holder with a 6-value `INSERT OR REPLACE` that a seventh column would break; verify with a recycled-pid test in `full-cycle-admission.test.ts`.
 - The `plan()` recompute inside the exclusion is one long synchronous task on a large repository such as argo. Shortening it is a separate change.
 
 ## Verification
 
-- `full-cycle-admission.test.ts`: a holder with a 300 ms lease blocks its event loop for 1.5 seconds while a resident in another process takes the slot. `held()` is then false, stays false, and the release leaves the resident's row. A second test blocks with no competitor, and `held()` stays true and renews the row. On origin/main, both fail: `holder.held is not a function`.
-- `upgrade-resident-exclusion.test.ts`: the in-exclusion plan stalls on a live materialization. In that window the holder row expires and a resident is admitted. The upgrade then fails with `knowledge_cycle_admission_lost`, and the repository's plan is unchanged. On origin/main, the upgrade exits 0 instead.
+- `full-cycle-admission.test.ts`: a holder with a 300 ms lease blocks its event loop for 1.5 seconds while a resident in another process takes the slot. `held()` is then false, stays false, and the release leaves the resident's row. A second test blocks with no competitor, and `held()` stays true and renews the row. A third test hides the takeover behind a `BEGIN EXCLUSIVE` lock and steps the wall clock back, and `held()` answers false. On origin/main, all three fail: `holder.held is not a function`.
+- `upgrade-resident-exclusion.test.ts`: the in-exclusion plan stalls on a live materialization. In that window the holder row expires and a resident is admitted. The upgrade then fails with `knowledge_cycle_admission_lost` and `phase: "before_stage"`, and the repository's plan is unchanged. On origin/main, the upgrade exits 0 instead. A loss after the last stage reports `phase: "after_last_stage"` with every applied stage.
 - `runtime-service-render.test.mjs`: the launchd follower renders `Standard` and no `Background`. The Hub, Node, host resident, and replica coordinator keep `Background`, and no systemd unit sets a priority. On origin/main, the follower renders `Background`.
 - `host-follow-policy.test.ts`: `knowledge_cycle_admission_lost` is classified as `failed`.
+- `host-follow-command.test.ts`: `--status` reports `not_installed`, then `current` after install, and `definition_outdated` for bytes an earlier release rendered; the follow plan reports it too.
 
 Installed verification: after the release that carries this change, reinstall the follower on the Mac and confirm that `launchctl print gui/$(id -u)/com.lervo.host.follow` no longer shows a background process type. Record the next follower-driven argo apply time in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
