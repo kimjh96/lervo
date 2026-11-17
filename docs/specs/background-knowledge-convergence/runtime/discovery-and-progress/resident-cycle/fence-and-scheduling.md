@@ -19,7 +19,7 @@ Before each resident cycle, the owner computes a fingerprint in tens of millisec
 The resident skips a cycle only when all conditions hold:
 
 - The previous full cycle returned `processed` with no change-job outcomes.
-- Its convergence state was `idle`, `waiting_authority`, `attention_required` or `recovery_required`.
+- Its convergence state was `idle`, `waiting_authority`, `attention_required` or `recovery_required`, or `retry_scheduled` with a `nextAttemptAt` later than the cycle's end ([ADR-0580](../../../../../decisions/knowledge/maintenance/0580-let-a-resident-with-parked-work-back-off.md)).
 - The new fingerprint equals the stored fingerprint.
 - No delivery is due.
 - The last full cycle started less than 15 minutes ago.
@@ -32,9 +32,9 @@ Inputs outside the fingerprint, including generated registries below `docs/knowl
 
 ## Adaptive reconciliation
 
-A one-shot timer replaces the fixed 60-second interval. Its delay is `min(ceiling, base × 2^(idleStreak − 1), earliestAvailableAt − now)`, with `base = 60_000` and `ceiling = 900_000` milliseconds. A future delivery wakes the resident no sooner than one second ahead. An already-due delivery never shortens the delay, preventing deferred work from busy-looping.
+A one-shot timer replaces the fixed 60-second interval. Its delay is `min(ceiling, base × 2^(idleStreak − 1), earliestAvailableAt − now)`, with `base = 60_000` and `ceiling = 900_000` milliseconds. A future delivery wakes the resident no sooner than one second ahead. After a cycle that left a parked retry, `earliestAvailableAt` is the earlier future moment of the fence's observation and the retry's `nextAttemptAt`, because the fence was observed before the cycle rescheduled it. An already-due delivery never shortens the delay, preventing deferred work from busy-looping.
 
-`idleStreak` counts consecutive idle-class, skipped or failed cycles, producing delays of 1, 2, 4, 8 and then 15 minutes. Change-job outcomes, a non-idle convergence state, or a busy repository lock reset the streak. Failed cycles keep backing off but are never skippable because they record no fingerprint.
+`idleStreak` counts consecutive idle-class, skipped or failed cycles, producing delays of 1, 2, 4, 8 and then 15 minutes. Change-job outcomes, a non-idle convergence state, a retry that is already due, or a busy repository lock reset the streak. A retry parked in the future is idle-class. Failed cycles keep backing off but are never skippable because they record no fingerprint.
 
 Canonical event appends and repository edits wake the resident and reset the streak. The Node `knowledge-worker` child subscribes to `watchProjectEventChanges` and `watchRepositoryChanges`. A failed repository watcher wakes the resident once and restarts after 60 seconds. Wakeups retain the 30-second quiet window and 60-second maximum delay; the woken cycle still passes through the fence.
 
