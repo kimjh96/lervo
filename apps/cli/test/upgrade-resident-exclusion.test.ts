@@ -10,6 +10,7 @@ import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli as runUnisolatedCli } from "../src/main.js";
+import { withKnowledgeResidentExclusion } from "../src/upgrade-resident-exclusion.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
 const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
@@ -172,9 +173,51 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     }
     expect(resident).toBeDefined();
     expect(JSON.parse(stdout.join(""))).toMatchObject({
-      error: { code: "knowledge_cycle_admission_lost" },
+      error: {
+        code: "knowledge_cycle_admission_lost",
+        phase: "before_stage",
+        nextStage: "terminal_worker_entry",
+        appliedStages: [],
+      },
     });
     expect(await planId(root)).toBe(approval);
+  }, 60_000);
+
+  it("reports every applied stage when the admission is lost after the last stage (ADR-0577)", async () => {
+    const root = await temporary("lervo-upgrade-exclusion-");
+    const directory = await temporary("lervo-upgrade-admission-");
+    let resident: Awaited<ReturnType<typeof acquireFullCycleAdmission>> | undefined;
+    try {
+      await expect(
+        withKnowledgeResidentExclusion(
+          { repositoryRoot: root, io: { stderr: () => undefined }, options: { directory } },
+          async (exclusion) => {
+            await exclusion.assertHeld({ nextStage: "knowledge", appliedStages: [] });
+            // The last stage stalls past the lease, and a resident takes the slot.
+            const db = new DatabaseSync(resolve(directory, "full-cycle-admission.sqlite"));
+            db.prepare("UPDATE holder SET expires_at=?").run(Date.now() - 1);
+            db.close();
+            resident = await acquireFullCycleAdmission({
+              repositoryRoot: resolve(root, "resident-repository"),
+              directory,
+              pollMilliseconds: 10,
+              signal: AbortSignal.timeout(5_000),
+            });
+            await exclusion.assertHeld({
+              nextStage: null,
+              appliedStages: ["knowledge", "repository_node"],
+            });
+          },
+        ),
+      ).rejects.toMatchObject({
+        code: "knowledge_cycle_admission_lost",
+        message: expect.stringContaining("during or after its last stage"),
+        details: { phase: "after_last_stage", appliedStages: ["knowledge", "repository_node"] },
+      });
+    } finally {
+      await resident?.release();
+    }
+    expect(resident).toBeDefined();
   }, 60_000);
 
   it("waits for a running resident cycle to finish before applying", async () => {

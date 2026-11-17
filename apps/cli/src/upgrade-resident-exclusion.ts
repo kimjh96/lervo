@@ -21,18 +21,37 @@ export const UPGRADE_RESIDENT_EXCLUSION_RELEASE_WAIT_MS = 30_000;
 export const UPGRADE_RESIDENT_EXCLUSION_LEASE_MS = 2 * 60 * 60_000;
 
 /**
- * ADR-0577: the apply calls `assertHeld()` before each consequential stage. It throws
- * `knowledge_cycle_admission_lost` once another holder has been admitted, so the upgrade stops
- * instead of continuing without the exclusion.
+ * Where the apply stands when it confirms the exclusion: the stage it is about to start, or null
+ * after its last stage, and the stages it already applied.
  */
-export interface UpgradeResidentExclusion {
-  assertHeld(): Promise<void>;
+export interface UpgradeExclusionProgress {
+  nextStage: string | null;
+  appliedStages: readonly string[];
 }
 
-function admissionLost(): CommandFailure {
+/**
+ * ADR-0577: the apply calls `assertHeld()` before each consequential stage and once after its
+ * last stage. It throws `knowledge_cycle_admission_lost` once another holder has been admitted,
+ * or when the admission cannot be confirmed, so the upgrade never goes on or reports success
+ * without the exclusion.
+ */
+export interface UpgradeResidentExclusion {
+  assertHeld(progress: UpgradeExclusionProgress): Promise<void>;
+}
+
+/** The details name stages only: no path, process ID, nonce, or repository hash. */
+function admissionLost(progress: UpgradeExclusionProgress): CommandFailure {
+  const appliedStages = [...progress.appliedStages];
+  if (progress.nextStage === null)
+    return new CommandFailure(
+      "knowledge_cycle_admission_lost",
+      "This upgrade lost the host's full-cycle admission during or after its last stage. Every stage in appliedStages ran, and some may have overlapped a background knowledge cycle. Retry the upgrade to plan again from the repository's state.",
+      { phase: "after_last_stage", appliedStages },
+    );
   return new CommandFailure(
     "knowledge_cycle_admission_lost",
-    "This upgrade lost the host's full-cycle admission, so a background knowledge cycle may have started. The upgrade stopped before its next stage; retry it.",
+    `This upgrade lost the host's full-cycle admission, so a background knowledge cycle may have started. It stopped before the ${progress.nextStage} stage. The stages in appliedStages ran, and the last of them may have overlapped that cycle. Retry the upgrade.`,
+    { phase: "before_stage", nextStage: progress.nextStage, appliedStages },
   );
 }
 
@@ -49,8 +68,8 @@ export interface UpgradeResidentExclusionOptions {
  * admission is the resident's own per-host lease; a replaced Node or host resident waits on it
  * and starts its first cycle after release. A crashed upgrade frees it with its process.
  * ADR-0574: the upgrade asks with priority, so it goes ahead of waiting residents and a running
- * cycle stops at its next stage boundary instead of finishing. ADR-0577: the result is returned
- * only when the admission is still held after the operation.
+ * cycle stops at its next stage boundary instead of finishing. ADR-0577: the operation confirms
+ * the admission through the exclusion it receives, including once after its last stage.
  */
 export async function withKnowledgeResidentExclusion<T>(
   input: {
@@ -88,15 +107,12 @@ export async function withKnowledgeResidentExclusion<T>(
     throw error;
   }
   const exclusion: UpgradeResidentExclusion = {
-    assertHeld: async () => {
-      if (!(await admission.held())) throw admissionLost();
+    assertHeld: async (progress) => {
+      if (!(await admission.held())) throw admissionLost(progress);
     },
   };
   try {
-    const result = await operation(exclusion);
-    // A holder that still holds was never replaced, so the whole apply ran under the exclusion.
-    await exclusion.assertHeld();
-    return result;
+    return await operation(exclusion);
   } finally {
     await admission.release();
   }
