@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -226,4 +226,42 @@ it("moves an admission database from an earlier release to WAL (ADR-0576)", asyn
   expect(later.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 1 });
   later.close();
   await held.release();
+});
+
+it("gives up a short-lived caller's release after its contention wait (ADR-0576)", async () => {
+  const admission = await directory();
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal: new AbortController().signal,
+    directory: admission,
+    pollMilliseconds: 10,
+    releaseContentionWaitMilliseconds: 100,
+  });
+  const { released } = await holdAdmissionDatabase(admission, "BEGIN IMMEDIATE");
+  let lockReleased = false;
+  void released.then(() => {
+    lockReleased = true;
+  });
+  await held.release();
+  expect(lockReleased).toBe(false);
+  await released;
+  // The row stays until this process exits or the lease lapses.
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  expect(db.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 1 });
+  db.close();
+}, 30_000);
+
+it("names the admission database in a SQLite failure (ADR-0576)", async () => {
+  const admission = await directory();
+  await writeFile(resolve(admission, "full-cycle-admission.sqlite"), "not a database".repeat(64));
+  await expect(
+    acquireFullCycleAdmission({
+      repositoryRoot: "/repo/a",
+      signal: new AbortController().signal,
+      directory: admission,
+    }),
+  ).rejects.toMatchObject({
+    code: "ERR_SQLITE_ERROR",
+    message: expect.stringMatching(/^full-cycle-admission\.sqlite: file is not a database/u),
+  });
 });

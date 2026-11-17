@@ -15,6 +15,7 @@ import { sha256 } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow } from "./sqlite-row.js";
 
+const DATABASE_NAME = "full-cycle-admission.sqlite";
 const LEASE_MILLISECONDS = 10 * 60_000;
 const RENEW_MILLISECONDS = 60_000;
 const POLL_MILLISECONDS = 1_000;
@@ -62,7 +63,7 @@ async function database(directory: string): Promise<DatabaseSync> {
   const parent = await lstat(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve(directory, "full-cycle-admission.sqlite");
+  const path = resolve(directory, DATABASE_NAME);
   try {
     const file = await lstat(path);
     if (!file.isFile() || file.isSymbolicLink())
@@ -91,13 +92,28 @@ async function database(directory: string): Promise<DatabaseSync> {
   }
 }
 
+/**
+ * ADR-0576: a SQLite failure that leaves this module names the admission database, so a command
+ * that reports only an error code and message still identifies which host database failed. The
+ * SQLite `code` and `errcode` are kept.
+ */
+function identifiedFailure(error: unknown): unknown {
+  const { code, errcode } = (error ?? {}) as { code?: unknown; errcode?: unknown };
+  if (!(error instanceof Error) || typeof code !== "string" || !code.startsWith("ERR_SQLITE"))
+    return error;
+  return Object.assign(new Error(`${DATABASE_NAME}: ${error.message}`, { cause: error }), {
+    code,
+    errcode,
+  });
+}
+
 /** ADR-0576: a poll that meets lock contention is a poll that was not admitted. */
 async function tryAcquireOrWait(input: Parameters<typeof tryAcquire>[0]): Promise<boolean> {
   try {
     return await tryAcquire(input);
   } catch (error) {
     if (isSqliteLockContention(error)) return false;
-    throw error;
+    throw identifiedFailure(error);
   }
 }
 
@@ -204,6 +220,12 @@ export async function acquireFullCycleAdmission(input: {
   directory?: string;
   pollMilliseconds?: number;
   priority?: FullCycleAdmissionPriority;
+  /**
+   * ADR-0576: how long `release()` retries lock contention. By default it retries until the
+   * lease lapses, which a long-lived resident needs because its live process keeps the row held.
+   * A short-lived command gives up sooner: its holder row stops counting when its process exits.
+   */
+  releaseContentionWaitMilliseconds?: number;
   onWait?: () => void;
 }): Promise<FullCycleAdmission> {
   const directory =
@@ -255,13 +277,17 @@ export async function acquireFullCycleAdmission(input: {
       clearInterval(renewal);
       // ADR-0576: contention delays the release instead of failing it. Once the lease has
       // lapsed, no reader treats the row as held, so the release is complete either way.
+      const giveUpAt =
+        input.releaseContentionWaitMilliseconds === undefined
+          ? expiresAt
+          : Math.min(expiresAt, Date.now() + input.releaseContentionWaitMilliseconds);
       for (;;) {
         try {
           await update(directory, "DELETE FROM holder WHERE slot=1 AND nonce=?", nonce);
           return;
         } catch (error) {
-          if (!isSqliteLockContention(error)) throw error;
-          if (Date.now() >= expiresAt) return;
+          if (!isSqliteLockContention(error)) throw identifiedFailure(error);
+          if (Date.now() >= giveUpAt) return;
         }
         await sleep(input.pollMilliseconds ?? POLL_MILLISECONDS);
       }
