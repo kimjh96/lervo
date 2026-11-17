@@ -17,6 +17,7 @@ import { sqliteRow } from "./sqlite-row.js";
 
 const DATABASE_NAME = "full-cycle-admission.sqlite";
 const LEASE_MILLISECONDS = 10 * 60_000;
+/** A holder renews this often, or ten times per lease when its lease is shorter. */
 const RENEW_MILLISECONDS = 60_000;
 const POLL_MILLISECONDS = 1_000;
 /** A waiter that has not polled for this long has gone and no longer holds its turn. */
@@ -47,6 +48,14 @@ export interface FullCycleAdmission {
    * starting any further stage, instead of after its next convergence stage.
    */
   preempted(): Promise<boolean>;
+  /**
+   * ADR-0577: whether this holder still holds the admission, confirmed against the database and
+   * renewed in the same statement. Admission replaces the holder row, and its nonce never comes
+   * back, so true also proves that no other holder was admitted since this one. False is final.
+   * Under lock contention the answer is this holder's last confirmed lease; other database
+   * failures throw, because an unverified holder must not act as the holder.
+   */
+  held(): Promise<boolean>;
 }
 
 function alive(pid: number): boolean {
@@ -123,12 +132,15 @@ async function tryAcquire(input: {
   nonce: string;
   since: number;
   now: number;
+  leaseMilliseconds: number;
 }): Promise<boolean> {
   const db = await database(input.directory);
   try {
     db.exec("BEGIN IMMEDIATE");
     try {
       const holder = sqliteRow(db.prepare("SELECT * FROM holder WHERE slot=1").get());
+      // ADR-0577: an expired lease frees the slot even while its process lives. Residents of
+      // earlier releases apply the same rule, so only the holder's own lease length protects it.
       const held =
         holder !== undefined &&
         Number(holder.expires_at) > input.now &&
@@ -150,7 +162,7 @@ async function tryAcquire(input: {
           input.nonce,
           input.repositoryHash,
           input.now,
-          input.now + LEASE_MILLISECONDS,
+          input.now + input.leaseMilliseconds,
         );
         db.prepare("DELETE FROM waiters WHERE nonce=?").run(input.nonce);
       }
@@ -188,10 +200,15 @@ async function othersWaiting(
   }
 }
 
-async function update(directory: string, sql: string, ...values: (string | number)[]) {
+/** Returns the number of rows the statement changed. */
+async function update(
+  directory: string,
+  sql: string,
+  ...values: (string | number)[]
+): Promise<number> {
   const db = await database(directory);
   try {
-    db.prepare(sql).run(...values);
+    return Number(db.prepare(sql).run(...values).changes);
   } finally {
     db.close();
   }
@@ -226,6 +243,12 @@ export async function acquireFullCycleAdmission(input: {
    * A short-lived command gives up sooner: its holder row stops counting when its process exits.
    */
   releaseContentionWaitMilliseconds?: number;
+  /**
+   * ADR-0577: how long the lease lasts without renewal; ten minutes by default. A holder whose
+   * event loop can stall longer, such as an upgrade under host load, asks for more. A dead
+   * holder still frees the slot at once.
+   */
+  leaseMilliseconds?: number;
   onWait?: () => void;
 }): Promise<FullCycleAdmission> {
   const directory =
@@ -233,13 +256,26 @@ export async function acquireFullCycleAdmission(input: {
   const repositoryHash = sha256(resolve(input.repositoryRoot));
   const nonce = randomUUID();
   const since = Date.now() - (input.priority === "upgrade" ? PRIORITY_ADVANCE_MILLISECONDS : 0);
+  const leaseMilliseconds = input.leaseMilliseconds ?? LEASE_MILLISECONDS;
   let waited = false;
+  let admittedAt: number;
   for (;;) {
     if (input.signal.aborted) {
       await update(directory, "DELETE FROM waiters WHERE nonce=?", nonce).catch(() => undefined);
       throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
     }
-    if (await tryAcquireOrWait({ directory, repositoryHash, nonce, since, now: Date.now() })) break;
+    admittedAt = Date.now();
+    if (
+      await tryAcquireOrWait({
+        directory,
+        repositoryHash,
+        nonce,
+        since,
+        now: admittedAt,
+        leaseMilliseconds,
+      })
+    )
+      break;
     if (!waited) input.onWait?.();
     waited = true;
     await delay(
@@ -247,23 +283,43 @@ export async function acquireFullCycleAdmission(input: {
       input.signal,
     );
   }
-  let expiresAt = Date.now() + LEASE_MILLISECONDS;
-  const renewal = setInterval(() => {
-    const renewed = Date.now() + LEASE_MILLISECONDS;
-    void update(
-      directory,
-      "UPDATE holder SET expires_at=? WHERE slot=1 AND nonce=?",
-      renewed,
-      nonce,
-    )
-      .then(() => {
-        expiresAt = renewed;
-      })
-      .catch(() => undefined);
-  }, RENEW_MILLISECONDS);
-  renewal.unref();
+  /** The latest expiry this holder wrote and saw applied; the row never holds an earlier one. */
+  let expiresAt = admittedAt + leaseMilliseconds;
+  let lost = false;
   let released = false;
+  // ADR-0577: renewal matches this holder's nonce. Zero changed rows mean another holder was
+  // admitted after this lease lapsed, so the admission is lost for good. `max` keeps a slower
+  // renewal from shortening a later one.
+  const confirm = async (): Promise<boolean> => {
+    if (lost || released) return false;
+    const renewed = Date.now() + leaseMilliseconds;
+    let changes: number;
+    try {
+      changes = await update(
+        directory,
+        "UPDATE holder SET expires_at=max(expires_at,?) WHERE slot=1 AND nonce=?",
+        renewed,
+        nonce,
+      );
+    } catch (error) {
+      if (isSqliteLockContention(error)) return Date.now() < expiresAt;
+      throw identifiedFailure(error);
+    }
+    if (changes !== 1) {
+      lost = true;
+      clearInterval(renewal);
+      return false;
+    }
+    expiresAt = Math.max(expiresAt, renewed);
+    return true;
+  };
+  const renewal = setInterval(
+    () => void confirm().catch(() => undefined),
+    Math.min(RENEW_MILLISECONDS, Math.max(1, Math.floor(leaseMilliseconds / 10))),
+  );
+  renewal.unref();
   return {
+    held: confirm,
     contended: () => othersWaiting(directory, nonce, Date.now()).catch(() => false),
     preempted: () => {
       const now = Date.now();

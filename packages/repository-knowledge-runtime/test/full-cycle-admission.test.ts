@@ -265,3 +265,96 @@ it("names the admission database in a SQLite failure (ADR-0576)", async () => {
     message: expect.stringMatching(/^full-cycle-admission\.sqlite: file is not a database/u),
   });
 });
+
+/**
+ * A resident in another process, of any release: it takes the slot once the holder's lease has
+ * expired or its process is gone, and then keeps it while it lives.
+ */
+async function residentTakingOverLapsedLeases(admission: string) {
+  const path = resolve(admission, "full-cycle-admission.sqlite");
+  const resident = spawn(process.execPath, [
+    "-e",
+    `const { DatabaseSync } = require("node:sqlite");
+     const database = new DatabaseSync(${JSON.stringify(path)});
+     database.exec("PRAGMA busy_timeout = 5000;");
+     process.stdout.write("polling\\n");
+     const poll = setInterval(() => {
+       const now = Date.now();
+       database.exec("BEGIN IMMEDIATE");
+       const holder = database.prepare("SELECT * FROM holder WHERE slot=1").get();
+       const free = holder === undefined || holder.expires_at <= now;
+       if (free)
+         database.prepare("INSERT OR REPLACE INTO holder VALUES(1,?,?,?,?,?)")
+           .run(process.pid, "resident", "sha256:resident", now, now + 600000);
+       database.exec("COMMIT");
+       if (free) { clearInterval(poll); process.stdout.write("admitted\\n"); setInterval(() => {}, 1000); }
+     }, 10);`,
+  ]);
+  let output = "";
+  const listeners = new Set<() => void>();
+  resident.stdout.on("data", (chunk: Buffer) => {
+    output += String(chunk);
+    for (const listener of listeners) listener();
+  });
+  const seen = (line: string) =>
+    new Promise<void>((done) => {
+      const check = () => {
+        if (!output.split("\n").includes(line)) return;
+        listeners.delete(check);
+        done();
+      };
+      listeners.add(check);
+      check();
+    });
+  await seen("polling");
+  return { pid: resident.pid, admitted: () => seen("admitted"), stop: () => resident.kill() };
+}
+
+/** A long synchronous task, such as an upgrade's plan recompute on a starved host. */
+function blockEventLoop(milliseconds: number) {
+  Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, milliseconds);
+}
+
+it("detects a lease lost while its renewal timer was blocked (ADR-0577)", async () => {
+  const admission = await directory();
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/upgrade",
+    signal: new AbortController().signal,
+    directory: admission,
+    priority: "upgrade",
+    leaseMilliseconds: 300,
+  });
+  const resident = await residentTakingOverLapsedLeases(admission);
+  try {
+    expect(await holder.held()).toBe(true);
+    blockEventLoop(1_500);
+    await resident.admitted();
+    expect(await holder.held()).toBe(false);
+    // Losing the admission is final, and the release leaves the new holder's row alone.
+    expect(await holder.held()).toBe(false);
+    await holder.release();
+    const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+    expect(db.prepare("SELECT owner_pid FROM holder").get()).toEqual({ owner_pid: resident.pid });
+    db.close();
+  } finally {
+    resident.stop();
+  }
+}, 30_000);
+
+it("keeps a lapsed lease that no other holder took (ADR-0577)", async () => {
+  const admission = await directory();
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/upgrade",
+    signal: new AbortController().signal,
+    directory: admission,
+    leaseMilliseconds: 300,
+  });
+  blockEventLoop(600);
+  expect(await holder.held()).toBe(true);
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  const row = db.prepare("SELECT expires_at FROM holder").get() as { expires_at: number };
+  expect(row.expires_at).toBeGreaterThan(Date.now());
+  db.close();
+  await holder.release();
+  expect(await holder.held()).toBe(false);
+});
