@@ -29,3 +29,12 @@ export function openSqliteDatabase(path: string, options: SqliteConnectionOption
   }
   return database;
 }
+
+/**
+ * Whether a statement failed only because another connection held a lock it needed:
+ * `SQLITE_BUSY` (5) or `SQLITE_LOCKED` (6), including their extended codes.
+ */
+export function isSqliteLockContention(error: unknown): boolean {
+  const code = (error as { errcode?: unknown } | null)?.errcode;
+  return typeof code === "number" && [5, 6].includes(code & 0xff);
+}
