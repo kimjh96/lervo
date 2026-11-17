@@ -1,3 +1,4 @@
+import { lstat } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
@@ -24,6 +25,12 @@ const EVENT_COLUMNS = [
 
 /** Evaluates an event-writer backup's `events` rows under the live log's policy (ADR-0585). */
 export interface EventWriterBackupMirror {
+  /**
+   * Device and inode of the live event database. A cached verdict stays valid only for that
+   * database: its append-only triggers forbid rewriting a row in place, and a restored or
+   * replaced database has another inode.
+   */
+  liveIdentity: string;
   /**
    * True only when the live snapshot holds this event at the same position with the same hash
    * and the same bytes. Such a row names nothing the live replay does not already evaluate.
@@ -58,10 +65,12 @@ function sameEvent(row: Readonly<Record<string, unknown>>, live: EventEnvelope):
 /** Any read or parse failure, or an event beyond the replayed head, keeps the row's references. */
 export function eventWriterBackupMirror(
   events: Pick<OutboxStore, "get">,
+  liveIdentity: string,
   headSeq: number,
   released?: Set<string>,
 ): EventWriterBackupMirror {
   return {
+    liveIdentity,
     mirrors(row) {
       if (typeof row.event_id !== "string") return false;
       try {
@@ -76,18 +85,25 @@ export function eventWriterBackupMirror(
 }
 
 /** Attach the live-log comparison to every backup event database in the inventory. */
-export function bindEventWriterBackups(
+export async function bindEventWriterBackups(
   storage: ProjectStorage,
   headSeq: number,
   files: readonly CasReferenceFile[],
   released?: Set<string>,
-): void {
+): Promise<void> {
   const directory = resolve(storage.paths.data, BACKUP_DIRECTORY);
-  for (const file of files)
-    if (
+  const backups = files.filter(
+    (file) =>
       file.hash === null &&
       basename(file.path) === "events.sqlite" &&
-      dirname(dirname(file.path)) === directory
-    )
-      file.mirror = eventWriterBackupMirror(storage.events, headSeq, released);
+      dirname(dirname(file.path)) === directory,
+  );
+  if (!backups.length) return;
+  const live = await lstat(storage.paths.eventDatabase).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === "ENOENT") return null;
+    throw error;
+  });
+  const liveIdentity = live === null ? "absent" : `${live.dev}:${live.ino}`;
+  for (const file of backups)
+    file.mirror = eventWriterBackupMirror(storage.events, liveIdentity, headSeq, released);
 }

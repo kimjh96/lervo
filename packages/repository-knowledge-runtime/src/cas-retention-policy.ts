@@ -115,8 +115,14 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
     }
     if (event.type === "repository.knowledge.stage.recorded") {
       if (event.payload.state !== "queued" && event.payload.state !== "running") row.latest = refs;
-      // These proofs are historical consumers, not disposable stage diagnostics.
-      if (event.payload.stage === "normalization_apply" && event.payload.state === "current")
+      // These proofs are historical consumers, not disposable stage diagnostics. The canonical
+      // disposition ledger replays every integrated batch's input and result, and later stages
+      // always follow `canonical_integration`, so the latest settled stage never covers it.
+      if (
+        (event.payload.stage === "normalization_apply" ||
+          event.payload.stage === "canonical_integration") &&
+        event.payload.state === "current"
+      )
         root();
       if (event.payload.failureCode === "knowledge_sources_parked") parked = refs;
     }

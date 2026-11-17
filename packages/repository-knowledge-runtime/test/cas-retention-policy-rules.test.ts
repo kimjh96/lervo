@@ -1,8 +1,11 @@
 import { mkdir } from "node:fs/promises";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
+import { sha256 } from "@lervo/repository-knowledge";
 import type { EventEnvelope } from "@lervo/schemas";
+import type { ArtifactStore } from "@lervo/storage-contract";
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
+import { settledCanonicalDispositions } from "../src/canonical-disposition-ledger.js";
 import { planProjectConvergenceArtifactRetention } from "../src/cas-retention-plan.js";
 import { readConvergenceStageArtifact } from "../src/convergence-stage-artifact.js";
 import { finishRetention, retentionFixture } from "./cas-retention-fixture.js";
@@ -92,9 +95,10 @@ it("keeps every object that a diverged or unknown backup event names", async () 
   expect(await f.artifacts.has(mirrored.obsolete.uri)).toBe(false);
 });
 
-it("collects a settled, archived assignment input, keeping open and latest settled inputs", async () => {
+it("collects a settled, archived assignment input, keeping open, latest and integrated inputs", async () => {
   const f = await fixture();
   const archived = await f.put({ stage: "archived" });
+  const integrated = await f.put({ stage: "integrated" });
   const latest = await f.put({ stage: "latest" });
   const open = await f.put({ stage: "open" });
   const assignment = (id: string, obligation: string, input: string) =>
@@ -110,6 +114,14 @@ it("collects a settled, archived assignment input, keeping open and latest settl
     stage: "assessment",
     state: "current",
     inputArtifactHash: archived.contentHash,
+  });
+  // Later stages always follow canonical integration; the ledger still replays its input.
+  assignment("asn_integrated", "settled", integrated.contentHash);
+  f.event("repository.knowledge.stage.recorded", {
+    obligationId: "settled",
+    stage: "canonical_integration",
+    state: "current",
+    inputArtifactHash: integrated.contentHash,
   });
   assignment("asn_latest", "settled", latest.contentHash);
   f.event("repository.knowledge.stage.recorded", {
@@ -148,7 +160,7 @@ it("collects a settled, archived assignment input, keeping open and latest settl
   const plan = await planProjectConvergenceArtifactRetention(f.storage, new Date("2026-11-18"));
   expect(plan).toMatchObject({
     status: "planned",
-    candidates: { objects: 3 },
+    candidates: { objects: 4 },
     collectable: {
       objects: 1,
       bytes: archived.byteCount,
@@ -162,7 +174,7 @@ it("collects a settled, archived assignment input, keeping open and latest settl
     removedObjects: 1,
   });
   expect(await f.artifacts.has(archived.uri)).toBe(false);
-  for (const artifact of [latest, open, archive])
+  for (const artifact of [latest, integrated, open, archive])
     expect(await f.artifacts.has(artifact.uri)).toBe(true);
   // A reader of the pruned input reports its absence instead of throwing.
   expect(await readConvergenceStageArtifact(f.artifacts, archived.contentHash)).toEqual({
@@ -195,4 +207,46 @@ it("plans backup and assignment releases read-only, per reason", async () => {
   expect(JSON.stringify(plan)).not.toContain(backup.obsolete.contentHash.slice(7));
   for (const artifact of [backup.obsolete, plain.obsolete])
     expect(await f.artifacts.has(artifact.uri)).toBe(true);
+});
+
+it("retries a transient stage artifact read instead of caching it as a state", async () => {
+  const f = await fixture();
+  const ledger = {
+    repositoryRoot: f.root,
+    events: f.storage.events,
+    projectId: f.storage.manifest.projectId,
+    policyHash: sha256("policy"),
+    sources: [],
+  };
+  const fail = (code: string) =>
+    ({
+      get: async () => {
+        throw Object.assign(new Error(code), { code });
+      },
+    }) as unknown as ArtifactStore;
+  await expect(
+    settledCanonicalDispositions({ ...ledger, artifacts: f.artifacts }),
+  ).resolves.toEqual([]);
+  const input = sha256("pruned stage input");
+  f.event("repository.knowledge.baseline.requested", { obligationId: "transient" });
+  f.event("repository.knowledge.stage.recorded", {
+    obligationId: "transient",
+    stage: "canonical_integration",
+    state: "current",
+    inputArtifactHash: input,
+  });
+  await expect(settledCanonicalDispositions({ ...ledger, artifacts: fail("EIO") })).rejects.toThrow(
+    "EIO",
+  );
+  const get = vi.fn((uri: string) => f.artifacts.get(uri));
+  await expect(
+    settledCanonicalDispositions({ ...ledger, artifacts: { get } as unknown as ArtifactStore }),
+  ).resolves.toEqual([]);
+  expect(get).toHaveBeenCalledWith(`lervo-cas://sha256/${input.slice(7)}`);
+  expect(await readConvergenceStageArtifact(fail("corrupt_object"), input)).toEqual({
+    state: "invalid",
+  });
+  expect(await readConvergenceStageArtifact(f.artifacts, input)).toEqual({
+    state: "input_unavailable",
+  });
 });

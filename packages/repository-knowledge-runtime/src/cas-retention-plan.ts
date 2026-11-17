@@ -139,7 +139,7 @@ async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRet
   const roots = convergenceArtifactRoots(storage.events);
   const files = await casReferenceFiles(storage);
   const mirrored = new Set<string>();
-  bindEventWriterBackups(storage, roots.headSeq, files, mirrored);
+  await bindEventWriterBackups(storage, roots.headSeq, files, mirrored);
   const objects = files.filter((file) => file.hash !== null);
   result.casObjects = objects.length;
   result.casBytes = objects.reduce((total, file) => total + file.size, 0);

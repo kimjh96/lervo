@@ -153,6 +153,11 @@ export interface ReferenceScan {
   identity: string;
   complete: boolean;
   sqlite?: SqliteReferenceCursor;
+  /**
+   * Backup databases only: the live event database identity that mirrored rows were compared
+   * against (ADR-0585). Another live database invalidates the cached references.
+   */
+  mirror?: string;
   offset: number;
   tail: string;
   references: string[];

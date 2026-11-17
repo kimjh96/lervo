@@ -59,7 +59,7 @@ async function collect(
   if (scan.nextScanAt > Date.now()) return;
   const roots = convergenceArtifactRoots(storage.events);
   const files = await casReferenceFiles(storage);
-  bindEventWriterBackups(storage, roots.headSeq, files);
+  await bindEventWriterBackups(storage, roots.headSeq, files);
   if (!scan.eligible.length)
     scan.eligible = eligibleConvergenceArtifacts(
       files,
@@ -76,9 +76,18 @@ async function collect(
   for (const file of files) {
     const cached = scan.files[file.key];
     let entry: ReferenceScan =
-      cached !== undefined && cached.identity === file.identity
+      cached !== undefined &&
+      cached.identity === file.identity &&
+      cached.mirror === file.mirror?.liveIdentity
         ? cached
-        : { identity: file.identity, complete: false, offset: 0, tail: "", references: [] };
+        : {
+            identity: file.identity,
+            ...(file.mirror === undefined ? {} : { mirror: file.mirror.liveIdentity }),
+            complete: false,
+            offset: 0,
+            tail: "",
+            references: [],
+          };
     while (!entry.complete) {
       const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
       if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) {
