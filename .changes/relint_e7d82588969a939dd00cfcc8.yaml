@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e7d82588969a939dd00cfcc8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Stop the provider source poll before a knowledge review records its observation, so no source check runs between the exact fence and the effects it guards."
