@@ -129,9 +129,10 @@ function deferredKnowledge(reason: string): KnowledgeStage {
 async function eventWriterStage(
   repositoryRoot: string,
   dispositions: Partial<Record<UpgradeStageName, StageDisposition>>,
+  host: UpgradeHost,
 ): Promise<EventWriterStage> {
   const deferral = deferringPrerequisite("event_writer", dispositions);
-  const inspected = await inspectEventWriterStage(repositoryRoot);
+  const inspected = await inspectEventWriterStage(repositoryRoot, host.eventWriter);
   if (deferral === null || inspected.disposition === "current") return inspected;
   return {
     ...inspected,
@@ -194,10 +195,14 @@ export async function createRepositoryUpgradePlan(
     replicaDeferral === null || replica.disposition !== "safe_apply"
       ? replica
       : { ...replica, disposition: "deferred", reason: deferralReason(replicaDeferral) };
-  const eventWriter = await eventWriterStage(repositoryRoot, {
-    terminal_integration: terminal.stage.disposition,
-    node: nodeStage.disposition,
-  });
+  const eventWriter = await eventWriterStage(
+    repositoryRoot,
+    {
+      terminal_integration: terminal.stage.disposition,
+      node: nodeStage.disposition,
+    },
+    host,
+  );
   const runtimeRetention = await planNodeRuntimeRetention(host.runtimeRetention);
   const dispositions: Record<UpgradeStageName, StageDisposition> = {
     runtime_retention: runtimeRetention.disposition,

@@ -45,18 +45,29 @@ export interface EventWriterStagePorts {
   now(): Date;
 }
 
-async function generatedHookReader(repositoryRoot: string): Promise<"current" | "stale"> {
+async function generatedHookReader(
+  repositoryRoot: string,
+  hookStore?: string,
+): Promise<"current" | "stale"> {
   const integration = await inspectTerminalIntegration(repositoryRoot);
   if (integration.runtime.action === "create") return "current";
   if (integration.runtime.action !== "unchanged") return "stale";
-  return (await hostTerminalHookReaderCurrent()) ? "current" : "stale";
+  return (await hostTerminalHookReaderCurrent(hookStore)) ? "current" : "stale";
 }
 
 export const defaultEventWriterStagePorts: EventWriterStagePorts = {
   collectEvidence: collectEventReaderActivationEvidence,
-  hookReader: generatedHookReader,
+  hookReader: (repositoryRoot) => generatedHookReader(repositoryRoot),
   now: () => new Date(),
 };
+
+/** The default ports, reading the host hook runtime from `hookStore` instead of the user home. */
+export function eventWriterStagePortsForHookStore(hookStore: string): EventWriterStagePorts {
+  return {
+    ...defaultEventWriterStagePorts,
+    hookReader: (repositoryRoot) => generatedHookReader(repositoryRoot, hookStore),
+  };
+}
 
 function authorityOf(evidence: EventWriterActivationEvidence): EventReaderAuthority {
   if (evidence.schemaVersion !== 2) return "local";

@@ -150,7 +150,7 @@ export async function applyRepositoryUpgrade(
   // stage deferred behind them applies once they are current and is skipped otherwise.
   const eventWriter = approved.stages.eventWriter;
   if (eventWriter.disposition === "safe_apply" || eventWriter.disposition === "deferred") {
-    const outcome = await applyEventWriterStage(root, eventWriter);
+    const outcome = await applyEventWriterStage(root, eventWriter, host.eventWriter);
     if (outcome.status === "activated") appliedStages.push("event_writer");
     else if (outcome.status === "skipped")
       skippedStages.push({
