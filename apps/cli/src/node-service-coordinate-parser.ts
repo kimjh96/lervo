@@ -103,3 +103,55 @@ export function parseServiceNodeExecutable(
   }
   return node !== null && isAbsolute(node) && !/[\0\r\n]/u.test(node) ? node : null;
 }
+
+/**
+ * Every program argument of a rendered Lervo service, decoded: the quoted paths and the bare
+ * subcommand words a systemd `ExecStart` holds, or each `<string>` of the launchd
+ * `ProgramArguments` array. Null when the definition does not have exactly that shape.
+ */
+export function parseServiceProgramArguments(
+  manager: "systemd" | "launchd",
+  content: string,
+): string[] | null {
+  if (manager === "launchd") {
+    if ((content.match(/<key>ProgramArguments<\/key>/gu) ?? []).length !== 1) return null;
+    const array =
+      /<key>ProgramArguments<\/key>\s*<array>((?:\s*<string>[^<]*<\/string>)+)\s*<\/array>/u.exec(
+        content,
+      );
+    if (array === null) return null;
+    return [...array[1]!.matchAll(/<string>([^<]*)<\/string>/gu)].map((match) =>
+      decodeXml(match[1]!),
+    );
+  }
+  const lines = content.split("\n").filter((item) => item.startsWith("ExecStart="));
+  if (lines.length !== 1) return null;
+  const tokens: string[] = [];
+  const token = /(?:"((?:[^"\\]|\\.)*)"|([^\s"\\]+))(?: |$)/uy;
+  const line = lines[0]!.slice("ExecStart=".length);
+  while (token.lastIndex < line.length) {
+    const start = token.lastIndex;
+    const match = token.exec(line);
+    if (match === null || match.index !== start) return null;
+    const value = match[1] === undefined ? match[2]! : decodeSystemd(match[1]);
+    if (value === null) return null;
+    tokens.push(value);
+  }
+  return tokens.length === 0 || line.endsWith(" ") ? null : tokens;
+}
+
+/**
+ * The configuration path any rendered Lervo service passes as its last two arguments,
+ * `--config <absolute-path>`, after a Node executable, a launcher, and any subcommand words.
+ */
+export function parseServiceConfigPath(
+  manager: "systemd" | "launchd",
+  content: string,
+): string | null {
+  const values = parseServiceProgramArguments(manager, content);
+  if (values === null || values.filter((value) => value === "--config").length !== 1) return null;
+  const config = values.at(-1)!;
+  return values.at(-2) === "--config" && isAbsolute(config) && !/[\0\r\n]/u.test(config)
+    ? config
+    : null;
+}
