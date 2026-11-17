@@ -1,6 +1,7 @@
 import { rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import { observeProcessCost } from "@lervo/repository-knowledge";
 import { afterEach, expect, it } from "vitest";
 
 import type { ConvergenceOwnerVerdict } from "../src/convergence-owner-verdict.js";
@@ -158,5 +159,55 @@ it(
     expect(await readMaintenanceObservation(f.root, f.storage.manifest.projectId)).toMatchObject({
       source: "inspection",
     });
+  },
+);
+
+/**
+ * Runs one owner cycle whose upgrade starts waiting once `after` has finished, and reports which
+ * cost scopes ran. Scopes settle when a stage returns, so the first boundary after `after` sees it.
+ */
+async function yieldAfterStage(after: string) {
+  const f = await fixture(true);
+  fixtures.push(f);
+  const observer = observeProcessCost();
+  let ownerRulesApplied = false;
+  try {
+    const result = await runAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "resident",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      applyOwnerStatedInstructions: async () => {
+        ownerRulesApplied = true;
+      },
+      yieldToUpgrade: async () => observer.snapshot().scopes[after] !== undefined,
+    });
+    return { result, scopes: observer.snapshot().scopes, ownerRulesApplied };
+  } finally {
+    observer.close();
+  }
+}
+
+it(
+  "checks for a waiting upgrade between retention and owner-turn capture (ADR-0574)",
+  { timeout: 120_000 },
+  async () => {
+    const { result, scopes } = await yieldAfterStage("retention");
+    expect(result).toEqual({ status: "busy", reason: "knowledge_cycle_yielded_to_upgrade" });
+    expect(scopes.retention).toBeDefined();
+    expect(scopes.owner_turns).toBeUndefined();
+  },
+);
+
+it(
+  "checks for a waiting upgrade between owner-turn capture and owner-rule application (ADR-0574)",
+  { timeout: 120_000 },
+  async () => {
+    const { result, scopes, ownerRulesApplied } = await yieldAfterStage("owner_turns");
+    expect(result).toEqual({ status: "busy", reason: "knowledge_cycle_yielded_to_upgrade" });
+    expect(scopes.owner_turns).toBeDefined();
+    expect(scopes.owner_rules).toBeUndefined();
+    expect(ownerRulesApplied).toBe(false);
   },
 );
