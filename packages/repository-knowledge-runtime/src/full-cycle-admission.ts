@@ -20,6 +20,11 @@ const LEASE_MILLISECONDS = 10 * 60_000;
 /** A holder renews this often, or ten times per lease when its lease is shorter. */
 const RENEW_MILLISECONDS = 60_000;
 const POLL_MILLISECONDS = 1_000;
+/**
+ * ADR-0577: how long `held()` retries lock contention before it answers false. It is measured on
+ * the monotonic clock, because a lease answer must not depend on a wall clock that can step back.
+ */
+const HELD_CONTENTION_WAIT_MILLISECONDS = 5_000;
 /** A waiter that has not polled for this long has gone and no longer holds its turn. */
 const WAITER_STALE_MILLISECONDS = 30_000;
 /**
@@ -51,9 +56,9 @@ export interface FullCycleAdmission {
   /**
    * ADR-0577: whether this holder still holds the admission, confirmed against the database and
    * renewed in the same statement. Admission replaces the holder row, and its nonce never comes
-   * back, so true also proves that no other holder was admitted since this one. False is final.
-   * Under lock contention the answer is this holder's last confirmed lease; other database
-   * failures throw, because an unverified holder must not act as the holder.
+   * back, so true also proves that no other holder was admitted since this one. A loss is final.
+   * It fails closed: lock contention that outlasts a short retry answers false, and other
+   * database failures throw, because an unconfirmed holder must not act as the holder.
    */
   held(): Promise<boolean>;
 }
@@ -289,9 +294,9 @@ export async function acquireFullCycleAdmission(input: {
   let released = false;
   // ADR-0577: renewal matches this holder's nonce. Zero changed rows mean another holder was
   // admitted after this lease lapsed, so the admission is lost for good. `max` keeps a slower
-  // renewal from shortening a later one.
-  const confirm = async (): Promise<boolean> => {
-    if (lost || released) return false;
+  // renewal from shortening a later one. Lock contention leaves the answer open.
+  const renew = async (): Promise<"held" | "lost" | "contended"> => {
+    if (lost || released) return "lost";
     const renewed = Date.now() + leaseMilliseconds;
     let changes: number;
     try {
@@ -302,24 +307,33 @@ export async function acquireFullCycleAdmission(input: {
         nonce,
       );
     } catch (error) {
-      if (isSqliteLockContention(error)) return Date.now() < expiresAt;
+      if (isSqliteLockContention(error)) return "contended";
       throw identifiedFailure(error);
     }
     if (changes !== 1) {
       lost = true;
       clearInterval(renewal);
-      return false;
+      return "lost";
     }
     expiresAt = Math.max(expiresAt, renewed);
-    return true;
+    return "held";
   };
+  // The timer only renews; a contended renewal waits for the next tick.
   const renewal = setInterval(
-    () => void confirm().catch(() => undefined),
+    () => void renew().catch(() => undefined),
     Math.min(RENEW_MILLISECONDS, Math.max(1, Math.floor(leaseMilliseconds / 10))),
   );
   renewal.unref();
   return {
-    held: confirm,
+    held: async () => {
+      const giveUpAt = performance.now() + HELD_CONTENTION_WAIT_MILLISECONDS;
+      for (;;) {
+        const answer = await renew();
+        if (answer !== "contended") return answer === "held";
+        if (performance.now() >= giveUpAt) return false;
+        await sleep(input.pollMilliseconds ?? POLL_MILLISECONDS);
+      }
+    },
     contended: () => othersWaiting(directory, nonce, Date.now()).catch(() => false),
     preempted: () => {
       const now = Date.now();

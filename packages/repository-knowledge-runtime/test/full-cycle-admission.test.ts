@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
 
@@ -340,6 +340,38 @@ it("detects a lease lost while its renewal timer was blocked (ADR-0577)", async 
     resident.stop();
   }
 }, 30_000);
+
+it("answers false when lock contention hides a takeover and the wall clock stepped back (ADR-0577)", async () => {
+  const admission = await directory();
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/upgrade",
+    signal: new AbortController().signal,
+    directory: admission,
+    priority: "upgrade",
+    leaseMilliseconds: 300,
+  });
+  const resident = await residentTakingOverLapsedLeases(admission);
+  const confirmedAt = Date.now();
+  const lock = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  try {
+    blockEventLoop(1_500);
+    // Before any renewal can run, another connection holds the write lock, and the wall clock
+    // steps back to when the holder last confirmed its lease.
+    lock.exec("BEGIN EXCLUSIVE");
+    try {
+      vi.spyOn(Date, "now").mockReturnValue(confirmedAt);
+      expect(await holder.held()).toBe(false);
+    } finally {
+      vi.restoreAllMocks();
+      lock.exec("COMMIT");
+    }
+    await resident.admitted();
+    await holder.release();
+  } finally {
+    lock.close();
+    resident.stop();
+  }
+}, 60_000);
 
 it("keeps a lapsed lease that no other holder took (ADR-0577)", async () => {
   const admission = await directory();
