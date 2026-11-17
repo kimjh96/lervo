@@ -17,6 +17,8 @@ export type RepositoryUpgradeInvocation =
       appliedStages: string[];
       pendingStages: string[];
       timing: { admissionWaitMs: number; applyMs: number } | null;
+      /** ADR-0579: the receipt's consecutive apply parts; absent for a plan or an earlier CLI. */
+      stageTimings?: Array<{ stage: string; ms: number }>;
     }
   | { kind: "failed"; code: string }
   | { kind: "unreadable" }
@@ -39,6 +41,19 @@ const maximumOutputBytes = 32 * 1024 * 1024;
 const strings = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
+/** A receipt names a few dozen parts; a longer list is not one this CLI wrote. */
+const maximumStageTimings = 64;
+
+function stageTimings(value: unknown): Array<{ stage: string; ms: number }> {
+  if (!Array.isArray(value) || value.length > maximumStageTimings) return [];
+  return value.flatMap((item: unknown) => {
+    const { stage, ms } = (item ?? {}) as { stage?: unknown; ms?: unknown };
+    return typeof stage === "string" && typeof ms === "number" && Number.isFinite(ms) && ms >= 0
+      ? [{ stage, ms }]
+      : [];
+  });
+}
+
 export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeInvocation {
   let value: unknown;
   try {
@@ -58,6 +73,7 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
   if (typeof record.status !== "string") return { kind: "unreadable" };
   const pending = Array.isArray(record.pending) ? record.pending : [];
   const timing = record.timing as { admissionWaitMs?: unknown; applyMs?: unknown } | undefined;
+  const parts = stageTimings(record.stageTimings);
   return {
     kind: "result",
     status: record.status,
@@ -77,6 +93,7 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
       const stage = (item as { stage?: unknown } | null)?.stage;
       return typeof stage === "string" ? [stage] : [];
     }),
+    ...(parts.length === 0 ? {} : { stageTimings: parts }),
   };
 }
 

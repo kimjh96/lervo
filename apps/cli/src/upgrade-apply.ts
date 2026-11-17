@@ -30,6 +30,7 @@ import {
   type UpgradeStageBlocker,
 } from "./upgrade-stage-inspection.js";
 import { type StageDisposition, type UpgradeStageName } from "./upgrade-stage-policy.js";
+import type { UpgradeStageClock } from "./upgrade-stage-timing.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export function pendingStages(plan: RepositoryUpgradePlan): UpgradeReceipt["pending"] {
@@ -77,6 +78,7 @@ export async function applyRepositoryUpgrade(
   materialization: KnowledgeMaterializationSettlement,
   host: UpgradeHost,
   exclusion: UpgradeResidentExclusion,
+  clock: UpgradeStageClock,
 ): Promise<UpgradeReceipt> {
   const root = approved.repositoryRoot;
   const appliedStages: string[] = [];
@@ -94,6 +96,7 @@ export async function applyRepositoryUpgrade(
     await applyCapabilityMigration(capabilityPlan);
     appliedStages.push("capabilities");
   }
+  clock.lap("capabilities");
 
   const workforce = await inspectWorkforce(root);
   if (workforce.disposition === "blocked")
@@ -114,6 +117,7 @@ export async function applyRepositoryUpgrade(
     if (migrated.migratedAgentCount + migrated.migratedAssignmentCount > 0)
       appliedStages.push("workforce_role_bindings");
   }
+  clock.lap("workforce");
 
   if (approved.stages.terminalIntegration.disposition === "safe_apply") {
     const terminal = await inspectTerminalIntegration(root);
@@ -128,6 +132,7 @@ export async function applyRepositoryUpgrade(
     });
     appliedStages.push("terminal_integration");
   }
+  clock.lap("terminal_integration");
 
   for (let index = 0; index < approved.policy.maximumKnowledgeStages; index += 1) {
     // A marker refusal happens before any write, so inspecting and applying again is safe.
@@ -139,6 +144,7 @@ export async function applyRepositoryUpgrade(
       }
       return inspected;
     }, knowledgeRefusedByMarker);
+    clock.lap("knowledge");
     if (stage.disposition !== "safe_apply") break;
     appliedStages.push(stage.planKind);
     if (index === approved.policy.maximumKnowledgeStages - 1)
@@ -149,15 +155,23 @@ export async function applyRepositoryUpgrade(
 
   // ADR-0546: the Node stage is ordered after knowledge without depending on it, and lint reports
   // a blocked knowledge stage instead of being skipped.
-  const node = await inspectRegisteredNodeUpgrade(root, approved.projectId, approved.cli.version);
+  const node = await inspectRegisteredNodeUpgrade(
+    root,
+    approved.projectId,
+    approved.cli.version,
+    host.describeNodeLauncher,
+  );
+  clock.lap("node_inspection");
   if (node.stage.disposition === "safe_apply") {
     await confirmExclusion("node");
-    await applyRegisteredNodeUpgrade(node);
+    const onboarding = await applyRegisteredNodeUpgrade(node, host.describeNodeLauncher);
+    clock.lapNode(onboarding?.timing);
     appliedStages.push("repository_node");
   }
   const lint: UpgradeReceipt["knowledgeLint"] = await materialization.run(() =>
     lintKnowledge(root),
   );
+  clock.lap("knowledge_lint");
 
   // The event writer stage re-observes the hook reader and the Node and Hub readers itself, so a
   // stage deferred behind them applies once they are current and is skipped otherwise.
@@ -172,12 +186,14 @@ export async function applyRepositoryUpgrade(
         reason: outcome.stage.blockers[0]?.code ?? outcome.stage.reason,
       });
   }
+  clock.lap("event_writer");
 
   if (approved.stages.hostService.disposition === "safe_apply") {
     await confirmExclusion("host_service");
     const service = await applyHostResidentService(approved.stages.hostService, host.hostService);
     if (service !== null) appliedStages.push("host_service");
   }
+  clock.lap("host_service");
 
   // ADR-0483: a stage deferred behind the Node stage is re-observed, because an activated Node
   // already moved `current`; an approved stage is applied against its exact plan.
@@ -190,17 +206,20 @@ export async function applyRepositoryUpgrade(
     if ((await applyRepositoryReplicaService(replicaStage, host.replicaService)) !== null)
       appliedStages.push("replica_service");
   }
+  clock.lap("replica_service");
 
   await confirmExclusion("runtime_retention");
   if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention, host.runtimeRetention))
     appliedStages.push("runtime_retention");
   // A holder that still holds was never replaced, so every stage ran under the exclusion.
   await confirmExclusion(null);
+  clock.lap("runtime_retention");
 
   const final = await materialization.run(
     () => createRepositoryUpgradePlan(root, host),
     knowledgeStageRefusedByMarker,
   );
+  clock.lap("final_plan");
   return {
     schemaVersion: 1,
     operation: "repository_upgrade",
@@ -212,5 +231,6 @@ export async function applyRepositoryUpgrade(
     nextPlanId: final.status === "current" ? null : final.planId,
     pending: pendingStages(final),
     cliAcquisition: "outside_repository_upgrade",
+    stageTimings: clock.timings,
   };
 }

@@ -76,9 +76,15 @@ export interface InstalledNodeLauncher {
   runtimeModule: NodeRuntimeModule;
 }
 
-export async function describeInstalledNodeLauncher(
-  homeDirectory?: string,
-): Promise<InstalledNodeLauncher> {
+/** The running CLI's bundled payload, runtime module, and dependency closure, and their hash. */
+interface InstalledNodeMaterial {
+  bytes: Buffer;
+  runtimeModule: NodeRuntimeModule;
+  dependencies: RuntimeDependencyClosure;
+  hexadecimal: string;
+}
+
+async function readInstalledNodeMaterial(): Promise<InstalledNodeMaterial> {
   const bytes = await readFile(defaultExecutablePath());
   const runtimeModule = await readNodeRuntimeModule(dirname(defaultExecutablePath()));
   const dependencies = await describeRuntimeDependencies(defaultExecutablePath());
@@ -87,6 +93,14 @@ export async function describeInstalledNodeLauncher(
     .update(runtimeModule.hash)
     .update(dependencies.hash)
     .digest("hex");
+  return { bytes, runtimeModule, dependencies, hexadecimal };
+}
+
+function installedNodeLauncherAt(
+  material: InstalledNodeMaterial,
+  homeDirectory?: string,
+): InstalledNodeLauncher {
+  const { bytes, runtimeModule, dependencies, hexadecimal } = material;
   const directory = resolve(nodeRuntimesDirectory(homeDirectory), hexadecimal.slice(0, 16));
   const payload = resolve(directory, "node-runtime.js");
   return {
@@ -100,17 +114,51 @@ export async function describeInstalledNodeLauncher(
   };
 }
 
-export async function materializeInstalledNodeLauncher(homeDirectory?: string): Promise<string> {
+export type DescribeInstalledNodeLauncher = (
+  homeDirectory?: string,
+) => Promise<InstalledNodeLauncher>;
+
+export async function describeInstalledNodeLauncher(
+  homeDirectory?: string,
+): Promise<InstalledNodeLauncher> {
+  return installedNodeLauncherAt(await readInstalledNodeMaterial(), homeDirectory);
+}
+
+/**
+ * ADR-0579: one description of the running CLI's bundled runtime for one owner, such as one
+ * `lervo upgrade` command. Reading and hashing the dependency closure takes seconds, and every
+ * stage of one command must bind the same bytes anyway. A failed read is not kept.
+ */
+export function describeInstalledNodeLauncherOnce(): DescribeInstalledNodeLauncher {
+  let material: Promise<InstalledNodeMaterial> | undefined;
+  return async (homeDirectory) => {
+    const pending = (material ??= readInstalledNodeMaterial());
+    try {
+      return installedNodeLauncherAt(await pending, homeDirectory);
+    } catch (error) {
+      if (material === pending) material = undefined;
+      throw error;
+    }
+  };
+}
+
+export async function materializeInstalledNodeLauncher(
+  homeDirectory?: string,
+  describe: DescribeInstalledNodeLauncher = describeInstalledNodeLauncher,
+): Promise<string> {
   return withNodeRuntimeRetentionLock(
     resolve(nodeRuntimesDirectory(homeDirectory), ".retention.lock"),
     async () => {
       await recoverRuntimeRetirement(nodeRuntimesDirectory(homeDirectory));
-      return installNodeLauncher(homeDirectory);
+      return installNodeLauncher(homeDirectory, describe);
     },
   );
 }
 
-async function installNodeLauncher(homeDirectory?: string): Promise<string> {
+async function installNodeLauncher(
+  homeDirectory: string | undefined,
+  describe: DescribeInstalledNodeLauncher,
+): Promise<string> {
   const source = defaultExecutablePath();
   const sourceInfo = await lstat(source).catch((error: unknown) =>
     failNodeFleetApply(
@@ -126,7 +174,7 @@ async function installNodeLauncher(homeDirectory?: string): Promise<string> {
     );
   }
   const { payload, payloadBytes, launcher, launcherContent, dependencies, runtimeModule } =
-    await describeInstalledNodeLauncher(homeDirectory);
+    await describe(homeDirectory);
   await mkdir(dirname(payload), { recursive: true, mode: 0o700 });
   const directory = await lstat(dirname(payload));
   if (!directory.isDirectory() || directory.isSymbolicLink())

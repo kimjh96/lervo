@@ -4,14 +4,19 @@ import {
   prepareNodeConfigExecutables,
   nodeConfigExecutablesPending,
 } from "./node-config-executable-upgrade.js";
-import { applyNodeFleetOnboarding } from "./node-fleet-apply.js";
+import { applyNodeFleetOnboarding, type NodeFleetApplyReceipt } from "./node-fleet-apply.js";
+import type { DescribeInstalledNodeLauncher } from "./node-fleet-runtime-material.js";
 import type { NodeUpgradeInspection } from "./upgrade-node.js";
 
 function sha256(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspection): Promise<void> {
+/** The onboarding receipt, or null when nothing in the deployment or its configuration changed. */
+export async function applyRegisteredNodeUpgrade(
+  inspection: NodeUpgradeInspection,
+  describeLauncher?: DescribeInstalledNodeLauncher,
+): Promise<NodeFleetApplyReceipt | null> {
   if (
     inspection.plan === null ||
     inspection.configPath === null ||
@@ -26,11 +31,13 @@ export async function applyRegisteredNodeUpgrade(inspection: NodeUpgradeInspecti
       ? await prepareNodeConfigExecutables(inspection.configPath, executables)
       : null;
   try {
-    if (inspection.replaceDeployment === false && prepared?.configurationSource == null) return;
-    await applyNodeFleetOnboarding({
+    if (inspection.replaceDeployment === false && prepared?.configurationSource == null)
+      return null;
+    return await applyNodeFleetOnboarding({
       plan: inspection.plan,
       configPath: inspection.configPath,
       allowHubUnavailableReadiness: true,
+      ...(describeLauncher === undefined ? {} : { describeLauncher }),
       ...(inspection.pathDirectories === undefined
         ? {}
         : { pathDirectories: inspection.pathDirectories }),

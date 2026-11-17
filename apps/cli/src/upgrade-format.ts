@@ -3,6 +3,7 @@ import { repositoryReplicaPerCallLauncherGuidance } from "@lervo/sync";
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
 import type { NodeConfigExecutablesStage } from "./node-config-executable-upgrade.js";
 import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
+import type { UpgradeStageTiming } from "./upgrade-stage-timing.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition, UpgradeStageName } from "./upgrade-stage-policy.js";
 
@@ -27,6 +28,8 @@ export interface UpgradeReceipt {
    * applying after it was granted. Absent from receipts of earlier CLIs.
    */
   timing?: { admissionWaitMs: number; applyMs: number };
+  /** ADR-0579: the apply's consecutive parts after admission. Absent from earlier CLIs. */
+  stageTimings?: UpgradeStageTiming[];
 }
 
 function blockerLines(blockers: readonly UpgradeStageBlocker[], indent: string): string[] {

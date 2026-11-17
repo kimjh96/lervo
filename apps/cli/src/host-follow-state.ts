@@ -45,6 +45,17 @@ export interface HostFollowRepositoryResult {
   applyMs: number | null;
   /** Wall time of every `lervo upgrade` the repository took, plans included. */
   elapsedMs: number;
+  /**
+   * ADR-0579: per round, the plan command's wall time as `plan_command`, then the apply
+   * receipt's parts. Absent from passes of earlier CLIs.
+   */
+  stageTimings?: HostFollowStageTiming[];
+}
+
+export interface HostFollowStageTiming {
+  round: number;
+  stage: string;
+  ms: number;
 }
 
 /** One pass of `lervo upgrade` over every registered repository, run by one active CLI. */
@@ -121,6 +132,19 @@ const nullableNumber = (value: unknown) => value === null || typeof value === "n
 const strings = (value: unknown) =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 
+function validStageTimings(value: unknown): boolean {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        Number.isSafeInteger(item.round) &&
+        typeof item.stage === "string" &&
+        typeof item.ms === "number",
+    )
+  );
+}
+
 function validRepositoryResult(value: unknown): boolean {
   return (
     isRecord(value) &&
@@ -136,7 +160,8 @@ function validRepositoryResult(value: unknown): boolean {
     nullableString(value.nextAttemptAt) &&
     nullableNumber(value.waitMs) &&
     nullableNumber(value.applyMs) &&
-    typeof value.elapsedMs === "number"
+    typeof value.elapsedMs === "number" &&
+    (value.stageTimings === undefined || validStageTimings(value.stageTimings))
   );
 }
 

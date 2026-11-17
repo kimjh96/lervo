@@ -22,6 +22,7 @@ import { nodeRuntimeHasOnlyAuxiliaryConditions } from "./node-fleet-readiness-po
 import {
   describeInstalledNodeLauncher,
   inspectInstalledNodeDependencies,
+  type DescribeInstalledNodeLauncher,
   type InstalledNodeLauncher,
 } from "./node-fleet-runtime-material.js";
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
@@ -104,6 +105,7 @@ export async function inspectRegisteredNodeUpgrade(
   root: string,
   projectId: string,
   desiredVersion: string,
+  describeLauncher: DescribeInstalledNodeLauncher = describeInstalledNodeLauncher,
 ): Promise<NodeUpgradeInspection> {
   const registryPath = defaultNodeFleetRegistryPath();
   const physicalRoot = await realpath(root);
@@ -185,7 +187,7 @@ export async function inspectRegisteredNodeUpgrade(
     };
   let desired: InstalledNodeLauncher;
   try {
-    desired = await describeInstalledNodeLauncher();
+    desired = await describeLauncher();
   } catch {
     return {
       stage: stage({

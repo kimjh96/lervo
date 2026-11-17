@@ -12,6 +12,7 @@ import type { ManagedServiceStatus } from "./managed-user-service-write.js";
 import {
   describeInstalledNodeLauncher,
   materializeInstalledNodeLauncher,
+  type DescribeInstalledNodeLauncher,
 } from "./node-fleet-runtime-material.js";
 import { legacyReplicaConfigPath } from "./repository-replica-config-migration.js";
 
@@ -44,6 +45,7 @@ async function hostRunsNodes(environment: NodeJS.ProcessEnv): Promise<boolean> {
 
 export function defaultRepositoryReplicaServicePorts(
   home: string = homedir(),
+  describeLauncher: DescribeInstalledNodeLauncher = describeInstalledNodeLauncher,
 ): RepositoryReplicaServicePorts {
   return {
     platform: process.platform,
@@ -51,13 +53,10 @@ export function defaultRepositoryReplicaServicePorts(
     uid: typeof process.getuid === "function" ? process.getuid() : null,
     environment: process.env,
     bundledRuntime: async () => {
-      return (await describeInstalledNodeLauncher(home)).hash.slice(
-        "sha256:".length,
-        "sha256:".length + 16,
-      );
+      return (await describeLauncher(home)).hash.slice("sha256:".length, "sha256:".length + 16);
     },
     materializeRuntime: async () => {
-      await materializeInstalledNodeLauncher(home);
+      await materializeInstalledNodeLauncher(home, describeLauncher);
     },
     legacyConfigPath: legacyReplicaConfigPath(home, process.env),
     hostRunsNodes: () => hostRunsNodes(process.env),

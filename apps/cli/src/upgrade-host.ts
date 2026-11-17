@@ -1,3 +1,5 @@
+import { homedir } from "node:os";
+
 import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
 
 import {
@@ -8,6 +10,10 @@ import {
   defaultKnowledgeHostServicePorts,
   type KnowledgeHostServicePorts,
 } from "./knowledge-host-service.js";
+import {
+  describeInstalledNodeLauncherOnce,
+  type DescribeInstalledNodeLauncher,
+} from "./node-fleet-runtime-material.js";
 import type { RuntimeRetentionOptions } from "./node-runtime-retention.js";
 import {
   defaultRepositoryReplicaServicePorts,
@@ -27,6 +33,8 @@ export interface UpgradeHostOptions {
 /** The ports the host-wide stages and the event writer's hook reader plan and apply with. */
 export interface UpgradeHost {
   runtimeRetention: RuntimeRetentionOptions;
+  /** ADR-0579: the command's one description of the bundled Node runtime, shared by stages. */
+  describeNodeLauncher: DescribeInstalledNodeLauncher;
   /** Absent: each stage uses its own live-host defaults. */
   hostService?: KnowledgeHostServicePorts;
   replicaService?: RepositoryReplicaServicePorts;
@@ -34,8 +42,15 @@ export interface UpgradeHost {
 }
 
 export function upgradeHost(options?: UpgradeHostOptions): UpgradeHost {
-  if (options === undefined) return { runtimeRetention: {} };
+  const describeNodeLauncher = describeInstalledNodeLauncherOnce();
+  if (options === undefined)
+    return {
+      runtimeRetention: {},
+      describeNodeLauncher,
+      replicaService: defaultRepositoryReplicaServicePorts(homedir(), describeNodeLauncher),
+    };
   return {
+    describeNodeLauncher,
     runtimeRetention: {
       homeDirectory: options.homeDirectory,
       ...(options.processCommands === undefined
@@ -43,7 +58,10 @@ export function upgradeHost(options?: UpgradeHostOptions): UpgradeHost {
         : { processCommands: options.processCommands }),
     },
     hostService: defaultKnowledgeHostServicePorts(options.homeDirectory),
-    replicaService: defaultRepositoryReplicaServicePorts(options.homeDirectory),
+    replicaService: defaultRepositoryReplicaServicePorts(
+      options.homeDirectory,
+      describeNodeLauncher,
+    ),
     eventWriter: eventWriterStagePortsForHookStore(
       terminalHookRuntimeStorePath(process.env, process.platform, options.homeDirectory),
     ),

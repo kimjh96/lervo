@@ -133,8 +133,26 @@ describe("lervo upgrade --apply --safe", () => {
     const receipt = JSON.parse(result.stdout) as {
       approvedPlanId: string;
       appliedStages: string[];
+      timing: { applyMs: number };
+      stageTimings: Array<{ stage: string; ms: number }>;
     };
     expect(receipt.approvedPlanId).not.toBe(presented.planId);
+    // ADR-0579: consecutive parts from the in-window plan to the final plan.
+    const stages = receipt.stageTimings.map((timing) => timing.stage);
+    expect(stages[0]).toBe("plan");
+    expect(stages.at(-1)).toBe("final_plan");
+    expect(stages).toEqual(
+      expect.arrayContaining([
+        "knowledge",
+        "node_inspection",
+        "knowledge_lint",
+        "runtime_retention",
+      ]),
+    );
+    for (const timing of receipt.stageTimings)
+      expect(Number.isInteger(timing.ms) && timing.ms >= 0).toBe(true);
+    const measured = receipt.stageTimings.reduce((sum, timing) => sum + timing.ms, 0);
+    expect(measured).toBeLessThanOrEqual(receipt.timing.applyMs + stages.length);
     expect(receipt.appliedStages.length).toBeGreaterThan(0);
     expect(receipt.appliedStages).toContain("knowledge_materialization");
     // The event writer stage reads the hook runtime of the isolated home, never the host's.

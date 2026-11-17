@@ -42,6 +42,7 @@ import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 import {
   assertNodeFleetExecutable,
   materializeInstalledNodeLauncher,
+  type DescribeInstalledNodeLauncher,
 } from "./node-fleet-runtime-material.js";
 
 export * from "./node-fleet-apply-contract.js";
@@ -112,7 +113,10 @@ export async function applyNodeFleetOnboarding(input: {
    * while the Node is stopped and restarts even an unchanged definition.
    */
   configurationSource?: string;
+  /** ADR-0579: the caller's description of the bundled runtime; absent, it is read again. */
+  describeLauncher?: DescribeInstalledNodeLauncher;
 }): Promise<NodeFleetApplyReceipt> {
+  const startedAt = performance.now();
   const ports = input.ports ?? {};
   const planInput = {
     registryPath: input.plan.registry.path,
@@ -185,7 +189,7 @@ export async function applyNodeFleetOnboarding(input: {
     ).directories;
   const executable =
     ports.executablePath === undefined
-      ? await materializeInstalledNodeLauncher(input.homeDirectory)
+      ? await materializeInstalledNodeLauncher(input.homeDirectory, input.describeLauncher)
       : await assertNodeFleetExecutable(resolve(ports.executablePath));
   const temporaryDirectory = await mkdtemp(resolve(tmpdir(), "lervo-node-service-"));
   const definition = resolve(temporaryDirectory, "service-definition");
@@ -200,6 +204,7 @@ export async function applyNodeFleetOnboarding(input: {
   let compensated = false;
   let registryCommitted = false;
   let rollbackDefinition = true;
+  let serviceStartedAt: number;
   const options = {
     ...ports.serviceOptions,
     ...(input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory }),
@@ -248,6 +253,7 @@ export async function applyNodeFleetOnboarding(input: {
     await writeFile(definition, content, { encoding: "utf8", mode: 0o600, flag: "wx" });
     await chmod(definition, 0o600);
     const desiredHash = `sha256:${createHash("sha256").update(content).digest("hex")}`;
+    serviceStartedAt = performance.now();
     const definitionChanged = current.service.targetContentHash !== desiredHash;
     if (input.configurationSource !== undefined && current.service.targetContentHash === null)
       fail(
@@ -309,6 +315,7 @@ export async function applyNodeFleetOnboarding(input: {
       service.enabled === false
     )
       fail("node_fleet_service_unavailable", "The repository service did not remain active.");
+    const readinessStartedAt = performance.now();
     const readiness = await observeNodeFleetReadiness({
       path: current.desired.healthPath,
       notBefore: appliedAt,
@@ -316,6 +323,7 @@ export async function applyNodeFleetOnboarding(input: {
       allowHubUnavailable: input.allowHubUnavailableReadiness === true,
       baseline,
     });
+    const completionStartedAt = performance.now();
     let registry: RegisterNodeFleetInstanceResult;
     try {
       registry = await registerNodeFleetInstance({
@@ -358,6 +366,12 @@ export async function applyNodeFleetOnboarding(input: {
       service,
       readiness,
       registry,
+      timing: {
+        preparationMs: Math.round(serviceStartedAt - startedAt),
+        serviceMs: Math.round(readinessStartedAt - serviceStartedAt),
+        readinessMs: Math.round(completionStartedAt - readinessStartedAt),
+        completionMs: Math.round(performance.now() - completionStartedAt),
+      },
     };
   } catch (error) {
     if (!registryCommitted) await recoverNodeFleetFailure(error, compensate, "Node onboarding");
