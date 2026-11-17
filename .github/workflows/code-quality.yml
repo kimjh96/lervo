@@ -114,6 +114,10 @@ jobs:
         run: pnpm quality:check
       - name: Check types against the supported Node minimum
         if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseQuality != 'true'
+        # The whole-repository type check outgrew Node 22's default heap on the 16 GB runner
+        # (out of memory on 2026-11-17); give it an explicit, bounded heap.
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
         run: pnpm typecheck
       - name: Check architecture boundaries
         if: needs.plan.outputs.reuseQuality != 'true'
