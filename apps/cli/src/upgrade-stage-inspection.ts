@@ -51,6 +51,8 @@ export interface KnowledgeStage {
   >;
   /** ADR-0583: directories over document capacity, with their counts and limits. */
   layoutCapacity?: RepositoryLayoutCapacityFinding[];
+  /** The full number of directories over capacity; `layoutCapacity` lists at most 16. */
+  layoutCapacityCount?: number;
   /** ADR-0559: the one owner decision a layout plan asks for, with its two commands. */
   layoutDecision?: { decisionId: string; summary: string; accept: string; decline: string };
 }
@@ -177,17 +179,18 @@ export async function inspectKnowledge(root: string): Promise<KnowledgeStage> {
   );
   const stage = await knowledgeDisposition(root, result);
   const deferred = await layoutDeferrals(root, result.value, planned);
-  const capacity =
-    (planned as RepositoryLayoutMigrationPlan | null)?.layoutCapacity?.slice(
-      0,
-      MAXIMUM_LAYOUT_CAPACITY_ITEMS,
-    ) ?? [];
+  const capacity = (planned as RepositoryLayoutMigrationPlan | null)?.layoutCapacity ?? [];
   return {
     ...stage,
     ...(deferred.length === 0
       ? {}
       : { deferredDocuments: deferred.slice(0, maximumReportedBlockers) }),
-    ...(capacity.length === 0 ? {} : { layoutCapacity: capacity }),
+    ...(capacity.length === 0
+      ? {}
+      : {
+          layoutCapacity: capacity.slice(0, MAXIMUM_LAYOUT_CAPACITY_ITEMS),
+          layoutCapacityCount: capacity.length,
+        }),
   };
 }
 

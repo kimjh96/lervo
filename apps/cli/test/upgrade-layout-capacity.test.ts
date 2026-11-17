@@ -52,6 +52,7 @@ describe("layout capacity in upgrade and migration reports (ADR-0583)", () => {
       reason: "document_directory_file_capacity_exceeded",
       blockers: [{ code: "document_directory_file_capacity_exceeded", message }],
       layoutCapacity,
+      layoutCapacityCount: 2,
     });
   });
 
@@ -60,8 +61,11 @@ describe("layout capacity in upgrade and migration reports (ADR-0583)", () => {
     expect(lines).toEqual([
       "  Directories over document capacity: 2",
       "    docs/quality: documents observed 0, projected 33, limit 32 (moves into it are held; sources stay in place)",
-      "    v8/notes: documents observed 181, projected 181, limit 32 (existing overflow, not blocking; Lervo adds nothing there)",
+      "    v8/notes: documents observed 181, projected 181, limit 32 (existing overflow, not blocking; this plan adds nothing there)",
     ]);
+    expect(layoutCapacityLines(layoutCapacity.slice(0, 1), "", 40)[0]).toBe(
+      "Directories over document capacity: 40",
+    );
     const text = formatRepositoryLayoutMigrationPlan({
       repositoryRoot: "/repository",
       planId: "klayout_000000000000000000000000",
@@ -79,7 +83,7 @@ describe("layout capacity in upgrade and migration reports (ADR-0583)", () => {
       layoutCapacity,
     } as unknown as RepositoryLayoutMigrationPlan);
     expect(text).toContain(
-      "v8/notes: documents observed 181, projected 181, limit 32 (existing overflow, not blocking; Lervo adds nothing there)",
+      "v8/notes: documents observed 181, projected 181, limit 32 (existing overflow, not blocking; this plan adds nothing there)",
     );
   });
 });

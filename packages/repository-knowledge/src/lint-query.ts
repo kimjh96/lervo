@@ -240,7 +240,7 @@ async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]):
       code: advisory.code,
       severity: "warning",
       path: "directory" in advisory ? advisory.directory : ".",
-      message: `The existing repository document layout exceeds ${describeDocumentLayoutFinding(advisory)}; Lervo adds nothing there.`,
+      message: `The repository document layout exceeds ${describeDocumentLayoutFinding(advisory)}. This is an advisory: a write that leaves this directory alone is not blocked.`,
     });
   }
   const taxonomy = await loadDecisionTaxonomy(root);

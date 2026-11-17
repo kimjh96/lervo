@@ -94,7 +94,11 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
           `  decline: ${plan.stages.knowledge.layoutDecision.decline}`,
         ]),
     ...documentRouteDeferralLines(plan.stages.knowledge.deferredDocuments ?? [], "  "),
-    ...layoutCapacityLines(plan.stages.knowledge.layoutCapacity ?? [], "  "),
+    ...layoutCapacityLines(
+      plan.stages.knowledge.layoutCapacity ?? [],
+      "  ",
+      plan.stages.knowledge.layoutCapacityCount,
+    ),
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
     ...nodeConfigExecutableLines(plan.stages.node.configExecutables),
     `event writer: ${plan.stages.eventWriter.disposition} (${plan.stages.eventWriter.reason}) · schema ${plan.stages.eventWriter.currentSchemaVersion} → ${plan.stages.eventWriter.targetSchemaVersion}`,

@@ -46,6 +46,21 @@ function finding(
   return { ...rest, disposition };
 }
 
+/** One finding per directory and code; the first, a held move's, outranks later overflow. */
+function uniqueFindings(
+  findings: readonly RepositoryLayoutCapacityFinding[],
+): RepositoryLayoutCapacityFinding[] {
+  const unique = new Map<string, RepositoryLayoutCapacityFinding>();
+  for (const item of findings) {
+    const key = `${item.directory}\u0000${item.code}`;
+    if (!unique.has(key)) unique.set(key, item);
+  }
+  return [...unique.values()].sort(
+    (left, right) =>
+      left.directory.localeCompare(right.directory) || left.code.localeCompare(right.code),
+  );
+}
+
 /**
  * Keeps in place every move that would overfill a destination directory, so a layout plan never
  * proposes a layout its own permit must refuse. Held sources stay where the owner put them.
@@ -89,15 +104,12 @@ export function holdRepositoryLayoutMovesOverCapacity(input: {
     if (holding.length === 0)
       return {
         heldDestinations,
-        findings: [
+        findings: uniqueFindings([
           ...held,
           ...evaluation.advisories.flatMap((item) =>
             "directory" in item ? [finding(item, "existing_overflow")] : [],
           ),
-        ].sort(
-          (left, right) =>
-            left.directory.localeCompare(right.directory) || left.code.localeCompare(right.code),
-        ),
+        ]),
       };
     held.push(
       ...overfilled

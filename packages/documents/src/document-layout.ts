@@ -128,7 +128,7 @@ function members(paths: Iterable<string>): DocumentLayoutMembers {
   const direct = new Map<string, Set<string>>();
   const children = new Map<string, Set<string>>();
   for (const path of documents) {
-    const directory = posix.dirname(path) === "." ? "." : posix.dirname(path);
+    const directory = parentDirectory(path);
     direct.set(directory, (direct.get(directory) ?? new Set<string>()).add(path));
     const segments = directory === "." ? [] : directory.split("/");
     for (let index = 0; index < segments.length; index += 1) {
@@ -154,12 +154,22 @@ function counts(layout: DocumentLayoutMembers): DocumentLayoutCounts {
   };
 }
 
-/** True when the projection holds a member the observed directory did not: a create or move in. */
+/**
+ * True when the projection holds a member the observed directory did not: a create or move in.
+ * A rename inside one directory (ADR-0583) brings nothing in, so its destination is ignored.
+ */
 function receivesMembers(
   observed: ReadonlySet<string> | undefined,
   projected: ReadonlySet<string> | undefined,
+  renamedInPlace: ReadonlySet<string> = new Set(),
 ): boolean {
-  return [...(projected ?? [])].some((member) => !(observed?.has(member) ?? false));
+  return [...(projected ?? [])].some(
+    (member) => !(observed?.has(member) ?? false) && !renamedInPlace.has(member),
+  );
+}
+
+function parentDirectory(path: string): string {
+  return posix.dirname(path) === "." ? "." : posix.dirname(path);
 }
 
 function applicableLimit(
@@ -183,7 +193,7 @@ function operationsForDirectory(
         ...("destinationPath" in operation ? [operation.destinationPath] : []),
       ];
       return paths.some((path) => {
-        const parent = posix.dirname(path) === "." ? "." : posix.dirname(path);
+        const parent = parentDirectory(path);
         return directory === "." || parent === directory || parent.startsWith(`${directory}/`);
       });
     })
@@ -235,6 +245,14 @@ export function evaluateDocumentLayout(input: {
       projectedPaths.add(operation.destinationPath);
     } else projectedPaths.add(operation.path);
   }
+  const renamedInPlace = new Set(
+    operations.flatMap((operation) =>
+      "destinationPath" in operation &&
+      parentDirectory(operation.path) === parentDirectory(operation.destinationPath)
+        ? [operation.destinationPath]
+        : [],
+    ),
+  );
   const observedMembers = members(snapshot.map((entry) => entry.path));
   const projectedMembers = members(projectedPaths);
   const observed = counts(observedMembers);
@@ -269,6 +287,7 @@ export function evaluateDocumentLayout(input: {
       receivesMembers(
         observedMembers.direct.get(directory),
         projectedMembers.direct.get(directory),
+        renamedInPlace,
       ),
     );
     record(

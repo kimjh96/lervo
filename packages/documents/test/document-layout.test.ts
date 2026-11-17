@@ -218,6 +218,28 @@ describe("projected document layout", () => {
     ]);
   });
 
+  it("permits a rename inside an over-limit directory", () => {
+    const rename = evaluateDocumentLayout({
+      snapshot: [entry("README.md"), entry("notes/a.md"), entry("notes/b.md"), entry("notes/c.md")],
+      operations: [
+        {
+          operationId: "rename-a",
+          action: "move_update",
+          path: "notes/a.md",
+          destinationPath: "notes/renamed.md",
+          contentHash: `sha256:${"b".repeat(64)}`,
+        },
+      ],
+      policy,
+      roles: defaultRepositoryDocumentPolicy.roles,
+    });
+    expect(rename.status).toBe("bounded");
+    expect(rename.blockers).toEqual([]);
+    expect(rename.advisories).toEqual([
+      expect.objectContaining({ directory: "notes", observed: 3, projected: 3 }),
+    ]);
+  });
+
   it("names the directory, counts, and limit of a capacity finding", () => {
     expect(
       describeDocumentLayoutFinding({
