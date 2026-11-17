@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fdbfd75dd82e8152104d3e4f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read systemd drop-ins for Node runtime retention, retire runtimes only in the planned lervo upgrade stage instead of during Node onboarding and rollback, and escape a literal $ in systemd service commands."
