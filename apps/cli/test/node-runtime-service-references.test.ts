@@ -156,6 +156,50 @@ describe("runtime retention service references", () => {
     });
   }
 
+  it("protects every runtime a systemd drop-in names, including a PATH entry", async () => {
+    const fixture = await host("linux");
+    await installFleet(fixture);
+    const dropIns = resolve(fixture.services, "lervo-node-test.service.d");
+    await mkdir(dropIns);
+    await writeFile(
+      resolve(dropIns, "20-knowledge-provider-path.conf"),
+      `[Service]\nEnvironment="PATH=/usr/bin:${resolve(fixture.root, name(7))}:/bin"\n`,
+    );
+    await mkdir(resolve(fixture.services, "service.d"));
+    await writeFile(
+      resolve(fixture.services, "service.d", "10-tools.conf"),
+      `[Service]\nEnvironment="PATH=${resolve(fixture.root, name(6))}"\n`,
+    );
+    const result = await plan(fixture);
+    expect(result.disposition).toBe("safe_apply");
+    expect(result.candidates.map((item) => item.name)).toEqual([name(5)]);
+  });
+
+  it.each([
+    [
+      "resets the command",
+      (launcher: string) => `[Service]\nExecStart=\nExecStart="${launcher}"\n`,
+    ],
+    [
+      "names another configuration",
+      () => `[Service]\nEnvironment="ARGS=--config /elsewhere.json"\n`,
+    ],
+  ])("defers retention when a systemd drop-in %s", async (_, conf) => {
+    const fixture = await host("linux");
+    await installFleet(fixture);
+    const dropIns = resolve(fixture.services, "lervo-node-test.service.d");
+    await mkdir(dropIns);
+    await writeFile(
+      resolve(dropIns, "override.conf"),
+      conf(resolve(fixture.root, name(5), `lervo-node-launcher-${name(5).slice(0, 12)}`)),
+    );
+    expect(await plan(fixture)).toMatchObject({
+      disposition: "deferred",
+      reason: "runtime_references_unavailable",
+      candidates: [],
+    });
+  });
+
   it("reads the configuration after subcommand words, quotes, escapes, and percent signs", () => {
     const config = '/home/o\'wner/50% "state"/config.json';
     for (const manager of ["systemd", "launchd"] as const)

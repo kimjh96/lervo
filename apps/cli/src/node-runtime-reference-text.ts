@@ -18,7 +18,9 @@ export function runtimeReferences(
     let start = value.indexOf(prefix);
     while (start >= 0) {
       const name = value.slice(start + prefix.length, start + prefix.length + 16);
-      if (/^[a-f0-9]{16}$/u.test(name) && value[start + prefix.length + 16] === "/")
+      // A path inside the runtime, or the runtime directory itself as a PATH entry or argument.
+      const next = value[start + prefix.length + 16];
+      if (/^[a-f0-9]{16}$/u.test(name) && (next === undefined || !/[\w.-]/u.test(next)))
         references.add(name);
       start = value.indexOf(prefix, start + prefix.length);
     }
