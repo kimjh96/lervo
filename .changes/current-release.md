@@ -1,10 +1,7 @@
-<!-- lervo-release package="@lervo/cli" version="0.24.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.24.1" schema="1" -->
 
 ## What's changed
 
-- Add lervo host upgrade to install a verified published CLI release on one host, with activation ids and rollback.
-- Every durable knowledge convergence write has an exact source fence right before it, including a fence right before settled outputs are staged.
-- Knowledge convergence classifies each source fence as an exact effect fence or a current decision check; every check still captures in full.
-- Report each knowledge resident cycle's Git processes and CPU by stage, read committed blob hashes in one Git process, and keep the repository watch hint from rewriting the index.
-- Reuse one SSH connection for every repository replica peer step, back off a held divergence and an unreachable peer per replica, and report peers that launch wsl.exe for every step.
-- Run fewer Git processes in knowledge scans and convergence fences without weakening any source check.
+- Admit lervo upgrade ahead of waiting background knowledge cycles, and stop a running cycle at its next stage boundary while an upgrade waits.
+- Restart the repository replica coordinator during lervo upgrade when its running process did not load the runtime current names, and report it as repository_replica_service_stale_runtime on macOS and Linux.
+- Stop the provider source poll before a knowledge review records its observation, so no source check runs between the exact fence and the effects it guards.

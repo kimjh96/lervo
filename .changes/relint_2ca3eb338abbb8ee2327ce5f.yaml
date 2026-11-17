@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2ca3eb338abbb8ee2327ce5f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Restart the repository replica coordinator during lervo upgrade when its running process did not load the runtime current names, and report it as repository_replica_service_stale_runtime on macOS and Linux."
