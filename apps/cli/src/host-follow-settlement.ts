@@ -1,5 +1,9 @@
 import { errorCode } from "./command-error-output.js";
-import { readActivationJournal, type HostActivationRecord } from "./host-cli-activation.js";
+import {
+  readActivationJournal,
+  withHostUpgradeLock,
+  type HostActivationRecord,
+} from "./host-cli-activation.js";
 import type {
   HostFollowCycleDependencies,
   HostFollowStepResult,
@@ -14,6 +18,7 @@ import {
   type HostFollowState,
   type RepositoryUpgradeOutcome,
 } from "./host-follow-state.js";
+import { reconcilePendingActivations } from "./host-link-activation.js";
 import { runRepositoryPass } from "./host-repository-pass.js";
 import { rollbackActivation } from "./host-upgrade-rollback.js";
 
@@ -34,25 +39,12 @@ export async function handoverDue(
   return running !== null && running !== active.packageRoot;
 }
 
-/**
- * The follower's own activation of an intent: a release record for the tag, made since the intent
- * was written, that is still `active`. It is found even when the install threw after the switch.
- */
+/** The follower's own activation of an intent: the journal record with exactly its id. */
 export function activationOfIntent(
   journal: readonly HostActivationRecord[],
   inFlight: HostFollowInFlight,
 ): HostActivationRecord | undefined {
-  if (inFlight.activationId !== null)
-    return journal.find((record) => record.activationId === inFlight.activationId);
-  return journal
-    .filter(
-      (record) =>
-        record.kind === "release" &&
-        record.outcome === "active" &&
-        record.release?.tag === inFlight.tag &&
-        record.activatedAt >= inFlight.startedAt,
-    )
-    .at(-1);
+  return journal.find((record) => record.activationId === inFlight.activationId);
 }
 
 const outcomeRank: Record<RepositoryUpgradeOutcome, number> = {
@@ -171,11 +163,19 @@ export async function upgradeRepositories(
 async function rollBack(
   dependencies: HostFollowCycleDependencies,
   initial: HostFollowState,
-  inFlight: HostFollowInFlight & { activationId: string; rollback: { code: string } },
+  inFlight: HostFollowInFlight & { rollback: { code: string } },
 ): Promise<HostFollowStepResult> {
   const base = { tag: inFlight.tag, activationId: inFlight.activationId };
+  // A process that rolled back and died before recording it finds its rollback in the journal;
+  // retrying would be refused as superseded and skip the converging pass.
+  const done = (await readActivationJournal(dependencies.upgrade.layout)).some(
+    (record) =>
+      record.kind === "rollback" &&
+      record.outcome === "active" &&
+      record.rolledBackActivationId === inFlight.activationId,
+  );
   try {
-    await rollbackActivation(inFlight.activationId, true, dependencies.upgrade);
+    if (!done) await rollbackActivation(inFlight.activationId, true, dependencies.upgrade);
   } catch (error) {
     const code = errorCode(error);
     if (code === "host_upgrade_in_progress")
@@ -220,15 +220,27 @@ export async function settleInFlight(
   active: ActiveCli,
 ): Promise<HostFollowStepResult> {
   const { layout } = dependencies.upgrade;
-  const intent = initial.inFlight as HostFollowInFlight;
-  const record = activationOfIntent(await readActivationJournal(layout), intent);
-  if (record === undefined || (record.outcome !== "active" && intent.rollback === null))
+  const inFlight = initial.inFlight as HostFollowInFlight;
+  const base = { tag: inFlight.tag, activationId: inFlight.activationId };
+  let record = activationOfIntent(await readActivationJournal(layout), inFlight);
+  if (record?.outcome === "pending") {
+    // A crash between the link switch and the journal settling: ADR-0571 reconciliation restores
+    // or abandons it under the host upgrade lock, never leaving switched links unowned.
+    try {
+      await withHostUpgradeLock(layout, () => reconcilePendingActivations(layout));
+    } catch (error) {
+      const code = errorCode(error);
+      if (code === "host_upgrade_in_progress")
+        return { state: initial, step: { outcome: "busy", ...base, code } };
+      throw error;
+    }
+    record = activationOfIntent(await readActivationJournal(layout), inFlight);
+  }
+  if (record === undefined || (record.outcome !== "active" && inFlight.rollback === null))
     return {
       state: { ...initial, inFlight: null },
-      step: { outcome: "install_abandoned", tag: intent.tag },
+      step: { outcome: "install_abandoned", ...base },
     };
-  const inFlight = { ...intent, activationId: record.activationId };
-  const base = { tag: inFlight.tag, activationId: inFlight.activationId };
   let state: HostFollowState = { ...initial, inFlight };
   if (inFlight.rollback !== null)
     return rollBack(dependencies, state, { ...inFlight, rollback: inFlight.rollback });

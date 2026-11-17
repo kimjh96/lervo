@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync } from "node:fs";
-import { mkdir, readlink, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readlink, rm, writeFile } from "node:fs/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -8,6 +8,7 @@ import { runFollowCycle } from "../src/host-follow-cycle.js";
 import { readActiveCli } from "../src/host-follow-runtime.js";
 import { readFollowState, writeFollowControl, writeFollowState } from "../src/host-follow-state.js";
 import { applyReleaseUpgrade } from "../src/host-upgrade.js";
+import { rollbackActivation } from "../src/host-upgrade-rollback.js";
 import {
   cleanDirectories,
   followHarness,
@@ -27,6 +28,14 @@ async function settledHarness(): Promise<FollowHarness> {
   harness.calls.splice(0);
   return harness;
 }
+
+const intent = (tag: string, activationId: string) => ({
+  tag,
+  activationId,
+  startedAt: "2026-11-17T00:00:00.000Z",
+  rollback: null,
+  interruptions: 0,
+});
 
 const readinessFailsOn =
   (version: string): RepositoryBehavior =>
@@ -252,31 +261,96 @@ describe("runFollowCycle", () => {
     expect((await readFollowState(harness.layout)).inFlight).toBeNull();
   });
 
-  it("finds its activation in the journal when a crash came after the link switch", async () => {
+  it("owns only the activation id its intent chose before the install", async () => {
     const harness = await settledHarness();
     harness.releases.push(release("9.9.10"));
+    const intended = `hact_${"f".repeat(24)}`;
     const state = await readFollowState(harness.layout);
-    // The intent was written, the links switched, and the process died before recording the id.
+    // The intent was written, the links switched, and the process died before settling.
     await writeFollowState(harness.layout, {
       ...state,
-      inFlight: {
-        tag: "v9.9.10",
-        activationId: null,
-        startedAt: "2026-11-17T00:00:00.000Z",
-        rollback: null,
-        interruptions: 0,
-      },
+      inFlight: intent("v9.9.10", intended),
     });
-    const installed = await applyReleaseUpgrade(harness.source, "v9.9.10", harness.upgrade);
-    if (installed.status !== "activated") throw new Error("expected an activation");
+    await applyReleaseUpgrade(harness.source, "v9.9.10", {
+      ...harness.upgrade,
+      newActivationId: () => intended,
+    });
     harness.behavior.current = readinessFailsOn("9.9.10");
     expect(await runFollowCycle(harness.dependencies)).toMatchObject({
       outcome: "rolled_back",
-      activationId: installed.activation.activationId,
+      activationId: intended,
     });
     expect((await readFollowState(harness.layout)).failedTags.map((entry) => entry.tag)).toEqual([
       "v9.9.10",
     ]);
+  });
+
+  it("never adopts the owner's manual activation of the tag a stale intent names", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    // The follower was stopped during its install; its chosen id never reached the journal.
+    const state = await readFollowState(harness.layout);
+    await writeFollowState(harness.layout, {
+      ...state,
+      inFlight: intent("v9.9.10", `hact_${"e".repeat(24)}`),
+    });
+    const manual = await applyReleaseUpgrade(harness.source, "v9.9.10", harness.upgrade);
+    if (manual.status !== "activated") throw new Error("expected an activation");
+    harness.behavior.current = readinessFailsOn("9.9.10");
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "install_abandoned",
+    });
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "handover" });
+    await harness.runActive();
+    const reported = await runFollowCycle(harness.dependencies);
+    expect(reported).toMatchObject({ outcome: "repositories_upgraded" });
+    expect(reported.pass?.outcome).toBe("host_failure");
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.10");
+    expect((await readFollowState(harness.layout)).failedTags).toEqual([]);
+  });
+
+  it("reconciles its own pending record instead of leaving switched links unowned", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    const intended = `hact_${"d".repeat(24)}`;
+    await applyReleaseUpgrade(harness.source, "v9.9.10", {
+      ...harness.upgrade,
+      newActivationId: () => intended,
+    });
+    // A crash between the link switch and the journal settling leaves the record pending.
+    const journal = JSON.parse(await readFile(harness.layout.journalPath, "utf8"));
+    journal.activations.at(-1).outcome = "pending";
+    await writeFile(harness.layout.journalPath, JSON.stringify(journal));
+    const state = await readFollowState(harness.layout);
+    await writeFollowState(harness.layout, { ...state, inFlight: intent("v9.9.10", intended) });
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "install_abandoned",
+      activationId: intended,
+    });
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.9");
+    expect((await readActivationJournal(harness.layout)).at(-1)).toMatchObject({
+      activationId: intended,
+      outcome: "restored",
+    });
+  });
+
+  it("converges after a rollback that finished before a crash recorded it", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    const installed = await applyReleaseUpgrade(harness.source, "v9.9.10", harness.upgrade);
+    if (installed.status !== "activated") throw new Error("expected an activation");
+    const id = installed.activation.activationId;
+    const state = await readFollowState(harness.layout);
+    await writeFollowState(harness.layout, {
+      ...state,
+      inFlight: { ...intent("v9.9.10", id), rollback: { code: "node_fleet_readiness_timeout" } },
+    });
+    await rollbackActivation(id, true, harness.upgrade);
+    const result = await runFollowCycle(harness.dependencies);
+    expect(result).toMatchObject({ outcome: "rolled_back", activationId: id });
+    expect(result.pass?.version).toBe("9.9.9");
+    expect(harness.calls.map((call) => call.version)).toEqual(["9.9.9", "9.9.9"]);
+    expect((await readFollowState(harness.layout)).inFlight).toBeNull();
   });
 
   it("keeps a healthy release whose post-activation pruning failed", async () => {

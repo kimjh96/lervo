@@ -68,10 +68,10 @@ export interface HostFollowState {
   failedTags: HostFollowFailedTag[];
   /**
    * Written before the follower installs a release and kept until its repository pass settles,
-   * so any later process finishes it: `activationId` is null until the install returns or the
-   * journal shows the activation, `rollback` names the host failure while the rollback still
-   * waits for the host upgrade lock, and `interruptions` counts passes cut short by something
-   * other than a stop request.
+   * so any later process finishes it: `activationId` is chosen before the install and given to
+   * it, so only that exact journal record is ever the follower's own; `rollback` names the host
+   * failure while the rollback still waits for the host upgrade lock, and `interruptions` counts
+   * passes cut short by something other than a stop request.
    */
   inFlight: HostFollowInFlight | null;
   /** Consecutive failed installs of one tag; the tag fails after a bounded count. */
@@ -81,7 +81,7 @@ export interface HostFollowState {
 
 export interface HostFollowInFlight {
   tag: string;
-  activationId: string | null;
+  activationId: string;
   startedAt: string;
   rollback: { code: string } | null;
   interruptions: number;
@@ -166,7 +166,7 @@ function validState(value: unknown): value is HostFollowState {
     (inFlight === null ||
       (isRecord(inFlight) &&
         typeof inFlight.tag === "string" &&
-        nullableString(inFlight.activationId) &&
+        typeof inFlight.activationId === "string" &&
         typeof inFlight.startedAt === "string" &&
         (inFlight.rollback === null ||
           (isRecord(inFlight.rollback) && typeof inFlight.rollback.code === "string")) &&

@@ -47,6 +47,7 @@ async function installFailed(
   state: HostFollowState,
   tag: string,
   code: string,
+  intendedActivationId: string,
 ): Promise<HostFollowStepResult> {
   const now = dependencies.upgrade.now().toISOString();
   const kind = classifyInstallFailure(code);
@@ -66,12 +67,11 @@ async function installFailed(
   }
   if (kind === "waiting") return { state, step: { outcome: "waiting", tag, code } };
   if (kind === "host_blocked") return { state, step: { outcome: "host_blocked", tag, code } };
-  const restored = ["host_upgrade_health_failed", "host_upgrade_switch_failed"].includes(code)
-    ? (await readActivationJournal(dependencies.upgrade.layout).catch(() => []))
-        .filter((record) => record.release?.tag === tag && record.outcome === "restored")
-        .at(-1)
-    : undefined;
-  const activationId = restored?.activationId ?? null;
+  // A failed health gate or link switch restored the links under the follower's own record.
+  const restored = (await readActivationJournal(dependencies.upgrade.layout).catch(() => [])).some(
+    (record) => record.activationId === intendedActivationId && record.outcome === "restored",
+  );
+  const activationId = restored ? intendedActivationId : null;
   return {
     state: withFailedTag(
       { ...state, installFailures: null },
@@ -82,9 +82,10 @@ async function installFailed(
 }
 
 /**
- * Installs one release under a recorded intent, then settles it. The intent is written before
- * the install, so a throw or crash after the links switched still leaves the activation owned:
- * its journal record is found by tag and time, and the pass and any rollback follow from it.
+ * Installs one release under a recorded intent, then settles it. The intent and its activation id
+ * are written before the install, which records exactly that id, so a throw or crash after the
+ * links switched still leaves the activation owned, and an activation the owner made by hand
+ * never is.
  */
 async function install(
   dependencies: HostFollowCycleDependencies,
@@ -92,9 +93,10 @@ async function install(
   tag: string,
 ): Promise<HostFollowStepResult> {
   const { layout } = dependencies.upgrade;
+  const activationId = dependencies.upgrade.newActivationId();
   const intent = {
     tag,
-    activationId: null,
+    activationId,
     startedAt: dependencies.upgrade.now().toISOString(),
     rollback: null,
     interruptions: 0,
@@ -103,19 +105,26 @@ async function install(
   await writeFollowState(layout, state);
   let installed;
   try {
-    installed = await applyReleaseUpgrade(dependencies.source, tag, dependencies.upgrade);
+    installed = await applyReleaseUpgrade(dependencies.source, tag, {
+      ...dependencies.upgrade,
+      newActivationId: () => activationId,
+    });
   } catch (error) {
     const owned = activationOfIntent(await readActivationJournal(layout).catch(() => []), intent);
-    if (owned === undefined)
-      return installFailed(dependencies, { ...state, inFlight: null }, tag, errorCode(error));
+    if (owned === undefined || (owned.outcome !== "active" && owned.outcome !== "pending"))
+      return installFailed(
+        dependencies,
+        { ...state, inFlight: null },
+        tag,
+        errorCode(error),
+        activationId,
+      );
     state = { ...state, installFailures: null };
     return settleInFlight(dependencies, state, await readActiveCli(layout));
   }
   state = { ...state, installFailures: null };
   if (installed.status === "current")
     return { state: { ...state, inFlight: null }, step: { outcome: "current", tag } };
-  state = { ...state, inFlight: { ...intent, activationId: installed.activation.activationId } };
-  await writeFollowState(layout, state);
   return settleInFlight(dependencies, state, await readActiveCli(layout));
 }
 
