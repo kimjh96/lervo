@@ -21,7 +21,7 @@ The follower writes two files in `<cli>`. Each has one writer and is replaced at
 - `lastOutcome`: `at`, `outcome`, `tag`, and `code`.
 - `failedTags`: the newest 16 entries of `tag`, `failedAt`, `code`, and `activationId`.
 - `inFlight`: the intent written before an install, with `tag`, `activationId` (chosen before the install and given to it), `startedAt`, `rollback` (`code` while a rollback waits), and `interruptions`.
-- `installFailures`: `tag`, `count`, and `code` of consecutive installer failures.
+- `installFailures`: `tag`, `count`, and `code` of consecutive installer failures and abandoned installs (`host_follow_install_abandoned`). The tag fails at the third.
 - `lastPass`: `cliTarget`, `version`, `finishedAt`, `outcome`, and one entry per repository. Each entry holds `repositoryRoot`, `outcome`, `status`, `code`, `rounds`, `appliedStages`, `pendingStages`, `planId`, `attempts`, `nextAttemptAt`, `waitMs`, `applyMs`, and `elapsedMs`. `waitMs` and `applyMs` are null when no receipt carried `timing`.
 
 `host-follow-control.json` is written only by `--pause`, `--resume`, and `--pin`. It holds `schemaVersion` 1, `paused`, `pinnedTag`, and `changedAt`. `--resume` clears both the pause and the pin.
@@ -46,6 +46,7 @@ A `--once` run exits 1 for `host_blocked`, `release_failed`, `rolled_back`, `rol
 - `host_follow_repository_unknown`: no `--repository`, configuration, journal release record, or follower state names the coordinate.
 - `host_follow_cli_missing`: service install found no managed `lervo` link to run.
 - `host_follow_service_unavailable`: the installed service did not stay active.
+- `host_follow_install_abandoned`: an install of the tag left no active record of its own, for example after a crash whose pending record was restored; the third in a row fails the tag.
 - `host_follow_repository_upgrade_interrupted`: a third `lervo upgrade` of one intent died from a signal the follower did not send; the follower treats it as a host failure.
 
 Repository entries in `lastPass` can also carry these codes:

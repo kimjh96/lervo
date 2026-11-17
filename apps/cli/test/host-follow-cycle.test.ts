@@ -334,6 +334,39 @@ describe("runFollowCycle", () => {
     });
   });
 
+  it("fails a tag whose install a crash keeps abandoning, after three attempts", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    const outcomes: unknown[] = [];
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const intended = `hact_${String(attempt).repeat(24)}`;
+      await applyReleaseUpgrade(harness.source, "v9.9.10", {
+        ...harness.upgrade,
+        newActivationId: () => intended,
+      });
+      // Something kills the follower between the link switch and the journal settling.
+      const journal = JSON.parse(await readFile(harness.layout.journalPath, "utf8"));
+      journal.activations.at(-1).outcome = "pending";
+      await writeFile(harness.layout.journalPath, JSON.stringify(journal));
+      const state = await readFollowState(harness.layout);
+      await writeFollowState(harness.layout, { ...state, inFlight: intent("v9.9.10", intended) });
+      const result = await runFollowCycle(harness.dependencies);
+      outcomes.push([result.outcome, result.code, result.backoff]);
+      expect((await readActiveCli(harness.layout)).version).toBe("9.9.9");
+    }
+    expect(outcomes).toEqual([
+      ["install_abandoned", "host_follow_install_abandoned", 1],
+      ["install_abandoned", "host_follow_install_abandoned", 2],
+      ["release_failed", "host_follow_install_abandoned", 0],
+    ]);
+    const downloads = harness.source.downloads;
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "release_failed_on_host",
+      tag: "v9.9.10",
+    });
+    expect(harness.source.downloads).toBe(downloads);
+  });
+
   it("converges after a rollback that finished before a crash recorded it", async () => {
     const harness = await settledHarness();
     harness.releases.push(release("9.9.10"));

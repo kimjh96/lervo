@@ -8,7 +8,7 @@ import type {
   HostFollowCycleDependencies,
   HostFollowStepResult,
 } from "./host-follow-cycle-contract.js";
-import { scheduleRepositoryRetry } from "./host-follow-policy.js";
+import { FOLLOW_INSTALL_FAILURE_LIMIT, scheduleRepositoryRetry } from "./host-follow-policy.js";
 import { pointFollowRuntime, readActiveCli, type ActiveCli } from "./host-follow-runtime.js";
 import {
   withFailedTag,
@@ -208,6 +208,34 @@ async function rollBack(
 }
 
 /**
+ * An intent with no active record of its own: the install never switched, or a crash left a
+ * pending record that reconciliation restored. The tag is installed again at the next poll, but an
+ * abandoned install counts against it like an installer failure, so a host where something keeps
+ * killing the follower in that window marks the tag failed after FOLLOW_INSTALL_FAILURE_LIMIT.
+ */
+function abandonInstall(
+  dependencies: HostFollowCycleDependencies,
+  initial: HostFollowState,
+  inFlight: HostFollowInFlight,
+): HostFollowStepResult {
+  const { tag, activationId } = inFlight;
+  const code = "host_follow_install_abandoned";
+  const count = initial.installFailures?.tag === tag ? initial.installFailures.count + 1 : 1;
+  if (count < FOLLOW_INSTALL_FAILURE_LIMIT)
+    return {
+      state: { ...initial, inFlight: null, installFailures: { tag, count, code } },
+      step: { outcome: "install_abandoned", tag, activationId, code },
+    };
+  return {
+    state: withFailedTag(
+      { ...initial, inFlight: null, installFailures: null },
+      { tag, failedAt: dependencies.upgrade.now().toISOString(), code, activationId: null },
+    ),
+    step: { outcome: "release_failed", tag, activationId, code },
+  };
+}
+
+/**
  * ADR-0575: settles the release the follower installed, whichever process does it. The intent is
  * matched to its journal record; a pass with the active CLI then proves it on this host, or a host
  * failure marks the tag failed before the activation is rolled back by id. A stop request leaves
@@ -237,10 +265,7 @@ export async function settleInFlight(
     record = activationOfIntent(await readActivationJournal(layout), inFlight);
   }
   if (record === undefined || (record.outcome !== "active" && inFlight.rollback === null))
-    return {
-      state: { ...initial, inFlight: null },
-      step: { outcome: "install_abandoned", ...base },
-    };
+    return abandonInstall(dependencies, initial, inFlight);
   let state: HostFollowState = { ...initial, inFlight };
   if (inFlight.rollback !== null)
     return rollBack(dependencies, state, { ...inFlight, rollback: inFlight.rollback });

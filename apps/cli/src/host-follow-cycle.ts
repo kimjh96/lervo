@@ -119,7 +119,7 @@ async function install(
         errorCode(error),
         activationId,
       );
-    state = { ...state, installFailures: null };
+    // Settlement decides: a pending record it has to restore still counts against the tag.
     return settleInFlight(dependencies, state, await readActiveCli(layout));
   }
   state = { ...state, installFailures: null };
