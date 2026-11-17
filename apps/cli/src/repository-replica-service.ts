@@ -1,35 +1,32 @@
 import { createHash } from "node:crypto";
-import { lstat, readFile, realpath } from "node:fs/promises";
-import { homedir } from "node:os";
+import { lstat, readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { defaultNodeFleetRegistryPath, listNodeFleetInstances } from "@lervo/repository-registry";
+import { defaultNodeFleetRegistryPath } from "@lervo/repository-registry";
 
-// These release-tested service primitives are bundled into the installed CLI.
-// @ts-expect-error The repository service script intentionally remains plain ESM.
-import { manageRuntimeService } from "../../../scripts/distribution/manage-runtime-service.mjs";
 import {
   formatRuntimeServiceDefinition,
   runtimeServiceTargetPath,
   // @ts-expect-error The repository service script intentionally remains plain ESM.
 } from "../../../scripts/distribution/render-runtime-service.mjs";
 
+import { writeManagedUserService } from "./managed-user-service-write.js";
 import {
-  writeManagedUserService,
-  type ManagedServiceStatus,
-} from "./managed-user-service-write.js";
-import {
-  describeInstalledNodeLauncher,
-  materializeInstalledNodeLauncher,
-} from "./node-fleet-runtime-material.js";
-import {
-  legacyReplicaConfigPath,
   planReplicaConfigMigration,
   retireLegacyReplicaConfig,
   writeMigratedReplicaConfig,
   type ReplicaConfigMigration,
 } from "./repository-replica-config-migration.js";
 import { configuredReplicaPeerLauncher } from "./repository-replica-peer-launcher.js";
+import { observeReplicaProcessRuntime } from "./repository-replica-process-runtime.js";
+import {
+  REPOSITORY_REPLICA_SERVICE_LOCK_FILE,
+  withRepositoryReplicaServiceLock,
+} from "./repository-replica-service-lock.js";
+import {
+  defaultRepositoryReplicaServicePorts,
+  type RepositoryReplicaServicePorts,
+} from "./repository-replica-service-ports.js";
 import {
   currentNodeRuntimePayload,
   pointCurrentNodeRuntime,
@@ -43,56 +40,8 @@ const RUNTIME = "repository-replica";
 /** The coordinator configuration this stage manages a service for, in the user state directory. */
 export const REPOSITORY_REPLICA_CONFIG_FILE = "repository-replica-coordinator.json";
 
-export interface RepositoryReplicaServicePorts {
-  platform: NodeJS.Platform;
-  homeDirectory: string;
-  uid: number | null;
-  environment: NodeJS.ProcessEnv;
-  /** The `<hash16>` directory the runtime bundled with this CLI installs into. */
-  bundledRuntime(): Promise<string>;
-  materializeRuntime(): Promise<void>;
-  /** The pre-ADR-0483 coordinator configuration to migrate, or null when none may be read. */
-  legacyConfigPath: string | null;
-  /** Whether this host runs any registered Node, which makes it a replica peer candidate. */
-  hostRunsNodes(): Promise<boolean>;
-  nodeExecutable(): Promise<string>;
-  manage(args: string[], options: Record<string, unknown>): Promise<ManagedServiceStatus>;
-}
-
 function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
-}
-
-async function hostRunsNodes(environment: NodeJS.ProcessEnv): Promise<boolean> {
-  try {
-    return (await listNodeFleetInstances(defaultNodeFleetRegistryPath(environment))).length > 0;
-  } catch {
-    return false;
-  }
-}
-
-export function defaultRepositoryReplicaServicePorts(
-  home: string = homedir(),
-): RepositoryReplicaServicePorts {
-  return {
-    platform: process.platform,
-    homeDirectory: home,
-    uid: typeof process.getuid === "function" ? process.getuid() : null,
-    environment: process.env,
-    bundledRuntime: async () => {
-      return (await describeInstalledNodeLauncher(home)).hash.slice(
-        "sha256:".length,
-        "sha256:".length + 16,
-      );
-    },
-    materializeRuntime: async () => {
-      await materializeInstalledNodeLauncher(home);
-    },
-    legacyConfigPath: legacyReplicaConfigPath(home, process.env),
-    hostRunsNodes: () => hostRunsNodes(process.env),
-    nodeExecutable: () => realpath(process.execPath),
-    manage: (args, options) => manageRuntimeService(args, options) as Promise<ManagedServiceStatus>,
-  };
 }
 
 /**
@@ -108,7 +57,8 @@ export interface RepositoryReplicaServiceStage {
   pointerAction: "none" | "create" | "update";
   manager: "launchd" | "systemd" | null;
   serviceIdentity: string | null;
-  action: "none" | "install" | "activate" | "upgrade";
+  /** `restart`: ADR-0573, the unchanged definition's running process loaded another runtime. */
+  action: "none" | "install" | "activate" | "upgrade" | "restart";
   definitionHash: string | null;
   installedDefinitionHash: string | null;
   /** `migrate`: the legacy `~/.lervo` configuration moves into the user state directory. */
@@ -300,10 +250,21 @@ async function prepareReplicaService(
           "The user service manager is unavailable. Run `lervo upgrade` from the logged-in user's session.",
       },
     ]);
-  if (installedDefinitionHash === definitionHash)
-    return status.active && status.enabled !== false
+  if (installedDefinitionHash === definitionHash) {
+    if (!status.active || status.enabled === false)
+      return prepared("safe_apply", "replica_service_inactive", "activate");
+    // ADR-0573: an unchanged definition names `current`, so only a restart loads a new runtime.
+    const processRuntime = await observeReplicaProcessRuntime({
+      status,
+      runtime,
+      homeDirectory: ports.homeDirectory,
+      platform: ports.platform,
+      observeProcess: ports.observeProcess,
+    });
+    return processRuntime === "current"
       ? prepared("current", "replica_service_current", "none")
-      : prepared("safe_apply", "replica_service_inactive", "activate");
+      : prepared("safe_apply", "replica_service_stale_runtime", "restart");
+  }
   if (installed === null)
     return status.active || status.enabled === true
       ? prepared("blocked", "service_state_conflict", "none", [
@@ -333,13 +294,28 @@ export interface RepositoryReplicaServiceReceipt {
 }
 
 /**
- * Activates the bundled runtime as `current` with one rename, then installs, activates, or
- * replaces the coordinator service through the release-tested service manager. It re-plans
- * first and refuses a plan that changed since approval.
+ * Activates the bundled runtime as `current` with one rename, then installs, activates,
+ * replaces, or restarts the coordinator service through the release-tested service manager.
+ * It holds the host's replica service lock, re-plans inside it, and refuses a plan that changed
+ * since approval.
  */
 export async function applyRepositoryReplicaService(
   approved: RepositoryReplicaServiceStage,
   ports: RepositoryReplicaServicePorts = defaultRepositoryReplicaServicePorts(),
+): Promise<RepositoryReplicaServiceReceipt | null> {
+  // ADR-0573: upgrades in different repositories share this host's one coordinator service.
+  return withRepositoryReplicaServiceLock(
+    resolve(
+      dirname(defaultNodeFleetRegistryPath(ports.environment)),
+      REPOSITORY_REPLICA_SERVICE_LOCK_FILE,
+    ),
+    () => applyLockedReplicaService(approved, ports),
+  );
+}
+
+async function applyLockedReplicaService(
+  approved: RepositoryReplicaServiceStage,
+  ports: RepositoryReplicaServicePorts,
 ): Promise<RepositoryReplicaServiceReceipt | null> {
   const current = await prepareReplicaService(ports);
   if (current.stage.disposition === "current") return null;

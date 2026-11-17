@@ -87,7 +87,8 @@ export async function inspectTerminalLifecycle(
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  issues.push(...(await inspectTerminalRepositoryReplicaService()));
+  const replicaService = await inspectTerminalRepositoryReplicaService();
+  issues.push(...replicaService.issues);
   const workstreamStorage = await openProjectStorage(root);
   try {
     const current = await verifiedCurrentWorkstream(workstreamStorage);
@@ -203,6 +204,7 @@ export async function inspectTerminalLifecycle(
     repositoryRoot: root,
     issues,
     knowledgeAdvisories,
+    serviceAdvisories: replicaService.advisories,
     activation,
     runtimeActivation,
     activationReadiness: terminalActivationReadiness(runtimeActivation),

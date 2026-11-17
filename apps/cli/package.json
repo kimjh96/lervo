@@ -74,6 +74,7 @@
     "@lervo/live-trigger-contract": "workspace:*",
     "@lervo/live-trigger-sqlite": "workspace:*",
     "@lervo/node-runtime": "workspace:*",
+    "@lervo/node-work-admission": "workspace:*",
     "@lervo/operating-client": "workspace:*",
     "@lervo/orchestrator": "workspace:*",
     "@lervo/organization-deployment-contract": "workspace:*",

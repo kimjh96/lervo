@@ -85,6 +85,8 @@ export interface TerminalLifecycleInspection {
   issues: Array<{ code: string; command: string; detail?: string }>;
   /** Agent-owned document drift attention (ADR-0464); excluded from `status`. */
   knowledgeAdvisories?: Array<{ code: string; command: string; detail?: string }>;
+  /** Host service attention, such as an unreachable user manager (ADR-0573); excluded from `status`. */
+  serviceAdvisories?: Array<{ code: string; command: string; detail?: string }>;
   activation: TerminalActivationReceipt[];
   runtimeActivation: TerminalRuntimeActivation;
   activationReadiness: TerminalActivationReadiness;
