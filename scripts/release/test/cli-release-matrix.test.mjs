@@ -61,7 +61,7 @@ describe("CLI release matrix workflow", () => {
     assert.deepEqual(job.needs, ["plan", "native-runtime"]);
     assert.equal(job.if, "needs.plan.outputs.reuse == ''");
     assert.equal(job.strategy["fail-fast"], false);
-    assert.deepEqual(job.strategy.matrix.os, ["ubuntu-latest", "macos-latest", "windows-latest"]);
+    assert.deepEqual(job.strategy.matrix.os, ["ubuntu-latest", "macos-15", "windows-latest"]);
     assert.equal(job["timeout-minutes"], 20);
   });
 

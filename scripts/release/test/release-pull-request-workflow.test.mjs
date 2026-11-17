@@ -50,7 +50,7 @@ describe("CLI release in pull request workflow", () => {
     assert.match(workflow["run-name"], /^Prepare release in PR #/u);
     assert.doesNotMatch(source, /pull_request_target|NODE_AUTH_TOKEN|NPM_TOKEN|npm publish/u);
     const job = workflow.jobs.prepare;
-    assert.equal(job["runs-on"], "macos-latest");
+    assert.equal(job["runs-on"], "macos-15");
     assert.match(job.if, /github\.event\.label\.name == 'release'/u);
     assert.match(job.if, /pull_request\.head\.repo\.full_name == github\.repository/u);
     const [resolveStep, tooling, checkout] = job.steps;
