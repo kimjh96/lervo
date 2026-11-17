@@ -3,6 +3,7 @@
 Status: `accepted` (the host follower; Hub ordering, the Hub hint, and the Hub-wide pause are a later slice)
 Decision date: 2026-11-17
 Amends: [ADR-0571](0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (Stage 3; pruning after activation is best-effort), [ADR-0164](../operations/services/0164-user-runtime-service-management-boundary.md) (a `host-follow` user service)
+Amended by: [ADR-0577](0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (the launchd follower runs as `Standard`)
 Related: [ADR-0569](../release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md), [ADR-0573](0573-restart-a-replica-coordinator-that-runs-a-superseded-runtime.md), [ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md), [ADR-0214](../operations/services/0214-bounded-repository-upgrade-orchestration.md), [ADR-0488](../operations/services/0488-point-node-configurations-at-one-current-cli.md)
 
 ## Context

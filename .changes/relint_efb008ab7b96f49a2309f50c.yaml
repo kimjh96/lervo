@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_efb008ab7b96f49a2309f50c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Stop lervo upgrade --apply with knowledge_cycle_admission_lost when a stalled event loop let its full-cycle admission lapse to a background knowledge cycle, hold a 2-hour upgrade lease, and run the launchd host follower at standard priority."

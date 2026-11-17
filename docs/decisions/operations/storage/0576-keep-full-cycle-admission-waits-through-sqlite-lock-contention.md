@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-17
 Amends: [ADR-0574](../../distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md) (how the admission wait and release fail)
+Amended by: [ADR-0577](../../distribution/0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (renewal detects a lost lease)
 Related: [ADR-0509](0509-install-the-sqlite-busy-handler-before-any-other-statement.md) (busy handler first), [ADR-0484](../services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (upgrade exclusion)
 
 ## Context
