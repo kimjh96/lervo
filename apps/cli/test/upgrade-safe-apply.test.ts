@@ -6,8 +6,11 @@ import { registerAgent } from "@lervo/agent-workforce";
 import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { runCli } from "../src/main.js";
+import { runCli as runUnisolatedCli } from "../src/main.js";
 import * as terminalRuntime from "../src/terminal-runtime.js";
+import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
+
+const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
 
 const roots: string[] = [];
 

@@ -17,7 +17,10 @@ import { listAgents, registerAgent } from "@lervo/agent-workforce";
 import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runCli } from "../src/main.js";
+import { runCli as runUnisolatedCli } from "../src/main.js";
+import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
+
+const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
 
 /** Keeps upgrade applies off the developer host's real background-resident admission. */
 const isolatedAdmission = {

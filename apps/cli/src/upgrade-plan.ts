@@ -20,6 +20,7 @@ import {
   inspectRepositoryReplicaService,
   type RepositoryReplicaServiceStage,
 } from "./repository-replica-service.js";
+import { upgradeHost, type UpgradeHost } from "./upgrade-host.js";
 import { inspectRegisteredNodeUpgrade, type NodeUpgradeStage } from "./upgrade-node.js";
 import {
   inspectKnowledge,
@@ -153,7 +154,10 @@ export function knowledgeStageRefusedByMarker(
   return plan.stages.knowledge.reason === "knowledge_recovery_required";
 }
 
-export async function createRepositoryUpgradePlan(root: string): Promise<RepositoryUpgradePlan> {
+export async function createRepositoryUpgradePlan(
+  root: string,
+  host: UpgradeHost = upgradeHost(),
+): Promise<RepositoryUpgradePlan> {
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
   const version = readCliPackageVersion();
@@ -174,8 +178,8 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
         ? inspectKnowledge(repositoryRoot)
         : Promise.resolve(deferredKnowledge(deferralReason(knowledgeDeferral))),
       inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
-      inspectHostResidentService(),
-      inspectRepositoryReplicaService(),
+      inspectHostResidentService(host.hostService),
+      inspectRepositoryReplicaService(host.replicaService),
     ],
   );
   const nodeDeferral = deferringPrerequisite("node", { knowledge: knowledge.disposition });
@@ -194,7 +198,7 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
     terminal_integration: terminal.stage.disposition,
     node: nodeStage.disposition,
   });
-  const runtimeRetention = await planNodeRuntimeRetention();
+  const runtimeRetention = await planNodeRuntimeRetention(host.runtimeRetention);
   const dispositions: Record<UpgradeStageName, StageDisposition> = {
     runtime_retention: runtimeRetention.disposition,
     capabilities: capabilityDisposition,

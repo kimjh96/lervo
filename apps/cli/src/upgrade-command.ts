@@ -12,6 +12,7 @@ import {
   type RepositoryUpgradePlan,
 } from "./upgrade-plan.js";
 import { recordPresentedUpgradePlan, upgradePlanChangedFailure } from "./upgrade-plan-change.js";
+import { upgradeHost } from "./upgrade-host.js";
 import { withKnowledgeResidentExclusion } from "./upgrade-resident-exclusion.js";
 
 export type { RepositoryUpgradePlan } from "./upgrade-plan.js";
@@ -81,7 +82,10 @@ async function assertApprovedUpgrade(
 export async function runUpgradeCommand(
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "knowledgeMaterializationWait" | "knowledgeCycleAdmission"> = {},
+  services: Pick<
+    CliServices,
+    "knowledgeMaterializationWait" | "knowledgeCycleAdmission" | "upgradeHost"
+  > = {},
 ): Promise<number> {
   let values: {
     root?: string;
@@ -140,8 +144,12 @@ export async function runUpgradeCommand(
       io,
       timing: services.knowledgeMaterializationWait,
     });
+    const host = upgradeHost(services.upgradeHost);
     const plan = () =>
-      materialization.run(() => createRepositoryUpgradePlan(root), knowledgeStageRefusedByMarker);
+      materialization.run(
+        () => createRepositoryUpgradePlan(root, host),
+        knowledgeStageRefusedByMarker,
+      );
     if (!values.apply) {
       const initial = await plan();
       await recordPresentedUpgradePlan(initial);
@@ -157,7 +165,7 @@ export async function runUpgradeCommand(
         const initial = await plan();
         if (values.safe === true) assertSafeUpgrade(initial);
         else await assertApprovedUpgrade(initial, values.approval, roleBindingApprovals);
-        return applyRepositoryUpgrade(initial, roleBindingApprovals, materialization);
+        return applyRepositoryUpgrade(initial, roleBindingApprovals, materialization, host);
       },
     );
     io.stdout(

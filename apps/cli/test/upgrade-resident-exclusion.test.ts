@@ -8,7 +8,10 @@ import { canonicalJson } from "@lervo/repository-knowledge";
 import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runCli } from "../src/main.js";
+import { runCli as runUnisolatedCli } from "../src/main.js";
+import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
+
+const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
 
 const MARKER = ".lervo/state/knowledge/materialization-transaction";
 const roots: string[] = [];
@@ -172,13 +175,16 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     });
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
     const release = setTimeout(() => void cycle.release(), 300);
+    const stdout: string[] = [];
     const stderr: string[] = [];
     try {
-      // Only the order matters here: an exact plan refused under admission still held it first.
-      await runCli(["upgrade", "--apply", "--approval", approval, "--json"], io(root, [], stderr), {
-        knowledgeCycleAdmission: { directory, pollMilliseconds: 20 },
-      });
+      const code = await runCli(
+        ["upgrade", "--apply", "--approval", approval, "--json"],
+        io(root, stdout, stderr),
+        { knowledgeCycleAdmission: { directory, pollMilliseconds: 20 } },
+      );
       upgradeFinished = true;
+      expect(code, stdout.join("") + stderr.join("")).toBe(0);
       await resident;
     } finally {
       clearTimeout(release);

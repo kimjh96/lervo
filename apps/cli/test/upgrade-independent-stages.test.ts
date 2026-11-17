@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { runCli } from "../src/main.js";
+import { runCli as runUnisolatedCli } from "../src/main.js";
 import {
   applyTerminalIntegrationStage,
   planTerminalIntegrationStage,
@@ -13,6 +13,9 @@ import {
 import { inspectTerminalRepositoryKnowledge } from "../src/terminal-knowledge-lifecycle-inspection.js";
 import * as terminalRuntime from "../src/terminal-runtime.js";
 import { loadTerminalHookLauncher } from "../src/terminal-runtime.js";
+import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
+
+const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
 
 /** Keeps upgrade applies off the developer host's real background-resident admission. */
 const isolatedAdmission = {
