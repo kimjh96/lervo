@@ -3,7 +3,9 @@ import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
+import type { ConvergenceOwnerVerdict } from "../src/convergence-owner-verdict.js";
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
+import { readMaintenanceObservation } from "../src/maintenance-observation.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
 
@@ -79,5 +81,82 @@ it(
     const next = await worker();
     expect(next.status).toBe("processed");
     expect(stages()).toBeGreaterThan(0);
+  },
+);
+
+it(
+  "finishes the convergence stage in progress when an upgrade arrives during it, then stops (ADR-0574)",
+  { timeout: 120_000 },
+  async () => {
+    const f = await fixture(true);
+    fixtures.push(f);
+    const stages = () =>
+      f.events
+        .list({ limit: 1_000, types: ["repository.knowledge.stage.recorded"] })
+        .filter((event) => event.payload.state !== "queued").length;
+    // The upgrade starts waiting once the first convergence stage has run; until then no
+    // boundary sees it. A waiting upgrade is also a contending waiter.
+    let upgradeWaiting = false;
+    const waiting = async () => (upgradeWaiting ||= stages() > 0);
+    let boundariesBeforeConvergence = 0;
+    const result = await runAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "resident",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      shouldYield: waiting,
+      yieldToUpgrade: async () => {
+        if (stages() === 0) boundariesBeforeConvergence += 1;
+        return waiting();
+      },
+    });
+    expect(boundariesBeforeConvergence).toBeGreaterThan(0);
+    expect(stages()).toBe(1);
+    expect(result).toEqual({ status: "busy", reason: "knowledge_cycle_yielded_to_upgrade" });
+  },
+);
+
+it(
+  "stops a non-owner's read-only cycle at its next boundary for a waiting upgrade (ADR-0574)",
+  { timeout: 120_000 },
+  async () => {
+    const f = await fixture(true);
+    fixtures.push(f);
+    const verdict: ConvergenceOwnerVerdict = {
+      role: "waiting_owner",
+      reason: "convergence_owner_elsewhere",
+      mode: "hub",
+      hostHash: null,
+      hostLabel: null,
+      holder: null,
+      validUntil: null,
+      wakeAt: null,
+      grantedAt: null,
+      yieldUntil: null,
+      observedAt: new Date().toISOString(),
+    };
+    const run = (yieldToUpgrade: () => Promise<boolean>) =>
+      runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: "resident",
+        provider: "claude",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+        owner: async () => verdict,
+        yieldToUpgrade,
+      });
+    // The upgrade arrives after owner-turn capture, before retention and debt inspection.
+    let asked = 0;
+    const yielded = await run(async () => ++asked > 1);
+    expect(asked).toBe(2);
+    expect(yielded).toEqual({ status: "busy", reason: "knowledge_cycle_yielded_to_upgrade" });
+    expect(await readMaintenanceObservation(f.root, f.storage.manifest.projectId)).toBeNull();
+
+    const inspected = await run(async () => false);
+    expect(inspected.status).toBe("waiting_owner");
+    expect(await readMaintenanceObservation(f.root, f.storage.manifest.projectId)).toMatchObject({
+      source: "inspection",
+    });
   },
 );

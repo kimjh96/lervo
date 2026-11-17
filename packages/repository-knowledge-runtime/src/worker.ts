@@ -294,9 +294,11 @@ export async function runAutonomousKnowledgeWorker(input: {
     });
     // Owner-turn capture (ADR-0467) runs first: it is small, bounded per cycle, and its result is
     // what the next prompt shows. Its failure leaves the queue for a later cycle and blocks nothing.
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     const ownerTurns = await ownerTurnWork();
     // ADR-0545: the owner stated these rules, so no review command waits on the owner or an agent.
     // A failure leaves every candidate stored for the next cycle and blocks nothing.
+    if (await upgradeWaiting()) return YIELDED_TO_UPGRADE;
     await withProcessCostScope("owner_rules", async () =>
       input.applyOwnerStatedInstructions?.(),
     ).catch(() => undefined);
