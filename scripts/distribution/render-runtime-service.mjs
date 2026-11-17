@@ -220,6 +220,17 @@ function title(input) {
   return `Lervo Node ${input.instance}`;
 }
 
+/**
+ * ADR-0577: the launchd process type of each runtime. Residents yield to the owner's work, so
+ * they run as `Background`, and launchd keeps their CPU and I/O below interactive work. The
+ * follower runs `lervo upgrade`, which holds the host-wide upgrade exclusion and stops every
+ * resident until it ends; its children inherit its process type, so it runs as `Standard`.
+ * systemd units set no priority for any runtime, so systemd needs no counterpart.
+ */
+function launchdProcessType(runtime) {
+  return runtime === "host-follow" ? "Standard" : "Background";
+}
+
 function systemd(input) {
   const command = [
     ...[input.nodeExecutable, input.executable]
@@ -243,7 +254,7 @@ function launchd(input) {
   const runtimeArgumentLines = runtimeArguments(input)
     .map((value) => `    <string>${xml(value)}</string>\n`)
     .join("");
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n${runtimeArgumentLines}  </array>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>PATH</key>\n    <string>${path}</string>\n  </dict>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>Background</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n${logLines}</dict>\n</plist>\n`;
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n<plist version="1.0">\n<dict>\n  <key>Label</key>\n  <string>${label}</string>\n  <key>ProgramArguments</key>\n  <array>\n${nodeArgument}    <string>${xml(input.executable)}</string>\n${runtimeArgumentLines}  </array>\n  <key>EnvironmentVariables</key>\n  <dict>\n    <key>PATH</key>\n    <string>${path}</string>\n  </dict>\n  <key>RunAtLoad</key>\n  <true/>\n  <key>KeepAlive</key>\n  <dict>\n    <key>SuccessfulExit</key>\n    <false/>\n  </dict>\n  <key>ProcessType</key>\n  <string>${launchdProcessType(input.runtime)}</string>\n  <key>ThrottleInterval</key>\n  <integer>5</integer>\n  <key>Umask</key>\n  <integer>63</integer>\n${logLines}</dict>\n</plist>\n`;
 }
 
 function normalizeDefinitionInput(input) {
