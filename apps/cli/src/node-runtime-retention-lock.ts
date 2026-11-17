@@ -13,6 +13,19 @@ import { lstat, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
 
+const RUNTIME_LOCK_BUSY = "runtime_lock_busy";
+
+function runtimeLockBusy(): Error {
+  return Object.assign(new Error("Another runtime operation is active."), {
+    code: RUNTIME_LOCK_BUSY,
+  });
+}
+
+/** Whether acquiring the lock failed only because a live holder or a racing acquirer had it. */
+export function isRuntimeLockBusy(error: unknown): boolean {
+  return (error as { code?: unknown } | null)?.code === RUNTIME_LOCK_BUSY;
+}
+
 /** One host guard serializes lock recovery; the PID lock spans asynchronous runtime effects. */
 export async function withNodeRuntimeRetentionLock<T>(
   path: string,
@@ -29,7 +42,13 @@ export async function withNodeRuntimeRetentionLock<T>(
     throw new Error("Unsafe runtime lock guard.");
   const guard = openSqliteDatabase(guardPath, { busyTimeoutMs: 0 });
   try {
-    guard.exec("BEGIN IMMEDIATE");
+    try {
+      guard.exec("BEGIN IMMEDIATE");
+    } catch (error) {
+      // The guard is held only for the instant another process takes or recovers the lock.
+      if (/busy|locked/iu.test((error as Error).message)) throw runtimeLockBusy();
+      throw error;
+    }
     try {
       const previous = openSync(path, constants.O_RDONLY | constants.O_NOFOLLOW);
       let pid;
@@ -50,7 +69,7 @@ export async function withNodeRuntimeRetentionLock<T>(
       } catch (error) {
         dead = (error as NodeJS.ErrnoException).code === "ESRCH";
       }
-      if (!dead) throw new Error("Another runtime operation is active.");
+      if (!dead) throw runtimeLockBusy();
       rmSync(path);
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;

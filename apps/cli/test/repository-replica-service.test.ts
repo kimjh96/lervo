@@ -390,6 +390,25 @@ describe("stale coordinator runtime restart (ADR-0573)", () => {
     expect(restarts(manage)).toHaveLength(0);
   });
 
+  it("restarts once when two upgrades apply the same stale plan at the same time", async () => {
+    const { ports, manage } = await runningCoordinator({ bound: OLD, pointer: NEW });
+    const stage = await inspectRepositoryReplicaService(ports);
+    const restart = manage.getMockImplementation()!;
+    // A restart takes time, so the second apply arrives while the first still holds the host.
+    manage.mockImplementation(async (args: string[]) => {
+      if (args[args.indexOf("--action") + 1] === "restart")
+        await new Promise((done) => setTimeout(done, 400));
+      return restart(args);
+    });
+    const receipts = await Promise.all([
+      applyRepositoryReplicaService(stage, ports),
+      applyRepositoryReplicaService(stage, ports),
+    ]);
+    expect(receipts.filter((receipt) => receipt?.serviceChange === "restarted")).toHaveLength(1);
+    expect(receipts.filter((receipt) => receipt === null)).toHaveLength(1);
+    expect(restarts(manage)).toHaveLength(1);
+  });
+
   it("applies nothing when the coordinator already restarted onto the current runtime", async () => {
     const { ports, status, startProcess } = await runningCoordinator({ bound: OLD, pointer: NEW });
     const stage = await inspectRepositoryReplicaService(ports);

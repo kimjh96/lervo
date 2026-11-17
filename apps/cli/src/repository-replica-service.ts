@@ -20,6 +20,10 @@ import {
 import { configuredReplicaPeerLauncher } from "./repository-replica-peer-launcher.js";
 import { observeReplicaProcessRuntime } from "./repository-replica-process-runtime.js";
 import {
+  REPOSITORY_REPLICA_SERVICE_LOCK_FILE,
+  withRepositoryReplicaServiceLock,
+} from "./repository-replica-service-lock.js";
+import {
   defaultRepositoryReplicaServicePorts,
   type RepositoryReplicaServicePorts,
 } from "./repository-replica-service-ports.js";
@@ -292,11 +296,26 @@ export interface RepositoryReplicaServiceReceipt {
 /**
  * Activates the bundled runtime as `current` with one rename, then installs, activates,
  * replaces, or restarts the coordinator service through the release-tested service manager.
- * It re-plans first and refuses a plan that changed since approval.
+ * It holds the host's replica service lock, re-plans inside it, and refuses a plan that changed
+ * since approval.
  */
 export async function applyRepositoryReplicaService(
   approved: RepositoryReplicaServiceStage,
   ports: RepositoryReplicaServicePorts = defaultRepositoryReplicaServicePorts(),
+): Promise<RepositoryReplicaServiceReceipt | null> {
+  // ADR-0573: upgrades in different repositories share this host's one coordinator service.
+  return withRepositoryReplicaServiceLock(
+    resolve(
+      dirname(defaultNodeFleetRegistryPath(ports.environment)),
+      REPOSITORY_REPLICA_SERVICE_LOCK_FILE,
+    ),
+    () => applyLockedReplicaService(approved, ports),
+  );
+}
+
+async function applyLockedReplicaService(
+  approved: RepositoryReplicaServiceStage,
+  ports: RepositoryReplicaServicePorts,
 ): Promise<RepositoryReplicaServiceReceipt | null> {
   const current = await prepareReplicaService(ports);
   if (current.stage.disposition === "current") return null;
