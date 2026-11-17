@@ -47,5 +47,13 @@ it("uses the same native transfer for all packed platforms and attestation", asy
     expect(restore).toBeLessThan(job.steps.findIndex((step) => step.run === "pnpm build"));
   }
   expect(workflow.jobs["native-runtime"].if).toBe(workflow.jobs["packed-cli"].if);
-  expect((await read("release-preparation.yml")).jobs.reconcile["runs-on"]).toBe("macos-latest");
+  const preparation = await read("release-preparation.yml");
+  // Pending intent builds darwin native files on macOS; a tag-only reconcile runs on Linux.
+  expect(preparation.jobs.reconcile["runs-on"]).toBe("${{ needs.route.outputs.runner }}");
+  expect(preparation.jobs.reconcile.needs).toBe("route");
+  expect(preparation.jobs.route.if).toBe(preparation.jobs.reconcile.if);
+  const route = preparation.jobs.route.steps.at(-1).run;
+  expect(route).toContain("compgen -G '.changes/*.yaml'");
+  expect(route).toContain("runner=macos-latest");
+  expect(route).toContain("runner=ubuntu-latest");
 });
