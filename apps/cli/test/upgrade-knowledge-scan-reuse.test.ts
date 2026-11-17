@@ -100,7 +100,7 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
     expect(inspectionScans).toBe(1);
   }, 120_000);
 
-  it("does not inspect knowledge again when the approved plan left nothing to apply", async () => {
+  it("converges a source edit made after the plan inside the window in the same run", async () => {
     const root = await repository();
     await migrateUntilCurrent(root);
     // ADR-0539: an installed CLI publishes the host hook runtime at startup; runCli skips bin.ts.
@@ -113,7 +113,14 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
       stages: { knowledge: { disposition: string } };
     };
     expect(plan.stages.knowledge.disposition).not.toBe("safe_apply");
-    const inspections = vi.spyOn(stageInspection, "inspectKnowledge");
+    // A user, an agent, or a hook edits a source right after the plan inside the exclusion
+    // inspected knowledge, before the knowledge step runs.
+    const inspect = stageInspection.inspectKnowledge;
+    vi.spyOn(stageInspection, "inspectKnowledge").mockImplementationOnce(async (target) => {
+      const stage = await inspect(target);
+      await writeFile(resolve(root, "main.ts"), "export const value = false;\n");
+      return stage;
+    });
 
     const stdout: string[] = [];
     const stderr: string[] = [];
@@ -127,9 +134,6 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
       appliedStages?: string[];
     };
     expect(receipt.approvedPlanId, `${code} ${stdout.join("")}`).toBe(plan.planId);
-    expect(receipt.appliedStages).toEqual(["event_writer"]);
-    // The plan recreated inside the exclusion and the final plan; the knowledge step reuses the
-    // first, because no stage wrote before it and it had nothing to apply.
-    expect(inspections).toHaveBeenCalledTimes(2);
+    expect(receipt.appliedStages).toEqual(["knowledge_materialization", "event_writer"]);
   }, 120_000);
 });

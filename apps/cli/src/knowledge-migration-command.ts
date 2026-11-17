@@ -10,6 +10,7 @@ import {
   applyContinuationWorkstreamMigrationPlan,
   canonicalJson,
   createKnowledgeInstructionBridgePlan,
+  type RepositoryKnowledgeScan,
   type RepositoryLayoutMigrationPlan,
   createKnowledgeMigrationPlan,
   createContinuationWorkstreamMigrationPlan,
@@ -146,9 +147,10 @@ export async function runKnowledgeMigration(input: {
     const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
     // ADR-0578: the stage plans before the first write read one scan. Every apply recreates its
     // plan from a fresh scan and refuses a different plan ID, so the shared scan cannot go stale.
-    const { scan: preparedScan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, {
-      supplementalSources,
-    });
+    // An apply releases it first, so it never doubles the apply's peak memory.
+    let preparedScan: RepositoryKnowledgeScan | undefined = (
+      await scanConfiguredRepositoryKnowledge(repositoryRoot, { supplementalSources })
+    ).scan;
     if (input.mode === "migrate") {
       const projectStorage = await openProjectStorage(repositoryRoot);
       let continuation;
@@ -351,6 +353,7 @@ export async function runKnowledgeMigration(input: {
       if (decidedApprovals === undefined && values.apply !== layout.planId)
         throw new Error("The requested plan ID does not match the current repository layout plan.");
       const approvals = decidedApprovals ?? parseLayoutApprovals(values["approve-item"]);
+      preparedScan = undefined;
       const baselineValidation = await lintRepositoryKnowledge(layout.repositoryRoot, {
         supplementalSources,
       });
@@ -631,6 +634,7 @@ export async function runKnowledgeMigration(input: {
             .map(({ path, reason }) => ({ path, reason })),
         },
       );
+    preparedScan = undefined;
     const baselineValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
       supplementalSources,
     });

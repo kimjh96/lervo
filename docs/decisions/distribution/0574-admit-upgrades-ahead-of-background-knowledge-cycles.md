@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-17
 Amends: [ADR-0214](../operations/services/0214-bounded-repository-upgrade-orchestration.md) (apply acquires admission with priority), [ADR-0484](../operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (how an upgrade acquires the full-cycle admission), [ADR-0485](../knowledge/semantics/0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (where a holder yields)
-Amended by: [ADR-0576](../operations/storage/0576-keep-full-cycle-admission-waits-through-sqlite-lock-contention.md) (lock contention delays the wait and the release instead of failing them), [ADR-0577](0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (a 2-hour upgrade lease, confirmed before each stage), [ADR-0578](0578-plan-the-upgrade-knowledge-stage-from-one-scan.md) (closes the held materialization hand-off)
+Amended by: [ADR-0576](../operations/storage/0576-keep-full-cycle-admission-waits-through-sqlite-lock-contention.md) (lock contention delays the wait and the release instead of failing them), [ADR-0577](0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (a 2-hour upgrade lease, confirmed before each stage), [ADR-0578](0578-plan-the-upgrade-knowledge-stage-from-one-scan.md) (narrows the held materialization hand-off)
 Related: [ADR-0571](0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (Stage 2, S3)
 
 ## Context
@@ -56,7 +56,7 @@ A resident only waiting behind another resident keeps the [ADR-0485](../knowledg
 
 A later decision must name the process that runs the deferred work on every host, how it uses the new compiler, and how a plan reports it until it is done. Until then, ADR-0214's knowledge stage runs inside the upgrade window.
 
-[ADR-0578](0578-plan-the-upgrade-knowledge-stage-from-one-scan.md) closes this hand-off. Measurement showed that the long `lervo` stage on v0.25.1 applied no materialization: the knowledge stage was already current, and the time went to 7 repeated repository scans in each of three inspections. ADR-0578 removes the repeated work, and the knowledge stage stays inside the upgrade window.
+[ADR-0578](0578-plan-the-upgrade-knowledge-stage-from-one-scan.md) narrows this hand-off. Measurement showed that the long `lervo` stage on v0.25.1 applied no materialization: the knowledge stage was already current, and the time went to up to 7 repeated repository scans in each inspection. ADR-0578 removes the repeated work. A release that changes compiler output still materializes inside the window, so the hand-off stays open for that case.
 
 ## States, privacy, and failure meaning
 
@@ -68,7 +68,7 @@ No event, file, or column is added.
 
 ## Consequences
 
-An upgrade now waits at most for the stage the holder is in, instead of for one partial cycle per queued resident. Estimated, not measured: runs that only replace services drop from 1.9 to 3.5 minutes toward their apply time. The `lervo` runs keep their long knowledge stage (9.5 minutes of `knowledge_materialization` on the Mac, 11.1 minutes of apply on WSL), so the 12-minute target also needs the hand-off described above. ADR-0578 later found that time in repeated inspection scans and removed it instead. Between two upgrades, the plan-only `lervo upgrade` leaves a gap in which a resident can start a long stage.
+An upgrade now waits at most for the stage the holder is in, instead of for one partial cycle per queued resident. Estimated, not measured: runs that only replace services drop from 1.9 to 3.5 minutes toward their apply time. The `lervo` runs keep their long knowledge stage (9.5 minutes of `knowledge_materialization` on the Mac, 11.1 minutes of apply on WSL), so the 12-minute target also needs the hand-off described above. ADR-0578 later found that the v0.25.1 time went to repeated inspection scans and removed them. The Mac's 9.5 minutes on v0.24.x were a real materialization, which a release that changes compiler output still pays. Between two upgrades, the plan-only `lervo upgrade` leaves a gap in which a resident can start a long stage.
 
 ## Verification
 
