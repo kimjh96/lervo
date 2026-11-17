@@ -234,6 +234,16 @@ describe("lervo host upgrade --follow", () => {
     expect(await run("--service", "install", "--apply", "--json")).toBe(0);
     expect(await run("--status", "--json")).toBe(0);
     expect(json()).toMatchObject({ serviceDefinition: "current" });
+    // A shell whose Node differs, such as nvm against Homebrew, does not make the service outdated.
+    const otherShell = { ...ports, nodeExecutable: async () => "/opt/other-node/bin/node" };
+    expect(
+      await runHostCommand(
+        ["upgrade", "--follow", "--status", "--json"],
+        io,
+        overrides(harness, otherShell),
+      ),
+    ).toBe(0);
+    expect(json()).toMatchObject({ serviceDefinition: "node_changed" });
     // A definition an earlier release rendered, such as a launchd follower in the background.
     await writeFile(unit, "[Unit]\nDescription=Lervo host release follower\n");
     expect(await run("--status", "--json")).toBe(0);

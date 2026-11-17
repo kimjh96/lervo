@@ -79,3 +79,27 @@ export function parseNodeServiceCoordinates(
     ? null
     : coordinates(executable, config, nodeExecutable);
 }
+
+/**
+ * The Node executable a runtime service starts: its first program argument, whatever follows.
+ * ADR-0577 compares an installed definition rendered with another Node through it.
+ */
+export function parseServiceNodeExecutable(
+  manager: "systemd" | "launchd",
+  content: string,
+): string | null {
+  let node: string | null;
+  if (manager === "launchd") {
+    if ((content.match(/<key>ProgramArguments<\/key>/gu) ?? []).length !== 1) return null;
+    const match = /<key>ProgramArguments<\/key>\s*<array>\s*<string>([^<]+)<\/string>/u.exec(
+      content,
+    );
+    node = match === null ? null : decodeXml(match[1]!);
+  } else {
+    const lines = content.split("\n").filter((item) => item.startsWith("ExecStart="));
+    if (lines.length !== 1) return null;
+    const match = /^ExecStart="((?:[^"\\]|\\.)*)" /u.exec(lines[0]!);
+    node = match === null ? null : decodeSystemd(match[1]!);
+  }
+  return node !== null && isAbsolute(node) && !/[\0\r\n]/u.test(node) ? node : null;
+}

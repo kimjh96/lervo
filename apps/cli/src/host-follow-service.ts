@@ -19,6 +19,7 @@ import {
   REPOSITORY_UNKNOWN_MESSAGE,
 } from "./host-follow-runtime.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
+import { parseServiceNodeExecutable } from "./node-service-coordinate-parser.js";
 import {
   writeManagedUserService,
   type ManagedServiceStatus,
@@ -150,43 +151,75 @@ interface PreparedFollowService {
   definition: string;
 }
 
-/** The definition this CLI renders for the follower, and the installed bytes, if any. */
-async function followDefinitions(
+/** The follower definition this CLI renders when the service runs on `node`. */
+function renderFollowDefinition(
   layout: HostUpgradeLayout,
   ports: HostFollowServicePorts,
-): Promise<{ definition: string; installed: Buffer | null }> {
-  const identity = { manager: managerOf(ports.platform), runtime: RUNTIME, instance: null };
-  const service = coordinates(layout, ports, await ports.nodeExecutable());
-  const definition = formatRuntimeServiceDefinition({
-    ...identity,
+  node: string,
+): string {
+  const service = coordinates(layout, ports, node);
+  return formatRuntimeServiceDefinition({
+    manager: managerOf(ports.platform),
+    runtime: RUNTIME,
+    instance: null,
     executable: service.executable,
     nodeExecutable: service.nodeExecutable,
     pathDirectories: [],
     config: service.configPath,
     ...(service.logFile === undefined ? {} : { logFile: service.logFile }),
   }) as string;
-  const installed = await readFile(
-    runtimeServiceTargetPath(identity, ports.homeDirectory) as string,
-  ).catch(() => null);
-  return { definition, installed };
+}
+
+function readInstalledFollowDefinition(ports: HostFollowServicePorts): Promise<Buffer | null> {
+  const identity = { manager: managerOf(ports.platform), runtime: RUNTIME, instance: null };
+  return readFile(runtimeServiceTargetPath(identity, ports.homeDirectory) as string).catch(
+    () => null,
+  );
+}
+
+/** The definition this CLI renders for the follower, and the installed bytes, if any. */
+async function followDefinitions(
+  layout: HostUpgradeLayout,
+  ports: HostFollowServicePorts,
+): Promise<{ definition: string; installed: Buffer | null }> {
+  return {
+    definition: renderFollowDefinition(layout, ports, await ports.nodeExecutable()),
+    installed: await readInstalledFollowDefinition(ports),
+  };
 }
 
 /**
  * ADR-0577, read-only: whether the installed follower definition is the one this CLI renders.
+ * - `node_changed`: it is, for the Node it was installed with; only the shell's Node differs.
+ * - `definition_outdated`: it is not, even with the installed Node, so a reinstall is due.
  * The follower never re-renders its own service, because replacing it would stop the running
- * `lervo upgrade`; `definition_outdated` asks the owner to run `--service install --apply` while
- * no pass is in flight. Null when the definition cannot be rendered or read.
+ * `lervo upgrade`; the owner runs `--service install --apply` while no pass is in flight. Null
+ * when the definition cannot be rendered or read.
  */
-export type FollowServiceDefinition = "current" | "definition_outdated" | "not_installed" | null;
+export type FollowServiceDefinition =
+  "current" | "node_changed" | "definition_outdated" | "not_installed" | null;
 
 export async function inspectFollowServiceDefinition(
   layout: HostUpgradeLayout,
   ports: HostFollowServicePorts,
 ): Promise<FollowServiceDefinition> {
   try {
-    const { definition, installed } = await followDefinitions(layout, ports);
+    const installed = await readInstalledFollowDefinition(ports);
     if (installed === null) return "not_installed";
-    return sha256(installed) === sha256(definition) ? "current" : "definition_outdated";
+    const node = await ports.nodeExecutable();
+    if (sha256(installed) === sha256(renderFollowDefinition(layout, ports, node))) return "current";
+    const installedNode = parseServiceNodeExecutable(
+      managerOf(ports.platform),
+      installed.toString("utf8"),
+    );
+    if (installedNode === null || installedNode === node) return "definition_outdated";
+    let asInstalled: string;
+    try {
+      asInstalled = renderFollowDefinition(layout, ports, installedNode);
+    } catch {
+      return "definition_outdated";
+    }
+    return sha256(installed) === sha256(asInstalled) ? "node_changed" : "definition_outdated";
   } catch {
     return null;
   }

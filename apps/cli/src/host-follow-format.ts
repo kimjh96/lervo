@@ -25,6 +25,8 @@ function controlLine(control: HostFollowControl): string {
 function serviceDefinitionLine(definition: FollowServiceDefinition): string {
   if (definition === "definition_outdated")
     return "service definition: outdated (definition_outdated); when no pass is in flight, run lervo host upgrade --follow --service install --apply";
+  if (definition === "node_changed")
+    return "service definition: current for the Node it was installed with (node_changed); this shell runs another Node, and reinstalling from it would move the follower to that Node";
   if (definition === "not_installed") return "service definition: not installed";
   return `service definition: ${definition ?? "unknown"}`;
 }
