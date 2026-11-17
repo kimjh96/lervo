@@ -1,7 +1,8 @@
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { ReferenceReadBudget } from "./cas-retention-budget.js";
 import { CasRetentionBoundError } from "./cas-retention-errors.js";
-import { casReferences, type CasRetentionRoots } from "./cas-retention-policy.js";
+import type { CasRetentionRoots } from "./cas-retention-policy.js";
+import { casReferences } from "./cas-retention-references.js";
 import type { RetentionScan } from "./cas-retention-state.js";
 
 const MAXIMUM_REPORT_BYTES = 1024 * 1024;

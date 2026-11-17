@@ -1,6 +1,7 @@
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import { sqliteRows } from "./sqlite-row.js";
-import { casReferences } from "./cas-retention-policy.js";
+import { casReferences } from "./cas-retention-references.js";
+import type { EventWriterBackupMirror } from "./cas-retention-backups.js";
 import { CasRetentionBoundError } from "./cas-retention-errors.js";
 
 export interface SqliteReferenceCursor {
@@ -13,10 +14,13 @@ export function sqliteReferenceChunk(
   path: string,
   cursor: SqliteReferenceCursor,
   eligible: ReadonlySet<string>,
+  mirror?: EventWriterBackupMirror,
 ): {
   cursor: SqliteReferenceCursor;
   complete: boolean;
   references: string[];
+  /** Eligible references named by backup `events` rows that the live log mirrors (ADR-0585). */
+  mirrored: string[];
   bytesRead: number;
 } {
   const database = openSqliteDatabase(path, { readOnly: true, busyTimeoutMs: 0 });
@@ -31,7 +35,8 @@ export function sqliteReferenceChunk(
     if (tables.length > 256)
       throw new CasRetentionBoundError("CAS SQLite reference table capacity exceeded.");
     const table = tables[cursor.table]?.name;
-    if (typeof table !== "string") return { cursor, complete: true, references: [], bytesRead: 0 };
+    if (typeof table !== "string")
+      return { cursor, complete: true, references: [], mirrored: [], bytesRead: 0 };
     const quoted = `"${table.replaceAll('"', '""')}"`;
     const columns = sqliteRows(database.prepare(`PRAGMA table_xinfo(${quoted})`).all())
       .filter((column) => column.hidden !== 1)
@@ -62,15 +67,17 @@ export function sqliteReferenceChunk(
         .all(admitted, cursor.row),
     );
     const references = new Set<string>();
+    const mirrored = new Set<string>();
     let bytes = 0;
     for (const row of rows) {
+      const target = table === "events" && mirror?.mirrors(row) ? mirrored : references;
       for (const value of Object.values(row)) {
         if (typeof value !== "string" && !(value instanceof Uint8Array)) continue;
         const text = typeof value === "string" ? value : Buffer.from(value).toString("latin1");
         bytes += typeof value === "string" ? Buffer.byteLength(value) : value.byteLength;
         if (bytes > 1024 * 1024)
           throw new CasRetentionBoundError("CAS SQLite reference chunk exceeds its byte bound.");
-        for (const hash of casReferences(text)) if (eligible.has(hash)) references.add(hash);
+        for (const hash of casReferences(text)) if (eligible.has(hash)) target.add(hash);
       }
     }
     const next =
@@ -81,6 +88,7 @@ export function sqliteReferenceChunk(
       cursor: next,
       complete: next.table >= tables.length,
       references: [...references],
+      mirrored: [...mirrored],
       bytesRead: bytes,
     };
   } finally {

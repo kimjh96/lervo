@@ -7,7 +7,8 @@ import { dirname, resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import { inspectRepositoryCoordinationHome } from "@lervo/project-storage";
-import { casReferences } from "./cas-retention-policy.js";
+import { casReferences } from "./cas-retention-references.js";
+import type { EventWriterBackupMirror } from "./cas-retention-backups.js";
 
 export interface CasReferenceFile {
   key: string;
@@ -16,6 +17,8 @@ export interface CasReferenceFile {
   size: number;
   modifiedAt: number;
   hash: string | null;
+  /** Set only on an event-writer backup database (ADR-0585). */
+  mirror?: EventWriterBackupMirror;
 }
 
 export const CAS_RETENTION_SCAN = "cas-retention-scan.json";
@@ -200,7 +203,13 @@ async function readReferenceChunk(
     // SQLite treats a zero-byte file as an empty database. Without a WAL, it has no cells to read.
     if (file.size === 0 && !(await hasWriteAheadLog(file.path)))
       return { scan: { ...prior, complete: true }, bytesRead: 0 };
-    const result = sqliteReferenceChunk(file.path, prior.sqlite ?? { table: 0, row: 0 }, eligible);
+    const result = sqliteReferenceChunk(
+      file.path,
+      prior.sqlite ?? { table: 0, row: 0 },
+      eligible,
+      file.mirror,
+    );
+    for (const hash of result.mirrored) file.mirror?.released?.add(hash);
     return {
       scan: {
         ...prior,

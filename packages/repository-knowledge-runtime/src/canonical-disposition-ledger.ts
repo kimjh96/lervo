@@ -1,4 +1,5 @@
 import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import { readConvergenceStageArtifact } from "./convergence-stage-artifact.js";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import type { CanonicalBatch } from "./canonical-review.js";
 import type { CanonicalAssessment } from "./canonical-assessment-contract.js";
@@ -25,21 +26,13 @@ interface LedgerEntry extends SettledCanonicalDisposition {
 const ledgers = new WeakMap<OutboxStore, { afterSeq: number; entries: Map<string, LedgerEntry> }>();
 const key = (path: string, contentHash: string) => `${path}\0${contentHash}`;
 
+/** Absent (`input_unavailable`) and invalid artifacts both leave the source for fresh assessment. */
 async function integratedInput(
   artifacts: ArtifactStore,
   hash: unknown,
 ): Promise<KnowledgeConvergenceInput | null> {
-  if (typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash)) return null;
-  try {
-    const bytes = await artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);
-    if (sha256(bytes) !== hash) return null;
-    return JSON.parse(
-      new TextDecoder("utf8", { fatal: true }).decode(bytes),
-    ) as KnowledgeConvergenceInput;
-  } catch {
-    // Retention may drop private stage inputs; the source then simply needs fresh assessment.
-    return null;
-  }
+  const read = await readConvergenceStageArtifact(artifacts, hash);
+  return read.state === "available" ? read.value : null;
 }
 
 /**

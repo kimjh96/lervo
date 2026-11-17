@@ -21,6 +21,7 @@ export async function retentionFixture() {
   const history: EventEnvelope[] = [];
   const events = {
     latest: () => history.at(-1) ?? null,
+    get: (eventId: string) => history.find((event) => event.eventId === eventId) ?? null,
     list: (options: { afterSeq?: number; limit?: number; types?: string[] } = {}) =>
       history
         .filter(
@@ -81,6 +82,11 @@ export async function retentionFixture() {
       seq,
       projectId: storage.manifest.projectId,
       eventId: `evt_${String(seq).padStart(32, "0")}`,
+      runId: `run_${String(seq).padStart(32, "0")}`,
+      sessionId: `ses_${String(seq).padStart(32, "0")}`,
+      actor: { kind: "system" },
+      schemaVersion: 4,
+      policyVersion: `sha256:${"b".repeat(64)}`,
       eventHash: `sha256:${String(seq).padStart(64, "0")}`,
       previousHash: history.at(-1)?.eventHash ?? null,
       occurredAt: oldDate.toISOString(),
