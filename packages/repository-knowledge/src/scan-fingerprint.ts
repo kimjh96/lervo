@@ -183,8 +183,7 @@ async function filesUnchanged(
     if (!file.racy) continue;
     hashes ??= new Map(scan.sources.map((source) => [source.path, source.contentHash]));
     const contentHash = hashes.get(path) ?? null;
-    if (contentHash === null || sha256(await readFile(file.absolute)) !== contentHash)
-      return false;
+    if (contentHash === null || sha256(await readFile(file.absolute)) !== contentHash) return false;
   }
   return true;
 }
@@ -203,8 +202,7 @@ export async function repositoryScanFingerprintHolds(
     const ignored = await opening.observeIgnoredPaths();
     if (ignored.identity?.(fingerprint.walkable) !== fingerprint.ignored) return false;
     for (const [absolute, listing] of fingerprint.directories) {
-      if (listingDigest(await readdir(absolute, { withFileTypes: true })) !== listing)
-        return false;
+      if (listingDigest(await readdir(absolute, { withFileTypes: true })) !== listing) return false;
     }
     for (const absolute of fingerprint.nestedWorkingTrees)
       if (!(await isNestedGitWorkingTree(absolute))) return false;

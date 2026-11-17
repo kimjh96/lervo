@@ -175,9 +175,7 @@ describe("repository scan reuse (ADR-0582)", () => {
       }),
     );
     expect(result.scans).toBe(2);
-    expect(content(result.value[1], "@git/HEAD")).not.toBe(
-      content(result.value[0], "@git/HEAD"),
-    );
+    expect(content(result.value[1], "@git/HEAD")).not.toBe(content(result.value[0], "@git/HEAD"));
   });
 
   it("hashes project skill packages again, including files the walk skips", async () => {

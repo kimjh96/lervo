@@ -111,15 +111,10 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
     const stderr: string[] = [];
     // The in-window plan, the knowledge step, lint, and the final plan read one unchanged tree.
     const scans = await scansDuring(() =>
-      runCli(
-        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-        io(root, stdout, stderr),
-      ),
+      runCli(["upgrade", "--apply", "--approval", plan.planId, "--json"], io(root, stdout, stderr)),
     );
     const receipt = JSON.parse(stdout.join("")) as { appliedStages?: string[] };
-    expect(receipt.appliedStages, `${stdout.join("")}${stderr.join("")}`).toEqual([
-      "event_writer",
-    ]);
+    expect(receipt.appliedStages, `${stdout.join("")}${stderr.join("")}`).toEqual(["event_writer"]);
     // One scan, and one more only when the event writer's own events change the evidence.
     expect(scans).toBeGreaterThanOrEqual(1);
     expect(scans).toBeLessThanOrEqual(2);
