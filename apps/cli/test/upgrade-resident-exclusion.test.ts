@@ -144,9 +144,48 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
       await cycle.release();
     }
     expect(stderr.join("")).toContain(
-      "Waiting up to 15 min for the running background knowledge cycle on this host to finish before upgrading.",
+      "Waiting up to 15 min for the running background knowledge cycle on this host to stop at its next stage boundary before upgrading.",
     );
     expect(JSON.parse(stdout.join(""))).toMatchObject({ approvedPlanId: approval });
+  }, 60_000);
+
+  it("goes ahead of a resident cycle that waited first, which runs after the upgrade (ADR-0574)", async () => {
+    const root = await repository();
+    const directory = await temporary("lervo-upgrade-admission-");
+    const approval = await planId(root);
+    const signal = AbortSignal.timeout(60_000);
+    const cycle = await acquireFullCycleAdmission({
+      repositoryRoot: resolve(root, "running-repository"),
+      directory,
+      signal,
+    });
+    let upgradeFinished = false;
+    let residentAfterUpgrade: boolean | null = null;
+    const resident = acquireFullCycleAdmission({
+      repositoryRoot: resolve(root, "waiting-repository"),
+      directory,
+      pollMilliseconds: 10,
+      signal,
+    }).then(async (admission) => {
+      residentAfterUpgrade = upgradeFinished;
+      await admission.release();
+    });
+    await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+    const release = setTimeout(() => void cycle.release(), 300);
+    const stderr: string[] = [];
+    try {
+      // Only the order matters here: an exact plan refused under admission still held it first.
+      await runCli(["upgrade", "--apply", "--approval", approval, "--json"], io(root, [], stderr), {
+        knowledgeCycleAdmission: { directory, pollMilliseconds: 20 },
+      });
+      upgradeFinished = true;
+      await resident;
+    } finally {
+      clearTimeout(release);
+      await cycle.release();
+    }
+    expect(stderr.join("")).toContain("to stop at its next stage boundary before upgrading.");
+    expect(residentAfterUpgrade).toBe(true);
   }, 60_000);
 
   it("refuses without changes when the resident cycle outlasts the wait", async () => {
