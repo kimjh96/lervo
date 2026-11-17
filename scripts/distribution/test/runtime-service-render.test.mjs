@@ -305,6 +305,29 @@ describe("host release follower service definition", () => {
       "/home/owner/Library/LaunchAgents/com.lervo.host.follow.plist",
     );
   });
+
+  it("runs the follower at standard priority while the other services stay in the background (ADR-0577)", () => {
+    const processType = (definition) =>
+      /<key>ProcessType<\/key>\n {2}<string>([A-Za-z]+)<\/string>/u.exec(definition)?.[1];
+    const follower = formatRuntimeServiceDefinition({ ...input, manager: "launchd" });
+    expect(processType(follower)).toBe("Standard");
+    expect(follower).not.toContain("<string>Background</string>");
+    const others = [
+      { runtime: "hub", instance: null },
+      { runtime: "node", instance: nodeInstance },
+      { runtime: "knowledge-host", instance: null },
+      { runtime: "repository-replica", instance: null },
+    ];
+    for (const other of others)
+      expect(
+        processType(formatRuntimeServiceDefinition({ ...input, ...other, manager: "launchd" })),
+      ).toBe("Background");
+    // systemd sets no priority for any runtime, so the follower runs like every other unit.
+    for (const runtime of ["host-follow", "knowledge-host"])
+      expect(formatRuntimeServiceDefinition({ ...input, runtime, manager: "systemd" })).not.toMatch(
+        /^(Nice|CPUWeight|CPUSchedulingPolicy|IOSchedulingClass|IOWeight)=/mu,
+      );
+  });
 });
 
 describe("knowledge host resident service definition", () => {

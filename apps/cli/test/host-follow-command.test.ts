@@ -211,6 +211,56 @@ describe("lervo host upgrade --follow", () => {
     );
   });
 
+  it("reports an installed definition that this CLI renders differently (ADR-0577)", async () => {
+    const harness = await followHarness();
+    const unit = resolve(harness.home, ".config", "systemd", "user", "lervo-host-follow.service");
+    const fake = fakeServicePorts(harness.home, []);
+    // Like the real manager, install writes the reviewed definition where systemd keeps it.
+    const ports: HostFollowServicePorts = {
+      ...fake,
+      async manage(args, options) {
+        if (args[args.indexOf("--action") + 1] === "install") {
+          await mkdir(resolve(unit, ".."), { recursive: true });
+          await writeFile(unit, await readFile(args[args.indexOf("--definition") + 1]!));
+        }
+        return fake.manage(args, options);
+      },
+    };
+    const { io, json, output } = capture();
+    const run = (...args: string[]) =>
+      runHostCommand(["upgrade", "--follow", ...args], io, overrides(harness, ports));
+    expect(await run("--status", "--json")).toBe(0);
+    expect(json()).toMatchObject({ serviceDefinition: "not_installed" });
+    expect(await run("--service", "install", "--apply", "--json")).toBe(0);
+    expect(await run("--status", "--json")).toBe(0);
+    expect(json()).toMatchObject({ serviceDefinition: "current" });
+    // A shell whose Node differs, such as nvm against Homebrew, does not make the service outdated.
+    const otherShell = { ...ports, nodeExecutable: async () => "/opt/other-node/bin/node" };
+    expect(
+      await runHostCommand(
+        ["upgrade", "--follow", "--status", "--json"],
+        io,
+        overrides(harness, otherShell),
+      ),
+    ).toBe(0);
+    expect(json()).toMatchObject({ serviceDefinition: "node_changed" });
+    // A definition an earlier release rendered, such as a launchd follower in the background.
+    await writeFile(unit, "[Unit]\nDescription=Lervo host release follower\n");
+    expect(await run("--status", "--json")).toBe(0);
+    expect(json()).toMatchObject({ serviceDefinition: "definition_outdated" });
+    expect(await run("--json")).toBe(0);
+    expect(json()).toMatchObject({
+      operation: "host_follow_plan",
+      serviceDefinition: "definition_outdated",
+    });
+    expect(await run("--status")).toBe(0);
+    expect(output.pop()).toContain(
+      "service definition: outdated (definition_outdated); when no pass is in flight, run lervo host upgrade --follow --service install --apply",
+    );
+    expect(await run("--service", "install", "--json")).toBe(0);
+    expect(json()).toMatchObject({ action: "upgrade" });
+  });
+
   it("parses only coherent follow arguments", () => {
     expect(parseHostFollowArguments(["--follow", "--apply", "--once"]).mode).toEqual({
       kind: "run",

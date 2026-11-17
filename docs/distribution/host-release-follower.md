@@ -5,7 +5,8 @@ This document defines the files, outcomes, and failure codes of `lervo host upgr
 ## Service
 
 - Linux: `~/.config/systemd/user/lervo-host-follow.service`, logging to the user journal.
-- macOS: `~/Library/LaunchAgents/com.lervo.host.follow.plist`, logging to `~/Library/Logs/Lervo/host-follow.log`. The follower bounds that log at start, as ADR-0555 does for the host resident.
+- macOS: `~/Library/LaunchAgents/com.lervo.host.follow.plist`, logging to `~/Library/Logs/Lervo/host-follow.log`. The follower bounds that log at start, as ADR-0555 does for the host resident. Its `ProcessType` is `Standard`, so the upgrades it runs are not throttled as background work ([ADR-0577](../decisions/distribution/0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md)). The other Lervo services keep `Background`.
+- `--follow --status` and the follow plan report `serviceDefinition`: `current`; `node_changed` when the installed bytes match once the Node path they name is substituted, so only the shell's Node differs; `definition_outdated` when they still differ; `not_installed`; or null when unreadable. The follower never replaces its own service, because that would stop its running `lervo upgrade`. The owner reruns `--service install --apply` while no pass is in flight.
 - The definition runs `<node> <cli>/host-follow-runtime/dist/bin.js host upgrade --follow --apply --config <cli>/host-follow-service.json`. Only the follower moves `host-follow-runtime`, and only to the package the `lervo` link already runs. Retention keeps the install it names. ADR-0488's `current` pointer stays with `lervo upgrade`.
 - `host-follow-service.json` holds `repository`, `binDirectory`, and `searchPath`. A null `repository` means the repository this host last installed from. `searchPath` is the installing shell's `PATH`, reduced to absolute entries.
 - Install refuses `host_follow_cli_missing` without a managed `lervo` link, and `host_follow_repository_unknown` when neither `--repository` nor a recorded install names the coordinate.
@@ -56,3 +57,5 @@ Repository entries in `lastPass` can also carry these codes:
 - `host_follow_repository_upgrade_unconverged`: five rounds did not converge.
 - `upgrade_plan_blocked`: the plan is blocked with no independent stage to apply.
 - `upgrade_plan_unchanged`: a blocked repository's plan id did not change since the last pass.
+
+They also carry the codes `lervo upgrade` itself reports. `knowledge_cycle_admission_lost` (ADR-0577) means the upgrade lost the host's full-cycle admission, and `knowledge_cycle_admission_unconfirmed` that lock contention kept it from confirming the admission. Their `phase` says whether the upgrade stopped before a stage or after the last one. Both are `failed` and retried, never a host failure.

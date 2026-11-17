@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-17
 Amends: [ADR-0214](../operations/services/0214-bounded-repository-upgrade-orchestration.md) (apply acquires admission with priority), [ADR-0484](../operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (how an upgrade acquires the full-cycle admission), [ADR-0485](../knowledge/semantics/0485-reevaluate-settled-semantic-candidates-once-per-evaluation-contract.md) (where a holder yields)
-Amended by: [ADR-0576](../operations/storage/0576-keep-full-cycle-admission-waits-through-sqlite-lock-contention.md) (lock contention delays the wait and the release instead of failing them)
+Amended by: [ADR-0576](../operations/storage/0576-keep-full-cycle-admission-waits-through-sqlite-lock-contention.md) (lock contention delays the wait and the release instead of failing them), [ADR-0577](0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (a 2-hour upgrade lease, confirmed before each stage)
 Related: [ADR-0571](0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (Stage 2, S3)
 
 ## Context

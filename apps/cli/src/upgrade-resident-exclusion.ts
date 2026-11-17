@@ -12,11 +12,69 @@ export const UPGRADE_RESIDENT_EXCLUSION_WAIT_MS = 15 * 60_000;
  */
 export const UPGRADE_RESIDENT_EXCLUSION_RELEASE_WAIT_MS = 30_000;
 
+/**
+ * ADR-0577: the upgrade's admission lease. It outlasts the host follower's 90-minute bound on one
+ * `lervo upgrade`, so a renewal timer starved by host load cannot let the lease lapse while the
+ * command still runs. Residents of every release read the lease from the holder row. A crashed
+ * or killed upgrade frees the admission at once, because the holder's process is gone.
+ */
+export const UPGRADE_RESIDENT_EXCLUSION_LEASE_MS = 2 * 60 * 60_000;
+
+/**
+ * Where the apply stands when it confirms the exclusion: the stage it is about to start, or null
+ * after its last stage, and the stages it already applied.
+ */
+export interface UpgradeExclusionProgress {
+  nextStage: string | null;
+  appliedStages: readonly string[];
+}
+
+/**
+ * ADR-0577: the apply calls `assertHeld()` before each consequential stage and once after its
+ * last stage. It throws `knowledge_cycle_admission_lost` once another holder has been admitted,
+ * and `knowledge_cycle_admission_unconfirmed` when lock contention outlasts the confirmation
+ * budget, so the upgrade never goes on or reports success without a confirmed exclusion.
+ */
+export interface UpgradeResidentExclusion {
+  assertHeld(progress: UpgradeExclusionProgress): Promise<void>;
+}
+
+function progressDetails(progress: UpgradeExclusionProgress): Record<string, unknown> {
+  const appliedStages = [...progress.appliedStages];
+  return progress.nextStage === null
+    ? { phase: "after_last_stage", appliedStages }
+    : { phase: "before_stage", nextStage: progress.nextStage, appliedStages };
+}
+
+/** The details name stages only: no path, process ID, nonce, or repository hash. */
+function admissionLost(progress: UpgradeExclusionProgress): CommandFailure {
+  return new CommandFailure(
+    "knowledge_cycle_admission_lost",
+    progress.nextStage === null
+      ? "This upgrade lost the host's full-cycle admission during or after its last stage. Every stage in appliedStages ran, and some may have overlapped a background knowledge cycle. Retry the upgrade to plan again from the repository's state."
+      : `This upgrade lost the host's full-cycle admission, so a background knowledge cycle may have started. It stopped before the ${progress.nextStage} stage. The stages in appliedStages ran, and the last of them may have overlapped that cycle. Retry the upgrade.`,
+    progressDetails(progress),
+  );
+}
+
+function admissionUnconfirmed(progress: UpgradeExclusionProgress): CommandFailure {
+  return new CommandFailure(
+    "knowledge_cycle_admission_unconfirmed",
+    `This upgrade could not confirm the host's full-cycle admission, because the admission database stayed locked for the whole confirmation wait. Nothing shows that another holder was admitted. ${
+      progress.nextStage === null
+        ? "Every stage in appliedStages ran."
+        : `It stopped before the ${progress.nextStage} stage; the stages in appliedStages ran.`
+    } Retry the upgrade.`,
+    progressDetails(progress),
+  );
+}
+
 /** Test seam: the admission directory and timing; production uses the resident's defaults. */
 export interface UpgradeResidentExclusionOptions {
   directory?: string;
   pollMilliseconds?: number;
   waitMs?: number;
+  confirmContentionWaitMilliseconds?: number;
 }
 
 /**
@@ -25,7 +83,8 @@ export interface UpgradeResidentExclusionOptions {
  * admission is the resident's own per-host lease; a replaced Node or host resident waits on it
  * and starts its first cycle after release. A crashed upgrade frees it with its process.
  * ADR-0574: the upgrade asks with priority, so it goes ahead of waiting residents and a running
- * cycle stops at its next stage boundary instead of finishing.
+ * cycle stops at its next stage boundary instead of finishing. ADR-0577: the operation confirms
+ * the admission through the exclusion it receives, including once after its last stage.
  */
 export async function withKnowledgeResidentExclusion<T>(
   input: {
@@ -33,7 +92,7 @@ export async function withKnowledgeResidentExclusion<T>(
     io: Pick<CliIo, "stderr">;
     options?: UpgradeResidentExclusionOptions | undefined;
   },
-  operation: () => Promise<T>,
+  operation: (exclusion: UpgradeResidentExclusion) => Promise<T>,
 ): Promise<T> {
   const waitMs = input.options?.waitMs ?? UPGRADE_RESIDENT_EXCLUSION_WAIT_MS;
   const deadline = AbortSignal.timeout(waitMs);
@@ -43,11 +102,15 @@ export async function withKnowledgeResidentExclusion<T>(
       repositoryRoot: input.repositoryRoot,
       signal: deadline,
       priority: "upgrade",
+      leaseMilliseconds: UPGRADE_RESIDENT_EXCLUSION_LEASE_MS,
       releaseContentionWaitMilliseconds: UPGRADE_RESIDENT_EXCLUSION_RELEASE_WAIT_MS,
       ...(input.options?.directory === undefined ? {} : { directory: input.options.directory }),
       ...(input.options?.pollMilliseconds === undefined
         ? {}
         : { pollMilliseconds: input.options.pollMilliseconds }),
+      ...(input.options?.confirmContentionWaitMilliseconds === undefined
+        ? {}
+        : { confirmContentionWaitMilliseconds: input.options.confirmContentionWaitMilliseconds }),
       onWait: () =>
         input.io.stderr(
           `Waiting up to ${Math.max(1, Math.ceil(waitMs / 60_000))} min for the running background knowledge cycle on this host to stop at its next stage boundary before upgrading.\n`,
@@ -61,8 +124,15 @@ export async function withKnowledgeResidentExclusion<T>(
       );
     throw error;
   }
+  const exclusion: UpgradeResidentExclusion = {
+    assertHeld: async (progress) => {
+      const confirmation = await admission.confirm();
+      if (confirmation === "lost") throw admissionLost(progress);
+      if (confirmation === "unconfirmed") throw admissionUnconfirmed(progress);
+    },
+  };
   try {
-    return await operation();
+    return await operation(exclusion);
   } finally {
     await admission.release();
   }

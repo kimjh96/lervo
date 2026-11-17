@@ -163,12 +163,18 @@ export async function runUpgradeCommand(
     let admittedAt = requestedAt;
     const applied = await withKnowledgeResidentExclusion(
       { repositoryRoot: root, io, options: services.knowledgeCycleAdmission },
-      async () => {
+      async (exclusion) => {
         admittedAt = Date.now();
         const initial = await plan();
         if (values.safe === true) assertSafeUpgrade(initial);
         else await assertApprovedUpgrade(initial, values.approval, roleBindingApprovals);
-        return applyRepositoryUpgrade(initial, roleBindingApprovals, materialization, host);
+        return applyRepositoryUpgrade(
+          initial,
+          roleBindingApprovals,
+          materialization,
+          host,
+          exclusion,
+        );
       },
     );
     const receipt = {

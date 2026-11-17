@@ -19,6 +19,7 @@ import {
   knowledgeStageRefusedByMarker,
   type RepositoryUpgradePlan,
 } from "./upgrade-plan.js";
+import type { UpgradeResidentExclusion } from "./upgrade-resident-exclusion.js";
 import {
   applyKnowledgeStage,
   inspectKnowledge,
@@ -67,23 +68,29 @@ const knowledgeRefusedByMarker = (stage: KnowledgeStage): boolean =>
 /**
  * Applies an exact, freshly recreated upgrade plan stage by stage in the published order. Every
  * knowledge step runs through the command's materialization settlement, so background knowledge
- * work that starts between stages delays the upgrade instead of failing it.
+ * work that starts between stages delays the upgrade instead of failing it. ADR-0577: every stage
+ * that changes the repository or a service first confirms the resident exclusion.
  */
 export async function applyRepositoryUpgrade(
   approved: RepositoryUpgradePlan,
   roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
   materialization: KnowledgeMaterializationSettlement,
   host: UpgradeHost,
+  exclusion: UpgradeResidentExclusion,
 ): Promise<UpgradeReceipt> {
   const root = approved.repositoryRoot;
-  await rememberTerminalWorkerEntry(root, process.env.LERVO_CLI_ENTRY);
   const appliedStages: string[] = [];
   const skippedStages: UpgradeReceipt["skippedStages"] = [];
+  const confirmExclusion = (nextStage: UpgradeStageName | "terminal_worker_entry" | null) =>
+    exclusion.assertHeld({ nextStage, appliedStages });
+  await confirmExclusion("terminal_worker_entry");
+  await rememberTerminalWorkerEntry(root, process.env.LERVO_CLI_ENTRY);
 
   if (approved.stages.capabilities.disposition === "safe_apply") {
     const capabilityPlan = await createCapabilityMigrationPlan(root);
     if (capabilityPlan.planId !== approved.stages.capabilities.planId)
       throw new Error("The capability migration plan changed before apply.");
+    await confirmExclusion("capabilities");
     await applyCapabilityMigration(capabilityPlan);
     appliedStages.push("capabilities");
   }
@@ -95,6 +102,7 @@ export async function applyRepositoryUpgrade(
     workforce.disposition === "safe_apply" ||
     workforce.disposition === "pending_authority"
   ) {
+    await confirmExclusion("workforce");
     const migrated = await mutateWorkforceState(root, (recordEvent) =>
       applyWorkforceRoleBindingMigration({
         repositoryRoot: root,
@@ -111,6 +119,7 @@ export async function applyRepositoryUpgrade(
     const terminal = await inspectTerminalIntegration(root);
     if (terminal.stage.planId !== approved.stages.terminalIntegration.planId)
       throw new Error("The terminal integration plan changed before apply.");
+    await confirmExclusion("terminal_integration");
     await applyTerminalIntegrationStage({
       repositoryRoot: root,
       prepared: terminal.prepared,
@@ -124,7 +133,10 @@ export async function applyRepositoryUpgrade(
     // A marker refusal happens before any write, so inspecting and applying again is safe.
     const stage = await materialization.run(async () => {
       const inspected = await inspectKnowledge(root);
-      if (inspected.disposition === "safe_apply") await applyKnowledgeStage(root, inspected);
+      if (inspected.disposition === "safe_apply") {
+        await confirmExclusion("knowledge");
+        await applyKnowledgeStage(root, inspected);
+      }
       return inspected;
     }, knowledgeRefusedByMarker);
     if (stage.disposition !== "safe_apply") break;
@@ -139,6 +151,7 @@ export async function applyRepositoryUpgrade(
   // a blocked knowledge stage instead of being skipped.
   const node = await inspectRegisteredNodeUpgrade(root, approved.projectId, approved.cli.version);
   if (node.stage.disposition === "safe_apply") {
+    await confirmExclusion("node");
     await applyRegisteredNodeUpgrade(node);
     appliedStages.push("repository_node");
   }
@@ -150,6 +163,7 @@ export async function applyRepositoryUpgrade(
   // stage deferred behind them applies once they are current and is skipped otherwise.
   const eventWriter = approved.stages.eventWriter;
   if (eventWriter.disposition === "safe_apply" || eventWriter.disposition === "deferred") {
+    await confirmExclusion("event_writer");
     const outcome = await applyEventWriterStage(root, eventWriter, host.eventWriter);
     if (outcome.status === "activated") appliedStages.push("event_writer");
     else if (outcome.status === "skipped")
@@ -160,6 +174,7 @@ export async function applyRepositoryUpgrade(
   }
 
   if (approved.stages.hostService.disposition === "safe_apply") {
+    await confirmExclusion("host_service");
     const service = await applyHostResidentService(approved.stages.hostService, host.hostService);
     if (service !== null) appliedStages.push("host_service");
   }
@@ -170,14 +185,17 @@ export async function applyRepositoryUpgrade(
     approved.stages.replicaService.disposition === "deferred"
       ? await inspectRepositoryReplicaService(host.replicaService)
       : approved.stages.replicaService;
-  if (
-    replicaStage.disposition === "safe_apply" &&
-    (await applyRepositoryReplicaService(replicaStage, host.replicaService)) !== null
-  )
-    appliedStages.push("replica_service");
+  if (replicaStage.disposition === "safe_apply") {
+    await confirmExclusion("replica_service");
+    if ((await applyRepositoryReplicaService(replicaStage, host.replicaService)) !== null)
+      appliedStages.push("replica_service");
+  }
 
+  await confirmExclusion("runtime_retention");
   if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention, host.runtimeRetention))
     appliedStages.push("runtime_retention");
+  // A holder that still holds was never replaced, so every stage ran under the exclusion.
+  await confirmExclusion(null);
 
   const final = await materialization.run(
     () => createRepositoryUpgradePlan(root, host),
