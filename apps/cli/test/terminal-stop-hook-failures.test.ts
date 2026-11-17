@@ -127,6 +127,8 @@ describe("Stop failure versus isolation rejection", () => {
   it.each([
     ["repository_knowledge_inspection_failed", "knowledge_inspection_failed"],
     ["workstream_state_invalid", "lifecycle_inspection_failed"],
+    // ADR-0573: a replica service check is a host lifecycle check, not a knowledge check.
+    ["repository_replica_service_inspection_failed", "lifecycle_inspection_failed"],
   ])("preserves worker and non-worker outcomes for %s", async (code, failureReason) => {
     ports.inspect.mockResolvedValue({
       status: "action_required",

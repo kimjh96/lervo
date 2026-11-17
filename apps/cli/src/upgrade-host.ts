@@ -12,7 +12,7 @@ import type { RuntimeRetentionOptions } from "./node-runtime-retention.js";
 import {
   defaultRepositoryReplicaServicePorts,
   type RepositoryReplicaServicePorts,
-} from "./repository-replica-service.js";
+} from "./repository-replica-service-ports.js";
 
 /**
  * Where the upgrade's host-wide stages look: the user home that holds Node runtimes, user

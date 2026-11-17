@@ -1,6 +1,13 @@
 import { createProcessObserver, type ProcessObservation } from "@lervo/node-runtime";
 import { readdir, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
+import {
+  birthIdentityContradicts,
+  MAXIMUM_RUNTIME_DIRECTORY_ENTRIES,
+  RUNTIME_DIRECTORY_NAME,
+  parseRuntimeProcessBinding,
+  runtimeProcessBindingIdentity,
+} from "./node-runtime-process-binding.js";
 import { readRuntimeReferenceText } from "./node-runtime-reference-file.js";
 
 export async function collectRuntimeProcessBindings(
@@ -12,9 +19,10 @@ export async function collectRuntimeProcessBindings(
 ): Promise<void> {
   const boundProcesses = new Set<number>();
   const runtimes = await readdir(root, { withFileTypes: true });
-  if (runtimes.length > 4096) throw new Error("Runtime process inventory exceeds its bound.");
+  if (runtimes.length > MAXIMUM_RUNTIME_DIRECTORY_ENTRIES)
+    throw new Error("Runtime process inventory exceeds its bound.");
   for (const runtime of runtimes) {
-    if (!runtime.isDirectory() || !/^[a-f0-9]{16}$/u.test(runtime.name)) continue;
+    if (!runtime.isDirectory() || !RUNTIME_DIRECTORY_NAME.test(runtime.name)) continue;
     const bindings = resolve(root, runtime.name, ".processes");
     const info = await lstat(bindings).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") return null;
@@ -31,40 +39,19 @@ export async function collectRuntimeProcessBindings(
       throw new Error("Runtime process binding inventory exceeds its bound.");
     for (const entry of entries) {
       if (!/^[1-9][0-9]*\.json$/u.test(entry)) throw new Error("Invalid runtime process binding.");
-      const binding = JSON.parse(
-        (await readRuntimeReferenceText(resolve(bindings, entry))) ?? "null",
-      ) as {
-        schemaVersion?: number;
-        processId?: number;
-        processIdentity?: string;
-        runtimeDirectory?: string;
-      } | null;
       const pid = Number(entry.slice(0, -5));
-      if (
-        !Number.isSafeInteger(pid) ||
-        pid < 1 ||
-        binding?.schemaVersion !== 1 ||
-        binding.processId !== pid ||
-        binding.runtimeDirectory !== runtime.name
-      )
-        throw new Error("Invalid runtime process binding.");
+      const binding = parseRuntimeProcessBinding(
+        (await readRuntimeReferenceText(resolve(bindings, entry))) ?? "null",
+        runtime.name,
+        pid,
+      );
       const observed = observeProcess(pid);
+      // A dead process's record protects nothing, so only a live process's identity is judged.
       if (observed.status === "absent") continue;
-      if (
-        binding.processIdentity !== undefined &&
-        !/^proc_[a-z0-9_]{1,64}:sha256:[a-f0-9]{64}$/u.test(binding.processIdentity)
-      )
-        throw new Error("Invalid runtime process birth identity.");
-      if (
-        observed.status === "present" &&
-        binding.processIdentity !== undefined &&
-        observed.identity.split(":", 1)[0] === binding.processIdentity.split(":", 1)[0] &&
-        observed.identity !== binding.processIdentity
-      )
-        continue;
+      const identity = runtimeProcessBindingIdentity(binding);
+      if (identity !== undefined && birthIdentityContradicts(observed, identity)) continue;
       protectedNames.add(runtime.name);
-      if (observed.status === "present" && observed.identity === binding.processIdentity)
-        boundProcesses.add(pid);
+      if (observed.status === "present" && observed.identity === identity) boundProcesses.add(pid);
     }
   }
   for (const line of commands.split("\n")) {

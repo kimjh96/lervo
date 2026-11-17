@@ -16,8 +16,8 @@ import {
   applyRepositoryReplicaService,
   inspectRepositoryReplicaService,
   repositoryReplicaConfigPath,
-  type RepositoryReplicaServicePorts,
 } from "../src/repository-replica-service.js";
+import type { RepositoryReplicaServicePorts } from "../src/repository-replica-service-ports.js";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -33,6 +33,24 @@ async function installRuntime(home: string, name: string): Promise<void> {
   await mkdir(directory, { recursive: true });
   await writeFile(resolve(directory, "node-runtime.js"), `// runtime ${name}\n`, { mode: 0o600 });
 }
+
+/** The record a running payload writes at startup (ADR-0573 binding proof). */
+async function bindProcess(home: string, runtime: string, pid: number, identity: string) {
+  const directory = resolve(nodeRuntimesDirectory(home, "darwin"), runtime, ".processes");
+  await mkdir(directory, { recursive: true });
+  await writeFile(
+    resolve(directory, `${pid}.json`),
+    JSON.stringify({
+      schemaVersion: 1,
+      processId: pid,
+      processIdentity: identity,
+      runtimeDirectory: runtime,
+    }),
+    { mode: 0o600 },
+  );
+}
+
+const birth = (pid: number) => `proc_test_v1:sha256:${pid.toString(16).padStart(64, "0")}`;
 
 async function fixture(options: { coordinator?: boolean; nodes?: boolean; legacy?: unknown } = {}) {
   const home = await mkdtemp(resolve(tmpdir(), "lervo-replica-service-"));
@@ -58,15 +76,36 @@ async function fixture(options: { coordinator?: boolean; nodes?: boolean; legacy
   if (options.coordinator === true)
     await writeFile(repositoryReplicaConfigPath(environment), "{}\n", { mode: 0o600 });
   const target = resolve(home, "Library", "LaunchAgents", "dev.lervo.repository-replica.plist");
-  const status = { managerAvailable: true, installed: false, enabled: null, active: false };
+  const status = {
+    managerAvailable: true,
+    installed: false,
+    enabled: null as boolean | null,
+    active: false,
+    processId: null as number | null,
+  };
+  // Live coordinator processes and their birth identities; a started process binds itself to
+  // the runtime `current` names, as the installed payload does.
+  const running = new Map<number, string>();
+  let nextPid = 4100;
+  const startProcess = async (runtime: string | null) => {
+    if (status.processId !== null) running.delete(status.processId);
+    const pid = (nextPid += 1);
+    running.set(pid, birth(pid));
+    if (runtime !== null) await bindProcess(home, runtime, pid, birth(pid));
+    return pid;
+  };
   const manage = vi.fn(async (args: string[]) => {
     const action = args[args.indexOf("--action") + 1];
     if (action === "status") return { ...status };
     const definition = await readFile(args[args.indexOf("--definition") + 1]!);
     await mkdir(resolve(target, ".."), { recursive: true });
     await writeFile(target, definition, { mode: 0o600 });
-    Object.assign(status, { installed: true, active: true, enabled: true });
-    return { ...status, change: action === "upgrade" ? "upgraded" : "installed" };
+    const processId = await startProcess(await readCurrentNodeRuntime(home, "darwin"));
+    Object.assign(status, { installed: true, active: true, enabled: true, processId });
+    return {
+      ...status,
+      change: action === "upgrade" ? "upgraded" : action === "restart" ? "restarted" : "installed",
+    };
   });
   const materialize = vi.fn(async () => installRuntime(home, NEW));
   const ports: RepositoryReplicaServicePorts = {
@@ -80,8 +119,23 @@ async function fixture(options: { coordinator?: boolean; nodes?: boolean; legacy
     hostRunsNodes: async () => options.nodes ?? false,
     nodeExecutable: async () => resolve(bin, "node"),
     manage,
+    observeProcess: (pid) => {
+      const identity = running.get(pid);
+      return identity === undefined ? { status: "absent" } : { status: "present", identity };
+    },
   };
-  return { home, target, status, manage, materialize, ports, legacyConfigPath, environment };
+  return {
+    home,
+    target,
+    status,
+    manage,
+    materialize,
+    ports,
+    legacyConfigPath,
+    environment,
+    running,
+    startProcess,
+  };
 }
 
 describe("current Node runtime pointer (ADR-0483)", () => {
@@ -210,6 +264,157 @@ describe("repository replica service stage (ADR-0483)", () => {
     await expect(applyRepositoryReplicaService(stage, ports)).rejects.toMatchObject({
       code: "replica_service_plan_stale",
     });
+  });
+});
+
+describe("stale coordinator runtime restart (ADR-0573)", () => {
+  /** An installed, running coordinator whose process loaded `bound`; `current` names `pointer`. */
+  async function runningCoordinator(input: { bound: string | null; pointer: string }) {
+    const value = await fixture({ coordinator: true });
+    await installRuntime(value.home, OLD);
+    await installRuntime(value.home, NEW);
+    await pointCurrentNodeRuntime({
+      runtimeDirectory: NEW,
+      homeDirectory: value.home,
+      platform: "darwin",
+    });
+    await applyRepositoryReplicaService(
+      await inspectRepositoryReplicaService(value.ports),
+      value.ports,
+    );
+    // Replace the started process with one that loaded `bound` (null: a payload that predates
+    // process bindings), then point `current` where the scenario needs it.
+    value.status.processId = await value.startProcess(input.bound);
+    await pointCurrentNodeRuntime({
+      runtimeDirectory: input.pointer,
+      homeDirectory: value.home,
+      platform: "darwin",
+    });
+    value.manage.mockClear();
+    return value;
+  }
+
+  const restarts = (manage: { mock: { calls: unknown[][] } }) =>
+    manage.mock.calls
+      .map((call) => call[0] as string[])
+      .filter((args) => args[args.indexOf("--action") + 1] === "restart");
+
+  it("restarts an unchanged definition whose process loaded an older runtime", async () => {
+    const { ports, manage, target, status } = await runningCoordinator({
+      bound: OLD,
+      pointer: NEW,
+    });
+    const definition = await readFile(target);
+    const stale = status.processId;
+    const stage = await inspectRepositoryReplicaService(ports);
+    expect(stage).toMatchObject({
+      disposition: "safe_apply",
+      reason: "replica_service_stale_runtime",
+      pointerAction: "none",
+      action: "restart",
+    });
+    expect(stage.definitionHash).toBe(stage.installedDefinitionHash);
+    await expect(applyRepositoryReplicaService(stage, ports)).resolves.toEqual({
+      pointerAction: "none",
+      configMigration: "none",
+      serviceChange: "restarted",
+    });
+    const [restart] = restarts(manage);
+    expect(restart).not.toContain("--previous-definition");
+    expect(restart![restart!.indexOf("--runtime") + 1]).toBe("repository-replica");
+    expect(await readFile(target)).toEqual(definition);
+    expect(status.processId).not.toBe(stale);
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({
+      disposition: "current",
+      reason: "replica_service_current",
+      action: "none",
+    });
+  });
+
+  it("restarts a process with no binding, such as one started by a pre-binding payload", async () => {
+    const { ports } = await runningCoordinator({ bound: null, pointer: NEW });
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({
+      reason: "replica_service_stale_runtime",
+      action: "restart",
+    });
+  });
+
+  it("does not accept a reused process id as proof of the current runtime", async () => {
+    const { ports, running, status } = await runningCoordinator({ bound: NEW, pointer: NEW });
+    running.set(status.processId!, birth(1));
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({
+      reason: "replica_service_stale_runtime",
+      action: "restart",
+    });
+    running.delete(status.processId!);
+    status.processId = null;
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({
+      reason: "replica_service_stale_runtime",
+      action: "restart",
+    });
+  });
+
+  it("moves the pointer before restarting a process bound to the previous runtime", async () => {
+    const { ports, manage, home } = await runningCoordinator({ bound: OLD, pointer: OLD });
+    const stage = await inspectRepositoryReplicaService(ports);
+    expect(stage).toMatchObject({
+      reason: "replica_service_stale_runtime",
+      runtime: NEW,
+      pointerAction: "update",
+      action: "restart",
+    });
+    await applyRepositoryReplicaService(stage, ports);
+    expect(await readCurrentNodeRuntime(home, "darwin")).toBe(NEW);
+    expect(restarts(manage)).toHaveLength(1);
+    expect(await inspectRepositoryReplicaService(ports)).toMatchObject({ disposition: "current" });
+  });
+
+  it("leaves a process bound to the current runtime running", async () => {
+    const { ports, manage } = await runningCoordinator({ bound: NEW, pointer: NEW });
+    const stage = await inspectRepositoryReplicaService(ports);
+    expect(stage).toMatchObject({
+      disposition: "current",
+      reason: "replica_service_current",
+      action: "none",
+    });
+    await expect(applyRepositoryReplicaService(stage, ports)).resolves.toBeNull();
+    expect(restarts(manage)).toHaveLength(0);
+  });
+
+  it("activates a stopped coordinator without judging a process", async () => {
+    const { ports, status, manage } = await runningCoordinator({ bound: OLD, pointer: NEW });
+    Object.assign(status, { active: false, processId: null });
+    const stage = await inspectRepositoryReplicaService(ports);
+    expect(stage).toMatchObject({ reason: "replica_service_inactive", action: "activate" });
+    await applyRepositoryReplicaService(stage, ports);
+    expect(restarts(manage)).toHaveLength(0);
+  });
+
+  it("restarts once when two upgrades apply the same stale plan at the same time", async () => {
+    const { ports, manage } = await runningCoordinator({ bound: OLD, pointer: NEW });
+    const stage = await inspectRepositoryReplicaService(ports);
+    const restart = manage.getMockImplementation()!;
+    // A restart takes time, so the second apply arrives while the first still holds the host.
+    manage.mockImplementation(async (args: string[]) => {
+      if (args[args.indexOf("--action") + 1] === "restart")
+        await new Promise((done) => setTimeout(done, 400));
+      return restart(args);
+    });
+    const receipts = await Promise.all([
+      applyRepositoryReplicaService(stage, ports),
+      applyRepositoryReplicaService(stage, ports),
+    ]);
+    expect(receipts.filter((receipt) => receipt?.serviceChange === "restarted")).toHaveLength(1);
+    expect(receipts.filter((receipt) => receipt === null)).toHaveLength(1);
+    expect(restarts(manage)).toHaveLength(1);
+  });
+
+  it("applies nothing when the coordinator already restarted onto the current runtime", async () => {
+    const { ports, status, startProcess } = await runningCoordinator({ bound: OLD, pointer: NEW });
+    const stage = await inspectRepositoryReplicaService(ports);
+    status.processId = await startProcess(NEW);
+    // The coordinator restarted on its own and loaded `current`; nothing is left to apply.
+    await expect(applyRepositoryReplicaService(stage, ports)).resolves.toBeNull();
   });
 });
 

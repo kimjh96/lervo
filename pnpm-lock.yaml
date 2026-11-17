@@ -158,6 +158,9 @@ importers:
       '@lervo/node-runtime':
         specifier: workspace:*
         version: link:../node-runtime
+      '@lervo/node-work-admission':
+        specifier: workspace:*
+        version: link:../../packages/node-work-admission
       '@lervo/operating-client':
         specifier: workspace:*
         version: link:../operating-client
