@@ -1,8 +1,10 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import { SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { afterEach, expect, it } from "vitest";
 
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
@@ -16,6 +18,27 @@ async function directory() {
   const path = await mkdtemp(resolve(tmpdir(), "lervo-full-cycle-"));
   directories.push(path);
   return path;
+}
+
+/**
+ * Another process, such as a co-hosted resident's poll, holds the admission database for longer
+ * than any one statement's busy wait.
+ */
+async function holdAdmissionDatabase(
+  admission: string,
+  begin: "BEGIN IMMEDIATE" | "BEGIN EXCLUSIVE",
+): Promise<{ released: Promise<void> }> {
+  const path = resolve(admission, "full-cycle-admission.sqlite");
+  const holder = spawn(process.execPath, [
+    "-e",
+    `const { DatabaseSync } = require("node:sqlite");
+     const database = new DatabaseSync(${JSON.stringify(path)});
+     database.exec("${begin}; DELETE FROM waiters WHERE nonce = 'none';");
+     process.stdout.write("held\\n");
+     setTimeout(() => { database.exec("COMMIT"); database.close(); }, ${SQLITE_BUSY_TIMEOUT_MS + 1_500});`,
+  ]);
+  await new Promise((ready) => holder.stdout.once("data", ready));
+  return { released: new Promise((released) => holder.once("exit", () => released())) };
 }
 
 it("never lets two residents hold the full-cycle admission together", async () => {
@@ -121,4 +144,124 @@ it("admits waiting upgrades in arrival order before residents that waited longer
   await holder.release();
   await Promise.all([resident, ...upgrades]);
   expect(order).toEqual(["/repo/c", "/repo/d", "/repo/b"]);
+});
+
+it("keeps waiting through a write lock held past the SQLite busy wait (ADR-0576)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  await (
+    await acquireFullCycleAdmission({ repositoryRoot: "/repo/a", signal, directory: admission })
+  ).release();
+  const { released } = await holdAdmissionDatabase(admission, "BEGIN IMMEDIATE");
+  const upgrade = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/b",
+    signal,
+    directory: admission,
+    pollMilliseconds: 10,
+    priority: "upgrade",
+  });
+  await released;
+  await upgrade.release();
+}, 30_000);
+
+it("releases through a write lock held past the SQLite busy wait (ADR-0576)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal,
+    directory: admission,
+    pollMilliseconds: 10,
+  });
+  const { released } = await holdAdmissionDatabase(admission, "BEGIN IMMEDIATE");
+  await held.release();
+  await released;
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  expect(db.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 0 });
+  db.close();
+}, 30_000);
+
+it("answers the holder's queue checks while another process writes (ADR-0576)", async () => {
+  const admission = await directory();
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal: new AbortController().signal,
+    directory: admission,
+  });
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  const upgradeSince = Date.now() - 365 * 24 * 60 * 60_000;
+  db.prepare("INSERT INTO waiters VALUES(?,?,?,?,?)").run(
+    "upgrade",
+    process.pid,
+    "sha256:upgrade",
+    upgradeSince,
+    Date.now(),
+  );
+  db.close();
+  const { released } = await holdAdmissionDatabase(admission, "BEGIN EXCLUSIVE");
+  const started = Date.now();
+  expect(await held.preempted()).toBe(true);
+  expect(await held.contended()).toBe(true);
+  expect(Date.now() - started).toBeLessThan(SQLITE_BUSY_TIMEOUT_MS);
+  await released;
+  await held.release();
+}, 30_000);
+
+it("moves an admission database from an earlier release to WAL (ADR-0576)", async () => {
+  const admission = await directory();
+  const path = resolve(admission, "full-cycle-admission.sqlite");
+  const earlier = new DatabaseSync(path);
+  earlier.exec(
+    "CREATE TABLE holder(slot INTEGER PRIMARY KEY CHECK(slot=1),owner_pid INTEGER NOT NULL,nonce TEXT NOT NULL,repository_hash TEXT NOT NULL,acquired_at INTEGER NOT NULL,expires_at INTEGER NOT NULL); CREATE TABLE waiters(nonce TEXT PRIMARY KEY,owner_pid INTEGER NOT NULL,repository_hash TEXT NOT NULL,since INTEGER NOT NULL,heartbeat INTEGER NOT NULL);",
+  );
+  expect(earlier.prepare("PRAGMA journal_mode").get()).toEqual({ journal_mode: "delete" });
+  earlier.close();
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal: new AbortController().signal,
+    directory: admission,
+  });
+  const later = new DatabaseSync(path);
+  expect(later.prepare("PRAGMA journal_mode").get()).toEqual({ journal_mode: "wal" });
+  expect(later.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 1 });
+  later.close();
+  await held.release();
+});
+
+it("gives up a short-lived caller's release after its contention wait (ADR-0576)", async () => {
+  const admission = await directory();
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal: new AbortController().signal,
+    directory: admission,
+    pollMilliseconds: 10,
+    releaseContentionWaitMilliseconds: 100,
+  });
+  const { released } = await holdAdmissionDatabase(admission, "BEGIN IMMEDIATE");
+  let lockReleased = false;
+  void released.then(() => {
+    lockReleased = true;
+  });
+  await held.release();
+  expect(lockReleased).toBe(false);
+  await released;
+  // The row stays until this process exits or the lease lapses.
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  expect(db.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 1 });
+  db.close();
+}, 30_000);
+
+it("names the admission database in a SQLite failure (ADR-0576)", async () => {
+  const admission = await directory();
+  await writeFile(resolve(admission, "full-cycle-admission.sqlite"), "not a database".repeat(64));
+  await expect(
+    acquireFullCycleAdmission({
+      repositoryRoot: "/repo/a",
+      signal: new AbortController().signal,
+      directory: admission,
+    }),
+  ).rejects.toMatchObject({
+    code: "ERR_SQLITE_ERROR",
+    message: expect.stringMatching(/^full-cycle-admission\.sqlite: file is not a database/u),
+  });
 });

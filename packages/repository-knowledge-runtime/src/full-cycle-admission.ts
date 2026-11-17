@@ -2,14 +2,20 @@ import { chmod, lstat, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
+import { setTimeout as sleep } from "node:timers/promises";
 import type { DatabaseSync } from "node:sqlite";
-import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
+import {
+  isSqliteLockContention,
+  openSqliteDatabase,
+  SQLITE_BUSY_TIMEOUT_MS,
+} from "@lervo/sqlite-connection";
 
 import { sha256 } from "@lervo/repository-knowledge";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow } from "./sqlite-row.js";
 
+const DATABASE_NAME = "full-cycle-admission.sqlite";
 const LEASE_MILLISECONDS = 10 * 60_000;
 const RENEW_MILLISECONDS = 60_000;
 const POLL_MILLISECONDS = 1_000;
@@ -57,7 +63,7 @@ async function database(directory: string): Promise<DatabaseSync> {
   const parent = await lstat(directory);
   if (!parent.isDirectory() || parent.isSymbolicLink())
     throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve(directory, "full-cycle-admission.sqlite");
+  const path = resolve(directory, DATABASE_NAME);
   try {
     const file = await lstat(path);
     if (!file.isFile() || file.isSymbolicLink())
@@ -66,14 +72,49 @@ async function database(directory: string): Promise<DatabaseSync> {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
   const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
-  await chmod(path, 0o600);
-  db.exec(
-    "CREATE TABLE IF NOT EXISTS holder(slot INTEGER PRIMARY KEY CHECK(slot=1),owner_pid INTEGER NOT NULL,nonce TEXT NOT NULL,repository_hash TEXT NOT NULL,acquired_at INTEGER NOT NULL,expires_at INTEGER NOT NULL)",
-  );
-  db.exec(
-    "CREATE TABLE IF NOT EXISTS waiters(nonce TEXT PRIMARY KEY,owner_pid INTEGER NOT NULL,repository_hash TEXT NOT NULL,since INTEGER NOT NULL,heartbeat INTEGER NOT NULL)",
-  );
-  return db;
+  try {
+    await chmod(path, 0o600);
+    // ADR-0576: every waiter writes a heartbeat each poll. In rollback-journal mode a commit
+    // holds the file exclusively while it waits for readers and syncs, so co-hosted waiters
+    // convoy past the busy timeout. WAL lets readers proceed and keeps each write short. The
+    // rows only coordinate live processes, so a commit lost to power failure loses nothing.
+    db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS holder(slot INTEGER PRIMARY KEY CHECK(slot=1),owner_pid INTEGER NOT NULL,nonce TEXT NOT NULL,repository_hash TEXT NOT NULL,acquired_at INTEGER NOT NULL,expires_at INTEGER NOT NULL)",
+    );
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS waiters(nonce TEXT PRIMARY KEY,owner_pid INTEGER NOT NULL,repository_hash TEXT NOT NULL,since INTEGER NOT NULL,heartbeat INTEGER NOT NULL)",
+    );
+    return db;
+  } catch (error) {
+    db.close();
+    throw error;
+  }
+}
+
+/**
+ * ADR-0576: a SQLite failure that leaves this module names the admission database, so a command
+ * that reports only an error code and message still identifies which host database failed. The
+ * SQLite `code` and `errcode` are kept.
+ */
+function identifiedFailure(error: unknown): unknown {
+  const { code, errcode } = (error ?? {}) as { code?: unknown; errcode?: unknown };
+  if (!(error instanceof Error) || typeof code !== "string" || !code.startsWith("ERR_SQLITE"))
+    return error;
+  return Object.assign(new Error(`${DATABASE_NAME}: ${error.message}`, { cause: error }), {
+    code,
+    errcode,
+  });
+}
+
+/** ADR-0576: a poll that meets lock contention is a poll that was not admitted. */
+async function tryAcquireOrWait(input: Parameters<typeof tryAcquire>[0]): Promise<boolean> {
+  try {
+    return await tryAcquire(input);
+  } catch (error) {
+    if (isSqliteLockContention(error)) return false;
+    throw identifiedFailure(error);
+  }
 }
 
 async function tryAcquire(input: {
@@ -179,6 +220,12 @@ export async function acquireFullCycleAdmission(input: {
   directory?: string;
   pollMilliseconds?: number;
   priority?: FullCycleAdmissionPriority;
+  /**
+   * ADR-0576: how long `release()` retries lock contention. By default it retries until the
+   * lease lapses, which a long-lived resident needs because its live process keeps the row held.
+   * A short-lived command gives up sooner: its holder row stops counting when its process exits.
+   */
+  releaseContentionWaitMilliseconds?: number;
   onWait?: () => void;
 }): Promise<FullCycleAdmission> {
   const directory =
@@ -192,7 +239,7 @@ export async function acquireFullCycleAdmission(input: {
       await update(directory, "DELETE FROM waiters WHERE nonce=?", nonce).catch(() => undefined);
       throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
     }
-    if (await tryAcquire({ directory, repositoryHash, nonce, since, now: Date.now() })) break;
+    if (await tryAcquireOrWait({ directory, repositoryHash, nonce, since, now: Date.now() })) break;
     if (!waited) input.onWait?.();
     waited = true;
     await delay(
@@ -200,13 +247,19 @@ export async function acquireFullCycleAdmission(input: {
       input.signal,
     );
   }
+  let expiresAt = Date.now() + LEASE_MILLISECONDS;
   const renewal = setInterval(() => {
+    const renewed = Date.now() + LEASE_MILLISECONDS;
     void update(
       directory,
       "UPDATE holder SET expires_at=? WHERE slot=1 AND nonce=?",
-      Date.now() + LEASE_MILLISECONDS,
+      renewed,
       nonce,
-    ).catch(() => undefined);
+    )
+      .then(() => {
+        expiresAt = renewed;
+      })
+      .catch(() => undefined);
   }, RENEW_MILLISECONDS);
   renewal.unref();
   let released = false;
@@ -222,7 +275,22 @@ export async function acquireFullCycleAdmission(input: {
       if (released) return;
       released = true;
       clearInterval(renewal);
-      await update(directory, "DELETE FROM holder WHERE slot=1 AND nonce=?", nonce);
+      // ADR-0576: contention delays the release instead of failing it. Once the lease has
+      // lapsed, no reader treats the row as held, so the release is complete either way.
+      const giveUpAt =
+        input.releaseContentionWaitMilliseconds === undefined
+          ? expiresAt
+          : Math.min(expiresAt, Date.now() + input.releaseContentionWaitMilliseconds);
+      for (;;) {
+        try {
+          await update(directory, "DELETE FROM holder WHERE slot=1 AND nonce=?", nonce);
+          return;
+        } catch (error) {
+          if (!isSqliteLockContention(error)) throw identifiedFailure(error);
+          if (Date.now() >= giveUpAt) return;
+        }
+        await sleep(input.pollMilliseconds ?? POLL_MILLISECONDS);
+      }
     },
   };
 }

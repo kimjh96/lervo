@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { lstat, mkdir, open } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { openSqliteDatabase } from "@lervo/sqlite-connection";
+import { isSqliteLockContention, openSqliteDatabase } from "@lervo/sqlite-connection";
 
 import { resolveProjectPaths } from "@lervo/project";
 
@@ -34,11 +34,6 @@ function sourceGateRow(value: unknown): Readonly<Record<string, unknown>> | unde
 
 export interface RepositorySourceLease {
   release(): void;
-}
-
-function busy(error: unknown): boolean {
-  const code = (error as { errcode?: unknown } | null)?.errcode;
-  return typeof code === "number" && [5, 6].includes(code & 0xff);
 }
 
 async function requireSafeDirectory(path: string): Promise<void> {
@@ -190,8 +185,8 @@ async function acquire(
     }
     if (error instanceof RepositorySourceGateError) throw error;
     throw new RepositorySourceGateError(
-      busy(error) ? "repository_source_busy" : "repository_source_gate_invalid",
-      busy(error)
+      isSqliteLockContention(error) ? "repository_source_busy" : "repository_source_gate_invalid",
+      isSqliteLockContention(error)
         ? "Another repository source operation is active."
         : "The repository source gate could not be acquired safely.",
       { cause: error },

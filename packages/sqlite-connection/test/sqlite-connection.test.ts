@@ -6,7 +6,11 @@ import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "../src/index.js";
+import {
+  isSqliteLockContention,
+  openSqliteDatabase,
+  SQLITE_BUSY_TIMEOUT_MS,
+} from "../src/index.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -41,6 +45,15 @@ async function holdExclusively(
   return { released: new Promise((released) => holder.once("exit", () => released())) };
 }
 
+function thrown(statement: () => unknown): unknown {
+  try {
+    statement();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("The statement did not fail.");
+}
+
 describe("SQLite connection opening", () => {
   it("waits for another process's lock before the first statement that needs it", async () => {
     const path = await walDatabase();
@@ -58,9 +71,15 @@ describe("SQLite connection opening", () => {
     const path = await walDatabase();
     const { released } = await holdExclusively(path, 300);
     const database = openSqliteDatabase(path, { busyTimeoutMs: 0 });
-    expect(() => database.exec("PRAGMA journal_mode = WAL;")).toThrow(/locked/u);
-    database.close();
+    const locked = thrown(() => database.exec("PRAGMA journal_mode = WAL;"));
+    expect(locked).toMatchObject({ message: expect.stringMatching(/locked/u) });
+    expect(isSqliteLockContention(locked)).toBe(true);
     await released;
+    const missing = thrown(() => database.exec("SELECT * FROM missing"));
+    expect(missing).toMatchObject({ message: expect.stringMatching(/no such table/u) });
+    expect(isSqliteLockContention(missing)).toBe(false);
+    expect(isSqliteLockContention(new Error("database is locked"))).toBe(false);
+    database.close();
   });
 
   it("applies connection options and rejects an invalid wait", async () => {

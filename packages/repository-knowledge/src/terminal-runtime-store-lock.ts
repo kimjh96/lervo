@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { chmod, open } from "node:fs/promises";
 import { resolve } from "node:path";
-import { openSqliteDatabase } from "@lervo/sqlite-connection";
+import { isSqliteLockContention, openSqliteDatabase } from "@lervo/sqlite-connection";
 
 /** A kernel-held SQLite writer lock covers publication and retention, including process death. */
 export async function acquireTerminalRuntimeStoreLock(
@@ -20,8 +20,7 @@ export async function acquireTerminalRuntimeStoreLock(
     database.exec("BEGIN IMMEDIATE;");
   } catch (error) {
     database.close();
-    const code = (error as { errcode?: number }).errcode;
-    if (code === 5 || code === 6) return null;
+    if (isSqliteLockContention(error)) return null;
     throw error;
   }
   return async () => {
