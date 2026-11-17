@@ -2,6 +2,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { DatabaseSync } from "node:sqlite";
 
 import { loadProjectManifest } from "@lervo/project";
 import { canonicalJson } from "@lervo/repository-knowledge";
@@ -51,6 +52,32 @@ async function planId(root: string): Promise<string> {
   return (JSON.parse(stdout.join("")) as { planId: string }).planId;
 }
 
+/** A live knowledge materialization owned by `ownerPid` pauses the upgrade until it settles. */
+async function liveMaterialization(root: string, ownerPid: number): Promise<void> {
+  await mkdir(resolve(root, MARKER), { recursive: true });
+  await writeFile(
+    resolve(root, MARKER, "journal.json"),
+    `${canonicalJson({
+      schemaVersion: 1,
+      transactionType: "knowledge_materialization",
+      planId: `knormplan_${"e".repeat(24)}`,
+      projectId: (await loadProjectManifest(root)).projectId,
+      ownerPid,
+      phase: "publishing",
+      publishedCount: 0,
+      activeIndex: 0,
+      operations: [
+        {
+          path: "README.md",
+          action: "create",
+          beforeHash: null,
+          afterHash: `sha256:${"f".repeat(64)}`,
+        },
+      ],
+    })}\n`,
+  );
+}
+
 /** A resident cycle's admission attempt, as `startAutonomousKnowledgeWorker` makes it. */
 async function residentCycleAdmitted(directory: string, root: string): Promise<boolean> {
   try {
@@ -79,28 +106,7 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
       stdio: "ignore",
     });
     children.push(owner);
-    await mkdir(resolve(root, MARKER), { recursive: true });
-    await writeFile(
-      resolve(root, MARKER, "journal.json"),
-      `${canonicalJson({
-        schemaVersion: 1,
-        transactionType: "knowledge_materialization",
-        planId: `knormplan_${"e".repeat(24)}`,
-        projectId: (await loadProjectManifest(root)).projectId,
-        ownerPid: owner.pid,
-        phase: "publishing",
-        publishedCount: 0,
-        activeIndex: 0,
-        operations: [
-          {
-            path: "README.md",
-            action: "create",
-            beforeHash: null,
-            afterHash: `sha256:${"f".repeat(64)}`,
-          },
-        ],
-      })}\n`,
-    );
+    await liveMaterialization(root, owner.pid!);
     const admittedDuringApply: boolean[] = [];
     const stdout: string[] = [];
     const stderr: string[] = [];
@@ -121,6 +127,54 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     expect(code, stdout.join("") + stderr.join("")).toBe(0);
     expect(admittedDuringApply).toEqual([false]);
     expect(await residentCycleAdmitted(directory, root)).toBe(true);
+  }, 60_000);
+
+  it("refuses its next stage after a resident was admitted on its lapsed lease (ADR-0577)", async () => {
+    const root = await repository();
+    const directory = await temporary("lervo-upgrade-admission-");
+    const approval = await planId(root);
+    const owner = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
+      stdio: "ignore",
+    });
+    children.push(owner);
+    await liveMaterialization(root, owner.pid!);
+    let resident: Awaited<ReturnType<typeof acquireFullCycleAdmission>> | undefined;
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    try {
+      const code = await runCli(
+        ["upgrade", "--apply", "--approval", approval, "--json"],
+        io(root, stdout, stderr),
+        {
+          knowledgeCycleAdmission: { directory },
+          knowledgeMaterializationWait: {
+            now: () => 0,
+            // The in-exclusion plan stalls here. A renewal timer blocked past the lease leaves
+            // an expired row, and a waiting resident takes the slot.
+            sleep: async () => {
+              const db = new DatabaseSync(resolve(directory, "full-cycle-admission.sqlite"));
+              db.prepare("UPDATE holder SET expires_at=?").run(Date.now() - 1);
+              db.close();
+              resident = await acquireFullCycleAdmission({
+                repositoryRoot: resolve(root, "resident-repository"),
+                directory,
+                pollMilliseconds: 10,
+                signal: AbortSignal.timeout(5_000),
+              });
+              await rm(resolve(root, MARKER), { recursive: true });
+            },
+          },
+        },
+      );
+      expect(code, stdout.join("") + stderr.join("")).toBe(1);
+    } finally {
+      await resident?.release();
+    }
+    expect(resident).toBeDefined();
+    expect(JSON.parse(stdout.join(""))).toMatchObject({
+      error: { code: "knowledge_cycle_admission_lost" },
+    });
+    expect(await planId(root)).toBe(approval);
   }, 60_000);
 
   it("waits for a running resident cycle to finish before applying", async () => {
