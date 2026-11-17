@@ -27,6 +27,31 @@ function vanished(error: unknown): boolean {
   return (error as NodeJS.ErrnoException | null)?.code === "ENOENT";
 }
 
+const APPLE_DOUBLE_MAGIC = Buffer.from([0x00, 0x05, 0x16, 0x07]);
+
+/**
+ * Copying from macOS can leave `._<name>` AppleDouble metadata beside a file. Lervo never writes
+ * one, so only that exact name and magic are skipped; any other unreadable file fails closed.
+ */
+async function isAppleDouble(path: string, name: string): Promise<boolean> {
+  if (!name.startsWith("._")) return false;
+  // A vanished file is skipped by the inventory itself; any other open failure fails closed.
+  const handle = await open(path, constants.O_RDONLY | constants.O_NOFOLLOW).catch(
+    (error: unknown) => {
+      if (vanished(error)) return null;
+      throw error;
+    },
+  );
+  if (handle === null) return false;
+  try {
+    const magic = Buffer.alloc(APPLE_DOUBLE_MAGIC.length);
+    const { bytesRead } = await handle.read(magic, 0, magic.length, 0);
+    return bytesRead === magic.length && magic.equals(APPLE_DOUBLE_MAGIC);
+  } finally {
+    await handle.close();
+  }
+}
+
 export async function referenceFile(path: string, hash: string | null): Promise<CasReferenceFile> {
   const stat = await lstat(path);
   if (!stat.isFile() || stat.isSymbolicLink()) throw new Error("Unsafe CAS reference file.");
@@ -113,8 +138,9 @@ export async function casReferenceFiles(storage: ProjectStorage): Promise<CasRef
         continue;
       if (entry.isSymbolicLink()) throw new Error("Unsafe subsystem reference file.");
       if (entry.isDirectory()) pending.push(child);
-      else if (entry.isFile()) await add(child, null);
-      else throw new Error("Unsupported subsystem reference file.");
+      else if (entry.isFile()) {
+        if (!(await isAppleDouble(child, entry.name))) await add(child, null);
+      } else throw new Error("Unsupported subsystem reference file.");
     }
   }
   return files.sort((left, right) => left.key.localeCompare(right.key));
@@ -153,6 +179,16 @@ export async function scanReferenceChunk(
   }
 }
 
+async function hasWriteAheadLog(path: string): Promise<boolean> {
+  try {
+    await lstat(`${path}-wal`);
+    return true;
+  } catch (error) {
+    if (vanished(error)) return false;
+    throw error;
+  }
+}
+
 async function readReferenceChunk(
   file: CasReferenceFile,
   prior: ReferenceScan,
@@ -161,6 +197,9 @@ async function readReferenceChunk(
 ): Promise<ReferenceChunkRead | null> {
   if (file.hash === null && /\.(?:sqlite|db)$/u.test(file.path)) {
     if ((await referenceFile(file.path, null)).identity !== file.identity) return null;
+    // SQLite treats a zero-byte file as an empty database. Without a WAL, it has no cells to read.
+    if (file.size === 0 && !(await hasWriteAheadLog(file.path)))
+      return { scan: { ...prior, complete: true }, bytesRead: 0 };
     const result = sqliteReferenceChunk(file.path, prior.sqlite ?? { table: 0, row: 0 }, eligible);
     return {
       scan: {

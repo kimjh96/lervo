@@ -140,3 +140,34 @@ it("names an exceeded collector bound without deleting anything", async () => {
   });
   expect(await f.artifacts.has(obsolete.uri)).toBe(true);
 });
+
+it("skips macOS AppleDouble copies and reads a zero-byte SQLite file as an empty store", async () => {
+  const f = await fixture();
+  const { obsolete } = await f.settled("copied-from-mac");
+  const data = f.storage.paths.data;
+  // AppleDouble header: magic 00 05 16 07, version 00 02 00 00, then filler and entries.
+  const appleDouble = Buffer.alloc(163);
+  Buffer.from([0x00, 0x05, 0x16, 0x07, 0x00, 0x02, 0x00, 0x00]).copy(appleDouble);
+  await writeFile(resolve(data, "._events.sqlite"), appleDouble);
+  await writeFile(resolve(data, "assignments.sqlite"), "");
+  expect(await finishRetention(f.storage)).toMatchObject({
+    status: "collected",
+    failure: null,
+    removedObjects: 1,
+  });
+  expect(await f.artifacts.has(obsolete.uri)).toBe(false);
+});
+
+it("still fails closed on an unreadable store, even one named like AppleDouble", async () => {
+  for (const name of ["broken.sqlite", "._broken.sqlite"]) {
+    const f = await fixture();
+    const { obsolete } = await f.settled("unreadable");
+    await writeFile(resolve(f.storage.paths.data, name), "not a database");
+    expect(await finishRetention(f.storage)).toMatchObject({
+      status: "unavailable",
+      failure: "failed",
+      removedObjects: 0,
+    });
+    expect(await f.artifacts.has(obsolete.uri)).toBe(true);
+  }
+});

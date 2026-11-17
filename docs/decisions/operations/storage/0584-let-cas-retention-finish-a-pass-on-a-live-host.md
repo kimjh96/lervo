@@ -62,6 +62,12 @@ The inventory walk skips a path that vanishes between its listing and its inspec
 
 The canonical replay no longer fails when an event lands during it. The replay visits a hash-chained snapshot that ends exactly at the observed head. Every unlink is still fenced on that head, so a new event stops deletion for the cycle. The next cycle replays through the new head.
 
+### Skip macOS copy metadata and read empty stores
+
+A read-only estimate on WSL found 163-byte AppleDouble files named `.lervo/data/._events.sqlite` in three repositories. Copying from macOS leaves these `._<name>` files, which hold file metadata, never Lervo data. The scan opened each one as SQLite and failed with `file is not a database`. That failure kept retention `unavailable` on every cycle. The inventory now skips a file only when its name starts with `._` and its first four bytes are the AppleDouble magic `00 05 16 07`. Any other unreadable store, including a `._` file without that magic, still fails closed.
+
+A zero-byte `.sqlite` file with no WAL counts as an empty store. SQLite itself opens a zero-byte file as an empty database, so the file can hold no table, cell or reference. Treating it as unreadable would block retention without protecting any reference. A zero-byte file with a WAL is still read through SQLite, because the WAL can hold its first pages.
+
 ### Keep completed scan entries small
 
 A completed body scan no longer stores its 96-character overlap tail. Only an unfinished read needs it. On the Mac, this reduces the average entry from 425 to 321 bytes, so 100,000 entries fit the 32 MiB projection.
@@ -93,5 +99,6 @@ The owner prohibited tests and builds on the Mac and any access to WSL. GitHub C
 - a reference file that changes or vanishes during its read, where the cycle must yield, keep its other progress and retain the newly referenced candidate;
 - an event appended during the canonical replay, where the cycle must not fail and the event's reference must keep the candidate;
 - an oversized SQLite row, where the observation must report `bound_exceeded`.
+- an AppleDouble `._events.sqlite` and a zero-byte `.sqlite` file, where collection must proceed, and an unreadable store, where it must fail closed.
 
 The figures above come from `du`, `find`, `stat`, `sqlite3` and Python reads with `immutable=1` on the Mac's live store, and from the private scan projection read-only. Nothing was written to a live store.
