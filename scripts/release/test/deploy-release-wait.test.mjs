@@ -26,7 +26,8 @@ case "$1 $2" in
       *release-pull-request.yml*) echo "$FAKE_PREPARATION" ;;
       *code-quality.yml*) echo "$FAKE_DISPATCH" ;;
       *cli-release-matrix.yml*) echo "$FAKE_MATRIX" ;;
-      *"CLI release matrix"*) echo "$FAKE_TAG_MATRIX" ;;
+      # A rerun replaces the matrix state the next poll reads.
+      *"CLI release matrix"*) cat "$FAKE_TRACE.rerun" 2>/dev/null || echo "$FAKE_TAG_MATRIX" ;;
     esac ;;
   'release view') echo "$FAKE_RELEASE" ;;
   'run view') echo "$FAKE_AGGREGATE" ;;
@@ -40,7 +41,9 @@ case "$1 $2" in
         if [ -n "\${FAKE_MOVED_HEAD:-}" ] && [ "$reads" -gt 1 ]; then echo "$FAKE_MOVED_HEAD"; else echo "$FAKE_HEAD"; fi ;;
     esac ;;
   'pr checks') echo "$FAKE_CHECKS"; exit "\${FAKE_CHECKS_STATUS:-0}" ;;
+  'run rerun') echo "$FAKE_TAG_MATRIX_AFTER_RERUN" >"$FAKE_TRACE.rerun" ;;
   api\\ *compare*) echo "$FAKE_COMPARE" ;;
+  api\\ */jobs*) echo "$FAKE_JOBS" ;;
   api\\ *commits*) echo "$FAKE_AUTHOR" ;;
   *) exit 2 ;;
 esac
@@ -214,5 +217,36 @@ describe("deploy-lervo-release tag wait", () => {
     }
     const failed = await tag({ FAKE_TAG_MATRIX: "completed/failure" });
     assert.equal(failed.status, 1, failed.stdout);
+  });
+
+  it("reruns a matrix only when its cancelled jobs never got a runner", async () => {
+    const tag = (state) =>
+      wait(
+        {
+          FAKE_TAG_MATRIX: "completed/cancelled 31",
+          FAKE_TAG_MATRIX_AFTER_RERUN: "completed/success 31",
+          FAKE_RELEASE: `false ${subjects}`,
+          ...state,
+        },
+        "10",
+        ["tag", "1.2.3"],
+      );
+    const rerun = await tag({ FAKE_JOBS: "2 2" });
+    assert.equal(rerun.status, 0, rerun.stdout);
+    assert.match(rerun.trace, /run rerun 31 --failed/u);
+    assert.match(rerun.trace, /actions\/runs\/31\/jobs/u);
+    for (const jobs of ["2 1", "0 0", ""]) {
+      const failed = await tag({ FAKE_JOBS: jobs });
+      assert.equal(failed.status, 1, failed.stdout);
+      assert.match(failed.stdout, /matrix failed: completed\/cancelled/u);
+      assert.doesNotMatch(failed.trace, /run rerun/u);
+    }
+    const bounded = await tag({
+      FAKE_JOBS: "1 1",
+      FAKE_TAG_MATRIX_AFTER_RERUN: "completed/cancelled 31",
+      WAIT_RELEASE_RERUNS: "2",
+    });
+    assert.equal(bounded.status, 1, bounded.stdout);
+    assert.equal(bounded.trace.match(/run rerun 31/gu).length, 2);
   });
 });

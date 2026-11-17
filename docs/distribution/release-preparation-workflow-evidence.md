@@ -27,6 +27,8 @@ Code quality is explicitly dispatched with the expected candidate SHA and source
 
 ## Exact tag and platform handoff
 
+A short `route` job on `ubuntu-latest` chooses the reconcile runner from the exact source revision. Pending intent runs on `macos-15` with Xcode 26.3 selected by `DEVELOPER_DIR`, because preparing the release pull request builds the darwin native files (ADR-0564) and those bytes follow the toolchain ([ADR-0581](../decisions/release/packaging/0581-build-darwin-native-files-with-one-pinned-xcode.md)). With no pending intent the reconcile job only admits current main and creates the tag, so it runs on `ubuntu-latest`. On 2026-11-17 the macOS queue cancelled the v0.25.2 tag job four times after 15 minutes without a runner; tag creation no longer waits for that queue.
+
 With no pending intent, tag creation independently requires full successful CI for the exact current main: four test shards, manifest/SBOM, distribution checks, and aggregate success. A documentation-only success cannot authorize a tag. The existing tag owner still validates its exact metadata and approval plan, creates or replays the annotated tag, and dispatches the unchanged three-platform matrix when no matching run exists.
 
 Candidate success cannot substitute for merged-main success. Tag planning or preparation alone does not establish packed-consumer, signed-attestation, deployment, npm publication, or hosted acceptance.

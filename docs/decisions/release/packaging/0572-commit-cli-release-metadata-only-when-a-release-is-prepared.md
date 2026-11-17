@@ -2,6 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-17
+Amended by: [ADR-0581](0581-build-darwin-native-files-with-one-pinned-xcode.md) (the native files it commits come from one pinned Xcode)
 Amends: [ADR-0086](0086-canonical-cli-release-artifact-manifest.md) (a source change no longer requires a manifest update in the same pull request), [ADR-0092](../assurance/0092-cli-release-sbom.md) (the same for the SBOM), [ADR-0496](../../operations/services/0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) (the build job checks or generates the metadata, and the shared build carries it), [ADR-0522](../../operations/services/0522-reuse-ci-verification-for-identical-content.md) (build reuse also matches how the metadata was verified)
 
 ## Context

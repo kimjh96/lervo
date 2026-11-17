@@ -22,8 +22,11 @@ env:
   GH_TOKEN: ${{ github.token }}
 
 jobs:
-  reconcile:
-    name: Reconcile release PR or exact tag
+  route:
+    # Only preparing a release pull request builds the darwin native files (ADR-0564), so only
+    # pending intent needs a macOS runner, on the pinned image (ADR-0581). Creating the exact tag runs on Linux and does not wait
+    # for scarce macOS capacity.
+    name: Choose the reconcile runner
     if: >-
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
@@ -31,8 +34,44 @@ jobs:
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'main' &&
         github.event.workflow_run.head_repository.full_name == github.repository))
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      runner: ${{ steps.route.outputs.runner }}
+    steps:
+      - name: Check out pending release intent
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ env.RELEASE_SOURCE_SHA }}
+          sparse-checkout: .changes
+          persist-credentials: false
+      - name: Route by pending intent
+        id: route
+        shell: bash
+        run: |
+          if compgen -G '.changes/*.yaml' > /dev/null; then
+            echo 'runner=macos-15' >>"${GITHUB_OUTPUT}"
+          else
+            echo 'runner=ubuntu-latest' >>"${GITHUB_OUTPUT}"
+          fi
+  reconcile:
+    name: Reconcile release PR or exact tag
+    needs: route
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
+    runs-on: ${{ needs.route.outputs.runner }}
     timeout-minutes: 30
+    # Preparation on macOS commits the manifest of darwin native files built here, so it uses the
+    # Xcode that CI's native-runtime job uses (ADR-0581). Linux ignores the variable.
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - name: Check out exact main revision
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -54,6 +93,9 @@ jobs:
       - name: Install dependencies
         if: steps.admission.outputs.status == 'ready'
         run: pnpm install --frozen-lockfile
+      - name: Check the pinned darwin toolchain
+        if: steps.admission.outputs.status == 'ready' && runner.os == 'macOS'
+        run: node scripts/distribution/check-darwin-toolchain.mjs
       - name: Check source release completion
         if: steps.admission.outputs.status == 'ready'
         shell: bash

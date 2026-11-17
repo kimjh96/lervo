@@ -5,7 +5,9 @@
 #                                                   current head, which must contain current main
 #   wait-release.sh release-pr [timeout-seconds]     fallback lervo/release-cli PR and its candidate CI
 #   wait-release.sh tag <version> [timeout-seconds]  tag v<version>, its CLI release matrix (any event), and the GitHub Release
-#                                                   with its verified release subjects attached
+#                                                   with its verified release subjects attached; a matrix
+#                                                   whose jobs GitHub cancelled before any runner took
+#                                                   them is rerun up to WAIT_RELEASE_RERUNS (default 3) times
 # Every stage is judged at least once, so a timeout of 0 judges it exactly once.
 # Only gh and its built-in --jq are needed, so the script behaves the same on every host.
 set -u
@@ -15,7 +17,19 @@ if [ "$stage" = pr ] && ! [[ "$target" =~ ^[1-9][0-9]*$ ]]; then echo "invalid P
 deadline=$(( $(date +%s) + ${1:-2700} ))
 poll="${WAIT_RELEASE_POLL_SECONDS:-30}"
 last="starting"
+reruns=0
 finish() { echo "$1"; exit "$2"; }
+
+never_started() {
+  # GitHub cancels a job that waited about 15 minutes for a runner. Such a job has no runner and no
+  # steps, which says nothing about the release, so it is rerun instead of judged. 0 when every
+  # cancelled job of the run never started.
+  local counts cancelled unassigned
+  counts=$(gh api "repos/{owner}/{repo}/actions/runs/$1/jobs?per_page=100" \
+    --jq '[.jobs[] | select(.conclusion == "cancelled")] | "\(length) \([.[] | select((.runner_name // "") == "" and (.steps | length) == 0)] | length)"' 2>/dev/null) || return 1
+  read -r cancelled unassigned <<<"$counts"
+  [[ "${cancelled:-}" =~ ^[1-9][0-9]*$ ]] && [ "$cancelled" = "${unassigned:-}" ]
+}
 
 pr_checks() {
   # gh exits non-zero when a check failed, so judge what it printed rather than its status.
@@ -163,7 +177,7 @@ while [ -z "$judged" ] || [ "$(date +%s)" -lt "$deadline" ]; do
     tag)
       tag="v$target"
       if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-        run=$(gh run list --workflow "CLI release matrix" --branch "$tag" --limit 1 --json status,conclusion --jq '.[0]|"\(.status)/\(.conclusion)"' 2>/dev/null)
+        read -r run run_id <<<"$(gh run list --workflow "CLI release matrix" --branch "$tag" --limit 1 --json status,conclusion,databaseId --jq '.[0]|"\(.status)/\(.conclusion) \(.databaseId)"' 2>/dev/null)"
         last="$tag matrix $run"
         case "$run" in
           completed/success)
@@ -173,6 +187,14 @@ while [ -z "$judged" ] || [ "$(date +%s)" -lt "$deadline" ]; do
             expected="false lervo-cli-$target.tgz,release-artifact-manifest.json,release-sbom.cdx.json,release-subjects.json"
             [ "$release" = "$expected" ] && finish "$tag released: matrix success, release published with verified subjects" 0
             last="$tag matrix success; release draft and assets: ${release:-unknown}";;
+          completed/cancelled)
+            if [ "$reruns" -lt "${WAIT_RELEASE_RERUNS:-3}" ] && [[ "${run_id:-}" =~ ^[0-9]+$ ]] && never_started "$run_id"; then
+              gh run rerun "$run_id" --failed >/dev/null 2>&1 || finish "$tag matrix run $run_id: rerun failed" 1
+              reruns=$((reruns + 1))
+              last="$tag matrix run $run_id cancelled before any runner took its jobs; rerun $reruns"
+            else
+              finish "$tag matrix failed: $run" 1
+            fi;;
           completed/*) finish "$tag matrix failed: $run" 1;;
         esac
       else
