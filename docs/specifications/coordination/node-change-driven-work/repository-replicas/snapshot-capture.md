@@ -26,7 +26,7 @@ Bump the version with any change that lets the same bytes produce a different sn
 
 ## Peer runtime
 
-The peer command runs `<peer.remoteRuntimesDirectory>/current/node-runtime.js`. `current` is the peer host's atomic runtime pointer, which Node activation and `lervo upgrade` keep at the activated runtime. `peer.remoteRuntimeExecutable` is an explicit override, and exactly one of the two is required. The coordinator configuration accepts only known keys at every level. The coordinator service itself runs through the local host's `current` pointer.
+The peer command runs `<peer.remoteRuntimesDirectory>/current/node-runtime.js`. `current` is the peer host's atomic runtime pointer, which Node activation and `lervo upgrade` keep at the activated runtime. `peer.remoteRuntimeExecutable` is an explicit override, and exactly one of the two is required. The coordinator configuration accepts only known keys at every level. The coordinator service itself runs through the local host's `current` pointer. Moving the pointer does not change a running coordinator, so `lervo upgrade` restarts one whose process binding does not name the runtime `current` names, and terminal inspection reports it as `repository_replica_service_stale_runtime` ([ADR-0573](../../../../decisions/distribution/0573-restart-a-replica-coordinator-that-runs-a-superseded-runtime.md)).
 
 ## Transfer and readiness
 
