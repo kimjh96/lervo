@@ -127,11 +127,3 @@ export async function applyNodeRuntimeRetention(
     return removed;
   });
 }
-
-export async function maintainNodeRuntimeRetention(
-  input: RuntimeRetentionOptions = {},
-): Promise<void> {
-  await applyNodeRuntimeRetention(await planNodeRuntimeRetention(input), input).catch(
-    () => undefined,
-  );
-}

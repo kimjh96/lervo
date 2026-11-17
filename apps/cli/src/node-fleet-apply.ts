@@ -1,4 +1,3 @@
-import { maintainNodeRuntimeRetention } from "./node-runtime-retention.js";
 import { pinRuntimeRollbackPredecessor } from "./node-runtime-rollback-pins.js";
 import { createHash } from "node:crypto";
 import { chmod, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
@@ -355,10 +354,9 @@ export async function applyNodeFleetOnboarding(input: {
     }
     // ADR-0483: the activated runtime becomes this host's `current`. A failed swap leaves the
     // previous pointer, which the next `lervo upgrade` repairs; onboarding itself succeeded.
+    // ADR-0579: retiring superseded runtimes is an irreversible deletion, so it happens only in
+    // the planned runtime retention stage of `lervo upgrade`, never as a side effect here.
     await pointCurrentNodeRuntimeAt(executable, input.homeDirectory).catch(() => undefined);
-    await maintainNodeRuntimeRetention(
-      input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory },
-    );
     return {
       schemaVersion: 1,
       operation: "repository_node_onboarding",

@@ -143,7 +143,7 @@ export interface NodeFleetApplyReceipt {
   /**
    * ADR-0579: wall milliseconds of the onboarding's consecutive parts: preparation up to the
    * service operation, the service operation with its fences, stop, and start, readiness, and
-   * registration with runtime maintenance. Absent from receipts of earlier CLIs.
+   * registration with the runtime pointer. Absent from receipts of earlier CLIs.
    */
   timing?: NodeFleetApplyTiming;
 }
