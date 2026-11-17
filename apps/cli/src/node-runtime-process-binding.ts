@@ -8,7 +8,21 @@ import { readRuntimeReferenceText } from "./node-runtime-reference-file.js";
 export const RUNTIME_DIRECTORY_NAME = /^[a-f0-9]{16}$/u;
 /** The most runtime directory entries an inspection reads before refusing the inventory. */
 export const MAXIMUM_RUNTIME_DIRECTORY_ENTRIES = 4096;
-const PROCESS_IDENTITY = /^proc_[a-z0-9_]{1,64}:sha256:[a-f0-9]{64}$/u;
+/** A process birth identity: `proc_<scheme>:sha256:<hex>`, as `@lervo/node-work-admission` observes. */
+export const PROCESS_BIRTH_IDENTITY = /^proc_[a-z0-9_]{1,64}:sha256:[a-f0-9]{64}$/u;
+
+/**
+ * Whether a live process is provably not the one that recorded `recorded`: both identities use
+ * the same scheme and differ, so its pid was reused. Another scheme, such as one from a newer
+ * observer, proves nothing.
+ */
+export function birthIdentityContradicts(observed: ProcessObservation, recorded: string): boolean {
+  return (
+    observed.status === "present" &&
+    observed.identity.split(":", 1)[0] === recorded.split(":", 1)[0] &&
+    observed.identity !== recorded
+  );
+}
 
 /**
  * One `<runtime>/.processes/<pid>.json` record a running payload writes at startup
@@ -56,7 +70,7 @@ export function runtimeProcessBindingIdentity(binding: RuntimeProcessBinding): s
   if (binding.processIdentity === undefined) return undefined;
   if (
     typeof binding.processIdentity !== "string" ||
-    !PROCESS_IDENTITY.test(binding.processIdentity)
+    !PROCESS_BIRTH_IDENTITY.test(binding.processIdentity)
   )
     throw new Error("Invalid runtime process birth identity.");
   return binding.processIdentity;

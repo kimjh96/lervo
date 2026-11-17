@@ -2,6 +2,7 @@ import { createProcessObserver, type ProcessObservation } from "@lervo/node-runt
 import { readdir, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
 import {
+  birthIdentityContradicts,
   MAXIMUM_RUNTIME_DIRECTORY_ENTRIES,
   RUNTIME_DIRECTORY_NAME,
   parseRuntimeProcessBinding,
@@ -48,13 +49,7 @@ export async function collectRuntimeProcessBindings(
       // A dead process's record protects nothing, so only a live process's identity is judged.
       if (observed.status === "absent") continue;
       const identity = runtimeProcessBindingIdentity(binding);
-      if (
-        observed.status === "present" &&
-        identity !== undefined &&
-        observed.identity.split(":", 1)[0] === identity.split(":", 1)[0] &&
-        observed.identity !== identity
-      )
-        continue;
+      if (identity !== undefined && birthIdentityContradicts(observed, identity)) continue;
       protectedNames.add(runtime.name);
       if (observed.status === "present" && observed.identity === identity) boundProcesses.add(pid);
     }
