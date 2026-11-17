@@ -15,6 +15,7 @@ import { terminalWorkerEntry } from "./terminal-worker-entry.js";
 import { withinTerminalDeadline } from "./terminal-hook-budget.js";
 import { TERMINAL_OBSERVATION_POLICY_VERSION } from "./terminal-event-coordinates.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
+import { REPOSITORY_REPLICA_SERVICE_INSPECTION_FAILED } from "./terminal-repository-replica-service-inspection.js";
 import { settleTerminalAgentTurn } from "./terminal-instruction-capture.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import { recordObservedTerminalTurn } from "./terminal-turn-observation.js";
@@ -22,6 +23,31 @@ import {
   checkpointTerminalWorkspace,
   pauseTerminalWorkspace,
 } from "./terminal-workspace-lifecycle.js";
+
+/**
+ * Knowledge inspections own every `*_inspection_failed` code except the replica service's, which
+ * is a host lifecycle check; it keeps its own issue code and degrades the turn as a lifecycle
+ * failure, never as skipped knowledge checks.
+ */
+function lifecycleFailureReason(
+  issues: Array<{ code: string }>,
+): TerminalHookFailureReason | undefined {
+  if (
+    issues.some(
+      (issue) =>
+        issue.code.endsWith("_inspection_failed") &&
+        issue.code !== REPOSITORY_REPLICA_SERVICE_INSPECTION_FAILED,
+    )
+  )
+    return "knowledge_inspection_failed";
+  return issues.some(
+    (issue) =>
+      issue.code === REPOSITORY_REPLICA_SERVICE_INSPECTION_FAILED ||
+      issue.code === "workstream_state_invalid",
+  )
+    ? "lifecycle_inspection_failed"
+    : undefined;
+}
 
 export async function completeTerminalHookTurn({
   root,
@@ -47,13 +73,9 @@ export async function completeTerminalHookTurn({
   const lifecycle = await timing.measure("lifecycle_inspection", () =>
     inspectTerminalLifecycle(root, expectation),
   );
-  let failureReason: TerminalHookFailureReason | undefined = lifecycle.issues.some((issue) =>
-    issue.code.endsWith("_inspection_failed"),
-  )
-    ? "knowledge_inspection_failed"
-    : lifecycle.issues.some((issue) => issue.code === "workstream_state_invalid")
-      ? "lifecycle_inspection_failed"
-      : undefined;
+  let failureReason: TerminalHookFailureReason | undefined = lifecycleFailureReason(
+    lifecycle.issues,
+  );
   let workspaceCheckpointEventId: string | null = null;
   if (
     lifecycle.status === "current" &&

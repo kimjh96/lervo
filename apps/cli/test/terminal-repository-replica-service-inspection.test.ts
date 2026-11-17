@@ -11,6 +11,9 @@ import {
 } from "../src/terminal-repository-replica-service-inspection.js";
 
 const roots: string[] = [];
+/** The issues that make a turn report action required. */
+const issuesOf = (input: Parameters<typeof inspectTerminalRepositoryReplicaService>[0]) =>
+  inspectTerminalRepositoryReplicaService(input).then((inspection) => inspection.issues);
 const OLD = "0123456789abcdef";
 const NEW = "fedcba9876543210";
 const PID = 4242;
@@ -61,7 +64,7 @@ async function runtimes(home: string, platform: NodeJS.Platform, bound: string):
 }
 
 const running = (processId: number | null = PID): ReplicaServiceObservation => ({
-  managerAvailable: true,
+  managerReachable: true,
   loaded: true,
   active: true,
   processId,
@@ -70,13 +73,13 @@ const running = (processId: number | null = PID): ReplicaServiceObservation => (
 it("requires an installed repository replica service to remain loaded", async () => {
   const value = await fixture();
   const serviceStatus = vi.fn(async () => ({
-    managerAvailable: true,
+    managerReachable: true,
     loaded: false,
     active: false,
     processId: null,
   }));
   await expect(
-    inspectTerminalRepositoryReplicaService({
+    issuesOf({
       platform: "darwin",
       homeDirectory: value.home,
       uid: 501,
@@ -93,7 +96,7 @@ it("accepts an active owner-only service and ignores hosts without one", async (
   await runtimes(value.home, "darwin", NEW);
   const observeProcess = () => ({ status: "present" as const, identity: IDENTITY });
   await expect(
-    inspectTerminalRepositoryReplicaService({
+    issuesOf({
       platform: "darwin",
       homeDirectory: value.home,
       uid: 501,
@@ -101,11 +104,9 @@ it("accepts an active owner-only service and ignores hosts without one", async (
       observeProcess,
     }),
   ).resolves.toEqual([]);
+  await expect(issuesOf({ platform: "win32", homeDirectory: value.home })).resolves.toEqual([]);
   await expect(
-    inspectTerminalRepositoryReplicaService({ platform: "win32", homeDirectory: value.home }),
-  ).resolves.toEqual([]);
-  await expect(
-    inspectTerminalRepositoryReplicaService({
+    issuesOf({
       platform: "darwin",
       homeDirectory: resolve(value.home, "absent"),
       uid: 501,
@@ -120,7 +121,7 @@ for (const { platform } of platforms) {
     await runtimes(value.home, platform, OLD);
     const observeProcess = () => ({ status: "present" as const, identity: IDENTITY });
     const inspect = (observation: ReplicaServiceObservation, observe = observeProcess) =>
-      inspectTerminalRepositoryReplicaService({
+      issuesOf({
         platform,
         homeDirectory: value.home,
         uid: 501,
@@ -140,7 +141,7 @@ for (const { platform } of platforms) {
     // A loaded job between restarts runs no process, so it cannot be stale.
     await expect(inspect({ ...running(null), active: false })).resolves.toEqual([]);
     await expect(
-      inspect({ managerAvailable: true, loaded: false, active: false, processId: null }),
+      inspect({ managerReachable: true, loaded: false, active: false, processId: null }),
     ).resolves.toEqual([
       expect.objectContaining({
         code: "repository_replica_service_inactive",
@@ -150,11 +151,10 @@ for (const { platform } of platforms) {
             : "systemctl --user enable --now lervo-repository-replica.service",
       }),
     ]);
+    // A manager this shell cannot reach is an advisory, never a failed turn.
     await expect(
-      inspect({ managerAvailable: false, loaded: false, active: false, processId: null }),
-    ).resolves.toEqual([
-      expect.objectContaining({ code: "repository_replica_service_inspection_failed" }),
-    ]);
+      inspect({ managerReachable: false, loaded: false, active: false, processId: null }),
+    ).resolves.toEqual([]);
   });
 }
 
@@ -165,7 +165,7 @@ it("rejects a symlinked repository replica service definition", async () => {
   await writeFile(target, "<plist/>", { mode: 0o600 });
   await symlink(target, value.definition);
   await expect(
-    inspectTerminalRepositoryReplicaService({
+    issuesOf({
       platform: "darwin",
       homeDirectory: value.home,
       uid: 501,
@@ -174,4 +174,33 @@ it("rejects a symlinked repository replica service definition", async () => {
   ).resolves.toEqual([
     expect.objectContaining({ code: "repository_replica_service_definition_unsafe" }),
   ]);
+});
+
+it("reports a user manager the shell cannot reach as an advisory, not a failure", async () => {
+  const value = await fixture("linux");
+  // Without XDG_RUNTIME_DIR or DBUS_SESSION_BUS_ADDRESS, systemctl --user is never run.
+  const inspection = await inspectTerminalRepositoryReplicaService({
+    platform: "linux",
+    homeDirectory: value.home,
+    environment: {},
+  });
+  expect(inspection).toEqual({
+    issues: [],
+    advisories: [
+      expect.objectContaining({ code: "repository_replica_service_manager_unreachable" }),
+    ],
+  });
+  // A failed observation is still a failure, labelled with its own code.
+  await expect(
+    inspectTerminalRepositoryReplicaService({
+      platform: "linux",
+      homeDirectory: value.home,
+      serviceStatus: async () => {
+        throw new Error("unexpected manager answer");
+      },
+    }),
+  ).resolves.toEqual({
+    issues: [expect.objectContaining({ code: "repository_replica_service_inspection_failed" })],
+    advisories: [],
+  });
 });

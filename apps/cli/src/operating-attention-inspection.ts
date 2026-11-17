@@ -70,7 +70,11 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       ).then(
         (inspection) => ({
           coverage: input.cachedSourcesOnly ? ("cached" as const) : ("complete" as const),
-          issues: [...inspection.issues, ...(inspection.knowledgeAdvisories ?? [])],
+          issues: [
+            ...inspection.issues,
+            ...(inspection.knowledgeAdvisories ?? []),
+            ...("serviceAdvisories" in inspection ? (inspection.serviceAdvisories ?? []) : []),
+          ],
         }),
         () => ({ coverage: "unavailable" as const, issues: [] }),
       ),
