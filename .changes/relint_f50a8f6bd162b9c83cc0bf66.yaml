@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f50a8f6bd162b9c83cc0bf66"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep lervo upgrade --apply and background knowledge cycles waiting through SQLite lock contention on the host full-cycle admission instead of failing with database is locked."

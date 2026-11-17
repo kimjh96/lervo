@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_df0783d1c02abb07de3e33db"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Follow published releases on every host with lervo host upgrade --follow: install the newest release, upgrade every registered repository, roll back by activation id on failure, and run as a user service."
