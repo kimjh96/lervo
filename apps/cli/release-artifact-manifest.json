@@ -188,22 +188,22 @@
       {
         "path": "dist/native/cas-io-darwin.node",
         "size": 86256,
-        "sha256": "sha256:9a06065acd41df50b9e7f3a5eab421b91ab97d0d19d8f2af8d1e755902f525b9"
+        "sha256": "sha256:ea014fc6a87e2ebad6077d590396b8bd061ace6d732c243202645cd755f51c7a"
       },
       {
         "path": "dist/native/cas-io.json",
         "size": 320,
-        "sha256": "sha256:11eef65c82348b667ae4885c925ea1c3c34b826fd3db89e0e1b4b21ae2a7a382"
+        "sha256": "sha256:98888dcfe0d4961ef98c2cf3ae72313479b8f3cd1a056f7f95df6599b47c4ac0"
       },
       {
         "path": "dist/native/file-sync-darwin.node",
         "size": 85192,
-        "sha256": "sha256:72f477a8f4c4f88c859519e78a8a75b6a409d35a52ef7667cd18a0abeb810f75"
+        "sha256": "sha256:9017e1a758e7b22b87a9014ccdf27768cc8deacd32907ac8c93b89c44c291941"
       },
       {
         "path": "dist/native/file-sync.json",
         "size": 320,
-        "sha256": "sha256:523d37d413403b0262e3a3fe1f4a400f3b8e9ffafc49f2e73298334e70e8aa74"
+        "sha256": "sha256:f104abad933a0fecfede498a0908138e20d0430ac24aa9f94ffdea265aaa6333"
       },
       {
         "path": "dist/node-runtime.js",
@@ -218,12 +218,12 @@
       {
         "path": "dist/repository-runtime.js",
         "size": 12930711,
-        "sha256": "sha256:efe9ab09f4171aeff160b9f702abf4426fcc24e6a9acf3a177844a73f16bdb1e"
+        "sha256": "sha256:3fd644f4d050f8ca45782ddd9fb6df1fa1da8fa542de0983cdcd8ab64efa7841"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:f917ba7b31772d216d4b5dba138b01205713933e8152714f9fcd5e4d3d46cf13"
+        "sha256": "sha256:773a8ba874100bb441d37a731eb4454be6d181e168392ce38636b9ba8806e097"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -233,11 +233,11 @@
       {
         "path": "dist/terminal-hook.js",
         "size": 7896469,
-        "sha256": "sha256:303df9d097fe659f8ff6bdfab47bb939888e58054febd28c781720ce3fb9cfa9"
+        "sha256": "sha256:28c89cecb9275a20f673327662445a019d505c42058162278a460acc5e04ab6a"
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:3231cc20e504752585a8f7312189a409e3a4eefa747caae6deb138301f34e8c2"
+    "contentDigest": "sha256:acc4627e436a6eba08fb3101b7da7538059291393c11dc50717f8388122f36a3"
   },
   "dependencies": {
     "portable": [
@@ -350,5 +350,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:aa75f72354ad3e2cd17bdb36cefae472c91621b22af6da348cb07c2175d84e0d"
+  "artifactDigest": "sha256:19ef556201ee675109d41b9ddd1f63e5eee10c89efe7aa9676435b11f72a0e96"
 }
