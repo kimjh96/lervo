@@ -7,8 +7,11 @@ import { loadProjectManifest } from "@lervo/project";
 import { canonicalJson } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { runCli } from "../src/main.js";
+import { runCli as runUnisolatedCli } from "../src/main.js";
 import type { KnowledgeMaterializationWaitTiming } from "../src/knowledge-materialization-wait.js";
+import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
+
+const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
 
 const MARKER = ".lervo/state/knowledge/materialization-transaction";
 const PLAN_ID = `knormplan_${"c".repeat(24)}`;

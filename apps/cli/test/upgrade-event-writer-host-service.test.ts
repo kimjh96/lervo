@@ -6,6 +6,8 @@ import { resolve } from "node:path";
 import { applyInitPlan, createInitPlan, inspectEventWriterCoordinate } from "@lervo/project";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
+
 /** Keeps upgrade applies off the developer host's real background-resident admission. */
 const isolatedAdmission = {
   knowledgeCycleAdmission: {
@@ -20,9 +22,11 @@ const ports = vi.hoisted(() => ({
 vi.mock("../src/knowledge-host-service.js", () => ({
   inspectHostResidentService: ports.inspect,
   applyHostResidentService: ports.apply,
+  defaultKnowledgeHostServicePorts: () => ({}),
 }));
 
-const { runCli } = await import("../src/main.js");
+const { runCli: runUnisolatedCli } = await import("../src/main.js");
+const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -100,7 +104,7 @@ describe("lervo upgrade event writer and host service stages", () => {
       8,
     );
     await stat(resolve(root, ".lervo/data/event-writer-backups/schema-8/backup.json"));
-    expect(ports.apply).toHaveBeenCalledWith(hostService);
+    expect(ports.apply.mock.calls.map((call) => call[0])).toEqual([hostService]);
   }, 30_000);
 
   it("reports a host service blocker without blocking the event writer", async () => {

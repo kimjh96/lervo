@@ -1,11 +1,11 @@
 # Release to fleet without a manual deploy
 
 Status: `active`
-As of: 2026-11-16
+As of: 2026-11-17
 
 ## Outcome
 
-A fix reaches every host in 10 to 15 minutes with no manual deploy step: published release, Hub, every host's CLI, knowledge host services, and every registered repository. Decisions: [ADR-0564](../../decisions/operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (S1), [ADR-0569](../../decisions/release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (S2), and [ADR-0571](../../decisions/distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (host install, S3, S4).
+A fix reaches every host in 10 to 15 minutes with no manual deploy step: published release, Hub, every host's CLI, knowledge host services, and every registered repository. Decisions: [ADR-0564](../../decisions/operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (S1), [ADR-0569](../../decisions/release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (S2), [ADR-0571](../../decisions/distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md) (host install, S3, S4), and [ADR-0574](../../decisions/distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md) (S3 priority admission).
 
 ## Baseline
 
@@ -17,9 +17,9 @@ v0.23.7 on 2026-11-14 (measured from release and receipt timestamps): merge to p
    - [x] Implemented with tests on branch `host-upgrade-follow`.
    - [ ] Released, and `lervo host upgrade --from-release v<first ADR-0569 release> --repository kimjh96/lervo` plans successfully on every host; the deploy skill then uses it instead of packing and relinking.
    - [ ] Release subjects carry integrity for the dependency closure, so hosts verify bytes and not only versions.
-2. **S3: priority upgrade admission and stale-runtime restart (core-loop).**
-   - [ ] An upgrade asks for full-cycle admission with priority; a running cycle yields at its next stage boundary, and waiting residents queue behind the upgrade. `knowledge_cycle_admission_wait_expired` stays as the backstop.
-   - [ ] Knowledge materialization that an upgrade only schedules runs as the next normal cycle after release (amends ADR-0214; needs its own decision).
+2. **S3: priority upgrade admission and stale-runtime restart (main).** S3 lands on `main`, not `core-loop`: release speed is the owner's priority, and `core-loop` integration has no date.
+   - [x] An upgrade asks for full-cycle admission with priority; a running cycle yields at its next stage boundary, and waiting residents queue behind the upgrade. `knowledge_cycle_admission_wait_expired` stays as the backstop. Implemented on `main` by [ADR-0574](../../decisions/distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md); the installed measurement is still pending.
+   - [ ] Knowledge materialization that an upgrade only schedules runs as the next normal cycle after release (amends ADR-0214; needs its own decision). Held: ADR-0574 records why moving it now would leave non-owner hosts and parked convergence with stale knowledge reported as current.
    - [ ] A replica whose process has no binding in the current runtime is restarted and reported as `repository_replica_service_stale_runtime`.
    - [ ] Measured on an installed release: no repository upgrade prints the admission wait, and publication to the last current repository is at most 12 minutes.
 3. **S4: `lervo host upgrade --follow` (after core-loop integration).**

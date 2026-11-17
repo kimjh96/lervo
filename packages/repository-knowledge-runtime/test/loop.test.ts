@@ -128,3 +128,54 @@ it(
     expect(await inspectKnowledgeResidentHealth(f.root)).toMatchObject({ status: "not_running" });
   },
 );
+
+it(
+  "keeps a waiting resident behind an upgrade that asked later, then runs its cycle (ADR-0574)",
+  { timeout: 60_000 },
+  async () => {
+    const f = await fixture();
+    fixtures.push(f);
+    const signal = new AbortController().signal;
+    const held = await acquireFullCycleAdmission({
+      repositoryRoot: resolve(f.directory, "another-repository"),
+      signal,
+      directory: f.admissionDirectory,
+    });
+    const cycles: unknown[] = [];
+    const stop = startAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "resident",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      subscribe: () => () => undefined,
+      onCycle: (result) => cycles.push(result),
+      onFailure: () => undefined,
+      intervalMilliseconds: 100,
+    });
+    try {
+      await until(
+        async () =>
+          (await inspectKnowledgeResidentHealth(f.root)).reason ===
+          "knowledge_cycle_admission_wait",
+      );
+      const upgrade = acquireFullCycleAdmission({
+        repositoryRoot: f.root,
+        signal,
+        directory: f.admissionDirectory,
+        pollMilliseconds: 10,
+        priority: "upgrade",
+      });
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
+      await held.release();
+      const admitted = await upgrade;
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 500));
+      expect(cycles).toEqual([]);
+      await admitted.release();
+      await until(() => cycles.length >= 1);
+    } finally {
+      await held.release();
+      await stop();
+    }
+  },
+);

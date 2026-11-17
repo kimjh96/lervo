@@ -20,6 +20,7 @@ import {
   inspectRepositoryReplicaService,
   type RepositoryReplicaServiceStage,
 } from "./repository-replica-service.js";
+import { upgradeHost, type UpgradeHost } from "./upgrade-host.js";
 import { inspectRegisteredNodeUpgrade, type NodeUpgradeStage } from "./upgrade-node.js";
 import {
   inspectKnowledge,
@@ -128,9 +129,10 @@ function deferredKnowledge(reason: string): KnowledgeStage {
 async function eventWriterStage(
   repositoryRoot: string,
   dispositions: Partial<Record<UpgradeStageName, StageDisposition>>,
+  host: UpgradeHost,
 ): Promise<EventWriterStage> {
   const deferral = deferringPrerequisite("event_writer", dispositions);
-  const inspected = await inspectEventWriterStage(repositoryRoot);
+  const inspected = await inspectEventWriterStage(repositoryRoot, host.eventWriter);
   if (deferral === null || inspected.disposition === "current") return inspected;
   return {
     ...inspected,
@@ -153,7 +155,10 @@ export function knowledgeStageRefusedByMarker(
   return plan.stages.knowledge.reason === "knowledge_recovery_required";
 }
 
-export async function createRepositoryUpgradePlan(root: string): Promise<RepositoryUpgradePlan> {
+export async function createRepositoryUpgradePlan(
+  root: string,
+  host: UpgradeHost = upgradeHost(),
+): Promise<RepositoryUpgradePlan> {
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
   const version = readCliPackageVersion();
@@ -174,8 +179,8 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
         ? inspectKnowledge(repositoryRoot)
         : Promise.resolve(deferredKnowledge(deferralReason(knowledgeDeferral))),
       inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
-      inspectHostResidentService(),
-      inspectRepositoryReplicaService(),
+      inspectHostResidentService(host.hostService),
+      inspectRepositoryReplicaService(host.replicaService),
     ],
   );
   const nodeDeferral = deferringPrerequisite("node", { knowledge: knowledge.disposition });
@@ -190,11 +195,15 @@ export async function createRepositoryUpgradePlan(root: string): Promise<Reposit
     replicaDeferral === null || replica.disposition !== "safe_apply"
       ? replica
       : { ...replica, disposition: "deferred", reason: deferralReason(replicaDeferral) };
-  const eventWriter = await eventWriterStage(repositoryRoot, {
-    terminal_integration: terminal.stage.disposition,
-    node: nodeStage.disposition,
-  });
-  const runtimeRetention = await planNodeRuntimeRetention();
+  const eventWriter = await eventWriterStage(
+    repositoryRoot,
+    {
+      terminal_integration: terminal.stage.disposition,
+      node: nodeStage.disposition,
+    },
+    host,
+  );
+  const runtimeRetention = await planNodeRuntimeRetention(host.runtimeRetention);
   const dispositions: Record<UpgradeStageName, StageDisposition> = {
     runtime_retention: runtimeRetention.disposition,
     capabilities: capabilityDisposition,

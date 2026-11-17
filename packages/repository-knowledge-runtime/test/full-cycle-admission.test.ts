@@ -84,3 +84,41 @@ it("reports contention, ends a wait on abort, and takes over a dead holder", asy
   });
   await recovered.release();
 });
+
+it("admits waiting upgrades in arrival order before residents that waited longer (ADR-0574)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  const pause = (milliseconds: number) =>
+    new Promise((resolveDelay) => setTimeout(resolveDelay, milliseconds));
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal,
+    directory: admission,
+  });
+  const order: string[] = [];
+  const wait = (repositoryRoot: string, priority: "resident" | "upgrade") =>
+    acquireFullCycleAdmission({
+      repositoryRoot,
+      signal,
+      directory: admission,
+      pollMilliseconds: 5,
+      priority,
+    }).then(async (held) => {
+      order.push(repositoryRoot);
+      await pause(20);
+      await held.release();
+    });
+  const resident = wait("/repo/b", "resident");
+  await pause(40);
+  // Another resident only asks the holder to stop after its current convergence stage.
+  expect(await holder.contended()).toBe(true);
+  expect(await holder.preempted()).toBe(false);
+  const upgrades = [wait("/repo/c", "upgrade")];
+  await pause(40);
+  upgrades.push(wait("/repo/d", "upgrade"));
+  await pause(40);
+  expect(await holder.preempted()).toBe(true);
+  await holder.release();
+  await Promise.all([resident, ...upgrades]);
+  expect(order).toEqual(["/repo/c", "/repo/d", "/repo/b"]);
+});

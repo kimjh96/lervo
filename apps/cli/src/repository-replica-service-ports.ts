@@ -42,8 +42,9 @@ async function hostRunsNodes(environment: NodeJS.ProcessEnv): Promise<boolean> {
   }
 }
 
-export function defaultRepositoryReplicaServicePorts(): RepositoryReplicaServicePorts {
-  const home = homedir();
+export function defaultRepositoryReplicaServicePorts(
+  home: string = homedir(),
+): RepositoryReplicaServicePorts {
   return {
     platform: process.platform,
     homeDirectory: home,
