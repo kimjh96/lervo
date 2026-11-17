@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { lstatSync, mkdirSync, readdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { DatabaseSync } from "node:sqlite";
-import { openSqliteDatabase } from "@lervo/sqlite-connection";
+import { isSqliteLockContention, openSqliteDatabase } from "@lervo/sqlite-connection";
 
 function fileIdentity(path: string): string {
   const info = lstatSync(path, { bigint: true });
@@ -83,12 +83,7 @@ export class SupervisionProcessLock {
       return identity;
     } catch (error) {
       database.close();
-      if (
-        error instanceof Error &&
-        "errcode" in error &&
-        [5, 6].includes(Number(error.errcode) & 0xff)
-      )
-        return null;
+      if (isSqliteLockContention(error)) return null;
       throw error;
     }
   }
