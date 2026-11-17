@@ -1,6 +1,6 @@
 # ADR-0571: Install the verified CLI on each host and roll back by activation id
 
-Status: `proposed` (Stage 1, `lervo host upgrade --from-release`, is implemented; Stages 2 and 3 are not)
+Status: `proposed` (Stage 1 is implemented; ADR-0573, ADR-0574, and ADR-0575 implement parts of Stages 2 and 3)
 Decision date: 2026-11-16
 Amends: [ADR-0569](../release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (hosts consume the release subjects), [ADR-0488](../operations/services/0488-point-node-configurations-at-one-current-cli.md) (host installs live beside the `current` pointer)
 Related: [ADR-0164](../operations/services/0164-user-runtime-service-management-boundary.md), [ADR-0214](../operations/services/0214-bounded-repository-upgrade-orchestration.md), [ADR-0484](../operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md), [ADR-0466](../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)
@@ -54,7 +54,7 @@ The release source is a port; its first adapter calls `gh` (`release view`, `api
 
 ### Stage 2 (main) and Stage 3 (core-loop)
 
-Stage 2 (S3) gives upgrades priority full-cycle admission ([ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md)) and restarts replicas running a stale runtime. ADR-0574 holds back moving in-upgrade knowledge materialization to the next normal cycle until a decision names who runs it on every host. Stage 3 (S4) is `lervo host upgrade --follow`: every host runs the same follower and none is excluded, because by owner rule cross-host conflicts are solved by coordination, never by restricting Lervo to one host. Hosts poll GitHub Releases; a Hub hint only triggers an earlier poll, so following works without a Hub. The Hub host upgrades the Hub first, and other hosts wait until it reports the release's readable schema versions. A failing host rolls back its own activation by id. Publication is the owner's release decision: a follower installs only published releases, never creates tags or releases, and can be paused or pinned. Delivery order, completion criteria, projected times, and open owner decisions are in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
+Stage 2 (S3) gives upgrades priority full-cycle admission ([ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md)) and restarts replicas running a stale runtime. ADR-0574 holds back moving in-upgrade knowledge materialization to the next normal cycle until a decision names who runs it on every host. Stage 3 (S4) is `lervo host upgrade --follow`: every host runs the same follower and none is excluded, because by owner rule cross-host conflicts are solved by coordination, never by restricting Lervo to one host. Hosts poll GitHub Releases; a Hub hint only triggers an earlier poll, so following works without a Hub. The Hub host upgrades the Hub first, and other hosts wait until it reports the release's readable schema versions. A failing host rolls back its own activation by id. Publication is the owner's release decision: a follower installs only published releases, never creates tags or releases, and can be paused or pinned. [ADR-0575](0575-follow-published-releases-on-every-host.md) implements the host follower; the Hub hint, Hub-first ordering, and the Hub-wide pause remain. Delivery order, completion criteria, projected times, and open owner decisions are in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
 
 ## States, failures, and privacy
 
@@ -83,7 +83,7 @@ Failure codes:
 
 ## Where it lands
 
-Stage 1 lands on `main` now. It adds new modules and one route in `main.ts`, and it changes no file that `core-loop` rewrites except that route. It needs no further product decision, works without a Hub, and the skill can call it once a release carries it. Stage 2 also lands on `main`: release speed is the owner's priority, and `core-loop` integration has no date. Stage 3 lands on `core-loop` with its integration release, as planned, because it changes upgrade stages and Hub-ordered rollout that `core-loop` reshapes.
+Stage 1 lands on `main` now. It adds new modules and one route in `main.ts`, and it changes no file that `core-loop` rewrites except that route. It needs no further product decision, works without a Hub, and the skill can call it once a release carries it. Stage 2 also lands on `main`: release speed is the owner's priority, and `core-loop` integration has no date. Stage 3's host follower (ADR-0575) also lands on `main`; its Hub-ordered rollout lands on `core-loop`, which reshapes it.
 
 ## Consequences
 

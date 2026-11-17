@@ -29,6 +29,18 @@ Use `scripts/wait-release.sh release-pr` only on the fallback path, when intent 
 
 Never write an ad hoc polling loop for these stages; earlier loops missed a finished stage by filtering the wrong event.
 
+## Let every host follow releases
+
+Once a host's installed CLI has `lervo host upgrade --follow` ([ADR-0575](../../../docs/decisions/distribution/0575-follow-published-releases-on-every-host.md)), that host needs no deploy step for its CLI and repositories. Enable the follower once on every host, Mac and WSL alike:
+
+1. `lervo host upgrade --follow --service install --json` shows the plan; fix any blocker it names. Run it from the owner's normal shell: the service keeps that shell's `PATH` for `gh`, `pnpm`, `git`, and providers.
+2. `lervo host upgrade --follow --service install --apply` installs and starts the `host-follow` user service (`lervo-host-follow.service` or `com.lervo.host.follow`). Its first cycle runs `lervo upgrade` on every registered repository.
+3. `lervo host upgrade --follow --status` shows the last check, the last outcome, failed tags, and the last repository pass.
+
+Within about 6 minutes of publication, each follower installs the newest published release through the verified `--from-release` path. It then upgrades every registered repository, and restarts itself on the new CLI. A failed health gate or Node readiness rolls that host back by activation id and marks the tag failed there. Hold one host with `--follow --pause` or `--follow --pin v<version>`, and release it with `--follow --resume`. To retry a failed tag, run `lervo host upgrade --from-release <tag> --repository kimjh96/lervo --apply` on that host.
+
+After publication, check `--follow --status` on every host and report it like a manual deployment. Repositories that the pass reports as `blocked` or `failed` still need the actor named under "Report". The steps below remain the fallback for a host without the follower, a paused host, and the Hub, which the follower does not upgrade yet.
+
 ## Preconditions
 
 1. The release tag `v<version>` exists, and the CLI release matrix and GitHub Release for that tag succeeded. The release carries `lervo-cli-<version>.tgz`, `release-artifact-manifest.json`, `release-sbom.cdx.json`, and `release-subjects.json`.

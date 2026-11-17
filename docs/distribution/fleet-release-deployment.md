@@ -25,6 +25,12 @@ Use `scripts/wait-release.sh` in the background and inspect its exit status: 0 m
 
 Use `scripts/wait-release.sh release-pr` only when intent reached `main` unprepared. The fallback creates `lervo/release-cli` and dispatches candidate verification. Merge it after success. Pull-request-triggered runs on that branch may show `action_required` without jobs; verification comes from the dispatch.
 
+## Follow releases on every host
+
+A host whose installed CLI provides `lervo host upgrade --follow` ([ADR-0575](../decisions/distribution/0575-follow-published-releases-on-every-host.md)) needs no deploy step for its CLI and registered repositories. Enable it once on every host from the owner's normal shell. `lervo host upgrade --follow --service install --json` shows the plan, and the same command with `--apply` installs and starts the `host-follow` user service. The service keeps that shell's `PATH`, and its first cycle upgrades every registered repository.
+
+Each follower polls GitHub Releases every 5 minutes with ±20% jitter. It installs only the newest published release through the verified `--from-release` path, upgrades every registered repository, and restarts itself on the new CLI. A failed health gate or Node readiness rolls that host back by activation id and marks the tag failed there. `--follow --pause`, `--follow --pin v<version>`, and `--follow --resume` hold or release one host. `--follow --status` reports the last check, outcome, failed tags, and repository pass. The steps below remain the fallback for hosts without the follower, paused hosts, and the Hub.
+
 ## Establish deployment scope
 
 Require the `v<version>` tag, successful tag-bound CLI release matrix, and GitHub Release with its four verified assets. Confirm that no open Lervo pull request is intended for this release.
