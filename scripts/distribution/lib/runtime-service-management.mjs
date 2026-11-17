@@ -20,6 +20,12 @@ import {
   selectNodeConfigurationTransition,
 } from "./node-cli-configuration-transition.mjs";
 import { findMigratedConfigPredecessors } from "./node-executable-path-rewrites.mjs";
+import {
+  launchdJobProcessId,
+  launchdJobRunning,
+  systemdMainProcessId,
+  systemdMainProcessIdArguments,
+} from "./runtime-service-process.mjs";
 
 const MAXIMUM_DEFINITION_BYTES = 131_072;
 const SERVICE_STABILITY_OBSERVATIONS = 3;
@@ -89,7 +95,7 @@ function parse(args) {
   const action = values.get("--action");
   const manager = values.get("--manager");
   const runtime = values.get("--runtime");
-  if (!["install", "upgrade", "rollback", "status", "remove"].includes(action)) {
+  if (!["install", "upgrade", "rollback", "restart", "status", "remove"].includes(action)) {
     fail("invalid_arguments", "The service action is invalid.");
   }
   if (manager !== "systemd" && manager !== "launchd") {
@@ -107,6 +113,9 @@ function parse(args) {
       "invalid_arguments",
       "A Node service requires one valid instance ID; other services do not accept one.",
     );
+  // A Node restarts only inside its guarded upgrade fence, through a configuration transition.
+  if (action === "restart" && runtime === "node")
+    fail("invalid_arguments", "A Node service restarts only through a guarded upgrade.");
   if (action === "status") {
     const expectedSize = runtime === "node" ? 4 : 3;
     if (write || values.size !== expectedSize) {
@@ -261,14 +270,6 @@ async function commandOutput(runCommand, executable, args) {
   }
 }
 
-/**
- * `launchctl print` exits 0 for any loaded job, running or not. Only the job's own top-level
- * state line, indented by one tab, says whether its process runs.
- */
-function launchdJobRunning(output) {
-  return /^\tstate = running$/mu.test(output);
-}
-
 async function serviceStatus(input, context) {
   const installedBytes = await regularFile(context.target, { required: false });
   if (input.manager === "systemd") {
@@ -304,6 +305,29 @@ async function serviceStatus(input, context) {
     loaded: printed?.exitCode === 0,
     active: printed?.exitCode === 0 && launchdJobRunning(printed.stdout),
   };
+}
+
+/** ADR-0573: the running process's id, read without root; null when it cannot be read. */
+async function serviceProcessId(input, context) {
+  if (input.manager === "systemd") {
+    const printed = await commandOutput(
+      context.runCommand,
+      "systemctl",
+      systemdMainProcessIdArguments(context.identity.name),
+    );
+    return printed?.exitCode === 0 ? systemdMainProcessId(printed.stdout) : null;
+  }
+  const printed = await commandOutput(context.runCommand, "launchctl", [
+    "print",
+    `${context.identity.domain}/${context.identity.label}`,
+  ]);
+  return printed?.exitCode === 0 ? launchdJobProcessId(printed.stdout) : null;
+}
+
+/** The status action: the manager's view plus the running process id, null when none runs. */
+async function observedServiceStatus(input, context) {
+  const status = await serviceStatus(input, context);
+  return { ...status, processId: status.active ? await serviceProcessId(input, context) : null };
 }
 
 function isOperationalServiceStatus(status) {
@@ -649,11 +673,13 @@ async function stopForUpgrade(input, context) {
 
 async function upgrade(input, expected, previous, context) {
   const current = await currentTarget(context.target);
-  // A configuration-only transition restarts the same definition under the guarded fence.
+  // A configuration-only transition or an ADR-0573 restart replaces the same definition.
   if (
     current === null ||
     !current.equals(previous) ||
-    (current.equals(expected) && context.configurationTransition === undefined)
+    (current.equals(expected) &&
+      context.configurationTransition === undefined &&
+      context.sameDefinitionRestart !== true)
   ) {
     fail(
       "service_state_conflict",
@@ -729,6 +755,19 @@ async function upgrade(input, expected, previous, context) {
   );
 }
 
+/**
+ * ADR-0573: restarts the exact installed definition so its new process loads whatever runtime
+ * the definition's stable path names now. It is the upgrade transaction with an identical
+ * predecessor, so a replacement that does not stay active is stopped and the service restarted.
+ */
+async function restart(input, expected, context) {
+  const restarted = await upgrade(input, expected, expected, {
+    ...context,
+    sameDefinitionRestart: true,
+  });
+  return { ...restarted, change: "restarted" };
+}
+
 export async function manageRuntimeService(args, options = {}) {
   const input = parse(args[0] === "--" ? args.slice(1) : args);
   if (
@@ -759,8 +798,9 @@ export async function manageRuntimeService(args, options = {}) {
     runCommand: options.runCommand ?? defaultRunCommand,
     wait: options.wait ?? defaultWait,
   };
-  if (input.action === "status") return serviceStatus(input, context);
+  if (input.action === "status") return observedServiceStatus(input, context);
   const expected = await exactDefinition(input);
+  if (input.action === "restart") return restart(input, expected, context);
   const previous = ["upgrade", "rollback"].includes(input.action)
     ? await regularFile(input.previousDefinition, { required: true, ownerOnly: true })
     : null;

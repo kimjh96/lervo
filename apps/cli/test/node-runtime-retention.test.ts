@@ -254,3 +254,44 @@ it("does not accept a reused PID or unknown process birth as proof for a current
     await planNodeRuntimeRetention({ ...options, observeProcess: () => ({ status: "unknown" }) }),
   ).toMatchObject({ disposition: "deferred", candidates: [] });
 });
+
+for (const platform of ["darwin", "linux"] as const) {
+  it(`keeps the runtime a running replica coordinator is bound to after current moves on ${platform} (ADR-0573)`, async () => {
+    const f = await runtimeHome(platform);
+    const identity = `proc_test_v1:sha256:${"c".repeat(64)}`;
+    // The coordinator started through `current` while it named name(2); `current` then moved.
+    const bindings = resolve(f.root, name(2), ".processes");
+    await mkdir(bindings);
+    await writeFile(
+      resolve(bindings, `${process.pid}.json`),
+      JSON.stringify({
+        schemaVersion: 1,
+        processId: process.pid,
+        processIdentity: identity,
+        runtimeDirectory: name(2),
+      }),
+    );
+    // Writing the binding must not make name(2) one of the recent runtimes retention keeps anyway.
+    await utimes(resolve(f.root, name(2)), new Date(2000), new Date(2000));
+    await pointCurrentNodeRuntime({ ...f, runtimeDirectory: name(9) });
+    const options = {
+      ...f,
+      processCommands: async () =>
+        `${process.pid} /node ${resolve(f.root, "current/node-runtime.js")} repository-replica reconcile --watch --config /state/repository-replica-coordinator.json`,
+      observeProcess: () => ({ status: "present" as const, identity }),
+    };
+    // Once the coordinator has exited, its binding no longer protects the old runtime.
+    const released = await planNodeRuntimeRetention({
+      ...f,
+      processCommands: async () => "",
+      observeProcess: () => ({ status: "absent" as const }),
+    });
+    expect(released.candidates.map((item) => item.name)).toContain(name(2));
+    const plan = await planNodeRuntimeRetention(options);
+    expect(plan.candidates.map((item) => item.name)).not.toContain(name(2));
+    await applyNodeRuntimeRetention(plan, options);
+    expect(await readFile(resolve(f.root, name(2), "node-runtime.js"), "utf8")).toBe(
+      "export {};\n",
+    );
+  });
+}
