@@ -49,7 +49,9 @@ When the installed definition already equals the rendered one and the service is
 
 A definition change still plans `upgrade`, which already starts a new process.
 
-Apply re-plans and refuses a changed plan with `replica_service_plan_stale`. A coordinator that restarted on its own since planning and is now bound plans `current`, so apply does nothing. Otherwise apply moves `current` first, then restarts.
+Apply holds one host lock for the whole stage: `repository-replica-service.lock` beside the coordinator configuration in the user state directory. It uses the same PID lock as runtime retention. `lervo upgrade` runs in different repositories, for example several agents acting on `repository_replica_service_stale_runtime`, share one coordinator. Without the lock, two runs could both pass the re-plan and interleave their stops and starts. A second run waits for the lock, polling every 250 ms, for at most 180 seconds: one graceful stop bound plus a start. It then re-plans inside the lock. Waiting longer fails with `replica_service_busy` and changes nothing.
+
+Inside the lock, apply re-plans and refuses a changed plan with `replica_service_plan_stale`. A coordinator that another run or the manager already restarted onto the current runtime plans `current`, so apply does nothing. Otherwise apply moves `current` first, then restarts.
 
 The new manager action `restart` takes the same canonical arguments as `install` and requires `--write`. It is the existing upgrade transaction with the installed definition as its own predecessor:
 
@@ -69,7 +71,8 @@ Lervo never signals the process itself. The service manager stops only the job i
 The terminal lifecycle inspection from ADR-0415 now runs on macOS and Linux. It finds the installed definition at the path the service renderer owns: `~/Library/LaunchAgents/dev.lervo.repository-replica.plist` or `~/.config/systemd/user/lervo-repository-replica.service`. It makes one manager call: `launchctl print` on macOS, or the same `systemctl --user show --property=MainPID --value` on Linux. It parses the answer with the parsers the service manager uses. It does not import the whole service manager or the Node runtime, so the terminal hook bundle stays within its size budget.
 
 - Unsafe definition: `repository_replica_service_definition_unsafe`, unchanged.
-- systemd manager unavailable, or an unknown user id on macOS: `repository_replica_service_inspection_failed`.
+- An unknown user id on macOS, an unreadable definition path, or a failed observation: `repository_replica_service_inspection_failed`. The Stop hook labels this a `lifecycle_inspection_failed` turn, not `knowledge_inspection_failed`, because no knowledge check was skipped. The issue keeps its own code.
+- A systemd user manager this shell cannot reach: the advisory `repository_replica_service_manager_unreachable`, remedy `systemctl --user status lervo-repository-replica.service`. The shell has neither `XDG_RUNTIME_DIR` nor `DBUS_SESSION_BUS_ADDRESS`, or `systemctl` is missing or fails. A plain SSH or `su` session looks like this while the coordinator runs fine. The advisory never makes a turn report action required. It appears in the lifecycle inspection's `serviceAdvisories` and in operating attention.
 - Not loaded: `repository_replica_service_inactive`. On systemd, a unit with `MainPID` 0 is not loaded, matching the manager's own status. The remedy names `launchctl bootstrap` on macOS and `systemctl --user enable --now lervo-repository-replica.service` on Linux.
 - Running but not bound to the runtime `current` names: `repository_replica_service_stale_runtime`, remedy `lervo upgrade`.
 
@@ -77,7 +80,7 @@ A loaded launchd job between restarts runs no process and is not stale. The insp
 
 ### Retention keeps a bound runtime
 
-Runtime retention already keeps every runtime directory that a live process is bound to with a matching birth identity. A stale coordinator therefore keeps its old runtime until the restart. After the restart, the old process is absent, so its record no longer protects that runtime. This decision adds no retention rule. It shares the binding record parser between retention and the coordinator check, so both apply one validation.
+Runtime retention already keeps every runtime directory that a live process is bound to with a matching birth identity. A stale coordinator therefore keeps its old runtime until the restart. After the restart, the old process is absent, so its record no longer protects that runtime. This decision adds no retention rule. Retention and the coordinator check share one record parser. Both judge a record's birth identity only after the record's structure is valid. Retention judges it only while the process is alive, as before, so a malformed record of a dead process never blocks retention. The coordinator check treats a malformed identity as unproven.
 
 ### Host symmetry
 
@@ -91,6 +94,9 @@ launchd and systemd hosts use the same binding proof, stage reasons, manager act
 - New terminal issue code `repository_replica_service_stale_runtime`. Like the other ADR-0415 codes, it holds no path, command output, process id, or identity. Its meaning: the coordinator process runs, but Lervo could not prove that it loaded the runtime `current` names. It does not mean the coordinator is broken.
 - The manager `status` result adds `processId`, a local integer that never leaves the host.
 - The manager `restart` result reports `change: "restarted"`.
+- New terminal advisory `repository_replica_service_manager_unreachable`, in the new optional lifecycle field `serviceAdvisories`. It holds no path or command output. Its meaning: this shell could not ask the user manager, so nothing is known about the coordinator. It does not mean the coordinator is down.
+- New host file `repository-replica-service.lock` and its `.sqlite` guard in the user state directory. The lock holds only the holder's process id and is removed when the stage ends. A lock left by a dead process is recovered by the next run.
+- New apply failure `replica_service_busy`: another replica service change held the host lock for longer than one bounded restart; nothing was changed.
 
 ## Compatibility and deploy order
 
@@ -108,9 +114,9 @@ One host's upgrade does not restart the peer host's coordinator. Each host resta
 
 Focused tests show:
 
-- **Stage:** An unchanged definition whose process is bound to an older runtime plans `restart` with reason `replica_service_stale_runtime`. Apply restarts it once with the same definition bytes and no predecessor argument, and the next plan is `current`. A process with no record, an unreported id, or a reused id also plans `restart`. A process bound to the current runtime plans `current` and is not restarted. A stopped service plans `activate`. A pointer update plus a stale process moves the pointer, then restarts. A coordinator that restarted onto the current runtime after planning makes apply do nothing.
+- **Stage:** Two applies of the same stale plan at the same time restart once; the second waits for the lock and returns nothing. An unchanged definition whose process is bound to an older runtime plans `restart` with reason `replica_service_stale_runtime`. Apply restarts it once with the same definition bytes and no predecessor argument, and the next plan is `current`. A process with no record, an unreported id, or a reused id also plans `restart`. A process bound to the current runtime plans `current` and is not restarted. A stopped service plans `activate`. A pointer update plus a stale process moves the pointer, then restarts. A coordinator that restarted onto the current runtime after planning makes apply do nothing.
 - **Manager:** Under both systemd and launchd, `status` reports the process id. `restart` stops before it starts, keeps the definition bytes, and yields a new process id. A stopped unit or an unparseable `MainPID` answer reports no id. `restart` refuses a differing definition, a Node service, and a missing `--write`.
-- **Inspection:** On both macOS and Linux, a coordinator bound to another runtime, with no reported id, or with a mismatched identity reports `repository_replica_service_stale_runtime`. A loaded job with no process reports nothing. Unloaded and unavailable services keep their codes.
-- **Retention:** On both platforms, a coordinator command through `current` with a live binding to an older runtime keeps that runtime after `current` moves. The same runtime is a candidate once its process is gone.
+- **Inspection:** On both macOS and Linux, a coordinator bound to another runtime, with no reported id, or with a mismatched identity reports `repository_replica_service_stale_runtime`. A loaded job with no process reports nothing. Unloaded services keep their code. A failed observation reports `repository_replica_service_inspection_failed`, and the Stop hook labels it `lifecycle_inspection_failed`. A shell without a user bus gets only the `repository_replica_service_manager_unreachable` advisory, and `systemctl` is never run.
+- **Retention:** On both platforms, a coordinator command through `current` with a live binding to an older runtime keeps that runtime after `current` moves. The same runtime is a candidate once its process is gone. A malformed record of a dead process does not block retention; one of a live process still defers it.
 
 No installed host has been restarted by this change.
