@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_600ca09bcf75ad4bbe038025"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reuse one SSH connection for every repository replica peer step, back off a held divergence and an unreachable peer per replica, and report peers that launch wsl.exe for every step."
