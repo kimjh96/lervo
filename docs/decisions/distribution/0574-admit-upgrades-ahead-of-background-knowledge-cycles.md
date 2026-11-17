@@ -29,7 +29,7 @@ An upgrade registers its turn with `since` set one year in the past. Every reade
 
 `FullCycleAdmission.preempted()` reports whether an upgrade is waiting: a live waiter registered more than half a year back. The resident passes it to the worker as `yieldToUpgrade`. The worker asks before each stage of a cycle:
 
-- On the convergence owner, or a single-host resident: before freshness preparation, retention, owner-turn capture, practice, change review, convergence, and document freshness.
+- On the convergence owner, or a single-host resident: before freshness preparation, retention, owner-turn capture, owner-rule application, practice, change review, convergence, and document freshness.
 - On a non-owner: before owner-turn capture and before workspace retention and debt inspection.
 
 When it answers true, the cycle returns `{ status: "busy", reason: "knowledge_cycle_yielded_to_upgrade" }` and releases admission. Each stage first finishes its own durable writes and fences. Nothing is cancelled mid-write, and no new boundary is invented. A provider call in progress finishes first.
@@ -70,8 +70,9 @@ An upgrade now waits at most for the stage the holder is in, instead of for one 
 ## Verification
 
 - `full-cycle-admission.test.ts`: upgrades go ahead of residents that waited longer and keep arrival order; `preempted()` is true only for an upgrade.
-- `upgrade-priority-yield.test.ts`: a running cycle stops before its next stage for a waiting upgrade with no convergence stage run; the upgrade is admitted before a resident that waited first; the next cycle runs the work left behind.
+- `upgrade-priority-yield.test.ts`: a running cycle stops before its next stage for a waiting upgrade with no convergence stage run; the upgrade is admitted before a resident that waited first; the next cycle runs the work left behind. An upgrade that arrives during a convergence stage lets that stage finish and stops the cycle after it. A non-owner's cycle stops before retention and debt inspection.
 - `loop.test.ts`: a waiting resident stays behind an upgrade that asked later, then runs its cycle.
 - `upgrade-resident-exclusion.test.ts`: `lervo upgrade --apply` goes ahead of a resident that waited first; `knowledge_cycle_admission_wait_expired` still ends a wait.
+- CLI upgrade tests pass the `upgradeHost` service: a temporary home and an empty process listing for runtime retention, the host resident service, and the replica service, plus a private admission directory. They never read or change the host they run on.
 
 Installed verification: run `upgrade-all.sh` on Mac and WSL after the release that carries this change, and record each run's wait notice and duration in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).
