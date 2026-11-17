@@ -2,7 +2,7 @@ import { lstat, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import type { ReferenceScan } from "./cas-retention-files.js";
-import { CasRetentionBoundError } from "./cas-retention-budget.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 import { readPrivateJsonFile } from "./private-state-file.js";
 
 const MAXIMUM_STATE_BYTES = 32 * 1024 * 1024;

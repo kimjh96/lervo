@@ -1,6 +1,6 @@
 import { sqliteReferenceChunk, type SqliteReferenceCursor } from "./cas-retention-sqlite.js";
 import { isSqliteLockContention } from "@lervo/sqlite-connection";
-import { CasRetentionBoundError } from "./cas-retention-budget.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 import { constants, type Dirent } from "node:fs";
 import { lstat, open, readdir, realpath, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -129,6 +129,11 @@ export interface ReferenceScan {
   references: string[];
 }
 
+export interface ReferenceChunkRead {
+  scan: ReferenceScan;
+  bytesRead: number;
+}
+
 /**
  * Read at most one MiB; the overlap preserves references crossing any chunk boundary. Null means
  * the file changed or vanished since the inventory, or a live SQLite writer held its lock: the
@@ -139,7 +144,7 @@ export async function scanReferenceChunk(
   prior: ReferenceScan,
   eligible: ReadonlySet<string>,
   maximumBytes = 1024 * 1024,
-): Promise<{ scan: ReferenceScan; bytesRead: number } | null> {
+): Promise<ReferenceChunkRead | null> {
   try {
     return await readReferenceChunk(file, prior, eligible, maximumBytes);
   } catch (error) {
@@ -153,7 +158,7 @@ async function readReferenceChunk(
   prior: ReferenceScan,
   eligible: ReadonlySet<string>,
   maximumBytes: number,
-): Promise<{ scan: ReferenceScan; bytesRead: number } | null> {
+): Promise<ReferenceChunkRead | null> {
   if (file.hash === null && /\.(?:sqlite|db)$/u.test(file.path)) {
     if ((await referenceFile(file.path, null)).identity !== file.identity) return null;
     const result = sqliteReferenceChunk(file.path, prior.sqlite ?? { table: 0, row: 0 }, eligible);

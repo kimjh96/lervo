@@ -1,7 +1,7 @@
 import { replayKnowledgeConvergence } from "@lervo/repository-knowledge";
 import type { EventEnvelope } from "@lervo/schemas";
 import { visitEventSnapshot, type OutboxStore } from "@lervo/storage-contract";
-import { CasRetentionBoundError } from "./cas-retention-budget.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 
 const CONVERGENCE = new Set([
   "repository.knowledge.baseline.requested",

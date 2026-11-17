@@ -5,8 +5,8 @@ import { resolve } from "node:path";
 import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 import {
-  CasRetentionBoundError,
   REFERENCE_SCAN_LIMITS,
   REPORT_READ_LIMITS,
   referenceReadBudget,
@@ -18,6 +18,8 @@ import {
   casReferenceFiles,
   scanReferenceChunk,
   removeUnreachableCasObject,
+  type ReferenceChunkRead,
+  type ReferenceScan,
 } from "./cas-retention-files.js";
 
 const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
@@ -71,19 +73,22 @@ async function collect(
   const budget = referenceReadBudget(REFERENCE_SCAN_LIMITS, shouldYield);
   let restarted = false;
   for (const file of files) {
-    let entry = scan.files[file.key];
-    if (!entry || entry.identity !== file.identity)
-      entry = { identity: file.identity, complete: false, offset: 0, tail: "", references: [] };
+    const cached = scan.files[file.key];
+    let entry: ReferenceScan =
+      cached !== undefined && cached.identity === file.identity
+        ? cached
+        : { identity: file.identity, complete: false, offset: 0, tail: "", references: [] };
     while (!entry.complete) {
       const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
       if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) {
         await saveScan(statePath, scan);
         return;
       }
-      const prior = entry;
-      const read = await budget.read(
-        () => scanReferenceChunk(file, prior, eligible, budget.remainingBytes()),
-        (result) => result?.bytesRead ?? 0,
+      const prior: ReferenceScan = entry;
+      const read: ReferenceChunkRead | null = await budget.read(
+        (): Promise<ReferenceChunkRead | null> =>
+          scanReferenceChunk(file, prior, eligible, budget.remainingBytes()),
+        (result: ReferenceChunkRead | null): number => result?.bytesRead ?? 0,
       );
       // A live writer replaced, removed or locked it: restart this file next cycle, keep the rest.
       if (read === null) {

@@ -1,7 +1,7 @@
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import { sqliteRows } from "./sqlite-row.js";
 import { casReferences } from "./cas-retention-policy.js";
-import { CasRetentionBoundError } from "./cas-retention-budget.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 
 export interface SqliteReferenceCursor {
   table: number;

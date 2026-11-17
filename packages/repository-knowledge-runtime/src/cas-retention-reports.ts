@@ -1,5 +1,6 @@
 import type { ProjectStorage } from "@lervo/project-storage";
-import { CasRetentionBoundError, type ReferenceReadBudget } from "./cas-retention-budget.js";
+import type { ReferenceReadBudget } from "./cas-retention-budget.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 import { casReferences, type CasRetentionRoots } from "./cas-retention-policy.js";
 import type { RetentionScan } from "./cas-retention-state.js";
 
