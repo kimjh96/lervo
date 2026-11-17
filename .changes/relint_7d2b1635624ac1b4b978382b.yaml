@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7d2b1635624ac1b4b978382b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let the resident knowledge worker back off while convergence waits for a scheduled retry, and keep the freshness stage closed while a pending no-change review exceeds the daily budget, so an idle repository no longer runs a full knowledge cycle every one to two minutes."

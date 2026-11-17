@@ -18,6 +18,7 @@ import {
 } from "../src/freshness-state-store.js";
 import { applyFreshnessCandidateByOwner } from "../src/freshness-apply.js";
 import { recoverFreshnessCandidates } from "../src/freshness-candidate-recovery.js";
+import { runDocumentFreshnessCycle } from "../src/freshness-stage.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
 
 const fixtures: FreshnessFixture[] = [];
@@ -167,6 +168,39 @@ it("keeps the stage closed while today's budget cannot pay for a pending no-chan
     budget: { ...spent.budget, day: now.toISOString().slice(0, 10), tokensUsed: 0 },
   });
   expect(await f.cycle(now)).toMatchObject({ status: "completed" });
+  expect((await f.providerCalls()).slice(calls).map((call) => call.task)).toEqual([
+    "document_freshness_assessment_review",
+  ]);
+});
+
+it("records no cycle event for a review deferred without progress", async () => {
+  const f = await setup(5);
+  await history(f);
+  await f.plan({ "docs/specs/runtime.md": { operation: "no_change_needed" } });
+  await f.cycle();
+  expect((await listFreshnessCandidates(f.root))[0]!.state).toBe("generated");
+  const events = f.eventsOf("document.freshness.cycle.completed").length;
+  const calls = (await f.providerCalls()).length;
+  // Live work defers the review before any provider call; the stage stays open and retries.
+  const busy = () =>
+    runDocumentFreshnessCycle({
+      context: {
+        storage: f.storage,
+        provider: "claude",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+        signal: new AbortController().signal,
+        liveWorkPending: async () => true,
+        now: () => new Date(),
+      },
+    });
+  for (let attempt = 0; attempt < 2; attempt++)
+    expect(await busy()).toMatchObject({ status: "completed", deferred: expect.any(String) });
+  // ADR-0580: a deferral that spent and settled nothing moves no event head.
+  expect(f.eventsOf("document.freshness.cycle.completed")).toHaveLength(events);
+  expect(await f.providerCalls()).toHaveLength(calls);
+  await f.cycle();
+  expect(f.eventsOf("document.freshness.cycle.completed")).toHaveLength(events + 1);
   expect((await f.providerCalls()).slice(calls).map((call) => call.task)).toEqual([
     "document_freshness_assessment_review",
   ]);
