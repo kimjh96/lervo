@@ -91,6 +91,38 @@ describe("runRepositoryPass", () => {
     ]);
   });
 
+  it("records each round's plan command and the receipt's stage timings", async () => {
+    let clock = 0;
+    const scripts: Record<string, RepositoryUpgradeInvocation[]> = {
+      "/r/one": [
+        result("ready", { planId: "plan_1" }),
+        result("ready", {
+          stageTimings: [
+            { stage: "plan", ms: 900 },
+            { stage: "node_readiness", ms: 3_000 },
+          ],
+        }),
+        result("ready", { planId: "plan_2" }),
+        result("current", { stageTimings: [{ stage: "final_plan", ms: 700 }] }),
+      ],
+    };
+    const runner = scriptedRunner(scripts);
+    const result_ = await runRepositoryPass(["/r/one"], {
+      run: async (args, signal) => {
+        clock += args.includes("--apply") ? 10_000 : 2_500;
+        return runner(args, signal);
+      },
+      now: () => clock,
+    });
+    expect(result_.repositories[0]?.stageTimings).toEqual([
+      { round: 1, stage: "plan_command", ms: 2_500 },
+      { round: 1, stage: "plan", ms: 900 },
+      { round: 1, stage: "node_readiness", ms: 3_000 },
+      { round: 2, stage: "plan_command", ms: 2_500 },
+      { round: 2, stage: "final_plan", ms: 700 },
+    ]);
+  });
+
   it("repeats bounded rounds while the plan stays ready and reports content blocks", async () => {
     const result_ = await pass(["/r/one", "/r/two", "/r/three"], {
       "/r/one": [
@@ -216,6 +248,26 @@ describe("the linked lervo runner", () => {
         }),
       ),
     ).toEqual(result("ready", { planId: "n", timing: { admissionWaitMs: 1, applyMs: 2 } }));
+    expect(
+      parseRepositoryUpgradeOutput(
+        JSON.stringify({
+          status: "current",
+          stageTimings: [
+            { stage: "plan", ms: 12 },
+            { stage: "node_service", ms: -1 },
+            { stage: 7, ms: 3 },
+            { stage: "final_plan", ms: 30 },
+          ],
+        }),
+      ),
+    ).toEqual(
+      result("current", {
+        stageTimings: [
+          { stage: "plan", ms: 12 },
+          { stage: "final_plan", ms: 30 },
+        ],
+      }),
+    );
     expect(
       parseRepositoryUpgradeOutput(
         JSON.stringify({ status: "failed", error: { code: "node_fleet_readiness_timeout" } }),

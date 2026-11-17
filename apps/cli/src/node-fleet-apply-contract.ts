@@ -140,6 +140,19 @@ export interface NodeFleetApplyReceipt {
     carriedConditions: NodeReadinessCarriedCondition[];
   };
   registry: RegisterNodeFleetInstanceResult;
+  /**
+   * ADR-0579: wall milliseconds of the onboarding's consecutive parts: preparation up to the
+   * service operation, the service operation with its fences, stop, and start, readiness, and
+   * registration with the runtime pointer. Absent from receipts of earlier CLIs.
+   */
+  timing?: NodeFleetApplyTiming;
+}
+
+export interface NodeFleetApplyTiming {
+  preparationMs: number;
+  serviceMs: number;
+  readinessMs: number;
+  completionMs: number;
 }
 
 export interface NodeFleetStatusReport {

@@ -121,6 +121,15 @@ describe("repository selection command", () => {
       readiness: { observations: 3 },
       registry: { change: "registered" },
     });
+    // ADR-0579: the onboarding reports its consecutive parts in whole milliseconds.
+    expect(Object.keys(receipt.timing ?? {})).toEqual([
+      "preparationMs",
+      "serviceMs",
+      "readinessMs",
+      "completionMs",
+    ]);
+    for (const ms of Object.values(receipt.timing ?? {}))
+      expect(Number.isInteger(ms) && ms >= 0).toBe(true);
     expect(readinessReads).toBe(3);
     expect(await listNodeFleetInstances(registry)).toHaveLength(1);
     // The Node's checkout also joins the host repository registry beside the fleet registry.

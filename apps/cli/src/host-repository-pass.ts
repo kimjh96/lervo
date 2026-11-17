@@ -1,5 +1,9 @@
 import { classifyRepositoryFailure } from "./host-follow-policy.js";
-import type { HostFollowRepositoryResult, RepositoryUpgradeOutcome } from "./host-follow-state.js";
+import type {
+  HostFollowRepositoryResult,
+  HostFollowStageTiming,
+  RepositoryUpgradeOutcome,
+} from "./host-follow-state.js";
 import type {
   RepositoryUpgradeInvocation,
   RepositoryUpgradeRunner,
@@ -49,6 +53,7 @@ async function upgradeRepository(
 ): Promise<RepositoryPassEntry | "interrupted"> {
   const now = options.now ?? Date.now;
   const started = now();
+  const stageTimings: HostFollowStageTiming[] = [];
   const entry: RepositoryPassEntry = {
     repositoryRoot,
     outcome: "failed",
@@ -61,6 +66,7 @@ async function upgradeRepository(
     waitMs: null,
     applyMs: null,
     elapsedMs: 0,
+    stageTimings,
   };
   const finish = (outcome: RepositoryUpgradeOutcome, code: string | null) => {
     entry.outcome = outcome;
@@ -75,8 +81,10 @@ async function upgradeRepository(
   for (let round = 1; round <= REPOSITORY_UPGRADE_ROUNDS; round += 1) {
     if (options.signal?.aborted === true) return "interrupted";
     entry.rounds = round;
+    const planStarted = now();
     const plan = await run([...base, "--json"]);
     if (plan.kind === "interrupted") return "interrupted";
+    stageTimings.push({ round, stage: "plan_command", ms: now() - planStarted });
     if (plan.kind !== "result") {
       const code = failureCode(plan);
       if (classifyRepositoryFailure(code) === "host_failure" && !hostFailureSeen) {
@@ -116,6 +124,7 @@ async function upgradeRepository(
     entry.status = applied.status;
     entry.planId = applied.planId;
     entry.appliedStages.push(...applied.appliedStages);
+    for (const timing of applied.stageTimings ?? []) stageTimings.push({ round, ...timing });
     entry.pendingStages = applied.pendingStages;
     if (applied.timing !== null) {
       entry.waitMs = (entry.waitMs ?? 0) + applied.timing.admissionWaitMs;

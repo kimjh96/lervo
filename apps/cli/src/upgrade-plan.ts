@@ -178,7 +178,12 @@ export async function createRepositoryUpgradePlan(
       knowledgeDeferral === null
         ? inspectKnowledge(repositoryRoot)
         : Promise.resolve(deferredKnowledge(deferralReason(knowledgeDeferral))),
-      inspectRegisteredNodeUpgrade(repositoryRoot, project.projectId, version),
+      inspectRegisteredNodeUpgrade(
+        repositoryRoot,
+        project.projectId,
+        version,
+        host.describeNodeLauncher,
+      ),
       inspectHostResidentService(host.hostService),
       inspectRepositoryReplicaService(host.replicaService),
     ],

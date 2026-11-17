@@ -1,4 +1,3 @@
-import { maintainNodeRuntimeRetention } from "./node-runtime-retention.js";
 import { createHash } from "node:crypto";
 import { chmod, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -275,11 +274,9 @@ export async function applyNodeFleetRollback(input: {
       );
     }
     // ADR-0483: the restored runtime becomes `current` again; the next upgrade repairs a failure.
+    // ADR-0579: the planned runtime retention stage of `lervo upgrade` retires runtimes.
     await pointCurrentNodeRuntimeAt(predecessorExecutable, input.homeDirectory).catch(
       () => undefined,
-    );
-    await maintainNodeRuntimeRetention(
-      input.homeDirectory === undefined ? {} : { homeDirectory: input.homeDirectory },
     );
     return {
       schemaVersion: 1,

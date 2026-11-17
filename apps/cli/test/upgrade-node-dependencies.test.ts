@@ -14,6 +14,7 @@ import {
   readNodeRuntimeModule,
   type NodeRuntimeModule,
 } from "../src/node-fleet-runtime-module.js";
+import type { InstalledNodeLauncher } from "../src/node-fleet-runtime-material.js";
 import { describeRuntimeDependencies } from "../src/runtime-dependency-closure.js";
 import { materializeRuntimeDependencies } from "../src/runtime-dependency-materialization.js";
 import { inspectRegisteredNodeUpgrade, applyRegisteredNodeUpgrade } from "../src/upgrade-node.js";
@@ -149,6 +150,21 @@ describe("Node upgrade installed dependency readiness", () => {
     expect(result.replaceDeployment).toBe(true);
     await applyRegisteredNodeUpgrade(result);
     expect(fixture.apply).toHaveBeenCalledOnce();
+  });
+
+  it("describes and installs the runtime through the command's one description", async () => {
+    const describeLauncher = vi.fn(
+      async () => fixture.launcher as unknown as InstalledNodeLauncher,
+    );
+    const result = await inspectRegisteredNodeUpgrade(
+      root,
+      "prj_dependency",
+      "0.20.0",
+      describeLauncher,
+    );
+    expect(describeLauncher).toHaveBeenCalledOnce();
+    await applyRegisteredNodeUpgrade(result, describeLauncher);
+    expect(fixture.apply).toHaveBeenCalledWith(expect.objectContaining({ describeLauncher }));
   });
 
   it("reports current only after installed dependency bytes and links verify", async () => {

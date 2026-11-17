@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c51eec6ff6ef5f4ea978c4e1"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Describe the bundled Node runtime once per lervo upgrade command instead of up to nine times, and report stageTimings in lervo upgrade --apply receipts and host follower pass entries."

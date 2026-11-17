@@ -13,6 +13,7 @@ import {
 } from "./upgrade-plan.js";
 import { recordPresentedUpgradePlan, upgradePlanChangedFailure } from "./upgrade-plan-change.js";
 import { upgradeHost } from "./upgrade-host.js";
+import { UpgradeStageClock } from "./upgrade-stage-timing.js";
 import { withKnowledgeResidentExclusion } from "./upgrade-resident-exclusion.js";
 
 export type { RepositoryUpgradePlan } from "./upgrade-plan.js";
@@ -165,15 +166,18 @@ export async function runUpgradeCommand(
       { repositoryRoot: root, io, options: services.knowledgeCycleAdmission },
       async (exclusion) => {
         admittedAt = Date.now();
+        const clock = new UpgradeStageClock();
         const initial = await plan();
         if (values.safe === true) assertSafeUpgrade(initial);
         else await assertApprovedUpgrade(initial, values.approval, roleBindingApprovals);
+        clock.lap("plan");
         return applyRepositoryUpgrade(
           initial,
           roleBindingApprovals,
           materialization,
           host,
           exclusion,
+          clock,
         );
       },
     );

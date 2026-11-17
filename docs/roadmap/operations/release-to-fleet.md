@@ -11,6 +11,21 @@ A fix reaches every host in 10 to 15 minutes with no manual deploy step: publish
 
 v0.23.7 on 2026-11-14 (measured from release and receipt timestamps): merge to published release 14.7 minutes, publication to the last current repository 35.6, merge to fleet 50.3. Repository upgrades set the critical path: Mac 22.3 minutes for 9 repositories, WSL 34.2 for 7, with 7 of 16 runs waiting for a running background knowledge cycle.
 
+## Measured: v0.25.1 on WSL
+
+On 2026-11-17 the host follower upgraded WSL's six repositories serially in 28.7 minutes with no agent action. Five applies changed only `repository_node`. The breakdown comes from the follower's `lastPass`, the systemd journal of each Node unit, and the fleet registry's `updatedAt`; seconds, accurate to about one second ([ADR-0579](../../decisions/distribution/0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md)).
+
+| Repository | Plan command | Admission wait | Apply to stop | Stop to start | Start to registration | Registration to end | Apply total |
+| ---------- | -----------: | -------------: | ------------: | ------------: | --------------------: | ------------------: | ----------: |
+| axli       |           26 |            300 |            52 |           2.3 |                    76 |                  36 |         166 |
+| plen       |           17 |              2 |            44 |           1.7 |                   3.1 |                  24 |          73 |
+| flemo      |           24 |              0 |            56 |           1.7 |                   4.1 |                  35 |          97 |
+| digimon    |           23 |             46 |            55 |           1.8 |                   3.1 |                  38 |          98 |
+| shiflo     |           28 |              0 |            70 |           1.9 |                    15 |                  43 |         130 |
+| lervo      |          123 |             46 |           265 |           2.1 |                    33 |                 184 |         484 |
+
+Stopping and starting a Node worker took about 2 seconds, and readiness 3 to 4 seconds on most repositories. Most of the time went to repeated observation in the plan command, the plan recreated inside the exclusion, the stage inspections, and the final plan. Measured per call on WSL: knowledge inspection 8 to 9 seconds, knowledge lint 4 to 5, describing the bundled Node runtime 1.2 to 2.7 (7 cold, nine times per repository), and the runtime retention inventory 1.5 to 3.3. ADR-0579 describes the runtime once per command, an estimated 8 to 19 seconds per repository and 50 to 115 seconds per WSL pass. Knowledge inspection, four runs per repository, is the largest remaining repeated cost.
+
 ## Stages
 
 1. **Host install from the verified release (main).** `lervo host upgrade --from-release <tag>` per ADR-0571 Stage 1.
@@ -24,6 +39,10 @@ v0.23.7 on 2026-11-14 (measured from release and receipt timestamps): merge to p
    - [ ] Measured on an installed release: no repository upgrade prints the admission wait, and publication to the last current repository is at most 12 minutes.
    - [x] An upgrade whose event loop stalls past its lease no longer runs on without the exclusion: it holds a 2-hour lease, confirms it before each consequential stage, and fails with `knowledge_cycle_admission_lost` once a resident took the slot. The launchd follower runs as `Standard`. Implemented by [ADR-0577](../../decisions/distribution/0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md).
    - [ ] After the release that carries ADR-0577, the follower is reinstalled on the Mac and its next argo apply is measured.
+   - [x] One upgrade command describes the bundled Node runtime once instead of up to seven times in the apply and nine per repository, and `lervo upgrade --apply` receipts and follower pass entries carry `stageTimings` ([ADR-0579](../../decisions/distribution/0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md)).
+   - [ ] After the release that carries ADR-0579, the next follower pass on WSL and the Mac reports `stageTimings`, and its per-stage breakdown replaces the estimate above.
+   - [x] Runtime retention reads the `--config` of every rendered Lervo service, so the follower, host resident, and replica units on systemd and launchd no longer make every plan report `runtime_references_unavailable`. Systemd drop-ins are read too: every runtime they name stays protected, and one that sets `ExecStart=` or `--config` defers retention, as does a definition that names `--config` in another shape or a missing configuration. Node onboarding and rollback no longer retire runtimes; only the planned runtime retention stage of `lervo upgrade` does, so a superseded runtime goes at the next upgrade. A read-only plan on WSL now proposes 2 of 6 runtimes (about 694 MB); all four Mac launchd definitions parse ([ADR-0579](../../decisions/distribution/0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md)).
+   - [ ] The runtime retention inventory walks only trees that can become retirement candidates.
 3. **S4: `lervo host upgrade --follow`.** The host follower lands on `main` ([ADR-0575](../../decisions/distribution/0575-follow-published-releases-on-every-host.md)); Hub ordering waits for core-loop integration.
    - [ ] The Hub archive is a release subject verified like the CLI tarball.
    - [x] Every host polls GitHub Releases every 5 minutes with ±20% jitter and backoff, and following works with no Hub configured. Implemented by ADR-0575 as the `host-follow` user service on systemd and launchd.

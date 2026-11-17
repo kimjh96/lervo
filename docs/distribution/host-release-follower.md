@@ -23,7 +23,7 @@ The follower writes two files in `<cli>`. Each has one writer and is replaced at
 - `failedTags`: the newest 16 entries of `tag`, `failedAt`, `code`, and `activationId`.
 - `inFlight`: the intent written before an install, with `tag`, `activationId` (chosen before the install and given to it), `startedAt`, `rollback` (`code` while a rollback waits), and `interruptions`.
 - `installFailures`: `tag`, `count`, and `code` of consecutive installer failures and abandoned installs (`host_follow_install_abandoned`). The tag fails at the third.
-- `lastPass`: `cliTarget`, `version`, `finishedAt`, `outcome`, and one entry per repository. Each entry holds `repositoryRoot`, `outcome`, `status`, `code`, `rounds`, `appliedStages`, `pendingStages`, `planId`, `attempts`, `nextAttemptAt`, `waitMs`, `applyMs`, and `elapsedMs`. `waitMs` and `applyMs` are null when no receipt carried `timing`.
+- `lastPass`: `cliTarget`, `version`, `finishedAt`, `outcome`, and one entry per repository. Each entry holds `repositoryRoot`, `outcome`, `status`, `code`, `rounds`, `appliedStages`, `pendingStages`, `planId`, `attempts`, `nextAttemptAt`, `waitMs`, `applyMs`, `elapsedMs`, and `stageTimings`. `waitMs` and `applyMs` are null when no receipt carried `timing`. `stageTimings` lists, for each round, the plan command's wall time as `plan_command` and then the apply receipt's parts, each as `round`, `stage`, and `ms` ([ADR-0579](../decisions/distribution/0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md)). Passes of earlier CLIs have no `stageTimings`.
 
 `host-follow-control.json` is written only by `--pause`, `--resume`, and `--pin`. It holds `schemaVersion` 1, `paused`, `pinnedTag`, and `changedAt`. `--resume` clears both the pause and the pin.
 
