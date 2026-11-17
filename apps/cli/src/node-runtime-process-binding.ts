@@ -4,22 +4,27 @@ import { resolve } from "node:path";
 
 import { readRuntimeReferenceText } from "./node-runtime-reference-file.js";
 
-const RUNTIME_DIRECTORY = /^[a-f0-9]{16}$/u;
+/** A content-addressed runtime directory name inside the Node runtimes directory. */
+export const RUNTIME_DIRECTORY_NAME = /^[a-f0-9]{16}$/u;
+/** The most runtime directory entries an inspection reads before refusing the inventory. */
+export const MAXIMUM_RUNTIME_DIRECTORY_ENTRIES = 4096;
 const PROCESS_IDENTITY = /^proc_[a-z0-9_]{1,64}:sha256:[a-f0-9]{64}$/u;
-const MAXIMUM_RUNTIME_DIRECTORIES = 4096;
 
 /**
  * One `<runtime>/.processes/<pid>.json` record a running payload writes at startup
- * (`bindInstalledRuntimeProcess`). `processIdentity` is the process's birth identity; records
+ * (`bindInstalledRuntimeProcess`). `processIdentity` is the unvalidated birth identity; records
  * from older payloads may lack it.
  */
 export interface RuntimeProcessBinding {
   processId: number;
-  processIdentity: string | undefined;
+  processIdentity: unknown;
   runtimeDirectory: string;
 }
 
-/** Validates one binding record against its file name and directory; malformed records throw. */
+/**
+ * Validates one record's structure against its file name and directory; a malformed record
+ * throws. The birth identity is judged separately, by `runtimeProcessBindingIdentity`.
+ */
 export function parseRuntimeProcessBinding(
   text: string,
   runtimeDirectory: string,
@@ -39,12 +44,30 @@ export function parseRuntimeProcessBinding(
     binding.runtimeDirectory !== runtimeDirectory
   )
     throw new Error("Invalid runtime process binding.");
+  return { processId, processIdentity: binding.processIdentity, runtimeDirectory };
+}
+
+/**
+ * The record's birth identity, or undefined for a record that predates identities. A malformed
+ * identity throws. Callers judge it only while the process is alive: a dead process's record
+ * protects and proves nothing, so its contents must not fail an inspection.
+ */
+export function runtimeProcessBindingIdentity(binding: RuntimeProcessBinding): string | undefined {
+  if (binding.processIdentity === undefined) return undefined;
   if (
-    binding.processIdentity !== undefined &&
-    (typeof binding.processIdentity !== "string" || !PROCESS_IDENTITY.test(binding.processIdentity))
+    typeof binding.processIdentity !== "string" ||
+    !PROCESS_IDENTITY.test(binding.processIdentity)
   )
     throw new Error("Invalid runtime process birth identity.");
-  return { processId, processIdentity: binding.processIdentity, runtimeDirectory };
+  return binding.processIdentity;
+}
+
+function provenIdentity(binding: RuntimeProcessBinding): string | undefined {
+  try {
+    return runtimeProcessBindingIdentity(binding);
+  } catch {
+    return undefined;
+  }
 }
 
 async function readBinding(
@@ -81,12 +104,12 @@ export async function findRuntimeProcessBinding(
   } catch {
     return null;
   }
-  if (entries.length > MAXIMUM_RUNTIME_DIRECTORIES) return null;
+  if (entries.length > MAXIMUM_RUNTIME_DIRECTORY_ENTRIES) return null;
   const bound: string[] = [];
   for (const entry of entries) {
-    if (!entry.isDirectory() || !RUNTIME_DIRECTORY.test(entry.name)) continue;
+    if (!entry.isDirectory() || !RUNTIME_DIRECTORY_NAME.test(entry.name)) continue;
     const binding = await readBinding(root, entry.name, processId);
-    if (binding?.processIdentity === observed.identity) bound.push(entry.name);
+    if (binding !== null && provenIdentity(binding) === observed.identity) bound.push(entry.name);
   }
   return bound.length === 1 ? bound[0]! : null;
 }

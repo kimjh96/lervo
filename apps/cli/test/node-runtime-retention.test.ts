@@ -295,3 +295,38 @@ for (const platform of ["darwin", "linux"] as const) {
     );
   });
 }
+
+it("ignores a malformed record of a dead process but defers on one of a live process", async () => {
+  const f = await runtimeHome("linux");
+  const bindings = resolve(f.root, name(2), ".processes");
+  await mkdir(bindings);
+  await writeFile(
+    resolve(bindings, `${process.pid}.json`),
+    JSON.stringify({
+      schemaVersion: 1,
+      processId: process.pid,
+      processIdentity: "not-a-birth-identity",
+      runtimeDirectory: name(2),
+    }),
+  );
+  await utimes(resolve(f.root, name(2)), new Date(2000), new Date(2000));
+  await pointCurrentNodeRuntime({ ...f, runtimeDirectory: name(9) });
+  const options = { ...f, processCommands: async () => "" };
+  // The process is gone, so its record neither protects the runtime nor blocks retention.
+  const dead = await planNodeRuntimeRetention({
+    ...options,
+    observeProcess: () => ({ status: "absent" as const }),
+  });
+  expect(dead.disposition).toBe("safe_apply");
+  expect(dead.candidates.map((item) => item.name)).toContain(name(2));
+  // A live process with an unreadable identity still fails closed.
+  expect(
+    await planNodeRuntimeRetention({
+      ...options,
+      observeProcess: () => ({
+        status: "present" as const,
+        identity: `proc_test_v1:sha256:${"a".repeat(64)}`,
+      }),
+    }),
+  ).toMatchObject({ disposition: "deferred", candidates: [] });
+});

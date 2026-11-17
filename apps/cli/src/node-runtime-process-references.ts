@@ -1,7 +1,12 @@
 import { createProcessObserver, type ProcessObservation } from "@lervo/node-runtime";
 import { readdir, lstat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { parseRuntimeProcessBinding } from "./node-runtime-process-binding.js";
+import {
+  MAXIMUM_RUNTIME_DIRECTORY_ENTRIES,
+  RUNTIME_DIRECTORY_NAME,
+  parseRuntimeProcessBinding,
+  runtimeProcessBindingIdentity,
+} from "./node-runtime-process-binding.js";
 import { readRuntimeReferenceText } from "./node-runtime-reference-file.js";
 
 export async function collectRuntimeProcessBindings(
@@ -13,9 +18,10 @@ export async function collectRuntimeProcessBindings(
 ): Promise<void> {
   const boundProcesses = new Set<number>();
   const runtimes = await readdir(root, { withFileTypes: true });
-  if (runtimes.length > 4096) throw new Error("Runtime process inventory exceeds its bound.");
+  if (runtimes.length > MAXIMUM_RUNTIME_DIRECTORY_ENTRIES)
+    throw new Error("Runtime process inventory exceeds its bound.");
   for (const runtime of runtimes) {
-    if (!runtime.isDirectory() || !/^[a-f0-9]{16}$/u.test(runtime.name)) continue;
+    if (!runtime.isDirectory() || !RUNTIME_DIRECTORY_NAME.test(runtime.name)) continue;
     const bindings = resolve(root, runtime.name, ".processes");
     const info = await lstat(bindings).catch((error: NodeJS.ErrnoException) => {
       if (error.code === "ENOENT") return null;
@@ -39,17 +45,18 @@ export async function collectRuntimeProcessBindings(
         pid,
       );
       const observed = observeProcess(pid);
+      // A dead process's record protects nothing, so only a live process's identity is judged.
       if (observed.status === "absent") continue;
+      const identity = runtimeProcessBindingIdentity(binding);
       if (
         observed.status === "present" &&
-        binding.processIdentity !== undefined &&
-        observed.identity.split(":", 1)[0] === binding.processIdentity.split(":", 1)[0] &&
-        observed.identity !== binding.processIdentity
+        identity !== undefined &&
+        observed.identity.split(":", 1)[0] === identity.split(":", 1)[0] &&
+        observed.identity !== identity
       )
         continue;
       protectedNames.add(runtime.name);
-      if (observed.status === "present" && observed.identity === binding.processIdentity)
-        boundProcesses.add(pid);
+      if (observed.status === "present" && observed.identity === identity) boundProcesses.add(pid);
     }
   }
   for (const line of commands.split("\n")) {
