@@ -38,6 +38,7 @@ export const upgradeResult = (
   applicableStages: [],
   appliedStages: [],
   pendingStages: [],
+  timing: null,
   ...fields,
 });
 

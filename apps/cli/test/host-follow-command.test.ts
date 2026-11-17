@@ -90,6 +90,7 @@ const cycleResult = (fields: Partial<HostFollowCycleResult>): HostFollowCycleRes
   pass: null,
   handover: false,
   consecutiveSourceFailures: 0,
+  backoff: 0,
   ...fields,
 });
 
@@ -279,7 +280,7 @@ describe("runFollowLoop", () => {
     const harness = await followHarness();
     const results = [
       cycleResult({ outcome: "current" }),
-      cycleResult({ outcome: "source_unavailable", consecutiveSourceFailures: 1 }),
+      cycleResult({ outcome: "source_unavailable", consecutiveSourceFailures: 1, backoff: 1 }),
       null,
       cycleResult({ outcome: "upgraded", handover: true }),
     ];

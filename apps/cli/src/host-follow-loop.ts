@@ -63,18 +63,19 @@ export function abortableSleep(milliseconds: number, signal: AbortSignal): Promi
 
 /**
  * The long-running follower: one cycle, then a jittered sleep, until the service manager stops it
- * (exit 0) or the link moved to another CLI (handover exit). A cycle that throws is logged and
- * backs off like a release-source failure, so a damaged file never turns into a busy loop.
+ * (exit 0) or the link moved to another CLI (handover exit). The stop signal also reaches the cycle,
+ * which stops its running `lervo upgrade`, keeps its intent, and settles nothing. A cycle that
+ * throws is logged and backs off, so a damaged file never turns into a busy loop.
  */
 export async function runFollowLoop(dependencies: HostFollowLoopDependencies): Promise<number> {
   return withFollowLock(dependencies.layout, async () => {
     let failedCycles = 0;
     while (!dependencies.signal.aborted) {
-      let sourceFailures = 0;
+      let backoff = 0;
       try {
         const result = await dependencies.runCycle();
         failedCycles = 0;
-        sourceFailures = result.consecutiveSourceFailures;
+        backoff = result.backoff;
         dependencies.log(
           JSON.stringify({
             at: dependencies.now().toISOString(),
@@ -97,7 +98,7 @@ export async function runFollowLoop(dependencies: HostFollowLoopDependencies): P
         );
       }
       await dependencies.sleep(
-        followPollDelay(Math.max(sourceFailures, failedCycles), dependencies.random),
+        followPollDelay(Math.max(backoff, failedCycles), dependencies.random),
         dependencies.signal,
       );
     }

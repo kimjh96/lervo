@@ -159,15 +159,22 @@ export async function runUpgradeCommand(
     // The approval is checked against a plan recreated under the exclusion, so no resident
     // change can land between that check and the last applied stage. `--safe` plans inside the
     // same window, so a busy repository cannot move the plan between planning and applying.
-    const receipt = await withKnowledgeResidentExclusion(
+    const requestedAt = Date.now();
+    let admittedAt = requestedAt;
+    const applied = await withKnowledgeResidentExclusion(
       { repositoryRoot: root, io, options: services.knowledgeCycleAdmission },
       async () => {
+        admittedAt = Date.now();
         const initial = await plan();
         if (values.safe === true) assertSafeUpgrade(initial);
         else await assertApprovedUpgrade(initial, values.approval, roleBindingApprovals);
         return applyRepositoryUpgrade(initial, roleBindingApprovals, materialization, host);
       },
     );
+    const receipt = {
+      ...applied,
+      timing: { admissionWaitMs: admittedAt - requestedAt, applyMs: Date.now() - admittedAt },
+    };
     io.stdout(
       values.json ? `${JSON.stringify(receipt, null, 2)}\n` : formatUpgradeReceipt(receipt),
     );

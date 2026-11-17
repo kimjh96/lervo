@@ -1,5 +1,10 @@
 import type { ActiveCli } from "./host-follow-runtime.js";
-import type { HostFollowState, RepositoryUpgradeOutcome } from "./host-follow-state.js";
+import type {
+  HostFollowRepositoryResult,
+  HostFollowState,
+  RepositoryUpgradeOutcome,
+} from "./host-follow-state.js";
+import type { RepositoryPassEntry } from "./host-repository-pass.js";
 import type { ReleaseListEntry } from "./host-release-source.js";
 
 /**
@@ -87,11 +92,12 @@ export function chooseFollowTarget(input: {
 
 /**
  * Every host polls on the same interval with its own random jitter, so hosts do not query GitHub
- * in lockstep; consecutive release-source failures double the base delay up to one hour.
+ * in lockstep; each level of backoff (release-source failures or failed installs in a row)
+ * doubles the base delay, up to one hour.
  */
-export function followPollDelay(consecutiveSourceFailures: number, random: () => number): number {
+export function followPollDelay(backoff: number, random: () => number): number {
   const base = Math.min(
-    FOLLOW_POLL_INTERVAL_MS * 2 ** Math.min(Math.max(consecutiveSourceFailures, 0), 8),
+    FOLLOW_POLL_INTERVAL_MS * 2 ** Math.min(Math.max(backoff, 0), 8),
     FOLLOW_BACKOFF_LIMIT_MS,
   );
   const factor = 1 + FOLLOW_POLL_JITTER_RATIO * (2 * Math.min(Math.max(random(), 0), 1) - 1);
@@ -162,4 +168,39 @@ export function repositoryPassDue(
     state.inFlight !== null ||
     (active.target !== null && state.lastPass?.cliTarget !== active.target)
   );
+}
+
+/**
+ * A tag whose install fails this many times in a row is marked failed: the installer failing the
+ * same way three polls apart, with backoff between them, is not a passing network problem.
+ */
+export const FOLLOW_INSTALL_FAILURE_LIMIT = 3;
+
+/** Failed repositories retry after 10, 20, and 40 minutes, then wait for another CLI. */
+export const REPOSITORY_RETRY_BASE_MS = 10 * 60_000;
+export const REPOSITORY_RETRY_LIMIT = 3;
+/** A blocked repository is planned again hourly and applied only when its plan changed. */
+export const BLOCKED_REPOSITORY_RECHECK_MS = 60 * 60_000;
+
+/** When a repository is tried again with the same CLI, given its previous result. */
+export function scheduleRepositoryRetry(
+  entry: RepositoryPassEntry,
+  previous: HostFollowRepositoryResult | undefined,
+  finishedAt: Date,
+): HostFollowRepositoryResult {
+  const at = (milliseconds: number) => new Date(finishedAt.getTime() + milliseconds).toISOString();
+  if (entry.outcome === "failed") {
+    const attempts = previous?.outcome === "failed" ? previous.attempts + 1 : 1;
+    return {
+      ...entry,
+      attempts,
+      nextAttemptAt:
+        attempts <= REPOSITORY_RETRY_LIMIT
+          ? at(REPOSITORY_RETRY_BASE_MS * 2 ** (attempts - 1))
+          : null,
+    };
+  }
+  if (entry.outcome === "blocked")
+    return { ...entry, attempts: 0, nextAttemptAt: at(BLOCKED_REPOSITORY_RECHECK_MS) };
+  return { ...entry, attempts: 0, nextAttemptAt: null };
 }

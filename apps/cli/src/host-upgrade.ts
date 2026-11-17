@@ -185,14 +185,18 @@ export async function applyReleaseUpgrade(
     };
     const expected = new RegExp(`^lervo ${release.version.replaceAll(".", "\\.")}$`, "u");
     const journal = await activateLinks(layout, dependencies.probes, record, expected);
-    const referenced = await referencedReleaseDirectories(layout, [
-      ...(await readHostLinks(layout)).values(),
-      await dependencies.readCliPointer(),
-      // ADR-0575: the install the follower service still runs until it hands over.
-      await readlink(layout.follow.runtimePointer).catch(() => null),
-      ...activationReferences(journal),
-    ]);
-    const pruned = await pruneHostReleases(layout, referenced);
+    // The activation is settled; pruning is housekeeping, and its failure must not report a
+    // switched, healthy release as failed (ADR-0575). The next activation prunes again.
+    const pruned = await (async () => {
+      const referenced = await referencedReleaseDirectories(layout, [
+        ...(await readHostLinks(layout)).values(),
+        await dependencies.readCliPointer(),
+        // ADR-0575: the install the follower service still runs until it hands over.
+        await readlink(layout.follow.runtimePointer).catch(() => null),
+        ...activationReferences(journal),
+      ]);
+      return pruneHostReleases(layout, referenced);
+    })().catch((): string[] => []);
     return {
       status: "activated",
       activation: journal.find((entry) => entry.activationId === record.activationId) ?? record,

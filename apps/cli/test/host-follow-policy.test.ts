@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BLOCKED_REPOSITORY_RECHECK_MS,
   FOLLOW_BACKOFF_LIMIT_MS,
   FOLLOW_POLL_INTERVAL_MS,
   chooseFollowTarget,
@@ -8,6 +9,7 @@ import {
   classifyRepositoryFailure,
   followPollDelay,
   repositoryPassDue,
+  scheduleRepositoryRetry,
 } from "../src/host-follow-policy.js";
 
 const release = (tag: string, overrides: { draft?: boolean; prerelease?: boolean } = {}) => ({
@@ -128,9 +130,57 @@ describe("failure classification", () => {
     ).toBe(true);
     expect(
       repositoryPassDue(
-        { inFlight: { tag: "v1.0.0", activationId: "hact_x", startedAt: "t" }, lastPass: pass },
+        {
+          inFlight: {
+            tag: "v1.0.0",
+            activationId: "hact_x",
+            startedAt: "t",
+            rollback: null,
+            interruptions: 0,
+          },
+          lastPass: pass,
+        },
         { target: "/a/dist/bin.js" },
       ),
     ).toBe(true);
+  });
+});
+
+describe("scheduleRepositoryRetry", () => {
+  const entry = (outcome: "current" | "blocked" | "failed" | "host_failure") => ({
+    repositoryRoot: "/r",
+    outcome,
+    status: null,
+    code: null,
+    rounds: 1,
+    appliedStages: [],
+    pendingStages: [],
+    planId: null,
+    waitMs: null,
+    applyMs: null,
+    elapsedMs: 0,
+  });
+  const at = new Date("2026-11-17T00:00:00.000Z");
+  const minutes = (value: number) => new Date(at.getTime() + value * 60_000).toISOString();
+
+  it("retries failed repositories after 10, 20, and 40 minutes, then stops", () => {
+    let previous: ReturnType<typeof scheduleRepositoryRetry> | undefined;
+    const schedule: (string | null)[] = [];
+    for (let run = 0; run < 4; run += 1) {
+      previous = scheduleRepositoryRetry(entry("failed"), previous, at);
+      schedule.push(previous.nextAttemptAt);
+    }
+    expect(schedule).toEqual([minutes(10), minutes(20), minutes(40), null]);
+    expect(scheduleRepositoryRetry(entry("current"), previous, at)).toMatchObject({
+      attempts: 0,
+      nextAttemptAt: null,
+    });
+  });
+
+  it("re-plans blocked repositories hourly and never retries a host failure", () => {
+    expect(scheduleRepositoryRetry(entry("blocked"), undefined, at).nextAttemptAt).toBe(
+      new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
+    );
+    expect(scheduleRepositoryRetry(entry("host_failure"), undefined, at).nextAttemptAt).toBeNull();
   });
 });

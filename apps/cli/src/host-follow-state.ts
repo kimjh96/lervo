@@ -34,6 +34,17 @@ export interface HostFollowRepositoryResult {
   rounds: number;
   appliedStages: string[];
   pendingStages: string[];
+  /** The last plan id; a blocked repository is applied again only when it changes. */
+  planId: string | null;
+  /** Failed passes in a row, which space out the retries. */
+  attempts: number;
+  /** When the follower tries this repository again with the same CLI; null for never. */
+  nextAttemptAt: string | null;
+  /** Summed from the receipts: waiting for the knowledge admission, and applying after it. */
+  waitMs: number | null;
+  applyMs: number | null;
+  /** Wall time of every `lervo upgrade` the repository took, plans included. */
+  elapsedMs: number;
 }
 
 /** One pass of `lervo upgrade` over every registered repository, run by one active CLI. */
@@ -55,9 +66,25 @@ export interface HostFollowState {
   consecutiveSourceFailures: number;
   lastOutcome: { at: string; outcome: string; tag: string | null; code: string | null } | null;
   failedTags: HostFollowFailedTag[];
-  /** Set from activation until its repository pass settles, so a restarted follower finishes it. */
-  inFlight: { tag: string; activationId: string; startedAt: string } | null;
+  /**
+   * Written before the follower installs a release and kept until its repository pass settles,
+   * so any later process finishes it: `activationId` is null until the install returns or the
+   * journal shows the activation, `rollback` names the host failure while the rollback still
+   * waits for the host upgrade lock, and `interruptions` counts passes cut short by something
+   * other than a stop request.
+   */
+  inFlight: HostFollowInFlight | null;
+  /** Consecutive failed installs of one tag; the tag fails after a bounded count. */
+  installFailures: { tag: string; count: number; code: string } | null;
   lastPass: HostFollowPass | null;
+}
+
+export interface HostFollowInFlight {
+  tag: string;
+  activationId: string | null;
+  startedAt: string;
+  rollback: { code: string } | null;
+  interruptions: number;
 }
 
 export interface HostFollowControl {
@@ -76,6 +103,7 @@ export const emptyFollowState = (): HostFollowState => ({
   lastOutcome: null,
   failedTags: [],
   inFlight: null,
+  installFailures: null,
   lastPass: null,
 });
 
@@ -89,6 +117,7 @@ export const emptyFollowControl = (): HostFollowControl => ({
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   value !== null && typeof value === "object" && !Array.isArray(value);
 const nullableString = (value: unknown) => value === null || typeof value === "string";
+const nullableNumber = (value: unknown) => value === null || typeof value === "number";
 const strings = (value: unknown) =>
   Array.isArray(value) && value.every((item) => typeof item === "string");
 
@@ -101,13 +130,19 @@ function validRepositoryResult(value: unknown): boolean {
     nullableString(value.code) &&
     Number.isSafeInteger(value.rounds) &&
     strings(value.appliedStages) &&
-    strings(value.pendingStages)
+    strings(value.pendingStages) &&
+    nullableString(value.planId) &&
+    Number.isSafeInteger(value.attempts) &&
+    nullableString(value.nextAttemptAt) &&
+    nullableNumber(value.waitMs) &&
+    nullableNumber(value.applyMs) &&
+    typeof value.elapsedMs === "number"
   );
 }
 
 function validState(value: unknown): value is HostFollowState {
   if (!isRecord(value) || value.schemaVersion !== 1) return false;
-  const { lastOutcome, inFlight, lastPass, failedTags } = value;
+  const { lastOutcome, inFlight, lastPass, failedTags, installFailures } = value;
   return (
     nullableString(value.repository) &&
     nullableString(value.lastCheckAt) &&
@@ -131,8 +166,16 @@ function validState(value: unknown): value is HostFollowState {
     (inFlight === null ||
       (isRecord(inFlight) &&
         typeof inFlight.tag === "string" &&
-        typeof inFlight.activationId === "string" &&
-        typeof inFlight.startedAt === "string")) &&
+        nullableString(inFlight.activationId) &&
+        typeof inFlight.startedAt === "string" &&
+        (inFlight.rollback === null ||
+          (isRecord(inFlight.rollback) && typeof inFlight.rollback.code === "string")) &&
+        Number.isSafeInteger(inFlight.interruptions))) &&
+    (installFailures === null ||
+      (isRecord(installFailures) &&
+        typeof installFailures.tag === "string" &&
+        Number.isSafeInteger(installFailures.count) &&
+        typeof installFailures.code === "string")) &&
     (lastPass === null ||
       (isRecord(lastPass) &&
         typeof lastPass.cliTarget === "string" &&

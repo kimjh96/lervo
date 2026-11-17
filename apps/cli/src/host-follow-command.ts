@@ -70,6 +70,7 @@ const failingOutcomes = new Set<HostFollowCycleOutcome>([
   "host_blocked",
   "release_failed",
   "rolled_back",
+  "rollback_pending",
   "rollback_failed",
 ]);
 
@@ -147,8 +148,12 @@ export async function runHostFollowCommand(
     write("host_follow_plan", inspection, formatFollowInspection(inspection));
     return 0;
   }
+  // `--once` runs from a shell, where Ctrl-C ends the process as usual; the service loop turns a
+  // stop request into a signal the cycle and its running `lervo upgrade` observe.
+  const signal = mode.once ? follow.signal : (follow.signal ?? serviceLoopSignal());
   const cycle: HostFollowCycleDependencies = {
     upgrade: context.upgradeDependencies(layout),
+    signal,
     source,
     listRepositories:
       follow.listRepositories ??
@@ -178,7 +183,7 @@ export async function runHostFollowCommand(
       sleep: follow.sleep ?? abortableSleep,
       log: follow.log ?? ((line) => io.stdout(`${line}\n`)),
       now: () => context.upgradeDependencies(layout).now(),
-      signal: follow.signal ?? serviceLoopSignal(),
+      signal: signal as AbortSignal,
     });
   } finally {
     stopBounding();

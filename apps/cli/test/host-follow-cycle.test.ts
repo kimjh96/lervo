@@ -1,4 +1,5 @@
-import { mkdir, readlink, writeFile } from "node:fs/promises";
+import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdir, readlink, rm, writeFile } from "node:fs/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -121,8 +122,11 @@ describe("runFollowCycle", () => {
       outcome: "active",
       rolledBackActivationId: result.activationId,
     });
-    // The pass stopped at the failing repository; a second pass ran on the restored CLI.
+    // The failure was believed when it repeated in a second round; the pass stopped there, and
+    // a second pass ran on the restored CLI.
     expect(harness.calls.map((call) => [call.args[2], call.version])).toEqual([
+      ["/repositories/one", "9.9.10"],
+      ["/repositories/one", "9.9.10"],
       ["/repositories/one", "9.9.10"],
       ["/repositories/one", "9.9.10"],
       ["/repositories/one", "9.9.9"],
@@ -218,8 +222,9 @@ describe("runFollowCycle", () => {
     expect((await readActiveCli(harness.layout)).version).toBe("9.9.10");
   });
 
-  it("lets a restarted follower settle the activation a crashed one left in flight", async () => {
+  it("settles an activation a crashed follower left in flight before it hands over", async () => {
     const harness = await settledHarness();
+    const oldRoot = harness.running.root;
     harness.releases.push(release("9.9.10"));
     const installed = await applyReleaseUpgrade(harness.source, "v9.9.10", harness.upgrade);
     if (installed.status !== "activated") throw new Error("expected an activation");
@@ -230,18 +235,210 @@ describe("runFollowCycle", () => {
         tag: "v9.9.10",
         activationId: installed.activation.activationId,
         startedAt: "t",
+        rollback: null,
+        interruptions: 0,
       },
     });
-    await harness.runActive();
+    // The service restarted the old runtime: its runtime link was never moved to the new one.
     harness.behavior.current = readinessFailsOn("9.9.10");
     const result = await runFollowCycle(harness.dependencies);
     expect(result).toMatchObject({
       outcome: "rolled_back",
       activationId: installed.activation.activationId,
-      // This process runs the rolled-back CLI, so it hands over to the restored one.
-      handover: true,
+      handover: false,
     });
     expect((await readActiveCli(harness.layout)).version).toBe("9.9.9");
+    expect(await readlink(harness.layout.follow.runtimePointer)).toBe(oldRoot);
+    expect((await readFollowState(harness.layout)).inFlight).toBeNull();
+  });
+
+  it("finds its activation in the journal when a crash came after the link switch", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    const state = await readFollowState(harness.layout);
+    // The intent was written, the links switched, and the process died before recording the id.
+    await writeFollowState(harness.layout, {
+      ...state,
+      inFlight: {
+        tag: "v9.9.10",
+        activationId: null,
+        startedAt: "2026-11-17T00:00:00.000Z",
+        rollback: null,
+        interruptions: 0,
+      },
+    });
+    const installed = await applyReleaseUpgrade(harness.source, "v9.9.10", harness.upgrade);
+    if (installed.status !== "activated") throw new Error("expected an activation");
+    harness.behavior.current = readinessFailsOn("9.9.10");
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "rolled_back",
+      activationId: installed.activation.activationId,
+    });
+    expect((await readFollowState(harness.layout)).failedTags.map((entry) => entry.tag)).toEqual([
+      "v9.9.10",
+    ]);
+  });
+
+  it("keeps a healthy release whose post-activation pruning failed", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    harness.upgrade.readCliPointer = async () => {
+      throw Object.assign(new Error("EIO"), { code: "EIO" });
+    };
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "upgraded",
+      tag: "v9.9.10",
+    });
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.10");
+    expect((await readFollowState(harness.layout)).failedTags).toEqual([]);
+  });
+
+  it("retries a rollback that met the host upgrade lock until it succeeds", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    const fail = readinessFailsOn("9.9.10");
+    let failures = 0;
+    harness.behavior.current = (args, version) => {
+      const answer = fail(args, version);
+      // A manual host upgrade takes the lock just as the failure is believed.
+      if (answer.kind === "failed" && (failures += 1) === 2) {
+        mkdirSync(harness.layout.cliDirectory, { recursive: true });
+        writeFileSync(harness.layout.lockPath, `${process.pid}\n`);
+      }
+      return answer;
+    };
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "rollback_pending",
+      code: "host_upgrade_in_progress",
+    });
+    let state = await readFollowState(harness.layout);
+    expect(state.inFlight?.rollback).toEqual({ code: "node_fleet_readiness_timeout" });
+    expect(state.failedTags.map((entry) => entry.tag)).toEqual(["v9.9.10"]);
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.10");
+    await rm(harness.layout.lockPath);
+    harness.behavior.current = () => upgradeResult("current");
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "rolled_back" });
+    state = await readFollowState(harness.layout);
+    expect(state.inFlight).toBeNull();
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.9");
+  });
+
+  it("backs off a failing install and fails the tag after three attempts", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    harness.upgrade.installer = async () => {
+      throw new Error("pnpm: ERR_PNPM_NO_MATCHING_VERSION");
+    };
+    const outcomes = [];
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const result = await runFollowCycle(harness.dependencies);
+      outcomes.push([result.outcome, result.code, result.backoff]);
+    }
+    expect(outcomes).toEqual([
+      ["install_retry", "host_upgrade_install_failed", 1],
+      ["install_retry", "host_upgrade_install_failed", 2],
+      ["release_failed", "host_upgrade_install_failed", 0],
+    ]);
+    const downloads = harness.source.downloads;
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "release_failed_on_host",
+    });
+    expect(harness.source.downloads).toBe(downloads);
+  });
+
+  it("treats a stopped or killed lervo upgrade as interrupted, not as a host failure", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    const controller = new AbortController();
+    harness.dependencies.signal = controller.signal;
+    harness.behavior.current = (args, version) => {
+      if (version !== "9.9.10") return upgradeResult("current");
+      if (!args.includes("--apply")) return upgradeResult("ready", { planId: "plan" });
+      controller.abort();
+      return { kind: "interrupted" };
+    };
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "interrupted",
+      tag: "v9.9.10",
+    });
+    let state = await readFollowState(harness.layout);
+    expect(state.failedTags).toEqual([]);
+    expect(state.inFlight).toMatchObject({ tag: "v9.9.10", rollback: null, interruptions: 0 });
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.10");
+
+    // Restarted without a stop request, a child that keeps dying counts; the third is believed.
+    harness.dependencies.signal = undefined;
+    harness.behavior.current = (args, version) =>
+      version === "9.9.10" && args.includes("--apply")
+        ? { kind: "interrupted" }
+        : version === "9.9.10"
+          ? upgradeResult("ready", { planId: "plan" })
+          : upgradeResult("current");
+    for (const interruptions of [1, 2]) {
+      expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+        outcome: "interrupted",
+        code: "host_follow_repository_upgrade_interrupted",
+      });
+      state = await readFollowState(harness.layout);
+      expect(state.inFlight?.interruptions).toBe(interruptions);
+    }
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({
+      outcome: "rolled_back",
+      code: "host_follow_repository_upgrade_interrupted",
+    });
+  });
+
+  it("retries a failed repository later and leaves an unchanged blocked plan alone", async () => {
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    let healthy = false;
+    harness.behavior.current = (args, version) => {
+      if (version !== "9.9.10") return upgradeResult("current");
+      if (args[2] === "/repositories/two")
+        return args.includes("--apply")
+          ? upgradeResult("blocked", { planId: "plan_b" })
+          : upgradeResult("blocked", { planId: "plan_b", applicableStages: ["knowledge"] });
+      if (!args.includes("--apply")) return upgradeResult("ready", { planId: "plan" });
+      return healthy
+        ? upgradeResult("current", { timing: { admissionWaitMs: 1_500, applyMs: 6_000 } })
+        : { kind: "failed", code: "knowledge_cycle_admission_wait_expired" };
+    };
+    const first = await runFollowCycle(harness.dependencies);
+    expect(
+      first.pass?.repositories.map((repository) => [
+        repository.outcome,
+        repository.attempts,
+        repository.nextAttemptAt,
+      ]),
+    ).toEqual([
+      ["failed", 1, "2026-11-17T00:10:00.000Z"],
+      ["blocked", 0, "2026-11-17T01:00:00.000Z"],
+    ]);
+    await harness.runActive();
+    harness.calls.splice(0);
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "current" });
+    expect(harness.calls).toHaveLength(0);
+
+    healthy = true;
+    harness.upgrade.now = () => new Date("2026-11-17T01:00:00.000Z");
+    const retried = await runFollowCycle(harness.dependencies);
+    expect(retried.outcome).toBe("repositories_retried");
+    expect(retried.pass?.repositories[0]).toMatchObject({
+      outcome: "current",
+      attempts: 0,
+      nextAttemptAt: null,
+      waitMs: 1_500,
+      applyMs: 6_000,
+    });
+    expect(retried.pass?.repositories[1]).toMatchObject({
+      outcome: "blocked",
+      code: "upgrade_plan_unchanged",
+    });
+    expect(
+      harness.calls.filter(
+        (call) => call.args[2] === "/repositories/two" && call.args.includes("--apply"),
+      ),
+    ).toHaveLength(0);
   });
 
   it("waits for a manual host upgrade that holds the lock without failing the tag", async () => {
