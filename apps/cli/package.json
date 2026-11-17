@@ -8,10 +8,6 @@
     "orchestration"
   ],
   "license": "UNLICENSED",
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kimjh96/lervo.git"
-  },
   "private": false,
   "type": "module",
   "engines": {

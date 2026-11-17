@@ -1,11 +1,10 @@
-import { lstat, mkdir, readFile, readlink, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readlink, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runHostCommand, type HostCommandOverrides } from "../src/host-command.js";
 import { parseHostFollowArguments } from "../src/host-follow-arguments.js";
-import { packageRepositoryCoordinate } from "../src/host-follow-command.js";
 import type { HostFollowCycleResult } from "../src/host-follow-cycle.js";
 import {
   HOST_FOLLOW_HANDOVER_EXIT_CODE,
@@ -78,7 +77,6 @@ function overrides(
       listRepositories: harness.dependencies.listRepositories,
       runRepositoryUpgrade: harness.dependencies.runRepositoryUpgrade,
       runningInstallRoot: harness.dependencies.runningInstallRoot,
-      packageRepository: () => "owner/lervo",
       ...(servicePorts === undefined ? {} : { servicePorts }),
     },
   };
@@ -238,8 +236,41 @@ describe("lervo host upgrade --follow", () => {
     }
   });
 
-  it("defaults the followed repository to the CLI's package metadata", () => {
-    expect(packageRepositoryCoordinate()).toBe("kimjh96/lervo");
+  it("follows the repository this host last installed from, and asks once when none", async () => {
+    const harness = await followHarness();
+    const seen: string[] = [];
+    const recording = {
+      ...overrides(harness),
+      createSource: (repository: string) => {
+        seen.push(repository);
+        return harness.source;
+      },
+    };
+    const { io, json } = capture();
+    expect(await runHostCommand(["upgrade", "--follow", "--json"], io, recording)).toBe(0);
+    expect(seen).toEqual(["owner/lervo"]);
+    // A host whose journal names no install source refuses until --repository names one.
+    await rm(harness.layout.journalPath);
+    expect(await runHostCommand(["upgrade", "--follow", "--json"], io, recording)).toBe(1);
+    expect(json()).toMatchObject({ error: { code: "host_follow_repository_unknown" } });
+    const ports = fakeServicePorts(harness.home, []);
+    const service = (...args: string[]) =>
+      runHostCommand(
+        ["upgrade", "--follow", "--service", "install", ...args, "--json"],
+        io,
+        overrides(harness, ports),
+      );
+    expect(await service()).toBe(1);
+    expect(json()).toMatchObject({ blocker: { code: "host_follow_repository_unknown" } });
+    expect(await service("--repository", "owner/lervo")).toBe(0);
+    expect(json()).toMatchObject({ blocker: null });
+    expect(
+      await runHostCommand(
+        ["upgrade", "--follow", "--repository", "owner/lervo", "--json"],
+        io,
+        recording,
+      ),
+    ).toBe(0);
   });
 });
 

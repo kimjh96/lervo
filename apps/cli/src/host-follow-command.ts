@@ -1,4 +1,3 @@
-import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 import {
@@ -32,7 +31,8 @@ import {
   type HostFollowServicePorts,
 } from "./host-follow-service.js";
 import { changeFollowControl } from "./host-follow-state.js";
-import { isRepositoryCoordinate, type HostReleaseSource } from "./host-release-source.js";
+import { recordedInstallRepository, repositoryUnknown } from "./host-follow-runtime.js";
+import type { HostReleaseSource } from "./host-release-source.js";
 import {
   createLinkedCliUpgradeRunner,
   type RepositoryUpgradeRunner,
@@ -54,7 +54,6 @@ export interface HostFollowOverrides {
   log?: (line: string) => void;
   /** Receives the PATH a service configuration restores; the default sets `process.env.PATH`. */
   restoreSearchPath?: (searchPath: string) => void;
-  packageRepository?: () => string | null;
 }
 
 export interface HostFollowContext {
@@ -64,20 +63,6 @@ export interface HostFollowContext {
   upgradeDependencies: (layout: HostUpgradeLayout) => HostUpgradeDependencies;
   createSource: (repository: string) => HostReleaseSource;
   follow: HostFollowOverrides;
-}
-
-const require = createRequire(import.meta.url);
-
-/** The `<owner>/<name>` of the GitHub `repository` URL in the running CLI's package metadata. */
-export function packageRepositoryCoordinate(): string | null {
-  const manifest = require("../package.json") as { repository?: unknown };
-  const url =
-    typeof manifest.repository === "string"
-      ? manifest.repository
-      : (manifest.repository as { url?: unknown } | undefined)?.url;
-  if (typeof url !== "string") return null;
-  const coordinate = /github\.com[/:]([^/]+\/[^/]+?)(?:\.git)?$/u.exec(url)?.[1];
-  return coordinate !== undefined && isRepositoryCoordinate(coordinate) ? coordinate : null;
 }
 
 /** Cycle outcomes a `--once` run reports with exit status 1. */
@@ -110,16 +95,10 @@ export async function runHostFollowCommand(
   if (config !== null)
     (follow.restoreSearchPath ?? ((path) => (process.env.PATH = path)))(config.searchPath);
   const layout = context.layout(parsed.binDirectory ?? config?.binDirectory);
-  const repository = () => {
+  const repository = async () => {
     const coordinate =
-      parsed.repository ??
-      config?.repository ??
-      (follow.packageRepository ?? packageRepositoryCoordinate)();
-    if (coordinate === null)
-      throw new CommandFailure(
-        "host_follow_repository_unknown",
-        "The installed CLI's package metadata names no GitHub repository; pass --repository <owner/name>.",
-      );
+      parsed.repository ?? config?.repository ?? (await recordedInstallRepository(layout));
+    if (coordinate === null) throw repositoryUnknown();
     return coordinate;
   };
   const write = (operation: string, result: object, text: string) =>
@@ -162,7 +141,7 @@ export async function runHostFollowCommand(
     return 0;
   }
 
-  const source = context.createSource(repository());
+  const source = context.createSource(await repository());
   if (!parsed.apply) {
     const inspection = await inspectFollowCycle({ layout, source, runningInstallRoot });
     write("host_follow_plan", inspection, formatFollowInspection(inspection));

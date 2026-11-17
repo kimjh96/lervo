@@ -12,7 +12,12 @@ import {
 } from "../../../scripts/distribution/render-runtime-service.mjs";
 
 import { CommandFailure } from "./command-error-output.js";
-import { pointFollowRuntime, readActiveCli } from "./host-follow-runtime.js";
+import {
+  pointFollowRuntime,
+  readActiveCli,
+  recordedInstallRepository,
+  REPOSITORY_UNKNOWN_MESSAGE,
+} from "./host-follow-runtime.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
 import {
   writeManagedUserService,
@@ -46,8 +51,8 @@ export function defaultHostFollowServicePorts(homeDirectory: string): HostFollow
  * The file the service passes as `--config`. A service manager starts the follower without a
  * login shell, so it keeps the installing shell's PATH: `gh`, `pnpm`, `git`, providers, and every
  * `lervo upgrade` it runs then resolve exactly as in that shell, and repository upgrades plan the
- * same service definitions a manual run would. `repository` null means the coordinate in the
- * running CLI's package metadata.
+ * same service definitions a manual run would. `repository` null means the repository this host
+ * last installed a release from, as its activation journal records it.
  */
 export interface HostFollowServiceConfig {
   schemaVersion: 1;
@@ -203,6 +208,12 @@ async function prepareFollowService(
       code: "host_follow_cli_missing",
       message: `No managed lervo link in ${layout.binDirectory} names an installed CLI; install one with lervo host upgrade --from-release first.`,
     };
+  else if (
+    input.operation === "install" &&
+    input.repository === null &&
+    (await recordedInstallRepository(layout)) === null
+  )
+    blocker = { code: "host_follow_repository_unknown", message: REPOSITORY_UNKNOWN_MESSAGE };
   return {
     plan: {
       request: input.operation,

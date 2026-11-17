@@ -2,7 +2,10 @@ import { randomUUID } from "node:crypto";
 import { mkdir, readFile, readlink, realpath, rename, rm, symlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import { readHostLinks } from "./host-cli-activation.js";
+import { CommandFailure } from "./command-error-output.js";
+import { readActivationJournal, readHostLinks } from "./host-cli-activation.js";
+import { readFollowState } from "./host-follow-state.js";
+import { isRepositoryCoordinate } from "./host-release-source.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
 
 /** The CLI the host's `lervo` link runs now. */
@@ -55,4 +58,27 @@ export async function pointFollowRuntime(
     throw error;
   }
   return true;
+}
+
+/**
+ * ADR-0575: the repository this host last installed a release from. Every ADR-0571 release record
+ * names it (since v0.24.0), so the newest one is the default coordinate; the follower state, which
+ * remembers the coordinate it last checked, covers a journal whose release records all rotated
+ * out. Null when the host never installed through `lervo host upgrade`.
+ */
+export async function recordedInstallRepository(layout: HostUpgradeLayout): Promise<string | null> {
+  const fromJournal = (await readActivationJournal(layout))
+    .map((record) => record.release?.repository)
+    .filter((repository): repository is string => repository !== undefined)
+    .at(-1);
+  const repository = fromJournal ?? (await readFollowState(layout)).repository;
+  return repository !== null && isRepositoryCoordinate(repository) ? repository : null;
+}
+
+/** Asked once: after one `--from-release` install or service install names it, the host keeps it. */
+export const REPOSITORY_UNKNOWN_MESSAGE =
+  "This host never installed a release through lervo host upgrade, so the repository to follow is unknown; pass --repository <owner/name> once.";
+
+export function repositoryUnknown(): CommandFailure {
+  return new CommandFailure("host_follow_repository_unknown", REPOSITORY_UNKNOWN_MESSAGE);
 }
