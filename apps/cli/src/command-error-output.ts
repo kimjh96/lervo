@@ -23,7 +23,8 @@ interface CommandErrorEnvelope {
   };
 }
 
-function errorCode(error: unknown): string {
+/** The stable code of a failure, or `command_failed` when it carries none. */
+export function errorCode(error: unknown): string {
   return error !== null &&
     typeof error === "object" &&
     "code" in error &&

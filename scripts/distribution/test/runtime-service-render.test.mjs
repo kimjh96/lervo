@@ -276,6 +276,37 @@ describe("runtime service definition renderer", () => {
   });
 });
 
+describe("host release follower service definition", () => {
+  const input = {
+    runtime: "host-follow",
+    instance: null,
+    nodeExecutable: "/opt/node/bin/node",
+    executable: "/home/owner/.local/share/lervo/runtimes/cli/host-follow-runtime/dist/bin.js",
+    config: "/home/owner/.local/share/lervo/runtimes/cli/host-follow-service.json",
+  };
+
+  it("runs the follower through its runtime link and restarts it after a handover exit", () => {
+    const systemd = formatRuntimeServiceDefinition({ ...input, manager: "systemd" });
+    expect(systemd).toContain(
+      'ExecStart="/opt/node/bin/node" "/home/owner/.local/share/lervo/runtimes/cli/host-follow-runtime/dist/bin.js" host upgrade --follow --apply --config "/home/owner/.local/share/lervo/runtimes/cli/host-follow-service.json"',
+    );
+    expect(systemd).toContain("Description=Lervo host release follower");
+    expect(systemd).toContain("Restart=on-failure");
+    const launchd = formatRuntimeServiceDefinition({ ...input, manager: "launchd" });
+    expect(launchd).toContain("<string>com.lervo.host.follow</string>");
+    expect(launchd).toContain(
+      "<string>host</string>\n    <string>upgrade</string>\n    <string>--follow</string>\n    <string>--apply</string>\n    <string>--config</string>",
+    );
+    expect(launchd).toContain("<key>SuccessfulExit</key>\n    <false/>");
+    expect(runtimeServiceTargetPath({ ...input, manager: "systemd" }, "/home/owner")).toBe(
+      "/home/owner/.config/systemd/user/lervo-host-follow.service",
+    );
+    expect(runtimeServiceTargetPath({ ...input, manager: "launchd" }, "/home/owner")).toBe(
+      "/home/owner/Library/LaunchAgents/com.lervo.host.follow.plist",
+    );
+  });
+});
+
 describe("knowledge host resident service definition", () => {
   const input = {
     runtime: "knowledge-host",

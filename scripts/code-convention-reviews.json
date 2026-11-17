@@ -326,9 +326,9 @@
     },
     {
       "path": "scripts/distribution/lib/runtime-service-management.mjs",
-      "contentHash": "sha256:95c3b1449a49377684dbea99f0927426b03513c41fdba8c9f1ea75a36ac62c84",
+      "contentHash": "sha256:ca7dd2b3c80c1e4f14aa4edeff5d7641cf188e2f3e5fe2ae8cb284e9a2171e64",
       "responsibility": "Runtime service lifecycle manager",
-      "rationale": "One coordinator owns exact predecessor validation, stable manager observations within the graceful stop bound, and transactional replacement for Hub, Node, host knowledge resident, and repository replica coordinator services; same-definition restarts are Node config transitions or ADR-0573 restarts. The renderer owns rendering and paths; transition selection, ADR-0489 recovery, and path-rewrite policy stay in adapters. Argument validation extraction remains the bounded roadmap follow-up.",
+      "rationale": "One coordinator owns exact predecessor validation, stable manager observations within the graceful stop bound, and transactional replacement for Hub, Node, host resident, replica coordinator, and host follower services; same-definition restarts are Node config transitions or ADR-0573 restarts. The renderer owns rendering and paths; transition selection, ADR-0489 recovery, and path-rewrite policy stay in adapters. Argument validation extraction remains the bounded roadmap follow-up.",
       "disposition": "cohesive"
     },
     {

@@ -1,18 +1,9 @@
 import { randomUUID } from "node:crypto";
-import {
-  link,
-  lstat,
-  mkdir,
-  readFile,
-  readlink,
-  rename,
-  rm,
-  symlink,
-  writeFile,
-} from "node:fs/promises";
+import { lstat, mkdir, readFile, readlink, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { CommandFailure } from "./command-error-output.js";
+import { withHostProcessLock } from "./host-process-lock.js";
 import { HOST_CLI_LINKS, type HostUpgradeLayout } from "./host-upgrade-layout.js";
 
 /**
@@ -237,76 +228,29 @@ export async function settleActivation(
   return activations;
 }
 
-function processIsAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
-
-const readLockHolder = async (path: string): Promise<number | null> => {
-  const holder = Number.parseInt(await readFile(path, "utf8").catch(() => ""), 10);
-  return Number.isSafeInteger(holder) && holder > 0 ? holder : null;
-};
-
-/**
- * The lock appears with its holder's pid already inside: the pid is written to a private file
- * that is then hard-linked into place, which fails if a lock exists. A dead holder's lock is
- * renamed away to a unique name before it is judged, so two runs never both take it over.
- */
-async function acquireHostUpgradeLock(layout: HostUpgradeLayout): Promise<string> {
-  await mkdir(layout.cliDirectory, { recursive: true, mode: 0o700 });
-  const token = `${process.pid}\n${randomUUID()}\n`;
-  const candidate = `${layout.lockPath}.${randomUUID()}`;
-  await writeFile(candidate, token, { mode: 0o600 });
-  try {
-    for (let attempt = 0; attempt < 3; attempt += 1) {
-      try {
-        await link(candidate, layout.lockPath);
-        return token;
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
-      }
-      const holder = await readLockHolder(layout.lockPath);
-      if (holder !== null && processIsAlive(holder))
-        throw new CommandFailure(
-          "host_upgrade_in_progress",
-          `Another host upgrade (process ${holder}) is running on this host; nothing was changed. If no Lervo process ${holder} exists, remove ${layout.lockPath}.`,
-          { pid: holder, lock: layout.lockPath },
-        );
-      const stale = `${layout.lockPath}.stale-${randomUUID()}`;
-      await rename(layout.lockPath, stale).catch(() => undefined);
-      const movedHolder = await readLockHolder(stale);
-      if (movedHolder !== null && processIsAlive(movedHolder)) {
-        // A live run took the lock between the read and the rename; give it back.
-        await link(stale, layout.lockPath).catch(() => undefined);
-      }
-      await rm(stale, { force: true });
-    }
-  } finally {
-    await rm(candidate, { force: true });
-  }
-  throw new CommandFailure(
-    "host_upgrade_in_progress",
-    "Another host upgrade took the lock first; nothing was changed.",
-  );
-}
-
 /**
  * Runs one host upgrade or rollback at a time per host. The lock is removed only while it still
  * holds this run's token.
  */
-export async function withHostUpgradeLock<T>(
+export function withHostUpgradeLock<T>(
   layout: HostUpgradeLayout,
   operation: () => Promise<T>,
 ): Promise<T> {
-  const token = await acquireHostUpgradeLock(layout);
-  try {
-    return await operation();
-  } finally {
-    if ((await readFile(layout.lockPath, "utf8").catch(() => "")) === token)
-      await rm(layout.lockPath, { force: true });
-  }
+  return withHostProcessLock(
+    {
+      path: layout.lockPath,
+      busy: (holder) =>
+        holder === null
+          ? new CommandFailure(
+              "host_upgrade_in_progress",
+              "Another host upgrade took the lock first; nothing was changed.",
+            )
+          : new CommandFailure(
+              "host_upgrade_in_progress",
+              `Another host upgrade (process ${holder}) is running on this host; nothing was changed. If no Lervo process ${holder} exists, remove ${layout.lockPath}.`,
+              { pid: holder, lock: layout.lockPath },
+            ),
+    },
+    operation,
+  );
 }

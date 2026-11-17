@@ -22,6 +22,11 @@ export interface UpgradeReceipt {
     blockers: UpgradeStageBlocker[];
   }>;
   cliAcquisition: "outside_repository_upgrade";
+  /**
+   * ADR-0575 measurement: milliseconds spent waiting for the host's knowledge admission, and
+   * applying after it was granted. Absent from receipts of earlier CLIs.
+   */
+  timing?: { admissionWaitMs: number; applyMs: number };
 }
 
 function blockerLines(blockers: readonly UpgradeStageBlocker[], indent: string): string[] {
