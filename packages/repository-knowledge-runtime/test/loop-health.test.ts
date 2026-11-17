@@ -39,6 +39,7 @@ it.each(["skipped", "failed", "rejected"] as const)(
       vi.mocked(runResidentCycle).mockResolvedValueOnce({
         state,
         earliestAvailableAt: null,
+        observedAt: 0,
         outcome: kind === "skipped" ? { kind } : { kind, error: new Error("Cycle failed") },
       });
     const refreshHealth = vi.fn(async () => {
@@ -85,6 +86,7 @@ it("refreshes health on its own cadence while a long cycle runs, one refresh at 
               idleStreak: 1,
             },
             earliestAvailableAt: null,
+            observedAt: 0,
             outcome: { kind: "skipped" },
           });
       }),

@@ -53,6 +53,27 @@ export type DocumentFreshnessCycleResult =
     };
 
 /**
+ * ADR-0580: a deferral that spent, generated, verified, and applied nothing has no news to record.
+ * Its cycle event would only move the event head, waking the resident and changing its fence, so
+ * a deferral repeated while the owner works or a provider is paused became a loop.
+ */
+function deferredWithoutProgress(outcome: {
+  deferred: string | null;
+  candidateCount: number;
+  verifiedCount: number;
+  appliedCount: number;
+  tokensObserved: number;
+}): boolean {
+  return (
+    outcome.deferred !== null &&
+    outcome.candidateCount === 0 &&
+    outcome.verifiedCount === 0 &&
+    outcome.appliedCount === 0 &&
+    outcome.tokensObserved === 0
+  );
+}
+
+/**
  * The ADR-0463 freshness stage of the knowledge resident. It runs only when its fence changed,
  * admits findings by priority and budget, generates and verifies candidates through the governed
  * provider path, applies Lervo's own verified hunks, and holds everything else for the owner.
@@ -96,11 +117,20 @@ export async function runDocumentFreshnessCycle(input: {
       candidate.updatedAt,
     ]),
   });
+  // ADR-0580: a pending no-change assessment reopens the stage only when today's budget can pay
+  // for its review. Otherwise every cycle would observe again, append the same cycle event, and
+  // wake the resident that just finished; the day in the key reopens the stage with a new budget.
+  const reviewAffordable =
+    state.budget.tokensUsed + policy.maximumTokensPerCandidate <= policy.maximumTokensPerDay;
   if (
     key !== null &&
     key === state.observationKey &&
-    !candidates.some(
-      (candidate) => candidate.state === "generated" && candidate.operation === "no_change_needed",
+    !(
+      reviewAffordable &&
+      candidates.some(
+        (candidate) =>
+          candidate.state === "generated" && candidate.operation === "no_change_needed",
+      )
     ) &&
     !(
       input.effects !== "prepare" &&
@@ -152,25 +182,37 @@ export async function runDocumentFreshnessCycle(input: {
     state.summary.awaitingReviewCount = finalCandidates.filter((candidate) =>
       documentFreshnessReviewStates.has(candidate.state),
     ).length;
-    appendFreshnessEvent({
-      storage,
-      type: "document.freshness.cycle.completed",
-      correlationId: cycleId,
-      coordinate: null,
-      occurredAt: now.toISOString(),
-      payload: {
-        cycleId,
-        findingCount: state.summary.staleCount,
-        admittedCount: 0,
+    const reviewVerified =
+      (review.candidate.state === "verified" ? 1 : 0) + crossChecks.verifiedCount;
+    // The key stays null, so the next cycle retries the review; only the event is withheld.
+    if (
+      !deferredWithoutProgress({
+        deferred: review.deferred,
         candidateCount: 0,
-        verifiedCount: (review.candidate.state === "verified" ? 1 : 0) + crossChecks.verifiedCount,
+        verifiedCount: reviewVerified,
         appliedCount: crossChecks.appliedCount,
-        skippedForBudget: 0,
-        skippedForHold: 0,
-        usageObserved: review.tokensObserved + crossChecks.tokensObserved,
+        tokensObserved: review.tokensObserved + crossChecks.tokensObserved,
+      })
+    )
+      appendFreshnessEvent({
+        storage,
+        type: "document.freshness.cycle.completed",
+        correlationId: cycleId,
+        coordinate: null,
         occurredAt: now.toISOString(),
-      },
-    });
+        payload: {
+          cycleId,
+          findingCount: state.summary.staleCount,
+          admittedCount: 0,
+          candidateCount: 0,
+          verifiedCount: reviewVerified,
+          appliedCount: crossChecks.appliedCount,
+          skippedForBudget: 0,
+          skippedForHold: 0,
+          usageObserved: review.tokensObserved + crossChecks.tokensObserved,
+          occurredAt: now.toISOString(),
+        },
+      });
     await writeFreshnessCycleState(root, {
       ...state,
       observationKey: null,
@@ -264,25 +306,36 @@ export async function runDocumentFreshnessCycle(input: {
         .slice(-MAXIMUM_FIRST_SEEN),
     ),
   };
-  appendFreshnessEvent({
-    storage,
-    type: "document.freshness.cycle.completed",
-    correlationId: cycleId,
-    coordinate: null,
-    occurredAt: now.toISOString(),
-    payload: {
-      cycleId,
-      findingCount: observation.findings.length,
-      admittedCount: admission.admitted.length,
+  // A deferral over the same findings that made no progress records nothing new (ADR-0580).
+  if (
+    findingsDigest !== state.findingsDigest ||
+    !deferredWithoutProgress({
+      deferred,
       candidateCount,
       verifiedCount,
       appliedCount,
-      skippedForBudget: admission.skippedForBudget,
-      skippedForHold: admission.skippedForHold,
-      usageObserved: tokensObserved,
+      tokensObserved,
+    })
+  )
+    appendFreshnessEvent({
+      storage,
+      type: "document.freshness.cycle.completed",
+      correlationId: cycleId,
+      coordinate: null,
       occurredAt: now.toISOString(),
-    },
-  });
+      payload: {
+        cycleId,
+        findingCount: observation.findings.length,
+        admittedCount: admission.admitted.length,
+        candidateCount,
+        verifiedCount,
+        appliedCount,
+        skippedForBudget: admission.skippedForBudget,
+        skippedForHold: admission.skippedForHold,
+        usageObserved: tokensObserved,
+        occurredAt: now.toISOString(),
+      },
+    });
   // The fence is recorded after this cycle's own writes, so only a later change runs the stage.
   // A deferred call, findings left by the per-cycle count, a pending cross-check, or a cross-check
   // disagreement (whose finding regenerates once) keep the stage running next cycle.

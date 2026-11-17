@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-05
 Builds on: [ADR-0464 document drift detection](0464-report-document-drift-and-historical-documents.md), [ADR-0462 stale attention](../../execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
 Amends: [ADR-0023](0023-evidence-based-document-staleness.md), [ADR-0457](0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md), [ADR-0453](../../coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0460](../../coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md), [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
-Amended by: [ADR-0557](freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md) (Tier 0 in an independent no-capability session)
+Amended by: [ADR-0557](freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md) (Tier 0 in an independent no-capability session), [ADR-0580](../maintenance/0580-let-a-resident-with-parked-work-back-off.md) (a pending no-change review reopens the stage only when the day's budget can pay for it)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 Contract: [Document freshness specification](../../../specifications/knowledge/document-freshness.md)
 
