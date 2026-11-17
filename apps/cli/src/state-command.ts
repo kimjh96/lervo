@@ -18,10 +18,11 @@ import { visitEventSnapshot } from "@lervo/storage-contract";
 
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { inspectStateRetentionEvidence } from "./state-retention-evidence.js";
+import { runStateCasRetentionCommand } from "./state-cas-retention-command.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const stateUsage =
-  "  lervo state status [--root <path>] [--json]\n  lervo state prune [--apply --approval <plan-id> | --recover <plan-id>] [--root <path>] [--json]\n  lervo state reset [--apply --approval <plan-id>] [--root <path>] [--json]";
+  "  lervo state status [--root <path>] [--json]\n  lervo state prune [--apply --approval <plan-id> | --recover <plan-id>] [--root <path>] [--json]\n  lervo state reset [--apply --approval <plan-id>] [--root <path>] [--json]\n  lervo state cas-retention --plan [--root <path>] [--json]";
 
 interface StatePlan {
   schemaVersion: 1;
@@ -279,6 +280,8 @@ export async function runStateCommand(
   io: CliIo,
   services: Pick<CliServices, "knowledgeMaterializationWait"> = {},
 ): Promise<number> {
+  // Read-only; it must not wait on materialization or open a writable store.
+  if (args[0] === "cas-retention") return runStateCasRetentionCommand(args.slice(1), io);
   try {
     const parsed = parseArgs({
       args,
