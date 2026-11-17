@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e247c16e04002e7c6468d0c4"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Admit lervo upgrade ahead of waiting background knowledge cycles, and stop a running cycle at its next stage boundary while an upgrade waits."

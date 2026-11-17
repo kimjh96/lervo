@@ -35,9 +35,11 @@ async function installedRuntimeHash(): Promise<string> {
     : sha256(await loadTerminalHookRuntime());
 }
 
-export async function hostTerminalHookReaderCurrent(): Promise<boolean> {
+export async function hostTerminalHookReaderCurrent(
+  store: string = terminalHookRuntimeStorePath(),
+): Promise<boolean> {
   return !(await hostTerminalRuntimeNeedsMaterialization(
-    terminalHookRuntimeStorePath(),
+    store,
     await installedRuntimeHash(),
     "artifact",
     "repair",

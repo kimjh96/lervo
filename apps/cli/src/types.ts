@@ -26,6 +26,7 @@ import type {
 import type { ExecuteUnattendedScheduler } from "./unattended-scheduler.js";
 import type { KnowledgeMaterializationWaitTiming } from "./knowledge-materialization-wait.js";
 import type { UpgradeResidentExclusionOptions } from "./upgrade-resident-exclusion.js";
+import type { UpgradeHostOptions } from "./upgrade-host.js";
 
 export interface CliIo {
   cwd: string;
@@ -67,6 +68,8 @@ export interface CliServices {
   knowledgeMaterializationWait?: KnowledgeMaterializationWaitTiming | undefined;
   /** Test seam for the upgrade's hold on the background resident's full-cycle admission. */
   knowledgeCycleAdmission?: UpgradeResidentExclusionOptions | undefined;
+  /** Test seam: the home and process listing the upgrade's host-wide stages observe and change. */
+  upgradeHost?: UpgradeHostOptions | undefined;
 }
 
 export type CliServiceOverrides = Partial<CliServices>;

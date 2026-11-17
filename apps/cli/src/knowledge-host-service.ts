@@ -69,10 +69,12 @@ async function residentLaunch(): Promise<"service" | "manual" | null> {
     : null;
 }
 
-export function defaultKnowledgeHostServicePorts(): KnowledgeHostServicePorts {
+export function defaultKnowledgeHostServicePorts(
+  homeDirectory: string = homedir(),
+): KnowledgeHostServicePorts {
   return {
     platform: process.platform,
-    homeDirectory: homedir(),
+    homeDirectory,
     uid: typeof process.getuid === "function" ? process.getuid() : null,
     environment: process.env,
     cliEntry: () => realpath(fileURLToPath(new URL("./bin.js", import.meta.url))),

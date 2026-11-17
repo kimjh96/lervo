@@ -3,7 +3,7 @@ import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledg
 import { sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { acquireKnowledgeProviderAdmission } from "../src/provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
-import { reviewKnowledgeJson } from "../src/provider-call.js";
+import { reviewKnowledgeJson, withKnowledgeProviderAdmission } from "../src/provider-call.js";
 import type { ConvergenceAssignmentAuthority } from "../src/workforce.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 
@@ -21,6 +21,9 @@ vi.mock("../src/provider-review-cache.js", () => ({
 }));
 vi.mock("../src/provider-admission.js", () => ({ acquireKnowledgeProviderAdmission: vi.fn() }));
 vi.mock("../src/provider-budget.js", () => ({ reserveConvergenceProviderCall: vi.fn() }));
+vi.mock("../src/knowledge-worker-measurement.js", () => ({
+  recordKnowledgeWorkerMeasurement: async () => {},
+}));
 
 afterEach(() => {
   vi.useRealTimers();
@@ -110,3 +113,117 @@ it.each([
     expect(release).toHaveBeenCalledOnce();
   },
 );
+
+it("ends the source poll, including one in flight, before the exact fence and its effects", async () => {
+  vi.useFakeTimers();
+  vi.mocked(acquireKnowledgeProviderAdmission).mockResolvedValue({
+    observationHash: sha256("admission"),
+    release: async () => {},
+  });
+  // Authority checks take 300 ms until the answer arrives. The answer lands while the first
+  // poll still waits on its authority check, so that poll's source check would follow it.
+  let answered = false;
+  vi.mocked(createNoCapabilityProviderJsonRunner).mockResolvedValue({
+    resolveObserved: () =>
+      new Promise((resolveAnswer) =>
+        setTimeout(() => {
+          answered = true;
+          resolveAnswer({ value: { ok: true }, usage: { fixture: true } });
+        }, 800),
+      ),
+  } as unknown as Awaited<ReturnType<typeof createNoCapabilityProviderJsonRunner>>);
+  const checks: string[] = [];
+  const context = {
+    storage: {
+      paths: { repositoryRoot: "/repository" },
+      events: {},
+      // The observation artifact is slow to write, as on a loaded disk.
+      artifacts: {
+        put: () =>
+          new Promise((resolvePut) =>
+            setTimeout(() => {
+              checks.push("effect");
+              resolvePut({ contentHash: sha256("observation") });
+            }, 5_000),
+          ),
+      },
+    },
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: () => checks.push("exact"),
+    assertSourceCurrent: () => checks.push("current"),
+  } as unknown as ConvergenceRuntimeContext;
+  const authority = {
+    assignment: { assignmentId: "asn_provider_poll" },
+    agent: { agentId: "agt_provider_poll" },
+    assertCurrent: () =>
+      answered
+        ? Promise.resolve()
+        : new Promise<void>((resolveCheck) => setTimeout(resolveCheck, 300)),
+  } as unknown as ConvergenceAssignmentAuthority;
+  const outcome = reviewKnowledgeJson({
+    context,
+    state,
+    authority,
+    budget: { batchId: "batch", maximumCalls: 3 },
+    prompt: "Review the exact sources.",
+    task: "canonical_baseline_assessment",
+    schema: {},
+    untrustedSourceData: {},
+    contextDocuments: [],
+  });
+  await vi.advanceTimersByTimeAsync(12_000);
+  await outcome;
+  const exact = checks.indexOf("exact");
+  expect(exact).toBeGreaterThan(-1);
+  // No decision check may land between the exact fence and the effects it guards.
+  expect(checks.slice(exact)).toEqual(["exact", "effect"]);
+});
+
+it("returns from provider admission only after a poll in flight, before the caller's fence", async () => {
+  vi.useFakeTimers();
+  vi.mocked(acquireKnowledgeProviderAdmission).mockResolvedValue({
+    observationHash: sha256("admission"),
+    release: async () => {},
+  });
+  // As normalization generation does: the run is only the provider call, and the caller fences
+  // and writes after the wrapper returns. The answer lands while a poll waits on authority.
+  let answered = false;
+  const checks: string[] = [];
+  const context = {
+    storage: { paths: { repositoryRoot: "/repository" }, events: {}, artifacts: {} },
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: () => checks.push("exact"),
+    assertSourceCurrent: () => checks.push("current"),
+  } as unknown as ConvergenceRuntimeContext;
+  const authority = {
+    assertCurrent: () =>
+      answered
+        ? Promise.resolve()
+        : new Promise<void>((resolveCheck) => setTimeout(resolveCheck, 300)),
+  } as unknown as ConvergenceAssignmentAuthority;
+  const caller = (async () => {
+    await withKnowledgeProviderAdmission({
+      context,
+      state,
+      authority,
+      budget: { batchId: "batch", maximumCalls: 3 },
+      run: () =>
+        new Promise((resolveAnswer) =>
+          setTimeout(() => {
+            answered = true;
+            resolveAnswer(undefined);
+          }, 800),
+        ),
+    });
+    context.assertSourceExact(state);
+    await new Promise((resolveWrite) => setTimeout(resolveWrite, 500));
+    checks.push("effect");
+  })();
+  await vi.advanceTimersByTimeAsync(5_000);
+  await caller;
+  expect(checks.slice(checks.indexOf("exact"))).toEqual(["exact", "effect"]);
+});

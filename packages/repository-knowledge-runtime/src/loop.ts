@@ -170,6 +170,7 @@ export function startAutonomousKnowledgeWorker(input: {
         ...input,
         maximumProviderCallsPerTurn: 1,
         shouldYield: () => admission.contended(),
+        yieldToUpgrade: () => admission.preempted(),
         signal: cycleSignal,
         ...(observed === null ? {} : { owner: async () => observed }),
       });
@@ -270,7 +271,7 @@ export function startAutonomousKnowledgeWorker(input: {
           ? result.convergence.reason
           : result.status === "waiting_owner"
             ? nonOwnerHealth(result.owner).reason
-            : null,
+            : (result.reason ?? null),
       );
       input.onCycle?.(result, cost);
     } else {

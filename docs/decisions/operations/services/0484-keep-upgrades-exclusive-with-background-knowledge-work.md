@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-07
 Amends: [ADR-0214](0214-bounded-repository-upgrade-orchestration.md), [ADR-0444](../../knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md)
-Amended by: [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (approval-free upgrades plan inside the exclusive window)
+Amended by: [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (approval-free upgrades plan inside the exclusive window), [ADR-0574](../../distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md) (the upgrade asks with priority; a running cycle stops at its next stage)
 
 ## Context
 

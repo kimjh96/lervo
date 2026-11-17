@@ -12,6 +12,7 @@ import {
 } from "./repository-replica-service.js";
 import { applyTerminalIntegrationStage } from "./terminal-integration-stage.js";
 import type { UpgradeReceipt } from "./upgrade-format.js";
+import type { UpgradeHost } from "./upgrade-host.js";
 import { applyRegisteredNodeUpgrade, inspectRegisteredNodeUpgrade } from "./upgrade-node.js";
 import {
   createRepositoryUpgradePlan,
@@ -72,6 +73,7 @@ export async function applyRepositoryUpgrade(
   approved: RepositoryUpgradePlan,
   roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
   materialization: KnowledgeMaterializationSettlement,
+  host: UpgradeHost,
 ): Promise<UpgradeReceipt> {
   const root = approved.repositoryRoot;
   await rememberTerminalWorkerEntry(root, process.env.LERVO_CLI_ENTRY);
@@ -148,7 +150,7 @@ export async function applyRepositoryUpgrade(
   // stage deferred behind them applies once they are current and is skipped otherwise.
   const eventWriter = approved.stages.eventWriter;
   if (eventWriter.disposition === "safe_apply" || eventWriter.disposition === "deferred") {
-    const outcome = await applyEventWriterStage(root, eventWriter);
+    const outcome = await applyEventWriterStage(root, eventWriter, host.eventWriter);
     if (outcome.status === "activated") appliedStages.push("event_writer");
     else if (outcome.status === "skipped")
       skippedStages.push({
@@ -158,7 +160,7 @@ export async function applyRepositoryUpgrade(
   }
 
   if (approved.stages.hostService.disposition === "safe_apply") {
-    const service = await applyHostResidentService(approved.stages.hostService);
+    const service = await applyHostResidentService(approved.stages.hostService, host.hostService);
     if (service !== null) appliedStages.push("host_service");
   }
 
@@ -166,19 +168,19 @@ export async function applyRepositoryUpgrade(
   // already moved `current`; an approved stage is applied against its exact plan.
   const replicaStage =
     approved.stages.replicaService.disposition === "deferred"
-      ? await inspectRepositoryReplicaService()
+      ? await inspectRepositoryReplicaService(host.replicaService)
       : approved.stages.replicaService;
   if (
     replicaStage.disposition === "safe_apply" &&
-    (await applyRepositoryReplicaService(replicaStage)) !== null
+    (await applyRepositoryReplicaService(replicaStage, host.replicaService)) !== null
   )
     appliedStages.push("replica_service");
 
-  if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention))
+  if (await applyNodeRuntimeRetention(approved.stages.runtimeRetention, host.runtimeRetention))
     appliedStages.push("runtime_retention");
 
   const final = await materialization.run(
-    () => createRepositoryUpgradePlan(root),
+    () => createRepositoryUpgradePlan(root, host),
     knowledgeStageRefusedByMarker,
   );
   return {

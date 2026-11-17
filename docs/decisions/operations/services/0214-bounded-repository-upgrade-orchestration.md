@@ -9,6 +9,7 @@ Amended by:
 - [ADR-0487](0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md): `--apply --safe` plans and applies approval-free upgrades in one window.
 - [ADR-0488](0488-point-node-configurations-at-one-current-cli.md): the Node stage maintains the host CLI pointer and migrates pinned configuration paths.
 - [ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md): the Node stage is ordered after knowledge without depending on it; lint always runs and reports content errors in the receipt.
+- [ADR-0574](../../distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md): apply asks for the full-cycle admission with priority; the knowledge stage stays inside the window.
 
 ## Context
 
