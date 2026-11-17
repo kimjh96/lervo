@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-17
-Amends: [ADR-0575](0575-follow-published-releases-on-every-host.md) (the pass entry records stage timings)
+Amends: [ADR-0575](0575-follow-published-releases-on-every-host.md) (the pass entry records stage timings), [ADR-0534](../operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) (only the planned upgrade stage retires runtimes)
 Related: [ADR-0483](../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (the replica stage reads the bundled runtime), [ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md) and [ADR-0577](0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (the host-wide exclusion an apply holds)
 
 ## Context
@@ -71,7 +71,7 @@ Before this change, Node onboarding and Node rollback also ran `maintainNodeRunt
 
 Onboarding and rollback no longer retire anything, and `maintainNodeRuntimeRetention` is removed. Retirement deletes runtime directories and cannot be undone. It now happens in one place: the `runtime_retention` stage of `lervo upgrade`. That stage applies only candidates that the reviewed plan lists. Under the retention lock it observes the references again and checks each directory's identity before it detaches anything.
 
-A runtime that a Node stage supersedes is therefore retired by the next upgrade, not the current one, so one more runtime stays on disk between releases. The host follower runs `lervo upgrade` for every release, so the number of runtimes stays bounded. A host that only runs `lervo repository node apply` keeps its runtimes until its next `lervo upgrade`.
+A runtime that a Node stage supersedes is therefore retired by the next upgrade, not the current one, so one more runtime stays on disk between releases. The host follower runs `lervo upgrade` for every release, so the number of runtimes stays bounded. A host that gets Nodes only through `lervo repository node apply` or organization rollouts, with no follower, now keeps every runtime they install until `lervo upgrade` runs there.
 
 Materializing the launcher sets its runtime directory's modification time to now, under the retention lock. The caller writes the service definition that references the runtime after the lock is released. A reused older directory is then the newest, so a plan made in that window keeps it, and an approved plan that already listed it no longer matches its identity.
 
