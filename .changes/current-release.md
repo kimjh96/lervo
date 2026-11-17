@@ -1,5 +1,8 @@
-<!-- lervo-release package="@lervo/cli" version="0.25.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.25.2" schema="1" -->
 
 ## What's changed
 
-- Stop lervo upgrade --apply with knowledge_cycle_admission_lost when a stalled event loop let its full-cycle admission lapse to a background knowledge cycle, hold a 2-hour upgrade lease, and run the launchd host follower at standard priority.
+- Describe the bundled Node runtime once per lervo upgrade command instead of up to nine times, and report stageTimings in lervo upgrade --apply receipts and host follower pass entries.
+- Let runtime retention read the --config of the host follower, host resident, and replica coordinator services, so lervo upgrade retires unreferenced Node runtimes again instead of always reporting runtime_references_unavailable.
+- Plan every lervo migrate knowledge stage, and so each lervo upgrade knowledge inspection, from one repository scan instead of one scan per stage.
+- Read systemd drop-ins for Node runtime retention, retire runtimes only in the planned lervo upgrade stage instead of during Node onboarding and rollback, and escape a literal $ in systemd service commands.
