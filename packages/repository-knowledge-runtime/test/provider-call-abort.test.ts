@@ -21,6 +21,9 @@ vi.mock("../src/provider-review-cache.js", () => ({
 }));
 vi.mock("../src/provider-admission.js", () => ({ acquireKnowledgeProviderAdmission: vi.fn() }));
 vi.mock("../src/provider-budget.js", () => ({ reserveConvergenceProviderCall: vi.fn() }));
+vi.mock("../src/knowledge-worker-measurement.js", () => ({
+  recordKnowledgeWorkerMeasurement: async () => {},
+}));
 
 afterEach(() => {
   vi.useRealTimers();
@@ -110,3 +113,70 @@ it.each([
     expect(release).toHaveBeenCalledOnce();
   },
 );
+
+it("ends the source poll, including one in flight, before the exact fence and its effects", async () => {
+  vi.useFakeTimers();
+  vi.mocked(acquireKnowledgeProviderAdmission).mockResolvedValue({
+    observationHash: sha256("admission"),
+    release: async () => {},
+  });
+  // Authority checks take 300 ms until the answer arrives. The answer lands while the first
+  // poll still waits on its authority check, so that poll's source check would follow it.
+  let answered = false;
+  vi.mocked(createNoCapabilityProviderJsonRunner).mockResolvedValue({
+    resolveObserved: () =>
+      new Promise((resolveAnswer) =>
+        setTimeout(() => {
+          answered = true;
+          resolveAnswer({ value: { ok: true }, usage: { fixture: true } });
+        }, 800),
+      ),
+  } as unknown as Awaited<ReturnType<typeof createNoCapabilityProviderJsonRunner>>);
+  const checks: string[] = [];
+  const context = {
+    storage: {
+      paths: { repositoryRoot: "/repository" },
+      events: {},
+      // The observation artifact is slow to write, as on a loaded disk.
+      artifacts: {
+        put: () =>
+          new Promise((resolvePut) =>
+            setTimeout(() => {
+              checks.push("effect");
+              resolvePut({ contentHash: sha256("observation") });
+            }, 5_000),
+          ),
+      },
+    },
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: () => checks.push("exact"),
+    assertSourceCurrent: () => checks.push("current"),
+  } as unknown as ConvergenceRuntimeContext;
+  const authority = {
+    assignment: { assignmentId: "asn_provider_poll" },
+    agent: { agentId: "agt_provider_poll" },
+    assertCurrent: () =>
+      answered
+        ? Promise.resolve()
+        : new Promise<void>((resolveCheck) => setTimeout(resolveCheck, 300)),
+  } as unknown as ConvergenceAssignmentAuthority;
+  const outcome = reviewKnowledgeJson({
+    context,
+    state,
+    authority,
+    budget: { batchId: "batch", maximumCalls: 3 },
+    prompt: "Review the exact sources.",
+    task: "canonical_baseline_assessment",
+    schema: {},
+    untrustedSourceData: {},
+    contextDocuments: [],
+  });
+  await vi.advanceTimersByTimeAsync(12_000);
+  await outcome;
+  const exact = checks.indexOf("exact");
+  expect(exact).toBeGreaterThan(-1);
+  // No decision check may land between the exact fence and the effects it guards.
+  expect(checks.slice(exact)).toEqual(["exact", "effect"]);
+});

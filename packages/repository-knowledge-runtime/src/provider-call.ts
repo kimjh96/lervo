@@ -25,7 +25,11 @@ export async function withKnowledgeProviderAdmission<T>(input: {
   state: KnowledgeConvergenceInput;
   authority: ConvergenceAssignmentAuthority;
   budget: { batchId: string; maximumCalls: number };
-  run(observationHash: string, signal: AbortSignal): Promise<T>;
+  /**
+   * `endPolling` stops the source poll and waits for one in flight. A run that writes after its
+   * provider call ends polling first, so no decision check can follow its exact fence.
+   */
+  run(observationHash: string, signal: AbortSignal, endPolling: () => Promise<void>): Promise<T>;
 }): Promise<T> {
   const { context } = input;
   if (context.providerQuantum !== undefined && context.providerQuantum.remaining <= 0)
@@ -44,19 +48,22 @@ export async function withKnowledgeProviderAdmission<T>(input: {
   const abort = () => controller.abort(context.signal.reason);
   context.signal.addEventListener("abort", abort, { once: true });
   if (context.signal.aborted) abort();
-  let observing = false;
+  let polling: Promise<void> | null = null;
   const timer = setInterval(() => {
-    if (observing) return;
-    observing = true;
-    void withProcessCostScope("provider_poll", () =>
+    if (polling !== null) return;
+    polling = withProcessCostScope("provider_poll", () =>
       input.authority.assertCurrent().then(() => context.assertSourceCurrent(input.state)),
     )
       .catch((error: unknown) => controller.abort(error))
       .finally(() => {
-        observing = false;
+        polling = null;
       });
   }, 1_000);
   timer.unref();
+  const endPolling = async () => {
+    clearInterval(timer);
+    await polling;
+  };
   try {
     await input.authority.assertCurrent();
     context.assertSourceCurrent(input.state);
@@ -67,7 +74,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
       ...input.budget,
     });
     if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
-    return await input.run(admission.observationHash, controller.signal);
+    return await input.run(admission.observationHash, controller.signal, endPolling);
   } catch (error) {
     if (error instanceof KnowledgeProviderAvailabilityError)
       await pauseKnowledgeProviderFailure(context, error);
@@ -138,7 +145,7 @@ export async function reviewKnowledgeJson(input: {
     return prior;
   const result = await withKnowledgeProviderAdmission({
     ...input,
-    run: async (admissionObservationHash, signal) => {
+    run: async (admissionObservationHash, signal, endPolling) => {
       const runner = await createNoCapabilityProviderJsonRunner({
         ...backgroundProviderOptions(input.context),
         systemPrompt: input.prompt,
@@ -157,6 +164,9 @@ export async function reviewKnowledgeJson(input: {
       );
       if (result.usage === null)
         throw new KnowledgeConvergenceRuntimeError("knowledge_usage_unavailable");
+      await endPolling();
+      // A poll that saw a change aborted the call; its effects must not follow.
+      if (signal.aborted) throw signal.reason;
       await input.authority.assertCurrent();
       // The observation artifact, the usage event and the review cache follow: exact.
       input.context.assertSourceExact(input.state);
