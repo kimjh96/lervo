@@ -25,6 +25,8 @@ export function documentRouteDeferralInstruction(
     return `No provider is admitted to classify ${document.path}. Run lervo migrate knowledge --provider codex (or claude) after provider admission is available.`;
   if (resolution === "destination_conflict")
     return `Resolve the occupied or ambiguous destination for ${document.path}, then rebuild the migration plan. The source remains in place.`;
+  if (resolution === "destination_capacity")
+    return `The destination directory for ${document.path} would exceed its document capacity, so the move is held and the source remains in place. Add a capacity override for that directory in .lervo/knowledge/document-layout.yaml, or add ${metadata} front matter naming another route.`;
   if (resolution === "delegation_scope")
     return `The background knowledge resident classifies ${document.path}; its move then joins the one repository layout decision that lervo migrate knowledge shows, or the next delegation renewal's exact scope proposal when that fits the delegation limit.`;
   return resolution === "route_metadata"

@@ -35,6 +35,7 @@ export type DocumentRouteDeferralReason =
   | "semantic_classification_pending"
   | "semantic_classification_uncertain"
   | "destination_conflict"
+  | "destination_capacity"
   | "delegation_scope";
 
 export type DocumentRouteDeferralResolution =
@@ -42,7 +43,8 @@ export type DocumentRouteDeferralResolution =
   | "delegation_scope"
   | "route_metadata"
   | "provider_unavailable"
-  | "destination_conflict";
+  | "destination_conflict"
+  | "destination_capacity";
 
 /** Readers of plans predating ADR-0540 retain their original background resolution. */
 export function documentRouteDeferralResolution(document: {

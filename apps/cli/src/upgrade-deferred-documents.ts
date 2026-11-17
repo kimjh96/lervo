@@ -18,6 +18,7 @@ const DEFERRAL_REASONS: readonly DocumentRouteDeferralReason[] = [
   "semantic_classification_pending",
   "semantic_classification_uncertain",
   "destination_conflict",
+  "destination_capacity",
   "delegation_scope",
 ];
 const DEFERRAL_RESOLUTIONS: readonly DocumentRouteDeferralResolution[] = [
@@ -26,6 +27,7 @@ const DEFERRAL_RESOLUTIONS: readonly DocumentRouteDeferralResolution[] = [
   "route_metadata",
   "provider_unavailable",
   "destination_conflict",
+  "destination_capacity",
 ];
 
 function deferredDocuments(value: unknown): NonNullable<KnowledgeStage["deferredDocuments"]> {

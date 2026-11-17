@@ -8,7 +8,10 @@ import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./arti
 import { sha256, stableId } from "./integrity.js";
 import { analyzeRepositoryKnowledgeImpact } from "./impact.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
-import { evaluateCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import {
+  describeDocumentLayoutFinding,
+  evaluateCurrentRepositoryDocumentLayout,
+} from "./document-layout-enforcement.js";
 import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import { lintDocumentDrift, type DocumentStalenessLintMode } from "./document-drift-lint.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
@@ -228,7 +231,16 @@ async function lintRepositoryLayout(root: string, issues: KnowledgeLintIssue[]):
       code: blocker.code,
       severity: "error",
       path: "directory" in blocker ? blocker.directory : "scope" in blocker ? blocker.scope : ".",
-      message: `The current repository document layout violates ${blocker.code}.`,
+      message: `The current repository document layout violates ${describeDocumentLayoutFinding(blocker)}.`,
+    });
+  }
+  // ADR-0583: overflow that existed before any Lervo write is user-owned debt, not a failure.
+  for (const advisory of layout.advisories) {
+    issues.push({
+      code: advisory.code,
+      severity: "warning",
+      path: "directory" in advisory ? advisory.directory : ".",
+      message: `The repository document layout exceeds ${describeDocumentLayoutFinding(advisory)}. This is an advisory: a write that leaves this directory alone is not blocked.`,
     });
   }
   const taxonomy = await loadDecisionTaxonomy(root);

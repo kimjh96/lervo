@@ -1,6 +1,7 @@
 import { repositoryReplicaPerCallLauncherGuidance } from "@lervo/sync";
 
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
+import { layoutCapacityLines } from "./layout-capacity-lines.js";
 import type { NodeConfigExecutablesStage } from "./node-config-executable-upgrade.js";
 import type { RepositoryUpgradePlan } from "./upgrade-plan.js";
 import type { UpgradeStageTiming } from "./upgrade-stage-timing.js";
@@ -93,6 +94,11 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
           `  decline: ${plan.stages.knowledge.layoutDecision.decline}`,
         ]),
     ...documentRouteDeferralLines(plan.stages.knowledge.deferredDocuments ?? [], "  "),
+    ...layoutCapacityLines(
+      plan.stages.knowledge.layoutCapacity ?? [],
+      "  ",
+      plan.stages.knowledge.layoutCapacityCount,
+    ),
     `repository Node: ${plan.stages.node.disposition} (${plan.stages.node.reason})`,
     ...nodeConfigExecutableLines(plan.stages.node.configExecutables),
     `event writer: ${plan.stages.eventWriter.disposition} (${plan.stages.eventWriter.reason}) · schema ${plan.stages.eventWriter.currentSchemaVersion} → ${plan.stages.eventWriter.targetSchemaVersion}`,
