@@ -7,7 +7,7 @@ Related: [ADR-0569](../release/packaging/0569-verify-the-release-matrix-before-m
 
 ## Context
 
-The owner's target is a released fix on every host in 10 to 15 minutes with no manual deploy step ([release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md)). After ADR-0571 Stage 1, an agent still runs `lervo host upgrade --from-release <tag> --repository kimjh96/lervo --apply` on each host. It then runs the deploy skill's `upgrade-all.sh`, which runs `lervo upgrade` on every registered repository. Nothing happens until an agent starts that work, and the agent's own wait time adds to the delivery time.
+The owner's target is a released fix on every host in 10 to 15 minutes with no manual deploy step. After ADR-0571 Stage 1, an agent still runs `lervo host upgrade --from-release <tag> --repository kimjh96/lervo --apply` on each host. It then runs the deploy skill's `upgrade-all.sh` for every registered repository. Nothing happens until an agent starts, and its wait adds to the delivery time.
 
 The same follower must run on every host. By owner rule, a cross-host conflict is solved by coordination and never by limiting a Lervo feature to one host. It must also work without a Hub, because local execution never depends on one.
 
@@ -24,7 +24,7 @@ lervo host upgrade --follow --service <install|remove> [--apply] [--repository <
 
 Without `--apply`, `--follow` reads the release list, the links, and the follower files, and prints what the next cycle would do. It writes nothing. `--apply --once` runs one cycle under the follower lock. `--apply` alone runs cycles until the service manager stops it. `--service install` and `--service remove` print their plan without `--apply` and change the user service with it ([ADR-0164](../operations/services/0164-user-runtime-service-management-boundary.md)). `--pause`, `--resume`, and `--pin <tag>` take effect at once, because the owner's command is the only thing they record.
 
-The followed repository is `--repository`, otherwise the coordinate in the follower configuration, otherwise the GitHub URL in the `repository` field of the running CLI's `package.json`. That field now reads `git+https://github.com/kimjh96/lervo.git`, so no command or service hard-codes the coordinate.
+The followed repository is `--repository`, otherwise the follower configuration's coordinate, otherwise the repository this host last installed from. Every ADR-0571 release record names it (v0.24.0 and v0.24.1 already write it), and the follower state keeps the last checked coordinate in case those records rotated out. Without any, the follower refuses with `host_follow_repository_unknown` until `--repository` names it once. `package.json` is not used: its `repository` field belongs to the separate npm publication decision.
 
 ### One cycle
 
@@ -92,7 +92,7 @@ Failure codes:
 - `host_follow_in_progress`: another follower holds this host's follower lock; nothing changed.
 - `host_follow_state_invalid`, `host_follow_control_invalid`: a follower file is unreadable. It is left untouched, and the follower changes nothing until the file is repaired or removed.
 - `host_follow_config_invalid`: the service configuration is missing or malformed; reinstall the service.
-- `host_follow_repository_unknown`: no `--repository`, configuration, or package metadata names the coordinate.
+- `host_follow_repository_unknown`: no `--repository`, configuration, journal release record, or follower state names the coordinate. Service install reports it as a blocker.
 - `host_follow_cli_missing`: service install found no managed `lervo` link to run.
 - `host_follow_service_unavailable`: the installed service did not stay active.
 - `host_follow_repository_upgrade_unreadable`, `host_follow_repository_upgrade_timeout`, `host_follow_repository_upgrade_unconverged`, `upgrade_plan_blocked`: per-repository codes in `lastPass`.
@@ -101,7 +101,7 @@ Failure codes:
 
 - The poll interval is 5 minutes with ±20% per-host jitter, plus backoff on release-source failures.
 - The follower installs only the newest published release and skips the ones in between.
-- The default repository coordinate comes from the installed CLI's package metadata; `--repository` still overrides it.
+- The default repository coordinate is the one this host last installed from; `--repository` overrides it and is needed once on a host without a recorded install.
 - Pause and pin are per host now (`--pause`, `--resume`, `--pin <tag>`). The Hub-wide pause, and whether it needs its own Node credential scope, belong to the Hub slice.
 
 ### Later slice
@@ -114,8 +114,8 @@ This slice lands on `main`, like ADR-0571 Stages 1 and 2. It needs no Hub and no
 
 ## Consequences
 
-Once the service is installed on a host, that host needs no agent action for a release. Publication to an installed CLI takes at most one poll interval (6 minutes with jitter) plus the install time. Repository upgrades then start at once. A broken release stops on each host at its own health gate or Node readiness and is never retried there. Without Hub ordering, a follower can install a release before the Hub serves its schema versions. `lervo upgrade` already defers event-writer activation until every reader supports a version, so that order costs time, not correctness. The manual deploy path stays as the fallback, for example for the Hub itself.
+Once the service is installed, a host needs no agent action for a release. Publication to an installed CLI takes at most one poll interval (6 minutes with jitter) plus the install time. A broken release stops on each host at its own health gate or Node readiness and is never retried there. Without Hub ordering, a follower can install a release before the Hub serves its schema versions. `lervo upgrade` already defers event-writer activation until every reader supports a version, so that order costs time, not correctness. The manual deploy path stays as the fallback, for example for the Hub itself.
 
 ## Verification
 
-All tests use temporary homes and fakes for GitHub, the service manager, and repository upgrades. `apps/cli/test/host-follow-cycle.test.ts` covers newest-only install with handover, the same-version no-op, a failed health gate never retried, a Node readiness rollback by id with a converging pass, content blocks, pause and pin, source backoff, a manual activation, an activation left in flight, and a held host upgrade lock. `host-follow-command.test.ts` covers the plan, a cycle with no Hub configured, pause, pin, resume, status, lock contention, service install and removal, arguments, the package coordinate, and the loop's jitter, backoff, handover exit, and stop. `host-follow-policy.test.ts` and `host-repository-pass.test.ts` cover the decisions, the pass, and the runner. `runtime-service-render.test.mjs` and `runtime-service-management.test.mjs` cover the `host-follow` definition and an install through the runtime link.
+All tests use temporary homes and fakes for GitHub, the service manager, and repository upgrades. `apps/cli/test/host-follow-cycle.test.ts` covers newest-only install with handover, the same-version no-op, a failed health gate never retried, a Node readiness rollback by id with a converging pass, content blocks, pause and pin, source backoff, a manual activation, an activation left in flight, and a held host upgrade lock. `host-follow-command.test.ts` covers the plan, a cycle with no Hub configured, pause, pin, resume, status, lock contention, service install and removal, arguments, the recorded coordinate, and the loop's jitter, backoff, handover exit, and stop. `host-follow-policy.test.ts` and `host-repository-pass.test.ts` cover the decisions, the pass, and the runner. `runtime-service-render.test.mjs` and `runtime-service-management.test.mjs` cover the `host-follow` definition and an install through the runtime link.

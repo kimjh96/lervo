@@ -33,7 +33,7 @@ Never write an ad hoc polling loop for these stages; earlier loops missed a fini
 
 Once a host's installed CLI has `lervo host upgrade --follow` ([ADR-0575](../../../docs/decisions/distribution/0575-follow-published-releases-on-every-host.md)), that host needs no deploy step for its CLI and repositories. Enable the follower once on every host, Mac and WSL alike:
 
-1. `lervo host upgrade --follow --service install --json` shows the plan; fix any blocker it names. Run it from the owner's normal shell: the service keeps that shell's `PATH` for `gh`, `pnpm`, `git`, and providers.
+1. `lervo host upgrade --follow --service install --json` shows the plan; fix any blocker it names. Run it from the owner's normal shell: the service keeps that shell's `PATH` for `gh`, `pnpm`, `git`, and providers. The follower follows the repository this host last installed from with `lervo host upgrade --from-release`, which the activation journal records. If the plan reports `host_follow_repository_unknown`, the host never installed that way: add `--repository kimjh96/lervo` to this step and the next one.
 2. `lervo host upgrade --follow --service install --apply` installs and starts the `host-follow` user service (`lervo-host-follow.service` or `com.lervo.host.follow`). Its first cycle runs `lervo upgrade` on every registered repository.
 3. `lervo host upgrade --follow --status` shows the last check, the last outcome, failed tags, and the last repository pass.
 

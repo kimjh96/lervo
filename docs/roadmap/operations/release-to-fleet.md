@@ -20,7 +20,7 @@ v0.23.7 on 2026-11-14 (measured from release and receipt timestamps): merge to p
 2. **S3: priority upgrade admission and stale-runtime restart (main).** S3 lands on `main`, not `core-loop`: release speed is the owner's priority, and `core-loop` integration has no date.
    - [x] An upgrade asks for full-cycle admission with priority; a running cycle yields at its next stage boundary, and waiting residents queue behind the upgrade. `knowledge_cycle_admission_wait_expired` stays as the backstop. Implemented on `main` by [ADR-0574](../../decisions/distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md); the installed measurement is still pending.
    - [ ] Knowledge materialization that an upgrade only schedules runs as the next normal cycle after release (amends ADR-0214; needs its own decision). Held: ADR-0574 records why moving it now would leave non-owner hosts and parked convergence with stale knowledge reported as current.
-   - [ ] A replica whose process has no binding in the current runtime is restarted and reported as `repository_replica_service_stale_runtime`.
+   - [x] A replica whose process has no binding in the current runtime is restarted and reported as `repository_replica_service_stale_runtime`. Implemented on `main` by [ADR-0573](../../decisions/distribution/0573-restart-a-replica-coordinator-that-runs-a-superseded-runtime.md) (PR #259).
    - [ ] Measured on an installed release: no repository upgrade prints the admission wait, and publication to the last current repository is at most 12 minutes.
 3. **S4: `lervo host upgrade --follow`.** The host follower lands on `main` ([ADR-0575](../../decisions/distribution/0575-follow-published-releases-on-every-host.md)); Hub ordering waits for core-loop integration.
    - [ ] The Hub archive is a release subject verified like the CLI tarball.
@@ -40,6 +40,6 @@ Estimated except the baseline: after Stage 1, about 33 minutes from publication 
 
 - Decided (ADR-0575): the follow poll interval is 5 minutes with ±20% per-host jitter, plus backoff on GitHub failures.
 - Decided (ADR-0575): `--follow` installs only the newest published release and skips the ones in between.
-- Decided (ADR-0575): the default repository coordinate comes from the installed CLI's `package.json` `repository` field (`kimjh96/lervo`); `--repository` overrides it.
+- Decided (ADR-0575): the default repository coordinate is the one this host last installed from, as its ADR-0571 activation journal records it; `--repository` overrides it and is needed once on a host without a recorded install.
 - Decided (ADR-0575): pause and pin are per host now; the Hub-wide pause is part of the Hub slice.
 - Open: whether a Hub-wide pause needs its own Node credential scope.
