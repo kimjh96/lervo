@@ -21,10 +21,12 @@ const LEASE_MILLISECONDS = 10 * 60_000;
 const RENEW_MILLISECONDS = 60_000;
 const POLL_MILLISECONDS = 1_000;
 /**
- * ADR-0577: how long `held()` retries lock contention before it answers false. It is measured on
- * the monotonic clock, because a lease answer must not depend on a wall clock that can step back.
+ * ADR-0577: how long `confirm()` retries lock contention before it answers `unconfirmed`. One
+ * attempt can wait out the 5-second busy timeout, and ADR-0576 saw convoys outlast it, so the
+ * budget allows several attempts. It is measured on the monotonic clock, because the answer must
+ * not depend on a wall clock that can step back.
  */
-const HELD_CONTENTION_WAIT_MILLISECONDS = 5_000;
+const CONFIRM_CONTENTION_WAIT_MILLISECONDS = 30_000;
 /** A waiter that has not polled for this long has gone and no longer holds its turn. */
 const WAITER_STALE_MILLISECONDS = 30_000;
 /**
@@ -41,6 +43,13 @@ const PRIORITY_ADVANCE_MILLISECONDS = 365 * 24 * 60 * 60_000;
  */
 export type FullCycleAdmissionPriority = "resident" | "upgrade";
 
+/**
+ * - `held`: this holder still holds the admission.
+ * - `lost`: another holder was admitted after this lease lapsed. A loss is final.
+ * - `unconfirmed`: lock contention outlasted the retry budget, so neither is proven.
+ */
+export type FullCycleAdmissionConfirmation = "held" | "lost" | "unconfirmed";
+
 export interface FullCycleAdmission {
   release(): Promise<void>;
   /**
@@ -56,11 +65,11 @@ export interface FullCycleAdmission {
   /**
    * ADR-0577: whether this holder still holds the admission, confirmed against the database and
    * renewed in the same statement. Admission replaces the holder row, and its nonce never comes
-   * back, so true also proves that no other holder was admitted since this one. A loss is final.
-   * It fails closed: lock contention that outlasts a short retry answers false, and other
-   * database failures throw, because an unconfirmed holder must not act as the holder.
+   * back, so `held` also proves that no other holder was admitted since this one. Only `held`
+   * lets a holder act: contention past the retry budget answers `unconfirmed`, and other
+   * database failures throw.
    */
-  held(): Promise<boolean>;
+  confirm(): Promise<FullCycleAdmissionConfirmation>;
 }
 
 function alive(pid: number): boolean {
@@ -248,6 +257,8 @@ export async function acquireFullCycleAdmission(input: {
    * A short-lived command gives up sooner: its holder row stops counting when its process exits.
    */
   releaseContentionWaitMilliseconds?: number;
+  /** ADR-0577: how long `confirm()` retries lock contention; 30 seconds by default. */
+  confirmContentionWaitMilliseconds?: number;
   /**
    * ADR-0577: how long the lease lasts without renewal; ten minutes by default. A holder whose
    * event loop can stall longer, such as an upgrade under host load, asks for more. A dead
@@ -325,12 +336,14 @@ export async function acquireFullCycleAdmission(input: {
   );
   renewal.unref();
   return {
-    held: async () => {
-      const giveUpAt = performance.now() + HELD_CONTENTION_WAIT_MILLISECONDS;
+    confirm: async () => {
+      const giveUpAt =
+        performance.now() +
+        (input.confirmContentionWaitMilliseconds ?? CONFIRM_CONTENTION_WAIT_MILLISECONDS);
       for (;;) {
         const answer = await renew();
-        if (answer !== "contended") return answer === "held";
-        if (performance.now() >= giveUpAt) return false;
+        if (answer !== "contended") return answer;
+        if (performance.now() >= giveUpAt) return "unconfirmed";
         await sleep(input.pollMilliseconds ?? POLL_MILLISECONDS);
       }
     },

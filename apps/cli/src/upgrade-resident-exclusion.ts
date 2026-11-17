@@ -32,26 +32,40 @@ export interface UpgradeExclusionProgress {
 /**
  * ADR-0577: the apply calls `assertHeld()` before each consequential stage and once after its
  * last stage. It throws `knowledge_cycle_admission_lost` once another holder has been admitted,
- * or when the admission cannot be confirmed, so the upgrade never goes on or reports success
- * without the exclusion.
+ * and `knowledge_cycle_admission_unconfirmed` when lock contention outlasts the confirmation
+ * budget, so the upgrade never goes on or reports success without a confirmed exclusion.
  */
 export interface UpgradeResidentExclusion {
   assertHeld(progress: UpgradeExclusionProgress): Promise<void>;
 }
 
+function progressDetails(progress: UpgradeExclusionProgress): Record<string, unknown> {
+  const appliedStages = [...progress.appliedStages];
+  return progress.nextStage === null
+    ? { phase: "after_last_stage", appliedStages }
+    : { phase: "before_stage", nextStage: progress.nextStage, appliedStages };
+}
+
 /** The details name stages only: no path, process ID, nonce, or repository hash. */
 function admissionLost(progress: UpgradeExclusionProgress): CommandFailure {
-  const appliedStages = [...progress.appliedStages];
-  if (progress.nextStage === null)
-    return new CommandFailure(
-      "knowledge_cycle_admission_lost",
-      "This upgrade lost the host's full-cycle admission during or after its last stage. Every stage in appliedStages ran, and some may have overlapped a background knowledge cycle. Retry the upgrade to plan again from the repository's state.",
-      { phase: "after_last_stage", appliedStages },
-    );
   return new CommandFailure(
     "knowledge_cycle_admission_lost",
-    `This upgrade lost the host's full-cycle admission, so a background knowledge cycle may have started. It stopped before the ${progress.nextStage} stage. The stages in appliedStages ran, and the last of them may have overlapped that cycle. Retry the upgrade.`,
-    { phase: "before_stage", nextStage: progress.nextStage, appliedStages },
+    progress.nextStage === null
+      ? "This upgrade lost the host's full-cycle admission during or after its last stage. Every stage in appliedStages ran, and some may have overlapped a background knowledge cycle. Retry the upgrade to plan again from the repository's state."
+      : `This upgrade lost the host's full-cycle admission, so a background knowledge cycle may have started. It stopped before the ${progress.nextStage} stage. The stages in appliedStages ran, and the last of them may have overlapped that cycle. Retry the upgrade.`,
+    progressDetails(progress),
+  );
+}
+
+function admissionUnconfirmed(progress: UpgradeExclusionProgress): CommandFailure {
+  return new CommandFailure(
+    "knowledge_cycle_admission_unconfirmed",
+    `This upgrade could not confirm the host's full-cycle admission, because the admission database stayed locked for the whole confirmation wait. Nothing shows that another holder was admitted. ${
+      progress.nextStage === null
+        ? "Every stage in appliedStages ran."
+        : `It stopped before the ${progress.nextStage} stage; the stages in appliedStages ran.`
+    } Retry the upgrade.`,
+    progressDetails(progress),
   );
 }
 
@@ -60,6 +74,7 @@ export interface UpgradeResidentExclusionOptions {
   directory?: string;
   pollMilliseconds?: number;
   waitMs?: number;
+  confirmContentionWaitMilliseconds?: number;
 }
 
 /**
@@ -93,6 +108,9 @@ export async function withKnowledgeResidentExclusion<T>(
       ...(input.options?.pollMilliseconds === undefined
         ? {}
         : { pollMilliseconds: input.options.pollMilliseconds }),
+      ...(input.options?.confirmContentionWaitMilliseconds === undefined
+        ? {}
+        : { confirmContentionWaitMilliseconds: input.options.confirmContentionWaitMilliseconds }),
       onWait: () =>
         input.io.stderr(
           `Waiting up to ${Math.max(1, Math.ceil(waitMs / 60_000))} min for the running background knowledge cycle on this host to stop at its next stage boundary before upgrading.\n`,
@@ -108,7 +126,9 @@ export async function withKnowledgeResidentExclusion<T>(
   }
   const exclusion: UpgradeResidentExclusion = {
     assertHeld: async (progress) => {
-      if (!(await admission.held())) throw admissionLost(progress);
+      const confirmation = await admission.confirm();
+      if (confirmation === "lost") throw admissionLost(progress);
+      if (confirmation === "unconfirmed") throw admissionUnconfirmed(progress);
     },
   };
   try {

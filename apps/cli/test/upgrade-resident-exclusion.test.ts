@@ -79,6 +79,26 @@ async function liveMaterialization(root: string, ownerPid: number): Promise<void
   );
 }
 
+/** Another process holds the admission database's write lock for `milliseconds`. */
+async function lockAdmissionDatabase(
+  directory: string,
+  milliseconds: number,
+): Promise<{ released: Promise<void> }> {
+  const path = resolve(directory, "full-cycle-admission.sqlite");
+  const holder = spawn(process.execPath, [
+    "-e",
+    `const { DatabaseSync } = require("node:sqlite");
+     const database = new DatabaseSync(${JSON.stringify(path)});
+     database.exec("BEGIN EXCLUSIVE");
+     process.stdout.write("locked\\n");
+     setTimeout(() => { database.exec("COMMIT"); database.close(); }, ${milliseconds});`,
+  ]);
+  children.push(holder);
+  const released = new Promise<void>((done) => holder.once("exit", () => done()));
+  await new Promise((locked) => holder.stdout.once("data", locked));
+  return { released };
+}
+
 /** A resident cycle's admission attempt, as `startAutonomousKnowledgeWorker` makes it. */
 async function residentCycleAdmitted(directory: string, root: string): Promise<boolean> {
   try {
@@ -218,6 +238,29 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
       await resident?.release();
     }
     expect(resident).toBeDefined();
+  }, 60_000);
+
+  it("reports an unconfirmed admission, not a lost one, while the database stays locked (ADR-0577)", async () => {
+    const root = await temporary("lervo-upgrade-exclusion-");
+    const directory = await temporary("lervo-upgrade-admission-");
+    let released: Promise<void> | undefined;
+    await expect(
+      withKnowledgeResidentExclusion(
+        {
+          repositoryRoot: root,
+          io: { stderr: () => undefined },
+          options: { directory, pollMilliseconds: 10, confirmContentionWaitMilliseconds: 100 },
+        },
+        async (exclusion) => {
+          ({ released } = await lockAdmissionDatabase(directory, 6_500));
+          await exclusion.assertHeld({ nextStage: "node", appliedStages: ["knowledge"] });
+        },
+      ),
+    ).rejects.toMatchObject({
+      code: "knowledge_cycle_admission_unconfirmed",
+      details: { phase: "before_stage", nextStage: "node", appliedStages: ["knowledge"] },
+    });
+    await released;
   }, 60_000);
 
   it("waits for a running resident cycle to finish before applying", async () => {

@@ -111,6 +111,7 @@ describe("failure classification", () => {
     expect(classifyRepositoryFailure("node_fleet_config_invalid")).toBe("failed");
     // ADR-0577: a lost admission is retried with the same CLI; it says nothing about the host.
     expect(classifyRepositoryFailure("knowledge_cycle_admission_lost")).toBe("failed");
+    expect(classifyRepositoryFailure("knowledge_cycle_admission_unconfirmed")).toBe("failed");
   });
 
   it("makes a repository pass due for an unsettled activation or another CLI", () => {

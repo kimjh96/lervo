@@ -27,6 +27,7 @@ async function directory() {
 async function holdAdmissionDatabase(
   admission: string,
   begin: "BEGIN IMMEDIATE" | "BEGIN EXCLUSIVE",
+  milliseconds = SQLITE_BUSY_TIMEOUT_MS + 1_500,
 ): Promise<{ released: Promise<void> }> {
   const path = resolve(admission, "full-cycle-admission.sqlite");
   const holder = spawn(process.execPath, [
@@ -35,7 +36,7 @@ async function holdAdmissionDatabase(
      const database = new DatabaseSync(${JSON.stringify(path)});
      database.exec("${begin}; DELETE FROM waiters WHERE nonce = 'none';");
      process.stdout.write("held\\n");
-     setTimeout(() => { database.exec("COMMIT"); database.close(); }, ${SQLITE_BUSY_TIMEOUT_MS + 1_500});`,
+     setTimeout(() => { database.exec("COMMIT"); database.close(); }, ${milliseconds});`,
   ]);
   await new Promise((ready) => holder.stdout.once("data", ready));
   return { released: new Promise((released) => holder.once("exit", () => released())) };
@@ -326,12 +327,12 @@ it("detects a lease lost while its renewal timer was blocked (ADR-0577)", async 
   });
   const resident = await residentTakingOverLapsedLeases(admission);
   try {
-    expect(await holder.held()).toBe(true);
+    expect(await holder.confirm()).toBe("held");
     blockEventLoop(1_500);
     await resident.admitted();
-    expect(await holder.held()).toBe(false);
+    expect(await holder.confirm()).toBe("lost");
     // Losing the admission is final, and the release leaves the new holder's row alone.
-    expect(await holder.held()).toBe(false);
+    expect(await holder.confirm()).toBe("lost");
     await holder.release();
     const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
     expect(db.prepare("SELECT owner_pid FROM holder").get()).toEqual({ owner_pid: resident.pid });
@@ -341,7 +342,7 @@ it("detects a lease lost while its renewal timer was blocked (ADR-0577)", async 
   }
 }, 30_000);
 
-it("answers false when lock contention hides a takeover and the wall clock stepped back (ADR-0577)", async () => {
+it("never confirms when lock contention hides a takeover and the wall clock stepped back (ADR-0577)", async () => {
   const admission = await directory();
   const holder = await acquireFullCycleAdmission({
     repositoryRoot: "/repo/upgrade",
@@ -349,6 +350,7 @@ it("answers false when lock contention hides a takeover and the wall clock stepp
     directory: admission,
     priority: "upgrade",
     leaseMilliseconds: 300,
+    confirmContentionWaitMilliseconds: 100,
   });
   const resident = await residentTakingOverLapsedLeases(admission);
   const confirmedAt = Date.now();
@@ -360,7 +362,7 @@ it("answers false when lock contention hides a takeover and the wall clock stepp
     lock.exec("BEGIN EXCLUSIVE");
     try {
       vi.spyOn(Date, "now").mockReturnValue(confirmedAt);
-      expect(await holder.held()).toBe(false);
+      expect(await holder.confirm()).toBe("unconfirmed");
     } finally {
       vi.restoreAllMocks();
       lock.exec("COMMIT");
@@ -382,11 +384,28 @@ it("keeps a lapsed lease that no other holder took (ADR-0577)", async () => {
     leaseMilliseconds: 300,
   });
   blockEventLoop(600);
-  expect(await holder.held()).toBe(true);
+  expect(await holder.confirm()).toBe("held");
   const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
   const row = db.prepare("SELECT expires_at FROM holder").get() as { expires_at: number };
   expect(row.expires_at).toBeGreaterThan(Date.now());
   db.close();
   await holder.release();
-  expect(await holder.held()).toBe(false);
+  expect(await holder.confirm()).toBe("lost");
 });
+
+it("confirms through a write lock held for 12 seconds, past several busy waits (ADR-0577)", async () => {
+  const admission = await directory();
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/upgrade",
+    signal: new AbortController().signal,
+    directory: admission,
+    priority: "upgrade",
+    pollMilliseconds: 10,
+  });
+  const { released } = await holdAdmissionDatabase(admission, "BEGIN EXCLUSIVE", 12_000);
+  const started = performance.now();
+  expect(await holder.confirm()).toBe("held");
+  expect(performance.now() - started).toBeGreaterThan(2 * SQLITE_BUSY_TIMEOUT_MS);
+  await released;
+  await holder.release();
+}, 60_000);
