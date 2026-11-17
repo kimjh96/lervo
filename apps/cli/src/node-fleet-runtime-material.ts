@@ -7,7 +7,16 @@ import {
 } from "./node-fleet-runtime-module.js";
 import { createHash } from "node:crypto";
 import { constants } from "node:fs";
-import { access, chmod, lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
+import {
+  access,
+  chmod,
+  lstat,
+  mkdir,
+  readFile,
+  realpath,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -203,6 +212,11 @@ async function installNodeLauncher(
   }
   await materializeNodeRuntimeModule(dirname(payload), runtimeModule);
   await materializeRuntimeDependencies(dirname(payload), dependencies);
+  // ADR-0579: the caller writes the service definition that references this runtime only after
+  // the retention lock is released. A reused, older directory becomes the newest, so a plan made
+  // in that window keeps it, and an approved plan that listed it no longer matches its identity.
+  const touchedAt = new Date();
+  await utimes(dirname(payload), touchedAt, touchedAt);
   return assertNodeFleetExecutable(launcher);
 }
 

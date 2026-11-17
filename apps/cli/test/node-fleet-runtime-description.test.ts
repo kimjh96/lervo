@@ -1,4 +1,6 @@
-import { resolve } from "node:path";
+import { lstat, mkdtemp, rm, utimes } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, resolve } from "node:path";
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,17 +9,25 @@ const reads = vi.hoisted(() => ({ dependencies: 0, failNext: false }));
 // The bundled payload sits beside the built module; under test it is a fixture.
 vi.mock("node:fs/promises", async (original) => {
   const actual = await original<typeof import("node:fs/promises")>();
+  const bundled = (path: unknown) => String(path).endsWith("/src/node-runtime.js");
+  const readFile = actual.readFile as (...args: unknown[]) => unknown;
+  const lstat = actual.lstat as (...args: unknown[]) => unknown;
   return {
     ...actual,
     readFile: ((path: unknown, ...rest: unknown[]) =>
-      String(path).endsWith("/node-runtime.js")
+      bundled(path)
         ? Promise.resolve(Buffer.from("payload\n"))
-        : (actual.readFile as (...args: unknown[]) => unknown)(
-            path,
-            ...rest,
-          )) as typeof actual.readFile,
+        : readFile(path, ...rest)) as typeof actual.readFile,
+    lstat: ((path: unknown, ...rest: unknown[]) =>
+      bundled(path)
+        ? Promise.resolve({ isFile: () => true, isSymbolicLink: () => false, size: 8 })
+        : lstat(path, ...rest)) as typeof actual.lstat,
   };
 });
+vi.mock("../src/runtime-dependency-materialization.js", () => ({
+  inspectRuntimeDependencies: async () => "current",
+  materializeRuntimeDependencies: async () => undefined,
+}));
 vi.mock("../src/node-fleet-runtime-module.js", () => ({
   readNodeRuntimeModule: async () => ({ hash: "sha256:module" }),
   inspectNodeRuntimeModule: async () => "current",
@@ -34,8 +44,11 @@ vi.mock("../src/runtime-dependency-closure.js", () => ({
   },
 }));
 
-const { describeInstalledNodeLauncher, describeInstalledNodeLauncherOnce } =
-  await import("../src/node-fleet-runtime-material.js");
+const {
+  describeInstalledNodeLauncher,
+  describeInstalledNodeLauncherOnce,
+  materializeInstalledNodeLauncher,
+} = await import("../src/node-fleet-runtime-material.js");
 
 beforeEach(() => {
   reads.dependencies = 0;
@@ -70,5 +83,19 @@ describe("the installed Node runtime description", () => {
     await describeInstalledNodeLauncher("/home/one");
     await describeInstalledNodeLauncher("/home/one");
     expect(reads.dependencies).toBe(2);
+  });
+
+  it("makes a reused runtime directory the newest while it installs the launcher", async () => {
+    const home = await mkdtemp(resolve(tmpdir(), "lervo-runtime-material-"));
+    try {
+      const launcher = await materializeInstalledNodeLauncher(home);
+      const directory = dirname(launcher);
+      await utimes(directory, new Date(1_000), new Date(1_000));
+      const before = Date.now();
+      expect(await materializeInstalledNodeLauncher(home)).toBe(launcher);
+      expect((await lstat(directory)).mtimeMs).toBeGreaterThanOrEqual(before - 1_000);
+    } finally {
+      await rm(home, { recursive: true, force: true });
+    }
   });
 });
