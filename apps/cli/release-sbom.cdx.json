@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:6425bbfc-fcce-50a7-8db8-96cd2ec12368",
+  "serialNumber": "urn:uuid:97365d31-6725-56f1-a56b-65b779d2cb1a",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,11 +21,11 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.25.2",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.25.3",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.25.2",
-      "purl": "pkg:npm/%40lervo/cli@0.25.2",
+      "version": "0.25.3",
+      "purl": "pkg:npm/%40lervo/cli@0.25.3",
       "hashes": [
         {
           "alg": "SHA-256",
@@ -42,7 +42,7 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:19ef556201ee675109d41b9ddd1f63e5eee10c89efe7aa9676435b11f72a0e96"
+          "value": "sha256:51372d2f55959c038cfcca154d5a2b11b69d6549b6bf1c935cdfc9988833f349"
         },
         {
           "name": "lervo:release:bundle-digest",
@@ -141,7 +141,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "773a8ba874100bb441d37a731eb4454be6d181e168392ce38636b9ba8806e097"
+          "content": "29861207a5928fc987ca106eb5682444f6d6e6836bd8a849f48fefdd444cfbe5"
         }
       ]
     },
@@ -4444,7 +4444,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.25.2",
+      "ref": "pkg:npm/%40lervo/cli@0.25.3",
       "dependsOn": [
         "lervo:dist/terminal-hook-launcher.mjs",
         "lervo:dist/terminal-hook.js",
