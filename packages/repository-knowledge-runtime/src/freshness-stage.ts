@@ -96,11 +96,20 @@ export async function runDocumentFreshnessCycle(input: {
       candidate.updatedAt,
     ]),
   });
+  // ADR-0580: a pending no-change assessment reopens the stage only when today's budget can pay
+  // for its review. Otherwise every cycle would observe again, append the same cycle event, and
+  // wake the resident that just finished; the day in the key reopens the stage with a new budget.
+  const reviewAffordable =
+    state.budget.tokensUsed + policy.maximumTokensPerCandidate <= policy.maximumTokensPerDay;
   if (
     key !== null &&
     key === state.observationKey &&
-    !candidates.some(
-      (candidate) => candidate.state === "generated" && candidate.operation === "no_change_needed",
+    !(
+      reviewAffordable &&
+      candidates.some(
+        (candidate) =>
+          candidate.state === "generated" && candidate.operation === "no_change_needed",
+      )
     ) &&
     !(
       input.effects !== "prepare" &&

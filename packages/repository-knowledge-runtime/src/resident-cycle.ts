@@ -15,7 +15,26 @@ export type ResidentCycleOutcome =
   | { kind: "completed"; result: WorkerResult }
   | { kind: "failed"; error: unknown };
 
-export function classifyResidentCycle(result: WorkerResult): ResidentCycleResult {
+/**
+ * ADR-0580: when a convergence retry's next attempt lies in the future, the retry is parked, not
+ * work. Returns that attempt time, or null when the result holds no parked retry.
+ */
+function parkedRetryAt(result: WorkerResult, now: number): number | null {
+  if (result.status !== "processed" || result.convergence.state !== "retry_scheduled") return null;
+  const due = Date.parse(result.convergence.retry?.nextAttemptAt ?? "");
+  return Number.isFinite(due) && due > now ? due : null;
+}
+
+/**
+ * The earliest future moment among the fence's observation and a parked retry. The fence was
+ * observed before the cycle, so a retry the cycle itself rescheduled is known only from the result.
+ */
+function nextDueAt(observed: number | null, retryAt: number | null, now: number): number | null {
+  const future = [observed, retryAt].filter((at): at is number => at !== null && at > now);
+  return future.length === 0 ? observed : Math.min(...future);
+}
+
+export function classifyResidentCycle(result: WorkerResult, now: number): ResidentCycleResult {
   if (result.status === "waiting_owner")
     return ["waiting_owner", "ineligible", "yielding"].includes(result.owner.role)
       ? "waiting"
@@ -31,6 +50,9 @@ export function classifyResidentCycle(result: WorkerResult): ResidentCycleResult
     result.ownerTurns.instructionCapture.assessedCount > 0
   )
     return "processed";
+  // ADR-0580: the fence wakes the resident when the parked attempt falls due, and a due delivery
+  // is never skipped, so backing off here cannot delay the attempt.
+  if (parkedRetryAt(result, now) !== null) return "idle";
   switch (result.convergence.state) {
     case "idle":
       return "idle";
@@ -131,7 +153,8 @@ export async function runResidentCycle(input: {
   const lastCycleAt = new Date(startedAt).toISOString();
   try {
     const result = await input.runFull();
-    const lastResult = classifyResidentCycle(result);
+    const finishedAt = input.now();
+    const lastResult = classifyResidentCycle(result, finishedAt);
     return {
       outcome: { kind: "completed", result },
       state: {
@@ -142,7 +165,11 @@ export async function runResidentCycle(input: {
         lastFailure: null,
         idleStreak: nextIdleStreak(previousStreak, lastResult),
       },
-      earliestAvailableAt: observed?.earliestAvailableAt ?? null,
+      earliestAvailableAt: nextDueAt(
+        observed?.earliestAvailableAt ?? null,
+        parkedRetryAt(result, finishedAt),
+        finishedAt,
+      ),
     };
   } catch (error) {
     return {

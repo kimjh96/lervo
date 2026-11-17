@@ -251,6 +251,57 @@ describe("change fence", () => {
       state: { lastResult: "failed", fingerprint: null, idleStreak: 4 },
     });
   });
+
+  it("backs off on a parked retry and wakes when its attempt falls due", async () => {
+    const retry = (nextAttemptAt: number) => ({
+      status: "processed" as const,
+      outcomes: [],
+      convergence: {
+        transport: "ready" as const,
+        debtCounts: { canonicalization: 0, normalization: 1, lifecycle: 0, historical: 0 },
+        outstanding: 1,
+        oldestAgeMilliseconds: 60_000,
+        activeStage: "normalization_generation",
+        state: "retry_scheduled",
+        reason: "knowledge_job_transient_failure",
+        retry: {
+          attemptCount: 14,
+          attemptLimit: 16,
+          nextAttemptAt: new Date(nextAttemptAt).toISOString(),
+        },
+        lastVerifiedCurrency: null,
+      },
+    });
+    // The fence saw the delivery due before the cycle attempted and rescheduled it.
+    const parked = await cycle({
+      previous: previous({ lastResult: "processed", idleStreak: 0 }),
+      fingerprint: OTHER,
+      earliestAvailableAt: NOW - 1_000,
+      result: retry(NOW + 25 * 60_000),
+    });
+    expect(parked.state).toMatchObject({ lastResult: "idle", idleStreak: 1 });
+    expect(parked.earliestAvailableAt).toBe(NOW + 25 * 60_000);
+    const skipped = await cycle({
+      previous: previous({ ...parked.state, lastCycleAt: new Date(NOW).toISOString() }),
+      fingerprint: OTHER,
+      earliestAvailableAt: NOW + 25 * 60_000,
+      now: NOW + 60_000,
+    });
+    expect(skipped).toMatchObject({ outcome: { kind: "skipped" }, full: 0 });
+    expect(
+      residentReconcileDelay({
+        idleStreak: 8,
+        now: NOW + 20 * 60_000,
+        earliestAvailableAt: parked.earliestAvailableAt,
+        baseMilliseconds: BASE,
+        ceilingMilliseconds: CEILING,
+      }),
+    ).toBe(5 * 60_000);
+    // Once the attempt is due, the cycle that leaves it unclaimed is work, not idle.
+    expect(
+      await cycle({ previous: null, result: retry(NOW - 1), earliestAvailableAt: NOW - 1 }),
+    ).toMatchObject({ state: { lastResult: "processed", idleStreak: 0 } });
+  });
 });
 
 describe("resident cycle state", () => {

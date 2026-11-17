@@ -10,7 +10,12 @@ import {
   captureFreshnessDependencies,
   freshnessDependenciesCurrent,
 } from "../src/freshness-dependencies.js";
-import { listFreshnessCandidates, writeFreshnessCandidate } from "../src/freshness-state-store.js";
+import {
+  listFreshnessCandidates,
+  readFreshnessCycleState,
+  writeFreshnessCycleState,
+  writeFreshnessCandidate,
+} from "../src/freshness-state-store.js";
 import { applyFreshnessCandidateByOwner } from "../src/freshness-apply.js";
 import { recoverFreshnessCandidates } from "../src/freshness-candidate-recovery.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
@@ -136,6 +141,35 @@ it("settles no-change only after an independent schema-5 assessment and invalida
     stale.status === "observed" &&
       stale.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
   ).toBe(true);
+});
+
+it("keeps the stage closed while today's budget cannot pay for a pending no-change review", async () => {
+  const f = await setup(5);
+  await history(f);
+  await f.plan({ "docs/specs/runtime.md": { operation: "no_change_needed" } });
+  const now = new Date();
+  await f.cycle(now);
+  expect((await listFreshnessCandidates(f.root))[0]!.state).toBe("generated");
+  const spent = await readFreshnessCycleState(f.root);
+  await writeFreshnessCycleState(f.root, {
+    ...spent,
+    budget: { ...spent.budget, day: now.toISOString().slice(0, 10), tokensUsed: 5_000_000 },
+  });
+  const events = f.eventsOf("document.freshness.cycle.completed").length;
+  const calls = (await f.providerCalls()).length;
+  // ADR-0580: no review can run, so the cycle neither observes again nor appends an event.
+  expect(await f.cycle(now)).toEqual({ status: "unchanged" });
+  expect(await f.cycle(now)).toEqual({ status: "unchanged" });
+  expect(f.eventsOf("document.freshness.cycle.completed")).toHaveLength(events);
+  // Once the budget can pay for the review, the stage reopens and the review runs at once.
+  await writeFreshnessCycleState(f.root, {
+    ...(await readFreshnessCycleState(f.root)),
+    budget: { ...spent.budget, day: now.toISOString().slice(0, 10), tokensUsed: 0 },
+  });
+  expect(await f.cycle(now)).toMatchObject({ status: "completed" });
+  expect((await f.providerCalls()).slice(calls).map((call) => call.task)).toEqual([
+    "document_freshness_assessment_review",
+  ]);
 });
 
 it("preserves reader-first activation and rejects applying changed evidence", async () => {
