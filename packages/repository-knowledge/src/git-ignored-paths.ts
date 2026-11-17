@@ -7,6 +7,11 @@ import {
 /** Untracked paths Git ignores; tracked files stay repository content even when a pattern matches. */
 export interface GitIgnoredPaths {
   ignores(path: string, isDirectory: boolean): boolean;
+  /**
+   * ADR-0582: equal for two observations that ignore exactly the same `relevant` paths. Absent,
+   * an observation is never proven equal to another, so a scan that used it is not reused.
+   */
+  identity?(relevant: (path: string) => boolean): string;
 }
 
 export type ObserveGitIgnoredPaths = (repositoryRoot: string) => Promise<GitIgnoredPaths>;

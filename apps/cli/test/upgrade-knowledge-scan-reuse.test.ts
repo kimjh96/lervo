@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rm, stat, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -100,6 +100,31 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
     expect(inspectionScans).toBe(1);
   }, 120_000);
 
+  it("scans once per scan input across a whole upgrade apply (ADR-0582)", async () => {
+    const root = await repository();
+    await migrateUntilCurrent(root);
+    vi.spyOn(terminalRuntime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
+    const presented: string[] = [];
+    await runCli(["upgrade", "--json"], io(root, presented, []));
+    const plan = JSON.parse(presented.join("")) as { planId: string };
+    const stdout: string[] = [];
+    const stderr: string[] = [];
+    // The in-window plan, the knowledge step, lint, and the final plan read one unchanged tree.
+    const scans = await scansDuring(() =>
+      runCli(
+        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
+        io(root, stdout, stderr),
+      ),
+    );
+    const receipt = JSON.parse(stdout.join("")) as { appliedStages?: string[] };
+    expect(receipt.appliedStages, `${stdout.join("")}${stderr.join("")}`).toEqual([
+      "event_writer",
+    ]);
+    // One scan, and one more only when the event writer's own events change the evidence.
+    expect(scans).toBeGreaterThanOrEqual(1);
+    expect(scans).toBeLessThanOrEqual(2);
+  }, 120_000);
+
   it("converges a source edit made after the plan inside the window in the same run", async () => {
     const root = await repository();
     await migrateUntilCurrent(root);
@@ -116,9 +141,14 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
     // A user, an agent, or a hook edits a source right after the plan inside the exclusion
     // inspected knowledge, before the knowledge step runs.
     const inspect = stageInspection.inspectKnowledge;
+    // ADR-0582: the edit keeps the size and modification time, so only the fingerprint's change
+    // time and bytes show it; the reused scan must not hide it from the knowledge step.
+    const source = resolve(root, "main.ts");
+    const before = await stat(source);
     vi.spyOn(stageInspection, "inspectKnowledge").mockImplementationOnce(async (target) => {
       const stage = await inspect(target);
-      await writeFile(resolve(root, "main.ts"), "export const value = false;\n");
+      await writeFile(source, "export const value = null;\n");
+      await utimes(source, before.atime, before.mtime);
       return stage;
     });
 

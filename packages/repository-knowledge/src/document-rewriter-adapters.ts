@@ -11,6 +11,7 @@ import { loadDecisionTaxonomy, loadDocumentRegistry } from "@lervo/project";
 
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { sha256 } from "./integrity.js";
+import type { RepositoryKnowledgeScanOptions } from "./types.js";
 
 export function contentBoundRewriterDescriptor(input: {
   rewriterId: string;
@@ -39,6 +40,11 @@ export function contentBoundTransformDescriptor(
 export async function inspectRepositoryDocumentRewriters(input: {
   repositoryRoot: string;
   allowTransactionPlanId?: string;
+  /**
+   * ADR-0582: the evidence the caller scans with. Normalization records read their outputs from
+   * disk, never from the scan, so this only lets the inspection reuse the caller's scan.
+   */
+  supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   rewriters?: readonly DocumentRewriterDescriptor[];
   managedRules?: Readonly<Record<string, readonly string[]>>;
   dryRuns?: Readonly<Record<string, readonly DocumentRewriteDryRunObservation[]>>;
@@ -55,6 +61,9 @@ export async function inspectRepositoryDocumentRewriters(input: {
       ...(input.allowTransactionPlanId === undefined
         ? {}
         : { allowTransactionPlanId: input.allowTransactionPlanId }),
+      ...(input.supplementalSources === undefined
+        ? {}
+        : { supplementalSources: input.supplementalSources }),
     }),
     loadDocumentRegistry(root),
   ]);

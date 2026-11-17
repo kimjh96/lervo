@@ -2,10 +2,14 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import type { GitIgnoredPaths } from "./git-ignored-paths.js";
+import { sha256 } from "./integrity.js";
 
 const executeFile = promisify(execFile);
 
-export const nothingIgnored: GitIgnoredPaths = { ignores: () => false };
+export const nothingIgnored: GitIgnoredPaths = {
+  ignores: () => false,
+  identity: () => "nothing",
+};
 
 /** One read-only Git observation with the environment every ignore probe shares. */
 export async function gitIgnoreObservation(repositoryRoot: string, args: string[]) {
@@ -55,5 +59,12 @@ export async function ignoredPathsBelowPrefix(
   }
   return {
     ignores: (path, isDirectory) => (isDirectory ? directories : files).has(path),
+    identity: (relevant) =>
+      sha256(
+        [...[...directories].map((path) => `${path}/`), ...files]
+          .filter((path) => relevant(path.replace(/\/$/u, "")))
+          .sort()
+          .join("\0"),
+      ),
   };
 }

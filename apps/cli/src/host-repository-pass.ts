@@ -104,6 +104,13 @@ async function upgradeRepository(
       options.blockedPlanIds?.get(repositoryRoot) === plan.planId
     )
       return finish("blocked", "upgrade_plan_unchanged");
+    // ADR-0582: `--safe` refuses before it changes anything while a stage waits for the owner, so
+    // the apply would only pay for admission and a second plan to report the same refusal.
+    const approvals = plan.ownerApprovalStages ?? [];
+    if (plan.status !== "ready" && approvals.length > 0) {
+      entry.pendingStages = approvals;
+      return finish("blocked", "upgrade_owner_approval_required");
+    }
     let applied =
       plan.status === "ready" && plan.planId !== null
         ? await run([...base, "--apply", "--approval", plan.planId, "--json"])
