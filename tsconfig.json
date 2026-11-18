@@ -65,7 +65,6 @@
       "@lervo/node-work-admission": ["packages/node-work-admission/src/index.ts"],
       "@lervo/node-runtime": ["apps/node-runtime/src/index.ts"],
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
-      "@lervo/operating-client": ["apps/operating-client/src/index.ts"],
       "@lervo/organization-credential-source-file": [
         "packages/organization-credential-source-file/src/index.ts"
       ],
@@ -79,7 +78,6 @@
       "@lervo/policy-contract": ["packages/policy-contract/src/index.ts"],
       "@lervo/policy-sqlite": ["packages/policy-sqlite/src/index.ts"],
       "@lervo/project": ["packages/project/src/index.ts"],
-      "@lervo/product-surface-projection": ["packages/product-surface-projection/src/index.ts"],
       "@lervo/project-storage": ["packages/project-storage/src/index.ts"],
       "@lervo/remote-command": ["packages/remote-command/src/index.ts"],
       "@lervo/remote-command-contract": ["packages/remote-command-contract/src/index.ts"],

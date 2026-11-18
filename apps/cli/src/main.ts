@@ -9,23 +9,14 @@ import { doctorUsage, runDoctorCommand } from "./doctor-command.js";
 import { capabilityUsage, runCapabilityCommand } from "./capability-command.js";
 import { deliberateUsage, runDeliberateCommand } from "./deliberate-command.js";
 import { inspectDoctorEnvironment } from "./doctor-environment.js";
-import { finalizeGovernedAssignment } from "./governed-assignment-finalization.js";
-import { reconcileGovernedAssignment } from "./governed-completion-reconciliation.js";
-import { inspectGovernedWork } from "./governed-work-inspection.js";
-import { inspectOperatingObjective } from "./operating-objective-inspection.js";
-import { inspectOperatingGoal } from "./operating-goal-inspection.js";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
-import { inspectOperatingLiveness } from "./operating-liveness-inspection.js";
-import { inspectAssignmentCommunications } from "./assignment-communication-inspection.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 export { ensureStartupHostTerminalRuntime } from "./terminal-runtime.js";
-import { runLoopCommand, loopUsage } from "./loop-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import {
   createAssignedManagedDeliberationExecutor,
   executeManagedDeliberation,
 } from "./managed-deliberation.js";
-import { executeUnattendedScheduler } from "./unattended-scheduler.js";
 import { environmentUsage, runEnvironmentCommand } from "./environment-command.js";
 import { eventContractUsage, runEventContractCommand } from "./event-contract-command.js";
 import { executeEnvironmentQuery } from "./environment-services.js";
@@ -62,7 +53,6 @@ ${hostUsage}
 ${migrateUsage}
 ${knowledgeUsage}
 ${applicationUsage}
-${loopUsage}
 ${runUsage}
 ${researchUsage}
 ${deliberateUsage}
@@ -87,21 +77,13 @@ const defaultServices: CliServices = {
   executeManagedRun,
   executeManagedDeliberation,
   executeAssignedManagedDeliberation: createAssignedManagedDeliberationExecutor(),
-  executeUnattendedScheduler,
   openProjectStorage,
   inspectDoctorEnvironment,
   executeEnvironmentQuery,
   groundProductionRequest,
   projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
-  inspectGovernedWork,
-  inspectOperatingObjective,
-  inspectOperatingGoal,
   inspectOperatingAttention,
-  inspectOperatingLiveness,
-  inspectAssignmentCommunications,
-  finalizeGovernedAssignment,
-  reconcileGovernedAssignment,
   prepareSearchQueries: prepareProductionSearchQueries,
 };
 
@@ -125,7 +107,6 @@ export async function runCli(
   if (command === "migrate") return runMigrateCommand(args.slice(1), io);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
-  if (command === "loop") return runLoopCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);

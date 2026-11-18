@@ -13,12 +13,12 @@ One human owner operates a Lervo organization with central leadership and multip
 Implemented foundations include:
 
 - Workforce identity, roles, assignments, handoffs, workstreams, and approvals.
-- Bounded scheduling and graphs, provider-neutral deliberation, and bot- or webhook-backed Discord deployments.
+- Assignment graphs, provider-neutral deliberation, and bot- or webhook-backed Discord deployments.
 - Exact agent and role hashes in conversation records, agent-bound managed read-run causality, and bounded agent-specific recent conversation input.
 - Repository-local append-only contracts for teams, agent membership, external deployment, channel membership, and deliberation participation.
 - Exact-summary-reviewed agent-context promotion, deterministic subject conflict handling, explicit successor handoff, verified-work accumulation, and bounded relevance/freshness/sensitivity-filtered Node injection.
 - A read-only multi-repository organization operating report, explicit central/project team-kind revision, distinct agent display identity, an owner-proxy CEO role with separate approval-bound computer use, and a fail-closed executive policy evaluator.
-- Product-host v7 organization-inspection routes and an installed exact-effect execution boundary with durable replay-safe repository-team, Discord channel, and Discord thread adapters.
+- Product-host v7 organization-inspection routes, removed with the protocol by ADR-0560, and an installed exact-effect execution boundary with durable replay-safe repository-team, Discord channel, and Discord thread adapters.
 - Bounded authoritative reconciliation of uncertain managed deliberations with managed user-visible completion or attention signals.
 
 The CLI can bind current hired agents and Discord deployments. An organization-configured Node fails closed on identity mismatch. These foundations do not complete the outcome.

@@ -31,13 +31,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/product-host-capabilities.ts",
-      "contentHash": "sha256:544b06b45ea239203a2b2247019ed4f9f02487db5a5da6f8f54a10c83e3a9022",
-      "responsibility": "Versioned product-host capability catalog composition",
-      "rationale": "The module owns the immutable v1 base route catalog and composes additive protocol upgrades. Version-specific v4 through v11 additions remain in dedicated modules; command parsing, product inspection, projection policy, and rendering are separate. Its length is declarative catalog data rather than mixed execution responsibility.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/hub-runtime/src/deployment.ts",
       "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",
@@ -91,13 +84,6 @@
       "contentHash": "sha256:8ba9c073a1883bf1e06e0370c3870d1d42d3bcbc0c2dda4653a43ee05fec1d8d",
       "responsibility": "Workforce role-binding migration lifecycle",
       "rationale": "Read-only planning, per-role approval binding, and atomic agent or assignment transitions are phases of one workforce migration lifecycle; role resolution, capability resolution, state storage, event schemas, and CLI presentation remain behind linked package boundaries.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/application-contract/src/product-host.ts",
-      "contentHash": "sha256:7f942f65fbe75a7dc80504b6db7df826bf2d0e8c10d66b141270aede31d9df6c",
-      "responsibility": "Additive product-host protocol type catalog",
-      "rationale": "The module declaratively owns backward-compatible capability-report, route, and result-contract types from v1 through v11. Runtime composition, command parsing, product projection, persistence, and rendering remain in separate modules; its length follows the explicit versioned compatibility history rather than mixed implementation concerns.",
       "disposition": "cohesive"
     },
     {
@@ -291,7 +277,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:13667d91a963ba01cbed5a6ea79593afc319532a8c0d49ce291dde1a36252e1e",
+      "contentHash": "sha256:b1f5757c21d5e0de2e244cb12236637a9550a48aadbe502688c654301c8438de",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
@@ -308,13 +294,6 @@
       "contentHash": "sha256:d73e3bb3f80a88155c7ff08baa343345d6e31cd32436c226cdb271ed30956f13",
       "responsibility": "Search quality and latency benchmark",
       "rationale": "Case validation, paired timing, quality aggregation, latency statistics, environment capture, and reporting form one reproducible benchmark protocol.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/distribution/lib/product-host-capability-consumer.mjs",
-      "contentHash": "sha256:98cc230df916d5103d67cb535bc077d703c3790f4af58a0422d34be5cee1faef",
-      "responsibility": "Packed CLI product-host capability conformance",
-      "rationale": "The module verifies one ordered, additive external-consumer protocol catalog from v1 through v11. It contains bounded expected descriptors only; repository journeys, product projection behavior, packaging, and release orchestration remain in separate scripts and focused tests.",
       "disposition": "cohesive"
     },
     {

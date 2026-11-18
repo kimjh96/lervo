@@ -53,5 +53,5 @@ CLI integration validates and projects both v2 event families. The packed extern
 
 - [Root-agent liveness](../orchestration/0371-observe-root-agent-liveness-without-process-authority.md)
 - [Managed provider process state](../orchestration/0372-observe-managed-provider-process-state-through-adapters.md)
-- [Operating liveness](../../../specifications/execution/operating-liveness.md)
-- [Product-host protocol](../../../specifications/execution/product-host-protocol.md)
+- Operating liveness specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
+- Product-host protocol specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

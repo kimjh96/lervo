@@ -1,7 +1,9 @@
 # ADR-0355: Expose a versioned packed product-host protocol
 
-- Status: accepted
+- Status: `superseded`
 - Decision date: 2026-09-03
+
+Superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -39,7 +41,7 @@ Separately installed products gain one machine-readable compatibility handshake 
 
 ## References
 
-- [Product-host protocol](../../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Governed loop and assignment graph](../../../roadmap/governed-loop-assignment-graph.md)
 - [Headless governed loop](../orchestration/governed-work/0336-adopt-headless-governed-loop-and-assignment-graph.md)
 - [Packed CLI consumer installation](../../../decisions/distribution/0088-packed-cli-consumer-installation.md)

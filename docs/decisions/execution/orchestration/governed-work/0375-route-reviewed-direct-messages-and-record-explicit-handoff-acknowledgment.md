@@ -32,5 +32,5 @@ The first installed message-to-handoff journey preserves review, route, acknowle
 - Reviewed direct-message trigger specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md); acknowledgment moved to [assignment interactions](../../../../specifications/execution/assignment-interactions.md)
 - [Assignment interactions](../../../../specifications/execution/assignment-interactions.md)
 - Assignment routine specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
-- [Product-host protocol](../../../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Product outcome convergence](../../../../roadmap/product-outcome-convergence.md)

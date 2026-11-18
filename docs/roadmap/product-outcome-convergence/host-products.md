@@ -6,8 +6,8 @@ Part of [Product outcome convergence](../product-outcome-convergence.md); its ba
 - [Unified operating view](host-products/operating-view.md): `delivery required`.
 - [Multi-team agent organization](host-products/agent-organization.md): `delivery required`.
 - [Discord remote continuation](host-products/discord.md): guild goal intake is `installed-proven`; result return and Mac-offline source handoff are `delivery required`.
-- [Product interfaces and host compatibility](host-products/host-boundary.md): first-party reference interface is `delivery required`; separately installed host boundary is `wired`.
+- [Product interfaces and host compatibility](host-products/host-boundary.md): first-party reference interface is `delivery required`.
 - [Dynamic execution graphs](host-products/execution-graphs.md): `wired`.
 - [Replaceable components](host-products/replaceability.md): `wired`.
 
-[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the reviewed local trigger, authenticated live trigger, and governed Slack delivery outcomes with their code.
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the reviewed local trigger, authenticated live trigger, and governed Slack delivery outcomes with their code. It also removed the separately installed host boundary, the product-host protocol.

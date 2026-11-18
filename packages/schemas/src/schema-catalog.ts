@@ -229,17 +229,6 @@ import {
 } from "./knowledge-event.js";
 import { projectManifestSchema } from "./project.js";
 import { projectIdentityMigratedEventPayloadSchema } from "./project-identity-migration.js";
-import { productActivityPageSchema } from "./product-activity-page.js";
-import {
-  productActivitySubscriptionHintSchema,
-  productActivitySubscriptionRequestSchema,
-} from "./product-activity-subscription.js";
-import { productDeliberationViewSchema } from "./product-deliberation-view.js";
-import {
-  productSteeringCommandSchema,
-  productSteeringResultSchema,
-} from "./product-steering-command.js";
-import { productUnifiedSearchResultSchema } from "./product-unified-search-result.js";
 import {
   policyApprovalRevocationSchema,
   policyApprovalSchema,
@@ -264,7 +253,6 @@ import { highRiskRoleWorkflowSchema } from "./high-risk-role-workflow.js";
 import { runCompletedEventPayloadSchema } from "./run-event.js";
 import { handoffBundleSchema, sharedContextPublicationSchema } from "./shared-context.js";
 import { statePrunedEventPayloadSchema } from "./state-pruned-event.js";
-import { surfaceObservabilityReportSchema } from "./surface-observability-report.js";
 import { skillManifestSchema } from "./skill.js";
 import { skillLockSchema } from "./skill-lock.js";
 import { traceReportSchema } from "./trace-report.js";
@@ -449,14 +437,6 @@ export const schemaCatalog = {
   knowledgeIntegrationTargetAbsorbedEventPayload:
     knowledgeIntegrationTargetAbsorbedEventPayloadSchema,
   conversationDeliveryReceipt: conversationDeliveryReceiptSchema,
-  productActivityPage: productActivityPageSchema,
-  productActivitySubscriptionRequest: productActivitySubscriptionRequestSchema,
-  productActivitySubscriptionHint: productActivitySubscriptionHintSchema,
-  productSteeringCommand: productSteeringCommandSchema,
-  productSteeringResult: productSteeringResultSchema,
-  productUnifiedSearchResult: productUnifiedSearchResultSchema,
-  surfaceObservabilityReport: surfaceObservabilityReportSchema,
-  productDeliberationView: productDeliberationViewSchema,
   deliberationPolicy: deliberationPolicySchema,
   deliberationWorkflowSource: deliberationWorkflowSourceSchema,
   deliberationArtifact: deliberationArtifactSchema,

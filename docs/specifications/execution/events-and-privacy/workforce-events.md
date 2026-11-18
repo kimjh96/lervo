@@ -16,7 +16,6 @@ Version-four background convergence assignments also support `assignment.converg
 - [Routine assignment provenance](workforce-events/routine-assignment-provenance.md)
 - [Conversation knowledge-job assignment provenance](workforce-events/knowledge-job-assignment-provenance.md)
 - [Handoff and acknowledgment](workforce-events/handoff-and-acknowledgment.md)
-- [Governed-loop projection](workforce-events/governed-loop-projection.md)
 - [Cancellation](workforce-events/cancellation.md)
 - [Completion preparation](workforce-events/completion-preparation.md)
 - [Completion reconciliation](workforce-events/completion-reconciliation.md)

@@ -21,10 +21,9 @@ import {
 } from "../../distribution/lib/mixed-event-reader-fixture.mjs";
 import { packCliArtifact } from "../../distribution/lib/packed-cli-artifact.mjs";
 import { parseSmokeTarballSource, smokeTarball } from "../lib/smoke-tarball-source.mjs";
-import { verifyPackedProductHostConsumer } from "../../distribution/lib/product-host-consumer.mjs";
+import { verifyPackedOperatingConsumer } from "../../distribution/lib/packed-operating-consumer.mjs";
 import { verifyInstalledCapabilityJourney } from "../../distribution/lib/installed-capability-journey.mjs";
 import { verifyInstalledCrossProviderContinuation } from "../../distribution/lib/installed-cross-provider-continuation.mjs";
-import { verifyInstalledUnattendedScheduler } from "../../distribution/lib/installed-unattended-scheduler.mjs";
 
 const cliManifestPath = resolve(repositoryRoot, "apps/cli/package.json");
 
@@ -237,7 +236,7 @@ async function verifyConsumerCommands(consumerRoot, expectedVersion, eventContra
     [1, 2],
   );
 
-  return verifyPackedProductHostConsumer(consumerRoot, (args, input) =>
+  return verifyPackedOperatingConsumer(consumerRoot, (args, input) =>
     runConsumerCli(consumerRoot, args, input),
   );
 }
@@ -261,7 +260,7 @@ async function main() {
     const nativeRuntime = await verifyInstalledClaudeNativeRuntime(consumerRoot);
     const eventContract = await importBuiltWorkspacePackage("event-contract");
     const capabilities = await importBuiltWorkspacePackage("capabilities");
-    const productHost = await verifyConsumerCommands(
+    const operating = await verifyConsumerCommands(
       consumerRoot,
       cliManifest.version,
       eventContract,
@@ -275,24 +274,18 @@ async function main() {
       consumerRoot,
       nativeRuntime.executable,
     );
-    const unattendedScheduler = await verifyInstalledUnattendedScheduler(consumerRoot);
     console.log(
       `Installed context quality verified: ${contextQuality.preparedEventId} / ${contextQuality.verifiedEventId}`,
     );
     console.log(`Claude native runtime verified: ${nativeRuntime.packageName}`);
     console.log(`Installed capability journey verified: ${capabilityJourney.runId}`);
     console.log(
-      unattendedScheduler.status === "passed"
-        ? `Installed unattended scheduler verified: ${unattendedScheduler.assignmentId}`
-        : `Installed unattended scheduler skipped: ${unattendedScheduler.reason}`,
-    );
-    console.log(
       continuation.status === "passed"
         ? `Installed cross-provider continuation verified: ${continuation.initialRunId} -> ${continuation.resumedRunId}`
         : `Installed cross-provider continuation skipped: ${continuation.reason}`,
     );
     console.log(
-      `Packed product-host protocol verified: v${productHost.protocolVersion} (${productHost.routeCount} routes; ${productHost.workforceRouteCount} workforce, ${productHost.operatingRouteCount} operating, ${productHost.collaborationRouteCount} collaboration)`,
+      `Packed operating journey verified: ${operating.assignmentId} handed off as ${operating.handoffId}`,
     );
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true });

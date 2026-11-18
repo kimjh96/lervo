@@ -149,9 +149,6 @@ importers:
       '@lervo/node-work-admission':
         specifier: workspace:*
         version: link:../../packages/node-work-admission
-      '@lervo/operating-client':
-        specifier: workspace:*
-        version: link:../operating-client
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
@@ -161,9 +158,6 @@ importers:
       '@lervo/organization-deployment-sqlite':
         specifier: workspace:*
         version: link:../../packages/organization-deployment-sqlite
-      '@lervo/product-surface-projection':
-        specifier: workspace:*
-        version: link:../../packages/product-surface-projection
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -591,12 +585,6 @@ importers:
       zod:
         specifier: 4.4.3
         version: 4.4.3
-
-  apps/operating-client:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../../packages/application-contract
 
   packages/adapter-claude:
     dependencies:
@@ -1464,21 +1452,6 @@ importers:
       '@lervo/sqlite-connection':
         specifier: workspace:*
         version: link:../sqlite-connection
-
-  packages/product-surface-projection:
-    dependencies:
-      '@lervo/agent-organization':
-        specifier: workspace:*
-        version: link:../agent-organization
-      '@lervo/deliberation':
-        specifier: workspace:*
-        version: link:../deliberation
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
 
   packages/project:
     dependencies:

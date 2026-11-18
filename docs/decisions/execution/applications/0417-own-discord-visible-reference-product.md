@@ -59,7 +59,7 @@ This decision authorizes no implementation, credentials, new external effects, o
 
 - [Product vision](../../../product/vision.md)
 - [System architecture](../../../architecture/system.md)
-- [Product-host protocol](../../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Product outcome convergence](../../../roadmap/product-outcome-convergence.md)
 - [Natural-language Discord conversation routing](../../coordination/conversations/0384-explicit-discord-read-and-continuation-modes.md)
 - [Product-default Lexical v2 surface convergence](../../search/engines/0413-close-product-default-lexical-v2-surface-gaps.md)

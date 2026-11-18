@@ -42,7 +42,7 @@ Existing dependencies cannot be edited, so reviewed additions cannot create back
 
 Planning is read-only. Under the shared assignment-graph materialization lock, Lervo rebuilds the current graph and role contracts, requires the exact plan and approval, and writes deterministic assignments initially as `blocked`.
 
-Only after every expected node exists with exact content and provenance does Lervo activate the set to `queued`. Existing scheduler and manual claim paths use ordinary DAG dependency eligibility. Topology code does not start providers or bypass leases, approvals, resource budgets, cancellation, verification, or completion reconciliation.
+Only after every expected node exists with exact content and provenance does Lervo activate the set to `queued`. Existing claim paths use ordinary DAG dependency eligibility. Topology code does not start providers or bypass leases, approvals, resource budgets, cancellation, verification, or completion reconciliation.
 
 Every assignment graph writer shares one materialization lock. The controller owns pure validation and planning; workforce persistence owns atomic assignment files and state transitions; the supervision runtime owns role resolution, event recording, and review binding.
 
@@ -75,5 +75,4 @@ Arbitrary rewiring, node deletion, unbounded graph growth, graph-authored provid
 ## References
 
 - [ADR-0380](../../decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md)
-- [Bounded unattended scheduling](unattended-scheduling.md)
 - [Dynamic execution graph outcome](../../roadmap/product-outcome-convergence/host-products/execution-graphs.md)

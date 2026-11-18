@@ -12,7 +12,7 @@ User content changes only through explicit content-bound operations. Managed blo
 
 Repository assignments bind role, dependency, acceptance, verification, approval, workstream, and path coordinates. Short atomic leases serialize overlapping scopes. Disjoint root agents and subagents share one lease and handoff contract. Managed execution revalidates lease, provider, role, path, and suite authority before provider creation. Generation-bound expiry permits recovery but never proves former external work stopped.
 
-Assignment interactions have a separate specification. The governed loops specification defines bounded continuation.
+Assignment interactions have a separate specification. Outcome supervision defines accountable continuation.
 
 ## Verification
 

@@ -3,9 +3,7 @@ import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { verifyPackedProductHostCapabilities } from "./product-host-capability-consumer.mjs";
-import { verifyPackedProductHostHandoffJourney } from "./product-host-handoff-consumer.mjs";
-import { verifyPackedProductHostSurfaces } from "./product-host-surface-consumer.mjs";
+import { verifyPackedHandoffJourney } from "./packed-handoff-consumer.mjs";
 
 function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -16,9 +14,7 @@ function parsed(result) {
   return JSON.parse(result.stdout);
 }
 
-export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
-  const capabilities = await verifyPackedProductHostCapabilities(runCli);
-
+export async function verifyPackedOperatingConsumer(consumerRoot, runCli) {
   const initialAgents = parsed(await runCli(["agent", "list", "--json"]));
   assert.equal(initialAgents.schemaVersion, 1);
   assert.deepEqual(initialAgents.agents, []);
@@ -31,7 +27,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
       "--provider",
       "any",
       "--scope",
-      "product-host-fixture.txt",
+      "operating-fixture.txt",
       "--write",
       "--json",
     ]),
@@ -47,7 +43,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
       "--provider",
       "any",
       "--scope",
-      "product-host-fixture.txt",
+      "operating-fixture.txt",
       "--write",
       "--json",
     ]),
@@ -57,9 +53,9 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   const draft = {
     schemaVersion: 1,
     status: "active",
-    title: "Packed product-host acceptance",
-    objective: "Prove operating and collaboration routes through the installed CLI only.",
-    nextActions: ["Inspect the external product-host projection."],
+    title: "Packed operating acceptance",
+    objective: "Prove workforce, attention, and handoff commands through the installed CLI only.",
+    nextActions: ["Inspect the operating attention report."],
     blockers: [],
     notes: ["The fixture grants no provider, Hub, or connector authority."],
     references: [],
@@ -67,7 +63,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
     pendingApprovals: [],
     updatedAt: "2026-09-03T00:00:00.000Z",
   };
-  const draftPath = resolve(consumerRoot, "product-host-workstream.json");
+  const draftPath = resolve(consumerRoot, "operating-workstream.json");
   await writeFile(draftPath, `${JSON.stringify(draft)}\n`, "utf8");
   const startPlan = parsed(await runCli(["workstream", "start", "--from", draftPath, "--json"]));
   assert.equal(startPlan.status, "ready");
@@ -89,7 +85,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   // cross-platform hook failure leaves bounded diagnostic evidence instead
   // of collapsing to an indistinguishable empty hook response.
   const eventEvidence = parsed(await runCli(["event-contract", "evidence", "--json"]));
-  const eventEvidencePath = resolve(consumerRoot, "product-host-event-reader-evidence.json");
+  const eventEvidencePath = resolve(consumerRoot, "operating-event-reader-evidence.json");
   await writeFile(eventEvidencePath, `${JSON.stringify(eventEvidence)}\n`, "utf8");
   const eventActivationPlan = parsed(
     await runCli(["event-contract", "activate", "--from", eventEvidencePath, "--json"]),
@@ -119,24 +115,12 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
       "--provider",
       "codex",
       "--session",
-      "ses_packed_product_host_01",
+      "ses_packed_operating_01",
       "--write",
       "--json",
     ]),
   );
   assert.equal(heartbeat.status, "recorded");
-  const liveness = parsed(await runCli(["application", "liveness", "--json"]));
-  assert.equal(liveness.kind, "operating_liveness.report");
-  assert.equal(liveness.rootAgents.items.length, 2);
-  const observedAgent = liveness.rootAgents.items.find((item) => item.agentId === agentId);
-  const unobservedRecipient = liveness.rootAgents.items.find(
-    (item) => item.agentId === recipient.agentId,
-  );
-  assert.equal(observedAgent.status, "recently_observed");
-  assert.equal(observedAgent.provesManagedProcessHealth, false);
-  assert.equal(unobservedRecipient.status, "unobserved");
-  assert.deepEqual(liveness.managedProviderProcesses.items, []);
-  assert.equal(liveness.authority.startsOrStopsProvider, false);
 
   const providerSessionId = "packed-canonicalization-session";
   const prepared = parsed(
@@ -146,7 +130,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
         hook_event_name: "UserPromptSubmit",
         session_id: providerSessionId,
         turn_id: "packed-canonicalization-turn",
-        prompt: "Record the durable outcome for the product-host fixture.",
+        prompt: "Record the durable outcome for the operating fixture.",
       }),
     ),
   );
@@ -171,12 +155,12 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   )?.[1];
   assert.match(observationId, /^tobs_[A-Za-z0-9_-]+$/u);
   await writeFile(
-    resolve(consumerRoot, "product-host-fixture.ts"),
+    resolve(consumerRoot, "operating-fixture.ts"),
     "export const packedCanonicalization = true;\n",
     "utf8",
   );
   const proposedMarkdown =
-    "# Product-host fixture\n\nThe packed canonicalization fixture is enabled.\n";
+    "# Operating fixture\n\nThe packed canonicalization fixture is enabled.\n";
   const declaration = parsed(
     await runCli(
       [
@@ -198,8 +182,8 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
           summary: "The packed fixture proposes a durable specification update.",
           drafts: [
             {
-              targetPath: "docs/specs/product-host-fixture.md",
-              sourcePaths: ["product-host-fixture.ts"],
+              targetPath: "docs/specs/operating-fixture.md",
+              sourcePaths: ["operating-fixture.ts"],
               proposedMarkdown,
               proposedContentHash: sha256(proposedMarkdown),
             },
@@ -216,8 +200,8 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   const canonicalizationCandidate = declaration.canonicalizationAssessment.candidate;
   assert.equal(canonicalizationCandidate.outcome.kind, "review_draft");
   assert.deepEqual(canonicalizationCandidate.outcome.drafts[0], {
-    targetPath: "docs/specs/product-host-fixture.md",
-    sourcePaths: ["product-host-fixture.ts"],
+    targetPath: "docs/specs/operating-fixture.md",
+    sourcePaths: ["operating-fixture.ts"],
     proposedMarkdown,
     proposedContentHash: sha256(proposedMarkdown),
   });
@@ -237,15 +221,15 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
       "assignment",
       "create",
       "--type",
-      "product_host_acceptance",
+      "operating_acceptance",
       "--role",
       "developer",
       "--criteria",
-      "Expose the canonical assignment through the product-host projection.",
+      "Hand off the canonical assignment between hired agents.",
       "--suite",
       "project.quick",
       "--path",
-      "product-host-fixture.txt",
+      "operating-fixture.txt",
       "--workstream",
       workstream.workstreamId,
       "--write",
@@ -258,25 +242,6 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
     assignments.assignments.map((item) => item.assignmentId),
     [assignment.assignmentId],
   );
-
-  const objective = parsed(await runCli(["loop", "objective", "--json"]));
-  assert.equal(objective.workstreamId, workstream.workstreamId);
-  assert.equal(objective.objective, draft.objective);
-  const goal = parsed(await runCli(["loop", "goal", "--json"]));
-  assert.equal(goal.kind, "operating_goal.report");
-  assert.equal(goal.goal.goalId, workstream.workstreamId);
-  assert.equal(goal.hierarchy.kind, "workstream_assignment_dag");
-  assert.deepEqual(
-    goal.hierarchy.graph.nodes.map((node) => node.assignmentId),
-    [assignment.assignmentId],
-  );
-  assert.equal(goal.completion.status, "active");
-  assert.deepEqual(goal.authority, {
-    createsGoal: false,
-    changesWorkstream: false,
-    changesAssignments: false,
-    startsProvider: false,
-  });
 
   const attention = parsed(await runCli(["application", "attention", "--json"]));
   assert.equal(attention.schemaVersion, 1);
@@ -306,7 +271,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   );
   await mkdir(resolve(consumerRoot, "docs/specs"), { recursive: true });
   await writeFile(
-    resolve(consumerRoot, "docs/specs/product-host-fixture.md"),
+    resolve(consumerRoot, "docs/specs/operating-fixture.md"),
     proposedMarkdown,
     "utf8",
   );
@@ -317,7 +282,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
       "promote",
       canonicalizationCandidate.candidateId,
       "--target",
-      "docs/specs/product-host-fixture.md",
+      "docs/specs/operating-fixture.md",
       "--target-hash",
       sha256(proposedMarkdown),
       "--reviewer",
@@ -328,7 +293,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
     ]),
   );
   assert.equal(promotedCandidate.observedState, "promoted");
-  assert.equal(promotedCandidate.promotion.targetPath, "docs/specs/product-host-fixture.md");
+  assert.equal(promotedCandidate.promotion.targetPath, "docs/specs/operating-fixture.md");
   const attentionAfterPromotion = parsed(await runCli(["application", "attention", "--json"]));
   assert.equal(
     attentionAfterPromotion.items.some(
@@ -337,38 +302,7 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
     false,
   );
 
-  const governedWork = parsed(await runCli(["loop", "status", "--json"]));
-  assert.equal(governedWork.workstreamId, workstream.workstreamId);
-  assert.deepEqual(
-    governedWork.graph.nodes.map((node) => node.assignmentId),
-    [assignment.assignmentId],
-  );
-  assert.equal(governedWork.decision.status, "ready");
-  assert.equal(governedWork.decision.actions[0].kind, "claim_assignment");
-
-  const budgets = parsed(await runCli(["loop", "budget", "--json"]));
-  assert.deepEqual(budgets, []);
-
-  const thread = parsed(
-    await runCli(["loop", "thread", "--assignment", assignment.assignmentId, "--json"]),
-  );
-  assert.equal(thread.validity.status, "valid");
-  assert.equal(thread.threads[0].assignmentId, assignment.assignmentId);
-  assert.deepEqual(thread.threads[0].routes, []);
-
-  const inbox = parsed(await runCli(["loop", "inbox", "--agent", agentId, "--json"]));
-  assert.equal(inbox.validity.status, "valid");
-  assert.deepEqual(inbox.inbox, []);
-
-  const board = await runCli(["loop", "board"]);
-  assert.equal(board.stderr, "");
-  assert.match(board.stdout, /^<!doctype html>/u);
-  assert.equal(board.stdout.includes("Projection, not authority"), true);
-  assert.equal(board.stdout.includes(assignment.assignmentId), true);
-
-  await verifyPackedProductHostSurfaces(runCli, consumerRoot, workstream.projectId);
-
-  await verifyPackedProductHostHandoffJourney({
+  const handoffId = await verifyPackedHandoffJourney({
     runCli,
     assignmentId: assignment.assignmentId,
     sourceAgentId: agentId,
@@ -376,11 +310,8 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
   });
 
   return {
-    protocolVersion: capabilities.protocol.version,
-    routeCount: capabilities.routes.length,
-    workforceRouteCount: capabilities.routes.filter((route) => route.area === "workforce").length,
-    operatingRouteCount: capabilities.routes.filter((route) => route.area === "operating").length,
-    collaborationRouteCount: capabilities.routes.filter((route) => route.area === "collaboration")
-      .length,
+    workstreamId: workstream.workstreamId,
+    assignmentId: assignment.assignmentId,
+    handoffId,
   };
 }

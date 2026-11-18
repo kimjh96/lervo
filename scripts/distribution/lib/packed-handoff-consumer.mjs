@@ -10,7 +10,7 @@ function parsed(result) {
   return JSON.parse(result.stdout);
 }
 
-export async function verifyPackedProductHostHandoffJourney(input) {
+export async function verifyPackedHandoffJourney(input) {
   const claimed = parsed(
     await input.runCli([
       "assignment",
@@ -38,9 +38,9 @@ export async function verifyPackedProductHostHandoffJourney(input) {
       "--lease",
       claimed.lease.leaseId,
       "--request-digest",
-      sha256("packed product-host handoff request"),
+      sha256("packed handoff request"),
       "--artifact",
-      `art_packed_handoff_01=${sha256("packed product-host handoff artifact")}`,
+      `art_packed_handoff_01=${sha256("packed handoff artifact")}`,
       "--write",
       "--json",
     ]),
@@ -64,17 +64,5 @@ export async function verifyPackedProductHostHandoffJourney(input) {
   );
   assert.equal(acknowledged.handoff.toAgentId, input.recipientAgentId);
   assert.match(acknowledged.handoff.acknowledgedAt, /^\d{4}-\d{2}-\d{2}T/u);
-  const thread = parsed(
-    await input.runCli([
-      "loop",
-      "thread",
-      "--contract",
-      "2",
-      "--assignment",
-      input.assignmentId,
-      "--json",
-    ]),
-  );
-  assert.equal(thread.threads[0].routes[0].deliveryState, "unobserved");
-  assert.equal(thread.threads[0].routes[0].acknowledgementState, "recorded");
+  return handoffId;
 }

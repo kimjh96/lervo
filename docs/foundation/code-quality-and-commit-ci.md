@@ -39,7 +39,6 @@ The phase-zero audit found 104 workspace packages and 17 missing root aliases. A
 | `organization-credential-source-file` | Source; credential file adapter.                                             |
 | `organization-deployment-contract`    | Source; deployment and credential contracts.                                 |
 | `organization-deployment-sqlite`      | Source; deployment storage adapter.                                          |
-| `product-surface-projection`          | Source; product projections.                                                 |
 | `request-grounding`                   | Source; request grounding contracts.                                         |
 | `cli`                                 | Built executable or packed files; no library export or source index.         |
 | `node-runtime-dependencies`           | Distribution dependency manifest; no source or runtime export.               |

@@ -2,22 +2,14 @@ export * from "./supervised-assignment-amendment.js";
 export { repositoryPathWithinScope, repositoryPathScopesOverlap } from "./repository-path-scope.js";
 export * from "./attempt-projection.js";
 export { selectWorkstreamCausalRuns } from "./workstream-causal-scope.js";
-export * from "./assignment-attempt-decision.js";
-export * from "./assignment-communication-projection.js";
 export * from "./assignment-topology-plan.js";
 export { assignmentTopologyDigest } from "./assignment-topology-validation.js";
-export * from "./approval-observations.js";
 export * from "./completion-evidence-projection.js";
-export * from "./governed-loop-decision.js";
-export * from "./governed-attempt-command.js";
-export * from "./governed-completion-reconciliation-command.js";
 export * from "./graph-projection.js";
 export * from "./graph-projection-v2.js";
 export * from "./topology-history-projection.js";
-export * from "./managed-execution-budget.js";
 export * from "./managed-resource-projection.js";
 export * from "./managed-stage-projection.js";
-export * from "./operating-goal-projection.js";
 export {
   observeOperatingWorkScope,
   operatingWorkScopeEventTypes,
@@ -26,8 +18,6 @@ export {
 export * from "./organization-operating-report.js";
 export * from "./ceo-policy.js";
 export * from "./ceo-execution.js";
-export * from "./report.js";
-export * from "./unattended-scheduler-selection.js";
 export {
   assertOperatingMandate,
   assertOperatingActionPlan,

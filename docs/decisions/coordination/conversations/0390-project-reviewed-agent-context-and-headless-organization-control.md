@@ -48,4 +48,4 @@ The CEO decision is not an autonomous external-effect executor. Discord applicat
 - [Organization teams and durable hired-agent identities](0386-organization-teams-and-agent-identities.md)
 - [Single managed conversation turn](0389-single-managed-conversation-turn.md)
 - [Agent organization](../../../architecture/system/agent-organization.md)
-- [Product-host protocol](../../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

@@ -43,17 +43,14 @@ Acceptance records and boundaries:
 
 ## References
 
-- [Managed execution resource budgets v1](../evidence/foundation/managed-execution-resource-budgets-v1.md)
 - [Product positioning and verified improvement](../research/lervo-product-positioning-and-verified-improvement.md)
 - [Agent platform and evolution](../research/lervo-agent-platform-evolution.md)
 - [Foundation hardening](foundation-hardening.md)
 - [Governed loop and assignment graph](governed-loop-assignment-graph.md)
-- [Product-host protocol](../specifications/execution/product-host-protocol.md)
 - [Repository knowledge lifecycle convergence](../specs/repository-knowledge-lifecycle-convergence.md)
 - [Availability-safe unmanaged terminal hooks](../decisions/execution/providers/hooks/0327-availability-safe-unmanaged-terminal-hooks.md)
 - [Terminal observation strengthening v1](../evidence/foundation/terminal-observation-strengthening-v1.md)
 - [Installed natural-language capability journey v1](../evidence/foundation/installed-natural-language-capability-journey-v1.md)
 - [Installed fresh-session cross-provider continuation v1](../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md)
 - [Evidence-bound agent-profile candidates v1](../evidence/foundation/evidence-bound-agent-profile-candidates-v1.md)
-- [Installed bounded unattended scheduler v1](../evidence/foundation/installed-bounded-unattended-scheduler-v1.md)
 - [Installed bounded dynamic execution graph v2](../evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md)

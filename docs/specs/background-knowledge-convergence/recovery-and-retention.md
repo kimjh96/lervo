@@ -14,8 +14,6 @@ The recovery and retention contract covers:
 
 When native filesystem notifications are silent, local source subscriptions compare a disposable metadata fingerprint every sixty seconds. A changed fingerprint emits only a hint; authoritative source capture and admission still precede effects. The [replica subscription contract](../../specifications/coordination/node-change-driven-work/repository-replicas.md) defines bounded inputs and shutdown behavior.
 
-The [unattended scheduler](../../specifications/coordination/node-change-driven-work/conversation-scheduling.md) probes the exact kill-switch path once per second only during an active wait. An existing entry or unexpected inspection failure wakes the authoritative scheduler check; absence does not. Completion and shutdown clear the deadline and probe timer. This safety probe neither scans repositories nor creates ordinary work.
-
 ## Verification
 
 Focused regressions cover:

@@ -171,33 +171,6 @@ describe("root-agent liveness CLI", () => {
       releasesAgentAuthority: false,
       provesManagedProcessHealth: false,
     });
-
-    const operatingOutput: string[] = [];
-    expect(
-      await runCli(
-        ["application", "liveness", "--root", root, "--json"],
-        io(root, operatingOutput),
-      ),
-    ).toBe(0);
-    const operating = JSON.parse(operatingOutput.join(""));
-    expect(operating.rootAgents.items).toEqual([
-      expect.objectContaining({
-        agentId: agent.agentId,
-        status: "recently_observed",
-        provesManagedProcessHealth: false,
-      }),
-    ]);
-    expect(operating.managedProviderProcesses.items).toEqual([
-      expect.objectContaining({
-        adapterId: "claude-agent-sdk",
-        status: "unobservable",
-        evidence: "transport_state_unavailable",
-        continuity: "point_in_time_only",
-        releasesAgentAuthority: false,
-        releasesAssignmentAuthority: false,
-      }),
-    ]);
-    expect(operating.authority.startsOrStopsProvider).toBe(false);
   });
 
   it("rejects a stale root revision without appending a liveness event", async () => {

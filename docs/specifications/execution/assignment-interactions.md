@@ -1,21 +1,17 @@
-# Assignment interactions, acknowledgment, and inboxes
+# Assignment interactions and acknowledgment
 
 Status: `active`
 As of: 2026-11-02
 
 ## Scope
 
-This specification defines explicit handoff acknowledgment and rebuildable thread and inbox reports. It adds no chat database, task store, provider invocation, external delivery, or approval authority. The current workforce assignment, `assignment.handoff.recorded`, and explicit `assignment.handoff.acknowledged` remain canonical.
+This specification defines handoff recording and explicit handoff acknowledgment. It adds no chat database, task store, provider invocation, external delivery, or approval authority. The current workforce assignment, `assignment.handoff.recorded`, and explicit `assignment.handoff.acknowledged` remain canonical.
 
 `lervo assignment handoff` records a handoff through the workforce transition, which validates both role contracts, the source lease, recipient role policy, state revision, and state/event commit boundary. `assignment.handoff.recorded` is route-success evidence. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the mention-route, reviewed direct-message trigger, and connector delivery entrypoints. Stored handoffs that carry their trigger provenance stay readable.
 
-## Thread and inbox projection
+## Removed thread and inbox projection
 
-`@lervo/application-contract` owns the storage-free query and report. `@lervo/work-controller` projects one deterministic thread per selected current-workstream assignment and one inbox item per recorded recipient handoff. It validates duplicate assignments and handoffs and missing agent coordinates. Unknown requested assignments or recipients are invalid, not successful empty results.
-
-Both contract versions expose assignment, thread, handoff, sender, recipient, request digest, artifact and context-event coordinates, artifact count, and route time. Bodies are never loaded. Contract v1 preserves its original `recorded` route and `unobserved` delivery and acknowledgment shape. Contract v2 additively exposes optional stored trigger provenance, acknowledgment time, and `recorded` acknowledgment only when the recipient-coordinate transition committed. A renderer cannot upgrade either state without its own exact evidence contract.
-
-`lervo loop thread` and `lervo loop inbox` are read-only and default to contract v1; `--contract 2` selects the additive evidence. The local operating board intentionally composes v1 and has no mutation control.
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) also removed the assignment thread and inbox projection, `lervo loop thread`, `lervo loop inbox`, and the local operating board. They had no production invoker. Handoff and acknowledgment state and events stay canonical and readable.
 
 ## Explicit acknowledgment
 
@@ -27,13 +23,13 @@ Acknowledgment proves only that the exact recipient-agent coordinate was explici
 
 ## Privacy and failure meaning
 
-Reports and events exclude message, task, and acceptance bodies; repository paths; prompts; provider output; reasoning; credentials; actor prose; and reversible external platform identifiers. Message or request material remains in separately governed content-addressed artifacts.
+Events exclude message, task, and acceptance bodies; repository paths; prompts; provider output; reasoning; credentials; actor prose; and reversible external platform identifiers. Message or request material remains in separately governed content-addressed artifacts.
 
 Route recording proves only that the handoff state and event committed. A failed transition records no route. Missing delivery or acknowledgment evidence remains unobserved, never success, failure, zero, or negative acknowledgment.
 
 ## Required verification
 
-Focused tests cover recipient-coordinate acknowledgment, event rollback, and privacy allowlists; content-free deterministic projection; unknown-coordinate invalidation; read-only CLI inspection; escaped self-contained board rendering; and no delivery or acknowledgment inference.
+Focused tests cover recipient-coordinate acknowledgment, event rollback, privacy allowlists, and no delivery or acknowledgment inference.
 
 ## References
 

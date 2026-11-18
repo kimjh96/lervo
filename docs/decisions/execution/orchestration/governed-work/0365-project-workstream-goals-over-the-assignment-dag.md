@@ -36,6 +36,6 @@ Supporting multiple independent root goals or unattended continuation requires a
 
 ## References
 
-- [Operating goals](../../../../specifications/execution/operating-goals.md)
+- Operating goal specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Headless governed loop](0336-adopt-headless-governed-loop-and-assignment-graph.md)
 - [Current objective](0341-project-current-objective-and-observed-token-budgets.md)

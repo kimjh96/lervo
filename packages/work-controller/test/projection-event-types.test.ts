@@ -1,13 +1,12 @@
-import { normalizeGovernedLoopPolicy } from "@lervo/application-contract";
 import { eventTypes, type EventEnvelope } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
   assignmentTopologyDigest,
+  completionEvidenceEventTypes,
   completionEvidenceId,
-  governedWorkReportEventTypes,
   managedAttemptEventTypes,
-  projectGovernedWorkReport,
+  projectCompletionEvidence,
   projectManagedAttempts,
   projectWorkGraphV2,
   workGraphV2EventTypes,
@@ -205,34 +204,34 @@ function withUndeclaredNoise(
   return [...history, ...noise];
 }
 
-const query = {
-  schemaVersion: 1 as const,
-  kind: "governed_work.inspect" as const,
-  projectId,
-  workstreamId,
-  observedAt: "2026-09-01T01:00:00.000Z",
-  policy: normalizeGovernedLoopPolicy(),
-};
+const observedAt = "2026-09-01T01:00:00.000Z";
 
 describe("projection event-type declarations", () => {
-  it("lets a typed read of the declared governed-work types replace the whole history", () => {
+  it("lets a typed read of the declared attempt and completion types replace the whole history", () => {
+    const declared = [...new Set([...managedAttemptEventTypes, ...completionEvidenceEventTypes])];
+    const project = (events: readonly EventEnvelope[]) => {
+      const projection = projectManagedAttempts({ events, workstreamId });
+      return {
+        projection,
+        completionEvidence: projectCompletionEvidence({
+          events,
+          attempts: projection.attempts,
+          workstreamId,
+        }),
+      };
+    };
     const history = consumedHistory();
-    const expected = projectGovernedWorkReport({ query, assignments: [node], events: history });
-    expect(expected.attempts.map((attempt) => attempt.terminalStatus)).toEqual([
+    const expected = project(history);
+    expect(expected.projection.attempts.map((attempt) => attempt.terminalStatus)).toEqual([
       "failed",
       "completed",
     ]);
     expect(expected.completionEvidence).toHaveLength(1);
-    expect(expected.stages).toHaveLength(1);
+    expect(expected.projection.stages).toHaveLength(1);
 
-    const whole = withUndeclaredNoise(history, governedWorkReportEventTypes);
-    const typed = whole.filter((item) => governedWorkReportEventTypes.includes(item.type));
-    expect(projectGovernedWorkReport({ query, assignments: [node], events: whole })).toEqual(
-      expected,
-    );
-    expect(projectGovernedWorkReport({ query, assignments: [node], events: typed })).toEqual(
-      expected,
-    );
+    const whole = withUndeclaredNoise(history, declared);
+    expect(project(whole)).toEqual(expected);
+    expect(project(whole.filter((item) => declared.includes(item.type)))).toEqual(expected);
   });
 
   it("keeps pre-start resource receipts and their fail-closed evidence under a typed read", () => {
@@ -293,7 +292,7 @@ describe("projection event-type declarations", () => {
           assignments: [node],
           attempts: attempts.attempts,
           events,
-          observedAt: query.observedAt,
+          observedAt,
         }),
       };
     };

@@ -68,40 +68,10 @@ import type {
   OrganizationNodeRollbackDeliveryReceipt,
   OrganizationNodeRollbackRecoveryReceipt,
   SignedOrganizationNodeRollbackDelivery,
-  ProductActivityPageV1,
-  ProductActivitySubscriptionHintV1,
-  ProductDeliberationViewV1,
-  ProductSteeringCommandV1,
-  ProductUnifiedSearchResultV1,
-  SurfaceObservabilityReportV1,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
 describe("schema-derived TypeScript contracts", () => {
-  it("keeps product surfaces source-bound and explicit about unavailable evidence", () => {
-    expectTypeOf<ProductActivityPageV1["items"][number]["sourceCoordinates"]>().toEqualTypeOf<
-      string[]
-    >();
-    expectTypeOf<ProductUnifiedSearchResultV1["groups"][number]["status"]>().toEqualTypeOf<
-      "complete" | "partial" | "unavailable" | "invalid"
-    >();
-    expectTypeOf<
-      SurfaceObservabilityReportV1["resources"]["groups"][number]["usage"]
-    >().toMatchTypeOf<object | null>();
-    expectTypeOf<ProductDeliberationViewV1["participants"][number]["disposition"]>().toEqualTypeOf<
-      "hired_agent" | "policy_only"
-    >();
-  });
-
-  it("keeps steering domain-routed and subscription hints body-free", () => {
-    expectTypeOf<ProductSteeringCommandV1["action"]>().toEqualTypeOf<
-      "amend" | "pause" | "resume" | "cancel" | "approve" | "retry" | "reassign" | "handoff"
-    >();
-    expectTypeOf<ProductActivitySubscriptionHintV1["status"]>().toEqualTypeOf<
-      "changed" | "heartbeat" | "resync_required" | "closed"
-    >();
-  });
-
   it("keeps event-reader advertisement separate from writer authority", () => {
     expectTypeOf<
       EventReaderCapabilities["readableEventSchemaVersions"][number]

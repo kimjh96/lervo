@@ -26,9 +26,6 @@ export default defineConfig({
       "@lervo/organization-deployment-sqlite": fromRoot(
         "./packages/organization-deployment-sqlite/src/index.ts",
       ),
-      "@lervo/product-surface-projection": fromRoot(
-        "./packages/product-surface-projection/src/index.ts",
-      ),
       "@lervo/request-grounding": fromRoot("./packages/request-grounding/src/index.ts"),
       "@lervo/agent-workforce": fromRoot("./packages/agent-workforce/src/index.ts"),
       "@lervo/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),
@@ -79,7 +76,6 @@ export default defineConfig({
       "@lervo/managed-provider-host": fromRoot("./packages/managed-provider-host/src/index.ts"),
       "@lervo/node-runtime": fromRoot("./apps/node-runtime/src/index.ts"),
       "@lervo/orchestrator": fromRoot("./packages/orchestrator/src/index.ts"),
-      "@lervo/operating-client": fromRoot("./apps/operating-client/src/index.ts"),
       "@lervo/policy": fromRoot("./packages/policy/src/index.ts"),
       "@lervo/policy-contract": fromRoot("./packages/policy-contract/src/index.ts"),
       "@lervo/policy-sqlite": fromRoot("./packages/policy-sqlite/src/index.ts"),

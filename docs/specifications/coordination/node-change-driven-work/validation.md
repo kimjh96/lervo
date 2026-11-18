@@ -11,7 +11,6 @@
 | Repository conversation signals | Committed event-head hint | Lost notification and bounded backlog processing |
 | Conversation retry/delivery and deliberation | Queue/WAL hint or next eligible deadline | Lease expiry, uncertainty recovery, failed work, missed notification |
 | Supervision request admission | Owner-lease SQLite/WAL hint | Missed notification within the bounded admission deadline |
-| Explicit unattended scheduler | Event/WAL or kill-switch change | Bounded recovery and failure delay |
 | Workstream integrity | Full validation at startup and scheduled audit | Required integrity revalidation, distributed over 45–60 seconds |
 | Discord Gateway, typing, worker leases | Existing socket or active work lifecycle | Protocol heartbeat, typing expiry, ownership renewal |
 
