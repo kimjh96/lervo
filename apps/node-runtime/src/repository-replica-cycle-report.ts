@@ -77,6 +77,8 @@ export class RepositoryReplicaCycleReporter {
         `Repository replica ${result.replicaId} recovered after ${streak.count} failed cycle(s).`,
       );
     }
+    // ADR-0561: the coordinator logs an owner hold once itself; it is neither health nor a failure.
+    if (result.status === "held") return lines;
     if (result.status === "divergent") {
       this.health.set(result.replicaId, {
         status: "divergent",

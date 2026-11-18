@@ -215,10 +215,19 @@ export async function runRepositoryReplicaCoordinator(
         heldReported.add(repository.replicaId);
         return "held";
       }
-      heldReported.delete(repository.replicaId);
       let outcome: ReplicaReconcileOutcome;
       try {
         const result = await coordinator.reconcile({ ...repository, trigger });
+        // ADR-0561: a hold on the peer's host stops the replica the same way as one here.
+        if (result.status === "held") {
+          if (!heldReported.has(repository.replicaId))
+            ports.stdout(
+              `Repository replica ${repository.replicaId} is held by the owner on the ${result.heldSides.join(" and ")} host; nothing is transferred until lervo repository release runs there.\n`,
+            );
+          heldReported.add(repository.replicaId);
+          return "held";
+        }
+        heldReported.delete(repository.replicaId);
         if (result.status === "divergent") unhealthy = true;
         outcome = replicaCycleOutcome(result);
         emit(reporter.observeResult(result));

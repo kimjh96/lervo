@@ -2,6 +2,7 @@ import {
   applyCommittedKnowledgeEffect,
   knowledgeEffectPreflight,
   knowledgeEffectUndoCommand,
+  KnowledgeEffectOwnerHoldError,
   KnowledgeEffectUncommittedError,
   type KnowledgeCommitResult,
   type KnowledgeEffectNotice,
@@ -9,6 +10,15 @@ import {
 
 import { CommandFailure } from "./command-error-output.js";
 import type { CrossCheckPlan, PlanCrossCheckVerdict } from "./plan-cross-check.js";
+
+/** ADR-0561: the owner holds the repository; an owner command applies nothing either. */
+function ownerHoldFailure(planId: string): CommandFailure {
+  return new CommandFailure(
+    "repository_owner_hold",
+    `Plan ${planId} was not applied, because the owner holds this repository; lervo repository release --root <repository> ends the hold.`,
+    { planId },
+  );
+}
 
 export interface CrossCheckedEffectReport {
   crossCheck: PlanCrossCheckVerdict;
@@ -41,6 +51,7 @@ export async function applyCrossCheckedEffect<T>(input: {
     input.repositoryRoot,
     input.paths.filter((path) => !preserved.has(path)),
   );
+  if (hold?.reason === "owner_hold") throw ownerHoldFailure(input.notice.planId);
   if (hold?.reason === "commit_unavailable")
     throw new CommandFailure(
       "knowledge_effect_commit_unavailable",
@@ -71,6 +82,7 @@ export async function applyCrossCheckedEffect<T>(input: {
     notice: { ...input.notice, crossCheck: `${crossCheck.reviewer} agreed` },
     apply: () => input.apply(crossCheck),
   }).catch((error: unknown) => {
+    if (error instanceof KnowledgeEffectOwnerHoldError) throw ownerHoldFailure(input.notice.planId);
     if (error instanceof KnowledgeEffectUncommittedError)
       throw new CommandFailure("knowledge_effect_commit_failed", error.message, {
         planId: input.notice.planId,

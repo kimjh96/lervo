@@ -11,6 +11,7 @@ import type {
   RepositoryReplicaPeerPort,
   RepositoryReplicaReceipt,
 } from "./repository-replica-coordinator.js";
+import type { RepositoryReplicaSideSnapshot } from "./repository-replica-peer-port.js";
 import {
   RepositoryReplicaPeerError,
   RepositoryReplicaStageError,
@@ -224,11 +225,18 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     }
   }
 
-  async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot> {
+  /**
+   * The peer's snapshot and its own host's owner hold (ADR-0561). A peer runtime that predates
+   * the hold reports none, and the coordinator then counts the peer as held.
+   */
+  async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSideSnapshot> {
     const output = await this.execute(["snapshot", "--root", repositoryRoot]);
-    const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
+    const snapshot = JSON.parse(
+      Buffer.from(output).toString("utf8"),
+    ) as RepositoryReplicaSideSnapshot;
     assertRepositoryReplicaSnapshot(snapshot);
-    return snapshot;
+    const { ownerHold, ...observed } = snapshot;
+    return { ...observed, ...(typeof ownerHold === "boolean" ? { ownerHold } : {}) };
   }
 
   bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array> {

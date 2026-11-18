@@ -17,7 +17,7 @@ Uncommitted work from both sides merges through worktree export commits and rema
 
 A missing backup port, including a peer runtime that predates the `backup` action, a failed backup, a disagreeing check, or an unrecorded notice changes nothing. The cycle stays `divergent` with `heldReason` `backup_unavailable`, `stronger_check_disagreement`, or `notice_unavailable`, and the open divergence is Lervo's own debt. The next cycle tries again.
 
-The undo runs on the coordinator host. It first holds the local repository with the owner's repository hold, then puts the backup branch's exact snapshot back on the side's host through the `restore-backup` action, as a history-replacement apply. While the local repository is held, the coordinator transfers nothing for that replica and settles no conflict (`heldReason` `owner_hold`); `lervo repository release --root <local-root>` resumes it. The removed `--prefer` option of `lervo-node repository-replica reconcile` fails with a message that names the backup branch.
+The undo runs on the coordinator host. It first holds the local repository with the owner's repository hold, then puts the backup branch's exact snapshot back on the side's host through the `restore-backup` action, as a history-replacement apply. Each side's snapshot carries `ownerHold`, read on that side's own host. While either side is held, or a side reports no hold, as an older peer runtime does, a cycle returns `held` with `heldSides` before any supersession exchange, transfer, or conflict resolution, and logs it once; `lervo repository release` on that host resumes it. The removed `--prefer` option of `lervo-node repository-replica reconcile` fails with a message that names the backup branch.
 
 ## Divergence identity
 

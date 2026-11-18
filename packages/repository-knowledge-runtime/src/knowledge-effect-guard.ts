@@ -3,6 +3,8 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
+import { readRepositoryHold } from "@lervo/repository-registry";
+
 import { knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import { commitKnowledgeEffect, type KnowledgeEffectNotice } from "./knowledge-effect-commit.js";
 import { knowledgeOutputCommitSafe } from "./knowledge-output-commit.js";
@@ -13,6 +15,7 @@ const MAXIMUM_SNAPSHOT_BYTES = 256 * 1024 * 1024;
 
 /** Why Lervo does not apply an effect it could otherwise apply, held as its own debt. */
 export type KnowledgeEffectHold =
+  | { reason: "owner_hold" }
   | { reason: "commit_unavailable"; detail: string }
   | { reason: "paths_uncommitted"; paths: string[] };
 
@@ -42,12 +45,14 @@ function statusPaths(output: string): string[] {
  * ADR-0561 step two before an effect: it must land as its own commit, and no user path it touches
  * may hold uncommitted work. A commit adds whole files, and the undo restores the commit's parent,
  * so a dirty path would put the owner's unsaved edits into Lervo's commit and lose them on undo.
- * Returns why the effect is held, or null when it may apply.
+ * Returns why the effect is held, or null when it may apply. The owner's repository hold comes
+ * first, so an upgrade or cycle already running when the owner holds the repository stops here.
  */
 export async function knowledgeEffectPreflight(
   repositoryRoot: string,
   paths: readonly string[],
 ): Promise<KnowledgeEffectHold | null> {
+  if ((await readRepositoryHold(repositoryRoot)) !== null) return { reason: "owner_hold" };
   if (!(await knowledgeOutputCommitSafe(repositoryRoot)))
     return { reason: "commit_unavailable", detail: "git_unavailable_or_busy" };
   const grant = await knowledgeOutputCommitGrant(repositoryRoot);
@@ -115,6 +120,15 @@ async function restorePaths(
   });
 }
 
+/** The owner held the repository after the effect was planned; nothing was written. */
+export class KnowledgeEffectOwnerHoldError extends Error {
+  readonly code = "repository_owner_hold";
+  constructor() {
+    super("The owner holds this repository, so the effect was not applied.");
+    this.name = "KnowledgeEffectOwnerHoldError";
+  }
+}
+
 /** The effect applied but its commit did not land, so its bytes were put back. */
 export class KnowledgeEffectUncommittedError extends Error {
   readonly code = "knowledge_effect_commit_failed";
@@ -134,8 +148,9 @@ export type CommittedKnowledgeEffect =
 /**
  * ADR-0561: applies an effect and commits it as the undo point. When the commit does not land,
  * every changed path is restored to its bytes before the apply, so no applied effect is ever left
- * without its undo, and the error is thrown. An effect that changed nothing Git tracks needs no
- * undo commit and stays applied.
+ * without its undo, and the error is thrown. An apply that throws part-way, such as on a lost
+ * lease after its writes, restores the same way. An effect that changed nothing Git tracks needs
+ * no undo commit and stays applied. The owner's hold is read again right before the first write.
  */
 export async function applyCommittedKnowledgeEffect<T>(input: {
   repositoryRoot: string;
@@ -143,8 +158,16 @@ export async function applyCommittedKnowledgeEffect<T>(input: {
   notice: KnowledgeEffectNotice;
   apply: () => Promise<T>;
 }): Promise<{ receipt: T; commit: CommittedKnowledgeEffect }> {
+  if ((await readRepositoryHold(input.repositoryRoot)) !== null)
+    throw new KnowledgeEffectOwnerHoldError();
   const snapshot = await snapshotPaths(input.repositoryRoot, input.paths);
-  const receipt = await input.apply();
+  let receipt: T;
+  try {
+    receipt = await input.apply();
+  } catch (error) {
+    await restorePaths(input.repositoryRoot, snapshot);
+    throw error;
+  }
   const commit = await commitKnowledgeEffect({
     repositoryRoot: input.repositoryRoot,
     paths: input.paths,

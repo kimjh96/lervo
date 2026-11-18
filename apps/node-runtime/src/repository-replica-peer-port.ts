@@ -8,10 +8,16 @@ import type {
 } from "./repository-replica-merge.js";
 import type { RepositoryReplicaReceipt } from "./repository-replica-receipt.js";
 
+/**
+ * A side's snapshot as its own host reports it. `ownerHold` is whether the owner holds that
+ * repository on that host (ADR-0561); a side that does not report it counts as held.
+ */
+export type RepositoryReplicaSideSnapshot = RepositoryReplicaSnapshot & { ownerHold?: boolean };
+
 /** One side of a repository replica, as the coordinator drives it: this host or the SSH peer. */
 export interface RepositoryReplicaPeerPort
   extends RepositoryReplicaKnowledgeSupersessionPort, RepositoryReplicaCaptureVersionPort {
-  snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot>;
+  snapshot(repositoryRoot: string): Promise<RepositoryReplicaSideSnapshot>;
   bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array>;
   apply(input: {
     repositoryRoot: string;

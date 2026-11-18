@@ -46,6 +46,7 @@ interface HeldEffectState {
   held: HeldEffect[];
 }
 
+/** The newest automatic records kept; the owner's own holds are never evicted. */
 const MAXIMUM_HELD_EFFECTS = 32;
 
 function statePath(repositoryRoot: string): string {
@@ -91,7 +92,13 @@ export async function readHeldEffectsWithRepositoryHold(
 async function writeHeldEffects(repositoryRoot: string, held: HeldEffect[]): Promise<void> {
   const path = statePath(repositoryRoot);
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
-  const value: HeldEffectState = { schemaVersion: 1, held: held.slice(-MAXIMUM_HELD_EFFECTS) };
+  // Only Lervo's own records are capped; an owner hold leaves only through the owner's release.
+  const automatic = held.filter((item) => !OWNER_REASONS.has(item.reasonCode));
+  const kept = new Set(automatic.slice(-MAXIMUM_HELD_EFFECTS));
+  const value: HeldEffectState = {
+    schemaVersion: 1,
+    held: held.filter((item) => OWNER_REASONS.has(item.reasonCode) || kept.has(item)),
+  };
   await writeFile(`${path}.next`, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
   await rename(`${path}.next`, path);
 }
@@ -221,6 +228,7 @@ const KNOWLEDGE_EFFECT_HELD_CODES: Readonly<Record<string, HeldEffectReason>> = 
   knowledge_effect_commit_unavailable: "commit_unavailable",
   knowledge_effect_commit_failed: "commit_unavailable",
   knowledge_effect_paths_uncommitted: "paths_uncommitted",
+  repository_owner_hold: "owner_hold",
 };
 
 /**

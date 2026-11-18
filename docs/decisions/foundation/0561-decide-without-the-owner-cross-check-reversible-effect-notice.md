@@ -53,9 +53,11 @@ An owner-stated rule is stored. The intake gate stops dropping candidates. A rul
 
 AGENTS.md invariant 5 is unchanged: Lervo never rewrites user-owned content on its own. Freshness applies only Lervo-managed bytes; a user-owned hunk or archive stays `suggested`, with no cross-check spent. A reviewed lifecycle plan may move whole documents byte for byte and write Lervo's outputs anywhere, because Git keeps the bytes and the path under one revert. Creating a user file where none existed overwrites nothing. Rewriting or deleting one is allowed only inside the roots of the delegation the owner installed. Outside them the plan is parked as `user_owned_content` debt, and an upgrade never applies it; an owner command such as `lervo migrate knowledge --apply` still can.
 
-Every effect lands as its own commit, so it applies only when that commit is possible and no user path it touches holds uncommitted work; outside Git a reviewed effect is `commit_unavailable` debt. A commit that does not land restores every changed path.
+Every effect lands as its own commit, so it applies only when that commit is possible and no user path it touches holds uncommitted work; outside Git a reviewed effect is `commit_unavailable` debt. An apply that throws, or a commit that does not land, restores every changed path.
 
-`lervo repository hold --root <path> [--reason <text>]` is the owner's way to defer one repository. The hold sits in host state beside the repository registry. While it lasts, the follower runs no upgrade there, the resident applies nothing, and the replica coordinator transfers nothing and settles no conflict; plans and notices continue. `lervo repository release` ends it, and an unreadable hold file holds every repository. Undoing a provider hook merge with `lervo state restore` holds that merge the same way.
+`lervo repository hold --root <path> [--reason <text>]` is the owner's way to defer one repository. The hold sits in host state beside the repository registry. While it lasts, the follower runs no upgrade there; the resident runs no stage, publication, or continuity; every effect reads it again right before writing; and the replica coordinator, which reads each side's hold from that side's host, transfers nothing. Plans and notices continue. `lervo repository release` ends it, and an unreadable hold file holds every repository. Undoing a provider hook merge with `lervo state restore` holds that merge the same way, and no automatic record evicts an owner hold.
+
+Bounded follow-ups: `repository-replica restore` does not guard work done after the resolution; a `concurrent_commit` leaves the effect's reverse diff uncommitted; effects on Git-ignored paths have no undo; `lervo init` applies without the user-owned check; Node supervision and principal-proxy writes do not read the hold.
 
 ### Replacement by area
 
@@ -85,7 +87,7 @@ The per-item approval commands (`--approve-item`, `--approval`, `--accept-layout
 
 - Every gate in the 2026-11-02 inventory is removed or replaced, and a test exercises the replacement.
 - The two owner rules dropped on 2026-11-02 are stored when they are submitted again.
-- On argo, the layout moves apply without any owner command, followed by a notice with the undo command.
+- On argo, the layout plan, which rewrites references in user documents outside the delegated roots, parks whole as `user_owned_content` debt, its 20 byte-identical moves included, because a plan applies all or nothing. The debt names `lervo migrate knowledge --apply <plan-id>`.
 - `rg` finds no `--approve-item`, `--approval`, or `requiresUserAction: true` path for the effects above.
 
 ### Results (2026-11-02)
@@ -95,8 +97,8 @@ Slices A1 to A7 implement the decision on the `remove-owner-approval-gates` bran
 - **Gates.** A1 stores every owner rule, A2 freshness, A3 layout, migration, and structure, A4 canonicalization, delegation, and continuity, A5 upgrade, provider hooks, capabilities, and state, A6 workstream heads, replica conflicts, and supervision escalation, and A7 onboarding, convergence ownership, publication, recorded workstream approvals, and assignment approvals. Each replacement has a runtime or CLI test, listed per slice in the [delivery sequence](../../roadmap/open-collaboration-platform/delivery-sequence.md).
 - **Owner rules.** An A1 CLI test stores and applies the two owner rules the former intake gate dropped on 2026-11-02.
 - **Health and notices.** The health owner-authority line is replaced by one Lervo debt line with count, oldest age, and top reason, including the Node's supervision and workstream debt. Every freshness and effect notice carries `{effect, targets, reason, crossCheck: {reviewers, verdict}, undo}`; effects without a commit report through the bounded effect notice journal.
-- **Search.** Over `apps`, `packages`, `scripts`, and `.agents` without tests, `requiresUserAction: true` no longer appears. The remaining `--approve-item` and `--approval` hits are the one-line refusals of removed options, the CI release scripts that echo their own plan ID, and the comments that state the rule. `owner_decision` and `pending_user_approval` remain only so stored records parse.
-- **Not yet verified.** The argo layout moves after release, and the Hub remote-command `require_approval` for Hub-issued writes, which still needs the Node-side stronger check named in the delivery sequence.
+- **Search.** Over `apps`, `packages`, `scripts`, and `.agents` without tests, `requiresUserAction: true` no longer appears. The remaining `--approve-item` and `--approval` hits are refusals of removed options, release scripts, and comments. `owner_decision` and `pending_user_approval` remain only so stored records parse.
+- **Not yet verified.** The argo debt after release, and the Hub remote-command `require_approval` for Hub-issued writes, which still needs the Node-side stronger check named in the delivery sequence.
 
 ### Re-land on the ADR-0560 release (2026-11-18)
 
@@ -111,4 +113,4 @@ The slices were applied again on top of the ADR-0560 removal, after 389 later co
 - **A host CLI install held as `host_blocked`, such as an unmanaged `lervo` link: out of scope.** The link is user-owned host state outside the repository, and the install refuses to overwrite it. This is the credential and host boundary of the exception table, not an approval wait.
 - **Hub remote-command `require_approval`: unchanged.** It stays until a Node-side two-check path exists.
 
-`main` had folded the canonical rejection cases into the workset halving test. The A4 case that an undecided (`needs_review`) source regenerates once before it parks therefore runs alone, and the rejecting reviewer stays covered by the halving test.
+`main` had folded the canonical rejection cases into the workset halving test, so the A4 case that an undecided source regenerates once before it parks runs alone.

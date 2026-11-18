@@ -21,7 +21,6 @@ import {
   applyRepositoryReplicaBundle,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
-import { observeRepositoryReplicaSnapshot } from "./repository-replica-snapshot-cache.js";
 import {
   restoreRepositoryReplicaBackup,
   saveRepositoryReplicaBackup,
@@ -88,7 +87,8 @@ async function runPeerAction(
 ): Promise<void> {
   const root = resolve(ports.cwd, oneOption(args, "--root"));
   if (action === "snapshot") {
-    ports.stdout(`${JSON.stringify(await observeRepositoryReplicaSnapshot(root))}\n`);
+    // ADR-0561: the peer reports its own host's hold, so a hold set there stops the coordinator.
+    ports.stdout(`${JSON.stringify(await new LocalRepositoryReplicaPeer().snapshot(root))}\n`);
     return;
   }
   if (action === "bundle") {

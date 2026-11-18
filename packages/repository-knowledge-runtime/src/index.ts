@@ -213,12 +213,14 @@ export {
 export {
   holdRepository,
   readRepositoryHold,
+  releaseRepositoryHold,
   type RepositoryHold,
 } from "@lervo/repository-registry";
 export {
   applyCommittedKnowledgeEffect,
   knowledgeEffectPreflight,
   knowledgeEffectUserPaths,
+  KnowledgeEffectOwnerHoldError,
   KnowledgeEffectUncommittedError,
   type KnowledgeEffectHold,
 } from "./knowledge-effect-guard.js";

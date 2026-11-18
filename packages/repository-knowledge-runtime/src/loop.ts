@@ -4,8 +4,10 @@ import {
   withProcessCostScope,
   type ProcessCostMeasurement,
 } from "@lervo/repository-knowledge";
+import { readRepositoryHold } from "@lervo/repository-registry";
 import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
+import { coalescedRefresh } from "./resident-projection-refresh.js";
 import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
 import { convergenceSourceFingerprint } from "./source-fingerprint.js";
@@ -179,12 +181,18 @@ export function startAutonomousKnowledgeWorker(input: {
       await admission.release();
     }
   };
+  // ADR-0561: while the owner holds the repository, the resident applies nothing there: the cycle
+  // returns before any stage, and continuity and publication, which commit, push, and renew, wait.
+  const repositoryHeld = async () => (await readRepositoryHold(root)) !== null;
   let continuityRun: Promise<void> | null = null;
   // One reconciliation at a time, whether the timer or the cycle asks for it.
   const reconcileContinuity = (): Promise<void> => {
-    if (input.continuity === undefined || signal.aborted) return Promise.resolve();
-    continuityRun ??= input.continuity
-      .reconcile({ signal })
+    const continuity = input.continuity;
+    if (continuity === undefined || signal.aborted) return Promise.resolve();
+    continuityRun ??= repositoryHeld()
+      .then(async (held) => {
+        if (!held) await continuity.reconcile({ signal });
+      })
       .then(
         () => undefined,
         (error: unknown) => {
@@ -197,29 +205,8 @@ export function startAutonomousKnowledgeWorker(input: {
     return continuityRun;
   };
   // One refresh at a time; the cycle's own refresh and this cadence share the same single flight.
-  let projectionRefresh: Promise<void> | null = null;
-  let projectionAgain = false;
-  /** A request during a refresh runs once more afterwards, so a cycle's result is never missed. */
-  const refreshProjection = (): Promise<void> => {
-    if (input.refreshHealth === undefined || signal.aborted) return Promise.resolve();
-    if (projectionRefresh !== null) {
-      projectionAgain = true;
-      return projectionRefresh;
-    }
-    const refreshHealth = input.refreshHealth;
-    projectionRefresh = (async () => {
-      try {
-        do {
-          projectionAgain = false;
-          await refreshHealth().catch((error: unknown) => input.onFailure(error));
-        } while (projectionAgain && !signal.aborted);
-      } finally {
-        // Cleared in the same turn as the last loop check, so no request lands in between.
-        projectionRefresh = null;
-      }
-    })();
-    return projectionRefresh;
-  };
+  const projection = coalescedRefresh(input.refreshHealth, signal, input.onFailure);
+  const refreshProjection = projection.refresh;
   const runOnce = async () => {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
@@ -280,7 +267,10 @@ export function startAutonomousKnowledgeWorker(input: {
     }
     // Publication follows the cycle so commits made by it go out at once; only an owner publishes.
     const publication =
-      input.publish !== undefined && verdict?.role === "owner" && !signal.aborted
+      input.publish !== undefined &&
+      verdict?.role === "owner" &&
+      !signal.aborted &&
+      !(await repositoryHeld())
         ? await input.publish({ events: input.storage }).catch((error: unknown) => {
             input.onFailure(error);
             return null;
@@ -389,7 +379,7 @@ export function startAutonomousKnowledgeWorker(input: {
     if (debounce !== null) clearTimeout(debounce);
     unsubscribe?.();
     await running;
-    await projectionRefresh;
+    await projection.running();
     await continuityRun;
     if (reconcile !== null) clearTimeout(reconcile);
     healthState = "stopped";

@@ -1,4 +1,5 @@
 import {
+  readRepositoryHold,
   reconcileKnowledgeSupersession,
   type KnowledgeSupersessionEntry,
 } from "@lervo/repository-knowledge-runtime";
@@ -32,8 +33,13 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return Promise.resolve(REPOSITORY_REPLICA_CAPTURE_VERSION);
   }
 
-  snapshot(repositoryRoot: string) {
-    return observeRepositoryReplicaSnapshot(repositoryRoot);
+  /** The cached observation, with whether the owner holds this repository on this host. */
+  async snapshot(repositoryRoot: string) {
+    const [snapshot, hold] = await Promise.all([
+      observeRepositoryReplicaSnapshot(repositoryRoot),
+      readRepositoryHold(repositoryRoot),
+    ]);
+    return { ...snapshot, ownerHold: hold !== null };
   }
 
   bundle(repositoryRoot: string, expectedSnapshotHash: string) {

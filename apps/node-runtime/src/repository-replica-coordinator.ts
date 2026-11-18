@@ -23,7 +23,10 @@ import {
 import { RepositoryReplicaCaptureCompatibility } from "./repository-replica-capture-compatibility.js";
 import { ReplicaKnowledgeSupersessionExchange } from "./repository-replica-knowledge-supersession.js";
 import type { RepositoryReplicaConflictPolicy } from "./repository-replica-merge.js";
-import type { RepositoryReplicaPeerPort } from "./repository-replica-peer-port.js";
+import type {
+  RepositoryReplicaPeerPort,
+  RepositoryReplicaSideSnapshot,
+} from "./repository-replica-peer-port.js";
 import { noticeReplicaBackup } from "./repository-replica-notice.js";
 import {
   resolveRepositoryReplicaDivergence,
@@ -53,6 +56,15 @@ export type RepositoryReplicaCycleResult =
       reconciled?: RepositoryReplicaReconciliationObservation;
       /** ADR-0561: the branch on the local host that holds the side a conflict replaced. */
       backup?: RepositoryReplicaBackup;
+    }
+  | {
+      replicaId: string;
+      /**
+       * ADR-0561: the owner holds the repository on one side's host, or a side's hold could not
+       * be read, so nothing was transferred, superseded, or resolved.
+       */
+      status: "held";
+      heldSides: Array<"local" | "peer">;
     }
   | {
       replicaId: string;
@@ -123,8 +135,11 @@ export class RepositoryReplicaCoordinator {
       peer: RepositoryReplicaPeerPort;
       events?: RepositoryReplicaEventPort;
       now?: () => Date;
-      /** ADR-0561: whether the owner holds a local repository; absent reads the host hold file. */
-      repositoryHeld?: (localRoot: string) => Promise<boolean>;
+      /**
+       * ADR-0561: whether the owner holds a repository root on either side; absent uses the hold
+       * each side's own host reports with its snapshot.
+       */
+      repositoryHeld?: (repositoryRoot: string) => Promise<boolean>;
       /** ADR-0561: records a conflict's backup notice before either side changes. */
       noticeBackup?: (input: {
         repositoryRoot: string;
@@ -195,6 +210,20 @@ export class RepositoryReplicaCoordinator {
     }
   }
 
+  /** The sides whose host reports an owner hold; a side that reports none counts as held. */
+  private async heldSides(
+    input: CycleInput,
+    local: RepositoryReplicaSideSnapshot,
+    peer: RepositoryReplicaSideSnapshot,
+  ): Promise<Array<"local" | "peer">> {
+    const override = this.options.repositoryHeld;
+    const [localHeld, peerHeld] =
+      override === undefined
+        ? [local.ownerHold !== false, peer.ownerHold !== false]
+        : await Promise.all([override(input.localRoot), override(input.peerRoot)]);
+    return [...(localHeld ? (["local"] as const) : []), ...(peerHeld ? (["peer"] as const) : [])];
+  }
+
   private async cycle(
     input: CycleInput,
     stage: { current: RepositoryReplicaStage },
@@ -206,6 +235,9 @@ export class RepositoryReplicaCoordinator {
         this.options.peer.snapshot(input.peerRoot),
       ]);
     let [local, peer] = await observe();
+    // ADR-0561: a hold on either host stops every effect on both, read before any exchange.
+    const heldSides = await this.heldSides(input, local, peer);
+    if (heldSides.length > 0) return { replicaId: input.replicaId, status: "held", heldSides };
     // Superseded knowledge commits leave both branches before either side's history can move.
     stage.current = "supersession";
     const supersession = await this.supersession.exchange({
