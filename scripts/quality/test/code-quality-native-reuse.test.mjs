@@ -264,5 +264,15 @@ describe("Code quality darwin native reuse", () => {
       names.indexOf("Check the pinned darwin toolchain") <
         names.indexOf("Key this build by its native inputs"),
     );
+    // The offer is named by the key that the compiling job computed and is kept for 30 days.
+    const offer = buildJob.steps.find(
+      (step) => step.name === "Offer this build for identical native inputs",
+    );
+    assert.deepEqual(offer.with, {
+      name: "${{ steps.reusable.outputs.artifact }}",
+      path: "${{ runner.temp }}/native-runtime-reusable",
+      "if-no-files-found": "error",
+      "retention-days": 30,
+    });
   });
 });
