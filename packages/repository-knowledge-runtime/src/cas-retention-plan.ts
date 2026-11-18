@@ -14,10 +14,18 @@ import {
   convergenceArtifactRoots,
   eligibleConvergenceArtifacts,
   reachableConvergenceArtifacts,
+  retentionNamedAt,
   retentionReferenceGraph,
   type CasRetentionRoots,
 } from "./cas-retention-policy.js";
 import { collectReportReferences } from "./cas-retention-reports.js";
+import { classifyConvergenceRecords } from "./cas-retention-records.js";
+import {
+  releasedConvergenceRecords,
+  type ConvergenceRecordShapes,
+  type ReleasedRecord,
+  type SupersededRecordReason,
+} from "./cas-retention-record-shapes.js";
 import type { RetentionScan } from "./cas-retention-state.js";
 
 export interface CasRetentionTally {
@@ -26,8 +34,8 @@ export interface CasRetentionTally {
 }
 
 /**
- * Read-only estimate of one completed retention pass (ADR-0585). It names no path, hash or body.
- * `collectable` counts what the policy would release, before the collector's per-cycle cap.
+ * Read-only estimate of one completed retention pass (ADR-0585, ADR-0586). It names no path, hash
+ * or body. `collectable` counts what the policy would release, before the per-cycle cap.
  */
 export interface CasRetentionPlan {
   schemaVersion: 1;
@@ -37,7 +45,7 @@ export interface CasRetentionPlan {
   failure: "reference_changed" | "bound_exceeded" | "failed" | null;
   casObjects: number;
   casBytes: number;
-  /** Convergence candidates past the grace period. */
+  /** Convergence candidates and released superseded records past the grace period. */
   candidates: CasRetentionTally;
   retained: CasRetentionTally;
   collectable: CasRetentionTally & {
@@ -50,6 +58,13 @@ export interface CasRetentionPlan {
       assignment_input: CasRetentionTally;
       /** Kept before by both, so only the two rules together release it. */
       backup_and_assignment_input: CasRetentionTally;
+      /**
+       * ADR-0586: superseded stage results, then candidates that only they kept. A candidate that
+       * only failures or observations kept counts under that reason, in this order.
+       */
+      stage_result_superseded: CasRetentionTally;
+      failure_superseded: CasRetentionTally;
+      observation_superseded: CasRetentionTally;
     };
   };
 }
@@ -81,6 +96,9 @@ function emptyPlan(observedAt: string): CasRetentionPlan {
         event_writer_backup: tally(),
         assignment_input: tally(),
         backup_and_assignment_input: tally(),
+        stage_result_superseded: tally(),
+        failure_superseded: tally(),
+        observation_superseded: tally(),
       },
     },
   };
@@ -134,6 +152,13 @@ async function marked(
   return reachableConvergenceArtifacts(reachable, edges);
 }
 
+function onlyReasons(
+  released: ReadonlyMap<string, ReleasedRecord>,
+  reasons: readonly SupersededRecordReason[],
+): Map<string, ReleasedRecord> {
+  return new Map([...released].filter(([, record]) => reasons.includes(record.reason)));
+}
+
 async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRetentionPlan> {
   const result = emptyPlan(observedAt);
   const roots = convergenceArtifactRoots(storage.events);
@@ -143,13 +168,21 @@ async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRet
   const objects = files.filter((file) => file.hash !== null);
   result.casObjects = objects.length;
   result.casBytes = objects.reduce((total, file) => total + file.size, 0);
-  const eligible = new Set(
-    eligibleConvergenceArtifacts(
-      files,
-      roots,
-      Date.parse(observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS,
-    ),
-  );
+  const before = Date.parse(observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS;
+  const records: ConvergenceRecordShapes = {};
+  await classifyConvergenceRecords({
+    files,
+    lifecycle: roots.superseded,
+    candidates: roots.candidates,
+    before,
+    shapes: records,
+    budget: referenceReadBudget(UNBOUNDED, async () => false),
+  });
+  const released = releasedConvergenceRecords(files, roots.superseded, records, before);
+  const eligible = new Set([
+    ...eligibleConvergenceArtifacts(files, roots, before),
+    ...released.keys(),
+  ]);
   if (!eligible.size) return result;
   const references = new Map<string, readonly string[]>();
   for (const file of files) {
@@ -157,12 +190,8 @@ async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRet
     if (found === null) return { ...result, status: "unavailable", failure: "reference_changed" };
     references.set(file.key, found);
   }
-  const graph = retentionReferenceGraph(
-    files,
-    (file) => references.get(file.key)!,
-    roots,
-    eligible,
-  );
+  const graph = (releasing: ReadonlyMap<string, ReleasedRecord>) =>
+    retentionReferenceGraph(files, (file) => references.get(file.key)!, roots, eligible, releasing);
   // ADR-0534 also rooted assignment inputs, the inputs inside their archives, and backup events.
   const assignmentRoots = new Set(roots.assignmentInputs);
   for (const [archive, input] of roots.archiveInputs)
@@ -175,19 +204,26 @@ async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRet
     files: {},
     reports: {},
   };
-  const mark = (extra: Iterable<string>[]) =>
+  const mark = ({ reachable, edges }: ReturnType<typeof graph>, extra: Iterable<string>[] = []) =>
     marked(
       storage,
       roots,
-      [graph.reachable, ...extra].flatMap((set) => [...set]),
-      graph.edges,
+      [reachable, ...extra].flatMap((set) => [...set]),
+      edges,
       casHashes,
       reports,
     );
-  const current = await mark([]);
-  const legacy = await mark([mirrored, assignmentRoots]);
-  const withoutBackupRule = await mark([mirrored]);
-  const withoutAssignmentRule = await mark([assignmentRoots]);
+  // ADR-0585 kept every superseded record; each later graph releases one more kind (ADR-0586).
+  const kept = graph(new Map());
+  const current = await mark(graph(released));
+  const withoutSupersededRule = await mark(kept);
+  const legacy = await mark(kept, [mirrored, assignmentRoots]);
+  const withoutBackupRule = await mark(kept, [mirrored]);
+  const withoutAssignmentRule = await mark(kept, [assignmentRoots]);
+  const stageOnly = await mark(graph(onlyReasons(released, ["stage_result_superseded"])));
+  const withoutObservationRule = await mark(
+    graph(onlyReasons(released, ["stage_result_superseded", "failure_superseded"])),
+  );
   const add = (target: CasRetentionTally, size: number) => {
     target.objects++;
     target.bytes += size;
@@ -196,13 +232,20 @@ async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRet
     const hash = file.hash!;
     if (!eligible.has(hash)) continue;
     add(result.candidates, file.size);
-    if (current.has(hash)) {
+    // As in the collector's sweep, the latest naming record must also be past grace.
+    if (current.has(hash) || retentionNamedAt(roots, released, hash) >= before) {
       add(result.retained, file.size);
       continue;
     }
     add(result.collectable, file.size);
     const reasons = result.collectable.byReason;
-    if (!legacy.has(hash)) add(reasons.unreferenced, file.size);
+    const record = released.get(hash);
+    if (record !== undefined) add(reasons[record.reason], file.size);
+    else if (withoutSupersededRule.has(hash)) {
+      if (!stageOnly.has(hash)) add(reasons.stage_result_superseded, file.size);
+      else if (!withoutObservationRule.has(hash)) add(reasons.failure_superseded, file.size);
+      else add(reasons.observation_superseded, file.size);
+    } else if (!legacy.has(hash)) add(reasons.unreferenced, file.size);
     else if (!withoutAssignmentRule.has(hash)) add(reasons.event_writer_backup, file.size);
     else if (!withoutBackupRule.has(hash)) add(reasons.assignment_input, file.size);
     else add(reasons.backup_and_assignment_input, file.size);

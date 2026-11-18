@@ -36,6 +36,7 @@ import { resolveIntegrationTarget } from "./integration-target-sync.js";
 import { inspectIntegrationTargetAbsorption } from "./integration-target-absorption.js";
 import { regenerateStaleReview, staleReviewContext } from "./review-context-regeneration.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
+import { readConvergenceAssignmentResult } from "./convergence-stage-artifact.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
 import {
@@ -238,12 +239,14 @@ export function createConvergenceRuntimeHost(
         ["knowledge_effect_uncertain", "host_effect_uncertain"].includes(dependency.code ?? "") &&
         dependency.evidenceHash
       ) {
-        const proofBytes = await context.storage.artifacts.get(
-          `lervo-cas://sha256/${dependency.evidenceHash.slice(7)}`,
+        // ADR-0586: a pruned failure proof leaves nothing to inspect; the stall stays in place.
+        const read = await readConvergenceAssignmentResult(
+          context.storage.artifacts,
+          dependency.evidenceHash,
         );
-        if (sha256(proofBytes) !== dependency.evidenceHash)
+        if (read.state === "invalid")
           throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-        const proof = JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(proofBytes)) as {
+        const proof = (read.state === "available" ? (read.value ?? {}) : {}) as {
           kind?: string;
           input?: KnowledgeConvergenceInput;
         };

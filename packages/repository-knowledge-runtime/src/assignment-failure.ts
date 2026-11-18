@@ -3,7 +3,7 @@ import {
   reopenAssignment,
   type WorkforceAssignment,
 } from "@lervo/agent-workforce";
-import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
+import { canonicalJson } from "@lervo/repository-knowledge";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   convergenceEvaluationContract,
@@ -14,6 +14,7 @@ import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import type { KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { operatingContractHash } from "@lervo/work-controller";
 import { reviewContextFailureDetail } from "./review-context.js";
+import { readConvergenceAssignmentResult } from "./convergence-stage-artifact.js";
 
 /**
  * A failed convergence assignment is reopened at most this many attempts under one evaluation
@@ -94,16 +95,13 @@ export async function retryConvergenceAssignment(
     throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   const artifact = assignment.resultArtifacts[0];
   if (!artifact) throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-  const bytes = await storage.artifacts.get(`lervo-cas://sha256/${artifact.contentHash.slice(7)}`);
-  if (sha256(bytes) !== artifact.contentHash)
+  // ADR-0586: a pruned failure proof cannot show what the failed attempt did.
+  const proof = await readConvergenceAssignmentResult(storage.artifacts, artifact.contentHash);
+  if (proof.state !== "available")
     throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
   if (
     (assignment.recovery?.attemptNumber ?? 1) >= CONVERGENCE_ASSIGNMENT_ATTEMPT_LIMIT &&
-    !settledUnderEarlierContract(
-      JSON.parse(new TextDecoder("utf8", { fatal: true }).decode(bytes)) as {
-        evaluationContract?: unknown;
-      },
-    )
+    !settledUnderEarlierContract((proof.value ?? {}) as { evaluationContract?: unknown })
   )
     throw new KnowledgeConvergenceRuntimeError("knowledge_retry_exhausted");
   let afterSeq = 0;

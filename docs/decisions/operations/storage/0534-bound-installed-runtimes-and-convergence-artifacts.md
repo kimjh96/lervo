@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0219](0219-typed-derived-state-retention.md), [ADR-0518](0518-retire-settled-convergence-checkouts-on-every-host.md)
-Amended by: [ADR-0584](0584-let-cas-retention-finish-a-pass-on-a-live-host.md) (collector read bounds, live-change handling and the retention observation), [ADR-0585](0585-release-mirrored-backups-and-settled-assignment-inputs.md) (mirrored event-writer backups and settled assignment inputs)
+Amended by: [ADR-0584](0584-let-cas-retention-finish-a-pass-on-a-live-host.md) (collector read bounds, live-change handling and the retention observation), [ADR-0585](0585-release-mirrored-backups-and-settled-assignment-inputs.md) (mirrored event-writer backups and settled assignment inputs), [ADR-0586](0586-release-superseded-stage-records.md) (records of superseded stages)
 
 ## Context
 
@@ -27,7 +27,7 @@ Retirement processes the whole approved candidate set from an inventory capped a
 
 ### Project convergence CAS
 
-The [project CAS specification](../../../specs/background-knowledge-convergence/recovery-and-retention/project-cas.md) owns exact reachability. Only hashes directly named by convergence input, result, dependency or evidence fields enter the collectable class. Every other CAS object remains protected. Candidates need both object modification time and their latest direct convergence reference to be older than fourteen days.
+The [project CAS specification](../../../specs/background-knowledge-convergence/recovery-and-retention/project-cas.md) owns exact reachability. Only hashes directly named by convergence input, result, dependency or evidence fields enter the collectable class. Every other CAS object remains protected. [ADR-0586](0586-release-superseded-stage-records.md) adds verified stage results, failure proofs and observations of superseded stages to that class. Candidates need both object modification time and their latest direct convergence reference to be older than fourteen days.
 
 Open obligations root every event payload reference. Each settled obligation roots its latest settled stage. Historical normalization-apply results, terminal lifecycle receipts, and the latest parked dependency remain roots for existing readers. Every other subsystem event and persisted record remains a root. References propagate through CAS bodies and logical SQLite cells. Unknown or unreadable references fail closed.
 

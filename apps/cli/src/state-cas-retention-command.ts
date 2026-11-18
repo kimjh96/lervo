@@ -31,7 +31,7 @@ function renderPlan(plan: CasRetentionPlan): string {
   ].join("\n");
 }
 
-/** ADR-0585: estimates one retention pass from a read-only store; it never deletes or records. */
+/** ADR-0585, ADR-0586: estimates one retention pass from a read-only store; never deletes. */
 export async function runStateCasRetentionCommand(args: string[], io: CliIo): Promise<number> {
   try {
     const parsed = parseArgs({

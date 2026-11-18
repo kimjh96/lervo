@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-18
 Amends: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md) (reference roots), [ADR-0584](0584-let-cas-retention-finish-a-pass-on-a-live-host.md) (implements its two proposals)
+Amended by: [ADR-0586](0586-release-superseded-stage-records.md) (stage results, failure proofs and observations of superseded stages)
 
 ## Context
 
@@ -42,7 +43,7 @@ When `assignment.created` carries `convergenceObligationId` and a valid `converg
 
 The event's other payload references remain roots. When an `assignment.convergence.archived` event names the creating event's assignment and obligation, the archive object does not root that input. The archive still roots every other hash it names. A candidate's grace period runs from the latest event that names it, including `assignment.created`.
 
-Every other record that names an input still roots it. These include live workforce records, stage results, provider stage observations, failure proofs and effect checkpoints.
+Every other record that names an input still roots it. These include live workforce records, stage results, provider stage observations, failure proofs and effect checkpoints. [ADR-0586](0586-release-superseded-stage-records.md) later releases the stage results, failure proofs and observations of superseded stages, together with their assignment's own events and archive.
 
 Some open assignments are protected only by their live workforce record: those created but not started, parked, or waiting on authority. Once their obligation settles, the assignment event no longer roots the input, so it stays protected only while that record exists. An assignment is archived, and its record removed, only when it is `completed`, `failed` or `cancelled`, holds no lease, and its obligation has the exact `repository.knowledge.convergence.recorded` terminal event (`assignment-convergence-archive.ts`). An open assignment's record therefore keeps its input.
 
@@ -66,7 +67,7 @@ Other readers keep their current behaviour:
 
 - The convergence owner reads only the latest stage of an open obligation.
 - Normalization lineage reads results that remain rooted.
-- Settlement fences, effect checkpoints, workforce reuse and integration recovery compare hashes and read only their own proofs.
+- Settlement fences, effect checkpoints, workforce reuse and integration recovery compare hashes and read only their own proofs. [ADR-0586](0586-release-superseded-stage-records.md) maps an absent assignment result in these readers to `result_unavailable`.
 - Status, inspection, audit and `find-replay` do not read stage inputs.
 
 ### Read-only plan
