@@ -57,6 +57,7 @@ function validScan(value: unknown): value is RetentionScan {
         file.offset >= 0 &&
         typeof file.tail === "string" &&
         file.tail.length <= 96 &&
+        (file.mirror === undefined || typeof file.mirror === "string") &&
         Array.isArray(file.references) &&
         file.references.every((hash) => /^[a-f0-9]{64}$/u.test(hash)),
     )

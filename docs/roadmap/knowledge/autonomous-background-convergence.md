@@ -26,7 +26,7 @@ The first maintenance recovery delivery is installed on Mac and WSL, with reader
 
 ## Bounded storage acceptance
 
-[ADR-0534](../../decisions/operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) adds managed runtime retirement and project CAS collection. Source implementation and focused test cases are present. Tests remain unexecuted by explicit owner instruction. Installed acceptance must verify reclamation and continued rollback, normalization lineage, parked-source status and historical settlement on both Mac and WSL. Record actual reachable bytes and reclaimed bytes; disk totals alone do not establish savings. Baseline/capture envelope deduplication remains a separate compatibility follow-up.
+[ADR-0534](../../decisions/operations/storage/0534-bound-installed-runtimes-and-convergence-artifacts.md) adds managed runtime retirement and project CAS collection. Source implementation and focused test cases are present. Tests remain unexecuted by explicit owner instruction. Installed acceptance must verify reclamation and continued rollback, normalization lineage, parked-source status and historical settlement on both Mac and WSL. Record actual reachable bytes and reclaimed bytes; disk totals alone do not establish savings. [ADR-0585](../../decisions/operations/storage/0585-release-mirrored-backups-and-settled-assignment-inputs.md) releases mirrored event-writer backups and settled assignment inputs. Before that release deletes anything on a host, record its `lervo state cas-retention --plan --json` output. Baseline/capture envelope deduplication remains a separate compatibility follow-up.
 
 ## Deferred migration document acceptance
 

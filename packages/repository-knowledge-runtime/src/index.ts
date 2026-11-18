@@ -190,3 +190,8 @@ export { createChangeReviewHost } from "./change-review-host.js";
 export { admittedBackgroundContext, backgroundProviderOptions } from "./background-provider.js";
 
 export { createBackgroundNormalizationCompiler } from "./background-normalization-compiler.js";
+
+export {
+  planProjectConvergenceArtifactRetention,
+  type CasRetentionPlan,
+} from "./cas-retention-plan.js";

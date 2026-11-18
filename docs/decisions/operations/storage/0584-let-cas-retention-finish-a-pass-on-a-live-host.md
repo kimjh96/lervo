@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-18
 Amends: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md) (collector read bounds, live-change handling and the retention observation)
+Amended by: [ADR-0585](0585-release-mirrored-backups-and-settled-assignment-inputs.md) (the owner approved and implemented both proposed policy changes)
 
 ## Context
 
@@ -78,7 +79,7 @@ A completed body scan no longer stores its 96-character overlap tail. Only an un
 
 ### Proposed policy changes, not implemented
 
-Each proposal deletes bytes that a durable record still names, so each needs an owner decision.
+Each proposal deletes bytes that a durable record still names, so each needs an owner decision. The owner approved both on 2026-11-18, and [ADR-0585](0585-release-mirrored-backups-and-settled-assignment-inputs.md) implements them.
 
 1. Evaluate an event-writer backup through the canonical policy when its events are a verified prefix of the canonical log, instead of rooting every hash it contains. On the Mac this would release up to 209 objects and 0.78 GB. A restored backup would then name the same absent objects that the canonical log already tolerates.
 2. Classify `convergenceInputArtifactHash` in `assignment.created` like a stage reference of its obligation: a root while the obligation is open or while the input belongs to its latest settled stage. On the Mac, 526 candidates, 2.07 GB, depend only on these events. An archived assignment could then name an absent input, so the assignment readers must accept that first.

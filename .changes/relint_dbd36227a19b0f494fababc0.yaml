@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_dbd36227a19b0f494fababc0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Let project CAS retention collect objects that only mirrored event-writer backups or settled convergence assignment inputs name, and add the read-only lervo state cas-retention --plan estimate."

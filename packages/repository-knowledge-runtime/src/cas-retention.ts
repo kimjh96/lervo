@@ -11,7 +11,14 @@ import {
   REPORT_READ_LIMITS,
   referenceReadBudget,
 } from "./cas-retention-budget.js";
-import { convergenceArtifactRoots, reachableConvergenceArtifacts } from "./cas-retention-policy.js";
+import {
+  CONVERGENCE_ARTIFACT_GRACE_MS,
+  convergenceArtifactRoots,
+  eligibleConvergenceArtifacts,
+  reachableConvergenceArtifacts,
+  retentionReferenceGraph,
+} from "./cas-retention-policy.js";
+import { bindEventWriterBackups } from "./cas-retention-backups.js";
 import {
   CAS_RETENTION_OBSERVATION,
   CAS_RETENTION_SCAN,
@@ -21,8 +28,6 @@ import {
   type ReferenceChunkRead,
   type ReferenceScan,
 } from "./cas-retention-files.js";
-
-const GRACE_MS = 14 * 24 * 60 * 60 * 1000;
 
 export interface CasRetentionObservation {
   schemaVersion: 1;
@@ -54,17 +59,13 @@ async function collect(
   if (scan.nextScanAt > Date.now()) return;
   const roots = convergenceArtifactRoots(storage.events);
   const files = await casReferenceFiles(storage);
-  if (!scan.eligible.length) {
-    const before = Date.parse(observation.observedAt) - GRACE_MS;
-    scan.eligible = files
-      .filter(
-        (file) =>
-          file.hash !== null &&
-          file.modifiedAt < before &&
-          (roots.candidates.get(file.hash) ?? Infinity) < before,
-      )
-      .map((file) => file.hash!);
-  }
+  await bindEventWriterBackups(storage, roots.headSeq, files);
+  if (!scan.eligible.length)
+    scan.eligible = eligibleConvergenceArtifacts(
+      files,
+      roots,
+      Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS,
+    );
   const eligible = new Set(scan.eligible);
   if (!eligible.size) return;
   const keys = new Set(files.map((file) => file.key));
@@ -75,9 +76,18 @@ async function collect(
   for (const file of files) {
     const cached = scan.files[file.key];
     let entry: ReferenceScan =
-      cached !== undefined && cached.identity === file.identity
+      cached !== undefined &&
+      cached.identity === file.identity &&
+      cached.mirror === file.mirror?.liveIdentity
         ? cached
-        : { identity: file.identity, complete: false, offset: 0, tail: "", references: [] };
+        : {
+            identity: file.identity,
+            ...(file.mirror === undefined ? {} : { mirror: file.mirror.liveIdentity }),
+            complete: false,
+            offset: 0,
+            tail: "",
+            references: [],
+          };
     while (!entry.complete) {
       const sqlite = file.hash === null && /\.(?:sqlite|db)$/u.test(file.path);
       if (await budget.exhausted(sqlite ? 1024 * 1024 : 1)) {
@@ -104,13 +114,12 @@ async function collect(
     await saveScan(statePath, scan);
     return;
   }
-  const reachable = new Set(roots.reachable);
-  const edges = new Map<string, string[]>();
-  for (const file of files) {
-    const references = scan.files[file.key]!.references;
-    if (file.hash !== null && eligible.has(file.hash)) edges.set(file.hash, references);
-    else for (const hash of references) reachable.add(hash);
-  }
+  const { reachable, edges } = retentionReferenceGraph(
+    files,
+    (file) => scan.files[file.key]!.references,
+    roots,
+    eligible,
+  );
   if (
     !(await collectReportReferences({
       storage,
@@ -140,8 +149,9 @@ async function collect(
       file.hash === null ||
       !eligible.has(file.hash) ||
       marked.has(file.hash) ||
-      file.modifiedAt >= Date.parse(observation.observedAt) - GRACE_MS ||
-      (roots.candidates.get(file.hash) ?? Infinity) >= Date.parse(observation.observedAt) - GRACE_MS
+      file.modifiedAt >= Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS ||
+      (roots.candidates.get(file.hash) ?? Infinity) >=
+        Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS
     )
       continue;
     if (

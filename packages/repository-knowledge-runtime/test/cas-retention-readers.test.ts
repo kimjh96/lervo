@@ -1,3 +1,5 @@
+import { rm } from "node:fs/promises";
+import { resolve } from "node:path";
 import { expect, it, vi } from "vitest";
 import {
   sha256,
@@ -21,7 +23,7 @@ vi.mock("../src/baseline.js", async (original) => ({
   cycleScopedConvergenceDiscovery: () => async () => ({}),
 }));
 
-it("preserves historical normalization lineage, parked carry/status and settled-stall reevaluation after collection; absent ledger inputs require assessment", async () => {
+it("preserves historical normalization lineage, parked carry/status and settled-stall reevaluation after collection; integrated ledger inputs stay, and absent ones require assessment", async () => {
   const f = await retentionFixture();
   vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-10-25T00:00:00Z"));
   try {
@@ -112,7 +114,7 @@ it("preserves historical normalization lineage, parked carry/status and settled-
       terminalState: "attention_required",
     });
     const ledger = await f.settled("ledger");
-    // The ledger explicitly permits absent private inputs after retention.
+    // Retention keeps every current canonical integration input the ledger replays (ADR-0585).
     f.event("repository.knowledge.baseline.requested", {
       obligationId: "ledger-history",
       inputArtifactHash: ledger.obsolete.contentHash,
@@ -186,7 +188,10 @@ it("preserves historical normalization lineage, parked carry/status and settled-
     expect(
       await createConvergenceRuntimeHost(context).dependencyCurrent(dependency.contentHash),
     ).toBe(false);
-    expect(await f.artifacts.has(ledger.obsolete.uri)).toBe(false);
+    expect(await f.artifacts.has(ledger.obsolete.uri)).toBe(true);
+    // An input lost some other way still degrades to fresh assessment, never a failure.
+    const lost = ledger.obsolete.contentHash.slice(7);
+    await rm(resolve(f.storage.paths.cas, "sha256", lost.slice(0, 2), lost.slice(2)));
     await expect(
       settledCanonicalDispositions({
         repositoryRoot: f.root,

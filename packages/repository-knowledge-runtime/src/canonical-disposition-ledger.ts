@@ -1,4 +1,6 @@
 import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
+import { readConvergenceStageArtifact } from "./convergence-stage-artifact.js";
+import type { EventEnvelope } from "@lervo/schemas";
 import type { ArtifactStore, OutboxStore } from "@lervo/storage-contract";
 import type { CanonicalBatch } from "./canonical-review.js";
 import type { CanonicalAssessment } from "./canonical-assessment-contract.js";
@@ -25,20 +27,93 @@ interface LedgerEntry extends SettledCanonicalDisposition {
 const ledgers = new WeakMap<OutboxStore, { afterSeq: number; entries: Map<string, LedgerEntry> }>();
 const key = (path: string, contentHash: string) => `${path}\0${contentHash}`;
 
+/**
+ * Absent (`input_unavailable`) and invalid artifacts both leave the source for fresh assessment.
+ * Any other read failure is transient and throws, so the ledger never caches it.
+ */
 async function integratedInput(
   artifacts: ArtifactStore,
   hash: unknown,
 ): Promise<KnowledgeConvergenceInput | null> {
-  if (typeof hash !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(hash)) return null;
-  try {
-    const bytes = await artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`);
-    if (sha256(bytes) !== hash) return null;
-    return JSON.parse(
-      new TextDecoder("utf8", { fatal: true }).decode(bytes),
-    ) as KnowledgeConvergenceInput;
-  } catch {
-    // Retention may drop private stage inputs; the source then simply needs fresh assessment.
-    return null;
+  const read = await readConvergenceStageArtifact(artifacts, hash);
+  return read.state === "available" ? read.value : null;
+}
+
+/** Reads both artifacts before recording, so a throwing read records nothing for the event. */
+async function recordIntegratedBatch(
+  entries: Map<string, LedgerEntry>,
+  artifacts: ArtifactStore,
+  event: EventEnvelope,
+): Promise<void> {
+  if (
+    event.type !== "repository.knowledge.stage.recorded" ||
+    event.payload.stage !== "canonical_integration" ||
+    event.payload.state !== "current"
+  )
+    return;
+  const prior = await integratedInput(artifacts, event.payload.inputArtifactHash);
+  const batch = prior?.stageData.canonicalBatch as CanonicalBatch | null | undefined;
+  const approval = prior?.stageData.canonicalApproval as {
+    assessmentHash?: string;
+    decision?: string;
+    sourceHashes?: string[];
+    draftHashes?: string[];
+    reviewerAgentId?: string;
+    policyHash?: string;
+  } | null;
+  if (
+    !prior ||
+    !batch ||
+    !approval ||
+    prior.obligationId !== event.payload.obligationId ||
+    prior.baseline.projectId !== event.projectId ||
+    approval.decision !== "approve" ||
+    approval.assessmentHash !== sha256(canonicalJson(batch.assessment)) ||
+    canonicalJson(approval.sourceHashes) !==
+      canonicalJson(batch.sources.map((source) => source.contentHash)) ||
+    canonicalJson(approval.draftHashes) !==
+      canonicalJson(batch.assessment.drafts.map((draft) => sha256(draft.content))) ||
+    !approval.reviewerAgentId ||
+    approval.reviewerAgentId === batch.generatorAgentId ||
+    approval.policyHash !== prior.baseline.policyHash
+  )
+    return;
+  // Parked batches settle other decisions, but never settle a candidate or an unapplied draft.
+  const result = await integratedInput(artifacts, event.payload.resultArtifactHash);
+  if (result === null) return;
+  const parked = result?.stageData.canonicalTargetParked === approval.assessmentHash;
+  const hasCandidates = batch.assessment.decisions.some(
+    (decision) => decision.disposition === "candidate",
+  );
+  for (const decision of batch.assessment.decisions) {
+    if (parked && (!hasCandidates || decision.disposition === "candidate")) continue;
+    if (decision.disposition === "needs_review") continue;
+    const source = batch.sources.find((item) => item.path === decision.path);
+    if (source?.contentHash !== decision.contentHash) continue;
+    entries.set(key(decision.path, decision.contentHash), {
+      path: decision.path,
+      contentHash: decision.contentHash,
+      disposition: decision.disposition,
+      eventId: event.eventId,
+      projectId: event.projectId,
+      policyHash: approval.policyHash,
+      references: decision.canonicalReferences,
+    });
+  }
+  if (parked) return;
+  // An integrated draft is reviewed canonical output; assessing its own bytes is circular.
+  for (const draft of batch.assessment.drafts) {
+    const contentHash = sha256(draft.content);
+    entries.set(key(draft.path, contentHash), {
+      path: draft.path,
+      contentHash,
+      disposition: "integrated_draft",
+      eventId: event.eventId,
+      projectId: event.projectId,
+      policyHash: approval.policyHash,
+      references: [],
+      beforeHash: draft.beforeHash,
+    });
   }
 }
 
@@ -59,77 +134,9 @@ async function canonicalDispositionLedger(
     });
     if (!page.length) break;
     for (const event of page) {
+      await recordIntegratedBatch(ledger.entries, artifacts, event);
+      // A transient read failure throws above, so the next replay retries this event.
       ledger.afterSeq = event.seq;
-      if (
-        event.type !== "repository.knowledge.stage.recorded" ||
-        event.payload.stage !== "canonical_integration" ||
-        event.payload.state !== "current"
-      )
-        continue;
-      const prior = await integratedInput(artifacts, event.payload.inputArtifactHash);
-      const batch = prior?.stageData.canonicalBatch as CanonicalBatch | null | undefined;
-      const approval = prior?.stageData.canonicalApproval as {
-        assessmentHash?: string;
-        decision?: string;
-        sourceHashes?: string[];
-        draftHashes?: string[];
-        reviewerAgentId?: string;
-        policyHash?: string;
-      } | null;
-      if (
-        !prior ||
-        !batch ||
-        !approval ||
-        prior.obligationId !== event.payload.obligationId ||
-        prior.baseline.projectId !== event.projectId ||
-        approval.decision !== "approve" ||
-        approval.assessmentHash !== sha256(canonicalJson(batch.assessment)) ||
-        canonicalJson(approval.sourceHashes) !==
-          canonicalJson(batch.sources.map((source) => source.contentHash)) ||
-        canonicalJson(approval.draftHashes) !==
-          canonicalJson(batch.assessment.drafts.map((draft) => sha256(draft.content))) ||
-        !approval.reviewerAgentId ||
-        approval.reviewerAgentId === batch.generatorAgentId ||
-        approval.policyHash !== prior.baseline.policyHash
-      )
-        continue;
-      // Parked batches settle other decisions, but never settle a candidate or an unapplied draft.
-      const result = await integratedInput(artifacts, event.payload.resultArtifactHash);
-      if (result === null) continue;
-      const parked = result?.stageData.canonicalTargetParked === approval.assessmentHash;
-      const hasCandidates = batch.assessment.decisions.some(
-        (decision) => decision.disposition === "candidate",
-      );
-      for (const decision of batch.assessment.decisions) {
-        if (parked && (!hasCandidates || decision.disposition === "candidate")) continue;
-        if (decision.disposition === "needs_review") continue;
-        const source = batch.sources.find((item) => item.path === decision.path);
-        if (source?.contentHash !== decision.contentHash) continue;
-        ledger.entries.set(key(decision.path, decision.contentHash), {
-          path: decision.path,
-          contentHash: decision.contentHash,
-          disposition: decision.disposition,
-          eventId: event.eventId,
-          projectId: event.projectId,
-          policyHash: approval.policyHash,
-          references: decision.canonicalReferences,
-        });
-      }
-      if (parked) continue;
-      // An integrated draft is reviewed canonical output; assessing its own bytes is circular.
-      for (const draft of batch.assessment.drafts) {
-        const contentHash = sha256(draft.content);
-        ledger.entries.set(key(draft.path, contentHash), {
-          path: draft.path,
-          contentHash,
-          disposition: "integrated_draft",
-          eventId: event.eventId,
-          projectId: event.projectId,
-          policyHash: approval.policyHash,
-          references: [],
-          beforeHash: draft.beforeHash,
-        });
-      }
     }
   }
   ledgers.set(events, ledger);
