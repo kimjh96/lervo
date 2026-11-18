@@ -144,14 +144,16 @@ jobs:
     name: Reuse native runtime artifacts
     needs: plan
     if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == ''
-    # Most changes leave the darwin native inputs alone, so this Linux job installs the bytes an
-    # earlier verified build produced for the same inputs instead of compiling them on macOS
-    # (ADR-0590). Every step may fail; then `restored` stays unset and native-runtime builds.
+    # Most changes leave the darwin native inputs alone, so this Linux job installs the bytes that a
+    # build on main produced for the same inputs instead of compiling them on macOS (ADR-0590).
+    # Every step may fail; then `restored` stays unset and native-runtime builds.
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
       run: ${{ steps.find.outputs.run }}
       artifact: ${{ steps.find.outputs.artifact }}
+      artifactId: ${{ steps.find.outputs.artifactId }}
+      lookup: ${{ steps.find.outputs.lookup }}
       restored: ${{ steps.reused.outputs.restored }}
     steps:
       - name: Check out repository
@@ -216,6 +218,8 @@ jobs:
     timeout-minutes: 10
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    outputs:
+      reproduced: ${{ steps.compare.outcome }}
     steps:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -258,11 +262,22 @@ jobs:
           path: ${{ runner.temp }}/native-runtime-earlier
           run-id: ${{ needs.native-runtime-reuse.outputs.run }}
           github-token: ${{ github.token }}
-      - name: Require the reusable build to equal this build
+      # A mismatch does not fail this job: the fresh build is still offered and, being newest, is
+      # reused first. native-runtime-quarantine withdraws the old build and fails the audit.
+      - name: Compare the reusable build with this build
+        id: compare
         if: steps.earlier.outcome == 'success'
+        continue-on-error: true
         run: node scripts/distribution/native-runtime-reuse.mjs compare "${{ runner.temp }}/native-runtime-reusable" "${{ runner.temp }}/native-runtime-earlier"
+      - name: Report an audit without a comparison
+        if: github.event_name == 'schedule' && steps.earlier.outcome != 'success'
+        env:
+          LOOKUP: ${{ needs.native-runtime-reuse.outputs.lookup }}
+        run: echo "::warning title=Native reuse audit::No build on main was compared with this build (lookup ${LOOKUP:-failed})."
+      # Only a build on main supplies other runs. A branch can rewrite its own workflow, so its
+      # artifact under the same computable key could hold any bytes (ADR-0590).
       - name: Offer this build for identical native inputs
-        if: steps.reusable.outcome == 'success'
+        if: steps.reusable.outcome == 'success' && github.ref == 'refs/heads/main'
         continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -270,6 +285,26 @@ jobs:
           path: ${{ runner.temp }}/native-runtime-reusable
           if-no-files-found: error
           retention-days: 30
+
+  native-runtime-quarantine:
+    name: Withdraw a native build that did not reproduce
+    needs: [native-runtime-reuse, native-runtime]
+    if: ${{ !cancelled() && github.event_name == 'schedule' && needs.native-runtime.outputs.reproduced == 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    # Deleting the artifact is the only write; only the daily audit on main reaches this job.
+    permissions:
+      actions: write
+    steps:
+      - name: Delete the build that the audit could not reproduce
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARTIFACT_ID: ${{ needs.native-runtime-reuse.outputs.artifactId }}
+        run: |
+          [[ "${ARTIFACT_ID}" =~ ^[1-9][0-9]*$ ]] || { echo 'native_reuse_artifact_invalid' >&2; exit 1; }
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/actions/artifacts/${ARTIFACT_ID}"
+          echo "::error title=Native reuse audit::native_reuse_not_reproduced: deleted artifact ${ARTIFACT_ID}; find the build input that the key misses (ADR-0590)."
+          exit 1
 
   release-artifacts:
     name: Release manifest and SBOM

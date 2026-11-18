@@ -53,7 +53,8 @@ function find({ artifact = publishedArtifact, api = "ok" } = {}) {
   return result;
 }
 
-const findOutputs = async (options) => JSON.parse(find(options).stdout);
+// The entrypoint prints its result as the last line, after any workflow warning.
+const findOutputs = async (options) => JSON.parse(find(options).stdout.trim().split("\n").at(-1));
 
 let outputFiles = 0;
 /** Runs a step command that only writes step outputs, and returns what it wrote. */
@@ -127,7 +128,8 @@ const name = process.env.FAKE_GH_ARTIFACT;
 const reply = (value) => process.stdout.write(JSON.stringify(value));
 if (path.startsWith("repos/${repository}/actions/artifacts?name=")) {
   const requested = new URLSearchParams(path.split("?")[1]).get("name");
-  reply({ artifacts: requested === name ? [{ name, expired: false, workflow_run: { id: 7 } }] : [] });
+  const artifact = { id: 70, name, expired: false, created_at: "2026-11-18T00:00:00Z", workflow_run: { id: 7 } };
+  reply({ artifacts: requested === name ? [artifact] : [] });
 } else if (path === "repos/${repository}/actions/runs/7") {
   reply({ path: ".github/workflows/code-quality.yml", status: "completed", conclusion: "success",
     event: "push", head_branch: "main", repository: { full_name: "${repository}" },
@@ -151,6 +153,8 @@ describe("Code quality darwin native reuse", () => {
   it("reuses the verified build when no native input changed, so macOS never starts", async () => {
     const found = await findOutputs();
     assert.equal(found.run, "7");
+    assert.equal(found.artifactId, "70");
+    assert.equal(found.lookup, "found");
     assert.equal(found.artifact, publishedArtifact);
     const reuseOutputs = simulateReuseJob({ event: "pull_request", found });
     assert.equal(reuseOutputs.restored, "true");
@@ -186,7 +190,17 @@ describe("Code quality darwin native reuse", () => {
     ["a build that fails validation", {}, { restore: "failure" }],
     ["a failed transfer upload", {}, { share: "failure" }],
   ])("builds on macOS after a cache miss: %s", async (_label, lookup, outcomes) => {
-    const found = await findOutputs(lookup);
+    const { stdout } = find(lookup);
+    const found = JSON.parse(stdout.trim().split("\n").at(-1));
+    // A failed lookup is reported as a warning, never as an ordinary miss.
+    assert.equal(
+      found.lookup,
+      lookup.api === "down" ? "unavailable" : found.run ? "found" : "none",
+    );
+    assert.equal(
+      stdout.includes("::warning title=Native reuse lookup failed::"),
+      lookup.api === "down",
+    );
     const reuseOutputs = simulateReuseJob({ event: "push", found, outcomes });
     assert.equal(reuseOutputs.restored, "");
     const { builds, consumes } = downstream({ event: "push", reuseOutputs });
@@ -199,44 +213,119 @@ describe("Code quality darwin native reuse", () => {
     );
   });
 
-  it("makes the daily audit compile and compare instead of reusing", async () => {
+  const quarantineJob = workflow.jobs["native-runtime-quarantine"];
+  /** Walks the macOS job's steps; returns the steps that ran and the job's outputs. */
+  function simulateBuildJob({ event, ref, reuseOutputs, outcomes = {} }) {
+    const steps = {};
+    const ran = [];
+    for (const step of buildJob.steps) {
+      const context = {
+        github: { event_name: event, ref },
+        needs: { "native-runtime-reuse": { outputs: reuseOutputs } },
+        steps,
+      };
+      const runs = workflowConditionHolds(step.if, context);
+      if (runs) ran.push(step.name);
+      if (step.id)
+        steps[step.id] = { outcome: runs ? (outcomes[step.id] ?? "success") : "skipped" };
+    }
+    const outputs = Object.fromEntries(
+      Object.entries(buildJob.outputs).map(([name, expression]) => [
+        name,
+        String(evaluateWorkflowValue(expression, { steps })),
+      ]),
+    );
+    return { ran, outputs };
+  }
+  const quarantines = (event, reuseOutputs, buildOutputs) =>
+    workflowConditionHolds(quarantineJob.if, {
+      github: { event_name: event },
+      needs: {
+        "native-runtime-reuse": { result: "success", outputs: reuseOutputs },
+        "native-runtime": { result: "success", outputs: buildOutputs },
+      },
+      functions: { cancelled: () => false },
+    });
+  const main = "refs/heads/main";
+
+  it("makes the daily audit compile, compare, and withdraw a build that did not reproduce", async () => {
     const found = await findOutputs();
-    const buildSteps = (event, reuseOutputs) => {
-      const steps = {};
-      const ran = [];
-      for (const step of buildJob.steps) {
-        const context = {
-          github: { event_name: event },
-          needs: { "native-runtime-reuse": { outputs: reuseOutputs } },
-          steps,
-        };
-        const runs = workflowConditionHolds(step.if, context);
-        if (runs) ran.push(step.name);
-        if (step.id) steps[step.id] = { outcome: runs ? "success" : "skipped" };
-      }
-      return ran;
-    };
     const reuseOutputs = simulateReuseJob({ event: "schedule", found });
     assert.equal(reuseOutputs.restored, "");
-    assert.equal(reuseOutputs.run, "7");
+    assert.equal(reuseOutputs.artifactId, "70");
     assert.equal(downstream({ event: "schedule", reuseOutputs }).builds, true);
-    const ran = buildSteps("schedule", reuseOutputs);
-    assert.ok(ran.includes("Require the reusable build to equal this build"));
-    assert.ok(ran.includes("Offer this build for identical native inputs"));
-    // A pull request that fell back to macOS after a failed restore offers its build but never
-    // compares it with the build it could not use.
+
+    const reproduced = simulateBuildJob({ event: "schedule", ref: main, reuseOutputs });
+    assert.ok(reproduced.ran.includes("Compare the reusable build with this build"));
+    assert.ok(reproduced.ran.includes("Offer this build for identical native inputs"));
+    assert.ok(!reproduced.ran.includes("Report an audit without a comparison"));
+    assert.equal(quarantines("schedule", reuseOutputs, reproduced.outputs), false);
+
+    // A mismatch still offers the fresh build, which is newest and so reused first, and the
+    // quarantine job deletes the old artifact by ID and fails the run.
+    const differed = simulateBuildJob({
+      event: "schedule",
+      ref: main,
+      reuseOutputs,
+      outcomes: { compare: "failure" },
+    });
+    assert.equal(differed.outputs.reproduced, "failure");
+    assert.ok(differed.ran.includes("Offer this build for identical native inputs"));
+    assert.equal(quarantines("schedule", reuseOutputs, differed.outputs), true);
+    assert.deepEqual(quarantineJob.permissions, { actions: "write" });
+    const remove = quarantineJob.steps[0];
+    assert.equal(remove.env.ARTIFACT_ID, "${{ needs.native-runtime-reuse.outputs.artifactId }}");
+    assert.match(
+      remove.run,
+      /gh api --method DELETE "repos\/\$\{GITHUB_REPOSITORY\}\/actions\/artifacts\/\$\{ARTIFACT_ID\}"/u,
+    );
+    assert.match(remove.run, /native_reuse_not_reproduced/u);
+    assert.match(remove.run, /exit 1\n?$/u);
+    assert.equal(buildJob.steps.find((step) => step.id === "compare")["continue-on-error"], true);
+  });
+
+  it("makes an audit that compared nothing visible", async () => {
+    for (const lookup of [{ artifact: "" }, { api: "down" }]) {
+      const reuseOutputs = simulateReuseJob({
+        event: "schedule",
+        found: await findOutputs(lookup),
+      });
+      const audit = simulateBuildJob({ event: "schedule", ref: main, reuseOutputs });
+      assert.ok(audit.ran.includes("Report an audit without a comparison"));
+      assert.equal(quarantines("schedule", reuseOutputs, audit.outputs), false);
+    }
+    const warning = buildJob.steps.find(
+      (step) => step.name === "Report an audit without a comparison",
+    );
+    assert.match(warning.run, /^echo "::warning /u);
+  });
+
+  it("offers a build only from main, never from a pull-request branch", async () => {
     const fallback = simulateReuseJob({
       event: "pull_request",
-      found,
+      found: await findOutputs(),
       outcomes: { restore: "failure" },
     });
-    const fallbackSteps = buildSteps("pull_request", fallback);
-    assert.ok(!fallbackSteps.includes("Require the reusable build to equal this build"));
-    assert.ok(fallbackSteps.includes("Offer this build for identical native inputs"));
-    const compare = buildJob.steps.find(
-      (step) => step.name === "Require the reusable build to equal this build",
-    );
-    assert.equal(compare["continue-on-error"], undefined);
+    const branch = simulateBuildJob({
+      event: "pull_request",
+      ref: "refs/pull/285/merge",
+      reuseOutputs: fallback,
+    });
+    assert.ok(branch.ran.includes("Compile universal native runtime artifacts"));
+    assert.ok(!branch.ran.includes("Offer this build for identical native inputs"));
+    assert.ok(!branch.ran.includes("Compare the reusable build with this build"));
+    const missOnMain = simulateReuseJob({
+      event: "push",
+      found: await findOutputs({ artifact: "" }),
+    });
+    const mainBuild = simulateBuildJob({ event: "push", ref: main, reuseOutputs: missOnMain });
+    assert.ok(mainBuild.ran.includes("Offer this build for identical native inputs"));
+    for (const event of ["pull_request", "push"])
+      assert.equal(
+        quarantines(event, missOnMain, { reproduced: "failure" }),
+        false,
+        `${event} never deletes artifacts`,
+      );
   });
 
   it("keeps the consumer's native input identical whichever job produced it", () => {

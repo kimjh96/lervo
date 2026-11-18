@@ -106,14 +106,17 @@ jobs:
   reconcile:
     name: Reconcile release PR or exact tag
     needs: route
+    # A route job that fails before deciding leaves no runner; the reconcile then runs on the pinned
+    # macOS image, which can prepare with or without a reusable build (ADR-0590).
     if: >-
+      !cancelled() &&
       github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (github.event.workflow_run.conclusion == 'success' &&
         github.event.workflow_run.event == 'push' &&
         github.event.workflow_run.head_branch == 'main' &&
         github.event.workflow_run.head_repository.full_name == github.repository))
-    runs-on: ${{ needs.route.outputs.runner }}
+    runs-on: ${{ needs.route.outputs.runner || 'macos-15' }}
     timeout-minutes: 30
     # Preparation on macOS commits the manifest of darwin native files built here, so it uses the
     # Xcode that CI's native-runtime job uses (ADR-0581). Linux ignores the variable and restores

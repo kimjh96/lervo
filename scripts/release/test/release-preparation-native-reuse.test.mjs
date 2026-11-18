@@ -68,13 +68,15 @@ async function writeBuiltOutputs(marker) {
   }
 }
 
-/** GitHub's record: run 7, a Code quality build on main, published only `publishedArtifact`. */
+/** GitHub's record: run 7, a Code quality push on main, published only `publishedArtifact`. */
 function request(path) {
   if (path.startsWith(`repos/${repository}/actions/artifacts?name=`)) {
     const name = new URLSearchParams(path.split("?")[1]).get("name");
     return {
       artifacts:
-        name === publishedArtifact ? [{ name, expired: false, workflow_run: { id: 7 } }] : [],
+        name === publishedArtifact
+          ? [{ id: 70, name, expired: false, created_at: "2026-11-18", workflow_run: { id: 7 } }]
+          : [],
     };
   }
   if (path === `repos/${repository}/actions/runs/7`)
@@ -126,7 +128,7 @@ async function route({ pending, offeredDirectory = offered, api = request }) {
       await nativeRuntimeReuseInputs({ repositoryRoot: fixtureRoot }),
     );
     found = findNativeRuntimeReuseRun({ repository, key, request: api });
-    if (found)
+    if (found.status === "found")
       verified = await verifyNativeRuntimeReuse({
         repositoryRoot: fixtureRoot,
         artifactDirectory: offeredDirectory,
@@ -139,7 +141,7 @@ async function route({ pending, offeredDirectory = offered, api = request }) {
     env: {
       PENDING: intent.outputs.pending,
       VERIFIED: verified,
-      NATIVE_RUN: found ? String(found.runId) : "",
+      NATIVE_RUN: found?.runId ? String(found.runId) : "",
     },
   }).outputs;
 }
@@ -191,10 +193,32 @@ describe("release preparation darwin native reuse", () => {
       },
     ],
     ["a download that fails validation", { offeredDirectory: resolve(tmpdir(), "missing") }],
+    [
+      "a valid build that a pull-request branch published",
+      {
+        // The bytes and key are right, but a branch run controls its own workflow, so its
+        // artifact never decides what preparation commits.
+        api: (path) =>
+          path === `repos/${repository}/actions/runs/7`
+            ? { ...request(path), event: "pull_request", head_branch: "feature" }
+            : request(path),
+      },
+    ],
   ])("prepares on the pinned macOS image after a cache miss: %s", async (_label, options) => {
     assert.deepEqual(await route({ pending: true, ...options }), {
       runner: darwinToolchainPin.runner,
     });
+  });
+
+  it("falls back to the pinned macOS image when the route job fails before deciding", () => {
+    const reconcile = preparation.jobs.reconcile;
+    assert.equal(
+      reconcile["runs-on"],
+      `\${{ needs.route.outputs.runner || '${darwinToolchainPin.runner}' }}`,
+    );
+    // Without `!cancelled()`, a failed route job would skip the reconcile entirely.
+    assert.ok(reconcile.if.startsWith("!cancelled() && "));
+    assert.equal(reconcile.if.slice("!cancelled() && ".length), preparation.jobs.route.if);
   });
 
   it("creates a tag on Linux without looking for native files", async () => {

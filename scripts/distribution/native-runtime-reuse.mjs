@@ -43,12 +43,25 @@ let result;
 if (operation === "find") {
   const key = nativeRuntimeReuseKey(await nativeRuntimeReuseInputs({ repositoryRoot }));
   const found = findNativeRuntimeReuseRun({ repository: process.env.GITHUB_REPOSITORY, key });
-  result = { key, artifact: found?.artifactName ?? "", run: found ? String(found.runId) : "" };
+  result = {
+    key,
+    lookup: found.status,
+    artifact: found.artifactName ?? "",
+    artifactId: found.artifactId ? String(found.artifactId) : "",
+    run: found.runId ? String(found.runId) : "",
+  };
   await writeOutputs(result);
+  // A failed lookup only costs a macOS build, but it must not look like an ordinary miss.
+  if (found.status === "unavailable")
+    process.stdout.write(
+      `::warning title=Native reuse lookup failed::The GitHub API failed; macOS builds the darwin files.\n`,
+    );
   await summarize(
-    found
-      ? `Darwin native files: run ${found.runId} built inputs ${key}.`
-      : `Darwin native files: no reusable build for inputs ${key}; macOS builds them.`,
+    {
+      found: `Darwin native files: main run ${found.runId} built inputs ${key}.`,
+      none: `Darwin native files: no main build for inputs ${key}; macOS builds them.`,
+      unavailable: `Darwin native files: the lookup failed for inputs ${key}; macOS builds them.`,
+    }[found.status],
   );
 } else if (operation === "create") {
   result = await createNativeRuntimeReuse({ repositoryRoot, artifactDirectory: first });

@@ -222,76 +222,117 @@ describe("reusable native build artifact", () => {
   });
 });
 
-describe("verified producer run lookup", () => {
+describe("main build lookup", () => {
   const repository = "owner/repo";
   const lookupKey = "d".repeat(64);
   const name = nativeRuntimeReuseArtifactName(lookupKey);
-  function api({ artifacts, run = {}, jobs } = {}) {
+  const artifact = (id, runId, created_at, extra = {}) => ({
+    id,
+    name,
+    expired: false,
+    created_at,
+    workflow_run: { id: runId },
+    ...extra,
+  });
+  const mainRun = {
+    path: ".github/workflows/code-quality.yml",
+    status: "completed",
+    conclusion: "success",
+    event: "push",
+    head_branch: "main",
+    repository: { full_name: repository },
+    head_repository: { full_name: repository },
+  };
+  const nativeSucceeded = [{ name: "Native runtime artifacts", conclusion: "success" }];
+  /** GitHub's record: artifact pages by name, each run, and each run's latest jobs. */
+  function api({ artifacts, pages, runs = {}, jobs = {} } = {}) {
     const calls = [];
     const request = (path) => {
       calls.push(path);
-      if (path.startsWith(`repos/${repository}/actions/artifacts?name=${name}`))
-        return { artifacts: artifacts ?? [{ name, expired: false, workflow_run: { id: 11 } }] };
-      if (path === `repos/${repository}/actions/runs/11`)
-        return {
-          path: ".github/workflows/code-quality.yml",
-          status: "completed",
-          conclusion: "success",
-          event: "pull_request",
-          head_branch: "feature",
-          repository: { full_name: repository },
-          head_repository: { full_name: repository },
-          ...run,
-        };
-      if (path.startsWith(`repos/${repository}/actions/runs/11/jobs?filter=latest`))
-        return { jobs: jobs ?? [{ name: "Native runtime artifacts", conclusion: "success" }] };
+      if (path.startsWith(`repos/${repository}/actions/artifacts?name=${name}&per_page=100`)) {
+        const page = Number(new URLSearchParams(path.split("?")[1]).get("page"));
+        if (pages) return { artifacts: pages[page - 1] ?? [] };
+        return { artifacts: page === 1 ? (artifacts ?? [artifact(5, 11, "2026-11-18")]) : [] };
+      }
+      const run = path.match(/^repos\/owner\/repo\/actions\/runs\/(\d+)$/u);
+      if (run) return { ...mainRun, ...runs[run[1]] };
+      const job = path.match(/^repos\/owner\/repo\/actions\/runs\/(\d+)\/jobs\?filter=latest/u);
+      if (job) return { jobs: jobs[job[1]] ?? nativeSucceeded };
       throw new Error(`unexpected ${path}`);
     };
     return { calls, request };
   }
   const find = (fixture) => findNativeRuntimeReuseRun({ repository, key: lookupKey, ...fixture });
+  const found = (runId, artifactId) => ({
+    status: "found",
+    runId,
+    artifactId,
+    artifactName: name,
+  });
 
-  it("accepts a successful run or a build on main whose native job succeeded", () => {
-    expect(find(api())).toEqual({ runId: 11, artifactName: name });
-    const unfinishedMain = { status: "in_progress", conclusion: null, head_branch: "main" };
-    for (const event of ["push", "schedule", "workflow_dispatch"])
-      expect(find(api({ run: { ...unfinishedMain, event } }))).toEqual({
-        runId: 11,
-        artifactName: name,
-      });
+  it("accepts a build on main whose native job succeeded, even before the run ends", () => {
+    for (const event of ["push", "schedule", "workflow_dispatch"]) {
+      const runs = { 11: { event, status: "in_progress", conclusion: null } };
+      expect(find(api({ runs }))).toEqual(found(11, 5));
+    }
+  });
+
+  it("rejects a successful pull-request run, whose workflow the branch controls", () => {
+    // A branch can rewrite its workflow so the native job succeeds and uploads crafted bytes
+    // under main's computable key; its run conclusion proves nothing about their origin.
+    const runs = { 11: { event: "pull_request", head_branch: "feature" } };
+    expect(find(api({ runs }))).toEqual({ status: "none" });
+    const dispatchedBranch = { 11: { event: "workflow_dispatch", head_branch: "feature" } };
+    expect(find(api({ runs: dispatchedBranch }))).toEqual({ status: "none" });
   });
 
   it.each([
-    ["a failed pull-request run", { run: { conclusion: "failure" } }],
-    ["an unfinished pull-request run", { run: { status: "in_progress", conclusion: null } }],
     [
       "a pull request whose head branch is called main",
-      { run: { conclusion: "failure", head_branch: "main", event: "pull_request" } },
+      { runs: { 11: { event: "pull_request" } } },
     ],
-    ["a fork", { run: { head_repository: { full_name: "fork/repo" } } }],
-    ["another workflow", { run: { path: ".github/workflows/cli-release-matrix.yml" } }],
+    ["a fork", { runs: { 11: { head_repository: { full_name: "fork/repo" } } } }],
+    ["another workflow", { runs: { 11: { path: ".github/workflows/cli-release-matrix.yml" } } }],
     [
       "a failed native job",
-      { jobs: [{ name: "Native runtime artifacts", conclusion: "failure" }] },
+      { jobs: { 11: [{ name: "Native runtime artifacts", conclusion: "failure" }] } },
     ],
-    ["a missing native job", { jobs: [] }],
-    ["an expired artifact", { artifacts: [{ name, expired: true, workflow_run: { id: 11 } }] }],
+    ["a missing native job", { jobs: { 11: [] } }],
+    ["an expired artifact", { artifacts: [artifact(5, 11, "2026-11-18", { expired: true })] }],
     ["no artifact for these inputs", { artifacts: [] }],
   ])("rejects %s, so the caller builds", (_label, fixture) => {
-    expect(find(api(fixture))).toBeNull();
+    expect(find(api(fixture))).toEqual({ status: "none" });
   });
 
-  it("treats any API failure or invalid coordinate as no reuse", () => {
+  it("prefers the newest main build and looks past branch artifacts on later pages", () => {
+    const branchRuns = Object.fromEntries(
+      Array.from({ length: 100 }, (_, index) => [
+        String(100 + index),
+        { event: "pull_request", head_branch: "feature" },
+      ]),
+    );
+    const pages = [
+      Array.from({ length: 100 }, (_, index) =>
+        artifact(1000 + index, 100 + index, `2026-11-18T09:${String(index % 60).padStart(2, "0")}`),
+      ),
+      [artifact(7, 12, "2026-11-16"), artifact(8, 13, "2026-11-17")],
+    ];
+    expect(find(api({ pages, runs: branchRuns }))).toEqual(found(13, 8));
+  });
+
+  it("reports an API failure apart from a miss, and treats invalid coordinates as a miss", () => {
     expect(
       find({
         request: () => {
           throw new Error("rate limited");
         },
       }),
-    ).toBeNull();
-    expect(findNativeRuntimeReuseRun({ ...api(), repository: "bad repo", key: lookupKey })).toBe(
-      null,
+    ).toEqual({ status: "unavailable" });
+    expect(findNativeRuntimeReuseRun({ ...api(), repository: "bad repo", key: lookupKey })).toEqual(
+      { status: "none" },
     );
-    expect(findNativeRuntimeReuseRun({ ...api(), repository, key: "short" })).toBeNull();
+    expect(findNativeRuntimeReuseRun({ ...api(), repository, key: "short" })).toEqual({
+      status: "none",
+    });
   });
 });

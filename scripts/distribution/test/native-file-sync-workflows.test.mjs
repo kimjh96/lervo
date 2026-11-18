@@ -51,9 +51,12 @@ it("uses the same native transfer for all packed platforms and attestation", asy
   expect(workflow.jobs["native-runtime"].if).toBe(workflow.jobs["packed-cli"].if);
   const preparation = await read("release-preparation.yml");
   // Pending intent builds darwin native files on macOS; a tag-only reconcile runs on Linux.
-  expect(preparation.jobs.reconcile["runs-on"]).toBe("${{ needs.route.outputs.runner }}");
+  // A route job that fails before deciding falls back to the pinned macOS image (ADR-0590).
+  expect(preparation.jobs.reconcile["runs-on"]).toBe(
+    `\${{ needs.route.outputs.runner || '${darwinToolchainPin.runner}' }}`,
+  );
   expect(preparation.jobs.reconcile.needs).toBe("route");
-  expect(preparation.jobs.route.if).toBe(preparation.jobs.reconcile.if);
+  expect(preparation.jobs.reconcile.if).toBe(`!cancelled() && ${preparation.jobs.route.if}`);
   const intent = preparation.jobs.route.steps.find((step) => step.id === "intent").run;
   expect(intent).toContain("compgen -G '.changes/*.yaml'");
   const route = preparation.jobs.route.steps.at(-1).run;
