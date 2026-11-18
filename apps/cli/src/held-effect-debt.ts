@@ -109,7 +109,13 @@ export async function heldUpgradeKnowledgeReason(
   const held = (await readHeldEffects(repositoryRoot)).find(
     (item) => item.effect === "upgrade_knowledge" && item.subject === planId,
   );
-  if (held?.reasonCode === "cross_check_disagreement_repeated") return held.reasonCode;
+  // The plan ID binds the sources and HEAD, so committing or stashing the held paths retries it.
+  if (
+    held?.reasonCode === "cross_check_disagreement_repeated" ||
+    held?.reasonCode === "commit_unavailable" ||
+    held?.reasonCode === "paths_uncommitted"
+  )
+    return held.reasonCode;
   return held?.reasonCode === "cross_check_unavailable" && !(await providerAdmitted())
     ? held.reasonCode
     : null;

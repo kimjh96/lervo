@@ -31,10 +31,16 @@ export async function applyCrossCheckedEffect<T>(input: {
   provider?: "codex" | "claude";
   plan: unknown;
   paths: readonly string[];
+  /** Paths the apply itself commits before changing them, such as a document it deletes. */
+  preservedPaths?: readonly string[];
   notice: Omit<KnowledgeEffectNotice, "crossCheck">;
   apply(crossCheck: PlanCrossCheckVerdict): Promise<T>;
 }): Promise<{ receipt: T; report: CrossCheckedEffectReport }> {
-  const hold = await knowledgeEffectPreflight(input.repositoryRoot, input.paths);
+  const preserved = new Set(input.preservedPaths ?? []);
+  const hold = await knowledgeEffectPreflight(
+    input.repositoryRoot,
+    input.paths.filter((path) => !preserved.has(path)),
+  );
   if (hold?.reason === "commit_unavailable")
     throw new CommandFailure(
       "knowledge_effect_commit_unavailable",

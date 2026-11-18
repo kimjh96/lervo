@@ -104,7 +104,9 @@ export async function commitKnowledgePaths(input: {
         (await git(["status", "--porcelain", "--", path])).trim() !== ""
       )
         paths.push(path);
-    if (paths.length === 0) return { status: "not_committed", reason: "nothing_to_commit" };
+    // Tracked paths whose bytes did not change leave Git nothing to commit either.
+    if (paths.length === 0 || (await git(["status", "--porcelain", "--", ...paths])).trim() === "")
+      return { status: "not_committed", reason: "nothing_to_commit" };
     await git(["add", "-A", "--", ...paths]);
     await git(
       ["commit", "--only", "--quiet", "-m", input.subject, "-m", trailers, "--", ...paths],

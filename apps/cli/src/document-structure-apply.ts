@@ -119,6 +119,8 @@ export async function applyDocumentStructureOperation<
       ...(input.provider === undefined ? {} : { provider: input.provider }),
       plan,
       paths: lifecycleChangedPaths(plan),
+      // Commit-then-delete: Git holds the deleted document's bytes before Lervo removes them.
+      ...(structure.deletedPath === undefined ? {} : { preservedPaths: [structure.deletedPath] }),
       notice: { effect: "document_structure", planId: plan.planId, reason: structure.reason },
       apply: async () => {
         const applying = await preservedStructure(repositoryRoot, structure);

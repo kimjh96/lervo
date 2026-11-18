@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import { heldTerminalIntegrationReason } from "./held-effect-debt.js";
 import {
   planTerminalIntegrationStage,
@@ -8,14 +10,21 @@ import type { StageDisposition } from "./upgrade-stage-policy.js";
 
 /**
  * What a failed verification holds: the exact provider hook bytes the plan writes, or the plan
- * itself when only the generated runtime changes. The plan ID also binds the latest application
- * event, which the failed apply can advance, so it alone would let an upgrade retry the same bytes.
+ * itself when only the generated runtime changes. The plan ID and approval hash also bind the
+ * generated runtime and the latest application event, which the failed apply can advance, so
+ * either alone would let an upgrade retry the same hook bytes.
  */
 export function terminalIntegrationHoldSubject(plan: {
   planId: string;
-  approvalHash: string | null;
+  operations: ReadonlyArray<{ path: string; ownership?: string; desiredHash?: string }>;
 }): string {
-  return plan.approvalHash ?? plan.planId;
+  const hooks = plan.operations
+    .filter((operation) => operation.ownership === "user")
+    .map((operation) => `${operation.path}\0${operation.desiredHash ?? ""}`)
+    .sort();
+  return hooks.length === 0
+    ? plan.planId
+    : `hooks:${createHash("sha256").update(hooks.join("\n")).digest("hex")}`;
 }
 
 /**
