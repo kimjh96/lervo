@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.25.5" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.25.6" schema="1" -->
 
 ## What's changed
 
-- Let CAS retention release the stage results, failure proofs and observations of superseded stages of settled obligations, report them separately in the read-only plan, and read a missing record as unavailable instead of a raw store error.
+- Let a resident knowledge cycle cancel its convergence, freshness or change-review provider call within a second once an upgrade waits for host admission, and start no such call while one waits, so an upgrade no longer waits for the call's whole timeout.

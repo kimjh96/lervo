@@ -19,6 +19,11 @@ import type { SemanticReviewContextDocument, ReviewContextSkip } from "./review-
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { readProviderReviewCache, storeProviderReviewCache } from "./provider-review-cache.js";
+import {
+  abandonProviderCallOnUpgrade,
+  upgradePreemptionError,
+  upgradeWaiting,
+} from "./upgrade-preemption.js";
 
 export async function withKnowledgeProviderAdmission<T>(input: {
   context: ConvergenceRuntimeContext;
@@ -60,13 +65,17 @@ export async function withKnowledgeProviderAdmission<T>(input: {
       });
   }, 1_000);
   timer.unref();
+  let endUpgradeWatch = async (): Promise<void> => undefined;
   const endPolling = async () => {
     clearInterval(timer);
     await polling;
+    await endUpgradeWatch();
   };
   try {
     await input.authority.assertCurrent();
     context.assertSourceCurrent(input.state);
+    // ADR-0587: a waiting upgrade gets the host before this call starts or spends its budget.
+    if (await upgradeWaiting(context)) throw upgradePreemptionError();
     await reserveConvergenceProviderCall({
       repositoryRoot: context.storage.paths.repositoryRoot,
       obligationId: input.state.obligationId,
@@ -74,6 +83,7 @@ export async function withKnowledgeProviderAdmission<T>(input: {
       ...input.budget,
     });
     if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
+    endUpgradeWatch = abandonProviderCallOnUpgrade(context, (reason) => controller.abort(reason));
     return await input.run(admission.observationHash, controller.signal, endPolling);
   } catch (error) {
     if (error instanceof KnowledgeProviderAvailabilityError)

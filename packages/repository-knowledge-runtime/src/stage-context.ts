@@ -2,8 +2,10 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import type { KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 
 import type { ConvergenceSourceObservation } from "./source-observation.js";
+import type { UpgradePreemptionSource } from "./upgrade-preemption.js";
 
-export interface ConvergenceRuntimeContext {
+/** `yieldToUpgrade` lets a resident abandon a provider call for a waiting upgrade (ADR-0587). */
+export interface ConvergenceRuntimeContext extends UpgradePreemptionSource {
   storage: ProjectStorage;
   settlementAuthority?: {
     obligationId: string;

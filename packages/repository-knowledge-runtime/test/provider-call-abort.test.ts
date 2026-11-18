@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
 import { sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { acquireKnowledgeProviderAdmission } from "../src/provider-admission.js";
+import { reserveConvergenceProviderCall } from "../src/provider-budget.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 import { reviewKnowledgeJson, withKnowledgeProviderAdmission } from "../src/provider-call.js";
 import type { ConvergenceAssignmentAuthority } from "../src/workforce.js";
@@ -226,4 +227,109 @@ it("returns from provider admission only after a poll in flight, before the call
   await vi.advanceTimersByTimeAsync(5_000);
   await caller;
   expect(checks.slice(checks.indexOf("exact"))).toEqual(["exact", "effect"]);
+});
+
+it("abandons a convergence provider call once an upgrade waits and discards its answer (ADR-0587)", async () => {
+  vi.useFakeTimers();
+  const release = vi.fn(async () => {});
+  vi.mocked(acquireKnowledgeProviderAdmission).mockResolvedValue({
+    observationHash: sha256("admission"),
+    release,
+  });
+  let runnerSignal: AbortSignal | null = null;
+  // As a normalization call that runs to its 10-minute timeout unless its signal cancels it.
+  vi.mocked(createNoCapabilityProviderJsonRunner).mockResolvedValue({
+    resolveObserved: (_request: unknown, signal: AbortSignal) => {
+      runnerSignal = signal;
+      return new Promise((resolveAnswer, rejectAnswer) => {
+        const answer = setTimeout(
+          () => resolveAnswer({ value: { late: true }, usage: { fixture: true } }),
+          600_000,
+        );
+        signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(answer);
+            rejectAnswer(new Error("The provider process was cancelled."));
+          },
+          { once: true },
+        );
+      });
+    },
+  } as unknown as Awaited<ReturnType<typeof createNoCapabilityProviderJsonRunner>>);
+  const put = vi.fn();
+  let upgradeWaiting = false;
+  const context = {
+    storage: { paths: { repositoryRoot: "/repository" }, events: {}, artifacts: { put } },
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
+    yieldToUpgrade: async () => upgradeWaiting,
+  } as unknown as ConvergenceRuntimeContext;
+  const authority = {
+    assignment: { assignmentId: "asn_upgrade_preemption" },
+    agent: { agentId: "agt_upgrade_preemption" },
+    assertCurrent: async () => {},
+  } as unknown as ConvergenceAssignmentAuthority;
+  const outcome = reviewKnowledgeJson({
+    context,
+    state,
+    authority,
+    budget: { batchId: "batch", maximumCalls: 3 },
+    prompt: "Review the exact sources.",
+    task: "canonical_baseline_assessment",
+    schema: {},
+    untrustedSourceData: {},
+    contextDocuments: [],
+  }).then(
+    (value) => ({ value }),
+    (error: unknown) => ({ error }),
+  );
+  await vi.advanceTimersByTimeAsync(5_000);
+  expect(runnerSignal).not.toBeNull();
+  expect(runnerSignal!.aborted).toBe(false);
+  upgradeWaiting = true;
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(runnerSignal!.aborted).toBe(true);
+  const settled = await outcome;
+  expect(settled).toMatchObject({ error: { code: "knowledge_capacity_unavailable" } });
+  // The answer is discarded: no observation artifact and no stage effect follow the call.
+  expect(put).not.toHaveBeenCalled();
+  expect(release).toHaveBeenCalledOnce();
+});
+
+it("starts no provider call and spends no budget while an upgrade already waits (ADR-0587)", async () => {
+  const release = vi.fn(async () => {});
+  vi.mocked(acquireKnowledgeProviderAdmission).mockResolvedValue({
+    observationHash: sha256("admission"),
+    release,
+  });
+  vi.mocked(reserveConvergenceProviderCall).mockClear();
+  const providerQuantum = { remaining: 1 };
+  const context = {
+    storage: { paths: { repositoryRoot: "/repository" }, events: {}, artifacts: {} },
+    provider: "claude",
+    signal: new AbortController().signal,
+    liveWorkPending: async () => false,
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
+    providerQuantum,
+    yieldToUpgrade: async () => true,
+  } as unknown as ConvergenceRuntimeContext;
+  const run = vi.fn(async () => "answer");
+  await expect(
+    withKnowledgeProviderAdmission({
+      context,
+      state,
+      authority: { assertCurrent: async () => {} } as unknown as ConvergenceAssignmentAuthority,
+      budget: { batchId: "batch", maximumCalls: 3 },
+      run,
+    }),
+  ).rejects.toMatchObject({ code: "knowledge_capacity_unavailable" });
+  expect(run).not.toHaveBeenCalled();
+  expect(reserveConvergenceProviderCall).not.toHaveBeenCalled();
+  expect(providerQuantum.remaining).toBe(1);
+  expect(release).toHaveBeenCalledOnce();
 });
