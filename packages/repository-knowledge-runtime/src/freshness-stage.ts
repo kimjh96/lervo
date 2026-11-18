@@ -59,27 +59,6 @@ export type DocumentFreshnessCycleResult =
     };
 
 /**
- * ADR-0580: a deferral that spent, generated, verified, and applied nothing has no news to record.
- * Its cycle event would only move the event head, waking the resident and changing its fence, so
- * a deferral repeated while the owner works or a provider is paused became a loop.
- */
-function deferredWithoutProgress(outcome: {
-  deferred: string | null;
-  candidateCount: number;
-  verifiedCount: number;
-  appliedCount: number;
-  tokensObserved: number;
-}): boolean {
-  return (
-    outcome.deferred !== null &&
-    outcome.candidateCount === 0 &&
-    outcome.verifiedCount === 0 &&
-    outcome.appliedCount === 0 &&
-    outcome.tokensObserved === 0
-  );
-}
-
-/**
  * The ADR-0463 freshness stage of the knowledge resident. It runs only when its fence changed or a
  * backoff elapsed, admits findings by priority and budget, generates and verifies candidates
  * through the governed provider path, and applies what the independent cross-check agreed. What
@@ -391,6 +370,7 @@ export async function runDocumentFreshnessCycle(input: {
 }
 
 import {
+  deferredWithoutProgress,
   freshnessDebtSummary,
   observationKey,
   workingBytes,

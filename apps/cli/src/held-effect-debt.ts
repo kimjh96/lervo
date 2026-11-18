@@ -59,6 +59,25 @@ async function writeHeldEffects(repositoryRoot: string, held: HeldEffect[]): Pro
 }
 
 /** Records or refreshes a held effect; its age runs from the first time it was held. */
+/**
+ * Why an exact upgrade knowledge plan stays held, or null when it is tried again. A rejected exact
+ * plan regenerates identically, so it stays held until its bytes change; a plan no session could
+ * check waits until a provider is admitted.
+ */
+export async function heldUpgradeKnowledgeReason(
+  repositoryRoot: string,
+  planId: string,
+  providerAdmitted: () => Promise<boolean>,
+): Promise<HeldEffectReason | null> {
+  const held = (await readHeldEffects(repositoryRoot)).find(
+    (item) => item.effect === "upgrade_knowledge" && item.subject === planId,
+  );
+  if (held?.reasonCode === "cross_check_disagreement_repeated") return held.reasonCode;
+  return held?.reasonCode === "cross_check_unavailable" && !(await providerAdmitted())
+    ? held.reasonCode
+    : null;
+}
+
 export async function holdEffect(input: {
   repositoryRoot: string;
   effect: HeldEffectKind;

@@ -9,7 +9,7 @@ import type {
 
 import { CommandFailure } from "./command-error-output.js";
 import { layoutDeferrals } from "./upgrade-deferred-documents.js";
-import { readHeldEffects } from "./held-effect-debt.js";
+import { heldUpgradeKnowledgeReason } from "./held-effect-debt.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { MAXIMUM_LAYOUT_CAPACITY_ITEMS } from "./layout-capacity-lines.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
@@ -268,17 +268,11 @@ async function knowledgeDisposition(
     };
   }
   if (envelope === null && status === "review_required" && planId !== null) {
-    // A rejected exact plan regenerates identically, so it stays held until its bytes change; a
-    // plan no session could check waits until a provider is admitted.
-    const held = (await readHeldEffects(root)).find(
-      (item) => item.effect === "upgrade_knowledge" && item.subject === planId,
+    const heldReason = await heldUpgradeKnowledgeReason(
+      root,
+      planId,
+      async () => (await readWorkerProviderSelection(root)) !== null,
     );
-    const heldReason =
-      held?.reasonCode === "cross_check_disagreement_repeated" ||
-      (held?.reasonCode === "cross_check_unavailable" &&
-        (await readWorkerProviderSelection(root)) === null)
-        ? held.reasonCode
-        : null;
     return {
       disposition: heldReason === null ? "safe_apply" : "lervo_debt",
       planKind,
