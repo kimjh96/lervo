@@ -16,6 +16,11 @@ import {
 import { knowledgeReviewCallCeiling } from "./change-review-host.js";
 import type { FreshnessEvidenceBundleV1 } from "./freshness-evidence-bundle.js";
 import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
+import {
+  abandonProviderCallOnUpgrade,
+  upgradeWaiting,
+  type UpgradePreemptionSource,
+} from "./upgrade-preemption.js";
 
 export const DOCUMENT_FRESHNESS_TASK = "document_freshness_candidate";
 export const DOCUMENT_FRESHNESS_STAGE = "document_freshness";
@@ -25,7 +30,8 @@ const nativeCounterSemantics = {
   claude: "claude.json.result.model-usage",
 } as const;
 
-export interface FreshnessGenerationContext {
+/** `yieldToUpgrade` lets a resident abandon a provider call for a waiting upgrade (ADR-0587). */
+export interface FreshnessGenerationContext extends UpgradePreemptionSource {
   storage: ProjectStorage;
   provider: "codex" | "claude";
   executable?: string;
@@ -160,6 +166,9 @@ export async function generateFreshnessProposal(input: {
 }): Promise<FreshnessGenerationResult> {
   if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
     return { status: "deferred", reason: "knowledge_capacity_unavailable" };
+  // ADR-0587: a waiting upgrade gets the host before this call starts or spends anything.
+  if (await upgradeWaiting(input.context))
+    return { status: "deferred", reason: "knowledge_capacity_unavailable" };
   const source =
     "sourceData" in input.source ? input.source : freshnessBundleCallSource(input.source);
   let context;
@@ -218,6 +227,11 @@ export async function generateFreshnessProposal(input: {
       // candidate or count an attempt against the zero-success window.
       return { status: "deferred", reason: "provider_not_admitted" };
     }
+    const preemption = new AbortController();
+    const endUpgradeWatch = abandonProviderCallOnUpgrade(context, (reason) =>
+      preemption.abort(reason),
+    );
+    const signal = AbortSignal.any([context.signal, preemption.signal]);
     try {
       const request = {
         schemaVersion: 1,
@@ -230,9 +244,11 @@ export async function generateFreshnessProposal(input: {
       };
       result =
         runner.resolveObserved === undefined
-          ? { value: await runner.resolve(request, context.signal), usage: null }
-          : await runner.resolveObserved(request, context.signal);
+          ? { value: await runner.resolve(request, signal), usage: null }
+          : await runner.resolveObserved(request, signal);
     } catch (error) {
+      const abandoned = preemption.signal.aborted && !context.signal.aborted;
+      await endUpgradeWatch();
       await recordFreshnessUsage({
         context,
         generationId: input.generationId,
@@ -244,7 +260,12 @@ export async function generateFreshnessProposal(input: {
         await pauseKnowledgeProviderFailure(context, error);
         return { status: "deferred", reason: "knowledge_provider_paused", attempted: true };
       }
+      // ADR-0587: the abandoned answer is discarded, and the call may have spent tokens.
+      if (abandoned)
+        return { status: "deferred", reason: "knowledge_capacity_unavailable", attempted: true };
       return { status: "failed", usage: null };
+    } finally {
+      await endUpgradeWatch();
     }
     await recordFreshnessUsage({
       context,

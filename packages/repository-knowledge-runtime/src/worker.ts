@@ -94,6 +94,7 @@ export async function runAutonomousKnowledgeWorker(input: {
   /**
    * ADR-0574: an upgrade waits for the host's full-cycle admission. Asked before each stage of
    * the cycle; each stage finishes its own durable writes first, and the rest stays due.
+   * ADR-0587: a convergence, freshness, or change-review provider call in flight is abandoned.
    */
   yieldToUpgrade?: () => Promise<boolean>;
   /**
@@ -225,7 +226,10 @@ export async function runAutonomousKnowledgeWorker(input: {
       ownerTurns: ownerTurns === null || ownerTurns.status === "busy" ? null : ownerTurns.result,
     };
   }
+  const upgradePreemption =
+    input.yieldToUpgrade === undefined ? {} : { yieldToUpgrade: input.yieldToUpgrade };
   const context: ConvergenceRuntimeContext = {
+    ...upgradePreemption,
     storage: input.storage,
     provider: input.provider,
     ...(input.executable === undefined ? {} : { executable: input.executable }),
@@ -242,6 +246,7 @@ export async function runAutonomousKnowledgeWorker(input: {
     providerQuantum,
   };
   const freshnessContext = {
+    ...upgradePreemption,
     storage: input.storage,
     provider: input.provider,
     ...(input.executable === undefined ? {} : { executable: input.executable }),

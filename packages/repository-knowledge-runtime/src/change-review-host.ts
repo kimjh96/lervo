@@ -16,8 +16,15 @@ import { loadConvergenceDelegation } from "./delegation.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { acquireKnowledgeProviderAdmission, pauseKnowledgeProvider } from "./provider-admission.js";
 import { reserveConvergenceProviderCall } from "./provider-budget.js";
+import {
+  abandonProviderCallOnUpgrade,
+  upgradePreemptionError,
+  upgradeWaiting,
+  type UpgradePreemptionSource,
+} from "./upgrade-preemption.js";
 
-export interface ChangeReviewHostInput {
+/** `yieldToUpgrade` lets a resident abandon a review call for a waiting upgrade (ADR-0587). */
+export interface ChangeReviewHostInput extends UpgradePreemptionSource {
   storage: ProjectStorage;
   provider: "codex" | "claude";
   executable?: string;
@@ -77,6 +84,8 @@ export function governChangeReviewCalls(input: ChangeReviewHostInput): Knowledge
     if (admission === null)
       throw new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
     try {
+      // ADR-0587: a waiting upgrade gets the host before this call starts or spends its budget.
+      if (await upgradeWaiting(input)) throw upgradePreemptionError();
       let callOrdinal: number;
       try {
         callOrdinal = await reserveConvergenceProviderCall({
@@ -108,9 +117,15 @@ export function governChangeReviewCalls(input: ChangeReviewHostInput): Knowledge
           occurredAt: occurredAt(),
         });
       let result: Awaited<ReturnType<Parameters<KnowledgeReviewCallGovernor>[1]>>;
+      const preemption = new AbortController();
+      const endUpgradeWatch = abandonProviderCallOnUpgrade(input, (reason) =>
+        preemption.abort(reason),
+      );
       try {
-        result = await call(input.signal);
+        result = await call(AbortSignal.any([input.signal, preemption.signal]));
       } catch (error) {
+        const abandoned = preemption.signal.aborted && !input.signal.aborted;
+        await endUpgradeWatch();
         await record(null, "knowledge_provider_call_failed");
         if (error instanceof KnowledgeProviderAvailabilityError) {
           await pauseKnowledgeProvider({
@@ -124,7 +139,11 @@ export function governChangeReviewCalls(input: ChangeReviewHostInput): Knowledge
           });
           throw new RepositoryKnowledgeReviewError("knowledge_provider_paused", { cause: error });
         }
+        // ADR-0587: the abandoned answer is discarded; the job retries after the upgrade.
+        if (abandoned) throw upgradePreemptionError();
         throw error;
+      } finally {
+        await endUpgradeWatch();
       }
       if ((await record(result.usage, null)) !== "observed")
         throw new RepositoryKnowledgeReviewError("knowledge_usage_unavailable");
