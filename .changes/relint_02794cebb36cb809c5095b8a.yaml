@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_02794cebb36cb809c5095b8a"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "health shows one Lervo debt line instead of owner authority, every effect reports a notice with its undo, and onboarding, ownership, publication, workstream approvals, and assignments no longer wait for the owner"

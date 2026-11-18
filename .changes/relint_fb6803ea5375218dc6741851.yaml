@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fb6803ea5375218dc6741851"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "lervo repository hold and release let the owner defer one repository, Lervo never applies user-owned bytes on its own, and every effect applies only when its undo commit or backup can hold it"
