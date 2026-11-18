@@ -49,16 +49,17 @@ const absent = async () => {
 };
 
 describe("readers of a pruned convergence assignment result (ADR-0586)", () => {
-  it("reruns canonical integration when the writer's stage result was pruned", async () => {
+  it("stops integration recovery as uncertain when the writer's stage result was pruned", async () => {
     const get = vi.fn(absent);
     assignments.value = [writer(sha256("pruned writer result"))];
+    // A landed integration must not be mistaken for divergence or parked without its effect.
     await expect(
       inspectRetainedCanonicalIntegration(context({ get }), state, []),
-    ).resolves.toBeNull();
+    ).rejects.toMatchObject({ code: "knowledge_effect_uncertain" });
     expect(get).toHaveBeenCalledOnce();
   });
 
-  it("keeps integrity failures uncertain instead of rerunning", async () => {
+  it("keeps integrity failures uncertain as well", async () => {
     assignments.value = [writer(sha256("expected bytes"))];
     const get = async () => new TextEncoder().encode("different bytes");
     await expect(

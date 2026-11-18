@@ -14,6 +14,7 @@ import {
   convergenceArtifactRoots,
   eligibleConvergenceArtifacts,
   reachableConvergenceArtifacts,
+  retentionNamedAt,
   retentionReferenceGraph,
   type CasRetentionRoots,
 } from "./cas-retention-policy.js";
@@ -231,7 +232,8 @@ async function plan(storage: ProjectStorage, observedAt: string): Promise<CasRet
     const hash = file.hash!;
     if (!eligible.has(hash)) continue;
     add(result.candidates, file.size);
-    if (current.has(hash)) {
+    // As in the collector's sweep, the latest naming record must also be past grace.
+    if (current.has(hash) || retentionNamedAt(roots, released, hash) >= before) {
       add(result.retained, file.size);
       continue;
     }

@@ -72,16 +72,16 @@ A new reader state, `result_unavailable`, describes an assignment's own result r
 - `invalid` keeps its meaning: a digest or parse mismatch, or the persistent CAS failures `corrupt_object`, `invalid_uri` and `unsafe_path`.
 - A transient read failure, such as `EIO`, `EMFILE` or a lock, still throws, so no caller records it as a state.
 
-| Reader                                       | Before                         | After                                                                                                                                                                  |
-| -------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Completed-assignment reuse in `workforce.ts` | A raw `not_found` store error. | `knowledge_effect_uncertain`. The owner records `recovery_required`, so the existing uncertain-effect inspection decides the stage instead of an unclassified failure. |
-| `retryConvergenceAssignment`                 | A raw `not_found` store error. | `knowledge_effect_uncertain`. A failed attempt without its proof cannot show what it did.                                                                              |
-| `inspectRetainedCanonicalIntegration`        | A raw `not_found` store error. | Returns null: no retained integration is observable, so canonical integration runs again. A digest mismatch is still `knowledge_effect_uncertain`.                     |
-| Settled-stall evidence in `host.ts`          | A raw `not_found` store error. | Skips the retained-integration inspection, so the stall stays in place.                                                                                                |
+Each of these readers surfaced a raw `not_found` store error before this change:
+
+- Completed-assignment reuse in `workforce.ts` now raises `knowledge_effect_uncertain`. The owner records `recovery_required`, so the existing uncertain-effect inspection decides the stage instead of an unclassified failure.
+- `retryConvergenceAssignment` now raises `knowledge_effect_uncertain`. A failed attempt without its proof cannot show what it did.
+- `inspectRetainedCanonicalIntegration` now raises `knowledge_effect_uncertain`, as `workforce.ts` does. Without the writer result, an integration that already landed cannot be told from divergence. Returning null would let a capacity-blocked batch park without retiring that effect, and `preflightCanonicalTargets` could then read the landed drafts as divergence. A digest mismatch is also `knowledge_effect_uncertain`.
+- Settled-stall evidence in `host.ts` skips the retained-integration inspection, so the stall stays in place.
 
 All four read records that a live workforce record or an open obligation still roots. They meet `result_unavailable` only after a loss outside this policy. A source audit of production `artifacts.get` calls found no archive reader or audit that opens a stage result, failure proof or observation body. Status, inspection, audit and `find-replay` read none of them.
 
-A completed assignment's identity is derived from its stage input, so `workforce.ts` cannot claim it again to rerun the stage. A writer stage could also repeat its effect. That reader therefore stops as uncertain instead of rerunning.
+A completed assignment's identity is derived from its stage input, so `workforce.ts` cannot claim it again to rerun the stage. A writer stage could also repeat its effect. Workforce reuse, retry and integration recovery therefore stop as uncertain instead of rerunning.
 
 ### Read-only plan
 
@@ -91,7 +91,7 @@ A completed assignment's identity is derived from its stage input, so `workforce
 - `failure_superseded`: superseded failure proofs, and candidates that only failures and observations kept;
 - `observation_superseded`: superseded observations, and candidates that only observations kept.
 
-A released record counts under its own reason. A candidate that only released records kept counts under the first reason, in the order above, that releases it. The ADR-0585 reasons keep their meaning: they count candidates that the ADR-0585 policy already releases. `candidates` now includes released records past grace. The plan still names no path, hash or body.
+A released record counts under its own reason. A candidate that only released records kept counts under the first reason, in the order above, that releases it. The ADR-0585 reasons keep their meaning: they count candidates that the ADR-0585 policy already releases. `candidates` now includes released records past grace. Like the collector's sweep, the plan counts an object as collectable only when the latest record naming it, by either rule, is past grace. The plan still names no path, hash or body.
 
 ## Consequences
 
@@ -123,7 +123,7 @@ Tests and builds were not run on the Mac, and WSL was not accessed. GitHub CI ru
 - a superseded stage result and the candidate that only it named are collected, while the latest settled stage's result and an open obligation's result remain;
 - superseded failure proofs and observations are collected, while the latest stage's records and an observation of another input remain;
 - unparseable, unknown, mismatched and ambiguous bodies remain;
-- the readers report `result_unavailable`, a pruned writer result makes integration recovery return null, an invalid one stays `knowledge_effect_uncertain`, a pruned failure proof stops a retry as `knowledge_effect_uncertain`, and a transient read failure still throws;
+- the readers report `result_unavailable`, a pruned or invalid writer result stops integration recovery as `knowledge_effect_uncertain`, a pruned failure proof stops a retry as `knowledge_effect_uncertain`, and a transient read failure still throws;
 - the plan reports `stage_result_superseded`, `failure_superseded` and `observation_superseded` separately and deletes nothing.
 
 The read-only replay above was rerun with the implemented classification. It reproduced the lervo figures of the earlier estimate exactly. No live store was written.

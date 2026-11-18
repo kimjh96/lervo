@@ -59,9 +59,8 @@ export async function inspectRetainedCanonicalIntegration(
       context.storage.artifacts,
       artifact.contentHash,
     );
-    // ADR-0586: without the pruned writer result nothing is retained to observe; rerun the stage.
-    if (read.state === "result_unavailable") return null;
-    if (read.state === "invalid")
+    // ADR-0586: without the writer result, a landed integration cannot be told from divergence.
+    if (read.state !== "available")
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
     const result = read.value as KnowledgeConvergenceStageResult | null;
     if (
