@@ -8,7 +8,11 @@ import type {
   HostFollowCycleDependencies,
   HostFollowStepResult,
 } from "./host-follow-cycle-contract.js";
-import { FOLLOW_INSTALL_FAILURE_LIMIT, scheduleRepositoryRetry } from "./host-follow-policy.js";
+import {
+  FOLLOW_INSTALL_FAILURE_LIMIT,
+  repositoryPassOrder,
+  scheduleRepositoryRetry,
+} from "./host-follow-policy.js";
 import { pointFollowRuntime, readActiveCli, type ActiveCli } from "./host-follow-runtime.js";
 import {
   withFailedTag,
@@ -57,13 +61,15 @@ const outcomeRank: Record<RepositoryUpgradeOutcome, number> = {
 /**
  * Runs `lervo upgrade` on the given repositories with the active CLI and schedules each retry.
  * Null when a stop or an outside signal cut the pass short; nothing is recorded then.
+ * `yieldedRoots` names the repositories a newer release stopped the pass before (ADR-0589).
  */
-export async function passWithActiveCli(
+async function runPassWithActiveCli(
   dependencies: HostFollowCycleDependencies,
   roots: readonly string[],
   active: ActiveCli,
   previous: HostFollowPass | null,
-): Promise<HostFollowPass | null> {
+  yieldToRelease?: () => Promise<boolean>,
+): Promise<{ pass: HostFollowPass; yieldedRoots: string[] } | null> {
   const blockedPlanIds = new Map(
     (previous?.repositories ?? []).flatMap((repository) =>
       repository.outcome === "blocked" && repository.planId !== null
@@ -75,10 +81,11 @@ export async function passWithActiveCli(
     run: dependencies.runRepositoryUpgrade,
     signal: dependencies.signal,
     blockedPlanIds,
+    ...(yieldToRelease === undefined ? {} : { yieldToRelease }),
   });
   if (raw.outcome === "interrupted") return null;
   const finishedAt = dependencies.upgrade.now();
-  return {
+  const pass: HostFollowPass = {
     cliTarget: active.target ?? "",
     version: active.version,
     finishedAt: finishedAt.toISOString(),
@@ -91,6 +98,30 @@ export async function passWithActiveCli(
       ),
     ),
   };
+  return { pass, yieldedRoots: raw.yieldedRoots ?? [] };
+}
+
+/** A pass over every given repository; a release pass and a converging pass never yield. */
+export async function passWithActiveCli(
+  dependencies: HostFollowCycleDependencies,
+  roots: readonly string[],
+  active: ActiveCli,
+  previous: HostFollowPass | null,
+): Promise<HostFollowPass | null> {
+  return (await runPassWithActiveCli(dependencies, roots, active, previous))?.pass ?? null;
+}
+
+/** ADR-0589: every registered repository, those waiting for an owner approval last. */
+export async function passRepositories(
+  dependencies: HostFollowCycleDependencies,
+  lastPass: HostFollowPass | null,
+): Promise<string[]> {
+  return repositoryPassOrder(await dependencies.listRepositories(), lastPass);
+}
+
+/** What a pass that installs no release did, and whether a newer release stopped it early. */
+export interface NonReleasePassResult extends HostFollowStepResult {
+  yielded: boolean;
 }
 
 /** Repositories whose retry is due with the CLI the last pass ran. */
@@ -105,16 +136,21 @@ export function dueRepositories(state: HostFollowState, active: ActiveCli, now: 
     .map((repository) => repository.repositoryRoot);
 }
 
-/** Tries the due repositories again and merges their results into the last pass. */
+/**
+ * Tries the due repositories again and merges their results into the last pass. A repository a
+ * newer release stopped the pass before keeps its due entry.
+ */
 export async function retryRepositories(
   dependencies: HostFollowCycleDependencies,
   state: HostFollowState,
   active: ActiveCli,
   roots: readonly string[],
-): Promise<HostFollowStepResult> {
+  yieldToRelease?: () => Promise<boolean>,
+): Promise<NonReleasePassResult> {
   const previous = state.lastPass as HostFollowPass;
-  const retried = await passWithActiveCli(dependencies, roots, active, previous);
-  if (retried === null) return { state, step: { outcome: "interrupted" } };
+  const ran = await runPassWithActiveCli(dependencies, roots, active, previous, yieldToRelease);
+  if (ran === null) return { state, step: { outcome: "interrupted" }, yielded: false };
+  const retried = ran.pass;
   const repositories = previous.repositories.map(
     (repository) =>
       retried.repositories.find((item) => item.repositoryRoot === repository.repositoryRoot) ??
@@ -129,29 +165,38 @@ export async function retryRepositories(
   return {
     state: { ...state, lastPass },
     step: { outcome: "repositories_retried", pass: lastPass },
+    yielded: ran.yieldedRoots.length > 0,
   };
 }
 
-/** A pass for a CLI that no follower activation owns: a handover, a manual activation, or a restore. */
+/**
+ * A pass for a CLI that no follower activation owns: a handover, a manual activation, or a
+ * restore. A pass a newer release stopped is not recorded, so it is due again if that release
+ * never becomes active.
+ */
 export async function upgradeRepositories(
   dependencies: HostFollowCycleDependencies,
   state: HostFollowState,
   active: ActiveCli,
-): Promise<HostFollowStepResult> {
-  const pass = await passWithActiveCli(
+  yieldToRelease?: () => Promise<boolean>,
+): Promise<NonReleasePassResult> {
+  const ran = await runPassWithActiveCli(
     dependencies,
-    await dependencies.listRepositories(),
+    await passRepositories(dependencies, state.lastPass),
     active,
     null,
+    yieldToRelease,
   );
-  if (pass === null) return { state, step: { outcome: "interrupted" } };
+  if (ran === null) return { state, step: { outcome: "interrupted" }, yielded: false };
+  const yielded = ran.yieldedRoots.length > 0;
   return {
-    state: { ...state, lastPass: pass },
+    state: yielded ? state : { ...state, lastPass: ran.pass },
     step: {
       outcome: "repositories_upgraded",
-      pass,
+      pass: ran.pass,
       handover: await handoverDue(dependencies, active),
     },
+    yielded,
   };
 }
 
@@ -189,7 +234,7 @@ async function rollBack(
   const restored = await readActiveCli(dependencies.upgrade.layout);
   const converged = await passWithActiveCli(
     dependencies,
-    await dependencies.listRepositories(),
+    await passRepositories(dependencies, initial.lastPass),
     restored,
     null,
   );
@@ -277,7 +322,7 @@ export async function settleInFlight(
     };
   const pass = await passWithActiveCli(
     dependencies,
-    await dependencies.listRepositories(),
+    await passRepositories(dependencies, initial.lastPass),
     active,
     null,
   );

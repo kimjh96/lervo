@@ -37,6 +37,11 @@ export interface RepositoryPassOptions {
   now?: () => number;
   /** Plan ids of repositories left blocked; an unchanged plan is not applied again. */
   blockedPlanIds?: ReadonlyMap<string, string>;
+  /**
+   * ADR-0589: asked between repositories of a pass that installs no release. True stops the pass
+   * at that boundary, so a newer release does not wait for the remaining repositories.
+   */
+  yieldToRelease?: () => Promise<boolean>;
 }
 
 /**
@@ -75,6 +80,21 @@ async function upgradeRepository(
     return entry;
   };
   const run = (args: string[]) => options.run(args, options.signal);
+  // ADR-0589: an apply that leaves no receipt parts is one part of its own, so its time shows.
+  const apply = async (
+    round: number,
+    stage: "apply_command" | "safe_apply_command",
+    args: string[],
+  ) => {
+    const applyStarted = now();
+    const invocation = await run(args);
+    if (
+      invocation.kind !== "interrupted" &&
+      (invocation.kind !== "result" || invocation.stageTimings === undefined)
+    )
+      stageTimings.push({ round, stage, ms: now() - applyStarted });
+    return invocation;
+  };
   const base = ["upgrade", "--root", repositoryRoot];
   let hostFailureSeen = false;
   let lastCode: string | null = null;
@@ -111,17 +131,34 @@ async function upgradeRepository(
       entry.pendingStages = approvals;
       return finish("blocked", "upgrade_owner_approval_required");
     }
+    const safe = [...base, "--apply", "--safe", "--json"];
     let applied =
       plan.status === "ready" && plan.planId !== null
-        ? await run([...base, "--apply", "--approval", plan.planId, "--json"])
-        : await run([...base, "--apply", "--safe", "--json"]);
-    if (applied.kind === "failed" && applied.code === "upgrade_plan_changed")
-      applied = await run([...base, "--apply", "--safe", "--json"]);
+        ? await apply(round, "apply_command", [
+            ...base,
+            "--apply",
+            "--approval",
+            plan.planId,
+            "--json",
+          ])
+        : await apply(round, "safe_apply_command", safe);
+    if (applied.kind === "failed" && applied.code === "upgrade_plan_changed") {
+      // ADR-0589: the refusal names the owner-approval stages of the plan it recreated, and
+      // `--safe` would refuse on them before any write.
+      const approvals = applied.ownerApprovalStages ?? [];
+      if (approvals.length > 0) {
+        entry.pendingStages = approvals;
+        return finish("blocked", "upgrade_owner_approval_required");
+      }
+      applied = await apply(round, "safe_apply_command", safe);
+    }
     if (applied.kind === "interrupted") return "interrupted";
     if (applied.kind !== "result") {
       const code = failureCode(applied);
       const outcome = classifyRepositoryFailure(code);
       lastCode = code;
+      if (applied.kind === "failed" && applied.ownerApprovalStages !== undefined)
+        entry.pendingStages = applied.ownerApprovalStages;
       if (outcome === "host_failure" && hostFailureSeen) return finish(outcome, code);
       if (outcome === "host_failure") hostFailureSeen = true;
       else if (outcome === "blocked" || plan.status !== "ready") return finish(outcome, code);
@@ -154,12 +191,15 @@ export interface RepositoryPassResult {
   /** `interrupted` when a stop or an outside signal cut the pass short; nothing is settled then. */
   outcome: RepositoryUpgradeOutcome | "interrupted";
   repositories: RepositoryPassEntry[];
+  /** ADR-0589: the repositories a newer release stopped the pass before; absent otherwise. */
+  yieldedRoots?: string[];
 }
 
 /**
  * Upgrades the given repositories one at a time, never concurrently. A host failure stops the
  * pass at once, because the remaining repositories would run the same broken CLI; any other
- * outcome is reported and the pass goes on to the next repository.
+ * outcome is reported and the pass goes on to the next repository, unless `yieldToRelease`
+ * stops it at that boundary.
  */
 export async function runRepositoryPass(
   repositoryRoots: readonly string[],
@@ -167,7 +207,9 @@ export async function runRepositoryPass(
 ): Promise<RepositoryPassResult> {
   const repositories: RepositoryPassEntry[] = [];
   let outcome: RepositoryUpgradeOutcome = "current";
-  for (const root of repositoryRoots) {
+  for (const [index, root] of repositoryRoots.entries()) {
+    if (index > 0 && options.yieldToRelease !== undefined && (await options.yieldToRelease()))
+      return { outcome, repositories, yieldedRoots: repositoryRoots.slice(index) };
     const result = await upgradeRepository(root, options);
     if (result === "interrupted") return { outcome: "interrupted", repositories };
     repositories.push(result);

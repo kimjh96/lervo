@@ -41,14 +41,15 @@ function assertApplicableUpgrade(initial: RepositoryUpgradePlan): void {
     );
 }
 
+const ownerApprovals = (plan: RepositoryUpgradePlan) =>
+  pendingStages(plan).filter((stage) => stage.disposition === "pending_authority");
+
 /**
  * `--safe` applies the plan it computes inside the exclusive window only when no stage needs
  * an owner approval; otherwise it names every such stage and changes nothing.
  */
 function assertSafeUpgrade(initial: RepositoryUpgradePlan): void {
-  const approvals = pendingStages(initial).filter(
-    (stage) => stage.disposition === "pending_authority",
-  );
+  const approvals = ownerApprovals(initial);
   if (approvals.length > 0)
     throw new CommandFailure(
       "upgrade_owner_approval_required",
@@ -68,7 +69,12 @@ async function assertApprovedUpgrade(
   approval: string | undefined,
   roleBindingApprovals: Array<{ operationId: string; approvalHash: string }>,
 ): Promise<void> {
-  if (approval !== initial.planId) throw await upgradePlanChangedFailure(approval, initial);
+  if (approval !== initial.planId)
+    throw await upgradePlanChangedFailure(
+      approval,
+      initial,
+      ownerApprovals(initial).map((stage) => stage.stage),
+    );
   assertApplicableUpgrade(initial);
   for (const approved of roleBindingApprovals) {
     if (

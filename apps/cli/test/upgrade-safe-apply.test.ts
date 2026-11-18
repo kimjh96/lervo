@@ -174,7 +174,13 @@ describe("lervo upgrade --apply --safe", () => {
     ]);
     expect(result.code).toBe(1);
     const failure = JSON.parse(result.stdout) as {
-      error: { code: string; message: string; currentPlanId: string; changes: string[] };
+      error: {
+        code: string;
+        message: string;
+        currentPlanId: string;
+        changes: string[];
+        ownerApprovalStages: string[];
+      };
     };
     expect(failure.error.code).toBe("upgrade_plan_changed");
     expect(failure.error.currentPlanId).not.toBe(presented.planId);
@@ -182,6 +188,8 @@ describe("lervo upgrade --apply --safe", () => {
     expect(failure.error.changes).toEqual(
       expect.arrayContaining([expect.stringMatching(/^knowledge \(.*plan .+ -> .+\)$/u)]),
     );
+    // ADR-0589: the refusal tells the follower whether `--safe` would refuse too.
+    expect(failure.error.ownerApprovalStages).toEqual(expect.any(Array));
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
   }, 60_000);
 

@@ -9,6 +9,7 @@ import {
   classifyRepositoryFailure,
   followPollDelay,
   repositoryPassDue,
+  repositoryPassOrder,
   scheduleRepositoryRetry,
 } from "../src/host-follow-policy.js";
 
@@ -185,5 +186,63 @@ describe("scheduleRepositoryRetry", () => {
       new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
     );
     expect(scheduleRepositoryRetry(entry("host_failure"), undefined, at).nextAttemptAt).toBeNull();
+  });
+
+  it("waits for another CLI, not an hourly recheck, while a stage needs an owner approval", () => {
+    const waiting = { ...entry("blocked"), code: "upgrade_owner_approval_required" };
+    expect(scheduleRepositoryRetry(waiting, undefined, at)).toMatchObject({
+      attempts: 0,
+      nextAttemptAt: null,
+    });
+    // A ready plan still has an applicable stage, such as Node, so it keeps the hourly recheck.
+    const ready = { ...waiting, status: "ready" };
+    expect(scheduleRepositoryRetry(ready, undefined, at).nextAttemptAt).toBe(
+      new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
+    );
+    const contentBlock = { ...entry("blocked"), code: "upgrade_plan_blocked" };
+    expect(scheduleRepositoryRetry(contentBlock, undefined, at).nextAttemptAt).toBe(
+      new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
+    );
+  });
+});
+
+describe("repositoryPassOrder", () => {
+  const result = (repositoryRoot: string, outcome: "current" | "blocked", code: string | null) => ({
+    repositoryRoot,
+    outcome,
+    code,
+  });
+
+  it("runs repositories waiting for an owner approval after every other repository", () => {
+    const roots = ["/axli", "/plen", "/argo", "/flemo", "/axli-lab", "/lervo"];
+    const lastPass = {
+      repositories: [
+        result("/axli", "current", null),
+        result("/argo", "blocked", "upgrade_owner_approval_required"),
+        result("/flemo", "blocked", "upgrade_plan_blocked"),
+        result("/axli-lab", "blocked", "upgrade_owner_approval_required"),
+      ].map((repository) => ({
+        ...repository,
+        status: null,
+        rounds: 1,
+        appliedStages: [],
+        pendingStages: [],
+        planId: null,
+        attempts: 0,
+        nextAttemptAt: null,
+        waitMs: null,
+        applyMs: null,
+        elapsedMs: 0,
+      })),
+    };
+    expect(repositoryPassOrder(roots, lastPass)).toEqual([
+      "/axli",
+      "/plen",
+      "/flemo",
+      "/lervo",
+      "/argo",
+      "/axli-lab",
+    ]);
+    expect(repositoryPassOrder(roots, null)).toEqual(roots);
   });
 });

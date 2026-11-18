@@ -25,7 +25,16 @@ export type RepositoryUpgradeInvocation =
        */
       ownerApprovalStages?: string[];
     }
-  | { kind: "failed"; code: string }
+  | {
+      kind: "failed";
+      code: string;
+      /**
+       * ADR-0589: the stages of the current plan that wait for an owner approval, read from a
+       * `--safe` refusal or an `upgrade_plan_changed` refusal; absent from other failures and
+       * from an earlier CLI's refusal.
+       */
+      ownerApprovalStages?: string[];
+    }
   | { kind: "unreadable" }
   | { kind: "timed_out" }
   | { kind: "interrupted" };
@@ -70,6 +79,21 @@ function ownerApprovalStages(value: unknown): string[] {
   );
 }
 
+/**
+ * The owner-approval stages a refusal names: `--safe` lists them as `stages`, and
+ * `upgrade_plan_changed` as `ownerApprovalStages` of the plan it recreated. Null when it names none.
+ */
+function refusalOwnerApprovalStages(error: Record<string, unknown>): string[] | null {
+  if (error.code === "upgrade_plan_changed" && Array.isArray(error.ownerApprovalStages))
+    return strings(error.ownerApprovalStages);
+  if (error.code === "upgrade_owner_approval_required" && Array.isArray(error.stages))
+    return error.stages.flatMap((item: unknown) => {
+      const stage = (item as { stage?: unknown } | null)?.stage;
+      return typeof stage === "string" ? [stage] : [];
+    });
+  return null;
+}
+
 export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeInvocation {
   let value: unknown;
   try {
@@ -80,12 +104,17 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
   if (value === null || typeof value !== "object" || Array.isArray(value))
     return { kind: "unreadable" };
   const record = value as Record<string, unknown>;
-  const error = record.error as { code?: unknown } | undefined;
-  if (record.status === "failed")
+  if (record.status === "failed") {
+    const error = (
+      record.error !== null && typeof record.error === "object" ? record.error : {}
+    ) as Record<string, unknown>;
+    const approvals = refusalOwnerApprovalStages(error);
     return {
       kind: "failed",
-      code: typeof error?.code === "string" ? error.code : "command_failed",
+      code: typeof error.code === "string" ? error.code : "command_failed",
+      ...(approvals === null ? {} : { ownerApprovalStages: approvals }),
     };
+  }
   if (typeof record.status !== "string") return { kind: "unreadable" };
   const pending = Array.isArray(record.pending) ? record.pending : [];
   const timing = record.timing as { admissionWaitMs?: unknown; applyMs?: unknown } | undefined;
