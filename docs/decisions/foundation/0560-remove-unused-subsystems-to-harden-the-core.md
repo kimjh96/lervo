@@ -30,7 +30,7 @@ None of the removed parts has a production invoker or observed use. None is a pr
 
 ## Decision
 
-Remove these subsystems with their CLI commands, packages, tests, event types, schema entries, and specifications:
+Remove these subsystems with their CLI commands, packages, tests, and specifications:
 
 | Removed                                                  | Packages and modules                                                                                                                                                                                                                                | Why                                                                                                                                                                       |
 | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -53,7 +53,9 @@ Kept, with reason:
 - Practice learning (ADR-0543): it landed on 2026-10-31 and has not yet had a chance to produce events, so it is evaluated rather than removed.
 - The Hub knowledge graph: it is written on every Hub ingest and moves into the single relation web of the core loop instead of being deleted.
 
-Removal happens in batches, one commit each. On the original branch, each batch passed typecheck, quality, architecture, the full test suite, and adversarial review before the next. Applied again to `main`, the batches land in one pull request that GitHub CI verifies. Removed event types leave `packages/schemas` and the event contract. Stored events of removed types stay readable as opaque history, and no stored event is rewritten. Removed specifications are deleted, and each superseded ADR gains a `Superseded by ADR-0560` line.
+A Node configuration that still sets `organizationCredentials` now fails to start with `invalid_config`, because the exact key list no longer accepts it. No configuration on either host sets it.
+
+Removal happens in batches, one commit each. On the original branch, each batch passed typecheck, quality, architecture, the full test suite, and adversarial review before the next. Applied again to `main`, the batches land in one pull request that GitHub CI verifies. Event types and schema entries stay in `packages/schemas` and the event contract, so hosts and the Hub keep reading stored events of every type and older and newer peers stay compatible. Stored events of removed subsystems stay readable as opaque history, and no stored event is rewritten. Removed specifications are deleted, and each superseded ADR gains a `Superseded by ADR-0560` line.
 
 ## Consequences
 
