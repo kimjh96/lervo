@@ -26,18 +26,18 @@ Local Vitest and the CI config share the root `vitest.config.ts` aliases. Source
 
 The phase-zero audit found 104 workspace packages and 17 missing root aliases. All 15 library packages below export only `.` through `dist/index.js`, have `src/index.ts`, and define no private `#` imports. Each now has a source alias. [ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) later removed `assignment-connector-conformance`, `execution-reliability`, `identity-migration`, `organization-credential-source-file`, `organization-deployment-contract`, `organization-deployment-sqlite`, and `product-surface-projection`, so the table lists the remaining 8. The two distribution-only packages remain exact-name exceptions with reasons in `scripts/quality/lib/test-source-aliases.mjs`.
 
-| Package under `@lervo/`               | Resolution and reason                                                        |
-| ------------------------------------- | ---------------------------------------------------------------------------- |
-| `agent-organization`                  | Source; organization and deliberation contracts.                             |
-| `application-contract`                | Source; shared application types and runtime contracts.                      |
-| `conversation-deliberation-contract`  | Source; deliberation identity and state contracts.                           |
-| `discord-gateway`                     | Source; gateway adapter and transport contracts.                             |
-| `filesystem-durability`               | Source; synchronization behavior and optional native fallback.               |
-| `hub-runtime`                         | Source; importable runtime API. Launcher subprocesses retain built binaries. |
-| `node-work-admission`                 | Source; admission storage API.                                               |
-| `request-grounding`                   | Source; request grounding contracts.                                         |
-| `cli`                                 | Built executable or packed files; no library export or source index.         |
-| `node-runtime-dependencies`           | Distribution dependency manifest; no source or runtime export.               |
+| Package under `@lervo/`              | Resolution and reason                                                        |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| `agent-organization`                 | Source; organization and deliberation contracts.                             |
+| `application-contract`               | Source; shared application types and runtime contracts.                      |
+| `conversation-deliberation-contract` | Source; deliberation identity and state contracts.                           |
+| `discord-gateway`                    | Source; gateway adapter and transport contracts.                             |
+| `filesystem-durability`              | Source; synchronization behavior and optional native fallback.               |
+| `hub-runtime`                        | Source; importable runtime API. Launcher subprocesses retain built binaries. |
+| `node-work-admission`                | Source; admission storage API.                                               |
+| `request-grounding`                  | Source; request grounding contracts.                                         |
+| `cli`                                | Built executable or packed files; no library export or source index.         |
+| `node-runtime-dependencies`          | Distribution dependency manifest; no source or runtime export.               |
 
 Built-artifact tests retain explicit `dist` paths, packed-consumer resolution, and subprocess launchers. Vitest aliases do not apply inside those subprocesses or external bundlers. Native distribution tests retain built modules and native artifacts; source tests can exercise the optional native fallback. Schema source imports retain `#compiled-validators` and `#coordinate-data-validation` package imports. The existing global setup verifies or generates validators as required by [ADR-0503](../decisions/execution/verification/0503-compile-schema-validators-at-build-time.md).
 

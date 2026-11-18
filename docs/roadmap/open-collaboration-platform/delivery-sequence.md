@@ -26,7 +26,7 @@ Knowledge intake policy and per-file degradation are `wired` under the [per-chan
 
 | Item | Design | Verification | Depends on |
 | --- | --- | --- | --- |
-| Neutral platform action, speaker provisioning, provenance, and limits seams; native-chat conformance suite | ADR-0455 | Suite passes for Discord, Slack, and native-chat adapters; installed hire and thread creation unchanged | Slice 0 ratchet |
+| Neutral platform action, speaker provisioning, provenance, and limits seams; native-chat conformance suite | ADR-0455 | Suite passes for the Discord adapter (ADR-0560 removed the Slack and native-chat adapters); installed hire and thread creation unchanged | Slice 0 ratchet |
 | Protocol handshake, writer lease, and handoff primitive | ADR-0456 | J2 on the Lervo repository | Slice 0 fidelity |
 | Typed decision resolution with history | ADR-0453 | A human reply records `workstream.decision.resolved`; Mac CLI shows it | none |
 | Prepared retrieval snapshot and turn report; exact prompt anchors | ADR-0459, ADR-0538 | Compact prompt shows exact-anchor pointers within 150 ms (`wired`); J1 footer shows hits and tokens | Slice 0 attribution |
