@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_aca323e8957d413f76ea4cf5"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Remove the Slack integration and the lervo trigger, lervo routine, and lervo assignment mention, trigger, connector, and topology commands."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2dacc1218522c2cfdfb1c8d4"
-"package": "@lervo/cli"
-"impact": "major"
-"summary": "Remove lervo loop and the lervo application capabilities, activity, search, observability, deliberation, and liveness commands; lervo application attention stays."
