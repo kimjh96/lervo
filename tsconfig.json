@@ -65,15 +65,6 @@
       "@lervo/node-work-admission": ["packages/node-work-admission/src/index.ts"],
       "@lervo/node-runtime": ["apps/node-runtime/src/index.ts"],
       "@lervo/orchestrator": ["packages/orchestrator/src/index.ts"],
-      "@lervo/organization-credential-source-file": [
-        "packages/organization-credential-source-file/src/index.ts"
-      ],
-      "@lervo/organization-deployment-contract": [
-        "packages/organization-deployment-contract/src/index.ts"
-      ],
-      "@lervo/organization-deployment-sqlite": [
-        "packages/organization-deployment-sqlite/src/index.ts"
-      ],
       "@lervo/policy": ["packages/policy/src/index.ts"],
       "@lervo/policy-contract": ["packages/policy-contract/src/index.ts"],
       "@lervo/policy-sqlite": ["packages/policy-sqlite/src/index.ts"],

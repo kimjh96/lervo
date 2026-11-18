@@ -185,42 +185,6 @@ import {
   managedContextReferencedEventPayloadSchema,
 } from "./managed-context-event.js";
 import {
-  organizationDeploymentPolicySchema,
-  organizationRuntimeCredentialDeliveryReceiptSchema,
-  organizationRuntimeCredentialGrantSchema,
-  organizationRuntimeCredentialRevocationSchema,
-  signedOrganizationDeploymentPolicySchema,
-} from "./organization-deployment.js";
-import {
-  organizationFleetRolloutApprovalSchema,
-  organizationFleetRolloutPlanSchema,
-  organizationFleetWaveObservationSchema,
-  organizationNodeEnrollmentSchema,
-} from "./organization-fleet.js";
-import {
-  organizationNodeRolloutExecutionPlanSchema,
-  organizationNodeRolloutExecutionReceiptSchema,
-} from "./organization-rollout-execution.js";
-import {
-  organizationNodeRolloutDeliveryReceiptSchema,
-  organizationNodeRolloutDeliverySchema,
-  signedOrganizationNodeRolloutDeliverySchema,
-} from "./organization-rollout-delivery.js";
-import {
-  organizationNodeRolloutRecoveryObservationSchema,
-  organizationNodeRolloutRecoveryReceiptSchema,
-} from "./organization-rollout-recovery.js";
-import {
-  organizationNodeRolloutRollbackPlanSchema,
-  organizationNodeRolloutRollbackReceiptSchema,
-} from "./organization-rollout-rollback.js";
-import {
-  organizationNodeRollbackDeliveryReceiptSchema,
-  organizationNodeRollbackDeliverySchema,
-  organizationNodeRollbackRecoveryReceiptSchema,
-  signedOrganizationNodeRollbackDeliverySchema,
-} from "./organization-rollback-delivery.js";
-import {
   knowledgeCandidateCreatedEventPayloadSchema,
   knowledgeCandidateReviewedEventPayloadSchema,
   knowledgeReconciliationReviewedEventPayloadSchema,
@@ -311,25 +275,6 @@ export const schemaReferences = [
   contextQualityIngressSchema,
   contextQualityRequestSchema,
   contextQualityPlanSchema,
-  organizationDeploymentPolicySchema,
-  signedOrganizationDeploymentPolicySchema,
-  organizationFleetRolloutPlanSchema,
-  organizationFleetRolloutApprovalSchema,
-  organizationFleetWaveObservationSchema,
-  organizationNodeEnrollmentSchema,
-  organizationNodeRolloutExecutionPlanSchema,
-  organizationNodeRolloutExecutionReceiptSchema,
-  organizationNodeRolloutDeliverySchema,
-  signedOrganizationNodeRolloutDeliverySchema,
-  organizationNodeRolloutDeliveryReceiptSchema,
-  organizationNodeRolloutRecoveryObservationSchema,
-  organizationNodeRolloutRecoveryReceiptSchema,
-  organizationNodeRolloutRollbackPlanSchema,
-  organizationNodeRolloutRollbackReceiptSchema,
-  organizationNodeRollbackDeliverySchema,
-  signedOrganizationNodeRollbackDeliverySchema,
-  organizationNodeRollbackDeliveryReceiptSchema,
-  organizationNodeRollbackRecoveryReceiptSchema,
 ];
 
 export const schemaCatalog = {
@@ -532,28 +477,6 @@ export const schemaCatalog = {
   documentMigrationPlan: documentMigrationPlanSchema,
   managedBlockPatchCandidate: managedBlockPatchCandidateSchema,
   managedBlockPatchCandidateArtifact: managedBlockPatchCandidateArtifactSchema,
-  organizationDeploymentPolicy: organizationDeploymentPolicySchema,
-  signedOrganizationDeploymentPolicy: signedOrganizationDeploymentPolicySchema,
-  organizationRuntimeCredentialGrant: organizationRuntimeCredentialGrantSchema,
-  organizationRuntimeCredentialRevocation: organizationRuntimeCredentialRevocationSchema,
-  organizationRuntimeCredentialDeliveryReceipt: organizationRuntimeCredentialDeliveryReceiptSchema,
-  organizationNodeEnrollment: organizationNodeEnrollmentSchema,
-  organizationFleetRolloutPlan: organizationFleetRolloutPlanSchema,
-  organizationFleetWaveObservation: organizationFleetWaveObservationSchema,
-  organizationFleetRolloutApproval: organizationFleetRolloutApprovalSchema,
-  organizationNodeRolloutExecutionPlan: organizationNodeRolloutExecutionPlanSchema,
-  organizationNodeRolloutExecutionReceipt: organizationNodeRolloutExecutionReceiptSchema,
-  organizationNodeRolloutDelivery: organizationNodeRolloutDeliverySchema,
-  signedOrganizationNodeRolloutDelivery: signedOrganizationNodeRolloutDeliverySchema,
-  organizationNodeRolloutDeliveryReceipt: organizationNodeRolloutDeliveryReceiptSchema,
-  organizationNodeRolloutRecoveryObservation: organizationNodeRolloutRecoveryObservationSchema,
-  organizationNodeRolloutRecoveryReceipt: organizationNodeRolloutRecoveryReceiptSchema,
-  organizationNodeRolloutRollbackPlan: organizationNodeRolloutRollbackPlanSchema,
-  organizationNodeRolloutRollbackReceipt: organizationNodeRolloutRollbackReceiptSchema,
-  organizationNodeRollbackDelivery: organizationNodeRollbackDeliverySchema,
-  signedOrganizationNodeRollbackDelivery: signedOrganizationNodeRollbackDeliverySchema,
-  organizationNodeRollbackDeliveryReceipt: organizationNodeRollbackDeliveryReceiptSchema,
-  organizationNodeRollbackRecoveryReceipt: organizationNodeRollbackRecoveryReceiptSchema,
   knowledgeCandidateCreatedEventPayload: knowledgeCandidateCreatedEventPayloadSchema,
   knowledgeCandidateReviewedEventPayload: knowledgeCandidateReviewedEventPayloadSchema,
   knowledgeReconciliationReviewedEventPayload: knowledgeReconciliationReviewedEventPayloadSchema,

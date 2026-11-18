@@ -97,8 +97,6 @@ export function createNodeDeploymentTransports(input: {
     },
   };
   return {
-    transportOptions,
-    createTransport,
     idleWait,
     transport,
     workstreamTransport,

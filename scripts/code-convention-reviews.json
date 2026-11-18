@@ -136,13 +136,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/organization-deployment-sqlite/src/rollback-store.ts",
-      "contentHash": "sha256:c208f990c80f078f6f01cddc034fa98f3f3960eb3bf4afb9ae50e35472b22d24",
-      "responsibility": "Organization rollback replay SQLite persistence",
-      "rationale": "Reservation, completion, recovery projection, target binding, and integrity checks all operate on one immutable rollback replay table and transaction lifecycle; authorization and rollback policy remain outside the adapter.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/policy-sqlite/src/store.ts",
       "contentHash": "sha256:b4212fc8561c058f4cc236d40bcf02c4ceaa9a03996c0be71c878cfbfec050e2",
       "responsibility": "Policy state SQLite adapter",
@@ -277,7 +270,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:b1f5757c21d5e0de2e244cb12236637a9550a48aadbe502688c654301c8438de",
+      "contentHash": "sha256:15881e9bc06883762b2295408c6638ca36bfb61d35afca72b993450edc9fc2b2",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"

@@ -12,7 +12,7 @@ import { ConversationOperationDrain } from "@lervo/conversation-app";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
-import { registerProject, runOutboundSyncLoop } from "@lervo/sync";
+import { runOutboundSyncLoop } from "@lervo/sync";
 import {
   calculateProjectIdentityHash,
   createProjectRegistrationRequest,
@@ -24,7 +24,6 @@ import { loadNodeBearerToken, ReloadableNodeBearerToken } from "./credentials.js
 import { NodeRuntimeError } from "./errors.js";
 import { createNodeRuntimeHealthPublisher, type NodeRuntimeHealthPublisher } from "./health.js";
 import { createNodeRuntimeDeployment, type NodeRuntimeDeployment } from "./lifecycle.js";
-import { createNodeOrganizationCredentialDelivery } from "./organization-credential-delivery.js";
 import { openDeploymentConversation } from "./deployment-conversation.js";
 import { configuredDiscordConversations } from "./discord-conversation-deployments-config.js";
 import type { NodeDiscordConversationRuntime } from "./discord-conversation-runtime.js";
@@ -130,19 +129,13 @@ export async function openNodeRuntime(
         trust: runtimeTrust,
       });
     }
-    const {
-      transportOptions,
-      createTransport,
-      idleWait,
-      transport,
-      workstreamTransport,
-      workspaceTransport,
-    } = createNodeDeploymentTransports({
-      config: validated,
-      target,
-      bearerToken: () => bearerToken.current(),
-      ...(ports.createTransport === undefined ? {} : { createTransport: ports.createTransport }),
-    });
+    const { idleWait, transport, workstreamTransport, workspaceTransport } =
+      createNodeDeploymentTransports({
+        config: validated,
+        target,
+        bearerToken: () => bearerToken.current(),
+        ...(ports.createTransport === undefined ? {} : { createTransport: ports.createTransport }),
+      });
     const localWorkstreams = new NodeWorkstreamReplicationLocalPort(
       paths.repositoryRoot,
       manifest.projectId,
@@ -320,29 +313,6 @@ export async function openNodeRuntime(
         bearerToken.replace(nextToken);
       },
       health,
-      validated.organizationCredentials === undefined
-        ? null
-        : createNodeOrganizationCredentialDelivery({
-            binding: {
-              nodeId: validated.organizationCredentials.nodeId,
-              destinationId: validated.hub.destinationId,
-              target,
-              bearerTokenFile: validated.hub.bearerTokenFile,
-            },
-            bearerToken,
-            async authenticateCandidate(candidate, requestedAt) {
-              await registerProject({
-                options: {
-                  ...worker,
-                  transport: createTransport({
-                    ...transportOptions(),
-                    bearerToken: candidate,
-                  }),
-                },
-                requestedAt,
-              });
-            },
-          }),
       supervision,
       operationDrain,
       () => {

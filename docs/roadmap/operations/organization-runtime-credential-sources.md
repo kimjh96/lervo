@@ -1,7 +1,9 @@
 # Organization Runtime Credential Sources
 
-Status: `active`
+Status: `historical`
 As of: 2026-08-27
+
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the owner-only file credential source, the Node `organizationCredentials` activation path, and the `@lervo/organization-credential-source-file` package. `lervo upgrade` owns the Node stage. The records below are history.
 
 ## Problem
 

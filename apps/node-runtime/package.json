@@ -41,8 +41,6 @@
     "@lervo/interaction": "workspace:*",
     "@lervo/managed-provider-host": "workspace:*",
     "@lervo/node-work-admission": "workspace:*",
-    "@lervo/organization-credential-source-file": "workspace:*",
-    "@lervo/organization-deployment-contract": "workspace:*",
     "@lervo/orchestrator": "workspace:*",
     "@lervo/policy": "workspace:*",
     "@lervo/policy-sqlite": "workspace:*",

@@ -17,15 +17,6 @@ export default defineConfig({
       "@lervo/hub-runtime": fromRoot("./apps/hub-runtime/src/index.ts"),
       "@lervo/identity-migration": fromRoot("./packages/identity-migration/src/index.ts"),
       "@lervo/node-work-admission": fromRoot("./packages/node-work-admission/src/index.ts"),
-      "@lervo/organization-credential-source-file": fromRoot(
-        "./packages/organization-credential-source-file/src/index.ts",
-      ),
-      "@lervo/organization-deployment-contract": fromRoot(
-        "./packages/organization-deployment-contract/src/index.ts",
-      ),
-      "@lervo/organization-deployment-sqlite": fromRoot(
-        "./packages/organization-deployment-sqlite/src/index.ts",
-      ),
       "@lervo/request-grounding": fromRoot("./packages/request-grounding/src/index.ts"),
       "@lervo/agent-workforce": fromRoot("./packages/agent-workforce/src/index.ts"),
       "@lervo/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),

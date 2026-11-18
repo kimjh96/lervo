@@ -72,8 +72,6 @@
     "@lervo/node-runtime": "workspace:*",
     "@lervo/node-work-admission": "workspace:*",
     "@lervo/orchestrator": "workspace:*",
-    "@lervo/organization-deployment-contract": "workspace:*",
-    "@lervo/organization-deployment-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/project-storage": "workspace:*",
     "@lervo/provider-writing-evaluator": "workspace:*",

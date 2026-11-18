@@ -98,7 +98,7 @@ async function writeRollbackPin(input: {
 }
 
 /** Caller holds the host runtime lock and has resolved the exact consumer identity. */
-export async function storeRuntimeRollbackPins(
+async function storeRuntimeRollbackPins(
   input: { servicePath: string; homeDirectory?: string; platform?: NodeJS.Platform },
   pins: Record<string, string[]>,
   names: string[],

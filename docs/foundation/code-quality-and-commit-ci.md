@@ -36,9 +36,6 @@ The phase-zero audit found 104 workspace packages and 17 missing root aliases. A
 | `hub-runtime`                         | Source; importable runtime API. Launcher subprocesses retain built binaries. |
 | `identity-migration`                  | Source; migration planning and apply API.                                    |
 | `node-work-admission`                 | Source; admission storage API.                                               |
-| `organization-credential-source-file` | Source; credential file adapter.                                             |
-| `organization-deployment-contract`    | Source; deployment and credential contracts.                                 |
-| `organization-deployment-sqlite`      | Source; deployment storage adapter.                                          |
 | `request-grounding`                   | Source; request grounding contracts.                                         |
 | `cli`                                 | Built executable or packed files; no library export or source index.         |
 | `node-runtime-dependencies`           | Distribution dependency manifest; no source or runtime export.               |

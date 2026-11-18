@@ -3,6 +3,8 @@
 Status: `passed`  
 Observation date: 2026-08-27
 
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the organization rollout contracts and adapters this evidence exercised. It remains as history.
+
 ## Question
 
 Do the current organization rollout contracts and installed local adapters preserve the intended three-Node sequence: one canary, deterministic two-Node expansion, a hold on incomplete evidence, and explicit predecessor rollback of only the failed Node?

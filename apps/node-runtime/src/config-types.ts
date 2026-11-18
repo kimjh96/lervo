@@ -31,9 +31,6 @@ export interface NodeRuntimeConfig {
     maxRequestBytes?: number;
     maxResponseBytes?: number;
   };
-  organizationCredentials?: {
-    nodeId: string;
-  };
   workspaceCoordination?: {
     mode: "hub_coordinated";
     nodeId: string;

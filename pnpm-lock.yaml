@@ -152,12 +152,6 @@ importers:
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../../packages/organization-deployment-contract
-      '@lervo/organization-deployment-sqlite':
-        specifier: workspace:*
-        version: link:../../packages/organization-deployment-sqlite
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -479,12 +473,6 @@ importers:
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
-      '@lervo/organization-credential-source-file':
-        specifier: workspace:*
-        version: link:../../packages/organization-credential-source-file
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../../packages/organization-deployment-contract
       '@lervo/policy':
         specifier: workspace:*
         version: link:../../packages/policy
@@ -1376,40 +1364,6 @@ importers:
       '@lervo/workspace-host-git':
         specifier: workspace:*
         version: link:../workspace-host-git
-
-  packages/organization-credential-source-file:
-    dependencies:
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../organization-deployment-contract
-      '@lervo/runtime-security':
-        specifier: workspace:*
-        version: link:../runtime-security
-
-  packages/organization-deployment-contract:
-    dependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/organization-deployment-sqlite:
-    dependencies:
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../organization-deployment-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/sqlite-connection':
-        specifier: workspace:*
-        version: link:../sqlite-connection
-    devDependencies:
-      '@lervo/repository-registry':
-        specifier: workspace:*
-        version: link:../repository-registry
 
   packages/policy:
     dependencies:

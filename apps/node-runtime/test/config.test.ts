@@ -596,20 +596,6 @@ describe("Node runtime configuration", () => {
     ).rejects.toMatchObject({ code: "invalid_config" });
   });
 
-  it("binds organization credential delivery to one explicit organization Node identity", async () => {
-    const root = await temporaryRoot();
-    const fixture = await nodeRuntimeFixture(root, await availablePort());
-    const configured = structuredClone(fixture.value);
-    configured.organizationCredentials = { nodeId: "node_organization01" };
-    expect(parseNodeRuntimeConfig(configured, root)).toMatchObject({
-      organizationCredentials: { nodeId: "node_organization01" },
-    });
-    (configured.organizationCredentials as Record<string, unknown>).nodeId = "nod_local_01";
-    expect(() => parseNodeRuntimeConfig(configured, root)).toThrow(
-      expect.objectContaining({ code: "invalid_config" }),
-    );
-  });
-
   it("parses scoped trust key files and requires explicit command execution ports", async () => {
     const root = await temporaryRoot();
     const fixture = await nodeRuntimeFixture(root, await availablePort());

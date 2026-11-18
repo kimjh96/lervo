@@ -4,6 +4,8 @@ Status: `complete`
 As of: 2026-08-27
 Completed: 2026-08-27
 
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed organization Node enrollment, wave rollout, signed rollout and rollback delivery, and `lervo repository node rollout`. `lervo upgrade` owns the Node stage. The records below are history.
+
 ## Problem
 
 Repository Node installation and readiness were transactional, and organization policy separated deployment and credential authority, but no exact contract admitted local Nodes into an organization fleet or gated cross-Node rollout.
