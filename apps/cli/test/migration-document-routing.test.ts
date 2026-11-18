@@ -148,6 +148,8 @@ async function fixture() {
 
 it("classifies TRACE during migrate --provider and applies its move after an independent cross-check", async () => {
   const { root, io, messages, errors } = await fixture();
+  // ADR-0561: the move lands as its own undo commit, so the document is committed before planning.
+  commitRepository(root);
   expect(
     await runCli(["migrate", "knowledge", "--provider", "codex", "--json"], io),
     errors.join(""),
@@ -168,8 +170,6 @@ it("classifies TRACE during migrate --provider and applies its move after an ind
     code: "ENOENT",
   });
   messages.length = 0;
-  // ADR-0561: the move lands as its own undo commit, so the moved document is committed first.
-  commitRepository(root);
   const crossCheck = planCrossCheck();
   expect(
     await runCli(

@@ -155,6 +155,11 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
               after: "Hard risk limits live in `v4/argo4/live/engine.py: Limits`.",
               evidencePaths: ["v4/argo4/live/engine.py"],
             },
+            {
+              before: "The live engine starts from `v2/argo_v2/live/engine.py`.",
+              after: "The live engine starts from `v4/argo4/live/engine.py`.",
+              evidencePaths: ["v4/argo4/live/engine.py"],
+            },
           ],
         },
       });
@@ -164,7 +169,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
         documentPath: "AGENTS.md",
         state: "suggested",
       });
-      expect(candidate!.hunks.map((hunk) => hunk.ownership)).toEqual(["user_owned"]);
+      expect(candidate!.hunks.map((hunk) => hunk.ownership)).toEqual(["user_owned", "user_owned"]);
       // No cross-check runs for bytes Lervo never applies, and the document stays as it was.
       expect((await f.providerCalls()).map((call) => call.task)).toEqual([
         "document_freshness_candidate",

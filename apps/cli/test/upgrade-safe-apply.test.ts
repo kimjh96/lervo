@@ -55,12 +55,13 @@ async function applyTerminalIntegration(root: string): Promise<void> {
       ),
       stderr.join(""),
     ).toBe(0);
-    return JSON.parse(stdout.join("")) as { planKind?: string; planId: string };
+    return JSON.parse(stdout.join("")) as { planKind?: string; planId: string; status?: string };
   };
   for (let index = 0; index < 10; index += 1) {
-    const plan = await migrate();
-    // A reviewed knowledge plan lands as its own undo commit over committed sources.
-    commitRepository(root);
+    let plan = await migrate();
+    // A reviewed plan lands as its own undo commit over committed sources; committing moves
+    // HEAD, a knowledge source, so the plan is made again.
+    if (plan.status === "review_required" && commitRepository(root)) plan = await migrate();
     await migrate("--apply", plan.planId);
     if (plan.planKind === "terminal_integration") return;
   }

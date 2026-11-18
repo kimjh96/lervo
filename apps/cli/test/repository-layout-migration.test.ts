@@ -12,6 +12,33 @@ import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
 
+/**
+ * The next knowledge stage after a reviewed effect. Its own undo commit moved HEAD, which is a
+ * knowledge source, so a ready structural refresh can come first; it is applied on the way.
+ */
+async function nextStagePlan(
+  io: Parameters<typeof runCli>[1],
+  messages: string[],
+  errors: string[],
+): Promise<unknown> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
+    const plan = JSON.parse(messages.join("")) as {
+      planKind?: string;
+      planId: string;
+      status: string;
+    };
+    if (plan.planKind !== undefined || plan.status !== "ready") return plan;
+    messages.length = 0;
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io),
+      errors.join(""),
+    ).toBe(0);
+  }
+  throw new Error("The structural knowledge refresh did not converge.");
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -30,6 +57,7 @@ describe("repository layout migration CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    commitRepository(root);
 
     messages.length = 0;
     expect(await runCli(["terminal", "status", "--json"], io)).toBe(1);
@@ -55,8 +83,7 @@ describe("repository layout migration CLI", () => {
     });
     messages.length = 0;
     // ADR-0561: an independent cross-check agrees, so Lervo applies the adoption itself as its
-    // own undo commit over the committed instruction files.
-    commitRepository(root);
+    // own undo commit over the instruction files committed before planning.
     const crossCheck = planCrossCheck();
     expect(
       await runCli(
@@ -103,7 +130,6 @@ describe("repository layout migration CLI", () => {
       target: { classification: "exact_adopted_duplicate" },
     });
     messages.length = 0;
-    commitRepository(root);
     expect(
       await runCli(
         ["migrate", "knowledge", "--apply", bridge.planId, "--json"],
@@ -132,6 +158,7 @@ describe("repository layout migration CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    commitRepository(root);
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const plan = JSON.parse(messages.join("")) as {
@@ -142,7 +169,6 @@ describe("repository layout migration CLI", () => {
     };
     expect(plan).toMatchObject({ planKind: "repository_layout", status: "review_required" });
     messages.length = 0;
-    commitRepository(root);
     const { services } = planCrossCheck();
     expect(
       await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io, services),
@@ -159,9 +185,7 @@ describe("repository layout migration CLI", () => {
     expect(await readFile(resolve(root, "README.md"), "utf8")).toContain(
       "docs/architecture/system.md",
     );
-    messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
-    const bridge = JSON.parse(messages.join("")) as {
+    const bridge = (await nextStagePlan(io, messages, errors)) as {
       planId: string;
       operationId: string;
       approvalHash: string;
@@ -169,17 +193,12 @@ describe("repository layout migration CLI", () => {
     };
     expect(bridge.status).toBe("review_required");
     messages.length = 0;
-    commitRepository(root);
     expect(
       await runCli(["migrate", "knowledge", "--apply", bridge.planId, "--json"], io, services),
       errors.join(""),
     ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
-    messages.length = 0;
-    const terminalPlanCode = await runCli(["migrate", "knowledge", "--json"], io);
-    if (terminalPlanCode !== 0)
-      throw new Error(`terminal plan failed: ${errors.join("")} ${messages.join("")}`);
-    const terminal = JSON.parse(messages.join("")) as {
+    const terminal = (await nextStagePlan(io, messages, errors)) as {
       planKind: string;
       planId: string;
       status: string;

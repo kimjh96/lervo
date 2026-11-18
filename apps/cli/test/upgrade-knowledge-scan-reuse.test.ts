@@ -63,11 +63,12 @@ async function migrateUntilCurrent(root: string): Promise<void> {
     };
   };
   for (let index = 0; index < 12; index += 1) {
-    const plan = await migrate();
+    let plan = await migrate();
+    // Committing the sources moves HEAD, a knowledge source, so the plan is made again.
+    if (plan.status === "review_required" && commitRepository(root)) plan = await migrate();
     const unchanged = plan.operations?.every((operation) => operation.action === "unchanged");
     if ((plan.status !== "ready" && plan.status !== "review_required") || unchanged === true)
       return;
-    commitRepository(root);
     await migrate("--apply", plan.planId);
   }
   throw new Error("The knowledge migration did not become current.");

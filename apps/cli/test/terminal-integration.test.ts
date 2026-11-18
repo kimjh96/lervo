@@ -791,10 +791,11 @@ describe("terminal integration CLI", () => {
     };
     const terminalPlan = async () => {
       for (let index = 0; index < 10; index += 1) {
-        const plan = await migrate();
+        let plan = await migrate();
+        // A reviewed plan lands as its own undo commit over committed sources; committing moves
+        // HEAD, so the plan is made again.
+        if (plan.status === "review_required" && commitRepository(root)) plan = await migrate();
         if (plan.planKind === "terminal_integration") return plan;
-        // A reviewed knowledge plan lands as its own undo commit over committed sources.
-        commitRepository(root);
         await migrate("--apply", plan.planId);
       }
       throw new Error("Terminal integration plan did not become reachable.");
@@ -1675,20 +1676,26 @@ describe("terminal integration CLI", () => {
       stdout: (message: string) => messages.push(message),
       stderr: (message: string) => errors.push(message),
     };
-    expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
-    const intermediate = JSON.parse(messages.join("")) as {
-      planId: string;
-      operations: Array<{ action: string }>;
-      userUpdates?: Array<{ operationId: string; approvalHash: string }>;
-    };
-    if (intermediate.operations?.some((item) => item.action !== "unchanged")) {
+    // Earlier stages apply first; a reviewed one lands as its own commit, which moves HEAD, a
+    // knowledge source, so a structural refresh can follow it.
+    for (let stage = 0; stage < 6; stage += 1) {
+      messages.length = 0;
+      expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
+      const intermediate = JSON.parse(messages.join("")) as {
+        planKind?: string;
+        planId: string;
+        operations?: Array<{ action: string }>;
+      };
+      if (
+        intermediate.planKind === "terminal_integration" ||
+        intermediate.operations?.every((item) => item.action === "unchanged") === true
+      )
+        break;
       messages.length = 0;
       expect(
         await runCli(["migrate", "knowledge", "--apply", intermediate.planId, "--json"], io),
         errors.join(""),
       ).toBe(0);
-      messages.length = 0;
-      expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
     }
     const plan = JSON.parse(messages.join("")) as {
       planKind: string;

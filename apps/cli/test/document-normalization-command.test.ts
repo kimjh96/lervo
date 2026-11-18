@@ -101,6 +101,7 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
     });
     await expect(access(invocationLog)).rejects.toMatchObject({ code: "ENOENT" });
     messages.length = 0;
+    commitRepository(root);
 
     expect(
       await runCli(
@@ -137,8 +138,7 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
       "--json",
     ];
     // ADR-0561: an independent cross-check of the stored candidate replaces item approvals, and
-    // the rewrite lands as its own undo commit over committed sources.
-    commitRepository(root);
+    // the rewrite lands as its own undo commit over the sources committed before planning.
     const crossCheck = planCrossCheck();
     expect(await runCli(apply, io, crossCheck.services), errors.join("")).toBe(0);
     expect(crossCheck.checked).toHaveLength(1);

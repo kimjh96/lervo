@@ -17,6 +17,28 @@ import type { ManagedDeliberationOutcome } from "../src/managed-deliberation.js"
 
 const temporaryRoots: string[] = [];
 
+/**
+ * The knowledge refresh after a reviewed effect. Its own undo commit moved HEAD, a knowledge
+ * source, so one refresh applies first when it has work; returns the following plan's operations.
+ */
+async function refreshedOperations(
+  io: Parameters<typeof runCli>[1],
+  messages: string[],
+): Promise<Array<{ action: string }>> {
+  messages.length = 0;
+  expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+  const first = JSON.parse(messages.join("")) as {
+    planId: string;
+    operations: Array<{ action: string }>;
+  };
+  if (first.operations.every((item) => item.action === "unchanged")) return first.operations;
+  messages.length = 0;
+  expect(await runCli(["knowledge", "refresh", "--apply", first.planId, "--json"], io)).toBe(0);
+  messages.length = 0;
+  expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+  return (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations;
+}
+
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-"));
   temporaryRoots.push(root);
@@ -220,7 +242,6 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
-    commitRepository(root);
 
     messages.length = 0;
     expect(await runCli(["knowledge", "structure", "delete", documentPath, "--json"], io)).toBe(0);
@@ -418,12 +439,8 @@ describe("lervo repository knowledge CLI", () => {
       (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
         .hits[0],
     ).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
     expect(
-      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
-        (item) => item.action === "unchanged",
-      ),
+      (await refreshedOperations(io, messages)).every((item) => item.action === "unchanged"),
     ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
@@ -554,12 +571,8 @@ describe("lervo repository knowledge CLI", () => {
       (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
         .hits[0],
     ).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
     expect(
-      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
-        (item) => item.action === "unchanged",
-      ),
+      (await refreshedOperations(io, messages)).every((item) => item.action === "unchanged"),
     ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
@@ -676,12 +689,8 @@ describe("lervo repository knowledge CLI", () => {
       (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
         .hits[0],
     ).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
     expect(
-      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
-        (item) => item.action === "unchanged",
-      ),
+      (await refreshedOperations(io, messages)).every((item) => item.action === "unchanged"),
     ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
