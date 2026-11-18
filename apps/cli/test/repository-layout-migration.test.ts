@@ -7,8 +7,37 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { formatRepositoryLayoutMigrationPlan } from "../src/knowledge-migration-format.js";
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
+import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
+
+/**
+ * The next knowledge stage after a reviewed effect. Its own undo commit moved HEAD, which is a
+ * knowledge source, so a ready structural refresh can come first; it is applied on the way.
+ */
+async function nextStagePlan(
+  io: Parameters<typeof runCli>[1],
+  messages: string[],
+  errors: string[],
+): Promise<unknown> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    messages.length = 0;
+    expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
+    const plan = JSON.parse(messages.join("")) as {
+      planKind?: string;
+      planId: string;
+      status: string;
+    };
+    if (plan.planKind !== undefined || plan.status !== "ready") return plan;
+    messages.length = 0;
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io),
+      errors.join(""),
+    ).toBe(0);
+  }
+  throw new Error("The structural knowledge refresh did not converge.");
+}
 
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -28,6 +57,7 @@ describe("repository layout migration CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    commitRepository(root);
 
     messages.length = 0;
     expect(await runCli(["terminal", "status", "--json"], io)).toBe(1);
@@ -52,21 +82,18 @@ describe("repository layout migration CLI", () => {
       status: "review_required",
     });
     messages.length = 0;
+    // ADR-0561: an independent cross-check agrees, so Lervo applies the adoption itself as its
+    // own undo commit over the instruction files committed before planning.
+    const crossCheck = planCrossCheck();
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          adoption.planId,
-          "--approve-item",
-          `${adoption.operationId}=${adoption.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", adoption.planId, "--json"],
         io,
+        crossCheck.services,
       ),
       errors.join(""),
     ).toBe(0);
+    expect(crossCheck.checked).toHaveLength(1);
     expect(JSON.parse(messages.join(""))).toMatchObject({
       operation: "instruction_canonical_adoption",
     });
@@ -105,26 +132,20 @@ describe("repository layout migration CLI", () => {
     messages.length = 0;
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          bridge.planId,
-          "--approve-item",
-          `${bridge.operationId}=${bridge.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", bridge.planId, "--json"],
         io,
+        crossCheck.services,
       ),
       errors.join(""),
     ).toBe(0);
+    expect(crossCheck.checked).toHaveLength(2);
     expect(await readFile(resolve(root, "CLAUDE.md"), "utf8")).toBe(
       "<!-- lervo:begin block=provider_entry schema=1 -->\n@AGENTS.md\n<!-- lervo:end block=provider_entry -->\n",
     );
     expect(errors).toEqual([]);
   }, 15_000);
 
-  it("completes plan, approved apply, lint, and idempotent rerun through migrate knowledge", async () => {
+  it("completes plan, cross-checked apply, lint, and idempotent rerun through migrate knowledge", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-layout-migration-"));
     roots.push(root);
     await writeFile(resolve(root, "README.md"), "# Example\n\nSee ARCHITECTURE.md.\n");
@@ -137,6 +158,7 @@ describe("repository layout migration CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    commitRepository(root);
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
     const plan = JSON.parse(messages.join("")) as {
@@ -147,10 +169,11 @@ describe("repository layout migration CLI", () => {
     };
     expect(plan).toMatchObject({ planKind: "repository_layout", status: "review_required" });
     messages.length = 0;
-    const applyArgs = ["migrate", "knowledge", "--apply", plan.planId, "--json"];
-    for (const move of plan.moves)
-      applyArgs.push("--approve-item", `${move.operationId}=${move.approvalHash}`);
-    expect(await runCli(applyArgs, io), errors.join("")).toBe(0);
+    const { services } = planCrossCheck();
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io, services),
+      errors.join(""),
+    ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({
       operation: "migrate",
       movedCount: 1,
@@ -162,9 +185,7 @@ describe("repository layout migration CLI", () => {
     expect(await readFile(resolve(root, "README.md"), "utf8")).toContain(
       "docs/architecture/system.md",
     );
-    messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
-    const bridge = JSON.parse(messages.join("")) as {
+    const bridge = (await nextStagePlan(io, messages, errors)) as {
       planId: string;
       operationId: string;
       approvalHash: string;
@@ -173,47 +194,19 @@ describe("repository layout migration CLI", () => {
     expect(bridge.status).toBe("review_required");
     messages.length = 0;
     expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          bridge.planId,
-          "--approve-item",
-          `${bridge.operationId}=${bridge.approvalHash}`,
-          "--json",
-        ],
-        io,
-      ),
+      await runCli(["migrate", "knowledge", "--apply", bridge.planId, "--json"], io, services),
       errors.join(""),
     ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({ operation: "instruction_bridge_update" });
-    messages.length = 0;
-    const terminalPlanCode = await runCli(["migrate", "knowledge", "--json"], io);
-    if (terminalPlanCode !== 0)
-      throw new Error(`terminal plan failed: ${errors.join("")} ${messages.join("")}`);
-    const terminal = JSON.parse(messages.join("")) as {
+    const terminal = (await nextStagePlan(io, messages, errors)) as {
       planKind: string;
       planId: string;
-      operationId: string;
-      approvalHash: string;
       status: string;
     };
-    expect(terminal).toMatchObject({ planKind: "terminal_integration", status: "review_required" });
+    expect(terminal).toMatchObject({ planKind: "terminal_integration", status: "ready" });
     messages.length = 0;
     expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          terminal.planId,
-          "--approve-item",
-          `${terminal.operationId}=${terminal.approvalHash}`,
-          "--json",
-        ],
-        io,
-      ),
+      await runCli(["migrate", "knowledge", "--apply", terminal.planId, "--json"], io),
       errors.join(""),
     ).toBe(0);
     expect(JSON.parse(messages.join(""))).toMatchObject({

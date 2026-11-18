@@ -3,8 +3,11 @@
 Status: `accepted`
 Decision date: 2026-11-02
 Amends: [ADR-0463 document freshness](../0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) (Tier 0 for freshness)
+Amended by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (agreement lets Lervo apply every class; two checks for safety, user-owned statements, and archives; no owner substitution)
 Related: [ADR-0460 tiered deliberation](../../../coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md), [ADR-0536 provider admission](../../../execution/providers/admission/0536-admit-provider-clis-by-contract.md)
 Contract: [Document freshness candidates](../../../../specifications/knowledge/document-freshness/candidates.md#cross-check), [operations](../../../../specifications/knowledge/document-freshness/operations.md#authority-and-apply)
+
+> **Superseded in part (2026-11-02).** ADR-0561 changes the outcomes below. Agreement no longer only removes an owner substitution: it lets Lervo apply every hunk class and ownership, including user-owned bytes. `safety_or_policy` hunks, user-owned `statement` hunks, and archives need two agreeing rounds in separate sessions; each round has its own run, and the candidate records earlier rounds in the additive `crossCheckRounds`. When the resident resolves its provider by detection, the second round prefers the other admitted provider and falls back to a fresh session of its own. Archives are cross-checked: the move with its banner and the inbound link rewrites are the reviewed items, and `archive_not_cross_checked` is no longer produced. `unavailable` never substitutes the owner: the candidate stays `verified_pending_cross_check` and Lervo retries the call one hour after it settled, doubled per retry up to one day, recording `retries` on the review. `freshness_budget_exhausted` rejects the candidate with `rejectorKind: budget` and holds the finding as Lervo debt (`budget_exceeded`). A disagreement regenerates once with the contested replacements and the reviewer's reasons as evidence; a second disagreement holds the finding as Lervo debt with reason `cross_check_disagreement_repeated` and a backoff of one day doubled per failed retry, instead of `repeated_cross_check_disagreement` owner attention. "Authority that remains" no longer applies.
 
 ## Context
 

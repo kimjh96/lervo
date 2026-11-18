@@ -70,6 +70,19 @@ export interface FreshnessEvidenceBundleV1 {
   };
   writingContract: { writingPolicyId: string; contractHash: string };
   instructions: string;
+  /** Additive (ADR-0561): why the previous candidate for this finding failed, for regeneration. */
+  regeneration?: FreshnessRegenerationEvidence;
+}
+
+/**
+ * Evidence from a failed earlier candidate: the reviewer's reasons for each contested hunk, or the
+ * explanation of an answer that could not determine the value. Reasons are reviewer prose kept in
+ * CAS like the rest of the bundle; they never enter events.
+ */
+export interface FreshnessRegenerationEvidence {
+  predecessorCandidateId: string;
+  failure: "cross_check_disagreement" | "evidence_undetermined";
+  items: Array<{ before: string | null; after: string | null; reason: string }>;
 }
 
 async function git(root: string, args: string[], maxBuffer = 4 * 1024 * 1024): Promise<string> {
@@ -125,6 +138,7 @@ export async function buildFreshnessEvidenceBundle(input: {
   finding: DocumentFreshnessFindingV1;
   content: Buffer;
   cursor?: string;
+  regeneration?: FreshnessRegenerationEvidence;
 }): Promise<{ bundle: FreshnessEvidenceBundleV1; evidence: DocumentFreshnessEvidenceItem[] }> {
   const root = input.repositoryRoot;
   const { finding } = input;
@@ -326,6 +340,7 @@ export async function buildFreshnessEvidenceBundle(input: {
     },
     writingContract: documentFreshnessWritingContract(),
     instructions: documentFreshnessGenerationInstruction,
+    ...(input.regeneration === undefined ? {} : { regeneration: input.regeneration }),
   };
   return { bundle, evidence: items };
 }

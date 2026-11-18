@@ -4,7 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0396](0396-conflict-safe-repository-replica-continuation.md), [ADR-0201](0201-repository-scoped-workstream-replication.md), [ADR-0404](0404-merge-divergent-repository-replicas.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
-Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession stage), [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (tracked delegation replication), [ADR-0483](0483-run-replica-commands-through-one-current-runtime.md) (current runtime pointer, exact configuration, capture version handshake)
+Amended by: [ADR-0468](0468-propagate-knowledge-supersession-across-replicated-checkouts.md) (supersession stage), [ADR-0478](0478-renew-each-delegation-with-one-writer.md) (tracked delegation replication), [ADR-0483](0483-run-replica-commands-through-one-current-runtime.md) (current runtime pointer, exact configuration, capture version handshake), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (divergence and checkpoint reconciliation without the owner)
 
 ## Context
 
@@ -44,9 +44,9 @@ A Node whose lease is held elsewhere refuses mutating work with `repository_writ
 
 ### Divergence surfacing
 
-A `hold` conflict emits `repository.replica.diverged` once per divergence identity (the hash of both snapshot hashes), creates one operating-attention item with `actionOwner: user`, and posts one observation-only notice to the repository's bound conversation, if any. Repeated cycles over the same divergence add nothing.
+A conflict emits `repository.replica.diverged` once per divergence identity (the hash of both snapshot hashes), creates one operating-attention item, and posts one observation-only notice to the repository's bound conversation, if any. Repeated cycles over the same divergence add nothing.
 
-`lervo repository reconcile --prefer local|peer|merge` resolves divergence and emits `repository.replica.reconciled`. Health remains `degraded` while any divergence is open. Only `reconcile` and `handoff` pass `allowHistoryReplacement`; ordinary cycles use fast-forward-only apply.
+As amended by ADR-0561, the coordinator resolves it in the same cycle: it saves the losing side to a backup branch, then prefers the configured side ([divergence and merge](../../../specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md)). An unresolved divergence is Lervo debt, and `--prefer` is removed. Health remains `degraded` while any divergence is open. Only `reconcile` and `handoff` pass `allowHistoryReplacement`; ordinary cycles use fast-forward-only apply.
 
 ### Version handshake and configuration currency
 
@@ -87,7 +87,7 @@ If one side still holds superseded commits the other lacks, the cycle stops at s
 
 Workstream import surfaces exact blocker codes in health and attention: `invalid_snapshot | identity_changed | origin_changed | non_advancing_revision | divergent_heads`.
 
-`lervo workstream reconcile --keep local|hub` creates a successor whose `origin` names both predecessor heads. ADR-0201's successor rule extends to allow a reconciliation successor to replace two heads. No head is ever merged automatically.
+`lervo workstream reconcile` creates a successor whose `origin` names both predecessor heads. ADR-0201's successor rule extends to allow a reconciliation successor to replace two heads. No head body is ever merged. As amended by ADR-0561, the newest valid head is kept without an owner choice and `--keep` is removed ([checkpoint reconciliation](../../../specifications/coordination/workstream-checkpoint-reconciliation.md)).
 
 The [checkpoint reconciliation contract](../../../specifications/coordination/workstream-checkpoint-reconciliation.md) defines exact parent binding, CLI-only publication, deployment compatibility, and interruption recovery.
 
@@ -117,7 +117,7 @@ Step 1 exclusions follow the amended tracked-versus-untracked rule above. ADR-04
 ## Acceptance (installed)
 
 - Hand off the Lervo repository from Mac to WSL with an uncommitted edit and advanced workstream. The Discord Node continues the workstream, changes bytes, and hands back. Both hosts show identical snapshot hashes and one lease history.
-- An injected two-sided edit produces exactly one `diverged` event, one attention item, and one conversation notice, then resolves through `reconcile`.
+- An injected two-sided edit produces one `diverged` and one `reconciled` event in the same cycle, with the losing side on a backup branch (ADR-0561).
 - An injected protocol mismatch fails closed with its code. An injected Git failure exposes its stderr digest in CLI output and the receipt.
 - A Node without the lease refuses a mutating Discord request with a reply naming the holder, while still answering read-only requests.
 - Seven days of fleet operation record no repeated identical failure beyond the once-per-identity rule.

@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Decision date: 2026-08-23
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (independent cross-check and commit-then-delete replace the approval hash)
+
+> **Amended (2026-11-02).** Under [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), `--apply` no longer takes an operation approval. An independent cross-check of the exact plan must agree; Git then holds the document's bytes before Lervo deletes it (Lervo first commits them as `docs: preserve <path> before deletion` when `HEAD` lacks them), and the deletion lands as its own `Lervo Knowledge` commit that `lervo knowledge revert <commit>` undoes. When Git cannot hold the bytes, nothing is deleted.
 
 ## Context
 

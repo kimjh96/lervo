@@ -8,14 +8,10 @@ export async function inspectDocumentRouteResolutionContext(input: {
   repositoryRoot: string;
   admissionDirectory?: string;
 }): Promise<DocumentRouteResolutionContext> {
-  const unavailable: DocumentRouteResolutionContext = {
-    providerAvailable: false,
-    normalizationRoots: [],
-  };
+  const unavailable: DocumentRouteResolutionContext = { providerAvailable: false };
   try {
     const loaded = await loadConvergenceDelegation(input.repositoryRoot);
     if (loaded === null) return unavailable;
-    const roots = [...loaded.delegation.canonicalRoots, ...loaded.delegation.normalizationRoots];
     for (const provider of loaded.delegation.providers) {
       const delegation = await assertConvergenceDelegation({
         repositoryRoot: input.repositoryRoot,
@@ -28,9 +24,9 @@ export async function inspectDocumentRouteResolutionContext(input: {
         provider,
         ...(input.admissionDirectory === undefined ? {} : { directory: input.admissionDirectory }),
       });
-      if (!admission.paused) return { providerAvailable: true, normalizationRoots: roots };
+      if (!admission.paused) return { providerAvailable: true };
     }
-    return { providerAvailable: false, normalizationRoots: roots };
+    return unavailable;
   } catch {
     return unavailable;
   }

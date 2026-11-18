@@ -49,14 +49,14 @@ describe("upgrade knowledge stage ownership", () => {
     });
   });
 
-  it("keeps provider selection with the owner when nothing would drain the debt", async () => {
+  it("holds the debt as Lervo's own when nothing would drain it yet (ADR-0561)", async () => {
     ports.owner.mockResolvedValue(null);
     expect(await inspectKnowledge("/repository")).toEqual({
-      disposition: "pending_authority",
+      disposition: "lervo_debt",
       planKind: "document_normalization_provider_selection",
       planId: null,
       status: "provider_required",
-      reason: "provider_required",
+      reason: "normalization_awaits_background_owner",
       blockers: [],
     });
   });

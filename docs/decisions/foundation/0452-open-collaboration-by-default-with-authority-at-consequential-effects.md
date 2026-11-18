@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Supersedes in part: [ADR-0391](../coordination/conversations/0391-deterministic-multi-agent-turn-ownership.md), [ADR-0419](../coordination/conversations/0419-preserve-human-focus-and-real-agent-authorship.md)
 Amends: [ADR-0386](../coordination/conversations/0386-organization-teams-and-agent-identities.md), [ADR-0395](../coordination/conversations/0395-resumable-native-repository-work-turns.md), [ADR-0398](../execution/orchestration/governed-work/0398-outcome-supervision-and-autonomous-team-allocation.md), [ADR-0411](../coordination/conversations/agent-organization/0411-governed-agent-memory-and-autonomous-participation.md), [ADR-0417](../execution/applications/0417-own-discord-visible-reference-product.md), [ADR-0427](../knowledge/repository/canonicalization/0427-decouple-conversation-work-from-agent-owned-knowledge-convergence.md), [ADR-0434](../knowledge/repository/canonicalization/0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0220](../knowledge/repository/0220-evidence-bound-development-pattern-promotion.md), [ADR-0396](../coordination/sync/0396-conflict-safe-repository-replica-continuation.md), [ADR-0201](../coordination/sync/0201-repository-scoped-workstream-replication.md), [ADR-0451](../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
+Amended by: [ADR-0561](0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (cross-check, reversible effect, and notice instead of an authority check)
 
 ## True Lervo
 
@@ -33,6 +34,8 @@ Core robustness failures include silent replica failures with discarded causes, 
 ### 1. Governing principle
 
 Conversation, memory, learning, recall, autonomy, and staffing are **open by default**. Check authority **at consequential effects**: repository writes, deployments, external messages, spend above budget, credential or security-policy changes, hiring beyond headcount, and irreversible deletion.
+
+> **Amended (2026-11-02).** Under [ADR-0561](0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), no consequential effect waits for an owner approval. Each one is cross-checked by an independent session, made reversible by a commit, preimage, or backup, and reported in an after-the-fact notice with its undo command. An effect that cannot be undone or leaves the host needs two agreeing checks and a backup or dry run first. Budgets and loop guards remain hard backstops. Credentials are the one notice-only exception: Lervo reports what is missing and continues every stage that does not need them.
 
 Budgets, loop guards, and compatibility windows bound open behaviour; they are not admission conditions. AGENTS.md invariants 1 to 9 remain unchanged and determine whether an opening is safe.
 
@@ -112,7 +115,7 @@ The owner accepted every recommendation in this design set:
 
 1. ADR-0452 to ADR-0460 are `accepted`; `implemented` is retired as a roadmap label in favour of the section 5 taxonomy.
 2. The section 8 amendments to vision criteria 9 and 10 are applied to `docs/product/vision.md` as reviewed exact rewrites.
-3. AGENTS.md gains invariant 10: open by default, authority at consequential effects.
+3. AGENTS.md gains invariant 10: open by default, authority at consequential effects. ADR-0561 later changed it to cross-check, make reversible, and notify at consequential effects.
 4. The first principal mandate uses ADR-0453 version 1 defaults, including the 30-minute hire grace period.
 5. `docs/evidence` becomes projection-tier under ADR-0457 when the consolidation slice ships.
 6. ADR-0460 amends ADR-0418's "never the default engine": Tier 0 is the default at decision points; formal deliberation runs on request or escalation.

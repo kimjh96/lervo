@@ -44,6 +44,10 @@ async function repositories(): Promise<{ local: string; peer: string; stateFile:
   return { local, peer, stateFile: join(state, "replicas.json") };
 }
 
+async function show(root: string, object: string): Promise<string> {
+  return (await execute("git", ["-C", root, "show", object], { encoding: "utf8" })).stdout;
+}
+
 afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
@@ -78,7 +82,7 @@ describe("repository replica coordinator", () => {
     expect(Object.keys(state.replicas).sort()).toEqual(["first", "second"]);
   });
 
-  it("continues exact uncommitted bytes in both directions and blocks dual divergence", async () => {
+  it("continues exact uncommitted bytes in both directions and settles dual divergence after a backup", async () => {
     const fixture = await repositories();
     const coordinator = new RepositoryReplicaCoordinator({
       stateFile: fixture.stateFile,
@@ -117,12 +121,13 @@ describe("repository replica coordinator", () => {
 
     await writeFile(join(fixture.local, "source.ts"), "local\n");
     await writeFile(join(fixture.peer, "source.ts"), "peer\n");
-    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({
-      status: "divergent",
-      conflict: { reason: "conflicting_paths", paths: ["source.ts"], pathCount: 1 },
-    });
+    const settled = await coordinator.reconcile(coordinates);
+    expect(settled).toMatchObject({ status: "merged", backup: { side: "peer" } });
     expect(await readFile(join(fixture.local, "source.ts"), "utf8")).toBe("local\n");
-    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("peer\n");
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("local\n");
+    // The replaced peer bytes, uncommitted as they were, stay on a backup branch on the peer.
+    const branch = settled.status === "merged" ? settled.backup!.branch : "";
+    expect(await show(fixture.peer, `${branch}:source.ts`)).toBe("peer\n");
   }, 15_000);
 
   it("merges non-conflicting changes from both sides and keeps uncommitted work uncommitted", async () => {
@@ -273,7 +278,7 @@ describe("repository replica coordinator", () => {
     );
   }, 20_000);
 
-  it("resolves generated knowledge conflicts locally and honours a prefer_local policy elsewhere", async () => {
+  it("resolves generated knowledge conflicts locally and prefers local elsewhere after a backup", async () => {
     const fixture = await repositories();
     const coordinator = new RepositoryReplicaCoordinator({
       stateFile: fixture.stateFile,
@@ -300,12 +305,10 @@ describe("repository replica coordinator", () => {
     await writeFile(join(fixture.local, "source.ts"), "local wins\n");
     await writeFile(join(fixture.peer, "source.ts"), "peer loses\n");
     await expect(coordinator.reconcile(hold)).resolves.toMatchObject({
-      status: "divergent",
-      conflict: { paths: ["source.ts"] },
+      status: "merged",
+      reconciled: { strategy: "prefer_local" },
+      backup: { side: "peer" },
     });
-    await expect(
-      coordinator.reconcile({ ...hold, conflictPolicy: "prefer_local" }),
-    ).resolves.toMatchObject({ status: "merged" });
     expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("local wins\n");
   }, 20_000);
 });

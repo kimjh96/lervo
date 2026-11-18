@@ -4,7 +4,7 @@ const KEYS = [
   "convergence",
   "longestStop",
   "freshness",
-  "ownerReview",
+  "lervoDebt",
   "deferred",
   "brokenLinks",
   "find",
@@ -61,18 +61,42 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
         ["cycleStale", "safety", "awaitingReview", "refreshed"].every((k) =>
           nullable(v[k], count),
         ) &&
-        nullable(v.blocked, (x) => typeof x === "boolean")
+        nullable(v.blocked, (x) => typeof x === "boolean") &&
+        (v.debt === undefined ||
+          nullable(
+            v.debt,
+            (list) =>
+              Array.isArray(list) &&
+              list.length <= 8 &&
+              list.every(
+                (entry: unknown) =>
+                  object(entry) &&
+                  text(entry.path) &&
+                  text(entry.reason) &&
+                  time(entry.since) &&
+                  nullable(entry.ageMilliseconds, count),
+              ),
+          ))
       );
-    case "ownerReview":
+    case "lervoDebt":
       return (
-        nullable(v.count, count) &&
-        count(v.confirmedCount) &&
-        count(v.workstreamCount) &&
-        count(v.omitted) &&
-        nullable(v.upkeepCount, count) &&
-        Array.isArray(v.items) &&
-        v.items.length <= 32 &&
-        v.items.every(
+        count(v.count) &&
+        nullable(v.oldestSince, time) &&
+        nullable(v.oldestAgeMilliseconds, count) &&
+        nullable(v.topReason, text) &&
+        Array.isArray(v.sources) &&
+        v.sources.length <= 16 &&
+        v.sources.every(
+          (s: unknown) =>
+            object(s) &&
+            text(s.source) &&
+            count(s.count) &&
+            nullable(s.oldestSince, time) &&
+            text(s.reason),
+        ) &&
+        Array.isArray(v.credentials) &&
+        v.credentials.length <= 8 &&
+        v.credentials.every(
           (i: unknown) =>
             object(i) &&
             text(i.itemId) &&
@@ -80,7 +104,6 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
             text(i.actor) &&
             typeof i.requiresUserAction === "boolean" &&
             nullable(i.consequence, text) &&
-            (!i.requiresUserAction || i.consequence !== null) &&
             text(i.recommendation) &&
             text(i.inspectCommand) &&
             nullable(i.waitingSince, time) &&

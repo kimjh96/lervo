@@ -11,6 +11,9 @@ Amended by:
 - [ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md): the Node stage is ordered after knowledge without depending on it; lint always runs and reports content errors in the receipt.
 - [ADR-0574](../../distribution/0574-admit-upgrades-ahead-of-background-knowledge-cycles.md): apply asks for the full-cycle admission with priority; the knowledge stage stays inside the window.
 - [ADR-0578](../../distribution/0578-plan-the-upgrade-knowledge-stage-from-one-scan.md): each knowledge inspection plans every stage from one scan.
+- [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md): no stage waits for an owner approval. `--apply` alone plans and applies in one exclusive window; `--approval` and `--approve-role-binding` are removed.
+
+> **Amended (2026-11-02).** Under ADR-0561, `pending_authority` is gone. A reviewed knowledge plan is cross-checked by a fresh no-capability session and lands as a `Lervo Knowledge` commit; provider hook files are backed up, applied, verified, and restored on failure; repository role bindings refresh like built-in ones; Node and host services keep their backup, transaction, readiness check, and rollback. A stage Lervo cannot finish, such as a rejected plan or a plan no provider could check, is `lervo_debt`, never owner work. Each stage still plans again and compares before it writes, so the stale-plan guard is internal. The receipt's `notices` name each change and its undo.
 
 ## Context
 
@@ -42,16 +45,16 @@ It never automatically rewrites user-owned documents, rebinds a repository-defin
 
 The plan publishes `policy.stageDependencies`. Apply follows capabilities, workforce, terminal integration, knowledge, then Node. [ADR-0470](0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md) adds `event_writer` after terminal integration and Node, plus an independent `host_service` stage. [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) adds `replica_service` last, after `node`.
 
-| Stage | Requires |
-| --- | --- |
-| `capabilities` | Nothing |
-| `workforce` | Capabilities applied first |
-| `terminal_integration` | Nothing |
-| `knowledge` | Capabilities applied first |
-| `node` | Ordered after knowledge; a blocked knowledge stage does not defer it ([ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md)). Knowledge lint runs after it |
-| `event_writer` | `terminal_integration` and `node` applied first |
-| `host_service` | Nothing |
-| `replica_service` | Runs last, after `node`; a stage deferred behind an applying `node` stage is re-observed during apply |
+| Stage                  | Requires                                                                                                                                                                                                       |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `capabilities`         | Nothing                                                                                                                                                                                                        |
+| `workforce`            | Capabilities applied first                                                                                                                                                                                     |
+| `terminal_integration` | Nothing                                                                                                                                                                                                        |
+| `knowledge`            | Capabilities applied first                                                                                                                                                                                     |
+| `node`                 | Ordered after knowledge; a blocked knowledge stage does not defer it ([ADR-0547](../../knowledge/repository/layout/0547-block-only-layout-overflow-a-write-creates-or-grows.md)). Knowledge lint runs after it |
+| `event_writer`         | `terminal_integration` and `node` applied first                                                                                                                                                                |
+| `host_service`         | Nothing                                                                                                                                                                                                        |
+| `replica_service`      | Runs last, after `node`; a stage deferred behind an applying `node` stage is re-observed during apply                                                                                                          |
 
 Event writer activation retains ADR-0470's reader-evidence, backup, and exact-plan requirements. A stage deferred behind terminal integration or Node applies only if it becomes ready in the same run; otherwise it is skipped with its blockers. Host service remains independent. The replica service stage retains ADR-0483's applicability, pointer, migration, service replacement, and stale-plan checks. These requirements do not establish installed activation or fleet acceptance.
 

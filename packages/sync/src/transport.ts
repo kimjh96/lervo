@@ -32,4 +32,6 @@ export interface AuthenticatedHubCapabilityTransport {
 export interface AuthenticatedWorkstreamHubTransport {
   publishWorkstream(request: WorkstreamReplicationPublishRequest): Promise<unknown>;
   readWorkstream(): Promise<unknown>;
+  /** ADR-0561: one stored revision by exact content hash; absent on transports that predate it. */
+  readWorkstreamRevision?(snapshotContentHash: string): Promise<unknown>;
 }

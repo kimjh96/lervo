@@ -1,6 +1,7 @@
 import {
   canonicalJson,
   sha256,
+  canonicalizationCandidateHeld,
   listCanonicalizationCandidates,
   canonicalizationCandidatePath,
   transitionCanonicalizationCandidate,
@@ -8,7 +9,7 @@ import {
   type KnowledgeConvergenceStageResult,
 } from "@lervo/repository-knowledge";
 import { withConvergenceAssignment } from "./workforce.js";
-import { completeConvergenceStage, waitingConvergenceStage } from "./stage-receipt.js";
+import { completeConvergenceStage } from "./stage-receipt.js";
 import { reviewKnowledgeJson } from "./provider-call.js";
 import { loadCanonicalReviewContext } from "./review-context.js";
 import { convergenceSourceBytes } from "./source-capture.js";
@@ -22,7 +23,31 @@ import {
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceSourceObservation } from "./source-observation.js";
 
-/** Old candidate closure needs a distinct exact semantic decision; baseline coverage alone grants none. */
+/** The reviewer's first deferral, given back as evidence when the review regenerates once. */
+interface CandidateReviewRetry {
+  candidateId: string;
+  contentHash: string;
+  rationale: string;
+}
+
+function reviewRetry(state: KnowledgeConvergenceInput): CandidateReviewRetry | null {
+  const value = state.stageData.candidateReviewRetry as Partial<CandidateReviewRetry> | null;
+  return value !== null &&
+    typeof value === "object" &&
+    typeof value.candidateId === "string" &&
+    typeof value.contentHash === "string" &&
+    typeof value.rationale === "string"
+    ? (value as CandidateReviewRetry)
+    : null;
+}
+
+/**
+ * Old candidate closure needs a distinct exact semantic decision; baseline coverage alone grants
+ * none. Under ADR-0561 the background reviewer resolves every candidate, including one an agent
+ * declared `pending_user_approval`, and nothing waits for the owner: a deferral regenerates the
+ * review once with the deferral as evidence, and a second deferral holds the candidate as Lervo
+ * debt until its sources change.
+ */
 export async function resolveConvergenceCandidates(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
@@ -31,10 +56,22 @@ export async function resolveConvergenceCandidates(
   const root = context.storage.paths.repositoryRoot;
   const review = state.stageData.candidateReview as CandidateReview | null | undefined;
   const candidates = (await listCanonicalizationCandidates(root))
-    .filter((item) => ["candidate", "pending", "stale"].includes(item.observedState))
+    .filter(
+      (item) =>
+        ["candidate", "pending", "stale"].includes(item.observedState) &&
+        !(item.observedState === "pending" && canonicalizationCandidateHeld(item)),
+    )
     // Source-specific context cannot cover unrelated candidates in one bounded review.
     .slice(0, 1);
   if (!review && !candidates.length) return null;
+  const prior = reviewRetry(state);
+  const retry =
+    prior !== null &&
+    candidates.some(
+      (item) => item.candidateId === prior.candidateId && item.contentHash === prior.contentHash,
+    )
+      ? prior
+      : null;
   if (!review) {
     const paths = [
       ...new Set(
@@ -88,20 +125,26 @@ export async function resolveConvergenceCandidates(
             sources,
             context: documents,
             canonicalCoverage: state.stageData.canonicalCoverage,
+            ...(retry === null ? {} : { priorDeferral: retry }),
           },
         });
         const decisions = parseCandidateReview(observed.value, candidates, documents);
-        if (decisions.some((decision) => decision.decision === "defer"))
-          return waitingConvergenceStage({
+        const deferred = decisions.find((decision) => decision.decision === "defer");
+        if (deferred !== undefined && retry === null)
+          return completeConvergenceStage({
+            sources: convergenceSourceObservation(context),
             artifacts: context.storage.artifacts,
             state,
-            kind: "attention_required",
-            reason: "knowledge_semantic_review_rejected",
-            dependency: {
-              snapshotHash: state.snapshotHash,
-              delegationHash: state.baseline.delegationHash,
-              decisions,
+            stage: "lifecycle_verification",
+            nextStage: "lifecycle_verification",
+            stageData: {
+              candidateReviewRetry: {
+                candidateId: deferred.candidateId,
+                contentHash: deferred.contentHash,
+                rationale: deferred.rationale,
+              },
             },
+            proof: { status: "candidate_review_regenerating", decisions, usage: observed.usage },
           });
         return completeConvergenceStage({
           sources: convergenceSourceObservation(context),
@@ -110,6 +153,7 @@ export async function resolveConvergenceCandidates(
           stage: "lifecycle_verification",
           nextStage: "lifecycle_verification",
           stageData: {
+            candidateReviewRetry: null,
             candidateReview: {
               reviewerAgentId: authority.agent.agentId,
               decisions,
@@ -143,8 +187,8 @@ export async function resolveConvergenceCandidates(
         // A crashed application can already have written exactly this review; never repeat its transition.
         if (
           (current?.review?.reviewerId === review.reviewerAgentId &&
-            current.state === "rejected" &&
-            decision.decision === "reject") ||
+            ((current.state === "rejected" && decision.decision === "reject") ||
+              (current.state === "pending" && decision.decision === "defer"))) ||
           (current?.promotion?.reviewerId === review.reviewerAgentId &&
             current.state === "promoted" &&
             decision.decision === "promote" &&

@@ -4,6 +4,7 @@ import {
   BLOCKED_REPOSITORY_RECHECK_MS,
   FOLLOW_BACKOFF_LIMIT_MS,
   FOLLOW_POLL_INTERVAL_MS,
+  LERVO_DEBT_CODE,
   chooseFollowTarget,
   classifyInstallFailure,
   classifyRepositoryFailure,
@@ -103,12 +104,13 @@ describe("failure classification", () => {
     expect(classifyInstallFailure("something_new")).toBe("release_failed");
   });
 
-  it("treats Node readiness and an unreadable CLI as host failures and content as blocked", () => {
+  it("treats Node readiness and an unreadable CLI as host failures and anything else as failed", () => {
     expect(classifyRepositoryFailure("node_fleet_readiness_timeout")).toBe("host_failure");
     expect(classifyRepositoryFailure("host_follow_repository_upgrade_unreadable")).toBe(
       "host_failure",
     );
-    expect(classifyRepositoryFailure("upgrade_owner_approval_required")).toBe("blocked");
+    // ADR-0561: no failure code means an owner approval any more.
+    expect(classifyRepositoryFailure("upgrade_owner_approval_required")).toBe("failed");
     expect(classifyRepositoryFailure("node_fleet_config_invalid")).toBe("failed");
     // ADR-0577: a lost admission is retried with the same CLI; it says nothing about the host.
     expect(classifyRepositoryFailure("knowledge_cycle_admission_lost")).toBe("failed");
@@ -188,17 +190,12 @@ describe("scheduleRepositoryRetry", () => {
     expect(scheduleRepositoryRetry(entry("host_failure"), undefined, at).nextAttemptAt).toBeNull();
   });
 
-  it("waits for another CLI, not an hourly recheck, while a stage needs an owner approval", () => {
-    const waiting = { ...entry("blocked"), code: "upgrade_owner_approval_required" };
-    expect(scheduleRepositoryRetry(waiting, undefined, at)).toMatchObject({
+  it("re-plans a repository left in Lervo debt hourly, because the debt clears on its own", () => {
+    const debt = { ...entry("blocked"), code: LERVO_DEBT_CODE };
+    expect(scheduleRepositoryRetry(debt, undefined, at)).toMatchObject({
       attempts: 0,
-      nextAttemptAt: null,
+      nextAttemptAt: new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
     });
-    // A ready plan still has an applicable stage, such as Node, so it keeps the hourly recheck.
-    const ready = { ...waiting, status: "ready" };
-    expect(scheduleRepositoryRetry(ready, undefined, at).nextAttemptAt).toBe(
-      new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
-    );
     const contentBlock = { ...entry("blocked"), code: "upgrade_plan_blocked" };
     expect(scheduleRepositoryRetry(contentBlock, undefined, at).nextAttemptAt).toBe(
       new Date(at.getTime() + BLOCKED_REPOSITORY_RECHECK_MS).toISOString(),
@@ -213,14 +210,14 @@ describe("repositoryPassOrder", () => {
     code,
   });
 
-  it("runs repositories waiting for an owner approval after every other repository", () => {
+  it("runs repositories left in Lervo debt after every other repository", () => {
     const roots = ["/axli", "/plen", "/argo", "/flemo", "/axli-lab", "/lervo"];
     const lastPass = {
       repositories: [
         result("/axli", "current", null),
-        result("/argo", "blocked", "upgrade_owner_approval_required"),
+        result("/argo", "blocked", LERVO_DEBT_CODE),
         result("/flemo", "blocked", "upgrade_plan_blocked"),
-        result("/axli-lab", "blocked", "upgrade_owner_approval_required"),
+        result("/axli-lab", "blocked", LERVO_DEBT_CODE),
       ].map((repository) => ({
         ...repository,
         status: null,

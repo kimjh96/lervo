@@ -1,6 +1,7 @@
 import type { DocumentFreshnessEvidenceItem } from "./document-freshness-candidate.js";
 import {
-  documentFreshnessCandidateAuthority,
+  documentFreshnessCandidateRequiredAgreements,
+  documentFreshnessUserOwnedChange,
   documentFreshnessVerifiedState,
 } from "./document-freshness-candidate-state.js";
 import type {
@@ -13,7 +14,8 @@ import type {
 /**
  * ADR-0557 Tier 0 cross-check for document freshness: the fixed question, the bounded reviewer
  * input, the strict response contract, and the settlement of a candidate from its outcome. Pure;
- * the runtime owns the provider call, CAS, and events.
+ * the runtime owns the provider call, CAS, and events. ADR-0561 extends it to archives and settles
+ * a candidate that needs two independent agreeing checks over two rounds.
  */
 export const DOCUMENT_FRESHNESS_CROSS_CHECK_QUESTION =
   "For each hunk, does the replacement follow from the cited evidence, and does the candidate change nothing else?";
@@ -24,14 +26,15 @@ export const documentFreshnessCrossCheckInstruction = [
   `Answer this question for every hunk: ${DOCUMENT_FRESHNESS_CROSS_CHECK_QUESTION}`,
   "Agree only when the cited evidence excerpts show the new value and the replacement changes no other fact, instruction, or meaning in the surrounding text.",
   "Disagree when the evidence is missing, contradicts the replacement, is truncated before the value it should show, or when the replacement changes anything the evidence does not require.",
+  "For an archive, the hunks are the move with its historical banner and the inbound link rewrites: agree only when the evidence shows the document describes a superseded design and the move and rewrites change nothing else.",
   "Return exactly one verdict for every hunkId with a short concrete reason, in the response schema.",
 ].join(" ");
 
 const MAXIMUM_HUNKS = 16;
 const MAXIMUM_REASON_CHARACTERS = 400;
 const MAXIMUM_CONTEXT_CHARACTERS = 400;
-const MAXIMUM_EXCERPT_BYTES = 6 * 1024;
-const MAXIMUM_TOTAL_EXCERPT_BYTES = 24 * 1024;
+export const DOCUMENT_FRESHNESS_CROSS_CHECK_EXCERPT_BYTES = 6 * 1024;
+export const DOCUMENT_FRESHNESS_CROSS_CHECK_TOTAL_EXCERPT_BYTES = 24 * 1024;
 const hunkIdPattern = /^kfh_[a-f0-9]{16}$/u;
 
 export const documentFreshnessCrossCheckResponseSchema = {
@@ -85,7 +88,10 @@ function headCharacters(text: string, maximum: number): string {
   return text.split("\n").slice(0, 3).join("\n").slice(0, maximum);
 }
 
-function boundedUtf8(text: string, maximumBytes: number): { text: string; truncated: boolean } {
+export function boundedDocumentFreshnessUtf8(
+  text: string,
+  maximumBytes: number,
+): { text: string; truncated: boolean } {
   const bytes = Buffer.from(text, "utf8");
   if (bytes.length <= maximumBytes) return { text, truncated: false };
   // Decoding a cut multibyte sequence yields U+FFFD; drop it rather than invent a character.
@@ -95,22 +101,30 @@ function boundedUtf8(text: string, maximumBytes: number): { text: string; trunca
   };
 }
 
-/** Whether a stored candidate still needs its Tier 0 call: an edit with a required hunk. */
+/** Whether a stored candidate still needs its Tier 0 call: an archive or an edit with a required hunk. */
 export function documentFreshnessCandidateNeedsCrossCheck(
-  candidate: Pick<DocumentFreshnessCandidateV1, "operation" | "hunks" | "state" | "crossCheck">,
+  candidate: Pick<
+    DocumentFreshnessCandidateV1,
+    "operation" | "hunks" | "state" | "crossCheck" | "archive"
+  >,
 ): boolean {
   return (
-    candidate.operation === "edit" &&
     candidate.crossCheck === "unavailable" &&
     (candidate.state === "verified" || candidate.state === "verified_pending_cross_check") &&
-    candidate.hunks.some((hunk) => hunk.crossCheckRequired)
+    // AGENTS.md invariant 5: user-owned bytes are never applied, so they need no cross-check.
+    ((candidate.operation === "archive" &&
+      candidate.archive !== null &&
+      !documentFreshnessUserOwnedChange(candidate)) ||
+      (candidate.operation === "edit" &&
+        candidate.hunks.some((hunk) => hunk.crossCheckRequired && hunk.ownership !== "user_owned")))
   );
 }
 
 /**
  * Builds the bounded reviewer input from the exact source bytes and the evidence items already in
  * the generation bundle. Only cited items are included, each excerpt at most 6 KiB and all of
- * them at most 24 KiB, so the call stays inside the candidate budget.
+ * them at most 24 KiB, so the call stays inside the candidate budget. Archives use
+ * `buildDocumentFreshnessArchiveCrossCheckInput`.
  */
 export function buildDocumentFreshnessCrossCheckInput(input: {
   candidate: Pick<DocumentFreshnessCandidateV1, "documentPath" | "sourceHash" | "hunks">;
@@ -127,7 +141,7 @@ export function buildDocumentFreshnessCrossCheckInput(input: {
         const item = bundled.get(key);
         if (item !== undefined) cited.set(key, item);
       }
-  let remaining = MAXIMUM_TOTAL_EXCERPT_BYTES;
+  let remaining = DOCUMENT_FRESHNESS_CROSS_CHECK_TOTAL_EXCERPT_BYTES;
   let excerptsTruncated = false;
   const evidence = [...cited.values()]
     .sort((left, right) =>
@@ -138,7 +152,10 @@ export function buildDocumentFreshnessCrossCheckInput(input: {
           : 1,
     )
     .map((item) => {
-      const excerpt = boundedUtf8(item.text, Math.min(MAXIMUM_EXCERPT_BYTES, remaining));
+      const excerpt = boundedDocumentFreshnessUtf8(
+        item.text,
+        Math.min(DOCUMENT_FRESHNESS_CROSS_CHECK_EXCERPT_BYTES, remaining),
+      );
       remaining -= Buffer.byteLength(excerpt.text, "utf8");
       excerptsTruncated ||= excerpt.truncated;
       return {
@@ -244,9 +261,11 @@ export function pendingDocumentFreshnessCrossCheck(
 }
 
 /**
- * Settles a candidate from its Tier 0 outcome. Agreement removes only the cross-check
- * substitution, so user-owned and safety hunks keep their owner authority. Any disagreement
- * rejects the whole candidate with the contested hunk IDs. Unavailable keeps the owner path.
+ * Settles a candidate from one Tier 0 round (ADR-0557, ADR-0561). Any disagreement rejects the
+ * whole candidate with the contested hunk IDs. Agreement short of the required number of
+ * independent checks records the round and arms a fresh pending round; the required agreement
+ * lets Lervo apply every hunk or the archive. An over-budget call rejects the candidate as
+ * `freshness_budget_exhausted`; any other unavailable call waits for Lervo's retry.
  */
 export function settleDocumentFreshnessCrossCheck(
   candidate: DocumentFreshnessCandidateV1,
@@ -273,11 +292,15 @@ export function settleDocumentFreshnessCrossCheck(
     tokensObserved: settlement.tokensObserved,
     deferrals: candidate.crossCheckReview?.deferrals ?? 0,
     settledAt: settlement.settledAt,
+    ...(candidate.crossCheckReview?.retries === undefined
+      ? {}
+      : { retries: candidate.crossCheckReview.retries }),
   };
   const settled = {
     ...candidate,
     crossCheck: outcome,
     crossCheckReview: review,
+    authorityRequired: "none" as const,
     tokensObserved: candidate.tokensObserved + settlement.tokensObserved,
     updatedAt: settlement.settledAt,
   };
@@ -291,54 +314,40 @@ export function settleDocumentFreshnessCrossCheck(
         contestedHunkIds: contested,
       },
     };
-  if (candidate.operation !== "edit") return settled;
+  if (settlement.status === "unavailable" && settlement.reason === "freshness_budget_exhausted")
+    return {
+      ...settled,
+      state: "rejected",
+      rejection: {
+        reasonCode: "freshness_budget_exhausted",
+        rejectorKind: "budget",
+        contestedHunkIds: [],
+      },
+    };
+  const rounds = candidate.crossCheckRounds ?? [];
+  if (
+    outcome === "agreement" &&
+    rounds.length + 1 < documentFreshnessCandidateRequiredAgreements(candidate)
+  )
+    return {
+      ...settled,
+      crossCheck: "unavailable",
+      crossCheckRounds: [...rounds, review],
+      crossCheckReview: pendingDocumentFreshnessCrossCheck(review.inputHash),
+      state: "generated",
+    };
+  if (candidate.operation !== "edit")
+    return {
+      ...settled,
+      state: outcome === "agreement" ? "verified" : "verified_pending_cross_check",
+    };
+  // After a partial apply only the pending hunks decide whether Lervo can apply more.
+  const pending = new Set(candidate.pendingHunkIds);
   return {
     ...settled,
-    authorityRequired: documentFreshnessCandidateAuthority(candidate.hunks, outcome),
-    state: documentFreshnessVerifiedState(candidate.hunks, outcome),
+    state: documentFreshnessVerifiedState(
+      candidate.hunks.filter((hunk) => pending.has(hunk.hunkId)),
+      outcome,
+    ),
   };
-}
-
-/** ADR-0463: the original candidate and its single regeneration. */
-const DISAGREEMENTS_BEFORE_BLOCKED = 2;
-
-/**
- * Findings whose candidate and single regeneration both met material disagreement, while no
- * later candidate for the same document exists. Each raises `document_freshness_blocked`.
- */
-export function documentFreshnessCrossCheckBlocked(
-  candidates: readonly Pick<
-    DocumentFreshnessCandidateV1,
-    "candidateId" | "findingDigest" | "documentPath" | "rejection" | "createdAt"
-  >[],
-): Array<{ findingDigest: string; documentPath: string; candidateId: string; attempts: number }> {
-  const byFinding = new Map<string, typeof candidates>();
-  for (const candidate of candidates)
-    if (candidate.rejection?.reasonCode === "cross_check_disagreement")
-      byFinding.set(candidate.findingDigest, [
-        ...(byFinding.get(candidate.findingDigest) ?? []),
-        candidate,
-      ]);
-  return [...byFinding.entries()]
-    .filter(([, rejected]) => rejected.length >= DISAGREEMENTS_BEFORE_BLOCKED)
-    .flatMap(([findingDigest, rejected]) => {
-      const latest = [...rejected].sort((left, right) =>
-        right.createdAt.localeCompare(left.createdAt),
-      )[0]!;
-      const superseded = candidates.some(
-        (candidate) =>
-          candidate.documentPath === latest.documentPath && candidate.createdAt > latest.createdAt,
-      );
-      return superseded
-        ? []
-        : [
-            {
-              findingDigest,
-              documentPath: latest.documentPath,
-              candidateId: latest.candidateId,
-              attempts: rejected.length,
-            },
-          ];
-    })
-    .sort((left, right) => left.documentPath.localeCompare(right.documentPath));
 }

@@ -64,20 +64,31 @@ export type DocumentFreshnessOperation =
   "edit" | "archive" | "no_change_needed" | "needs_owner_input";
 export type DocumentFreshnessChangeClass = "factual_reference" | "statement" | "safety_or_policy";
 export type DocumentFreshnessOwnership = "lervo_managed" | "user_owned";
-export type DocumentFreshnessAuthority = "none" | "principal_mandate" | "owner";
+/**
+ * ADR-0561: Lervo applies every freshness change itself after the independent cross-check, so no
+ * hunk or candidate needs an authority. Records written before ADR-0561 may still carry
+ * `principal_mandate` or `owner`; readers ignore the value.
+ */
+export type DocumentFreshnessAuthority = "none";
 export type DocumentFreshnessCrossCheck =
   "not_required" | "agreement" | "material_disagreement" | "unavailable";
 
 /**
- * `verified_pending_cross_check` means every deterministic check passed but a consequential hunk
- * has no Tier 0 agreement because the cross-check was unavailable (ADR-0557); the owner reviews
- * instead. A candidate whose cross-check call has not settled yet stays `generated`.
+ * `verified_pending_cross_check` means every deterministic check passed but a hunk or archive that
+ * needs Tier 0 has no agreement yet because the call was unavailable; Lervo retries the call with
+ * backoff (ADR-0561). A candidate whose cross-check call has not settled stays `generated`.
+ * `waiting_authority` is never written after ADR-0561; recovery supersedes older records.
  */
 export type DocumentFreshnessCandidateState =
   | "generated"
   | "verified"
   | "verified_pending_cross_check"
   | "waiting_authority"
+  /**
+   * ADR-0561 with AGENTS.md invariant 5: a verified change to user-owned bytes. Lervo never
+   * applies it; it stays as a suggestion the owner can apply by hand until the document changes.
+   */
+  | "suggested"
   | "applied"
   | "partially_applied"
   | "rejected"
@@ -170,6 +181,10 @@ export interface DocumentFreshnessRejection {
   contestedHunkIds: string[];
 }
 
+/**
+ * Who applied the change. Since ADR-0561 Lervo applies every change as `lervo_managed`, with the
+ * agreeing cross-check runs as `reviewer`; `principal_mandate` and `owner` remain for older records.
+ */
 export interface DocumentFreshnessApproval {
   approvalSource: "lervo_managed" | "principal_mandate" | "owner";
   approvalRef: string;
@@ -185,11 +200,10 @@ export interface DocumentFreshnessCrossCheckVerdict {
 }
 
 /**
- * Why a required cross-check has no outcome. Every value holds the candidate for the owner; none
- * is ever read as agreement.
+ * Why a required cross-check has no outcome. None is ever read as agreement. Lervo retries the
+ * call with backoff, except `freshness_budget_exhausted`, which rejects the candidate (ADR-0561).
  */
 export type DocumentFreshnessCrossCheckUnavailableReason =
-  | "archive_not_cross_checked"
   | "freshness_budget_exhausted"
   | "knowledge_authority_unavailable"
   | "knowledge_capacity_unavailable"
@@ -216,6 +230,8 @@ export interface DocumentFreshnessCrossCheckReview {
   tokensObserved: number;
   deferrals: number;
   settledAt: string | null;
+  /** Additive (ADR-0561): earlier unavailable settlements of this candidate's cross-check. */
+  retries?: number;
 }
 
 export interface DocumentFreshnessCandidateV1 {
@@ -235,7 +251,11 @@ export interface DocumentFreshnessCandidateV1 {
   operation: DocumentFreshnessOperation;
   hunks: DocumentFreshnessHunk[];
   archive: DocumentFreshnessArchivePlan | null;
-  /** Bounded to 1 KiB; only for `no_change_needed` and `needs_owner_input`. */
+  /**
+   * Bounded to 1 KiB; only for `no_change_needed` and `needs_owner_input`. The wire name
+   * `needs_owner_input` is kept for event compatibility; since ADR-0561 it means the evidence did
+   * not determine the new value, and Lervo recovers evidence instead of asking the owner.
+   */
   explanation: string | null;
   reasonsAddressed: DocumentFreshnessReason[];
   authorityRequired: DocumentFreshnessAuthority;
@@ -244,6 +264,11 @@ export interface DocumentFreshnessCandidateV1 {
   crossCheck: DocumentFreshnessCrossCheck;
   /** Additive: absent on candidates created before Tier 0 existed. */
   crossCheckReview?: DocumentFreshnessCrossCheckReview;
+  /**
+   * Additive (ADR-0561): earlier settled rounds that agreed, when the candidate needs two
+   * independent agreeing checks. `crossCheckReview` is always the latest round.
+   */
+  crossCheckRounds?: DocumentFreshnessCrossCheckReview[];
   evidenceCount: number;
   evidenceTruncated: boolean;
   /** CAS reference of the exact source bytes, written before any apply. */
@@ -262,6 +287,25 @@ export interface DocumentFreshnessCandidateV1 {
   detectedAt: string;
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Why Lervo holds a finding as its own unresolved debt (ADR-0561). It is shown in health with its
+ * age and retried with backoff; it is never owner work.
+ */
+export type DocumentFreshnessDebtReason =
+  "cross_check_disagreement_repeated" | "freshness_evidence_undetermined" | "budget_exceeded";
+
+export interface DocumentFreshnessDebt {
+  findingDigest: string;
+  documentPath: string;
+  /** The latest candidate that left the finding unresolved. */
+  candidateId: string;
+  reason: DocumentFreshnessDebtReason;
+  since: string;
+  /** Consecutive failed attempts in this debt; each doubles the backoff. */
+  attempts: number;
+  retryAt: string;
 }
 
 export interface DocumentFreshnessHold {

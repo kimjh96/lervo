@@ -1,15 +1,17 @@
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, copyFile, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { afterEach, expect, it } from "vitest";
 
 import { hashCapabilityFiles } from "@lervo/capabilities";
-import { createDefaultManifest, serializeYaml } from "@lervo/project";
+import { createDefaultManifest, readEffectNotices, serializeYaml } from "@lervo/project";
 import type { CapabilityPackageManifest } from "@lervo/schemas";
 import { hashSkillPackage } from "@lervo/skills";
 
 import { runCapabilityCommand } from "../src/capability-command.js";
+import { readHeldEffects } from "../src/held-effect-debt.js";
+import { runStateCommand } from "../src/state-command.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -101,7 +103,26 @@ it("shows skill authorization help without requiring a project", async () => {
   );
 });
 
-it("plans before applying an immutable project capability installation", async () => {
+function crossChecks(verdicts: Array<"agree" | "disagree">) {
+  const asked: string[] = [];
+  return {
+    asked,
+    services: {
+      crossCheckCapability: async (input: { provider: "codex" | "claude" }) => {
+        asked.push(input.provider);
+        const verdict = verdicts[asked.length - 1] ?? "agree";
+        return {
+          verdict,
+          rationale: `fixture ${verdict}: the package files match the manifest summary and intents.`,
+          reviewer: `fixture ${input.provider} session`,
+          provider: input.provider,
+        };
+      },
+    },
+  };
+}
+
+it("installs a project capability after two agreeing cross-checks and undoes it", async () => {
   const value = await fixture();
   const first = io(value.repositoryRoot);
   expect(
@@ -110,7 +131,10 @@ it("plans before applying an immutable project capability installation", async (
       first.io,
     ),
   ).toBe(0);
-  const plan = JSON.parse(first.out.join("")) as { planHash: string };
+  expect(JSON.parse(first.out.join(""))).toMatchObject({
+    crossCheck: "two_agreeing_independent_sessions",
+  });
+  const checks = crossChecks(["agree", "agree"]);
   const applied = io(value.repositoryRoot);
   expect(
     await runCapabilityCommand(
@@ -121,13 +145,28 @@ it("plans before applying an immutable project capability installation", async (
         "--scope",
         "project",
         "--apply",
-        "--approval",
-        plan.planHash,
+        "--provider",
+        "codex",
         "--json",
       ],
       applied.io,
+      checks.services,
     ),
+    applied.err.join(""),
   ).toBe(0);
+  // The second session prefers the other provider.
+  expect(checks.asked).toEqual(["codex", "claude"]);
+  const receipt = JSON.parse(applied.out.join("")) as { undo: string };
+  expect(receipt.undo).toMatch(/^lervo state restore lbk_[a-f0-9]{24}$/u);
+  // ADR-0561: the learned notice reports the install with both reviewers and its undo.
+  expect(await readEffectNotices(value.repositoryRoot)).toMatchObject([
+    {
+      effect: "capability_install",
+      targets: ["tools/local-mcp@1.0.0"],
+      crossCheck: { verdict: "agree" },
+      undo: receipt.undo,
+    },
+  ]);
   const listed = io(value.repositoryRoot);
   expect(await runCapabilityCommand(["list", "--scope", "project", "--json"], listed.io)).toBe(0);
   expect(JSON.parse(listed.out.join("")).packages[0]).toMatchObject({
@@ -135,27 +174,94 @@ it("plans before applying an immutable project capability installation", async (
     scope: "project",
     version: "1.0.0",
   });
+
+  const restored = io(value.repositoryRoot);
+  expect(await runStateCommand(receipt.undo.split(" ").slice(2), restored.io)).toBe(0);
+  const after = io(value.repositoryRoot);
+  expect(await runCapabilityCommand(["list", "--scope", "project", "--json"], after.io)).toBe(0);
+  expect(JSON.parse(after.out.join("")).packages).toEqual([]);
 });
 
-it("rejects apply when approval does not match the current package", async () => {
+it.skipIf(process.platform === "win32")(
+  "runs both install cross-checks as fresh sessions of a configured provider executable",
+  async () => {
+    const value = await fixture();
+    const reviewer = resolve(value.repositoryRoot, "review-bin/claude");
+    await mkdir(resolve(reviewer, ".."), { recursive: true });
+    await copyFile(
+      resolve(
+        import.meta.dirname,
+        "../../../scripts/distribution/fixtures/capability-review-claude.mjs",
+      ),
+      reviewer,
+    );
+    await chmod(reviewer, 0o700);
+    const applied = io(value.repositoryRoot);
+    expect(
+      await runCapabilityCommand(
+        [
+          "install",
+          "--from",
+          value.source,
+          "--scope",
+          "project",
+          "--apply",
+          "--provider",
+          "claude",
+          "--executable",
+          reviewer,
+          "--json",
+        ],
+        applied.io,
+      ),
+      applied.err.join(""),
+    ).toBe(0);
+    expect(JSON.parse(applied.out.join(""))).toMatchObject({
+      crossCheck: [
+        { reviewer: "no-capability claude session", verdict: "agree" },
+        { reviewer: "no-capability claude session", verdict: "agree" },
+      ],
+    });
+  },
+  30_000,
+);
+
+it("installs nothing and holds Lervo debt when a cross-check disagrees", async () => {
+  const value = await fixture();
+  const checks = crossChecks(["agree", "disagree"]);
+  const output = io(value.repositoryRoot);
+  expect(
+    await runCapabilityCommand(
+      ["install", "--from", value.source, "--scope", "project", "--apply", "--provider", "codex"],
+      output.io,
+      checks.services,
+    ),
+  ).toBe(1);
+  expect(output.err.join("")).toContain("nothing was installed");
+  const listed = io(value.repositoryRoot);
+  expect(await runCapabilityCommand(["list", "--scope", "project", "--json"], listed.io)).toBe(0);
+  expect(JSON.parse(listed.out.join("")).packages).toEqual([]);
+  expect(await readHeldEffects(value.repositoryRoot)).toEqual([
+    expect.objectContaining({
+      effect: "capability_install",
+      subject: "tools/local-mcp@1.0.0",
+      reasonCode: "stronger_check_disagreement",
+      attempts: 1,
+    }),
+  ]);
+});
+
+it("fails the removed --approval option briefly and names the undo path", async () => {
   const value = await fixture();
   const output = io(value.repositoryRoot);
   expect(
     await runCapabilityCommand(
-      [
-        "install",
-        "--from",
-        value.source,
-        "--scope",
-        "project",
-        "--apply",
-        "--approval",
-        `sha256:${"0".repeat(64)}`,
-      ],
+      ["install", "--from", value.source, "--scope", "project", "--apply", "--approval", "x"],
       output.io,
     ),
   ).toBe(1);
-  expect(output.err.join("")).toContain("current install plan hash");
+  expect(output.err.join("")).toContain("--approval was removed");
+  expect(output.err.join("")).toContain("lervo state restore <backup-id>");
 });
 
 it("authorizes an exact promoted skill through a saved CLI plan", async () => {
@@ -231,29 +337,24 @@ it("authorizes an exact promoted skill through a saved CLI plan", async () => {
       planned.io,
     ),
   ).toBe(0);
-  const plan = JSON.parse(planned.out.join("")) as { planId: string };
   await writeFile(resolve(repositoryRoot, "authorization-plan.json"), planned.out.join(""));
   const applied = io(repositoryRoot);
   expect(
     await runCapabilityCommand(
-      [
-        "authorize-skill",
-        "--from",
-        "authorization-plan.json",
-        "--apply",
-        "--approval",
-        plan.planId,
-        "--json",
-      ],
+      ["authorize-skill", "--from", "authorization-plan.json", "--apply", "--json"],
       applied.io,
     ),
   ).toBe(0);
-  expect(JSON.parse(applied.out.join(""))).toMatchObject({
-    operation: "project_skill_authorized",
-    status: "applied",
-  });
+  const authorized = JSON.parse(applied.out.join("")) as { status: string; undo: string };
+  expect(authorized).toMatchObject({ operation: "project_skill_authorized", status: "applied" });
   expect(JSON.parse(await readFile(resolve(skillRoot, "lervo-skill.json"), "utf8"))).toMatchObject({
     trust: { level: "reviewed", reviewedBy: "repository-maintainer" },
     enabledScope: { kind: "projects", projectIds: ["prj_authorize01"] },
+  });
+  // The authorization is recoverable from its manifest backup.
+  expect(await runStateCommand(authorized.undo.split(" ").slice(2), io(repositoryRoot).io)).toBe(0);
+  expect(JSON.parse(await readFile(resolve(skillRoot, "lervo-skill.json"), "utf8"))).toMatchObject({
+    trust: { level: "untrusted" },
+    enabledScope: { kind: "disabled" },
   });
 });

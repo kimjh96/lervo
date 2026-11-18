@@ -16,7 +16,7 @@ describe("attention authority at consequential effects", () => {
     workstream_approval: {
       ...base,
       kind: "workstream_approval",
-      state: "pending",
+      state: "lervo_debt",
       itemId: "approval",
       approvalId: "approval",
       approvalKind: "deployment",
@@ -69,7 +69,7 @@ describe("attention authority at consequential effects", () => {
     repository_replica_divergence: {
       ...base,
       kind: "repository_replica_divergence",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "replica",
       replicaId: "replica",
       divergenceId: "divergence",
@@ -81,14 +81,15 @@ describe("attention authority at consequential effects", () => {
     document_freshness_candidate: {
       ...base,
       kind: "document_freshness_candidate",
-      state: "verified_pending_cross_check",
+      state: "lervo_debt",
       itemId: "freshness",
       candidateId: "freshness",
       documentPath: "README.md",
       priorityClass: "canonical",
       changeClasses: ["statement"],
       hunkCount: 1,
-      ownerConsequence: null,
+      heldReason: "cross_check_response_invalid",
+      retryAt: null,
     },
     document_freshness_applied: {
       ...base,
@@ -104,16 +105,18 @@ describe("attention authority at consequential effects", () => {
     document_freshness_blocked: {
       ...base,
       kind: "document_freshness_blocked",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "blocked",
       reasonCode: "zero_success_window",
       documentPath: null,
       attempts: 5,
+      since: "2026-10-30T02:00:00.000Z",
+      retryAt: "2026-10-30T03:00:00.000Z",
     },
     durable_instruction_candidate: {
       ...base,
       kind: "durable_instruction_candidate",
-      state: "waiting_authority",
+      state: "pending_apply",
       itemId: "instruction",
       candidateId: "instruction",
       candidateHash: `sha256:${"a".repeat(64)}`,
@@ -124,7 +127,8 @@ describe("attention authority at consequential effects", () => {
     captured_decision: {
       ...base,
       kind: "captured_decision",
-      state: "action_required",
+      state: "lervo_debt",
+      heldKind: "decision",
       itemId: "capture",
       captureId: "capture",
       captureSource: "conversation",
@@ -134,16 +138,27 @@ describe("attention authority at consequential effects", () => {
     instruction_capture_blocked: {
       ...base,
       kind: "instruction_capture_blocked",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "capture_blocked",
       reasonCode: "knowledge_authority_unavailable",
       queuedCount: 1,
       since: healthNow.toISOString(),
     },
+    held_effect: {
+      ...base,
+      kind: "held_effect",
+      state: "lervo_debt",
+      itemId: "held",
+      effect: "capability_install",
+      subject: "tools/local-mcp@1.0.0",
+      reasonCode: "stronger_check_disagreement",
+      attempts: 1,
+      since: healthNow.toISOString(),
+    },
     knowledge_convergence_owner: {
       ...base,
       kind: "knowledge_convergence_owner",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "owner",
       role: "unverifiable",
       reason: "offline",
@@ -155,7 +170,7 @@ describe("attention authority at consequential effects", () => {
     knowledge_publication: {
       ...base,
       kind: "knowledge_publication",
-      state: "action_required",
+      state: "lervo_debt",
       itemId: "publication",
       failureCode: "knowledge_publication_checks_failed",
       detail: null,
@@ -176,21 +191,22 @@ describe("attention authority at consequential effects", () => {
   } satisfies Record<OperatingAttentionItemV1["kind"], OperatingAttentionItemV1>;
 
   it.each([
-    ["workstream_approval", "owner", true],
+    ["workstream_approval", "working agent", false],
     ["workstream_decision", "principal proxy", false],
     ["workstream_blocker", "working agent", false],
     ["canonicalization_review", "canonical reviewer", false],
     ["knowledge_lifecycle", "resident", false],
-    ["repository_replica_divergence", "owner", true],
+    ["repository_replica_divergence", "replica coordinator", false],
     ["document_freshness_candidate", "resident freshness cycle", false],
     ["document_freshness_applied", "resident freshness cycle", false],
     ["document_freshness_blocked", "resident freshness cycle", false],
-    ["durable_instruction_candidate", "instruction reviewer", false],
-    ["captured_decision", "principal proxy", false],
-    ["instruction_capture_blocked", "owner", true],
-    ["knowledge_convergence_owner", "resident", false],
+    ["durable_instruction_candidate", "knowledge resident", false],
+    ["captured_decision", "knowledge resident", false],
+    ["instruction_capture_blocked", "knowledge resident", false],
+    ["held_effect", "capability installer", false],
+    ["knowledge_convergence_owner", "knowledge resident", false],
     ["knowledge_publication", "knowledge publisher", false],
-    ["knowledge_convergence_continuity", "resident", false],
+    ["knowledge_convergence_continuity", "knowledge resident", false],
   ] as const)("classifies %s through structured effects", (kind, actor, requiresUserAction) => {
     expect(attributeOperatingAttention(items[kind], healthNow)).toMatchObject({
       requiresUserAction,
@@ -201,7 +217,7 @@ describe("attention authority at consequential effects", () => {
   it.each([
     [
       "hub_forbidden",
-      "authority_scope",
+      "credentials",
       "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope",
     ],
     [
@@ -215,7 +231,7 @@ describe("attention authority at consequential effects", () => {
       "Restore owner-only access to the configured Hub token file",
     ],
   ] as const)(
-    "retains consequential %s recovery for the owner",
+    "keeps the %s credential as the owner's notice-only recovery",
     (failureCode, consequence, recommendation) => {
       expect(
         attributeOperatingAttention(
@@ -230,34 +246,35 @@ describe("attention authority at consequential effects", () => {
     },
   );
 
-  it("keeps scope and exact write exceptions while preserving stale re-verification", () => {
+  it("holds continuity and pending declarations as Lervo work while preserving stale re-verification", () => {
+    // ADR-0561: continuity outside the policy limits is Lervo debt, never an owner decision.
     expect(
       attributeOperatingAttention(
-        { ...items.knowledge_convergence_continuity, severity: "owner_decision" },
+        { ...items.knowledge_convergence_continuity, severity: "lervo_debt" },
         healthNow,
-      ).requiresUserAction,
-    ).toBe(true);
+      ),
+    ).toMatchObject({
+      requiresUserAction: false,
+      attribution: { actor: "knowledge resident", consequence: null },
+    });
+    // A stored pending_user_approval declaration waits on no one.
     expect(
       attributeOperatingAttention(
         { ...items.knowledge_lifecycle, issueCode: "turn_approval_pending" },
         healthNow,
       ).requiresUserAction,
-    ).toBe(true);
-    // ADR-0559: the one layout decision is owner work with its accept command to inspect.
-    const accept = "lervo migrate knowledge --accept-layout klaydec_x=sha256:y";
+    ).toBe(false);
+    // ADR-0561: a reviewed layout plan is Lervo's own cross-checked work, never owner work.
     expect(
       attributeOperatingAttention(
         {
           ...items.knowledge_lifecycle,
-          issueCode: "repository_layout_decision_pending",
-          instruction: accept,
+          issueCode: "repository_layout_review_required",
+          instruction: "lervo migrate knowledge",
         },
         healthNow,
       ),
-    ).toMatchObject({
-      requiresUserAction: true,
-      attribution: { consequence: "repository_write", inspectCommand: accept },
-    });
+    ).toMatchObject({ requiresUserAction: false, attribution: { consequence: null } });
     // A gh authentication failure needs the owner's login; other publication failures do not.
     expect(
       attributeOperatingAttention(
@@ -281,7 +298,8 @@ describe("attention authority at consequential effects", () => {
       ...base,
       kind: "captured_decision",
       itemId: "capture",
-      state: "action_required",
+      state: "lervo_debt",
+      heldKind: "decision",
       captureId: "capture",
       captureSource: "conversation",
       title: "Settled choice",
@@ -291,20 +309,27 @@ describe("attention authority at consequential effects", () => {
       actionOwner: "agent",
       requiresUserAction: false,
       recordedInstruction: base.instruction,
-      attribution: { actor: "principal proxy", ageMilliseconds: 86_400_000, consequence: null },
+      attribution: { actor: "knowledge resident", ageMilliseconds: 86_400_000, consequence: null },
     });
+    // ADR-0561: freshness holds are Lervo debt with backoff, shown with their age.
     const blocked: OperatingAttentionItemV1 = {
       ...base,
       kind: "document_freshness_blocked",
       itemId: "freshness",
-      state: "action_required",
-      reasonCode: "zero_success_window",
-      documentPath: null,
-      attempts: 5,
+      state: "lervo_debt",
+      reasonCode: "cross_check_disagreement_repeated",
+      documentPath: "README.md",
+      attempts: 1,
+      since: "2026-10-30T02:00:00.000Z",
+      retryAt: "2026-10-31T02:00:00.000Z",
     };
     expect(attributeOperatingAttention(blocked, healthNow)).toMatchObject({
       requiresUserAction: false,
-      attribution: { actor: "resident freshness cycle" },
+      attribution: {
+        actor: "resident freshness cycle",
+        consequence: null,
+        ageMilliseconds: 86_400_000,
+      },
     });
   });
 
@@ -313,39 +338,49 @@ describe("attention authority at consequential effects", () => {
       ...base,
       kind: "document_freshness_candidate",
       itemId: "freshness",
-      state: "verified_pending_cross_check",
+      state: "lervo_debt",
       candidateId: "candidate",
       documentPath: "README.md",
       priorityClass: "canonical",
       changeClasses: ["statement"],
       hunkCount: 1,
-      ownerConsequence: null,
+      heldReason: "cross_check_response_invalid",
+      retryAt: null,
+      instruction: "Review and approve this freshness candidate.",
     };
-    expect(attributeOperatingAttention(candidate, healthNow).requiresUserAction).toBe(false);
-    const effect = attributeOperatingAttention(
-      { ...candidate, ownerConsequence: "repository_write" },
-      healthNow,
-    );
-    expect(effect).toMatchObject({
-      requiresUserAction: true,
-      attribution: {
-        actor: "owner",
-        consequence: "repository_write",
-        inspectCommand: "lervo knowledge freshness review candidate",
-      },
+    expect(attributeOperatingAttention(candidate, healthNow)).toMatchObject({
+      requiresUserAction: false,
+      attribution: { inspectCommand: "lervo knowledge freshness review candidate" },
     });
+    const lifecycle: OperatingAttentionItemV1 = {
+      ...base,
+      kind: "knowledge_lifecycle",
+      itemId: "lifecycle",
+      state: "action_required",
+      issueCode: "turn_approval_pending",
+      detail: null,
+    };
+    expect(attributeOperatingAttention(lifecycle, healthNow)).toMatchObject({
+      requiresUserAction: false,
+      attribution: { actor: "resident", consequence: null },
+    });
+    // ADR-0561: a missing delegation for capture is Lervo debt, never owner work.
     const scope: OperatingAttentionItemV1 = {
       ...base,
       kind: "instruction_capture_blocked",
       itemId: "authority",
-      state: "action_required",
+      state: "lervo_debt",
       reasonCode: "knowledge_authority_unavailable",
       queuedCount: 1,
       since: "2026-10-30T02:00:00.000Z",
     };
-    expect(attributeOperatingAttention(scope, healthNow).attribution).toMatchObject({
-      consequence: "authority_scope",
-      inspectCommand: "lervo knowledge convergence doctor --json",
+    expect(attributeOperatingAttention(scope, healthNow)).toMatchObject({
+      requiresUserAction: false,
+      attribution: {
+        actor: "knowledge resident",
+        consequence: null,
+        inspectCommand: "lervo knowledge convergence doctor --json",
+      },
     });
   });
 });

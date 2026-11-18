@@ -30,7 +30,7 @@ A content-bound onboarding plan establishes canonical provider-neutral instructi
 - A mixed CLAUDE fixture retains Claude-specific user content while importing AGENTS exactly once.
 - Exact duplicate detection is byte-bound and is never inferred from provider output or similar prose.
 - Approving or preserving the Claude bridge succeeds independently of rejected or deferred normalization candidates for other documents.
-- Safe generated-only stages remain automatic; every deletion or rewrite of user bytes requires separate exact approval.
+- Safe generated-only stages remain automatic; every deletion or rewrite of user bytes passes an independent cross-check and lands as its own revertable commit ([ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)).
 - Stale-plan, conflicting-edit, interruption, rollback, and immediate-replan tests demonstrate fail-closed convergence.
 - `lervo init`, `lervo upgrade`, `lervo migrate knowledge`, terminal status, knowledge refresh, and lint expose the same state and failure meaning.
 - Completion requires updating the repository-knowledge specification and recording the durable design in an ADR.

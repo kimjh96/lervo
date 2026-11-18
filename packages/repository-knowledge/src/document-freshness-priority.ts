@@ -1,5 +1,6 @@
 import type {
   DocumentFreshnessCandidateV1,
+  DocumentFreshnessDebt,
   DocumentFreshnessFindingV1,
   DocumentFreshnessHold,
   DocumentFreshnessPolicy,
@@ -19,6 +20,7 @@ const OPEN_STATES = new Set<DocumentFreshnessCandidateV1["state"]>([
   "generated",
   "verified_pending_cross_check",
   "waiting_authority",
+  "suggested",
   "partially_applied",
 ]);
 /** States after which the same finding is settled until its evidence changes. */
@@ -122,6 +124,8 @@ export function activeDocumentFreshnessHold(
  * Admits findings in priority order until the per-cycle count or the daily token budget would be
  * exceeded. Held findings, findings an open candidate still owns, settled findings, and findings
  * that already exhausted their attempts are never admitted; their evidence must change first.
+ * ADR-0561 Lervo debt holds a finding until its backoff elapses, then admits one retry even after
+ * its attempts were exhausted.
  */
 export function admitDocumentFreshnessFindings(input: {
   ordered: readonly PrioritizedDocumentFreshnessFinding[];
@@ -130,6 +134,7 @@ export function admitDocumentFreshnessFindings(input: {
     "findingDigest" | "documentPath" | "state" | "rejection"
   >[];
   holds: readonly DocumentFreshnessHold[];
+  debt?: readonly Pick<DocumentFreshnessDebt, "findingDigest" | "retryAt">[];
   tokensUsedToday: number;
   policy: Pick<
     DocumentFreshnessPolicy,
@@ -147,7 +152,11 @@ export function admitDocumentFreshnessFindings(input: {
   };
   for (const entry of input.ordered) {
     const { finding } = entry;
-    if (activeDocumentFreshnessHold(input.holds, finding, input.now) !== null) {
+    const debt = input.debt?.find((entry) => entry.findingDigest === finding.findingDigest);
+    if (
+      activeDocumentFreshnessHold(input.holds, finding, input.now) !== null ||
+      (debt !== undefined && Date.parse(debt.retryAt) > input.now.getTime())
+    ) {
       result.skippedForHold += 1;
       continue;
     }
@@ -165,8 +174,9 @@ export function admitDocumentFreshnessFindings(input: {
     );
     if (
       prior.some((candidate) => SETTLED_STATES.has(candidate.state)) ||
-      prior.filter((candidate) => candidate.state === "rejected").length >=
-        MAXIMUM_ATTEMPTS_PER_FINDING ||
+      (debt === undefined &&
+        prior.filter((candidate) => candidate.state === "rejected").length >=
+          MAXIMUM_ATTEMPTS_PER_FINDING) ||
       prior.some(
         (candidate) =>
           candidate.state === "verified" || candidate.rejection?.reasonCode === "owner_rejected",

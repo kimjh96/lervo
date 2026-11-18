@@ -6,7 +6,9 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   assessCanonicalization,
+  canonicalizationCandidateHeld,
   listCanonicalizationCandidates,
+  reopenCanonicalizationCandidate,
   sha256,
   transitionCanonicalizationCandidate,
 } from "../src/index.js";
@@ -67,6 +69,25 @@ describe("typed canonicalization candidates", () => {
       now: new Date("2026-08-30T00:01:00.000Z"),
     });
     expect(pending.observedState).toBe("pending");
+    // ADR-0561: a reviewer's deferral is held as Lervo debt, and reopen undoes any decision.
+    expect(canonicalizationCandidateHeld(pending)).toBe(true);
+    const reopened = await reopenCanonicalizationCandidate({
+      repositoryRoot: root,
+      candidateId: pending.candidateId,
+    });
+    expect(reopened).toMatchObject({ observedState: "candidate", review: null, promotion: null });
+    expect(canonicalizationCandidateHeld(reopened)).toBe(false);
+    await expect(
+      reopenCanonicalizationCandidate({ repositoryRoot: root, candidateId: pending.candidateId }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+    const deferredAgain = await transitionCanonicalizationCandidate({
+      repositoryRoot: root,
+      candidateId: reopened.candidateId,
+      expectedContentHash: reopened.contentHash,
+      action: "defer",
+      reviewerId: "reviewer.one",
+      now: new Date("2026-08-30T00:01:30.000Z"),
+    });
 
     await writeFile(
       resolve(root, "docs/specs/value.md"),
@@ -75,8 +96,8 @@ describe("typed canonicalization candidates", () => {
     const targetHash = sha256(await readFile(resolve(root, "docs/specs/value.md")));
     const promoted = await transitionCanonicalizationCandidate({
       repositoryRoot: root,
-      candidateId: pending.candidateId,
-      expectedContentHash: pending.contentHash,
+      candidateId: deferredAgain.candidateId,
+      expectedContentHash: deferredAgain.contentHash,
       action: "promote",
       reviewerId: "reviewer.one",
       targetPath: "docs/specs/value.md",
@@ -254,7 +275,7 @@ describe("typed canonicalization candidates", () => {
       now: new Date("2026-08-30T00:00:00.000Z"),
     });
     expect(assessment.candidate).toMatchObject({
-      observedState: "pending",
+      observedState: "candidate",
       recommendedRoots: ["docs/instructions"],
       sourceBindings: [{ responsibility: "behavioral_instruction" }],
     });

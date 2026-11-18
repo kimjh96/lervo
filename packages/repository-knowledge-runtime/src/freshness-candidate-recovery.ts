@@ -1,7 +1,7 @@
 import {
-  documentFreshnessCandidateNeedsEvidenceRecovery,
-  documentFreshnessAutoApplicableHunks,
-  documentFreshnessReviewStates,
+  documentFreshnessCandidateNeedsRegeneration,
+  documentFreshnessHeldStates,
+  documentFreshnessUserOwnedChange,
   sha256,
   type DocumentFreshnessCandidateV1,
 } from "@lervo/repository-knowledge";
@@ -9,16 +9,21 @@ import type { FreshnessGenerationContext } from "./freshness-generation.js";
 import { recordFreshnessRejection } from "./freshness-events.js";
 import { writeFreshnessCandidate } from "./freshness-state-store.js";
 import { freshnessDependenciesCurrent } from "./freshness-dependencies.js";
-import { applyLervoManagedFreshnessHunks, supersedeFreshnessCandidate } from "./freshness-apply.js";
+import { supersedeFreshnessCandidate } from "./freshness-apply.js";
+import { applyVerifiedFreshness } from "./freshness-auto-apply.js";
 
-/** Technical invalidation preserves old evidence and never creates approval or an owner hold. */
+/**
+ * Technical invalidation preserves old evidence and never creates approval or an owner hold. A
+ * candidate Lervo cannot finish under ADR-0561, such as a record that waited for owner authority,
+ * is superseded as `candidate_invalid` so its finding regenerates under the current rules.
+ */
 export async function recoverFreshnessCandidates(
   context: FreshnessGenerationContext,
   candidates: DocumentFreshnessCandidateV1[],
 ): Promise<DocumentFreshnessCandidateV1[]> {
   const result = [];
   for (const candidate of candidates) {
-    if (documentFreshnessCandidateNeedsEvidenceRecovery(candidate)) {
+    if (documentFreshnessCandidateNeedsRegeneration(candidate)) {
       const next: DocumentFreshnessCandidateV1 = {
         ...candidate,
         state: "superseded",
@@ -43,6 +48,7 @@ export async function recoverFreshnessCandidates(
         "verified",
         "waiting_authority",
         "verified_pending_cross_check",
+        "suggested",
         "partially_applied",
       ].includes(candidate.state) &&
       !(await freshnessDependenciesCurrent(
@@ -57,6 +63,18 @@ export async function recoverFreshnessCandidates(
           now: context.now(),
         }),
       );
+    } else if (
+      (candidate.state === "verified" || candidate.state === "verified_pending_cross_check") &&
+      documentFreshnessUserOwnedChange(candidate)
+    ) {
+      // AGENTS.md invariant 5: a stored candidate that writes user-owned bytes is a suggestion.
+      const suggested: DocumentFreshnessCandidateV1 = {
+        ...candidate,
+        state: "suggested",
+        updatedAt: context.now().toISOString(),
+      };
+      await writeFreshnessCandidate(context.storage.paths.repositoryRoot, suggested);
+      result.push(suggested);
     } else result.push(candidate);
   }
   return result;
@@ -74,7 +92,7 @@ export async function supersedeMovedCandidates(
   const result: DocumentFreshnessCandidateV1[] = [];
   for (const candidate of candidates) {
     if (
-      (!documentFreshnessReviewStates.has(candidate.state) && candidate.state !== "generated") ||
+      (!documentFreshnessHeldStates.has(candidate.state) && candidate.state !== "generated") ||
       candidate.operation === "archive"
     ) {
       result.push(candidate);
@@ -95,22 +113,15 @@ export async function supersedeMovedCandidates(
   return result;
 }
 
-/** A crash between verification and apply leaves `verified` edits; Lervo finishes its own part. */
+/** A crash between verification and apply leaves `verified` candidates; Lervo finishes them. */
 export async function resumeVerifiedCandidates(
   context: FreshnessGenerationContext,
   candidates: readonly DocumentFreshnessCandidateV1[],
 ): Promise<void> {
   for (const candidate of candidates) {
-    if (candidate.state !== "verified" || candidate.operation !== "edit") continue;
-    const automatic = documentFreshnessAutoApplicableHunks(candidate);
-    if (automatic.length === 0) continue;
+    if (candidate.state !== "verified" || candidate.operation === "no_change_needed") continue;
     try {
-      await applyLervoManagedFreshnessHunks({
-        storage: context.storage,
-        candidate,
-        hunkIds: new Set(automatic.map((hunk) => hunk.hunkId)),
-        now: context.now(),
-      });
+      await applyVerifiedFreshness(context, candidate);
     } catch (error) {
       if (!(error instanceof DocumentFreshnessOperationError)) throw error;
     }

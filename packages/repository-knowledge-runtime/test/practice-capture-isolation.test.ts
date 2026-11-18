@@ -9,9 +9,11 @@ import {
 import { runInstructionCaptureCycle } from "../src/instruction-capture-stage.js";
 import { practice, now } from "./practice-fixture.js";
 
-const calls = vi.hoisted(() => ({ assess: vi.fn(), complete: vi.fn() }));
+const calls = vi.hoisted(() => ({ assess: vi.fn(), complete: vi.fn(), crossCheck: vi.fn() }));
 vi.mock("../src/instruction-capture-assessment.js", () => ({
   assessInstructionCapture: calls.assess,
+  // The ADR-0561 cross-check of the captured rule is a separate governed call.
+  runGovernedCaptureCall: calls.crossCheck,
 }));
 vi.mock("../src/practice-capture.js", () => ({
   preparePracticeCapture: async () => ({ data: { outcome: "passed" } }),
@@ -64,6 +66,12 @@ describe("single capture call with isolated practice failure", () => {
         },
       },
     });
+    calls.crossCheck.mockResolvedValue({
+      status: "assessed",
+      provider: "claude",
+      usage: null,
+      value: { schemaVersion: 1, verdict: "agree", reasonIds: [] },
+    });
     calls.complete.mockRejectedValue(new Error("Practice evidence storage failed."));
     const result = await runInstructionCaptureCycle({
       storage: f.storage,
@@ -73,6 +81,7 @@ describe("single capture call with isolated practice failure", () => {
       now: () => now,
     });
     expect(calls.assess).toHaveBeenCalledOnce();
+    expect(calls.crossCheck).toHaveBeenCalledOnce();
     expect(calls.assess.mock.calls[0]![0].request.precedingWork).toEqual({ outcome: "passed" });
     expect(result).toMatchObject({
       status: "completed",

@@ -34,6 +34,9 @@ type TerminalTurnDeclarationDraft = Pick<
   | "deliberationId"
 > & { canonicalizationOutcome: CanonicalizationOutcome | null };
 
+const PENDING_USER_APPROVAL_REMOVED =
+  "pending_user_approval was removed: no change waits for the owner. Write the canonical change yourself and declare canonical_sources_updated with a canonical_update outcome, or canonical_sources_current. Declare knowledgeDisposition current or refreshed, or pending_background when knowledge lifecycle work remains for Lervo's background reviewer. Git undoes any change.";
+
 function parseTurnDeclarationDraft(value: string): TerminalTurnDeclarationDraft {
   if (Buffer.byteLength(value) > 16 * 1024)
     throw new Error("The terminal turn declaration exceeds 16 KiB.");
@@ -53,17 +56,23 @@ function parseTurnDeclarationDraft(value: string): TerminalTurnDeclarationDraft 
   )
     throw new Error("The terminal turn declaration contains unsupported fields.");
   const taskModes = ["inquiry", "change", "review", "continuation", "approval_response"] as const;
+  // ADR-0561: nothing waits for the owner, so a new declaration cannot claim
+  // `pending_user_approval`. The value stays in the event schema only so stored declarations parse.
+  if (
+    parsed.canonicalizationDisposition === "pending_user_approval" ||
+    parsed.knowledgeDisposition === "pending_user_approval"
+  )
+    throw new Error(PENDING_USER_APPROVAL_REMOVED);
   const canonicalization = [
     "not_applicable_read_only",
     "canonical_sources_current",
     "canonical_sources_updated",
-    "pending_user_approval",
   ] as const;
   const knowledge = [
     "not_applicable_read_only",
     "current",
     "refreshed",
-    "pending_user_approval",
+    "pending_background",
   ] as const;
   const deliberation = ["not_requested", "completed", "no_consensus", "failed"] as const;
   if (!taskModes.includes(parsed.taskMode as (typeof taskModes)[number]))
@@ -189,9 +198,11 @@ export async function runTerminalDeclareCommand(args: string[], io: CliIo): Prom
           }),
         })
       : [];
+    // ADR-0561: `pending_background` claims that lifecycle work remains for Lervo's background
+    // reviewer, which applies it after its own cross-check; nothing waits for the owner.
     if (
       repositoryChanged &&
-      draft.knowledgeDisposition !== "pending_user_approval" &&
+      draft.knowledgeDisposition !== "pending_background" &&
       knowledgeLifecycleIssues.length > 0
     ) {
       throw new Error(

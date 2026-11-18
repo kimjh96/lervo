@@ -95,6 +95,10 @@ export function formatFollowStatus(status: HostFollowStatus): string {
     ...state.failedTags.map(
       (entry) => `failed on this host: ${entry.tag} (${entry.code}) at ${entry.failedAt}`,
     ),
+    ...status.holds.map(
+      (hold) =>
+        `held by the owner: ${hold.repositoryRoot} since ${hold.heldAt}${hold.reason === null ? "" : ` (${hold.reason})`}`,
+    ),
     ...passLines(state.lastPass),
   ].join("\n")}\n`;
 }

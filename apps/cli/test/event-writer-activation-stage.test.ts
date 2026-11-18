@@ -193,8 +193,6 @@ it("checks the host reader for schema-4 launchers and holds legacy repository re
   await knowledge.applyTerminalIntegrationPlan({
     plan,
     runtimeContent: launcher,
-    approvedOperationId: plan.operationId,
-    approvedHash: plan.approvalHash!,
     now: new Date(),
     recordApplied: () => undefined,
   });

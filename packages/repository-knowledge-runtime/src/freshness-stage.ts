@@ -4,7 +4,7 @@ import {
   documentFreshnessOwnershipResolver,
   documentFreshnessPolicy,
   documentFreshnessPriorityClass,
-  documentFreshnessReviewStates,
+  documentFreshnessHeldStates,
   loadRepositoryKnowledgePolicy,
   observeDocumentFreshnessFindings,
   orderDocumentFreshnessFindings,
@@ -22,10 +22,17 @@ import {
   resumeVerifiedCandidates,
 } from "./freshness-candidate-recovery.js";
 import { reviewPendingFreshnessAssessment } from "./freshness-assessment.js";
+import { freshnessCrossCheckPending } from "./freshness-cross-check.js";
 import {
-  freshnessCrossCheckPending,
+  rearmFreshnessCrossChecks,
   resumePendingFreshnessCrossChecks,
-} from "./freshness-cross-check.js";
+} from "./freshness-cross-check-schedule.js";
+import {
+  freshnessBackoffDue,
+  freshnessZeroSuccessHoldActive,
+  nextFreshnessDebt,
+  nextFreshnessZeroSuccessHold,
+} from "./freshness-debt-state.js";
 import {
   listFreshnessCandidates,
   listFreshnessHolds,
@@ -35,7 +42,6 @@ import {
   type FreshnessCycleState,
 } from "./freshness-state-store.js";
 
-const ZERO_SUCCESS_ATTEMPTS = 5;
 const MAXIMUM_FIRST_SEEN = 512;
 
 export type DocumentFreshnessCycleResult =
@@ -53,35 +59,13 @@ export type DocumentFreshnessCycleResult =
     };
 
 /**
- * ADR-0580: a deferral that spent, generated, verified, and applied nothing has no news to record.
- * Its cycle event would only move the event head, waking the resident and changing its fence, so
- * a deferral repeated while the owner works or a provider is paused became a loop.
- */
-function deferredWithoutProgress(outcome: {
-  deferred: string | null;
-  candidateCount: number;
-  verifiedCount: number;
-  appliedCount: number;
-  tokensObserved: number;
-}): boolean {
-  return (
-    outcome.deferred !== null &&
-    outcome.candidateCount === 0 &&
-    outcome.verifiedCount === 0 &&
-    outcome.appliedCount === 0 &&
-    outcome.tokensObserved === 0
-  );
-}
-
-/**
- * The ADR-0463 freshness stage of the knowledge resident. It runs only when its fence changed,
- * admits findings by priority and budget, generates and verifies candidates through the governed
- * provider path, applies Lervo's own verified hunks, and holds everything else for the owner.
+ * The ADR-0463 freshness stage of the knowledge resident. It runs only when its fence changed or a
+ * backoff elapsed, admits findings by priority and budget, generates and verifies candidates
+ * through the governed provider path, and applies what the independent cross-check agreed. What
+ * Lervo cannot resolve it holds as its own debt with backoff (ADR-0561); nothing waits for the owner.
  */
 export async function runDocumentFreshnessCycle(input: {
   context: FreshnessGenerationContext;
-  /** Decision kinds of the installed principal mandate; version 1 installs none. */
-  mandateKinds?: readonly string[];
   /** Preparation cannot commit inside a convergence batch. */
   effects?: "prepare" | "apply";
   maximumCandidates?: number;
@@ -139,6 +123,7 @@ export async function runDocumentFreshnessCycle(input: {
       )
     ) &&
     !candidates.some(freshnessCrossCheckPending) &&
+    !freshnessBackoffDue(state, candidates, now) &&
     !Object.values(state.evidenceRecovery ?? {}).some(
       (item) => item.attempts < 2 || item.nextCursor !== null,
     )
@@ -147,6 +132,7 @@ export async function runDocumentFreshnessCycle(input: {
   await pruneFreshnessState(root, now);
   candidates = await recoverFreshnessCandidates(context, await listFreshnessCandidates(root));
   candidates = await supersedeMovedCandidates(context, candidates);
+  candidates = await rearmFreshnessCrossChecks(context, candidates);
   if (input.effects !== "prepare") await resumeVerifiedCandidates(context, candidates);
   // A cross-check a previous turn left pending runs before new spend; its tokens were reserved
   // inside the candidate budget when the finding was admitted.
@@ -180,8 +166,10 @@ export async function runDocumentFreshnessCycle(input: {
     const cycleId = stableId("kfcy", [pendingAssessment.candidateId, now.toISOString()]);
     const finalCandidates = await listFreshnessCandidates(root);
     state.summary.awaitingReviewCount = finalCandidates.filter((candidate) =>
-      documentFreshnessReviewStates.has(candidate.state),
+      documentFreshnessHeldStates.has(candidate.state),
     ).length;
+    state.debt = nextFreshnessDebt(state, finalCandidates, now);
+    state.summary.debt = freshnessDebtSummary(state.debt);
     const reviewVerified =
       (review.candidate.state === "verified" ? 1 : 0) + crossChecks.verifiedCount;
     // The key stays null, so the next cycle retries the review; only the event is withheld.
@@ -260,17 +248,26 @@ export async function runDocumentFreshnessCycle(input: {
     });
   }
   const ordered = orderDocumentFreshnessFindings(prioritized);
-  const admission = admitDocumentFreshnessFindings({
+  const admitted = admitDocumentFreshnessFindings({
     ordered: ordered.filter((entry) => {
       const recovery = state.evidenceRecovery?.[freshnessRecoveryKey(entry, policy)];
       return recovery === undefined || recovery.attempts < 2 || recovery.nextCursor !== null;
     }),
     candidates,
     holds,
+    debt: state.debt ?? [],
     tokensUsedToday: state.budget.tokensUsed,
     policy: cyclePolicy,
     now,
   });
+  // ADR-0561: the zero-success hold pauses new generation; held cross-checks above still run.
+  const admission = freshnessZeroSuccessHoldActive(state, now)
+    ? {
+        ...admitted,
+        admitted: [],
+        skippedForHold: admitted.skippedForHold + admitted.admitted.length,
+      }
+    : admitted;
   const activeRecoveryKeys = new Set(ordered.map((entry) => freshnessRecoveryKey(entry, policy)));
   const findingWork = await processFreshnessFindings({
     context,
@@ -282,15 +279,16 @@ export async function runDocumentFreshnessCycle(input: {
     state,
     now,
     autoApply: input.effects !== "prepare",
-    mandateKinds: input.mandateKinds ?? [],
   });
   const { candidateCount, deferred, recovery } = findingWork;
   const verifiedCount = findingWork.verifiedCount + crossChecks.verifiedCount;
   const appliedCount = findingWork.appliedCount + crossChecks.appliedCount;
   const tokensObserved = findingWork.tokensObserved + crossChecks.tokensObserved;
   const findingsDigest = documentFreshnessFindingsDigest(observation.findings);
-  const blocked = state.budget.attempts >= ZERO_SUCCESS_ATTEMPTS && state.budget.verified === 0;
   const finalCandidates = await listFreshnessCandidates(root);
+  const zeroSuccessHold = nextFreshnessZeroSuccessHold(state, now);
+  const debt = nextFreshnessDebt(state, finalCandidates, now);
+  const blocked = zeroSuccessHold !== null;
   const cycleId = stableId("kfcy", { key, findingsDigest, at: now.toISOString() });
   const next: FreshnessCycleState = {
     schemaVersion: 1,
@@ -298,13 +296,15 @@ export async function runDocumentFreshnessCycle(input: {
     findingsDigest,
     firstSeen: Object.fromEntries(Object.entries(firstSeen).slice(0, MAXIMUM_FIRST_SEEN)),
     budget: state.budget,
-    summary: summarize({ findings: ordered, candidates: finalCandidates, blocked, now }),
+    summary: summarize({ findings: ordered, candidates: finalCandidates, blocked, debt, now }),
     lastCycleAt: now.toISOString(),
     evidenceRecovery: Object.fromEntries(
       Object.entries(recovery)
         .filter(([recoveryKey]) => activeRecoveryKeys.has(recoveryKey))
         .slice(-MAXIMUM_FIRST_SEEN),
     ),
+    debt,
+    zeroSuccessHold,
   };
   // A deferral over the same findings that made no progress records nothing new (ADR-0580).
   if (
@@ -369,6 +369,12 @@ export async function runDocumentFreshnessCycle(input: {
   };
 }
 
-import { observationKey, workingBytes, summarize } from "./freshness-cycle-observation.js";
+import {
+  deferredWithoutProgress,
+  freshnessDebtSummary,
+  observationKey,
+  workingBytes,
+  summarize,
+} from "./freshness-cycle-observation.js";
 
 import { freshnessRecoveryKey, processFreshnessFindings } from "./freshness-finding-work.js";

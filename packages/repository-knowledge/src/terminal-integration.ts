@@ -217,14 +217,9 @@ export async function createTerminalIntegrationPlan(
     priorApplicationEventId,
     operationId,
     approvalHash,
-    status:
-      blockers.length > 0
-        ? "blocked"
-        : userOperations.length > 0
-          ? "review_required"
-          : operations.length > 0
-            ? "ready"
-            : "current",
+    // ADR-0561: provider hook bytes apply like the generated runtime; the CLI backs them up,
+    // verifies the result, and restores the backup on failure instead of asking the owner.
+    status: blockers.length > 0 ? "blocked" : operations.length > 0 ? "ready" : "current",
     projectId: project.projectId,
     repositoryRoot: root,
     contractId: CONTRACT_ID,
@@ -236,40 +231,26 @@ export async function createTerminalIntegrationPlan(
   };
 }
 
+/**
+ * Applies an exact terminal integration plan. The plan is planned again and compared before any
+ * write, so a provider configuration that changed after planning is refused as stale. Taking a
+ * backup of the provider hook files, verifying the result, and restoring on failure belong to the
+ * caller (ADR-0561).
+ */
 export async function applyTerminalIntegrationPlan(input: {
   plan: TerminalIntegrationPlan;
   runtimeContent: string;
   runtimeAssets?: readonly TerminalRuntimeAsset[];
-  approvedOperationId?: string;
-  approvedHash?: string;
   now: Date;
   recordApplied: (receipt: TerminalIntegrationReceipt) => void | Promise<void>;
   failureInjector?: (
     checkpoint: KnowledgeMaterializationCheckpoint,
   ) => "interrupt" | void | Promise<"interrupt" | void>;
 }): Promise<TerminalIntegrationReceipt> {
-  if (input.plan.status !== "review_required" && input.plan.status !== "ready")
+  if (input.plan.status !== "ready")
     throw new RepositoryKnowledgeError(
       "knowledge_plan_stale",
       "The terminal integration plan has no applicable changes.",
-    );
-  if (
-    input.plan.status === "review_required" &&
-    (input.approvedOperationId !== input.plan.operationId ||
-      input.approvedHash !== input.plan.approvalHash)
-  ) {
-    throw new RepositoryKnowledgeError(
-      "knowledge_approval_required",
-      "Terminal integration requires the exact operation ID and approval hash.",
-    );
-  }
-  if (
-    input.plan.status === "ready" &&
-    (input.approvedOperationId !== undefined || input.approvedHash !== undefined)
-  )
-    throw new RepositoryKnowledgeError(
-      "knowledge_plan_stale",
-      "Generated-only terminal runtime reconciliation does not accept user approval coordinates.",
     );
   const current = await createTerminalIntegrationPlan(
     input.plan.repositoryRoot,

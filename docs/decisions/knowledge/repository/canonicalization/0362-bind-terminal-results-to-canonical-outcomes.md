@@ -5,6 +5,8 @@
 
 Amended by: [ADR-0533](patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
+Amended by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md). A new declaration cannot claim `pending_user_approval` or a `review_draft` outcome; the agent writes canonical bytes itself, and the background canonical reviewer promotes or rejects the candidate. Remaining lifecycle work is declared `pending_background`. Stored declarations and candidates still parse.
+
 ## Context
 
 Terminal finalization previously accepted a broad canonicalization disposition and inferred responsibility only from changed path classes. A change to any canonical document of the same class could suppress an unrelated candidate. When no canonical document changed, the candidate recorded source metadata without an agent-authored durable outcome or reviewable draft. The claim that a result was knowledgeized therefore exceeded the installed contract.

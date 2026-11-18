@@ -180,7 +180,7 @@ export async function completeTerminalHookTurn({
       "Lervo blocked worker completion because this workspace isolation boundary is not current.",
       ...lifecycle.issues.map(
         (item) =>
-          `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply only the exact current plan/approval.`,
+          `${item.code}: ${item.detail === undefined ? "" : `${item.detail}; `}run ${item.command}, review the read-only plan, and apply the exact current plan with --apply; Lervo cross-checks it first.`,
       ),
       "Recover only this assignment workspace, then try to finish again; do not advance another workspace's global lifecycle.",
     ].join("\n");

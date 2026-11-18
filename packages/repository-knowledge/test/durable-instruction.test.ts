@@ -56,9 +56,6 @@ describe("semantic durable instruction intake", () => {
       projectId: "prj_durable_instruction",
       requestDigest: `sha256:${"a".repeat(64)}`,
       resolverResultDigest: `sha256:${"b".repeat(64)}`,
-      groundingStatus: "ready" as const,
-      catalogComplete: true,
-      ambiguityReasons: [],
       instruction: canonicalInstruction,
     };
     const plan = await createDurableInstructionPlan(input);
@@ -79,45 +76,101 @@ describe("semantic durable instruction intake", () => {
     });
   });
 
-  it("keeps noisy or incomplete semantic results out of canonical repository bytes", async () => {
+  it("stores broad, removal, conflicting, inferred, and unscoped rules as classified rules", async () => {
     const root = await repository();
     const plan = await createDurableInstructionPlan({
       repositoryRoot: root,
       projectId: "prj_durable_instruction",
       requestDigest: `sha256:${"c".repeat(64)}`,
       resolverResultDigest: `sha256:${"d".repeat(64)}`,
-      groundingStatus: "ready",
-      catalogComplete: false,
-      ambiguityReasons: [],
-      instruction: canonicalInstruction,
+      instruction: {
+        ...canonicalInstruction,
+        disposition: "pending",
+        authority: "inferred",
+        operation: "remove",
+        scope: { kind: "unspecified", paths: [] },
+        risk: "high",
+        conflict: "possible",
+        confidence: "low",
+        reasonIds: ["broad.product.policy"],
+      },
     });
-    expect(plan).toMatchObject({
-      status: "pending",
-      reasonIds: expect.arrayContaining(["automatic_gate_not_satisfied"]),
+    expect(plan).toMatchObject({ status: "ready", replacedPaths: [] });
+    expect(plan.reasonIds).not.toContain("automatic_gate_not_satisfied");
+    const content = plan.operations[0]!.content!;
+    expect(content).not.toContain("paths:");
+    expect(content).toContain("    authority: inferred\n    operation: remove\n    risk: high");
+    expect(content).toContain("      - broad.product.policy");
+
+    const notARule = await createDurableInstructionPlan({
+      repositoryRoot: root,
+      projectId: "prj_durable_instruction",
+      requestDigest: `sha256:${"e".repeat(64)}`,
+      resolverResultDigest: `sha256:${"f".repeat(64)}`,
+      instruction: {
+        ...canonicalInstruction,
+        disposition: "none",
+        title: null,
+        statement: null,
+        reasonIds: ["example_not_authority"],
+      },
+    });
+    expect(notARule.status).toBe("ignored");
+    const ungrounded = await createDurableInstructionPlan({
+      repositoryRoot: root,
+      projectId: "prj_durable_instruction",
+      requestDigest: `sha256:${"e".repeat(64)}`,
+      resolverResultDigest: `sha256:${"f".repeat(64)}`,
+      instruction: { ...canonicalInstruction, statement: null },
+    });
+    expect(ungrounded).toMatchObject({
+      status: "ungrounded",
+      reasonIds: expect.arrayContaining(["rule_text_unavailable"]),
     });
     await expect(access(resolve(root, "docs/instructions/generated"))).rejects.toMatchObject({
       code: "ENOENT",
     });
+  });
 
-    const example = await createDurableInstructionPlan({
-      ...{
+  it("replaces an older generated rule in the same scope and keeps other scopes", async () => {
+    const root = await repository();
+    const plan = (requestDigest: string, instruction: typeof canonicalInstruction) =>
+      createDurableInstructionPlan({
         repositoryRoot: root,
         projectId: "prj_durable_instruction",
-        requestDigest: `sha256:${"e".repeat(64)}`,
-        resolverResultDigest: `sha256:${"f".repeat(64)}`,
-        groundingStatus: "ready" as const,
-        catalogComplete: true,
-        ambiguityReasons: [],
-      },
-      instruction: {
-        ...canonicalInstruction,
-        disposition: "pending",
-        speechAct: "example",
-        authority: "inferred",
-        reasonIds: ["example_not_authority"],
-      },
+        requestDigest,
+        resolverResultDigest: `sha256:${"b".repeat(64)}`,
+        instruction,
+      });
+    const apply = async (ready: Awaited<ReturnType<typeof plan>>) =>
+      applyDurableInstructionPlan({
+        plan: ready,
+        receipt: null,
+        recordApplied: () => undefined,
+      });
+    const older = await plan(`sha256:${"1".repeat(64)}`, canonicalInstruction);
+    await apply(older);
+    const scoped = await plan(`sha256:${"2".repeat(64)}`, {
+      ...canonicalInstruction,
+      scope: { kind: "paths", paths: ["apps/**"] } as never,
     });
-    expect(example.status).toBe("pending");
+    await apply(scoped);
+    const newer = await plan(`sha256:${"3".repeat(64)}`, {
+      ...canonicalInstruction,
+      statement: "Use Conventional Commits with a scope for every repository commit.",
+      conflict: "possible",
+      replaces: [older.targetPath!, scoped.targetPath!, "AGENTS.md"],
+    } as never);
+    expect(newer).toMatchObject({ status: "ready", replacedPaths: [older.targetPath] });
+    expect(newer.reasonIds).toEqual(
+      expect.arrayContaining(["replacement_not_generated_rule", "replacement_scope_differs"]),
+    );
+    expect(newer.operations[0]!.content).toContain(`    replaces:\n      - ${older.ruleId}`);
+    await apply(newer);
+    await expect(access(resolve(root, older.targetPath!))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(access(resolve(root, scoped.targetPath!))).resolves.toBeUndefined();
   });
 
   it("recovers an interrupted durable-instruction transaction without publishing the rule", async () => {
@@ -127,9 +180,6 @@ describe("semantic durable instruction intake", () => {
       projectId: "prj_durable_instruction",
       requestDigest: `sha256:${"1".repeat(64)}`,
       resolverResultDigest: `sha256:${"2".repeat(64)}`,
-      groundingStatus: "ready",
-      catalogComplete: true,
-      ambiguityReasons: [],
       instruction: canonicalInstruction,
     });
     await expect(

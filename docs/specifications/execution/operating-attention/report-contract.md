@@ -10,6 +10,10 @@
 
 The projection includes pending workstream decisions and approvals, workstream blockers, nonterminal canonicalization candidates, and current knowledge-lifecycle issues. Workstream approvals and decisions carry a consequence class: `repository_write`, `deployment`, `external_effect`, or, for decisions, `unclassified`. An unclassified decision requires principal-proxy classification; it does not prove a consequential effect. [ADR-0535](../../../decisions/execution/applications/0535-project-core-health-with-actor-owned-attention.md) adds [actor attribution and repository health](repository-health.md), retaining original guidance as `recordedInstruction`. Only structured consequential effects remain user-actionable.
 
+Knowledge-lifecycle items are agent work. Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a reviewed lifecycle plan such as `instruction_canonical_bootstrap_review_required`, `repository_layout_review_required`, or `claude_instruction_bridge_review_required` is applied by Lervo after an independent cross-check, so it has `actionOwner: agent` and `requiresUserAction: false`. The `repository_layout_decision_pending` and `repository_layout_decision_declined` items no longer exist. A new declaration cannot claim `pending_user_approval`, and lifecycle inspection no longer reports `turn_approval_pending`; an item an older version recorded is agent work and does not block.
+
+`canonicalization_review` items belong to the background canonical reviewer (`actionOwner: reviewer`, `requiresUserAction: false`, never blocking), whatever their state. A candidate the reviewer deferred after its one regeneration is held as Lervo debt and says so in its instruction.
+
 Items are deduplicated by stable item ID, ordered with user-authority and blocking items first, and capped at 256 returned records. Classification and totals cover every loaded freshness candidate before this cap;
 there is no earlier 16-candidate cutoff. `summary.byKind` retains total and
 user-action counts per kind, and `summary.truncatedCount` is exact. Omitted
@@ -35,11 +39,11 @@ Under [ADR-0464](../../../decisions/knowledge/documents/0464-report-document-dri
 
 ## Document freshness
 
-[ADR-0463](../../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) defines three item kinds:
+[ADR-0463](../../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) defines three item kinds. Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) none requires user action or blocks, whatever the ownership or class of the bytes:
 
-- `document_freshness_candidate`: a verified held candidate, attributed to the resident freshness cycle unless pending hunks concern user-owned bytes, owner-authorized writes or safety/policy. Only those consequential effects require user action; the item is never blocking.
-- `document_freshness_applied`: an informational, agent-owned apply notice naming the revert command; resolves on acknowledgement or after 24 hours.
-- `document_freshness_blocked`: reports five attempts with no verified candidate in one day.
+- `document_freshness_candidate` (`lervo_debt`): a verified candidate Lervo holds until its retried cross-check agrees, attributed to the resident freshness cycle with its `heldReason` and `retryAt`.
+- `document_freshness_applied`: an informational, agent-owned apply notice naming the reason, the cross-check verdict, and the revert command; resolves on acknowledgement or after 24 hours.
+- `document_freshness_blocked` (`lervo_debt`): the zero-success hold, or a finding held as Lervo debt (`cross_check_disagreement_repeated`, `freshness_evidence_undetermined`, `budget_exceeded`), each with `since` and `retryAt`.
 
 These items carry candidate identifiers, relative paths, classes, and counts, never hunk text. The projection reads rebuildable freshness state in `lervo application attention` and on the cached retrieval prompt path. Unreadable state contributes no item. The compact prompt reads the shared health projection instead of rendering a freshness-review chore.
 
@@ -47,12 +51,16 @@ These items carry candidate identifiers, relative paths, classes, and counts, ne
 
 [ADR-0467](../../../decisions/knowledge/documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) defines:
 
-- `durable_instruction_candidate`: an exact-review instruction candidate carrying its source (`terminal_prompt`, `conversation`, or `explicit_intake`), normalized title, target path, and hash-bound review command.
-- `captured_decision`: a held owner decision or rule needing the owner's confirmation, with a dismiss command.
+- `durable_instruction_candidate` (`pending_apply`): a stored owner rule the resident has not applied yet, carrying its source (`terminal_prompt`, `conversation`, or `explicit_intake`), normalized title, target path, and status command.
+- `captured_decision` (`lervo_debt`): a held owner decision Lervo could not ground as a canonical rule (`heldKind: decision`) or a captured rule the independent cross-check rejected after one regeneration (`heldKind: cross_check_disagreement`), with a dismiss command. Other decisions enter canon through the same cross-checked rule path as owner rules.
 
-Instruction candidates belong to the instruction reviewer; held settled decisions belong to the principal proxy. Neither is owner-actionable merely because review is pending. Both are non-blocking and carry normalized titles, never owner or agent turn text. Existing review and write authority remains required before applying a candidate.
+Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), instruction candidates and held items belong to the knowledge resident as Lervo debt, with `requiresUserAction: false`. They are non-blocking and carry normalized titles, never owner or agent turn text.
 
-`instruction_capture_blocked` appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when.
+`instruction_capture_blocked` (`lervo_debt`) appears once per host while owner turns are queued but the host lacks delegation to assess them. It carries the queued count and since when, and never requires owner action.
+
+## Held foreground effects
+
+Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), `held_effect` (`lervo_debt`) appears for each foreground effect Lervo held instead of applying, at most 32: an `upgrade_knowledge` plan whose cross-check disagreed (`cross_check_disagreement_repeated`) or found no admitted provider (`cross_check_unavailable`), an `upgrade_terminal_integration` change whose verification failed and was restored (`verification_failed`), or a `capability_install` whose two-session check disagreed (`stronger_check_disagreement`). It carries the effect, a plan ID or capability coordinate, the reason, attempts, and `since`, never a path or content. It is non-blocking, `requiresUserAction: false`, and resolves when the next upgrade or install applies or the plan changes. The projection reads `.lervo/data/held-effects.json`; an unreadable file contributes no item.
 
 On a Hub-coordinated host that does not own convergence, the candidate instruction names the owner host where the candidate is applied. The compact prompt includes capture upkeep in the cached health section; full applied owner rules remain in the instruction preamble.
 
@@ -64,12 +72,12 @@ On a Hub-coordinated host that does not own convergence, the candidate instructi
 - `knowledge_publication` appears when the last publication of the owner's knowledge commits failed or was superseded by a conflict with the current base. It carries the failure code, path-free detail, pull request URL, occurrence count, and first observation. For a `gh` failure, detail is `gh <step> exit <code> <class>`, and the instruction names the remediation for the `auth`, `network`, `not_installed`, `not_mergeable`, or `not_found` class.
 - A second `knowledge_publication` item, with failure code `knowledge_supersession_held`, appears when this checkout keeps superseded knowledge commits it could not drop ([ADR-0468](../../../decisions/coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md)). Detail gives the commit count and reason; the instruction names the remediation for that reason.
 
-Ownership and publication recovery belong to the resident and knowledge publisher.
+Ownership and publication recovery belong to the resident and knowledge publisher. A `knowledge_publication` item requires user action only for a `gh` failure of class `auth`, because Lervo cannot create credentials; Lervo retries every other publication failure itself.
 Structured `hub_forbidden` requires owner scope authority; `hub_unauthorized`
 and `token_file_unreadable` require credential authority. Knowledge delegation
 cannot grant those effects. Other failures do not establish owner authority. They are non-blocking; their source instructions remain inspectable. Each yields at most one item. The projection reads only the private fence, publication state, and supersession ledger; an unreadable file contributes no item.
 
-[ADR-0469](../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) adds `knowledge_convergence_continuity`: one item per [continuity finding](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md#findings) of severity `attention` or `owner_decision`, at most 16. Each carries the finding code, severity, a closed detail code or host label, and the last reconciliation time. Its instruction names the exact remediation. Only an `owner_decision` item has state `action_required` and requires user action. Owner-decision findings concern delegation or scope authority; other findings belong to the resident. All are non-blocking. The projection reads the delegation, host policy, fence, publication state, and continuity state without contacting the Hub.
+[ADR-0469](../../../decisions/coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) adds `knowledge_convergence_continuity`: one item per [continuity finding](../../../specs/background-knowledge-convergence/runtime/ownership-and-activation/continuity.md#findings) of severity `attention` or `lervo_debt`, at most 16. Each carries the finding code, severity, a closed detail code or host label, and the last reconciliation time. Its instruction names the exact remediation. Under ADR-0561 no item requires user action: a `lervo_debt` item has state `lervo_debt` and belongs to the host resident, which renews within the installed policy limits. All are non-blocking. The projection reads the delegation, host policy, fence, publication state, and continuity state without contacting the Hub.
 
 ## Coverage
 

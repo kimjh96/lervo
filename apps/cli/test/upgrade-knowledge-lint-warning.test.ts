@@ -59,10 +59,17 @@ describe("upgrade knowledge lint (ordered-stage convergence)", () => {
     const text = formatUpgradeReceipt({
       schemaVersion: 1,
       operation: "repository_upgrade",
-      approvedPlanId: "upg_000000000000000000000000",
+      planId: "upg_000000000000000000000000",
       status: "current",
       appliedStages: ["repository_node", "event_writer"],
       skippedStages: [],
+      notices: [
+        {
+          stage: "terminal_integration",
+          summary: "Merged the Lervo hooks into the provider hook files.",
+          undo: "lervo state restore lbk_000000000000000000000000",
+        },
+      ],
       knowledgeLint: { valid: false, issueCount: 40 },
       nextPlanId: null,
       pending: [],
@@ -70,5 +77,8 @@ describe("upgrade knowledge lint (ordered-stage convergence)", () => {
     });
     expect(text).toContain("applied: repository_node, event_writer");
     expect(text).toContain("knowledge lint: 40 issue(s) in repository content");
+    expect(text).toContain(
+      "notice: terminal_integration: Merged the Lervo hooks into the provider hook files. Undo: lervo state restore lbk_000000000000000000000000",
+    );
   });
 });

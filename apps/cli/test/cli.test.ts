@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -10,9 +11,33 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
+import { agreeingCrossCheck, planCrossCheck } from "./plan-cross-check-fixture.js";
 import type { ManagedDeliberationOutcome } from "../src/managed-deliberation.js";
 
 const temporaryRoots: string[] = [];
+
+/**
+ * The knowledge refresh after a reviewed effect. Its own undo commit moved HEAD, a knowledge
+ * source, so one refresh applies first when it has work; returns the following plan's operations.
+ */
+async function refreshedOperations(
+  io: Parameters<typeof runCli>[1],
+  messages: string[],
+): Promise<Array<{ action: string }>> {
+  messages.length = 0;
+  expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+  const first = JSON.parse(messages.join("")) as {
+    planId: string;
+    operations: Array<{ action: string }>;
+  };
+  if (first.operations.every((item) => item.action === "unchanged")) return first.operations;
+  messages.length = 0;
+  expect(await runCli(["knowledge", "refresh", "--apply", first.planId, "--json"], io)).toBe(0);
+  messages.length = 0;
+  expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
+  return (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations;
+}
 
 async function temporaryRepository(): Promise<string> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-"));
@@ -104,7 +129,7 @@ describe("lervo init CLI", () => {
     expect(messages.join("")).toContain("The project is already initialized.");
   });
 
-  it("advances safe onboarding stages from init and stops at provider authority", async () => {
+  it("advances safe onboarding stages from init and holds an unchecked stage as Lervo debt", async () => {
     const root = await temporaryRepository();
     const messages: string[] = [];
     expect(
@@ -114,7 +139,13 @@ describe("lervo init CLI", () => {
         stderr: (message: string) => messages.push(message),
       }),
     ).toBe(0);
-    expect(messages.join("")).toContain("Onboarding: pending_authority");
+    // ADR-0561: a reviewed stage that cannot land as its own undo commit, here outside Git, is
+    // Lervo debt, never owner authority.
+    expect(messages.join("")).toContain("Onboarding: lervo_debt");
+    expect(messages.join("")).toContain(
+      "(Lervo debt: commit_unavailable; lervo upgrade --apply retries it, no owner action)",
+    );
+    expect(messages.join("")).not.toContain("authority");
     expect(messages.join("")).toContain("initial agent: agt_");
     await expect(access(resolve(root, "docs/knowledge/index.md"))).resolves.toBeUndefined();
     await expect(access(resolve(root, "AGENTS.md"))).resolves.toBeUndefined();
@@ -175,8 +206,21 @@ describe("lervo repository knowledge CLI", () => {
     expect(errors).toEqual([]);
   });
 
-  it("deletes an exact registered user document and deprecates its concept atomically", async () => {
+  // ADR-0561 commit-then-delete: Lervo deletes a document only where Git keeps its bytes.
+  async function planRegisteredUserDocumentDeletion() {
     const root = await temporaryRepository();
+    const git = (...args: string[]) =>
+      execFileSync("git", ["-C", root, ...args], {
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          GIT_AUTHOR_NAME: "Developer",
+          GIT_AUTHOR_EMAIL: "dev@example.invalid",
+          GIT_COMMITTER_NAME: "Developer",
+          GIT_COMMITTER_EMAIL: "dev@example.invalid",
+        },
+      }).trim();
+    git("init", "-q", "-b", "main");
     const documentPath = "docs/research/retired.md";
     await writeFile(resolve(root, "seed.txt"), "seed\n");
     const messages: string[] = [];
@@ -187,6 +231,8 @@ describe("lervo repository knowledge CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    git("add", "-A");
+    git("commit", "-q", "-m", "chore: start");
     await mkdir(resolve(root, "docs/research"), { recursive: true });
     await writeFile(resolve(root, documentPath), "# Retired note\n\nExact user bytes to remove.\n");
     messages.length = 0;
@@ -212,45 +258,37 @@ describe("lervo repository knowledge CLI", () => {
     );
     expect(plan.operations.every((operation) => operation.content === undefined)).toBe(true);
     expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
+    return { root, git, documentPath, messages, errors, io, plan };
+  }
 
+  it("keeps a registered user document when the cross-check disagrees with its deletion", async () => {
+    const { root, documentPath, messages, errors, io, plan } =
+      await planRegisteredUserDocumentDeletion();
     messages.length = 0;
     errors.length = 0;
     expect(
       await runCli(
-        [
-          "knowledge",
-          "structure",
-          "delete",
-          documentPath,
-          "--apply",
-          plan.planId,
-          "--approve-item",
-          `${plan.operationId}=sha256:${"0".repeat(64)}`,
-          "--json",
-        ],
+        ["knowledge", "structure", "delete", documentPath, "--apply", plan.planId, "--json"],
         io,
+        planCrossCheck("disagree").services,
       ),
     ).toBe(1);
-    expect(errors.join("")).toContain("exact approval hash");
+    expect(errors.join("")).toContain("disagreed with plan");
     expect(await readFile(resolve(root, documentPath), "utf8")).toContain("Exact user bytes");
+  });
 
+  it("deletes an exact registered user document and deprecates its concept atomically", async () => {
+    const { root, git, documentPath, messages, errors, io, plan } =
+      await planRegisteredUserDocumentDeletion();
     messages.length = 0;
     errors.length = 0;
     expect(
       await runCli(
-        [
-          "knowledge",
-          "structure",
-          "delete",
-          documentPath,
-          "--apply",
-          plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
-          "--json",
-        ],
+        ["knowledge", "structure", "delete", documentPath, "--apply", plan.planId, "--json"],
         io,
+        agreeingCrossCheck,
       ),
+      errors.join(""),
     ).toBe(0);
     await expect(access(resolve(root, documentPath))).rejects.toMatchObject({ code: "ENOENT" });
     const conceptBytes = await readFile(
@@ -266,6 +304,14 @@ describe("lervo repository knowledge CLI", () => {
     );
     expect(conceptBytes).toContain("publicationStatus: deprecated");
     expect(conceptBytes).toContain("kind: document_deleted");
+    // Git held the bytes first, and the deletion is its own revertable Lervo commit.
+    expect(git("log", "--format=%ae %s", "-2")).toBe(
+      [
+        "knowledge@lervo.invalid docs: apply a cross-checked document structure change",
+        `knowledge@lervo.invalid docs: preserve ${documentPath} before deletion`,
+      ].join("\n"),
+    );
+    expect(git("show", `HEAD^:${documentPath}`)).toContain("Exact user bytes to remove.");
 
     messages.length = 0;
     expect(await runCli(["knowledge", "lint", "--json"], io)).toBe(0);
@@ -289,8 +335,9 @@ describe("lervo repository knowledge CLI", () => {
             item.type === "knowledge.materialization.applied" &&
             item.payload.operation === "document_structure_delete",
         );
+      // Preserving the uncommitted document moved the snapshot, so the same deletion was replanned.
       expect(event?.payload).toMatchObject({
-        planId: plan.planId,
+        planId: expect.not.stringMatching(plan.planId),
         deprecatedConceptIds: plan.deprecatedConceptIds,
       });
       expect(JSON.stringify(event?.payload)).not.toContain(documentPath);
@@ -298,7 +345,8 @@ describe("lervo repository knowledge CLI", () => {
       await storage.close();
     }
     expect(errors).toEqual([]);
-  });
+    // Nine CLI runs, including the preserving commit and replan of an uncommitted document.
+  }, 20_000);
 
   it("moves an exact registered user document while preserving identity and navigation", async () => {
     const root = await temporaryRepository();
@@ -325,6 +373,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -353,11 +402,10 @@ describe("lervo repository knowledge CLI", () => {
           destinationPath,
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=sha256:${"0".repeat(64)}`,
           "--json",
         ],
         io,
+        planCrossCheck("disagree").services,
       ),
     ).toBe(1);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toContain("Exact user bytes");
@@ -374,11 +422,10 @@ describe("lervo repository knowledge CLI", () => {
           destinationPath,
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
           "--json",
         ],
         io,
+        agreeingCrossCheck,
       ),
     ).toBe(0);
     await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
@@ -392,12 +439,8 @@ describe("lervo repository knowledge CLI", () => {
       (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
         .hits[0],
     ).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
     expect(
-      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
-        (item) => item.action === "unchanged",
-      ),
+      (await refreshedOperations(io, messages)).every((item) => item.action === "unchanged"),
     ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
@@ -445,6 +488,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -487,11 +531,10 @@ describe("lervo repository knowledge CLI", () => {
           "heading:Guide > Extract",
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=sha256:${"0".repeat(64)}`,
           "--json",
         ],
         io,
+        planCrossCheck("disagree").services,
       ),
     ).toBe(1);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(original);
@@ -511,11 +554,10 @@ describe("lervo repository knowledge CLI", () => {
           "heading:Guide > Extract",
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
           "--json",
         ],
         io,
+        agreeingCrossCheck,
       ),
     ).toBe(0);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(remainder);
@@ -529,12 +571,8 @@ describe("lervo repository knowledge CLI", () => {
       (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
         .hits[0],
     ).toMatchObject({ conceptId: plan.createdConceptIds[0], path: destinationPath });
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
     expect(
-      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
-        (item) => item.action === "unchanged",
-      ),
+      (await refreshedOperations(io, messages)).every((item) => item.action === "unchanged"),
     ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
@@ -582,6 +620,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -612,11 +651,10 @@ describe("lervo repository knowledge CLI", () => {
           destinationPath,
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=sha256:${"0".repeat(64)}`,
           "--json",
         ],
         io,
+        planCrossCheck("disagree").services,
       ),
     ).toBe(1);
     expect(await readFile(resolve(root, sourcePath), "utf8")).toBe(source);
@@ -634,11 +672,10 @@ describe("lervo repository knowledge CLI", () => {
           destinationPath,
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
           "--json",
         ],
         io,
+        agreeingCrossCheck,
       ),
     ).toBe(0);
     await expect(access(resolve(root, sourcePath))).rejects.toMatchObject({ code: "ENOENT" });
@@ -652,12 +689,8 @@ describe("lervo repository knowledge CLI", () => {
       (JSON.parse(messages.join("")) as { hits: Array<{ conceptId: string; path: string }> })
         .hits[0],
     ).toMatchObject({ conceptId: plan.preservedConceptIds[0], path: destinationPath });
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh", "--json"], io)).toBe(0);
     expect(
-      (JSON.parse(messages.join("")) as { operations: Array<{ action: string }> }).operations.every(
-        (item) => item.action === "unchanged",
-      ),
+      (await refreshedOperations(io, messages)).every((item) => item.action === "unchanged"),
     ).toBe(true);
     const storage = await openProjectStorage(root);
     try {
@@ -695,6 +728,7 @@ describe("lervo repository knowledge CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -723,14 +757,13 @@ describe("lervo repository knowledge CLI", () => {
           "claude",
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=sha256:${"0".repeat(64)}`,
           "--json",
         ],
         io,
+        planCrossCheck("disagree").services,
       ),
     ).toBe(1);
-    expect(errors.join("")).toContain("exact approval hash");
+    expect(errors.join("")).toContain("disagreed with plan");
     await expect(access(resolve(root, "CLAUDE.md"))).rejects.toMatchObject({ code: "ENOENT" });
 
     messages.length = 0;
@@ -745,11 +778,10 @@ describe("lervo repository knowledge CLI", () => {
           "claude",
           "--apply",
           plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
           "--json",
         ],
         io,
+        agreeingCrossCheck,
       ),
       errors.join(""),
     ).toBe(0);

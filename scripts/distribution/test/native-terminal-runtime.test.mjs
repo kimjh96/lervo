@@ -84,8 +84,6 @@ it("installs the launcher and host native bytes, runs both providers from a subd
     await knowledge.applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
-      approvedOperationId: plan.operationId,
-      approvedHash: plan.approvalHash,
       now: new Date(),
       recordApplied: () => undefined,
     });
@@ -215,8 +213,6 @@ it("an installed CLI upgrade changes only host runtime bytes across three checko
       await knowledge.applyTerminalIntegrationPlan({
         plan,
         runtimeContent: launcher,
-        approvedOperationId: plan.operationId,
-        approvedHash: plan.approvalHash,
         now: new Date(),
         recordApplied: () => undefined,
       });

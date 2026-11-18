@@ -41,6 +41,16 @@ it("reports a goal budget stop as bounded attention without degrading the Node",
   });
 });
 
+it("reports an escalation the principal proxy could not settle as Lervo debt (ADR-0561)", () => {
+  expect(
+    supervisionAttentionHealth({ reasonCodes: ["lervo_debt", "principal_scope_exceeded"] }),
+  ).toEqual({ status: "lervo_debt", reasonCode: "principal_scope_exceeded" });
+  expect(supervisionAttentionHealth({ reasonCodes: ["lervo_debt"] })).toEqual({
+    status: "lervo_debt",
+    reasonCode: "lervo_debt",
+  });
+});
+
 it("preserves unavailable publication diagnostics without inferring a local origin", () => {
   expect(
     supervisionAttentionReasonCodes({ nextAction: "publish_result" }, ["owner_plan_unavailable"]),

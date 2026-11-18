@@ -2,35 +2,36 @@ import type { ContinuityFinding } from "@lervo/repository-knowledge-runtime";
 
 import { eventWriterBlocker } from "./event-writer-activation-blockers.js";
 
-const INSTALL_POLICY =
-  "lervo knowledge convergence delegation renewal-policy install, then rerun it with --apply <policy-id>";
-const REVIEW_DELEGATION =
-  "lervo knowledge convergence delegation --from <reviewed-delegation.json>, then --apply <plan-id>";
+/**
+ * ADR-0561: continuity Lervo cannot restore within the last installed policy bounds is Lervo's
+ * own debt. These remediations say what Lervo does next and never assign the owner a step.
+ */
+const DEBT = "Lervo debt";
 const DOCTOR = "lervo knowledge convergence doctor";
 
 const SEED_FAILURES: Record<string, string> = {
   convergence_seed_parent_missing:
-    "No local agent can answer for the peer's scope. Register the parent role with lervo agent hire, or review a delegation here",
+    "No local agent can answer for the peer's scope. Register the parent role with lervo agent hire; the resident seeds on its next cycle",
   convergence_seed_role_mismatch:
-    "This host resolves the peer's role pins to different hashes. Run the same Lervo version on both hosts (lervo upgrade), or review a delegation here",
+    "This host resolves the peer's role pins to different hashes. Run the same Lervo version on both hosts (lervo upgrade)",
   convergence_seed_roots_missing:
-    "None of the template's canonical or normalization roots exist in this checkout. Review a delegation with this repository's roots",
+    "None of the template's canonical or normalization roots exist in this checkout, so the resident cannot seed from it and retries when a root appears",
   convergence_seed_verification_missing:
     "The repository has no repository.default.vN or repository.default verification suite. Add .lervo/verifications/repository.default.v1.yaml, then the resident seeds on its next cycle",
   convergence_seed_definition_unavailable:
     "The peer's scope binds a verification suite or asset manifest this checkout lacks, and no host has shared the exact reviewed bytes through the Hub yet. The peer shares them on its next reconciliation once both the Hub and that host run an ADR-0477 version; see the definition_exchange_unavailable finding if one is reported",
   convergence_seed_definition_conflict:
-    "This checkout has its own different file where the peer's scope binds a verification suite, role, or asset manifest, and Lervo never overwrites a file it did not install. Compare the file with the peer's copy: delete or rename yours to accept the reviewed one, or review a delegation that binds yours",
+    "This checkout has its own different file where the peer's scope binds a verification suite, role, or asset manifest, and Lervo never overwrites a file it did not install. Compare the file with the peer's copy: delete or rename yours to accept the reviewed one",
   convergence_seed_identity_mismatch:
     "The peer's delegation names another repository identity. Check that both checkouts share one .lervo/project.json",
   knowledge_authority_unavailable:
-    "The continued delegation no longer passes its role, suite, or ancestry checks, so the scope changed. Review a new delegation",
+    "The continued delegation no longer passes its role, suite, or ancestry checks, so the scope changed; the resident retries every 15 minutes",
   knowledge_reader_transition_required:
     "This checkout's event store still writes a schema older than 4. Run lervo upgrade on this host",
   knowledge_plan_stale:
     "The delegation changed while it was continued. The resident retries on its next cycle; nothing else is needed",
   convergence_continuity_horizon_exhausted:
-    "The continuity policy horizon has ended. Reinstall the policy",
+    "The continuity policy horizon has ended; the resident rolls it forward within the same limits on its next cycle",
 };
 
 const HUB_FAILURES: Record<string, string> = {
@@ -70,8 +71,6 @@ function hubFailure(detail: string | null): string {
 /** The exact next step for one continuity finding; the system retries everything else itself. */
 export function continuityRemediation(finding: ContinuityFinding): string {
   switch (finding.code) {
-    case "delegation_scope_change":
-      return `Accept the exact normalizationRoots additions ${finding.scopeChange?.requiredPaths.join(", ")} in ${finding.scopeChange?.proposalId}: ${finding.scopeChange?.paths.map((item) => `${item.path} (${item.classification}) -> ${item.destination}; classification ${item.evidence.classificationId}`).join("; ")}. Acceptance is recommended.${finding.scopeChange?.acceptanceBlocker === "scope_path_unavailable" ? ` Required paths cannot receive an exact file grant: ${finding.scopeChange.unsatisfiedPaths.join(", ")}. The move stays deferred.` : ""}${finding.scopeChange?.acceptanceBlocker === "normalization_root_limit" ? " The complete proposal exceeds the existing 32-root delegation limit, so no scope grant is asked. The owner decides the same moves once through the repository layout decision: run lervo migrate knowledge and accept or decline it with the one displayed command." : ""} Record acceptance or decline with lervo knowledge convergence delegation scope-response --proposal ${finding.scopeChange?.proposalId} --response <accept|decline> --evidence-hash <owner-turn-artifact-hash>. Review acceptance through ${REVIEW_DELEGATION}, then supply --from and --apply to scope-response.`;
     case "provider_cli_detected":
     case "provider_cli_admitted":
       return "Provider admission follows the installed executable identity and rechecks changes before use.";
@@ -84,30 +83,32 @@ export function continuityRemediation(finding: ContinuityFinding): string {
         return "Provider admission re-probes a pause without a reset time after its backoff, when delegation allows that candidate. A known reset keeps its exact expiry.";
       return "No allowed installed provider passes the no-capability contract. Provider admission retries detection; background work resumes when a provider is admitted.";
     case "delegation_missing":
-      return finding.severity === "owner_decision"
-        ? `Another host converges this repository, but this host has no delegation and no continuity policy to seed one. Install the host policy once from a repository with a reviewed delegation (${INSTALL_POLICY}); every resident on this host then seeds itself.`
+      return finding.severity === "lervo_debt"
+        ? `${DEBT}: another host converges this repository, but this host has no delegation and no continuity policy to seed one. The first delegation installed on this host also installs the policy, and every resident on this host then seeds itself.`
         : finding.severity === "info"
           ? "No host has delegated background knowledge for this repository, so it is not enrolled."
           : `${SEED_FAILURES[finding.detail ?? ""] ?? "The resident seeds a delegation on its next cycle"}. Run lervo knowledge convergence delegation seed to retry now.`;
     case "delegation_expiring":
     case "delegation_expired":
-      return `The delegation lapses without an active continuity policy that can renew it (${finding.detail ?? "no_policy"}). Install the host policy (${INSTALL_POLICY}) or review a renewed delegation (${REVIEW_DELEGATION}).`;
+      return finding.severity === "lervo_debt"
+        ? `${DEBT}: no active continuity policy can renew the delegation (${finding.detail ?? "no_policy"}). The resident adopts a policy from the active delegation and renews it within those limits; a lapsed delegation stays held until a policy or a peer scope can seed it.`
+        : "The delegation lapsed, and the resident renews it within the installed policy limits on its next cycle.";
     case "delegation_outside_policy":
-      return `The delegation exceeds the host policy limits (${finding.detail}), so it is not renewed automatically. Review it (${REVIEW_DELEGATION}) or reinstall the policy from this delegation (${INSTALL_POLICY}).`;
+      return `${DEBT}: the delegation shares no provider with the host policy limits (${finding.detail}), so no renewal within those limits exists. It stays held until the delegation or the policy changes.`;
     case "delegation_invalid":
-      return `The delegation file fails its contract. Review a new one (${REVIEW_DELEGATION}).`;
+      return `${DEBT}: the delegation file fails its contract, so the resident holds this checkout's background knowledge. The next delegation installed here replaces it.`;
     case "delegation_continuation_failed":
       return `${SEED_FAILURES[finding.detail ?? ""] ?? `Continuing the delegation failed (${finding.detail})`}. The resident retries every 15 minutes.`;
     case "delegation_revoked":
       return "The owner revoked this delegation; continuity never renews or reseeds it.";
     case "policy_absent":
-      return `No host continuity policy is installed. A resident adopts one from the first reviewed delegation on this host, or install it now (${INSTALL_POLICY}).`;
+      return "No host continuity policy is installed. A resident adopts one from the first reviewed delegation on this host.";
     case "policy_invalid":
-      return `The host continuity policy file fails its contract. Reinstall it (${INSTALL_POLICY}).`;
+      return `${DEBT}: the host continuity policy file fails its contract, so delegations on this host renew only once a valid policy is installed or adopted.`;
     case "policy_revoked":
       return "The owner revoked the host continuity policy; delegations lapse at their expiry.";
     case "policy_horizon_near":
-      return `The host continuity policy horizon ends within 72 hours. Reinstall it to extend continuity (${INSTALL_POLICY}).`;
+      return "The host continuity policy horizon ends soon. The resident rolls it forward within the same limits on its next reconciliation.";
     case "owner_host_standalone":
       return "No Hub coordinates exist for this repository on this host, so it converges standalone. Register a Node for it (lervo repository node plan, then apply) to coordinate across hosts.";
     case "owner_host_hub_unusable":

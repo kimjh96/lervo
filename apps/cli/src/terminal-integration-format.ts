@@ -3,6 +3,8 @@ import type {
   TerminalIntegrationReceipt,
 } from "@lervo/repository-knowledge";
 
+import { effectBackupUndoCommand } from "./effect-backup.js";
+
 export const terminalActivation = {
   status: "action_required" as const,
   requiredOnce: {
@@ -17,9 +19,12 @@ export const terminalActivation = {
 export function formatTerminalIntegrationPlan(terminal: TerminalIntegrationPlan): string {
   if (terminal.status === "blocked")
     return `Terminal integration migration is blocked.\n${terminal.blockers.map((item) => `  ${item.provider} [${item.code}] ${item.path}`).join("\n")}\nExisting provider settings and hooks were not changed.\n`;
-  return `${terminal.status === "ready" ? "Terminal runtime reconciliation plan created." : "Terminal integration review plan created."}\nplan: ${terminal.planId}\ncontract: ${terminal.contractId}\nruntime: ${terminal.runtime.action} ${terminal.runtime.path}\ntargets:\n${terminal.targets.map((item) => `  ${item.provider}: ${item.action} ${item.path} · ${item.beforeHash ?? "absent"} → ${item.afterHash ?? "blocked"}`).join("\n")}${terminal.approvalHash === null ? "\nNo user-owned hook bytes require approval." : `\napproval: ${terminal.operationId}=${terminal.approvalHash}`}\nExisting provider settings and hooks have not been changed.\n`;
+  return `Terminal integration plan created.\nplan: ${terminal.planId}\ncontract: ${terminal.contractId}\nruntime: ${terminal.runtime.action} ${terminal.runtime.path}\ntargets:\n${terminal.targets.map((item) => `  ${item.provider}: ${item.action} ${item.path} · ${item.beforeHash ?? "absent"} → ${item.afterHash ?? "blocked"}`).join("\n")}${terminal.approvalHash === null ? "\nOnly the generated runtime changes." : "\nApply backs up the provider hook files, verifies the result, and restores the backup on failure."}\nExisting provider settings and hooks have not been changed. Apply it with lervo migrate knowledge --apply ${terminal.planId}.\n`;
 }
 
-export function formatTerminalIntegrationReceipt(receipt: TerminalIntegrationReceipt): string {
-  return `Applied the Codex and Claude terminal integration without replacing existing provider hooks.\nplan: ${receipt.planId}\ncontract: ${receipt.contractId}\nACTION REQUIRED ONCE FOR CODEX: ${terminalActivation.requiredOnce.instruction}\nVERIFY: ${terminalActivation.verification}\n`;
+export function formatTerminalIntegrationReceipt(
+  receipt: TerminalIntegrationReceipt,
+  backupId: string | null = null,
+): string {
+  return `Applied the Codex and Claude terminal integration without replacing existing provider hooks.\nplan: ${receipt.planId}\ncontract: ${receipt.contractId}\n${backupId === null ? "" : `Undo: ${effectBackupUndoCommand(backupId)}\n`}ACTION REQUIRED ONCE FOR CODEX: ${terminalActivation.requiredOnce.instruction}\nVERIFY: ${terminalActivation.verification}\n`;
 }

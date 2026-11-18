@@ -28,7 +28,7 @@ export * from "./canonicalization-candidate-record.js";
 
 export interface CanonicalizationAssessment {
   schemaVersion: 1;
-  status: "current" | "candidate" | "pending";
+  status: "current" | "candidate";
   changedPathCount: number;
   canonicalPathCount: number;
   candidate: CanonicalizationCandidateInspection | null;
@@ -102,10 +102,12 @@ export async function assessCanonicalization(input: {
     sourceBindings,
     outcome: input.outcome ?? null,
   });
+  // ADR-0561: `pending_user_approval` waits on no one; the background reviewer judges every
+  // candidate. The disposition is kept only so stored declarations still parse.
   const record: CanonicalizationCandidateRecord = {
     schemaVersion: 1,
     candidateId,
-    state: input.disposition === "pending_user_approval" ? "pending" : "candidate",
+    state: "candidate",
     beforeRevision: input.beforeRevision,
     afterRevision: input.afterRevision,
     sourceBindings,
@@ -141,7 +143,7 @@ export async function assessCanonicalization(input: {
     ));
   return {
     schemaVersion: 1,
-    status: record.state === "pending" ? "pending" : "candidate",
+    status: "candidate",
     changedPathCount: changedPaths.length,
     canonicalPathCount: canonicalResponsibilities.size,
     candidate,
@@ -222,5 +224,38 @@ export async function transitionCanonicalizationCandidate(input: {
     };
   }
   await writeCanonicalizationCandidateRecord(root, next);
+  return readCanonicalizationCandidate(root, canonicalizationCandidatePath(input.candidateId));
+}
+
+/**
+ * ADR-0561 undo of a background canonical review: returns a promoted, rejected, or held candidate
+ * to `candidate`, so the background canonical reviewer judges it again. Only the private
+ * candidate record changes; canonical documents are restored from Git.
+ */
+export async function reopenCanonicalizationCandidate(input: {
+  repositoryRoot: string;
+  candidateId: string;
+}): Promise<CanonicalizationCandidateInspection> {
+  const root = resolve(input.repositoryRoot);
+  const current = (await listCanonicalizationCandidates(root)).find(
+    (item) => item.candidateId === input.candidateId,
+  );
+  if (current === undefined)
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      `Canonicalization candidate ${input.candidateId} does not exist.`,
+    );
+  if (current.state === "candidate")
+    throw new RepositoryKnowledgeError(
+      "knowledge_plan_stale",
+      `Canonicalization candidate ${input.candidateId} is already open for review.`,
+    );
+  const { observedState: _observedState, contentHash: _contentHash, ...record } = current;
+  await writeCanonicalizationCandidateRecord(root, {
+    ...record,
+    state: "candidate",
+    review: null,
+    promotion: null,
+  });
   return readCanonicalizationCandidate(root, canonicalizationCandidatePath(input.candidateId));
 }

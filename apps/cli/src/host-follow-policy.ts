@@ -138,8 +138,8 @@ export function classifyInstallFailure(code: string): InstallFailureKind {
 /**
  * Failures of `lervo upgrade` that mean the new CLI does not run on this host: the Node it
  * restarted did not become ready, or the command produced no readable result at all. Content
- * blocks, such as lint, a layout decision, or a stage waiting for owner approval, are reported
- * and never roll the host back.
+ * blocks, such as lint or a stage Lervo holds as its own debt, are reported and never roll the
+ * host back.
  */
 const hostFailureCodes = new Set([
   "node_fleet_readiness_timeout",
@@ -148,12 +148,13 @@ const hostFailureCodes = new Set([
   "node_fleet_apply_failed",
   "host_follow_repository_upgrade_unreadable",
 ]);
-const contentBlockCodes = new Set(["upgrade_owner_approval_required"]);
+/** ADR-0561: the repository's upgrade left stages Lervo holds as its own debt, not owner work. */
+export const LERVO_DEBT_CODE = "upgrade_lervo_debt";
+/** ADR-0561: the owner holds the repository, so the follower runs no upgrade command there. */
+export const REPOSITORY_OWNER_HOLD_CODE = "repository_owner_hold";
 
 export function classifyRepositoryFailure(code: string): RepositoryUpgradeOutcome {
-  if (hostFailureCodes.has(code)) return "host_failure";
-  if (contentBlockCodes.has(code)) return "blocked";
-  return "failed";
+  return hostFailureCodes.has(code) ? "host_failure" : "failed";
 }
 
 /**
@@ -184,33 +185,23 @@ export const REPOSITORY_RETRY_LIMIT = 3;
 export const BLOCKED_REPOSITORY_RECHECK_MS = 60 * 60_000;
 
 /**
- * ADR-0589: a repository left waiting for an owner approval. It runs after every other
- * repository of a pass, so its time never delays a repository the release can reach.
+ * ADR-0589, ADR-0561: a repository the last pass left with stages Lervo holds as its own debt.
+ * Its upgrade changed nothing, so it runs after every other repository of a pass and never
+ * delays one the release can reach. It is rechecked hourly like any block, because the debt
+ * clears on its own once a provider is admitted or the held plan changes.
  */
-const ownerApprovalBlock = (result: Pick<HostFollowRepositoryResult, "outcome" | "code">) =>
-  result.outcome === "blocked" && result.code === "upgrade_owner_approval_required";
+const lervoDebtBlock = (result: Pick<HostFollowRepositoryResult, "outcome" | "code">) =>
+  result.outcome === "blocked" &&
+  (result.code === LERVO_DEBT_CODE || result.code === REPOSITORY_OWNER_HOLD_CODE);
 
-/**
- * ADR-0589: an owner-approval block with nothing else to apply. The follower can never apply a
- * stage that waits for the owner, so it waits for another CLI instead of an hourly recheck. A
- * `ready` plan still has an applicable stage, such as Node beside a layout decision, so it keeps
- * the hourly recheck, which applies that stage once the plan holds still.
- */
-const ownerApprovalOnly = (
-  result: Pick<HostFollowRepositoryResult, "outcome" | "code" | "status">,
-) => ownerApprovalBlock(result) && result.status !== "ready";
-
-/**
- * ADR-0589: the order of a pass. Repositories the last pass left waiting for an owner approval
- * go last, so the time they take never delays a repository the release can reach.
- */
+/** ADR-0589: the order of a pass. Repositories left in Lervo debt go last. */
 export function repositoryPassOrder(
   roots: readonly string[],
   lastPass: Pick<HostFollowPass, "repositories"> | null,
 ): string[] {
   const waiting = new Set(
     (lastPass?.repositories ?? [])
-      .filter(ownerApprovalBlock)
+      .filter(lervoDebtBlock)
       .map((repository) => repository.repositoryRoot),
   );
   return [
@@ -237,7 +228,6 @@ export function scheduleRepositoryRetry(
           : null,
     };
   }
-  if (ownerApprovalOnly(entry)) return { ...entry, attempts: 0, nextAttemptAt: null };
   if (entry.outcome === "blocked")
     return { ...entry, attempts: 0, nextAttemptAt: at(BLOCKED_REPOSITORY_RECHECK_MS) };
   return { ...entry, attempts: 0, nextAttemptAt: null };

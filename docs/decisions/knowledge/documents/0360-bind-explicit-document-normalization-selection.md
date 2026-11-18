@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Decision date: 2026-09-04
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (independent cross-check replaces per-item approval)
+
+> **Amended (2026-11-02).** Under [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), applying a stored candidate no longer takes one approval per source. `lervo knowledge normalize --candidate <id> --apply <plan-id>` runs an independent cross-check of the exact plan first; the normalization then lands as its own `Lervo Knowledge` commit that `lervo knowledge revert <commit>` undoes.
 
 ## Context
 

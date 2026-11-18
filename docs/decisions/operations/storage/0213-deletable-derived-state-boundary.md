@@ -2,6 +2,9 @@
 
 Status: accepted
 Date: 2026-08-25
+Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)
+
+> **Amended (2026-11-02).** Under ADR-0561, `lervo state reset --apply` takes no `--approval`. It plans and applies in one run, moves the derived state into one backup under `.lervo/data/backups/` instead of deleting it, and prints `lervo state restore <backup-id>` as the undo. The next reset replaces that backup. `.lervo/data` stays preserved.
 
 ## Context
 

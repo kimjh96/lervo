@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-18
 Amends: [ADR-0578](0578-plan-the-upgrade-knowledge-stage-from-one-scan.md) (inspections and lint stop scanning on their own), [ADR-0575](0575-follow-published-releases-on-every-host.md) (the follower does not run a `--safe` apply that the plan shows would refuse)
-Amended by: [ADR-0589](0589-shorten-the-follower-path-from-publication-to-the-last-repository.md) (the follower also skips the `--safe` fallback that the changed-plan refusal shows would refuse; an apply that changed nothing skips lint while knowledge is current)
+Amended by: [ADR-0589](0589-shorten-the-follower-path-from-publication-to-the-last-repository.md) (the follower also skips the `--safe` fallback that the changed-plan refusal shows would refuse; an apply that changed nothing skips lint while knowledge is current), [ADR-0561](../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (the follower applies with `--apply` alone; no stage waits for an owner approval, so neither `--safe` nor its refusal remains)
 Related: [ADR-0579](0579-describe-the-bundled-node-runtime-once-per-upgrade-and-time-its-stages.md) (the `stageTimings` this decision reads), [ADR-0544](../knowledge/repository/source-intake/0544-observe-every-source-and-budget-only-retained-content.md) (observed-only sources)
 
 ## Context

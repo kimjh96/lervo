@@ -7,6 +7,8 @@ import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
 
@@ -134,6 +136,11 @@ describe("workstream CLI", () => {
           blocking: true,
         },
       ],
+      updatedAt: "2026-08-24T02:30:00.000Z",
+    });
+    // ADR-0561: a draft cannot declare a new owner approval; the agent applies and reports instead.
+    const withApproval = JSON.stringify({
+      ...JSON.parse(draft),
       pendingApprovals: [
         {
           approvalId: "wapr_0123456789abcdef",
@@ -143,7 +150,16 @@ describe("workstream CLI", () => {
           blocking: true,
         },
       ],
-      updatedAt: "2026-08-24T02:30:00.000Z",
+    });
+    const refused: string[] = [];
+    await runCli(["workstream", "start", "--stdin", "--json"], {
+      ...quiet,
+      stdin: async () => withApproval,
+      stdout: (message) => refused.push(message),
+    });
+    expect(JSON.parse(refused.join(""))).toMatchObject({
+      status: "blocked",
+      blockers: [{ code: "owner_approval_unsupported" }],
     });
     const output: string[] = [];
     expect(
@@ -173,7 +189,7 @@ describe("workstream CLI", () => {
         revision: 1,
         origin: { kind: "created" },
         pendingDecisions: [{ decisionId: "wdec_0123456789abcdef", recommendedChoiceId: "staged" }],
-        pendingApprovals: [{ approvalId: "wapr_0123456789abcdef", kind: "external_action" }],
+        pendingApprovals: [],
       },
     });
     await rm(resolve(root, ".lervo/state"), { recursive: true, force: true });
@@ -220,19 +236,14 @@ describe("workstream CLI", () => {
       planKind: string;
     };
     expect(plan.planKind).toBe("continuation_workstream");
+    // ADR-0561: the migration lands as its own undo commit over the committed HANDOFF.md.
+    commitRepository(root);
     const applyOutput: string[] = [];
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", plan.planId, "--json"],
         { ...quiet, stdout: (message) => applyOutput.push(message) },
+        agreeingCrossCheck,
       ),
     ).toBe(0);
     expect(JSON.parse(applyOutput.join(""))).toMatchObject({

@@ -6,6 +6,8 @@
 // it cites; the fixture binds them to the hashes the evidence bundle supplies. The Tier 0
 // cross-check task answers from the entry's `crossCheck` (`agree` by default, `disagree`,
 // `invalid`, or `fail`); `crossCheckDisagree` limits disagreement to hunks with those `before` texts.
+// `crossCheckSequence` instead answers the nth cross-check call for the document with its nth mode,
+// so a test can script two independent rounds and a regeneration.
 
 import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -44,9 +46,23 @@ if (request.task === "provider_cli_admission_probe") {
   );
   process.exit(0);
 }
+const documentPath = request.untrustedSourceData?.document?.path ?? null;
+const priorCrossChecks = existsSync(logPath)
+  ? readFileSync(logPath, "utf8")
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => JSON.parse(line))
+      .filter(
+        (call) => call.task === "document_freshness_cross_check" && call.document === documentPath,
+      ).length
+  : 0;
 appendFileSync(
   logPath,
-  `${JSON.stringify({ task: request.task, document: request.untrustedSourceData?.document?.path ?? null })}\n`,
+  `${JSON.stringify({
+    task: request.task,
+    document: documentPath,
+    regeneration: request.untrustedSourceData?.regeneration?.failure ?? null,
+  })}\n`,
 );
 if (
   ![
@@ -63,7 +79,12 @@ const entry = plan[bundle.document.path] ?? {
   hunks: [],
   explanation: "The fixture plan has no entry for this document.",
 };
-const crossCheckMode = entry.crossCheck ?? "agree";
+const crossCheckMode =
+  (request.task === "document_freshness_cross_check"
+    ? entry.crossCheckSequence?.[priorCrossChecks]
+    : undefined) ??
+  entry.crossCheck ??
+  "agree";
 if (request.task === "document_freshness_cross_check" && crossCheckMode === "fail") {
   console.error("fixture cross-check failure");
   process.exit(1);

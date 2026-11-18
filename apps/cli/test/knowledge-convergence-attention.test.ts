@@ -56,7 +56,10 @@ it("projects one ownership item and one publication item, and nothing for a heal
       kind: "knowledge_convergence_owner",
       role: "contended",
       holderLabel: "wsl",
-      requiresUserAction: true,
+      // ADR-0561: the contended host yields and retries coordination itself.
+      state: "lervo_debt",
+      actionOwner: "host resident",
+      requiresUserAction: false,
     },
     {
       kind: "knowledge_publication",
@@ -64,6 +67,9 @@ it("projects one ownership item and one publication item, and nothing for a heal
       failureCode: "knowledge_publication_checks_failed",
       occurrences: 2,
       pullRequestUrl: "https://example.invalid/pull/7",
+      // ADR-0561: Lervo retries a failed check itself; it is never owner work.
+      actionOwner: "agent",
+      requiresUserAction: false,
     },
   ]);
   const report = createOperatingAttentionReport({
@@ -99,8 +105,10 @@ it("names the recorded Hub failure cause and its exact remediation", () => {
     failureCode: "hub_forbidden",
     httpStatus: 403,
   });
+  // ADR-0561: a credential is the one notice-only exception; Lervo continues without it.
+  expect(item).toMatchObject({ state: "credentials_missing", requiresUserAction: true });
   expect(item!.instruction).toBe(
-    "The Hub refused this host's convergence owner token (HTTP 403). Grant workspace.read and workspace.coordinate for project prj_attention_fixture at Hub destination hub:wsl to the Hub principal that owns the token in this host's bearerTokenFile, then run lervo knowledge convergence owner status.",
+    "Notice: The Hub refused this host's convergence owner token (HTTP 403). Grant workspace.read and workspace.coordinate for project prj_attention_fixture at Hub destination hub:wsl to the Hub principal that owns the token in this host's bearerTokenFile, then run lervo knowledge convergence owner status. Lervo continues every stage that does not need this credential.",
   );
   const report = createOperatingAttentionReport({
     projectId: "prj_attention_fixture",
@@ -136,8 +144,15 @@ it("names the recorded Hub failure cause and its exact remediation", () => {
       },
       publication: null,
     });
-    expect(projected).toMatchObject({ failureCode, httpStatus: null });
-    instructions.set(failureCode, projected!.instruction);
+    const credentials =
+      failureCode === "hub_unauthorized" || failureCode === "token_file_unreadable";
+    expect(projected).toMatchObject({
+      failureCode,
+      httpStatus: null,
+      state: credentials ? "credentials_missing" : "lervo_debt",
+      requiresUserAction: credentials,
+    });
+    instructions.set(failureCode, projected!.recordedInstruction!);
   }
   expect(new Set(instructions.values()).size).toBe(instructions.size);
   expect(instructions.get("hub_unauthorized")).toContain("Replace the token");
@@ -149,7 +164,8 @@ it("names the recorded Hub failure cause and its exact remediation", () => {
     publication: null,
   });
   expect(legacy).toMatchObject({ failureCode: null, httpStatus: null });
-  expect(legacy!.instruction).toBe(instructions.get("hub_request_failed"));
+  expect(legacy!.recordedInstruction).toBe(instructions.get("hub_request_failed"));
+  expect(legacy!.instruction).toMatch(/^Lervo debt: convergence_owner_unverifiable\./u);
 });
 
 it("projects a superseded publication as one attention item with its conflict count", () => {
@@ -195,6 +211,8 @@ it("shows the gh step, exit code, and failure class with a class-specific remedi
     kind: "knowledge_publication",
     failureCode: "knowledge_publication_pull_request_failed",
     detail: "gh update exit 1 auth",
+    // Only credentials Lervo cannot create stay with the owner.
+    requiresUserAction: true,
   });
   expect(item!.instruction).toContain("gh auth status");
   const report = createOperatingAttentionReport({
@@ -217,6 +235,7 @@ it("shows the gh step, exit code, and failure class with a class-specific remedi
     },
   });
   expect(unclassified!.instruction).toContain("Check that gh is installed and authenticated");
+  expect(unclassified!.requiresUserAction).toBe(false);
 });
 
 it("projects superseded knowledge commits a checkout could not drop as one attention item", () => {
@@ -243,9 +262,12 @@ it("projects superseded knowledge commits a checkout could not drop as one atten
     detail: "2 superseded commit(s) held: under_other_work",
     firstObservedAt: "2026-10-05T00:20:00.000Z",
     occurrences: 1,
-    requiresUserAction: true,
+    state: "lervo_debt",
+    requiresUserAction: false,
   });
-  expect((item as { instruction: string }).instruction).toContain("Rebase the branch");
+  expect((item as { instruction: string }).instruction).toContain(
+    "refs/lervo/knowledge-superseded",
+  );
   expect(
     knowledgeConvergenceAttentionItems({
       owner: null,

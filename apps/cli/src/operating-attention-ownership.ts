@@ -17,9 +17,11 @@ export function attributeOperatingAttention(
   let inspectCommand = ATTENTION;
   let waitingSince: string | null = null;
   switch (item.kind) {
+    // ADR-0561: a recorded approval is Lervo debt; the working agent cross-checks the effect,
+    // makes it reversible, applies it, and reports it instead of waiting for the owner.
     case "workstream_approval":
-      consequence = item.consequence === "unclassified" ? null : item.consequence;
-      recommendation = `Review the exact binding for ${item.approvalId}`;
+      actor = "working agent";
+      recommendation = `Cross-check, back up, and apply ${item.approvalId}, then report it`;
       inspectCommand = "lervo workstream current --context";
       break;
     case "workstream_decision":
@@ -30,50 +32,77 @@ export function attributeOperatingAttention(
     case "workstream_blocker":
       actor = "working agent";
       break;
+    // ADR-0561: the background canonical reviewer resolves every candidate; none waits for the owner.
     case "canonicalization_review":
       actor = "canonical reviewer";
       waitingSince = item.createdAt;
+      recommendation = "Resolve the candidate in the next background review";
       inspectCommand = `lervo knowledge canonicalization status ${item.candidateId} --json`;
       break;
+    // ADR-0561: freshness never waits for the owner; held work is Lervo debt with backoff.
     case "document_freshness_candidate":
       actor = "resident freshness cycle";
-      consequence = item.ownerConsequence ?? null;
       waitingSince = item.createdAt ?? null;
-      recommendation = "Review the verified candidate before authorizing its held effect";
+      recommendation = "Retry the cross-check and apply what it agrees";
       inspectCommand = `lervo knowledge freshness review ${item.candidateId}`;
       break;
     case "document_freshness_applied":
-    case "document_freshness_blocked":
       actor = "resident freshness cycle";
       inspectCommand = "lervo knowledge freshness status";
       break;
+    case "document_freshness_blocked":
+      actor = "resident freshness cycle";
+      waitingSince = item.since;
+      recommendation = `Retry with backoff at ${item.retryAt}`;
+      inspectCommand = "lervo knowledge freshness status";
+      break;
+    // ADR-0561: instruction capture never waits for the owner; each item is Lervo debt.
     case "durable_instruction_candidate":
-      actor = "instruction reviewer";
+      actor = "knowledge resident";
       waitingSince = item.createdAt ?? null;
+      recommendation = "Apply the stored owner rule in the next cycle";
       inspectCommand = `lervo knowledge instruction status ${item.candidateId}`;
       break;
     case "captured_decision":
-      actor = "principal proxy";
+      actor = "knowledge resident";
       waitingSince = item.capturedAt;
-      recommendation = "Document the settled decision or resolve its scope under the mandate";
+      recommendation =
+        item.heldKind === "decision"
+          ? "Document the owner decision once it can be grounded as a canonical rule"
+          : "Keep the rejected rule as debt until the owner states it again";
       inspectCommand = "lervo knowledge instruction capture";
       break;
     case "instruction_capture_blocked":
-      consequence = "authority_scope";
+      actor = "knowledge resident";
       waitingSince = item.since;
-      recommendation = "Authorize a bounded knowledge convergence delegation";
+      recommendation = "Assess queued owner turns once a convergence delegation is active";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
+    // ADR-0561: a held foreground effect is Lervo debt retried by the next run, never owner work.
+    case "held_effect":
+      actor = item.effect === "capability_install" ? "capability installer" : "repository upgrade";
+      waitingSince = item.since;
+      recommendation =
+        item.reasonCode === "owner_hold" || item.reasonCode === "owner_restored"
+          ? "Held by the owner; lervo repository release --root <repository> releases it"
+          : `Retry ${item.subject} once its plan or provider changes`;
+      inspectCommand =
+        item.effect === "capability_install" ? "lervo capability list" : "lervo upgrade";
+      break;
+    // ADR-0561: continuity renews within the installed policy limits; held continuity is Lervo debt.
     case "knowledge_convergence_continuity":
-      consequence = item.severity === "owner_decision" ? "authority_scope" : null;
+      actor = "knowledge resident";
       waitingSince = item.observedAt;
-      recommendation = "Review the continuity scope and renew only its bounded authority";
+      recommendation = "Restore continuity within the installed policy limits";
       inspectCommand = "lervo knowledge convergence doctor --json";
       break;
+    // ADR-0561: the resident retries ownership coordination; only a credential is the owner's.
     case "knowledge_convergence_owner":
+      actor = "knowledge resident";
       waitingSince = item.observedAt;
+      recommendation = "Retry ownership coordination on the next cycle";
       if (item.failureCode === "hub_forbidden") {
-        consequence = "authority_scope";
+        consequence = "credentials";
         recommendation =
           "Grant bounded workspace.read and workspace.coordinate for the configured Hub scope";
       }
@@ -98,22 +127,11 @@ export function attributeOperatingAttention(
         recommendation = "Log gh in with an account that can push and merge this repository";
       }
       break;
+    // ADR-0561: the coordinator backs up the losing side and prefers the configured one itself.
     case "repository_replica_divergence":
       actor = "replica coordinator";
-      consequence = "repository_write";
       waitingSince = item.openedAt;
-      recommendation = "Choose the authoritative replica before overwriting conflicting bytes";
-      break;
-    case "knowledge_lifecycle":
-      if (item.issueCode === "turn_approval_pending") {
-        consequence = "repository_write";
-        recommendation = "Inspect the pending exact repository write approval";
-      }
-      if (item.issueCode === "repository_layout_decision_pending") {
-        consequence = "repository_write";
-        recommendation = "Accept the one repository layout decision (recommended) or decline it";
-        inspectCommand = item.instruction;
-      }
+      recommendation = "Save the losing side to a backup branch and apply the configured side";
       break;
   }
   if (prior?.waitingSince) waitingSince = prior.waitingSince;

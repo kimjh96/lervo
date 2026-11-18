@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-05
 Amends: [ADR-0457](0457-degrade-knowledge-intake-per-file-and-consolidate-documents.md) (instruction capture and the conversation-decision source)
-Amended by: [ADR-0545](capture/0545-apply-owner-stated-rules-without-a-review-command.md) (owner-stated rules apply on the owner host without a review command)
+Amended by: [ADR-0545](capture/0545-apply-owner-stated-rules-without-a-review-command.md) (owner-stated rules apply on the owner host without a review command), [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (every captured rule is stored after an independent cross-check; held items are Lervo debt; the review command is removed)
 Related: [ADR-0466 cross-host convergence owner](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 

@@ -1,3 +1,4 @@
+import { repositoryReplicaRestoreCommand } from "./repository-replica-notice.js";
 import type { RepositoryReplicaCycleResult } from "./repository-replica-coordinator.js";
 import type { RepositoryReplicaEventDisposition } from "./repository-replica-events.js";
 import {
@@ -76,6 +77,8 @@ export class RepositoryReplicaCycleReporter {
         `Repository replica ${result.replicaId} recovered after ${streak.count} failed cycle(s).`,
       );
     }
+    // ADR-0561: the coordinator logs an owner hold once itself; it is neither health nor a failure.
+    if (result.status === "held") return lines;
     if (result.status === "divergent") {
       this.health.set(result.replicaId, {
         status: "divergent",
@@ -88,8 +91,10 @@ export class RepositoryReplicaCycleReporter {
           : result.conflict.reason === "no_common_history"
             ? "no common history"
             : `${result.conflict.pathCount} conflicting path(s): ${result.conflict.paths.join(", ")}`;
+      const held =
+        result.heldReason === undefined ? "" : `; held as Lervo debt: ${result.heldReason}`;
       lines.stderr.push(
-        `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}; ${conflict}; divergence ${result.divergence.divergenceId})${eventNote(result.divergence.event)}.`,
+        `Repository replica ${result.replicaId} is divergent (${result.localHash} != ${result.peerHash}; common ${result.commonHash ?? "none"}; ${conflict}; divergence ${result.divergence.divergenceId}${held})${eventNote(result.divergence.event)}.`,
       );
       return lines;
     }
@@ -111,6 +116,12 @@ export class RepositoryReplicaCycleReporter {
     if (result.reconciled !== undefined) {
       lines.stdout.push(
         `Repository replica ${result.replicaId} reconciled divergence ${result.reconciled.divergenceId} by ${result.reconciled.strategy}${eventNote(result.reconciled.event)}.`,
+      );
+    }
+    // ADR-0561 notice: what replaced which side, and where the replaced side is kept.
+    if (result.backup !== undefined) {
+      lines.stdout.push(
+        `Repository replica ${result.replicaId} saved the ${result.backup.side} side (${result.backup.snapshotHash}) to branch ${result.backup.branch} on the ${result.backup.side} host before preferring the other side; undo: ${repositoryReplicaRestoreCommand({ replicaId: result.replicaId, backup: result.backup })}.`,
       );
     }
     return lines;

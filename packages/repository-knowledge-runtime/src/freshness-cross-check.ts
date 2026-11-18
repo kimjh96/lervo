@@ -1,7 +1,7 @@
 import {
+  buildDocumentFreshnessArchiveCrossCheckInput,
   buildDocumentFreshnessCrossCheckInput,
   canonicalJson,
-  documentFreshnessAutoApplicableHunks,
   documentFreshnessCandidateNeedsCrossCheck,
   documentFreshnessCrossCheckInstruction,
   documentFreshnessCrossCheckResponseSchema,
@@ -17,8 +17,6 @@ import {
 } from "@lervo/repository-knowledge";
 import type { ProjectStorage } from "@lervo/project-storage";
 
-import { applyLervoManagedFreshnessHunks } from "./freshness-apply.js";
-import { DocumentFreshnessOperationError } from "./freshness-document-io.js";
 import { recordFreshnessCandidateOutcome } from "./freshness-events.js";
 import {
   freshnessCallRunId,
@@ -40,36 +38,29 @@ export interface FreshnessCrossCheckResult {
 
 /**
  * Stores the bounded Tier 0 input in CAS and parks the candidate as `generated` with a pending
- * cross-check, so it never reaches the owner queue or auto-apply before the reviewer answers.
- * Archives are not cross-checked; they settle as unavailable and keep the owner path.
+ * cross-check, so Lervo applies nothing before the reviewer answers. Archives are cross-checked
+ * too, with the move and the inbound link rewrites as items (ADR-0561).
  */
 export async function prepareFreshnessCrossCheck(input: {
   storage: Pick<ProjectStorage, "artifacts">;
   candidate: DocumentFreshnessCandidateV1;
   source: Uint8Array;
   evidence: readonly DocumentFreshnessEvidenceItem[];
-  now: string;
 }): Promise<DocumentFreshnessCandidateV1> {
   const { candidate } = input;
-  if (
-    candidate.operation === "archive" &&
-    candidate.state === "verified_pending_cross_check" &&
-    candidate.crossCheck === "unavailable"
-  )
-    return settleDocumentFreshnessCrossCheck(candidate, {
-      status: "unavailable",
-      reason: "archive_not_cross_checked",
-      runId: null,
-      reviewerProvider: null,
-      tokensObserved: 0,
-      settledAt: input.now,
-    });
   if (!documentFreshnessCandidateNeedsCrossCheck(candidate)) return candidate;
-  const crossCheckInput = buildDocumentFreshnessCrossCheckInput({
-    candidate,
-    source: input.source,
-    evidence: input.evidence,
-  });
+  const crossCheckInput =
+    candidate.operation === "archive" && candidate.archive !== null
+      ? buildDocumentFreshnessArchiveCrossCheckInput({
+          candidate: { ...candidate, archive: candidate.archive },
+          source: input.source,
+          evidence: input.evidence,
+        })
+      : buildDocumentFreshnessCrossCheckInput({
+          candidate,
+          source: input.source,
+          evidence: input.evidence,
+        });
   const stored = await input.storage.artifacts.put(canonicalJson(crossCheckInput));
   return {
     ...candidate,
@@ -118,17 +109,34 @@ async function settle(input: {
   return { candidate: next, tokensObserved: input.settlement.tokensObserved, status: "settled" };
 }
 
+const otherProvider = { codex: "claude", claude: "codex" } as const;
+
 /**
- * One ADR-0557 Tier 0 call in a fresh no-capability session, separate from the generation call.
- * It shares generation's admission, ceilings, and usage records, and its tokens count inside the
- * candidate budget. Every failure settles as `unavailable` with its reason; only a valid verdict
- * for every hunk can agree. A turn without provider capacity leaves the call pending.
+ * The context for one round. ADR-0561 prefers a different admitted provider for the second of two
+ * required checks: a resident that resolves its provider by detection asks for the other provider
+ * first and falls back to its own when the other is not admitted. A configured executable binds
+ * the provider, so that round runs in another fresh session of the same provider.
  */
-export async function runFreshnessCrossCheck(input: {
+function roundContext(
+  context: FreshnessGenerationContext,
+  candidate: DocumentFreshnessCandidateV1,
+): FreshnessGenerationContext {
+  const previous = candidate.crossCheckRounds?.at(-1)?.reviewerProvider;
+  if (previous === undefined || previous === null || context.executable !== undefined)
+    return context;
+  return { ...context, provider: otherProvider[previous] };
+}
+
+/**
+ * One ADR-0557 Tier 0 round in a fresh no-capability session, separate from the generation call
+ * and from every earlier round. It shares generation's admission, ceilings, and usage records, and
+ * its tokens count inside the candidate budget. Every failure settles as `unavailable` with its
+ * reason; only a valid verdict for every item can agree. A turn without capacity leaves it pending.
+ */
+async function runFreshnessCrossCheckRound(input: {
   context: FreshnessGenerationContext;
   candidate: DocumentFreshnessCandidateV1;
   maximumTokens: number;
-  /** Tokens left in the repository's daily freshness budget; absent means already reserved. */
   dailyRemaining?: number;
 }): Promise<FreshnessCrossCheckResult> {
   const { context, candidate } = input;
@@ -167,14 +175,18 @@ export async function runFreshnessCrossCheck(input: {
   // afford that bound. It resets; until then the cross-check waits without counting a deferral.
   if (remaining > (input.dailyRemaining ?? Number.POSITIVE_INFINITY))
     return { candidate, tokensObserved: 0, status: "pending" };
+  // Each round and each retry is its own session and run; the first keeps the ADR-0557 identity.
+  const round = candidate.crossCheckRounds?.length ?? 0;
+  const retries = review.retries ?? 0;
   const generationId = stableId("kfg", [
     candidate.candidateId,
     "tier0_cross_check",
     review.inputHash,
+    ...(round === 0 && retries === 0 ? [] : [round, retries]),
   ]);
   const runId = freshnessCallRunId(generationId);
   const result = await generateFreshnessProposal({
-    context,
+    context: roundContext(context, candidate),
     source: {
       sourceData: stored.value,
       documents: [
@@ -221,7 +233,7 @@ export async function runFreshnessCrossCheck(input: {
     return unavailable("freshness_budget_exhausted", observed, runId, result.provider);
   const verdicts = parseDocumentFreshnessCrossCheckResponse(
     result.value,
-    candidate.hunks.map((hunk) => hunk.hunkId),
+    stored.value.hunks.map((hunk) => hunk.hunkId),
   );
   if (verdicts === null)
     return unavailable("cross_check_response_invalid", observed, runId, result.provider);
@@ -240,10 +252,42 @@ export async function runFreshnessCrossCheck(input: {
 }
 
 /**
+ * Runs Tier 0 rounds until the candidate settles or a round must wait: a candidate that needs two
+ * independent agreeing checks runs its second round right after the first agrees, when capacity
+ * allows. Each round's spend is reported before the next round starts.
+ */
+export async function runFreshnessCrossCheck(input: {
+  context: FreshnessGenerationContext;
+  candidate: DocumentFreshnessCandidateV1;
+  maximumTokens: number;
+  /** Tokens left in the repository's daily freshness budget; absent means already reserved. */
+  dailyRemaining?: number;
+  recordSpend?: (tokens: number) => Promise<void>;
+}): Promise<FreshnessCrossCheckResult> {
+  let candidate = input.candidate;
+  let tokensObserved = 0;
+  for (;;) {
+    const result = await runFreshnessCrossCheckRound({
+      context: input.context,
+      candidate,
+      maximumTokens: input.maximumTokens,
+      ...(input.dailyRemaining === undefined
+        ? {}
+        : { dailyRemaining: Math.max(0, input.dailyRemaining - tokensObserved) }),
+    });
+    candidate = result.candidate;
+    tokensObserved += result.tokensObserved;
+    if (result.tokensObserved > 0) await input.recordSpend?.(result.tokensObserved);
+    if (result.status === "pending" || !freshnessCrossCheckPending(candidate))
+      return { candidate, tokensObserved, status: result.status };
+  }
+}
+
+/**
  * Records one capacity deferral for a pending cross-check that this turn did not reach. At the
  * bound it settles as unavailable, so no waiting candidate stays pending without limit.
  */
-async function deferPendingFreshnessCrossCheck(
+export async function deferPendingFreshnessCrossCheck(
   context: FreshnessGenerationContext,
   candidate: DocumentFreshnessCandidateV1,
 ): Promise<void> {
@@ -269,84 +313,4 @@ async function deferPendingFreshnessCrossCheck(
     crossCheckReview: { ...review, deferrals: review.deferrals + 1 },
     updatedAt: context.now().toISOString(),
   });
-}
-
-/** Lervo applies its own hunks once a settled candidate is `verified`; other states wait. */
-export async function applyCrossCheckedFreshnessHunks(
-  context: FreshnessGenerationContext,
-  candidate: DocumentFreshnessCandidateV1,
-): Promise<DocumentFreshnessCandidateV1> {
-  const automatic = documentFreshnessAutoApplicableHunks(candidate);
-  if (candidate.state !== "verified" || candidate.operation !== "edit" || automatic.length === 0)
-    return candidate;
-  return applyLervoManagedFreshnessHunks({
-    storage: context.storage,
-    candidate,
-    hunkIds: new Set(automatic.map((hunk) => hunk.hunkId)),
-    now: context.now(),
-  });
-}
-
-/**
- * Resumes cross-checks a previous turn left pending, oldest first, until one stays pending for
- * lack of provider capacity. Settled agreement applies Lervo's own hunks when effects allow.
- */
-export async function resumePendingFreshnessCrossChecks(input: {
-  context: FreshnessGenerationContext;
-  candidates: readonly DocumentFreshnessCandidateV1[];
-  maximumTokens: number;
-  /** Tokens left in today's freshness budget; each resumed call is bounded by what remains. */
-  dailyRemaining: number;
-  /** Persists each settled spend before anything else runs, so a later failure cannot lose it. */
-  recordSpend: (tokens: number) => Promise<void>;
-  autoApply: boolean;
-}): Promise<{
-  tokensObserved: number;
-  verifiedCount: number;
-  appliedCount: number;
-  disagreements: number;
-  pending: boolean;
-}> {
-  const totals = {
-    tokensObserved: 0,
-    verifiedCount: 0,
-    appliedCount: 0,
-    disagreements: 0,
-    pending: false,
-  };
-  const pending = input.candidates
-    .filter(freshnessCrossCheckPending)
-    .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
-  for (const [index, candidate] of pending.entries()) {
-    const result = await runFreshnessCrossCheck({
-      context: input.context,
-      candidate,
-      maximumTokens: input.maximumTokens,
-      dailyRemaining: Math.max(0, input.dailyRemaining - totals.tokensObserved),
-    });
-    totals.tokensObserved += result.tokensObserved;
-    if (result.tokensObserved > 0) await input.recordSpend(result.tokensObserved);
-    if (result.status === "pending") {
-      totals.pending = true;
-      // Candidates this turn could not reach age by the same capacity deferral, each to its bound.
-      if (result.candidate.crossCheckReview?.deferrals !== candidate.crossCheckReview?.deferrals)
-        for (const waiting of pending.slice(index + 1))
-          await deferPendingFreshnessCrossCheck(input.context, waiting);
-      break;
-    }
-    if (result.candidate.state === "rejected") {
-      totals.disagreements += 1;
-      continue;
-    }
-    totals.verifiedCount += 1;
-    if (!input.autoApply) continue;
-    try {
-      const applied = await applyCrossCheckedFreshnessHunks(input.context, result.candidate);
-      if (applied.state === "applied" || applied.state === "partially_applied")
-        totals.appliedCount += 1;
-    } catch (error) {
-      if (!(error instanceof DocumentFreshnessOperationError)) throw error;
-    }
-  }
-  return totals;
 }

@@ -5,18 +5,42 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { readOwnerOnlyText } from "@lervo/runtime-security";
 import {
   AuthenticatedHubHttpTransport,
-  planWorkstreamReconciliation,
-  readHubWorkstream,
+  reconcileDivergentWorkstream,
+  type WorkstreamReconciliationNotice,
+  restoreReconciledWorkstreamHead,
   runWorkstreamReplicationCycle,
 } from "@lervo/sync";
 import { createProjectRegistrationRequest } from "@lervo/sync-contract";
 import type { CliIo } from "./types.js";
 import { registeredNodeHubCoordinates } from "./knowledge-node-hub-coordinates.js";
+import { noticeEffect } from "./effect-notice.js";
+
+/** ADR-0561: a reconciliation or restore reports its notice through the learned notice. */
+function noticeReconciliation(
+  root: string,
+  snapshotContentHash: string,
+  notice: WorkstreamReconciliationNotice,
+): Promise<void> {
+  return noticeEffect({
+    repositoryRoot: root,
+    effect: notice.effect,
+    subject: snapshotContentHash,
+    targets: notice.targets,
+    reason: notice.reason,
+    reviewers: notice.crossCheck.reviewers,
+    verdict: notice.crossCheck.verdict,
+    undo: notice.undo,
+  });
+}
 
 export const workstreamHubUsage = [
   "  lervo workstream sync [--root <path>] [--hub-config <path>] [--json]",
-  "  lervo workstream reconcile --keep <local|hub> [--root <path>] [--hub-config <path>] [--apply <plan-id> --write] [--json]",
+  "  lervo workstream reconcile [--restore <snapshot-hash>] [--root <path>] [--hub-config <path>] [--json]",
 ].join("\n");
+
+/** ADR-0561 removed the owner's choice of head; each removed option names what replaced it. */
+const REMOVED_RECONCILE_CHOICE =
+  "--keep, --apply, and --write were removed: lervo workstream reconcile keeps the newest valid head and preserves the other on the Hub; restore it with lervo workstream reconcile --restore <snapshot-hash>.";
 
 async function hubCoordinates(root: string, configPath?: string) {
   if (configPath === undefined) {
@@ -45,7 +69,7 @@ async function hubCoordinates(root: string, configPath?: string) {
   };
 }
 
-/** Explicit checkpoint transport for CLI-only hosts; reconciliation always requires an exact plan. */
+/** Checkpoint transport for CLI-only hosts; a divergence keeps the newest head without the owner. */
 export async function runWorkstreamHubCommand(args: string[], io: CliIo): Promise<number> {
   const parsed = parseArgs({
     args: args.slice(1),
@@ -55,20 +79,20 @@ export async function runWorkstreamHubCommand(args: string[], io: CliIo): Promis
       root: { type: "string" },
       "hub-config": { type: "string" },
       json: { type: "boolean" },
+      restore: { type: "string" },
       keep: { type: "string" },
       apply: { type: "string" },
       write: { type: "boolean" },
     },
   });
-  const reconcile = args[0] === "reconcile";
-  if (reconcile && parsed.values.keep !== "local" && parsed.values.keep !== "hub")
-    throw new Error("Reconciliation requires --keep local or --keep hub.");
-  if (Boolean(parsed.values.apply) !== Boolean(parsed.values.write))
-    throw new Error("Reconciliation apply requires an exact plan ID and --write.");
   if (
-    !reconcile &&
-    (parsed.values.keep !== undefined || parsed.values.apply !== undefined || parsed.values.write)
+    parsed.values.keep !== undefined ||
+    parsed.values.apply !== undefined ||
+    parsed.values.write !== undefined
   )
+    throw new Error(REMOVED_RECONCILE_CHOICE);
+  const reconcile = args[0] === "reconcile";
+  if (!reconcile && parsed.values.restore !== undefined)
     throw new Error("Sync does not accept reconciliation options.");
   const root = resolve(io.cwd, parsed.values.root ?? ".");
   const hub = await hubCoordinates(root, parsed.values["hub-config"]);
@@ -88,82 +112,38 @@ export async function runWorkstreamHubCommand(args: string[], io: CliIo): Promis
         projectIdentityHash: registration.projectIdentityHash,
       },
     });
-    const local = createNodeWorkstreamLocalPort(storage);
     const cycle = {
-      local,
+      local: createNodeWorkstreamLocalPort(storage),
       transport,
       registration,
       destinationId: hub.destinationId,
       expectedPeerIdentityHash: hub.hubIdentityHash,
     };
     const output = (value: unknown) => io.stdout(`${JSON.stringify(value, null, 2)}\n`);
+    const synchronized = await runWorkstreamReplicationCycle(cycle);
     if (!reconcile) {
-      const result = await runWorkstreamReplicationCycle(cycle);
-      output({ schemaVersion: 1, ...result });
-      return result.status === "divergent" ? 1 : 0;
+      output({ schemaVersion: 1, ...synchronized });
+      return synchronized.status === "divergent" ? 1 : 0;
     }
-    const current = (await local.readRevisionChain()).at(-1);
-    if (current === undefined)
-      throw new Error("A local checkpoint is required for reconciliation.");
-    const remote = await readHubWorkstream(cycle);
-    const plan = planWorkstreamReconciliation({
-      projectId: storage.manifest.projectId,
-      local: current,
-      remote,
-      keep: parsed.values.keep as "local" | "hub",
-      now: new Date().toISOString(),
-    });
-    if (parsed.values.apply === undefined) {
-      output({
-        schemaVersion: 1,
-        status: "review_required",
-        planId: plan.planId,
-        keep: plan.keep,
-        parents: plan.parents,
-        successorWorkstreamId: plan.revision.snapshot.workstreamId,
-        selectedRevision:
-          plan.keep === "local" ? current.snapshot.revision : remote.snapshot!.revision,
+    if (parsed.values.restore !== undefined) {
+      const restored = await restoreReconciledWorkstreamHead({
+        ...cycle,
+        snapshotContentHash: parsed.values.restore,
+        now: new Date().toISOString(),
       });
+      await noticeReconciliation(root, restored.snapshotContentHash, restored.notice);
+      output({ schemaVersion: 1, status: "restored", ...restored });
       return 0;
     }
-    if (parsed.values.apply !== plan.planId) throw new Error("The reconciliation plan is stale.");
-    await runWorkstreamReplicationCycle(cycle);
-    // Publication may have advanced either side. Revalidate both exact heads and the local selection.
-    const observed = await readHubWorkstream(cycle);
-    const latest = (await local.readRevisionChain()).at(-1);
-    if (
-      latest?.snapshotContentHash !== current.snapshotContentHash ||
-      observed.heads.length !== 2 ||
-      !observed.heads.every((head) =>
-        plan.parents.some((parent) => parent.snapshotContentHash === head.snapshotContentHash),
-      )
-    )
-      throw new Error("The reconciliation heads changed before apply.");
-    await transport.publishWorkstream({
-      schemaVersion: 1,
-      registrationId: registration.registrationId,
-      projectId: registration.project.projectId,
-      repositoryIdentityHash: registration.projectIdentityHash,
-      ...plan.revision,
-    });
-    const applied = await readHubWorkstream(cycle);
-    if (
-      applied.status !== "current" ||
-      applied.heads[0]?.snapshotContentHash !== plan.revision.snapshotContentHash
-    )
-      throw new Error("The Hub did not retain the exact reconciliation successor.");
-    await local.importCurrent(plan.revision);
-    output({
-      schemaVersion: 1,
-      status: "reconciled",
-      planId: plan.planId,
-      keep: plan.keep,
-      workstreamId: plan.revision.snapshot.workstreamId,
-      revision: 1,
-      snapshotContentHash: plan.revision.snapshotContentHash,
-      parents: plan.parents,
-    });
-    return 0;
+    const result = await reconcileDivergentWorkstream(cycle);
+    if (result.status === "not_divergent") {
+      output({ schemaVersion: 1, status: "current", sync: synchronized });
+      return 0;
+    }
+    if (result.status === "reconciled")
+      await noticeReconciliation(root, result.snapshotContentHash, result.notice);
+    output({ schemaVersion: 1, ...result });
+    return result.status === "reconciled" ? 0 : 1;
   } finally {
     await storage.close();
   }

@@ -18,6 +18,7 @@ import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materi
 import { runKnowledgeMigration } from "./knowledge-migration-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import { runKnowledgeCanonicalization } from "./knowledge-canonicalization-command.js";
+import { runKnowledgeRevert } from "./knowledge-revert-command.js";
 export { runKnowledgeMigration } from "./knowledge-migration-command.js";
 export { formatKnowledgeMigrationPlan } from "./knowledge-migration-format.js";
 export { knowledgeUsage } from "./knowledge-usage.js";
@@ -41,7 +42,13 @@ export async function runKnowledgeCommand(
   args: string[],
   io: CliIo,
   services: Partial<
-    Pick<CliServices, "groundProductionRequest" | "knowledgeMaterializationWait">
+    Pick<
+      CliServices,
+      | "groundProductionRequest"
+      | "crossCheckDurableInstruction"
+      | "crossCheckPlan"
+      | "knowledgeMaterializationWait"
+    >
   > = {},
 ): Promise<number> {
   const subcommand = args[0];
@@ -63,20 +70,16 @@ export async function runKnowledgeCommand(
       ? runHostKnowledgeResidentsCommand(args.slice(1), io)
       : runKnowledgeWorkerCommand(args.slice(1), io, { refreshHealth: prefetchRepositoryHealth });
   if (subcommand === "refresh")
-    return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
+    return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh", services });
   if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);
-  if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
+  if (subcommand === "normalize")
+    return runDocumentNormalizationCommand(args.slice(1), io, services);
   if (subcommand === "materialize") return runKnowledgeMaterializationRecovery(args.slice(1), io);
-  if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io);
+  if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io, services);
+  if (subcommand === "revert") return runKnowledgeRevert(args.slice(1), io);
   if (subcommand === "freshness") return runKnowledgeFreshness(args.slice(1), io);
   if (subcommand === "instruction") {
-    return runKnowledgeInstruction(
-      args.slice(1),
-      io,
-      services.groundProductionRequest === undefined
-        ? undefined
-        : { groundProductionRequest: services.groundProductionRequest },
-    );
+    return runKnowledgeInstruction(args.slice(1), io, services);
   }
   if (subcommand === "lint") {
     let json = false;

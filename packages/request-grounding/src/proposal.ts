@@ -184,8 +184,22 @@ function boundedText(value: unknown, field: string, maximumBytes: number): strin
   return value;
 }
 
+function replacedPaths(value: unknown): string[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 16)
+    throw new TypeError("durableInstruction.replaces must be bounded.");
+  const paths = value.map((path) => {
+    const text = boundedText(path, "durableInstruction.replaces item", 500);
+    if (text === null) throw new TypeError("durableInstruction.replaces cannot contain null.");
+    return text;
+  });
+  if (new Set(paths).size !== paths.length)
+    throw new TypeError("durableInstruction.replaces must be unique.");
+  return paths;
+}
+
 function durableInstruction(value: unknown): DurableInstructionIntent {
-  const input = record(value, "durableInstruction");
+  const { replaces, ...input } = record(value, "durableInstruction");
   exactKeys(
     input,
     [
@@ -272,21 +286,6 @@ function durableInstruction(value: unknown): DurableInstructionIntent {
   const title = boundedText(input.title, "durableInstruction.title", 160);
   const statement = boundedText(input.statement, "durableInstruction.statement", 2_000);
   const reasonIds = uniqueIdentifiers(input.reasonIds, "durableInstruction.reasonIds", 8);
-  const isCanonical = input.disposition === "canonical";
-  if (
-    isCanonical &&
-    (input.speechAct !== "directive" ||
-      input.authority !== "explicit_user" ||
-      input.durability !== "repository" ||
-      input.operation !== "add" ||
-      scope.kind === "unspecified" ||
-      title === null ||
-      statement === null ||
-      input.risk !== "low" ||
-      input.conflict !== "none" ||
-      input.confidence !== "high")
-  )
-    throw new TypeError("A canonical durable instruction does not satisfy the automatic gate.");
   if (
     input.disposition === "none" &&
     (input.operation !== "none" || title !== null || statement !== null)
@@ -306,6 +305,7 @@ function durableInstruction(value: unknown): DurableInstructionIntent {
     conflict: input.conflict as DurableInstructionIntent["conflict"],
     confidence: input.confidence as DurableInstructionIntent["confidence"],
     reasonIds,
+    replaces: replacedPaths(replaces),
   };
 }
 

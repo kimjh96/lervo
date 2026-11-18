@@ -141,4 +141,4 @@ To add a repository whose two checkouts both run residents:
 4. Remove any stale entry for the replica ID from the coordinator state file, add the repository with `conflictPolicy: "hold"`, and restart the coordinator. The first cycle must report `current`.
 5. After the next owner commit, confirm both `HEAD`s are equal and that `git log --author=knowledge@lervo.invalid` shows the same trailer host on both.
 
-A held divergence still records `repository.replica.diverged` once per identity under ADR-0456. Before any history moves, every cycle drops superseded knowledge commits on both checkouts; see [knowledge supersession](knowledge-supersession.md).
+A divergence still records `repository.replica.diverged` once per identity under ADR-0456; under ADR-0561 the coordinator then saves the losing side to a backup branch and prefers the configured side, where `hold` prefers the local side. Before any history moves, every cycle drops superseded knowledge commits on both checkouts; see [knowledge supersession](knowledge-supersession.md).

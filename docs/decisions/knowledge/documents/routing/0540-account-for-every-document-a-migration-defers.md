@@ -3,6 +3,9 @@
 Status: `accepted`
 Decision date: 2026-10-31
 Amends: [ADR-0476](../0476-route-legacy-documents-semantically-and-never-migrate-application-content.md) (deferral and background classification)
+Amended by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (outside-root moves apply without a scope decision)
+
+> **Amended (2026-11-02).** Under [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), the reviewed layout plan carries its own exact path set, so moves are no longer bounded by the delegation's roots. The `delegation_scope` deferral and its `requiredPaths` are removed, continuity no longer proposes a scope change for layout moves, and the 32-root limit no longer blocks a complete move plan. A foreground plan applies after an independent cross-check instead of item approvals. The [layout and routing contract](../../../../specs/repository-knowledge-compilation/structural-publication/policy/layout-and-routing.md) holds the current behavior.
 
 ## Context
 

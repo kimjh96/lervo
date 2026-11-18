@@ -64,8 +64,9 @@ export interface TerminalIntegrationPlan {
   planId: string;
   priorApplicationEventId: string | null;
   operationId: string;
+  /** Content hash binding the provider hook operations; null when only the runtime changes. */
   approvalHash: string | null;
-  status: "current" | "ready" | "review_required" | "blocked";
+  status: "current" | "ready" | "blocked";
   projectId: string;
   repositoryRoot: string;
   contractId: "lervo_terminal_hooks_v2";

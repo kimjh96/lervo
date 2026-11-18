@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { createCapabilityMigrationPlan } from "@lervo/capabilities";
 import { loadProjectManifest } from "@lervo/project";
+import { readRepositoryHold } from "@lervo/repository-registry";
 
 import {
   inspectEventWriterStage,
@@ -47,15 +48,26 @@ export interface RepositoryUpgradePlan {
   planId: string;
   repositoryRoot: string;
   projectId: string;
-  status: "ready" | "current" | "pending_authority" | "blocked";
-  /** Stages an exact apply of this plan changes, even when another stage is blocked. */
+  status: "ready" | "current" | "lervo_debt" | "blocked";
+  /**
+   * ADR-0561: the owner's hold on this repository, or null. While it is set, every stage that
+   * changes the repository is `lervo_debt` with reason `owner_hold` and an apply skips it.
+   */
+  hold: { reason: string | null; heldAt: string } | null;
+  /** Stages an apply of this plan changes, even when another stage is blocked. */
   applicableStages: UpgradeStageName[];
   cli: { version: string; buildHash: string; acquisition: "outside_repository_upgrade" };
   policy: {
     generatedOnlyAutomaticApply: true;
     maximumKnowledgeStages: 16;
-    userOwnedBytes: "exact_approval_required";
-    providerConfiguration: "exact_approval_required";
+    /**
+     * ADR-0561 with AGENTS.md invariant 5: Lervo never rewrites user-owned bytes on its own. A
+     * reviewed plan that would is held as Lervo debt (`user_owned_content`); only an owner
+     * command, or the delegation the owner installed for its roots, applies it.
+     */
+    userOwnedBytes: "never_automatic_outside_delegation_roots";
+    /** ADR-0561: provider hook files are backed up, applied, verified, and restored on failure. */
+    providerConfiguration: "backup_apply_verify_restore";
     nodeService: "registered_instance_transactional_reconciliation";
     eventWriter: "backup_then_exact_event_contract_plan";
     hostService: "one_user_service_for_unserved_repositories";
@@ -107,7 +119,7 @@ function deferredWorkforce(reason: string): WorkforceStage {
     staleAssignmentCount: 0,
     status: "deferred",
     reason,
-    requiredApprovals: [],
+    repositoryRoleRefreshes: [],
   };
 }
 
@@ -161,6 +173,7 @@ export async function createRepositoryUpgradePlan(
 ): Promise<RepositoryUpgradePlan> {
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
+  const hold = await readRepositoryHold(repositoryRoot);
   const version = readCliPackageVersion();
   const capabilities = await createCapabilityMigrationPlan(repositoryRoot);
   const capabilityDisposition: StageDisposition =
@@ -209,14 +222,27 @@ export async function createRepositoryUpgradePlan(
     host,
   );
   const runtimeRetention = await planNodeRuntimeRetention(host.runtimeRetention);
+  // ADR-0561: a held repository plans every stage but applies none that changes it.
+  const held = <T extends { disposition: StageDisposition }>(stage: T): T =>
+    hold === null || (stage.disposition !== "safe_apply" && stage.disposition !== "deferred")
+      ? stage
+      : ({ ...stage, disposition: "lervo_debt", reason: "owner_hold" } as T);
+  const heldStages = {
+    capabilities: held({ disposition: capabilityDisposition }).disposition,
+    workforce: held(workforce),
+    terminal: held(terminal.stage),
+    knowledge: held(knowledge),
+    node: held(nodeStage),
+    eventWriter: held(eventWriter),
+  };
   const dispositions: Record<UpgradeStageName, StageDisposition> = {
     runtime_retention: runtimeRetention.disposition,
-    capabilities: capabilityDisposition,
-    workforce: workforce.disposition,
-    terminal_integration: terminal.stage.disposition,
-    knowledge: knowledge.disposition,
-    node: nodeStage.disposition,
-    event_writer: eventWriter.disposition,
+    capabilities: heldStages.capabilities,
+    workforce: heldStages.workforce.disposition,
+    terminal_integration: heldStages.terminal.disposition,
+    knowledge: heldStages.knowledge.disposition,
+    node: heldStages.node.disposition,
+    event_writer: heldStages.eventWriter.disposition,
     host_service: hostService.disposition,
     replica_service: replicaService.disposition,
   };
@@ -226,13 +252,14 @@ export async function createRepositoryUpgradePlan(
     repositoryRoot,
     projectId: project.projectId,
     status: overallUpgradeStatus(Object.values(dispositions)),
-    applicableStages: applicableUpgradeStages(dispositions, workforce.requiredApprovals.length > 0),
+    hold: hold === null ? null : { reason: hold.reason, heldAt: hold.heldAt },
+    applicableStages: applicableUpgradeStages(dispositions),
     cli: { version, buildHash, acquisition: "outside_repository_upgrade" as const },
     policy: {
       generatedOnlyAutomaticApply: true as const,
       maximumKnowledgeStages: 16 as const,
-      userOwnedBytes: "exact_approval_required" as const,
-      providerConfiguration: "exact_approval_required" as const,
+      userOwnedBytes: "never_automatic_outside_delegation_roots" as const,
+      providerConfiguration: "backup_apply_verify_restore" as const,
       nodeService: "registered_instance_transactional_reconciliation" as const,
       eventWriter: "backup_then_exact_event_contract_plan" as const,
       hostService: "one_user_service_for_unserved_repositories" as const,
@@ -242,16 +269,16 @@ export async function createRepositoryUpgradePlan(
     stages: {
       runtimeRetention,
       capabilities: {
-        disposition: capabilityDisposition,
+        disposition: heldStages.capabilities,
         planId: capabilities.planId,
         createCount: capabilities.items.filter((item) => item.action === "create").length,
         observedProviderSurfaceCount: capabilities.observedProviderSurfaces.length,
       },
-      workforce,
-      terminalIntegration: terminal.stage,
-      knowledge,
-      node: nodeStage,
-      eventWriter,
+      workforce: heldStages.workforce,
+      terminalIntegration: heldStages.terminal,
+      knowledge: heldStages.knowledge,
+      node: heldStages.node,
+      eventWriter: heldStages.eventWriter,
       hostService,
       replicaService,
     },

@@ -126,51 +126,7 @@ describe("health projection from recorded sources", () => {
     },
   );
 
-  it.each(["2026-10-01T00:00:00Z", "2026-11-01T00:00:00Z", null])(
-    "excludes stale or unobserved owner sources (%s) without asserting a total zero",
-    (at) => {
-      const input = sources();
-      input.attention = createOperatingAttentionReport({
-        projectId: "prj_health",
-        workstream: null,
-        workstreamFreshness: null,
-        canonicalization: { coverage: "complete", candidates: [] },
-        knowledgeLifecycle: { coverage: "cached", issues: [] },
-        documentFreshness: { awaiting: [healthFreshnessCandidate({})], applied: [], blocked: null },
-        instructionCapture: {
-          candidates: [],
-          held: [],
-          applied: { rules: [], totalCount: 0 },
-          authorityBlocked: { since: "2026-10-01T00:00:00Z", queuedCount: 1 },
-        },
-        observedAt: healthNow,
-      });
-      input.captureObservedAt = at;
-      input.freshnessCycle!.lastCycleAt = at;
-      expect(projectRepositoryHealth(input).measures.ownerReview).toMatchObject({
-        status: "unknown",
-        value: null,
-      });
-      // A single valid upkeep item is insufficient to turn the missing owner sources into zero.
-      input.attention = createOperatingAttentionReport({
-        projectId: "prj_health",
-        workstream: null,
-        workstreamFreshness: null,
-        canonicalization: { coverage: "complete", candidates: [] },
-        knowledgeLifecycle: {
-          coverage: "cached",
-          issues: [{ code: "normalization_required", command: "lervo knowledge status" }],
-        },
-        observedAt: healthNow,
-      });
-      expect(projectRepositoryHealth(input).measures.ownerReview).toMatchObject({
-        coverage: "partial",
-        value: { count: null, confirmedCount: 0, upkeepCount: null },
-      });
-    },
-  );
-
-  it("counts the full owner set before limiting the retained batch", () => {
+  it("counts held freshness and capture as Lervo debt and marks missing sources partial", () => {
     const input = sources();
     input.attention = createOperatingAttentionReport({
       projectId: "prj_health",
@@ -179,23 +135,75 @@ describe("health projection from recorded sources", () => {
       canonicalization: { coverage: "complete", candidates: [] },
       knowledgeLifecycle: { coverage: "cached", issues: [] },
       documentFreshness: {
-        awaiting: Array.from({ length: 300 }, (_, i) =>
-          healthFreshnessCandidate({ candidateId: `kfresh_${i.toString(16).padStart(24, "0")}` }),
-        ),
+        held: [healthFreshnessCandidate({})],
         applied: [],
-        blocked: null,
+        zeroSuccessHold: null,
+        debt: [],
       },
+      instructionCapture: {
+        candidates: [],
+        held: [],
+        applied: { rules: [], totalCount: 0 },
+        authorityBlocked: { since: "2026-10-01T00:00:00Z", queuedCount: 1 },
+      },
+      observedAt: healthNow,
+    });
+    expect(projectRepositoryHealth(input).measures.lervoDebt).toMatchObject({
+      status: "gap",
+      // Knowledge convergence was not read, so the count is a lower bound.
+      coverage: "partial",
+      value: {
+        count: 2,
+        oldestSince: "2026-10-01T00:00:00Z",
+        topReason: expect.any(String),
+        credentials: [],
+      },
+    });
+    // Lifecycle work is ordinary agent work, not debt.
+    input.attention = createOperatingAttentionReport({
+      projectId: "prj_health",
+      workstream: null,
+      workstreamFreshness: null,
+      canonicalization: { coverage: "complete", candidates: [] },
+      knowledgeLifecycle: {
+        coverage: "cached",
+        issues: [{ code: "normalization_required", command: "lervo knowledge status" }],
+      },
+      observedAt: healthNow,
+    });
+    expect(projectRepositoryHealth(input).measures.lervoDebt).toMatchObject({
+      status: "within_target",
+      coverage: "partial",
+      value: { count: 0 },
+    });
+  });
+
+  it("keeps no owner work and marks a truncated attention report partial", () => {
+    const input = sources();
+    const report = createOperatingAttentionReport({
+      projectId: "prj_health",
+      workstream: null,
+      workstreamFreshness: null,
+      canonicalization: { coverage: "complete", candidates: [] },
+      knowledgeLifecycle: {
+        coverage: "cached",
+        issues: Array.from({ length: 300 }, (_, i) => ({
+          code: "turn_approval_pending",
+          command: `lervo workstream current --context ${i}`,
+        })),
+      },
+      documentFreshness: { held: [], applied: [], zeroSuccessHold: null, debt: [] },
       instructionCapture: { candidates: [], held: [], applied: { rules: [], totalCount: 0 } },
       knowledgeConvergence: { owner: null, publication: null },
       observedAt: healthNow,
     });
-    expect(input.attention.summary).toMatchObject({ userActionCount: 300, truncatedCount: 44 });
-    expect(projectRepositoryHealth(input).measures.ownerReview.value).toMatchObject({
-      count: 300,
-      confirmedCount: 300,
-      omitted: 268,
+    // ADR-0561: a stored pending_user_approval declaration is Lervo work, never owner review.
+    expect(report.summary).toMatchObject({ userActionCount: 0, truncatedCount: 44 });
+    input.attention = report;
+    expect(projectRepositoryHealth(input).measures.lervoDebt).toMatchObject({
+      coverage: "partial",
+      value: { count: 0, credentials: [] },
     });
-    expect(projectRepositoryHealth(input).measures.ownerReview.value!.items).toHaveLength(32);
   });
 
   it("does not close a current stop or count Find events using future event timestamps", () => {

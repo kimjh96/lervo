@@ -51,6 +51,12 @@ export async function withConvergenceAssignment(input: {
   role: ConvergenceWorkerRole;
   state: KnowledgeConvergenceInput;
   paths: string[];
+  /**
+   * ADR-0561: a writer applying an independently reviewed exact plan acts within the parent's
+   * responsibility, because the reviewed plan carries its own exact path set. Every other writer
+   * stays inside the delegation's roots.
+   */
+  writeScope?: "delegation_roots" | "reviewed_plan";
   assertLease: () => void;
   run(authority: ConvergenceAssignmentAuthority): Promise<KnowledgeConvergenceStageResult>;
 }): Promise<KnowledgeConvergenceStageResult> {
@@ -73,8 +79,9 @@ export async function withConvergenceAssignment(input: {
   let roleName = convergenceAgentName(input.role, input.state.baseline.delegationHash!);
   const agents = await listAgents(root);
   const parent = agents.find((candidate) => candidate.agentId === delegation.parentAgentId)!;
+  const reviewedPlanWriter = input.role === "writer" && input.writeScope === "reviewed_plan";
   const responsibilityPaths =
-    input.role === "writer" || input.role === "integrator"
+    (input.role === "writer" || input.role === "integrator") && !reviewedPlanWriter
       ? [
           ...new Set([
             ...delegation.canonicalRoots,
@@ -84,7 +91,7 @@ export async function withConvergenceAssignment(input: {
         ].sort()
       : parent.responsibilityPaths;
   if (
-    (input.role === "generator" || input.role === "reviewer") &&
+    (input.role === "generator" || input.role === "reviewer" || reviewedPlanWriter) &&
     !input.paths.every((path) =>
       responsibilityPaths.some((scope) => repositoryPathWithinScope(path, scope)),
     )

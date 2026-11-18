@@ -73,9 +73,9 @@ Readers update before writers, because `lervo upgrade` activates new event schem
 3. **Registered repositories on every host.**
    - Read each host's registry (`repositories.json` in the Lervo state directory), not a remembered list.
    - Run `scripts/upgrade-all.sh <release-dir>/<host>-upgrade-receipts` on each host; it implements the steps below.
-   - For each repository, run `lervo upgrade --json`. Apply `--apply --approval <planId>`, and repeat until the status is `current`.
-   - When a background cycle changes the plan during the wait (`upgrade_plan_changed`), use `lervo upgrade --apply --safe`.
-   - Keep receipts under `<release-dir>/<host>-upgrade-receipts/`.
+   - For each repository, run `lervo upgrade --json`, then `lervo upgrade --apply --json`, and repeat until the status is `current` or `lervo_debt`. `--apply` plans again inside the exclusive window, so a background cycle cannot make it stale. No stage takes an approval (ADR-0561).
+   - `lervo_debt` means Lervo holds a stage itself, for example a reviewed plan whose cross-check disagreed or had no admitted provider. Report it with its reason; it is not owner work.
+   - Each receipt's `notices` name what changed and the one command that undoes it. Keep receipts under `<release-dir>/<host>-upgrade-receipts/`.
    - Never commit generated outputs into an owner's working branch. Report which repositories have uncommitted generated changes.
 4. **Services and policy.**
    - Confirm the knowledge host service on each host runs the new CLI and is not burning CPU.
@@ -83,4 +83,4 @@ Readers update before writers, because `lervo upgrade` activates new event schem
 
 ## Report
 
-Report each host and repository with its final status. Name any stage still blocked by repository content, such as a lint error, and say which actor resolves it. A blocked content stage is not a reason to skip the other repositories or hosts.
+Report each host and repository with its final status and every receipt notice with its undo command. Name any stage still blocked by repository content, such as a lint error, and say which actor resolves it. Name any Lervo debt with its reason. A blocked content stage is not a reason to skip the other repositories or hosts.

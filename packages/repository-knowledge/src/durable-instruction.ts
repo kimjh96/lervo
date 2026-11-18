@@ -6,6 +6,7 @@ import {
   type KnowledgeMaterializationCheckpoint,
 } from "./durable-apply.js";
 import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enforcement.js";
+import { planDurableInstructionReplacements } from "./durable-instruction-replacement.js";
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import type { KnowledgeFileOperation } from "./types.js";
 
@@ -24,19 +25,28 @@ export interface GroundedDurableInstruction {
   conflict: "none" | "covered" | "possible" | "unknown";
   confidence: "high" | "medium" | "low";
   reasonIds: string[];
+  /** Catalog paths of older rules this rule supersedes in the same scope (ADR-0561). */
+  replaces?: string[];
 }
 
+/**
+ * ADR-0561 plan states. `ungrounded`: the rule text is not available yet, so the caller retries
+ * grounding in the background; nothing is dropped. `ready` stores the rule and deletes any older
+ * generated rule it replaces; `current` means the same rule is already stored.
+ */
 export interface DurableInstructionPlan {
   schemaVersion: 1;
   planKind: "durable_instruction_intake";
   planId: string;
-  status: "ignored" | "workstream" | "current" | "pending" | "ready" | "blocked";
+  status: "ignored" | "workstream" | "ungrounded" | "current" | "ready";
   repositoryRoot: string;
   projectId: string;
   requestDigest: string;
   resolverResultDigest: string;
   ruleId: string | null;
   targetPath: string | null;
+  /** Generated rule paths the plan deletes because this rule replaces them. */
+  replacedPaths: string[];
   reasonIds: string[];
   operations: KnowledgeFileOperation[];
 }
@@ -70,21 +80,40 @@ function safePaths(paths: string[]): string[] {
   return [...new Set(paths)].sort();
 }
 
+/** Unspecified scope means repository-wide (ADR-0561). */
+function effectiveScope(scope: GroundedDurableInstruction["scope"]): {
+  kind: "repository" | "paths";
+  paths: string[];
+} {
+  const paths = safePaths(scope.kind === "paths" ? scope.paths : []);
+  return paths.length === 0 ? { kind: "repository", paths: [] } : { kind: "paths", paths };
+}
+
 function renderedInstruction(input: {
   ruleId: string;
   instruction: GroundedDurableInstruction & { title: string; statement: string };
+  scopePaths: string[];
+  replacedRuleIds: string[];
 }): string {
-  const paths = safePaths(input.instruction.scope.paths);
+  const classification = [...new Set(input.instruction.reasonIds)].sort();
   const frontmatter = [
     "---",
-    ...(paths.length === 0
+    ...(input.scopePaths.length === 0
       ? []
-      : ["paths:", ...paths.map((path) => `  - ${JSON.stringify(path)}`)]),
+      : ["paths:", ...input.scopePaths.map((path) => `  - ${JSON.stringify(path)}`)]),
     "lervo:",
     "  durableInstruction:",
     "    schemaVersion: 1",
     `    ruleId: ${input.ruleId}`,
-    "    authority: explicit_user",
+    `    authority: ${input.instruction.authority}`,
+    `    operation: ${input.instruction.operation}`,
+    `    risk: ${input.instruction.risk}`,
+    ...(classification.length === 0
+      ? []
+      : ["    classification:", ...classification.map((reason) => `      - ${reason}`)]),
+    ...(input.replacedRuleIds.length === 0
+      ? []
+      : ["    replaces:", ...input.replacedRuleIds.map((ruleId) => `      - ${ruleId}`)]),
     "---",
   ];
   const exceptions =
@@ -115,14 +144,48 @@ async function existingContent(repositoryRoot: string, path: string): Promise<st
   }
 }
 
+function ruleOperation(input: {
+  targetPath: string;
+  content: string;
+  current: string | null;
+}): KnowledgeFileOperation {
+  const desiredHash = sha256(input.content);
+  const base = {
+    path: input.targetPath,
+    ownership: "lervo_generated" as const,
+    mediaType: "text/markdown" as const,
+    desiredHash,
+  };
+  if (input.current === null)
+    return { ...base, action: "create", content: input.content, reason: "owner_rule_stored" };
+  if (sha256(input.current) === desiredHash)
+    return {
+      ...base,
+      action: "unchanged",
+      content: input.content,
+      expectedCurrentHash: desiredHash,
+      reason: "owner_rule_already_current",
+    };
+  return {
+    ...base,
+    action: "update",
+    content: input.content,
+    expectedCurrentHash: sha256(input.current),
+    reason: "owner_rule_reclassified",
+  };
+}
+
+/**
+ * ADR-0561: an owner rule with grounded text is always planned for storage, whatever its risk,
+ * operation, conflict, confidence, or scope; those are recorded as its classification. The only
+ * non-storing outcomes are a statement that is no rule (`ignored`, `workstream`) and a rule whose
+ * text is not grounded yet (`ungrounded`), which the caller retries.
+ */
 export async function createDurableInstructionPlan(input: {
   repositoryRoot: string;
   projectId: string;
   requestDigest: string;
   resolverResultDigest: string;
-  groundingStatus: "ready" | "clarify" | "abstain" | "approval_required";
-  catalogComplete: boolean;
-  ambiguityReasons: string[];
   instruction: GroundedDurableInstruction;
 }): Promise<DurableInstructionPlan> {
   if (!HASH.test(input.requestDigest) || !HASH.test(input.resolverResultDigest))
@@ -147,80 +210,54 @@ export async function createDurableInstructionPlan(input: {
     status,
     ruleId: null,
     targetPath: null,
+    replacedPaths: [],
     reasonIds: reasons,
     operations: [],
   });
   if (input.instruction.disposition === "none") return empty("ignored", reasonIds);
   if (input.instruction.disposition === "workstream") return empty("workstream", reasonIds);
-  if (
-    input.instruction.disposition !== "canonical" ||
-    input.groundingStatus !== "ready" ||
-    !input.catalogComplete ||
-    input.ambiguityReasons.length > 0 ||
-    input.instruction.speechAct !== "directive" ||
-    input.instruction.authority !== "explicit_user" ||
-    input.instruction.durability !== "repository" ||
-    input.instruction.operation !== "add" ||
-    input.instruction.scope.kind === "unspecified" ||
-    input.instruction.title === null ||
-    input.instruction.statement === null ||
-    input.instruction.risk !== "low" ||
-    input.instruction.conflict !== "none" ||
-    input.instruction.confidence !== "high"
-  )
-    return empty("pending", [...reasonIds, "automatic_gate_not_satisfied"]);
+  if (input.instruction.title === null || input.instruction.statement === null)
+    return empty("ungrounded", [...reasonIds, "rule_text_unavailable"]);
   const title = markdownText(input.instruction.title, "title", 160);
   const statement = markdownText(input.instruction.statement, "statement", 2_000);
   input.instruction.exceptions.forEach((item) => markdownText(item, "exception", 512));
+  const scope = effectiveScope(input.instruction.scope);
   const identity = {
     title,
     statement,
-    scope: { kind: input.instruction.scope.kind, paths: safePaths(input.instruction.scope.paths) },
+    scope,
     exceptions: input.instruction.exceptions,
   };
   const ruleId = stableId("rule", identity);
   const targetPath = `docs/instructions/generated/${ruleId}.md`;
+  const replacements = await planDurableInstructionReplacements({
+    repositoryRoot: base.repositoryRoot,
+    replaces: input.instruction.replaces ?? [],
+    scopePaths: scope.paths,
+    targetPath,
+  });
+  const replacedPaths = replacements.operations.map((operation) => operation.path);
   const content = renderedInstruction({
     ruleId,
-    instruction: { ...input.instruction, title, statement, scope: identity.scope },
+    instruction: { ...input.instruction, title, statement },
+    scopePaths: scope.paths,
+    replacedRuleIds: replacedPaths.map((path) => path.slice(path.lastIndexOf("/") + 1, -3)),
   });
-  const desiredHash = sha256(content);
-  const current = await existingContent(base.repositoryRoot, targetPath);
-  const status =
-    current === null ? "ready" : sha256(current) === desiredHash ? "current" : "blocked";
-  const operations: KnowledgeFileOperation[] =
-    status === "ready"
-      ? [
-          {
-            path: targetPath,
-            action: "create",
-            ownership: "lervo_generated",
-            mediaType: "text/markdown",
-            content,
-            desiredHash,
-            reason: "explicit_user_durable_instruction",
-          },
-        ]
-      : status === "current"
-        ? [
-            {
-              path: targetPath,
-              action: "unchanged",
-              ownership: "lervo_generated",
-              mediaType: "text/markdown",
-              expectedCurrentHash: desiredHash,
-              desiredHash,
-              reason: "explicit_user_durable_instruction_already_current",
-            },
-          ]
-        : [];
+  const rule = ruleOperation({
+    targetPath,
+    content,
+    current: await existingContent(base.repositoryRoot, targetPath),
+  });
+  const status = rule.action === "unchanged" && replacedPaths.length === 0 ? "current" : "ready";
+  const operations = [rule, ...replacements.operations];
   const planId = stableId("kinstructionplan", {
     projectId: input.projectId,
     requestDigest: input.requestDigest,
     resolverResultDigest: input.resolverResultDigest,
     ruleId,
     targetPath,
-    desiredHash,
+    desiredHash: rule.desiredHash,
+    replacedPaths,
     status,
   });
   return {
@@ -229,7 +266,8 @@ export async function createDurableInstructionPlan(input: {
     status,
     ruleId,
     targetPath,
-    reasonIds: status === "blocked" ? [...reasonIds, "target_conflict"] : reasonIds,
+    replacedPaths,
+    reasonIds: [...new Set([...reasonIds, ...replacements.skippedReasonIds])].sort(),
     operations,
   };
 }

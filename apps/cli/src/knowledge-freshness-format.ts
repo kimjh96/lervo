@@ -1,4 +1,7 @@
-import type { DocumentFreshnessCandidateV1 } from "@lervo/repository-knowledge";
+import {
+  documentFreshnessUndoCommand,
+  type DocumentFreshnessCandidateV1,
+} from "@lervo/repository-knowledge";
 import type { DocumentFreshnessStatusReport } from "@lervo/repository-knowledge-runtime";
 
 function counts(record: Record<string, number>): string {
@@ -10,7 +13,7 @@ function counts(record: Record<string, number>): string {
 
 export function formatDocumentFreshnessStatus(status: DocumentFreshnessStatusReport): string {
   return [
-    `Document freshness: ${status.enabled ? "enabled" : "disabled"} · stale ${status.summary.staleCount} · awaiting review ${status.summary.awaitingReviewCount}${status.summary.blocked ? " · blocked" : ""}`,
+    `Document freshness: ${status.enabled ? "enabled" : "disabled"} · stale ${status.summary.staleCount} · held by Lervo ${status.summary.awaitingReviewCount} · Lervo debt ${status.debt?.length ?? 0}${status.zeroSuccessHold ? ` · generation on hold until ${status.zeroSuccessHold.until}` : ""} (no owner action)`,
     `candidates by state: ${counts(status.counts.byState)}`,
     `candidates by priority: ${counts(status.counts.byPriority)}`,
     ...(status.technicalRecovery === undefined
@@ -23,6 +26,10 @@ export function formatDocumentFreshnessStatus(status: DocumentFreshnessStatusRep
       ? "oldest open candidate: none"
       : `oldest open candidate: ${status.oldestOpen.candidateId} ${status.oldestOpen.documentPath} · ${status.oldestOpen.ageSeconds}s`,
     `holds: ${status.holds.length === 0 ? "none" : status.holds.map((hold) => `${hold.documentPath} until ${hold.until} (${hold.reason})`).join("; ")}`,
+    ...(status.debt ?? []).map(
+      (debt) =>
+        `Lervo debt ${debt.documentPath} · ${debt.reason} since ${debt.since} · attempts ${debt.attempts} · retry ${debt.retryAt}`,
+    ),
     ...status.recentApplies.map(
       (apply) =>
         `applied ${apply.candidateId} ${apply.documentPath} · time to fresh ${apply.timeToFreshSeconds}s`,
@@ -37,14 +44,14 @@ function classes(candidate: DocumentFreshnessCandidateV1): string {
 }
 
 export function formatDocumentFreshnessReview(
-  candidates: ReadonlyArray<DocumentFreshnessCandidateV1 & { applyCommand: string | null }>,
+  candidates: ReadonlyArray<DocumentFreshnessCandidateV1 & { retryAt: string | null }>,
 ): string {
-  if (candidates.length === 0) return "Document freshness review: no candidate awaits the owner.\n";
+  if (candidates.length === 0) return "Document freshness review: Lervo holds no candidate.\n";
   return `${[
-    `Document freshness review: ${candidates.length} ${candidates.length === 1 ? "candidate awaits" : "candidates await"} the owner`,
+    `Document freshness review: Lervo holds ${candidates.length} ${candidates.length === 1 ? "candidate" : "candidates"} (inspection only; no owner action)`,
     ...candidates.map(
       (candidate) =>
-        `  ${candidate.state} ${candidate.candidateId} ${candidate.documentPath} · ${candidate.priorityClass} · ${classes(candidate)} · hunks pending ${candidate.pendingHunkIds.length}${candidate.crossCheck === "unavailable" ? ` · cross-check unavailable${candidate.crossCheckReview?.unavailableReason == null ? "" : ` (${candidate.crossCheckReview.unavailableReason})`}, owner review instead` : candidate.crossCheck === "agreement" ? " · cross-check agreement" : ""}\n    ${candidate.applyCommand ?? "no apply command: the candidate needs owner input"}`,
+        `  ${candidate.state} ${candidate.candidateId} ${candidate.documentPath} · ${candidate.priorityClass} · ${classes(candidate)} · hunks pending ${candidate.pendingHunkIds.length}${candidate.crossCheckReview?.unavailableReason == null ? "" : ` · cross-check unavailable (${candidate.crossCheckReview.unavailableReason})`}${candidate.retryAt === null ? "" : ` · Lervo retries at ${candidate.retryAt}`}`,
     ),
   ].join("\n")}\n`;
 }
@@ -53,8 +60,10 @@ function crossCheckSummary(candidate: DocumentFreshnessCandidateV1): string {
   const review = candidate.crossCheckReview;
   if (review === undefined) return candidate.crossCheck;
   if (review.status === "pending") return "pending";
+  const rounds = candidate.crossCheckRounds?.length ?? 0;
   return [
     candidate.crossCheck,
+    ...(rounds === 0 ? [] : [`earlier agreeing rounds ${rounds}`]),
     ...(review.unavailableReason === null ? [] : [`reason ${review.unavailableReason}`]),
     ...(review.reviewerProvider === null ? [] : [`reviewer ${review.reviewerProvider}`]),
     ...(review.runId === null ? [] : [`run ${review.runId}`]),
@@ -67,13 +76,13 @@ export function formatDocumentFreshnessCandidate(
 ): string {
   return [
     `Freshness candidate ${candidate.candidateId} · ${candidate.state} · ${candidate.documentPath}`,
-    `operation ${candidate.operation} · priority ${candidate.priorityClass} · authority ${candidate.authorityRequired} · cross-check ${crossCheckSummary(candidate)}`,
+    `operation ${candidate.operation} · priority ${candidate.priorityClass} · cross-check ${crossCheckSummary(candidate)}`,
     ...candidate.checks.map((check) => `  check ${check.code}: ${check.status} (${check.detail})`),
     ...(candidate.explanation === null ? [] : [`explanation: ${candidate.explanation}`]),
     diff,
-    candidate.afterHash === null
-      ? "No apply command: the candidate has no verified output."
-      : `Apply: lervo knowledge freshness apply ${candidate.candidateId} --approval ${candidate.afterHash}`,
+    candidate.state === "applied" || candidate.state === "partially_applied"
+      ? `Undo: ${documentFreshnessUndoCommand(candidate.candidateId)}`
+      : "Lervo applies this candidate itself once the cross-check agrees; nothing waits for the owner.",
     "",
   ].join("\n");
 }

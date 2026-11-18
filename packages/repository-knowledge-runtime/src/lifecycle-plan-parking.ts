@@ -45,13 +45,14 @@ export function parkLifecyclePlan(
   parked: readonly ParkedConvergenceSource[],
   kind: LifecyclePlanKind,
   rejection: { planHash: string; rationale: string },
+  reason: "review_rejected" | "user_owned_content" = "review_rejected",
 ): ParkedConvergenceSource[] {
   return mergeParkedSources(parked, [
     {
       stage: "lifecycle",
       path: kind,
       contentHash: rejection.planHash,
-      reason: "review_rejected",
+      reason,
       attempts: 1,
       reasons: boundedReviewReasons([rejection.rationale]),
     },

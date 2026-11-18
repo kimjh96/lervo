@@ -82,7 +82,7 @@ function candidate(
 }
 
 describe("operating attention projection", () => {
-  it("prioritizes typed user authority and keeps stale and maintenance states distinct", () => {
+  it("holds a recorded approval as Lervo debt and keeps stale and maintenance states distinct", () => {
     const report = createOperatingAttentionReport({
       projectId: "prj_0123456789abcdef",
       workstream,
@@ -103,12 +103,16 @@ describe("operating attention projection", () => {
     expect(report).toMatchObject({
       status: "action_required",
       coverage: { workstream: "current", knowledgeLifecycle: "cached" },
-      summary: { totalCount: 5, blockingCount: 2, userActionCount: 1, staleCount: 1 },
+      summary: { totalCount: 5, blockingCount: 1, userActionCount: 0, staleCount: 1 },
     });
-    expect(report.items.slice(0, 2).map((item) => item.kind)).toEqual([
-      "workstream_approval",
-      "workstream_blocker",
-    ]);
+    expect(report.items[0]!.kind).toBe("workstream_blocker");
+    // ADR-0561: a recorded approval is the working agent's debt, never an owner approval.
+    expect(report.items.find((item) => item.kind === "workstream_approval")).toMatchObject({
+      state: "lervo_debt",
+      requiresUserAction: false,
+      blocking: false,
+      attribution: { actor: "working agent", consequence: null },
+    });
     expect(report.items.find((item) => item.kind === "workstream_decision")).toMatchObject({
       requiresUserAction: false,
       attribution: { actor: "principal proxy", recommendation: "first" },
@@ -128,6 +132,29 @@ describe("operating attention projection", () => {
       requiresUserAction: false,
       issueCode: "document_normalization_pending",
     });
+  });
+
+  it("attributes reviewed lifecycle plans to Lervo's own cross-check, never the owner (ADR-0561)", () => {
+    const report = createOperatingAttentionReport({
+      projectId: "prj_0123456789abcdef",
+      workstream: null,
+      workstreamFreshness: null,
+      canonicalization: { coverage: "complete", candidates: [] },
+      knowledgeLifecycle: {
+        coverage: "cached",
+        issues: [
+          "instruction_canonical_bootstrap_review_required",
+          "repository_layout_review_required",
+          "claude_instruction_bridge_review_required",
+        ].map((code) => ({ code, command: "lervo migrate knowledge" })),
+      },
+      observedAt: new Date("2026-11-02T00:00:00.000Z"),
+    });
+    const lifecycle = report.items.filter((item) => item.kind === "knowledge_lifecycle");
+    expect(lifecycle).toHaveLength(3);
+    for (const item of lifecycle)
+      expect(item).toMatchObject({ actionOwner: "agent", requiresUserAction: false });
+    expect(report.summary.userActionCount).toBe(0);
   });
 
   it("excludes terminal canonicalization states and keeps the digest independent of observation time", () => {
@@ -177,7 +204,7 @@ describe("operating attention projection", () => {
     });
   });
 
-  it("projects one user-owned item for an open repository replica divergence", () => {
+  it("projects an open repository replica divergence as Lervo debt, never owner work (ADR-0561)", () => {
     const localSnapshotHash = `sha256:${"a".repeat(64)}`;
     const peerSnapshotHash = `sha256:${"b".repeat(64)}`;
     const divergence = {
@@ -206,12 +233,14 @@ describe("operating attention projection", () => {
       expect.objectContaining({
         kind: "repository_replica_divergence",
         divergenceId: divergence.divergenceId,
-        actionOwner: "user",
-        requiresUserAction: true,
+        state: "lervo_debt",
+        actionOwner: "agent",
+        requiresUserAction: false,
         conflictPaths: ["source.ts"],
       }),
     ]);
-    expect(report.items[0]!.instruction).toContain("--replica project --prefer local|peer");
+    expect(report.items[0]!.recordedInstruction).toContain("lervo/replica-backup");
+    expect(report.items[0]!.instruction).not.toContain("--prefer");
   });
 
   it("projects draft availability and target coordinates without exposing proposed content", () => {

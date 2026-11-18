@@ -14,6 +14,7 @@ export const terminalTurnDeclaredEventPayloadSchema = {
       type: "string",
       enum: ["inquiry", "change", "review", "continuation", "approval_response"],
     },
+    // ADR-0561: `pending_user_approval` is never declared again; it stays so stored events parse.
     canonicalizationDisposition: {
       type: "string",
       enum: [
@@ -25,7 +26,13 @@ export const terminalTurnDeclaredEventPayloadSchema = {
     },
     knowledgeDisposition: {
       type: "string",
-      enum: ["not_applicable_read_only", "current", "refreshed", "pending_user_approval"],
+      enum: [
+        "not_applicable_read_only",
+        "current",
+        "refreshed",
+        "pending_background",
+        "pending_user_approval",
+      ],
     },
     deliberationDisposition: {
       type: "string",

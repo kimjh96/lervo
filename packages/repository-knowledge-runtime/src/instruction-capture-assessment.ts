@@ -63,27 +63,27 @@ export type InstructionCaptureAssessmentCall =
  */
 async function recordCaptureUsage(input: {
   context: InstructionCaptureContext;
-  captureId: string;
+  call: GovernedCallIdentity;
   catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
   sourceRevision: string;
   admissionObservationHash: string;
   usage: ProviderJsonUsage | null;
 }): Promise<void> {
-  const suffix = input.captureId.slice("kcap_".length);
+  const suffix = input.call.captureId.slice("kcap_".length);
   await recordTurnMeasurement(
     input.context.storage,
     createTurnMeasurement({
       coordinates: {
         projectId: input.context.storage.manifest.projectId,
-        runId: `run_capture_${suffix}`,
-        sessionId: `ses_capture_${suffix}`,
+        runId: `run_${input.call.runPrefix}_${suffix}`,
+        sessionId: `ses_${input.call.runPrefix}_${suffix}`,
       },
       attribution: {
         agentId: null,
         conversationDigest: null,
         channel: "knowledge_worker",
-        turnEventId: input.captureId,
-        stage: INSTRUCTION_CAPTURE_STAGE,
+        turnEventId: `${input.call.turnEventPrefix}_${suffix}`,
+        stage: input.call.stage,
       },
       source: {
         provider: input.context.provider,
@@ -111,18 +111,27 @@ async function recordCaptureUsage(input: {
   );
 }
 
-/**
- * One governed assessment call: background spend needs the reviewed convergence delegation, the
- * shared host admission, and an unpaused provider. The no-capability adapter gives the provider
- * no tools; owner and agent turn text reach it only through process stdin and are not retained.
- */
-export async function assessInstructionCapture(input: {
-  context: InstructionCaptureContext;
+/** Measurement coordinates of one governed call; the capture ID keeps retries idempotent. */
+interface GovernedCallIdentity {
   captureId: string;
-  request: InstructionCaptureRequestInput;
+  runPrefix: string;
+  turnEventPrefix: string;
+  stage: string;
+}
+
+/**
+ * One governed no-capability call: background spend needs the reviewed convergence delegation,
+ * the shared host admission, and an unpaused provider. The adapter gives the provider no tools;
+ * owner and agent turn text reach it only through process stdin and are not retained. Each call
+ * runs in a fresh provider session, so a second call is independent of the first (ADR-0561).
+ */
+export async function runGovernedCaptureCall(input: {
+  context: InstructionCaptureContext;
+  call: GovernedCallIdentity;
+  systemPrompt: string;
   catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
   sourceRevision: string;
-  validatePrecedingWork?(): Promise<boolean>;
+  request(): Promise<unknown>;
 }): Promise<InstructionCaptureAssessmentCall> {
   if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
     return { status: "deferred", reason: "knowledge_capacity_unavailable" };
@@ -167,7 +176,7 @@ export async function assessInstructionCapture(input: {
   if (admission === null) return { status: "deferred", reason: "knowledge_capacity_unavailable" };
   const measured = {
     context,
-    captureId: input.captureId,
+    call: input.call,
     catalogEntries: input.catalogEntries,
     sourceRevision: input.sourceRevision,
     admissionObservationHash: admission.observationHash,
@@ -178,17 +187,10 @@ export async function assessInstructionCapture(input: {
       if (context.providerQuantum !== undefined) context.providerQuantum.remaining -= 1;
       const runner = await createNoCapabilityProviderJsonRunner({
         ...backgroundProviderOptions(context),
-        systemPrompt: instructionCaptureAssessmentInstruction,
+        systemPrompt: input.systemPrompt,
         timeoutMs: ASSESSMENT_TIMEOUT_MILLISECONDS,
       });
-      const captureInput = { ...input.request };
-      if (input.validatePrecedingWork && !(await input.validatePrecedingWork().catch(() => false)))
-        delete captureInput.precedingWork;
-      if (captureInput.precedingWork !== undefined) {
-        const serialized = canonicalJson(captureInput.precedingWork);
-        if (sanitizePracticeText(serialized) !== serialized) delete captureInput.precedingWork;
-      }
-      const request = instructionCaptureRequest(captureInput);
+      const request = await input.request();
       result =
         runner.resolveObserved === undefined
           ? { value: await runner.resolve(request, context.signal), usage: null }
@@ -211,4 +213,37 @@ export async function assessInstructionCapture(input: {
   } finally {
     await admission.release();
   }
+}
+
+/** The ADR-0467 assessment of one owner turn through the governed call. */
+export async function assessInstructionCapture(input: {
+  context: InstructionCaptureContext;
+  captureId: string;
+  request: InstructionCaptureRequestInput;
+  catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
+  sourceRevision: string;
+  validatePrecedingWork?(): Promise<boolean>;
+}): Promise<InstructionCaptureAssessmentCall> {
+  return runGovernedCaptureCall({
+    context: input.context,
+    call: {
+      captureId: input.captureId,
+      runPrefix: "capture",
+      turnEventPrefix: "kcap",
+      stage: INSTRUCTION_CAPTURE_STAGE,
+    },
+    systemPrompt: instructionCaptureAssessmentInstruction,
+    catalogEntries: input.catalogEntries,
+    sourceRevision: input.sourceRevision,
+    async request() {
+      const captureInput = { ...input.request };
+      if (input.validatePrecedingWork && !(await input.validatePrecedingWork().catch(() => false)))
+        delete captureInput.precedingWork;
+      if (captureInput.precedingWork !== undefined) {
+        const serialized = canonicalJson(captureInput.precedingWork);
+        if (sanitizePracticeText(serialized) !== serialized) delete captureInput.precedingWork;
+      }
+      return instructionCaptureRequest(captureInput);
+    },
+  });
 }

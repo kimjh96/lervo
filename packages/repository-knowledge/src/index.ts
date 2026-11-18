@@ -80,6 +80,7 @@ export {
 export * from "./materialization-settlement.js";
 export * from "./durable-instruction.js";
 export * from "./durable-instruction-catalog.js";
+export * from "./durable-instruction-cross-check.js";
 export * from "./generated-durable-instructions.js";
 export * from "./instruction-capture-contract.js";
 export * from "./execution-event-source.js";
@@ -146,6 +147,10 @@ export {
   documentFreshnessRangeOwnership,
 } from "./document-freshness-classification.js";
 export {
+  documentFreshnessCrossCheckRetryAt,
+  projectDocumentFreshnessDebt,
+} from "./document-freshness-debt.js";
+export {
   applyDocumentFreshnessHunks,
   documentFreshnessOutsideBytesUnchanged,
 } from "./document-freshness-hunks.js";
@@ -158,7 +163,10 @@ export {
   parseDocumentFreshnessProposal,
   type DocumentFreshnessProposal,
 } from "./document-freshness-response.js";
-export { documentFreshnessAutoApplicableHunks } from "./document-freshness-candidate-state.js";
+export {
+  documentFreshnessAutoApplicableHunks,
+  documentFreshnessUserOwnedChange,
+} from "./document-freshness-candidate-state.js";
 export {
   buildDocumentFreshnessCandidate,
   reviewIntervalOnlyFreshnessCandidate,
@@ -167,7 +175,6 @@ export {
 export {
   buildDocumentFreshnessCrossCheckInput,
   documentFreshnessCandidateNeedsCrossCheck,
-  documentFreshnessCrossCheckBlocked,
   documentFreshnessCrossCheckInstruction,
   documentFreshnessCrossCheckResponseSchema,
   parseDocumentFreshnessCrossCheckResponse,
@@ -175,6 +182,7 @@ export {
   settleDocumentFreshnessCrossCheck,
   type DocumentFreshnessCrossCheckInputV1,
 } from "./document-freshness-cross-check.js";
+export { buildDocumentFreshnessArchiveCrossCheckInput } from "./document-freshness-archive-cross-check.js";
 export {
   documentFreshnessOwnershipResolver,
   observeDocumentFreshnessFindings,
@@ -198,7 +206,7 @@ export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
 export * from "./repository-layout-migration.js";
 export type { RepositoryLayoutCapacityFinding } from "./repository-layout-capacity.js";
-export * from "./repository-layout-decision.js";
+export * from "./repository-layout-revert.js";
 export * from "./scanner.js";
 export { withRepositoryKnowledgeScanReuse } from "./scan-reuse.js";
 export * from "./skill-contract-source-units.js";

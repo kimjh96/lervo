@@ -18,6 +18,8 @@ import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli as runUnisolatedCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
+import { planCrossCheck } from "./plan-cross-check-fixture.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
 const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
@@ -42,6 +44,17 @@ function io(root: string, stdout: string[], stderr: string[]) {
     stdout: (message: string) => stdout.push(message),
     stderr: (message: string) => stderr.push(message),
   };
+}
+
+/** A repository whose first reviewed knowledge plan adds a route to a user-owned ignore file. */
+async function ignoreFixture(): Promise<string> {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-upgrade-existing-ignore-"));
+  roots.push(root);
+  await writeFile(resolve(root, "main.ts"), "export const value = true;\n");
+  await writeFile(resolve(root, ".gitignore"), "coverage/\n");
+  expect(await runCli(["init", "--minimal", "--name", "ignore-fixture"], io(root, [], []))).toBe(0);
+  expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
+  return root;
 }
 
 async function repository(): Promise<string> {
@@ -85,11 +98,7 @@ describe("lervo upgrade", () => {
     const plan = JSON.parse(output.splice(0).join("")) as { planId: string; status: string };
     expect(plan.status).toBe("ready");
     expect(
-      await runCli(
-        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
       errors.join(""),
     ).toBe(0);
     const agents = await readFile(resolve(root, "AGENTS.md"), "utf8");
@@ -104,7 +113,7 @@ describe("lervo upgrade", () => {
     const stableAgents = await readFile(resolve(root, "AGENTS.md"), "utf8");
     output.length = 0;
     expect(await runCli(["upgrade", "--json"], io(root, output, errors)), errors.join("")).toBe(0);
-    expect(["current", "pending_authority"]).toContain(JSON.parse(output.join("")).status);
+    expect(["current", "lervo_debt"]).toContain(JSON.parse(output.join("")).status);
     expect(await readFile(resolve(root, "AGENTS.md"), "utf8")).toBe(stableAgents);
   }, 20_000);
 
@@ -183,11 +192,7 @@ describe("lervo upgrade", () => {
     const plan = JSON.parse(output.splice(0).join("")) as { planId: string; status: string };
     expect(plan.status).toBe("ready");
     expect(
-      await runCli(
-        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
       errors.join("\n"),
     ).toBe(0);
     expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
@@ -196,7 +201,7 @@ describe("lervo upgrade", () => {
     );
   }, 20_000);
 
-  it("plans without changing repository bytes and requires the exact current plan", async () => {
+  it("plans without changing repository bytes and refuses the removed approval options", async () => {
     const root = await repository();
     const output: string[] = [];
     const errors: string[] = [];
@@ -208,16 +213,20 @@ describe("lervo upgrade", () => {
       status: string;
       stages: { knowledge: { disposition: string } };
       privacy: { credentials: string };
+      policy: { userOwnedBytes: string; providerConfiguration: string };
     };
     expect(plan).toMatchObject({
       planKind: "repository_upgrade",
       status: "ready",
       privacy: { credentials: "excluded" },
+      policy: {
+        userOwnedBytes: "never_automatic_outside_delegation_roots",
+        providerConfiguration: "backup_apply_verify_restore",
+      },
     });
     expect(plan.stages.knowledge.disposition).toBe("safe_apply");
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
 
-    await writeFile(resolve(root, "main.ts"), "export const value = false;\n");
     expect(
       await runCli(
         ["upgrade", "--apply", "--approval", plan.planId],
@@ -225,7 +234,7 @@ describe("lervo upgrade", () => {
         isolatedAdmission,
       ),
     ).toBe(1);
-    expect(errors.join(" ")).toContain("exact current repository upgrade plan");
+    expect(errors.join(" ")).toContain("--approval and --approve-role-binding were removed");
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
   });
 
@@ -256,11 +265,7 @@ describe("lervo upgrade", () => {
       staleAgentCount: 1,
     });
     expect(
-      await runCli(
-        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
       errors.join("\n"),
     ).toBe(0);
     const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
@@ -270,7 +275,7 @@ describe("lervo upgrade", () => {
     ]);
   }, 20_000);
 
-  it("applies a repository role refresh only with its exact displayed approval", async () => {
+  it("applies a repository role refresh without an owner approval (ADR-0561)", async () => {
     const root = await repository();
     const roleDirectory = resolve(root, ".lervo/roles");
     const rolePath = resolve(roleDirectory, "release-developer.json");
@@ -300,77 +305,41 @@ describe("lervo upgrade", () => {
       0,
     );
     const plan = JSON.parse(output.splice(0).join("")) as {
-      planId: string;
-      status: string;
-      stages: {
-        workforce: {
-          disposition: string;
-          requiredApprovals: Array<{
-            operationId: string;
-            approvalHash: string;
-            roleId: string;
-          }>;
-        };
-      };
+      stages: { workforce: Record<string, unknown> };
     };
     expect(plan.stages.workforce).toMatchObject({
-      disposition: "pending_authority",
-      requiredApprovals: [
-        {
-          roleId: "release-developer",
-          operationId: expect.stringMatching(/^wrbop_[a-f0-9]{24}$/u),
-          approvalHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
-        },
-      ],
+      disposition: "safe_apply",
+      reason: "stale_repository_role_bindings",
+      repositoryRoleRefreshes: [{ roleId: "release-developer", staleAgentCount: 1 }],
     });
-    const required = plan.stages.workforce.requiredApprovals[0]!;
+    expect(plan.stages.workforce).not.toHaveProperty("requiredApprovals");
     const humanOutput: string[] = [];
     expect(await runCli(["upgrade"], io(root, humanOutput, errors)), errors.join("\n")).toBe(0);
-    expect(humanOutput.join("\n")).toContain(
-      `--approve-role-binding ${required.operationId}=${required.approvalHash}`,
-    );
-    expect(
-      await runCli(
-        [
-          "upgrade",
-          "--apply",
-          "--approval",
-          plan.planId,
-          "--approve-role-binding",
-          `${required.operationId}=sha256:${"0".repeat(64)}`,
-        ],
-        io(root, [], errors),
-        isolatedAdmission,
-      ),
-    ).toBe(1);
-    expect(errors.join("\n")).toContain("not in the approved upgrade plan");
-    errors.length = 0;
+    expect(humanOutput.join("\n")).toContain("repository role refresh: release-developer@1.0.0");
+    expect(humanOutput.join("\n")).not.toContain("--approve-role-binding");
 
     expect(
-      await runCli(
-        [
-          "upgrade",
-          "--apply",
-          "--approval",
-          plan.planId,
-          "--approve-role-binding",
-          `${required.operationId}=${required.approvalHash}`,
-          "--json",
-        ],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
       errors.join("\n"),
     ).toBe(0);
-    const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
+    const receipt = JSON.parse(output.join("")) as {
+      appliedStages: string[];
+      notices: Array<{ stage: string; undo: string }>;
+    };
     expect(receipt.appliedStages).toContain("workforce_role_bindings");
+    expect(receipt.notices).toContainEqual(
+      expect.objectContaining({
+        stage: "workforce",
+        undo: expect.stringContaining(".lervo/roles"),
+      }),
+    );
     expect(await listAgents(root)).toEqual([
       expect.objectContaining({ agentId: agent.agentId, revision: agent.revision + 1 }),
     ]);
     expect(await readFile(rolePath, "utf8")).toBe(preservedRoleSource);
   }, 20_000);
 
-  it("applies every generated-only stage, migrates loose skills, lints, and stops at authority boundaries", async () => {
+  it("applies every independent stage, migrates loose skills, lints, and holds an unchecked plan as Lervo debt", async () => {
     const root = await repository();
     const skill = resolve(root, ".agents/skills/reviewer");
     await mkdir(skill, { recursive: true });
@@ -378,6 +347,8 @@ describe("lervo upgrade", () => {
       resolve(skill, "SKILL.md"),
       "---\nname: reviewer\ndescription: Review bounded repository changes.\n---\n\nReview the requested files.\n",
     );
+    // A reviewed knowledge plan applies only as its own undo commit over committed sources.
+    commitRepository(root);
 
     const output: string[] = [];
     const errors: string[] = [];
@@ -394,7 +365,7 @@ describe("lervo upgrade", () => {
     });
 
     const applyCode = await runCli(
-      ["upgrade", "--apply", "--approval", plan.planId, "--json"],
+      ["upgrade", "--apply", "--json"],
       io(root, output, errors),
       isolatedAdmission,
     );
@@ -404,12 +375,25 @@ describe("lervo upgrade", () => {
       status: string;
       appliedStages: string[];
       knowledgeLint: { valid: boolean };
+      skippedStages: Array<{ stage: string; reason: string }>;
       pending: Array<{ reason: string }>;
     };
     expect(receipt.operation).toBe("repository_upgrade");
-    expect(receipt.appliedStages).toContain("capabilities");
+    expect(receipt.appliedStages).toEqual(
+      expect.arrayContaining(["capabilities", "terminal_integration"]),
+    );
     expect(receipt.knowledgeLint).toEqual({ valid: true, issueCount: 0 });
-    expect(["current", "pending_authority"]).toContain(receipt.status);
+    // No provider is admitted here, so the reviewed plan is held rather than asked of the owner;
+    // a plan that overwrites a user-owned file is held without a cross-check (invariant 5).
+    const held = [
+      ...receipt.skippedStages.filter((item) => item.stage === "knowledge"),
+      ...receipt.pending,
+    ].map((item) => item.reason);
+    expect(
+      held.some((reason) => ["cross_check_unavailable", "user_owned_content"].includes(reason)),
+      JSON.stringify(receipt),
+    ).toBe(true);
+    expect(receipt.status).toBe("lervo_debt");
     expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain(
       "Repository knowledge",
     );
@@ -452,11 +436,7 @@ describe("lervo upgrade", () => {
     const plan = JSON.parse(output.splice(0).join("")) as { planId: string; status: string };
     expect(plan.status).toBe("ready");
     expect(
-      await runCli(
-        ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-        io(root, output, errors),
-        isolatedAdmission,
-      ),
+      await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission),
       errors.join(""),
     ).toBe(0);
     const receipt = JSON.parse(output.join("")) as { appliedStages: string[] };
@@ -475,16 +455,8 @@ describe("lervo upgrade", () => {
     expect(errors.join("")).toContain("Run lervo init first");
   });
 
-  it("keeps an existing ignore file user-owned and resumes upgrade after exact migration approval", async () => {
-    const root = await mkdtemp(resolve(tmpdir(), "lervo-upgrade-existing-ignore-"));
-    roots.push(root);
-    await writeFile(resolve(root, "main.ts"), "export const value = true;\n");
-    await writeFile(resolve(root, ".gitignore"), "coverage/\n");
-    expect(await runCli(["init", "--minimal", "--name", "ignore-fixture"], io(root, [], []))).toBe(
-      0,
-    );
-    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
-
+  it("holds a reviewed plan that rewrites a user-owned file as Lervo debt (AGENTS.md invariant 5)", async () => {
+    const root = await ignoreFixture();
     const firstOutput: string[] = [];
     const errors: string[] = [];
     expect(await runCli(["upgrade", "--json"], io(root, firstOutput, errors))).toBe(0);
@@ -492,59 +464,87 @@ describe("lervo upgrade", () => {
       status: string;
       stages: {
         knowledge: { disposition: string; reason: string };
-        eventWriter: { disposition: string };
+        eventWriter: { disposition: string; reason: string };
       };
     };
-    // A new checkout writes schema 1; the event writer stage is ready beside the user decision.
     expect(first.status).toBe("ready");
-    expect(first.stages.eventWriter.disposition).toBe("safe_apply");
-    // ADR-0559: the layout plan is one owner decision with its two commands.
-    expect(first.stages.knowledge).toMatchObject({
-      disposition: "pending_authority",
-      reason: "layout_decision_pending",
-      layoutDecision: {
-        decisionId: expect.stringMatching(/^klaydec_/u),
-        accept: expect.stringMatching(
-          /^lervo migrate knowledge --root \S+ --accept-layout klaydec_/u,
-        ),
-        decline: expect.stringMatching(
-          /^lervo migrate knowledge --root \S+ --decline-layout klaydec_/u,
-        ),
-      },
+    expect(first.stages.eventWriter).toMatchObject({
+      disposition: "deferred",
+      reason: "terminal_integration_must_apply_first",
     });
+    // Without the owner's delegation, Lervo never rewrites the user's ignore file on its own.
+    expect(first.stages.knowledge).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "user_owned_content",
+    });
+    expect(first.stages.knowledge).not.toHaveProperty("layoutDecision");
 
-    const migrationOutput: string[] = [];
+    const checks = planCrossCheck("agree");
     expect(
-      await runCli(["migrate", "knowledge", "--json"], io(root, migrationOutput, errors)),
+      await runCli(["upgrade", "--apply", "--json"], io(root, [], errors), {
+        ...isolatedAdmission,
+        ...checks.services,
+      }),
       errors.join(""),
     ).toBe(0);
-    const migration = JSON.parse(migrationOutput.join("")) as {
-      planId: string;
-      userUpdates: Array<{ operationId: string; approvalHash: string; path: string }>;
-    };
-    const ignoreUpdate = migration.userUpdates.find((item) => item.path === ".gitignore")!;
-    expect(ignoreUpdate).toBeDefined();
+    expect(checks.checked).toEqual([]);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
+
+    // An owner command still applies it, cross-checked and committed as its undo point.
+    commitRepository(root);
+    const planned: string[] = [];
+    expect(await runCli(["migrate", "knowledge", "--json"], io(root, planned, errors))).toBe(0);
+    const plan = JSON.parse(planned.join("")) as { planId: string; status: string };
+    expect(plan.status).toBe("review_required");
+    expect(
+      await runCli(
+        ["migrate", "knowledge", "--apply", plan.planId],
+        io(root, [], errors),
+        checks.services,
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(checks.checked.length).toBeGreaterThan(0);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("docs/knowledge/\n");
+  }, 60_000);
+
+  it("changes nothing when an owner command's cross-check disagrees or the file is unsaved", async () => {
+    const root = await ignoreFixture();
+    commitRepository(root);
+    const errors: string[] = [];
+    const planned: string[] = [];
+    expect(await runCli(["migrate", "knowledge", "--json"], io(root, planned, errors))).toBe(0);
+    const plan = JSON.parse(planned.join("")) as { planId: string };
+    const disagree = planCrossCheck("disagree");
+    expect(
+      await runCli(
+        ["migrate", "knowledge", "--apply", plan.planId],
+        io(root, [], errors),
+        disagree.services,
+      ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("disagreed with plan");
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
+    // An unsaved edit to a file the plan rewrites would enter its commit and be lost on undo.
+    errors.length = 0;
+    await writeFile(resolve(root, ".gitignore"), "coverage/\ndist/\n");
+    const agree = planCrossCheck("agree");
+    const replanned: string[] = [];
+    expect(await runCli(["migrate", "knowledge", "--json"], io(root, replanned, errors))).toBe(0);
     expect(
       await runCli(
         [
           "migrate",
           "knowledge",
           "--apply",
-          migration.planId,
-          "--approve-item",
-          `${ignoreUpdate.operationId}=${ignoreUpdate.approvalHash}`,
-          "--json",
+          (JSON.parse(replanned.join("")) as { planId: string }).planId,
         ],
         io(root, [], errors),
+        agree.services,
       ),
-      errors.join(""),
-    ).toBe(0);
-    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("coverage/\n");
-    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("docs/knowledge/\n");
-
-    const secondOutput: string[] = [];
-    expect(await runCli(["upgrade", "--json"], io(root, secondOutput, errors))).toBe(0);
-    expect(JSON.parse(secondOutput.join(""))).toMatchObject({ status: "ready" });
-    expect(errors).toEqual([]);
-  });
+    ).toBe(1);
+    expect(errors.join("")).toContain("hold uncommitted work");
+    expect(agree.checked).toEqual([]);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\ndist/\n");
+  }, 60_000);
 });

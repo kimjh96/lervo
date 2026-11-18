@@ -1,6 +1,6 @@
 import {
-  activeDocumentFreshnessHold,
   canonicalJson,
+  documentFreshnessCrossCheckNotice,
   documentFreshnessSelectedOutput,
   sha256,
   type DocumentFreshnessApproval,
@@ -16,7 +16,7 @@ import {
   type FreshnessStorage,
 } from "./freshness-document-io.js";
 import { appendFreshnessEvent, recordFreshnessRejection } from "./freshness-events.js";
-import { listFreshnessHolds, writeFreshnessCandidate } from "./freshness-state-store.js";
+import { writeFreshnessCandidate } from "./freshness-state-store.js";
 import { freshnessDependenciesCurrent } from "./freshness-dependencies.js";
 
 async function assertFreshnessDependencies(input: {
@@ -67,7 +67,10 @@ export async function supersedeFreshnessCandidate(input: {
   return superseded;
 }
 
-/** Commits, stores, and records one apply; the written bytes are already in place. */
+/**
+ * Commits, stores, and records one apply; the written bytes are already in place. The commit
+ * carries the ADR-0561 notice fields as trailers, so the after-the-fact notice reads them from Git.
+ */
 async function settleFreshnessApply(input: {
   storage: FreshnessStorage;
   candidate: DocumentFreshnessCandidateV1;
@@ -82,6 +85,10 @@ async function settleFreshnessApply(input: {
     paths: input.paths,
     subject: input.subject,
     trailer: { key: "Lervo-Freshness-Candidate", candidateId: input.candidate.candidateId },
+    extraTrailers: [
+      ["Lervo-Freshness-Reason", input.candidate.reasonsAddressed.join(", ") || "none"],
+      ["Lervo-Freshness-Cross-Check", documentFreshnessCrossCheckNotice(input.candidate)],
+    ],
   });
   const next: DocumentFreshnessCandidateV1 = { ...input.next, commitHash };
   await writeFreshnessCandidate(input.storage.paths.repositoryRoot, next);
@@ -201,7 +208,30 @@ async function applyEdit(input: {
   });
 }
 
-/** Lervo applies its own verified hunks: Lervo-managed, no authority, no pending cross-check. */
+/**
+ * The record of Lervo's own apply (ADR-0561): no owner or mandate authority, bound to the applied
+ * hunks and to the agreeing cross-check runs, which are named as the reviewer.
+ */
+function lervoApproval(
+  candidate: DocumentFreshnessCandidateV1,
+  hunkIds: readonly string[],
+  now: Date,
+): DocumentFreshnessApproval {
+  const runs = [...(candidate.crossCheckRounds ?? []), candidate.crossCheckReview]
+    .filter((round) => round?.outcome === "agreement")
+    .map((round) => round!.runId)
+    .filter((runId): runId is string => runId !== null);
+  return {
+    approvalSource: "lervo_managed",
+    approvalRef: sha256(
+      canonicalJson({ candidateId: candidate.candidateId, hunks: [...hunkIds].sort(), runs }),
+    ),
+    reviewer: runs.length === 0 ? null : `cross_check ${runs.join(",")}`,
+    approvedAt: now.toISOString(),
+  };
+}
+
+/** Lervo applies verified edit hunks that need no cross-check or have its required agreement. */
 export async function applyLervoManagedFreshnessHunks(input: {
   storage: FreshnessStorage;
   candidate: DocumentFreshnessCandidateV1;
@@ -210,109 +240,53 @@ export async function applyLervoManagedFreshnessHunks(input: {
 }): Promise<DocumentFreshnessCandidateV1> {
   return applyEdit({
     ...input,
-    approval: {
-      approvalSource: "lervo_managed",
-      approvalRef: sha256(
-        canonicalJson({
-          candidateId: input.candidate.candidateId,
-          hunks: [...input.hunkIds].sort(),
-        }),
-      ),
-      reviewer: null,
-      approvedAt: input.now.toISOString(),
-    },
+    approval: lervoApproval(input.candidate, [...input.hunkIds], input.now),
   });
 }
 
-const OWNER_REVIEWABLE = new Set<DocumentFreshnessCandidateV1["state"]>([
-  "waiting_authority",
-  "verified_pending_cross_check",
-  "partially_applied",
-]);
-
 /**
- * Owner apply: binds the candidate and its verified output hash. It applies every pending hunk, or
- * the archive, and fails with `approval_mismatch`, `source_changed`, or `freshness_hold_active`
- * without writing.
+ * Lervo applies a verified archive after two agreeing cross-checks (ADR-0561): the move with its
+ * banner, the inbound link rewrites, and one commit. The CAS pre-image makes it revertible.
  */
-export async function applyFreshnessCandidateByOwner(input: {
+export async function applyVerifiedFreshnessArchive(input: {
   storage: FreshnessStorage;
   candidate: DocumentFreshnessCandidateV1;
-  approvalHash: string;
-  reviewer: string | null;
   now: Date;
 }): Promise<DocumentFreshnessCandidateV1> {
   const { candidate } = input;
-  if (!OWNER_REVIEWABLE.has(candidate.state) || candidate.afterHash === null)
+  if (
+    candidate.operation !== "archive" ||
+    candidate.archive === null ||
+    candidate.state !== "verified"
+  )
     throw new DocumentFreshnessOperationError(
       "candidate_not_reviewable",
-      `Candidate ${candidate.candidateId} is ${candidate.state}; only candidates awaiting review can be applied.`,
+      `Candidate ${candidate.candidateId} is not a verified archive.`,
     );
-  if (input.approvalHash !== candidate.afterHash)
-    throw new DocumentFreshnessOperationError(
-      "approval_mismatch",
-      `The approval must equal the verified output hash ${candidate.afterHash}.`,
-    );
-  const hold = activeDocumentFreshnessHold(
-    await listFreshnessHolds(input.storage.paths.repositoryRoot),
-    candidate,
-    input.now,
-  );
-  if (hold !== null)
-    throw new DocumentFreshnessOperationError(
-      "freshness_hold_active",
-      `${candidate.documentPath} is on a freshness hold until ${hold.until}.`,
-    );
-  const approval: DocumentFreshnessApproval = {
-    approvalSource: "owner",
-    approvalRef: sha256(
-      canonicalJson({
-        candidateId: candidate.candidateId,
-        afterHash: candidate.afterHash,
-        reviewer: input.reviewer,
-      }),
-    ),
-    reviewer: input.reviewer,
-    approvedAt: input.now.toISOString(),
-  };
-  if (candidate.operation === "archive" && candidate.archive !== null) {
-    await assertFreshnessDependencies(input);
-    let written: Awaited<ReturnType<typeof writeFreshnessArchive>>;
-    try {
-      written = await writeFreshnessArchive({ storage: input.storage, candidate });
-    } catch (error) {
-      if (error instanceof DocumentFreshnessOperationError && error.code === "source_changed")
-        await supersedeFreshnessCandidate(input);
-      throw error;
-    }
-    return settleFreshnessApply({
-      storage: input.storage,
-      candidate,
-      paths: written.paths,
-      subject: `docs: archive ${candidate.documentPath} as historical`,
-      beforeHash: candidate.sourceHash,
-      appliedHunkCount: 0,
-      next: {
-        ...candidate,
-        beforeBytesRef: written.preimageRef,
-        appliedHash: written.appliedHash,
-        state: "applied",
-        approval,
-        acknowledgedAt: null,
-        updatedAt: input.now.toISOString(),
-      },
-    });
+  await assertFreshnessDependencies(input);
+  let written: Awaited<ReturnType<typeof writeFreshnessArchive>>;
+  try {
+    written = await writeFreshnessArchive({ storage: input.storage, candidate });
+  } catch (error) {
+    if (error instanceof DocumentFreshnessOperationError && error.code === "source_changed")
+      await supersedeFreshnessCandidate(input);
+    throw error;
   }
-  if (candidate.operation !== "edit" || candidate.pendingHunkIds.length === 0)
-    throw new DocumentFreshnessOperationError(
-      "candidate_not_reviewable",
-      `Candidate ${candidate.candidateId} has no pending change to apply.`,
-    );
-  return applyEdit({
+  return settleFreshnessApply({
     storage: input.storage,
     candidate,
-    hunkIds: new Set(candidate.pendingHunkIds),
-    approval,
-    now: input.now,
+    paths: written.paths,
+    subject: `docs: archive ${candidate.documentPath} as historical`,
+    beforeHash: candidate.sourceHash,
+    appliedHunkCount: 0,
+    next: {
+      ...candidate,
+      beforeBytesRef: written.preimageRef,
+      appliedHash: written.appliedHash,
+      state: "applied",
+      approval: lervoApproval(candidate, [], input.now),
+      acknowledgedAt: null,
+      updatedAt: input.now.toISOString(),
+    },
   });
 }

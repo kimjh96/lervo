@@ -91,14 +91,18 @@ const FORGE_FAILURE_INSTRUCTIONS: Record<string, string> = {
 };
 
 /** Remediations for each reason superseded knowledge commits stayed on the branch. */
+/** Why superseded knowledge commits stayed on the branch; the replica cycle retries each. */
 const SUPERSESSION_HELD_INSTRUCTIONS: Record<string, string> = {
   not_on_branch:
-    "Superseded Lervo Knowledge commits remain because HEAD is detached or a Git operation is in progress. Finish or abort the operation and check out the branch; the next replica cycle drops them.",
+    "superseded Lervo Knowledge commits remain while HEAD is detached or a Git operation is in progress; the next replica cycle on the branch drops them.",
   under_other_work:
-    "Superseded Lervo Knowledge commits sit below other commits on this branch, so they were not removed automatically and replication waits. Rebase the branch onto the remote base and drop the commits authored by knowledge@lervo.invalid that git log lists before your own work; a backup ref under refs/lervo/knowledge-superseded keeps them.",
+    "superseded Lervo Knowledge commits sit below other commits on this branch, so Lervo does not rewrite them and replication waits; a backup ref under refs/lervo/knowledge-superseded keeps them, and the replica cycle drops them once they are the branch tip.",
   worktree_conflict:
-    "Superseded Lervo Knowledge commits remain because uncommitted edits touch the same paths. Commit or stash those edits; the next replica cycle drops the commits.",
+    "superseded Lervo Knowledge commits remain while uncommitted edits touch the same paths; the next replica cycle after those edits are committed drops them.",
 };
+
+/** Hub failures only a credential the owner holds can repair (ADR-0561 notice-only exception). */
+const CREDENTIAL_FAILURES = new Set(["hub_unauthorized", "token_file_unreadable", "hub_forbidden"]);
 
 function forgeFailureInstruction(detail: string | null): string | undefined {
   const failureClass = detail === null ? undefined : /^gh \S+ exit \S+ (\S+)$/u.exec(detail)?.[1];
@@ -115,21 +119,30 @@ export function knowledgeConvergenceAttentionItems(
   const items: OperatingAttentionItemV1[] = [];
   const verdict = input.owner?.verdict;
   if (verdict !== undefined && (verdict.role === "unverifiable" || verdict.role === "contended")) {
+    // ADR-0561: the resident retries ownership coordination every cycle, and a contended
+    // standalone host yields until the other host's lease window passes. Only a credential Lervo
+    // cannot create is the owner's, and it is a notice.
+    const credentials =
+      verdict.role === "unverifiable" && CREDENTIAL_FAILURES.has(verdict.failureCode ?? "");
+    const remediation = convergenceOwnerRemediation(verdict, input.hubScope ?? null)!;
     const item: KnowledgeConvergenceOwnerAttentionItemV1 = {
       schemaVersion: 1,
       kind: "knowledge_convergence_owner",
       itemId: `knowledge_convergence_owner_${verdict.role}`,
-      state: "action_required",
+      state: credentials ? "credentials_missing" : "lervo_debt",
       role: verdict.role,
       reason: verdict.reason,
       failureCode: verdict.failureCode ?? null,
       httpStatus: verdict.httpStatus ?? null,
       holderLabel: verdict.holder?.label ?? null,
       observedAt: verdict.observedAt,
-      actionOwner: "user",
-      requiresUserAction: true,
+      actionOwner: credentials ? "user" : "host resident",
+      requiresUserAction: credentials,
       blocking: false,
-      instruction: convergenceOwnerRemediation(verdict, input.hubScope ?? null)!,
+      instruction: credentials
+        ? `Notice: ${remediation} Lervo continues every stage that does not need this credential.`
+        : `Lervo debt: ${verdict.failureCode ?? verdict.reason}. The resident stays read-only for knowledge commits and retries ownership coordination on every cycle; nothing waits for the owner. Inspect with lervo knowledge convergence owner status.`,
+      recordedInstruction: remediation,
     };
     items.push(item);
   }
@@ -138,18 +151,21 @@ export function knowledgeConvergenceAttentionItems(
       ? input.publication.failure
       : null;
   if (failure !== null && failure !== undefined) {
+    // ADR-0561: Lervo retries every publication failure itself; only missing gh credentials,
+    // which Lervo cannot create, are the owner's, and they are reported as a notice.
+    const credentials = /^gh \S+ exit \S+ auth$/u.test(failure.detail ?? "");
     const item: KnowledgePublicationAttentionItemV1 = {
       schemaVersion: 1,
       kind: "knowledge_publication",
       itemId: `knowledge_publication_${failure.code}`,
-      state: "action_required",
+      state: credentials ? "credentials_missing" : "lervo_debt",
       failureCode: failure.code,
       detail: failure.detail,
       pullRequestUrl: input.publication?.pullRequestUrl ?? null,
       occurrences: failure.occurrences,
       firstObservedAt: failure.firstObservedAt,
-      actionOwner: "user",
-      requiresUserAction: true,
+      actionOwner: credentials ? "user" : "agent",
+      requiresUserAction: credentials,
       blocking: false,
       instruction:
         forgeFailureInstruction(failure.detail) ??
@@ -164,16 +180,17 @@ export function knowledgeConvergenceAttentionItems(
       schemaVersion: 1,
       kind: "knowledge_publication",
       itemId: "knowledge_publication_knowledge_supersession_held",
-      state: "action_required",
+      // ADR-0561: the replica cycle drops the commits once the branch allows it; Lervo debt.
+      state: "lervo_debt",
       failureCode: "knowledge_supersession_held",
       detail: `${held.commitCount} superseded commit(s) held: ${held.reason}`,
       pullRequestUrl: null,
       occurrences: 1,
       firstObservedAt: held.observedAt,
-      actionOwner: "user",
-      requiresUserAction: true,
+      actionOwner: "host resident",
+      requiresUserAction: false,
       blocking: false,
-      instruction: SUPERSESSION_HELD_INSTRUCTIONS[held.reason]!,
+      instruction: `Lervo debt: ${SUPERSESSION_HELD_INSTRUCTIONS[held.reason]!}`,
     };
     items.push(item);
   }

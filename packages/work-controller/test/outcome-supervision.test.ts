@@ -3,7 +3,7 @@ import type {
   SupervisedAssignmentObservationV1,
 } from "@lervo/application-contract";
 import { describe, expect, it } from "vitest";
-import { projectOutcomeSupervision } from "../src/index.js";
+import { principalEscalationBoundMs, projectOutcomeSupervision } from "../src/index.js";
 import { hash, now, owner, responsibility } from "./operating-supervision.fixture.js";
 
 function assignment(): SupervisedAssignmentObservationV1 {
@@ -52,6 +52,32 @@ function snapshot(): OutcomeSupervisionSnapshotV1 {
 }
 const project = (state: OutcomeSupervisionSnapshotV1, time = now) =>
   projectOutcomeSupervision({ snapshot: state, now: time, maximumRecoveryDecisions: 3 });
+const principal = {
+  actionKinds: ["allocate_existing", "revise_responsibility", "escalate"] as const,
+  expiresAt: "2026-09-12T00:00:00.000Z",
+};
+const projectAsPrincipal = (
+  state: OutcomeSupervisionSnapshotV1,
+  time = now,
+  scope: {
+    actionKinds: readonly ("allocate_existing" | "revise_responsibility" | "escalate")[];
+    expiresAt: string;
+  } = principal,
+) =>
+  projectOutcomeSupervision({
+    snapshot: state,
+    now: time,
+    maximumRecoveryDecisions: 3,
+    principal: scope,
+  });
+function exhaustedFailure(): OutcomeSupervisionSnapshotV1 {
+  const state = snapshot();
+  const task = state.assignments[0]!;
+  task.status = "failed";
+  task.effectDisposition = "known_safe_failure";
+  task.recoveryDecisionCount = 3;
+  return state;
+}
 
 describe("causal outcome supervision without a chat surface", () => {
   it("dispatches an exactly claimed responsibility before waiting for worker start", () => {
@@ -135,6 +161,77 @@ describe("causal outcome supervision without a chat surface", () => {
     });
     state.escalationCount = 32_769;
     expect(() => project(state)).toThrow("snapshot is invalid");
+  });
+  it("lets the principal proxy decide within its mandate at escalation capacity", () => {
+    const state = exhaustedFailure();
+    state.escalationCount = 8;
+    expect(projectAsPrincipal(state)).toMatchObject({
+      status: "recovering",
+      reasonCode: "principal_proxy_worker_failed",
+      nextAction: "revise_responsibility",
+    });
+    expect(
+      projectAsPrincipal(state, now, { actionKinds: ["escalate"], expiresAt: principal.expiresAt }),
+    ).toMatchObject({
+      status: "lervo_debt",
+      reasonCode: "principal_scope_exceeded",
+      nextAction: null,
+      nextCheckAt: null,
+    });
+    state.escalationCount = 7;
+    expect(projectAsPrincipal(state)).toMatchObject({
+      reasonCode: "worker_failed",
+      nextAction: "escalate",
+    });
+  });
+  it("keeps owner attention a notice until the bound, then the proxy proceeds", () => {
+    const state = exhaustedFailure();
+    state.escalationCount = 1;
+    state.attentionPending = true;
+    state.attentionPendingSince = now;
+    const bound = new Date(Date.parse(now) + principalEscalationBoundMs).toISOString();
+    expect(projectAsPrincipal(state)).toMatchObject({
+      status: "waiting_decision",
+      reasonCode: "owner_attention_pending",
+      nextAction: null,
+      nextCheckAt: bound,
+    });
+    expect(project(state)).toMatchObject({
+      reasonCode: "owner_attention_pending",
+      nextCheckAt: null,
+    });
+    expect(projectAsPrincipal(state, bound)).toMatchObject({
+      status: "recovering",
+      reasonCode: "principal_proxy_worker_failed",
+      nextAction: "revise_responsibility",
+    });
+    state.assignments[0]!.effectDisposition = "uncertain";
+    expect(projectAsPrincipal(state)).toMatchObject({
+      reasonCode: "uncertain_effect_attention_pending",
+      nextCheckAt: bound,
+    });
+    expect(projectAsPrincipal(state, bound)).toMatchObject({
+      status: "recovering",
+      reasonCode: "effect_outcome_uncertain",
+      nextAction: "inspect_uncertain_effect",
+    });
+    state.attentionPending = false;
+    expect(() => projectAsPrincipal(state)).toThrow("snapshot is invalid");
+    state.attentionPending = true;
+    state.attentionPendingSince = "yesterday";
+    expect(() => projectAsPrincipal(state)).toThrow("snapshot is invalid");
+  });
+  it("holds another project's overdue handoff acceptance as Lervo debt past the bound", () => {
+    const state = snapshot();
+    state.assignments = [];
+    state.escalationCount = 8;
+    state.handoffs = { pendingIncoming: [], pendingOutgoing: [hash("e")], nextCheckAt: now };
+    expect(projectAsPrincipal(state)).toMatchObject({
+      status: "lervo_debt",
+      reasonCode: "principal_scope_exceeded",
+      nextAction: null,
+      nextCheckAt: null,
+    });
   });
   it("rejects provider exit and lint as acceptance, binds reviews to exact artifacts and separates delivery", () => {
     const state = snapshot();

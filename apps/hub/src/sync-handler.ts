@@ -3,8 +3,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import {
   handleOutboundEventBatch,
   handleProjectRegistration,
-  handleWorkstreamPublish,
-  handleWorkstreamRead,
   handleWorkspaceCoordinationMutation,
   handleWorkspaceSummaryPublish,
   handleWorkspaceSummaryRead,
@@ -28,7 +26,6 @@ import {
 import {
   type OutboundEventBatch,
   type ProjectRegistrationRequest,
-  type WorkstreamReplicationPublishRequest,
   validateSchema,
 } from "@lervo/schemas";
 import {
@@ -44,6 +41,7 @@ import { resolveHubHttpMaxResponseBytes, sendHubError, sendHubJson } from "./res
 import { serveKnowledgeSyncRoute } from "./sync-knowledge-routes.js";
 import { syncRoutePermitted } from "./sync-route-permission.js";
 import { hubSyncQuery, matchHubSyncRoute } from "./sync-request.js";
+import { serveWorkstreamSyncRoute } from "./sync-workstream-routes.js";
 
 const DEFAULT_MAX_REQUEST_BYTES = 4_194_304;
 const MAX_MAX_REQUEST_BYTES = 16_777_216;
@@ -71,6 +69,8 @@ function workstreamError(
 ): void {
   if (error.code === "invalid_workstream") {
     sendHubError(response, 400, "invalid_request", maximum, headers);
+  } else if (error.code === "revision_not_found") {
+    sendHubError(response, 404, "not_found", maximum, headers);
   } else if (
     [
       "registration_required",
@@ -175,7 +175,10 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         });
         return;
       }
-      const query = hubSyncQuery(url.searchParams);
+      const query = hubSyncQuery(
+        url.searchParams,
+        route.kind === "workstreams" && request.method === "GET" ? ["snapshotContentHash"] : [],
+      );
       const principal = await options.authenticator.authenticate(
         singleAuthorizationHeader(request),
       );
@@ -207,16 +210,22 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         identityHash: query.projectIdentityHash,
       });
       const acceptedAt = currentTime(now);
-      if (route.kind === "workstreams" && request.method === "GET") {
-        const result = await handleWorkstreamRead({
+      const send = (status: number, body: unknown) =>
+        sendHubJson(response, status, body, maxResponseBytes, identityHeaders);
+      if (
+        await serveWorkstreamSyncRoute({
+          route,
+          method: request.method,
+          parameters: url.searchParams,
+          query,
+          expectedRegistrationId,
           store: options.store,
-          destinationId: query.destinationId,
-          projectId: route.projectId,
-          repositoryIdentityHash: query.projectIdentityHash,
-        });
-        sendHubJson(response, 200, result, maxResponseBytes, identityHeaders);
+          acceptedAt,
+          readBody: () => readBoundedJsonBody(request, maxRequestBytes),
+          send,
+        })
+      )
         return;
-      }
       if (route.kind === "workspace-summaries" && request.method === "GET") {
         const result = await handleWorkspaceSummaryRead({
           store: options.store,
@@ -236,8 +245,7 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
           store: options.store,
           acceptedAt,
           readBody: () => readBoundedJsonBody(request, maxRequestBytes),
-          send: (status, body) =>
-            sendHubJson(response, status, body, maxResponseBytes, identityHeaders),
+          send,
         })
       )
         return;
@@ -262,33 +270,6 @@ export function createHubSyncHttpHandler(options: HubSyncHttpHandlerOptions) {
         sendHubJson(
           response,
           result.status === "registered" ? 201 : 200,
-          result,
-          maxResponseBytes,
-          identityHeaders,
-        );
-        return;
-      }
-
-      if (route.kind === "workstreams") {
-        if (!validateSchema("workstreamReplicationPublishRequest", body).valid) {
-          throw new InvalidHubHttpRequestError();
-        }
-        const publication = body as WorkstreamReplicationPublishRequest;
-        if (
-          publication.projectId !== route.projectId ||
-          publication.repositoryIdentityHash !== query.projectIdentityHash ||
-          publication.registrationId !== expectedRegistrationId
-        )
-          throw new InvalidHubHttpRequestError();
-        const result = await handleWorkstreamPublish({
-          store: options.store,
-          destinationId: query.destinationId,
-          request: publication,
-          publishedAt: acceptedAt,
-        });
-        sendHubJson(
-          response,
-          result.status === "created" ? 201 : 200,
           result,
           maxResponseBytes,
           identityHeaders,

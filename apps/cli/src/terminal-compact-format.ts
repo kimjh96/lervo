@@ -6,7 +6,7 @@ import type { TerminalHookFailureReason, WorkstreamSnapshot } from "@lervo/schem
 import { isStaleWorkstreamItem, staleWorkstreamCountLine } from "./operating-attention-format.js";
 import { capContextBytes, MAXIMUM_COMPACT_CONTEXT_BYTES } from "./terminal-context-budget.js";
 import { terminalPublicationInstruction } from "./terminal-publication-instruction.js";
-import { mergeCurrentOwnerAttention } from "./repository-health-owner-review.js";
+import { attentionLervoDebt, mergeCurrentLervoDebt } from "./repository-health-lervo-debt.js";
 import { formatRepositoryHealth } from "./repository-health-format.js";
 import { unknownRepositoryHealth } from "./repository-health-reader.js";
 
@@ -105,14 +105,16 @@ export function formatCompactTerminalPreamble(input: {
   const now = new Date(input.attention.observedAt);
   const health =
     input.attention.health ??
-    (input.attention.items.some((item) => item.requiresUserAction)
+    (input.attention.items.some(
+      (item) => item.requiresUserAction || attentionLervoDebt(item) !== null,
+    )
       ? unknownRepositoryHealth(`sha256:${"0".repeat(64)}`, now, "projection_missing_or_unreadable")
       : null);
   const healthSection =
     health === null
       ? input.healthSection
       : formatRepositoryHealth(
-          mergeCurrentOwnerAttention(health, input.attention),
+          mergeCurrentLervoDebt(health, input.attention),
           now,
           input.repositoryRevision,
         );

@@ -6,6 +6,8 @@ Amended by: [ADR-0524](../source-intake/0524-keep-user-documents-out-of-the-gene
 
 Amended by: [ADR-0533](patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
+Amended by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md). Only the background canonical reviewer defers, rejects, or promotes a candidate. `lervo knowledge canonicalization review` and `promote` are removed, and `lervo knowledge canonicalization reopen <candidate-id>` undoes a decision.
+
 ## Context
 
 CLI 0.4.2 exposed a coupled lifecycle failure during an eight-branch merge. Structural records from different source snapshots conflicted, while choosing Git ours or theirs produced a set owned by no recorded generation. Structural apply wrote missing publications, global lint found unrelated stale stages, and rollback removed the publications before reporting only a later `publication_missing` symptom. Bridge, normalization, and refresh depended on one another's state, while Terminal Stop reduced a typed repository error to a generic fail-closed sentence. The lifecycle also projected document ownership into tracked `.prettierignore`, causing tool-specific churn.

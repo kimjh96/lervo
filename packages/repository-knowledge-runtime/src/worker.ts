@@ -1,3 +1,4 @@
+import { readRepositoryHold } from "@lervo/repository-registry";
 import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
 import { admittedBackgroundContext } from "./background-provider.js";
 import { runPracticeLearningCycle } from "./practice-stage.js";
@@ -105,14 +106,14 @@ export async function runAutonomousKnowledgeWorker(input: {
   /** ADR-0467 Hub adapter for exchanging owner-rule candidates; absent keeps them host-local. */
   instructionCandidateTransport?: InstructionCandidateExchangeTransport;
   /**
-   * ADR-0545: applies owner-stated rule candidates that pass the automatic gate. It runs only on
-   * the convergence owner, after capture and the Hub exchange; absent leaves candidates stored.
+   * ADR-0545, ADR-0561: applies every stored owner-rule candidate. It runs only on the convergence
+   * owner, after capture and the Hub exchange; absent leaves candidates stored.
    */
   applyOwnerStatedInstructions?: () => Promise<unknown>;
   /** How convergence observes repository sources; absent, every observation is a full capture. */
   sourceObservation?: ConvergenceSourceObservation;
 }): Promise<
-  | { status: "busy"; reason?: "knowledge_cycle_yielded_to_upgrade" }
+  | { status: "busy"; reason?: "knowledge_cycle_yielded_to_upgrade" | "repository_owner_hold" }
   | {
       status: "waiting_owner";
       owner: ConvergenceOwnerVerdict;
@@ -129,6 +130,10 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
 > {
   const root = input.storage.paths.repositoryRoot;
+  // ADR-0561: the owner's repository hold stops every effect of the resident here. Nothing is
+  // lost: queued owner turns and pending stages stay due until the owner releases the hold.
+  if ((await readRepositoryHold(root)) !== null)
+    return { status: "busy", reason: "repository_owner_hold" };
   // Transcript evidence is host-local observation; it requires no provider call or convergence authority.
   await withProcessCostScope("terminal_skills", () =>
     withRepositoryKnowledgeWorkerLock(root, async () => {

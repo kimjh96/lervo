@@ -1,4 +1,5 @@
 import { createWorkforceRoleBindingMigrationPlan } from "@lervo/agent-workforce";
+import { readWorkerProviderSelection } from "@lervo/repository-knowledge-runtime";
 import type {
   RepositoryLayoutCapacityFinding,
   RepositoryLayoutDeferredDocument,
@@ -8,15 +9,11 @@ import type {
 
 import { CommandFailure } from "./command-error-output.js";
 import { layoutDeferrals } from "./upgrade-deferred-documents.js";
+import { heldUpgradeKnowledgeReason } from "./held-effect-debt.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
-import { pendingLayoutDecision } from "./knowledge-layout-decision.js";
 import { MAXIMUM_LAYOUT_CAPACITY_ITEMS } from "./layout-capacity-lines.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
-import {
-  planTerminalIntegrationStage,
-  type PreparedTerminalIntegration,
-} from "./terminal-integration-stage.js";
-import type { CliIo } from "./types.js";
+import type { CliIo, CliServices } from "./types.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
 const maximumReportedBlockers = 64;
@@ -53,9 +50,9 @@ export interface KnowledgeStage {
   layoutCapacity?: RepositoryLayoutCapacityFinding[];
   /** The full number of directories over capacity; `layoutCapacity` lists at most 16. */
   layoutCapacityCount?: number;
-  /** ADR-0559: the one owner decision a layout plan asks for, with its two commands. */
-  layoutDecision?: { decisionId: string; summary: string; accept: string; decline: string };
 }
+
+export { inspectTerminalIntegration } from "./upgrade-terminal-inspection.js";
 
 export interface TerminalIntegrationStage {
   disposition: StageDisposition;
@@ -72,9 +69,8 @@ export interface WorkforceStage {
   staleAssignmentCount: number;
   status: string;
   reason: string;
-  requiredApprovals: Array<{
-    operationId: string;
-    approvalHash: string;
+  /** Repository-defined roles the stage refreshes; the role source in Git is their undo. */
+  repositoryRoleRefreshes: Array<{
     roleId: string;
     roleVersion: string;
     roleContractHash: string;
@@ -138,6 +134,23 @@ function blocker(value: unknown): UpgradeStageBlocker | null {
     ...(typeof item.message === "string" ? { message: item.message } : {}),
     ...(Array.isArray(item.issues) && item.issues.length > 0 ? { issues: item.issues } : {}),
   };
+}
+
+/**
+ * Whether a printed plan overwrites user-owned bytes: a user file it updates or deletes, or a moved
+ * file it rewrites. A user file it creates where none existed overwrites nothing.
+ */
+function editsUserOwnedContent(operations: unknown): boolean {
+  return (
+    Array.isArray(operations) &&
+    operations.some((operation) => {
+      const item = record(operation);
+      return (
+        (item?.ownership === "user" && item.action !== "create" && item.action !== "unchanged") ||
+        item?.action === "move_update"
+      );
+    })
+  );
 }
 
 /** Extracts the exact blockers from any knowledge sub-plan or error envelope. */
@@ -244,9 +257,11 @@ async function knowledgeDisposition(
       blockers: [],
     };
   }
-  // Provider selection is owner work only when no background owner will normalize the debt.
+  // Provider selection and a reviewed lifecycle plan are background work whenever a background
+  // owner will normalize the debt or cross-check and apply the plan (ADR-0561). Without one,
+  // upgrade cross-checks and applies the reviewed plan itself.
   const backgroundOwner =
-    envelope === null && status === "provider_required"
+    envelope === null && (status === "provider_required" || status === "review_required")
       ? await knowledgeBackgroundOwner(root)
       : null;
   if (backgroundOwner !== null) {
@@ -261,37 +276,48 @@ async function knowledgeDisposition(
         owner: backgroundOwner,
         pendingDocuments: Array.isArray(result.value.pendingDocuments)
           ? result.value.pendingDocuments.length
-          : 0,
+          : Array.isArray(result.value.moves)
+            ? result.value.moves.length
+            : 0,
       },
     };
   }
-  const decision =
-    envelope === null && planKind === "repository_layout" && status === "review_required"
-      ? await pendingLayoutDecision(root, result.value)
-      : null;
-  // A declined decision is settled, not current: the later knowledge stages it holds back stay
-  // uninspected, so the stage reports them as deferred until the plan changes.
-  if (decision !== null)
+  if (envelope === null && status === "review_required" && planId !== null) {
+    // AGENTS.md invariant 5: without the owner's delegation, Lervo never rewrites user-owned bytes
+    // on its own. Such a plan waits for an owner command; an upgrade never applies it.
+    if (editsUserOwnedContent(result.value.operations))
+      return {
+        disposition: "lervo_debt",
+        planKind,
+        planId,
+        status,
+        reason: "user_owned_content",
+        blockers: [],
+      };
+    const heldReason = await heldUpgradeKnowledgeReason(
+      root,
+      planId,
+      async () => (await readWorkerProviderSelection(root)) !== null,
+    );
     return {
-      ...(decision === "declined"
-        ? { disposition: "deferred", reason: "layout_decision_declined" }
-        : { disposition: "pending_authority", reason: "layout_decision_pending" }),
+      disposition: heldReason === null ? "safe_apply" : "lervo_debt",
       planKind,
       planId,
       status,
+      reason: heldReason ?? "cross_checked_apply",
       blockers: [],
-      ...(decision === "declined" ? {} : { layoutDecision: decision }),
     };
+  }
   if (
     envelope === null &&
     ["review_required", "provider_required", "action_required"].includes(status)
   ) {
     return {
-      disposition: "pending_authority",
+      disposition: "lervo_debt",
       planKind,
       planId,
       status,
-      reason: status,
+      reason: status === "provider_required" ? "normalization_awaits_background_owner" : status,
       blockers: [],
     };
   }
@@ -309,77 +335,44 @@ async function knowledgeDisposition(
   };
 }
 
-export async function inspectTerminalIntegration(root: string): Promise<{
-  stage: TerminalIntegrationStage;
-  prepared: PreparedTerminalIntegration;
-}> {
-  const prepared = await planTerminalIntegrationStage(root);
-  const { plan } = prepared;
-  const disposition: StageDisposition =
-    plan.status === "ready"
-      ? "safe_apply"
-      : plan.status === "review_required"
-        ? "pending_authority"
-        : plan.status === "blocked"
-          ? "blocked"
-          : "current";
-  return {
-    stage: {
-      disposition,
-      planId: plan.status === "current" ? null : plan.planId,
-      status: plan.status,
-      reason:
-        plan.status === "ready"
-          ? "generated_runtime_only"
-          : plan.status === "review_required"
-            ? "provider_hook_approval_required"
-            : plan.status === "blocked"
-              ? "provider_configuration_blocked"
-              : "terminal_integration_current",
-      blockers: plan.blockers.map((item) => ({
-        code: item.code,
-        path: item.path,
-        message: `${item.provider} terminal integration is blocked by ${item.code}.`,
-      })),
-    },
-    prepared,
-  };
-}
-
 export async function inspectWorkforce(root: string): Promise<WorkforceStage> {
   const plan = await createWorkforceRoleBindingMigrationPlan(root);
   return {
     disposition:
-      plan.status === "ready"
-        ? "safe_apply"
-        : plan.status === "review_required"
-          ? "pending_authority"
-          : plan.status === "blocked"
-            ? "blocked"
-            : "current",
+      plan.status === "ready" ? "safe_apply" : plan.status === "blocked" ? "blocked" : "current",
     planId: plan.planId,
     staleAgentCount: plan.staleAgentCount,
     staleAssignmentCount: plan.staleAssignmentCount,
     status: plan.status,
     reason: plan.reason,
-    requiredApprovals: plan.requiredApprovals,
+    repositoryRoleRefreshes: plan.repositoryRoleRefreshes,
   };
 }
 
-export async function applyKnowledgeStage(root: string, stage: KnowledgeStage): Promise<void> {
-  if (stage.planId === null)
-    throw new Error("A generated-only knowledge stage has no exact plan ID.");
+/**
+ * Applies one knowledge stage through `lervo migrate knowledge --apply`. A reviewed plan is
+ * cross-checked there first; the undo command its effect commit carries is returned.
+ */
+export async function applyKnowledgeStage(
+  root: string,
+  stage: KnowledgeStage,
+  services: Partial<Pick<CliServices, "crossCheckPlan">> = {},
+): Promise<{ undo: string | null }> {
+  if (stage.planId === null) throw new Error("An applicable knowledge stage has no exact plan ID.");
   const result = await capture(
     (io) =>
       runKnowledgeMigration({
         args: ["--root", root, "--integration-head", "--apply", stage.planId!, "--json"],
         io,
         mode: "migrate",
+        services,
       }),
     root,
   );
   if (result.code !== 0)
     throw capturedFailure(result, "The exact knowledge migration stage failed.");
+  const notice = record(result.value?.notice);
+  return { undo: typeof notice?.undo === "string" ? notice.undo : null };
 }
 
 /**

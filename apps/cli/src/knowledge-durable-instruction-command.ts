@@ -7,11 +7,11 @@ import {
   loadDurableInstructionCandidate,
 } from "@lervo/repository-knowledge";
 
-import { intakeDurableInstruction } from "./durable-instruction-intake.js";
 import {
-  applyReviewedDurableInstruction,
-  rejectDurableInstructionCandidate,
-} from "./durable-instruction-review.js";
+  intakeDurableInstruction,
+  type DurableInstructionIntakeResult,
+} from "./durable-instruction-intake.js";
+import { retireDurableInstruction } from "./durable-instruction-retire.js";
 import type { CliIo, CliServices } from "./types.js";
 
 async function intakeRequest(
@@ -44,7 +44,6 @@ async function intakeRequest(
 function formatCandidate(candidate: Awaited<ReturnType<typeof loadDurableInstructionCandidate>>) {
   return [
     `candidate: ${candidate.candidateId}`,
-    `candidate hash: ${candidate.candidateHash}`,
     `rule: ${candidate.ruleId}`,
     `source: ${candidate.captureSource ?? "explicit_intake"}`,
     `target: ${candidate.targetPath}`,
@@ -54,10 +53,27 @@ function formatCandidate(candidate: Awaited<ReturnType<typeof loadDurableInstruc
   ].join("\n");
 }
 
+function formatIntake(result: DurableInstructionIntakeResult): string {
+  const reasons = `reasons: ${result.reasonIds.join(", ") || "none"}`;
+  if (result.status === "applied" || result.status === "current" || result.status === "stored") {
+    const replaced =
+      result.replacedPaths.length === 0 ? "" : `replaced: ${result.replacedPaths.join(", ")}\n`;
+    const commit = result.commitHash === null ? "" : `commit: ${result.commitHash}\n`;
+    const state =
+      result.status === "stored"
+        ? "Stored the owner rule; the knowledge resident applies it on the convergence owner."
+        : `Stored the owner rule (${result.status}).`;
+    return `${state}\nrule: ${result.ruleId}\ntarget: ${result.targetPath}\n${replaced}${commit}fidelity: ${result.fidelity}\n${reasons}\nUndo with lervo knowledge instruction retire ${result.ruleId}.\n`;
+  }
+  if (result.status === "queued")
+    return `The owner rule waits in the private capture queue; the knowledge resident retries it until it is stored.\ncapture: ${result.captureId}\n${reasons}\n`;
+  return `Durable instruction intake: ${result.status}\n${reasons}\nNo repository instruction was stored.\n`;
+}
+
 export async function runKnowledgeDurableInstruction(
   args: string[],
   io: CliIo,
-  services?: Pick<CliServices, "groundProductionRequest">,
+  services?: Pick<CliServices, "groundProductionRequest" | "crossCheckDurableInstruction">,
 ): Promise<number> {
   const subcommand = args[0];
   if (subcommand === "intake") {
@@ -85,14 +101,8 @@ export async function runKnowledgeDurableInstruction(
       now: new Date(),
       services,
     });
-    io.stdout(
-      parsed.values.json
-        ? `${JSON.stringify(result, null, 2)}\n`
-        : result.candidate === null
-          ? `Durable instruction intake: ${result.status}\nplan: ${result.planId}\nreasons: ${result.reasonIds.join(", ") || "none"}\nNo repository instruction or review candidate was created.\n`
-          : `Durable instruction review candidate created.\n${formatCandidate(result.candidate)}\nReview the exact Markdown and hash, then use knowledge instruction review with decision apply or reject. Repository instruction bytes have not changed.\n`,
-    );
-    return result.status === "review_required" || result.status === "current" ? 0 : 1;
+    io.stdout(parsed.values.json ? `${JSON.stringify(result, null, 2)}\n` : formatIntake(result));
+    return ["applied", "current", "stored", "queued"].includes(result.status) ? 0 : 1;
   }
   if (subcommand === "status") {
     const parsed = parseArgs({
@@ -117,53 +127,30 @@ export async function runKnowledgeDurableInstruction(
       parsed.values.json
         ? `${JSON.stringify({ schemaVersion: 1, candidates }, null, 2)}\n`
         : candidates.length === 0
-          ? "No active durable-instruction review candidates.\n"
+          ? "No stored durable-instruction candidates wait to be applied.\n"
           : `${candidates.map(formatCandidate).join("\n\n")}\n`,
     );
     return 0;
   }
-  if (subcommand === "review") {
+  if (subcommand === "retire") {
     const parsed = parseArgs({
       args: args.slice(1),
       strict: true,
       allowPositionals: true,
-      options: {
-        root: { type: "string" },
-        decision: { type: "string" },
-        reviewer: { type: "string" },
-        approval: { type: "string" },
-        json: { type: "boolean" },
-      },
+      options: { root: { type: "string" }, json: { type: "boolean" } },
     });
     if (parsed.positionals.length !== 1)
-      throw new Error("Instruction review requires one candidate ID.");
-    if (parsed.values.decision !== "apply" && parsed.values.decision !== "reject")
-      throw new Error("Instruction review requires --decision apply or --decision reject.");
-    if (parsed.values.reviewer === undefined || parsed.values.approval === undefined)
-      throw new Error("Instruction review requires --reviewer and --approval.");
-    const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-    const common = {
-      repositoryRoot,
-      candidateId: parsed.positionals[0]!,
-      candidateHash: parsed.values.approval,
-      reviewerId: parsed.values.reviewer,
-    };
-    if (parsed.values.decision === "apply") {
-      const result = await applyReviewedDurableInstruction({ ...common, now: new Date() });
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(result, null, 2)}\n`
-          : `Applied the reviewed durable repository instruction.\nplan: ${result.planId}\ntarget: ${result.targetPath}\n${result.commitHash === null ? "" : `commit: ${result.commitHash} (published to every host by the convergence owner)\n`}Run the repository knowledge migration and lint lifecycle before completion.\n`,
-      );
-      return 0;
-    }
-    const result = await rejectDurableInstructionCandidate(common);
+      throw new Error("Instruction retire requires one rule ID.");
+    const result = await retireDurableInstruction({
+      repositoryRoot: resolve(io.cwd, parsed.values.root ?? "."),
+      ruleId: parsed.positionals[0]!,
+    });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(result, null, 2)}\n`
-        : `Rejected and removed durable-instruction candidate ${result.candidateId}.\nreview: ${result.reviewDigest}\n`,
+        : `Retired owner rule ${result.ruleId}.\npath: ${result.path}\n${result.commitHash === null ? "Commit the deletion with the current change.\n" : `commit: ${result.commitHash}\n`}`,
     );
     return 0;
   }
-  throw new Error("The instruction command supports intake, status, review, capture, and bridge.");
+  throw new Error("The instruction command supports intake, status, retire, capture, and bridge.");
 }

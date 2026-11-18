@@ -1,7 +1,6 @@
 import { rm } from "node:fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { applyFreshnessCandidateByOwner } from "../src/freshness-apply.js";
 import {
   documentFreshnessAttentionSources,
   inspectDocumentFreshnessStatus,
@@ -51,7 +50,8 @@ const ORIGINAL = agents(MANAGED_BEFORE, PROSE_BEFORE);
 
 /**
  * `AGENTS.md` with a Lervo-managed `statement` hunk inside a `lervo_v1` block and a user-owned
- * `factual_reference` hunk in prose; both need the Tier 0 cross-check.
+ * `factual_reference` hunk in prose. The reviewer judges both, but Lervo applies only the managed
+ * hunk; the prose hunk stays a suggestion (ADR-0561, AGENTS.md invariant 5).
  */
 async function setup(crossCheck: Partial<FreshnessPlanEntry> = {}) {
   const f = await freshnessFixture();
@@ -91,7 +91,7 @@ const minutes = (count: number) => new Date(Date.now() + count * 60_000);
 
 describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
   it(
-    "applies an agreed Lervo-managed statement hunk itself and leaves user-owned bytes to the owner",
+    "applies the agreed Lervo-managed hunk, keeps the user-owned hunk a suggestion, and commits the notice",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
@@ -109,11 +109,15 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         authorityRequired: "none",
         crossCheckRequired: true,
       });
-      expect(prose).toMatchObject({ ownership: "user_owned", authorityRequired: "owner" });
+      expect(prose).toMatchObject({
+        ownership: "user_owned",
+        authorityRequired: "none",
+        crossCheckRequired: true,
+      });
       expect(candidate).toMatchObject({
         state: "partially_applied",
         crossCheck: "agreement",
-        authorityRequired: "owner",
+        authorityRequired: "none",
         appliedHunkIds: [managed!.hunkId],
         pendingHunkIds: [prose!.hunkId],
         crossCheckReview: { status: "settled", outcome: "agreement", reviewerProvider: "claude" },
@@ -128,11 +132,19 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         appliedHunkCount: 1,
         pendingHunkCount: 1,
       });
+      // ADR-0561 notice fields travel with the commit, so every host reads the same notice.
+      const log = await f.git(["log", "-1", "--format=%B"]);
+      expect(log).toContain(`Lervo-Freshness-Candidate: ${candidate!.candidateId}`);
+      expect(log).toMatch(/^Lervo-Freshness-Reason: [a-z_, ]+$/mu);
+      expect(log).toContain(
+        `Lervo-Freshness-Cross-Check: agreement 1/1 (claude ${candidate!.crossCheckReview!.runId})`,
+      );
 
       const verified = f.eventsOf("document.freshness.candidate.verified");
       expect(verified).toHaveLength(1);
       expect(verified[0]!.payload).toMatchObject({
         crossCheck: "agreement",
+        authorityRequired: "none",
         deliberationRunId: candidate!.crossCheckReview!.runId,
       });
       expect(candidate!.crossCheckReview!.runId).toMatch(/^run_freshness_[a-f0-9]{24}$/u);
@@ -154,16 +166,6 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       expect(diff).toContain(`@@ ${prose!.hunkId}`);
       expect(diff).toContain("cross-check-agree @@");
       expect(diff).toContain("# cross-check agree: The cited evidence shows");
-
-      const owner = await applyFreshnessCandidateByOwner({
-        storage: f.storage,
-        candidate: candidate!,
-        approvalHash: candidate!.afterHash!,
-        reviewer: "owner",
-        now: new Date(),
-      });
-      expect(owner.state).toBe("applied");
-      expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_AFTER));
     },
   );
 
@@ -192,7 +194,7 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       expect(f.eventsOf("document.freshness.candidate.verified")).toHaveLength(0);
       expect(await f.read("AGENTS.md")).toBe(ORIGINAL);
       expect(await listDocumentFreshnessReview(f.root)).toEqual([]);
-      expect((await documentFreshnessAttentionSources(f.root, new Date())).awaiting).toEqual([]);
+      expect((await documentFreshnessAttentionSources(f.root, new Date())).held).toEqual([]);
 
       await plan(f, {});
       const regenerated = await f.cycle(minutes(2));
@@ -200,15 +202,23 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       const next = (await listFreshnessCandidates(f.root)).find(
         (candidate) => candidate.candidateId !== rejected!.candidateId,
       );
-      expect(next).toMatchObject({ state: "partially_applied", crossCheck: "agreement" });
+      expect(next).toMatchObject({
+        state: "partially_applied",
+        crossCheck: "agreement",
+        predecessorCandidateId: rejected!.candidateId,
+      });
+      // The regeneration carried the reviewer's disagreement as evidence.
       expect(
-        (await documentFreshnessAttentionSources(f.root, new Date())).crossCheckBlocked,
-      ).toEqual([]);
+        (await f.providerCalls())
+          .filter((call) => call.task === "document_freshness_candidate")
+          .map((call) => call.regeneration),
+      ).toEqual([null, "cross_check_disagreement"]);
+      expect((await documentFreshnessAttentionSources(f.root, new Date())).debt).toEqual([]);
     },
   );
 
   it(
-    "raises document_freshness_blocked after the regeneration also meets disagreement",
+    "holds the finding as Lervo debt with backoff after the regeneration also meets disagreement",
     { timeout: 120_000 },
     async () => {
       const f = await setup({ crossCheck: "disagree" });
@@ -222,13 +232,32 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       const calls = (await f.providerCalls()).length;
       expect(calls).toBe(4);
       const attention = await documentFreshnessAttentionSources(f.root, new Date());
-      expect(attention.crossCheckBlocked).toEqual([
-        expect.objectContaining({ documentPath: "AGENTS.md", attempts: 2 }),
+      expect(attention.debt).toEqual([
+        expect.objectContaining({
+          documentPath: "AGENTS.md",
+          reason: "cross_check_disagreement_repeated",
+          attempts: 1,
+        }),
       ]);
-      expect(attention.awaiting).toEqual([]);
+      expect(attention.held).toEqual([]);
+      const retryAt = Date.parse(attention.debt[0]!.retryAt);
+      expect(retryAt - Date.parse(attention.debt[0]!.since)).toBe(86_400_000);
+      // Within the backoff nothing is spent; after it, one retry runs and doubles the backoff.
       await f.cycle(minutes(3));
       expect(await f.providerCalls()).toHaveLength(calls);
       expect(await f.read("AGENTS.md")).toBe(ORIGINAL);
+      // The scratch delegation lasts less than a day, so the elapsed backoff is rewound instead.
+      const state = await readFreshnessCycleState(f.root);
+      await writeFreshnessCycleState(f.root, {
+        ...state,
+        debt: state.debt!.map((entry) => ({ ...entry, retryAt: minutes(3).toISOString() })),
+      });
+      const retried = minutes(4);
+      await f.cycle(retried);
+      expect(await f.providerCalls()).toHaveLength(calls + 2);
+      const [debt] = (await documentFreshnessAttentionSources(f.root, new Date())).debt;
+      expect(debt).toMatchObject({ reason: "cross_check_disagreement_repeated", attempts: 2 });
+      expect(Date.parse(debt!.retryAt) - retried.getTime()).toBe(2 * 86_400_000);
     },
   );
 
@@ -237,16 +266,16 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
     ["fail", "cross_check_provider_failed"],
   ] as const)
     it(
-      `holds every required hunk for the owner when the cross-check is ${mode}, never agreeing`,
+      `holds every required hunk as Lervo's own retry when the cross-check is ${mode}, never agreeing`,
       { timeout: 120_000 },
       async () => {
         const f = await setup({ crossCheck: mode });
-        await f.cycle();
+        await f.cycle(minutes(1));
         const [candidate] = await listFreshnessCandidates(f.root);
         expect(candidate).toMatchObject({
           state: "verified_pending_cross_check",
           crossCheck: "unavailable",
-          authorityRequired: "owner",
+          authorityRequired: "none",
           appliedHunkIds: [],
           crossCheckReview: { status: "settled", unavailableReason: reason, verdicts: [] },
         });
@@ -256,28 +285,61 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
           crossCheck: "unavailable",
           deliberationRunId: candidate!.crossCheckReview!.runId,
         });
-        // A failed call may have reached the model, so it is charged the remaining bound.
-        if (mode === "fail") expect(candidate!.tokensObserved).toBe(30_000);
-        expect(await listDocumentFreshnessReview(f.root)).toHaveLength(1);
+        const [held] = await listDocumentFreshnessReview(f.root);
+        expect(held!.retryAt).toBe(
+          new Date(Date.parse(candidate!.crossCheckReview!.settledAt!) + 3_600_000).toISOString(),
+        );
+        // Lervo retries the call itself after the backoff; nothing waits for the owner.
+        await plan(f, {});
+        await f.cycle(minutes(1 + 61));
+        const all = await listFreshnessCandidates(f.root);
+        const retried = all.find((item) => item.candidateId === candidate!.candidateId);
+        if (mode === "invalid") {
+          expect(retried).toMatchObject({
+            candidateId: candidate!.candidateId,
+            state: "partially_applied",
+            crossCheck: "agreement",
+            crossCheckReview: { retries: 1 },
+          });
+          expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_BEFORE));
+          expect(f.eventsOf("document.freshness.candidate.verified")).toHaveLength(2);
+        } else {
+          // A failed call may have reached the model, so it was charged the remaining bound and
+          expect(candidate!.tokensObserved).toBe(30_000);
+          // the retry cannot fit: the candidate is rejected, and a fresh candidate with its own
+          // budget regenerates and applies.
+          expect(retried).toMatchObject({
+            state: "rejected",
+            rejection: { reasonCode: "freshness_budget_exhausted", rejectorKind: "budget" },
+          });
+          expect(all.find((item) => item.candidateId !== candidate!.candidateId)).toMatchObject({
+            state: "partially_applied",
+          });
+          expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_BEFORE));
+        }
       },
     );
 
   it(
-    "records a cross-check that would exceed the candidate budget as unavailable",
+    "rejects a cross-check that would exceed the candidate budget and holds the finding as debt",
     { timeout: 120_000 },
     async () => {
       const f = await setup({ crossCheckInputTokens: 29_000 });
       await f.cycle();
       const [candidate] = await listFreshnessCandidates(f.root);
       expect(candidate).toMatchObject({
-        state: "verified_pending_cross_check",
+        state: "rejected",
         crossCheck: "unavailable",
+        rejection: { reasonCode: "freshness_budget_exhausted", rejectorKind: "budget" },
         crossCheckReview: { unavailableReason: "freshness_budget_exhausted" },
         tokensObserved: 1_500 + 29_300,
       });
       expect((await inspectDocumentFreshnessStatus(f.root, new Date())).budget.tokensUsed).toBe(
         30_800,
       );
+      expect((await inspectDocumentFreshnessStatus(f.root, new Date())).debt).toEqual([
+        expect.objectContaining({ documentPath: "AGENTS.md", reason: "budget_exceeded" }),
+      ]);
       expect(await f.read("AGENTS.md")).toBe(ORIGINAL);
     },
   );
@@ -340,7 +402,7 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
   );
 
   it(
-    "keeps the cross-check pending across a turn without provider capacity, out of the owner queue",
+    "keeps the cross-check pending across a turn without provider capacity, then applies it",
     { timeout: 120_000 },
     async () => {
       const f = await setup();

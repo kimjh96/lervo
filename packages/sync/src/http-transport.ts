@@ -167,6 +167,12 @@ export class AuthenticatedHubHttpTransport
     return this.requestJson("workstreams", "GET", undefined, [200]);
   }
 
+  async readWorkstreamRevision(snapshotContentHash: string): Promise<unknown> {
+    if (!/^sha256:[a-f0-9]{64}$/u.test(snapshotContentHash))
+      throw new Error("The workstream revision hash is invalid.");
+    return this.requestJson("workstreams", "GET", undefined, [200], { snapshotContentHash });
+  }
+
   async readEventReaderCapabilities(): Promise<unknown> {
     const url = new URL(
       "v1/health/capabilities",
@@ -225,6 +231,7 @@ export class AuthenticatedHubHttpTransport
     method: "GET" | "POST",
     body: unknown | undefined,
     acceptedStatuses: readonly number[],
+    query: Record<string, string> = {},
   ): Promise<unknown> {
     const url = new URL(
       `v1/sync/projects/${encodeURIComponent(this.target.projectId)}/${kind}`,
@@ -232,6 +239,7 @@ export class AuthenticatedHubHttpTransport
     );
     url.searchParams.set("destinationId", this.destinationId);
     url.searchParams.set("projectIdentityHash", this.target.projectIdentityHash);
+    for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
     return this.client.requestJson({
       url,
       method,

@@ -5,7 +5,7 @@ export function formatContinuityDoctor(report: ContinuityDoctorReport): string {
   const lines = [
     `Lervo knowledge continuity: ${report.status}`,
     `host policy: ${report.policy.state}${report.policy.horizonAt === null ? "" : ` until ${report.policy.horizonAt}`}${report.policy.authority === null ? "" : ` (${report.policy.authority})`}`,
-    `repositories: ${report.summary.repositories} · owner decisions ${report.summary.ownerDecisions} · attention ${report.summary.attention} · info ${report.summary.info}`,
+    `repositories: ${report.summary.repositories} · Lervo debt ${report.summary.lervoDebt} · attention ${report.summary.attention} · info ${report.summary.info}`,
   ];
   for (const repository of report.repositories) {
     lines.push(

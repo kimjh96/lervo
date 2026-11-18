@@ -22,6 +22,8 @@ export interface NodeRuntimeHealthPublisherOptions {
   startingHeartbeatMs?: number;
   /** Called once, when the aggregate first leaves `starting` for `ready` or `degraded`. */
   onSettled?(): void;
+  /** The clock that stamps when a Lervo debt reason was first observed. */
+  now?: () => Date;
 }
 
 export interface NodeRuntimeHealthPublisher {
@@ -55,7 +57,8 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
   }
   if (
     snapshot.sync.status === "ready" &&
-    snapshot.workstreamReplication.status === "ready" &&
+    (snapshot.workstreamReplication.status === "ready" ||
+      snapshot.workstreamReplication.status === "lervo_debt") &&
     (snapshot.workspaceCoordination.status === "ready" ||
       snapshot.workspaceCoordination.status === "disabled") &&
     (snapshot.remoteControl.status === "ready" || snapshot.remoteControl.status === "disabled") &&
@@ -66,11 +69,26 @@ function aggregate(snapshot: NodeRuntimeHealthSnapshot): NodeRuntimeHealthSnapsh
       snapshot.supervision.status === "ready" ||
       snapshot.supervision.status === "dormant" ||
       snapshot.supervision.status === "attention" ||
+      snapshot.supervision.status === "lervo_debt" ||
       snapshot.supervision.status === "disabled")
   ) {
     return "ready";
   }
   return "starting";
+}
+
+/** A Lervo debt component keeps the time its reason was first observed. */
+function withDebtSince(
+  prior: NodeRuntimeComponentHealth | undefined,
+  next: NodeRuntimeComponentHealth,
+  now: Date,
+): NodeRuntimeComponentHealth {
+  if (next.status !== "lervo_debt") return structuredClone(next);
+  const since =
+    prior?.status === "lervo_debt" && prior.reasonCode === next.reasonCode && prior.since
+      ? prior.since
+      : now.toISOString();
+  return { status: "lervo_debt", reasonCode: next.reasonCode, since };
 }
 
 function syncHealth(result: SyncCycleResult): NodeRuntimeComponentHealth {
@@ -125,6 +143,10 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private settled = false;
 
+  private now(): Date {
+    return this.options.now?.() ?? new Date();
+  }
+
   constructor(
     stateDirectory: string,
     remoteControlConfigured: boolean,
@@ -173,7 +195,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
 
   observeSupervision(health: NodeRuntimeComponentHealth): Promise<void> {
     return this.publish(() => {
-      this.snapshot.supervision = structuredClone(health);
+      this.snapshot.supervision = withDebtSince(this.snapshot.supervision, health, this.now());
     });
   }
 
@@ -185,10 +207,14 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
 
   observeWorkstreamReplication(result: WorkstreamReplicationCycleResult): Promise<void> {
     return this.publish(() => {
-      this.snapshot.workstreamReplication =
+      // ADR-0561: divergent heads Lervo could not reconcile yet are its own debt.
+      this.snapshot.workstreamReplication = withDebtSince(
+        this.snapshot.workstreamReplication,
         result.status === "divergent"
-          ? { status: "unavailable", failureCode: "divergent_heads" }
-          : { status: "ready" };
+          ? { status: "lervo_debt", reasonCode: "divergent_heads" }
+          : { status: "ready" },
+        this.now(),
+      );
     });
   }
 

@@ -27,22 +27,13 @@ async function authorizeAndMigrate(input) {
     "--from",
     planPath,
     "--apply",
-    "--approval",
-    plan.planId,
     "--json",
   ]);
   assert.equal(authorized.status, "applied");
   const migration = await invoke(["capability", "migrate", "--json"]);
   assert.equal(migration.status, "ready");
   assert.ok(migration.items.some((item) => item.capabilityId === "repository/installed_testing"));
-  const migrated = await invoke([
-    "capability",
-    "migrate",
-    "--apply",
-    "--approval",
-    migration.planId,
-    "--json",
-  ]);
+  const migrated = await invoke(["capability", "migrate", "--apply", "--json"]);
   assert.equal(migrated.status, "current");
   return authorized.contentHash;
 }

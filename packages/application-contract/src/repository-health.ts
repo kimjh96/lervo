@@ -21,6 +21,14 @@ export interface RepositoryHealthAttentionV1 {
   ageMilliseconds: number | null;
 }
 
+/** One source of Lervo debt with its count, oldest age, and most frequent reason. */
+export interface RepositoryHealthLervoDebtSourceV1 {
+  source: string;
+  count: number;
+  oldestSince: string | null;
+  reason: string;
+}
+
 export interface RepositoryHealthProjectionV1 {
   schemaVersion: 1;
   kind: "repository_health.projection";
@@ -53,17 +61,32 @@ export interface RepositoryHealthProjectionV1 {
       cycleStale: number | null;
       safety: number | null;
       firstSafetyPath: string | null;
+      /** Candidates Lervo holds; the name predates ADR-0561, and none waits for the owner. */
       awaitingReview: number | null;
       refreshed: number | null;
       blocked: boolean | null;
+      /** Additive (ADR-0561): stale documents Lervo holds as its own debt, oldest first. */
+      debt?: Array<{
+        path: string;
+        reason: string;
+        since: string;
+        ageMilliseconds: number | null;
+      }> | null;
     }>;
-    ownerReview: RepositoryHealthMeasureV1<{
-      count: number | null;
-      confirmedCount: number;
-      workstreamCount: number;
-      items: RepositoryHealthAttentionV1[];
-      omitted: number;
-      upkeepCount: number | null;
+    /**
+     * ADR-0561: every change Lervo holds as its own debt, across attention sources, parked
+     * knowledge sources, and Node supervision and workstream replication. None waits for the
+     * owner. Credentials Lervo cannot create are reported as notices beside it.
+     */
+    lervoDebt: RepositoryHealthMeasureV1<{
+      count: number;
+      oldestSince: string | null;
+      oldestAgeMilliseconds: number | null;
+      /** The most frequent reason code, ties broken by the oldest. */
+      topReason: string | null;
+      sources: RepositoryHealthLervoDebtSourceV1[];
+      /** Missing credentials Lervo reports and works around; never an approval. */
+      credentials: RepositoryHealthAttentionV1[];
     }>;
     deferred: RepositoryHealthMeasureV1<{
       count: number;

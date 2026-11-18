@@ -4,6 +4,7 @@ export * from "./repository-document-policy.js";
 export * from "./repository-document-role-seeding.js";
 export * from "./document-storage.js";
 export * from "./document-validation.js";
+export * from "./effect-notice-journal.js";
 export * from "./event-writer-activation-contract.js";
 export * from "./event-writer-activation-filesystem.js";
 export * from "./init-apply.js";

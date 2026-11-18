@@ -1,10 +1,12 @@
-<!-- lervo-release package="@lervo/cli" version="0.26.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.27.0" schema="1" -->
 
 ## What's changed
 
-- Remove knowledge candidate checks from lervo doctor; the doctor JSON report moves to schema version 2 and its knowledge scope reports only the event chain.
-- Remove lervo loop and the lervo application capabilities, activity, search, observability, deliberation, and liveness commands; lervo application attention stays.
-- Remove lervo migrate identity, lervo readme, OKF exchange, knowledge impact/refresh-candidate/find-replay, organization portfolio/ceo-evaluate/executive-execute, workforce plan, capability publish/pull, and the migrate capabilities alias; research verify stays.
-- Remove lervo repository node rollout and the organization deployment, signed rollout, and Node organizationCredentials delivery path; lervo repository node plan, apply, and status stay.
-- Remove the lervo search engine, rollout, bundle, compare, review, case, assess, evaluate, report, and candidates commands, the bm25f-v1 candidate, and the search rollout doctor checks; lervo search <query> and lervo search plan activate, rollback, and status stay.
-- Remove the Slack integration and the lervo trigger, lervo routine, and lervo assignment mention, trigger, connector, and topology commands.
+- health shows one Lervo debt line instead of owner authority, every effect reports a notice with its undo, and onboarding, ownership, publication, workstream approvals, and assignments no longer wait for the owner
+- Lervo applies cross-checked document freshness changes itself and removes freshness apply and reject
+- Lervo cross-checks and applies layout, migration, normalization, structure, and instruction bridge plans itself, and removes the owner approval options
+- Lervo reconciles divergent workstream heads and replica conflicts itself after a backup, and its principal proxy decides supervision escalations past the bound
+- lervo repository hold and release let the owner defer one repository, Lervo never applies user-owned bytes on its own, and every effect applies only when its undo commit or backup can hold it
+- lervo upgrade applies every cross-checked or backed-up stage without the owner, and upgrade, migrate, capability, and state commands remove their approval options
+- Store and apply every owner rule after a fidelity or independent cross-check, and remove the owner instruction review command
+- The background canonical reviewer resolves canonicalization candidates, delegations renew within the installed policy limits, continuity owner decisions become Lervo debt, and the canonicalization review, promote, and scope-response commands are removed

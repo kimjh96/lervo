@@ -1,7 +1,6 @@
-import { createHash, randomUUID } from "node:crypto";
-import { createReadStream } from "node:fs";
-import { lstat, readFile, readdir, rename, rm } from "node:fs/promises";
-import { relative, resolve, sep } from "node:path";
+import { randomUUID } from "node:crypto";
+import { readFile, readdir } from "node:fs/promises";
+import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
@@ -16,26 +15,18 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-knowledge";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
+import { holdEffect } from "./held-effect-debt.js";
+import { effectBackupUndoCommand, restoreEffectBackup, takeEffectBackup } from "./effect-backup.js";
+import { noticeEffect } from "./effect-notice.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
+import { hasRemovedOption, REMOVED_APPLY_APPROVAL } from "./removed-approval-options.js";
 import { inspectStateRetentionEvidence } from "./state-retention-evidence.js";
 import { runStateCasRetentionCommand } from "./state-cas-retention-command.js";
+import { planStateReset, type StatePlan } from "./state-reset-plan.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const stateUsage =
-  "  lervo state status [--root <path>] [--json]\n  lervo state prune [--apply --approval <plan-id> | --recover <plan-id>] [--root <path>] [--json]\n  lervo state reset [--apply --approval <plan-id>] [--root <path>] [--json]\n  lervo state cas-retention --plan [--root <path>] [--json]";
-
-interface StatePlan {
-  schemaVersion: 1;
-  planKind: "derived_state_reset";
-  planId: string;
-  repositoryRoot: string;
-  status: "ready" | "current";
-  fileCount: number;
-  totalBytes: number;
-  contentDigest: string;
-  durableDataPath: ".lervo/data";
-  durableDataDisposition: "preserved";
-}
+  "  lervo state status [--root <path>] [--json]\n  lervo state prune [--apply | --recover <plan-id>] [--root <path>] [--json]\n  lervo state reset [--apply] [--root <path>] [--json]\n  lervo state restore <backup-id> [--root <path>] [--json]\n  lervo state cas-retention --plan [--root <path>] [--json]";
 
 interface StateStatus {
   schemaVersion: 1;
@@ -159,7 +150,6 @@ function appendStatePrunedEvent(
 async function runPrune(input: {
   repositoryRoot: string;
   apply: boolean;
-  approval?: string;
   recover?: string;
   json: boolean;
   io: CliIo;
@@ -193,13 +183,16 @@ async function runPrune(input: {
       input.io.stdout(
         input.json
           ? `${JSON.stringify(output, null, 2)}\n`
-          : `State prune: ${current.status}; ${current.operations.reduce((sum, item) => sum + item.fileCount, 0)} files and ${current.operations.reduce((sum, item) => sum + item.byteCount, 0)} bytes reclaimable.${current.status === "ready" ? ` Re-run with --apply --approval ${current.planId}.` : ""}\n`,
+          : `State prune: ${current.status}; ${current.operations.reduce((sum, item) => sum + item.fileCount, 0)} files and ${current.operations.reduce((sum, item) => sum + item.byteCount, 0)} bytes reclaimable.${current.status === "ready" ? " Re-run with --apply." : ""}\n`,
       );
       return current.status === "blocked" ? 1 : 0;
     }
+    // ADR-0561: prune removes only rebuildable derived artifacts its retention policy classified,
+    // so the canonical sources are their backup. The plan is bound internally: apply plans again
+    // and refuses a derived state that changed in between.
     const receipt = await applyStatePrune({
       plan: current,
-      approval: input.approval ?? "",
+      approval: current.planId,
       evidence,
       recordEvent: (value) => appendStatePrunedEvent(storage, value),
     });
@@ -214,67 +207,6 @@ async function runPrune(input: {
   }
 }
 
-async function fileHash(path: string): Promise<string> {
-  const hash = createHash("sha256");
-  for await (const chunk of createReadStream(path)) hash.update(chunk as Buffer);
-  return hash.digest("hex");
-}
-
-async function inventory(
-  root: string,
-  current: string,
-  result: Array<{ path: string; bytes: number; hash: string | null }>,
-  budget: { bytes: number },
-  bindContent: boolean,
-): Promise<void> {
-  const entries = await readdir(current, { withFileTypes: true });
-  for (const entry of entries.sort((left, right) => left.name.localeCompare(right.name))) {
-    if (entry.isSymbolicLink())
-      throw new Error("Derived state contains a symbolic link and cannot be reset safely.");
-    const path = resolve(current, entry.name);
-    if (entry.isDirectory()) await inventory(root, path, result, budget, bindContent);
-    else if (entry.isFile()) {
-      const stats = await lstat(path);
-      budget.bytes += stats.size;
-      result.push({
-        path: relative(root, path).split(sep).join("/"),
-        bytes: stats.size,
-        hash: bindContent ? await fileHash(path) : null,
-      });
-    } else throw new Error("Derived state contains an unsupported filesystem entry.");
-    if (result.length > 20_000 || budget.bytes > 2 * 1024 * 1024 * 1024)
-      throw new Error("Derived state exceeds the bounded reset inventory.");
-  }
-}
-
-async function plan(repositoryRoot: string, bindContent: boolean): Promise<StatePlan> {
-  const root = resolve(repositoryRoot);
-  if (bindContent) await assertNoKnowledgeMaterializationTransaction({ repositoryRoot: root });
-  const state = resolveProjectPaths(root).state;
-  const files: Array<{ path: string; bytes: number; hash: string | null }> = [];
-  try {
-    const stats = await lstat(state);
-    if (!stats.isDirectory() || stats.isSymbolicLink())
-      throw new Error("Derived state must be a physical directory.");
-    await inventory(state, state, files, { bytes: 0 }, bindContent);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-  const contentDigest = `sha256:${createHash("sha256").update(JSON.stringify(files)).digest("hex")}`;
-  return {
-    schemaVersion: 1,
-    planKind: "derived_state_reset",
-    planId: `kstatereset_${contentDigest.slice(7, 31)}`,
-    repositoryRoot: root,
-    status: files.length === 0 ? "current" : "ready",
-    fileCount: files.length,
-    totalBytes: files.reduce((total, item) => total + item.bytes, 0),
-    contentDigest,
-    durableDataPath: ".lervo/data",
-    durableDataDisposition: "preserved",
-  };
-}
-
 export async function runStateCommand(
   args: string[],
   io: CliIo,
@@ -283,6 +215,7 @@ export async function runStateCommand(
   // Read-only; it must not wait on materialization or open a writable store.
   if (args[0] === "cas-retention") return runStateCasRetentionCommand(args.slice(1), io);
   try {
+    if (hasRemovedOption(args, "approval")) throw new Error(REMOVED_APPLY_APPROVAL);
     const parsed = parseArgs({
       args,
       strict: true,
@@ -291,7 +224,6 @@ export async function runStateCommand(
         root: { type: "string" },
         json: { type: "boolean" },
         apply: { type: "boolean" },
-        approval: { type: "string" },
         recover: { type: "string" },
         help: { type: "boolean", short: "h" },
       },
@@ -300,13 +232,36 @@ export async function runStateCommand(
       io.stdout(`${stateUsage}\n`);
       return 0;
     }
+    const action = parsed.positionals[0];
     if (
-      parsed.positionals.length !== 1 ||
-      !["status", "prune", "reset"].includes(parsed.positionals[0]!)
+      action === undefined ||
+      !["status", "prune", "reset", "restore"].includes(action) ||
+      parsed.positionals.length !== (action === "restore" ? 2 : 1)
     )
-      throw new Error("Specify state status, prune, or reset.");
-    const action = parsed.positionals[0]!;
+      throw new Error("Specify state status, prune, reset, or restore <backup-id>.");
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
+    if (action === "restore") {
+      const restored = await restoreEffectBackup({
+        repositoryRoot,
+        backupId: parsed.positionals[1]!,
+      });
+      // ADR-0561: an owner who undid the provider hook merge does not want it again; the next
+      // upgrade holds it until lervo repository release.
+      const ownerHold = restored.effect === "terminal_integration";
+      if (ownerHold)
+        await holdEffect({
+          repositoryRoot,
+          effect: "upgrade_terminal_integration",
+          subject: restored.backupId,
+          reasonCode: "owner_restored",
+        });
+      io.stdout(
+        parsed.values.json
+          ? `${JSON.stringify({ schemaVersion: 1, operation: "effect_backup_restored", ...restored, ownerHold }, null, 2)}\n`
+          : `Restored backup ${restored.backupId} (${restored.effect}): ${restored.restoredPaths} path(s).${ownerHold ? ` Lervo does not merge the provider hooks again until lervo repository release --root ${repositoryRoot}.` : ""}\n`,
+      );
+      return 0;
+    }
     // Retention and reset classify any remaining marker; a live owner settles first.
     await foregroundKnowledgeMaterializationSettlement({
       repositoryRoot,
@@ -314,19 +269,18 @@ export async function runStateCommand(
       timing: services.knowledgeMaterializationWait,
     }).settle();
     if (action === "prune") {
-      if (parsed.values.recover !== undefined && (parsed.values.apply || parsed.values.approval))
-        throw new Error("--recover cannot be combined with --apply or --approval.");
+      if (parsed.values.recover !== undefined && parsed.values.apply)
+        throw new Error("--recover cannot be combined with --apply.");
       return await runPrune({
         repositoryRoot,
         apply: parsed.values.apply ?? false,
-        ...(parsed.values.approval === undefined ? {} : { approval: parsed.values.approval }),
         ...(parsed.values.recover === undefined ? {} : { recover: parsed.values.recover }),
         json: parsed.values.json ?? false,
         io,
       });
     }
-    const current = await plan(repositoryRoot, action === "reset");
-    if (parsed.positionals[0] === "status") {
+    const current = await planStateReset(repositoryRoot, action === "reset");
+    if (action === "status") {
       const storage = await openProjectStorage(repositoryRoot);
       let evidence;
       try {
@@ -367,28 +321,44 @@ export async function runStateCommand(
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify(current, null, 2)}\n`
-          : `Derived state: ${current.fileCount} files, ${current.totalBytes} bytes (${current.status}). Durable .lervo/data is preserved.\n${current.status === "ready" ? `Re-run with --apply --approval ${current.planId}.\n` : ""}`,
+          : `Derived state: ${current.fileCount} files, ${current.totalBytes} bytes (${current.status}). Durable .lervo/data is preserved.\n${current.status === "ready" ? "Re-run with --apply; the removed state is kept as one backup until the next reset.\n" : ""}`,
       );
       return 0;
     }
-    if (parsed.values.approval !== current.planId)
-      throw new Error("--approval must equal the current state reset plan ID.");
-    if (current.status === "ready") {
-      const state = resolveProjectPaths(current.repositoryRoot).state;
-      const tombstone = resolve(current.repositoryRoot, `.lervo/.state-reset-${current.planId}`);
-      await rename(state, tombstone);
-      await rm(tombstone, { recursive: true });
-    }
+    // ADR-0561: reset moves the derived state into one backup instead of deleting it, so
+    // `lervo state restore` undoes it until the next reset replaces that backup.
+    const backup =
+      current.status === "ready"
+        ? await takeEffectBackup({
+            repositoryRoot: current.repositoryRoot,
+            effect: "state_reset",
+            reason: `Reset ${current.fileCount} derived-state files (plan ${current.planId}).`,
+            movedDirectories: [resolveProjectPaths(current.repositoryRoot).state],
+          })
+        : null;
     const receipt = {
-      ...(await plan(current.repositoryRoot, false)),
+      ...(await planStateReset(current.repositoryRoot, false)),
       resetPlanId: current.planId,
       removedFiles: current.fileCount,
       removedBytes: current.totalBytes,
+      backupId: backup?.backupId ?? null,
+      undo: backup === null ? null : effectBackupUndoCommand(backup.backupId),
     };
+    if (backup !== null && receipt.undo !== null)
+      await noticeEffect({
+        repositoryRoot: current.repositoryRoot,
+        effect: "state_reset",
+        subject: backup.backupId,
+        targets: [".lervo/state"],
+        reason: `moved ${current.fileCount} derived-state files into a backup (plan ${current.planId})`,
+        reviewers: ["deterministic reset plan"],
+        verdict: "applied",
+        undo: receipt.undo,
+      });
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify(receipt, null, 2)}\n`
-        : `Reset derived state: ${current.fileCount} files, ${current.totalBytes} bytes. Durable .lervo/data was preserved.\n`,
+        : `Reset derived state: ${current.fileCount} files, ${current.totalBytes} bytes. Durable .lervo/data was preserved.${receipt.undo === null ? "" : `\nUndo: ${receipt.undo}`}\n`,
     );
     return 0;
   } catch (error) {

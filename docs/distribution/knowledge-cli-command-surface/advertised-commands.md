@@ -5,12 +5,13 @@ The usage string in `knowledge-usage.ts` advertises the following interface. Enf
 - Refresh: optional root, rebuild, integration-head, apply plan ID, and JSON output.
 - Canonicalization: status with an optional candidate ID; defer or reject review with reviewer and candidate-hash approval; promotion with canonical target, target hash, reviewer, and candidate-hash approval.
 - Patterns: provider-backed proposal from JSON or stdin; status; accept, reject, defer, or supersede review; approved promotion; effect collection, registration, and observation. Effect collection requires local events in the advertised syntax. Registration and observation advertise optional local events and paired apply/write options.
-- Normalization: provider or candidate selection, optional model/executable/timeout, and apply with per-operation approval hashes.
+- Normalization: provider or candidate selection, optional model/executable/timeout, and apply by plan ID with an optional cross-check provider. Lervo cross-checks the plan independently before it applies it ([ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)).
 - Workers and convergence: once or watch with a provider; status or inspect; delegation from reviewed JSON with an optional asset manifest and apply plan; explicit provider probe.
 - Materialization recovery: `materialize --recover` with optional root and JSON output. [ADR-0529](../../decisions/knowledge/semantics/0529-remove-the-semantic-compilation-pipeline.md) removed semantic compilation and review.
-- Structure: delete, move, merge, and heading-based split of relative Markdown paths, with optional exact plan and operation approvals.
+- Structure: delete, move, merge, and heading-based split of relative Markdown paths, with an optional exact plan ID and cross-check provider for apply.
+- Revert: `revert <effect-commit>` undoes one cross-checked layout, migration, bridge, bootstrap, normalization, or structure commit.
 - Freshness: status, review, apply with an after-hash approval and optional reviewer, revert, reject with `not_stale` or `incorrect`, and acknowledge.
-- Instructions: provider-backed intake from JSON or stdin, status, apply/reject review with reviewer and candidate-hash approval, and a Claude bridge with optional plan and operation approvals.
+- Instructions: provider-backed intake from JSON or stdin, status, apply/reject review with reviewer and candidate-hash approval, and a Claude bridge with an optional plan ID and cross-check provider for apply.
 - Lint and query: read-only lint and recommended query with optional record, verification, path, artifact, action, and continuation inputs.
 
 [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed OKF export and import, `impact`, `refresh-candidate`, and the `find-replay` route.

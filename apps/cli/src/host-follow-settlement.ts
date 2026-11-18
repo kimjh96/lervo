@@ -1,3 +1,4 @@
+import { readRepositoryHold } from "@lervo/repository-registry";
 import { errorCode } from "./command-error-output.js";
 import {
   readActivationJournal,
@@ -82,6 +83,9 @@ async function runPassWithActiveCli(
     signal: dependencies.signal,
     blockedPlanIds,
     ...(yieldToRelease === undefined ? {} : { yieldToRelease }),
+    repositoryHeld:
+      dependencies.repositoryHeld ??
+      (async (repositoryRoot) => (await readRepositoryHold(repositoryRoot)) !== null),
   });
   if (raw.outcome === "interrupted") return null;
   const finishedAt = dependencies.upgrade.now();
@@ -111,7 +115,7 @@ export async function passWithActiveCli(
   return (await runPassWithActiveCli(dependencies, roots, active, previous))?.pass ?? null;
 }
 
-/** ADR-0589: every registered repository, those waiting for an owner approval last. */
+/** ADR-0589: every registered repository, those left in Lervo debt last (ADR-0561). */
 export async function passRepositories(
   dependencies: HostFollowCycleDependencies,
   lastPass: HostFollowPass | null,

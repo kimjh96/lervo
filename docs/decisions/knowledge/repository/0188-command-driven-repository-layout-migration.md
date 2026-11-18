@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Decision date: 2026-08-23
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (independent cross-check replaces item approvals)
+
+> **Amended (2026-11-02).** Under [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), layout items are no longer approved one by one. The background lifecycle reviewer applies a reviewed plan whatever the delegation's roots, and a foreground `--apply` runs an independent cross-check first. Each applied plan lands as its own `Lervo Knowledge` commit; `lervo knowledge revert <commit>` undoes it and keeps the reverted documents in place until their bytes change.
 
 Extended by [ADR-0193](0193-semantic-repository-and-agent-surface-migration.md), which adds repository-wide semantic document routing and provider-surface normalization.
 

@@ -2,6 +2,7 @@ import { mkdir, mkdtemp, readFile, rm, utimes, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { readEffectNotices } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, expect, it } from "vitest";
 
@@ -49,12 +50,46 @@ it("resets only rebuildable state and preserves durable CAS data", async () => {
       stdout: (message) => output.push(message),
     }),
   ).toBe(0);
-  const plan = JSON.parse(output.join("")) as { planId: string; durableDataDisposition: string };
+  const plan = JSON.parse(output.splice(0).join("")) as {
+    planId: string;
+    durableDataDisposition: string;
+  };
   expect(plan.durableDataDisposition).toBe("preserved");
-  expect(await runCli(["state", "reset", "--apply", "--approval", plan.planId], quiet)).toBe(0);
+  // ADR-0561: --apply alone applies; the removed state is kept as one backup.
+  expect(
+    await runCli(["state", "reset", "--apply", "--json"], {
+      ...quiet,
+      stdout: (message) => output.push(message),
+    }),
+  ).toBe(0);
+  const receipt = JSON.parse(output.splice(0).join("")) as {
+    resetPlanId: string;
+    backupId: string;
+    undo: string;
+  };
+  expect(receipt.resetPlanId).toBe(plan.planId);
+  expect(receipt.undo).toBe(`lervo state restore ${receipt.backupId}`);
+  // ADR-0561: the durable notice journal survives the reset and reports it with its undo.
+  expect(await readEffectNotices(root)).toMatchObject([
+    { effect: "state_reset", targets: [".lervo/state"], undo: receipt.undo },
+  ]);
   await expect(
     readFile(resolve(root, ".lervo/state/example/projection.json"), "utf8"),
   ).rejects.toThrow();
+
+  // The reset is recoverable: restore puts the derived state back.
+  expect(await runCli(["state", "restore", receipt.backupId], quiet)).toBe(0);
+  expect(await readFile(resolve(root, ".lervo/state/example/projection.json"), "utf8")).toBe(
+    '{"derived":true}\n',
+  );
+  const errors: string[] = [];
+  expect(
+    await runCli(["state", "restore", receipt.backupId], {
+      ...quiet,
+      stderr: (message) => errors.push(message),
+    }),
+  ).toBe(1);
+  expect(errors.join("")).toContain("already restored");
 
   const reopened = await openProjectStorage(root);
   expect(Buffer.from(await reopened.artifacts.get(artifact.uri)).toString("utf8")).toBe(
@@ -88,7 +123,7 @@ it("plans and applies selective pruning with path-private durable evidence", asy
   expect(plan.operations).toHaveLength(1);
   expect(planSource).not.toContain("normalization-shards");
 
-  expect(await runCli(["state", "prune", "--apply", "--approval", plan.planId], quiet)).toBe(0);
+  expect(await runCli(["state", "prune", "--apply"], quiet)).toBe(0);
   await expect(readFile(cache, "utf8")).rejects.toThrow();
   expect(await readFile(current, "utf8")).toContain("current");
 
@@ -97,4 +132,27 @@ it("plans and applies selective pruning with path-private durable evidence", asy
   expect(event?.payload).toMatchObject({ planId: plan.planId, removedFiles: 1 });
   expect(JSON.stringify(event?.payload)).not.toContain("normalization-shards");
   await storage.close();
+});
+
+it("fails the removed --approval option briefly and names the undo path", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-state-approval-"));
+  roots.push(root);
+  const errors: string[] = [];
+  const io = {
+    cwd: root,
+    stdout: () => undefined,
+    stderr: (message: string) => errors.push(message),
+  };
+  expect(await runCli(["init", "--minimal"], { ...io, stderr: () => undefined })).toBe(0);
+  await mkdir(resolve(root, ".lervo/state/example"), { recursive: true });
+  await writeFile(resolve(root, ".lervo/state/example/projection.json"), "{}\n");
+  for (const action of ["reset", "prune"]) {
+    errors.length = 0;
+    expect(await runCli(["state", action, "--apply", "--approval", "kstatereset_0"], io)).toBe(1);
+    expect(errors.join("")).toContain("--approval was removed");
+    expect(errors.join("")).toContain("lervo state restore <backup-id>");
+  }
+  expect(await readFile(resolve(root, ".lervo/state/example/projection.json"), "utf8")).toBe(
+    "{}\n",
+  );
 });

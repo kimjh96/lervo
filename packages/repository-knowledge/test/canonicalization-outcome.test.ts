@@ -121,10 +121,12 @@ describe("canonicalization outcomes", () => {
       now: new Date("2026-09-04T00:00:00.000Z"),
     });
 
+    // ADR-0561: a stored pending_user_approval declaration opens an ordinary candidate that the
+    // background canonical reviewer resolves; nothing waits for the owner.
     expect(result).toMatchObject({
-      status: "pending",
+      status: "candidate",
       candidate: {
-        observedState: "pending",
+        observedState: "candidate",
         outcome: {
           kind: "review_draft",
           drafts: [

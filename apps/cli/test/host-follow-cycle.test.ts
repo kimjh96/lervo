@@ -591,65 +591,48 @@ describe("runFollowCycle", () => {
     expect((await readActiveCli(harness.layout)).version).toBe("9.9.11");
   });
 
-  it("rechecks a ready repository blocked on an owner approval and applies Node once the plan holds", async () => {
-    // ADR-0589, Mac argo: Node is applicable beside a pending layout decision, and the plan moved
-    // between the plan command and the exact apply while the owner worked.
+  it("applies a ready repository in one apply and rechecks the Lervo debt it leaves hourly", async () => {
+    // ADR-0561, Mac argo: Node is applicable beside a layout plan. No stage waits for the owner,
+    // so one apply moves Node and Lervo holds the layout plan until its cross-check can run.
     const harness = await settledHarness();
     harness.releases.push(release("9.9.10"));
-    let planMoves = true;
+    let debtCleared = false;
     let nodeApplied = false;
     harness.behavior.current = (args, version) => {
       if (version !== "9.9.10" || args[2] !== "/repositories/two") return upgradeResult("current");
-      if (args.includes("--safe"))
-        return { kind: "failed", code: "upgrade_owner_approval_required" };
       if (args.includes("--apply")) {
-        if (planMoves)
-          return {
-            kind: "failed",
-            code: "upgrade_plan_changed",
-            ownerApprovalStages: ["knowledge"],
-          };
         nodeApplied = true;
-        return upgradeResult("pending_authority", {
+        return upgradeResult("lervo_debt", {
           planId: "plan_k",
           appliedStages: ["repository_node"],
+          pendingStages: ["knowledge"],
         });
       }
+      if (debtCleared) return upgradeResult("current");
       return nodeApplied
-        ? upgradeResult("pending_authority", {
-            planId: "plan_k",
-            ownerApprovalStages: ["knowledge"],
-          })
-        : upgradeResult("ready", {
-            planId: "plan_n",
-            applicableStages: ["node"],
-            ownerApprovalStages: ["knowledge"],
-          });
+        ? upgradeResult("lervo_debt", { planId: "plan_k", lervoDebtStages: ["knowledge"] })
+        : upgradeResult("ready", { planId: "plan_n", applicableStages: ["node", "knowledge"] });
     };
     const first = await runFollowCycle(harness.dependencies);
     expect(first.pass?.repositories[1]).toMatchObject({
       outcome: "blocked",
-      status: "ready",
-      code: "upgrade_owner_approval_required",
+      status: "lervo_debt",
+      code: "upgrade_lervo_debt",
+      appliedStages: ["repository_node"],
+      pendingStages: ["knowledge"],
+      // The debt clears on its own, so the follower rechecks it like any block.
       nextAttemptAt: "2026-11-17T01:00:00.000Z",
     });
     expect(harness.calls.some((call) => call.args.includes("--safe"))).toBe(false);
+    expect(harness.calls.some((call) => call.args.includes("--approval"))).toBe(false);
+    expect(nodeApplied).toBe(true);
     await harness.runActive();
 
-    planMoves = false;
+    debtCleared = true;
     harness.upgrade.now = () => new Date("2026-11-17T01:00:00.000Z");
     const retried = await runFollowCycle(harness.dependencies);
     expect(retried.outcome).toBe("repositories_retried");
-    expect(retried.pass?.repositories[1]).toMatchObject({
-      outcome: "blocked",
-      status: "pending_authority",
-      code: "upgrade_owner_approval_required",
-      appliedStages: ["repository_node"],
-      pendingStages: ["knowledge"],
-      // Only the owner's approval is left, so the follower waits for another CLI.
-      nextAttemptAt: null,
-    });
-    expect(nodeApplied).toBe(true);
+    expect(retried.pass?.repositories[1]).toMatchObject({ outcome: "current", code: null });
   });
 
   it("runs a whole pass instead of yielding to a release whose install is held", async () => {

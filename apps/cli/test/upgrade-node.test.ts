@@ -122,7 +122,7 @@ ExecStart="/home/example/Lervo%%20/bin/node" --config "/home/example/Lervo%%20/c
       inspectRegisteredNodeUpgrade(repositoryRoot, manifest.projectId, "0.16.7"),
     ).resolves.toMatchObject({
       stage: {
-        disposition: "pending_authority",
+        disposition: "lervo_debt",
         registered: true,
         planId: null,
         reason: "node_sync_policy_disabled",

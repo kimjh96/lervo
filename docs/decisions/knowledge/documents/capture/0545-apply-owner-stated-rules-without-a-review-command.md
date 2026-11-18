@@ -3,7 +3,10 @@
 Status: `accepted`
 Decision date: 2026-11-01
 Amends: [ADR-0467](../0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) (review and application)
+Superseded in part by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (the plan gate, the `explicit_user` restriction, the catalog binding, and `lervo knowledge instruction review` are removed)
 Related: [ADR-0535](../../../execution/applications/0535-project-core-health-with-actor-owned-attention.md) (actor-owned attention)
+
+> **Superseded in part (2026-11-02).** Under ADR-0561 the plan gate described below no longer exists: every grounded owner rule is stored with its classification, and every stored candidate is applied, whatever its authority. Candidates are no longer bound to their assessed catalog; apply rebuilds the plan against current bytes. The settling identity is `lervo`, not `lervo-principal-proxy`. `lervo knowledge instruction review` is removed; `lervo knowledge instruction retire <rule-id>` is the undo. The owner-host apply, commit, settlement, and Hub exchange below remain in force.
 
 ## Context
 

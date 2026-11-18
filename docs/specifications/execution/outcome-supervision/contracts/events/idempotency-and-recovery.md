@@ -14,13 +14,13 @@ For `work.artifact_review.v1`, the existing review event can confirm only its ex
 
 After a decision followed by a crash, reconcile against those events; never blindly re-execute the decision. Extend any effect API lacking recoverable idempotency before unattended use.
 
-Scoped offer and acceptance receipts confirm only their own exact admitted decisions. Local `work.owner_attention.v1` uses the escalation event with the owner as recipient, its original semantic basis in CAS, and `nextCheckAt: null`. Unchanged attention waits for new canonical facts without implying central delivery. See [scoped owner handoffs](../../implementation/scoped-handoffs.md).
+Scoped offer and acceptance receipts confirm only their own exact admitted decisions. Local `work.owner_attention.v1` uses the escalation event with the owner as recipient, its original semantic basis in CAS, and `nextCheckAt: null`. Unchanged attention waits for new canonical facts, or until the escalation bound passes, without implying central delivery. See [scoped owner handoffs](../../implementation/scoped-handoffs.md).
 
 ## Escalation capacity
 
 The snapshot's `escalationCount` is the bounded number of matching canonical escalation events after the latest reviewed installation of the supervision's mandate. It is not a retry counter that stops being readable at the action limit. That installation is the human decision answering earlier escalations and opens a fresh owner spend epoch.
 
-Eight or more events suppress another escalation and report `escalation_capacity_exceeded`. A longer valid history remains readable up to the execution-event source bound.
+Eight or more events, or owner attention pending for 30 minutes (ADR-0453 `escalationBatchWindowMs`), pass the escalation bound. As amended by [ADR-0561](../../../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), the owner is then no longer waited on. Pending attention stops blocking, and the principal proxy turns any further escalation into the first settling action the installed mandate permits: `revise_responsibility` or `allocate_existing` for rejected, blocked, or failed work, and `inspect_uncertain_effect` for an uncertain effect. The report reason becomes `principal_proxy_<reason>`, and the owner reasoning turn is offered no `escalate` operation. When no permitted action settles the reason, such as another project's pending handoff acceptance, or the mandate has expired, the report has status `lervo_debt` with reason `principal_scope_exceeded` or `principal_mandate_expired`. Health records it as attention with reason codes `lervo_debt` and the reason, and it stays held until its source changes. An owner attention plan proposed past the bound is refused as the same debt. Before the bound, a waiting report carries `nextCheckAt` at the moment the bound passes. A longer valid history remains readable up to the execution-event source bound.
 
 Before this rule was amended on 2026-09-25, thirteen escalations from interrupted workers left Kael unable to escalate an exhausted rework for the rest of its goal.
 

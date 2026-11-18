@@ -334,3 +334,63 @@ it("isolates one rejected canonical source by halving its workset and integrates
   expect(f.events.latest()!.eventHash).toBe(head);
   expect(await readFile(f.log, "utf8")).toBe(log);
 }, 300_000);
+
+// The rejecting reviewer is covered by the halving case above.
+it(
+  "regenerates an undecided canonical assessment once before parking it as Lervo debt",
+  { timeout: 180_000 },
+  async () => {
+    const f = await fixture(true, false);
+    fixtures.push(f);
+    const policyPath = resolve(f.root, ".lervo/knowledge/policy.yaml");
+    const policy = JSON.parse(await readFile(policyPath, "utf8"));
+    policy.normalization.exclude.push("docs/specs/runtime.md");
+    await writeFile(policyPath, JSON.stringify(policy));
+    const readme = resolve(f.root, "README.md");
+    await writeFile(readme, `${await readFile(readme, "utf8")}\nThe runtime starts locally.\n`);
+    const script = await readFile(f.executable, "utf8");
+    const marker =
+      "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
+    expect(script).toContain(marker);
+    // ADR-0561: a generator that cannot decide (`needs_review`) regenerates once like a rejection
+    // and then parks as Lervo debt, never at once as an owner decision.
+    const assessment = "disposition:'no_change',rationale:'This exact source preserves";
+    expect(script).toContain(assessment);
+    await writeFile(
+      f.executable,
+      script.replace(assessment, assessment.replace("'no_change'", "'needs_review'")),
+    );
+    let result: Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>> | undefined;
+    for (let i = 0; i < 48; i++) {
+      result = await runAutonomousKnowledgeWorker({
+        storage: f.storage,
+        workerId: "bounded-review-retry",
+        provider: "claude",
+        executable: f.executable,
+        admissionDirectory: f.admissionDirectory,
+        maximumStages: 1,
+      });
+      if (result.status === "processed" && result.convergence.state === "attention_required") break;
+    }
+    expect(result).toMatchObject({
+      status: "processed",
+      convergence: { state: "attention_required", reason: "knowledge_sources_parked" },
+    });
+    const calls = (await readFile(f.log, "utf8"))
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line));
+    expect(calls.filter((c) => c.request.task === "independent_canonical_review")).toHaveLength(2);
+    expect(
+      calls.filter(
+        (c) =>
+          c.request.task === "canonical_baseline_assessment" &&
+          typeof c.request.untrustedSourceData.independentReviewFeedback === "string",
+      ),
+    ).toHaveLength(1);
+    const status = await inspectAutonomousKnowledgeStatus(f.storage);
+    expect(status.parked?.sources).toEqual([
+      expect.objectContaining({ path: "README.md", reason: "review_rejected" }),
+    ]);
+  },
+);

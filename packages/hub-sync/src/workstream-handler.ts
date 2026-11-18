@@ -3,6 +3,7 @@ import {
   type WorkstreamReplicationPublishRequest,
   type WorkstreamReplicationPublishResponse,
   type WorkstreamReplicationReadResponse,
+  type WorkstreamReplicationRevisionResponse,
 } from "@lervo/schemas";
 
 import type { HubWorkstreamReplicationStore } from "./store.js";
@@ -14,7 +15,8 @@ export class HubWorkstreamReplicationError extends Error {
       | "registration_required"
       | "unknown_parent"
       | "head_limit_exceeded"
-      | "workstream_conflict",
+      | "workstream_conflict"
+      | "revision_not_found",
     message: string,
   ) {
     super(message);
@@ -55,5 +57,20 @@ export async function handleWorkstreamRead(input: {
     destinationId: input.destinationId,
     projectId: input.projectId,
     repositoryIdentityHash: input.repositoryIdentityHash,
+  });
+}
+
+export async function handleWorkstreamRevisionRead(input: {
+  store: HubWorkstreamReplicationStore;
+  destinationId: string;
+  projectId: string;
+  repositoryIdentityHash: string;
+  snapshotContentHash: string;
+}): Promise<WorkstreamReplicationRevisionResponse> {
+  return input.store.readWorkstreamRevision({
+    destinationId: input.destinationId,
+    projectId: input.projectId,
+    repositoryIdentityHash: input.repositoryIdentityHash,
+    snapshotContentHash: input.snapshotContentHash,
   });
 }

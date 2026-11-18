@@ -3,13 +3,13 @@ import { resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
-  documentFreshnessApplyCommand,
-  documentFreshnessCrossCheckBlocked,
+  documentFreshnessCrossCheckRetryAt,
+  documentFreshnessHeldStates,
   documentFreshnessPolicy,
-  documentFreshnessReviewStates,
   loadRepositoryKnowledgePolicy,
   sha256,
   type DocumentFreshnessCandidateV1,
+  type DocumentFreshnessDebt,
   type DocumentFreshnessHold,
   type DocumentFreshnessSummary,
 } from "@lervo/repository-knowledge";
@@ -19,14 +19,12 @@ import { DocumentFreshnessOperationError } from "./freshness-document-io.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
 
 const MATERIALIZATION_HELD = Symbol("materialization_held");
-import { recordFreshnessRejection } from "./freshness-events.js";
 import {
   listFreshnessCandidates,
   listFreshnessHolds,
   readFreshnessCandidate,
   readFreshnessCycleState,
   writeFreshnessCandidate,
-  writeFreshnessHold,
 } from "./freshness-state-store.js";
 
 const MAXIMUM_LISTED = 64;
@@ -50,6 +48,12 @@ export interface DocumentFreshnessStatusReport {
   summary: DocumentFreshnessSummary;
   lastCycleAt: string | null;
   technicalRecovery?: { pending: number; exhausted: number; reasonCounts: Record<string, number> };
+  /** Additive (ADR-0561): findings Lervo holds as its own debt, oldest first. */
+  debt?: Array<
+    Pick<DocumentFreshnessDebt, "documentPath" | "reason" | "since" | "attempts" | "retryAt">
+  >;
+  /** Additive (ADR-0561): the active zero-success generation hold, or null. */
+  zeroSuccessHold?: { since: string; until: string } | null;
 }
 
 function tally(values: readonly string[]): Record<string, number> {
@@ -70,7 +74,7 @@ export async function inspectDocumentFreshnessStatus(
     readFreshnessCycleState(root),
   ]);
   const open = candidates
-    .filter((candidate) => documentFreshnessReviewStates.has(candidate.state))
+    .filter((candidate) => documentFreshnessHeldStates.has(candidate.state))
     .sort((left, right) => left.detectedAt.localeCompare(right.detectedAt));
   const applied = candidates
     .filter((candidate) => candidate.approval !== null && candidate.state !== "superseded")
@@ -126,20 +130,41 @@ export async function inspectDocumentFreshnessStatus(
     })),
     summary: await documentFreshnessSummary(root, now),
     lastCycleAt: cycle.lastCycleAt,
+    debt: (cycle.debt ?? []).slice(0, MAXIMUM_LISTED).map((entry) => ({
+      documentPath: entry.documentPath,
+      reason: entry.reason,
+      since: entry.since,
+      attempts: entry.attempts,
+      retryAt: entry.retryAt,
+    })),
+    zeroSuccessHold: activeZeroSuccessHold(cycle, now),
   };
 }
 
-/** Candidates waiting for the owner, oldest first, each with its exact apply command. */
+function activeZeroSuccessHold(
+  cycle: Awaited<ReturnType<typeof readFreshnessCycleState>>,
+  now: Date,
+): { since: string; until: string } | null {
+  const hold = cycle.zeroSuccessHold;
+  return hold === undefined || hold === null || Date.parse(hold.until) <= now.getTime()
+    ? null
+    : { since: hold.since, until: hold.until };
+}
+
+/**
+ * Candidates Lervo still holds, oldest first, each with when its cross-check is retried. They are
+ * for inspection only: Lervo finishes or regenerates them itself (ADR-0561).
+ */
 export async function listDocumentFreshnessReview(
   root: string,
-): Promise<Array<DocumentFreshnessCandidateV1 & { applyCommand: string | null }>> {
+): Promise<Array<DocumentFreshnessCandidateV1 & { retryAt: string | null }>> {
   return (await listFreshnessCandidates(root))
-    .filter((candidate) => documentFreshnessReviewStates.has(candidate.state))
+    .filter((candidate) => documentFreshnessHeldStates.has(candidate.state))
     .sort((left, right) => left.detectedAt.localeCompare(right.detectedAt))
     .slice(0, MAXIMUM_LISTED)
     .map((candidate) => ({
       ...candidate,
-      applyCommand: candidate.afterHash === null ? null : documentFreshnessApplyCommand(candidate),
+      retryAt: documentFreshnessCrossCheckRetryAt(candidate)?.toISOString() ?? null,
     }));
 }
 
@@ -159,7 +184,7 @@ async function sourceText(
   }
 }
 
-/** Unified diff of each hunk against the exact source bytes, for owner review. */
+/** Unified diff of each hunk against the exact source bytes, for inspection. */
 export async function renderDocumentFreshnessDiff(
   storage: Pick<ProjectStorage, "artifacts" | "paths">,
   candidate: DocumentFreshnessCandidateV1,
@@ -222,7 +247,7 @@ export async function documentFreshnessSummary(
   return {
     ...cycle.summary,
     awaitingReviewCount: candidates.filter((candidate) =>
-      documentFreshnessReviewStates.has(candidate.state),
+      documentFreshnessHeldStates.has(candidate.state),
     ).length,
     appliedRecentPaths: candidates
       .filter(
@@ -237,23 +262,27 @@ export async function documentFreshnessSummary(
   };
 }
 
-/** Attention sources: waiting candidates and unacknowledged applies from the last 24 hours. */
+/**
+ * Attention sources: held candidates, unacknowledged applies from the last 24 hours, the active
+ * zero-success hold, and Lervo debt. None of them is owner work (ADR-0561).
+ */
 export async function documentFreshnessAttentionSources(
   root: string,
   now: Date,
 ): Promise<{
-  awaiting: DocumentFreshnessCandidateV1[];
+  held: DocumentFreshnessCandidateV1[];
   applied: DocumentFreshnessCandidateV1[];
-  blocked: { attempts: number } | null;
-  crossCheckBlocked: ReturnType<typeof documentFreshnessCrossCheckBlocked>;
+  zeroSuccessHold: { since: string; until: string; attempts: number } | null;
+  debt: DocumentFreshnessDebt[];
 }> {
   const [cycle, candidates] = await Promise.all([
     readFreshnessCycleState(root),
     listFreshnessCandidates(root),
   ]);
+  const hold = activeZeroSuccessHold(cycle, now);
   return {
-    // Authority classification and totals must precede the attention report's return cap.
-    awaiting: candidates.filter((candidate) => documentFreshnessReviewStates.has(candidate.state)),
+    // Totals must precede the attention report's return cap.
+    held: candidates.filter((candidate) => documentFreshnessHeldStates.has(candidate.state)),
     applied: candidates.filter(
       (candidate) =>
         (candidate.state === "applied" || candidate.state === "partially_applied") &&
@@ -261,8 +290,8 @@ export async function documentFreshnessAttentionSources(
         candidate.approval !== null &&
         now.getTime() - Date.parse(candidate.approval.approvedAt) < APPLIED_NOTICE_MILLISECONDS,
     ),
-    blocked: cycle.summary.blocked ? { attempts: cycle.budget.attempts } : null,
-    crossCheckBlocked: documentFreshnessCrossCheckBlocked(candidates),
+    zeroSuccessHold: hold === null ? null : { ...hold, attempts: cycle.budget.attempts },
+    debt: cycle.debt ?? [],
   };
 }
 
@@ -279,47 +308,6 @@ export async function requireFreshnessCandidate(
   return candidate;
 }
 
-/**
- * Owner rejection. `not_stale` counts as a false positive and holds the finding for the policy's
- * hold window; `incorrect` only closes the candidate so a new one may follow.
- */
-export async function rejectFreshnessCandidate(input: {
-  storage: Pick<ProjectStorage, "events" | "manifest" | "paths">;
-  candidate: DocumentFreshnessCandidateV1;
-  reason: "not_stale" | "incorrect";
-  holdDays: number;
-  now: Date;
-}): Promise<DocumentFreshnessCandidateV1> {
-  if (!documentFreshnessReviewStates.has(input.candidate.state))
-    throw new DocumentFreshnessOperationError(
-      "candidate_not_reviewable",
-      `Candidate ${input.candidate.candidateId} is ${input.candidate.state}; only waiting candidates can be rejected.`,
-    );
-  const root = input.storage.paths.repositoryRoot;
-  const next: DocumentFreshnessCandidateV1 = {
-    ...input.candidate,
-    state: "rejected",
-    rejection: {
-      reasonCode: "owner_rejected",
-      rejectorKind: "owner",
-      contestedHunkIds: input.candidate.pendingHunkIds,
-    },
-    updatedAt: input.now.toISOString(),
-  };
-  if (input.reason === "not_stale")
-    await writeFreshnessHold(root, {
-      schemaVersion: 1,
-      findingDigest: next.findingDigest,
-      documentPath: next.documentPath,
-      candidateId: next.candidateId,
-      reason: "not_stale",
-      until: new Date(input.now.getTime() + input.holdDays * 86_400_000).toISOString(),
-    });
-  await writeFreshnessCandidate(root, next);
-  recordFreshnessRejection({ storage: input.storage, candidate: next, occurredAt: next.updatedAt });
-  return next;
-}
-
 /** Acknowledging an applied notice resolves its informational attention item. */
 export async function acknowledgeFreshnessCandidate(
   root: string,
@@ -332,8 +320,8 @@ export async function acknowledgeFreshnessCandidate(
 }
 
 /**
- * Owner operations share the knowledge worker's repository lock, so an apply or revert never
- * races the resident's freshness stage over the same candidate or document.
+ * Owner operations (revert and acknowledge) share the knowledge worker's repository lock, so they
+ * never race the resident's freshness stage over the same candidate or document.
  */
 export async function withDocumentFreshnessOwnerLock<T>(
   root: string,

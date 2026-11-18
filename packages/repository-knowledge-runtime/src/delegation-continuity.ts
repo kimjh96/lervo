@@ -1,4 +1,3 @@
-import { listAgents } from "@lervo/agent-workforce";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   calculateProjectIdentityHash,
@@ -6,14 +5,10 @@ import {
 } from "@lervo/sync-contract";
 
 import {
-  continuityPolicyFromDelegation,
-  type ConvergenceContinuityPolicy,
-} from "./continuity-policy.js";
-import {
-  adoptConvergenceContinuityPolicy,
   readConvergenceContinuityPolicy,
   type ConvergenceContinuityPolicyReading,
 } from "./continuity-policy-store.js";
+import { currentContinuityPolicy, narrowedScopeHash } from "./delegation-continuity-policy.js";
 import { loadConvergenceDelegation, type ConvergenceDelegation } from "./delegation.js";
 import {
   decideDelegationAdoption,
@@ -40,8 +35,7 @@ import { seedDelegationFromPeerScope, seedDelegationFromTemplate } from "./deleg
 import type { DelegationWriter } from "./delegation-writer.js";
 import type { ContinuityDelegationObservation } from "./continuity-findings.js";
 
-/** The owner's standing instruction a policy adopted on a delegated host cites (ADR-0469). */
-export const OWNER_STANDING_CONTINUITY_REFERENCE = "ADR-0469";
+export { OWNER_STANDING_CONTINUITY_REFERENCE } from "./delegation-continuity-policy.js";
 
 type ContinuationKind = Pick<DelegationContinuation, "action" | "source">;
 
@@ -72,30 +66,6 @@ function failureCodeOf(error: unknown): string {
   return typeof code === "string" && /^[a-z][a-z0-9_]{0,63}$/u.test(code)
     ? code
     : "convergence_continuation_failed";
-}
-
-/**
- * Adopts the owner's standing continuity instruction on a host where the owner already reviewed
- * a delegation: the adopted policy's limits and template are exactly that delegation's scope. A
- * host with no reviewed delegation, or with any policy file (including a revoked one), adopts
- * nothing.
- */
-async function adoptStandingPolicy(input: {
-  root: string;
-  policyPath: string;
-  delegation: ConvergenceDelegation;
-  now: Date;
-}): Promise<ConvergenceContinuityPolicyReading> {
-  const agents = await listAgents(input.root, { readOnly: true });
-  const parent = agents.find((agent) => agent.agentId === input.delegation.parentAgentId);
-  if (parent === undefined || parent.status !== "active") return { status: "absent" };
-  const policy: ConvergenceContinuityPolicy = continuityPolicyFromDelegation({
-    delegation: input.delegation,
-    parentRoleId: parent.roleId,
-    authority: { kind: "owner_instruction", reference: OWNER_STANDING_CONTINUITY_REFERENCE },
-    now: input.now,
-  });
-  return adoptConvergenceContinuityPolicy(input.policyPath, policy);
 }
 
 interface ContinuationContext {
@@ -200,7 +170,11 @@ async function continueAsOwner(
     action: "renewed",
     source: "renewal",
     previous: loaded,
-    next: renewedConvergenceDelegation({ current: loaded, expiresAt: renewal.expiresAt }),
+    next: renewedConvergenceDelegation({
+      current: loaded,
+      expiresAt: renewal.expiresAt,
+      ...(renewal.limits === undefined ? {} : { limits: renewal.limits }),
+    }),
     policyHash,
     sourceHostHash: null,
     renewal,
@@ -245,22 +219,12 @@ export async function continueConvergenceDelegation(input: {
       failureCode: null,
     };
   }
-  let policy: ConvergenceContinuityPolicyReading =
-    input.policyPath === null
-      ? { status: "absent" }
-      : await readConvergenceContinuityPolicy(input.policyPath);
-  if (
-    policy.status === "absent" &&
-    input.policyPath !== null &&
-    loaded?.state === "active" &&
-    Date.parse(loaded.expiresAt) > now
-  )
-    policy = await adoptStandingPolicy({
-      root,
-      policyPath: input.policyPath,
-      delegation: loaded,
-      now: input.now,
-    }).catch((): ConvergenceContinuityPolicyReading => ({ status: "absent" }));
+  const policy = await currentContinuityPolicy({
+    root,
+    policyPath: input.policyPath,
+    delegation: loaded,
+    now: input.now,
+  });
   const base = {
     delegation: observe(loaded, now),
     scopeHash: loaded === null ? null : convergenceDelegationScopeHash(loaded),
@@ -291,6 +255,7 @@ export async function continueConvergenceDelegation(input: {
           ? decideDelegationAdoption({
               delegation: loaded,
               scopeHash: base.scopeHash!,
+              narrowedScopeHash: narrowedScopeHash(loaded, policy),
               policy,
               peers: input.peers,
               localHostHash: input.hostHash,
@@ -302,7 +267,11 @@ export async function continueConvergenceDelegation(input: {
           action: "adopted",
           source: "owner",
           previous: loaded,
-          next: renewedConvergenceDelegation({ current: loaded, expiresAt: adoption.expiresAt }),
+          next: renewedConvergenceDelegation({
+            current: loaded,
+            expiresAt: adoption.expiresAt,
+            ...(adoption.limits === undefined ? {} : { limits: adoption.limits }),
+          }),
           policyHash,
           sourceHostHash: adoption.record.hostHash,
           renewal,

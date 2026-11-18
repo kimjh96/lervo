@@ -12,9 +12,10 @@ const COVERED_ELSEWHERE: ReadonlySet<ContinuityFinding["code"]> = new Set([
 ]);
 
 /**
- * ADR-0469: one non-blocking item per continuity finding that needs attention. Only an
- * authority or scope decision requires the user; everything else is informational because the
- * resident retries it or the instruction names an operator fix.
+ * ADR-0469: one non-blocking item per continuity finding that needs attention. Under ADR-0561 no
+ * finding requires the user: `lervo_debt` is Lervo's own held continuity, shown with its age, and
+ * everything else is informational because the resident retries it or the instruction names an
+ * operator fix.
  */
 export function continuityAttentionItems(
   findings: readonly ContinuityFinding[],
@@ -25,12 +26,12 @@ export function continuityAttentionItems(
     if (finding.severity === "info" || COVERED_ELSEWHERE.has(finding.code)) continue;
     const itemId = `knowledge_convergence_continuity_${finding.code}${finding.detail === null ? "" : `_${finding.detail.replace(/[^a-z0-9_]/gu, "_")}`}`;
     if (items.has(itemId)) continue;
-    const ownerDecision = finding.severity === "owner_decision";
+    const debt = finding.severity === "lervo_debt";
     items.set(itemId, {
       schemaVersion: 1,
       kind: "knowledge_convergence_continuity",
       itemId,
-      state: ownerDecision ? "action_required" : "observed",
+      state: debt ? "lervo_debt" : "observed",
       findingCode: finding.code,
       ...(finding.actor === undefined ? {} : { actor: finding.actor }),
       severity: finding.severity,
@@ -39,10 +40,10 @@ export function continuityAttentionItems(
       actionOwner:
         finding.actor === "provider admission"
           ? "agent"
-          : finding.code === "hook_runtime_unavailable"
+          : debt || finding.code === "hook_runtime_unavailable"
             ? "host resident"
             : "user",
-      requiresUserAction: ownerDecision,
+      requiresUserAction: false,
       blocking: false,
       instruction: continuityRemediation(finding),
     });

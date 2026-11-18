@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
 
 import {
@@ -14,8 +13,6 @@ import { formatRuntimeServiceDefinition } from "../../../scripts/distribution/re
 import {
   inspectNodeConfigExecutables,
   nodeConfigExecutablesPending,
-  type NodeConfigExecutablesInspection,
-  type NodeConfigExecutablesStage,
 } from "./node-config-executable-upgrade.js";
 import { inspectNodeFleetStatus } from "./node-fleet-apply.js";
 import { nodeRuntimeHasOnlyAuxiliaryConditions } from "./node-fleet-readiness-policy.js";
@@ -28,72 +25,31 @@ import {
 import { readNodeServiceCoordinates } from "./node-service-coordinates.js";
 import { nodeServiceToolDirectories } from "./node-service-tool-directories.js";
 
+import {
+  sha256,
+  stage,
+  type NodeUpgradeInspection,
+  type NodeUpgradeStage,
+} from "./upgrade-node-stage.js";
+
 export { parseNodeServiceCoordinates } from "./node-service-coordinates.js";
+export type { NodeUpgradeInspection, NodeUpgradeStage } from "./upgrade-node-stage.js";
 
-export interface NodeUpgradeStage {
-  disposition: "current" | "safe_apply" | "pending_authority" | "blocked";
-  registered: boolean;
-  planId: string | null;
-  runtimeVersion: { current: string | null; desired: string };
-  runtimeBuildHash: string | null;
-  configPathDigest: string | null;
-  serviceTargetHash: string | null;
-  /** ADR-0470: hash of the definition this upgrade renders, including tool directories. */
-  desiredServiceHash?: string | null;
-  /** ADR-0488: the host CLI pointer and the configuration's version-specific paths. */
-  configExecutables?: NodeConfigExecutablesStage;
-  reason: string;
-  blockers?: Array<{ code: string; message: string }>;
-}
-
-export interface NodeUpgradeInspection {
-  stage: NodeUpgradeStage;
-  plan: NodeFleetOnboardingPlan | null;
-  configPath: string | null;
-  /** The resolved service PATH tool directories the apply renders. */
-  pathDirectories?: string[];
-  configExecutables?: NodeConfigExecutablesInspection;
-  /** False when only the CLI pointer or configuration changes and the deployment is current. */
-  replaceDeployment?: boolean;
-}
-
-function sha256(value: string | Uint8Array): string {
-  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
-}
-
-function stage(input: {
-  disposition: NodeUpgradeStage["disposition"];
-  registered: boolean;
-  planId: string | null;
-  currentVersion: string | null;
-  desiredVersion: string;
-  runtimeBuildHash?: string | null;
-  configPath?: string | null;
-  serviceTargetHash?: string | null;
-  reason: string;
-}): NodeUpgradeStage {
-  return {
-    disposition: input.disposition,
-    registered: input.registered,
-    planId: input.planId,
-    runtimeVersion: { current: input.currentVersion, desired: input.desiredVersion },
-    runtimeBuildHash: input.runtimeBuildHash ?? null,
-    configPathDigest:
-      input.configPath === undefined || input.configPath === null ? null : sha256(input.configPath),
-    serviceTargetHash: input.serviceTargetHash ?? null,
-    reason: input.reason,
-  };
-}
-
+/** The installed definition's coordinates, or the legacy singleton's while it is the only one. */
 async function safeServiceCoordinates(
   plan: NodeFleetOnboardingPlan,
 ): Promise<{ executable: string; config: string } | null> {
-  if (plan.service.targetState !== "present_unverified") return null;
+  const legacyOnly =
+    plan.service.targetState === "absent" &&
+    plan.service.legacyTargetState === "present_unverified";
+  if (plan.service.targetState !== "present_unverified" && !legacyOnly) return null;
   try {
     const coordinates = await readNodeServiceCoordinates({
       manager: plan.desired.serviceManager,
-      path: plan.service.targetPath,
-      expectedContentHash: plan.service.targetContentHash,
+      path: legacyOnly ? plan.service.legacyTargetPath : plan.service.targetPath,
+      expectedContentHash: legacyOnly
+        ? plan.service.legacyTargetContentHash
+        : plan.service.targetContentHash,
     });
     return { executable: coordinates.executable, config: coordinates.config };
   } catch {
@@ -143,10 +99,11 @@ export async function inspectRegisteredNodeUpgrade(
       "code" in error &&
       error.code === "node_fleet_sync_disabled"
     ) {
+      // ADR-0561: Lervo reports the policy gap as its own debt instead of asking the owner.
       return {
         stage: stage({
           ...common,
-          disposition: "pending_authority",
+          disposition: "lervo_debt",
           planId: null,
           reason: "node_sync_policy_disabled",
         }),
@@ -161,22 +118,23 @@ export async function inspectRegisteredNodeUpgrade(
     planId: plan.planId,
     serviceTargetHash: plan.service.targetContentHash,
   };
-  if (plan.service.legacyTargetState !== "absent")
+  if (plan.service.legacyTargetState === "conflict")
     return {
       stage: stage({
         ...planFields,
-        disposition: "pending_authority",
-        reason: "legacy_node_transition_requires_explicit_authority",
+        disposition: "blocked",
+        reason: "legacy_node_service_conflict",
       }),
       plan,
       configPath: null,
     };
+  const transitionLegacy = plan.service.legacyTargetState === "present_unverified";
   const coordinates = await safeServiceCoordinates(plan);
   if (coordinates === null)
     return {
       stage: stage({
         ...planFields,
-        disposition: plan.service.targetState === "conflict" ? "blocked" : "pending_authority",
+        disposition: plan.service.targetState === "conflict" ? "blocked" : "lervo_debt",
         reason:
           plan.service.targetState === "conflict"
             ? "node_service_target_conflict"
@@ -251,6 +209,15 @@ export async function inspectRegisteredNodeUpgrade(
     configExecutables: executables,
     replaceDeployment,
   });
+  // The legacy singleton is replaced by the repository service in one guarded transition.
+  if (transitionLegacy)
+    return {
+      ...inspected(
+        stage({ ...deploymentFields, disposition: "safe_apply", reason: "legacy_node_transition" }),
+        true,
+      ),
+      transitionLegacy: true,
+    };
   // A current deployment still applies when the CLI pointer or the configuration is stale; a
   // configuration change restarts the same service definition through the guarded transition.
   const deployed = (value: NodeUpgradeStage): NodeUpgradeInspection =>

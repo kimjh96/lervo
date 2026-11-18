@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-08-25
 
+Amended by [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md): `lervo capability install --apply` takes no `--approval`. Every package grants an agent new capability, so the install takes the stronger check: two agreeing fresh no-capability sessions, the second preferring the other admitted provider. A disagreement installs nothing and is held as Lervo debt (`stronger_check_disagreement`). An install records its new package directory as a backup, and `lervo state restore <backup-id>` removes it again.
+
 Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the client side of optional Hub sharing is removed. Lervo no longer ships `lervo capability publish`, `lervo capability pull`, their HTTP client, or `capability_hub_failed`. Local validation, installation, resolution, the lock projection, and the Hub registry endpoint stay.
 
 ## Context
@@ -41,15 +43,15 @@ Organization catalog policy and trust signatures require later contracts. Public
 
 Canonical local state is the validated package bytes. `.lervo/capabilities.lock` is a derived projection containing only IDs, kinds, versions, hashes, local source scopes, and `resolved` status. Hub publication records add scope, publisher principal ID, and publication time; they exclude credentials and runtime configuration values. CLI receipts report immediate operation results, not execution or use evidence.
 
-| Failure | Meaning |
-| --- | --- |
-| `capability_invalid` | The manifest, envelope, coordinate, or lock violates the v1 contract. |
-| `capability_unsafe_package` | A path, file type, secret-shaped filename, size, count, or read race is unsafe. |
-| `capability_content_hash_mismatch` | Package bytes do not match the immutable manifest hash. |
-| `capability_not_found`, `capability_unsupported` | No compatible package exists, or role permission is insufficient. |
-| `capability_conflict` | Dependency coordinates conflict, the dependency graph is cyclic, or immutable storage contains different content. |
-| `capability_approval_mismatch`, `capability_write_failed` | Apply authority is stale, or atomic local publication failed. |
-| `capability_hub_failed` | Authenticated transport, response validation, or Hub availability failed; local state remains authoritative. |
+| Failure                                                   | Meaning                                                                                                           |
+| --------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `capability_invalid`                                      | The manifest, envelope, coordinate, or lock violates the v1 contract.                                             |
+| `capability_unsafe_package`                               | A path, file type, secret-shaped filename, size, count, or read race is unsafe.                                   |
+| `capability_content_hash_mismatch`                        | Package bytes do not match the immutable manifest hash.                                                           |
+| `capability_not_found`, `capability_unsupported`          | No compatible package exists, or role permission is insufficient.                                                 |
+| `capability_conflict`                                     | Dependency coordinates conflict, the dependency graph is cyclic, or immutable storage contains different content. |
+| `capability_approval_mismatch`, `capability_write_failed` | Apply authority is stale, or atomic local publication failed.                                                     |
+| `capability_hub_failed`                                   | Authenticated transport, response validation, or Hub availability failed; local state remains authoritative.      |
 
 ## Consequences
 

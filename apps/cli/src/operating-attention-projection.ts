@@ -6,6 +6,7 @@ import type {
   RepositoryReplicaDivergenceAttentionItemV1,
 } from "@lervo/application-contract";
 import {
+  canonicalizationCandidateHeld,
   canonicalJson,
   sha256,
   STALE_WORKSTREAM_INSTRUCTION,
@@ -20,6 +21,7 @@ import {
   documentFreshnessAttentionItems,
   type DocumentFreshnessAttentionInput,
 } from "./document-freshness-attention.js";
+import { heldEffectAttentionItems, type HeldEffect } from "./held-effect-debt.js";
 import {
   instructionCaptureAttentionItems,
   type InstructionCaptureAttentionInput,
@@ -47,7 +49,10 @@ function canonicalizationItem(
     schemaVersion: 1,
     kind: "canonicalization_review",
     itemId: candidate.candidateId,
-    state: candidate.observedState,
+    state:
+      candidate.observedState !== "stale" && canonicalizationCandidateHeld(candidate)
+        ? "lervo_debt"
+        : candidate.observedState,
     candidateId: candidate.candidateId,
     candidateHash: candidate.contentHash,
     sourcePaths: candidate.sourceBindings.map((binding) => binding.path).sort(),
@@ -64,29 +69,17 @@ function canonicalizationItem(
           : [],
     hasProposedContent: candidate.outcome?.kind === "review_draft",
     createdAt: candidate.createdAt,
-    actionOwner: candidate.observedState === "pending" ? "user" : "reviewer",
-    requiresUserAction: candidate.observedState === "pending",
-    blocking: candidate.observedState === "pending",
+    // ADR-0561: the background canonical reviewer resolves every candidate; none waits for the owner.
+    actionOwner: "reviewer",
+    requiresUserAction: false,
+    blocking: false,
     instruction:
       candidate.observedState === "stale"
-        ? `Inspect stale candidate ${candidate.candidateId}; it permits exact-hash rejection with ${candidate.contentHash} but not defer or promotion.`
-        : candidate.observedState === "pending"
-          ? `Run lervo knowledge canonicalization status ${candidate.candidateId} --json and present its bounded outcome and exact ${candidate.contentHash} review binding; apply no write or promotion without explicit authority.`
-          : `Inspect candidate ${candidate.candidateId} and use exact hash ${candidate.contentHash} for defer, reject, or promotion review.`,
+        ? `The background canonical reviewer closes stale candidate ${candidate.candidateId}, because its source bindings changed.`
+        : canonicalizationCandidateHeld(candidate)
+          ? `Lervo debt: the background canonical reviewer deferred candidate ${candidate.candidateId} twice, so it stays held until its sources change. Inspect it with lervo knowledge canonicalization status ${candidate.candidateId} --json.`
+          : `The background canonical reviewer promotes or rejects candidate ${candidate.candidateId} after its independent review. Inspect it with lervo knowledge canonicalization status ${candidate.candidateId} --json.`,
   };
-}
-
-function lifecycleOwner(
-  issue: TerminalLifecycleInspection["issues"][number],
-): Pick<KnowledgeLifecycleAttentionItemV1, "actionOwner" | "requiresUserAction"> {
-  if (
-    issue.code === "turn_approval_pending" ||
-    issue.code === "repository_layout_decision_pending" ||
-    issue.code.includes("review_required")
-  ) {
-    return { actionOwner: "user", requiresUserAction: true };
-  }
-  return { actionOwner: "agent", requiresUserAction: false };
 }
 
 function replicaDivergenceItem(
@@ -96,20 +89,17 @@ function replicaDivergenceItem(
     schemaVersion: 1,
     kind: "repository_replica_divergence",
     itemId: `repository_replica_divergence_${divergence.divergenceId.slice("sha256:".length, "sha256:".length + 24)}`,
-    state: "action_required",
+    state: "lervo_debt",
     replicaId: divergence.replicaId,
     divergenceId: divergence.divergenceId,
     reason: divergence.reason,
     conflictPathCount: divergence.conflictPathCount,
     conflictPaths: [...divergence.conflictPaths],
     openedAt: divergence.openedAt,
-    actionOwner: "user",
-    requiresUserAction: true,
+    actionOwner: "agent",
+    requiresUserAction: false,
     blocking: false,
-    instruction:
-      divergence.reason === "no_common_history"
-        ? `Replica ${divergence.replicaId} has no common history with its peer; choose which host's repository to keep and re-seed the other before replication resumes.`
-        : `Make both hosts agree on the conflicting paths, or on the coordinator host run lervo-node repository-replica reconcile --config <coordinator-config> --replica ${divergence.replicaId} --prefer local|peer; the reconciling cycle records repository.replica.reconciled.`,
+    instruction: `The replica coordinator saves the losing side of replica ${divergence.replicaId} to a lervo/replica-backup branch on that side's host, records the notice, and applies the configured side on its next cycle; lervo-node repository-replica restore puts the saved side back and holds the repository. A repository the owner holds stays divergent until lervo repository release.`,
   };
 }
 
@@ -134,29 +124,31 @@ function workstreamAttentionItems(
       question: decision.question,
       choices: decision.choices.map((choice) => ({ ...choice })),
       recommendedChoiceId: decision.recommendedChoiceId,
-      actionOwner: stale ? "agent" : "user",
-      requiresUserAction: !stale,
+      // ADR-0561: the principal proxy settles a recorded decision; it never waits for the owner.
+      actionOwner: "agent",
+      requiresUserAction: false,
       blocking: !stale && decision.blocking,
       instruction: stale
         ? STALE_INSTRUCTION
-        : `Resolve workstream decision ${decision.decisionId} through an authorized workstream update.`,
+        : `Settle workstream decision ${decision.decisionId} within the operating mandate through a workstream update.`,
     })),
     ...(workstream.pendingApprovals ?? []).map((approval): OperatingAttentionItemV1 => ({
       schemaVersion: 1,
       kind: "workstream_approval",
       itemId: approval.approvalId,
-      state: stale ? "stale" : "pending",
+      state: stale ? "stale" : "lervo_debt",
       consequence: workstreamApprovalConsequence(approval.kind),
       approvalId: approval.approvalId,
       approvalKind: approval.kind,
       summary: approval.summary,
       bindingHash: approval.bindingHash,
-      actionOwner: stale ? "agent" : "user",
-      requiresUserAction: !stale,
-      blocking: !stale && approval.blocking,
+      // ADR-0561: a recorded approval is Lervo debt the working agent settles itself.
+      actionOwner: "agent",
+      requiresUserAction: false,
+      blocking: false,
       instruction: stale
         ? STALE_INSTRUCTION
-        : `Resolve workstream approval ${approval.approvalId} only against its exact binding hash.`,
+        : `Lervo debt: cross-check ${approval.approvalId}, make it reversible, apply it against its exact binding hash, report it, and remove it from the workstream.`,
     })),
     ...workstream.blockers.map((summary, blockerIndex): OperatingAttentionItemV1 => ({
       schemaVersion: 1,
@@ -207,6 +199,8 @@ export function createOperatingAttentionReport(input: {
   instructionCapture?: InstructionCaptureAttentionInput | null;
   /** ADR-0466 ownership and publication state; null when unreadable. */
   knowledgeConvergence?: KnowledgeConvergenceAttentionInput | null;
+  /** ADR-0561 foreground effects Lervo holds as its own debt. */
+  heldEffects?: readonly HeldEffect[];
   workstreamCoverage?: OperatingAttentionReportV1["coverage"]["workstream"];
   health?: OperatingAttentionReportV1["health"];
   observedAt: Date;
@@ -229,8 +223,10 @@ export function createOperatingAttentionReport(input: {
           state: "action_required",
           issueCode: issue.code,
           detail: issue.detail ?? null,
-          ...lifecycleOwner(issue),
-          blocking: issue.code === "turn_approval_pending",
+          // ADR-0561: every lifecycle issue is agent work; Lervo cross-checks and applies plans.
+          actionOwner: "agent",
+          requiresUserAction: false,
+          blocking: false,
           instruction: issue.command,
         }));
   const replicaItems =
@@ -253,6 +249,7 @@ export function createOperatingAttentionReport(input: {
         ...(input.knowledgeConvergence === undefined || input.knowledgeConvergence === null
           ? []
           : knowledgeConvergenceAttentionItems(input.knowledgeConvergence)),
+        ...heldEffectAttentionItems(input.heldEffects ?? []),
       ].map((item) => [item.itemId, attributeOperatingAttention(item, input.observedAt)]),
     ).values(),
   ]);

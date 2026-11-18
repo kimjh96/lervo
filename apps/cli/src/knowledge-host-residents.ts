@@ -1,4 +1,4 @@
-import { applyOwnerStatedInstructionCandidates } from "./durable-instruction-auto-apply.js";
+import { applyStoredInstructionCandidates } from "./durable-instruction-auto-apply.js";
 import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
@@ -116,7 +116,7 @@ export function startHostKnowledgeResidents(input: {
       continuity: createKnowledgeConvergenceContinuity(storage),
       instructionCandidateTransport,
       applyOwnerStatedInstructions: () =>
-        applyOwnerStatedInstructionCandidates({
+        applyStoredInstructionCandidates({
           repositoryRoot: storage.paths.repositoryRoot,
           now: () => new Date(),
         }),

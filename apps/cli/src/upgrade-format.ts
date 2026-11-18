@@ -11,10 +11,13 @@ import type { StageDisposition, UpgradeStageName } from "./upgrade-stage-policy.
 export interface UpgradeReceipt {
   schemaVersion: 1;
   operation: "repository_upgrade";
-  approvedPlanId: string;
+  /** The plan recreated and applied inside the exclusive window. */
+  planId: string;
   status: RepositoryUpgradePlan["status"];
   appliedStages: string[];
   skippedStages: Array<{ stage: string; reason: string }>;
+  /** ADR-0561 after-the-fact notices: what changed and the one way to undo it. */
+  notices: Array<{ stage: UpgradeStageName; summary: string; undo: string }>;
   knowledgeLint: { valid: boolean; issueCount: number } | null;
   nextPlanId: string | null;
   pending: Array<{
@@ -71,6 +74,11 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
   const lines = [
     `Repository upgrade: ${plan.status}`,
     `plan: ${plan.planId}`,
+    ...(plan.hold === null
+      ? []
+      : [
+          `repository hold: held by the owner since ${plan.hold.heldAt}${plan.hold.reason === null ? "" : ` (${plan.hold.reason})`}; no stage that changes this repository applies until lervo repository release --root ${plan.repositoryRoot}`,
+        ]),
     `runtime retention: ${plan.stages.runtimeRetention.disposition} (${plan.stages.runtimeRetention.reason}) · ${plan.stages.runtimeRetention.candidates.length} directories, ${plan.stages.runtimeRetention.reclaimableBytes} bytes`,
     ...plan.stages.runtimeRetention.candidates.map(
       (item) => `  remove runtime ${item.name} (${item.bytes} bytes)`,
@@ -86,13 +94,6 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
         : ` · ${plan.stages.knowledge.backgroundDebt.pendingDocuments} pending document(s) owned by the background resident through its ${plan.stages.knowledge.backgroundDebt.owner === "delegation" ? "delegation" : "host continuity policy"}`
     }`,
     ...blockerLines(plan.stages.knowledge.blockers, "  "),
-    ...(plan.stages.knowledge.layoutDecision === undefined
-      ? []
-      : [
-          `  layout decision ${plan.stages.knowledge.layoutDecision.decisionId}: ${plan.stages.knowledge.layoutDecision.summary}`,
-          `  accept: ${plan.stages.knowledge.layoutDecision.accept}`,
-          `  decline: ${plan.stages.knowledge.layoutDecision.decline}`,
-        ]),
     ...documentRouteDeferralLines(plan.stages.knowledge.deferredDocuments ?? [], "  "),
     ...layoutCapacityLines(
       plan.stages.knowledge.layoutCapacity ?? [],
@@ -138,33 +139,21 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
         ]
       : []),
   ];
-  for (const approval of plan.stages.workforce.requiredApprovals)
+  for (const refresh of plan.stages.workforce.repositoryRoleRefreshes)
     lines.push(
-      `  role approval: ${approval.roleId}@${approval.roleVersion} · ${approval.operationId}=${approval.approvalHash}`,
+      `  repository role refresh: ${refresh.roleId}@${refresh.roleVersion} · ${refresh.staleAgentCount} agent(s), ${refresh.staleAssignmentCount} assignment(s)`,
     );
-  if (plan.status === "ready" && plan.stages.workforce.requiredApprovals.length === 0)
+  if (plan.status === "ready")
     lines.push(
-      `Re-run with --apply --approval ${plan.planId}, or with --apply --safe to plan and apply in one exclusive step while background work keeps changing the repository.`,
+      "Re-run with --apply. It plans again and applies in one exclusive window: reviewed plans are cross-checked, provider hook files and service definitions are backed up and verified, and the receipt prints each undo.",
     );
-  if (
-    plan.status === "blocked" &&
-    plan.applicableStages.length > 0 &&
-    plan.stages.workforce.requiredApprovals.length === 0
-  )
+  if (plan.status === "blocked" && plan.applicableStages.length > 0)
     lines.push(
-      `Independent stages can still apply (${plan.applicableStages.join(", ")}): re-run with --apply --approval ${plan.planId}. The blocked stage stays blocked until its blockers are resolved.`,
+      `Independent stages can still apply (${plan.applicableStages.join(", ")}): re-run with --apply. The blocked stage stays blocked until its blockers are resolved.`,
     );
-  if (plan.stages.workforce.requiredApprovals.length > 0)
+  if (plan.status === "lervo_debt")
     lines.push(
-      `Apply the displayed role decision with --apply --approval ${plan.planId} ${plan.stages.workforce.requiredApprovals
-        .map(
-          (approval) => `--approve-role-binding ${approval.operationId}=${approval.approvalHash}`,
-        )
-        .join(" ")}.`,
-    );
-  if (plan.status === "pending_authority")
-    lines.push(
-      "A user-owned or provider-owned boundary requires its separately displayed exact approval before the upgrade can become current.",
+      "Lervo debt (no owner action): Lervo holds the stages above itself and retries them; inspect lervo application attention --json.",
     );
   lines.push("CLI package acquisition is outside this repository-upgrade plan.");
   return `${lines.join("\n")}\n`;
@@ -175,6 +164,7 @@ export function formatUpgradeReceipt(receipt: UpgradeReceipt): string {
     `Repository upgrade: ${receipt.status}`,
     `applied: ${receipt.appliedStages.length === 0 ? "none" : receipt.appliedStages.join(", ")}`,
     ...receipt.skippedStages.map((item) => `skipped: ${item.stage} (${item.reason})`),
+    ...receipt.notices.map((item) => `notice: ${item.stage}: ${item.summary} Undo: ${item.undo}`),
     ...(receipt.nextPlanId === null ? [] : [`next plan: ${receipt.nextPlanId}`]),
     ...(receipt.knowledgeLint === null || receipt.knowledgeLint.valid
       ? []

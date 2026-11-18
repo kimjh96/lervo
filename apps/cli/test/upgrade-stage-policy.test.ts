@@ -27,7 +27,7 @@ describe("upgrade stage dependency policy", () => {
     // ADR-0546: a blocked knowledge stage no longer strands the Node runtime.
     expect(deferringPrerequisite("node", { knowledge: "blocked" })).toBeNull();
     expect(deferringPrerequisite("node", { knowledge: "safe_apply" })).toBeNull();
-    expect(deferringPrerequisite("node", { knowledge: "pending_authority" })).toBeNull();
+    expect(deferringPrerequisite("node", { knowledge: "lervo_debt" })).toBeNull();
     expect(deferringPrerequisite("terminal_integration", { knowledge: "blocked" })).toBeNull();
   });
 
@@ -40,7 +40,7 @@ describe("upgrade stage dependency policy", () => {
     expect(deferralReason(terminal!)).toBe("terminal_integration_must_apply_first");
     expect(
       deferringPrerequisite("event_writer", {
-        terminal_integration: "pending_authority",
+        terminal_integration: "lervo_debt",
         node: "current",
       }),
     ).toBeNull();
@@ -52,7 +52,7 @@ describe("upgrade stage dependency policy", () => {
     expect(
       deferringPrerequisite("event_writer", {
         terminal_integration: "current",
-        node: "pending_authority",
+        node: "lervo_debt",
       }),
     ).toBeNull();
   });
@@ -70,13 +70,19 @@ describe("upgrade stage dependency policy", () => {
       runtime_retention: "current",
     } as const;
     expect(overallUpgradeStatus(Object.values(dispositions))).toBe("blocked");
-    expect(applicableUpgradeStages(dispositions, false)).toEqual([
+    expect(applicableUpgradeStages(dispositions)).toEqual(["terminal_integration", "host_service"]);
+    expect(applicableUpgradeStages({ ...dispositions, workforce: "safe_apply" })).toEqual([
+      "workforce",
       "terminal_integration",
       "host_service",
     ]);
-    expect(
-      applicableUpgradeStages({ ...dispositions, workforce: "pending_authority" }, true),
-    ).toEqual(["workforce", "terminal_integration", "host_service"]);
+  });
+
+  it("reports a held stage as Lervo debt only when nothing else applies (ADR-0561)", () => {
+    expect(overallUpgradeStatus(["current", "lervo_debt"])).toBe("lervo_debt");
+    expect(overallUpgradeStatus(["safe_apply", "lervo_debt"])).toBe("ready");
+    expect(overallUpgradeStatus(["blocked", "lervo_debt"])).toBe("blocked");
+    expect(overallUpgradeStatus(["current", "deferred"])).toBe("current");
   });
 });
 
@@ -87,7 +93,7 @@ describe("knowledge lint in an upgrade apply (ADR-0589)", () => {
     expect(knowledgeLintSkipReason([], current)).toBe("knowledge_current_nothing_applied");
     expect(knowledgeLintSkipReason(["capabilities"], current)).toBeNull();
     expect(knowledgeLintSkipReason(["knowledge_materialization"], current)).toBeNull();
-    for (const disposition of ["blocked", "pending_authority", "deferred", "safe_apply"] as const)
+    for (const disposition of ["blocked", "lervo_debt", "deferred", "safe_apply"] as const)
       expect(knowledgeLintSkipReason([], { disposition, reason: "x" })).toBeNull();
     expect(knowledgeLintSkipReason([], null)).toBeNull();
   });

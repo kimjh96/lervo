@@ -5,10 +5,11 @@ import type { ConvergenceDelegation, ConvergenceWorkerRole } from "./delegation-
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
 /**
- * ADR-0469 host continuity policy. The owner installs it once per host; it lets every knowledge
- * resident on that host renew its delegation at the same scope and seed a missing delegation from
- * a peer host or the policy template, without the owner in the loop. It never widens a scope:
- * anything outside its limits remains an owner review.
+ * ADR-0469 host continuity policy. It is installed once per host; it lets every knowledge
+ * resident on that host renew its delegation and seed a missing delegation from a peer host or
+ * the policy template, without the owner in the loop. It never widens a scope: under ADR-0561 a
+ * delegation outside its limits renews narrowed to them, and the resident rolls the horizon
+ * forward, so the last installed limits bound continuity until the policy is revoked.
  */
 export const CONVERGENCE_CONTINUITY_POLICY_FILE = "knowledge-continuity-policy.json";
 
@@ -282,4 +283,51 @@ export function delegationWithinContinuityLimits(
     own.maximumProviderCalls <= limit.maximumProviderCalls
     ? "within"
     : "ceiling_outside_policy";
+}
+
+/**
+ * ADR-0561: the providers and ceilings a renewal keeps inside the policy limits: the allowed
+ * providers it already had and the lower of each ceiling. Null when no provider is left, because
+ * a delegation without a provider grants nothing.
+ */
+export function narrowedToContinuityLimits(
+  delegation: Pick<ConvergenceDelegation, "providers" | "resourceCeilings">,
+  policy: Pick<ConvergenceContinuityPolicy, "limits">,
+): Pick<ConvergenceDelegation, "providers" | "resourceCeilings"> | null {
+  const providers = delegation.providers.filter((provider) =>
+    policy.limits.providers.includes(provider),
+  );
+  if (providers.length === 0) return null;
+  const limit = policy.limits.resourceCeilings;
+  const own = delegation.resourceCeilings;
+  return {
+    providers,
+    resourceCeilings: {
+      maximumStages: Math.min(own.maximumStages, limit.maximumStages),
+      maximumDocuments: Math.min(own.maximumDocuments, limit.maximumDocuments),
+      maximumSourceBytes: Math.min(own.maximumSourceBytes, limit.maximumSourceBytes),
+      maximumProviderCalls: Math.min(own.maximumProviderCalls, limit.maximumProviderCalls),
+    },
+  };
+}
+
+/**
+ * ADR-0561: an active policy whose horizon falls within one renewal term plus the attention lead
+ * is reissued with the same limits, template, renewal, seeding, and authority and a new horizon,
+ * so continuity never waits for the owner to reinstall it. Null when no roll-forward is due.
+ */
+export function rolledContinuityPolicy(
+  policy: ConvergenceContinuityPolicy,
+  now: Date,
+): ConvergenceContinuityPolicy | null {
+  if (policy.state !== "active") return null;
+  const lead =
+    policy.renewal.termDays * DAY_MS + Math.max(policy.renewal.attentionLeadHours, 72) * HOUR_MS;
+  if (Date.parse(policy.horizonAt) - now.getTime() > lead) return null;
+  const { policyHash: _hash, policyId: _id, ...body } = policy;
+  return sealConvergenceContinuityPolicy({
+    ...body,
+    issuedAt: now.toISOString(),
+    horizonAt: new Date(now.getTime() + DEFAULT_CONTINUITY_HORIZON_DAYS * DAY_MS).toISOString(),
+  });
 }

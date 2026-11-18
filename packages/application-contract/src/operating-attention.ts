@@ -36,9 +36,14 @@ export interface WorkstreamDecisionAttentionItemV1 extends OperatingAttentionIte
   recommendedChoiceId: string | null;
 }
 
+/**
+ * A pending approval a stored workstream snapshot still records (ADR-0561). New snapshots cannot
+ * declare one; a recorded one is Lervo debt the working agent settles by cross-checking the effect,
+ * making it reversible, and reporting it, never an owner approval.
+ */
 export interface WorkstreamApprovalAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "workstream_approval";
-  state: "pending" | "stale";
+  state: "lervo_debt" | "stale";
   consequence: WorkstreamItemConsequenceV1;
   approvalId: string;
   approvalKind: "repository_bytes" | "managed_write" | "external_action" | "deployment";
@@ -55,7 +60,8 @@ export interface WorkstreamBlockerAttentionItemV1 extends OperatingAttentionItem
 
 export interface CanonicalizationAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "canonicalization_review";
-  state: "candidate" | "pending" | "stale";
+  /** `lervo_debt`: the reviewer deferred the candidate twice, so Lervo holds it (ADR-0561). */
+  state: "candidate" | "pending" | "stale" | "lervo_debt";
   candidateId: string;
   candidateHash: string;
   sourcePaths: string[];
@@ -81,9 +87,13 @@ export interface KnowledgeLifecycleAttentionItemV1 extends OperatingAttentionIte
 }
 
 /** One open repository replica divergence identity (ADR-0456); at most one per replica. */
+/**
+ * A replica divergence the coordinator has not settled yet (ADR-0561): it saves the losing side to
+ * a backup branch and prefers the configured side itself, so an open one is Lervo debt.
+ */
 export interface RepositoryReplicaDivergenceAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "repository_replica_divergence";
-  state: "action_required";
+  state: "lervo_debt";
   replicaId: string;
   divergenceId: string;
   reason: "no_common_history" | "conflicting_paths" | "merge_unavailable";
@@ -93,18 +103,21 @@ export interface RepositoryReplicaDivergenceAttentionItemV1 extends OperatingAtt
 }
 
 /**
- * A verified document freshness candidate that needs the owner (ADR-0463): user-owned bytes, a
- * safety or policy line, an archive, or a hunk held until the Tier 0 cross-check exists.
+ * A verified document freshness candidate Lervo still holds (ADR-0463, ADR-0561): its required
+ * cross-check waits for Lervo's retry, or the rest of a partial apply waits for it. It is Lervo
+ * debt shown with its age, never owner work.
  */
 export interface DocumentFreshnessCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "document_freshness_candidate";
-  state: "waiting_authority" | "verified_pending_cross_check" | "partially_applied";
+  state: "lervo_debt";
   candidateId: string;
   documentPath: string;
   priorityClass: "safety" | "entrypoint" | "canonical" | "other";
   changeClasses: Array<"factual_reference" | "statement" | "safety_or_policy" | "archive">;
   hunkCount: number;
-  ownerConsequence?: "repository_write" | "security_policy" | null;
+  /** Why Lervo holds it: the cross-check's unavailable reason, or `legacy_owner_authority`. */
+  heldReason: string;
+  retryAt: string | null;
   createdAt?: string;
 }
 
@@ -120,24 +133,32 @@ export interface DocumentFreshnessAppliedAttentionItemV1 extends OperatingAttent
 }
 
 /**
- * The freshness loop cannot make progress: zero verified candidates from five attempts today, or
- * a candidate and its single regeneration both met Tier 0 material disagreement (ADR-0557).
+ * Lervo debt of the freshness loop (ADR-0561), held with backoff and never owner work: five
+ * attempts today produced no verified candidate, so generation pauses; or a finding's candidate and
+ * its single regeneration both met cross-check disagreement, both left the value undetermined, or a
+ * candidate exhausted its token budget.
  */
 export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "document_freshness_blocked";
-  state: "action_required";
-  reasonCode: "zero_success_window" | "repeated_cross_check_disagreement";
+  state: "lervo_debt";
+  reasonCode:
+    | "zero_success_window"
+    | "cross_check_disagreement_repeated"
+    | "freshness_evidence_undetermined"
+    | "budget_exceeded";
   documentPath: string | null;
   attempts: number;
+  since: string;
+  retryAt: string;
 }
 
 /**
- * An owner rule or correction captured from a terminal prompt or managed conversation (ADR-0467).
- * It waits for exact-hash review; `title` is the normalized rule title, never the owner's words.
+ * A stored owner rule the resident has not applied yet (ADR-0467, ADR-0561). It is Lervo's own
+ * work and never waits for the owner; `title` is the normalized rule title, never the owner's words.
  */
 export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "durable_instruction_candidate";
-  state: "waiting_authority";
+  state: "pending_apply";
   candidateId: string;
   candidateHash: string;
   captureSource: "terminal_prompt" | "conversation" | "explicit_intake";
@@ -146,10 +167,14 @@ export interface DurableInstructionCandidateAttentionItemV1 extends OperatingAtt
   createdAt?: string;
 }
 
-/** A decision the owner stated, held until it is documented or dismissed (ADR-0467). */
+/**
+ * Lervo's own held capture debt (ADR-0467, ADR-0561): a decision the owner stated that Lervo has
+ * not documented yet, or a captured rule the independent cross-check rejected. Never owner work.
+ */
 export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "captured_decision";
-  state: "action_required";
+  state: "lervo_debt";
+  heldKind: "decision" | "cross_check_disagreement";
   captureId: string;
   captureSource: "terminal_prompt" | "conversation";
   title: string;
@@ -158,23 +183,54 @@ export interface CapturedDecisionAttentionItemV1 extends OperatingAttentionItemB
 
 /**
  * ADR-0467: owner turns are queued on this host, but it has no background-work authority (no
- * active delegation for its provider), so it cannot assess them. One item per host.
+ * active delegation for its provider), so it cannot assess them yet. One item per host. ADR-0561:
+ * this is Lervo debt shown with its age, not an owner task.
  */
 export interface InstructionCaptureBlockedAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "instruction_capture_blocked";
-  state: "action_required";
+  state: "lervo_debt";
   reasonCode: "knowledge_authority_unavailable";
   queuedCount: number;
   since: string;
 }
 
 /**
+ * A foreground effect Lervo held instead of applying (ADR-0561): an upgrade stage whose
+ * cross-check disagreed, could not run, or did not verify after a restored backup, or a capability
+ * package whose stronger check disagreed. Lervo debt shown with its age, never owner work.
+ */
+export interface HeldEffectAttentionItemV1 extends OperatingAttentionItemBaseV1 {
+  kind: "held_effect";
+  state: "lervo_debt";
+  effect:
+    "upgrade_knowledge" | "upgrade_terminal_integration" | "capability_install" | "repository_hold";
+  /** A plan ID or capability coordinate; never a path or content. */
+  subject: string;
+  /** `owner_hold` and `owner_restored` are the owner's own holds; the rest are Lervo debt. */
+  reasonCode:
+    | "cross_check_disagreement_repeated"
+    | "stronger_check_disagreement"
+    | "cross_check_unavailable"
+    | "verification_failed"
+    | "user_owned_content"
+    | "paths_uncommitted"
+    | "commit_unavailable"
+    | "owner_hold"
+    | "owner_restored";
+  attempts: number;
+  since: string;
+}
+
+/**
  * ADR-0466: this host cannot prove it owns knowledge convergence, or a standalone host saw
- * another host's fresh knowledge commit. Convergence stays read-only until it is resolved.
+ * another host's fresh knowledge commit. Convergence stays read-only until it is resolved. Under
+ * ADR-0561 the resident retries the coordination itself, so the item is `lervo_debt`; only a
+ * credential Lervo cannot create (`hub_unauthorized`, `token_file_unreadable`, `hub_forbidden`)
+ * is `credentials_missing`, a notice that never blocks the stages that do not need it.
  */
 export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_convergence_owner";
-  state: "action_required";
+  state: "lervo_debt" | "credentials_missing";
   role: "unverifiable" | "contended";
   reason: string;
   /** The recorded Hub failure cause of an `unverifiable` verdict, such as `hub_forbidden`. */
@@ -185,10 +241,14 @@ export interface KnowledgeConvergenceOwnerAttentionItemV1 extends OperatingAtten
   observedAt: string;
 }
 
-/** ADR-0466: publishing the owner's knowledge commits failed; one item per failure code. */
+/**
+ * ADR-0466: publishing the owner's knowledge commits failed, or superseded commits stayed on the
+ * branch; one item per failure code. ADR-0561: Lervo retries each itself (`lervo_debt`); only a
+ * missing `gh` login is `credentials_missing`, a notice.
+ */
 export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_publication";
-  state: "action_required";
+  state: "lervo_debt" | "credentials_missing";
   failureCode: string;
   detail: string | null;
   pullRequestUrl: string | null;
@@ -199,14 +259,15 @@ export interface KnowledgePublicationAttentionItemV1 extends OperatingAttentionI
 /**
  * ADR-0469: a background knowledge continuity gap on this host, such as a delegation that will
  * lapse without a policy, a Hub that refuses coordination, or a checkout no resident reconciles.
- * It never blocks; it requires the user only for an authority or scope decision.
+ * It never blocks. Under ADR-0561 it never requires the user: continuity Lervo cannot restore
+ * within the installed policy limits is `lervo_debt`, shown with its age and reason.
  */
 export interface KnowledgeConvergenceContinuityAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "knowledge_convergence_continuity";
-  state: "action_required" | "observed";
+  state: "lervo_debt" | "observed";
   findingCode: string;
   actor?: "provider admission";
-  severity: "attention" | "owner_decision";
+  severity: "attention" | "lervo_debt";
   /** A closed cause code or a host label; never a path, URL, or message. */
   detail: string | null;
   observedAt: string | null;
@@ -225,6 +286,7 @@ export type OperatingAttentionItemV1 =
   | DurableInstructionCandidateAttentionItemV1
   | CapturedDecisionAttentionItemV1
   | InstructionCaptureBlockedAttentionItemV1
+  | HeldEffectAttentionItemV1
   | KnowledgeConvergenceOwnerAttentionItemV1
   | KnowledgePublicationAttentionItemV1
   | KnowledgeConvergenceContinuityAttentionItemV1;

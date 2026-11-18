@@ -2,7 +2,7 @@
   "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.26.0",
+    "version": "0.27.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -200,18 +200,18 @@
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 7046251,
-        "sha256": "sha256:b27d0db0ee0b6338e011b9e6f90077d8a08d51356c2fc545de4fb158fe1d5478"
+        "size": 7129079,
+        "sha256": "sha256:2b7c46e8780daa3fda97841dce7a3ae15ee38264e02896e5c21a4b224f59f424"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 11844450,
-        "sha256": "sha256:d14cb144f84361d4b689c3642a35d2427bb4df466bc23bc88ae82bffd37cdce3"
+        "size": 11972288,
+        "sha256": "sha256:df1f129f878fbda0f40717d3ac9d583d9f374d833c4a411b2dff5a7cf99935d3"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:1b001ef2e372d1754e07a97679e860bd468237e9bcd1a9ed3b3277c731edc7fa"
+        "sha256": "sha256:153853358ee5fc752d153d7d72e0692343e499190dd3cbd0ff72d01e606cc517"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -220,12 +220,12 @@
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 6656430,
-        "sha256": "sha256:8aef4e8e7eaa15f05cb87953618b6a2978d30a9da2b7dc72537a9ac7b165fd29"
+        "size": 6722373,
+        "sha256": "sha256:0b9d5b4f5d5768d05e8ecbbc48a2e0023aede4a2821e9a696d7114e157810890"
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:8e992e6a45884ee6d79a1c5edb1a1f88c1a17f4d9cb1cbbe504ef3c6dbceacc7"
+    "contentDigest": "sha256:03c98cd21a5f755544e41095d51c0e93928d39552e6b46c9148465f752c8e812"
   },
   "dependencies": {
     "portable": [
@@ -338,5 +338,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:cd71aca24763f1836eadec489c18e6ffe1c7712b262773fd4e3aa12762e8d5bd"
+  "artifactDigest": "sha256:38dc6f96c52b4e82315504dc3cf1eb3ce516160fd7b64cd60d0ba7ab42c88010"
 }

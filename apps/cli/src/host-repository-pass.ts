@@ -1,4 +1,8 @@
-import { classifyRepositoryFailure } from "./host-follow-policy.js";
+import {
+  classifyRepositoryFailure,
+  LERVO_DEBT_CODE,
+  REPOSITORY_OWNER_HOLD_CODE,
+} from "./host-follow-policy.js";
 import type {
   HostFollowRepositoryResult,
   HostFollowStageTiming,
@@ -42,15 +46,21 @@ export interface RepositoryPassOptions {
    * at that boundary, so a newer release does not wait for the remaining repositories.
    */
   yieldToRelease?: () => Promise<boolean>;
+  /**
+   * ADR-0561: whether the owner holds a repository. A held repository is not upgraded at all: the
+   * pass records it as blocked with `repository_owner_hold` and runs no command there.
+   */
+  repositoryHeld?: (repositoryRoot: string) => Promise<boolean>;
 }
 
 /**
- * ADR-0575, the product form of the deploy skill's `upgrade-all.sh`: plan, apply that exact plan
- * by its id, apply `--safe` when a background cycle changed the plan (`upgrade_plan_changed`) or
- * the plan is not `ready`, and repeat for at most five rounds until the repository is current. A
- * failed apply of a `ready` plan goes on to the next round, as the script does. A host-failure
- * code is believed only the second time: Node readiness can time out for reasons of the moment,
- * and the Node stage restores its previous service before it reports, so one more round is safe.
+ * ADR-0575, the product form of the deploy skill's `upgrade-all.sh`: plan, then `--apply`, which
+ * plans again inside the exclusive window and applies that plan (ADR-0561), and repeat for at most
+ * five rounds until the repository is current. No stage waits for an owner approval; a stage
+ * Lervo holds itself (`lervo_debt`) is reported as a block and rechecked like one. A failed apply
+ * of a `ready` plan goes on to the next round, as the script does. A host-failure code is believed
+ * only the second time: Node readiness can time out for reasons of the moment, and the Node stage
+ * restores its previous service before it reports, so one more round is safe.
  */
 async function upgradeRepository(
   repositoryRoot: string,
@@ -79,20 +89,18 @@ async function upgradeRepository(
     entry.elapsedMs = now() - started;
     return entry;
   };
+  if ((await options.repositoryHeld?.(repositoryRoot)) === true)
+    return finish("blocked", REPOSITORY_OWNER_HOLD_CODE);
   const run = (args: string[]) => options.run(args, options.signal);
   // ADR-0589: an apply that leaves no receipt parts is one part of its own, so its time shows.
-  const apply = async (
-    round: number,
-    stage: "apply_command" | "safe_apply_command",
-    args: string[],
-  ) => {
+  const apply = async (round: number, args: string[]) => {
     const applyStarted = now();
     const invocation = await run(args);
     if (
       invocation.kind !== "interrupted" &&
       (invocation.kind !== "result" || invocation.stageTimings === undefined)
     )
-      stageTimings.push({ round, stage, ms: now() - applyStarted });
+      stageTimings.push({ round, stage: "apply_command", ms: now() - applyStarted });
     return invocation;
   };
   const base = ["upgrade", "--root", repositoryRoot];
@@ -116,6 +124,11 @@ async function upgradeRepository(
     entry.status = plan.status;
     entry.planId = plan.planId;
     if (plan.status === "current") return finish("current", null);
+    // ADR-0561: Lervo holds these stages itself and retries them on its own backoff.
+    if (plan.status === "lervo_debt") {
+      entry.pendingStages = plan.lervoDebtStages ?? [];
+      return finish("blocked", LERVO_DEBT_CODE);
+    }
     if (plan.status === "blocked" && plan.applicableStages.length === 0)
       return finish("blocked", "upgrade_plan_blocked");
     if (
@@ -124,41 +137,12 @@ async function upgradeRepository(
       options.blockedPlanIds?.get(repositoryRoot) === plan.planId
     )
       return finish("blocked", "upgrade_plan_unchanged");
-    // ADR-0582: `--safe` refuses before it changes anything while a stage waits for the owner, so
-    // the apply would only pay for admission and a second plan to report the same refusal.
-    const approvals = plan.ownerApprovalStages ?? [];
-    if (plan.status !== "ready" && approvals.length > 0) {
-      entry.pendingStages = approvals;
-      return finish("blocked", "upgrade_owner_approval_required");
-    }
-    const safe = [...base, "--apply", "--safe", "--json"];
-    let applied =
-      plan.status === "ready" && plan.planId !== null
-        ? await apply(round, "apply_command", [
-            ...base,
-            "--apply",
-            "--approval",
-            plan.planId,
-            "--json",
-          ])
-        : await apply(round, "safe_apply_command", safe);
-    if (applied.kind === "failed" && applied.code === "upgrade_plan_changed") {
-      // ADR-0589: the refusal names the owner-approval stages of the plan it recreated, and
-      // `--safe` would refuse on them before any write.
-      const approvals = applied.ownerApprovalStages ?? [];
-      if (approvals.length > 0) {
-        entry.pendingStages = approvals;
-        return finish("blocked", "upgrade_owner_approval_required");
-      }
-      applied = await apply(round, "safe_apply_command", safe);
-    }
+    const applied = await apply(round, [...base, "--apply", "--json"]);
     if (applied.kind === "interrupted") return "interrupted";
     if (applied.kind !== "result") {
       const code = failureCode(applied);
       const outcome = classifyRepositoryFailure(code);
       lastCode = code;
-      if (applied.kind === "failed" && applied.ownerApprovalStages !== undefined)
-        entry.pendingStages = applied.ownerApprovalStages;
       if (outcome === "host_failure" && hostFailureSeen) return finish(outcome, code);
       if (outcome === "host_failure") hostFailureSeen = true;
       else if (outcome === "blocked" || plan.status !== "ready") return finish(outcome, code);
@@ -175,6 +159,7 @@ async function upgradeRepository(
       entry.applyMs = (entry.applyMs ?? 0) + applied.timing.applyMs;
     }
     if (applied.status === "current") return finish("current", null);
+    if (applied.status === "lervo_debt") return finish("blocked", LERVO_DEBT_CODE);
     if (plan.status !== "ready") return finish("blocked", null);
   }
   if (lastCode !== null) {
@@ -182,7 +167,7 @@ async function upgradeRepository(
     return finish(outcome === "host_failure" ? "failed" : outcome, lastCode);
   }
   return finish(
-    entry.status === "blocked" || entry.status === "pending_authority" ? "blocked" : "failed",
+    entry.status === "blocked" ? "blocked" : "failed",
     "host_follow_repository_upgrade_unconverged",
   );
 }

@@ -123,6 +123,35 @@ describe("typed semantic grounding", () => {
     ).toThrow("unsupported or missing fields");
   });
 
+  it("parses a broad, conflicting, replacing canonical rule as classification (ADR-0561)", () => {
+    const parsed = parseSemanticGroundingProposal(
+      proposal({
+        durableInstruction: {
+          disposition: "canonical",
+          speechAct: "directive",
+          authority: "explicit_user",
+          durability: "repository",
+          operation: "replace",
+          scope: { kind: "unspecified", paths: [] },
+          title: "Decide without the owner",
+          statement: "Lervo decides and proceeds on its own.",
+          exceptions: [],
+          risk: "high",
+          conflict: "possible",
+          confidence: "medium",
+          reasonIds: ["broad.product.policy"],
+          replaces: ["docs/instructions/generated/rule_aaaaaaaaaaaaaaaaaaaaaaaa.md"],
+        },
+      }),
+    );
+    expect(parsed.durableInstruction).toMatchObject({
+      disposition: "canonical",
+      risk: "high",
+      replaces: ["docs/instructions/generated/rule_aaaaaaaaaaaaaaaaaaaaaaaa.md"],
+    });
+    expect(parseSemanticGroundingProposal(proposal()).durableInstruction.replaces).toEqual([]);
+  });
+
   it("clarifies unresolved references without selecting effects or providers", () => {
     const decision = decideGroundedRequest({
       proposal: parseSemanticGroundingProposal(

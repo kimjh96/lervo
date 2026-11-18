@@ -234,7 +234,7 @@ describe("delegation continuity", () => {
     expect(continuedEvents(f)).toHaveLength(count);
   });
 
-  it("never renews under a revoked policy and asks the owner before the delegation lapses", async () => {
+  it("never renews under a revoked policy and holds the lapse as Lervo debt", async () => {
     const f = await tracked(true);
     const path = await policyFile(f, templatePolicy("revoked"));
     const before = await readFile(resolve(f.root, CONVERGENCE_DELEGATION_PATH), "utf8");
@@ -242,14 +242,14 @@ describe("delegation continuity", () => {
     expect(await readFile(resolve(f.root, CONVERGENCE_DELEGATION_PATH), "utf8")).toBe(before);
     expect(state?.findings).toEqual(
       expect.arrayContaining([
-        { code: "delegation_expiring", severity: "owner_decision", detail: "policy_revoked" },
+        { code: "delegation_expiring", severity: "lervo_debt", detail: "policy_revoked" },
         { code: "policy_revoked", severity: "info", detail: null },
       ]),
     );
     expect(continuedEvents(f)).toEqual([]);
   });
 
-  it("refuses to renew a delegation outside the policy limits", async () => {
+  it("holds a delegation that shares no provider with the policy limits as Lervo debt", async () => {
     const f = await tracked(true);
     const policy = templatePolicy();
     const { policyId: _id, policyHash: _hash, ...body } = policy;
@@ -263,10 +263,70 @@ describe("delegation continuity", () => {
     const state = await continuity({ f, policyPath: path }).reconcile();
     expect(state?.findings).toContainEqual({
       code: "delegation_outside_policy",
-      severity: "owner_decision",
+      severity: "lervo_debt",
       detail: "provider_outside_policy",
     });
     expect(continuedEvents(f)).toEqual([]);
+  });
+
+  it("renews a delegation above the ceiling limits narrowed to them, with no owner step (ADR-0561)", async () => {
+    const f = await tracked(true);
+    const policy = templatePolicy();
+    const { policyId: _id, policyHash: _hash, ...body } = policy;
+    const path = await policyFile(
+      f,
+      sealConvergenceContinuityPolicy({
+        ...body,
+        limits: {
+          ...body.limits,
+          resourceCeilings: { ...body.limits.resourceCeilings, maximumProviderCalls: 2 },
+        },
+      }),
+    );
+    await standaloneOwner(f);
+    const before = (await loadConvergenceDelegation(f.root))!.delegation;
+    const state = await continuity({ f, policyPath: path }).reconcile();
+    const after = (await loadConvergenceDelegation(f.root))!.delegation;
+    expect(after.resourceCeilings).toEqual({ ...before.resourceCeilings, maximumProviderCalls: 2 });
+    expect(after.providers).toEqual(before.providers);
+    expect(Date.parse(after.expiresAt)).toBeGreaterThan(Date.now() + 29 * DAY);
+    expect(state?.findings.map((finding) => finding.code)).not.toContain(
+      "delegation_outside_policy",
+    );
+    expect(state?.findings.map((finding) => finding.severity)).not.toContain("lervo_debt");
+    expect(continuedEvents(f)).toEqual([
+      expect.objectContaining({
+        payload: expect.objectContaining({ action: "renewed", source: "renewal" }),
+      }),
+    ]);
+  });
+
+  it("rolls a near policy horizon forward within the same limits (ADR-0561)", async () => {
+    const f = await tracked(true);
+    const policy = templatePolicy();
+    const { policyId: _id, policyHash: _hash, ...body } = policy;
+    const near = sealConvergenceContinuityPolicy({
+      ...body,
+      horizonAt: new Date(Date.now() + 2 * DAY).toISOString(),
+    });
+    const path = await policyFile(f, near);
+    await standaloneOwner(f);
+    const state = await continuity({ f, policyPath: path }).reconcile();
+    const rolled = await readConvergenceContinuityPolicy(path);
+    if (rolled.status !== "loaded") throw new Error("The rolled policy did not load.");
+    expect(Date.parse(rolled.policy.horizonAt)).toBeGreaterThan(Date.now() + 300 * DAY);
+    expect(rolled.policy).toMatchObject({
+      limits: near.limits,
+      template: near.template,
+      renewal: near.renewal,
+      seeding: near.seeding,
+      authority: near.authority,
+    });
+    expect(rolled.policy.policyHash).not.toBe(near.policyHash);
+    // The delegation renews a whole term instead of one capped at the old horizon.
+    const after = (await loadConvergenceDelegation(f.root))!.delegation;
+    expect(Date.parse(after.expiresAt)).toBeGreaterThan(Date.now() + 29 * DAY);
+    expect(state?.findings.map((finding) => finding.code)).not.toContain("policy_horizon_near");
   });
 });
 

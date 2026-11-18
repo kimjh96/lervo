@@ -2,6 +2,9 @@
 
 - Status: accepted
 - Decision date: 2026-08-25
+- Amended by: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (repository role bindings refresh without an approval)
+
+> **Amended (2026-11-02).** Under ADR-0561, repository-defined role drift is no longer `review_required` and `--approve-role-binding` is removed. The role source is repository bytes that `lervo role validate` checks, so the migration refreshes repository bindings like built-in ones and reports them as `repositoryRoleRefreshes`. Each binding-change event records the previous binding. Reverting the role source in Git and running `lervo upgrade --apply` again restores it.
 
 ## Context
 

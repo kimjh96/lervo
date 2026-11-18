@@ -10,7 +10,7 @@ Provider-neutral behavior belongs in `docs/instructions/<route>` and portable Ag
 
 ## Normalization and currency
 
-Normalization produces bounded English Markdown for an audience profile with complete source-section coverage. Every source requires exact approval. Content-bound shard caches and a three-process ceiling keep runs bounded and resumable without weakening compiler-build or source binding. Planning revalidates inner bindings and the complete current source set.
+Normalization produces bounded English Markdown for an audience profile with complete source-section coverage. Every applied plan passes an independent review first: the background normalization reviewer, or a foreground cross-check of the exact plan. Content-bound shard caches and a three-process ceiling keep runs bounded and resumable without weakening compiler-build or source binding. Planning revalidates inner bindings and the complete current source set.
 
 Lifecycle sidecars bind output hashes, format and language versions, compiler build, and skill-resource hashes. Changed documents or skills become stale without automatic rewriting.
 

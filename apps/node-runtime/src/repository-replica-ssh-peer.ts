@@ -11,6 +11,7 @@ import type {
   RepositoryReplicaPeerPort,
   RepositoryReplicaReceipt,
 } from "./repository-replica-coordinator.js";
+import type { RepositoryReplicaSideSnapshot } from "./repository-replica-peer-port.js";
 import {
   RepositoryReplicaPeerError,
   RepositoryReplicaStageError,
@@ -224,11 +225,18 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     }
   }
 
-  async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot> {
+  /**
+   * The peer's snapshot and its own host's owner hold (ADR-0561). A peer runtime that predates
+   * the hold reports none, and the coordinator then counts the peer as held.
+   */
+  async snapshot(repositoryRoot: string): Promise<RepositoryReplicaSideSnapshot> {
     const output = await this.execute(["snapshot", "--root", repositoryRoot]);
-    const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
+    const snapshot = JSON.parse(
+      Buffer.from(output).toString("utf8"),
+    ) as RepositoryReplicaSideSnapshot;
     assertRepositoryReplicaSnapshot(snapshot);
-    return snapshot;
+    const { ownerHold, ...observed } = snapshot;
+    return { ...observed, ...(typeof ownerHold === "boolean" ? { ownerHold } : {}) };
   }
 
   bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array> {
@@ -265,6 +273,54 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
       Buffer.from(`${JSON.stringify({ entries: input.entries })}\n`, "utf8"),
     );
     return parseReplicaKnowledgeSupersession(JSON.parse(Buffer.from(output).toString("utf8")));
+  }
+
+  /**
+   * ADR-0561: saves this peer's own side to a backup branch in the peer's repository, the host
+   * the undo restores it on. A peer runtime that predates the action fails, and the coordinator
+   * then holds the conflict instead of changing either side.
+   */
+  async backup(input: {
+    repositoryRoot: string;
+    branch: string;
+    bundle: Uint8Array | null;
+    expectedSnapshotHash: string;
+  }): Promise<{ branch: string; snapshotHash: string }> {
+    if (input.bundle !== null)
+      throw new Error("A peer saves only its own side; its backup takes no bundle.");
+    const output = await this.execute([
+      "backup",
+      "--root",
+      input.repositoryRoot,
+      "--branch",
+      input.branch,
+      "--expected",
+      input.expectedSnapshotHash,
+    ]);
+    const saved = JSON.parse(Buffer.from(output).toString("utf8")) as {
+      branch?: unknown;
+      snapshotHash?: unknown;
+    };
+    if (typeof saved.branch !== "string" || typeof saved.snapshotHash !== "string")
+      throw new Error("The peer returned an invalid replica backup.");
+    return { branch: saved.branch, snapshotHash: saved.snapshotHash };
+  }
+
+  /** ADR-0561 undo: puts a saved backup branch back into the peer's repository. */
+  async restoreBackup(input: {
+    repositoryRoot: string;
+    branch: string;
+  }): Promise<RepositoryReplicaSnapshot> {
+    const output = await this.execute([
+      "restore-backup",
+      "--root",
+      input.repositoryRoot,
+      "--branch",
+      input.branch,
+    ]);
+    const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
+    assertRepositoryReplicaSnapshot(snapshot);
+    return snapshot;
   }
 
   async recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {

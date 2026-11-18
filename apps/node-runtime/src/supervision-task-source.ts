@@ -4,7 +4,7 @@ import { SupervisionWorkScopeSource } from "./supervision-work-scope-source.js";
 import { readSupervisionHandoffState } from "./supervision-handoff-state.js";
 import {
   readCanonicalSupervisionAttention,
-  hasPendingSupervisionAttention,
+  readPendingSupervisionAttention,
 } from "./supervision-attention-source.js";
 import { readCanonicalWorkspacePreparation } from "./supervision-workspace-plan.js";
 import {
@@ -393,12 +393,12 @@ export class SupervisionTaskSource {
         source.supervisionEvents,
         this.binding.supervisionId,
       ),
-      attentionPending: await hasPendingSupervisionAttention({
+      ...(await readPendingSupervisionAttention({
         storage: this.storage,
         source,
         binding: this.binding,
         now: this.now,
-      }),
+      })),
       pendingDecision: [...decisions.values()].some((status) =>
         ["recorded", "uncertain"].includes(status),
       ),

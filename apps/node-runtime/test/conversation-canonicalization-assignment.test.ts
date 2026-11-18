@@ -44,14 +44,15 @@ it("assigns open background candidates to the next write-capable Discord turn", 
     finalizationStartsAt: "2026-09-25T12:10:00.000Z",
     canonicalizationCandidates: [candidate!],
   });
-  expect(instructions).toContain(
-    `lervo knowledge canonicalization promote ${candidate!.candidateId} --reviewer developer --approval ${candidate!.contentHash}`,
-  );
-  // A drifted source only permits rejection.
+  // ADR-0561: the turn documents the candidate; the background reviewer promotes or rejects it.
+  expect(instructions).toContain(`- ${candidate!.candidateId}: sources src/a.ts`);
+  expect(instructions).toContain("never record a promotion or rejection");
+  expect(instructions).not.toContain("lervo knowledge canonicalization promote");
+  expect(instructions).not.toContain("lervo knowledge canonicalization review");
+  // A drifted source is the background reviewer's alone; the turn is not assigned it.
   await writeFile(resolve(root, "src/a.ts"), "export const a = 3;\n");
-  const [stale] = await pendingCanonicalizationCandidates(root);
-  expect(canonicalizationAssignment([stale!], "developer")).toContain("--decision reject");
-  expect(canonicalizationAssignment([], "developer")).toBeNull();
+  expect(await pendingCanonicalizationCandidates(root)).toEqual([]);
+  expect(canonicalizationAssignment([])).toBeNull();
   expect(await pendingCanonicalizationCandidates(resolve(root, "missing"))).toEqual([]);
   expect(normalizationAssignment(null)).toBeNull();
   const review = {
@@ -76,9 +77,10 @@ it("assigns open background candidates to the next write-capable Discord turn", 
     normalizationReview: review,
   });
   expect(assigned).toContain("Document normalization debt: 3 documents await normalization");
-  // The sandboxed turn reviews and applies the stored candidate; it never starts a provider.
+  // The sandboxed turn applies the stored candidate after Lervo's own cross-check (ADR-0561).
   expect(assigned).toContain(
-    `lervo knowledge normalize --candidate ${review.candidateId} --apply knormplan_fixture --approve-item ${review.items[0]!.operationId}=${review.items[0]!.approvalHash}`,
+    `lervo knowledge normalize --candidate ${review.candidateId} --apply knormplan_fixture\``,
   );
+  expect(assigned).not.toContain("--approve-item");
   expect(assigned).toContain("Do not run `--provider`");
 });

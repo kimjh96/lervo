@@ -33,6 +33,8 @@ import { runTerminalCommand, terminalUsage } from "./terminal-command.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { groundProductionRequest } from "./semantic-grounding.js";
+import { crossCheckDurableInstruction } from "./durable-instruction-cross-check.js";
+import { crossCheckPlan } from "./plan-cross-check.js";
 import {
   prepareProductionSearchQueries,
   projectProductionSearchQueries,
@@ -79,6 +81,8 @@ const defaultServices: CliServices = {
   inspectDoctorEnvironment,
   executeEnvironmentQuery,
   groundProductionRequest,
+  crossCheckDurableInstruction,
+  crossCheckPlan,
   projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
   inspectOperatingAttention,
@@ -102,7 +106,7 @@ export async function runCli(
   if (command === "init") return runInitCommand(args.slice(1), io);
   if (command === "upgrade") return runUpgradeCommand(args.slice(1), io, services);
   if (command === "host") return runHostCommand(args.slice(1), io);
-  if (command === "migrate") return runMigrateCommand(args.slice(1), io);
+  if (command === "migrate") return runMigrateCommand(args.slice(1), io, services);
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
@@ -111,7 +115,7 @@ export async function runCli(
   if (command === "search") return runSearchCommand(args.slice(1), io);
   if (command === "state") return runStateCommand(args.slice(1), io, services);
   if (command === "doctor") return runDoctorCommand(args.slice(1), io, services);
-  if (command === "capability") return runCapabilityCommand(args.slice(1), io);
+  if (command === "capability") return runCapabilityCommand(args.slice(1), io, services);
   if (command === "environment") return runEnvironmentCommand(args.slice(1), io, services);
   if (command === "event-contract") return runEventContractCommand(args.slice(1), io);
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);

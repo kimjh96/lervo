@@ -34,6 +34,7 @@ export function expireHealthFreshness(measure: Measure, now: Date): Measure {
   if (!cycle) {
     v.cycleStale = v.safety = v.awaitingReview = v.refreshed = null;
     v.firstSafetyPath = v.blocked = null;
+    if (v.debt !== undefined) v.debt = null;
     v.cycleObservedAt = v.cycleValidUntil = null;
   }
   if (!evaluation && !cycle)
@@ -50,7 +51,9 @@ export function expireHealthFreshness(measure: Measure, now: Date): Measure {
     status:
       [v.stale, v.unevaluated, v.unknown, v.cycleStale, v.safety, v.awaitingReview].some(
         (n) => (n ?? 0) > 0,
-      ) || v.blocked === true
+      ) ||
+      v.blocked === true ||
+      (v.debt?.length ?? 0) > 0
         ? "gap"
         : "within_target",
     reason:
@@ -99,6 +102,18 @@ export function projectHealthFreshness(input: HealthProjectionSources): Measure 
         awaitingReview: cycle?.summary.awaitingReviewCount ?? null,
         refreshed: cycle?.summary.appliedRecentPaths.length ?? null,
         blocked: cycle?.summary.blocked ?? null,
+        debt:
+          cycle === null
+            ? null
+            : (cycle.summary.debt ?? []).map((entry) => {
+                const age = input.now.getTime() - Date.parse(entry.since);
+                return {
+                  path: entry.documentPath,
+                  reason: entry.reason,
+                  since: entry.since,
+                  ageMilliseconds: Number.isFinite(age) && age >= 0 ? age : null,
+                };
+              }),
       },
     },
     input.now,

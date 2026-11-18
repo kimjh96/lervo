@@ -2,10 +2,10 @@
 
 ## Entry points
 
-| Surface | Module | Owner turn | Preceding agent turn |
-| --- | --- | --- | --- |
-| Claude Code, Codex | `apps/cli/src/terminal-instruction-capture.ts` | `UserPromptSubmit` prompt | Session's last `Stop` reply, at most 2 KiB |
-| Managed conversation | `apps/node-runtime/src/conversation-owner-turn-capture.ts` | Human participant's message | Last agent reply in the thread |
+| Surface              | Module                                                     | Owner turn                  | Preceding agent turn                       |
+| -------------------- | ---------------------------------------------------------- | --------------------------- | ------------------------------------------ |
+| Claude Code, Codex   | `apps/cli/src/terminal-instruction-capture.ts`             | `UserPromptSubmit` prompt   | Session's last `Stop` reply, at most 2 KiB |
+| Managed conversation | `apps/node-runtime/src/conversation-owner-turn-capture.ts` | Human participant's message | Last agent reply in the thread             |
 
 Sessions bound to an assignment workspace and agent messages are not captured. The hook measures enqueue under `event_commit`, calls no provider, and classifies nothing. `Stop` starts a detached `knowledge-worker` cycle when turns are queued. The queue listing also wakes the resident through the ADR-0461 fingerprint.
 
@@ -13,13 +13,13 @@ Sessions bound to an assignment workspace and agent messages are not captured. T
 
 All paths below are under `.lervo/state/knowledge/instruction-capture/`.
 
-| Path | Content | Bound |
-| --- | --- | --- |
-| `queue/kcap_<24 hex>.json` | Owner turn, preceding agent turn, `promptDigest`, source, conversation event ID | 32 records; 24 hours; deleted when assessed |
-| `agent-turns/<24 hex>.json` | Last agent reply for one terminal session | 16 sessions; 2 KiB each; 6 hours |
-| `state.json` | Budget windows, assessed tombstones, held decisions and rules with normalized text | 256 tombstones for 7 days; 16 held items for 30 days |
+| Path                        | Content                                                                                                                                                                | Bound                                                                                              |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `queue/kcap_<24 hex>.json`  | Owner turn, preceding agent turn, `promptDigest`, source, conversation event ID; `retained` and `nextAttemptAt` for an explicit owner rule that intake could not store | 32 ordinary records for 24 hours, plus 32 retained records that never expire; deleted when settled |
+| `agent-turns/<24 hex>.json` | Last agent reply for one terminal session                                                                                                                              | 16 sessions; 2 KiB each; 6 hours                                                                   |
+| `state.json`                | Budget windows, assessed tombstones, held decisions and rejected rules (Lervo debt) with normalized text                                                               | 256 tombstones for 7 days; 16 held items for 30 days                                               |
 
-Files are 0600 in 0700 directories and Git-ignored. The capture ID binds the source, owner-turn digest, preceding-turn digest, and conversation event ID: multiple agents queueing the same message produce one record. A full queue evicts its oldest record.
+Files are 0600 in 0700 directories and Git-ignored. The capture ID binds the source, owner-turn digest, preceding-turn digest, and conversation event ID: multiple agents queueing the same message produce one record. A full queue evicts its oldest ordinary record; retained records are never evicted.
 
 ## Assessment
 
@@ -29,19 +29,21 @@ For each turn, it sends `instructionCaptureRequest` (`@lervo/repository-knowledg
 
 Practice extraction uses a separate completed-work record under `.lervo/state/knowledge/practice/`; it does not enlarge the legacy capture queue or its 2 KiB preceding-reply bound. The legacy queue has no session field. The resident attaches preceding work only when the prompt digest, provider and capture time identify one prepared context. Ambiguous matches remain eligible for the 30-minute local practice assessment. Added capture work is charged to the separate skill-learning budget, and practice extraction failure does not fail rule capture. The practice learning contract owns work-record bounds, evidence retention, review and implementation status.
 
-| Class | Outcome |
-| --- | --- |
-| `durable_instruction` | Durable-instruction plan: candidate, `covered`, held `rule_needs_clarification`, or ignored |
-| `correction_of_agent_behavior` | Same as `durable_instruction` |
-| `decision` | Held `decision`; a decision that is itself a canonical rule follows the instruction path |
-| `preference_personal` | Counted; nothing stored |
-| `none` | Counted; nothing stored |
+| Class                          | Outcome                                                                                                                                                                            |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `durable_instruction`          | Durable-instruction plan, then the ADR-0561 cross-check: candidate, `covered`, one regeneration and then held `cross_check_disagreement`, or a retry when the rule text is missing |
+| `correction_of_agent_behavior` | Same as `durable_instruction`                                                                                                                                                      |
+| `decision`                     | Normalized as a repository-wide canonical rule with the decision's title and statement, then the same path; held `decision` only when it cannot be grounded as a rule              |
+| `preference_personal`          | Counted; nothing stored                                                                                                                                                            |
+| `none`                         | Counted; nothing stored                                                                                                                                                            |
+
+The first cross-check disagreement records `crossCheckDisagreement.reasonIds` on the queued turn. It is not a failed attempt, and the next cycle reassesses the turn with those reasons as `priorCrossCheckDisagreement`.
 
 A candidate carries `captureSource`, `captureId`, and the instruction-catalog digest used for assessment. An existing candidate for the same words counts as `covered`.
 
 Budgets are 4 assessments per cycle, 12 per hour, 60 per day, and 200,000 tokens per day. Spend requires reviewed convergence delegation, host admission, and an unpaused provider. Otherwise, the cycle reports `deferred` with `knowledge_authority_unavailable`, `knowledge_capacity_unavailable`, or `knowledge_provider_paused`, and turns remain queued.
 
-A failed call or invalid assessment counts as one attempt; the third failure drops the turn. Each call records ADR-0459 usage with `channel: knowledge_worker` and `stage: instruction_capture`.
+A failed call or invalid assessment counts as one attempt; the third failure drops an ordinary turn. A retained turn is never dropped; after each failure it waits `2^attempts` minutes, at most one day. Each assessment records ADR-0459 usage with `channel: knowledge_worker` and `stage: instruction_capture`; each cross-check records `stage: instruction_cross_check`. A cross-check that cannot run defers the cycle and keeps the turn queued. A rejected rule counts toward `assessedCount` only.
 
 ## Events
 

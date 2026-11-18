@@ -1,9 +1,15 @@
 import {
-  deferLayoutOutsideScope,
   lifecycleChangedPaths,
   missingLifecyclePaths,
+  userContentOutsideRoots,
 } from "./lifecycle-plan-scope.js";
+import { knowledgeEffectPreflight } from "./knowledge-effect-guard.js";
 import { observeDocumentDeferrals } from "./document-deferral-health.js";
+import {
+  applyLifecycleEffect,
+  parkUserOwnedLifecyclePlan,
+  waitForLifecycleEffect,
+} from "./lifecycle-effect-hold.js";
 import { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
@@ -14,6 +20,7 @@ import {
   applyKnowledgeInstructionBootstrapPlan,
   createRepositoryLayoutMigrationPlan,
   applyRepositoryLayoutMigrationPlan,
+  repositoryLayoutItemBindings,
   lintRepositoryKnowledge,
   validateKnowledgeStage,
   repositoryLayoutKnowledgeLintCodes,
@@ -76,9 +83,6 @@ export async function prepareConvergenceLifecycle(
     provider: context.provider,
   });
   const governedRoots = [...delegation.canonicalRoots, ...delegation.normalizationRoots];
-  const missingPaths = missingLifecyclePaths(layout, governedRoots);
-  if (missingPaths.length > 0 && layout.moves.length > 0)
-    layout = deferLayoutOutsideScope(layout, missingPaths);
   await observeDocumentDeferrals({ repositoryRoot: root, layout });
   const plan =
     bootstrap.status !== "not_applicable" ? bootstrap : layout.status !== "current" ? layout : null;
@@ -92,7 +96,11 @@ export async function prepareConvergenceLifecycle(
       dependency: { kind: "lifecycle_plan", snapshotHash: state.snapshotHash, planId: plan.planId },
     });
   const paths = lifecycleChangedPaths(plan);
-  if (missingLifecyclePaths(plan, governedRoots).length > 0)
+  // ADR-0561: a reviewed plan may move whole documents and write Lervo's own outputs outside the
+  // delegation's roots, because its exact path set is reviewed. A plan that applies without review
+  // stays inside them, and so do user-owned bytes (AGENTS.md invariant 5).
+  const reviewed = plan.status === "review_required";
+  if (!reviewed && missingLifecyclePaths(plan, governedRoots).length > 0)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   const kind: LifecyclePlanKind =
     plan.planKind === "repository_layout" ? "repository_layout" : "instruction_bootstrap";
@@ -103,12 +111,22 @@ export async function prepareConvergenceLifecycle(
   const planHash = sha256(canonicalJson(plan));
   // ADR-0485: a parked exact plan never holds assessment; canonical work continues past it.
   if (lifecyclePlanParked(parked, kind, planHash)) return null;
+  const userOwned = reviewed ? userContentOutsideRoots(plan, governedRoots) : [];
+  if (userOwned.length > 0)
+    return parkUserOwnedLifecyclePlan({
+      context,
+      state,
+      stage: "assessment",
+      kind,
+      planId: plan.planId,
+      planHash,
+      userOwned,
+    });
   let approval: Awaited<ReturnType<typeof reviewLifecyclePlan>> | null = null;
   try {
-    approval =
-      plan.status === "review_required"
-        ? await reviewLifecyclePlan(context, state, assertLease, plan, paths)
-        : null;
+    approval = reviewed
+      ? await reviewLifecyclePlan(context, state, assertLease, plan, paths)
+      : null;
   } catch (error) {
     const rejection = lifecyclePlanRejection(error);
     if (rejection === null) throw error;
@@ -131,6 +149,7 @@ export async function prepareConvergenceLifecycle(
     role: "writer",
     state,
     paths,
+    writeScope: reviewed ? "reviewed_plan" : "delegation_roots",
     assertLease,
     run: async (authority) => {
       const governed = [
@@ -138,13 +157,21 @@ export async function prepareConvergenceLifecycle(
         ...authority.delegation.normalizationRoots,
       ];
       if (
-        paths.some(
-          (path) =>
-            !convergenceManagedKnowledgePath(path) && !pathWithinConvergenceRoots(path, governed),
-        ) ||
+        (reviewed && approval === null) ||
+        (reviewed && userContentOutsideRoots(plan, governed).length > 0) ||
+        (!reviewed &&
+          paths.some(
+            (path) =>
+              !convergenceManagedKnowledgePath(path) && !pathWithinConvergenceRoots(path, governed),
+          )) ||
         approval?.reviewerAgentId === authority.agent.agentId
       )
         throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+      // ADR-0561: a reviewed effect applies only when it can land as its own commit and touches
+      // no uncommitted user edit; otherwise it waits as Lervo debt until the owner commits.
+      const hold = reviewed ? await knowledgeEffectPreflight(root, paths) : null;
+      if (hold !== null)
+        return waitForLifecycleEffect({ context, state, planId: plan.planId, hold });
       const before = await lintRepositoryKnowledge(root);
       const record = async (receipt: unknown) => {
         await authority.assertCurrent();
@@ -177,13 +204,11 @@ export async function prepareConvergenceLifecycle(
       };
       await authority.assertCurrent();
       context.assertSourceExact(state);
-      const receipt =
+      const apply = async () =>
         plan.planKind === "repository_layout"
           ? await applyRepositoryLayoutMigrationPlan({
               plan,
-              approvals: [...plan.moves, ...plan.userUpdates].map(
-                ({ operationId, approvalHash }) => ({ operationId, approvalHash }),
-              ),
+              itemBindings: repositoryLayoutItemBindings(plan),
               now: new Date(),
               recordApplied: record,
             })
@@ -194,6 +219,13 @@ export async function prepareConvergenceLifecycle(
               now: new Date(),
               recordApplied: record,
             });
+      const { receipt, commit } = await applyLifecycleEffect({
+        repositoryRoot: root,
+        paths,
+        reviewed: approval === null ? null : { plan, approval },
+        apply,
+        assertCurrent: () => authority.assertCurrent(),
+      });
       context.sourceObservation?.noteChange();
       return completeConvergenceStage({
         sources: convergenceSourceObservation(context),
@@ -208,7 +240,15 @@ export async function prepareConvergenceLifecycle(
           ).sources,
         },
         approvedEffects: convergenceOperationEffects(plan.operations),
-        proof: { status: "lifecycle_prefix_applied", receipt, approval },
+        ...(commit === null
+          ? {}
+          : { committedHead: { before: commit.before, after: commit.after } }),
+        proof: {
+          status: "lifecycle_prefix_applied",
+          receipt,
+          approval,
+          commit: commit === null ? null : commit.after,
+        },
       });
     },
   });

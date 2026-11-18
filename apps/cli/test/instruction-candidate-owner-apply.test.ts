@@ -19,9 +19,10 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  applyOwnerStatedInstructionCandidates,
-  OWNER_STATED_RULE_REVIEWER,
-} from "../src/durable-instruction-auto-apply.js";
+  applyDurableInstructionCandidate,
+  LERVO_INSTRUCTION_SETTLER,
+} from "../src/durable-instruction-apply.js";
+import { applyStoredInstructionCandidates } from "../src/durable-instruction-auto-apply.js";
 import { inspectInstructionCatalog } from "../src/instruction-catalog.js";
 import {
   readInstructionCaptureAttention,
@@ -131,9 +132,6 @@ async function hubHost(role: "owner" | "waiting_owner") {
     projectId,
     requestDigest: sha256("owner turn"),
     resolverResultDigest: `sha256:${"e".repeat(64)}`,
-    groundingStatus: "ready",
-    catalogComplete: true,
-    ambiguityReasons: [],
     instruction,
   });
   const candidate = await storeDurableInstructionCandidate({
@@ -166,9 +164,6 @@ async function storeOwnerStatedCandidate(root: string, statement: GroundedDurabl
     projectId,
     requestDigest: sha256(statement.statement!),
     resolverResultDigest: `sha256:${"f".repeat(64)}`,
-    groundingStatus: "ready",
-    catalogComplete: true,
-    ambiguityReasons: [],
     instruction: statement,
   });
   return storeDurableInstructionCandidate({
@@ -187,34 +182,17 @@ async function storeOwnerStatedCandidate(root: string, statement: GroundedDurabl
   });
 }
 
-function review(root: string, candidate: { candidateId: string; candidateHash: string }) {
-  const stdout: string[] = [];
-  const stderr: string[] = [];
-  return runCli(
-    [
-      "knowledge",
-      "instruction",
-      "review",
-      candidate.candidateId,
-      "--decision",
-      "apply",
-      "--reviewer",
-      "repository-owner",
-      "--approval",
-      candidate.candidateHash,
-      "--json",
-    ],
-    { cwd: root, stdout: (m) => stdout.push(m), stderr: (m) => stderr.push(m) },
-  ).then((code) => ({ code, stdout: stdout.join(""), stderr: stderr.join("") }));
-}
-
 describe("applying captured owner rules under the convergence owner lease (ADR-0467)", () => {
   it("refuses apply on a non-owner host and names the owner", async () => {
     const mac = await hubHost("waiting_owner");
-    const result = await review(mac.root, mac.candidate);
-    expect(result.code).toBe(1);
-    expect(result.stderr).toContain(
-      "The convergence owner host (wsl) receives this candidate through the Hub exchange and applies an owner-stated rule automatically",
+    await expect(
+      applyDurableInstructionCandidate({
+        repositoryRoot: mac.root,
+        candidateId: mac.candidate.candidateId,
+        now: new Date(),
+      }),
+    ).rejects.toThrow(
+      "The convergence owner host (wsl) receives this rule through the Hub exchange and applies it automatically",
     );
     expect(await listDurableInstructionCandidates(mac.root)).toHaveLength(1);
     const lines = instructionCaptureCompactLines(await readInstructionCaptureAttention(mac.root));
@@ -225,12 +203,15 @@ describe("applying captured owner rules under the convergence owner lease (ADR-0
 
   it("applies on the owner and commits the rule as Lervo Knowledge for publication", async () => {
     const wsl = await hubHost("owner");
-    const result = await review(wsl.root, wsl.candidate);
-    expect(result.code, result.stderr).toBe(0);
-    const receipt = JSON.parse(result.stdout) as { commitHash: string | null };
+    const receipt = await applyDurableInstructionCandidate({
+      repositoryRoot: wsl.root,
+      candidateId: wsl.candidate.candidateId,
+      now: new Date(),
+    });
     expect(receipt.commitHash).toMatch(/^[a-f0-9]{40,64}$/u);
     const { stdout: log } = await wsl.git("log", "-1", "--format=%an%n%B");
     expect(log).toContain("Lervo Knowledge");
+    expect(log).toContain("docs: apply an owner rule");
     expect(log).toContain(`Lervo-Instruction-Candidate: ${wsl.candidate.candidateId}`);
     expect(log).toContain("Lervo-Convergence-Host:");
     expect(await readFile(resolve(wsl.root, wsl.candidate.targetPath), "utf8")).toContain(
@@ -243,6 +224,26 @@ describe("applying captured owner rules under the convergence owner lease (ADR-0
       }),
     ]);
   });
+
+  it("commits a replacement and the replaced rule's deletion together", async () => {
+    const wsl = await hubHost("owner");
+    await applyStoredInstructionCandidates({ repositoryRoot: wsl.root, now: () => new Date() });
+    await storeOwnerStatedCandidate(wsl.root, {
+      ...instruction,
+      authority: "inferred",
+      risk: "high",
+      conflict: "possible",
+      statement: "Resolve Mac and WSL conflicts in the sync mechanism, never by parking a host.",
+      replaces: [wsl.candidate.targetPath],
+    });
+    expect(
+      await applyStoredInstructionCandidates({ repositoryRoot: wsl.root, now: () => new Date() }),
+    ).toEqual({ applied: 1, deferred: 0 });
+    const { stdout } = await wsl.git("show", "--name-status", "--format=%s", "HEAD");
+    expect(stdout).toContain("docs: apply an owner rule");
+    expect(stdout).toContain(`D\t${wsl.candidate.targetPath}`);
+    expect((await wsl.git("status", "--porcelain")).stdout).not.toContain("docs/instructions");
+  });
 });
 
 describe("applying owner-stated rules without a review command (ADR-0545)", () => {
@@ -250,7 +251,7 @@ describe("applying owner-stated rules without a review command (ADR-0545)", () =
     const wsl = await hubHost("owner");
     const now = new Date("2026-11-01T00:00:00Z");
     expect(
-      await applyOwnerStatedInstructionCandidates({ repositoryRoot: wsl.root, now: () => now }),
+      await applyStoredInstructionCandidates({ repositoryRoot: wsl.root, now: () => now }),
     ).toEqual({ applied: 1, deferred: 0 });
     expect(await listDurableInstructionCandidates(wsl.root)).toEqual([]);
     expect(await readFile(resolve(wsl.root, wsl.candidate.targetPath), "utf8")).toContain(
@@ -271,7 +272,7 @@ describe("applying owner-stated rules without a review command (ADR-0545)", () =
             candidateHash: wsl.candidate.candidateHash,
             candidateId: wsl.candidate.candidateId,
             decision: "apply",
-            reviewerId: OWNER_STATED_RULE_REVIEWER,
+            settledBy: LERVO_INSTRUCTION_SETTLER,
           }),
         ),
       );
@@ -283,14 +284,14 @@ describe("applying owner-stated rules without a review command (ADR-0545)", () =
     ]);
     // A second cycle finds nothing left to apply.
     expect(
-      await applyOwnerStatedInstructionCandidates({ repositoryRoot: wsl.root, now: () => now }),
+      await applyStoredInstructionCandidates({ repositoryRoot: wsl.root, now: () => now }),
     ).toEqual({ applied: 0, deferred: 0 });
   });
 
   it("leaves candidates untouched on a host that does not own convergence", async () => {
     const mac = await hubHost("waiting_owner");
     expect(
-      await applyOwnerStatedInstructionCandidates({
+      await applyStoredInstructionCandidates({
         repositoryRoot: mac.root,
         now: () => new Date(),
       }),
@@ -298,7 +299,7 @@ describe("applying owner-stated rules without a review command (ADR-0545)", () =
     expect(await listDurableInstructionCandidates(mac.root)).toHaveLength(1);
   });
 
-  it("defers a candidate whose instruction catalog changed and keeps it for the next cycle", async () => {
+  it("applies a candidate after the instruction catalog changed (ADR-0561)", async () => {
     const wsl = await hubHost("owner");
     await mkdir(resolve(wsl.root, "docs/instructions"), { recursive: true });
     await writeFile(
@@ -308,12 +309,12 @@ describe("applying owner-stated rules without a review command (ADR-0545)", () =
     await wsl.git("add", "-A");
     await wsl.git("commit", "-q", "-m", "add an instruction");
     expect(
-      await applyOwnerStatedInstructionCandidates({
+      await applyStoredInstructionCandidates({
         repositoryRoot: wsl.root,
         now: () => new Date(),
       }),
-    ).toEqual({ applied: 0, deferred: 1 });
-    expect(await listDurableInstructionCandidates(wsl.root)).toHaveLength(1);
+    ).toEqual({ applied: 1, deferred: 0 });
+    expect(await listDurableInstructionCandidates(wsl.root)).toEqual([]);
   });
 });
 
@@ -327,7 +328,7 @@ describe("owner-stated rules that arrive together or meet a failed commit (ADR-0
     });
     expect(await listDurableInstructionCandidates(wsl.root)).toHaveLength(2);
     expect(
-      await applyOwnerStatedInstructionCandidates({
+      await applyStoredInstructionCandidates({
         repositoryRoot: wsl.root,
         now: () => new Date(),
       }),
@@ -342,7 +343,7 @@ describe("owner-stated rules that arrive together or meet a failed commit (ADR-0
     const lock = resolve(wsl.root, ".git/index.lock");
     await writeFile(lock, "");
     expect(
-      await applyOwnerStatedInstructionCandidates({
+      await applyStoredInstructionCandidates({
         repositoryRoot: wsl.root,
         now: () => new Date(),
       }),
@@ -351,7 +352,7 @@ describe("owner-stated rules that arrive together or meet a failed commit (ADR-0
     expect((await readInstructionCandidateExchangeState(wsl.root)).pendingResolutions).toEqual([]);
     await rm(lock);
     expect(
-      await applyOwnerStatedInstructionCandidates({
+      await applyStoredInstructionCandidates({
         repositoryRoot: wsl.root,
         now: () => new Date(),
       }),

@@ -32,7 +32,7 @@ export function unknownRepositoryHealth(
       convergence: unknownHealthMeasure(reason),
       longestStop: unknownHealthMeasure(reason),
       freshness: unknownHealthMeasure(reason),
-      ownerReview: unknownHealthMeasure(reason),
+      lervoDebt: unknownHealthMeasure(reason),
       deferred: unknownHealthMeasure(reason),
       brokenLinks: unknownHealthMeasure(reason),
       find: unknownHealthMeasure(reason),

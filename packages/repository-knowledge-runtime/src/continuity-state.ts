@@ -1,7 +1,6 @@
 import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import { resolve } from "node:path";
 
-import type { DocumentRouteScopeProposal } from "./document-route-scope-proposal.js";
 import type {
   ContinuityFinding,
   ContinuityOwnerHostObservation,
@@ -12,7 +11,7 @@ import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.
 /**
  * ADR-0469 host-local continuity projection, rewritten after every reconciliation. It is
  * rebuildable: losing it costs one reconciliation. Attention and the doctor read it instead of
- * contacting the Hub. It holds hashes, closed codes, labels, timestamps, and the current exact-path scope proposal.
+ * contacting the Hub. It holds hashes, closed codes, labels, and timestamps.
  */
 export const CONVERGENCE_CONTINUITY_STATE_PATH =
   ".lervo/state/knowledge/convergence-continuity.json";
@@ -48,8 +47,6 @@ export interface ConvergenceContinuityState {
   } | null;
   hub: { status: "ok" | "unavailable" | "not_configured"; failureCode: string | null };
   peers: ContinuityPeerSummary[];
-  scopeChange?: DocumentRouteScopeProposal | null;
-  scopeResponse?: "accept" | "decline" | null;
   findings: ContinuityFinding[];
   providerAdmission?: ProviderCliAdmissionProjection;
 }
@@ -66,39 +63,39 @@ async function readRecordedContinuityState(
   return file.status === "read" ? (file.value as Partial<ConvergenceContinuityState> | null) : null;
 }
 
-/** ADR-0540: a proposal recorded in an older shape reads as none, yet is still outstanding. */
-export async function convergenceScopeChangeRecorded(root: string): Promise<boolean> {
-  return (await readRecordedContinuityState(root))?.scopeChange != null;
+/**
+ * Older versions recorded a delegation scope proposal and `owner_decision` findings. ADR-0561
+ * retired both: the scope proposal and its finding are dropped, and an `owner_decision` finding
+ * reads as `lervo_debt`, so no stored projection asks the owner for anything.
+ */
+function currentFinding(finding: ContinuityFinding): ContinuityFinding | null {
+  const code: string = finding.code;
+  if (code === "delegation_scope_change") return null;
+  const severity: string = finding.severity;
+  return severity === "owner_decision" ? { ...finding, severity: "lervo_debt" } : finding;
 }
 
 export async function readConvergenceContinuityState(
   root: string,
 ): Promise<ConvergenceContinuityState | null> {
   const value = await readRecordedContinuityState(root);
-  const proposal = value?.scopeChange;
-  const currentProposal =
-    proposal != null &&
-    typeof proposal.planId === "string" &&
-    Array.isArray(proposal.requiredPaths) &&
-    proposal.requiredPaths.every((path) => typeof path === "string") &&
-    Array.isArray(proposal.unsatisfiedPaths) &&
-    proposal.unsatisfiedPaths.every((path) => typeof path === "string")
-      ? proposal
-      : null;
-  return value?.schemaVersion === 1 &&
-    typeof value.observedAt === "string" &&
-    typeof value.nextReconcileAt === "string" &&
-    Array.isArray(value.findings) &&
-    Array.isArray(value.peers)
-    ? {
-        ...(value as ConvergenceContinuityState),
-        scopeChange: currentProposal,
-        scopeResponse: currentProposal === null ? null : (value.scopeResponse ?? null),
-        findings: value.findings.filter(
-          (finding) => currentProposal !== null || finding.code !== "delegation_scope_change",
-        ),
-      }
-    : null;
+  if (
+    value?.schemaVersion !== 1 ||
+    typeof value.observedAt !== "string" ||
+    typeof value.nextReconcileAt !== "string" ||
+    !Array.isArray(value.findings) ||
+    !Array.isArray(value.peers)
+  )
+    return null;
+  const {
+    scopeChange: _scopeChange,
+    scopeResponse: _scopeResponse,
+    ...state
+  } = value as ConvergenceContinuityState & { scopeChange?: unknown; scopeResponse?: unknown };
+  return {
+    ...state,
+    findings: value.findings.flatMap((finding) => currentFinding(finding) ?? []),
+  };
 }
 
 export async function writeConvergenceContinuityState(

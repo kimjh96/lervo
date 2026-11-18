@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   continuityPolicyFromDelegation,
   delegationWithinContinuityLimits,
+  narrowedToContinuityLimits,
   parseConvergenceContinuityPolicy,
+  rolledContinuityPolicy,
   sealConvergenceContinuityPolicy,
   type ConvergenceContinuityPolicy,
 } from "../src/continuity-policy.js";
@@ -201,7 +203,7 @@ describe("delegation renewal decision", () => {
     ).toEqual({ kind: "horizon_exhausted" });
   });
 
-  it("never renews without a policy, past a revocation, or outside the limits", () => {
+  it("never renews without a policy, past a revocation, or with no allowed provider", () => {
     const due = delegation(now + HOUR);
     expect(
       decideDelegationRenewal({ delegation: due, policy: { status: "absent" }, now }).kind,
@@ -222,13 +224,52 @@ describe("delegation renewal decision", () => {
     ).toBe("policy_revoked");
     expect(
       decideDelegationRenewal({
-        delegation: delegation(now + HOUR, {
-          resourceCeilings: { ...due.resourceCeilings, maximumProviderCalls: 8 },
-        }),
+        delegation: delegation(now + HOUR, { providers: ["claude"] }),
         policy: loaded(policy()),
         now,
       }),
-    ).toEqual({ kind: "outside_policy", reason: "ceiling_outside_policy" });
+    ).toEqual({ kind: "outside_policy", reason: "provider_outside_policy" });
+  });
+
+  it("renews a delegation outside the limits narrowed to them (ADR-0561)", () => {
+    const wide = delegation(now + HOUR, {
+      providers: ["codex", "claude"],
+      resourceCeilings: { ...delegation(now).resourceCeilings, maximumProviderCalls: 8 },
+    });
+    const decision = decideDelegationRenewal({ delegation: wide, policy: loaded(policy()), now });
+    expect(decision).toEqual({
+      kind: "renew",
+      expiresAt: new Date(now + HOUR + 30 * DAY).toISOString(),
+      limits: { providers: ["codex"], resourceCeilings: delegation(now).resourceCeilings },
+    });
+    if (decision.kind !== "renew") throw new Error("expected a renewal");
+    const renewed = renewedConvergenceDelegation({
+      current: wide,
+      expiresAt: decision.expiresAt,
+      ...(decision.limits === undefined ? {} : { limits: decision.limits }),
+    });
+    expect(delegationWithinContinuityLimits(renewed, policy())).toBe("within");
+    expect(renewed.canonicalRoots).toEqual(wide.canonicalRoots);
+    expect(narrowedToContinuityLimits({ ...wide, providers: ["claude"] }, policy())).toBeNull();
+  });
+
+  it("rolls a policy horizon forward only when it nears, keeping every limit (ADR-0561)", () => {
+    const far = policy();
+    expect(rolledContinuityPolicy(far, new Date(now))).toBeNull();
+    const near = policy({ horizonAt: new Date(now + 20 * DAY).toISOString() });
+    const rolled = rolledContinuityPolicy(near, new Date(now))!;
+    expect(rolled.horizonAt).toBe(new Date(now + 365 * DAY).toISOString());
+    expect(rolled.issuedAt).toBe(new Date(now).toISOString());
+    expect(rolled).toMatchObject({
+      limits: near.limits,
+      template: near.template,
+      renewal: near.renewal,
+      authority: near.authority,
+    });
+    expect(parseConvergenceContinuityPolicy(rolled)).toEqual(rolled);
+    expect(
+      rolledContinuityPolicy(policy({ state: "revoked" }), new Date(now + 400 * DAY)),
+    ).toBeNull();
   });
 });
 

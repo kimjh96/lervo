@@ -10,11 +10,31 @@ import {
   type InstructionCaptureAssessment,
 } from "@lervo/repository-knowledge";
 import type { InstructionCaptureContext } from "./instruction-capture-assessment.js";
+import { crossCheckCapturedInstruction } from "./instruction-capture-cross-check.js";
 import { appendInstructionCaptureEvent } from "./instruction-capture-events.js";
-import type { QueuedInstructionCapture } from "./instruction-capture-queue.js";
+import {
+  recordInstructionCaptureDisagreement,
+  type QueuedInstructionCapture,
+} from "./instruction-capture-queue.js";
 import type { HeldCapture, InstructionCaptureState } from "./instruction-capture-state.js";
+
+/**
+ * `rejected`: the independent cross-check disagreed again after one regeneration, so the rule was
+ * not stored and is recorded as Lervo's own debt. `regenerate`: the first disagreement; the turn
+ * stays queued and is assessed again with the reasons as evidence. `retry`: the rule text or the
+ * cross-check verdict was unusable and the turn is attempted again. `deferred`: the cross-check
+ * could not run now; the turn stays queued.
+ */
 type CaptureOutcome =
-  "instruction_candidate" | "held" | "ignored" | "personal_preference" | "covered";
+  | "instruction_candidate"
+  | "held"
+  | "ignored"
+  | "personal_preference"
+  | "covered"
+  | "rejected"
+  | "regenerate"
+  | "retry"
+  | { deferred: string };
 
 function held(input: {
   capture: QueuedInstructionCapture;
@@ -85,30 +105,44 @@ async function materializeInstruction(input: {
     projectId: input.context.storage.manifest.projectId,
     requestDigest: capture.promptDigest,
     resolverResultDigest: sha256(canonicalJson(assessment)),
-    groundingStatus: "ready",
-    catalogComplete:
-      catalog.complete && catalog.semanticCatalog.canonicalInstructions.entries.length < 32,
-    ambiguityReasons: [],
     instruction: assessment.durableInstruction,
   });
   if (plan.status === "current" || assessment.durableInstruction.conflict === "covered")
     return "covered";
-  if (plan.status !== "ready") {
+  if (plan.status === "ungrounded") return "retry";
+  if (plan.status !== "ready") return "ignored";
+  const check = await crossCheckCapturedInstruction({
+    context: input.context,
+    capture,
+    instruction: assessment.durableInstruction,
+    catalogEntries: catalog.semanticCatalog.canonicalInstructions.entries,
+    sourceRevision: catalog.sourceSnapshotId,
+  });
+  if (check.status === "deferred") return { deferred: check.reason };
+  if (check.status === "failed") return "retry";
+  if (check.status === "agree" || check.status === "disagree")
+    input.state.budget.tokensToday += check.tokens;
+  if (check.status === "disagree" && input.capture.crossCheckDisagreement === undefined) {
+    await recordInstructionCaptureDisagreement(
+      input.context.storage.paths.repositoryRoot,
+      input.capture,
+      check.reasonIds,
+    );
+    return "regenerate";
+  }
+  if (check.status === "disagree") {
     const { title, statement } = assessment.durableInstruction;
-    if (plan.status === "pending" && title !== null && statement !== null) {
-      input.state.held.push(
-        held({
-          capture,
-          kind: "rule_needs_clarification",
-          title,
-          statement,
-          subjectKey: null,
-          now: input.now,
-        }),
-      );
-      return "held";
-    }
-    return "ignored";
+    input.state.held.push(
+      held({
+        capture,
+        kind: "cross_check_disagreement",
+        title: title!,
+        statement: statement!,
+        subjectKey: null,
+        now: input.now,
+      }),
+    );
+    return "rejected";
   }
   const candidate = await storeDurableInstructionCandidate({
     repositoryRoot: root,
@@ -152,6 +186,34 @@ async function materializeInstruction(input: {
   return "instruction_candidate";
 }
 
+/**
+ * ADR-0561: an owner decision enters canon through the same reviewed path as an owner rule. It is
+ * normalized as a repository-wide canonical rule whose title and statement are the decision's, so
+ * the independent cross-check judges it against the owner turn before it is stored and applied.
+ */
+function decisionAsInstruction(
+  assessment: InstructionCaptureAssessment,
+): InstructionCaptureAssessment {
+  const decision = assessment.decision!;
+  return {
+    ...assessment,
+    durableInstruction: {
+      ...assessment.durableInstruction,
+      disposition: "canonical",
+      speechAct: "directive",
+      authority: "explicit_user",
+      durability: "repository",
+      operation: "add",
+      scope: { kind: "repository", paths: [] },
+      title: decision.title,
+      statement: decision.statement,
+      exceptions: [],
+      conflict: assessment.durableInstruction.conflict === "covered" ? "covered" : "none",
+      replaces: [],
+    },
+  };
+}
+
 export async function settleInstructionCapture(input: {
   context: InstructionCaptureContext;
   capture: QueuedInstructionCapture;
@@ -165,6 +227,12 @@ export async function settleInstructionCapture(input: {
   if (route === "personal_preference") return "personal_preference";
   if (route === "instruction") return materializeInstruction(input);
   const decision = input.assessment.decision!;
+  const documented = await materializeInstruction({
+    ...input,
+    assessment: decisionAsInstruction(input.assessment),
+  });
+  // Only a decision that cannot be grounded as a rule at all is held for later documentation.
+  if (documented !== "ignored") return documented;
   const entry = held({
     capture: input.capture,
     kind: "decision",

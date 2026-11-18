@@ -30,7 +30,6 @@ export {
   type ConvergenceDelegationPlan,
 } from "./delegation-plan.js";
 export { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
-export { applyFreshnessCandidateByOwner } from "./freshness-apply.js";
 export { DocumentFreshnessOperationError } from "./freshness-document-io.js";
 export { revertFreshnessCandidate } from "./freshness-revert.js";
 export {
@@ -39,7 +38,6 @@ export {
   documentFreshnessSummary,
   inspectDocumentFreshnessStatus,
   listDocumentFreshnessReview,
-  rejectFreshnessCandidate,
   renderDocumentFreshnessDiff,
   requireFreshnessCandidate,
   withDocumentFreshnessOwnerLock,
@@ -99,6 +97,7 @@ export {
 } from "./instruction-candidate-exchange-state.js";
 export {
   commitAppliedInstructionCandidate,
+  commitRetiredInstruction,
   appliedInstructionCandidateCommitted,
   instructionCandidateApplyAuthority,
   type InstructionCandidateApplyAuthority,
@@ -182,7 +181,6 @@ export {
 } from "./document-deferral-health.js";
 export { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
 
-export { recordDocumentRouteScopeDecision } from "./document-route-scope-decision.js";
 export { residentCycleFailure } from "./resident-cycle-failure.js";
 
 export { createChangeReviewHost } from "./change-review-host.js";
@@ -195,3 +193,35 @@ export {
   planProjectConvergenceArtifactRetention,
   type CasRetentionPlan,
 } from "./cas-retention-plan.js";
+export {
+  lifecyclePlanReviewVerdict,
+  prepareLifecyclePlanCrossCheck,
+} from "./lifecycle-plan-review-input.js";
+export { readWorkerProviderSelection } from "./provider-cli-selection.js";
+export { lifecycleChangedPaths } from "./lifecycle-plan-scope.js";
+export {
+  commitKnowledgeEffect,
+  commitKnowledgePaths,
+  knowledgeEffectUndoCommand,
+  KNOWLEDGE_EFFECT_KINDS,
+  KNOWLEDGE_EFFECT_TRAILERS,
+  type KnowledgeCommitResult,
+  type KnowledgeEffectKind,
+  type KnowledgeEffectNotice,
+} from "./knowledge-effect-commit.js";
+// ADR-0561: the owner's repository hold, for runtimes that do not read the registry directly.
+export {
+  holdRepository,
+  readRepositoryHold,
+  releaseRepositoryHold,
+  type RepositoryHold,
+} from "@lervo/repository-registry";
+export {
+  applyCommittedKnowledgeEffect,
+  knowledgeEffectPreflight,
+  knowledgeEffectUserPaths,
+  KnowledgeEffectOwnerHoldError,
+  KnowledgeEffectUncommittedError,
+  type KnowledgeEffectHold,
+} from "./knowledge-effect-guard.js";
+export { lifecycleUserContentPaths } from "./lifecycle-plan-scope.js";

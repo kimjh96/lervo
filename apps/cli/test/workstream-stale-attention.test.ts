@@ -105,8 +105,9 @@ describe("stale workstream attention", () => {
     expect(projected.items.find((item) => item.kind === "workstream_decision")).toMatchObject({
       consequence: "unclassified",
     });
+    // ADR-0561: a current recorded approval is Lervo debt, never an owner wait.
     expect(report(current).items.find((item) => item.kind === "workstream_approval")).toMatchObject(
-      { state: "pending", blocking: true, requiresUserAction: true, actionOwner: "user" },
+      { state: "lervo_debt", blocking: false, requiresUserAction: false, actionOwner: "agent" },
     );
   });
 
@@ -120,9 +121,8 @@ describe("stale workstream attention", () => {
     );
     const currentContext = formatTerminalAttentionContext(report(current));
     expect(currentContext).toContain(RISKY_SUMMARY);
-    expect(currentContext).toContain(
-      "For a listed current blocking item with owner=user, present its bounded question or approval in this turn",
-    );
+    expect(currentContext).not.toContain("present its bounded question or approval");
+    expect(currentContext).toContain("Never ask the owner to approve, review, or decide an item");
   });
 
   it("withholds stale consequential text from the full workstream context", () => {

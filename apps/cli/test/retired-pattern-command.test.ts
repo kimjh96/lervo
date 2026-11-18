@@ -43,7 +43,9 @@ describe("retired development-pattern entrypoints", () => {
 
   it("advertises ordinary canonicalization and role commands", () => {
     expect(knowledgeUsage).not.toContain("knowledge pattern");
-    expect(knowledgeUsage).toContain("knowledge canonicalization promote");
+    // ADR-0561: the background canonical reviewer resolves candidates; reopen undoes a decision.
+    expect(knowledgeUsage).not.toContain("knowledge canonicalization promote");
+    expect(knowledgeUsage).toContain("knowledge canonicalization reopen");
     expect(knowledgeUsage).toContain("knowledge instruction intake");
     expect(roleUsage).not.toContain("role candidate");
     expect(roleUsage).toContain("role validate");
@@ -68,7 +70,7 @@ describe("retired development-pattern entrypoints", () => {
           stdin: async () =>
             JSON.stringify({
               taskMode: "change",
-              canonicalizationDisposition: "pending_user_approval",
+              canonicalizationDisposition: "canonical_sources_current",
               canonicalizationOutcome: {
                 schemaVersion: 1,
                 kind: "portable_skill_candidate",

@@ -4,6 +4,7 @@ Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0386](../0386-organization-teams-and-agent-identities.md), [ADR-0411](0411-governed-agent-memory-and-autonomous-participation.md), [ADR-0412](0412-expand-the-owner-proxy-ceo-through-installed-capabilities.md), [ADR-0398](../../../execution/orchestration/governed-work/0398-outcome-supervision-and-autonomous-team-allocation.md)
 Part of: [ADR-0452 open collaboration platform](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
+Amended by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (past the escalation bound the proxy decides within the installed operating mandate or holds the item as Lervo debt; it never escalates to the owner)
 
 ## Context
 
@@ -55,7 +56,7 @@ Before proxy action, the managed turn classifies each `choice.consequence` into 
 A platform-neutral `principal-proxy-loop` in the Node composition wakes on operating-attention changes (ADR-0397 event-driven idle reconciliation) and a bounded interval. For each item, it evaluates the pure, provider-neutral `principal-decision-policy` in `packages/work-controller` against the mandate and decision memory, then performs exactly one action:
 
 - **Settle:** resolve the decision, accept the verified outcome, approve the in-headcount hire, release the stale writer lease (ADR-0456), or recover stalled dispatch through existing supervision recovery commands.
-- **Escalate:** add the item to the principal's batch.
+- **Escalate:** add the item to the principal's batch. As amended by ADR-0561, an escalation is a notice, not a wait: after the escalation bound (eight escalations or 30 minutes of pending attention), outcome supervision lets the proxy settle within the installed operating mandate through `principal-decision-policy`, or records the item as Lervo debt with reason `principal_scope_exceeded` or `principal_mandate_expired`.
 - **Defer:** record a reason and retry time.
 
 Once per batch window, escalations publish through `ConversationAdapter` to the principal's bound conversation with `audienceParticipation: observe_only`. They address the principal and list each item's one-line question and recommended option. The proxy never answers its own escalation.

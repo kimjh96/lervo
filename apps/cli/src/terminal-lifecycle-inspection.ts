@@ -144,16 +144,9 @@ export async function inspectTerminalLifecycle(
             command: "run lervo migrate knowledge and redeclare the turn",
           });
         }
-        if (
-          declaration.payload.canonicalizationDisposition === "pending_user_approval" ||
-          declaration.payload.knowledgeDisposition === "pending_user_approval"
-        ) {
-          issues.push({
-            code: "turn_approval_pending",
-            command:
-              "obtain the required user decision before applying or completing the repository change",
-          });
-        }
+        // ADR-0561: no declaration waits for the owner. `pending_background` (and a stored
+        // `pending_user_approval`) leaves lifecycle work to Lervo's background reviewer, which
+        // reports it in attention; the background canonical reviewer resolves any candidate.
         const deliberationCurrent = terminalDeliberationDeclarationMatches(
           workstreamStorage.events,
           declaration.payload,
@@ -167,6 +160,7 @@ export async function inspectTerminalLifecycle(
         repositoryKnowledgeInspectionRequired =
           declarationRevisionCurrent &&
           declaration.payload.knowledgeDisposition !== "not_applicable_read_only" &&
+          declaration.payload.knowledgeDisposition !== "pending_background" &&
           declaration.payload.knowledgeDisposition !== "pending_user_approval" &&
           deliberationCurrent;
       }

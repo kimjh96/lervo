@@ -84,12 +84,12 @@ describe("repository health reader and compact section", () => {
     });
     const malformed = healthyProjection();
     delete (
-      malformed.measures.ownerReview.value as Partial<
-        NonNullable<typeof malformed.measures.ownerReview.value>
+      malformed.measures.lervoDebt.value as Partial<
+        NonNullable<typeof malformed.measures.lervoDebt.value>
       >
-    ).items;
+    ).sources;
     await writeFile(resolve(path, REPOSITORY_HEALTH_PATH), JSON.stringify(malformed));
-    expect((await read()).measures.ownerReview).toMatchObject({
+    expect((await read()).measures.lervoDebt).toMatchObject({
       status: "unknown",
       value: null,
       reason: "projection_invalid",
@@ -117,29 +117,35 @@ describe("repository health reader and compact section", () => {
       "71/186 evaluated documents stale, 1504 unevaluated; freshness cycle",
     );
     expect(visible).not.toContain("upkeep");
-    p.measures.ownerReview.status = "gap";
-    p.measures.ownerReview.value = {
+    p.measures.lervoDebt.status = "gap";
+    p.measures.lervoDebt.value = {
       count: 8,
-      confirmedCount: 8,
-      workstreamCount: 0,
-      upkeepCount: 2,
-      omitted: 0,
-      items: Array.from({ length: 8 }, (_, i) => ({
-        itemId: `approval_${i}`,
-        kind: "workstream_approval",
+      oldestSince: "2026-10-28T02:00:00.000Z",
+      oldestAgeMilliseconds: 3 * 86_400_000,
+      topReason: "cross_check_disagreement_repeated",
+      sources: Array.from({ length: 8 }, (_, i) => ({
+        source: `source_${"검토".repeat(3)}_${i}`,
+        count: 1,
+        oldestSince: "2026-10-28T02:00:00.000Z",
+        reason: "cross_check_disagreement_repeated",
+      })),
+      credentials: Array.from({ length: 8 }, (_, i) => ({
+        itemId: `credential_${i}`,
+        kind: "knowledge_convergence_owner",
         actor: "owner",
-        consequence: "repository_write",
+        consequence: "credentials",
         requiresUserAction: true,
-        recommendation: `Review exact bytes ${"검토".repeat(10)}`,
-        inspectCommand: "lervo workstream current --context",
+        recommendation: `Replace the token ${"검토".repeat(3)}`,
+        inspectCommand: "lervo knowledge convergence owner status",
         waitingSince: healthNow.toISOString(),
         ageMilliseconds: 0,
       })),
     };
     const text = formatRepositoryHealth(p, healthNow);
     expect(Buffer.byteLength(text)).toBeLessThanOrEqual(MAXIMUM_HEALTH_SECTION_BYTES);
-    expect(text).toContain("needs owner authority (8)");
-    expect(text).toContain("inspect: lervo workstream current --context");
+    expect(text).toContain("notice, 8 credentials missing");
+    expect(text).toContain("Lervo debt (no owner action): 8 held, oldest 3d");
+    expect(text).not.toContain("owner authority");
     expect(text).toContain("omitted");
     expect(text).toContain("[age 0m]");
     expect(text).not.toContain("�");

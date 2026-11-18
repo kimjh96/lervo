@@ -79,6 +79,14 @@ export function createNodeDeploymentTransports(input: {
       }
       return candidate.readWorkstream();
     },
+    readWorkstreamRevision(snapshotContentHash) {
+      const candidate = createTransport(transportOptions()) as AuthenticatedHubTransport &
+        Partial<AuthenticatedWorkstreamHubTransport>;
+      if (typeof candidate.readWorkstreamRevision !== "function") {
+        throw new Error("The configured Hub transport does not support workstream revision reads.");
+      }
+      return candidate.readWorkstreamRevision(snapshotContentHash);
+    },
   };
   const workspaceTransport: HubWorkspaceSummaryTransport = {
     publishWorkspaceSummary(summary) {

@@ -7,6 +7,9 @@ import type {
   ExecuteAssignedManagedDeliberation,
   ExecuteManagedDeliberation,
 } from "./managed-deliberation.js";
+import type { CrossCheckDurableInstruction } from "./durable-instruction-cross-check.js";
+import type { CrossCheckCapability } from "./capability-install-cross-check.js";
+import type { CrossCheckPlan } from "./plan-cross-check.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
 import type { CreateTerminalStageObservation } from "./terminal-stage-observation.js";
 import type { InspectOperatingAttention } from "./operating-attention-inspection.js";
@@ -40,6 +43,11 @@ export interface CliServices {
     observedAt?: Date;
   }): Promise<EnvironmentObservation>;
   groundProductionRequest: GroundProductionRequest;
+  crossCheckDurableInstruction: CrossCheckDurableInstruction;
+  /** ADR-0561 independent cross-check of a foreground plan before Lervo applies it. */
+  crossCheckPlan: CrossCheckPlan;
+  /** ADR-0561 one session of the stronger check a capability install needs. */
+  crossCheckCapability?: CrossCheckCapability | undefined;
   projectSearchQueries: ProjectProductionSearchQueries;
   createTerminalStageObservation: CreateTerminalStageObservation;
   inspectOperatingAttention: InspectOperatingAttention;

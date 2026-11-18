@@ -19,22 +19,10 @@ export type RepositoryUpgradeInvocation =
       timing: { admissionWaitMs: number; applyMs: number } | null;
       /** ADR-0579: the receipt's consecutive apply parts; absent for a plan or an earlier CLI. */
       stageTimings?: Array<{ stage: string; ms: number }>;
-      /**
-       * ADR-0582: a plan's stages that wait for an owner approval, which make `--safe` refuse
-       * before it changes anything; absent for a receipt.
-       */
-      ownerApprovalStages?: string[];
+      /** ADR-0561: a plan's stages Lervo holds as its own debt; absent for a receipt. */
+      lervoDebtStages?: string[];
     }
-  | {
-      kind: "failed";
-      code: string;
-      /**
-       * ADR-0589: the stages of the current plan that wait for an owner approval, read from a
-       * `--safe` refusal or an `upgrade_plan_changed` refusal; absent from other failures and
-       * from an earlier CLI's refusal.
-       */
-      ownerApprovalStages?: string[];
-    }
+  | { kind: "failed"; code: string }
   | { kind: "unreadable" }
   | { kind: "timed_out" }
   | { kind: "interrupted" };
@@ -68,30 +56,15 @@ function stageTimings(value: unknown): Array<{ stage: string; ms: number }> {
   });
 }
 
-/** The stages `lervo upgrade --apply --safe` refuses on, named as a receipt names them. */
-function ownerApprovalStages(value: unknown): string[] {
+/** The stages a plan holds as Lervo debt, named as a receipt names them (ADR-0561). */
+function lervoDebtStages(value: unknown): string[] {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return [];
   return Object.entries(value as Record<string, unknown>).flatMap(([stage, plan]) =>
     stage !== "runtimeRetention" &&
-    (plan as { disposition?: unknown } | null)?.disposition === "pending_authority"
+    (plan as { disposition?: unknown } | null)?.disposition === "lervo_debt"
       ? [stage.replace(/[A-Z]/gu, (letter) => `_${letter.toLowerCase()}`)]
       : [],
   );
-}
-
-/**
- * The owner-approval stages a refusal names: `--safe` lists them as `stages`, and
- * `upgrade_plan_changed` as `ownerApprovalStages` of the plan it recreated. Null when it names none.
- */
-function refusalOwnerApprovalStages(error: Record<string, unknown>): string[] | null {
-  if (error.code === "upgrade_plan_changed" && Array.isArray(error.ownerApprovalStages))
-    return strings(error.ownerApprovalStages);
-  if (error.code === "upgrade_owner_approval_required" && Array.isArray(error.stages))
-    return error.stages.flatMap((item: unknown) => {
-      const stage = (item as { stage?: unknown } | null)?.stage;
-      return typeof stage === "string" ? [stage] : [];
-    });
-  return null;
 }
 
 export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeInvocation {
@@ -108,12 +81,7 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
     const error = (
       record.error !== null && typeof record.error === "object" ? record.error : {}
     ) as Record<string, unknown>;
-    const approvals = refusalOwnerApprovalStages(error);
-    return {
-      kind: "failed",
-      code: typeof error.code === "string" ? error.code : "command_failed",
-      ...(approvals === null ? {} : { ownerApprovalStages: approvals }),
-    };
+    return { kind: "failed", code: typeof error.code === "string" ? error.code : "command_failed" };
   }
   if (typeof record.status !== "string") return { kind: "unreadable" };
   const pending = Array.isArray(record.pending) ? record.pending : [];
@@ -140,7 +108,7 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
     }),
     ...(parts.length === 0 ? {} : { stageTimings: parts }),
     ...(record.planKind === "repository_upgrade"
-      ? { ownerApprovalStages: ownerApprovalStages(record.stages) }
+      ? { lervoDebtStages: lervoDebtStages(record.stages) }
       : {}),
   };
 }

@@ -1,4 +1,5 @@
 import {
+  readRepositoryHold,
   reconcileKnowledgeSupersession,
   type KnowledgeSupersessionEntry,
 } from "@lervo/repository-knowledge-runtime";
@@ -9,7 +10,14 @@ import {
   applyRepositoryReplicaBundle,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
-import { mergeRepositoryReplicaBundle } from "./repository-replica-merge.js";
+import {
+  restoreRepositoryReplicaBackup,
+  saveRepositoryReplicaBackup,
+} from "./repository-replica-backup.js";
+import {
+  mergeRepositoryReplicaBundle,
+  type RepositoryReplicaConflictPolicy,
+} from "./repository-replica-merge.js";
 import {
   writeRepositoryReplicaReceipt,
   type RepositoryReplicaReceipt,
@@ -25,8 +33,13 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return Promise.resolve(REPOSITORY_REPLICA_CAPTURE_VERSION);
   }
 
-  snapshot(repositoryRoot: string) {
-    return observeRepositoryReplicaSnapshot(repositoryRoot);
+  /** The cached observation, with whether the owner holds this repository on this host. */
+  async snapshot(repositoryRoot: string) {
+    const [snapshot, hold] = await Promise.all([
+      observeRepositoryReplicaSnapshot(repositoryRoot),
+      readRepositoryHold(repositoryRoot),
+    ]);
+    return { ...snapshot, ownerHold: hold !== null };
   }
 
   bundle(repositoryRoot: string, expectedSnapshotHash: string) {
@@ -41,10 +54,24 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return applyRepositoryReplicaBundle(input);
   }
 
+  backup(input: {
+    repositoryRoot: string;
+    branch: string;
+    bundle: Uint8Array | null;
+    expectedSnapshotHash: string;
+  }) {
+    return saveRepositoryReplicaBackup(input);
+  }
+
+  restoreBackup(input: { repositoryRoot: string; branch: string }) {
+    return restoreRepositoryReplicaBackup(input);
+  }
+
   merge(input: {
     repositoryRoot: string;
     bundle: Uint8Array;
     expectedCurrentSnapshotHash: string;
+    conflictPolicy?: RepositoryReplicaConflictPolicy;
   }) {
     return mergeRepositoryReplicaBundle(input);
   }

@@ -2,7 +2,11 @@ import type {
   OperatingActionPlanV1,
   OutcomeSupervisionSnapshotV1,
 } from "@lervo/application-contract";
-import { operatingContractHash, operatingEffectAdmissionHash } from "@lervo/work-controller";
+import {
+  operatingContractHash,
+  operatingEffectAdmissionHash,
+  principalEscalationBoundMs,
+} from "@lervo/work-controller";
 import { describe, expect, it, vi } from "vitest";
 import type {
   OutcomeSupervisionPorts,
@@ -652,6 +656,113 @@ describe("serialized causal owner decisions", () => {
       }
     },
   );
+  it.each([
+    ["revise_responsibility", "work.assignment_amendment.v1", true],
+    ["allocate_existing", "work.automatic_topology.v1", true],
+    ["escalate", "work.owner_attention.v1", "lervo_debt"],
+    ["escalate", "work.scoped_handoff.v1", "effect_mapping_unavailable"],
+  ] as const)(
+    "lets the principal proxy settle within its mandate past the escalation bound (%s %s)",
+    async (actionKind, effectContract, outcome) => {
+      const f = fixture();
+      const assignment = f.state.assignments[0]!;
+      assignment.status = "failed";
+      assignment.effectDisposition = "known_safe_failure";
+      assignment.recoveryDecisionCount = 3;
+      f.state.escalationCount = 8;
+      f.propose.mockResolvedValue({ ...plan(), actionKind, effectContract });
+      const admission = vi.fn(async () => {
+        throw new Error("Reached independent admission after effect mapping.");
+      });
+      f.ports.readAdmission = admission;
+      const cycle = new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId);
+      if (outcome === true) {
+        await expect(cycle).rejects.toThrow("Reached independent admission");
+      } else {
+        expect((await cycle).report).toMatchObject({
+          status: "recovering",
+          reasonCode: "principal_proxy_worker_failed",
+          nextAction: "revise_responsibility",
+        });
+        expect(admission).not.toHaveBeenCalled();
+        expect(f.attention).toHaveBeenCalledWith(
+          expect.anything(),
+          outcome === "lervo_debt"
+            ? ["lervo_debt", "principal_scope_exceeded"]
+            : ["effect_mapping_unavailable"],
+        );
+      }
+      expect(f.propose).toHaveBeenCalledWith(
+        expect.objectContaining({ reasonCode: "principal_proxy_worker_failed" }),
+      );
+    },
+  );
+  it("waits on owner attention only until the escalation bound, then proceeds", async () => {
+    const f = fixture();
+    f.state.attentionPending = true;
+    f.state.attentionPendingSince = now;
+    const waiting = await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId);
+    expect(waiting).toMatchObject({
+      disposition: "idle",
+      report: {
+        reasonCode: "owner_attention_pending",
+        nextCheckAt: new Date(Date.parse(now) + principalEscalationBoundMs).toISOString(),
+      },
+    });
+    expect(f.propose).not.toHaveBeenCalled();
+    f.state.attentionPendingSince = new Date(
+      Date.parse(now) - principalEscalationBoundMs,
+    ).toISOString();
+    const proceeding = await new OutcomeSupervisionRuntime(f.ports).runCycle(f.state.supervisionId);
+    expect(proceeding).toMatchObject({
+      disposition: "effect_confirmed",
+      report: { reasonCode: "ready_for_dispatch_review", nextAction: "dispatch" },
+    });
+    // A renewed owner escalation past the bound is never recorded; it is held as Lervo debt.
+    const g = fixture();
+    g.state.attentionPending = true;
+    g.state.attentionPendingSince = f.state.attentionPendingSince;
+    g.propose.mockResolvedValue({
+      ...plan(),
+      actionKind: "escalate",
+      effectContract: "work.owner_attention.v1",
+    });
+    const runtime = new OutcomeSupervisionRuntime(g.ports);
+    expect((await runtime.runCycle(g.state.supervisionId)).disposition).toBe("blocked");
+    expect(g.attention).toHaveBeenCalledWith(expect.anything(), [
+      "lervo_debt",
+      "principal_scope_exceeded",
+    ]);
+    expect((await runtime.runCycle(g.state.supervisionId)).disposition).toBe("blocked");
+    expect(g.propose).toHaveBeenCalledOnce();
+    expect(g.execute).not.toHaveBeenCalled();
+  });
+  it("holds an escalation outside the mandate as Lervo debt instead of waiting for the owner", async () => {
+    const f = fixture();
+    const narrow = { ...mandate(), actionKinds: ["dispatch", "hire_worker"] } as ReturnType<
+      typeof mandate
+    >;
+    f.ports.readMandate = async () => narrow;
+    f.state.mandateHash = operatingContractHash(narrow);
+    const assignment = f.state.assignments[0]!;
+    assignment.status = "failed";
+    assignment.effectDisposition = "known_safe_failure";
+    assignment.recoveryDecisionCount = 3;
+    f.state.escalationCount = 8;
+    const runtime = new OutcomeSupervisionRuntime(f.ports);
+    const cycle = await runtime.runCycle(f.state.supervisionId);
+    expect(cycle).toMatchObject({
+      disposition: "blocked",
+      report: { status: "lervo_debt", reasonCode: "principal_scope_exceeded", nextAction: null },
+    });
+    expect(f.attention).toHaveBeenCalledWith(expect.anything(), [
+      "lervo_debt",
+      "principal_scope_exceeded",
+    ]);
+    expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("blocked");
+    expect(f.attention).toHaveBeenCalledTimes(1);
+    expect(f.propose).not.toHaveBeenCalled();
+  });
   it("executes once, does no idle model work, and reconciles after runtime restart", async () => {
     const f = fixture();
     const runtime = new OutcomeSupervisionRuntime(f.ports);

@@ -6,8 +6,8 @@ import {
 } from "../src/document-freshness-archive.js";
 import {
   classifyDocumentFreshnessHunk,
-  documentFreshnessAuthority,
   documentFreshnessCrossCheckRequired,
+  documentFreshnessRequiredAgreements,
   documentFreshnessDocumentOwnership,
   documentFreshnessInstructionLine,
   documentFreshnessRangeOwnership,
@@ -36,7 +36,6 @@ import {
 } from "../src/document-freshness-priority.js";
 import { parseDocumentFreshnessProposal } from "../src/document-freshness-response.js";
 import {
-  documentFreshnessApprovalFromReply,
   documentFreshnessCompactLine,
   documentFreshnessTurnReportSegment,
 } from "../src/document-freshness-surfaces.js";
@@ -215,10 +214,31 @@ describe("document freshness priority and admission", () => {
         candidates: [{ ...candidate, state: "applied" }],
       }).skippedSettled,
     ).toBe(1);
+    // ADR-0561: exhausted attempts are Lervo debt, held until the backoff and then retried once.
+    const rejected = {
+      ...candidate,
+      state: "rejected" as const,
+      rejection: {
+        reasonCode: "cross_check_disagreement" as const,
+        rejectorKind: "cross_check" as const,
+        contestedHunkIds: [],
+      },
+    };
+    const exhausted = { ...base, holds: [], candidates: [rejected, rejected] };
+    expect(admitDocumentFreshnessFindings(exhausted).skippedSettled).toBe(1);
+    const debt = (retryAt: string) => [{ findingDigest: entry.finding.findingDigest, retryAt }];
+    expect(
+      admitDocumentFreshnessFindings({ ...exhausted, debt: debt("2026-10-06T00:00:00.000Z") })
+        .skippedForHold,
+    ).toBe(1);
+    expect(
+      admitDocumentFreshnessFindings({ ...exhausted, debt: debt("2026-10-04T00:00:00.000Z") })
+        .admitted,
+    ).toHaveLength(1);
   });
 });
 
-describe("document freshness classification and authority", () => {
+describe("document freshness classification and cross-check requirements", () => {
   const source =
     "# Rules\n\nThe guide lives in `ops/old.md`.\n- Use `pnpm check` before commits.\n";
   const range = (text: string) => {
@@ -253,35 +273,17 @@ describe("document freshness classification and authority", () => {
     expect(documentFreshnessInstructionLine("Generated routes are listed below.")).toBe(false);
   });
 
-  it("applies the ADR-0463 authority matrix with no mandate kind in version 1", () => {
-    expect(
-      documentFreshnessAuthority({
-        ownership: "lervo_managed",
-        changeClass: "statement",
-        mandateKinds: [],
-      }),
-    ).toBe("none");
-    expect(
-      documentFreshnessAuthority({
-        ownership: "lervo_managed",
-        changeClass: "safety_or_policy",
-        mandateKinds: [],
-      }),
-    ).toBe("owner");
-    expect(
-      documentFreshnessAuthority({
-        ownership: "user_owned",
-        changeClass: "factual_reference",
-        mandateKinds: [],
-      }),
-    ).toBe("owner");
-    expect(
-      documentFreshnessAuthority({
-        ownership: "user_owned",
-        changeClass: "factual_reference",
-        mandateKinds: ["document_freshness"],
-      }),
-    ).toBe("principal_mandate");
+  it("requires two independent agreements for safety, user-owned statements, and archives", () => {
+    const agreements = (
+      ownership: "lervo_managed" | "user_owned",
+      changeClass: "factual_reference" | "statement" | "safety_or_policy" | null,
+      operation: "edit" | "archive" = "edit",
+    ) => documentFreshnessRequiredAgreements({ ownership, changeClass, operation });
+    expect(agreements("lervo_managed", "statement")).toBe(1);
+    expect(agreements("user_owned", "factual_reference")).toBe(1);
+    expect(agreements("user_owned", "statement")).toBe(2);
+    expect(agreements("lervo_managed", "safety_or_policy")).toBe(2);
+    expect(agreements("user_owned", null, "archive")).toBe(2);
     const policy = defaultDocumentFreshnessPolicy;
     expect(
       documentFreshnessCrossCheckRequired({
@@ -489,7 +491,7 @@ describe("document freshness surfaces", () => {
   it("renders a bounded compact line and turn-report segment only when counts are non-zero", () => {
     const line = documentFreshnessCompactLine(summary)!;
     expect(line).toBe(
-      "Document freshness: 2 stale (1 safety: AGENTS.md), 1 candidate awaits review, 1 refreshed; lervo knowledge freshness review",
+      "Document freshness (no owner action): 2 stale (1 safety: AGENTS.md), 1 candidate held by Lervo, 1 refreshed; lervo knowledge freshness status",
     );
     expect(Buffer.byteLength(line)).toBeLessThanOrEqual(200);
     expect(
@@ -507,31 +509,8 @@ describe("document freshness surfaces", () => {
       }),
     ).toBeNull();
     expect(documentFreshnessTurnReportSegment(summary)).toBe(
-      "docs: 1 refreshed (README.md), 1 awaiting owner",
+      "docs: 1 refreshed (README.md), 1 held by Lervo",
     );
-  });
-
-  it("translates an owner reply into the exact apply command only when unambiguous", () => {
-    const afterHash = `sha256:${"9".repeat(64)}`;
-    const one = [
-      {
-        candidateId: "kfresh_111111111111111111111111",
-        afterHash,
-        state: "verified_pending_cross_check" as const,
-      },
-    ];
-    expect(documentFreshnessApprovalFromReply({ reply: "yes", awaiting: one })?.command).toBe(
-      `lervo knowledge freshness apply kfresh_111111111111111111111111 --approval ${afterHash}`,
-    );
-    const two = [...one, { ...one[0]!, candidateId: "kfresh_222222222222222222222222" }];
-    expect(documentFreshnessApprovalFromReply({ reply: "yes", awaiting: two })).toBeNull();
-    expect(
-      documentFreshnessApprovalFromReply({
-        reply: "please apply kfresh_222222222222222222222222",
-        awaiting: two,
-      })?.candidateId,
-    ).toBe("kfresh_222222222222222222222222");
-    expect(documentFreshnessApprovalFromReply({ reply: "not now", awaiting: one })).toBeNull();
   });
 });
 

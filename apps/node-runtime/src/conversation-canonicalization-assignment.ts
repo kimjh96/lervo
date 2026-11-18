@@ -11,35 +11,38 @@ import type {
 export interface CanonicalizationAssignment {
   candidateId: string;
   contentHash: string;
-  state: "candidate" | "stale";
+  state: "candidate";
   sourcePaths: readonly string[];
   recommendedRoots: readonly string[];
 }
 
+/**
+ * ADR-0561: the turn documents open candidates in canonical files; the background canonical
+ * reviewer then promotes or rejects each one after its independent review. The turn never
+ * records a promotion or rejection itself, and stale candidates are the reviewer's alone.
+ */
 export function canonicalizationAssignment(
   candidates: readonly CanonicalizationAssignment[],
-  reviewerId: string,
 ): string | null {
   if (candidates.length === 0) return null;
   return [
-    "Background knowledge review left these canonicalization candidates. Unless the current request is read-only research, resolve each one in this turn after the requested work:",
+    "Background knowledge review left these canonicalization candidates. Unless the current request is read-only research, document each one in this turn after the requested work. The background canonical reviewer then promotes or rejects each candidate itself; never record a promotion or rejection.",
     ...candidates
       .slice(0, 8)
-      .map((candidate) =>
-        candidate.state === "stale"
-          ? `- ${candidate.candidateId} (stale): run \`lervo knowledge canonicalization review ${candidate.candidateId} --decision reject --reviewer ${reviewerId} --approval ${candidate.contentHash}\`.`
-          : `- ${candidate.candidateId}: sources ${candidate.sourcePaths.slice(0, 8).join(", ")}; canonical roots ${candidate.recommendedRoots.join(", ")}. Update the one canonical document under those roots that should describe the change, then run \`lervo knowledge canonicalization promote ${candidate.candidateId} --reviewer ${reviewerId} --approval ${candidate.contentHash} --target <path> --target-hash sha256:<hex of the final bytes>\`. If the change needs no durable documentation, reject it with \`lervo knowledge canonicalization review ${candidate.candidateId} --decision reject --reviewer ${reviewerId} --approval ${candidate.contentHash}\`.`,
+      .map(
+        (candidate) =>
+          `- ${candidate.candidateId}: sources ${candidate.sourcePaths.slice(0, 8).join(", ")}; canonical roots ${candidate.recommendedRoots.join(", ")}. Update the one canonical document under those roots that should describe the change, or leave it when the change needs no durable documentation.`,
       ),
   ].join("\n");
 }
 
-/** Candidates a write-capable turn must resolve; an unreadable registry assigns none. */
+/** Candidates a write-capable turn should document; an unreadable registry assigns none. */
 export async function pendingCanonicalizationCandidates(
   repositoryRoot: string,
 ): Promise<CanonicalizationAssignment[]> {
   try {
     return (await listCanonicalizationCandidates(repositoryRoot)).flatMap((candidate) =>
-      candidate.observedState === "candidate" || candidate.observedState === "stale"
+      candidate.observedState === "candidate"
         ? [
             {
               candidateId: candidate.candidateId,

@@ -5,6 +5,8 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
+import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
 
@@ -13,7 +15,7 @@ afterEach(async () => {
 });
 
 describe("document normalization CLI", () => {
-  it("creates a stored provider candidate and applies exact approved rewrites", async () => {
+  it("creates a stored provider candidate and applies cross-checked rewrites", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-cli-document-normalization-"));
     roots.push(root);
     await mkdir(resolve(root, "docs/operations"), { recursive: true });
@@ -99,6 +101,7 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
     });
     await expect(access(invocationLog)).rejects.toMatchObject({ code: "ENOENT" });
     messages.length = 0;
+    commitRepository(root);
 
     expect(
       await runCli(
@@ -134,9 +137,12 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
       plan.planId,
       "--json",
     ];
-    for (const item of plan.items)
-      apply.push("--approve-item", `${item.operationId}=${item.approvalHash}`);
-    expect(await runCli(apply, io), errors.join("")).toBe(0);
+    // ADR-0561: an independent cross-check of the stored candidate replaces item approvals, and
+    // the rewrite lands as its own undo commit over the sources committed before planning.
+    const crossCheck = planCrossCheck();
+    expect(await runCli(apply, io, crossCheck.services), errors.join("")).toBe(0);
+    expect(crossCheck.checked).toHaveLength(1);
+    expect(crossCheck.checked[0]!.paths).toContain("docs/operations/runtime.md");
     expect(JSON.parse(messages.join(""))).toMatchObject({
       operation: "normalize_documents",
       normalizedDocumentCount: 1,

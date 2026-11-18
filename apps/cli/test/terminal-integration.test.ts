@@ -38,6 +38,17 @@ import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
 import { runCli as runCliBase } from "../src/main.js";
+import {
+  applyTerminalIntegrationStage,
+  planTerminalIntegrationStage,
+} from "../src/terminal-integration-stage.js";
+import { commitRepository } from "./committed-repository.js";
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
+import { holdEffect } from "../src/held-effect-debt.js";
+import {
+  inspectTerminalIntegration,
+  terminalIntegrationHoldSubject,
+} from "../src/upgrade-terminal-inspection.js";
 import { terminalTurnDeclarationRequired } from "../src/terminal-lifecycle-inspection.js";
 import { terminalKnowledgeSnapshotId } from "../src/terminal-compact-context.js";
 import { captureTerminalRepositorySnapshot } from "../src/terminal-repository-snapshot.js";
@@ -69,6 +80,7 @@ function projectedQueries(
 
 const runCli: typeof runCliBase = (args, io, overrides = {}) =>
   runCliBase(args, io, {
+    ...agreeingCrossCheck,
     prepareSearchQueries: undefined,
     projectSearchQueries: async (input) => projectedQueries(input, [input.request]),
     groundProductionRequest: async ({ request, provider }) => {
@@ -164,8 +176,6 @@ async function initializedRepository(): Promise<string> {
   await applyTerminalIntegrationPlan({
     plan: terminal,
     runtimeContent,
-    approvedOperationId: terminal.operationId,
-    approvedHash: terminal.approvalHash!,
     now: new Date(),
     recordApplied: () => undefined,
   });
@@ -779,27 +789,21 @@ describe("terminal integration CLI", () => {
         userUpdates?: Array<{ operationId: string; approvalHash: string }>;
       };
     };
-    const approvals = (plan: Awaited<ReturnType<typeof migrate>>) =>
-      plan.userUpdates !== undefined
-        ? plan.userUpdates.flatMap((item) => [
-            "--approve-item",
-            `${item.operationId}=${item.approvalHash}`,
-          ])
-        : plan.approvalHash === undefined || plan.approvalHash === null
-          ? []
-          : ["--approve-item", `${plan.operationId}=${plan.approvalHash}`];
     const terminalPlan = async () => {
       for (let index = 0; index < 10; index += 1) {
-        const plan = await migrate();
+        let plan = await migrate();
+        // A reviewed plan lands as its own undo commit over committed sources; committing moves
+        // HEAD, so the plan is made again.
+        if (plan.status === "review_required" && commitRepository(root)) plan = await migrate();
         if (plan.planKind === "terminal_integration") return plan;
-        await migrate("--apply", plan.planId, ...approvals(plan));
+        await migrate("--apply", plan.planId);
       }
       throw new Error("Terminal integration plan did not become reachable.");
     };
 
     const first = await terminalPlan();
-    expect(["ready", "review_required"]).toContain(first.status);
-    await migrate("--apply", first.planId, ...approvals(first));
+    expect(first.status).toBe("ready");
+    await migrate("--apply", first.planId);
     const installedRuntime = await readFile(
       resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.mjs"),
       "utf8",
@@ -887,7 +891,7 @@ describe("terminal integration CLI", () => {
           reasonCode: "implementation_only",
           sourcePaths: ["src/feature.ts"],
         },
-        knowledgeDisposition: "pending_user_approval",
+        knowledgeDisposition: "pending_background",
         deliberationDisposition: "not_requested",
         deliberationId: null,
       });
@@ -907,7 +911,7 @@ describe("terminal integration CLI", () => {
               ...quiet,
               stdin: async () =>
                 declaration.replace(
-                  '"knowledgeDisposition":"pending_user_approval"',
+                  '"knowledgeDisposition":"pending_background"',
                   '"knowledgeDisposition":"current"',
                 ),
             },
@@ -1084,6 +1088,7 @@ describe("terminal integration CLI", () => {
       resolve(root, "HANDOFF.md"),
       "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
     );
+    commitRepository(root);
     const migrationOutput: string[] = [];
     expect(
       await runCli(["migrate", "knowledge", "--json"], {
@@ -1098,17 +1103,11 @@ describe("terminal integration CLI", () => {
       approvalHash: string;
     };
     expect(
-      await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          migration.planId,
-          "--approve-item",
-          `${migration.operationId}=${migration.approvalHash}`,
-        ],
-        { cwd: root, stdout: () => undefined, stderr: () => undefined },
-      ),
+      await runCli(["migrate", "knowledge", "--apply", migration.planId], {
+        cwd: root,
+        stdout: () => undefined,
+        stderr: () => undefined,
+      }),
     ).toBe(0);
     const messages: string[] = [];
     const errors: string[] = [];
@@ -1669,6 +1668,7 @@ describe("terminal integration CLI", () => {
       resolve(root, ".claude/settings.json"),
       '{"permissions":{"deny":["Bash"]},"hooks":{"Stop":[{"hooks":[{"type":"command","command":"existing-stop"}]}]}}\n',
     );
+    commitRepository(root);
     const messages: string[] = [];
     const errors: string[] = [];
     const io = {
@@ -1676,33 +1676,26 @@ describe("terminal integration CLI", () => {
       stdout: (message: string) => messages.push(message),
       stderr: (message: string) => errors.push(message),
     };
-    expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
-    const intermediate = JSON.parse(messages.join("")) as {
-      planId: string;
-      operations: Array<{ action: string }>;
-      userUpdates?: Array<{ operationId: string; approvalHash: string }>;
-    };
-    if (intermediate.operations?.some((item) => item.action !== "unchanged")) {
-      messages.length = 0;
-      expect(
-        await runCli(
-          [
-            "migrate",
-            "knowledge",
-            "--apply",
-            intermediate.planId,
-            ...(intermediate.userUpdates ?? []).flatMap((item) => [
-              "--approve-item",
-              `${item.operationId}=${item.approvalHash}`,
-            ]),
-            "--json",
-          ],
-          io,
-        ),
-        errors.join(""),
-      ).toBe(0);
+    // Earlier stages apply first; a reviewed one lands as its own commit, which moves HEAD, a
+    // knowledge source, so a structural refresh can follow it.
+    for (let stage = 0; stage < 6; stage += 1) {
       messages.length = 0;
       expect(await runCli(["migrate", "knowledge", "--json"], io), errors.join("")).toBe(0);
+      const intermediate = JSON.parse(messages.join("")) as {
+        planKind?: string;
+        planId: string;
+        operations?: Array<{ action: string }>;
+      };
+      if (
+        intermediate.planKind === "terminal_integration" ||
+        intermediate.operations?.every((item) => item.action === "unchanged") === true
+      )
+        break;
+      messages.length = 0;
+      expect(
+        await runCli(["migrate", "knowledge", "--apply", intermediate.planId, "--json"], io),
+        errors.join(""),
+      ).toBe(0);
     }
     const plan = JSON.parse(messages.join("")) as {
       planKind: string;
@@ -1711,22 +1704,24 @@ describe("terminal integration CLI", () => {
       approvalHash: string;
     };
     expect(plan.planKind).toBe("terminal_integration");
+    const original = await readFile(resolve(root, ".claude/settings.json"), "utf8");
     messages.length = 0;
+    // ADR-0561: the removed item approval fails briefly and changes nothing.
     expect(
       await runCli(
-        [
-          "migrate",
-          "knowledge",
-          "--apply",
-          plan.planId,
-          "--approve-item",
-          `${plan.operationId}=${plan.approvalHash}`,
-          "--json",
-        ],
+        ["migrate", "knowledge", "--apply", plan.planId, "--approve-item", "ktermop_x=y"],
         io,
       ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("--approve-item was removed");
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+    errors.length = 0;
+    expect(
+      await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io),
       errors.join(""),
     ).toBe(0);
+    const receipt = JSON.parse(messages.join("")) as { backupId: string };
+    expect(receipt.backupId).toMatch(/^lbk_[a-f0-9]{24}$/u);
     const settings = JSON.parse(await readFile(resolve(root, ".claude/settings.json"), "utf8"));
     expect(settings.permissions).toEqual({ deny: ["Bash"] });
     expect(
@@ -1739,7 +1734,71 @@ describe("terminal integration CLI", () => {
         item.hooks.some((hook) => hook.command === terminalHookCommand("claude")),
       ),
     ).toBe(true);
+    // The backup restores the provider hook file byte for byte.
+    expect(await runCli(["state", "restore", receipt.backupId], io), errors.join("")).toBe(0);
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+    // ADR-0561: an owner who undid the merge does not get it again until they release the hold.
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "owner_restored",
+    });
+    expect(await runCli(["repository", "release", "--root", root], io), errors.join("")).toBe(0);
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "safe_apply",
+    });
   }, 15_000);
+
+  it("restores the provider hook files from the backup when the applied integration does not verify", async () => {
+    const root = await initializedRepository();
+    const original = '{"permissions":{"deny":["Bash"]}}\n';
+    await writeFile(resolve(root, ".claude/settings.json"), original);
+    const codexHooks = await readFile(resolve(root, ".codex/hooks.json"), "utf8");
+    const prepared = await planTerminalIntegrationStage(root);
+    expect(prepared.plan.status).toBe("ready");
+    await expect(
+      applyTerminalIntegrationStage({
+        repositoryRoot: root,
+        prepared,
+        now: new Date(),
+        verify: async () => "the fixture reader rejected the hooks",
+      }),
+    ).rejects.toMatchObject({ code: "terminal_integration_verification_failed" });
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+    expect(await readFile(resolve(root, ".codex/hooks.json"), "utf8")).toBe(codexHooks);
+    // The plan reads the held verification failure, so an upgrade does not loop on it.
+    await holdEffect({
+      repositoryRoot: root,
+      effect: "upgrade_terminal_integration",
+      subject: terminalIntegrationHoldSubject(prepared.plan),
+      reasonCode: "verification_failed",
+    });
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "verification_failed",
+    });
+  });
+
+  it("restores the provider hook files when the apply itself fails part-way", async () => {
+    const root = await initializedRepository();
+    const original = '{"permissions":{"deny":["Bash"]}}\n';
+    await writeFile(resolve(root, ".claude/settings.json"), original);
+    const prepared = await planTerminalIntegrationStage(root);
+    expect(prepared.plan.status).toBe("ready");
+    // The last published file interrupts the apply, after every other file was written.
+    const published = prepared.plan.targets.filter(
+      (target) => target.action === "create" || target.action === "update",
+    ).length;
+    await expect(
+      applyTerminalIntegrationStage({
+        repositoryRoot: root,
+        prepared,
+        now: new Date(),
+        failureInjector: (checkpoint) =>
+          checkpoint === `published:${published - 1}` ? "interrupt" : undefined,
+      }),
+    ).rejects.toThrow();
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+  });
 });
 
 describe("compact terminal prompt context", () => {
@@ -1808,6 +1867,7 @@ describe("compact terminal prompt context", () => {
         resolve(root, "HANDOFF.md"),
         "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
       );
+      commitRepository(root);
       const migrationOutput: string[] = [];
       const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
       expect(
@@ -1821,19 +1881,7 @@ describe("compact terminal prompt context", () => {
         operationId: string;
         approvalHash: string;
       };
-      expect(
-        await runCli(
-          [
-            "migrate",
-            "knowledge",
-            "--apply",
-            migration.planId,
-            "--approve-item",
-            `${migration.operationId}=${migration.approvalHash}`,
-          ],
-          quiet,
-        ),
-      ).toBe(0);
+      expect(await runCli(["migrate", "knowledge", "--apply", migration.planId], quiet)).toBe(0);
       await mkdir(resolve(root, "docs/instructions/generated"), { recursive: true });
       await writeFile(
         resolve(root, `docs/instructions/generated/rule_${"d".repeat(24)}.md`),

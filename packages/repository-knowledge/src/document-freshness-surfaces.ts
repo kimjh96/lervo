@@ -1,6 +1,6 @@
 import type {
   DocumentFreshnessCandidateV1,
-  DocumentFreshnessPriorityClass,
+  DocumentFreshnessDebt,
 } from "./document-freshness-contract.js";
 
 /** Counts every owner-facing surface renders; computed by the runtime from its rebuildable state. */
@@ -8,18 +8,30 @@ export interface DocumentFreshnessSummary {
   staleCount: number;
   safetyCount: number;
   firstSafetyPath: string | null;
+  /**
+   * Candidates Lervo still holds, such as a cross-check waiting for its retry. The field name
+   * predates ADR-0561; none of them waits for the owner.
+   */
   awaitingReviewCount: number;
   appliedRecentPaths: string[];
+  /** True while the zero-success hold pauses new generation (ADR-0561). */
   blocked: boolean;
+  /** Additive (ADR-0561): the oldest Lervo debt entries, at most eight. */
+  debt?: Array<Pick<DocumentFreshnessDebt, "documentPath" | "reason" | "since">>;
 }
 
 const MAXIMUM_COMPACT_LINE_BYTES = 200;
 const MAXIMUM_SEGMENT_BYTES = 160;
 
-/** States in which a candidate waits for the owner before more bytes change. */
-export const documentFreshnessReviewStates = new Set<DocumentFreshnessCandidateV1["state"]>([
+/**
+ * States in which Lervo still holds a verified candidate before more bytes change: a cross-check
+ * waiting for its retry, or the rest of a partial apply. `waiting_authority` exists only on records
+ * written before ADR-0561, which recovery supersedes. None waits for the owner.
+ */
+export const documentFreshnessHeldStates = new Set<DocumentFreshnessCandidateV1["state"]>([
   "waiting_authority",
   "verified_pending_cross_check",
+  "suggested",
   "partially_applied",
 ]);
 
@@ -40,6 +52,7 @@ export function documentFreshnessCompactLine(summary: DocumentFreshnessSummary):
     summary.staleCount === 0 &&
     summary.awaitingReviewCount === 0 &&
     summary.appliedRecentPaths.length === 0 &&
+    (summary.debt?.length ?? 0) === 0 &&
     !summary.blocked
   )
     return null;
@@ -51,14 +64,13 @@ export function documentFreshnessCompactLine(summary: DocumentFreshnessSummary):
     }`,
   ];
   if (summary.awaitingReviewCount > 0)
-    parts.push(
-      `${plural(summary.awaitingReviewCount, "candidate")} ${summary.awaitingReviewCount === 1 ? "awaits" : "await"} review`,
-    );
+    parts.push(`${plural(summary.awaitingReviewCount, "candidate")} held by Lervo`);
+  if ((summary.debt?.length ?? 0) > 0) parts.push(`${summary.debt!.length} Lervo debt`);
   if (summary.appliedRecentPaths.length > 0)
     parts.push(`${summary.appliedRecentPaths.length} refreshed`);
-  if (summary.blocked) parts.push("blocked");
+  if (summary.blocked) parts.push("generation on hold");
   return bounded(
-    `Document freshness: ${parts.join(", ")}; lervo knowledge freshness review`,
+    `Document freshness (no owner action): ${parts.join(", ")}; lervo knowledge freshness status`,
     MAXIMUM_COMPACT_LINE_BYTES,
   );
 }
@@ -72,70 +84,32 @@ export function documentFreshnessTurnReportSegment(
     parts.push(
       `${summary.appliedRecentPaths.length} refreshed (${summary.appliedRecentPaths.slice(0, 2).join(", ")})`,
     );
-  if (summary.awaitingReviewCount > 0) parts.push(`${summary.awaitingReviewCount} awaiting owner`);
+  if (summary.awaitingReviewCount > 0) parts.push(`${summary.awaitingReviewCount} held by Lervo`);
   return parts.length === 0 ? null : bounded(`docs: ${parts.join(", ")}`, MAXIMUM_SEGMENT_BYTES);
 }
 
-const priorityWords: Record<DocumentFreshnessPriorityClass, string> = {
-  safety: "safety",
-  entrypoint: "entrypoint",
-  canonical: "canonical",
-  other: "document",
-};
-
-function changeClasses(
-  candidate: Pick<DocumentFreshnessCandidateV1, "hunks" | "operation">,
-): string {
-  if (candidate.operation === "archive") return "archive";
-  return [...new Set(candidate.hunks.map((hunk) => hunk.changeClass))].sort().join(", ");
-}
-
-/** The one-line owner question for an escalation batch; carries identifiers, never hunk text. */
-export function documentFreshnessEscalationQuestion(
+/**
+ * ADR-0561 notice text for the cross-check behind an apply: the verdict, how many independent
+ * agreeing checks there were, and which reviewer ran each. It names providers and run IDs only.
+ */
+export function documentFreshnessCrossCheckNotice(
   candidate: Pick<
     DocumentFreshnessCandidateV1,
-    "candidateId" | "documentPath" | "hunks" | "operation" | "priorityClass"
+    "crossCheck" | "crossCheckReview" | "crossCheckRounds"
   >,
 ): string {
-  return `Apply ${priorityWords[candidate.priorityClass]} freshness candidate \`${candidate.candidateId}\` to \`${candidate.documentPath}\` (\`${changeClasses(candidate)}\`)?`;
-}
-
-/** The exact owner apply command; the approval binds the verified output hash. */
-export function documentFreshnessApplyCommand(
-  candidate: Pick<DocumentFreshnessCandidateV1, "candidateId" | "afterHash">,
-): string {
-  return `lervo knowledge freshness apply ${candidate.candidateId} --approval ${candidate.afterHash}`;
-}
-
-const affirmative =
-  /^(?:yes|y|ok|okay|approve|approved|apply|apply it|go ahead|lgtm|ship it|네|예|응|적용|적용해|승인)[.!]?$/iu;
-const explicitApply = /\b(?:apply|approve)\b[^\n]*?\b(kfresh_[a-f0-9]{24})\b/iu;
-
-/**
- * Translates an owner's natural-language reply in an escalation thread into the exact apply
- * command. An explicit candidate identifier always wins; a bare affirmative binds only when
- * exactly one candidate waits, so an ambiguous reply never approves anything.
- */
-export function documentFreshnessApprovalFromReply(input: {
-  reply: string;
-  awaiting: readonly Pick<DocumentFreshnessCandidateV1, "candidateId" | "afterHash" | "state">[];
-}): { candidateId: string; afterHash: string; command: string } | null {
-  const reply = input.reply.trim();
-  const waiting = input.awaiting.filter(
-    (candidate) =>
-      documentFreshnessReviewStates.has(candidate.state) && candidate.afterHash !== null,
+  if (candidate.crossCheck !== "agreement") return candidate.crossCheck;
+  const rounds = [
+    ...(candidate.crossCheckRounds ?? []),
+    ...(candidate.crossCheckReview ? [candidate.crossCheckReview] : []),
+  ];
+  const reviewers = rounds.map(
+    (round) => `${round.reviewerProvider ?? "unknown"} ${round.runId ?? "no-run"}`,
   );
-  const named = explicitApply.exec(reply)?.[1];
-  const target =
-    named !== undefined
-      ? waiting.find((candidate) => candidate.candidateId === named)
-      : affirmative.test(reply) && waiting.length === 1
-        ? waiting[0]
-        : undefined;
-  if (target === undefined || target.afterHash === null) return null;
-  return {
-    candidateId: target.candidateId,
-    afterHash: target.afterHash,
-    command: documentFreshnessApplyCommand(target),
-  };
+  return `agreement ${rounds.length}/${rounds.length} (${reviewers.join("; ")})`;
+}
+
+/** The undo command every applied freshness change reports (ADR-0561). */
+export function documentFreshnessUndoCommand(candidateId: string): string {
+  return `lervo knowledge freshness revert ${candidateId}`;
 }

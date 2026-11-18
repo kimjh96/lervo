@@ -5,22 +5,24 @@ import type {
   OperatingAttentionItemV1,
 } from "@lervo/application-contract";
 import {
-  documentFreshnessApplyCommand,
+  documentFreshnessCrossCheckNotice,
+  documentFreshnessCrossCheckRetryAt,
+  documentFreshnessUndoCommand,
+  documentFreshnessUserOwnedChange,
   type DocumentFreshnessCandidateV1,
+  type DocumentFreshnessDebt,
 } from "@lervo/repository-knowledge";
 import { documentFreshnessAttentionSources } from "@lervo/repository-knowledge-runtime";
 
-/** Rebuildable freshness state the attention projection reads; absent means not observed. */
+/**
+ * Rebuildable freshness state the attention projection reads; absent means not observed. Since
+ * ADR-0561 every item is Lervo's own work or an after-the-fact notice, never owner work.
+ */
 export interface DocumentFreshnessAttentionInput {
-  awaiting: readonly DocumentFreshnessCandidateV1[];
+  held: readonly DocumentFreshnessCandidateV1[];
   applied: readonly DocumentFreshnessCandidateV1[];
-  blocked: { attempts: number } | null;
-  /** Findings whose candidate and regeneration both met Tier 0 disagreement; absent means none. */
-  crossCheckBlocked?: ReadonlyArray<{
-    documentPath: string;
-    candidateId: string;
-    attempts: number;
-  }>;
+  zeroSuccessHold: { since: string; until: string; attempts: number } | null;
+  debt: readonly DocumentFreshnessDebt[];
 }
 
 function changeClasses(
@@ -30,46 +32,44 @@ function changeClasses(
   return [...new Set(candidate.hunks.map((hunk) => hunk.changeClass))].sort();
 }
 
-function candidateItem(
+function heldItem(
   candidate: DocumentFreshnessCandidateV1,
 ): DocumentFreshnessCandidateAttentionItemV1 {
+  const retryAt = documentFreshnessCrossCheckRetryAt(candidate)?.toISOString() ?? null;
+  const suggestion =
+    candidate.state === "suggested" ||
+    (candidate.state === "partially_applied" && documentFreshnessUserOwnedChange(candidate));
+  const heldReason = suggestion
+    ? "user_owned_content"
+    : candidate.state === "waiting_authority"
+      ? "legacy_owner_authority"
+      : (candidate.crossCheckReview?.unavailableReason ?? "cross_check_pending");
   return {
     schemaVersion: 1,
     kind: "document_freshness_candidate",
     itemId: `document_freshness_${candidate.candidateId}`,
-    state: candidate.state as DocumentFreshnessCandidateAttentionItemV1["state"],
+    state: "lervo_debt",
     candidateId: candidate.candidateId,
     documentPath: candidate.documentPath,
     priorityClass: candidate.priorityClass,
     changeClasses: changeClasses(candidate),
     hunkCount: candidate.pendingHunkIds.length,
+    heldReason,
+    retryAt,
     createdAt: candidate.createdAt,
-    ownerConsequence: candidate.hunks.some(
-      (hunk) =>
-        candidate.pendingHunkIds.includes(hunk.hunkId) && hunk.changeClass === "safety_or_policy",
-    )
-      ? "security_policy"
-      : candidate.archive?.ownership === "user_owned" ||
-          candidate.hunks.some(
-            (hunk) =>
-              candidate.pendingHunkIds.includes(hunk.hunkId) &&
-              (hunk.ownership === "user_owned" || hunk.authorityRequired === "owner"),
-          )
-        ? "repository_write"
-        : null,
-    actionOwner: "user",
-    requiresUserAction: true,
+    actionOwner: "host resident",
+    requiresUserAction: false,
     blocking: false,
-    instruction:
-      candidate.afterHash === null
-        ? `Inspect with lervo knowledge freshness review ${candidate.candidateId}; the evidence did not determine a new value.`
-        : `Inspect with lervo knowledge freshness review ${candidate.candidateId}; apply only with ${documentFreshnessApplyCommand(candidate)}.`,
+    instruction: suggestion
+      ? `Suggestion: Lervo verified this change to user-owned bytes and never applies it (AGENTS.md invariant 5); apply it by hand if you want it, from lervo knowledge freshness review ${candidate.candidateId}. A later edit to the document replaces it.`
+      : `Lervo debt: the knowledge resident holds this verified candidate (${heldReason}) and ${retryAt === null ? "finishes or regenerates it in its next cycle" : `retries the cross-check at ${retryAt}`}; inspect with lervo knowledge freshness review ${candidate.candidateId}.`,
   };
 }
 
 function appliedItem(
   candidate: DocumentFreshnessCandidateV1,
 ): DocumentFreshnessAppliedAttentionItemV1 {
+  const undo = documentFreshnessUndoCommand(candidate.candidateId);
   return {
     schemaVersion: 1,
     kind: "document_freshness_applied",
@@ -79,60 +79,72 @@ function appliedItem(
     documentPath: candidate.documentPath,
     approvalSource: candidate.approval?.approvalSource ?? "lervo_managed",
     commitHash: candidate.commitHash,
-    revertInstruction: `lervo knowledge freshness revert ${candidate.candidateId}`,
+    revertInstruction: undo,
     actionOwner: "agent",
     requiresUserAction: false,
     blocking: false,
-    instruction: `Lervo refreshed ${candidate.documentPath}; mention it in the turn report. Revert with lervo knowledge freshness revert ${candidate.candidateId}, or acknowledge with lervo knowledge freshness acknowledge ${candidate.candidateId}.`,
+    // ADR-0561 notice: what changed, why, the cross-check behind it, and the undo.
+    instruction: `Lervo ${candidate.operation === "archive" ? "archived" : "refreshed"} ${candidate.documentPath} (reason ${candidate.reasonsAddressed.join(", ") || "none"}; cross-check ${documentFreshnessCrossCheckNotice(candidate)}); mention it in the turn report. Undo with ${undo}, or acknowledge with lervo knowledge freshness acknowledge ${candidate.candidateId}.`,
   };
 }
 
-function blockedItem(attempts: number): DocumentFreshnessBlockedAttentionItemV1 {
-  return {
-    schemaVersion: 1,
-    kind: "document_freshness_blocked",
-    itemId: "document_freshness_blocked_zero_success_window",
-    state: "action_required",
-    reasonCode: "zero_success_window",
-    documentPath: null,
-    attempts,
-    actionOwner: "user",
-    requiresUserAction: true,
-    blocking: false,
-    instruction:
-      "Five freshness attempts today produced no verified candidate; inspect lervo knowledge freshness status and the provider before more spend.",
-  };
-}
-
-function crossCheckBlockedItem(blocked: {
-  documentPath: string;
-  candidateId: string;
+function zeroSuccessItem(hold: {
+  since: string;
+  until: string;
   attempts: number;
 }): DocumentFreshnessBlockedAttentionItemV1 {
   return {
     schemaVersion: 1,
     kind: "document_freshness_blocked",
-    itemId: `document_freshness_blocked_cross_check_${blocked.candidateId}`,
-    state: "action_required",
-    reasonCode: "repeated_cross_check_disagreement",
-    documentPath: blocked.documentPath,
-    attempts: blocked.attempts,
-    actionOwner: "user",
-    requiresUserAction: true,
+    itemId: "document_freshness_blocked_zero_success_window",
+    state: "lervo_debt",
+    reasonCode: "zero_success_window",
+    documentPath: null,
+    attempts: hold.attempts,
+    since: hold.since,
+    retryAt: hold.until,
+    actionOwner: "host resident",
+    requiresUserAction: false,
     blocking: false,
-    instruction: `The independent cross-check disagreed with ${blocked.attempts} freshness candidates for ${blocked.documentPath}; inspect lervo knowledge freshness review ${blocked.candidateId} and correct the document by hand if it is stale.`,
+    instruction: `Lervo debt: ${hold.attempts} freshness attempts today produced no verified candidate, so new generation pauses until ${hold.until} and then retries with a doubled backoff; inspect lervo knowledge freshness status.`,
   };
 }
 
-/** Maps the rebuildable freshness state to the three ADR-0463 attention kinds. */
+const debtWords: Record<DocumentFreshnessDebt["reason"], string> = {
+  cross_check_disagreement_repeated:
+    "the independent cross-check disagreed with the candidate and its regeneration",
+  freshness_evidence_undetermined:
+    "the evidence did not determine the new value after evidence recovery and regeneration",
+  budget_exceeded: "the candidate exhausted its token budget",
+};
+
+function debtItem(debt: DocumentFreshnessDebt): DocumentFreshnessBlockedAttentionItemV1 {
+  return {
+    schemaVersion: 1,
+    kind: "document_freshness_blocked",
+    itemId: `document_freshness_blocked_${debt.reason}_${debt.candidateId}`,
+    state: "lervo_debt",
+    reasonCode: debt.reason,
+    documentPath: debt.documentPath,
+    attempts: debt.attempts,
+    since: debt.since,
+    retryAt: debt.retryAt,
+    actionOwner: "host resident",
+    requiresUserAction: false,
+    blocking: false,
+    instruction: `Lervo debt: ${debt.documentPath} stays stale because ${debtWords[debt.reason]}; Lervo retries at ${debt.retryAt}. Inspect lervo knowledge freshness review ${debt.candidateId}.`,
+  };
+}
+
+/** Maps the rebuildable freshness state to the ADR-0463 attention kinds. */
 export function documentFreshnessAttentionItems(
   input: DocumentFreshnessAttentionInput,
 ): OperatingAttentionItemV1[] {
   return [
-    ...input.awaiting.map(candidateItem),
+    ...input.held.map(heldItem),
     ...input.applied.map(appliedItem),
-    ...(input.blocked === null ? [] : [blockedItem(input.blocked.attempts)]),
-    ...(input.crossCheckBlocked ?? []).map(crossCheckBlockedItem),
+    ...(input.zeroSuccessHold === null ? [] : [zeroSuccessItem(input.zeroSuccessHold)]),
+    ...input.debt.map(debtItem),
   ];
 }
 

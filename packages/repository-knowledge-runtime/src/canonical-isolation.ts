@@ -65,7 +65,8 @@ export function canonicalWorksetWindow(
 /**
  * After the bounded feedback retry, a rejected multi-source batch is halved at the same offset so
  * the reviewer judges smaller worksets. A rejected single source is parked, and assessment moves
- * past it. A single source its generator marked `needs_review` is an owner decision.
+ * past it. Under ADR-0561 a single source its generator marked `needs_review` is parked the same
+ * way, as Lervo debt with the generator's and the reviewer's reasons, never as an owner decision.
  */
 export async function isolateRejectedCanonicalBatch(input: {
   context: ConvergenceRuntimeContext;
@@ -102,7 +103,7 @@ export async function isolateRejectedCanonicalBatch(input: {
     stage: "canonical",
     path: source.path,
     contentHash: source.contentHash,
-    reason: decision?.disposition === "needs_review" ? "owner_decision" : "review_rejected",
+    reason: "review_rejected",
     attempts: input.attempts,
     reasons: boundedReviewReasons([
       ...(decision?.disposition === "needs_review" ? [decision.rationale] : []),

@@ -1,12 +1,14 @@
 import { parseArgs } from "node:util";
 
+import { REMOVED_APPROVE_ITEM } from "./removed-approval-options.js";
+
 import type {
   DocumentNormalizationResourceCeilings,
   DocumentNormalizationScope,
 } from "@lervo/repository-knowledge";
 
 export const documentNormalizationUsage =
-  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--scope <stale|all-pending>] [--source <relative-markdown-path>] [--source ...] [--preflight] [--max-source-bytes <bytes>] [--max-provider-calls <count>] [--max-observed-tokens <tokens>] [--max-elapsed-ms <ms>] [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]";
+  "lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--scope <stale|all-pending>] [--source <relative-markdown-path>] [--source ...] [--preflight] [--max-source-bytes <bytes>] [--max-provider-calls <count>] [--max-observed-tokens <tokens>] [--max-elapsed-ms <ms>] [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <ms>] [--apply <plan-id> [--cross-check-provider <codex|claude>]] [--json]";
 
 export interface DocumentNormalizationCommandOptions {
   help: boolean;
@@ -21,7 +23,8 @@ export interface DocumentNormalizationCommandOptions {
   executable?: string;
   timeoutMs?: number;
   apply?: string;
-  approveItems?: string[];
+  /** ADR-0561: the provider of the independent cross-check session before apply. */
+  crossCheckProvider?: "codex" | "claude";
   json: boolean;
 }
 
@@ -36,6 +39,8 @@ function positiveIntegerOption(value: string | undefined, option: string): numbe
 export function parseDocumentNormalizationOptions(
   args: string[],
 ): DocumentNormalizationCommandOptions {
+  if (args.some((arg) => /^--approve-item(?:=|$)/u.test(arg)))
+    throw new Error(REMOVED_APPROVE_ITEM);
   const parsed = parseArgs({
     args,
     strict: true,
@@ -55,7 +60,7 @@ export function parseDocumentNormalizationOptions(
       executable: { type: "string" },
       "timeout-ms": { type: "string" },
       apply: { type: "string" },
-      "approve-item": { type: "string", multiple: true },
+      "cross-check-provider": { type: "string" },
       json: { type: "boolean" },
       help: { type: "boolean", short: "h" },
     },
@@ -87,11 +92,17 @@ export function parseDocumentNormalizationOptions(
     parsed.values.provider === undefined
   )
     throw new Error("--scope, --source, --preflight, and resource ceilings require --provider.");
+  if (parsed.values.preflight && parsed.values.apply !== undefined)
+    throw new Error("--preflight cannot be combined with --apply.");
+  const crossCheckProvider = parsed.values["cross-check-provider"];
   if (
-    parsed.values.preflight &&
-    (parsed.values.apply !== undefined || (parsed.values["approve-item"]?.length ?? 0) > 0)
+    crossCheckProvider !== undefined &&
+    crossCheckProvider !== "codex" &&
+    crossCheckProvider !== "claude"
   )
-    throw new Error("--preflight cannot be combined with apply or approval options.");
+    throw new Error("--cross-check-provider must be codex or claude.");
+  if (crossCheckProvider !== undefined && parsed.values.apply === undefined)
+    throw new Error("--cross-check-provider must be used with --apply.");
   if (parsed.values.apply !== undefined && parsed.values.candidate === undefined)
     throw new Error(
       "Applying normalization requires the stored --candidate ID shown by the planning command.",
@@ -135,9 +146,7 @@ export function parseDocumentNormalizationOptions(
     ...(parsed.values.executable === undefined ? {} : { executable: parsed.values.executable }),
     ...(timeoutMs === undefined ? {} : { timeoutMs }),
     ...(parsed.values.apply === undefined ? {} : { apply: parsed.values.apply }),
-    ...(parsed.values["approve-item"] === undefined
-      ? {}
-      : { approveItems: parsed.values["approve-item"] }),
+    ...(crossCheckProvider === undefined ? {} : { crossCheckProvider }),
     json: parsed.values.json ?? false,
   };
 }

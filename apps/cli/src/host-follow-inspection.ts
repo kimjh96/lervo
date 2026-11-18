@@ -1,3 +1,4 @@
+import { readRepositoryHolds, type RepositoryHold } from "@lervo/repository-registry";
 import { errorCode } from "./command-error-output.js";
 import { chooseFollowTarget, repositoryPassDue } from "./host-follow-policy.js";
 import { readActiveCli } from "./host-follow-runtime.js";
@@ -96,6 +97,8 @@ export interface HostFollowStatus {
   activeVersion: string | null;
   service: ManagedServiceStatus | null;
   serviceDefinition: FollowServiceDefinition;
+  /** ADR-0561: repositories the owner holds on this host; the follower upgrades none of them. */
+  holds: RepositoryHold[];
 }
 
 /** Read-only: the follower files, the active CLI, and the service manager's view. */
@@ -103,12 +106,20 @@ export async function readFollowStatus(
   layout: HostUpgradeLayout,
   ports: HostFollowServicePorts,
 ): Promise<HostFollowStatus> {
-  const [state, control, active, service, serviceDefinition] = await Promise.all([
+  const [state, control, active, service, serviceDefinition, holds] = await Promise.all([
     readFollowState(layout),
     readFollowControl(layout),
     readActiveCli(layout).catch(() => null),
     readFollowServiceStatus(ports),
     inspectFollowServiceDefinition(layout, ports),
+    readRepositoryHolds().catch(() => [] as RepositoryHold[]),
   ]);
-  return { state, control, activeVersion: active?.version ?? null, service, serviceDefinition };
+  return {
+    state,
+    control,
+    activeVersion: active?.version ?? null,
+    service,
+    serviceDefinition,
+    holds,
+  };
 }

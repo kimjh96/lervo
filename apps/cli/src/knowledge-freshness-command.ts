@@ -8,11 +8,9 @@ import {
 } from "@lervo/repository-knowledge";
 import {
   acknowledgeFreshnessCandidate,
-  applyFreshnessCandidateByOwner,
   assertFreshnessEventsWritable,
   inspectDocumentFreshnessStatus,
   listDocumentFreshnessReview,
-  rejectFreshnessCandidate,
   renderDocumentFreshnessDiff,
   requireFreshnessCandidate,
   revertFreshnessCandidate,
@@ -27,14 +25,22 @@ import {
 } from "./knowledge-freshness-format.js";
 import type { CliIo } from "./types.js";
 
-const actions = ["status", "review", "apply", "revert", "reject", "acknowledge"] as const;
+const actions = ["status", "review", "revert", "acknowledge"] as const;
 type Action = (typeof actions)[number];
 
-/** `lervo knowledge freshness status|review|apply|revert|reject|acknowledge` (ADR-0463). */
+/**
+ * `lervo knowledge freshness status|review|revert|acknowledge` (ADR-0463). Lervo applies every
+ * cross-checked change itself (ADR-0561), so the owner inspects and undoes; nothing asks to approve.
+ */
 export async function runKnowledgeFreshness(args: string[], io: CliIo): Promise<number> {
   let json = false;
   try {
     const action = args[0] as Action | undefined;
+    json = args.includes("--json");
+    if (args[0] === "apply" || args[0] === "reject")
+      throw new Error(
+        `Freshness ${args[0]} was removed: Lervo applies cross-checked changes itself and reports each one; undo one with lervo knowledge freshness revert <candidate-id>.`,
+      );
     if (action === undefined || !actions.includes(action))
       throw new Error(`Document freshness requires ${actions.join(", ")}.`);
     const parsed = parseArgs({
@@ -44,9 +50,6 @@ export async function runKnowledgeFreshness(args: string[], io: CliIo): Promise<
       options: {
         root: { type: "string" },
         json: { type: "boolean" },
-        approval: { type: "string" },
-        reviewer: { type: "string" },
-        reason: { type: "string" },
       },
     });
     json = parsed.values.json === true;
@@ -84,48 +87,19 @@ export async function runKnowledgeFreshness(args: string[], io: CliIo): Promise<
       const policy = documentFreshnessPolicy(await loadRepositoryKnowledgePolicy(repositoryRoot));
       const result = await withDocumentFreshnessOwnerLock(repositoryRoot, async () => {
         const candidate = await requireFreshnessCandidate(repositoryRoot, candidateId);
-        switch (action) {
-          case "apply":
-            if (typeof parsed.values.approval !== "string")
-              throw new Error("Freshness apply requires --approval <after-hash>.");
-            return applyFreshnessCandidateByOwner({
-              storage,
-              candidate,
-              approvalHash: parsed.values.approval,
-              reviewer: parsed.values.reviewer ?? null,
-              now,
-            });
-          case "revert":
-            return revertFreshnessCandidate({
+        return action === "revert"
+          ? revertFreshnessCandidate({
               storage,
               candidate,
               revertedBy: "owner",
               holdDays: policy.holdDays,
               now,
-            });
-          case "reject": {
-            const reason = parsed.values.reason;
-            if (reason !== "not_stale" && reason !== "incorrect")
-              throw new Error("Freshness reject requires --reason not_stale or incorrect.");
-            return rejectFreshnessCandidate({
-              storage,
-              candidate,
-              reason,
-              holdDays: policy.holdDays,
-              now,
-            });
-          }
-          default:
-            return acknowledgeFreshnessCandidate(repositoryRoot, candidate, now);
-        }
+            })
+          : acknowledgeFreshnessCandidate(repositoryRoot, candidate, now);
       });
       write(
         { schemaVersion: 1, candidate: result },
-        `Freshness candidate ${result.candidateId}: ${result.state}${
-          action !== "apply" || result.commitHash === null
-            ? ""
-            : ` · commit ${result.commitHash.slice(0, 12)}`
-        }\n`,
+        `Freshness candidate ${result.candidateId}: ${result.state}\n`,
       );
       return 0;
     } finally {

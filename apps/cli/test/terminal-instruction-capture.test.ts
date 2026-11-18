@@ -21,6 +21,7 @@ import { listQueuedInstructionCaptures } from "@lervo/repository-knowledge-runti
 import { openProjectStorage } from "@lervo/project-storage";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
+import { applyStoredInstructionCandidates } from "../src/durable-instruction-auto-apply.js";
 import { inspectInstructionCatalog } from "../src/instruction-catalog.js";
 import { runCli } from "../src/main.js";
 import { prefetchRepositoryHealth } from "../src/repository-health-prefetch.js";
@@ -73,8 +74,6 @@ async function repository(): Promise<string> {
   await applyTerminalIntegrationPlan({
     plan: terminal,
     runtimeContent,
-    approvedOperationId: terminal.operationId,
-    approvedHash: terminal.approvalHash!,
     now: new Date(),
     recordApplied: () => undefined,
   });
@@ -217,9 +216,6 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
       projectId,
       requestDigest: sha256(ownerRule),
       resolverResultDigest: `sha256:${"e".repeat(64)}`,
-      groundingStatus: "ready",
-      catalogComplete: true,
-      ambiguityReasons: [],
       instruction,
     });
     const candidate = await storeDurableInstructionCandidate({
@@ -261,31 +257,16 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
           candidateId: candidate.candidateId,
           captureSource: "terminal_prompt",
           requiresUserAction: false,
-          attribution: expect.objectContaining({ actor: "instruction reviewer" }),
+          attribution: expect.objectContaining({ actor: "knowledge resident" }),
         }),
       ]),
     );
 
     await writeFile(resolve(root, "README.md"), "# Unrelated change after capture\n");
-    const errors: string[] = [];
+    // ADR-0561: the resident applies the stored rule; no review command exists.
     expect(
-      await runCli(
-        [
-          "knowledge",
-          "instruction",
-          "review",
-          candidate.candidateId,
-          "--decision",
-          "apply",
-          "--reviewer",
-          "repository-owner",
-          "--approval",
-          candidate.candidateHash,
-        ],
-        { ...quiet(root), stderr: (message) => errors.push(message) },
-      ),
-      errors.join(""),
-    ).toBe(0);
+      await applyStoredInstructionCandidates({ repositoryRoot: root, now: () => new Date() }),
+    ).toEqual({ applied: 1, deferred: 0 });
     const appliedRule = await readFile(resolve(root, candidate.targetPath), "utf8");
     expect(appliedRule).toContain(instruction.statement!);
     for (const provider of ["claude", "codex"] as const) {
@@ -302,7 +283,7 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
     }
   });
 
-  it("surfaces a held owner decision until the owner dismisses it", async () => {
+  it("surfaces a held owner decision as Lervo debt until it is dismissed", async () => {
     const root = await repository();
     const captureId = `kcap_${"2".repeat(24)}`;
     await mkdir(resolve(root, ".lervo/state/knowledge/instruction-capture"), { recursive: true });
@@ -399,9 +380,9 @@ describe("terminal owner-turn capture (ADR-0467)", () => {
         prompt: "Continue.",
       }),
     );
-    expect(context).toContain(
-      "Lervo health: needs owner authority (at least 1): instruction_capture_blocked_knowledge_authority_unavailable: Authorize a bounded knowledge convergence delegation",
-    );
+    // ADR-0561: an undelegated host's capture backlog is Lervo debt, not owner authority.
+    expect(context).toContain("Lervo health:");
+    expect(context).not.toContain("needs owner authority");
     expect(context).not.toContain("Instruction capture:");
     const attention: string[] = [];
     await runCli(["application", "attention", "--json"], {

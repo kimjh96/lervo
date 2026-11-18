@@ -16,7 +16,7 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
-async function fixture() {
+async function fixture(peerAge: "older" | "newer" = "older") {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-workstream-hub-"));
   roots.push(root);
   const output: string[] = [];
@@ -66,16 +66,25 @@ async function fixture() {
     }),
     { mode: 0o600 },
   );
-  const peer = { ...local, title: "Hub continuation" };
+  const peer = {
+    ...local,
+    title: "Hub continuation",
+    updatedAt: new Date(
+      Date.parse(local.updatedAt) + (peerAge === "newer" ? 1 : -1) * 3_600_000,
+    ).toISOString(),
+  };
   const hash = (value: WorkstreamSnapshot) => sha256(`${canonicalJson(value)}\n`);
+  const previous = new Map<string, string | null>([[hash(peer), null]]);
   const head = (snapshot: WorkstreamSnapshot) => ({
     workstreamId: snapshot.workstreamId,
     revision: snapshot.revision,
     status: snapshot.status,
     snapshotContentHash: hash(snapshot),
-    previousSnapshotContentHash: null,
+    previousSnapshotContentHash: previous.get(hash(snapshot)) ?? null,
     publishedAt: snapshot.updatedAt,
   });
+  // Every published revision stays readable by its exact hash, as on the Hub.
+  const stored = new Map<string, WorkstreamSnapshot>([[hash(peer), peer]]);
   let snapshots: WorkstreamSnapshot[] = [peer];
   const authenticated = (body: unknown) => ({
     authentication: {
@@ -85,28 +94,49 @@ async function fixture() {
     },
     body,
   });
+  const coordinates = {
+    projectId: project.projectId,
+    repositoryIdentityHash: calculateProjectIdentityHash(project),
+  };
   vi.spyOn(AuthenticatedHubHttpTransport.prototype, "readWorkstream").mockImplementation(async () =>
     authenticated({
       schemaVersion: 1,
       status: snapshots.length === 1 ? "current" : "divergent",
-      projectId: project.projectId,
-      repositoryIdentityHash: calculateProjectIdentityHash(project),
+      ...coordinates,
       heads: snapshots.map(head),
       snapshot: snapshots.length === 1 ? snapshots[0] : null,
     }),
   );
+  vi.spyOn(AuthenticatedHubHttpTransport.prototype, "readWorkstreamRevision").mockImplementation(
+    async (snapshotContentHash: string) => {
+      const snapshot = stored.get(snapshotContentHash);
+      if (snapshot === undefined) throw new Error("not found");
+      return authenticated({
+        schemaVersion: 1,
+        ...coordinates,
+        revision: head(snapshot),
+        isHead: snapshots.some((candidate) => hash(candidate) === snapshotContentHash),
+        snapshot,
+      });
+    },
+  );
   const publish = vi
     .spyOn(AuthenticatedHubHttpTransport.prototype, "publishWorkstream")
     .mockImplementation(async (request: WorkstreamReplicationPublishRequest) => {
+      stored.set(request.snapshotContentHash, request.snapshot);
+      previous.set(request.snapshotContentHash, request.previousSnapshotContentHash);
       if (request.snapshot.origin.reconciliationPredecessors !== undefined)
         snapshots = [request.snapshot];
+      else if (snapshots.some((snapshot) => hash(snapshot) === request.previousSnapshotContentHash))
+        snapshots = snapshots.map((snapshot) =>
+          hash(snapshot) === request.previousSnapshotContentHash ? request.snapshot : snapshot,
+        );
       else if (!snapshots.some((snapshot) => hash(snapshot) === request.snapshotContentHash))
         snapshots.push(request.snapshot);
       return authenticated({
         schemaVersion: 1,
         status: snapshots.length === 1 ? "fast_forwarded" : "divergent",
-        projectId: project.projectId,
-        repositoryIdentityHash: calculateProjectIdentityHash(project),
+        ...coordinates,
         heads: snapshots.map(head),
       });
     });
@@ -120,37 +150,31 @@ async function fixture() {
     config,
     local,
     peer,
+    peerHash: hash(peer),
     publish,
-    advanceHub: () => {
-      snapshots = [{ ...peer, revision: 2 }];
-    },
     args: ["--hub-config", config, "--json"],
   };
 }
 
-it("plans without publication, applies both-parent reconciliation, and makes later sync idempotent", async () => {
+it("keeps the newest local head without the owner, preserves the Hub head, and later syncs idempotently", async () => {
   const f = await fixture();
-  const bytes = await readFile(f.selectedPath, "utf8");
-  expect(
-    await runCli(["workstream", "reconcile", "--keep", "local", ...f.args], f.io),
-    f.errors.join("\n"),
-  ).toBe(0);
-  const plan = JSON.parse(f.output.join(""));
-  expect(plan.parents).toHaveLength(2);
-  expect(f.publish).not.toHaveBeenCalled();
-  expect(await readFile(f.selectedPath, "utf8")).toBe(bytes);
-  f.output.length = 0;
-  expect(
-    await runCli(
-      ["workstream", "reconcile", "--keep", "local", ...f.args, "--apply", plan.planId, "--write"],
-      f.io,
-    ),
-  ).toBe(0);
+  expect(await runCli(["workstream", "reconcile", ...f.args], f.io), f.errors.join("\n")).toBe(0);
+  const result = JSON.parse(f.output.join(""));
+  expect(result).toMatchObject({
+    status: "reconciled",
+    kept: "local",
+    preserved: { snapshotContentHash: f.peerHash },
+    notice: {
+      effect: "workstream_reconciled",
+      undo: `lervo workstream reconcile --restore ${f.peerHash}`,
+    },
+  });
+  expect(result.parents).toHaveLength(2);
   const current = JSON.parse(await readFile(f.selectedPath, "utf8"));
   expect(current).toMatchObject({
     revision: 1,
     title: f.local.title,
-    origin: { reconciliationPredecessors: plan.parents },
+    origin: { reconciliationPredecessors: result.parents },
   });
   expect(current.workstreamId).not.toBe(f.local.workstreamId);
   f.publish.mockClear();
@@ -160,37 +184,47 @@ it("plans without publication, applies both-parent reconciliation, and makes lat
   expect(JSON.parse(f.output.join(""))).toMatchObject({ status: "current", imported: false });
 });
 
-it("refuses stale review coordinates without changing either side", async () => {
-  const f = await fixture();
-  expect(
-    await runCli(["workstream", "reconcile", "--keep", "local", ...f.args], f.io),
-    f.errors.join("\n"),
-  ).toBe(0);
-  const plan = JSON.parse(f.output.join(""));
-  f.advanceHub();
+it("keeps a newer Hub head and restores the preserved local head on request", async () => {
+  const f = await fixture("newer");
+  expect(await runCli(["workstream", "reconcile", ...f.args], f.io), f.errors.join("\n")).toBe(0);
+  const result = JSON.parse(f.output.join(""));
+  expect(result).toMatchObject({ status: "reconciled", kept: "hub" });
+  expect(JSON.parse(await readFile(f.selectedPath, "utf8"))).toMatchObject({ title: f.peer.title });
+  f.output.length = 0;
   expect(
     await runCli(
-      ["workstream", "reconcile", "--keep", "local", ...f.args, "--apply", plan.planId, "--write"],
+      ["workstream", "reconcile", "--restore", result.preserved.snapshotContentHash, ...f.args],
       f.io,
     ),
-  ).toBe(1);
-  expect(f.publish).not.toHaveBeenCalled();
-  expect(f.errors.join("")).toContain("stale");
-  expect(JSON.parse(await readFile(f.selectedPath, "utf8"))).toMatchObject(f.local);
+    f.errors.join("\n"),
+  ).toBe(0);
+  expect(JSON.parse(f.output.join(""))).toMatchObject({
+    status: "restored",
+    revision: 2,
+    notice: { effect: "workstream_head_restored" },
+  });
+  expect(JSON.parse(await readFile(f.selectedPath, "utf8"))).toMatchObject({
+    workstreamId: result.workstreamId,
+    revision: 2,
+    title: f.local.title,
+  });
 });
 
-it("keeps the exact Hub continuation only when explicitly selected", async () => {
+it("reports a current workstream when nothing diverged", async () => {
   const f = await fixture();
-  expect(
-    await runCli(["workstream", "reconcile", "--keep", "hub", ...f.args], f.io),
-    f.errors.join("\n"),
-  ).toBe(0);
-  const plan = JSON.parse(f.output.join(""));
-  expect(
-    await runCli(
-      ["workstream", "reconcile", "--keep", "hub", ...f.args, "--apply", plan.planId, "--write"],
-      f.io,
-    ),
-  ).toBe(0);
-  expect(JSON.parse(await readFile(f.selectedPath, "utf8"))).toMatchObject({ title: f.peer.title });
+  expect(await runCli(["workstream", "reconcile", ...f.args], f.io)).toBe(0);
+  f.output.length = 0;
+  f.publish.mockClear();
+  expect(await runCli(["workstream", "reconcile", ...f.args], f.io), f.errors.join("\n")).toBe(0);
+  expect(JSON.parse(f.output.join(""))).toMatchObject({ status: "current" });
+  expect(f.publish).not.toHaveBeenCalled();
+});
+
+it("rejects the removed owner choice with the restore path", async () => {
+  const f = await fixture();
+  const bytes = await readFile(f.selectedPath, "utf8");
+  expect(await runCli(["workstream", "reconcile", "--keep", "local", ...f.args], f.io)).toBe(1);
+  expect(f.errors.join("")).toContain("lervo workstream reconcile --restore <snapshot-hash>");
+  expect(f.publish).not.toHaveBeenCalled();
+  expect(await readFile(f.selectedPath, "utf8")).toBe(bytes);
 });

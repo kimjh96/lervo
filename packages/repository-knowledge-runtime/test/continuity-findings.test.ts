@@ -51,7 +51,7 @@ describe("continuity findings", () => {
     expect(codes(input())).toEqual([]);
   });
 
-  it("raises an owner decision only when no policy can keep the delegation alive", () => {
+  it("holds Lervo debt, never an owner decision, only when no policy can keep the delegation alive", () => {
     expect(
       codes(
         input({
@@ -60,7 +60,7 @@ describe("continuity findings", () => {
           delegation: { state: "active", expiresAt: new Date(now + 60 * HOUR).toISOString() },
         }),
       ),
-    ).toEqual(["owner_decision:delegation_expiring", "info:policy_absent"]);
+    ).toEqual(["lervo_debt:delegation_expiring", "info:policy_absent"]);
     expect(
       codes(
         input({
@@ -68,7 +68,7 @@ describe("continuity findings", () => {
           delegation: { state: "active", expiresAt: new Date(now + HOUR).toISOString() },
         }),
       ),
-    ).toEqual(["owner_decision:delegation_outside_policy"]);
+    ).toEqual(["lervo_debt:delegation_outside_policy"]);
     // Within the window and renewable: the resident renews it, so no item at all.
     expect(
       codes(
@@ -103,7 +103,7 @@ describe("continuity findings", () => {
           ],
         }),
       ),
-    ).toEqual(["owner_decision:delegation_missing", "info:policy_absent"]);
+    ).toEqual(["lervo_debt:delegation_missing", "info:policy_absent"]);
   });
 
   it("names Hub, lease, publication, and peer gaps with their causes", () => {

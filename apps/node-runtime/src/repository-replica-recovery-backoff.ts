@@ -17,6 +17,7 @@ export type ReplicaReconcileOutcome = "current" | "held" | "not_current" | "peer
  */
 export function replicaCycleOutcome(result: RepositoryReplicaCycleResult): ReplicaReconcileOutcome {
   if (result.status === "current") return "current";
+  if (result.status === "held") return "held";
   return result.status === "divergent" && !result.divergence.firstObserved ? "held" : "not_current";
 }
 
