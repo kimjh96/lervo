@@ -184,7 +184,6 @@ import {
   managedContextInjectedEventPayloadSchema,
   managedContextReferencedEventPayloadSchema,
 } from "./managed-context-event.js";
-import { knowledgeCandidateSchema } from "./knowledge.js";
 import {
   organizationDeploymentPolicySchema,
   organizationRuntimeCredentialDeliveryReceiptSchema,
@@ -228,12 +227,6 @@ import {
   knowledgeStaleDetectedEventPayloadSchema,
   knowledgeVerifiedEventPayloadSchema,
 } from "./knowledge-event.js";
-import {
-  knowledgePromotionPolicySchema,
-  knowledgeReviewApprovalSchema,
-  knowledgeStalenessResultSchema,
-  verifiedKnowledgeSchema,
-} from "./knowledge-lifecycle.js";
 import { projectManifestSchema } from "./project.js";
 import { projectIdentityMigratedEventPayloadSchema } from "./project-identity-migration.js";
 import { productActivityPageSchema } from "./product-activity-page.js";
@@ -559,7 +552,6 @@ export const schemaCatalog = {
   documentMigrationPlan: documentMigrationPlanSchema,
   managedBlockPatchCandidate: managedBlockPatchCandidateSchema,
   managedBlockPatchCandidateArtifact: managedBlockPatchCandidateArtifactSchema,
-  knowledgeCandidate: knowledgeCandidateSchema,
   organizationDeploymentPolicy: organizationDeploymentPolicySchema,
   signedOrganizationDeploymentPolicy: signedOrganizationDeploymentPolicySchema,
   organizationRuntimeCredentialGrant: organizationRuntimeCredentialGrantSchema,
@@ -582,10 +574,6 @@ export const schemaCatalog = {
   signedOrganizationNodeRollbackDelivery: signedOrganizationNodeRollbackDeliverySchema,
   organizationNodeRollbackDeliveryReceipt: organizationNodeRollbackDeliveryReceiptSchema,
   organizationNodeRollbackRecoveryReceipt: organizationNodeRollbackRecoveryReceiptSchema,
-  knowledgePromotionPolicy: knowledgePromotionPolicySchema,
-  knowledgeReviewApproval: knowledgeReviewApprovalSchema,
-  verifiedKnowledge: verifiedKnowledgeSchema,
-  knowledgeStalenessResult: knowledgeStalenessResultSchema,
   knowledgeCandidateCreatedEventPayload: knowledgeCandidateCreatedEventPayloadSchema,
   knowledgeCandidateReviewedEventPayload: knowledgeCandidateReviewedEventPayloadSchema,
   knowledgeReconciliationReviewedEventPayload: knowledgeReconciliationReviewedEventPayloadSchema,

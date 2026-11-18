@@ -2,7 +2,7 @@ import { DoctorReportCompatibilityError, readDoctorReport } from "@lervo/diagnos
 import { describe, expect, it } from "vitest";
 
 const report = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   projectId: "prj_01234567",
   scope: "search",
   status: "unknown",
@@ -47,7 +47,7 @@ const report = {
 } as const;
 
 describe("doctor report compatibility contract", () => {
-  it("reads a valid v1 report", () => {
+  it("reads a valid v2 report", () => {
     expect(readDoctorReport(structuredClone(report))).toEqual(report);
   });
 
@@ -66,8 +66,8 @@ describe("doctor report compatibility contract", () => {
     expect(readDoctorReport(extended)).toBe(extended);
   });
 
-  it("distinguishes an unsupported integer schema version", () => {
-    expect(() => readDoctorReport({ ...report, schemaVersion: 2 })).toThrowError(
+  it.each([1, 3])("distinguishes unsupported integer schema version %i", (schemaVersion) => {
+    expect(() => readDoctorReport({ ...report, schemaVersion })).toThrowError(
       expect.objectContaining<Partial<DoctorReportCompatibilityError>>({
         code: "doctor_report_schema_unsupported",
       }),
@@ -76,7 +76,7 @@ describe("doctor report compatibility contract", () => {
 
   it.each([
     ["missing schemaVersion", (({ schemaVersion: _, ...value }) => value)(report)],
-    ["non-integer schemaVersion", { ...report, schemaVersion: "1" }],
+    ["non-integer schemaVersion", { ...report, schemaVersion: "2" }],
     [
       "unknown controlled value",
       {
@@ -112,7 +112,7 @@ describe("doctor report compatibility contract", () => {
         recoveryGuidance: [],
       },
     ],
-  ])("rejects invalid v1 input: %s", (_name, value) => {
+  ])("rejects invalid v2 input: %s", (_name, value) => {
     expect(() => readDoctorReport(value)).toThrowError(
       expect.objectContaining<Partial<DoctorReportCompatibilityError>>({
         code: "doctor_report_invalid",
@@ -126,6 +126,6 @@ describe("doctor report compatibility contract", () => {
         ...report,
         schemaVersion: "private-token",
       }),
-    ).toThrowError("The required structure of doctor report v1 is invalid.");
+    ).toThrowError("The required structure of doctor report v2 is invalid.");
   });
 });

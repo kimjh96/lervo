@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_18cf0b268ed32c8530512ad7"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Remove knowledge candidate checks from lervo doctor; the doctor JSON report moves to schema version 2 and its knowledge scope reports only the event chain."

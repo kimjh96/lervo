@@ -49,10 +49,10 @@ async function initializeRepository(root: string): Promise<void> {
   ).toBe(0);
 }
 
-async function appendBrokenKnowledgeCandidate(root: string): Promise<void> {
+async function appendHistoricalKnowledgeCandidate(root: string): Promise<void> {
   const storage = await openProjectStorage(root);
   storage.events.append({
-    eventId: "evt_broken_candidate",
+    eventId: "evt_historical_candidate",
     projectId: storage.manifest.projectId,
     runId: "run_cli_doctor_0001",
     sessionId: "ses_cli_doctor_0001",
@@ -85,7 +85,7 @@ afterEach(async () => {
 });
 
 describe("lervo doctor command", () => {
-  it("reports healthy storage and fails closed on a broken candidate reference", async () => {
+  it("reports healthy storage and reads a stored knowledge candidate as opaque history", async () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     let healthyOutput = "";
@@ -105,23 +105,23 @@ describe("lervo doctor command", () => {
     expect(healthyOutput).toContain("checked items are healthy");
     expect(healthyOutput).not.toContain("Next checks:");
 
-    await appendBrokenKnowledgeCandidate(root);
-    let issueOutput = "";
+    await appendHistoricalKnowledgeCandidate(root);
+    let historyOutput = "";
     expect(
       await runCli(
         ["doctor"],
         {
           cwd: root,
           stdout: (message) => {
-            issueOutput += message;
+            historyOutput += message;
           },
           stderr: () => undefined,
         },
         doctorServices,
       ),
-    ).toBe(1);
-    expect(issueOutput).toContain("candidate_artifact_invalid");
-    expect(issueOutput).toContain("issues found");
+    ).toBe(0);
+    expect(historyOutput).toContain("checked items are healthy");
+    expect(historyOutput).not.toContain("candidate");
   });
 
   it("returns unknown instead of healthy when a provider runtime cannot be checked", async () => {
@@ -209,7 +209,7 @@ describe("lervo doctor command", () => {
       ),
     ).toBe(1);
     expect(JSON.parse(jsonOutput)).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       recoveryGuidance: [
         {
           issueCode: "search_rollout_action_invalid",

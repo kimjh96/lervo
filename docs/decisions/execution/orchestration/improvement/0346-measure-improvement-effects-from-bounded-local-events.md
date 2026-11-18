@@ -25,6 +25,6 @@ Remaining metrics require their own observable units, event evidence, ground-tru
 
 ## References
 
-- [Verified improvement effects](../../../../specifications/execution/verified-improvement-effects.md)
+- Verified improvement effects specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [ADR-0345](0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
 - [Reader-first causal observability](../../../operations/trace/0331-adopt-reader-first-causal-work-observability.md)

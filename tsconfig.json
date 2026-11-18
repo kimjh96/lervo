@@ -9,9 +9,6 @@
       "@lervo/agent-organization": ["packages/agent-organization/src/index.ts"],
       "@lervo/agent-workforce": ["packages/agent-workforce/src/index.ts"],
       "@lervo/application-contract": ["packages/application-contract/src/index.ts"],
-      "@lervo/assignment-connector-conformance": [
-        "packages/assignment-connector-conformance/src/index.ts"
-      ],
       "@lervo/request-grounding": ["packages/request-grounding/src/index.ts"],
       "@lervo/adapter-contract": ["packages/adapter-contract/src/index.ts"],
       "@lervo/adapter-claude": ["packages/adapter-claude/src/index.ts"],
@@ -19,7 +16,6 @@
       "@lervo/adapter-discord": ["packages/adapter-discord/src/index.ts"],
       "@lervo/discord-gateway": ["packages/discord-gateway/src/index.ts"],
       "@lervo/provider-writing-evaluator": ["packages/provider-writing-evaluator/src/index.ts"],
-      "@lervo/adapter-native-chat": ["packages/adapter-native-chat/src/index.ts"],
       "@lervo/adapter-slack": ["packages/adapter-slack/src/index.ts"],
       "@lervo/adapter-webhook": ["packages/adapter-webhook/src/index.ts"],
       "@lervo/cas": ["packages/cas/src/index.ts"],
@@ -52,8 +48,6 @@
       ],
       "@lervo/execution-contract": ["packages/execution-contract/src/index.ts"],
       "@lervo/execution-observability": ["packages/execution-observability/src/index.ts"],
-      "@lervo/execution-performance": ["packages/execution-performance/src/index.ts"],
-      "@lervo/execution-reliability": ["packages/execution-reliability/src/index.ts"],
       "@lervo/filesystem-durability": ["packages/filesystem-durability/src/index.ts"],
       "@lervo/hub": ["apps/hub/src/index.ts"],
       "@lervo/hub-runtime": ["apps/hub-runtime/src/index.ts"],
@@ -66,13 +60,6 @@
       "@lervo/interaction": ["packages/interaction/src/index.ts"],
       "@lervo/interaction-sqlite": ["packages/interaction-sqlite/src/index.ts"],
       "@lervo/identity-migration": ["packages/identity-migration/src/index.ts"],
-      "@lervo/improvement-observation-conformance": [
-        "packages/improvement-observation-conformance/src/index.ts"
-      ],
-      "@lervo/improvement-observation-local": [
-        "packages/improvement-observation-local/src/index.ts"
-      ],
-      "@lervo/knowledge": ["packages/knowledge/src/index.ts"],
       "@lervo/knowledge-okf": ["packages/knowledge-okf/src/index.ts"],
       "@lervo/knowledge-graph": ["packages/knowledge-graph/src/index.ts"],
       "@lervo/live-trigger-contract": ["packages/live-trigger-contract/src/index.ts"],

@@ -24,14 +24,6 @@ function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string 
   switch (checkId) {
     case "event_chain":
       return "event source";
-    case "knowledge_candidates":
-      return "knowledge candidate evidence";
-    case "knowledge_reviews":
-      return "knowledge review evidence";
-    case "verified_knowledge":
-      return "verified knowledge evidence";
-    case "knowledge_staleness":
-      return "knowledge staleness evidence";
     case "document_registry":
       return "document registry";
     case "document_sources":
@@ -186,7 +178,6 @@ export async function runDoctorCommand(
       report = await createDoctorReport({
         projectId: storage.manifest.projectId,
         events: storage.events,
-        artifacts: storage.artifacts,
         inspections,
         scope,
       });

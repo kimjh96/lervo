@@ -1,38 +1,5 @@
 [
   {
-    "name": "knowledge candidate without verification evidence",
-    "schema": "knowledgeCandidate",
-    "value": {
-      "schemaVersion": 1,
-      "candidateId": "knc_0123456789abcdef",
-      "projectId": "prj_knowledge_0001",
-      "status": "candidate",
-      "claim": {
-        "claimId": "clm_knowledge_0001",
-        "claimDigest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-      },
-      "source": {
-        "kind": "converged_deliberation",
-        "deliberationId": "dlb_knowledge_0001",
-        "outcomeId": "dlo_0123456789abcdef",
-        "decisionArtifactId": "dla_0123456789abcdef",
-        "decisionContent": {
-          "artifactId": "art_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "uri": "lervo-cas://sha256/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "mediaType": "text/markdown; charset=utf-8",
-          "contentHash": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-          "byteCount": 100
-        }
-      },
-      "paths": ["src/decision.ts"],
-      "evidence": { "eventIds": [], "verifications": [] },
-      "verifiedRevision": "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
-      "reviewIntervalDays": 30,
-      "conflictCandidateIds": [],
-      "createdAt": "2026-08-19T00:00:00Z"
-    }
-  },
-  {
     "name": "knowledge event payload with raw claim",
     "schema": "knowledgeCandidateCreatedEventPayload",
     "value": {

@@ -176,13 +176,7 @@ describe("lervo doctor limited scopes", () => {
       checks: Array<{ checkId: string }>;
     };
     expect(report.scope).toBe("knowledge");
-    expect(report.checks.map((check) => check.checkId)).toEqual([
-      "event_chain",
-      "knowledge_candidates",
-      "knowledge_reviews",
-      "verified_knowledge",
-      "knowledge_staleness",
-    ]);
+    expect(report.checks.map((check) => check.checkId)).toEqual(["event_chain"]);
     expect(environmentCalls).toBe(0);
   });
 

@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-08-20
 
+Amended by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Doctor report v2 removes the knowledge candidate, review, verified knowledge, and staleness checks with their issue and action codes; the `knowledge` scope reports only `event_chain`. V2 readers reject v1 reports as unsupported.
+
 ## Context
 
 Machine-readable doctor reports lacked a version. A version number alone is insufficient unless readers also validate cross-field semantics such as scope and check-set agreement, overall state, and recovery guidance.

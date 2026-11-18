@@ -318,9 +318,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/sync
     devDependencies:
-      '@lervo/adapter-native-chat':
-        specifier: workspace:*
-        version: link:../../packages/adapter-native-chat
       '@lervo/conversation-responder':
         specifier: workspace:*
         version: link:../../packages/conversation-responder
@@ -667,15 +664,6 @@ importers:
         specifier: workspace:*
         version: link:../storage-contract
 
-  packages/adapter-native-chat:
-    dependencies:
-      '@lervo/conversation-contract':
-        specifier: workspace:*
-        version: link:../conversation-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
   packages/adapter-slack:
     dependencies:
       '@lervo/application-contract':
@@ -703,9 +691,6 @@ importers:
         specifier: workspace:*
         version: link:../writing-contract
     devDependencies:
-      '@lervo/assignment-connector-conformance':
-        specifier: workspace:*
-        version: link:../assignment-connector-conformance
       '@lervo/work-controller':
         specifier: workspace:*
         version: link:../work-controller
@@ -763,12 +748,6 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-
-  packages/assignment-connector-conformance:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
 
   packages/capabilities:
     dependencies:
@@ -1053,9 +1032,6 @@ importers:
       '@lervo/execution-observability':
         specifier: workspace:*
         version: link:../execution-observability
-      '@lervo/knowledge':
-        specifier: workspace:*
-        version: link:../knowledge
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1128,27 +1104,6 @@ importers:
 
   packages/execution-observability:
     dependencies:
-      '@lervo/execution-contract':
-        specifier: workspace:*
-        version: link:../execution-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/execution-performance:
-    dependencies:
-      '@lervo/execution-contract':
-        specifier: workspace:*
-        version: link:../execution-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/execution-reliability:
-    dependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
       '@lervo/execution-contract':
         specifier: workspace:*
         version: link:../execution-contract
@@ -1306,31 +1261,6 @@ importers:
         specifier: ^2.9.0
         version: 2.9.0
 
-  packages/improvement-observation-conformance:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
-
-  packages/improvement-observation-local:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
-      '@lervo/project-storage':
-        specifier: workspace:*
-        version: link:../project-storage
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/storage-contract':
-        specifier: workspace:*
-        version: link:../storage-contract
-    devDependencies:
-      '@lervo/improvement-observation-conformance':
-        specifier: workspace:*
-        version: link:../improvement-observation-conformance
-
   packages/interaction:
     dependencies:
       '@lervo/conversation-contract':
@@ -1364,34 +1294,9 @@ importers:
         specifier: workspace:*
         version: link:../sqlite-connection
     devDependencies:
-      '@lervo/adapter-native-chat':
-        specifier: workspace:*
-        version: link:../adapter-native-chat
       '@lervo/writing-contract':
         specifier: workspace:*
         version: link:../writing-contract
-
-  packages/knowledge:
-    dependencies:
-      '@lervo/deliberation':
-        specifier: workspace:*
-        version: link:../deliberation
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/storage-contract':
-        specifier: workspace:*
-        version: link:../storage-contract
-    devDependencies:
-      '@lervo/cas':
-        specifier: workspace:*
-        version: link:../cas
-      '@lervo/event-store-sqlite':
-        specifier: workspace:*
-        version: link:../event-store-sqlite
 
   packages/knowledge-graph:
     dependencies:

@@ -5,7 +5,6 @@ import { DatabaseSync } from "node:sqlite";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import {
   createConversationInboundEvent,
   createConversationParticipationPolicy,
@@ -17,6 +16,7 @@ import { calculateWritingPublicationPermitId } from "@lervo/writing-contract";
 
 import { SQLiteConversationInteractionStore } from "../src/index.js";
 import { sqliteRow } from "../src/sqlite-row.js";
+import { TestConversationAdapter } from "../../conversation-contract/test/conversation-adapter.fixture.js";
 
 const roots: string[] = [];
 
@@ -114,7 +114,7 @@ function participationPolicy(
   });
 }
 
-describe("durable native chat interaction", () => {
+describe("durable conversation interaction", () => {
   it("marks a delegated-task response as a result for the original coordinator", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
     const coordinatorParticipantId = "ptc_coordinator01";
@@ -185,7 +185,7 @@ describe("durable native chat interaction", () => {
   });
 
   it("preserves host-native observation-only publication lineage", () => {
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -215,7 +215,7 @@ describe("durable native chat interaction", () => {
 
   it("records a non-owned turn without typing, relevance, or provider work", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -285,7 +285,7 @@ describe("durable native chat interaction", () => {
       if (deliveryAttempts === 1) throw new Error("temporary transport failure");
       return { deliveryKey: rawDeliveryKey, deliveredAt: "2026-08-20T00:00:05.000Z" };
     });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-service-private-instance",
       delivery: { send: sent },
@@ -425,7 +425,7 @@ describe("durable native chat interaction", () => {
 
   it("rejects out-of-scope work before it can enter the durable inbox", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -468,7 +468,7 @@ describe("durable native chat interaction", () => {
 
   it("lets multiple roles decide on the same message independently", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -542,7 +542,7 @@ describe("durable native chat interaction", () => {
   it("keeps normalized inbound identity immutable at the database boundary", async () => {
     const path = await databasePath();
     const store = await SQLiteConversationInteractionStore.open({ path });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -586,7 +586,7 @@ describe("durable native chat interaction", () => {
 
   it("selects retryable input only for the exact current policy and role", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -660,7 +660,7 @@ describe("durable native chat interaction", () => {
   it("ends a poisoned response with one verified user-visible failure after the attempt bound", async () => {
     const path = await databasePath();
     const store = await SQLiteConversationInteractionStore.open({ path });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -772,7 +772,7 @@ describe("durable native chat interaction", () => {
 
   it("renews an active inbox lease without incrementing the response attempt", async () => {
     const store = await SQLiteConversationInteractionStore.open({ path: await databasePath() });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: {
@@ -839,7 +839,7 @@ describe("durable native chat interaction", () => {
     const send = vi.fn(async () => {
       throw new Error("unavailable transport details must not enter the outbox");
     });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: { send },
@@ -975,7 +975,7 @@ describe("durable native chat interaction", () => {
     const send = vi.fn(async () => {
       throw new Error("not reached");
     });
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "native-instance",
       delivery: { send },

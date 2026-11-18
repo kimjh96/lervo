@@ -46,4 +46,4 @@ Extend `development.pattern.transitioned` with target `agent_profile`, state `ro
 - [Versioned repository role contracts](0209-versioned-repository-role-contracts.md)
 - [Evidence-bound agent-profile candidates](../../../specifications/execution/authority-and-repository/agent-profile-candidates.md)
 - [Repository development-pattern lifecycle](../../../specs/repository-development-pattern-lifecycle.md)
-- [Verified improvement effects](../../../specifications/execution/verified-improvement-effects.md)
+- Verified improvement effects specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

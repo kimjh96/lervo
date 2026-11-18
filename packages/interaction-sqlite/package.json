@@ -22,7 +22,6 @@
     "@lervo/sqlite-connection": "workspace:*"
   },
   "devDependencies": {
-    "@lervo/adapter-native-chat": "workspace:*",
     "@lervo/writing-contract": "workspace:*"
   }
 }

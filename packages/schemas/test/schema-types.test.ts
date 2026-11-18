@@ -25,9 +25,6 @@ import type {
   LegacyRegistryMigrationApproval,
   LegacyRegistryMigrationPlan,
   ManagedBlockPatchCandidate,
-  KnowledgePromotionPolicy,
-  KnowledgeReviewApproval,
-  KnowledgeStalenessResult,
   EventSyncAcknowledgement,
   OutboundEventBatch,
   ProjectRegistrationRequest,
@@ -45,7 +42,6 @@ import type {
   VerificationResult,
   VerificationSuite,
   WritingPublicationPermit,
-  VerifiedKnowledge,
   ConversationAdapterDescriptor,
   ConversationInboundEvent,
   ConversationParticipationDecision,
@@ -274,13 +270,6 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<DocumentStalenessResult["signals"]["managedInputs"]["status"]>().toEqualTypeOf<
       "not_applicable" | "current" | "stale" | "unknown"
     >();
-  });
-
-  it("keeps knowledge review, verified evidence, and stale signals separate", () => {
-    expectTypeOf<KnowledgePromotionPolicy["requireHumanReviewer"]>().toEqualTypeOf<true>();
-    expectTypeOf<KnowledgeReviewApproval["decision"]>().toEqualTypeOf<"approved" | "rejected">();
-    expectTypeOf<VerifiedKnowledge["status"]>().toEqualTypeOf<"verified">();
-    expectTypeOf<KnowledgeStalenessResult["status"]>().toEqualTypeOf<"current" | "stale">();
   });
 
   it("keeps verification commands separate from observed command results", () => {

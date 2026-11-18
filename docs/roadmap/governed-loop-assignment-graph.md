@@ -86,6 +86,5 @@ Before implementation, a separate reviewed contract must define signal authentic
 - [Bounded unattended scheduler specification](../specifications/execution/unattended-scheduling.md)
 - [Bounded dynamic assignment topology](../specifications/execution/dynamic-assignment-topology.md)
 - [Reviewed direct-message trigger specification](../specifications/execution/assignment-message-triggers.md)
-- [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
 - [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)
 - [Execution specification](../specifications/execution.md)

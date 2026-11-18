@@ -2,7 +2,6 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { createConversationParticipationPolicy } from "@lervo/conversation-contract";
 import { handleConversationEvent, runConversationDeliveryCycle } from "@lervo/interaction";
 import type { WritingPublicationPermit } from "@lervo/schemas";
@@ -13,6 +12,7 @@ import {
   inspectConversationOutboundDeliveries,
   SQLiteConversationInteractionStore,
 } from "../src/index.js";
+import { TestConversationAdapter } from "../../conversation-contract/test/conversation-adapter.fixture.js";
 
 const roots: string[] = [];
 
@@ -25,7 +25,7 @@ describe("conversation outbound delivery inspection", () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-interaction-inspection-"));
     roots.push(root);
     const path = resolve(root, "interactions.sqlite");
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_inspection01",
       instanceIdentity: "inspection-instance",
       delivery: {

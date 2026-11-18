@@ -9,14 +9,10 @@ export default defineConfig({
     alias: {
       "@lervo/agent-organization": fromRoot("./packages/agent-organization/src/index.ts"),
       "@lervo/application-contract": fromRoot("./packages/application-contract/src/index.ts"),
-      "@lervo/assignment-connector-conformance": fromRoot(
-        "./packages/assignment-connector-conformance/src/index.ts",
-      ),
       "@lervo/conversation-deliberation-contract": fromRoot(
         "./packages/conversation-deliberation-contract/src/index.ts",
       ),
       "@lervo/discord-gateway": fromRoot("./packages/discord-gateway/src/index.ts"),
-      "@lervo/execution-reliability": fromRoot("./packages/execution-reliability/src/index.ts"),
       "@lervo/filesystem-durability": fromRoot("./packages/filesystem-durability/src/index.ts"),
       "@lervo/hub-runtime": fromRoot("./apps/hub-runtime/src/index.ts"),
       "@lervo/identity-migration": fromRoot("./packages/identity-migration/src/index.ts"),
@@ -39,7 +35,6 @@ export default defineConfig({
       "@lervo/adapter-claude": fromRoot("./packages/adapter-claude/src/index.ts"),
       "@lervo/adapter-codex": fromRoot("./packages/adapter-codex/src/index.ts"),
       "@lervo/adapter-discord": fromRoot("./packages/adapter-discord/src/index.ts"),
-      "@lervo/adapter-native-chat": fromRoot("./packages/adapter-native-chat/src/index.ts"),
       "@lervo/adapter-slack": fromRoot("./packages/adapter-slack/src/index.ts"),
       "@lervo/adapter-webhook": fromRoot("./packages/adapter-webhook/src/index.ts"),
       "@lervo/cas": fromRoot("./packages/cas/src/index.ts"),
@@ -71,7 +66,6 @@ export default defineConfig({
       ),
       "@lervo/execution-contract": fromRoot("./packages/execution-contract/src/index.ts"),
       "@lervo/execution-observability": fromRoot("./packages/execution-observability/src/index.ts"),
-      "@lervo/execution-performance": fromRoot("./packages/execution-performance/src/index.ts"),
       "@lervo/hub": fromRoot("./apps/hub/src/index.ts"),
       "@lervo/hub-command": fromRoot("./packages/hub-command/src/index.ts"),
       "@lervo/hub-policy": fromRoot("./packages/hub-policy/src/index.ts"),
@@ -81,13 +75,6 @@ export default defineConfig({
       "@lervo/hub-trace": fromRoot("./packages/hub-trace/src/index.ts"),
       "@lervo/interaction": fromRoot("./packages/interaction/src/index.ts"),
       "@lervo/interaction-sqlite": fromRoot("./packages/interaction-sqlite/src/index.ts"),
-      "@lervo/improvement-observation-conformance": fromRoot(
-        "./packages/improvement-observation-conformance/src/index.ts",
-      ),
-      "@lervo/improvement-observation-local": fromRoot(
-        "./packages/improvement-observation-local/src/index.ts",
-      ),
-      "@lervo/knowledge": fromRoot("./packages/knowledge/src/index.ts"),
       "@lervo/knowledge-okf": fromRoot("./packages/knowledge-okf/src/index.ts"),
       "@lervo/knowledge-graph": fromRoot("./packages/knowledge-graph/src/index.ts"),
       "@lervo/live-trigger-contract": fromRoot("./packages/live-trigger-contract/src/index.ts"),

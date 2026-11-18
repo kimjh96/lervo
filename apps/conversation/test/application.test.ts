@@ -3,11 +3,11 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { calculateConversationDeliberationOriginBindingDigest } from "@lervo/conversation-control";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { openConversationApplication } from "../src/index.js";
+import { TestConversationAdapter } from "../../../packages/conversation-contract/test/conversation-adapter.fixture.js";
 
 const roots: string[] = [];
 const now = new Date("2026-08-20T02:00:00.000Z");
@@ -87,10 +87,10 @@ afterEach(async () => {
 });
 
 describe("conversation deployment composition", () => {
-  it("registers a canonical native chat adapter without platform-specific app changes", async () => {
+  it("registers a platform-neutral adapter without platform-specific app changes", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-native-"));
     roots.push(root);
-    const native = new NativeChatConversationAdapter({
+    const native = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "internal-chat-production",
       delivery: {
@@ -141,7 +141,7 @@ describe("conversation deployment composition", () => {
   it("rejects an external adapter whose kind differs from its platform binding", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-kind-"));
     roots.push(root);
-    const mismatched = new NativeChatConversationAdapter({
+    const mismatched = new TestConversationAdapter({
       integrationId: "itg_teams001",
       instanceIdentity: "wrong-adapter-kind",
       delivery: {

@@ -25,7 +25,6 @@
     "@lervo/writing-contract": "workspace:*"
   },
   "devDependencies": {
-    "@lervo/assignment-connector-conformance": "workspace:*",
     "@lervo/work-controller": "workspace:*"
   }
 }

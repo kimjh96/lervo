@@ -1,15 +1,9 @@
 import { rm } from "node:fs/promises";
 
-import { evaluateAssignmentConnectorPortConformance } from "@lervo/assignment-connector-conformance";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { SqliteSlackAssignmentConnectorState } from "../src/index.js";
-import {
-  CONNECTOR_ID,
-  DESTINATION_ID,
-  createSlackAssignmentFixture,
-  type SlackAssignmentFixture,
-} from "./assignment-fixture.js";
+import { createSlackAssignmentFixture, type SlackAssignmentFixture } from "./assignment-fixture.js";
 
 const fixtures: SlackAssignmentFixture[] = [];
 
@@ -29,18 +23,6 @@ async function fixture(scenario: Parameters<typeof createSlackAssignmentFixture>
 }
 
 describe("Slack assignment connector", () => {
-  it("passes shared delivery, replay, authorization, and privacy conformance", async () => {
-    const report = await evaluateAssignmentConnectorPortConformance({
-      connectorId: CONNECTOR_ID,
-      destinationId: DESTINATION_ID,
-      createHarness: async (scenario) => (await fixture(scenario)).harness,
-    });
-
-    expect(report.status).toBe("passed");
-    expect(report.checks).toHaveLength(17);
-    expect(report.checks.every((check) => check.status === "passed")).toBe(true);
-  });
-
   it("turns a crash after the send boundary into durable unknown without replay", async () => {
     const first = await fixture("delivered");
     const reservation = await first.connector.reserve(first.harness.plan);

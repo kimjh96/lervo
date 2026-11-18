@@ -33,7 +33,6 @@
     "@lervo/storage-contract": "workspace:*"
   },
   "devDependencies": {
-    "@lervo/adapter-native-chat": "workspace:*",
     "@lervo/conversation-responder": "workspace:*",
     "@lervo/core": "workspace:*",
     "@lervo/writing": "workspace:*"

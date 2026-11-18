@@ -291,7 +291,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:e41f3a368cb2e17062de118d06771876f76b9780160e65c1bd4157538b522017",
+      "contentHash": "sha256:13667d91a963ba01cbed5a6ea79593afc319532a8c0d49ce291dde1a36252e1e",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"

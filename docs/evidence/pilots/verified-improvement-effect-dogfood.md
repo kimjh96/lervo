@@ -31,7 +31,6 @@ ADR-0351 then added `repository.default.v3`, retaining version 2 and following i
 ## References
 
 - [Evidence-bound improvement observations](../../instructions/evidence-bound-improvement-observations.md)
-- [Verified improvement effects](../../specifications/execution/verified-improvement-effects.md)
 - [Repository development-pattern lifecycle](../../specs/repository-development-pattern-lifecycle.md)
 - [Governed loop and assignment graph](../../roadmap/governed-loop-assignment-graph.md)
 - [ADR-0350](../../decisions/execution/verification/0350-version-default-repository-static-verification.md)

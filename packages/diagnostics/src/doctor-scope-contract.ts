@@ -1,12 +1,6 @@
 import type { DoctorCheck, DoctorScope } from "./types.js";
 
-const knowledgeCheckIds = [
-  "event_chain",
-  "knowledge_candidates",
-  "knowledge_reviews",
-  "verified_knowledge",
-  "knowledge_staleness",
-] as const satisfies readonly DoctorCheck["checkId"][];
+const knowledgeCheckIds = ["event_chain"] as const satisfies readonly DoctorCheck["checkId"][];
 
 const environmentCheckIds = {
   documents: ["document_registry", "document_sources"],

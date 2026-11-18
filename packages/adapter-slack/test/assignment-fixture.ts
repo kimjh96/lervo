@@ -4,12 +4,9 @@ import { resolve } from "node:path";
 
 import type {
   AssignmentConnectorDescriptorV1,
+  AssignmentConnectorPortV1,
   AssignmentConnectorRoutePlanV1,
 } from "@lervo/application-contract";
-import type {
-  AssignmentConnectorConformanceHarnessV1,
-  AssignmentConnectorConformanceScenarioV1,
-} from "@lervo/assignment-connector-conformance";
 import { canonicalJson } from "@lervo/event-contract";
 import type { WritingPublicationPermit } from "@lervo/schemas";
 import { calculateWritingPublicationPermitId, writingSha256 } from "@lervo/writing-contract";
@@ -80,8 +77,27 @@ function connectorRequest(input: {
   };
 }
 
+export type SlackAssignmentScenario =
+  | "authorization_failed"
+  | "conflict"
+  | "contradictory_evidence"
+  | "delivered"
+  | "descriptor_drift"
+  | "destination_drift"
+  | "rejected"
+  | "unknown";
+
+export interface SlackAssignmentHarness {
+  port: AssignmentConnectorPortV1;
+  plan: AssignmentConnectorRoutePlanV1;
+  externalAttemptCount(): number;
+  reservationPersistedBeforeEffect(): boolean;
+  privateMarkers: readonly string[];
+  durableEvidence(): unknown;
+}
+
 export interface SlackAssignmentFixture {
-  harness: AssignmentConnectorConformanceHarnessV1;
+  harness: SlackAssignmentHarness;
   connector: SlackAssignmentConnector;
   state: SqliteSlackAssignmentConnectorState;
   root: string;
@@ -89,7 +105,7 @@ export interface SlackAssignmentFixture {
 }
 
 export async function createSlackAssignmentFixture(
-  scenario: AssignmentConnectorConformanceScenarioV1 = "delivered",
+  scenario: SlackAssignmentScenario = "delivered",
 ): Promise<SlackAssignmentFixture> {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-slack-assignment-"));
   const state = SqliteSlackAssignmentConnectorState.open(resolve(root, "delivery.sqlite"));
@@ -214,7 +230,7 @@ export async function createSlackAssignmentFixture(
       reservedAt: "2026-09-02T08:00:00.000Z",
     });
   }
-  const harness: AssignmentConnectorConformanceHarnessV1 = {
+  const harness: SlackAssignmentHarness = {
     port: connector,
     plan,
     externalAttemptCount: () => attempts,

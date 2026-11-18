@@ -23,6 +23,6 @@ Lervo can evaluate reviewed repository improvements through replaceable measurem
 
 ## References
 
-- [Verified improvement effects](../../../../specifications/execution/verified-improvement-effects.md)
+- Verified improvement effects specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Development-pattern lifecycle](../../../../specs/repository-development-pattern-lifecycle.md)
 - [Product positioning research](../../../../research/lervo-product-positioning-and-verified-improvement.md)

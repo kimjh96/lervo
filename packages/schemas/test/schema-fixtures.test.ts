@@ -28,7 +28,6 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-trace-capabilities-report.json`,
     `${name}-legacy-registry-migration.json`,
     `${name}-knowledge.json`,
-    `${name}-knowledge-lifecycle.json`,
     `${name}-managed-block-patch.json`,
     `${name}-verification.json`,
     `${name}-verification-event.json`,
