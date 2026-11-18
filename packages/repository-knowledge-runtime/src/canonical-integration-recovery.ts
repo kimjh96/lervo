@@ -23,6 +23,7 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
+import { readConvergenceAssignmentResult } from "./convergence-stage-artifact.js";
 
 /** Observes a completed exact ref effect. It neither advances Git nor revives its old lease. */
 export async function inspectRetainedCanonicalIntegration(
@@ -54,17 +55,18 @@ export async function inspectRetainedCanonicalIntegration(
     );
     const artifact = writer?.resultArtifacts[0];
     if (!artifact) return null;
-    const bytes = await context.storage.artifacts.get(
-      `lervo-cas://sha256/${artifact.contentHash.slice(7)}`,
+    const read = await readConvergenceAssignmentResult(
+      context.storage.artifacts,
+      artifact.contentHash,
     );
-    if (sha256(bytes) !== artifact.contentHash)
+    // ADR-0586: without the pruned writer result nothing is retained to observe; rerun the stage.
+    if (read.state === "result_unavailable") return null;
+    if (read.state === "invalid")
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-    const result = JSON.parse(
-      new TextDecoder("utf8", { fatal: true }).decode(bytes),
-    ) as KnowledgeConvergenceStageResult;
+    const result = read.value as KnowledgeConvergenceStageResult | null;
     if (
-      result.assignmentId !== writer!.assignmentId ||
-      result.input.obligationId !== state.obligationId ||
+      result?.assignmentId !== writer!.assignmentId ||
+      result.input?.obligationId !== state.obligationId ||
       result.input.snapshotHash !== state.snapshotHash
     )
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");

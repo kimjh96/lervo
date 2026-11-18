@@ -9,6 +9,12 @@ import {
   convergenceAssignmentInput,
   type ConvergenceAssignmentInput,
 } from "./cas-retention-assignment-inputs.js";
+import type { ReleasedRecord } from "./cas-retention-record-shapes.js";
+import {
+  trackSupersededLifecycle,
+  type ObligationStageState,
+  type SupersededLifecycle,
+} from "./cas-retention-superseded.js";
 
 const CONVERGENCE = new Set([
   "repository.knowledge.baseline.requested",
@@ -43,6 +49,10 @@ export interface CasRetentionRoots {
   assignmentInputs: Set<string>;
   /** Archive CAS object hash to the archived assignment's input, which the archive never roots. */
   archiveInputs: Map<string, string>;
+  /** Archive CAS object hash to its assignment; it never roots that assignment's released records. */
+  archiveOwners: Map<string, string>;
+  /** Convergence assignments outside their settled obligation's latest stage (ADR-0586). */
+  superseded: SupersededLifecycle;
 }
 
 /**
@@ -57,16 +67,18 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
   const candidates = new Map<string, number>();
   const reachable = new Set<string>();
   const lastReference = new Map<string, number>();
-  const obligations = new Map<string, { settled: boolean; latest: string[]; all: string[] }>();
+  const obligations = new Map<string, ObligationStageState & { all: string[] }>();
   const assignments = new Map<string, ConvergenceAssignmentInput>();
   const assignmentInputs = new Set<string>();
   const assignmentNamedAt = new Map<string, number>();
   const archiveInputs = new Map<string, string>();
+  const archiveOwners = new Map<string, string>();
+  const lifecycle = trackSupersededLifecycle(maximumRetainedReferences);
   let parked: string[] = [];
   const obligation = (id: string) => {
     let row = obligations.get(id);
     if (!row) {
-      row = { settled: false, latest: [], all: [] };
+      row = { settled: false, latest: [], latestAssignment: null, all: [] };
       obligations.set(id, row);
     }
     return row;
@@ -87,9 +99,10 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
       assignments.set(input.assignmentId, input);
       for (const hash of input.otherReferences) reachable.add(hash);
       assignmentNamedAt.set(input.hash, Math.max(assignmentNamedAt.get(input.hash) ?? 0, input.at));
+      const row = obligation(input.obligationId);
+      lifecycle.created(input, row.settled);
       if (input.otherReferences.includes(input.hash)) return;
       assignmentInputs.add(input.hash);
-      const row = obligation(input.obligationId);
       // An input named after its obligation settled has no stage lifecycle left: keep it.
       if (row.settled) reachable.add(input.hash);
       else row.all.push(input.hash);
@@ -97,8 +110,12 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
     }
     if (!CONVERGENCE.has(event.type)) {
       const archived = archivedAssignmentInput(event, assignments);
-      if (archived !== null) archiveInputs.set(archived.archiveHash, archived.inputHash);
-      root();
+      if (archived !== null) {
+        archiveInputs.set(archived.archiveHash, archived.inputHash);
+        archiveOwners.set(archived.archiveHash, archived.assignmentId);
+      }
+      // A convergence assignment's own events root only once its stage is known (ADR-0586).
+      if (!lifecycle.defer(event, refs)) root();
       return;
     }
     const id = event.payload.obligationId;
@@ -114,7 +131,11 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
       }
     }
     if (event.type === "repository.knowledge.stage.recorded") {
-      if (event.payload.state !== "queued" && event.payload.state !== "running") row.latest = refs;
+      if (event.payload.state !== "queued" && event.payload.state !== "running") {
+        row.latest = refs;
+        const assignmentId = event.payload.assignmentId;
+        row.latestAssignment = typeof assignmentId === "string" ? assignmentId : null;
+      }
       // These proofs are historical consumers, not disposable stage diagnostics. The canonical
       // disposition ledger replays every integrated batch's input and result, and later stages
       // always follow `canonical_integration`, so the latest settled stage never covers it.
@@ -143,6 +164,7 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
   for (const row of obligations.values())
     for (const hash of row.settled ? row.latest : row.all) reachable.add(hash);
   for (const hash of parked) reachable.add(hash);
+  const superseded = lifecycle.finish(obligations, (hash) => reachable.add(hash));
   // The grace period runs from the latest record that names a candidate, assignments included.
   for (const [hash, at] of assignmentNamedAt) {
     const named = candidates.get(hash);
@@ -158,6 +180,8 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
     lastReference,
     assignmentInputs,
     archiveInputs,
+    archiveOwners,
+    superseded,
   };
 }
 
@@ -177,25 +201,53 @@ export function eligibleConvergenceArtifacts(
 }
 
 /**
- * A reference held by any file other than an eligible candidate is a root; a candidate's
- * references are edges. An assignment archive never roots its own input (ADR-0585).
+ * When a collectable object was last named: a convergence candidate by its convergence events and
+ * assignment input, a released record only by its superseded assignment's own events (ADR-0586).
+ */
+export function retentionNamedAt(
+  roots: Pick<CasRetentionRoots, "candidates" | "superseded">,
+  released: ReadonlyMap<string, ReleasedRecord>,
+  hash: string,
+): number {
+  const named = roots.candidates.get(hash);
+  if (!released.has(hash)) return named ?? Infinity;
+  return Math.max(named ?? 0, roots.superseded.namedAt.get(hash) ?? 0);
+}
+
+/**
+ * A reference held by any file other than an eligible candidate or released record is a root;
+ * their references are edges. An eligible object that is neither any longer roots itself and its
+ * references. An assignment archive never roots its own input (ADR-0585), and neither it nor its
+ * assignment's events root that assignment's released records (ADR-0586).
  */
 export function retentionReferenceGraph(
   files: readonly CasReferenceFile[],
   referencesOf: (file: CasReferenceFile) => readonly string[],
-  roots: Pick<CasRetentionRoots, "reachable" | "archiveInputs">,
+  roots: Pick<
+    CasRetentionRoots,
+    "reachable" | "candidates" | "archiveInputs" | "archiveOwners" | "superseded"
+  >,
   eligible: ReadonlySet<string>,
+  released: ReadonlyMap<string, ReleasedRecord>,
 ): { reachable: Set<string>; edges: Map<string, readonly string[]> } {
   const reachable = new Set(roots.reachable);
   const edges = new Map<string, readonly string[]>();
+  const ownedBy = (hash: string, assignmentId: string | undefined) =>
+    assignmentId !== undefined && released.get(hash)?.assignmentId === assignmentId;
+  for (const [assignmentId, references] of roots.superseded.references)
+    for (const hash of references) if (!ownedBy(hash, assignmentId)) reachable.add(hash);
   for (const file of files) {
     const references = referencesOf(file);
     if (file.hash !== null && eligible.has(file.hash)) {
-      edges.set(file.hash, references);
-      continue;
+      if (roots.candidates.has(file.hash) || released.has(file.hash)) {
+        edges.set(file.hash, references);
+        continue;
+      }
+      reachable.add(file.hash);
     }
     const input = file.hash === null ? undefined : roots.archiveInputs.get(file.hash);
-    for (const hash of references) if (hash !== input) reachable.add(hash);
+    const owner = file.hash === null ? undefined : roots.archiveOwners.get(file.hash);
+    for (const hash of references) if (hash !== input && !ownedBy(hash, owner)) reachable.add(hash);
   }
   return { reachable, edges };
 }

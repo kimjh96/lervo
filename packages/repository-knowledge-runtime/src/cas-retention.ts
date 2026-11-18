@@ -16,8 +16,14 @@ import {
   convergenceArtifactRoots,
   eligibleConvergenceArtifacts,
   reachableConvergenceArtifacts,
+  retentionNamedAt,
   retentionReferenceGraph,
 } from "./cas-retention-policy.js";
+import { classifyConvergenceRecords } from "./cas-retention-records.js";
+import {
+  releasedConvergenceRecords,
+  type ConvergenceRecordShapes,
+} from "./cas-retention-record-shapes.js";
 import { bindEventWriterBackups } from "./cas-retention-backups.js";
 import {
   CAS_RETENTION_OBSERVATION,
@@ -25,6 +31,7 @@ import {
   casReferenceFiles,
   scanReferenceChunk,
   removeUnreachableCasObject,
+  type CasReferenceFile,
   type ReferenceChunkRead,
   type ReferenceScan,
 } from "./cas-retention-files.js";
@@ -60,18 +67,37 @@ async function collect(
   const roots = convergenceArtifactRoots(storage.events);
   const files = await casReferenceFiles(storage);
   await bindEventWriterBackups(storage, roots.headSeq, files);
-  if (!scan.eligible.length)
-    scan.eligible = eligibleConvergenceArtifacts(
-      files,
-      roots,
-      Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS,
-    );
-  const eligible = new Set(scan.eligible);
-  if (!eligible.size) return;
-  const keys = new Set(files.map((file) => file.key));
-  for (const key of Object.keys(scan.files)) if (!keys.has(key)) delete scan.files[key];
+  const before = Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS;
   // Probes of live work run between reads and never spend the read budget (ADR-0584).
   const budget = referenceReadBudget(REFERENCE_SCAN_LIMITS, shouldYield);
+  const records = presentRecords(scan.records ?? {}, files);
+  scan.records = records;
+  if (!scan.eligible.length) {
+    // A pass fixes its eligible set once, so every record must be classified before its scan.
+    const classified = await classifyConvergenceRecords({
+      files,
+      lifecycle: roots.superseded,
+      candidates: roots.candidates,
+      before,
+      shapes: records,
+      budget,
+    });
+    if (classified.complete)
+      scan.eligible = [
+        ...new Set([
+          ...eligibleConvergenceArtifacts(files, roots, before),
+          ...releasedConvergenceRecords(files, roots.superseded, records, before).keys(),
+        ]),
+      ];
+    if (!classified.complete || !scan.eligible.length) {
+      if (classified.changed) await saveScan(statePath, scan);
+      return;
+    }
+  }
+  const eligible = new Set(scan.eligible);
+  const released = releasedConvergenceRecords(files, roots.superseded, records, before);
+  const keys = new Set(files.map((file) => file.key));
+  for (const key of Object.keys(scan.files)) if (!keys.has(key)) delete scan.files[key];
   let restarted = false;
   for (const file of files) {
     const cached = scan.files[file.key];
@@ -119,6 +145,7 @@ async function collect(
     (file) => scan.files[file.key]!.references,
     roots,
     eligible,
+    released,
   );
   if (
     !(await collectReportReferences({
@@ -149,9 +176,8 @@ async function collect(
       file.hash === null ||
       !eligible.has(file.hash) ||
       marked.has(file.hash) ||
-      file.modifiedAt >= Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS ||
-      (roots.candidates.get(file.hash) ?? Infinity) >=
-        Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS
+      file.modifiedAt >= before ||
+      retentionNamedAt(roots, released, file.hash) >= before
     )
       continue;
     if (
@@ -176,7 +202,10 @@ async function collect(
   }
   observation.status = "collected";
   // A completed pass starts with a fresh grace horizon next time. Interruption can only leak bytes.
-  for (const hash of deleted) delete scan.files[hash];
+  for (const hash of deleted) {
+    delete scan.files[hash];
+    delete records[hash];
+  }
   scan.eligible = scan.eligible.filter((hash) => !deleted.has(hash));
   await saveScan(
     statePath,
@@ -188,8 +217,18 @@ async function collect(
           eligible: [],
           files: {},
           reports: {},
+          records,
         },
   );
+}
+
+/** Shapes outlive a pass only while their object exists. */
+function presentRecords(
+  records: ConvergenceRecordShapes,
+  files: readonly CasReferenceFile[],
+): ConvergenceRecordShapes {
+  const present = new Set(files.flatMap((file) => (file.hash === null ? [] : [file.hash])));
+  return Object.fromEntries(Object.entries(records).filter(([hash]) => present.has(hash)));
 }
 
 /** Best-effort host-local maintenance: no wait for a worker, provider call, or developer lease. */

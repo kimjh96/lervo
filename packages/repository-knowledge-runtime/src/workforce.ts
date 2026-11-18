@@ -31,6 +31,7 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { failConvergenceAssignment, retryConvergenceAssignment } from "./assignment-failure.js";
 import { recordConvergenceWorkforceEvent } from "./workforce-event.js";
 import { maintainConvergenceAssignmentLease } from "./convergence-assignment-lease.js";
+import { readConvergenceAssignmentResult } from "./convergence-stage-artifact.js";
 import { convergenceAgentName, retireSupersededConvergenceAgents } from "./convergence-roster.js";
 
 export { recordConvergenceWorkforceEvent } from "./workforce-event.js";
@@ -140,19 +141,17 @@ export async function withConvergenceAssignment(input: {
       candidate.roleContractHash === binding.contractHash,
   );
   if (assignment?.status === "completed") {
-    const artifact = assignment.resultArtifacts[0];
-    if (artifact === undefined)
-      throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-    const bytes = await input.storage.artifacts.get(
-      `lervo-cas://sha256/${artifact.contentHash.slice(7)}`,
+    // ADR-0586: a pruned receipt proves nothing about the earlier effect, so its stage stops as
+    // uncertain instead of surfacing a raw store error.
+    const read = await readConvergenceAssignmentResult(
+      input.storage.artifacts,
+      assignment.resultArtifacts[0]?.contentHash,
     );
-    if (sha256(bytes) !== artifact.contentHash)
+    if (read.state !== "available")
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");
-    const result = JSON.parse(
-      new TextDecoder("utf8", { fatal: true }).decode(bytes),
-    ) as KnowledgeConvergenceStageResult;
+    const result = read.value as KnowledgeConvergenceStageResult | null;
     if (
-      result.input.obligationId !== input.state.obligationId ||
+      result?.input?.obligationId !== input.state.obligationId ||
       result.assignmentId !== assignment.assignmentId
     )
       throw new KnowledgeConvergenceRuntimeError("knowledge_effect_uncertain");

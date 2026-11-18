@@ -48,7 +48,7 @@ export function convergenceAssignmentInput(
 export function archivedAssignmentInput(
   event: EventEnvelope,
   created: ReadonlyMap<string, ConvergenceAssignmentInput>,
-): { archiveHash: string; inputHash: string } | null {
+): { archiveHash: string; inputHash: string; assignmentId: string } | null {
   if (event.type !== "assignment.convergence.archived") return null;
   const { assignmentId, obligationId, archiveArtifactHash } = event.payload;
   const input = typeof assignmentId === "string" ? created.get(assignmentId) : undefined;
@@ -59,5 +59,9 @@ export function archivedAssignmentInput(
     !HASH.test(archiveArtifactHash)
   )
     return null;
-  return { archiveHash: archiveArtifactHash.slice(7), inputHash: input.hash };
+  return {
+    archiveHash: archiveArtifactHash.slice(7),
+    inputHash: input.hash,
+    assignmentId: input.assignmentId,
+  };
 }

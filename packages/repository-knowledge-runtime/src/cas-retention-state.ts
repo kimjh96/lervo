@@ -4,6 +4,10 @@ import { createHash } from "node:crypto";
 import type { ReferenceScan } from "./cas-retention-files.js";
 import { CasRetentionBoundError } from "./cas-retention-errors.js";
 import { readPrivateJsonFile } from "./private-state-file.js";
+import {
+  validConvergenceRecordEntry,
+  type ConvergenceRecordShapes,
+} from "./cas-retention-record-shapes.js";
 
 const MAXIMUM_STATE_BYTES = 32 * 1024 * 1024;
 
@@ -18,6 +22,11 @@ export interface RetentionScan {
   eligible: string[];
   files: Record<string, ReferenceScan>;
   reports: Record<string, RetentionReportScan>;
+  /**
+   * Verified record shapes by digest (ADR-0586). Content addressing makes them permanent, so they
+   * outlive a pass; entries of removed objects are dropped. Absent in scans written before.
+   */
+  records?: ConvergenceRecordShapes;
 }
 
 function validScan(value: unknown): value is RetentionScan {
@@ -32,6 +41,13 @@ function validScan(value: unknown): value is RetentionScan {
     scan.reports !== null &&
     typeof scan.reports === "object" &&
     Object.keys(scan.reports).length <= 200_000 &&
+    (scan.records === undefined ||
+      (scan.records !== null &&
+        typeof scan.records === "object" &&
+        Object.keys(scan.records).length <= 100_000 &&
+        Object.entries(scan.records).every(
+          ([hash, shape]) => /^[a-f0-9]{64}$/u.test(hash) && validConvergenceRecordEntry(shape),
+        ))) &&
     Object.values(scan.reports).every(
       (report) =>
         report !== null &&
