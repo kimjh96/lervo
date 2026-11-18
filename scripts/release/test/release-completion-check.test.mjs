@@ -254,6 +254,86 @@ describe("CLI release completion", () => {
     });
   });
 
+  it("counts only the replacement when a later commit rewrites intent before preparation", async () => {
+    const { root, base } = await fixture();
+    await changeBundledSource(root);
+    const original = await createReleaseIntent(root, {
+      impact: "patch",
+      summary: "Correct a bundled behavior described by the first draft.",
+    });
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "fix: correct bundled behavior");
+    await rm(resolve(root, original.path));
+    const replacement = await createReleaseIntent(root, {
+      impact: "patch",
+      summary: "Correct a bundled behavior described by the rewritten intent.",
+    });
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "docs: rewrite release intent");
+    await prepareFixtureRelease(root, "0.2.3");
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "chore(cli): prepare release");
+
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: base }),
+    ).resolves.toMatchObject({
+      valid: true,
+      disposition: "release_prepared",
+      diagnostics: [],
+      preparedRelease: { impact: "patch", intentIds: [replacement.intent.intentId] },
+    });
+  });
+
+  it("drops intent withdrawn before preparation from the prepared release", async () => {
+    const { root, base } = await fixture();
+    await changeBundledSource(root);
+    const withdrawn = await createReleaseIntent(root, {
+      impact: "minor",
+      summary: "Add a bundled capability that the author later withdraws.",
+    });
+    const kept = await createReleaseIntent(root, {
+      impact: "patch",
+      summary: "Correct a bundled behavior that remains in the release.",
+    });
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "fix: correct bundled behavior");
+    await rm(resolve(root, withdrawn.path));
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "docs: withdraw release intent");
+    await prepareFixtureRelease(root, "0.2.3");
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "chore(cli): prepare release");
+
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: base }),
+    ).resolves.toMatchObject({
+      valid: true,
+      disposition: "release_prepared",
+      preparedRelease: { impact: "patch", version: "0.2.3", intentIds: [kept.intent.intentId] },
+    });
+  });
+
+  it("finds no reviewed intent when the only intent was withdrawn", async () => {
+    const { root, base } = await fixture();
+    await changeBundledSource(root);
+    const withdrawn = await createReleaseIntent(root, {
+      impact: "minor",
+      summary: "Add a bundled capability that the author later withdraws.",
+    });
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "feat: add bundled capability");
+    await rm(resolve(root, withdrawn.path));
+    await git(root, "add", ".");
+    await git(root, "commit", "-m", "docs: withdraw release intent");
+
+    await expect(
+      inspectReleaseCompletion({ repositoryRoot: root, baseRevision: base }),
+    ).resolves.toMatchObject({
+      valid: false,
+      diagnostics: ["missing_release_intent", "reviewed_release_intent_missing"],
+    });
+  });
+
   it("blocks the second of two pull requests prepared on the same version line", async () => {
     const { root, base } = await fixture();
     for (const [branch, value] of [
