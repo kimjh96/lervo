@@ -181,12 +181,11 @@ async function verifySelfContainedTerminalHook(deploymentRoot, projectRoot, repo
     await readFile(resolve(repositoryRoot, "apps/cli/src/terminal-hook-launcher.mjs"), "utf8"),
   );
   const plan = await repositoryKnowledge.createTerminalIntegrationPlan(projectRoot, runtimeContent);
-  assert.equal(plan.status, "review_required");
+  // ADR-0561: provider hook changes take no approval; the CLI backs them up before applying.
+  assert.equal(plan.status, "ready");
   await repositoryKnowledge.applyTerminalIntegrationPlan({
     plan,
     runtimeContent,
-    approvedOperationId: plan.operationId,
-    approvedHash: plan.approvalHash,
     now: new Date("2026-08-20T00:00:02Z"),
     recordApplied: () => undefined,
   });

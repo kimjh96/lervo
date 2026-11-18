@@ -148,7 +148,7 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
   it("refuses its next stage after a resident was admitted on its lapsed lease (ADR-0577)", async () => {
     const root = await repository();
     const directory = await temporary("lervo-upgrade-admission-");
-    const approval = await planId(root);
+    const presented = await planId(root);
     const owner = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], {
       stdio: "ignore",
     });
@@ -158,30 +158,26 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     const stdout: string[] = [];
     const stderr: string[] = [];
     try {
-      const code = await runCli(
-        ["upgrade", "--apply", "--approval", approval, "--json"],
-        io(root, stdout, stderr),
-        {
-          knowledgeCycleAdmission: { directory },
-          knowledgeMaterializationWait: {
-            now: () => 0,
-            // The in-exclusion plan stalls here. A renewal timer blocked past the lease leaves
-            // an expired row, and a waiting resident takes the slot.
-            sleep: async () => {
-              const db = new DatabaseSync(resolve(directory, "full-cycle-admission.sqlite"));
-              db.prepare("UPDATE holder SET expires_at=?").run(Date.now() - 1);
-              db.close();
-              resident = await acquireFullCycleAdmission({
-                repositoryRoot: resolve(root, "resident-repository"),
-                directory,
-                pollMilliseconds: 10,
-                signal: AbortSignal.timeout(5_000),
-              });
-              await rm(resolve(root, MARKER), { recursive: true });
-            },
+      const code = await runCli(["upgrade", "--apply", "--json"], io(root, stdout, stderr), {
+        knowledgeCycleAdmission: { directory },
+        knowledgeMaterializationWait: {
+          now: () => 0,
+          // The in-exclusion plan stalls here. A renewal timer blocked past the lease leaves
+          // an expired row, and a waiting resident takes the slot.
+          sleep: async () => {
+            const db = new DatabaseSync(resolve(directory, "full-cycle-admission.sqlite"));
+            db.prepare("UPDATE holder SET expires_at=?").run(Date.now() - 1);
+            db.close();
+            resident = await acquireFullCycleAdmission({
+              repositoryRoot: resolve(root, "resident-repository"),
+              directory,
+              pollMilliseconds: 10,
+              signal: AbortSignal.timeout(5_000),
+            });
+            await rm(resolve(root, MARKER), { recursive: true });
           },
         },
-      );
+      });
       expect(code, stdout.join("") + stderr.join("")).toBe(1);
     } finally {
       await resident?.release();
@@ -195,7 +191,7 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
         appliedStages: [],
       },
     });
-    expect(await planId(root)).toBe(approval);
+    expect(await planId(root)).toBe(presented);
   }, 60_000);
 
   it("reports every applied stage when the admission is lost after the last stage (ADR-0577)", async () => {
@@ -288,7 +284,6 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
   it("goes ahead of a resident cycle that waited first, which runs after the upgrade (ADR-0574)", async () => {
     const root = await repository();
     const directory = await temporary("lervo-upgrade-admission-");
-    const approval = await planId(root);
     const signal = AbortSignal.timeout(60_000);
     const cycle = await acquireFullCycleAdmission({
       repositoryRoot: resolve(root, "running-repository"),
@@ -311,11 +306,9 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     const stdout: string[] = [];
     const stderr: string[] = [];
     try {
-      const code = await runCli(
-        ["upgrade", "--apply", "--approval", approval, "--json"],
-        io(root, stdout, stderr),
-        { knowledgeCycleAdmission: { directory, pollMilliseconds: 20 } },
-      );
+      const code = await runCli(["upgrade", "--apply", "--json"], io(root, stdout, stderr), {
+        knowledgeCycleAdmission: { directory, pollMilliseconds: 20 },
+      });
       upgradeFinished = true;
       expect(code, stdout.join("") + stderr.join("")).toBe(0);
       await resident;

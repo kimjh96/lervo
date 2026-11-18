@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runCli as runUnisolatedCli } from "../src/main.js";
 import * as terminalRuntime from "../src/terminal-runtime.js";
 import * as stageInspection from "../src/upgrade-stage-inspection.js";
+import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
 const runCli = withIsolatedUpgradeHost(runUnisolatedCli);
@@ -37,15 +38,19 @@ async function repository(): Promise<string> {
 }
 
 /**
- * Applies every knowledge stage with the approvals it asks for, through the provider hooks, so
- * the next inspection walks every stage plan.
+ * Applies every knowledge stage, through the provider hooks, so the next inspection walks every
+ * stage plan. A reviewed plan is cross-checked by an agreeing fixture session (ADR-0561).
  */
 async function migrateUntilCurrent(root: string): Promise<void> {
   const migrate = async (...args: string[]) => {
     const stdout: string[] = [];
     const stderr: string[] = [];
     expect(
-      await runCli(["migrate", "knowledge", ...args, "--json"], io(root, stdout, stderr)),
+      await runCli(
+        ["migrate", "knowledge", ...args, "--json"],
+        io(root, stdout, stderr),
+        agreeingCrossCheck,
+      ),
       stderr.join(""),
     ).toBe(0);
     return JSON.parse(stdout.join("")) as {
@@ -53,19 +58,14 @@ async function migrateUntilCurrent(root: string): Promise<void> {
       planId: string;
       status?: string;
       operations?: Array<{ action: string }>;
-      operationId?: string;
-      approvalHash?: string | null;
     };
   };
   for (let index = 0; index < 12; index += 1) {
     const plan = await migrate();
-    const approval =
-      plan.approvalHash === undefined || plan.approvalHash === null
-        ? []
-        : ["--approve-item", `${plan.operationId}=${plan.approvalHash}`];
     const unchanged = plan.operations?.every((operation) => operation.action === "unchanged");
-    if ((plan.status !== "ready" || unchanged === true) && approval.length === 0) return;
-    await migrate("--apply", plan.planId, ...approval);
+    if ((plan.status !== "ready" && plan.status !== "review_required") || unchanged === true)
+      return;
+    await migrate("--apply", plan.planId);
   }
   throw new Error("The knowledge migration did not become current.");
 }
@@ -104,14 +104,11 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
     const root = await repository();
     await migrateUntilCurrent(root);
     vi.spyOn(terminalRuntime, "hostTerminalHookReaderCurrent").mockResolvedValue(true);
-    const presented: string[] = [];
-    await runCli(["upgrade", "--json"], io(root, presented, []));
-    const plan = JSON.parse(presented.join("")) as { planId: string };
     const stdout: string[] = [];
     const stderr: string[] = [];
     // The in-window plan, the knowledge step, lint, and the final plan read one unchanged tree.
     const scans = await scansDuring(() =>
-      runCli(["upgrade", "--apply", "--approval", plan.planId, "--json"], io(root, stdout, stderr)),
+      runCli(["upgrade", "--apply", "--json"], io(root, stdout, stderr)),
     );
     const receipt = JSON.parse(stdout.join("")) as { appliedStages?: string[] };
     expect(receipt.appliedStages, `${stdout.join("")}${stderr.join("")}`).toEqual(["event_writer"]);
@@ -149,16 +146,11 @@ describe("upgrade knowledge inspection (ADR-0578)", () => {
 
     const stdout: string[] = [];
     const stderr: string[] = [];
-    const code = await runCli(
-      ["upgrade", "--apply", "--approval", plan.planId, "--json"],
-      io(root, stdout, stderr),
-    );
+    const code = await runCli(["upgrade", "--apply", "--json"], io(root, stdout, stderr));
     expect(stderr.join("")).toBe("");
-    const receipt = JSON.parse(stdout.join("")) as {
-      approvedPlanId?: string;
-      appliedStages?: string[];
-    };
-    expect(receipt.approvedPlanId, `${code} ${stdout.join("")}`).toBe(plan.planId);
+    const receipt = JSON.parse(stdout.join("")) as { planId?: string; appliedStages?: string[] };
+    // ADR-0561: the plan recreated inside the window is the one applied; the edit came after it.
+    expect(receipt.planId, `${code} ${stdout.join("")}`).toBe(plan.planId);
     expect(receipt.appliedStages).toEqual(["knowledge_materialization", "event_writer"]);
   }, 120_000);
 });

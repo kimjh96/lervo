@@ -2,7 +2,10 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
+
 import type { runCli } from "../src/main.js";
+import { ensureHostTerminalRuntime } from "../src/terminal-runtime.js";
 import type { CliServiceOverrides } from "../src/types.js";
 
 /**
@@ -22,8 +25,21 @@ export function isolatedUpgradeHost(): CliServiceOverrides {
   };
 }
 
-/** `runCli` with an isolated upgrade host; a test's own overrides take precedence. */
+/**
+ * `runCli` with an isolated upgrade host; a test's own overrides take precedence. ADR-0539: an
+ * installed CLI publishes the host hook runtime at startup, which `runCli` skips, so the wrapper
+ * publishes it once into the private home. ADR-0561 applies provider hooks within the upgrade, and
+ * the event writer stage then reads that runtime.
+ */
 export function withIsolatedUpgradeHost(run: typeof runCli): typeof runCli {
   const isolated = isolatedUpgradeHost();
-  return (args, io, overrides = {}) => run(args, io, { ...isolated, ...overrides });
+  const home = isolated.upgradeHost!.homeDirectory;
+  let published: Promise<unknown> | null = null;
+  return async (args, io, overrides = {}) => {
+    published ??= ensureHostTerminalRuntime({
+      store: terminalHookRuntimeStorePath(process.env, process.platform, home),
+    });
+    await published;
+    return run(args, io, { ...isolated, ...overrides });
+  };
 }
