@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_3faa0a82585fd117898692a8"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let the host follower install a newer release at a retry pass's repository boundary at once, stop hourly rechecks of owner-approval blocks with nothing to apply, skip a --safe apply that would refuse, time every apply, and skip lint when an apply changed nothing."

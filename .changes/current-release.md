@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.25.6" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.25.7" schema="1" -->
 
 ## What's changed
 
-- Let a resident knowledge cycle cancel its convergence, freshness or change-review provider call within a second once an upgrade waits for host admission, and start no such call while one waits, so an upgrade no longer waits for the call's whole timeout.
+- Let the host follower install a newer release at a retry pass's repository boundary at once, stop hourly rechecks of owner-approval blocks with nothing to apply, skip a --safe apply that would refuse, time every apply, and skip lint when an apply changed nothing.
