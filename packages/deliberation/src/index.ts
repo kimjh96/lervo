@@ -1,3 +1,4 @@
+export * from "./artifact-event-reader.js";
 export { validateDeliberationArtifact } from "./artifact-validation.js";
 export { analyzeDeliberationHistory, validateDeliberationHistory } from "./history-validation.js";
 export * from "./integrity.js";

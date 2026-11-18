@@ -2,9 +2,6 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge canonicalization status [<candidate-id>] [--root <path>] [--json]
   lervo knowledge canonicalization review <candidate-id> --decision <defer|reject> --reviewer <id> --approval <candidate-hash> [--root <path>] [--json]
   lervo knowledge canonicalization promote <candidate-id> --target <canonical-path> --target-hash <sha256> --reviewer <id> --approval <candidate-hash> [--root <path>] [--json]
-  lervo knowledge impact [--root <path>] [--json]
-  lervo knowledge find-replay [--cases <1..200>] [--limit <1..32>] [--root <path>] [--json]
-  lervo knowledge refresh-candidate [--root <path>] [--json]
   lervo knowledge normalize (--provider <codex|claude>|--candidate <candidate-id>) [--root <path>] [--model <model>] [--executable <path>] [--timeout-ms <1000..600000>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
   lervo knowledge worker <--once|--watch> --provider <codex|claude>
   lervo knowledge convergence <status|inspect> [--json]
@@ -28,10 +25,5 @@ export const knowledgeUsage = `  lervo knowledge refresh [--root <path>] [--rebu
   lervo knowledge instruction review <candidate-id> --decision <apply|reject> --reviewer <id> --approval <candidate-hash> [--root <path>] [--json]
   lervo knowledge instruction capture [--dismiss <capture-id>] [--root <path>] [--json]
   lervo knowledge instruction bridge --provider claude [--root <path>] [--apply <plan-id> --approve-item <operation-id>=<approval-hash>] [--json]
-  lervo knowledge export okf --output <new-path> [--root <path>] [--json]
-  lervo knowledge import okf <bundle-path> [--root <path>] [--apply <plan-id>] [--json]
-  lervo knowledge okf lint <bundle-path> [--json]
-  lervo knowledge okf query <bundle-path> <query> [--json]
-  lervo knowledge okf re-export <candidate-id> --output <new-path> [--root <path>] [--json]
   lervo knowledge lint [--root <path>] [--json]
   lervo knowledge query [--record] [--verify-artifact <path> --expected-plan <sha256> [--baseline <path>] [--verification-definition <path>]] [--root <path>] [--path <target-path>] [--artifact <kind>] [--action <action>] [--continuation <text>] [--json] <query>`;

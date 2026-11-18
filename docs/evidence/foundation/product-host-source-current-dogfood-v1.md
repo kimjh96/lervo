@@ -67,4 +67,4 @@ The first command reproduces exact event-bound measurements while the local even
 - [Execution stage observation and performance](../../specifications/execution/stage-observation-and-performance.md)
 - [Exact terminal lifecycle reuse](../../decisions/operations/trace/0356-reuse-exact-terminal-knowledge-lifecycle-inspections.md)
 - [Scope-complete resource and terminal budgets](../../decisions/operations/trace/0354-enforce-scope-complete-resource-and-terminal-budgets.md)
-- [Product-host protocol](../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

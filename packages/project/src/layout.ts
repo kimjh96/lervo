@@ -33,17 +33,12 @@ export const lervoRelativePaths = {
   knowledgeStructuralConcepts: ".lervo/state/knowledge/current/structural/concepts",
   knowledgeStructuralManifests: ".lervo/state/knowledge/current/structural/manifests",
   knowledgeCandidates: ".lervo/state/knowledge/candidates",
-  knowledgeOkfImports: ".lervo/state/knowledge/okf-imports",
   knowledgeIndexes: ".lervo/state/knowledge/indexes",
   eventDatabase: ".lervo/data/events.sqlite",
   eventContract: ".lervo/data/event-contract.json",
   cas: ".lervo/data/cas",
   workforce: ".lervo/data/workforce",
-  searchEvaluations: ".lervo/search-evaluations",
-  searchEnginePolicies: ".lervo/search-engine-policies",
   searchRetrievalPlanBundles: ".lervo/search-retrieval-plan-bundles",
-  searchRolloutPolicies: ".lervo/search-rollout-policies",
-  searchRolloutActionPolicies: ".lervo/search-rollout-action-policies",
   searchObservations: ".lervo/state/search",
   skillsLock: ".lervo/skills.lock",
   environmentSources: ".lervo/environment-sources",
@@ -91,17 +86,12 @@ export interface LervoProjectPaths {
   knowledgeStructuralConcepts: string;
   knowledgeStructuralManifests: string;
   knowledgeCandidates: string;
-  knowledgeOkfImports: string;
   knowledgeIndexes: string;
   eventDatabase: string;
   eventContract: string;
   cas: string;
   workforce: string;
-  searchEvaluations: string;
-  searchEnginePolicies: string;
   searchRetrievalPlanBundles: string;
-  searchRolloutPolicies: string;
-  searchRolloutActionPolicies: string;
   searchObservations: string;
   skillsLock: string;
   environmentSources: string;
@@ -165,17 +155,12 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     knowledgeStructuralConcepts: resolveChild(lervoRelativePaths.knowledgeStructuralConcepts),
     knowledgeStructuralManifests: resolveChild(lervoRelativePaths.knowledgeStructuralManifests),
     knowledgeCandidates: resolveChild(lervoRelativePaths.knowledgeCandidates),
-    knowledgeOkfImports: resolveChild(lervoRelativePaths.knowledgeOkfImports),
     knowledgeIndexes: resolveChild(lervoRelativePaths.knowledgeIndexes),
     eventDatabase: resolveChild(lervoRelativePaths.eventDatabase),
     eventContract: resolveChild(lervoRelativePaths.eventContract),
     cas: resolveChild(lervoRelativePaths.cas),
     workforce: resolveChild(lervoRelativePaths.workforce),
-    searchEvaluations: resolveChild(lervoRelativePaths.searchEvaluations),
-    searchEnginePolicies: resolveChild(lervoRelativePaths.searchEnginePolicies),
     searchRetrievalPlanBundles: resolveChild(lervoRelativePaths.searchRetrievalPlanBundles),
-    searchRolloutPolicies: resolveChild(lervoRelativePaths.searchRolloutPolicies),
-    searchRolloutActionPolicies: resolveChild(lervoRelativePaths.searchRolloutActionPolicies),
     searchObservations: resolveChild(lervoRelativePaths.searchObservations),
     skillsLock: resolveChild(lervoRelativePaths.skillsLock),
     environmentSources: resolveChild(lervoRelativePaths.environmentSources),

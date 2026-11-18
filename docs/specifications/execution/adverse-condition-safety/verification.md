@@ -6,10 +6,4 @@ The evidence binds current tests for reader activation, failed activation, write
 
 ## Verification
 
-```bash
-pnpm foundation:recovery:check
-pnpm foundation:security:check
-pnpm foundation:capacity:check
-```
-
-The generated report binds the exact source-byte revision, protocol digest, effect and collection inventories, recovery matrix, telemetry registry digest, threat controls, capacity environments, and hashes of focused runtime suites. Generated JSON, prompts, outputs, credentials, and absolute paths are excluded from the evidence identity.
+The focused runtime suites of each owning package verify these boundaries through `pnpm test`. [ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the foundation recovery, security, and capacity commands and their generated report.

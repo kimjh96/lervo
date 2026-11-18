@@ -8,7 +8,7 @@
 
 Automatic assignments remain blocked until `SupervisionResponsibilityClaimer` binds the responsibility and claims revision 2 in one fenced event transaction. Ordinary claim and manual topology-activation paths reject automatic assignments. No queued interval exposes work without its responsibility. The storage binding validates the exact resulting claim; the fenced recorder separately owns canonical predecessor, mandate, deadline and effect admission. Claiming does not start a provider.
 
-Each automatic decision adds one node. Later decisions can extend branches and joins through existing dependencies; manual v2 retains its independently reviewed multi-node path. Automatic v1 rejects nodes with explicit manual approval requirements; policy review cannot satisfy them.
+Each automatic decision adds one node. Later decisions can extend branches and joins through existing dependencies. ADR-0560 removed the manual v2 multi-node CLI path. Automatic v1 rejects nodes with explicit manual approval requirements; policy review cannot satisfy them.
 
 ## Evidence, privacy and recovery
 

@@ -5,16 +5,6 @@ const root = resolve(import.meta.dirname, "../..");
 
 const checks = [
   {
-    path: "packages/agent-workforce/src/natural-language.ts",
-    forbidden: [
-      "roleTerms",
-      "toLocaleLowerCase",
-      "matchingRoles(",
-      "request.matchAll",
-      "prompt.includes",
-    ],
-  },
-  {
     path: "apps/cli/src/terminal-command-runtime.ts",
     forbidden: [
       "query: prompt",

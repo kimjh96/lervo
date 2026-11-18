@@ -1,7 +1,9 @@
 # ADR-0348: Measure exact repeated verification failures
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-02
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
@@ -33,6 +35,6 @@ This private adapter remains outside the stock CLI's published artifact closure.
 
 ## References
 
-- [Verified improvement effects](../../../../specifications/execution/verified-improvement-effects.md)
+- Verified improvement effects specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [ADR-0345](0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
 - [ADR-0346](0346-measure-improvement-effects-from-bounded-local-events.md)

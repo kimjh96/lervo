@@ -1,6 +1,6 @@
 # Managed resource accounting
 
-Governed attempt state includes only assignment-authorized root and retry runs. Resource accounting includes every recorded run in the same causal work tree, including subagent, publication-evaluation, deliberation, and improvement-evaluation work. This preserves attempt policy while reporting child provider work.
+Attempt projections include only assignment-authorized root and retry runs. Resource accounting includes every recorded run in the same causal work tree, including subagent, publication-evaluation, deliberation, and improvement-evaluation work. This keeps attempt projections exact while reporting child provider work.
 
 The execution contract derives resource scope from causal relationships. Each provider-reported observation must match its exact causal work ID, adapter provider, and derived scope. Accounting groups are exact to provider, resource scope, source, accounting mode, and accounting descriptor hash. Reported totals and descriptor-bound governed limits must not cross these boundaries.
 
@@ -8,21 +8,9 @@ Every `adapter.started` run in the governed causal tree must have one final prov
 
 A run that fails before its provider adapter starts may have an unavailable provider-report receipt without `adapter.started`. Pre-start failures are `contract_validation_failed`, `approval_required`, `repository_snapshot_failed`, and `provider_start_failed`, the codes of the phases before `adapter_start`. The projector accepts this historical shape only when the receipt has null usage, `resource_observation_missing`, matching actor and model provider, no process or stop observation, and one later nonretryable pre-start failure terminal. It remains `unavailable`, never zero or observed usage. Supervision counts such a run as terminated for concurrency, because no provider process can still run. Its failure is known safe (`settled_pre_start_failure`), because no tool, command or file effect was possible before the adapter started. Observed usage, another provider, another failure, or an unterminated start makes the receipt invalid. Supervision separately retains the exact reservation unless stronger pre-turn proof settles it.
 
-## Token limits
+## Removed governed limits
 
-Total-token limits bind provider, scope, descriptor hash, and observed total. CLI input is `<provider>:<scope>:<descriptor-hash>:<tokens>`. The previous unscoped form remains readable but matches only when exactly one provider-and-descriptor group exists. Multiple matching scopes are ambiguous: they must never be selected, summed, or treated as zero.
-
-Dimension limits use `--token-metric-limit` with `<provider>:<scope>:<descriptor-hash>:<metric>:<tokens>`. Supported metrics are `input_tokens`, `cached_input_tokens`, `output_tokens`, and `reasoning_output_tokens`. Limits consume only exact normalized counters from the matching group. Cached input is neither subtracted from input nor translated into money or savings.
-
-## Duration limits
-
-Managed duration limits use `--duration-limit <provider>:<scope>:<stage>:<milliseconds>`. Policy compares the largest exact per-run duration in the matching stage population. It never sums elapsed durations across environment profiles, concurrent runs, or causal children, and never presents that maximum as request wall-clock duration.
-
-## Enforcement
-
-A reached or unobservable configured threshold prevents the next governed attempt. After an otherwise accepted managed run, policy is reprojected before assignment completion. Reached or unobservable evidence fails assignment finalization with `token_budget_exhausted`, `duration_budget_exhausted`, or `budget_observation_unavailable`.
-
-This policy does not reserve future resources, preempt a running provider call, establish billed cost, or prove task correctness.
+[ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the governed-loop token, token-dimension, and managed duration limits with their CLI options and `token_budget_exhausted`, `duration_budget_exhausted`, and `budget_observation_unavailable` finalization checks. The accounting groups above remain the evidence boundary for supervision budgets and reports. No path reserves future resources, preempts a running provider call, establishes billed cost, or proves task correctness.
 
 ## Supervision mandate comparability
 

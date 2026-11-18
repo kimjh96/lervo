@@ -3,6 +3,8 @@
 - Status: accepted
 - Date: 2026-09-04
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the product-host discovery part is removed. Lervo no longer ships the product-host protocol or its `operating_attention.inspect` route. `OperatingAttentionReportV1`, direct terminal preparation, and `lervo application attention` stay.
+
 ## Context
 
 Lervo stores pending workstream decisions and approvals and exposes canonicalization and knowledge-lifecycle status, but these surfaces were separate. An agent could complete unrelated work while a current user decision, review candidate, or repository maintenance item remained undisclosed until someone ran its owning command.

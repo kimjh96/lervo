@@ -27,7 +27,7 @@ The design reuses infrastructure while adding explicit admission, responsibility
 
 - [Contract details](../../../../specifications/execution/outcome-supervision/contracts.md): proposed events, states, privacy, failures, bounds, and compatibility.
 - [Delivery roadmap](../../../../roadmap/product-outcome-convergence/execution/outcome-supervision.md): sequence and installed acceptance.
-- [Operating goals](../../../../specifications/execution/operating-goals.md).
+- Operating goal specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md).
 - [Assignment interactions](../../../../specifications/execution/assignment-interactions.md).
 - [Dynamic topology](../../../../specifications/execution/dynamic-assignment-topology.md).
 - [Organization](../../../../architecture/system/agent-organization.md).

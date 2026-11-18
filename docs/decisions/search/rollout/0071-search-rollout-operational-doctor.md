@@ -3,6 +3,8 @@
 Status: `accepted`  
 Decision date: 2026-08-20
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the rollout checks part is removed. Lervo no longer ships the `search_rollout_policies`, `search_rollout_reviews`, and `search_rollout_actions` doctor checks. The `search_engine_selection` check stays and validates only the product default or built-in lexical engine.
+
 ## Context
 
 Engine selections, three policy kinds, reviews, and actions form linked immutable sources. Individual commands explain requested slices, but the project-wide doctor did not verify their complete relationships. A downstream check must not appear healthy when its prerequisites are unreadable.

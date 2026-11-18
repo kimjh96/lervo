@@ -25,7 +25,7 @@ The shared application exposes three conceptual operations through existing comp
 | `observeContextDelivery` | Plan digest, exact provider turn, supported native receipt                      | Existing delivery evidence or preparation-only observation; no inferred provider use |
 | `evaluateContextOutcome` | Plan digest, exact artifact digest, verification definition and evaluator build | Version-bound verification observation; completion remains with its existing owner   |
 
-These are application operations, not three new network services. A future product-host protocol revision advertises availability and schemas explicitly. Earlier protocol versions retain their current behavior and do not silently claim the new contract.
+These are application operations, not three new network services. A future host boundary must advertise availability and schemas explicitly; [ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the product-host protocol.
 
 ## Plan contents
 

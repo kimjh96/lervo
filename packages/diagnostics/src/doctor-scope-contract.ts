@@ -1,23 +1,12 @@
 import type { DoctorCheck, DoctorScope } from "./types.js";
 
-const knowledgeCheckIds = [
-  "event_chain",
-  "knowledge_candidates",
-  "knowledge_reviews",
-  "verified_knowledge",
-  "knowledge_staleness",
-] as const satisfies readonly DoctorCheck["checkId"][];
+const knowledgeCheckIds = ["event_chain"] as const satisfies readonly DoctorCheck["checkId"][];
 
 const environmentCheckIds = {
   documents: ["document_registry", "document_sources"],
   skills: ["skill_packages", "skill_lock"],
   providers: ["provider_codex_runtime", "provider_claude_runtime"],
-  search: [
-    "search_engine_selection",
-    "search_rollout_policies",
-    "search_rollout_reviews",
-    "search_rollout_actions",
-  ],
+  search: ["search_engine_selection"],
 } as const;
 
 const allEnvironmentCheckIds = [

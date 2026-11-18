@@ -187,30 +187,6 @@ it("keeps a physical process binding after current moves and records an exact ro
     );
 });
 
-it("protects the enrolled rollback executable even when a later service predecessor replaced it", async () => {
-  const f = await runtimeHome("linux");
-  const { createHash } = await import("node:crypto");
-  const { pinEnrolledRuntimePredecessor } =
-    await import("../src/node-runtime-enrollment-predecessor.js");
-  const launcher = await readFile(
-    resolve(f.root, name(1), `lervo-node-launcher-${name(1).slice(0, 12)}`),
-  );
-  await pinEnrolledRuntimePredecessor({
-    ...f,
-    enrollmentId: "enrollment-original",
-    artifactHash: `sha256:${createHash("sha256").update(launcher).digest("hex")}`,
-  });
-  await pinRuntimeRollbackPredecessor({
-    ...f,
-    servicePath: "service",
-    definition: resolve(f.root, name(4), "node-runtime.js"),
-  });
-  await pointCurrentNodeRuntime({ ...f, runtimeDirectory: name(9) });
-  const plan = await planNodeRuntimeRetention({ ...f, processCommands: async () => "" });
-  expect(plan.candidates.map((item) => item.name)).not.toContain(name(1));
-  expect(plan.candidates.map((item) => item.name)).not.toContain(name(4));
-});
-
 it("removes the whole approved backlog in one upgrade apply", async () => {
   const f = await runtimeHome("linux", 30);
   const options = { ...f, processCommands: async () => "" };

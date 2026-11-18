@@ -14,7 +14,6 @@ Repository automation is production infrastructure. Its layout must expose owner
 scripts/
   distribution/                 standalone artifacts, installed runtimes, and services
   evaluation/                   current evaluation commands and their tests
-  foundation/                   foundation readiness and adverse-condition suites
   natural-language-evaluation/  evidence-bound evaluation implementation
   quality/                      repository quality checks and their implementations
   release/                      release commands, release policy, and first publication

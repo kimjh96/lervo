@@ -1,7 +1,9 @@
 # ADR-0373: Enforce exact managed execution dimension and duration budgets
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-05
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -48,4 +50,4 @@ Direct terminal work remains unmanaged. Query-projection counters remain per con
 - [Execution stage observation](../../../../specifications/execution/stage-observation-and-performance.md)
 - [ADR-0341](0341-project-current-objective-and-observed-token-budgets.md)
 - [ADR-0354](../../../operations/trace/0354-enforce-scope-complete-resource-and-terminal-budgets.md)
-- [Managed execution resource budget evidence](../../../../evidence/foundation/managed-execution-resource-budgets-v1.md)
+- Managed execution resource budget evidence, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

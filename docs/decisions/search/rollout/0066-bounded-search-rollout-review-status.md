@@ -1,7 +1,9 @@
 # ADR-0066: Bounded search-rollout review status
 
-Status: `accepted`  
+Status: `superseded`  
 Decision date: 2026-08-20
+
+Superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

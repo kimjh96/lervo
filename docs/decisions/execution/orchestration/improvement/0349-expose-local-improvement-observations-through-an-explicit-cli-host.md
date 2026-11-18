@@ -1,7 +1,9 @@
 # ADR-0349: Expose local improvement observations through an explicit CLI host
 
-- Status: `historical`
+- Status: `superseded`
 - Decision date: 2026-09-03
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). The development-pattern pipeline is historical and its commands are removed.
 
@@ -37,7 +39,7 @@ Because the private adapter enters the published CLI bundle, this change require
 
 ## References
 
-- [Verified improvement effects](../../../../specifications/execution/verified-improvement-effects.md)
+- Verified improvement effects specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Governed loop and assignment graph](../../../../roadmap/governed-loop-assignment-graph.md)
 - [ADR-0346](0346-measure-improvement-effects-from-bounded-local-events.md)
 - [ADR-0348](0348-measure-exact-repeated-verification-failures.md)

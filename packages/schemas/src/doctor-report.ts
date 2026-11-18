@@ -16,10 +16,6 @@ export const doctorCheckIdSchema = {
   type: "string",
   enum: [
     "event_chain",
-    "knowledge_candidates",
-    "knowledge_reviews",
-    "verified_knowledge",
-    "knowledge_staleness",
     "document_registry",
     "document_sources",
     "skill_packages",
@@ -27,31 +23,12 @@ export const doctorCheckIdSchema = {
     "provider_codex_runtime",
     "provider_claude_runtime",
     "search_engine_selection",
-    "search_rollout_policies",
-    "search_rollout_reviews",
-    "search_rollout_actions",
   ],
 } as const;
 
 export const doctorIssueCodeSchema = {
   type: "string",
   enum: [
-    "candidate_artifact_invalid",
-    "candidate_decision_missing",
-    "candidate_evidence_missing",
-    "candidate_event_mismatch",
-    "candidate_outcome_not_converged",
-    "candidate_verification_missing",
-    "review_artifact_invalid",
-    "review_candidate_missing",
-    "review_event_mismatch",
-    "verified_artifact_invalid",
-    "verified_candidate_missing",
-    "verified_event_mismatch",
-    "verified_review_missing",
-    "staleness_artifact_invalid",
-    "staleness_event_mismatch",
-    "staleness_verified_missing",
     "event_chain_invalid",
     "document_registry_invalid",
     "document_source_invalid",
@@ -63,11 +40,6 @@ export const doctorIssueCodeSchema = {
     "provider_probe_failed",
     "provider_platform_unsupported",
     "search_engine_selection_invalid",
-    "search_rollout_policy_invalid",
-    "search_rollout_review_invalid",
-    "search_rollout_review_unavailable",
-    "search_rollout_action_invalid",
-    "search_rollout_action_unavailable",
   ],
 } as const;
 
@@ -75,10 +47,6 @@ export const doctorRecoveryActionCodeSchema = {
   type: "string",
   enum: [
     "inspect_event_history",
-    "inspect_knowledge_candidate",
-    "inspect_knowledge_review",
-    "inspect_verified_knowledge",
-    "inspect_knowledge_staleness",
     "inspect_document_registry",
     "inspect_document_source",
     "inspect_skill_package",
@@ -86,11 +54,6 @@ export const doctorRecoveryActionCodeSchema = {
     "check_provider_executable",
     "check_provider_platform",
     "inspect_search_selection",
-    "inspect_search_policy",
-    "inspect_search_review",
-    "resolve_search_review_prerequisites",
-    "inspect_search_action",
-    "resolve_search_action_prerequisites",
   ],
 } as const;
 
@@ -100,7 +63,7 @@ export const doctorReportSchema = {
   title: "Lervo doctor report",
   type: "object",
   properties: {
-    schemaVersion: { type: "integer", const: 1 },
+    schemaVersion: { type: "integer", const: 2 },
     projectId: projectIdSchema,
     scope: doctorScopeSchema,
     status: doctorStatusSchema,

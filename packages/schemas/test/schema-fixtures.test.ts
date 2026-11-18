@@ -28,13 +28,11 @@ function loadFixtures(name: "invalid" | "valid"): Fixture[] {
     `${name}-trace-capabilities-report.json`,
     `${name}-legacy-registry-migration.json`,
     `${name}-knowledge.json`,
-    `${name}-knowledge-lifecycle.json`,
     `${name}-managed-block-patch.json`,
     `${name}-verification.json`,
     `${name}-verification-event.json`,
     `${name}-remote-command.json`,
     `${name}-conversation.json`,
-    `${name}-product-surface.json`,
     `${name}-role-evaluation.json`,
   ].flatMap((fileName) => {
     const fixtureUrl = new URL(`./fixtures/${fileName}`, import.meta.url);

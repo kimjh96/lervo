@@ -69,7 +69,7 @@ Direct terminal prompt preparation never materializes a durable rule. The instal
 
 ## Consumers and Evidence
 
-Workforce planning, managed capability selection, terminal knowledge selection, and deliberation routing consume the validated decision. Typed source needs and authority restrict context selection before loading.
+Managed capability selection, terminal knowledge selection, durable instruction intake, and deliberation routing consume the validated decision. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the `lervo workforce plan` consumer. Typed source needs and authority restrict context selection before loading.
 
 Managed search records operational and repository-knowledge recommendations separately. If an AGENTS instruction or registered document appears in both, injection discovery must resolve one canonical document ID with identical metadata. Unproven same-path identity fails before the turn.
 

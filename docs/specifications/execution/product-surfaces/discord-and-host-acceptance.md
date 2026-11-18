@@ -49,7 +49,7 @@ Normal conversation effects publish only managed, context-grounded prose in the 
 
 Every installed journey records:
 
-- Exact Lervo release and source revision, product-host protocol, surface-adapter build, repository revision, event schema, search engine and adapter build.
+- Exact Lervo release and source revision, surface-adapter build, repository revision, event schema, search engine and adapter build.
 - Provider and model, role and policy hashes, document coverage stages.
 - Resource descriptor and completeness, token and typed cache observations, stage profile.
 - Source handoff receipts, result digest, delivery observation, verification outcome.

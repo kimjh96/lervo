@@ -20,7 +20,7 @@ The first-party surface must reuse the same commands, queries, subscriptions, du
 ### 2. Observation and control
 
 - Add a bounded, event-derived activity feed and subscription cursor.
-- Add live-steering commands through the product-host protocol and Discord adapter.
+- Add live-steering commands through typed application commands and the Discord adapter.
 - Add a unified operating view over existing canonical authorities and projections.
 - Show observed tokens and, separately, cost as observed or explicitly unavailable. Add warnings; defer hard-stop policy to separate review.
 - Integrate formal deliberation as an optional, origin-bound decision thread with structured artifacts, per-role resources, and explicit `converged`, `no_consensus`, and failure meanings. Keep it off default conversation and goal paths. Proposed [ADR-0460](../../../decisions/coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md) amends this: a cheap Tier 0 cross-check runs automatically at defined decision points on every channel; formal deliberation remains explicit or escalated.

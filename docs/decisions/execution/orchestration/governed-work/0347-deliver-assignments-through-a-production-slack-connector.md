@@ -1,7 +1,9 @@
 # ADR-0347: Deliver assignments through a production Slack connector
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-02
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -49,7 +51,7 @@ The shared conformance and private-state boundaries can support Discord, Teams, 
 
 ## References
 
-- [Assignment connector specification](../../../../specifications/execution/assignment-connectors.md)
+- Assignment connector specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Governed loop roadmap](../../../../roadmap/governed-loop-assignment-graph.md)
 - [ADR-0344](0344-deliver-assignment-artifacts-through-injected-connectors.md)
 - [Slack `chat.postMessage`](https://docs.slack.dev/reference/methods/chat.postMessage)

@@ -24,14 +24,6 @@ function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string 
   switch (checkId) {
     case "event_chain":
       return "event source";
-    case "knowledge_candidates":
-      return "knowledge candidate evidence";
-    case "knowledge_reviews":
-      return "knowledge review evidence";
-    case "verified_knowledge":
-      return "verified knowledge evidence";
-    case "knowledge_staleness":
-      return "knowledge staleness evidence";
     case "document_registry":
       return "document registry";
     case "document_sources":
@@ -46,12 +38,6 @@ function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string 
       return "Claude executable";
     case "search_engine_selection":
       return "search engine selection";
-    case "search_rollout_policies":
-      return "search rollout policies";
-    case "search_rollout_reviews":
-      return "search rollout reviews";
-    case "search_rollout_actions":
-      return "search rollout actions";
   }
 }
 
@@ -186,7 +172,6 @@ export async function runDoctorCommand(
       report = await createDoctorReport({
         projectId: storage.manifest.projectId,
         events: storage.events,
-        artifacts: storage.artifacts,
         inspections,
         scope,
       });

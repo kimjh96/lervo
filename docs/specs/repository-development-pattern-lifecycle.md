@@ -54,6 +54,6 @@ Terminal declaration and initial pattern transitions commit in one event-store t
 
 An accepted pattern may register an exact baseline protocol only while `reviewed`. After its exact promotion event, a separate treatment observation may compare the same adapter, metric set, and unchanged target. Protocol and comparison bodies are CAS artifacts; privacy-bounded events are canonical, and the current effect view is rebuildable.
 
-Comparison is observational, leaves attribution unestablished, and never authorizes automatic rollback or claims model learning, truth, correctness, or semantic use. The [verified improvement effect specification](../specifications/execution/verified-improvement-effects.md) owns metrics, timing, adapter, privacy, and failure meaning.
+Comparison is observational, leaves attribution unestablished, and never authorizes automatic rollback or claims model learning, truth, correctness, or semantic use. [ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the local improvement observation adapter and its specification.
 
 The first production local adapter derives only repository-wide verification success from bounded canonical verification-completion events. It re-observes exact evidence on apply and leaves unavailable every metric without a defined local counting unit. Collection does not change review, promotion, canonical-source, or rollback authority.

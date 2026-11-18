@@ -1,7 +1,9 @@
 # ADR-0233: Authenticated Node Rollout Process Delivery
 
-Status: accepted
+Status: superseded
 Date: 2026-08-27
+
+Superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

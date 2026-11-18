@@ -38,12 +38,6 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
       : outcome.activatedCapabilities
           .map((item) => `  ${item.capabilityId}@${item.version} (${item.evidence})`)
           .join("\n");
-  const acceptedAssessment =
-    outcome.searchContext.selectedDocumentIds.length === 0
-      ? null
-      : `lervo search assess ${outcome.searchContext.attemptId} --outcome accepted ${outcome.searchContext.selectedDocumentIds
-          .map((id) => `--selected document:${id}`)
-          .join(" ")}`;
   const lines = [
     `Managed run completed. provider: ${outcome.provider}; role: ${outcome.roleId}`,
     `runId: ${outcome.runId}`,
@@ -63,9 +57,6 @@ export function formatRunOutcome(outcome: ManagedRunOutcome): string {
     } · selected ${outcome.searchContext.selectedDocuments}`,
     "Only selected search recommendations may be loaded or injected later.",
     `Documents selected from search: ${outcome.searchContext.selectedDocumentIds.join(", ") || "none"}`,
-    acceptedAssessment === null
-      ? `After reviewing the search results, record an assessment with: lervo search assess ${outcome.searchContext.attemptId} --outcome failed --reason <reason>`
-      : `To record acceptance: ${acceptedAssessment}`,
     `Functional verification: ${
       outcome.verificationStatus === "passed"
         ? "passed"

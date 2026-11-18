@@ -31,13 +31,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/product-host-capabilities.ts",
-      "contentHash": "sha256:544b06b45ea239203a2b2247019ed4f9f02487db5a5da6f8f54a10c83e3a9022",
-      "responsibility": "Versioned product-host capability catalog composition",
-      "rationale": "The module owns the immutable v1 base route catalog and composes additive protocol upgrades. Version-specific v4 through v11 additions remain in dedicated modules; command parsing, product inspection, projection policy, and rendering are separate. Its length is declarative catalog data rather than mixed execution responsibility.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/hub-runtime/src/deployment.ts",
       "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",
@@ -94,13 +87,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/application-contract/src/product-host.ts",
-      "contentHash": "sha256:7f942f65fbe75a7dc80504b6db7df826bf2d0e8c10d66b141270aede31d9df6c",
-      "responsibility": "Additive product-host protocol type catalog",
-      "rationale": "The module declaratively owns backward-compatible capability-report, route, and result-contract types from v1 through v11. Runtime composition, command parsing, product projection, persistence, and rendering remain in separate modules; its length follows the explicit versioned compatibility history rather than mixed implementation concerns.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/conversation-platform-sqlite/src/binding-repository.ts",
       "contentHash": "sha256:2ab45ffc7e3be382fb4143ce66c8ff78117db03989ecf88059c429945cc2da0f",
       "responsibility": "Conversation-platform binding persistence",
@@ -136,24 +122,10 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/knowledge-okf/src/okf.ts",
-      "contentHash": "sha256:da9242a4abf799e0f394269fda5b7010f72558951ab6cc9c8c3bf42e8c95592f",
-      "responsibility": "OKF v0.2 exchange adapter",
-      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules. Export now requires complete scan admission before binding freshness; other format-bound operations retain their existing ownership and validation boundaries.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
       "contentHash": "sha256:07dce3cc0ce573c5ef89dd3119a6b88800aeb79b3706b8b0a7947806f4f34bf3",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "One provider-neutral run lifecycle delegates source capture, process observation, capability policy, result collection and verification to existing ports. Source admission uses the project-storage gate for the complete run; failed reference-result preservation stays behind its own CAS/evidence boundary. The coordinator sequences both without owning SQLite or background retry policy.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/organization-deployment-sqlite/src/rollback-store.ts",
-      "contentHash": "sha256:c208f990c80f078f6f01cddc034fa98f3f3960eb3bf4afb9ae50e35472b22d24",
-      "responsibility": "Organization rollback replay SQLite persistence",
-      "rationale": "Reservation, completion, recovery projection, target binding, and integrity checks all operate on one immutable rollback replay table and transaction lifecycle; authorization and rollback policy remain outside the adapter.",
       "disposition": "cohesive"
     },
     {
@@ -234,13 +206,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/repository-knowledge/src/public-readme.ts",
-      "contentHash": "sha256:1362ee4dc7a490b3e2ff00868d96c3334a2e5ce48796d1cab01da5bbd4e22e89",
-      "responsibility": "Public README improvement lifecycle",
-      "rationale": "Coordinate extraction, candidate validation, protected-change review, plan creation, and apply implement one byte-safe README improvement contract.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
       "contentHash": "sha256:7530894d7daa5c8bc736745fad6b56df112f7abfd82d609fc5d75ac721ad5835",
       "responsibility": "Repository document-layout migration",
@@ -256,9 +221,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:1737e7ff32eb0b6c03444c18f41490810565a437a15f1dd78a49276e72f2f3b3",
+      "contentHash": "sha256:ccd56d2053f1967c15af68dad84023290f2717ea10b5c1fd77a446eea5d20382",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects. The review adds explicit coverage and skipped summaries to reporting contracts, one scan-incomplete reason, and the observed-only retention marker and summary. Evaluation, admission, storage, and rendering stay in their owning modules; no second implementation concern is added.",
+      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects, including coverage and skipped summaries, the scan-incomplete reason, and the observed-only retention marker. ADR-0560 removed the refresh-review candidate contract. Evaluation, admission, storage, and rendering stay in their owning modules.",
       "disposition": "cohesive"
     },
     {
@@ -291,7 +256,7 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:e41f3a368cb2e17062de118d06771876f76b9780160e65c1bd4157538b522017",
+      "contentHash": "sha256:15881e9bc06883762b2295408c6638ca36bfb61d35afca72b993450edc9fc2b2",
       "responsibility": "Declarative schema registration catalog",
       "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
@@ -301,20 +266,6 @@
       "contentHash": "sha256:8529ed8ec746aa5d1961dff64b9177fba1cbdd1df562991596969a44210a30f1",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "packages/search/src/performance-benchmark.ts",
-      "contentHash": "sha256:d73e3bb3f80a88155c7ff08baa343345d6e31cd32436c226cdb271ed30956f13",
-      "responsibility": "Search quality and latency benchmark",
-      "rationale": "Case validation, paired timing, quality aggregation, latency statistics, environment capture, and reporting form one reproducible benchmark protocol.",
-      "disposition": "cohesive"
-    },
-    {
-      "path": "scripts/distribution/lib/product-host-capability-consumer.mjs",
-      "contentHash": "sha256:98cc230df916d5103d67cb535bc077d703c3790f4af58a0422d34be5cee1faef",
-      "responsibility": "Packed CLI product-host capability conformance",
-      "rationale": "The module verifies one ordered, additive external-consumer protocol catalog from v1 through v11. It contains bounded expected descriptors only; repository journeys, product projection behavior, packaging, and release orchestration remain in separate scripts and focused tests.",
       "disposition": "cohesive"
     },
     {

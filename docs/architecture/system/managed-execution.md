@@ -7,9 +7,9 @@
 
 ## Specifications
 
-The headless application boundary rebuilds [operating-attention](../../specifications/execution/operating-attention.md) and [operating-liveness](../../specifications/execution/operating-liveness.md) reports alongside assignment, attempt, resource, and next-action reports.
+The headless application boundary rebuilds the [operating-attention](../../specifications/execution/operating-attention.md) report alongside assignment graph, attempt, and resource projections.
 
-See [resource and performance budgets](../../specifications/execution/resource-and-performance-budgets.md), [bounded unattended scheduling](../../specifications/execution/unattended-scheduling.md), [interactions](../../specifications/execution/assignment-interactions.md), [routines](../../specifications/execution/assignment-routines.md), and [connectors](../../specifications/execution/assignment-connectors.md).
+See [resource and performance budgets](../../specifications/execution/resource-and-performance-budgets.md) and [interactions](../../specifications/execution/assignment-interactions.md).
 
 ## Decisions
 
@@ -25,5 +25,4 @@ See [resource and performance budgets](../../specifications/execution/resource-a
 - [Natural-language finalization](../../decisions/execution/providers/0200-natural-language-terminal-turn-finalization.md)
 - [Provider-confirmed capability activation](../../decisions/execution/providers/0211-provider-confirmed-capability-activation.md)
 - [Isolated agent workspaces](../../decisions/execution/orchestration/0222-isolated-agent-workspace-lifecycle.md)
-- [Headless governed loops](../../decisions/execution/orchestration/governed-work/0336-adopt-headless-governed-loop-and-assignment-graph.md)
-- [Bounded unattended scheduling](../../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
+- [Headless governed loops](../../decisions/execution/orchestration/governed-work/0336-adopt-headless-governed-loop-and-assignment-graph.md), partially superseded by ADR-0560

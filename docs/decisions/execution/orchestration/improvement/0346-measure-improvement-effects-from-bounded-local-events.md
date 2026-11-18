@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the local adapter part is removed. Lervo no longer ships `@lervo/improvement-observation-local` or `@lervo/improvement-observation-conformance`. The `ImprovementObservationPortV1` and collection contract types in `@lervo/application-contract` stay.
+
 Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
 ## Context
@@ -25,6 +27,6 @@ Remaining metrics require their own observable units, event evidence, ground-tru
 
 ## References
 
-- [Verified improvement effects](../../../../specifications/execution/verified-improvement-effects.md)
+- Verified improvement effects specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [ADR-0345](0345-observe-reviewed-improvement-effects-without-self-learning-claims.md)
 - [Reader-first causal observability](../../../operations/trace/0331-adopt-reader-first-causal-work-observability.md)

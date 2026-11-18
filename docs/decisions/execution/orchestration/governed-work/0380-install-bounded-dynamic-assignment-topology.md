@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-07
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the manual route part is removed. Lervo no longer ships `lervo assignment topology` or the product-host protocol v6 graph routes. The topology change contracts, planning, `WorkGraphV2`, history projection, and assignment creation stay because Node runtime supervision writes topology through them.
+
 ## Context
 
 Assignment dependencies already formed a rebuildable acyclic graph, routines created fixed reviewed templates, and the bounded scheduler executed eligible nodes. Adding a newly reviewed branch or join required unrelated assignment mutations, with no versioned recovery or historical replay contract for multi-node topology changes.

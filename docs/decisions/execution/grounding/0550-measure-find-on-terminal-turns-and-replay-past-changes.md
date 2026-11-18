@@ -5,6 +5,8 @@ Decision date: 2026-11-01
 Amends: [ADR-0535](../applications/0535-project-core-health-with-actor-owned-attention.md) (Find measure and event history), [ADR-0459](../orchestration/improvement/0459-measure-context-hits-and-usage-on-every-channel.md) (evaluation)
 Related: [ADR-0541](0541-bind-agent-queries-to-the-turn-and-observe-path-references.md) (terminal selection and path mentions)
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the `lervo knowledge find-replay` command route is removed. The replay set, its scoring, `.lervo/state/find-replay.json`, and the background health prefetch that reruns it stay.
+
 ## Context
 
 The core outcomes require Find to be measured two ways. Operation: hits from selected and referenced receipts. Evaluation: recall and precision on a replay set from past changes. On 2026-11-01 neither worked.

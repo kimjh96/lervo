@@ -3,6 +3,8 @@
 Status: `accepted`
 Decision date: 2026-08-20
 
+Partially superseded by [ADR-0560](../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the evidence and receipt part is removed. Lervo no longer ships schema-v2 comparisons and reviews, build checks in review, activation, and refresh, or `SearchCandidateVerificationReceipt`. The `adapterBuildId` that every `SearchEnginePort` declares and its validation stay.
+
 ## Context
 
 Candidate, engine, and version coordinates cannot distinguish implementation builds. Changed code may coincidentally reproduce outputs, while persisting every operational replay would accumulate derived state.

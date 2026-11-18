@@ -107,7 +107,7 @@ Strengths from the four reference products land where they serve an outcome. The
 - **Strengths.**
   - **Buzz:** threads, mentions, an inbox, and agent-to-agent turns in rooms, routed into identity, assignments, and handoffs. Delivery, acknowledgment, action, and verified result stay distinct. Joining a room never grants repository authority.
   - **Prime Agent:** subagents with durable identity, ancestry, scoped leases, and path-conflict checks.
-  - **Paperclip:** a read-only operating board projecting agents, work, blockers, approvals, and cost. Budgets, warnings, and in-flight caps limit spend.
+  - **Paperclip:** an operating view projecting agents, work, blockers, approvals, and cost. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the first read-only board, which had no invoker. Budgets, warnings, and in-flight caps limit spend.
   - **Deliberation:** a system-triggered cross-check at decision points ([ADR-0460](../../decisions/coordination/deliberation/0460-trigger-tiered-deliberation-at-decision-points.md)).
 - **Measures.**
   - Handoffs created, received, and resumed.

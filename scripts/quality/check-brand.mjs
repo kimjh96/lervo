@@ -27,9 +27,6 @@ const previousBrandAllowlist = new Set([
   "docs/decisions/foundation/0020-lervo-product-identity.md",
   "packages/project/src/layout.ts",
   "packages/project/test/project-init.test.ts",
-  "packages/identity-migration/src/plan.ts",
-  "packages/identity-migration/src/types.ts",
-  "packages/identity-migration/test/identity-migration.test.ts",
   "docs/decisions/knowledge/repository/0144-explicit-project-identity-migration.md",
 ]);
 const previousMarkerAllowlist = new Set([

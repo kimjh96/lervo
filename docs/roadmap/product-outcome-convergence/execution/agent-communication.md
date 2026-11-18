@@ -7,3 +7,5 @@ Outcome: agents communicate directly while preserving authority.
 An installed, reviewed direct-message adapter binds one content-addressed message to current mention and handoff authority through exact plan/apply. Source-event replay is idempotent. The exact active recipient-agent coordinate can record acknowledgment without claiming human authentication. Delivery and action remain separate and unobserved.
 
 The packed trigger-to-handoff-to-acknowledgment journey preserves the reviewed-input, no-live-platform, no-provider-start claim boundary.
+
+[ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the reviewed direct-message adapter and the trigger route. `lervo assignment handoff` and explicit acknowledgment stay.

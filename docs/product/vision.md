@@ -29,7 +29,7 @@ Discord is the current installed reference product surface, not the organization
 - [Core outcomes](vision/core-outcomes.md): what Lervo must deliver, in order, with felt outcomes and live measures. It sets roadmap priority.
 - [Managed execution and evidence](vision/execution.md): adapters, direct terminals, evidence states, and revisioned continuation.
 - [Repository knowledge and lifecycle](vision/repository.md): discovery, reviewed migration, document routing, skills, and upgrades.
-- [Coordination and governed continuation](vision/coordination.md): optional Hub coordination, headless application contracts, and bounded scheduling.
+- [Coordination and governed continuation](vision/coordination.md): optional Hub coordination and headless application contracts.
 - [Agent organization architecture](../architecture/system/agent-organization.md): project teams, hired experts, central leadership, external identities, and provider-neutral context.
 - [Product surfaces](../specifications/execution/product-surfaces.md): Discord acceptance, future first-party parity, ownership, search, knowledge, observability, and compatibility.
 

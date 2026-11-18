@@ -11,7 +11,7 @@ import {
 import { openProjectStorage } from "@lervo/project-storage";
 import { sha256 } from "@lervo/repository-knowledge";
 
-import { readLatestRootAgentLivenessObservations } from "./operating-liveness-event-source.js";
+import { readLatestRootAgentLivenessObservations } from "./root-agent-liveness-event-source.js";
 import type { CliIo } from "./types.js";
 
 export const agentLivenessUsage = [

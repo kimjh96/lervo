@@ -8,7 +8,7 @@ Each document has one write model:
 
 ## Repository entrypoints
 
-README is a byte-preserved, normalization-independent public entrypoint by default. An optional improvement is a separate audience-and-intent-bound proposal with individual protected-coordinate dispositions.
+README is a byte-preserved, normalization-independent public entrypoint by default. Freshness checks inventory its protected public coordinates. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the optional improvement proposal.
 
 AGENTS is the provider-neutral agent entrypoint with a fixed-size managed bootstrap. Repository knowledge resolves canonical instruction and skill routing by task purpose and target paths, so adding a source does not edit AGENTS.
 

@@ -1,7 +1,9 @@
 # ADR-0144: Explicit Project-Identity Migration with Source Preservation
 
-- Status: accepted
+- Status: superseded
 - Decision date: 2026-08-22
+
+Superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

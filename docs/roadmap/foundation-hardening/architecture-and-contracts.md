@@ -24,6 +24,8 @@ This is conceptual dependency flow. Package imports must preserve the repository
 
 ## Responsibility map
 
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) later removed `@lervo/execution-performance`, `@lervo/execution-reliability`, and the root `foundation:*` readiness scripts. Their rows below record the completed design; no current code owns those responsibilities.
+
 | Boundary | Owns | Must not own |
 | --- | --- | --- |
 | `@lervo/schemas` | v1/v2 envelopes, event payloads, descriptors, report schemas | aggregation or storage effects |

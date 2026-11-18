@@ -5,7 +5,7 @@
 - Webhook-backed delivery; same-Node and explicitly bound cross-Node peer-author normalization.
 - PO-to-worker, worker-to-PO, and worker-to-worker addressed delegation through receiver-owned runtimes or exact cross-Node Discord addresses.
 - Explicit peer display addresses and unaddressed priorities shared across Nodes.
-- Shared-Gateway validation and replay-safe executive webhook preparation.
+- Shared-Gateway validation. ADR-0560 removed the executive webhook preparation; hiring prepares webhooks through the Node runtime.
 - Authenticated parent/thread resolution, native thread delivery, bot-native replies, and source-message reply correlation.
 - Natural allowlisted text-channel and current-channel public-thread creation.
 - Natural repository-scoped child-agent hiring by an exactly bound product owner; atomic child organization, external-deployment, and channel-membership binding before supervised activation.

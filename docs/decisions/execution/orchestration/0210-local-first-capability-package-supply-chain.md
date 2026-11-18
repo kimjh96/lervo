@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-08-25
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the client side of optional Hub sharing is removed. Lervo no longer ships `lervo capability publish`, `lervo capability pull`, their HTTP client, or `capability_hub_failed`. Local validation, installation, resolution, the lock projection, and the Hub registry endpoint stay.
+
 ## Context
 
 Lervo resolves project and user skills but previously only inventoried MCP server definitions and provider plugins. Users need one local-first mechanism to validate, install, bind, and optionally share reusable capabilities without making Hub availability, provider-specific configuration, or automatic publication part of core execution.

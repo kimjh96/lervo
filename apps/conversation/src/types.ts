@@ -4,7 +4,6 @@ import type {
   DiscordGoalInteraction,
   DiscordIngressResult,
 } from "@lervo/adapter-discord";
-import type { SlackConversationAdapter } from "@lervo/adapter-slack";
 import type { ConversationAdapter } from "@lervo/conversation-contract";
 import type {
   AuthenticatedDiscordGatewayDriver,
@@ -45,14 +44,6 @@ import type { ConversationOperationDrain } from "./operation-drain.js";
 interface PlatformCredentialTransportOptions {
   requestTimeoutMs?: number;
   maxResponseBytes?: number;
-}
-
-export interface SlackConversationDeployment extends PlatformCredentialTransportOptions {
-  integrationId: string;
-  apiAppId: string;
-  allowedTeamIds: readonly string[];
-  signingSecret: string;
-  botToken: string;
 }
 
 export interface DiscordConversationDeployment extends PlatformCredentialTransportOptions {
@@ -121,7 +112,6 @@ export interface ConversationApplicationOptions {
   conversations: readonly ConversationPlatformConversationBinding[];
   participants: readonly ConversationPlatformParticipantBinding[];
   threads?: readonly ConversationPlatformThreadBinding[];
-  slack?: readonly SlackConversationDeployment[];
   discord?: readonly DiscordConversationDeployment[];
   integrations?: readonly ConversationIntegrationDeployment[];
   interactions?: ConversationInteractionDeployment;
@@ -149,7 +139,6 @@ export interface ConversationApplication {
   nextDeliberationWakeupAt?(): number | null;
   subscribeChanges?(kind: "interaction" | "deliberation", notify: () => void): () => void;
   adapters: ReadonlyMap<string, ConversationAdapter>;
-  slackAdapters: ReadonlyMap<string, SlackConversationAdapter>;
   discordAdapters: ReadonlyMap<string, DiscordConversationAdapter>;
   discordGateways: ReadonlyMap<string, AuthenticatedDiscordGatewayDriver>;
   deliberations: ConversationDeliberationPort | null;

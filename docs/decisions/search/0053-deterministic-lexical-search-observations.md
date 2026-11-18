@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-08-20
 
+Partially superseded by [ADR-0560](../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the assessment part is removed. Lervo no longer ships `SearchAssessment`, the assessment report, or `lervo search assess` and `lervo search report`. Lexical search, its derived index, and local `SearchAttempt` observations stay.
+
 ## Context
 
 Before embeddings or RAG, Lervo needs evidence showing which queries lexical search fails and why. Zero hits alone do not require semantic search, and clicks or model self-evaluation do not prove relevance. Search indexes must remain derived, and queries and bodies must not leak into telemetry.
