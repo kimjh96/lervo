@@ -83,7 +83,7 @@ describe("replica conflicts resolve without the owner (ADR-0561)", () => {
     expect(await git(fixture.local, "show", `${branch}:source.ts`)).toBe("local draft\n");
   }, 30_000);
 
-  it("replaces a peer without common history wholesale only after saving it", async () => {
+  it("replaces a peer without common history wholesale only after saving it on the peer", async () => {
     const local = await repository("lervo-replica-preference-unrelated-", "local history\n");
     const peer = await repository("lervo-replica-preference-unrelated-peer-", "peer history\n");
     const state = await mkdtemp(join(tmpdir(), "lervo-replica-preference-state-"));
@@ -101,7 +101,8 @@ describe("replica conflicts resolve without the owner (ADR-0561)", () => {
     expect(result).toMatchObject({ status: "pushed", backup: { side: "peer" } });
     expect(await readFile(join(peer, "source.ts"), "utf8")).toBe("local history\n");
     const branch = "backup" in result ? result.backup!.branch : "";
-    expect(await git(local, "show", `${branch}:source.ts`)).toBe("peer history\n");
+    // ADR-0561: the losing side is saved on its own host, where the undo restores it.
+    expect(await git(peer, "show", `${branch}:source.ts`)).toBe("peer history\n");
   }, 30_000);
 
   it("changes nothing when the second check sees a side move after the decision", async () => {
@@ -115,6 +116,7 @@ describe("replica conflicts resolve without the owner (ADR-0561)", () => {
       apply: (input) => real.apply(input),
       reconcileKnowledgeSupersession: (input) => real.reconcileKnowledgeSupersession(input),
       recordReceipt: (input) => real.recordReceipt(input),
+      backup: (input) => real.backup(input),
       snapshot: async (root) => {
         observations += 1;
         // The second observation of the conflicting cycle is the pre-apply check.

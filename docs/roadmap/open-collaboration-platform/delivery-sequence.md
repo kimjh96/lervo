@@ -122,7 +122,7 @@ The `archive` operation is `wired`: fixture F3 applies an archive with nine inbo
 Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) slice A6, three owner waits are `wired` without an owner step:
 
 - **Workstream heads.** Divergent local and Hub heads reconcile to the newest valid head. The other head stays on the Hub, readable by its exact hash, and `lervo workstream reconcile --restore <snapshot-hash>` restores it. Nodes reconcile on their own sync cycle, and `--keep`, `--apply`, and `--write` are removed.
-- **Replica conflicts.** The coordinator saves the losing side to a `lervo/replica-backup` branch, confirms with two agreeing checks, and then prefers the configured side. `--prefer` is removed, and an open divergence is Lervo debt.
+- **Replica conflicts.** The coordinator saves the losing side to a `lervo/replica-backup` branch on that side's host, confirms with two agreeing checks, records the notice, and then prefers the configured side. `lervo-node repository-replica restore` undoes it and holds the repository. `--prefer` is removed, and an open divergence is Lervo debt.
 - **Supervision escalation.** Past the escalation bound, the principal proxy settles within the installed operating mandate or holds the goal as `lervo_debt`.
 
 Sync, Hub, node-runtime, orchestrator, work-controller, and CLI tests cover each replacement.

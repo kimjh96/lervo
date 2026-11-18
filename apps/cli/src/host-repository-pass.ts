@@ -1,4 +1,8 @@
-import { classifyRepositoryFailure, LERVO_DEBT_CODE } from "./host-follow-policy.js";
+import {
+  classifyRepositoryFailure,
+  LERVO_DEBT_CODE,
+  REPOSITORY_OWNER_HOLD_CODE,
+} from "./host-follow-policy.js";
 import type {
   HostFollowRepositoryResult,
   HostFollowStageTiming,
@@ -42,6 +46,11 @@ export interface RepositoryPassOptions {
    * at that boundary, so a newer release does not wait for the remaining repositories.
    */
   yieldToRelease?: () => Promise<boolean>;
+  /**
+   * ADR-0561: whether the owner holds a repository. A held repository is not upgraded at all: the
+   * pass records it as blocked with `repository_owner_hold` and runs no command there.
+   */
+  repositoryHeld?: (repositoryRoot: string) => Promise<boolean>;
 }
 
 /**
@@ -80,6 +89,8 @@ async function upgradeRepository(
     entry.elapsedMs = now() - started;
     return entry;
   };
+  if ((await options.repositoryHeld?.(repositoryRoot)) === true)
+    return finish("blocked", REPOSITORY_OWNER_HOLD_CODE);
   const run = (args: string[]) => options.run(args, options.signal);
   // ADR-0589: an apply that leaves no receipt parts is one part of its own, so its time shows.
   const apply = async (round: number, args: string[]) => {

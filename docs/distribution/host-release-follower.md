@@ -59,6 +59,7 @@ Repository entries in `lastPass` can also carry these codes:
 - `host_follow_repository_upgrade_unconverged`: five rounds did not converge.
 - `upgrade_plan_blocked`: the plan is blocked with no independent stage to apply.
 - `upgrade_plan_unchanged`: a blocked repository's plan id did not change since the last pass.
+- `repository_owner_hold`: the owner holds the repository with `lervo repository hold`, so the follower runs no upgrade command there; `rounds` is 0. It runs last in a pass and is rechecked hourly. `--follow --status` lists every hold on the host ([ADR-0561](../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)).
 - `upgrade_lervo_debt`: the plan or the apply's receipt has the status `lervo_debt`: Lervo holds a stage itself, such as a reviewed plan whose cross-check disagreed or had no admitted provider. `pendingStages` names those stages. It is a block, not owner work ([ADR-0561](../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md)). Passes of earlier CLIs can still show `upgrade_owner_approval_required`.
 
 They also carry the codes `lervo upgrade` itself reports. `knowledge_cycle_admission_lost` (ADR-0577) means the upgrade lost the host's full-cycle admission, and `knowledge_cycle_admission_unconfirmed` that lock contention kept it from confirming the admission. Their `phase` says whether the upgrade stopped before a stage or after the last one. Both are `failed` and retried, never a host failure.

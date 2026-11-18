@@ -1,8 +1,5 @@
-import {
-  assertRepositoryReplicaSnapshot,
-  reconcileRepositoryReplicas,
-  type RepositoryReplicaSnapshot,
-} from "@lervo/sync";
+import { assertRepositoryReplicaSnapshot, reconcileRepositoryReplicas } from "@lervo/sync";
+import { readRepositoryHold } from "@lervo/repository-knowledge-runtime";
 
 import {
   REPOSITORY_REPLICA_ID,
@@ -23,18 +20,11 @@ import {
   RepositoryReplicaCycleError,
   type RepositoryReplicaStage,
 } from "./repository-replica-failure.js";
-import {
-  RepositoryReplicaCaptureCompatibility,
-  type RepositoryReplicaCaptureVersionPort,
-} from "./repository-replica-capture-compatibility.js";
-import {
-  ReplicaKnowledgeSupersessionExchange,
-  type RepositoryReplicaKnowledgeSupersessionPort,
-} from "./repository-replica-knowledge-supersession.js";
-import type {
-  RepositoryReplicaConflictPolicy,
-  RepositoryReplicaMergeResult,
-} from "./repository-replica-merge.js";
+import { RepositoryReplicaCaptureCompatibility } from "./repository-replica-capture-compatibility.js";
+import { ReplicaKnowledgeSupersessionExchange } from "./repository-replica-knowledge-supersession.js";
+import type { RepositoryReplicaConflictPolicy } from "./repository-replica-merge.js";
+import type { RepositoryReplicaPeerPort } from "./repository-replica-peer-port.js";
+import { noticeReplicaBackup } from "./repository-replica-notice.js";
 import {
   resolveRepositoryReplicaDivergence,
   type RepositoryReplicaBackup,
@@ -51,32 +41,7 @@ export {
   RepositoryReplicaCycleError,
 } from "./repository-replica-failure.js";
 
-export interface RepositoryReplicaPeerPort
-  extends RepositoryReplicaKnowledgeSupersessionPort, RepositoryReplicaCaptureVersionPort {
-  snapshot(repositoryRoot: string): Promise<RepositoryReplicaSnapshot>;
-  bundle(repositoryRoot: string, expectedSnapshotHash: string): Promise<Uint8Array>;
-  apply(input: {
-    repositoryRoot: string;
-    bundle: Uint8Array;
-    expectedCurrentSnapshotHash: string;
-    allowHistoryReplacement?: boolean;
-  }): Promise<RepositoryReplicaSnapshot>;
-  recordReceipt(input: RepositoryReplicaReceipt): Promise<void>;
-  /** Local side only: saves one side's exact snapshot to a backup branch in this repository. */
-  backup?(input: {
-    repositoryRoot: string;
-    branch: string;
-    bundle: Uint8Array | null;
-    expectedSnapshotHash: string;
-  }): Promise<{ branch: string; snapshotHash: string }>;
-  /** Local side only: merges the peer's bundle when both sides changed. */
-  merge?(input: {
-    repositoryRoot: string;
-    bundle: Uint8Array;
-    expectedCurrentSnapshotHash: string;
-    conflictPolicy?: RepositoryReplicaConflictPolicy;
-  }): Promise<RepositoryReplicaMergeResult>;
-}
+export type { RepositoryReplicaPeerPort } from "./repository-replica-peer-port.js";
 
 export type RepositoryReplicaCycleResult =
   | {
@@ -108,8 +73,12 @@ export type RepositoryReplicaCycleResult =
         pathCount: number;
       };
       divergence: RepositoryReplicaDivergenceObservation;
-      /** Why the automatic resolution changed nothing; Lervo's own debt, never the owner's. */
-      heldReason?: "stronger_check_disagreement" | "backup_unavailable";
+      /**
+       * Why the automatic resolution changed nothing: Lervo's own debt, or `owner_hold` while
+       * the owner holds the local repository.
+       */
+      heldReason?:
+        "stronger_check_disagreement" | "backup_unavailable" | "notice_unavailable" | "owner_hold";
     };
 
 /**
@@ -132,6 +101,10 @@ function receiptIdentity(receipt: RepositoryReplicaReceipt): string {
   return JSON.stringify(identity);
 }
 
+async function defaultRepositoryHeld(localRoot: string): Promise<boolean> {
+  return (await readRepositoryHold(localRoot)) !== null;
+}
+
 export class RepositoryReplicaCoordinator {
   private readonly state: RepositoryReplicaCoordinatorStateFile;
   private readonly divergences: RepositoryReplicaDivergenceLedger;
@@ -150,6 +123,14 @@ export class RepositoryReplicaCoordinator {
       peer: RepositoryReplicaPeerPort;
       events?: RepositoryReplicaEventPort;
       now?: () => Date;
+      /** ADR-0561: whether the owner holds a local repository; absent reads the host hold file. */
+      repositoryHeld?: (localRoot: string) => Promise<boolean>;
+      /** ADR-0561: records a conflict's backup notice before either side changes. */
+      noticeBackup?: (input: {
+        repositoryRoot: string;
+        replicaId: string;
+        backup: RepositoryReplicaBackup;
+      }) => Promise<void>;
     },
   ) {
     this.now = options.now ?? (() => new Date());
@@ -256,6 +237,14 @@ export class RepositoryReplicaCoordinator {
         peerPort: this.options.peer,
         divergences: this.divergences,
         stage,
+        held: async () =>
+          (await (this.options.repositoryHeld ?? defaultRepositoryHeld)(input.localRoot)) === true,
+        notice: (backup) =>
+          (this.options.noticeBackup ?? noticeReplicaBackup)({
+            repositoryRoot: input.localRoot,
+            replicaId: input.replicaId,
+            backup,
+          }),
       });
       if (outcome.kind === "held") return outcome.result;
       ({ decision, status, generatedResolutionCount, transferredSnapshotHash, preference } =

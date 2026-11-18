@@ -175,9 +175,13 @@ export async function processFreshnessFindings(input: {
     state.budget.tokensUsed += outcome.tokensObserved;
     state.budget.attempts += 1;
     if (
-      ["verified", "verified_pending_cross_check", "applied", "partially_applied"].includes(
-        outcome.candidate.state,
-      )
+      [
+        "verified",
+        "verified_pending_cross_check",
+        "suggested",
+        "applied",
+        "partially_applied",
+      ].includes(outcome.candidate.state)
     ) {
       verifiedCount += 1;
       state.budget.verified += 1;

@@ -4,20 +4,32 @@ import { dirname, resolve } from "node:path";
 
 import type { HeldEffectAttentionItemV1 } from "@lervo/application-contract";
 import { resolveProjectPaths } from "@lervo/project";
+import { readRepositoryHold } from "@lervo/repository-registry";
 
 /**
  * ADR-0561 Lervo debt for a foreground effect Lervo held instead of applying: an upgrade stage
  * whose cross-check disagreed or could not run, or a capability package whose stronger check
- * disagreed. It is Lervo's own debt with its age and reason, never owner work.
+ * disagreed. It is Lervo's own debt with its age and reason, never owner work. The owner's own
+ * holds appear the same way: `owner_hold` for a held repository (`repository_hold`, read from
+ * the host's hold file, never stored here) and `owner_restored` for a provider hook merge the
+ * owner undid, which `lervo repository release` clears.
  */
 export type HeldEffectKind =
-  "upgrade_knowledge" | "upgrade_terminal_integration" | "capability_install";
+  "upgrade_knowledge" | "upgrade_terminal_integration" | "capability_install" | "repository_hold";
 
 export type HeldEffectReason =
   | "cross_check_disagreement_repeated"
   | "stronger_check_disagreement"
   | "cross_check_unavailable"
-  | "verification_failed";
+  | "verification_failed"
+  | "user_owned_content"
+  | "paths_uncommitted"
+  | "commit_unavailable"
+  | "owner_hold"
+  | "owner_restored";
+
+/** Reasons the owner set; Lervo never clears them on its own. */
+const OWNER_REASONS: ReadonlySet<HeldEffectReason> = new Set(["owner_hold", "owner_restored"]);
 
 export interface HeldEffect {
   effect: HeldEffectKind;
@@ -50,6 +62,32 @@ export async function readHeldEffects(repositoryRoot: string): Promise<HeldEffec
   }
 }
 
+/**
+ * Every held effect, with the owner's repository hold first when the repository is held. The
+ * repository hold lives in the host's hold file; it is shown here, never stored here.
+ */
+export async function readHeldEffectsWithRepositoryHold(
+  repositoryRoot: string,
+): Promise<HeldEffect[]> {
+  const [hold, held] = await Promise.all([
+    readRepositoryHold(repositoryRoot),
+    readHeldEffects(repositoryRoot),
+  ]);
+  return hold === null
+    ? held
+    : [
+        {
+          effect: "repository_hold",
+          subject: hold.reason ?? "repository",
+          reasonCode: "owner_hold",
+          since: hold.heldAt,
+          lastAttemptAt: hold.heldAt,
+          attempts: 0,
+        },
+        ...held,
+      ];
+}
+
 async function writeHeldEffects(repositoryRoot: string, held: HeldEffect[]): Promise<void> {
   const path = statePath(repositoryRoot);
   await mkdir(dirname(path), { recursive: true, mode: 0o700 });
@@ -58,7 +96,6 @@ async function writeHeldEffects(repositoryRoot: string, held: HeldEffect[]): Pro
   await rename(`${path}.next`, path);
 }
 
-/** Records or refreshes a held effect; its age runs from the first time it was held. */
 /**
  * Why an exact upgrade knowledge plan stays held, or null when it is tried again. A rejected exact
  * plan regenerates identically, so it stays held until its bytes change; a plan no session could
@@ -78,6 +115,33 @@ export async function heldUpgradeKnowledgeReason(
     : null;
 }
 
+/**
+ * Why the provider hook merge stays held, or null when it is tried again: the owner undid an
+ * earlier merge with `lervo state restore` (held until `lervo repository release`), or this exact
+ * plan already failed its post-apply verification, which a changed plan retries.
+ */
+export async function heldTerminalIntegrationReason(
+  repositoryRoot: string,
+  planId: string | null,
+): Promise<HeldEffectReason | null> {
+  const held = (await readHeldEffects(repositoryRoot)).filter(
+    (item) => item.effect === "upgrade_terminal_integration",
+  );
+  if (held.some((item) => item.reasonCode === "owner_restored")) return "owner_restored";
+  return held.some((item) => item.reasonCode === "verification_failed" && item.subject === planId)
+    ? "verification_failed"
+    : null;
+}
+
+/** Clears the owner's effect holds in one repository; returns how many it cleared. */
+export async function releaseOwnerHeldEffects(repositoryRoot: string): Promise<number> {
+  const held = await readHeldEffects(repositoryRoot);
+  const remaining = held.filter((item) => !OWNER_REASONS.has(item.reasonCode));
+  if (remaining.length !== held.length) await writeHeldEffects(repositoryRoot, remaining);
+  return held.length - remaining.length;
+}
+
+/** Records or refreshes a held effect; its age runs from the first time it was held. */
 export async function holdEffect(input: {
   repositoryRoot: string;
   effect: HeldEffectKind;
@@ -107,7 +171,10 @@ export async function releaseHeldEffects(
   keep: (item: HeldEffect) => boolean = () => false,
 ): Promise<void> {
   const held = await readHeldEffects(repositoryRoot);
-  const remaining = held.filter((item) => item.effect !== effect || keep(item));
+  // The owner's own holds are released only by the owner.
+  const remaining = held.filter(
+    (item) => item.effect !== effect || keep(item) || OWNER_REASONS.has(item.reasonCode),
+  );
   if (remaining.length !== held.length) await writeHeldEffects(repositoryRoot, remaining);
 }
 
@@ -115,6 +182,7 @@ const RETRY: Record<HeldEffectKind, string> = {
   upgrade_knowledge: "lervo upgrade --apply",
   upgrade_terminal_integration: "lervo upgrade --apply",
   capability_install: "lervo capability install --apply",
+  repository_hold: "lervo upgrade --apply",
 };
 
 /** The operating attention items of held effects: Lervo debt with its age, never owner work. */
@@ -135,6 +203,8 @@ export function heldEffectAttentionItems(held: readonly HeldEffect[]): HeldEffec
     actionOwner: "agent",
     requiresUserAction: false,
     blocking: false,
-    instruction: `Lervo debt: Lervo held ${item.effect} ${item.subject} (${item.reasonCode}) since ${item.since} and retries it with ${RETRY[item.effect]}; nothing waits for the owner.`,
+    instruction: OWNER_REASONS.has(item.reasonCode)
+      ? `The owner holds ${item.effect} ${item.subject} (${item.reasonCode}) since ${item.since}; Lervo applies nothing there on its own until lervo repository release --root <repository>.`
+      : `Lervo debt: Lervo held ${item.effect} ${item.subject} (${item.reasonCode}) since ${item.since} and retries it with ${RETRY[item.effect]}; nothing waits for the owner.`,
   }));
 }

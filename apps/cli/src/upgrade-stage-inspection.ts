@@ -13,10 +13,6 @@ import { heldUpgradeKnowledgeReason } from "./held-effect-debt.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { MAXIMUM_LAYOUT_CAPACITY_ITEMS } from "./layout-capacity-lines.js";
 import { runKnowledgeCommand, runKnowledgeMigration } from "./knowledge-command.js";
-import {
-  planTerminalIntegrationStage,
-  type PreparedTerminalIntegration,
-} from "./terminal-integration-stage.js";
 import type { CliIo, CliServices } from "./types.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
@@ -55,6 +51,8 @@ export interface KnowledgeStage {
   /** The full number of directories over capacity; `layoutCapacity` lists at most 16. */
   layoutCapacityCount?: number;
 }
+
+export { inspectTerminalIntegration } from "./upgrade-terminal-inspection.js";
 
 export interface TerminalIntegrationStage {
   disposition: StageDisposition;
@@ -136,6 +134,17 @@ function blocker(value: unknown): UpgradeStageBlocker | null {
     ...(typeof item.message === "string" ? { message: item.message } : {}),
     ...(Array.isArray(item.issues) && item.issues.length > 0 ? { issues: item.issues } : {}),
   };
+}
+
+/** Whether a printed plan writes user-owned bytes: a user file, or a moved file it rewrites. */
+function editsUserOwnedContent(operations: unknown): boolean {
+  return (
+    Array.isArray(operations) &&
+    operations.some((operation) => {
+      const item = record(operation);
+      return item?.ownership === "user" || item?.action === "move_update";
+    })
+  );
 }
 
 /** Extracts the exact blockers from any knowledge sub-plan or error envelope. */
@@ -268,6 +277,17 @@ async function knowledgeDisposition(
     };
   }
   if (envelope === null && status === "review_required" && planId !== null) {
+    // AGENTS.md invariant 5: without the owner's delegation, Lervo never rewrites user-owned bytes
+    // on its own. Such a plan waits for an owner command; an upgrade never applies it.
+    if (editsUserOwnedContent(result.value.operations))
+      return {
+        disposition: "lervo_debt",
+        planKind,
+        planId,
+        status,
+        reason: "user_owned_content",
+        blockers: [],
+      };
     const heldReason = await heldUpgradeKnowledgeReason(
       root,
       planId,
@@ -306,37 +326,6 @@ async function knowledgeDisposition(
       blockers[0]?.code ??
       (result.error || status || `knowledge_plan_failed_${result.code}`),
     blockers,
-  };
-}
-
-export async function inspectTerminalIntegration(root: string): Promise<{
-  stage: TerminalIntegrationStage;
-  prepared: PreparedTerminalIntegration;
-}> {
-  const prepared = await planTerminalIntegrationStage(root);
-  const { plan } = prepared;
-  const disposition: StageDisposition =
-    plan.status === "ready" ? "safe_apply" : plan.status === "blocked" ? "blocked" : "current";
-  return {
-    stage: {
-      disposition,
-      planId: plan.status === "current" ? null : plan.planId,
-      status: plan.status,
-      reason:
-        plan.status === "ready"
-          ? plan.approvalHash === null
-            ? "generated_runtime_only"
-            : "provider_hooks_backed_up_and_verified"
-          : plan.status === "blocked"
-            ? "provider_configuration_blocked"
-            : "terminal_integration_current",
-      blockers: plan.blockers.map((item) => ({
-        code: item.code,
-        path: item.path,
-        message: `${item.provider} terminal integration is blocked by ${item.code}.`,
-      })),
-    },
-    prepared,
   };
 }
 

@@ -8,7 +8,7 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { readDocumentFreshnessAttention } from "./document-freshness-attention.js";
-import { readHeldEffects } from "./held-effect-debt.js";
+import { readHeldEffectsWithRepositoryHold } from "./held-effect-debt.js";
 import { readInstructionCaptureAttention } from "./instruction-capture-attention.js";
 import { readKnowledgeConvergenceAttention } from "./knowledge-convergence-attention.js";
 import { createOperatingAttentionReport } from "./operating-attention-projection.js";
@@ -86,7 +86,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       readKnowledgeConvergenceAttention(input.repositoryRoot, storage.manifest.projectId).catch(
         () => null,
       ),
-      readHeldEffects(input.repositoryRoot),
+      readHeldEffectsWithRepositoryHold(input.repositoryRoot),
     ]);
     const workstream = workstreamObservation.snapshot;
     const workstreamFreshness =

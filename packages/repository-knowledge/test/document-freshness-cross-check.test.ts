@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { documentFreshnessAutoApplicableHunks } from "../src/document-freshness-candidate-state.js";
+import {
+  documentFreshnessAutoApplicableHunks,
+  documentFreshnessUserOwnedChange,
+} from "../src/document-freshness-candidate-state.js";
 import type {
   DocumentFreshnessCandidateV1,
   DocumentFreshnessHunk,
@@ -175,24 +178,36 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
     ]);
   });
 
-  it("lets one agreement apply a user-owned factual hunk without the owner", () => {
+  it("keeps a user-owned hunk a suggestion even after an agreement (AGENTS.md invariant 5)", () => {
     const settled = settleDocumentFreshnessCrossCheck(candidate([userOwned]), {
       ...reviewer,
       status: "verdicts",
       verdicts: [{ hunkId: userOwned.hunkId, verdict: "agree", reason: "ok" }],
     });
-    expect(settled).toMatchObject({
-      state: "verified",
-      crossCheck: "agreement",
-      authorityRequired: "none",
+    expect(settled).toMatchObject({ state: "suggested", authorityRequired: "none" });
+    expect(documentFreshnessAutoApplicableHunks(settled)).toEqual([]);
+    expect(documentFreshnessUserOwnedChange(settled)).toBe(true);
+    // A mixed candidate applies its managed hunk and keeps the user-owned one as the suggestion.
+    const mixed = settleDocumentFreshnessCrossCheck(candidate([managed, userOwned]), {
+      ...reviewer,
+      status: "verdicts",
+      verdicts: [
+        { hunkId: managed.hunkId, verdict: "agree", reason: "ok" },
+        { hunkId: userOwned.hunkId, verdict: "agree", reason: "ok" },
+      ],
     });
-    expect(documentFreshnessAutoApplicableHunks(settled).map((item) => item.hunkId)).toEqual([
-      userOwned.hunkId,
+    expect(mixed).toMatchObject({ state: "verified" });
+    expect(documentFreshnessAutoApplicableHunks(mixed).map((item) => item.hunkId)).toEqual([
+      managed.hunkId,
     ]);
+    expect(documentFreshnessUserOwnedChange(mixed)).toBe(false);
+    expect(documentFreshnessUserOwnedChange({ ...mixed, pendingHunkIds: [userOwned.hunkId] })).toBe(
+      true,
+    );
   });
 
-  it("needs two independent agreements for a user-owned statement or safety hunk", () => {
-    for (const required of [userStatement, hunk({ changeClass: "safety_or_policy" })]) {
+  it("needs two independent agreements for a Lervo-managed safety hunk", () => {
+    for (const required of [hunk({ changeClass: "safety_or_policy" })]) {
       const first = settleDocumentFreshnessCrossCheck(candidate([required]), {
         ...reviewer,
         status: "verdicts",
@@ -298,9 +313,21 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         ...verified,
         operation: "archive",
         hunks: [],
-        archive: archivePlan,
+        archive: { ...archivePlan, ownership: "lervo_managed", inboundLinkRewrites: [] },
       }),
     ).toBe(true);
+    // AGENTS.md invariant 5: bytes Lervo never applies need no call.
+    expect(
+      documentFreshnessCandidateNeedsCrossCheck({
+        ...verified,
+        operation: "archive",
+        hunks: [],
+        archive: archivePlan,
+      }),
+    ).toBe(false);
+    expect(documentFreshnessCandidateNeedsCrossCheck({ ...verified, hunks: [userStatement] })).toBe(
+      false,
+    );
     expect(
       documentFreshnessCandidateNeedsCrossCheck({ ...verified, crossCheck: "agreement" }),
     ).toBe(false);

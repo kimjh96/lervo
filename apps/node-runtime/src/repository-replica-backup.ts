@@ -1,8 +1,11 @@
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import type { RepositoryReplicaSnapshot } from "@lervo/sync";
+
 import {
+  applyRepositoryReplicaBundle,
   captureRepositoryReplicaSnapshot,
   createExportCommit,
   EXPORT_REF,
@@ -76,4 +79,35 @@ export async function saveRepositoryReplicaBackup(input: {
   const saved = await backedUpSnapshotHash(input.repositoryRoot, ref);
   if (saved === null) throw new Error("The replica backup branch was not created.");
   return { branch: input.branch, snapshotHash: saved };
+}
+
+/**
+ * ADR-0561 undo for a settled replica conflict: puts the exact snapshot a backup branch holds,
+ * uncommitted work included, back into this repository. It runs on the host whose side lost,
+ * where the backup was saved, and replaces the current history and working tree like an adopt.
+ */
+export async function restoreRepositoryReplicaBackup(input: {
+  repositoryRoot: string;
+  branch: string;
+}): Promise<RepositoryReplicaSnapshot> {
+  if (!input.branch.startsWith(`${BACKUP_BRANCH_PREFIX}/`) || /[\0\s]|\.\./u.test(input.branch))
+    throw new Error("Name a lervo/replica-backup branch to restore.");
+  const ref = `refs/heads/${input.branch}`;
+  if ((await backedUpSnapshotHash(input.repositoryRoot, ref)) === null)
+    throw new Error("The replica backup branch does not exist on this host.");
+  const directory = await mkdtemp(join(tmpdir(), "lervo-repository-restore-"));
+  try {
+    const bundlePath = join(directory, "replica.bundle");
+    await git(input.repositoryRoot, ["update-ref", EXPORT_REF, ref]);
+    await git(input.repositoryRoot, ["bundle", "create", bundlePath, EXPORT_REF]);
+    const current = await captureRepositoryReplicaSnapshot(input.repositoryRoot);
+    return await applyRepositoryReplicaBundle({
+      repositoryRoot: input.repositoryRoot,
+      bundle: new Uint8Array(await readFile(bundlePath)),
+      expectedCurrentSnapshotHash: current.snapshotHash,
+      allowHistoryReplacement: true,
+    });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
 }

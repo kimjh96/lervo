@@ -209,3 +209,17 @@ export {
   type KnowledgeEffectKind,
   type KnowledgeEffectNotice,
 } from "./knowledge-effect-commit.js";
+// ADR-0561: the owner's repository hold, for runtimes that do not read the registry directly.
+export {
+  holdRepository,
+  readRepositoryHold,
+  type RepositoryHold,
+} from "@lervo/repository-registry";
+export {
+  applyCommittedKnowledgeEffect,
+  knowledgeEffectPreflight,
+  knowledgeEffectUserPaths,
+  KnowledgeEffectUncommittedError,
+  type KnowledgeEffectHold,
+} from "./knowledge-effect-guard.js";
+export { lifecycleUserContentPaths } from "./lifecycle-plan-scope.js";

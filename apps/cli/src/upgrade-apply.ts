@@ -106,10 +106,12 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("capabilities");
 
-  const workforce = await inspectWorkforce(root);
-  if (workforce.disposition === "blocked")
+  // ADR-0561: a held repository applies no stage that changes it; its plan shows them as debt.
+  const held = approved.hold !== null;
+  const workforce = held ? null : await inspectWorkforce(root);
+  if (workforce?.disposition === "blocked")
     skippedStages.push({ stage: "workforce", reason: workforce.reason });
-  else if (workforce.disposition === "safe_apply") {
+  else if (workforce?.disposition === "safe_apply") {
     await confirmExclusion("workforce");
     const migrated = await mutateWorkforceState(root, (recordEvent) =>
       applyWorkforceRoleBindingMigration({
@@ -169,14 +171,16 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("terminal_integration");
 
-  const knowledgeOutcome = await applyKnowledgeStages({
-    repositoryRoot: root,
-    maximumStages: approved.policy.maximumKnowledgeStages,
-    materialization,
-    services,
-    confirmExclusion: () => confirmExclusion("knowledge"),
-    lap: () => clock.lap("knowledge"),
-  });
+  const knowledgeOutcome = held
+    ? { appliedStages: [], skippedStages: [], notices: [], lastStage: null }
+    : await applyKnowledgeStages({
+        repositoryRoot: root,
+        maximumStages: approved.policy.maximumKnowledgeStages,
+        materialization,
+        services,
+        confirmExclusion: () => confirmExclusion("knowledge"),
+        lap: () => clock.lap("knowledge"),
+      });
   const knowledge = knowledgeOutcome.lastStage;
   appliedStages.push(...knowledgeOutcome.appliedStages);
   skippedStages.push(...knowledgeOutcome.skippedStages);
@@ -184,14 +188,16 @@ export async function applyRepositoryUpgrade(
 
   // ADR-0546: the Node stage is ordered after knowledge without depending on it, and lint reports
   // a blocked knowledge stage instead of being skipped.
-  const node = await inspectRegisteredNodeUpgrade(
-    root,
-    approved.projectId,
-    approved.cli.version,
-    host.describeNodeLauncher,
-  );
+  const node = held
+    ? null
+    : await inspectRegisteredNodeUpgrade(
+        root,
+        approved.projectId,
+        approved.cli.version,
+        host.describeNodeLauncher,
+      );
   clock.lap("node_inspection");
-  if (node.stage.disposition === "safe_apply") {
+  if (node !== null && node.stage.disposition === "safe_apply") {
     // The service definition is backed up, applied as a transaction, verified ready, and rolled
     // back on failure inside the guarded Node transition (ADR-0561).
     await confirmExclusion("node");

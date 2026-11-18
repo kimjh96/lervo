@@ -15,6 +15,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-knowledge";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
+import { holdEffect } from "./held-effect-debt.js";
 import { effectBackupUndoCommand, restoreEffectBackup, takeEffectBackup } from "./effect-backup.js";
 import { noticeEffect } from "./effect-notice.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
@@ -244,10 +245,20 @@ export async function runStateCommand(
         repositoryRoot,
         backupId: parsed.positionals[1]!,
       });
+      // ADR-0561: an owner who undid the provider hook merge does not want it again; the next
+      // upgrade holds it until lervo repository release.
+      const ownerHold = restored.effect === "terminal_integration";
+      if (ownerHold)
+        await holdEffect({
+          repositoryRoot,
+          effect: "upgrade_terminal_integration",
+          subject: restored.backupId,
+          reasonCode: "owner_restored",
+        });
       io.stdout(
         parsed.values.json
-          ? `${JSON.stringify({ schemaVersion: 1, operation: "effect_backup_restored", ...restored }, null, 2)}\n`
-          : `Restored backup ${restored.backupId} (${restored.effect}): ${restored.restoredPaths} path(s).\n`,
+          ? `${JSON.stringify({ schemaVersion: 1, operation: "effect_backup_restored", ...restored, ownerHold }, null, 2)}\n`
+          : `Restored backup ${restored.backupId} (${restored.effect}): ${restored.restoredPaths} path(s).${ownerHold ? ` Lervo does not merge the provider hooks again until lervo repository release --root ${repositoryRoot}.` : ""}\n`,
       );
       return 0;
     }

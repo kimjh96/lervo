@@ -1,6 +1,7 @@
 import {
   documentFreshnessCandidateNeedsRegeneration,
   documentFreshnessHeldStates,
+  documentFreshnessUserOwnedChange,
   sha256,
   type DocumentFreshnessCandidateV1,
 } from "@lervo/repository-knowledge";
@@ -47,6 +48,7 @@ export async function recoverFreshnessCandidates(
         "verified",
         "waiting_authority",
         "verified_pending_cross_check",
+        "suggested",
         "partially_applied",
       ].includes(candidate.state) &&
       !(await freshnessDependenciesCurrent(
@@ -61,6 +63,18 @@ export async function recoverFreshnessCandidates(
           now: context.now(),
         }),
       );
+    } else if (
+      (candidate.state === "verified" || candidate.state === "verified_pending_cross_check") &&
+      documentFreshnessUserOwnedChange(candidate)
+    ) {
+      // AGENTS.md invariant 5: a stored candidate that writes user-owned bytes is a suggestion.
+      const suggested: DocumentFreshnessCandidateV1 = {
+        ...candidate,
+        state: "suggested",
+        updatedAt: context.now().toISOString(),
+      };
+      await writeFreshnessCandidate(context.storage.paths.repositoryRoot, suggested);
+      result.push(suggested);
     } else result.push(candidate);
   }
   return result;

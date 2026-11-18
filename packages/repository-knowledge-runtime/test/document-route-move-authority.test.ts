@@ -24,6 +24,8 @@ const calls = vi.hoisted(() => ({
     after: "2".repeat(40),
   })),
   complete: vi.fn(async (_input: unknown) => ({ state: "current" })),
+  waiting: vi.fn(async (_input: unknown) => ({ state: "attention_required" })),
+  preflight: vi.fn(async (_root: string, _paths: readonly string[]): Promise<unknown> => null),
 }));
 vi.mock("@lervo/repository-knowledge", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@lervo/repository-knowledge")>()),
@@ -52,7 +54,12 @@ vi.mock("@lervo/repository-knowledge", async (importOriginal) => ({
         action: "move",
         expectedCurrentHash: HASH,
       })),
-      ...calls.references.map((path) => ({ path, action: "update", expectedCurrentHash: HASH })),
+      ...calls.references.map((path) => ({
+        path,
+        action: "update",
+        ownership: "user",
+        expectedCurrentHash: HASH,
+      })),
     ],
   }),
   applyRepositoryLayoutMigrationPlan: calls.apply,
@@ -88,7 +95,14 @@ vi.mock("../src/workforce.js", () => ({
 }));
 vi.mock("../src/knowledge-effect-commit.js", () => ({ commitKnowledgeEffect: calls.commit }));
 vi.mock("../src/source-capture.js", () => ({ captureConvergenceSources: () => ({ sources: [] }) }));
-vi.mock("../src/stage-receipt.js", () => ({ completeConvergenceStage: calls.complete }));
+vi.mock("../src/stage-receipt.js", () => ({
+  completeConvergenceStage: calls.complete,
+  waitingConvergenceStage: calls.waiting,
+}));
+vi.mock("../src/knowledge-effect-guard.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/knowledge-effect-guard.js")>()),
+  knowledgeEffectPreflight: calls.preflight,
+}));
 vi.mock("../src/convergence-parking.js", () => ({
   carriedParkedSources: async () => [],
   mergeParkedSources: (...lists: unknown[][]) => lists.flat(),
@@ -152,26 +166,87 @@ it("reviews and applies an outside-root move with no owner command, then commits
   );
 });
 
-it("applies an argo-sized plan whose exact paths far exceed the 32-root delegation limit", async () => {
+it("applies byte-preserving moves whose exact paths far exceed the 32-root delegation limit", async () => {
   calls.moves = Array.from({ length: 20 }, (_, index) => ({
     fromPath: `area-${index}/NOTE-${index}.md`,
     toPath: `docs/operations/note-${index}.md`,
   }));
-  calls.references = Array.from({ length: 20 }, (_, index) => `service-${index}/README.md`);
   expect(await prepareConvergenceLifecycle(context, state, () => {})).toMatchObject({
     state: "current",
   });
   const paths = calls.review.mock.calls[0]![4] as string[];
-  expect(paths).toHaveLength(60);
+  expect(paths).toHaveLength(40);
+  expect(calls.preflight).toHaveBeenCalledWith("/fixture", paths);
   expect(calls.apply).toHaveBeenCalledOnce();
   expect(calls.commit).toHaveBeenCalledWith(
     expect.objectContaining({
       paths,
       notice: expect.objectContaining({
-        reason: "moved 20 documents to their classified routes, rewrote 20 references",
+        reason: "moved 20 documents to their classified routes, rewrote 0 references",
       }),
     }),
   );
+});
+
+it("parks a plan that rewrites user documents outside the delegated roots (AGENTS.md invariant 5)", async () => {
+  calls.moves = Array.from({ length: 20 }, (_, index) => ({
+    fromPath: `area-${index}/NOTE-${index}.md`,
+    toPath: `docs/operations/note-${index}.md`,
+  }));
+  calls.references = Array.from({ length: 20 }, (_, index) => `service-${index}/README.md`);
+  await prepareConvergenceLifecycle(context, state, () => {});
+  expect(calls.review).not.toHaveBeenCalled();
+  expect(calls.apply).not.toHaveBeenCalled();
+  expect(calls.commit).not.toHaveBeenCalled();
+  expect(calls.complete).toHaveBeenCalledWith(
+    expect.objectContaining({
+      stageData: {
+        parkedSources: [
+          expect.objectContaining({
+            stage: "lifecycle",
+            path: "repository_layout",
+            reason: "user_owned_content",
+          }),
+        ],
+      },
+      proof: expect.objectContaining({ status: "lifecycle_plan_parked" }),
+    }),
+  );
+  // Inside the delegated roots, the owner's delegation is the authority for user bytes.
+  vi.clearAllMocks();
+  calls.normalizationRoots = ["docs", "area-0", "service-0"];
+  calls.moves = [{ fromPath: "area-0/NOTE-0.md", toPath: "docs/operations/note-0.md" }];
+  calls.references = ["service-0/README.md"];
+  expect(await prepareConvergenceLifecycle(context, state, () => {})).toMatchObject({
+    state: "current",
+  });
+  expect(calls.apply).toHaveBeenCalledOnce();
+});
+
+it("holds a reviewed plan as debt while a user path it touches has uncommitted work", async () => {
+  calls.preflight.mockResolvedValueOnce({ reason: "paths_uncommitted", paths: ["TRACE.md"] });
+  expect(await prepareConvergenceLifecycle(context, state, () => {})).toMatchObject({
+    state: "attention_required",
+  });
+  expect(calls.apply).not.toHaveBeenCalled();
+  expect(calls.commit).not.toHaveBeenCalled();
+  expect(calls.waiting).toHaveBeenCalledWith(
+    expect.objectContaining({
+      reason: "knowledge_lifecycle_blocked",
+      dependency: expect.objectContaining({
+        hold: { reason: "paths_uncommitted", paths: ["TRACE.md"] },
+      }),
+    }),
+  );
+});
+
+it("never leaves an applied plan without its commit: a failed commit fails the stage", async () => {
+  calls.commit.mockResolvedValueOnce({ status: "not_committed", reason: "commit_failed" });
+  await expect(prepareConvergenceLifecycle(context, state, () => {})).rejects.toMatchObject({
+    code: "knowledge_apply_failed",
+  });
+  expect(calls.apply).toHaveBeenCalledOnce();
+  expect(calls.complete).not.toHaveBeenCalled();
 });
 
 it("parks a rejected exact plan as Lervo's own debt instead of asking the owner", async () => {

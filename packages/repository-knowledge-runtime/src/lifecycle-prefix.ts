@@ -1,7 +1,15 @@
-import { lifecycleChangedPaths, missingLifecyclePaths } from "./lifecycle-plan-scope.js";
-import { lifecycleEffectNotice } from "./lifecycle-effect-notice.js";
-import { commitKnowledgeEffect } from "./knowledge-effect-commit.js";
+import {
+  lifecycleChangedPaths,
+  missingLifecyclePaths,
+  userContentOutsideRoots,
+} from "./lifecycle-plan-scope.js";
+import { knowledgeEffectPreflight } from "./knowledge-effect-guard.js";
 import { observeDocumentDeferrals } from "./document-deferral-health.js";
+import {
+  applyLifecycleEffect,
+  parkUserOwnedLifecyclePlan,
+  waitForLifecycleEffect,
+} from "./lifecycle-effect-hold.js";
 import { inspectDocumentRouteResolutionContext } from "./document-route-resolution-context.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import { convergenceOperationEffects } from "./effect-source-fence.js";
@@ -88,8 +96,9 @@ export async function prepareConvergenceLifecycle(
       dependency: { kind: "lifecycle_plan", snapshotHash: state.snapshotHash, planId: plan.planId },
     });
   const paths = lifecycleChangedPaths(plan);
-  // ADR-0561: a reviewed plan carries its own exact path set, whatever the delegation's roots. A
-  // plan that applies without review stays inside them.
+  // ADR-0561: a reviewed plan may move whole documents and write Lervo's own outputs outside the
+  // delegation's roots, because its exact path set is reviewed. A plan that applies without review
+  // stays inside them, and so do user-owned bytes (AGENTS.md invariant 5).
   const reviewed = plan.status === "review_required";
   if (!reviewed && missingLifecyclePaths(plan, governedRoots).length > 0)
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
@@ -102,6 +111,17 @@ export async function prepareConvergenceLifecycle(
   const planHash = sha256(canonicalJson(plan));
   // ADR-0485: a parked exact plan never holds assessment; canonical work continues past it.
   if (lifecyclePlanParked(parked, kind, planHash)) return null;
+  const userOwned = reviewed ? userContentOutsideRoots(plan, governedRoots) : [];
+  if (userOwned.length > 0)
+    return parkUserOwnedLifecyclePlan({
+      context,
+      state,
+      stage: "assessment",
+      kind,
+      planId: plan.planId,
+      planHash,
+      userOwned,
+    });
   let approval: Awaited<ReturnType<typeof reviewLifecyclePlan>> | null = null;
   try {
     approval = reviewed
@@ -138,6 +158,7 @@ export async function prepareConvergenceLifecycle(
       ];
       if (
         (reviewed && approval === null) ||
+        (reviewed && userContentOutsideRoots(plan, governed).length > 0) ||
         (!reviewed &&
           paths.some(
             (path) =>
@@ -146,6 +167,11 @@ export async function prepareConvergenceLifecycle(
         approval?.reviewerAgentId === authority.agent.agentId
       )
         throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+      // ADR-0561: a reviewed effect applies only when it can land as its own commit and touches
+      // no uncommitted user edit; otherwise it waits as Lervo debt until the owner commits.
+      const hold = reviewed ? await knowledgeEffectPreflight(root, paths) : null;
+      if (hold !== null)
+        return waitForLifecycleEffect({ context, state, planId: plan.planId, hold });
       const before = await lintRepositoryKnowledge(root);
       const record = async (receipt: unknown) => {
         await authority.assertCurrent();
@@ -178,7 +204,7 @@ export async function prepareConvergenceLifecycle(
       };
       await authority.assertCurrent();
       context.assertSourceExact(state);
-      const receipt =
+      const apply = async () =>
         plan.planKind === "repository_layout"
           ? await applyRepositoryLayoutMigrationPlan({
               plan,
@@ -193,20 +219,14 @@ export async function prepareConvergenceLifecycle(
               now: new Date(),
               recordApplied: record,
             });
+      const { receipt, commit } = await applyLifecycleEffect({
+        repositoryRoot: root,
+        paths,
+        reviewed: approval === null ? null : { plan, approval },
+        apply,
+        assertCurrent: () => authority.assertCurrent(),
+      });
       context.sourceObservation?.noteChange();
-      // ADR-0561: the reviewed effect lands as its own commit, the undo point the notice names.
-      await authority.assertCurrent();
-      const commit =
-        approval === null
-          ? null
-          : await commitKnowledgeEffect({
-              repositoryRoot: root,
-              paths,
-              notice: lifecycleEffectNotice(
-                plan,
-                `lifecycle reviewer ${approval.reviewerAgentId} approved`,
-              ),
-            });
       return completeConvergenceStage({
         sources: convergenceSourceObservation(context),
         artifacts: context.storage.artifacts,
@@ -220,14 +240,14 @@ export async function prepareConvergenceLifecycle(
           ).sources,
         },
         approvedEffects: convergenceOperationEffects(plan.operations),
-        ...(commit?.status === "committed"
-          ? { committedHead: { before: commit.before, after: commit.after } }
-          : {}),
+        ...(commit === null
+          ? {}
+          : { committedHead: { before: commit.before, after: commit.after } }),
         proof: {
           status: "lifecycle_prefix_applied",
           receipt,
           approval,
-          commit: commit?.status === "committed" ? commit.after : null,
+          commit: commit === null ? null : commit.after,
         },
       });
     },

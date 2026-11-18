@@ -1,7 +1,7 @@
 import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowledge";
 
 import { CommandFailure } from "./command-error-output.js";
-import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
+import { holdEffect, releaseHeldEffects, type HeldEffectReason } from "./held-effect-debt.js";
 import type { CliServices } from "./types.js";
 import type { UpgradeReceipt } from "./upgrade-format.js";
 import {
@@ -13,12 +13,20 @@ import {
 const knowledgeRefusedByMarker = (stage: KnowledgeStage): boolean =>
   stage.reason === "knowledge_recovery_required";
 
-/** A cross-check that disagreed or could not run holds the stage as Lervo debt (ADR-0561). */
-function heldCrossCheck(error: unknown): "disagreed" | "unavailable" | null {
-  if (!(error instanceof CommandFailure)) return null;
-  if (error.code === "knowledge_cross_check_disagreed") return "disagreed";
-  if (error.code === "knowledge_cross_check_unavailable") return "unavailable";
-  return null;
+/**
+ * ADR-0561: a cross-check that disagreed or could not run, a commit that is not possible, or a
+ * touched user path with uncommitted work holds the stage as Lervo debt; nothing was applied.
+ */
+const HELD_CODES: Readonly<Record<string, HeldEffectReason>> = {
+  knowledge_cross_check_disagreed: "cross_check_disagreement_repeated",
+  knowledge_cross_check_unavailable: "cross_check_unavailable",
+  knowledge_effect_commit_unavailable: "commit_unavailable",
+  knowledge_effect_commit_failed: "commit_unavailable",
+  knowledge_effect_paths_uncommitted: "paths_uncommitted",
+};
+
+function heldCrossCheck(error: unknown): HeldEffectReason | null {
+  return error instanceof CommandFailure ? (HELD_CODES[error.code] ?? null) : null;
 }
 
 /**
@@ -47,7 +55,7 @@ export async function applyKnowledgeStages(input: {
   let lastStage: KnowledgeStage | null = null;
   for (let index = 0; index < input.maximumStages; index += 1) {
     // A marker refusal happens before any write, so inspecting and applying again is safe.
-    let held: { planId: string; outcome: "disagreed" | "unavailable" } | null = null;
+    let held: { planId: string; outcome: HeldEffectReason } | null = null;
     const stage = await materialization.run(async () => {
       const inspected = await inspectKnowledge(repositoryRoot);
       if (inspected.disposition !== "safe_apply") return inspected;
@@ -70,18 +78,17 @@ export async function applyKnowledgeStages(input: {
     input.lap();
     lastStage = stage;
     if (held !== null) {
-      const { planId, outcome } = held as { planId: string; outcome: "disagreed" | "unavailable" };
+      const { planId, outcome } = held as { planId: string; outcome: HeldEffectReason };
+      // A rejected exact plan regenerates identically, so it is held at once (ADR-0561).
       await holdEffect({
         repositoryRoot,
         effect: "upgrade_knowledge",
         subject: planId,
-        // A rejected exact plan regenerates identically, so it is held at once (ADR-0561).
-        reasonCode:
-          outcome === "disagreed" ? "cross_check_disagreement_repeated" : "cross_check_unavailable",
+        reasonCode: outcome,
       });
       skippedStages.push({
         stage: "knowledge",
-        reason: outcome === "disagreed" ? "cross_check_disagreed" : "cross_check_unavailable",
+        reason: outcome === "cross_check_disagreement_repeated" ? "cross_check_disagreed" : outcome,
       });
       break;
     }

@@ -82,7 +82,10 @@ export function attributeOperatingAttention(
     case "held_effect":
       actor = item.effect === "capability_install" ? "capability installer" : "repository upgrade";
       waitingSince = item.since;
-      recommendation = `Retry ${item.subject} once its plan or provider changes`;
+      recommendation =
+        item.reasonCode === "owner_hold" || item.reasonCode === "owner_restored"
+          ? "Held by the owner; lervo repository release --root <repository> releases it"
+          : `Retry ${item.subject} once its plan or provider changes`;
       inspectCommand =
         item.effect === "capability_install" ? "lervo capability list" : "lervo upgrade";
       break;

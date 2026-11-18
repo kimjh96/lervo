@@ -84,6 +84,11 @@ export type DocumentFreshnessCandidateState =
   | "verified"
   | "verified_pending_cross_check"
   | "waiting_authority"
+  /**
+   * ADR-0561 with AGENTS.md invariant 5: a verified change to user-owned bytes. Lervo never
+   * applies it; it stays as a suggestion the owner can apply by hand until the document changes.
+   */
+  | "suggested"
   | "applied"
   | "partially_applied"
   | "rejected"

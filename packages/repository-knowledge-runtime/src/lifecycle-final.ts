@@ -41,8 +41,12 @@ import { completeConvergenceStage, waitingConvergenceStage } from "./stage-recei
 import { recordConvergenceMaterialization } from "./materialization-event.js";
 import { verifyConvergenceEffect } from "./stage-verification.js";
 import { pathWithinConvergenceRoots } from "./delegation.js";
-import { commitKnowledgeEffect } from "./knowledge-effect-commit.js";
-import { lifecycleEffectNotice } from "./lifecycle-effect-notice.js";
+import {
+  applyLifecycleEffect,
+  parkedForUserOwnedContent,
+  waitForLifecycleEffect,
+} from "./lifecycle-effect-hold.js";
+import { knowledgeEffectPreflight } from "./knowledge-effect-guard.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -123,8 +127,20 @@ export async function verifyConvergenceLifecycle(
         },
       });
     }
-    // ADR-0561: a reviewed bridge plan carries its own exact path set, whatever the roots.
+    // ADR-0561: a reviewed bridge plan carries its own exact path set, but user-owned bytes stay
+    // inside the delegated roots (AGENTS.md invariant 5); outside them the plan is parked.
     const reviewed = approval !== null;
+    const parkedUserOwned =
+      reviewed && bridgePlan
+        ? await parkedForUserOwnedContent({
+            context,
+            state,
+            stage: "lifecycle_verification",
+            kind: "instruction_bridge",
+            plan,
+          })
+        : null;
+    if (parkedUserOwned !== null) return parkedUserOwned;
     return withConvergenceAssignment({
       storage: context.storage,
       provider: context.provider,
@@ -148,6 +164,10 @@ export async function verifyConvergenceLifecycle(
           approval?.reviewerAgentId === authority.agent.agentId
         )
           throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
+        // ADR-0561: a reviewed bridge applies only when it can be committed over clean user files.
+        const hold = reviewed && bridgePlan ? await knowledgeEffectPreflight(root, paths) : null;
+        if (hold !== null)
+          return waitForLifecycleEffect({ context, state, planId: plan.planId, hold });
         await authority.assertCurrent();
         context.assertSourceExact(state);
         const record = async (receipt: unknown) => {
@@ -175,30 +195,25 @@ export async function verifyConvergenceLifecycle(
             validation,
           });
         };
-        const receipt = bridgePlan
-          ? await applyKnowledgeInstructionBridgePlan({
-              plan,
-              now: new Date(),
-              recordApplied: record,
-              ...(plan.status === "review_required"
-                ? { approvedOperationId: plan.operationId, approvedHash: plan.approvalHash }
-                : {}),
-            })
-          : await applyKnowledgeMigrationPlan(plan, new Date(), record);
-        context.sourceObservation?.noteChange();
-        // ADR-0561: the reviewed bridge lands as its own commit, the undo point the notice names.
-        await authority.assertCurrent();
-        const commit =
-          "profile" in plan && approval !== null
-            ? await commitKnowledgeEffect({
-                repositoryRoot: root,
-                paths,
-                notice: lifecycleEffectNotice(
-                  plan,
-                  `lifecycle reviewer ${approval.reviewerAgentId} approved`,
-                ),
+        const apply = async () =>
+          bridgePlan
+            ? await applyKnowledgeInstructionBridgePlan({
+                plan,
+                now: new Date(),
+                recordApplied: record,
+                ...(plan.status === "review_required"
+                  ? { approvedOperationId: plan.operationId, approvedHash: plan.approvalHash }
+                  : {}),
               })
-            : null;
+            : await applyKnowledgeMigrationPlan(plan, new Date(), record);
+        const { receipt, commit } = await applyLifecycleEffect({
+          repositoryRoot: root,
+          paths,
+          reviewed: bridgePlan && approval !== null ? { plan, approval } : null,
+          apply,
+          assertCurrent: () => authority.assertCurrent(),
+        });
+        context.sourceObservation?.noteChange();
         return completeConvergenceStage({
           sources: convergenceSourceObservation(context),
           artifacts: context.storage.artifacts,
@@ -207,14 +222,14 @@ export async function verifyConvergenceLifecycle(
           nextStage: "lifecycle_verification",
           stageData: {},
           approvedEffects: convergenceOperationEffects(plan.operations),
-          ...(commit?.status === "committed"
-            ? { committedHead: { before: commit.before, after: commit.after } }
-            : {}),
+          ...(commit === null
+            ? {}
+            : { committedHead: { before: commit.before, after: commit.after } }),
           proof: {
             status: "ordered_lifecycle_applied",
             receipt,
             approval,
-            commit: commit?.status === "committed" ? commit.after : null,
+            commit: commit === null ? null : commit.after,
           },
         });
       },

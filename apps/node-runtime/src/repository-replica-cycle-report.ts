@@ -1,3 +1,4 @@
+import { repositoryReplicaRestoreCommand } from "./repository-replica-notice.js";
 import type { RepositoryReplicaCycleResult } from "./repository-replica-coordinator.js";
 import type { RepositoryReplicaEventDisposition } from "./repository-replica-events.js";
 import {
@@ -118,7 +119,7 @@ export class RepositoryReplicaCycleReporter {
     // ADR-0561 notice: what replaced which side, and where the replaced side is kept.
     if (result.backup !== undefined) {
       lines.stdout.push(
-        `Repository replica ${result.replicaId} saved the ${result.backup.side} side (${result.backup.snapshotHash}) to branch ${result.backup.branch} on this host before preferring the other side; restore it with git merge or git checkout ${result.backup.branch}.`,
+        `Repository replica ${result.replicaId} saved the ${result.backup.side} side (${result.backup.snapshotHash}) to branch ${result.backup.branch} on the ${result.backup.side} host before preferring the other side; undo: ${repositoryReplicaRestoreCommand({ replicaId: result.replicaId, backup: result.backup })}.`,
       );
     }
     return lines;

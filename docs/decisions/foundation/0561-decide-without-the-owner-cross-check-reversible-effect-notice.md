@@ -49,14 +49,22 @@ These effects still never wait for the owner. They need a stronger check instead
 
 An owner-stated rule is stored. The intake gate stops dropping candidates. A rule that conflicts with an existing rule replaces the older one in the same scope, and the replacement is reported in a notice. A rule that is broad, removes behavior, or changes authority is stored with that classification and applied like any other rule. Applying it is the owner's own instruction, so it needs no cross-check of authority, only a check that the stored text matches what the owner said.
 
+### Limits: user-owned bytes and the owner's hold
+
+AGENTS.md invariant 5 is unchanged: Lervo never rewrites user-owned content on its own. Freshness applies only Lervo-managed bytes; a user-owned hunk or archive stays `suggested`, with no cross-check spent. A reviewed lifecycle plan may move whole documents byte for byte and write Lervo's outputs anywhere, because Git keeps the bytes and the path under one revert. Rewriting a user file is allowed only inside the roots of the delegation the owner installed. Outside them the plan is parked as `user_owned_content` debt, and an upgrade never applies it; an owner command such as `lervo migrate knowledge --apply` still can.
+
+Every effect lands as its own commit, so it applies only when that commit is possible and no user path it touches holds uncommitted work. A commit that does not land restores every changed path.
+
+`lervo repository hold --root <path> [--reason <text>]` is the owner's way to defer one repository. The hold sits in host state beside the repository registry. While it lasts, the follower runs no upgrade there, the resident applies nothing, and the replica coordinator transfers nothing and settles no conflict; plans and notices continue. `lervo repository release` ends it, and an unreadable hold file holds every repository. Undoing a provider hook merge with `lervo state restore` holds that merge the same way.
+
 ### Replacement by area
 
-- **Freshness.** Tier 0 agreement sets authority to `none` for every hunk class. `safety_or_policy` hunks and archives need two agreeing checks. `needs_owner_input` first tries ADR-0494 evidence recovery and regeneration; otherwise the document is marked stale with its reason in health.
-- **Layout and migration.** The lifecycle reviewer applies classified moves whatever the delegation's roots. The out-of-scope deferral and the ADR-0559 accept and decline commands are removed. Document structure operations use Tier 0, and delete becomes archive or commit-then-delete.
+- **Freshness.** Tier 0 agreement sets authority to `none` for every Lervo-managed hunk class. `safety_or_policy` hunks and archives need two agreeing checks. `needs_owner_input` first tries ADR-0494 evidence recovery and regeneration; otherwise the document is marked stale with its reason in health.
+- **Layout and migration.** The lifecycle reviewer applies classified byte-preserving moves whatever the delegation's roots. The out-of-scope deferral and the ADR-0559 accept and decline commands are removed. Document structure operations use Tier 0, and delete becomes archive or commit-then-delete.
 - **Canonicalization and instructions.** Candidates are promoted after the independent canonical review. The instruction bridge and bootstrap always take the background reviewed path.
 - **Delegation and scope.** Delegations renew automatically within the last installed policy bounds. Scope additions are accepted when the classifier and Tier 0 agree. The 32-root limit no longer blocks a complete move plan, because the reviewed plan carries its own exact path set.
 - **Upgrade and terminal integration.** `lervo upgrade` applies every cross-checked stage without `--approval`. Provider hook files and Node service units are backed up, applied, verified, and rolled back on failure.
-- **Workstream and Hub.** Reconciliation keeps the newest valid head and preserves the other head. Replica conflicts save the losing side to a backup branch first.
+- **Workstream and Hub.** Reconciliation keeps the newest valid head and preserves the other head. A replica conflict saves the losing side to a backup branch on its own host and records the notice before either side changes; `lervo-node repository-replica restore` puts it back and holds the repository.
 - **Supervision.** After the escalation bound, the principal proxy (ADR-0453) decides within its mandate instead of waiting for the owner.
 
 The per-item approval commands (`--approve-item`, `--approval`, `--accept-layout`, `--decline-layout`, `scope-response`, `canonicalization review/promote`, `instruction review`, `freshness apply --approval`) are removed. Undo commands stay.

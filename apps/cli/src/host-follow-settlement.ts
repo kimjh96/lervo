@@ -1,3 +1,4 @@
+import { readRepositoryHold } from "@lervo/repository-registry";
 import { errorCode } from "./command-error-output.js";
 import {
   readActivationJournal,
@@ -82,6 +83,9 @@ async function runPassWithActiveCli(
     signal: dependencies.signal,
     blockedPlanIds,
     ...(yieldToRelease === undefined ? {} : { yieldToRelease }),
+    repositoryHeld:
+      dependencies.repositoryHeld ??
+      (async (repositoryRoot) => (await readRepositoryHold(repositoryRoot)) !== null),
   });
   if (raw.outcome === "interrupted") return null;
   const finishedAt = dependencies.upgrade.now();

@@ -11,7 +11,10 @@ import {
   documentFreshnessCrossCheckRequired,
   documentFreshnessRangeOwnership,
 } from "./document-freshness-classification.js";
-import { documentFreshnessVerifiedState } from "./document-freshness-candidate-state.js";
+import {
+  documentFreshnessUserOwnedChange,
+  documentFreshnessVerifiedState,
+} from "./document-freshness-candidate-state.js";
 import type {
   DocumentFreshnessCandidateV1,
   DocumentFreshnessCheckResult,
@@ -217,6 +220,7 @@ function editCandidate(
   return finish({
     ...candidate,
     afterHash: sha256(output),
+    // AGENTS.md invariant 5: user-owned hunks stay a suggestion; managed hunks may still apply.
     state: documentFreshnessVerifiedState(hunks, crossCheck),
     pendingHunkIds: hunks.map((hunk) => hunk.hunkId),
   });
@@ -291,8 +295,13 @@ function archiveCandidate(
   return finish({
     ...candidate,
     afterHash: sha256(applied.targetContent),
-    // ADR-0561: the archive and its inbound link rewrites wait for two agreeing cross-checks.
-    state: crossCheckRequired ? "verified_pending_cross_check" : "verified",
+    // ADR-0561: the archive and its inbound link rewrites wait for two agreeing cross-checks; an
+    // archive that writes user-owned bytes stays a suggestion (AGENTS.md invariant 5).
+    state: documentFreshnessUserOwnedChange({ operation: "archive", hunks: [], archive: plan })
+      ? "suggested"
+      : crossCheckRequired
+        ? "verified_pending_cross_check"
+        : "verified",
   });
 }
 

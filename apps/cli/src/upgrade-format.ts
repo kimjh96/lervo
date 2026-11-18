@@ -74,6 +74,11 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
   const lines = [
     `Repository upgrade: ${plan.status}`,
     `plan: ${plan.planId}`,
+    ...(plan.hold === null
+      ? []
+      : [
+          `repository hold: held by the owner since ${plan.hold.heldAt}${plan.hold.reason === null ? "" : ` (${plan.hold.reason})`}; no stage that changes this repository applies until lervo repository release --root ${plan.repositoryRoot}`,
+        ]),
     `runtime retention: ${plan.stages.runtimeRetention.disposition} (${plan.stages.runtimeRetention.reason}) · ${plan.stages.runtimeRetention.candidates.length} directories, ${plan.stages.runtimeRetention.reclaimableBytes} bytes`,
     ...plan.stages.runtimeRetention.candidates.map(
       (item) => `  remove runtime ${item.name} (${item.bytes} bytes)`,

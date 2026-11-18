@@ -1,3 +1,4 @@
+import { readRepositoryHold } from "@lervo/repository-registry";
 import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
 import { admittedBackgroundContext } from "./background-provider.js";
 import { runPracticeLearningCycle } from "./practice-stage.js";
@@ -112,7 +113,7 @@ export async function runAutonomousKnowledgeWorker(input: {
   /** How convergence observes repository sources; absent, every observation is a full capture. */
   sourceObservation?: ConvergenceSourceObservation;
 }): Promise<
-  | { status: "busy"; reason?: "knowledge_cycle_yielded_to_upgrade" }
+  | { status: "busy"; reason?: "knowledge_cycle_yielded_to_upgrade" | "repository_owner_hold" }
   | {
       status: "waiting_owner";
       owner: ConvergenceOwnerVerdict;
@@ -129,6 +130,10 @@ export async function runAutonomousKnowledgeWorker(input: {
     }
 > {
   const root = input.storage.paths.repositoryRoot;
+  // ADR-0561: the owner's repository hold stops every effect of the resident here. Nothing is
+  // lost: queued owner turns and pending stages stay due until the owner releases the hold.
+  if ((await readRepositoryHold(root)) !== null)
+    return { status: "busy", reason: "repository_owner_hold" };
   // Transcript evidence is host-local observation; it requires no provider call or convergence authority.
   await withProcessCostScope("terminal_skills", () =>
     withRepositoryKnowledgeWorkerLock(root, async () => {

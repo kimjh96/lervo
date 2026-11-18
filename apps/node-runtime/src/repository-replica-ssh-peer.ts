@@ -267,6 +267,54 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     return parseReplicaKnowledgeSupersession(JSON.parse(Buffer.from(output).toString("utf8")));
   }
 
+  /**
+   * ADR-0561: saves this peer's own side to a backup branch in the peer's repository, the host
+   * the undo restores it on. A peer runtime that predates the action fails, and the coordinator
+   * then holds the conflict instead of changing either side.
+   */
+  async backup(input: {
+    repositoryRoot: string;
+    branch: string;
+    bundle: Uint8Array | null;
+    expectedSnapshotHash: string;
+  }): Promise<{ branch: string; snapshotHash: string }> {
+    if (input.bundle !== null)
+      throw new Error("A peer saves only its own side; its backup takes no bundle.");
+    const output = await this.execute([
+      "backup",
+      "--root",
+      input.repositoryRoot,
+      "--branch",
+      input.branch,
+      "--expected",
+      input.expectedSnapshotHash,
+    ]);
+    const saved = JSON.parse(Buffer.from(output).toString("utf8")) as {
+      branch?: unknown;
+      snapshotHash?: unknown;
+    };
+    if (typeof saved.branch !== "string" || typeof saved.snapshotHash !== "string")
+      throw new Error("The peer returned an invalid replica backup.");
+    return { branch: saved.branch, snapshotHash: saved.snapshotHash };
+  }
+
+  /** ADR-0561 undo: puts a saved backup branch back into the peer's repository. */
+  async restoreBackup(input: {
+    repositoryRoot: string;
+    branch: string;
+  }): Promise<RepositoryReplicaSnapshot> {
+    const output = await this.execute([
+      "restore-backup",
+      "--root",
+      input.repositoryRoot,
+      "--branch",
+      input.branch,
+    ]);
+    const snapshot = JSON.parse(Buffer.from(output).toString("utf8")) as RepositoryReplicaSnapshot;
+    assertRepositoryReplicaSnapshot(snapshot);
+    return snapshot;
+  }
+
   async recordReceipt(input: RepositoryReplicaReceipt): Promise<void> {
     await this.execute(
       ["receipt", "--root", input.repositoryRoot],

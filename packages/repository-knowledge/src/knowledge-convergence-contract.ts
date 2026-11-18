@@ -132,7 +132,12 @@ export interface KnowledgeConvergenceStatus {
       stage: "canonical" | "normalization" | "lifecycle";
       path: string;
       /** `owner_decision` appears only in state parked before ADR-0561; it is Lervo debt too. */
-      reason: "review_rejected" | "owner_decision" | "target_diverged" | "layout_capacity_exceeded";
+      reason:
+        | "review_rejected"
+        | "owner_decision"
+        | "target_diverged"
+        | "layout_capacity_exceeded"
+        | "user_owned_content";
       attempts: number;
     }[];
   };

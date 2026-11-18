@@ -1,5 +1,5 @@
 import { rm, symlink } from "node:fs/promises";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import {
   observeDocumentFreshnessFindings,
   readDocumentFreshnessAssessments,
@@ -21,8 +21,19 @@ import { recoverFreshnessCandidates } from "../src/freshness-candidate-recovery.
 import { runDocumentFreshnessCycle } from "../src/freshness-stage.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
 
+/** AGENTS.md invariant 5: documents a test treats as Lervo-managed; every other one is user-owned. */
+const ownership = vi.hoisted(() => ({ managed: new Set<string>() }));
+vi.mock("@lervo/repository-knowledge", async (importOriginal) => {
+  const { lervoManagedDocuments } = await import("./freshness-ownership.js");
+  return lervoManagedDocuments(
+    await importOriginal<typeof import("@lervo/repository-knowledge")>(),
+    ownership.managed,
+  );
+});
+
 const fixtures: FreshnessFixture[] = [];
 afterEach(async () => {
+  ownership.managed.clear();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true });
@@ -228,6 +239,7 @@ it("preserves reader-first activation and rejects applying changed evidence", as
 });
 
 it("supersedes a legacy owner-authority candidate for regeneration and keeps an applied one", async () => {
+  ownership.managed.add("docs/specs/runtime.md");
   const f = await setup();
   await history(f);
   await f.plan({
@@ -283,6 +295,7 @@ it("supersedes a legacy owner-authority candidate for regeneration and keeps an 
 });
 
 it("refuses Lervo's apply when the exact reviewed source changed without a document edit", async () => {
+  ownership.managed.add("docs/specs/runtime.md");
   const f = await setup();
   await history(f);
   await f.plan({

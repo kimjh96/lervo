@@ -20,6 +20,7 @@ const OPEN_STATES = new Set<DocumentFreshnessCandidateV1["state"]>([
   "generated",
   "verified_pending_cross_check",
   "waiting_authority",
+  "suggested",
   "partially_applied",
 ]);
 /** States after which the same finding is settled until its evidence changes. */

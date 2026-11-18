@@ -9,12 +9,15 @@ Uncommitted work from both sides merges through worktree export commits and rema
 [ADR-0561](../../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) amends this contract: no conflict waits for an owner choice. The repository's `conflictPolicy` names the preferred side. `prefer_peer` prefers the peer; `prefer_local` and the legacy default `hold` prefer the local side. When the plain merge conflicts, or the heads share no history, the same cycle:
 
 1. Records the divergence as described below.
-2. Saves the losing side to the branch `lervo/replica-backup/<replica-id>/<first 12 hex of the divergence ID>` in the local repository, on the coordinator host. The branch points at the losing side's replica export commit, so it holds committed history and uncommitted work exactly. An existing branch for the same divergence is reused, never moved.
+2. Saves the losing side to the branch `lervo/replica-backup/<replica-id>/<first 12 hex of the divergence ID>` in the losing side's own repository, on its own host: the peer saves itself through the `backup` peer action. The branch points at the losing side's replica export commit, so it holds committed history and uncommitted work exactly, and it survives the merge and push that follow. An existing branch for the same divergence is reused, never moved.
 3. Runs two checks that must agree before either repository changes: the backup branch verifiably holds the losing snapshot hash, and a fresh observation of both sides still matches the snapshots the decision used.
-4. Merges with the preferred side winning only the conflicting hunks. If no merge is possible, such as without common history, the preferred side replaces the other wholesale through the history-replacement apply.
-5. Records `repository.replica.reconciled` with strategy `prefer_local` or `prefer_peer` and logs one notice line that names the backup branch and how to restore it with `git merge` or `git checkout`.
+4. Records the learned notice with its undo, `lervo-node repository-replica restore --config <coordinator-config> --replica <id> --side <local|peer> --branch <branch>`, in the local repository's effect notice journal. A notice that cannot be recorded changes nothing.
+5. Merges with the preferred side winning only the conflicting hunks. If no merge is possible, such as without common history, the preferred side replaces the other wholesale through the history-replacement apply.
+6. Records `repository.replica.reconciled` with strategy `prefer_local` or `prefer_peer` and logs one notice line that names the backup branch and the same undo.
 
-A missing backup port, a failed backup, or a disagreeing check changes nothing. The cycle stays `divergent` with `heldReason` `backup_unavailable` or `stronger_check_disagreement`, and the open divergence is Lervo's own debt. The next cycle tries again. The removed `--prefer` option of `lervo-node repository-replica reconcile` fails with a message that names the backup branch.
+A missing backup port, including a peer runtime that predates the `backup` action, a failed backup, a disagreeing check, or an unrecorded notice changes nothing. The cycle stays `divergent` with `heldReason` `backup_unavailable`, `stronger_check_disagreement`, or `notice_unavailable`, and the open divergence is Lervo's own debt. The next cycle tries again.
+
+The undo runs on the coordinator host. It first holds the local repository with the owner's repository hold, then puts the backup branch's exact snapshot back on the side's host through the `restore-backup` action, as a history-replacement apply. While the local repository is held, the coordinator transfers nothing for that replica and settles no conflict (`heldReason` `owner_hold`); `lervo repository release --root <local-root>` resumes it. The removed `--prefer` option of `lervo-node repository-replica reconcile` fails with a message that names the backup branch.
 
 ## Divergence identity
 

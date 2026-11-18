@@ -1,6 +1,8 @@
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
+import { readRepositoryHold } from "@lervo/repository-knowledge-runtime";
+
 import {
   REPOSITORY_REPLICA_PER_CALL_LAUNCHER,
   repositoryReplicaPeerLauncher,
@@ -27,6 +29,7 @@ import {
   isRepositoryReplicaPeerTransportFailure,
 } from "./repository-replica-failure.js";
 import { noticeReplicaBackup } from "./repository-replica-notice.js";
+import { restoreRepositoryReplicaSide } from "./repository-replica-restore.js";
 import {
   replicaCycleOutcome,
   replicaFailureOutcome,
@@ -75,6 +78,10 @@ export async function runRepositoryReplicaCoordinator(
   options: {
     watch: boolean;
     only?: { replicaId: string };
+    /** The coordinator configuration's path, named in each backup notice's undo command. */
+    config?: string;
+    /** ADR-0561 undo: restore one saved losing side instead of reconciling. */
+    restore?: { side: "local" | "peer"; branch: string };
   },
 ): Promise<number> {
   const now = ports.now ?? (() => new Date());
@@ -109,11 +116,28 @@ export async function runRepositoryReplicaCoordinator(
     arguments: transport.arguments,
     remoteRuntimeExecutable: remoteRuntimePayload(config.peer),
   });
+  const local = new LocalRepositoryReplicaPeer();
+  const configPath = options.config === undefined ? undefined : resolve(ports.cwd, options.config);
+  if (options.restore !== undefined)
+    return restoreRepositoryReplicaSide({
+      repository: repositories[0]!,
+      restore: options.restore,
+      local,
+      peer,
+      ports,
+      now,
+    });
   const coordinator = new RepositoryReplicaCoordinator({
     stateFile,
-    local: new LocalRepositoryReplicaPeer(),
+    local,
     peer,
     now,
+    noticeBackup: (input) =>
+      noticeReplicaBackup({
+        ...input,
+        ...(configPath === undefined ? {} : { configPath }),
+        now: now(),
+      }),
   });
   const reporter = new RepositoryReplicaCycleReporter(options.watch);
   const emit = (lines: RepositoryReplicaReportLines) => {
@@ -121,6 +145,7 @@ export async function runRepositoryReplicaCoordinator(
     for (const line of lines.stderr) ports.stderr(`${line}\n`);
   };
   let unhealthy = false;
+  const heldReported = new Set<string>();
   let recoveryIntervalMs: number | undefined;
   let peerBackoff: RepositoryReplicaHealthSnapshot["peer"];
   let healthWrite = Promise.resolve();
@@ -180,14 +205,23 @@ export async function runRepositoryReplicaCoordinator(
       void publishHealth();
     },
     reconcile: async (repository, { trigger }) => {
+      // ADR-0561: while the owner holds the local repository, no transfer or conflict resolution
+      // changes either side; the replica resumes when the owner releases the hold.
+      if ((await readRepositoryHold(repository.localRoot)) !== null) {
+        if (!heldReported.has(repository.replicaId))
+          ports.stdout(
+            `Repository replica ${repository.replicaId} is held by the owner; nothing is transferred until lervo repository release --root ${repository.localRoot}.\n`,
+          );
+        heldReported.add(repository.replicaId);
+        return "held";
+      }
+      heldReported.delete(repository.replicaId);
       let outcome: ReplicaReconcileOutcome;
       try {
         const result = await coordinator.reconcile({ ...repository, trigger });
         if (result.status === "divergent") unhealthy = true;
         outcome = replicaCycleOutcome(result);
         emit(reporter.observeResult(result));
-        if ("backup" in result && result.backup !== undefined)
-          await noticeReplicaBackup(repository.localRoot, result.replicaId, result.backup);
       } catch (error) {
         unhealthy = true;
         const [failure, receiptRecorded] =

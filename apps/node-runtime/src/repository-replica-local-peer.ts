@@ -9,7 +9,10 @@ import {
   applyRepositoryReplicaBundle,
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
-import { saveRepositoryReplicaBackup } from "./repository-replica-backup.js";
+import {
+  restoreRepositoryReplicaBackup,
+  saveRepositoryReplicaBackup,
+} from "./repository-replica-backup.js";
 import {
   mergeRepositoryReplicaBundle,
   type RepositoryReplicaConflictPolicy,
@@ -52,6 +55,10 @@ export class LocalRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     expectedSnapshotHash: string;
   }) {
     return saveRepositoryReplicaBackup(input);
+  }
+
+  restoreBackup(input: { repositoryRoot: string; branch: string }) {
+    return restoreRepositoryReplicaBackup(input);
   }
 
   merge(input: {

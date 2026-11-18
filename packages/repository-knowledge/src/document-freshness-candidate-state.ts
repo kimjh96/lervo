@@ -13,7 +13,33 @@ import type {
  */
 
 function autoApplicable(hunk: DocumentFreshnessHunk, crossCheck: DocumentFreshnessCrossCheck) {
+  // AGENTS.md invariant 5: user-owned bytes are never applied automatically.
+  if (hunk.ownership === "user_owned") return false;
   return !hunk.crossCheckRequired || crossCheck === "agreement";
+}
+
+/**
+ * AGENTS.md invariant 5 under ADR-0561: whether a candidate's remaining change would write
+ * user-owned bytes only. An archive of a user-owned document, or one that rewrites links in other
+ * documents, counts; so does an edit whose pending hunks are all user-owned. Lervo keeps such a
+ * candidate as a suggestion (`suggested`) and never applies it. An edit that mixes Lervo-managed and
+ * user-owned hunks applies the managed hunks and leaves the user-owned ones as the suggestion.
+ */
+export function documentFreshnessUserOwnedChange(
+  candidate: Pick<DocumentFreshnessCandidateV1, "operation" | "hunks" | "archive"> & {
+    pendingHunkIds?: readonly string[];
+  },
+): boolean {
+  if (candidate.operation === "archive")
+    return (
+      candidate.archive === null ||
+      candidate.archive.ownership === "user_owned" ||
+      candidate.archive.inboundLinkRewrites.length > 0
+    );
+  if (candidate.operation !== "edit") return false;
+  const pending = candidate.pendingHunkIds === undefined ? null : new Set(candidate.pendingHunkIds);
+  const remaining = candidate.hunks.filter((hunk) => pending === null || pending.has(hunk.hunkId));
+  return remaining.length > 0 && remaining.every((hunk) => hunk.ownership === "user_owned");
 }
 
 /** Pending hunks that may apply now: no cross-check required, or the required agreement recorded. */
@@ -34,8 +60,10 @@ export function documentFreshnessVerifiedState(
   hunks: readonly DocumentFreshnessHunk[],
   crossCheck: DocumentFreshnessCrossCheck,
 ): DocumentFreshnessCandidateState {
-  return hunks.some((hunk) => autoApplicable(hunk, crossCheck))
-    ? "verified"
+  if (hunks.some((hunk) => autoApplicable(hunk, crossCheck))) return "verified";
+  // AGENTS.md invariant 5: only user-owned hunks remain, so the candidate is a suggestion.
+  return hunks.length > 0 && hunks.every((hunk) => hunk.ownership === "user_owned")
+    ? "suggested"
     : "verified_pending_cross_check";
 }
 

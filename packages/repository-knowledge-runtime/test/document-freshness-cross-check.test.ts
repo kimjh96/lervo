@@ -50,7 +50,8 @@ const ORIGINAL = agents(MANAGED_BEFORE, PROSE_BEFORE);
 
 /**
  * `AGENTS.md` with a Lervo-managed `statement` hunk inside a `lervo_v1` block and a user-owned
- * `factual_reference` hunk in prose; both need one agreeing Tier 0 cross-check (ADR-0561).
+ * `factual_reference` hunk in prose. The reviewer judges both, but Lervo applies only the managed
+ * hunk; the prose hunk stays a suggestion (ADR-0561, AGENTS.md invariant 5).
  */
 async function setup(crossCheck: Partial<FreshnessPlanEntry> = {}) {
   const f = await freshnessFixture();
@@ -90,7 +91,7 @@ const minutes = (count: number) => new Date(Date.now() + count * 60_000);
 
 describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
   it(
-    "applies agreed Lervo-managed and user-owned hunks itself and records the notice in the commit",
+    "applies the agreed Lervo-managed hunk, keeps the user-owned hunk a suggestion, and commits the notice",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
@@ -114,22 +115,22 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         crossCheckRequired: true,
       });
       expect(candidate).toMatchObject({
-        state: "applied",
+        state: "partially_applied",
         crossCheck: "agreement",
         authorityRequired: "none",
-        appliedHunkIds: [managed!.hunkId, prose!.hunkId],
-        pendingHunkIds: [],
+        appliedHunkIds: [managed!.hunkId],
+        pendingHunkIds: [prose!.hunkId],
         crossCheckReview: { status: "settled", outcome: "agreement", reviewerProvider: "claude" },
       });
       expect(candidate!.crossCheckReview!.verdicts.map((verdict) => verdict.verdict)).toEqual([
         "agree",
         "agree",
       ]);
-      expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_AFTER));
+      expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_BEFORE));
       expect(f.eventsOf("document.freshness.candidate.applied")[0]?.payload).toMatchObject({
         approvalSource: "lervo_managed",
-        appliedHunkCount: 2,
-        pendingHunkCount: 0,
+        appliedHunkCount: 1,
+        pendingHunkCount: 1,
       });
       // ADR-0561 notice fields travel with the commit, so every host reads the same notice.
       const log = await f.git(["log", "-1", "--format=%B"]);
@@ -202,7 +203,7 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         (candidate) => candidate.candidateId !== rejected!.candidateId,
       );
       expect(next).toMatchObject({
-        state: "applied",
+        state: "partially_applied",
         crossCheck: "agreement",
         predecessorCandidateId: rejected!.candidateId,
       });
@@ -296,11 +297,11 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
         if (mode === "invalid") {
           expect(retried).toMatchObject({
             candidateId: candidate!.candidateId,
-            state: "applied",
+            state: "partially_applied",
             crossCheck: "agreement",
             crossCheckReview: { retries: 1 },
           });
-          expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_AFTER));
+          expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_BEFORE));
           expect(f.eventsOf("document.freshness.candidate.verified")).toHaveLength(2);
         } else {
           // A failed call may have reached the model, so it was charged the remaining bound and
@@ -312,9 +313,9 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
             rejection: { reasonCode: "freshness_budget_exhausted", rejectorKind: "budget" },
           });
           expect(all.find((item) => item.candidateId !== candidate!.candidateId)).toMatchObject({
-            state: "applied",
+            state: "partially_applied",
           });
-          expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_AFTER));
+          expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_BEFORE));
         }
       },
     );
@@ -432,14 +433,14 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
       const [settled] = await listFreshnessCandidates(f.root);
       expect(settled).toMatchObject({
         candidateId: pending!.candidateId,
-        state: "applied",
+        state: "partially_applied",
         crossCheck: "agreement",
       });
       expect((await f.providerCalls()).map((call) => call.task)).toEqual([
         "document_freshness_candidate",
         "document_freshness_cross_check",
       ]);
-      expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_AFTER));
+      expect(await f.read("AGENTS.md")).toBe(agents(MANAGED_AFTER, PROSE_BEFORE));
     },
   );
 });

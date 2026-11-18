@@ -15,6 +15,8 @@ export interface HostFollowCycleDependencies {
   runningInstallRoot: () => Promise<string | null>;
   /** Aborted when the service manager stops the follower; the cycle then settles nothing. */
   signal?: AbortSignal | undefined;
+  /** ADR-0561: whether the owner holds a repository; absent reads this host's hold file. */
+  repositoryHeld?: (repositoryRoot: string) => Promise<boolean>;
 }
 
 export type HostFollowCycleOutcome =

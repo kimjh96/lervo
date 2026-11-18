@@ -13,6 +13,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 
 import { CommandFailure } from "./command-error-output.js";
 import {
+  effectBackupKeptUntil,
   effectBackupUndoCommand,
   restoreEffectBackup,
   sealEffectBackup,
@@ -100,6 +101,8 @@ export async function applyTerminalIntegrationStage(input: {
   prepared: PreparedTerminalIntegration;
   now: Date;
   verify?: TerminalIntegrationVerifier;
+  /** Test seam: interrupts the durable apply at a checkpoint, as a crash would. */
+  failureInjector?: Parameters<typeof applyTerminalIntegrationPlan>[0]["failureInjector"];
 }): Promise<TerminalIntegrationApplication> {
   const { plan, runtimeContent, runtimeAssets } = input.prepared;
   const hookPaths = plan.targets
@@ -129,11 +132,20 @@ export async function applyTerminalIntegrationStage(input: {
             now: input.now,
           });
     const identity = randomUUID().replaceAll("-", "");
+    // ADR-0561: an apply that throws part-way leaves no merged hook file behind.
+    const restoreBackup = async () => {
+      if (backup !== null)
+        await restoreEffectBackup({
+          repositoryRoot: input.repositoryRoot,
+          backupId: backup.backupId,
+        });
+    };
     const receipt = await applyTerminalIntegrationPlan({
       plan,
       runtimeContent,
       runtimeAssets,
       now: input.now,
+      ...(input.failureInjector === undefined ? {} : { failureInjector: input.failureInjector }),
       recordApplied: (applied) => {
         storage.events.append({
           eventId: `evt_${identity}`,
@@ -159,14 +171,13 @@ export async function applyTerminalIntegrationStage(input: {
           },
         });
       },
+    }).catch(async (error: unknown) => {
+      await restoreBackup();
+      throw error;
     });
     const problem = await (input.verify ?? verifyTerminalIntegration)(input.repositoryRoot);
     if (problem !== null) {
-      if (backup !== null)
-        await restoreEffectBackup({
-          repositoryRoot: input.repositoryRoot,
-          backupId: backup.backupId,
-        });
+      await restoreBackup();
       throw new CommandFailure(
         "terminal_integration_verification_failed",
         `The applied terminal integration did not verify: ${problem}. ${
@@ -186,7 +197,7 @@ export async function applyTerminalIntegrationStage(input: {
         targets: plan.targets
           .filter((target) => target.action === "create" || target.action === "update")
           .map((target) => target.path),
-        reason: `merged the Lervo hooks of plan ${plan.planId} into the provider hook files`,
+        reason: `merged the Lervo hooks of plan ${plan.planId} into the provider hook files; the backup is kept until ${effectBackupKeptUntil(input.now)}`,
         reviewers: ["post-apply verification"],
         verdict: "verified",
         undo: effectBackupUndoCommand(backup.backupId),

@@ -12,14 +12,14 @@ Resolve ownership of every other document in this order:
 
 Classify each hunk by its byte range's ownership; candidates can mix ownership. A range touching a marker fails `commonmark_structure`.
 
-Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), no hunk or archive needs owner or mandate authority. Lervo applies a change once its required independent cross-checks agree:
+Under [ADR-0561](../../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), no hunk or archive needs owner or mandate authority. Lervo applies a Lervo-managed change once its required independent cross-checks agree. AGENTS.md invariant 5 still holds: Lervo never applies user-owned bytes, so a user-owned hunk, a user-owned archive, and an archive that rewrites links in other documents stay `suggested`, with no cross-check spent:
 
-| Ownership | `factual_reference` | `statement` | `safety_or_policy` | `archive` |
-| --- | --- | --- | --- | --- |
-| Lervo-managed | applies without a cross-check | one agreeing check | two agreeing checks | two agreeing checks |
-| User-owned | one agreeing check | two agreeing checks | two agreeing checks | two agreeing checks |
+| Ownership     | `factual_reference`           | `statement`               | `safety_or_policy`        | `archive`                 |
+| ------------- | ----------------------------- | ------------------------- | ------------------------- | ------------------------- |
+| Lervo-managed | applies without a cross-check | one agreeing check        | two agreeing checks       | two agreeing checks       |
+| User-owned    | suggestion, never applied     | suggestion, never applied | suggestion, never applied | suggestion, never applied |
 
-The [candidate contract](candidates.md#cross-check) defines the rounds, the second-round provider preference, and the outcomes. The ADR-0463 authority matrix, the owner substitution for an unavailable cross-check, and the `document_freshness` mandate path are superseded.
+A candidate that mixes both applies its Lervo-managed hunks and stays `partially_applied` with the user-owned hunks as the suggestion; it is not regenerated while only the suggestion remains. A suggestion stays open until the document changes, which supersedes it. Attention shows it with `heldReason: user_owned_content` and no owner action; `lervo knowledge freshness review <candidate-id>` prints its diff. The [candidate contract](candidates.md#cross-check) defines the rounds, the second-round provider preference, and the outcomes. The ADR-0463 authority matrix, the owner substitution for an unavailable cross-check, and the `document_freshness` mandate path are superseded.
 
 Apply runs as one sequence under the knowledge worker's repository lock:
 
@@ -40,11 +40,11 @@ Each apply reaches the owner after the fact as an [ADR-0549](../../../decisions/
 
 What Lervo cannot resolve itself is its own debt, held with backoff and shown in health with its age and reason; it is never owner work. The cycle record keeps the projection under `debt` (at most 512 entries), each `{ findingDigest, documentPath, candidateId, reason, since, attempts, retryAt }`:
 
-| Reason | Enters debt when |
-| --- | --- |
+| Reason                              | Enters debt when                                                                                                                                      |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `cross_check_disagreement_repeated` | The candidate and its single regeneration were both rejected by cross-check disagreement or an undetermined value, and the latest was a disagreement. |
-| `freshness_evidence_undetermined` | The same, and the latest answer was `needs_owner_input` after evidence recovery. |
-| `budget_exceeded` | The latest candidate exhausted its token budget. |
+| `freshness_evidence_undetermined`   | The same, and the latest answer was `needs_owner_input` after evidence recovery.                                                                      |
+| `budget_exceeded`                   | The latest candidate exhausted its token budget.                                                                                                      |
 
 The first hold lasts one day and each failed retry doubles it, up to sixteen days. When it elapses, admission allows one more attempt even though the finding's attempts were exhausted; that attempt carries the latest failure as regeneration evidence. A retry rejected for another reason keeps the debt. An applied, verified, reverted, or superseded latest candidate clears it.
 
@@ -60,11 +60,11 @@ Five attempts with zero verified candidates in one day put generation on a zero-
 
 Attention items appear in `lervo application attention` and the cached retrieval prompt path under the [operating attention report contract](../../execution/operating-attention/report-contract.md#document-freshness). None requires user action or blocks (ADR-0561):
 
-| Item | Ownership and behavior | Fields |
-| --- | --- | --- |
-| `document_freshness_candidate` | `state: lervo_debt`, host resident; a held candidate waiting for its retried cross-check | `candidateId`, `documentPath`, `priorityClass`, `changeClasses`, `hunkCount`, `heldReason`, `retryAt`, `instruction` |
-| `document_freshness_applied` | `actionOwner: agent`, informational; resolves on acknowledgment or after 24 hours | `candidateId`, `documentPath`, `approvalSource`, `commitHash`, `revertInstruction`; the instruction names the reason and the cross-check verdict |
-| `document_freshness_blocked` | `state: lervo_debt`, host resident | `reasonCode` (`zero_success_window`, `cross_check_disagreement_repeated`, `freshness_evidence_undetermined`, or `budget_exceeded`), `documentPath` or null, `attempts`, `since`, `retryAt`, `instruction` |
+| Item                           | Ownership and behavior                                                                   | Fields                                                                                                                                                                                                    |
+| ------------------------------ | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `document_freshness_candidate` | `state: lervo_debt`, host resident; a held candidate waiting for its retried cross-check | `candidateId`, `documentPath`, `priorityClass`, `changeClasses`, `hunkCount`, `heldReason`, `retryAt`, `instruction`                                                                                      |
+| `document_freshness_applied`   | `actionOwner: agent`, informational; resolves on acknowledgment or after 24 hours        | `candidateId`, `documentPath`, `approvalSource`, `commitHash`, `revertInstruction`; the instruction names the reason and the cross-check verdict                                                          |
+| `document_freshness_blocked`   | `state: lervo_debt`, host resident                                                       | `reasonCode` (`zero_success_window`, `cross_check_disagreement_repeated`, `freshness_evidence_undetermined`, or `budget_exceeded`), `documentPath` or null, `attempts`, `since`, `retryAt`, `instruction` |
 
 The application report returns at most 256 records, with classification and totals covering every loaded freshness candidate before that cap. Omitted candidates remain inspectable through `lervo knowledge freshness review <candidate-id>` and `lervo knowledge freshness status`. Repository health adds a Lervo debt line with the count, the oldest entry's age, path, and reason.
 
@@ -76,14 +76,14 @@ The compact prompt reads the shared health projection. `documentFreshnessCompact
 
 Payloads contain only relative paths, hashes, counts, codes, and identifiers. Hunks, claims, evidence bodies, explanations, and before-bytes stay in CAS and the candidate store. Events exist in event schema 4. Older repository writers cannot record them: the stage reports `unavailable`, and the CLI refuses revert and acknowledge. `usageObserved` is total provider token count; its name omits "token" because event redaction drops every key containing that word.
 
-| Event | Required fields |
-| --- | --- |
-| `document.freshness.candidate.created` | `candidateId`, `findingDigest`, `documentPath`, `documentHash`, `operation`, `priorityClass`, `changeClasses`, `hunkCount`, `evidenceCount`, `evidenceTruncated`, `usageObserved`, `occurredAt` |
+| Event                                   | Required fields                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `document.freshness.candidate.created`  | `candidateId`, `findingDigest`, `documentPath`, `documentHash`, `operation`, `priorityClass`, `changeClasses`, `hunkCount`, `evidenceCount`, `evidenceTruncated`, `usageObserved`, `occurredAt`                                                                                                                                                                                                                                                         |
 | `document.freshness.candidate.verified` | `candidateId`, `checks[]` (`code`, `status`), `crossCheck` (`not_required`, `agreement`, `material_disagreement`, `unavailable`), `deliberationRunId` (the latest Tier 0 round's `run_freshness_<24 hex>` run) or null when no call reached a provider, `authorityRequired` (`none` since ADR-0561), `afterHash`, `occurredAt`. Recorded when the required cross-check settles with agreement or as unavailable, and again for each retried settlement. |
-| `document.freshness.candidate.applied` | `candidateId`, `documentPath`, `beforeHash`, `afterHash`, `appliedHunkCount`, `pendingHunkCount`, `approvalSource` (`lervo_managed` since ADR-0561; `principal_mandate` and `owner` remain readable), `approvalRef`, `commitHash` or null, `occurredAt` |
-| `document.freshness.candidate.rejected` | `candidateId`, `reasonCode`, `rejectorKind` (`deterministic`, `cross_check`, `proxy`, `owner`, `budget`), `contestedHunkIds[]`, `occurredAt` |
-| `document.freshness.candidate.reverted` | `candidateId`, `documentPath`, `restoredHash`, `revertedBy` (`owner`, `agent`), `holdUntil`, `occurredAt` |
-| `document.freshness.cycle.completed` | `cycleId` (`kfcy_` plus 24 hex), `findingCount`, `admittedCount`, `candidateCount`, `verifiedCount`, `appliedCount`, `skippedForBudget`, `skippedForHold`, `usageObserved`, `occurredAt` |
+| `document.freshness.candidate.applied`  | `candidateId`, `documentPath`, `beforeHash`, `afterHash`, `appliedHunkCount`, `pendingHunkCount`, `approvalSource` (`lervo_managed` since ADR-0561; `principal_mandate` and `owner` remain readable), `approvalRef`, `commitHash` or null, `occurredAt`                                                                                                                                                                                                 |
+| `document.freshness.candidate.rejected` | `candidateId`, `reasonCode`, `rejectorKind` (`deterministic`, `cross_check`, `proxy`, `owner`, `budget`), `contestedHunkIds[]`, `occurredAt`                                                                                                                                                                                                                                                                                                            |
+| `document.freshness.candidate.reverted` | `candidateId`, `documentPath`, `restoredHash`, `revertedBy` (`owner`, `agent`), `holdUntil`, `occurredAt`                                                                                                                                                                                                                                                                                                                                               |
+| `document.freshness.cycle.completed`    | `cycleId` (`kfcy_` plus 24 hex), `findingCount`, `admittedCount`, `candidateCount`, `verifiedCount`, `appliedCount`, `skippedForBudget`, `skippedForHold`, `usageObserved`, `occurredAt`                                                                                                                                                                                                                                                                |
 
 Failure behavior:
 
@@ -103,18 +103,18 @@ A provider failure before any model call (the version check, the no-capability p
 
 All keys under `documentFreshness` in `.lervo/knowledge/policy.yaml` are optional, with these defaults:
 
-| Key | Default |
-| --- | --- |
-| `enabled` | `true` |
-| `safetyPatterns` | `[risk, limit, leverage, loss, credential, secret, deploy, production, live]` |
-| `maximumCandidatesPerCycle` | `3` |
-| `maximumTokensPerCandidate` | `30000` |
-| `maximumTokensPerDay` | `150000` |
-| `maximumEditRatio` | `0.25` |
-| `maximumEditBytes` | `4096` |
-| `historicalRoot` | `docs/archive` |
-| `holdDays` | `7` |
-| `crossCheck` | `required_for_consequential` |
+| Key                         | Default                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------- |
+| `enabled`                   | `true`                                                                        |
+| `safetyPatterns`            | `[risk, limit, leverage, loss, credential, secret, deploy, production, live]` |
+| `maximumCandidatesPerCycle` | `3`                                                                           |
+| `maximumTokensPerCandidate` | `30000`                                                                       |
+| `maximumTokensPerDay`       | `150000`                                                                      |
+| `maximumEditRatio`          | `0.25`                                                                        |
+| `maximumEditBytes`          | `4096`                                                                        |
+| `historicalRoot`            | `docs/archive`                                                                |
+| `holdDays`                  | `7`                                                                           |
+| `crossCheck`                | `required_for_consequential`                                                  |
 
 `crossCheck` also accepts `always` or `never`; `never` is refused for user-owned bytes. Unknown keys or out-of-bound values fail policy validation. The principal mandate key `maximumFreshnessApprovalsPerDay` has no effect since ADR-0561.
 
@@ -122,15 +122,15 @@ All keys under `documentFreshness` in `.lervo/knowledge/policy.yaml` are optiona
 
 Domain cases: `packages/repository-knowledge/test/document-freshness.test.ts` and `document-freshness-cross-check.test.ts`. Argo fixtures: `packages/repository-knowledge-runtime/test/document-freshness-fixtures.test.ts`, running the real stage against scratch Git repositories; Tier 0 journeys: `document-freshness-cross-check.test.ts` beside it. The fixture provider, `scripts/distribution/fixtures/document-freshness-claude.mjs`, answers the no-capability JSON contract, including the cross-check task, from a plan file beside it.
 
-| Id | Scenario from Argo history | Expected since ADR-0561 |
-| --- | --- | --- |
-| F1 | `AGENTS.md` says risk limits live in `v2/argo_v2/live/engine.py: Limits`; `v2/` deleted; `v4/argo4/live/engine.py` holds `class Limits` | `safety`, two `safety_or_policy` hunks, two agreeing rounds in separate runs, `applied` by Lervo in the first cycle, three usage records (generation and two cross-checks) |
-| F2 | `README.md` links missing `v2/README.md` and says "every 6 hours"; `v4/README.md` says "daily at 00:40 UTC" | `entrypoint`, two `factual_reference` user-owned hunks, one agreeing check, `applied`; `references_resolve` passes |
-| F3 | Root `FINAL-DESIGN.md` describes removed v1; `IMPLEMENTATION-HANDOFF.md` deleted; nine inbound links | `archive` to `docs/archive/v1-final-design.md` with banner and nine `inboundLinkRewrites`; two agreeing rounds; Lervo moves it and commits with the trailers. A second scenario disagrees in one round twice and leaves the document in place as Lervo debt. |
-| F4 | Unrelated edit under `v3/scripts`; already-correct document flagged by `review_interval_elapsed` | No candidate for the edit; deterministic `no_change_needed` without provider call |
-| F5 | Owner edits document while a candidate is held for its retried cross-check | `source_changed`, state `superseded`, new candidate after edit is committed |
-| F6 | Lervo applies F2, then the owner reverts | Revert restores bytes; `reverted`; hold set; no candidate next day |
-| F7 | `AGENTS.md` hunk inside a `lervo_v1` block plus one in user prose | Both apply together: the managed hunk through the ADR-0022 patch without a cross-check, the user prose hunk after one agreeing check |
+| Id  | Scenario from Argo history                                                                                                              | Expected since ADR-0561                                                                                                                                                                                                                                      |
+| --- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| F1  | `AGENTS.md` says risk limits live in `v2/argo_v2/live/engine.py: Limits`; `v2/` deleted; `v4/argo4/live/engine.py` holds `class Limits` | `safety`, two `safety_or_policy` hunks, two agreeing rounds in separate runs, `applied` by Lervo in the first cycle, three usage records (generation and two cross-checks)                                                                                   |
+| F2  | `README.md` links missing `v2/README.md` and says "every 6 hours"; `v4/README.md` says "daily at 00:40 UTC"                             | `entrypoint`, two `factual_reference` user-owned hunks, one agreeing check, `applied`; `references_resolve` passes                                                                                                                                           |
+| F3  | Root `FINAL-DESIGN.md` describes removed v1; `IMPLEMENTATION-HANDOFF.md` deleted; nine inbound links                                    | `archive` to `docs/archive/v1-final-design.md` with banner and nine `inboundLinkRewrites`; two agreeing rounds; Lervo moves it and commits with the trailers. A second scenario disagrees in one round twice and leaves the document in place as Lervo debt. |
+| F4  | Unrelated edit under `v3/scripts`; already-correct document flagged by `review_interval_elapsed`                                        | No candidate for the edit; deterministic `no_change_needed` without provider call                                                                                                                                                                            |
+| F5  | Owner edits document while a candidate is held for its retried cross-check                                                              | `source_changed`, state `superseded`, new candidate after edit is committed                                                                                                                                                                                  |
+| F6  | Lervo applies F2, then the owner reverts                                                                                                | Revert restores bytes; `reverted`; hold set; no candidate next day                                                                                                                                                                                           |
+| F7  | `AGENTS.md` hunk inside a `lervo_v1` block plus one in user prose                                                                       | Both apply together: the managed hunk through the ADR-0022 patch without a cross-check, the user prose hunk after one agreeing check                                                                                                                         |
 
 `document-freshness-autonomy.test.ts` beside the fixtures covers a user-owned `statement` hunk after two agreeing checks, one agreement and one disagreement regenerating once with the reasons and then holding as debt, and `needs_owner_input` recovering or becoming debt.
 

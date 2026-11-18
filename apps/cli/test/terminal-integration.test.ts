@@ -43,6 +43,8 @@ import {
   planTerminalIntegrationStage,
 } from "../src/terminal-integration-stage.js";
 import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
+import { holdEffect } from "../src/held-effect-debt.js";
+import { inspectTerminalIntegration } from "../src/upgrade-terminal-inspection.js";
 import { terminalTurnDeclarationRequired } from "../src/terminal-lifecycle-inspection.js";
 import { terminalKnowledgeSnapshotId } from "../src/terminal-compact-context.js";
 import { captureTerminalRepositorySnapshot } from "../src/terminal-repository-snapshot.js";
@@ -1720,6 +1722,15 @@ describe("terminal integration CLI", () => {
     // The backup restores the provider hook file byte for byte.
     expect(await runCli(["state", "restore", receipt.backupId], io), errors.join("")).toBe(0);
     expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
+    // ADR-0561: an owner who undid the merge does not get it again until they release the hold.
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "owner_restored",
+    });
+    expect(await runCli(["repository", "release", "--root", root], io), errors.join("")).toBe(0);
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "safe_apply",
+    });
   }, 15_000);
 
   it("restores the provider hook files from the backup when the applied integration does not verify", async () => {
@@ -1739,6 +1750,39 @@ describe("terminal integration CLI", () => {
     ).rejects.toMatchObject({ code: "terminal_integration_verification_failed" });
     expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
     expect(await readFile(resolve(root, ".codex/hooks.json"), "utf8")).toBe(codexHooks);
+    // The plan reads the held verification failure, so an upgrade does not loop on it.
+    await holdEffect({
+      repositoryRoot: root,
+      effect: "upgrade_terminal_integration",
+      subject: prepared.plan.planId,
+      reasonCode: "verification_failed",
+    });
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "verification_failed",
+    });
+  });
+
+  it("restores the provider hook files when the apply itself fails part-way", async () => {
+    const root = await initializedRepository();
+    const original = '{"permissions":{"deny":["Bash"]}}\n';
+    await writeFile(resolve(root, ".claude/settings.json"), original);
+    const prepared = await planTerminalIntegrationStage(root);
+    expect(prepared.plan.status).toBe("ready");
+    // The last published file interrupts the apply, after every other file was written.
+    const published = prepared.plan.targets.filter(
+      (target) => target.action === "create" || target.action === "update",
+    ).length;
+    await expect(
+      applyTerminalIntegrationStage({
+        repositoryRoot: root,
+        prepared,
+        now: new Date(),
+        failureInjector: (checkpoint) =>
+          checkpoint === `published:${published - 1}` ? "interrupt" : undefined,
+      }),
+    ).rejects.toThrow();
+    expect(await readFile(resolve(root, ".claude/settings.json"), "utf8")).toBe(original);
   });
 });
 

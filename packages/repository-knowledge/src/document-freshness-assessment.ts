@@ -1,3 +1,4 @@
+import { documentFreshnessUserOwnedChange } from "./document-freshness-candidate-state.js";
 import { canonicalJson, sha256 } from "./integrity.js";
 import type { DocumentFreshnessCandidateV1 } from "./document-freshness-contract.js";
 
@@ -50,6 +51,9 @@ export function documentFreshnessCandidateNeedsRegeneration(
   candidate: DocumentFreshnessCandidateV1,
 ): boolean {
   if (candidate.rejection !== null) return false;
+  // AGENTS.md invariant 5: user-owned hunks left after a partial apply are the suggestion.
+  if (candidate.state === "partially_applied" && documentFreshnessUserOwnedChange(candidate))
+    return false;
   if (candidate.state === "waiting_authority")
     return candidate.appliedHash === null && candidate.approval === null;
   if (candidate.state !== "verified_pending_cross_check" && candidate.state !== "partially_applied")

@@ -219,7 +219,7 @@ describe("lervo upgrade", () => {
       status: "ready",
       privacy: { credentials: "excluded" },
       policy: {
-        userOwnedBytes: "cross_checked_effect_commit",
+        userOwnedBytes: "never_automatic_outside_delegation_roots",
         providerConfiguration: "backup_apply_verify_restore",
       },
     });

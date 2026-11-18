@@ -8,6 +8,7 @@ import {
   documentFreshnessCrossCheckNotice,
   documentFreshnessCrossCheckRetryAt,
   documentFreshnessUndoCommand,
+  documentFreshnessUserOwnedChange,
   type DocumentFreshnessCandidateV1,
   type DocumentFreshnessDebt,
 } from "@lervo/repository-knowledge";
@@ -35,8 +36,12 @@ function heldItem(
   candidate: DocumentFreshnessCandidateV1,
 ): DocumentFreshnessCandidateAttentionItemV1 {
   const retryAt = documentFreshnessCrossCheckRetryAt(candidate)?.toISOString() ?? null;
-  const heldReason =
-    candidate.state === "waiting_authority"
+  const suggestion =
+    candidate.state === "suggested" ||
+    (candidate.state === "partially_applied" && documentFreshnessUserOwnedChange(candidate));
+  const heldReason = suggestion
+    ? "user_owned_content"
+    : candidate.state === "waiting_authority"
       ? "legacy_owner_authority"
       : (candidate.crossCheckReview?.unavailableReason ?? "cross_check_pending");
   return {
@@ -55,7 +60,9 @@ function heldItem(
     actionOwner: "host resident",
     requiresUserAction: false,
     blocking: false,
-    instruction: `Lervo debt: the knowledge resident holds this verified candidate (${heldReason}) and ${retryAt === null ? "finishes or regenerates it in its next cycle" : `retries the cross-check at ${retryAt}`}; inspect with lervo knowledge freshness review ${candidate.candidateId}.`,
+    instruction: suggestion
+      ? `Suggestion: Lervo verified this change to user-owned bytes and never applies it (AGENTS.md invariant 5); apply it by hand if you want it, from lervo knowledge freshness review ${candidate.candidateId}. A later edit to the document replaces it.`
+      : `Lervo debt: the knowledge resident holds this verified candidate (${heldReason}) and ${retryAt === null ? "finishes or regenerates it in its next cycle" : `retries the cross-check at ${retryAt}`}; inspect with lervo knowledge freshness review ${candidate.candidateId}.`,
   };
 }
 

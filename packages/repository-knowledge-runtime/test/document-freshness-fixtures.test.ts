@@ -6,8 +6,19 @@ import { revertFreshnessCandidate } from "../src/freshness-revert.js";
 import { listFreshnessCandidates, readFreshnessCycleState } from "../src/freshness-state-store.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
 
+/** AGENTS.md invariant 5: documents a test treats as Lervo-managed; every other one is user-owned. */
+const ownership = vi.hoisted(() => ({ managed: new Set<string>() }));
+vi.mock("@lervo/repository-knowledge", async (importOriginal) => {
+  const { lervoManagedDocuments } = await import("./freshness-ownership.js");
+  return lervoManagedDocuments(
+    await importOriginal<typeof import("@lervo/repository-knowledge")>(),
+    ownership.managed,
+  );
+});
+
 const fixtures: FreshnessFixture[] = [];
 afterEach(async () => {
+  ownership.managed.clear();
   vi.restoreAllMocks();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
@@ -56,10 +67,11 @@ async function argoHistory(f: FreshnessFixture, documents: Record<string, string
 
 describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
   it(
-    "F1 applies a safety correction to AGENTS.md after two agreeing independent checks",
+    "F1 applies a safety correction to a Lervo-managed AGENTS.md after two agreeing checks",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
+      ownership.managed.add("AGENTS.md");
       await argoHistory(f, { "AGENTS.md": AGENTS_V2 });
       await f.plan({
         "AGENTS.md": {
@@ -125,6 +137,41 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
     },
   );
 
+  it(
+    "F1 keeps the same safety correction to a user-owned AGENTS.md as a suggestion (invariant 5)",
+    { timeout: 120_000 },
+    async () => {
+      const f = await setup();
+      await argoHistory(f, { "AGENTS.md": AGENTS_V2 });
+      await f.plan({
+        "AGENTS.md": {
+          operation: "edit",
+          hunks: [
+            {
+              before: "Hard risk limits live in `v2/argo_v2/live/engine.py: Limits`.",
+              after: "Hard risk limits live in `v4/argo4/live/engine.py: Limits`.",
+              evidencePaths: ["v4/argo4/live/engine.py"],
+            },
+          ],
+        },
+      });
+      expect(await f.cycle()).toMatchObject({ status: "completed", appliedCount: 0 });
+      const [candidate] = await listFreshnessCandidates(f.root);
+      expect(candidate).toMatchObject({ documentPath: "AGENTS.md", state: "suggested" });
+      expect(candidate!.hunks.map((hunk) => hunk.ownership)).toEqual(["user_owned"]);
+      // No cross-check runs for bytes Lervo never applies, and the document stays as it was.
+      expect((await f.providerCalls()).map((call) => call.task)).toEqual([
+        "document_freshness_candidate",
+      ]);
+      expect(await f.read("AGENTS.md")).toBe(AGENTS_V2);
+      expect(f.eventsOf("document.freshness.candidate.applied")).toHaveLength(0);
+      // A later cycle neither applies it nor regenerates it while the document is unchanged.
+      await f.cycle(new Date(Date.now() + 60_000));
+      expect(await listFreshnessCandidates(f.root)).toHaveLength(1);
+      expect(await f.read("AGENTS.md")).toBe(AGENTS_V2);
+    },
+  );
+
   const readmePlan = {
     "README.md": {
       operation: "edit" as const,
@@ -170,7 +217,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
   }
 
   it(
-    "F2 classifies README reference updates as factual and applies the user-owned bytes itself",
+    "F2 classifies README reference updates as factual and keeps the user-owned bytes a suggestion",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
@@ -178,8 +225,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
       expect(candidate).toMatchObject({
         documentPath: "README.md",
         priorityClass: "entrypoint",
-        state: "applied",
-        crossCheck: "agreement",
+        state: "suggested",
         authorityRequired: "none",
       });
       expect(
@@ -192,14 +238,12 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
       expect(candidate.checks.find((check) => check.code === "references_resolve")?.status).toBe(
         "passed",
       );
-      expect(await f.read("README.md")).toContain(
-        "[v4 guide](v4/README.md). Learning runs daily at 00:40 UTC.",
-      );
+      expect(await f.read("README.md")).toBe(README_V2);
     },
   );
 
   it(
-    "F3 archives a superseded root design with a banner and nine inbound link rewrites itself",
+    "F3 keeps an archive that rewrites nine inbound links as a suggestion",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
@@ -227,44 +271,33 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
       const candidate = (await listFreshnessCandidates(f.root)).find(
         (item) => item.documentPath === "FINAL-DESIGN.md",
       )!;
-      // ADR-0561: the archive and its inbound link rewrites pass two agreeing checks, then Lervo
-      // applies them itself.
+      // AGENTS.md invariant 5: the archive would rewrite links in nine user-owned notes, so Lervo
+      // keeps it as a suggestion and runs no cross-check for it.
       expect(candidate).toMatchObject({
         operation: "archive",
-        state: "applied",
-        crossCheck: "agreement",
+        state: "suggested",
         authorityRequired: "none",
-        approval: { approvalSource: "lervo_managed" },
+        approval: null,
       });
-      expect(candidate.crossCheckRounds).toHaveLength(1);
-      expect(candidate.crossCheckReview!.verdicts).toHaveLength(2);
       expect(
         (await f.providerCalls())
           .filter((call) => call.document === "FINAL-DESIGN.md")
           .map((call) => call.task),
-      ).toEqual([
-        "document_freshness_candidate",
-        "document_freshness_cross_check",
-        "document_freshness_cross_check",
-      ]);
+      ).toEqual(["document_freshness_candidate"]);
       expect(candidate.archive?.targetPath).toBe("docs/archive/v1-final-design.md");
       expect(candidate.archive?.inboundLinkRewrites).toHaveLength(9);
       expect(candidate.archive?.banner).toMatch(/^> Historical: archived on \d{4}-\d{2}-\d{2}\./u);
-      expect(await f.read("docs/archive/v1-final-design.md")).toMatch(
-        /^> Historical: archived on/u,
-      );
-      expect(await f.read("docs/notes/note-1.md")).toContain("(../archive/v1-final-design.md)");
-      const log = await f.git(["log", "-1", "--format=%an%n%B"]);
-      expect(log).toContain(`Lervo-Freshness-Candidate: ${candidate.candidateId}`);
-      expect(log).toContain("Lervo-Freshness-Cross-Check: agreement 2/2");
+      expect(await f.read("FINAL-DESIGN.md")).toContain("# Final design");
+      expect(await f.read("docs/notes/note-1.md")).toContain("(../../FINAL-DESIGN.md)");
     },
   );
 
   it(
-    "F3 holds an archive as Lervo debt when one of its two checks disagrees twice",
+    "F3 holds a Lervo-managed archive as Lervo debt when one of its two checks disagrees twice",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
+      ownership.managed.add("FINAL-DESIGN.md");
       await f.write("IMPLEMENTATION-HANDOFF.md", "# Handoff\n\nThe v1 handoff.\n");
       await f.write(
         "FINAL-DESIGN.md",
@@ -325,15 +358,15 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
   );
 
   it(
-    "F5 supersedes a held candidate when the owner edits the document and regenerates after commit",
+    "F5 supersedes a suggestion when the owner edits the document and regenerates after commit",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
       await argoHistory(f, { "README.md": README_V2 });
-      await f.plan({ "README.md": { ...readmePlan["README.md"], crossCheck: "invalid" } });
+      await f.plan(readmePlan);
       await f.cycle();
       const [first] = await listFreshnessCandidates(f.root);
-      expect(first).toMatchObject({ state: "verified_pending_cross_check" });
+      expect(first).toMatchObject({ state: "suggested" });
       await f.write("README.md", `${README_V2}\nAn owner note.\n`);
       await f.cycle(new Date(Date.now() + 1_000));
       const superseded = (await listFreshnessCandidates(f.root)).find(
@@ -352,7 +385,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
       await f.plan(readmePlan);
       await f.cycle(new Date(Date.now() + 2_000));
       const next = (await listFreshnessCandidates(f.root)).filter(
-        (item) => item.documentPath === "README.md" && item.state === "applied",
+        (item) => item.documentPath === "README.md" && item.state === "suggested",
       );
       expect(next).toHaveLength(1);
       expect(next[0]!.candidateId).not.toBe(first!.candidateId);
@@ -361,10 +394,11 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
   );
 
   it(
-    "F6 applies the README candidate itself, reverts it on request, and holds the finding",
+    "F6 applies a Lervo-managed README candidate itself, reverts it on request, and holds the finding",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
+      ownership.managed.add("README.md");
       const applied = await readmeCandidate(f);
       expect(applied).toMatchObject({ state: "applied", appliedHash: applied.afterHash });
       expect(await f.read("README.md")).toContain(
@@ -393,7 +427,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
   );
 
   it(
-    "F7 applies the managed-block hunk and the cross-checked user prose hunk together",
+    "F7 applies the managed-block hunk and keeps the user prose hunk as a suggestion",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
@@ -436,7 +470,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
       });
       await f.cycle();
       const [candidate] = await listFreshnessCandidates(f.root);
-      expect(candidate).toMatchObject({ state: "applied", authorityRequired: "none" });
+      expect(candidate).toMatchObject({ state: "partially_applied", authorityRequired: "none" });
       const [managed, prose] = candidate!.hunks;
       expect(managed).toMatchObject({
         ownership: "lervo_managed",
@@ -450,14 +484,18 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
         authorityRequired: "none",
         crossCheckRequired: true,
       });
-      expect(candidate!.appliedHunkIds).toEqual([managed!.hunkId, prose!.hunkId]);
-      expect(candidate!.pendingHunkIds).toEqual([]);
-      expect(await f.read("AGENTS.md")).toBe(agents("docs/routes.md", "ops/build.md"));
+      // AGENTS.md invariant 5: Lervo writes only its managed block; the prose stays a suggestion.
+      expect(candidate!.appliedHunkIds).toEqual([managed!.hunkId]);
+      expect(candidate!.pendingHunkIds).toEqual([prose!.hunkId]);
+      expect(await f.read("AGENTS.md")).toBe(agents("docs/routes.md", "ops/old-build.md"));
       expect(f.eventsOf("document.freshness.candidate.applied").at(-1)?.payload).toMatchObject({
         approvalSource: "lervo_managed",
-        appliedHunkCount: 2,
-        pendingHunkCount: 0,
+        appliedHunkCount: 1,
+        pendingHunkCount: 1,
       });
+      // The partial apply is not regenerated while only the suggestion remains.
+      await f.cycle(new Date(Date.now() + 60_000));
+      expect(await listFreshnessCandidates(f.root)).toHaveLength(1);
     },
   );
 });

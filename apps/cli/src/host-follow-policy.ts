@@ -150,6 +150,8 @@ const hostFailureCodes = new Set([
 ]);
 /** ADR-0561: the repository's upgrade left stages Lervo holds as its own debt, not owner work. */
 export const LERVO_DEBT_CODE = "upgrade_lervo_debt";
+/** ADR-0561: the owner holds the repository, so the follower runs no upgrade command there. */
+export const REPOSITORY_OWNER_HOLD_CODE = "repository_owner_hold";
 
 export function classifyRepositoryFailure(code: string): RepositoryUpgradeOutcome {
   return hostFailureCodes.has(code) ? "host_failure" : "failed";
@@ -189,7 +191,8 @@ export const BLOCKED_REPOSITORY_RECHECK_MS = 60 * 60_000;
  * clears on its own once a provider is admitted or the held plan changes.
  */
 const lervoDebtBlock = (result: Pick<HostFollowRepositoryResult, "outcome" | "code">) =>
-  result.outcome === "blocked" && result.code === LERVO_DEBT_CODE;
+  result.outcome === "blocked" &&
+  (result.code === LERVO_DEBT_CODE || result.code === REPOSITORY_OWNER_HOLD_CODE);
 
 /** ADR-0589: the order of a pass. Repositories left in Lervo debt go last. */
 export function repositoryPassOrder(

@@ -163,7 +163,10 @@ export {
   parseDocumentFreshnessProposal,
   type DocumentFreshnessProposal,
 } from "./document-freshness-response.js";
-export { documentFreshnessAutoApplicableHunks } from "./document-freshness-candidate-state.js";
+export {
+  documentFreshnessAutoApplicableHunks,
+  documentFreshnessUserOwnedChange,
+} from "./document-freshness-candidate-state.js";
 export {
   buildDocumentFreshnessCandidate,
   reviewIntervalOnlyFreshnessCandidate,

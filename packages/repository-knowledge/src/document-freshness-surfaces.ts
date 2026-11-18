@@ -31,6 +31,7 @@ const MAXIMUM_SEGMENT_BYTES = 160;
 export const documentFreshnessHeldStates = new Set<DocumentFreshnessCandidateV1["state"]>([
   "waiting_authority",
   "verified_pending_cross_check",
+  "suggested",
   "partially_applied",
 ]);
 

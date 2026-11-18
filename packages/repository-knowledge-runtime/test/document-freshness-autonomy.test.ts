@@ -1,5 +1,5 @@
 import { rm } from "node:fs/promises";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   documentFreshnessAttentionSources,
@@ -12,8 +12,19 @@ import {
   type FreshnessPlanEntry,
 } from "./freshness-fixture.js";
 
+/** AGENTS.md invariant 5: documents a test treats as Lervo-managed; every other one is user-owned. */
+const ownership = vi.hoisted(() => ({ managed: new Set<string>() }));
+vi.mock("@lervo/repository-knowledge", async (importOriginal) => {
+  const { lervoManagedDocuments } = await import("./freshness-ownership.js");
+  return lervoManagedDocuments(
+    await importOriginal<typeof import("@lervo/repository-knowledge")>(),
+    ownership.managed,
+  );
+});
+
 const fixtures: FreshnessFixture[] = [];
 afterEach(async () => {
+  ownership.managed.clear();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
     await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
@@ -45,7 +56,7 @@ const STATEMENT = {
   evidencePaths: ["v4/README.md"],
 };
 
-/** A user-owned `README.md` whose v2 guide was replaced by v4; the owner never takes part. */
+/** A `README.md` whose v2 guide was replaced by v4; user-owned unless a test marks it managed. */
 async function setup(entry: Partial<FreshnessPlanEntry> = {}) {
   const f = await freshnessFixture();
   fixtures.push(f);
@@ -67,69 +78,50 @@ const minutes = (count: number) => new Date(Date.now() + count * 60_000);
 
 describe("document freshness without the owner (ADR-0561)", () => {
   it(
-    "applies a user-owned statement hunk after two agreeing independent checks",
+    "keeps user-owned hunks as a suggestion, spends no cross-check, and changes nothing",
     { timeout: 120_000 },
     async () => {
       const f = await setup();
-      expect(await f.cycle(minutes(1))).toMatchObject({ appliedCount: 1 });
+      expect(await f.cycle(minutes(1))).toMatchObject({ appliedCount: 0 });
       const [candidate] = await listFreshnessCandidates(f.root);
       expect(candidate!.hunks.map((hunk) => [hunk.changeClass, hunk.ownership])).toEqual([
         ["factual_reference", "user_owned"],
         ["statement", "user_owned"],
       ]);
-      expect(candidate).toMatchObject({
-        state: "applied",
-        crossCheck: "agreement",
-        authorityRequired: "none",
-        approval: { approvalSource: "lervo_managed" },
-      });
-      // Two separate no-capability sessions agreed, each with its own run.
-      const rounds = [...candidate!.crossCheckRounds!, candidate!.crossCheckReview!];
-      expect(rounds.map((round) => round.outcome)).toEqual(["agreement", "agreement"]);
-      expect(new Set(rounds.map((round) => round.runId)).size).toBe(2);
-      expect(candidate!.approval!.reviewer).toBe(
-        `cross_check ${rounds.map((round) => round.runId).join(",")}`,
-      );
+      // AGENTS.md invariant 5: Lervo never writes user-owned bytes on its own.
+      expect(candidate).toMatchObject({ state: "suggested", approval: null, appliedHunkIds: [] });
       expect((await f.providerCalls()).map((call) => call.task)).toEqual([
         "document_freshness_candidate",
-        "document_freshness_cross_check",
-        "document_freshness_cross_check",
       ]);
-      expect(await f.read("README.md")).toContain("Learning now runs on a fixed schedule.");
-      // Both calls count inside the candidate budget.
-      expect(candidate!.tokensObserved).toBe(4_500);
-      expect(await f.git(["log", "-1", "--format=%B"])).toContain(
-        "Lervo-Freshness-Cross-Check: agreement 2/2",
-      );
-      // The applied notice is information only.
+      expect(await f.read("README.md")).toBe(README);
+      // The suggestion is shown, never as owner work and never as an apply.
       const attention = await documentFreshnessAttentionSources(f.root, new Date());
-      expect(attention.applied.map((item) => item.candidateId)).toEqual([candidate!.candidateId]);
-      expect(attention.held).toEqual([]);
+      expect(attention.applied).toEqual([]);
+      expect(attention.held.map((item) => item.candidateId)).toEqual([candidate!.candidateId]);
     },
   );
 
   it(
-    "regenerates once with the disagreement as evidence after one agreement and one disagreement, then holds",
+    "regenerates a Lervo-managed document once with the disagreement as evidence, then holds",
     { timeout: 120_000 },
     async () => {
-      const f = await setup({ crossCheckSequence: ["agree", "disagree", "agree", "disagree"] });
+      ownership.managed.add("README.md");
+      const f = await setup({ crossCheckSequence: ["disagree", "disagree"] });
       await f.cycle(minutes(1));
       const [first] = await listFreshnessCandidates(f.root);
       expect(first).toMatchObject({
         state: "rejected",
         rejection: { reasonCode: "cross_check_disagreement", rejectorKind: "cross_check" },
       });
-      expect(first!.crossCheckRounds).toHaveLength(1);
       expect((await documentFreshnessAttentionSources(f.root, new Date())).debt).toEqual([]);
 
       await f.cycle(minutes(2));
       const calls = await f.providerCalls();
+      // The managed link needs no check; the managed statement needs one agreeing check.
       expect(calls.map((call) => [call.task, call.regeneration])).toEqual([
         ["document_freshness_candidate", null],
         ["document_freshness_cross_check", null],
-        ["document_freshness_cross_check", null],
         ["document_freshness_candidate", "cross_check_disagreement"],
-        ["document_freshness_cross_check", null],
         ["document_freshness_cross_check", null],
       ]);
       const debt = (await documentFreshnessAttentionSources(f.root, new Date())).debt;
@@ -170,7 +162,7 @@ describe("document freshness without the owner (ADR-0561)", () => {
         (candidate) => candidate.candidateId !== first!.candidateId,
       );
       expect(next).toMatchObject({
-        state: "applied",
+        state: "suggested",
         predecessorCandidateId: first!.candidateId,
       });
       expect(

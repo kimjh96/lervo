@@ -99,7 +99,7 @@ function replicaDivergenceItem(
     actionOwner: "agent",
     requiresUserAction: false,
     blocking: false,
-    instruction: `The replica coordinator saves the losing side of replica ${divergence.replicaId} to a lervo/replica-backup branch on its host and applies the configured side on its next cycle; the saved side is restored from that branch with git.`,
+    instruction: `The replica coordinator saves the losing side of replica ${divergence.replicaId} to a lervo/replica-backup branch on that side's host, records the notice, and applies the configured side on its next cycle; lervo-node repository-replica restore puts the saved side back and holds the repository. A repository the owner holds stays divergent until lervo repository release.`,
   };
 }
 

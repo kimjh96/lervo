@@ -65,8 +65,19 @@ export interface EffectBackupRestore {
   restoredPaths: number;
 }
 
-/** Bounds what backups keep on disk; a moved derived-state tree keeps only its newest copy. */
+/**
+ * Bounds what backups keep on disk; a moved derived-state tree keeps only its newest copy. A
+ * sealed backup an announced undo names is kept for `EFFECT_BACKUP_RETENTION_DAYS` whatever the
+ * count, and every notice names that date.
+ */
 const MAXIMUM_BACKUPS = 16;
+export const EFFECT_BACKUP_RETENTION_DAYS = 30;
+const RETENTION_MILLISECONDS = EFFECT_BACKUP_RETENTION_DAYS * 24 * 60 * 60 * 1000;
+
+/** The date until which a backup taken at `createdAt` keeps its announced undo working. */
+export function effectBackupKeptUntil(createdAt: Date): string {
+  return new Date(createdAt.getTime() + RETENTION_MILLISECONDS).toISOString().slice(0, 10);
+}
 const MAXIMUM_DIRECTORY_FILES = 4_096;
 const BACKUP_ID = /^lbk_[a-f0-9]{24}$/u;
 
@@ -146,10 +157,19 @@ async function readManifest(repositoryRoot: string, backupId: string): Promise<B
   }
 }
 
-/** Keeps the newest backups; only the newest moved tree of each effect stays on disk. */
-async function pruneBackups(repositoryRoot: string): Promise<void> {
+/**
+ * Keeps the newest backups; only the newest moved tree of each effect stays on disk. A sealed
+ * backup younger than the retention window is never pruned, because a notice announced its undo.
+ */
+async function pruneBackups(repositoryRoot: string, now: Date): Promise<void> {
   const root = backupsRoot(repositoryRoot);
-  const manifests: Array<{ id: string; createdAt: string; effect: string; moved: boolean }> = [];
+  const manifests: Array<{
+    id: string;
+    createdAt: string;
+    effect: string;
+    moved: boolean;
+    announced: boolean;
+  }> = [];
   for (const id of await readdir(root).catch(() => [] as string[])) {
     if (!BACKUP_ID.test(id)) continue;
     try {
@@ -159,6 +179,9 @@ async function pruneBackups(repositoryRoot: string): Promise<void> {
         createdAt: manifest.createdAt,
         effect: manifest.effect,
         moved: manifest.entries.some((entry) => entry.kind === "moved_directory"),
+        announced:
+          manifest.state === "sealed" &&
+          now.getTime() - Date.parse(manifest.createdAt) < RETENTION_MILLISECONDS,
       });
     } catch {
       // An unreadable backup is kept for inspection rather than deleted blindly.
@@ -169,7 +192,8 @@ async function pruneBackups(repositoryRoot: string): Promise<void> {
   for (const [index, item] of manifests.entries()) {
     const supersededTree = item.moved && movedSeen.has(item.effect);
     if (item.moved) movedSeen.add(item.effect);
-    if (index >= MAXIMUM_BACKUPS || supersededTree)
+    // A moved derived-state tree's notice says the next reset replaces it.
+    if (supersededTree || (index >= MAXIMUM_BACKUPS && !item.announced))
       await rm(resolve(root, item.id), { recursive: true, force: true });
   }
 }
@@ -223,7 +247,7 @@ export async function takeEffectBackup(input: {
     state: "taken",
     entries,
   });
-  await pruneBackups(input.repositoryRoot);
+  await pruneBackups(input.repositoryRoot, input.now ?? new Date());
   return { backupId, effect: input.effect };
 }
 

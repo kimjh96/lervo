@@ -1,6 +1,7 @@
 import type { DocumentFreshnessEvidenceItem } from "./document-freshness-candidate.js";
 import {
   documentFreshnessCandidateRequiredAgreements,
+  documentFreshnessUserOwnedChange,
   documentFreshnessVerifiedState,
 } from "./document-freshness-candidate-state.js";
 import type {
@@ -110,8 +111,12 @@ export function documentFreshnessCandidateNeedsCrossCheck(
   return (
     candidate.crossCheck === "unavailable" &&
     (candidate.state === "verified" || candidate.state === "verified_pending_cross_check") &&
-    ((candidate.operation === "archive" && candidate.archive !== null) ||
-      (candidate.operation === "edit" && candidate.hunks.some((hunk) => hunk.crossCheckRequired)))
+    // AGENTS.md invariant 5: user-owned bytes are never applied, so they need no cross-check.
+    ((candidate.operation === "archive" &&
+      candidate.archive !== null &&
+      !documentFreshnessUserOwnedChange(candidate)) ||
+      (candidate.operation === "edit" &&
+        candidate.hunks.some((hunk) => hunk.crossCheckRequired && hunk.ownership !== "user_owned")))
   );
 }
 

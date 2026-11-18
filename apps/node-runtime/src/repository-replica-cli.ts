@@ -22,6 +22,10 @@ import {
   createRepositoryReplicaBundle,
 } from "./repository-replica-git.js";
 import { observeRepositoryReplicaSnapshot } from "./repository-replica-snapshot-cache.js";
+import {
+  restoreRepositoryReplicaBackup,
+  saveRepositoryReplicaBackup,
+} from "./repository-replica-backup.js";
 import { publishRepositoryChangeHints } from "./repository-replica-watch.js";
 
 export interface RepositoryReplicaCliPorts {
@@ -41,6 +45,9 @@ const PEER_ACTION_STAGES: Record<string, RepositoryReplicaStage> = {
   adopt: "apply",
   receipt: "verify",
   "knowledge-supersession": "supersession",
+  // ADR-0561: the losing side of a conflict is saved, and restored, on its own host.
+  backup: "merge",
+  "restore-backup": "apply",
 };
 
 function oneOption(args: readonly string[], name: string): string {
@@ -99,6 +106,24 @@ async function runPeerAction(
     ports.stdout(`${JSON.stringify(applied)}\n`);
     return;
   }
+  if (action === "backup") {
+    const saved = await saveRepositoryReplicaBackup({
+      repositoryRoot: root,
+      branch: oneOption(args, "--branch"),
+      bundle: null,
+      expectedSnapshotHash: oneOption(args, "--expected"),
+    });
+    ports.stdout(`${JSON.stringify(saved)}\n`);
+    return;
+  }
+  if (action === "restore-backup") {
+    const restored = await restoreRepositoryReplicaBackup({
+      repositoryRoot: root,
+      branch: oneOption(args, "--branch"),
+    });
+    ports.stdout(`${JSON.stringify(restored)}\n`);
+    return;
+  }
   if (action === "knowledge-supersession") {
     const request = JSON.parse(Buffer.from(await ports.stdinBytes()).toString("utf8")) as {
       entries?: unknown;
@@ -121,7 +146,35 @@ async function runPeerAction(
 
 /** ADR-0561 removed the owner's side choice; the coordinator resolves conflicts itself. */
 const REMOVED_PREFER =
-  "--prefer was removed: the coordinator saves the losing side to a lervo/replica-backup/<replica>/<divergence> branch on this host and applies the configured side itself; restore the saved side from that branch with git.";
+  "--prefer was removed: the coordinator saves the losing side to a lervo/replica-backup/<replica>/<divergence> branch on that side's host and applies the configured side itself; undo it with lervo-node repository-replica restore.";
+
+/**
+ * ADR-0561: `restore` undoes a settled conflict. It holds the replica's local repository, so
+ * conflict resolution stops there, then puts the saved losing side back on the host it came from.
+ */
+function restoreOptions(args: readonly string[]) {
+  const { config, replica, side, branch } = parseArgs({
+    args: args.slice(1),
+    strict: true,
+    allowPositionals: false,
+    options: {
+      config: { type: "string" },
+      replica: { type: "string" },
+      side: { type: "string" },
+      branch: { type: "string" },
+    },
+  }).values;
+  if (config === undefined || replica === undefined || branch === undefined)
+    throw new Error("Repository replica restore needs --config, --replica, --side, and --branch.");
+  if (side !== "local" && side !== "peer")
+    throw new Error("Repository replica restore --side must be local or peer.");
+  return {
+    config,
+    watch: false,
+    only: { replicaId: replica },
+    restore: { side, branch } as const,
+  };
+}
 
 function reconcileOptions(args: readonly string[]) {
   const { config, watch, replica, prefer } = parseArgs({
@@ -181,8 +234,8 @@ export async function runRepositoryReplicaCli(
       return 1;
     }
   }
-  if (action === "reconcile") {
-    const options = reconcileOptions(args);
+  if (action === "reconcile" || action === "restore") {
+    const options = action === "restore" ? restoreOptions(args) : reconcileOptions(args);
     return runRepositoryReplicaCoordinator(
       await readRepositoryReplicaCoordinatorConfig(resolve(ports.cwd, options.config)),
       ports,
@@ -190,6 +243,6 @@ export async function runRepositoryReplicaCli(
     );
   }
   throw new Error(
-    "Usage: lervo-node repository-replica <capture-version|snapshot|bundle|apply|adopt|receipt|knowledge-supersession|reconcile|watch> ...",
+    "Usage: lervo-node repository-replica <capture-version|snapshot|bundle|apply|adopt|receipt|knowledge-supersession|backup|restore-backup|reconcile|restore|watch> ...",
   );
 }

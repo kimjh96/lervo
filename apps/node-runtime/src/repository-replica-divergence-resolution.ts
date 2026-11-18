@@ -33,7 +33,11 @@ export interface RepositoryReplicaBackup {
 
 export type RepositoryReplicaPreferenceResult =
   | RepositoryReplicaResolvedPreference
-  | { status: "held"; reason: "stronger_check_disagreement" | "backup_unavailable" };
+  | {
+      status: "held";
+      reason:
+        "stronger_check_disagreement" | "backup_unavailable" | "notice_unavailable" | "owner_hold";
+    };
 
 export interface RepositoryReplicaResolvedPreference {
   status: "resolved";
@@ -46,11 +50,12 @@ export interface RepositoryReplicaResolvedPreference {
 }
 
 /**
- * ADR-0561 for a replica conflict: save the losing side to a backup branch on this host, confirm
- * with two agreeing checks that the backup holds the exact losing snapshot and that neither side
- * moved since the decision, then prefer the chosen side. The merge keeps every non-conflicting
- * change from both sides; only when no merge is possible does the chosen side replace the other.
- * A failed backup or a disagreeing check changes nothing and is held as Lervo's own debt.
+ * ADR-0561 for a replica conflict: save the losing side to a backup branch on the losing side's
+ * own host, where the undo restores it; confirm with two agreeing checks that the backup holds the
+ * exact losing snapshot and that neither side moved since the decision; record the notice with its
+ * undo; and only then prefer the chosen side. The merge keeps every non-conflicting change from
+ * both sides; only when no merge is possible does the chosen side replace the other. An owner
+ * hold, a failed backup, a disagreeing check, or an unrecorded notice changes nothing.
  */
 export async function preferRepositoryReplicaSide(input: {
   replicaId: string;
@@ -63,20 +68,27 @@ export async function preferRepositoryReplicaSide(input: {
   peerBundle: Uint8Array;
   local: RepositoryReplicaPeerPort;
   peer: RepositoryReplicaPeerPort;
+  /** Whether the owner holds the local repository; a held conflict stays open. */
+  held: () => Promise<boolean>;
+  /** Persists the notice with its undo; it runs before either side changes. */
+  notice: (backup: RepositoryReplicaBackup) => Promise<void>;
 }): Promise<RepositoryReplicaPreferenceResult> {
+  if (await input.held()) return { status: "held", reason: "owner_hold" };
   const preferred = preferredReplicaSide(input.policy);
-  const losing = preferred === "local" ? input.peerSnapshot : input.localSnapshot;
-  if (input.local.backup === undefined || input.local.merge === undefined)
+  const losingSide = preferred === "local" ? "peer" : "local";
+  const losing = losingSide === "peer" ? input.peerSnapshot : input.localSnapshot;
+  const losingPort = losingSide === "peer" ? input.peer : input.local;
+  if (losingPort.backup === undefined || input.local.merge === undefined)
     return { status: "held", reason: "backup_unavailable" };
   let backup: RepositoryReplicaBackup;
   try {
-    const saved = await input.local.backup({
-      repositoryRoot: input.localRoot,
+    const saved = await losingPort.backup({
+      repositoryRoot: losingSide === "peer" ? input.peerRoot : input.localRoot,
       branch: repositoryReplicaBackupBranch(input.replicaId, input.divergenceId),
-      bundle: preferred === "local" ? input.peerBundle : null,
+      bundle: null,
       expectedSnapshotHash: losing.snapshotHash,
     });
-    backup = { ...saved, side: preferred === "local" ? "peer" : "local" };
+    backup = { ...saved, side: losingSide };
   } catch {
     return { status: "held", reason: "backup_unavailable" };
   }
@@ -92,6 +104,11 @@ export async function preferRepositoryReplicaSide(input: {
     peerNow.snapshotHash !== input.peerSnapshot.snapshotHash
   )
     return { status: "held", reason: "stronger_check_disagreement" };
+  try {
+    await input.notice(backup);
+  } catch {
+    return { status: "held", reason: "notice_unavailable" };
+  }
   const policy = preferred === "local" ? "prefer_local" : "prefer_peer";
   const merged = await input.local.merge({
     repositoryRoot: input.localRoot,
@@ -161,6 +178,8 @@ export async function resolveRepositoryReplicaDivergence(input: {
   peerPort: RepositoryReplicaPeerPort;
   divergences: RepositoryReplicaDivergenceLedger;
   stage: { current: RepositoryReplicaStage };
+  held: () => Promise<boolean>;
+  notice: (backup: RepositoryReplicaBackup) => Promise<void>;
 }): Promise<
   | { kind: "held"; result: DivergentResult }
   | {
@@ -254,6 +273,8 @@ export async function resolveRepositoryReplicaDivergence(input: {
     peerBundle,
     local: input.localPort,
     peer: input.peerPort,
+    held: input.held,
+    notice: input.notice,
   });
   if (resolved.status === "held")
     return { kind: "held", result: { ...observed, heldReason: resolved.reason } };

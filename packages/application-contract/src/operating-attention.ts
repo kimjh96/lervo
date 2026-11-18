@@ -202,14 +202,21 @@ export interface InstructionCaptureBlockedAttentionItemV1 extends OperatingAtten
 export interface HeldEffectAttentionItemV1 extends OperatingAttentionItemBaseV1 {
   kind: "held_effect";
   state: "lervo_debt";
-  effect: "upgrade_knowledge" | "upgrade_terminal_integration" | "capability_install";
+  effect:
+    "upgrade_knowledge" | "upgrade_terminal_integration" | "capability_install" | "repository_hold";
   /** A plan ID or capability coordinate; never a path or content. */
   subject: string;
+  /** `owner_hold` and `owner_restored` are the owner's own holds; the rest are Lervo debt. */
   reasonCode:
     | "cross_check_disagreement_repeated"
     | "stronger_check_disagreement"
     | "cross_check_unavailable"
-    | "verification_failed";
+    | "verification_failed"
+    | "user_owned_content"
+    | "paths_uncommitted"
+    | "commit_unavailable"
+    | "owner_hold"
+    | "owner_restored";
   attempts: number;
   since: string;
 }
