@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-05
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the reviewed direct-message trigger part is removed. Lervo no longer ships `AssignmentMessageTriggerAdapterV1`, `lervo/reviewed-message-file`, `lervo assignment trigger`, or the product-host protocol v4 routes. Explicit handoff acknowledgment and `lervo assignment acknowledge` stay, and stored trigger provenance stays readable.
+
 ## Context
 
 Lervo could resolve mentions, record assignment handoffs, project threads and inboxes, and deliver artifacts through outbound connectors. Acknowledgment was intentionally unobserved. Conversation adapters normalized inbound messages, but no installed route bound a message to workforce authority. Treating any inbound message as assignment authority, inferring acknowledgment from delivery, or replaying a source event into duplicate handoffs would weaken the evidence model.
@@ -29,8 +31,8 @@ The first installed message-to-handoff journey preserves review, route, acknowle
 
 ## References
 
-- [Reviewed direct-message triggers and acknowledgment](../../../../specifications/execution/assignment-message-triggers.md)
+- Reviewed direct-message trigger specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md); acknowledgment moved to [assignment interactions](../../../../specifications/execution/assignment-interactions.md)
 - [Assignment interactions](../../../../specifications/execution/assignment-interactions.md)
-- [Assignment routines](../../../../specifications/execution/assignment-routines.md)
-- [Product-host protocol](../../../../specifications/execution/product-host-protocol.md)
+- Assignment routine specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
+- Product-host protocol specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Product outcome convergence](../../../../roadmap/product-outcome-convergence.md)

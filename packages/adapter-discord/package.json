@@ -15,9 +15,7 @@
     "build": "tsc --project tsconfig.json"
   },
   "dependencies": {
-    "@lervo/application-contract": "workspace:*",
     "@lervo/conversation-contract": "workspace:*",
-    "@lervo/event-contract": "workspace:*",
     "@lervo/conversation-platform": "workspace:*",
     "@lervo/schemas": "workspace:*",
     "@lervo/storage-contract": "workspace:*"

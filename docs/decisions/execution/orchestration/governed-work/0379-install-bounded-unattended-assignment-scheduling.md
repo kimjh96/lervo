@@ -1,7 +1,9 @@
 # ADR-0379: Install bounded unattended assignment scheduling
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-07
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -49,8 +51,8 @@ Lervo can drain bounded queued work locally from one explicit invocation without
 
 ## References
 
-- [Bounded unattended assignment scheduling](../../../../specifications/execution/unattended-scheduling.md)
-- [Bounded autonomous continuation](../../../../roadmap/product-outcome-convergence/execution/autonomous-continuation.md)
+- Bounded unattended assignment scheduling specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
+- Bounded autonomous continuation roadmap outcome, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [ADR-0336](0336-adopt-headless-governed-loop-and-assignment-graph.md)
 - [ADR-0337](0337-bind-assignment-approval-and-cancellation-authority.md)
 - [ADR-0338](0338-reconcile-prepared-managed-assignment-completion.md)

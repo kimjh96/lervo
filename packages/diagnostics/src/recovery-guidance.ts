@@ -1,5 +1,5 @@
 import { environmentRecoveryGuidance } from "./recovery-guidance-environment.js";
-import { knowledgeRecoveryGuidance } from "./recovery-guidance-knowledge.js";
+import { eventChainRecoveryGuidance } from "./recovery-guidance-event-chain.js";
 import { searchRecoveryGuidance } from "./recovery-guidance-search.js";
 import type {
   DoctorIssue,
@@ -14,7 +14,7 @@ interface GuidanceTemplate {
 }
 
 const guidanceByIssueCode = {
-  ...knowledgeRecoveryGuidance,
+  ...eventChainRecoveryGuidance,
   ...environmentRecoveryGuidance,
   ...searchRecoveryGuidance,
 } satisfies Record<DoctorIssueCode, GuidanceTemplate>;

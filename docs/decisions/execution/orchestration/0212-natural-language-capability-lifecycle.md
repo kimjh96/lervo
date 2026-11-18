@@ -3,6 +3,8 @@
 Status: accepted
 Date: 2026-08-25
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the `lervo migrate capabilities` alias is removed. `lervo capability migrate` performs the same promotion.
+
 ## Context
 
 Documents already recorded recommendation, selection, loading, delivery, and reference evidence, but skills, MCP servers, and plugins were primarily explicit package coordinates. Resolution and provider activation could neither select a suitable package from an ordinary task nor prove that verified skill instructions entered the turn. Existing provider configuration may contain secrets and cannot be copied safely during repository migration.

@@ -2,7 +2,6 @@ import { watchConversationQueueChanges } from "./queue-change-notifications.js";
 import { resolve } from "node:path";
 
 import { DiscordConversationAdapter } from "@lervo/adapter-discord";
-import { SlackConversationAdapter } from "@lervo/adapter-slack";
 import { FileSystemCas } from "@lervo/cas";
 import {
   assertConversationAdapterDescriptor,
@@ -172,12 +171,6 @@ export async function openConversationApplication(
       }
       adapters.set(deployment.integrationId, adapter);
     }
-    const slackAdapters = new Map(
-      [...adapters].filter(
-        (entry): entry is [string, SlackConversationAdapter] =>
-          entry[1] instanceof SlackConversationAdapter,
-      ),
-    );
     const discordAdapters = new Map(
       [...adapters].filter(
         (entry): entry is [string, DiscordConversationAdapter] =>
@@ -213,7 +206,6 @@ export async function openConversationApplication(
       subscribeChanges: (kind, notify) =>
         watchConversationQueueChanges(options.dataDirectory, kind, notify),
       adapters,
-      slackAdapters,
       discordAdapters,
       discordGateways: discordRuntime.gateways,
       deliberations: trackedDeliberations,

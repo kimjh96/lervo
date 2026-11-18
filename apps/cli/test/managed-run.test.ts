@@ -833,7 +833,7 @@ describe("lervo run vertical slice", () => {
       expect(adapterCreations).toBe(1);
       expect(output).not.toContain("linked-evidence-managed-canary");
       expect(output).toContain("Documents selected from search: doc_cli_search_context");
-      expect(output).toContain("--selected document:doc_cli_search_context");
+      expect(output).not.toContain("lervo search assess");
       expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(
         "export const cli = true;\n",
       );

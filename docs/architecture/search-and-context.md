@@ -16,7 +16,7 @@ Search separates recommendation, engine execution, plan composition, and context
 
 - [Lexical search](../decisions/search/0053-deterministic-lexical-search-observations.md)
 - [Recommendation boundary](../decisions/search/0054-search-recommendation-managed-context-boundary.md)
-- [Engine selection](../decisions/search/0060-policy-bound-search-engine-selection.md)
+- [Engine selection](../decisions/search/0060-policy-bound-search-engine-selection.md), whose activation and rollout tooling [ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed
 - [Operational resolution](../decisions/search/0061-fail-closed-operational-search-engine-resolution.md)
 - [Adapter build identity](../decisions/search/0063-search-adapter-build-identity-and-replay-receipt.md)
 - [Linked-default retirement](../decisions/search/activation/provider-shadow-structured/typed-context/0302-retire-linked-default-and-use-search-engine-ports.md)

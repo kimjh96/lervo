@@ -5,7 +5,6 @@
 - `@lervo/execution-contract` owns the clock-independent stage recorder, catalogued parent relationships, and canonical environment-profile bytes and hashes.
 - Managed and terminal adapters own clock injection, runtime-profile construction, and event composition. Core execution does not depend on a provider-specific timer or telemetry backend.
 - `@lervo/execution-observability` and `@lervo/diagnostics` own pure projections. CLI formatters render them without recalculating durations.
-- `@lervo/execution-performance` owns paired statistics, budgets, and report verification. Fixture preparation and cleanup remain replaceable harness ports.
 
 New clocks, persistence backends, exporters, providers, fixtures, or presentation surfaces must implement these boundaries rather than add policy to the managed-run or terminal entrypoint. New stages or changed parent relationships require a new catalog version.
 

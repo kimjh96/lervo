@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-08-22
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the OKF exchange part is removed. Lervo no longer ships `@lervo/knowledge-okf` or OKF export, import, bundle lint, bundle query, and re-export. Git reproduction of structural manifests, sidecars, and evidence-unit freshness in a clean clone stays.
+
 ## Context
 
 OKF v0.2 is an exchange format, not native storage. Imports must preserve unknown metadata and footnotes without elevating externally verified status. Clean clones must validate and query tracked publications and sidecars without gitignored local knowledge state.

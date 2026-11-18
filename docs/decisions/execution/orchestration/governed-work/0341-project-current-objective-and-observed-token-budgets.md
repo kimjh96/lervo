@@ -1,7 +1,9 @@
 # ADR-0341: Project the current objective and observed token budgets
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-02
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

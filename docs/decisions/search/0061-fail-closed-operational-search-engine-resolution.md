@@ -3,6 +3,8 @@
 Status: `accepted`
 Decision date: 2026-08-20
 
+Partially superseded by [ADR-0560](../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the selection chain part is removed. The resolver no longer reads or revalidates engine selection transitions, policies, reviews, or comparisons, and `selectionTransitionId` is always null. `SearchEnginePort`, `SearchIndexPort`, the shared `@lervo/search-local` resolver, and fail-closed `engine_selection_unavailable` stay.
+
 ## Context
 
 Recorded selections have no effect until ordinary search and context operations consume them. Connecting candidates without revalidation could silently fall back after missing adapters, changed corpora, or tampered evidence while appearing to use the candidate. The evaluation baseline must remain independently fixed, and an explicit baseline rollback must work without replaying an unavailable historical candidate.

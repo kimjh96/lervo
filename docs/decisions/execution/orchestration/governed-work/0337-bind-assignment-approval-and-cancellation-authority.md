@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the approval authority part is removed. Lervo no longer ships `ApprovalAuthorityPort` or the governed approval observations. The cancellation plan, `lervo assignment cancel`, and `assignment.cancelled` stay.
+
 ## Context
 
 The governed-loop v1 projection could wait for approval and recommend cancellation, but intentionally had neither an approval authority adapter nor a cancellation writer. Treating a requirement string, command-line flag, expired lease, or controller decision as authority would let presentation or timing silently change canonical work state.

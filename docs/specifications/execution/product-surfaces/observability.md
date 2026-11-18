@@ -4,7 +4,9 @@
 
 Discord and future first-party surfaces consume existing causal work, context coverage, resource, stage, search, normalization, state-retention, verification, and delivery evidence. They must not introduce a second telemetry vocabulary or reinterpret historical observations.
 
-`SurfaceObservabilityReportV1` is a rebuildable application projection whose required fields are defined by [application projections](application-projections.md). It joins only exact compatible coordinates, preserves every source status, descriptor, and missing reason, adds no canonical event, and does not make presentation state durable truth.
+A surface observability view is a rebuildable projection. It joins only exact compatible coordinates, preserves every source status, descriptor, and missing reason, adds no canonical event, and does not make presentation state durable truth.
+
+[ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the installed `SurfaceObservabilityReportV1` query, which had no invoker. The sections below define the meanings a successor view must preserve.
 
 ## Report sections
 
@@ -44,7 +46,7 @@ Dashboards must not:
 
 Reuse existing stage recorders and resource adapters. Rendering and export add no provider calls and remain outside measured provider intervals. New observation work records its own bounded overhead and cannot fail successful product actions unless the owning contract requires that observation for authority or a configured budget.
 
-Long-running hosts retain at most the current and one in-flight repository projection revision. Activity and observability queries use bounded cursors, pagination, and retention. Cache inventories follow typed derived-state pruning while protecting current projections, pending reviews, and recovery-required state.
+Long-running hosts retain at most the current and one in-flight repository projection revision. Activity and observability views use bounded cursors, pagination, and retention. Cache inventories follow typed derived-state pruning while protecting current projections, pending reviews, and recovery-required state.
 
 ## Privacy and failure meaning
 

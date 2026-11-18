@@ -10,7 +10,7 @@ Notifications only signal that durable state should be checked. Repository parit
 ## Contracts and validation
 
 - [Repository replica subscriptions, snapshots, and readiness](node-change-driven-work/repository-replicas.md)
-- [Conversation queues and bounded scheduler](node-change-driven-work/conversation-scheduling.md)
+- [Conversation queue scheduling](node-change-driven-work/conversation-scheduling.md)
 - [Remaining timers and acceptance](node-change-driven-work/validation.md)
 
 ADR-0414 removes the remaining repository batch barrier, replaces short owner-admission polling with lease notifications, and narrows supervision consistency to owned source coordinates. Recovery, integrity, protocol, lease, and deadline timers remain explicit safety controls, not ordinary work discovery.

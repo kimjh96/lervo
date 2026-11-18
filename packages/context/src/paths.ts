@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { isAbsolute, posix, resolve, win32 } from "node:path";
+import { isAbsolute, posix, win32 } from "node:path";
 
 import { ContextPreparationError } from "./types.js";
 
@@ -29,11 +29,6 @@ export function normalizeRepositoryPath(path: string): string {
     );
   }
   return normalized;
-}
-
-export function resolveInsideRepository(root: string, path: string): string {
-  const normalized = normalizeRepositoryPath(path);
-  return resolve(root, ...normalized.split("/"));
 }
 
 export function documentIdForPath(path: string): string {

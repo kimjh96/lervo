@@ -8,7 +8,7 @@ The descriptions under Routing, Local inspection, and Other errors below are ret
 
 ## Routing
 
-The dispatcher forwards export, import, and OKF commands with their original arguments. It removes the leading subcommand when forwarding convergence, worker, canonicalization, normalization, review-policy, review, materialization, structure, freshness, and instruction commands.
+The dispatcher removes the leading subcommand when forwarding convergence, worker, canonicalization, normalization, review-policy, review, materialization, structure, freshness, and instruction commands.
 
 Refresh invokes migration in `refresh` mode. Compile, compare, stability, merge-candidate, and fuzzy-merge-candidate share the compilation wrapper. Pattern effect takes precedence over general pattern dispatch and receives the supplied services. Instruction receives the optional `groundProductionRequest` service only when supplied.
 
@@ -16,16 +16,7 @@ Routing does not establish imported handler behavior or successful execution.
 
 ## Local inspection
 
-Impact, refresh-candidate, reconcile, lint, and query parse options strictly, accept `--json`, and resolve `--root` relative to the CLI working directory, defaulting to `.`. Impact, refresh-candidate, and lint reject positional arguments. Reconcile requires exactly one compilation ID. Query joins and trims positional words and rejects an empty sentence.
-
-### Impact and refresh-candidate
-
-Both collect local supplemental sources, scan configured knowledge, and analyze impact.
-
-- Impact emits the complete report as JSON or a text summary containing counts, report and snapshot IDs, lineage completeness, and non-current items.
-- Refresh-candidate constructs a review candidate and prints its status, identifiers, actions, freshness, and reasons. Text output explicitly states that publications were not changed automatically.
-
-Both return zero after successful processing, regardless of reported status.
+Reconcile, lint, and query parse options strictly, accept `--json`, and resolve `--root` relative to the CLI working directory, defaulting to `.`. Lint rejects positional arguments. Reconcile requires exactly one compilation ID. Query joins and trims positional words and rejects an empty sentence. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the impact and refresh-candidate wrappers; impact analysis still feeds lint and query.
 
 ### Reconcile
 

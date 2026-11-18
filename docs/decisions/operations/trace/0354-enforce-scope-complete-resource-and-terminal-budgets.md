@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-03
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the governed admission part is removed. Lervo no longer ships the scoped token limits that `lervo loop` used to admit the next attempt. Scope-complete resource projection, `resource_observation_missing`, and `lervo terminal budget` stay.
+
 ## Context
 
 The governed-loop resource projection listed root and retry attempts correctly but incorrectly used that narrow attempt set as its accounting boundary. Causally linked subagent and evaluation runs could be omitted. Because the group coordinate lacked resource scope, observations with the same provider, source, mode, and descriptor could be combined across primary and child work. A started managed child without a final resource observation did not make an otherwise observed group incomplete.

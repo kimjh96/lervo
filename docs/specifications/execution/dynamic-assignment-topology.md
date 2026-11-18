@@ -2,11 +2,11 @@
 
 Status: `active`
 
-As of: 2026-09-07
+As of: 2026-11-02
 
 ## Purpose
 
-Lervo extends the current workstream's assignment DAG with reviewed branches and joins. This local-first, provider-neutral feature adds assignments depending on current assignments or nodes in the same change. It never rewrites or deletes existing nodes or dependencies.
+Lervo extends the current workstream's assignment DAG with bounded branches and joins. This local-first, provider-neutral feature adds assignments depending on current assignments or nodes in the same change. It never rewrites or deletes existing nodes or dependencies.
 
 Canonical authority remains in assignment files, workstreams, roles, execution events, verification, leases, and repository state. `WorkGraphV2` and topology history are rebuildable projections, not another graph database.
 
@@ -21,7 +21,7 @@ Canonical authority remains in assignment files, workstreams, roles, execution e
 
 `assignment_topology.plan` schema v2 returns a content-derived change ID, plan ID, request hash, approval hash, assignment snapshot hash, deterministic assignment IDs, resolved dependencies, and branch/join coordinates. It excludes acceptance prose, paths, provider output, credentials, and reviewer identity. `assignment_topology.applied` returns only bounded IDs, digests, status, and created/existing assignment sets.
 
-`WorkGraphV2` adds topology provenance, branch IDs, and replayed topology history to the v1 DAG. Existing assignments migrate lazily with `topology: null`, without canonical assignment rewrites. V1 graph readers and product-host protocols remain unchanged. Product-host protocol v6 advertises only the v2 inspection and reviewed topology-change routes.
+`WorkGraphV2` adds topology provenance, branch IDs, and replayed topology history to the v1 DAG. Existing assignments migrate lazily with `topology: null`, without canonical assignment rewrites. V1 graph readers remain unchanged.
 
 ## Bounds and validation
 
@@ -38,13 +38,13 @@ Existing dependencies cannot be edited, so reviewed additions cannot create back
 
 ## Review, apply, and concurrency
 
-The manual v2 path remains independently reviewed. [Automatic supervision topology](outcome-supervision/implementation/automatic-topology.md) uses a separate versioned operating-policy binding and leaves each addition blocked until its responsibility claim.
+[Automatic supervision topology](outcome-supervision/implementation/automatic-topology.md) is the installed writer. It uses a versioned operating-policy binding and leaves each addition blocked until its responsibility claim. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the manual `lervo assignment topology` inspection and reviewed-change route, which had no production invoker. Stored topology provenance from that route stays valid.
 
-Planning is read-only. Manual apply requires all of `--apply <plan-id>`, `--approval <approval-hash>`, `--reviewer <id>`, and `--write`. Under the shared assignment-graph materialization lock, Lervo rebuilds the current graph and role contracts, requires the exact plan and approval, and writes deterministic assignments initially as `blocked`.
+Planning is read-only. Under the shared assignment-graph materialization lock, Lervo rebuilds the current graph and role contracts, requires the exact plan and approval, and writes deterministic assignments initially as `blocked`.
 
-Only after every expected node exists with exact content and provenance does Lervo activate the set to `queued`. Existing scheduler and manual claim paths use ordinary DAG dependency eligibility. Topology code does not start providers or bypass leases, approvals, resource budgets, cancellation, verification, or completion reconciliation.
+Only after every expected node exists with exact content and provenance does Lervo activate the set to `queued`. Existing claim paths use ordinary DAG dependency eligibility. Topology code does not start providers or bypass leases, approvals, resource budgets, cancellation, verification, or completion reconciliation.
 
-Routine materialization and dynamic topology share one lock because both append assignment graph nodes. The controller owns pure validation and planning; workforce persistence owns atomic assignment files and state transitions; CLI composition owns role resolution, event recording, exact review, and rendering.
+Every assignment graph writer shares one materialization lock. The controller owns pure validation and planning; workforce persistence owns atomic assignment files and state transitions; the supervision runtime owns role resolution, event recording, and review binding.
 
 ## Recovery and replay
 
@@ -75,6 +75,4 @@ Arbitrary rewiring, node deletion, unbounded graph growth, graph-authored provid
 ## References
 
 - [ADR-0380](../../decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md)
-- [Product-host protocol](product-host-protocol.md)
-- [Bounded unattended scheduling](unattended-scheduling.md)
 - [Dynamic execution graph outcome](../../roadmap/product-outcome-convergence/host-products/execution-graphs.md)

@@ -2,9 +2,7 @@
 
 ## Exchange
 
-OKF v0.2 export creates a content-addressed, schema-versioned bundle. Import preserves unknown metadata and original bundle bytes but maps external verification to local `unreviewed`.
-
-Hub document sharing uses structured shared-context coordinates plus CAS bytes; repository knowledge exchange uses OKF rather than an opaque upload. Capability packages use their separate kind-tagged envelope. A clone or another installation can lint, query, and re-export without a Hub.
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed OKF v0.2 export and import. Repository knowledge travels with Git: a clone or another installation can lint and query tracked publications and sidecars without a Hub. Hub document sharing uses structured shared-context coordinates plus CAS bytes, and capability packages use their separate kind-tagged envelope.
 
 ## Failure meaning
 
@@ -21,7 +19,7 @@ Hub document sharing uses structured shared-context coordinates plus CAS bytes; 
 
 ## Acceptance
 
-1. Migration, not initialization, gives an undocumented repository English README and AGENTS entrypoints and a cited bundle.
+1. Migration, not initialization, gives an undocumented repository English README and AGENTS entrypoints and cited publications.
 2. Structural routing precedes exact per-source-approved rewrites from stored candidates.
 3. Coverage includes code, configuration, tests, evidence, log metadata, and unsupported files.
 4. Large categories shard below both bounds; owned obsolete pages disappear safely.

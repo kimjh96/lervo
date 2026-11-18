@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-09
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the organization effects part is removed. Lervo no longer ships the organization execution boundary, its replay store, or the Discord executive adapter. Named identity, team classification, deployment rotation, surface-neutral work, natural Discord channel and thread creation in the Node runtime, and uncertain-deliberation reconciliation stay.
+
 ## Context
 
 The organization model separated hired agents from roles, provider turns, and one-to-one Discord deployments but lacked human-facing workforce names. Surfaces could confuse a role such as `CEO` with agent identity. The organization policy evaluator produced pure decisions without an installed, replay-safe boundary for approved Discord administration.

@@ -12,7 +12,8 @@ export const platformBoundaryRules = [
   {
     platform: "slack",
     term: /slack/iu,
-    adapterPackages: ["packages/adapter-slack"],
+    // No Slack adapter remains (ADR-0560); any Slack vocabulary in source is a leak.
+    adapterPackages: [],
     adapterFilePrefix: "slack-",
   },
 ];

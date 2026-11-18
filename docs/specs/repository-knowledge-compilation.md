@@ -35,7 +35,7 @@ The compilation contract comprises:
 ## References
 
 - [Repository knowledge decision](../decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md)
-- [OKF exchange decision](../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md)
+- [Git reproduction decision](../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md); its OKF exchange part is superseded by ADR-0560
 - [Instruction bridge decision](../decisions/knowledge/repository/0185-profiled-provider-instruction-bridge.md)
 - [Agent surface inventory](../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md)
 - [Language-aware bounded publication](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md)

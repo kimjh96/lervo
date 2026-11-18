@@ -1,5 +1,4 @@
 import { prepareContext } from "@lervo/context";
-import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,6 +13,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { prepareConversationRepositoryContext } from "../src/conversation-repository-context.js";
 import { createConversationReadOnlyRole } from "../src/conversation-read-policy.js";
+import { TestConversationAdapter } from "../../../packages/conversation-contract/test/conversation-adapter.fixture.js";
 
 const roots: string[] = [];
 
@@ -76,9 +76,9 @@ describe("conversation repository context during knowledge materialization", () 
     ).toBe(true);
   });
 
-  it("uses the same preparation contract for a normalized native-chat event", async () => {
+  it("uses the same preparation contract for a platform-neutral normalized event", async () => {
     const input = await fixture();
-    const adapter = new NativeChatConversationAdapter({
+    const adapter = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "context-quality-fixture",
       delivery: {

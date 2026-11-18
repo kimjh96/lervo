@@ -16,9 +16,6 @@ const healthyEnvironmentInspections: DoctorInspection[] = [
   "provider_codex_runtime",
   "provider_claude_runtime",
   "search_engine_selection",
-  "search_rollout_policies",
-  "search_rollout_reviews",
-  "search_rollout_actions",
 ].map((checkId) => ({
   check: {
     checkId: checkId as DoctorInspection["check"]["checkId"],
@@ -52,16 +49,7 @@ describe("lervo doctor limited scopes", () => {
     ["documents", "documents", ["document_registry", "document_sources"]],
     ["skills", "skills", ["skill_packages", "skill_lock"]],
     ["providers", "agent runtimes", ["provider_codex_runtime", "provider_claude_runtime"]],
-    [
-      "search",
-      "search",
-      [
-        "search_engine_selection",
-        "search_rollout_policies",
-        "search_rollout_reviews",
-        "search_rollout_actions",
-      ],
-    ],
+    ["search", "search", ["search_engine_selection"]],
   ] as const)("runs only the %s environment inspectors", async (scope, label, expectedCheckIds) => {
     const root = await initializedRepository();
     const observedScopes: DoctorScope[] = [];
@@ -176,13 +164,7 @@ describe("lervo doctor limited scopes", () => {
       checks: Array<{ checkId: string }>;
     };
     expect(report.scope).toBe("knowledge");
-    expect(report.checks.map((check) => check.checkId)).toEqual([
-      "event_chain",
-      "knowledge_candidates",
-      "knowledge_reviews",
-      "verified_knowledge",
-      "knowledge_staleness",
-    ]);
+    expect(report.checks.map((check) => check.checkId)).toEqual(["event_chain"]);
     expect(environmentCalls).toBe(0);
   });
 

@@ -24,7 +24,7 @@ Acceptance requires:
 1. Deterministic projection tests covering authority ordering, terminal-state exclusion, stable digests, unavailable-source behavior, stale workstream items, and context byte caps.
 2. Direct-terminal integration proving a newly created candidate appears on the next preparation.
 3. Application command tests for the JSON result.
-4. A packed external consumer that discovers protocol v2 and invokes the route without private workspace imports.
+4. A packed CLI consumer that invokes `lervo application attention` without private workspace imports.
 
 ## References
 
@@ -32,6 +32,5 @@ Acceptance requires:
 - [ADR-0462](../../decisions/execution/applications/0462-own-workstream-bookkeeping-and-stale-attention.md)
 - [ADR-0464](../../decisions/knowledge/documents/0464-report-document-drift-and-historical-documents.md)
 - [ADR-0463](../../decisions/knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md)
-- [Product-host protocol](product-host-protocol.md)
 - [Repository knowledge lifecycle convergence](../../specs/repository-knowledge-lifecycle-convergence.md)
 - [Product outcome convergence](../../roadmap/product-outcome-convergence.md)

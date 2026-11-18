@@ -4,11 +4,10 @@ Status: `active`
 
 As of: 2026-09-04
 
-This specification defines Lervo-owned stage timing and the reproducible performance gate linked from the [execution specification](../execution.md). It neither extends execution authority nor claims provider, model, network, Hub, billing, or whole-task observation.
+This specification defines Lervo-owned stage timing linked from the [execution specification](../execution.md). It neither extends execution authority nor claims provider, model, network, Hub, billing, or whole-task observation.
 
 - [Observation contract and managed stages](stage-observation-and-performance/observation-contract.md)
 - [Direct-terminal stages](stage-observation-and-performance/direct-terminal-stages.md)
-- [Paired performance gate and verification](stage-observation-and-performance/paired-performance-gate.md)
 - [Prepared terminal snapshot storage](stage-observation-and-performance/prepared-terminal-snapshot-storage.md)
 - [Prompt assembly and emitted completion instructions](stage-observation-and-performance/prompt-assembly.md)
 

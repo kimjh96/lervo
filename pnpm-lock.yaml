@@ -83,12 +83,6 @@ importers:
       '@lervo/adapter-discord':
         specifier: workspace:*
         version: link:../../packages/adapter-discord
-      '@lervo/adapter-slack':
-        specifier: workspace:*
-        version: link:../../packages/adapter-slack
-      '@lervo/adapter-webhook':
-        specifier: workspace:*
-        version: link:../../packages/adapter-webhook
       '@lervo/agent-organization':
         specifier: workspace:*
         version: link:../../packages/agent-organization
@@ -140,42 +134,18 @@ importers:
       '@lervo/execution-observability':
         specifier: workspace:*
         version: link:../../packages/execution-observability
-      '@lervo/identity-migration':
-        specifier: workspace:*
-        version: link:../../packages/identity-migration
       '@lervo/interaction-sqlite':
         specifier: workspace:*
         version: link:../../packages/interaction-sqlite
-      '@lervo/knowledge-okf':
-        specifier: workspace:*
-        version: link:../../packages/knowledge-okf
-      '@lervo/live-trigger-contract':
-        specifier: workspace:*
-        version: link:../../packages/live-trigger-contract
-      '@lervo/live-trigger-sqlite':
-        specifier: workspace:*
-        version: link:../../packages/live-trigger-sqlite
       '@lervo/node-runtime':
         specifier: workspace:*
         version: link:../node-runtime
       '@lervo/node-work-admission':
         specifier: workspace:*
         version: link:../../packages/node-work-admission
-      '@lervo/operating-client':
-        specifier: workspace:*
-        version: link:../operating-client
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../../packages/organization-deployment-contract
-      '@lervo/organization-deployment-sqlite':
-        specifier: workspace:*
-        version: link:../../packages/organization-deployment-sqlite
-      '@lervo/product-surface-projection':
-        specifier: workspace:*
-        version: link:../../packages/product-surface-projection
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -215,9 +185,6 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../../packages/search
-      '@lervo/search-adapter-bm25f':
-        specifier: workspace:*
-        version: link:../../packages/search-adapter-bm25f
       '@lervo/search-adapter-lexical-v2':
         specifier: workspace:*
         version: link:../../packages/search-adapter-lexical-v2
@@ -272,9 +239,6 @@ importers:
       '@lervo/adapter-discord':
         specifier: workspace:*
         version: link:../../packages/adapter-discord
-      '@lervo/adapter-slack':
-        specifier: workspace:*
-        version: link:../../packages/adapter-slack
       '@lervo/cas':
         specifier: workspace:*
         version: link:../../packages/cas
@@ -318,9 +282,6 @@ importers:
         specifier: workspace:*
         version: link:../../packages/sync
     devDependencies:
-      '@lervo/adapter-native-chat':
-        specifier: workspace:*
-        version: link:../../packages/adapter-native-chat
       '@lervo/conversation-responder':
         specifier: workspace:*
         version: link:../../packages/conversation-responder
@@ -473,6 +434,9 @@ importers:
       '@lervo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../../packages/deliberation
       '@lervo/deliberation-runtime':
         specifier: workspace:*
         version: link:../../packages/deliberation-runtime
@@ -500,21 +464,12 @@ importers:
       '@lervo/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator
-      '@lervo/organization-credential-source-file':
-        specifier: workspace:*
-        version: link:../../packages/organization-credential-source-file
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../../packages/organization-deployment-contract
       '@lervo/policy':
         specifier: workspace:*
         version: link:../../packages/policy
       '@lervo/policy-sqlite':
         specifier: workspace:*
         version: link:../../packages/policy-sqlite
-      '@lervo/product-surface-projection':
-        specifier: workspace:*
-        version: link:../../packages/product-surface-projection
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project
@@ -610,12 +565,6 @@ importers:
         specifier: 4.4.3
         version: 4.4.3
 
-  apps/operating-client:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../../packages/application-contract
-
   packages/adapter-claude:
     dependencies:
       '@anthropic-ai/claude-agent-sdk':
@@ -648,73 +597,18 @@ importers:
 
   packages/adapter-discord:
     dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
       '@lervo/conversation-contract':
         specifier: workspace:*
         version: link:../conversation-contract
       '@lervo/conversation-platform':
         specifier: workspace:*
         version: link:../conversation-platform
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
       '@lervo/storage-contract':
         specifier: workspace:*
         version: link:../storage-contract
-
-  packages/adapter-native-chat:
-    dependencies:
-      '@lervo/conversation-contract':
-        specifier: workspace:*
-        version: link:../conversation-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/adapter-slack:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
-      '@lervo/conversation-contract':
-        specifier: workspace:*
-        version: link:../conversation-contract
-      '@lervo/conversation-platform':
-        specifier: workspace:*
-        version: link:../conversation-platform
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/sqlite-connection':
-        specifier: workspace:*
-        version: link:../sqlite-connection
-      '@lervo/storage-contract':
-        specifier: workspace:*
-        version: link:../storage-contract
-      '@lervo/writing-contract':
-        specifier: workspace:*
-        version: link:../writing-contract
-    devDependencies:
-      '@lervo/assignment-connector-conformance':
-        specifier: workspace:*
-        version: link:../assignment-connector-conformance
-      '@lervo/work-controller':
-        specifier: workspace:*
-        version: link:../work-controller
-
-  packages/adapter-webhook:
-    dependencies:
-      '@lervo/live-trigger-contract':
-        specifier: workspace:*
-        version: link:../live-trigger-contract
 
   packages/agent-organization:
     dependencies:
@@ -739,9 +633,6 @@ importers:
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../project-storage
-      '@lervo/request-grounding':
-        specifier: workspace:*
-        version: link:../request-grounding
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
@@ -763,12 +654,6 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-
-  packages/assignment-connector-conformance:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
 
   packages/capabilities:
     dependencies:
@@ -1053,9 +938,6 @@ importers:
       '@lervo/execution-observability':
         specifier: workspace:*
         version: link:../execution-observability
-      '@lervo/knowledge':
-        specifier: workspace:*
-        version: link:../knowledge
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -1128,27 +1010,6 @@ importers:
 
   packages/execution-observability:
     dependencies:
-      '@lervo/execution-contract':
-        specifier: workspace:*
-        version: link:../execution-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/execution-performance:
-    dependencies:
-      '@lervo/execution-contract':
-        specifier: workspace:*
-        version: link:../execution-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/execution-reliability:
-    dependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
       '@lervo/execution-contract':
         specifier: workspace:*
         version: link:../execution-contract
@@ -1282,55 +1143,6 @@ importers:
         specifier: workspace:*
         version: link:../sync-contract
 
-  packages/identity-migration:
-    dependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/event-store-sqlite':
-        specifier: workspace:*
-        version: link:../event-store-sqlite
-      '@lervo/filesystem-durability':
-        specifier: workspace:*
-        version: link:../filesystem-durability
-      '@lervo/project':
-        specifier: workspace:*
-        version: link:../project
-      '@lervo/runtime-security':
-        specifier: workspace:*
-        version: link:../runtime-security
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      yaml:
-        specifier: ^2.9.0
-        version: 2.9.0
-
-  packages/improvement-observation-conformance:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
-
-  packages/improvement-observation-local:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
-      '@lervo/project-storage':
-        specifier: workspace:*
-        version: link:../project-storage
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/storage-contract':
-        specifier: workspace:*
-        version: link:../storage-contract
-    devDependencies:
-      '@lervo/improvement-observation-conformance':
-        specifier: workspace:*
-        version: link:../improvement-observation-conformance
-
   packages/interaction:
     dependencies:
       '@lervo/conversation-contract':
@@ -1364,34 +1176,9 @@ importers:
         specifier: workspace:*
         version: link:../sqlite-connection
     devDependencies:
-      '@lervo/adapter-native-chat':
-        specifier: workspace:*
-        version: link:../adapter-native-chat
       '@lervo/writing-contract':
         specifier: workspace:*
         version: link:../writing-contract
-
-  packages/knowledge:
-    dependencies:
-      '@lervo/deliberation':
-        specifier: workspace:*
-        version: link:../deliberation
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/storage-contract':
-        specifier: workspace:*
-        version: link:../storage-contract
-    devDependencies:
-      '@lervo/cas':
-        specifier: workspace:*
-        version: link:../cas
-      '@lervo/event-store-sqlite':
-        specifier: workspace:*
-        version: link:../event-store-sqlite
 
   packages/knowledge-graph:
     dependencies:
@@ -1401,42 +1188,6 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-
-  packages/knowledge-okf:
-    dependencies:
-      '@lervo/filesystem-durability':
-        specifier: workspace:*
-        version: link:../filesystem-durability
-      '@lervo/project':
-        specifier: workspace:*
-        version: link:../project
-      '@lervo/repository-knowledge':
-        specifier: workspace:*
-        version: link:../repository-knowledge
-      yaml:
-        specifier: ^2.9.0
-        version: 2.9.0
-
-  packages/live-trigger-contract:
-    dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-
-  packages/live-trigger-sqlite:
-    dependencies:
-      '@lervo/live-trigger-contract':
-        specifier: workspace:*
-        version: link:../live-trigger-contract
-      '@lervo/runtime-security':
-        specifier: workspace:*
-        version: link:../runtime-security
-      '@lervo/sqlite-connection':
-        specifier: workspace:*
-        version: link:../sqlite-connection
 
   packages/managed-provider-host:
     dependencies:
@@ -1557,40 +1308,6 @@ importers:
         specifier: workspace:*
         version: link:../workspace-host-git
 
-  packages/organization-credential-source-file:
-    dependencies:
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../organization-deployment-contract
-      '@lervo/runtime-security':
-        specifier: workspace:*
-        version: link:../runtime-security
-
-  packages/organization-deployment-contract:
-    dependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-
-  packages/organization-deployment-sqlite:
-    dependencies:
-      '@lervo/organization-deployment-contract':
-        specifier: workspace:*
-        version: link:../organization-deployment-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      '@lervo/sqlite-connection':
-        specifier: workspace:*
-        version: link:../sqlite-connection
-    devDependencies:
-      '@lervo/repository-registry':
-        specifier: workspace:*
-        version: link:../repository-registry
-
   packages/policy:
     dependencies:
       '@lervo/policy-contract':
@@ -1632,21 +1349,6 @@ importers:
       '@lervo/sqlite-connection':
         specifier: workspace:*
         version: link:../sqlite-connection
-
-  packages/product-surface-projection:
-    dependencies:
-      '@lervo/agent-organization':
-        specifier: workspace:*
-        version: link:../agent-organization
-      '@lervo/deliberation':
-        specifier: workspace:*
-        version: link:../deliberation
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
 
   packages/project:
     dependencies:
@@ -1749,9 +1451,6 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../search
-      '@lervo/search-adapter-bm25f':
-        specifier: workspace:*
-        version: link:../search-adapter-bm25f
       '@lervo/search-adapter-lexical-v2':
         specifier: workspace:*
         version: link:../search-adapter-lexical-v2
@@ -1941,12 +1640,6 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-
-  packages/search-adapter-bm25f:
-    dependencies:
-      '@lervo/search':
-        specifier: workspace:*
-        version: link:../search
 
   packages/search-adapter-lexical-v2:
     dependencies:

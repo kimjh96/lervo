@@ -1,5 +1,4 @@
 export * from "./envelope.js";
-export * from "./http.js";
 export * from "./package-reader.js";
 export * from "./registry.js";
 export * from "./recommendation.js";

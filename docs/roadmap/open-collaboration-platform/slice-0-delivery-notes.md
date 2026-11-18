@@ -7,7 +7,7 @@
 The scan covers non-test sources under `apps/*/src` and `packages/*/src`, with platform-specific exclusions:
 
 - Discord: `packages/adapter-discord`, `packages/discord-gateway`, and `discord-*` files.
-- Slack: `packages/adapter-slack` and `slack-*` files.
+- Slack: `slack-*` files. ADR-0560 removed `packages/adapter-slack`, so any other Slack mention counts against the baseline.
 
 `scripts/quality/platform-boundary-baseline.json` has one section per platform. It records each file's matching line count and, for `conversation-*` and `supervision-*` files, imported adapter modules. The first baseline recorded 325 Discord lines in 50 files and 18 Slack lines in 4 files.
 

@@ -4,6 +4,8 @@ Status: `complete`
 As of: 2026-08-27
 Completed: 2026-08-27
 
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the organization deployment policy, runtime credential grants, and the `@lervo/organization-deployment-contract` and `@lervo/organization-deployment-sqlite` packages. `lervo upgrade` owns the Node stage. The records below are history.
+
 ## Problem
 
 Repository-scoped Node deployment had deterministic identity, owner-only local configuration, atomic bearer reload, and transactional readiness. It lacked organization tenancy, deployment authority, separate credential issuance and delivery, bounded rotation, and secret-free delivery evidence.

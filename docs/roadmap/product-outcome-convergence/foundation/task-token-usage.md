@@ -6,9 +6,9 @@ State: `implemented`.
 
 Outcome: the user sees the exact observable token usage for one Lervo-managed requested task.
 
-Managed runs report scope-bound normalized token dimensions and enforce total, input, cached-input, output, and reasoning-output limits when their exact accounting group is complete. [Managed execution resource budget evidence](../../../evidence/foundation/managed-execution-resource-budgets-v1.md) covers that installed boundary.
+Managed runs report scope-bound normalized token dimensions per exact accounting group. [ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the governed-loop token-dimension limits and their evidence record; outcome supervision keeps its token ceiling.
 
-Preserve exact accounting groups and fail closed when a configured dimension is required but unobservable.
+Preserve exact accounting groups and fail closed when a configured ceiling requires an unobservable dimension.
 
 ## Direct unmanaged whole-task usage
 

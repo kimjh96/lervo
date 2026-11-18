@@ -57,4 +57,4 @@ This evidence does not claim destructive rewiring, node deletion, arbitrary cycl
 - [Bounded dynamic assignment topology](../../specifications/execution/dynamic-assignment-topology.md)
 - [ADR-0380](../../decisions/execution/orchestration/governed-work/0380-install-bounded-dynamic-assignment-topology.md)
 - [Dynamic execution graphs](../../roadmap/product-outcome-convergence/host-products/execution-graphs.md)
-- [Product-host protocol](../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

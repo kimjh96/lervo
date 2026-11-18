@@ -22,7 +22,3 @@ Compilation does not prove truth. Conflicts and managed-block changes require ex
 Use `lervo knowledge structure delete|move|split|merge` with the reviewed plan and exact item approvals. Use `lervo knowledge normalize` for reviewed content; it is also available through `migrate knowledge --provider`.
 
 `lervo knowledge instruction bridge --provider claude` keeps `AGENTS.md` canonical and manages only the `@AGENTS.md` bridge in `CLAUDE.md`.
-
-## Exchange
-
-Use `lervo knowledge export okf` and `lervo knowledge import okf` for OKF v0.2 bundles. Imports remain read-only until exact apply.

@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-09
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the organization control part is removed. Lervo no longer ships the organization operating report, the portfolio reader, the CEO policy decision, or their CLI and product-host routes. Reviewed agent context, its promotion and handoff events, and the conservative built-in CEO role stay.
+
 ## Context
 
 Durable hired-agent identity did not preserve reviewed expertise across turns or provider replacement. Discord conversations already used Lervo's product-default repository search, knowledge recommendations, relation projection, context coordinator, managed provider execution, evidence, and budgets, but lacked a separately governed agent-context source. A future Lervo product also needed an installed application boundary for organization views and CEO decisions without copying repository truth into a Discord-specific or product-owned database.
@@ -48,4 +50,4 @@ The CEO decision is not an autonomous external-effect executor. Discord applicat
 - [Organization teams and durable hired-agent identities](0386-organization-teams-and-agent-identities.md)
 - [Single managed conversation turn](0389-single-managed-conversation-turn.md)
 - [Agent organization](../../../architecture/system/agent-organization.md)
-- [Product-host protocol](../../../specifications/execution/product-host-protocol.md)
+- Product-host protocol specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

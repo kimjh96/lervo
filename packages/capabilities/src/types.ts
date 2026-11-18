@@ -54,7 +54,6 @@ export class CapabilityPackageError extends Error {
       | "capability_approval_mismatch"
       | "capability_conflict"
       | "capability_content_hash_mismatch"
-      | "capability_hub_failed"
       | "capability_invalid"
       | "capability_not_found"
       | "capability_unsafe_package"

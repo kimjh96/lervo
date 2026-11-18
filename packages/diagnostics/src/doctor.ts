@@ -1,8 +1,8 @@
-import type { ArtifactStore, EventStore } from "@lervo/storage-contract";
+import type { EventStore } from "@lervo/storage-contract";
 
 import { doctorReportSchemaVersion, readDoctorReport } from "./doctor-report-contract.js";
 import { environmentDoctorCheckIdsForScope } from "./doctor-scope-contract.js";
-import { inspectDoctorKnowledge } from "./knowledge-doctor-inspection.js";
+import { inspectDoctorEventChain } from "./event-chain-inspection.js";
 import { createDoctorRecoveryGuidance } from "./recovery-guidance.js";
 import type {
   DoctorCheck,
@@ -46,7 +46,7 @@ type CreateDoctorReportInput = {
   projectId: string;
   inspections: readonly DoctorInspection[];
 } & (
-  | { scope?: "all" | "knowledge"; events: EventStore; artifacts: ArtifactStore }
+  | { scope?: "all" | "knowledge"; events: EventStore }
   | { scope: "documents" | "skills" | "providers" | "search" }
 );
 
@@ -56,9 +56,9 @@ export async function createDoctorReport(input: CreateDoctorReportInput): Promis
   const issues: DoctorIssue[] = [];
   const localChecks: DoctorReport["checks"] = [];
   if (input.scope === undefined || input.scope === "all" || input.scope === "knowledge") {
-    const knowledge = await inspectDoctorKnowledge(input);
-    localChecks.push(...knowledge.checks);
-    issues.push(...knowledge.issues);
+    const eventChain = inspectDoctorEventChain(input.events);
+    localChecks.push(eventChain.check);
+    issues.push(...eventChain.issues);
   }
   const inspections = input.inspections;
   const checks = [...localChecks, ...inspections.map((inspection) => inspection.check)];

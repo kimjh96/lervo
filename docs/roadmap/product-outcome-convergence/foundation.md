@@ -6,4 +6,4 @@ Part of [Product outcome convergence](../product-outcome-convergence.md); its ba
 - [Direct unmanaged whole-task token usage](foundation/task-token-usage.md): `external dependency`.
 - [Terminal hook latency](foundation/terminal-hook-latency.md): `implemented`, with ongoing evidence requirements.
 
-See [current direct-terminal evidence](../../evidence/foundation/terminal-hook-latency-requalification-v2.md) and [managed execution resource budget evidence](../../evidence/foundation/managed-execution-resource-budgets-v1.md).
+See [current direct-terminal evidence](../../evidence/foundation/terminal-hook-latency-requalification-v2.md).

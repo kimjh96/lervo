@@ -6,10 +6,6 @@ import {
   capabilityRoot,
   discoverCapabilityRoot,
   installCapabilityPackage,
-  decodeCapabilityPackage,
-  encodeCapabilityPackage,
-  publishCapabilityPackage,
-  pullCapabilityPackage,
   readCapabilityPackage,
   resolveCapabilities,
   writeCapabilityLock,
@@ -28,9 +24,7 @@ export const capabilityUsage = `  lervo capability list [--scope <project|user|a
   lervo capability migrate [--apply --approval <plan-id>] [--root <path>] [--json]
   lervo capability validate --from <package-directory> [--json]
   lervo capability install --from <package-directory> --scope <project|user> [--apply --approval <plan-hash>] [--root <path>] [--json]
-  lervo capability resolve --capability <package-id> [--capability <package-id> ...] --provider <codex|claude> [--root <path>] [--json]
-  lervo capability publish --from <package-directory> --hub <https-url> --share <project|public> [--destination <id>] [--token-env <name>] [--apply --approval <plan-hash>] [--root <path>] [--json]
-  lervo capability pull --id <package-id> --version <semver> --hub <https-url> --share <project|public> --scope <project|user> [--destination <id>] [--token-env <name>] [--apply --approval <plan-hash>] [--root <path>] [--json]`;
+  lervo capability resolve --capability <package-id> [--capability <package-id> ...] --provider <codex|claude> [--root <path>] [--json]`;
 
 function planHash(value: object): string {
   return `sha256:${createHash("sha256").update(JSON.stringify(value)).digest("hex")}`;
@@ -39,14 +33,6 @@ function planHash(value: object): string {
 function scope(value: string | undefined): LocalCapabilityScope {
   if (value === "project" || value === "user") return value;
   throw new Error("Capability scope must be project or user.");
-}
-
-function tokenFromEnvironment(name = "LERVO_HUB_TOKEN"): string {
-  if (!/^[A-Z][A-Z0-9_]{0,99}$/u.test(name))
-    throw new Error("--token-env must name a bounded uppercase environment variable.");
-  const value = process.env[name];
-  if (value === undefined) throw new Error(`The ${name} environment variable is not set.`);
-  return value;
 }
 
 export async function runCapabilityCommand(args: string[], io: CliIo): Promise<number> {
@@ -66,12 +52,6 @@ export async function runCapabilityCommand(args: string[], io: CliIo): Promise<n
         approval: { type: "string" },
         capability: { type: "string", multiple: true },
         provider: { type: "string" },
-        hub: { type: "string" },
-        share: { type: "string" },
-        destination: { type: "string" },
-        "token-env": { type: "string" },
-        id: { type: "string" },
-        version: { type: "string" },
       },
     });
     if (parsed.values.help) {
@@ -216,126 +196,6 @@ export async function runCapabilityCommand(args: string[], io: CliIo): Promise<n
         parsed.values.json
           ? `${JSON.stringify({ schemaVersion: 1, resolved: result.selected, lock: result.lock }, null, 2)}\n`
           : `${result.selected.map((item) => `${item.capabilityId}@${item.version} · resolved, not activated`).join("\n")}\n`,
-      );
-      return 0;
-    }
-    if (action === "publish") {
-      if (
-        parsed.values.from === undefined ||
-        parsed.values.hub === undefined ||
-        !["project", "public"].includes(parsed.values.share ?? "")
-      )
-        throw new Error("Capability publish requires --from, --hub, and --share.");
-      const project = await loadProjectManifest(repositoryRoot);
-      if (parsed.values.share === "project" && parsed.values.destination === undefined)
-        throw new Error("Project publication requires --destination.");
-      const verified = await readCapabilityPackage(resolve(io.cwd, parsed.values.from));
-      const publicationScope =
-        parsed.values.share === "public"
-          ? { kind: "public" as const }
-          : {
-              kind: "project" as const,
-              destinationId: parsed.values.destination!,
-              projectId: project.projectId,
-            };
-      const body = {
-        schemaVersion: 1 as const,
-        operation: "capability.publish" as const,
-        capabilityId: verified.manifest.capabilityId,
-        version: verified.manifest.version,
-        contentHash: verified.manifest.contentHash,
-        hub: parsed.values.hub,
-        scope: publicationScope,
-      };
-      const plan = {
-        ...body,
-        planHash: planHash(body),
-        requiresApply: true,
-        automaticUpload: false,
-        secretMaterial: "excluded" as const,
-      };
-      if (!parsed.values.apply) {
-        io.stdout(
-          parsed.values.json
-            ? `${JSON.stringify(plan, null, 2)}\n`
-            : `Publish plan ${plan.planHash}\n${plan.capabilityId}@${plan.version} -> ${plan.scope.kind}\nRe-run with --apply --approval ${plan.planHash}.\n`,
-        );
-        return 0;
-      }
-      if (parsed.values.approval !== plan.planHash)
-        throw new Error("--approval must equal the current publish plan hash.");
-      const result = await publishCapabilityPackage({
-        hubUrl: parsed.values.hub,
-        token: tokenFromEnvironment(parsed.values["token-env"]),
-        scope: publicationScope,
-        package: encodeCapabilityPackage(verified),
-      });
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(result, null, 2)}\n`
-          : `Published ${plan.capabilityId}@${plan.version} to ${plan.scope.kind} Hub scope.\n`,
-      );
-      return 0;
-    }
-    if (action === "pull") {
-      if (
-        parsed.values.id === undefined ||
-        parsed.values.version === undefined ||
-        parsed.values.hub === undefined ||
-        !["project", "public"].includes(parsed.values.share ?? "")
-      )
-        throw new Error("Capability pull requires --id, --version, --hub, and --share.");
-      const project = await loadProjectManifest(repositoryRoot);
-      if (parsed.values.share === "project" && parsed.values.destination === undefined)
-        throw new Error("Project pull requires --destination.");
-      const publicationScope =
-        parsed.values.share === "public"
-          ? { kind: "public" as const }
-          : {
-              kind: "project" as const,
-              destinationId: parsed.values.destination!,
-              projectId: project.projectId,
-            };
-      const published = await pullCapabilityPackage({
-        hubUrl: parsed.values.hub,
-        token: tokenFromEnvironment(parsed.values["token-env"]),
-        scope: publicationScope,
-        capabilityId: parsed.values.id,
-        version: parsed.values.version,
-      });
-      const verified = decodeCapabilityPackage(published.package);
-      const targetScope = scope(parsed.values.scope);
-      const body = {
-        schemaVersion: 1 as const,
-        operation: "capability.pull" as const,
-        capabilityId: verified.manifest.capabilityId,
-        version: verified.manifest.version,
-        contentHash: verified.manifest.contentHash,
-        hub: parsed.values.hub,
-        sourceScope: publicationScope,
-        targetScope,
-      };
-      const plan = {
-        ...body,
-        planHash: planHash(body),
-        requiresApply: true,
-        secretMaterial: "excluded" as const,
-      };
-      if (!parsed.values.apply) {
-        io.stdout(
-          parsed.values.json
-            ? `${JSON.stringify(plan, null, 2)}\n`
-            : `Pull plan ${plan.planHash}\n${plan.capabilityId}@${plan.version} -> ${targetScope}\nRe-run with --apply --approval ${plan.planHash}.\n`,
-        );
-        return 0;
-      }
-      if (parsed.values.approval !== plan.planHash)
-        throw new Error("--approval must equal the current pull plan hash.");
-      await installCapabilityPackage({ repositoryRoot, scope: targetScope, package: verified });
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify({ status: "installed", ...body }, null, 2)}\n`
-          : `Pulled and installed ${plan.capabilityId}@${plan.version} in ${targetScope} scope.\n`,
       );
       return 0;
     }

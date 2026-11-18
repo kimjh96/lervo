@@ -27,35 +27,35 @@
 
 ### Goals, projects, issues
 
-- Current: `wired`; `lervo loop goal | board` is read-only; one `installed-proven` journey from guild `/goal` to verified result.
+- Current: `wired`; ADR-0560 removed the read-only goal report and board; one `installed-proven` journey from guild `/goal` to verified result.
 - Target: goals are the verified workstream, issues are leased assignments, and completion requires evidence rather than a status flip.
 - Mechanism: ADR-0365 projection; ADR-0398 supervision.
 - Installed proof: standing guild result evidence; J1.
 
 ### Routines and heartbeats
 
-- Current: `wired`; manual routine templates, foreground `loop schedule`, no Node scheduler, no cron.
+- Current: ADR-0560 removed routine templates and the foreground scheduler; no Node scheduler, no cron.
 - Target: a standing daemon under a mandate with token ceilings and proxy handoff; routines remain exact assignment templates.
 - Mechanism: ADR-0458 `standing-autonomy-loop`.
 - Installed proof: J5.
 
 ### Budgets with warnings and hard stops
 
-- Current: Node supervision token ceiling is `installed-proven` (one real overrun, then fixed); CLI budgets are `wired`; warnings reach Node health only; no monetary cost.
+- Current: Node supervision token ceiling is `installed-proven` (one real overrun, then fixed); CLI budgets were removed by ADR-0560; warnings reach Node health only; no monetary cost.
 - Target: measured tokens per outcome attributed to agent, channel, and turn drive fan-out and pruning; in-flight caps; `estimated` is never presented as billed.
 - Mechanism: ADR-0459.
 - Installed proof: ADR-0459 items 1, 4, 5.
 
 ### Operating board
 
-- Current: `wired`; static CLI board, attention, liveness, and activity routes; nothing Discord-visible.
+- Current: `wired`; CLI operating attention only; ADR-0560 removed the static board, combined liveness, and activity routes; nothing Discord-visible.
 - Target: turn report on every surface; principal proxy acts on attention items rather than merely displaying them.
 - Mechanism: ADR-0459 turn report; ADR-0453 loop.
 - Installed proof: J1 footer; ADR-0453 item 3.
 
 ### CEO and org chart
 
-- Current: `wired`; CLI-only `ceo-evaluate`, no decision authority.
+- Current: `contract-only`; ADR-0560 removed the CLI-only `ceo-evaluate`, the portfolio report, and executive effects; no decision authority.
 - Target: principal mandate with recorded decisions, decision memory, and scoped escalation.
 - Mechanism: ADR-0453.
 - Installed proof: ADR-0453 items 1 to 5.

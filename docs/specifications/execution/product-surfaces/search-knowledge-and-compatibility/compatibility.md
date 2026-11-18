@@ -4,8 +4,8 @@ Future Lervo versions may replace UI frameworks, Discord adapters, providers, mo
 
 ## Evolution contract
 
-- Product-host protocol versions are immutable and explicitly discovered.
-- New routes, fields, and capability groups require a new additive protocol or schema version.
+- Application contract and schema versions are immutable.
+- New routes, fields, and capability groups require a new additive contract or schema version.
 - Existing routes and fields retain their meaning; changed semantics require a new named contract.
 - Readers must support mixed historical event versions before a newer writer activates.
 - Never rewrite canonical bytes or historical events to simulate a new version.
@@ -16,7 +16,7 @@ Future Lervo versions may replace UI frameworks, Discord adapters, providers, mo
 
 ## Validation
 
-Common conformance fixtures must run each supported host protocol against current and predecessor release artifacts.
+Common conformance fixtures must run each supported application contract against current and predecessor release artifacts.
 
 Upgrade rehearsal must cover:
 

@@ -7,8 +7,10 @@ lervo:
 
 # ADR-0378: Install authenticated live webhook triggers
 
-Status: `accepted`
+Status: `superseded`
 Decision date: 2026-09-07
+
+Superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -36,5 +38,5 @@ No new event is added. Private reservation evidence excludes raw bodies, signatu
 
 ## References
 
-- [Authenticated live triggers](../../../specifications/execution/authority-and-repository/authenticated-live-triggers.md)
-- [Authenticated live trigger roadmap](../../../roadmap/product-outcome-convergence/host-products/triggers/authenticated-live.md)
+- Authenticated live trigger specification, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
+- Authenticated live trigger roadmap outcome, removed by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)

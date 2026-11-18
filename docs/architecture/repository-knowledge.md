@@ -11,7 +11,7 @@ Repository knowledge is compiled from source-bound evidence. Documents retain ex
 ## Decisions
 
 - [Knowledge compilation](../decisions/knowledge/repository/0170-evidence-bound-repository-knowledge-compilation.md)
-- [OKF exchange](../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md)
+- [Git reproduction](../decisions/knowledge/repository/0171-content-addressed-okf-exchange-and-git-reproduction.md); its OKF exchange part is superseded by ADR-0560
 - [Agent surface inventory](../decisions/knowledge/repository/0189-typed-repository-agent-surface-inventory.md)
 - [Bounded publication](../decisions/knowledge/repository/0190-language-aware-bounded-repository-publication.md)
 - [Decision taxonomy](../decisions/knowledge/repository/0192-repository-scoped-decision-taxonomy.md)

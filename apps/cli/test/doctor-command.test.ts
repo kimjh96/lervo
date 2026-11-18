@@ -17,9 +17,6 @@ const healthyEnvironmentInspections: DoctorInspection[] = [
   "provider_codex_runtime",
   "provider_claude_runtime",
   "search_engine_selection",
-  "search_rollout_policies",
-  "search_rollout_reviews",
-  "search_rollout_actions",
 ].map((checkId) => ({
   check: {
     checkId: checkId as DoctorInspection["check"]["checkId"],
@@ -49,10 +46,10 @@ async function initializeRepository(root: string): Promise<void> {
   ).toBe(0);
 }
 
-async function appendBrokenKnowledgeCandidate(root: string): Promise<void> {
+async function appendHistoricalKnowledgeCandidate(root: string): Promise<void> {
   const storage = await openProjectStorage(root);
   storage.events.append({
-    eventId: "evt_broken_candidate",
+    eventId: "evt_historical_candidate",
     projectId: storage.manifest.projectId,
     runId: "run_cli_doctor_0001",
     sessionId: "ses_cli_doctor_0001",
@@ -85,7 +82,7 @@ afterEach(async () => {
 });
 
 describe("lervo doctor command", () => {
-  it("reports healthy storage and fails closed on a broken candidate reference", async () => {
+  it("reports healthy storage and reads a stored knowledge candidate as opaque history", async () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     let healthyOutput = "";
@@ -105,23 +102,23 @@ describe("lervo doctor command", () => {
     expect(healthyOutput).toContain("checked items are healthy");
     expect(healthyOutput).not.toContain("Next checks:");
 
-    await appendBrokenKnowledgeCandidate(root);
-    let issueOutput = "";
+    await appendHistoricalKnowledgeCandidate(root);
+    let historyOutput = "";
     expect(
       await runCli(
         ["doctor"],
         {
           cwd: root,
           stdout: (message) => {
-            issueOutput += message;
+            historyOutput += message;
           },
           stderr: () => undefined,
         },
         doctorServices,
       ),
-    ).toBe(1);
-    expect(issueOutput).toContain("candidate_artifact_invalid");
-    expect(issueOutput).toContain("issues found");
+    ).toBe(0);
+    expect(historyOutput).toContain("checked items are healthy");
+    expect(historyOutput).not.toContain("candidate");
   });
 
   it("returns unknown instead of healthy when a provider runtime cannot be checked", async () => {
@@ -158,16 +155,16 @@ describe("lervo doctor command", () => {
     expect(output).toContain("provider_executable_missing");
   });
 
-  it("reports an invalid search rollout action as a doctor failure", async () => {
+  it("reports an invalid search engine selection as a doctor failure", async () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     const inspections = structuredClone(healthyEnvironmentInspections);
-    const actions = inspections.find((item) => item.check.checkId === "search_rollout_actions")!;
-    actions.check.status = "unhealthy";
-    actions.issues.push({
-      code: "search_rollout_action_invalid",
+    const selection = inspections.find((item) => item.check.checkId === "search_engine_selection")!;
+    selection.check.status = "unhealthy";
+    selection.issues.push({
+      code: "search_engine_selection_invalid",
       eventId: null,
-      message: "The search rollout action and linked evidence could not be verified safely.",
+      message: "Could not safely resolve the current search engine.",
     });
     let output = "";
 
@@ -186,10 +183,10 @@ describe("lervo doctor command", () => {
         },
       ),
     ).toBe(1);
-    expect(output).toContain("unhealthy  search rollout actions");
-    expect(output).toContain("search_rollout_action_invalid");
+    expect(output).toContain("unhealthy  search engine selection");
+    expect(output).toContain("search_engine_selection_invalid");
     expect(output).toContain("Next checks:");
-    expect(output).toContain("inspect_search_action");
+    expect(output).toContain("inspect_search_selection");
     expect(output).toContain("No automatic fixes or state changes were performed");
 
     let jsonOutput = "";
@@ -209,11 +206,11 @@ describe("lervo doctor command", () => {
       ),
     ).toBe(1);
     expect(JSON.parse(jsonOutput)).toMatchObject({
-      schemaVersion: 1,
+      schemaVersion: 2,
       recoveryGuidance: [
         {
-          issueCode: "search_rollout_action_invalid",
-          actionCode: "inspect_search_action",
+          issueCode: "search_engine_selection_invalid",
+          actionCode: "inspect_search_selection",
           actionState: "not_performed",
         },
       ],

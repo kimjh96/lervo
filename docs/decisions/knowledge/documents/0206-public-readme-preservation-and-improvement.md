@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-08-25
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the improvement part is removed. Lervo no longer ships the `public_readme_en_v1` improvement plan, its apply path, or `lervo readme propose`. Byte preservation, exclusion from required normalization, and the protected-coordinate inventory used by freshness checks stay.
+
 ## Context
 
 The root README is usually a public product surface. Required normalization could expose internal agent operations or damage branding even if later approval prevented an automatic write.

@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-16
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the executive action part is removed. Lervo no longer ships the `team.create` organization action, the `repository_organization_v1` effect adapter, the organization-executive command, or its product-host route. The CEO role's shell and `computer.use` capabilities stay.
+
 ## Context
 
 The built-in CEO described organization coordination but denied shell execution, lacked explicit computer-use permission, and exposed `team.create` only as a request type, without an executable organization action. The organization-executive CLI selected only a Discord adapter and required Discord configuration even for future non-Discord effects. These gaps limited the CEO relative to the owner and coupled executive action installation to the first conversation surface.

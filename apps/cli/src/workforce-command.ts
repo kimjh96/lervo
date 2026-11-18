@@ -5,16 +5,14 @@ import {
   claimAssignment,
   completeAssignment,
   createAssignment,
-  listAgents,
   listAssignments,
-  planGroundedWorkforceRequest,
   recordAssignmentHandoff,
   renewAssignmentLease,
   type WorkforceArtifactReference,
 } from "@lervo/agent-workforce";
-import { listRoleContracts, resolveRoleContract } from "@lervo/roles";
+import { resolveRoleContract } from "@lervo/roles";
 
-import type { CliIo, CliServices } from "./types.js";
+import type { CliIo } from "./types.js";
 import { agentUsage, runAgentCommand } from "./agent-command.js";
 import {
   assignmentCancellationUsage,
@@ -27,7 +25,6 @@ import {
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
 export const workforceUsage = [
-  "  lervo workforce plan --request <natural-language-request> --provider <codex|claude> [--root <path>] [--json]",
   agentUsage,
   "  lervo assignment list [--root <path>] [--json]",
   "  lervo assignment create --type <type> --role <role> --criteria <text> --suite <id> --path <path> [--dependency <id>] [--approval <requirement>] [--workstream <id>] [--priority <0-100>] --write [--root <path>] [--json]",
@@ -50,7 +47,6 @@ function parse(args: string[]) {
       write: { type: "boolean" },
       help: { type: "boolean", short: "h" },
       role: { type: "string" },
-      provider: { type: "string" },
       agent: { type: "string" },
       type: { type: "string" },
       criteria: { type: "string", multiple: true },
@@ -71,7 +67,6 @@ function parse(args: string[]) {
       "evidence-event": { type: "string", multiple: true },
       verification: { type: "string" },
       "failure-code": { type: "string" },
-      request: { type: "string" },
     },
   });
 }
@@ -106,10 +101,9 @@ function output(io: CliIo, value: unknown, json: boolean | undefined, message: s
 }
 
 export async function runWorkforceCommand(
-  namespace: "workforce" | "agent" | "assignment",
+  namespace: "agent" | "assignment",
   args: string[],
   io: CliIo,
-  services: Pick<CliServices, "groundProductionRequest">,
 ): Promise<number> {
   if (namespace === "assignment" && args[0] === "cancel") {
     return runAssignmentCancellationCommand(args, io);
@@ -127,84 +121,6 @@ export async function runWorkforceCommand(
     const action = parsed.positionals[0];
     if (parsed.positionals.length !== 1) throw new Error("The workforce action is invalid.");
     const root = resolve(io.cwd, parsed.values.root ?? ".");
-    if (namespace === "workforce" && action === "plan") {
-      if (parsed.values.write || parsed.values.request === undefined)
-        throw new Error("Natural-language workforce planning is read-only and requires --request.");
-      if (parsed.values.provider !== "codex" && parsed.values.provider !== "claude")
-        throw new Error("Natural-language workforce planning requires the current --provider.");
-      const [agents, assignments, contracts] = await Promise.all([
-        listAgents(root),
-        listAssignments(root),
-        listRoleContracts(root),
-      ]);
-      const roles = contracts.map((contract) => ({
-        roleId: contract.roleId,
-        name: contract.definition.profile.name,
-        sourceKind: contract.sourceKind,
-      }));
-      const grounded = await services.groundProductionRequest({
-        request: parsed.values.request,
-        provider: parsed.values.provider,
-        resolutionContext: {
-          priorTurns: [],
-          currentWorkstream: null,
-          pendingAuthorityIds: [],
-          repositoryCondition: "current",
-        },
-        grantedAuthorities: ["read", "repository_write", "user_approval"],
-        semanticCatalog: {
-          roleIds: roles.map((role) => role.roleId),
-          agentIds: agents.map((agent) => agent.agentId),
-          assignmentIds: assignments.map((assignment) => assignment.assignmentId),
-        },
-        workflows: [
-          {
-            workflowId: "workforce.inspect",
-            supportedIntents: ["inspect"],
-            supportedDispositions: ["answer"],
-            effectIds: ["workforce.inspect"],
-            requiredSourceClasses: ["repository_state"],
-            authority: "read",
-            allowedCapabilityIds: [],
-            crossProviderAllowed: false,
-          },
-          ...["hire", "assign", "handoff", "retire"].map((kind) => ({
-            workflowId: `workforce.${kind}`,
-            supportedIntents: ["coordinate_agents" as const],
-            supportedDispositions: ["execute" as const],
-            effectIds: [`workforce.${kind}`],
-            requiredSourceClasses: ["repository_state" as const],
-            authority: "repository_write" as const,
-            allowedCapabilityIds: [],
-            crossProviderAllowed: false,
-          })),
-          {
-            workflowId: "workforce.resolve",
-            supportedIntents: ["resolve_approval"],
-            supportedDispositions: ["execute"],
-            effectIds: ["workforce.resolve"],
-            requiredSourceClasses: ["current_workstream"],
-            authority: "user_approval",
-            allowedCapabilityIds: [],
-            crossProviderAllowed: false,
-          },
-        ],
-      });
-      const plan = planGroundedWorkforceRequest({
-        proposal: grounded.proposal,
-        decision: grounded.decision,
-        agents,
-        assignments,
-        roles,
-      });
-      output(
-        io,
-        plan,
-        parsed.values.json,
-        `Workforce request: ${plan.status}\nintent: ${plan.intent}\noperation: ${plan.operation === null ? "none" : `${plan.operation.namespace} ${plan.operation.action}`}\n${plan.pending.map((item) => `  pending ${item.field}: ${item.reason}`).join("\n")}`.trimEnd(),
-      );
-      return plan.status === "unrecognized" ? 1 : 0;
-    }
     if (namespace === "assignment" && action === "list") {
       if (parsed.values.write) throw new Error("Assignment list is read-only.");
       const assignments = await listAssignments(root);

@@ -1,7 +1,9 @@
 # ADR-0344: Deliver assignment artifacts through injected connectors
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-02
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -29,7 +31,7 @@ Buzz-like products can add Slack, Discord, Teams, or future adapters without emb
 
 ## References
 
-- [Assignment connector specification](../../../../specifications/execution/assignment-connectors.md)
+- Assignment connector specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Assignment interaction specification](../../../../specifications/execution/assignment-interactions.md)
 - [Governed loop roadmap](../../../../roadmap/governed-loop-assignment-graph.md)
 - [Execution events and privacy](../../../../specifications/execution/events-and-privacy.md)

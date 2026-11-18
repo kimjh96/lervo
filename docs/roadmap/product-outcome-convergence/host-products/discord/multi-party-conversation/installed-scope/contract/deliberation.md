@@ -16,6 +16,6 @@ Presence, provider compatibility, and matching job labels cannot create a bindin
 
 ## Effects and writing
 
-The executive boundary executes hash-bound, allowlisted Discord text-channel and public-thread effects with durable replay and fail-closed uncertainty. The deliberation worker reconciles uncertain outcomes using canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
+ADR-0560 removed the executive boundary that executed hash-bound Discord text-channel and public-thread effects. The deliberation worker reconciles uncertain outcomes using canonical CLI evidence and publishes a bounded visible result through the managed conversation path.
 
 Natural deliberation preserves the original human reply coordinate across synthetic status signals and bounded prior human anchors for references such as "this design." It selects a versioned Korean or English conversation writing contract from the source request. Failed writing checks feed the one bounded repair attempt rather than an undirected rewrite.

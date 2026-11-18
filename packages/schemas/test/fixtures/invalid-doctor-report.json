@@ -15,7 +15,7 @@
     "name": "doctor report with unknown check identifier",
     "schema": "doctorReport",
     "value": {
-      "schemaVersion": 1,
+      "schemaVersion": 2,
       "projectId": "prj_01234567",
       "scope": "search",
       "status": "healthy",

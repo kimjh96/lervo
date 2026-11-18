@@ -25,9 +25,6 @@ import type {
   LegacyRegistryMigrationApproval,
   LegacyRegistryMigrationPlan,
   ManagedBlockPatchCandidate,
-  KnowledgePromotionPolicy,
-  KnowledgeReviewApproval,
-  KnowledgeStalenessResult,
   EventSyncAcknowledgement,
   OutboundEventBatch,
   ProjectRegistrationRequest,
@@ -45,67 +42,16 @@ import type {
   VerificationResult,
   VerificationSuite,
   WritingPublicationPermit,
-  VerifiedKnowledge,
   ConversationAdapterDescriptor,
   ConversationInboundEvent,
   ConversationParticipationDecision,
   ConversationParticipationPolicy,
   ConversationOutboundMessage,
   TraceCapabilitiesReport,
-  OrganizationDeploymentPolicy,
-  OrganizationFleetRolloutApproval,
-  OrganizationFleetRolloutPlan,
-  OrganizationFleetWaveObservation,
-  OrganizationNodeEnrollment,
-  OrganizationNodeRolloutExecutionPlan,
-  OrganizationNodeRolloutExecutionReceipt,
-  OrganizationNodeRolloutDelivery,
-  OrganizationNodeRolloutDeliveryReceipt,
-  OrganizationNodeRolloutRecoveryObservation,
-  OrganizationNodeRolloutRecoveryReceipt,
-  OrganizationNodeRolloutRollbackPlan,
-  OrganizationNodeRolloutRollbackReceipt,
-  OrganizationRuntimeCredentialDeliveryReceipt,
-  SignedOrganizationDeploymentPolicy,
-  SignedOrganizationNodeRolloutDelivery,
-  OrganizationNodeRollbackDelivery,
-  OrganizationNodeRollbackDeliveryReceipt,
-  OrganizationNodeRollbackRecoveryReceipt,
-  SignedOrganizationNodeRollbackDelivery,
-  ProductActivityPageV1,
-  ProductActivitySubscriptionHintV1,
-  ProductDeliberationViewV1,
-  ProductSteeringCommandV1,
-  ProductUnifiedSearchResultV1,
-  SurfaceObservabilityReportV1,
 } from "../src/index.js";
 import { describe, expectTypeOf, it } from "vitest";
 
 describe("schema-derived TypeScript contracts", () => {
-  it("keeps product surfaces source-bound and explicit about unavailable evidence", () => {
-    expectTypeOf<ProductActivityPageV1["items"][number]["sourceCoordinates"]>().toEqualTypeOf<
-      string[]
-    >();
-    expectTypeOf<ProductUnifiedSearchResultV1["groups"][number]["status"]>().toEqualTypeOf<
-      "complete" | "partial" | "unavailable" | "invalid"
-    >();
-    expectTypeOf<
-      SurfaceObservabilityReportV1["resources"]["groups"][number]["usage"]
-    >().toMatchTypeOf<object | null>();
-    expectTypeOf<ProductDeliberationViewV1["participants"][number]["disposition"]>().toEqualTypeOf<
-      "hired_agent" | "policy_only"
-    >();
-  });
-
-  it("keeps steering domain-routed and subscription hints body-free", () => {
-    expectTypeOf<ProductSteeringCommandV1["action"]>().toEqualTypeOf<
-      "amend" | "pause" | "resume" | "cancel" | "approve" | "retry" | "reassign" | "handoff"
-    >();
-    expectTypeOf<ProductActivitySubscriptionHintV1["status"]>().toEqualTypeOf<
-      "changed" | "heartbeat" | "resync_required" | "closed"
-    >();
-  });
-
   it("keeps event-reader advertisement separate from writer authority", () => {
     expectTypeOf<
       EventReaderCapabilities["readableEventSchemaVersions"][number]
@@ -157,80 +103,6 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<PolicyApprovalRevocation["approvalId"]>().toEqualTypeOf<string>();
   });
 
-  it("keeps organization authority, runtime secrets, and delivery evidence separate", () => {
-    expectTypeOf<
-      OrganizationDeploymentPolicy["credentialPolicy"]["deliveryMode"]
-    >().toEqualTypeOf<"runtime_only">();
-    expectTypeOf<
-      OrganizationRuntimeCredentialDeliveryReceipt["secretMaterial"]
-    >().toEqualTypeOf<"excluded">();
-    expectTypeOf<
-      SignedOrganizationDeploymentPolicy["signature"]["algorithm"]
-    >().toEqualTypeOf<"ed25519">();
-  });
-
-  it("keeps organization fleet plans, observations, approvals, and effects distinct", () => {
-    expectTypeOf<OrganizationNodeEnrollment["secretMaterial"]>().toEqualTypeOf<"excluded">();
-    expectTypeOf<
-      OrganizationFleetRolloutPlan["effect"]["deployment"]
-    >().toEqualTypeOf<"not_executed">();
-    expectTypeOf<
-      OrganizationFleetWaveObservation["effect"]["decision"]
-    >().toEqualTypeOf<"not_selected">();
-    expectTypeOf<
-      OrganizationFleetRolloutApproval["effect"]["approval"]
-    >().toEqualTypeOf<"granted">();
-    expectTypeOf<
-      OrganizationNodeRolloutExecutionPlan["effect"]["deployment"]
-    >().toEqualTypeOf<"not_executed">();
-    expectTypeOf<
-      OrganizationNodeRolloutExecutionReceipt["effect"]["deployment"]
-    >().toEqualTypeOf<"executed">();
-  });
-
-  it("keeps signed rollout delivery separate from its local execution effect", () => {
-    expectTypeOf<
-      OrganizationNodeRolloutDelivery["effect"]["deployment"]
-    >().toEqualTypeOf<"not_executed">();
-    expectTypeOf<
-      SignedOrganizationNodeRolloutDelivery["signature"]["algorithm"]
-    >().toEqualTypeOf<"ed25519">();
-    expectTypeOf<
-      OrganizationNodeRolloutDeliveryReceipt["effect"]["deployment"]
-    >().toEqualTypeOf<"executed">();
-    expectTypeOf<OrganizationNodeRolloutRecoveryReceipt["classification"]>().toEqualTypeOf<
-      "applied" | "not_applied" | "unknown"
-    >();
-    expectTypeOf<
-      OrganizationNodeRolloutRecoveryReceipt["effect"]["deployment"]
-    >().toEqualTypeOf<"not_executed">();
-    expectTypeOf<
-      OrganizationNodeRolloutRecoveryObservation["privacy"]["absolutePaths"]
-    >().toEqualTypeOf<"excluded">();
-  });
-
-  it("keeps predecessor-bound rollback planning separate from rollback effect", () => {
-    expectTypeOf<OrganizationNodeRolloutRollbackPlan["action"]>().toEqualTypeOf<"rollback_wave">();
-    expectTypeOf<
-      OrganizationNodeRolloutRollbackPlan["effect"]["rollback"]
-    >().toEqualTypeOf<"not_executed">();
-    expectTypeOf<
-      OrganizationNodeRolloutRollbackReceipt["effect"]["rollback"]
-    >().toEqualTypeOf<"executed">();
-    expectTypeOf<
-      OrganizationNodeRollbackDelivery["effect"]["rollback"]
-    >().toEqualTypeOf<"not_executed">();
-    expectTypeOf<
-      SignedOrganizationNodeRollbackDelivery["signature"]["algorithm"]
-    >().toEqualTypeOf<"ed25519">();
-    expectTypeOf<
-      OrganizationNodeRollbackDeliveryReceipt["effect"]["rollback"]
-    >().toEqualTypeOf<"executed">();
-    expectTypeOf<OrganizationNodeRollbackRecoveryReceipt["classification"]>().toEqualTypeOf<
-      "rolled_back" | "not_rolled_back" | "unknown"
-    >();
-  });
-
   it("keeps skill trust as a discriminated union", () => {
     type VerifiedSkill = Extract<SkillManifest["trust"], { level: "verified" }>;
     expectTypeOf<VerifiedSkill["signatureStatus"]>().toEqualTypeOf<"valid">();
@@ -274,13 +146,6 @@ describe("schema-derived TypeScript contracts", () => {
     expectTypeOf<DocumentStalenessResult["signals"]["managedInputs"]["status"]>().toEqualTypeOf<
       "not_applicable" | "current" | "stale" | "unknown"
     >();
-  });
-
-  it("keeps knowledge review, verified evidence, and stale signals separate", () => {
-    expectTypeOf<KnowledgePromotionPolicy["requireHumanReviewer"]>().toEqualTypeOf<true>();
-    expectTypeOf<KnowledgeReviewApproval["decision"]>().toEqualTypeOf<"approved" | "rejected">();
-    expectTypeOf<VerifiedKnowledge["status"]>().toEqualTypeOf<"verified">();
-    expectTypeOf<KnowledgeStalenessResult["status"]>().toEqualTypeOf<"current" | "stale">();
   });
 
   it("keeps verification commands separate from observed command results", () => {

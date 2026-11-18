@@ -23,7 +23,6 @@ export * from "./health.js";
 export * from "./health-contract.js";
 export * from "./lifecycle.js";
 export * from "./managed-provider-runtime.js";
-export * from "./organization-credential-delivery.js";
 export * from "./open-ports.js";
 export * from "./process-runtime.js";
 export * from "./trust.js";

@@ -6,6 +6,8 @@ As of: 2026-09-07
 
 Completion covers the bounded manual slices below. Root-agent and managed-provider liveness, the read-only repository-goal lifecycle, bounded unattended scheduling, and reviewed additive dynamic topology are installed. Native provider session resume and independent nested-goal mutation remain external or separate scope in the [product outcome convergence roadmap](product-outcome-convergence.md).
 
+[ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the governed loop decision and policy, `lervo loop`, the operating board, objective, goal, and liveness reports, the product-host protocol, assignment thread and inbox projection, and bounded unattended scheduling. Graph, attempt, and resource projections, operating attention, handoff acknowledgment, and dynamic topology through outcome supervision stay. The slice records below are history.
+
 ## Goal
 
 Add bounded continuation and graph execution without a second task database or weaker managed execution. One provider-neutral headless application contract replays current workstreams, assignments, managed-run causality, verification, resource observations, and leases.
@@ -20,7 +22,7 @@ manual or bounded scheduler trigger -> verified checkpoint -> assignment decisio
 
 - [Execution and authority](governed-loop-assignment-graph/execution.md): GLA1–3 and GLA17; graph decisions, approval, cancellation, prepared completion, and resource budgets.
 - [Operating reports and product host](governed-loop-assignment-graph/operating.md): GLA4–5 and GLA14–16; local board, objective, observed budgets, capabilities, attention, and goal projection.
-- [Collaboration and connectors](governed-loop-assignment-graph/collaboration.md): GLA6–8, GLA11, and GLA18; interactions, routines, authenticated delivery, Slack, reviewed message triggering, and explicit acknowledgment.
+- [Collaboration and connectors](governed-loop-assignment-graph/collaboration.md): GLA6–8, GLA11, and GLA18; interactions and explicit acknowledgment. [ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed routines, connector delivery, Slack, and reviewed message triggering.
 - [Improvement observation](governed-loop-assignment-graph/improvement.md): GLA9–10 and GLA12–13; reviewed effects, bounded local metrics, and explicit CLI authority.
 
 ## Responsibility boundaries
@@ -31,7 +33,7 @@ manual or bounded scheduler trigger -> verified checkpoint -> assignment decisio
 | `@lervo/work-controller` | Pure assignment/event projections and next-action decisions | Event append, leases, writes, scheduling |
 | `@lervo/agent-workforce` | Assignment state, dependencies, leases, handoff, completion | Provider execution or loop policy |
 | `@lervo/orchestrator` | One managed attempt and its causal, resource, and stage evidence | Multi-attempt policy or product presentation |
-| `@lervo/operating-client` | Pure board projection and static local presentation | Storage, policy, commands, mutation |
+| `@lervo/operating-client` (removed by ADR-0560) | Pure board projection and static local presentation | Storage, policy, commands, mutation |
 | CLI and future product adapters | Trusted port composition and product presentation | Alternate graph, task, budget, or truth stores |
 
 Events, CAS artifacts, assignment state, verification, and repository state remain canonical. Graphs, loop decisions, and operating views are rebuildable projections.
@@ -48,14 +50,13 @@ Events, CAS artifacts, assignment state, verification, and repository state rema
 
 ## Recorded future candidate
 
-Event-driven scheduler wake-up is a candidate for later evaluation, not accepted delivery. A trusted assignment or topology event could wake one bounded scheduler invocation before its next poll. The signal would be advisory: canonical assignment state, exact-revision claim, the existing scheduler lock, kill switch, execution budgets, and polling reconciliation would retain authority.
+Event-driven scheduler wake-up was a candidate for later evaluation, not accepted delivery. ADR-0560 removed the scheduler, so this candidate is closed. A trusted assignment or topology event could wake one bounded scheduler invocation before its next poll. The signal would be advisory: canonical assignment state, exact-revision claim, the existing scheduler lock, kill switch, execution budgets, and polling reconciliation would retain authority.
 
 Before implementation, a separate reviewed contract must define signal authentication, replay and deduplication, coalescing and backpressure, lost-signal recovery, service lifecycle, privacy, and failure meaning. Polling remains the recovery path; a wake-up must never itself claim or execute an assignment.
 
 ## Conditional future sequence
 
-1. Add a second connector only for a current product need. Reuse shared conformance; keep provider-native credentials, destinations, receipts, and recovery semantics in its adapter.
-2. Add another improvement metric only after its counting unit, evidence source, ground truth, privacy boundary, and versioned policy are explicit.
+1. Add another improvement metric only after its counting unit, evidence source, ground truth, privacy boundary, and versioned policy are explicit.
 
 ## References
 
@@ -81,11 +82,7 @@ Before implementation, a separate reviewed contract must define signal authentic
 - [ADR-0375](../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
 - [ADR-0379](../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
-- [Assignment connector specification](../specifications/execution/assignment-connectors.md)
-- [Assignment routine specification](../specifications/execution/assignment-routines.md)
-- [Bounded unattended scheduler specification](../specifications/execution/unattended-scheduling.md)
+- Bounded unattended scheduler specification, removed by [ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Bounded dynamic assignment topology](../specifications/execution/dynamic-assignment-topology.md)
-- [Reviewed direct-message trigger specification](../specifications/execution/assignment-message-triggers.md)
-- [Verified improvement effects](../specifications/execution/verified-improvement-effects.md)
 - [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)
 - [Execution specification](../specifications/execution.md)

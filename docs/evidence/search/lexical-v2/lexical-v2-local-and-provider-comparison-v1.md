@@ -78,6 +78,8 @@ Incomplete usage makes token totals and quality averages ineligible for comparis
 
 ## Reproduction
 
+[ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed `pnpm evaluation:search-engine:run`; the first two commands are history and no longer run.
+
 ```sh
 pnpm evaluation:search-engine:run -- --suite benchmarks/search/repository-retrieval-v1.json --candidate lexical-v2 --summary
 pnpm evaluation:search-engine:run -- --suite benchmarks/search/korean-repository-retrieval-v1.json --candidate lexical-v2 --summary

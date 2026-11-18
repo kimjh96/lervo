@@ -292,33 +292,6 @@ export interface KnowledgeImpactReport {
   items: KnowledgeImpactItem[];
 }
 
-export type KnowledgeRefreshReviewAction =
-  "revalidate" | "consider_deprecation" | "resolve_lineage";
-
-export interface KnowledgeRefreshReviewItem {
-  reviewItemId: string;
-  subjectKind: KnowledgeImpactItem["subjectKind"];
-  subjectId: string;
-  observedFreshness: Exclude<KnowledgeFreshness, "current">;
-  reasons: KnowledgeImpactReason[];
-  proposedAction: KnowledgeRefreshReviewAction;
-  reviewRequired: true;
-}
-
-export interface KnowledgeRefreshReviewCandidate {
-  coverage: RepositoryKnowledgeScan["coverage"];
-  skippedForBudget: RepositoryKnowledgeScan["skippedForBudget"];
-  schemaVersion: 1;
-  candidateId: string;
-  semantics: "review_candidate";
-  projectId: string;
-  sourceSnapshotId: string;
-  impactReportId: string;
-  status: "no_changes" | "review_required";
-  automaticPublicationMutation: false;
-  items: KnowledgeRefreshReviewItem[];
-}
-
 export interface KnowledgeMaterializationReceipt {
   schemaVersion: 1;
   type: "knowledge.materialization.applied";

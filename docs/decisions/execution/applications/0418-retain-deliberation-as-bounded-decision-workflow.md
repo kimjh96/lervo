@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-16
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the product-host composition part is removed. Lervo no longer ships the protocol v11 deliberation composition or `lervo application deliberation`. The deliberation core and the Node runtime's thread projection stay.
+
 ## Context
 
 Lervo's provider-neutral deliberation core has fixed proposer, reviewer, verifier, and decision-owner roles; structured proposal, objection, revision, verification, and decision artifacts; independent provider sessions; explicit convergence and `no_consensus`; and durable queueing, leases, restart recovery, reconciliation, and source-bound evidence. Discord can start it through an exact command or an explicit natural-language request when a default policy is configured.
@@ -69,7 +71,7 @@ Policy hashes bind provider calls, tokens, elapsed time, and missing observation
 
 ### Installed composition and delivery
 
-Product-host protocol v11 installs the read-only composition. It opens current queue and interaction schemas without migration, freezes repository events and revision, validates policy, history, verification, organization, and resource relations, and distinguishes writing-gated outbound from receipt-backed delivery. Reject multiple terminal outbounds, contradictory coordinates, count mismatches, or source changes during inspection. The protocol grants no workflow or delivery authority.
+Product-host protocol v11 installs the read-only composition. It validates queue, interaction, and event relations without migration and grants no workflow or delivery authority.
 
 The installed Node composition projects each structured artifact into its bound thread while the long-running deliberation worker remains active. It verifies and republishes the writing-gated body under the language-selected, policy-bound participant name, giving the thread timely labeled stakeholder contributions rather than a delayed event dump or round and count summaries. Structured coordinates remain canonical activity and search data. Never copy prompts, private reasoning, unverified provider material, credentials, or platform identifiers. A fixed-contract responder adds no provider turn. A rebuildable cursor advances after one durable outbound; deterministic identity and existing replay cover crashes. Missing origins remain unprojected. Missing or mismatched content and ambiguous ownership fail closed.
 

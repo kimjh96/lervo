@@ -4,6 +4,6 @@ State: `wired`
 
 Outcome: bounded work forms a graph; verification, retry, resource, approval, and completion policy govern each attempt.
 
-Evidence: assignment DAG projection, pure controller decisions, manual `loop run`, managed attempts, verification, leases, completion reconciliation, and exact managed token-dimension and per-run duration budgets exist.
+Evidence: assignment DAG projection, attempt and resource projections, supervised managed attempts, verification, leases, and prepared completion events exist. [ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed pure next-action decisions, the manual `loop run` route, the governed reconciliation command, and governed token-dimension and duration budgets.
 
-Preserve the installed manual journey, fail-closed observation boundary, and non-autonomy claim.
+Preserve the fail-closed observation boundary.

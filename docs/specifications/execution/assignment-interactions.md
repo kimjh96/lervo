@@ -1,46 +1,39 @@
-# Assignment interactions, mentions, and inboxes
+# Assignment interactions and acknowledgment
 
 Status: `active`
-As of: 2026-09-05
+As of: 2026-11-02
 
 ## Scope
 
-This specification defines local assignment mention planning and rebuildable thread and inbox reports. It adds no chat database, task store, provider invocation, external delivery, or approval authority. The current workforce assignment, `assignment.handoff.recorded`, and explicit `assignment.handoff.acknowledged` remain canonical.
+This specification defines handoff recording and explicit handoff acknowledgment. It adds no chat database, task store, provider invocation, external delivery, or approval authority. The current workforce assignment, `assignment.handoff.recorded`, and explicit `assignment.handoff.acknowledged` remain canonical.
 
-## Mention route plan
+`lervo assignment handoff` records a handoff through the workforce transition, which validates both role contracts, the source lease, recipient role policy, state revision, and state/event commit boundary. `assignment.handoff.recorded` is route-success evidence. [ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the mention-route, reviewed direct-message trigger, and connector delivery entrypoints. Stored handoffs that carry their trigger provenance stay readable.
 
-A route plan binds the project, current workstream, assignment and revision, source agent and role contract, exact lease, source handoff-policy digest, target, candidate and recipient coordinates, recipient role contract, request digest, artifact references, context-evidence event IDs, and observed status. Its ID is content-derived: observation time does not change it while the same lease and decision remain current; lease expiry changes the bounded decision and plan.
+## Removed thread and inbox projection
 
-V1 targets are exact `@agent:<agent-id>`, unique active `@role:<role-id>`, `@manager` through the source agent's durable parent, and `@reviewer` or `@verifier` through those exact role IDs. A role-like target with zero or multiple active agents is unresolved. Inactive identity, self-routing, source or assignment mismatch, disallowed recipient role, and expired or foreign leases are blocked. The resolver neither heuristically selects a candidate nor creates multiple hidden effects.
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) also removed the assignment thread and inbox projection, `lervo loop thread`, `lervo loop inbox`, and the local operating board. They had no production invoker. Handoff and acknowledgment state and events stay canonical and readable.
 
-Apply requires the exact current plan ID and delegates one mutation to the existing workforce handoff transition. The transition revalidates both role contracts, the source lease, recipient role policy, state revision, and state/event commit boundary. A ready plan is not an effect; `assignment.handoff.recorded` is route-success evidence.
+## Explicit acknowledgment
 
-## Thread and inbox projection
+`lervo assignment acknowledge` requires the exact assignment, handoff, active recipient-agent coordinate, and `--write`. It revalidates that agent's current role contract, rejects a different agent coordinate, and atomically records `acknowledgedAt` with `assignment.handoff.acknowledged`. The local CLI does not authenticate a human principal; hosts must add that boundary before mapping an external actor to the agent coordinate. Exact replay is current and emits no second event.
 
-`@lervo/application-contract` owns the storage-free query and report. `@lervo/work-controller` projects one deterministic thread per selected current-workstream assignment and one inbox item per recorded recipient handoff. It validates duplicate assignments and handoffs and missing agent coordinates. Unknown requested assignments or recipients are invalid, not successful empty results.
+Acknowledgment proves only that the exact recipient-agent coordinate was explicitly supplied to the acknowledgment transition. It proves neither human identity, delivery, understanding, task acceptance, lease acquisition, action, review, verification, nor completion.
 
-Both contract versions expose assignment, thread, handoff, sender, recipient, request digest, artifact and context-event coordinates, artifact count, and route time. Bodies are never loaded. Contract v1 preserves its original `recorded` route and `unobserved` delivery and acknowledgment shape. Contract v2 additively exposes optional reviewed-message trigger provenance, acknowledgment time, and `recorded` acknowledgment only when the recipient-coordinate transition committed. A renderer or connector cannot upgrade either state without its own exact evidence contract.
-
-`lervo loop thread` and `lervo loop inbox` are read-only and default to contract v1; `--contract 2` selects the additive evidence. The local operating board intentionally composes v1 and has no mutation control. `lervo assignment mention` is a separate plan/apply entrypoint pairing `--apply` with `--write`.
-
-The reviewed direct-message trigger and recipient acknowledgment are separate entrypoints; see [reviewed direct-message triggers and handoff acknowledgment](assignment-message-triggers.md).
-
-Outbound connector delivery is a separate exact-effect contract and cannot infer or mutate these interaction projections; see [assignment connector delivery](assignment-connectors.md).
+`assignment.handoff.acknowledged` requires assignment ID, handoff ID, recipient agent ID, acknowledgment time, and resulting assignment revision. State and event commit together; event-append failure restores the prior assignment bytes.
 
 ## Privacy and failure meaning
 
-Plans and reports exclude message, task, and acceptance bodies; repository paths; prompts; provider output; reasoning; credentials; actor prose; and reversible external platform identifiers. Message or request material remains in separately governed content-addressed artifacts.
+Events exclude message, task, and acceptance bodies; repository paths; prompts; provider output; reasoning; credentials; actor prose; and reversible external platform identifiers. Message or request material remains in separately governed content-addressed artifacts.
 
-Resolution proves only that one candidate met current identity and policy checks. Route recording proves only that the handoff state and event committed. Explicit acknowledgment proves neither provider receipt, delivery, understanding, action, review, verification, consensus, assignment creation, nor deliberation. A stale plan or failed transition records no route. Missing delivery or acknowledgment evidence remains unobserved, never success, failure, zero, or negative acknowledgment.
+Route recording proves only that the handoff state and event committed. A failed transition records no route. Missing delivery or acknowledgment evidence remains unobserved, never success, failure, zero, or negative acknowledgment.
 
 ## Required verification
 
-Focused tests cover exact agent, unique role, manager, reviewer, and verifier targeting; ambiguous, inactive, self, disallowed-role, workstream, and lease failures; role-policy plan binding; exact plan/apply; content-free deterministic projection; unknown-coordinate invalidation; read-only CLI inspection; escaped self-contained board rendering; and no delivery or acknowledgment inference.
+Focused tests cover recipient-coordinate acknowledgment, event rollback, privacy allowlists, and no delivery or acknowledgment inference.
 
 ## References
 
-- [Assignment connector delivery](assignment-connectors.md)
-- [Reviewed direct-message triggers and handoff acknowledgment](assignment-message-triggers.md)
 - [Execution and evidence specification](../execution.md)
 - [Execution events and privacy](events-and-privacy.md)
 - [ADR-0342](../../decisions/execution/orchestration/governed-work/0342-project-assignment-interactions-from-workforce-handoffs.md)
+- [ADR-0375](../../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)

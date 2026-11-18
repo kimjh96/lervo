@@ -61,7 +61,6 @@ export async function runSearchQueryCommand(args: string[], io: CliIo): Promise<
             {
               ...response,
               selectionTransitionId: operational.selectionTransitionId,
-              verificationReceiptId: operational.verificationReceiptId,
               productQualificationId: operational.productQualificationId,
               attemptId: attempt.attemptId,
             },

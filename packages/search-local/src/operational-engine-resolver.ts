@@ -7,10 +7,8 @@ import {
   SEARCH_MAX_RESULTS,
   SearchError,
   sameSearchEngine,
+  type BaselineSearchEngineSelection,
   type SearchCandidateEngineResolver,
-  type SearchCandidateVerificationReceipt,
-  type SearchEngineSelection,
-  type SearchEngineActivation,
   type ProductDefaultSearchEngine,
   type ProductDefaultSearchEngineSelection,
   type SearchIndexPort,
@@ -18,39 +16,43 @@ import {
 } from "@lervo/search";
 
 import { loadRegisteredDocumentCorpus } from "./corpus.js";
-import { verifySearchCandidateActivationEvidence } from "./engine-activation-evidence.js";
-import { loadSearchEngineActivationHistory } from "./engine-activation-store.js";
-import { verifySearchEngineSelectionHistory } from "./engine-selection-history-verifier.js";
 import { SearchLocalError } from "./types.js";
 
 export interface ResolvedOperationalSearchEngine {
   selection: OperationalSearchEngineSelection;
-  selectionTransitionId: string | null;
-  transitionCount: number;
   index: SearchIndexPort;
-  verificationReceipt: SearchCandidateVerificationReceipt | null;
   productQualificationId: string | null;
 }
 
 export type OperationalSearchEngineSelection =
-  SearchEngineSelection | ProductDefaultSearchEngineSelection;
+  BaselineSearchEngineSelection | ProductDefaultSearchEngineSelection;
 
 export interface OperationalSearchResult {
   selection: OperationalSearchEngineSelection;
-  selectionTransitionId: string | null;
+  /** Always null: engine selection transitions were removed by ADR-0560. */
+  selectionTransitionId: null;
   response: SearchResponse;
-  verificationReceiptId: string | null;
   productQualificationId: string | null;
 }
 
 export interface OperationalSearchEngineInspection {
   selection: OperationalSearchEngineSelection;
-  selectionTransitionId: string | null;
-  transitions: number;
   resolverState: "ready" | "unavailable";
   failureCode: string | null;
-  verificationReceiptId: string | null;
   productQualificationId: string | null;
+}
+
+function productDefaultSelection(
+  productDefault: ProductDefaultSearchEngine,
+): ProductDefaultSearchEngineSelection {
+  return {
+    mode: "product_default",
+    qualificationId: productDefault.qualificationId,
+    candidateId: productDefault.candidateId,
+    engine: { ...productDefault.engine },
+    reviewId: null,
+    comparisonId: null,
+  };
 }
 
 async function resolveProductDefaultSearchEngine(input: {
@@ -68,18 +70,8 @@ async function resolveProductDefaultSearchEngine(input: {
       throw new Error("The registered engine differs from the product qualification.");
     }
     return {
-      selection: {
-        mode: "product_default",
-        qualificationId: input.productDefault.qualificationId,
-        candidateId: input.productDefault.candidateId,
-        engine: { ...input.productDefault.engine },
-        reviewId: null,
-        comparisonId: null,
-      },
-      selectionTransitionId: null,
-      transitionCount: 0,
+      selection: productDefaultSelection(input.productDefault),
       index: await engine.buildIndex(await loadRegisteredDocumentCorpus(input.repositoryRoot)),
-      verificationReceipt: null,
       productQualificationId: input.productDefault.qualificationId,
     };
   } catch (error) {
@@ -92,104 +84,25 @@ async function resolveProductDefaultSearchEngine(input: {
   }
 }
 
-async function resolveOperationalSearchEngineFromHistory(input: {
-  repositoryRoot: string;
-  projectId: string;
-  registry: SearchCandidateEngineResolver;
-  history: readonly SearchEngineActivation[];
-  productDefault?: ProductDefaultSearchEngine;
-}): Promise<ResolvedOperationalSearchEngine> {
-  const history = input.history;
-  const current = history.at(-1) ?? null;
-  if (current === null) {
-    if (input.productDefault !== undefined) {
-      return resolveProductDefaultSearchEngine({
-        repositoryRoot: input.repositoryRoot,
-        registry: input.registry,
-        productDefault: input.productDefault,
-      });
-    }
-    return {
-      selection: baselineSearchEngineSelection(),
-      selectionTransitionId: null,
-      transitionCount: 0,
-      index: new LexicalSearchIndex(await loadRegisteredDocumentCorpus(input.repositoryRoot)),
-      verificationReceipt: null,
-      productQualificationId: null,
-    };
-  }
-  try {
-    await verifySearchEngineSelectionHistory({ ...input, history });
-  } catch (error) {
-    if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable")
-      throw error;
-    throw new SearchLocalError(
-      "engine_selection_unavailable",
-      "Could not safely verify the search engine selection chain.",
-      {
-        cause: error instanceof Error ? error : undefined,
-      },
-    );
-  }
-  const selection = current.selected;
-  if (selection.mode === "baseline") {
-    return {
-      selection,
-      selectionTransitionId: current.activationId,
-      transitionCount: history.length,
-      index: new LexicalSearchIndex(await loadRegisteredDocumentCorpus(input.repositoryRoot)),
-      verificationReceipt: null,
-      productQualificationId: null,
-    };
-  }
-  try {
-    const evidence = await verifySearchCandidateActivationEvidence({
-      repositoryRoot: input.repositoryRoot,
-      projectId: input.projectId,
-      reviewId: selection.reviewId!,
-      registry: input.registry,
-    });
-    const index = evidence.index;
-    if (
-      !sameSearchEngine(index.engine, selection.engine) ||
-      index.indexId !== evidence.comparison.candidate.indexId
-    ) {
-      throw new SearchLocalError(
-        "engine_selection_unavailable",
-        "The current index of the selected search engine differs from the verified comparison source.",
-      );
-    }
-    return {
-      selection,
-      selectionTransitionId: current.activationId,
-      transitionCount: history.length,
-      index,
-      verificationReceipt: evidence.verificationReceipt,
-      productQualificationId: null,
-    };
-  } catch (error) {
-    if (error instanceof SearchLocalError && error.code === "engine_selection_unavailable")
-      throw error;
-    throw new SearchLocalError(
-      "engine_selection_unavailable",
-      "The current candidate search engine selection cannot be used safely.",
-      {
-        cause: error instanceof Error ? error : undefined,
-      },
-    );
-  }
-}
-
+/** Resolves the product default engine, or the built-in lexical engine when none is supplied. */
 export async function resolveOperationalSearchEngine(input: {
   repositoryRoot: string;
   projectId: string;
   registry: SearchCandidateEngineResolver;
   productDefault?: ProductDefaultSearchEngine;
 }): Promise<ResolvedOperationalSearchEngine> {
-  return resolveOperationalSearchEngineFromHistory({
-    ...input,
-    history: await loadSearchEngineActivationHistory(input.repositoryRoot),
-  });
+  if (input.productDefault !== undefined) {
+    return resolveProductDefaultSearchEngine({
+      repositoryRoot: input.repositoryRoot,
+      registry: input.registry,
+      productDefault: input.productDefault,
+    });
+  }
+  return {
+    selection: baselineSearchEngineSelection(),
+    index: new LexicalSearchIndex(await loadRegisteredDocumentCorpus(input.repositoryRoot)),
+    productQualificationId: null,
+  };
 }
 
 export async function inspectOperationalSearchEngine(input: {
@@ -198,36 +111,21 @@ export async function inspectOperationalSearchEngine(input: {
   registry: SearchCandidateEngineResolver;
   productDefault?: ProductDefaultSearchEngine;
 }): Promise<OperationalSearchEngineInspection> {
-  const history = await loadSearchEngineActivationHistory(input.repositoryRoot);
-  const current = history.at(-1) ?? null;
-  const defaultSelection: OperationalSearchEngineSelection =
+  const selection: OperationalSearchEngineSelection =
     input.productDefault === undefined
       ? baselineSearchEngineSelection()
-      : {
-          mode: "product_default",
-          qualificationId: input.productDefault.qualificationId,
-          candidateId: input.productDefault.candidateId,
-          engine: { ...input.productDefault.engine },
-          reviewId: null,
-          comparisonId: null,
-        };
-  const recorded = {
-    selection: structuredClone(current?.selected ?? defaultSelection),
-    selectionTransitionId: current?.activationId ?? null,
-    transitions: history.length,
-  };
+      : productDefaultSelection(input.productDefault);
   try {
-    const resolved = await resolveOperationalSearchEngineFromHistory({ ...input, history });
+    const resolved = await resolveOperationalSearchEngine(input);
     return {
-      ...recorded,
+      selection,
       resolverState: "ready",
       failureCode: null,
-      verificationReceiptId: resolved.verificationReceipt?.receiptId ?? null,
       productQualificationId: resolved.productQualificationId,
     };
   } catch (error) {
     return {
-      ...recorded,
+      selection,
       resolverState: "unavailable",
       failureCode:
         typeof error === "object" &&
@@ -236,7 +134,6 @@ export async function inspectOperationalSearchEngine(input: {
         typeof error.code === "string"
           ? error.code
           : "engine_selection_unavailable",
-      verificationReceiptId: null,
       productQualificationId: null,
     };
   }
@@ -268,9 +165,8 @@ export async function runLocalOperationalSearch(input: {
     });
     return {
       selection: structuredClone(resolved.selection),
-      selectionTransitionId: resolved.selectionTransitionId,
+      selectionTransitionId: null,
       response,
-      verificationReceiptId: resolved.verificationReceipt?.receiptId ?? null,
       productQualificationId: resolved.productQualificationId,
     };
   } catch (error) {

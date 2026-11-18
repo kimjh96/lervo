@@ -2,4 +2,3 @@
 
 - [Results, search, and canonicalization](results-and-evolution/results.md)
 - [Compatibility and evolution](results-and-evolution/compatibility.md)
-- [Host-neutral projection](results-and-evolution/projection.md)

@@ -2,7 +2,9 @@
 
 ## Projection
 
-Each new `deliberation.artifact.recorded` repository event passes through the structured-artifact validator used by the host-neutral product projection. For a bound artifact, the Discord projector requires exactly one active real-participant binding, verifies its writing-gated Markdown byte count and content hash, and asks that participant runtime to publish through its existing deployment. It adds no policy-role heading, round number, role ID, claim count, or gate status.
+Each new `deliberation.artifact.recorded` repository event passes through `readDeliberationArtifactEvents` in `@lervo/deliberation`. For a bound artifact, the Discord projector requires exactly one active real-participant binding, verifies its writing-gated Markdown byte count and content hash, and asks that participant runtime to publish through its existing deployment. It adds no policy-role heading, round number, role ID, claim count, or gate status.
+
+The reader reports `complete` only when every artifact event carries a schema-valid structured artifact whose project, deliberation, artifact, kind, round, producer role, provider, run, session, content, permit, and timestamp coordinates agree with its envelope and summary. A legacy summary-only event makes structured history `unavailable`; no partial artifact list is returned. Duplicate or contradictory coordinates are `invalid`. The reader never loads Markdown bodies.
 
 An unbound artifact advances the internal cursor without creating a Discord event. Canonical coordinates remain available for activity, trace, search, and future first-party views. Prompts, private reasoning, unverified provider payloads, credentials, and native Discord identifiers remain excluded.
 

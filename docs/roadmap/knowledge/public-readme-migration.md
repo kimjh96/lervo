@@ -4,6 +4,8 @@ Status: `complete`
 As of: 2026-08-24
 Completed: 2026-08-25
 
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the separate improvement proposal (`lervo readme propose`) in items 4, 6, and 8 and the accepted-rewrite acceptance line. Byte preservation, the protected-coordinate inventory, and its freshness checks stay.
+
 ## Problem
 
 The root README is the public product, package, and contributor entrypoint for many open-source repositories. Structural migration preserves it and requires exact approval for user-byte changes. Reviewed normalization instead treated every README as one bounded `human_readme`, could rewrite the entire root file, required a visible route to `AGENTS.md` when present, and did not deterministically preserve HTML presentation, badges, images, or ordinary Markdown link targets. Exact approval prevents silent damage but does not make rewriting public READMEs an appropriate default.

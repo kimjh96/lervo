@@ -2,7 +2,7 @@ import { isDoctorReportSemanticallyValid } from "./doctor-report-semantics.js";
 import { readVersionedReport } from "./report-compatibility.js";
 import type { DoctorReport } from "./types.js";
 
-export const doctorReportSchemaVersion = 1 as const;
+export const doctorReportSchemaVersion = 2 as const;
 
 export type DoctorReportCompatibilityErrorCode =
   "doctor_report_invalid" | "doctor_report_schema_unsupported";

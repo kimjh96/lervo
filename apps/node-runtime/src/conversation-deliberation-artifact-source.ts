@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
 
 import type { ConversationApplication } from "@lervo/conversation-app";
-import { readDeliberationArtifactEvents } from "@lervo/product-surface-projection";
 import { projectAgentOrganizationFromEventSource } from "@lervo/agent-organization";
+import { readDeliberationArtifactEvents } from "@lervo/deliberation";
 import type { DeliberationArtifact, EventEnvelope } from "@lervo/schemas";
 import { validateSchema } from "@lervo/schemas";
 import type { ArtifactStore, EventStore } from "@lervo/storage-contract";

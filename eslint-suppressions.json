@@ -1,24 +1,4 @@
 {
-  "apps/cli/src/assignment-connector-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "apps/cli/src/assignment-message-trigger-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "apps/cli/src/assignment-routine-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "apps/cli/src/assignment-topology-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "apps/cli/src/automatic-verification-suite.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
@@ -274,11 +254,6 @@
       "count": 1
     }
   },
-  "packages/identity-migration/src/safe-file.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "packages/orchestrator/src/file-snapshot.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
@@ -434,11 +409,6 @@
       "count": 2
     }
   },
-  "packages/repository-knowledge/src/public-readme.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "packages/repository-knowledge/src/reconciliation-review.ts": {
     "lervo/require-caught-error-cause": {
       "count": 2
@@ -469,31 +439,6 @@
       "count": 3
     }
   },
-  "packages/search-local/src/engine-activation-store.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-bundle-files.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-case-files.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-comparison-reader.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-review-store.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "packages/search-local/src/observation-files.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
@@ -505,11 +450,6 @@
     }
   },
   "packages/search-local/src/retrieval-plan-activation-store.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/rollout-review-store.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
     }

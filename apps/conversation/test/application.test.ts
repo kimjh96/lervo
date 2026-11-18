@@ -1,50 +1,60 @@
-import { createHmac } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { NativeChatConversationAdapter } from "@lervo/adapter-native-chat";
 import { calculateConversationDeliberationOriginBindingDigest } from "@lervo/conversation-control";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { openConversationApplication } from "../src/index.js";
+import { openConversationApplication, type ConversationApplication } from "../src/index.js";
+import { TestConversationAdapter } from "../../../packages/conversation-contract/test/conversation-adapter.fixture.js";
 
 const roots: string[] = [];
 const now = new Date("2026-08-20T02:00:00.000Z");
-const secret = "slack-signing-secret-for-application";
+const integrationId = "itg_discord01";
+const applicationId = "999999999999999999";
+const guildId = "123456789012345678";
+const channelId = "223456789012345678";
+const humanId = "323456789012345678";
+let sequence = 0;
 
-function signed(body: Uint8Array) {
-  const timestamp = Math.floor(now.getTime() / 1_000);
+function dispatch(input: { messageId: string; replyToMessageId?: string }) {
+  sequence += 1;
   return {
-    body,
-    headers: {
-      "x-slack-request-timestamp": String(timestamp),
-      "x-slack-signature": `v0=${createHmac("sha256", secret)
-        .update(`v0:${timestamp}:`)
-        .update(body)
-        .digest("hex")}`,
-    },
+    sessionHandle: "discord-session-application",
+    body: Buffer.from(
+      JSON.stringify({
+        op: 0,
+        s: sequence,
+        t: "MESSAGE_CREATE",
+        d: {
+          id: input.messageId,
+          channel_id: channelId,
+          guild_id: guildId,
+          author: { id: humanId, bot: false },
+          content: "Check the deployment combination.",
+          mentions: [],
+          timestamp: now.toISOString(),
+          ...(input.replyToMessageId === undefined
+            ? {}
+            : {
+                message_reference: { message_id: input.replyToMessageId },
+                referenced_message: { author: { id: humanId, bot: false } },
+              }),
+        },
+      }),
+    ),
   };
 }
 
-function event(input: { id: string; ts: string; threadTs?: string }) {
-  return Buffer.from(
-    JSON.stringify({
-      type: "event_callback",
-      api_app_id: "A123",
-      team_id: "T123",
-      event_id: input.id,
-      event: {
-        type: "message",
-        channel: "C123",
-        user: "U123",
-        text: "Check the deployment combination.",
-        ts: input.ts,
-        event_ts: input.ts,
-        ...(input.threadTs === undefined ? {} : { thread_ts: input.threadTs }),
-      },
-    }),
-  );
+async function receive(
+  application: ConversationApplication,
+  input: { messageId: string; replyToMessageId?: string },
+) {
+  const adapter = application.discordAdapters.get(integrationId);
+  if (adapter === undefined) throw new Error("Discord adapter missing");
+  const received = await adapter.receiveGatewayDispatch(dispatch(input));
+  if (received.status !== "accepted") throw new Error("The Discord message was not accepted.");
+  return received;
 }
 
 function options(dataDirectory: string) {
@@ -52,30 +62,33 @@ function options(dataDirectory: string) {
     dataDirectory,
     conversations: [
       {
-        platform: "slack" as const,
-        integrationId: "itg_slack001",
-        tenantKey: "T123",
-        conversationKey: "C123",
+        platform: "discord" as const,
+        integrationId,
+        tenantKey: guildId,
+        conversationKey: channelId,
         projectId: "prj_platform01",
         conversationId: "cnv_platform01",
       },
     ],
     participants: [
       {
-        platform: "slack" as const,
-        integrationId: "itg_slack001",
-        tenantKey: "T123",
-        participantKey: "user:U123",
+        platform: "discord" as const,
+        integrationId,
+        tenantKey: guildId,
+        participantKey: `user:${humanId}`,
         actor: { kind: "human" as const, participantId: "ptc_platform01", roleId: null },
       },
     ],
-    slack: [
+    discord: [
       {
-        integrationId: "itg_slack001",
-        apiAppId: "A123",
-        allowedTeamIds: ["T123"],
-        signingSecret: secret,
-        botToken: `xoxb-${"s".repeat(40)}`,
+        integrationId,
+        applicationId,
+        allowedGuildIds: [guildId],
+        allowDirectMessages: false,
+        botToken: `discord.${"t".repeat(40)}`,
+        gatewayAuthentication: {
+          verifyDispatch: async () => ({ authenticated: true as const }),
+        },
       },
     ],
     now: () => now,
@@ -87,10 +100,10 @@ afterEach(async () => {
 });
 
 describe("conversation deployment composition", () => {
-  it("registers a canonical native chat adapter without platform-specific app changes", async () => {
+  it("registers a platform-neutral adapter without platform-specific app changes", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-native-"));
     roots.push(root);
-    const native = new NativeChatConversationAdapter({
+    const native = new TestConversationAdapter({
       integrationId: "itg_native001",
       instanceIdentity: "internal-chat-production",
       delivery: {
@@ -114,7 +127,6 @@ describe("conversation deployment composition", () => {
     });
 
     expect(application.adapters.get("itg_native001")).toBe(native);
-    expect(application.slackAdapters).toHaveLength(0);
     expect(application.discordAdapters).toHaveLength(0);
     expect(
       native.normalizeInbound({
@@ -141,7 +153,7 @@ describe("conversation deployment composition", () => {
   it("rejects an external adapter whose kind differs from its platform binding", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-kind-"));
     roots.push(root);
-    const mismatched = new NativeChatConversationAdapter({
+    const mismatched = new TestConversationAdapter({
       integrationId: "itg_teams001",
       instanceIdentity: "wrong-adapter-kind",
       delivery: {
@@ -188,37 +200,17 @@ describe("conversation deployment composition", () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-conversation-app-"));
     roots.push(root);
     let application = await openConversationApplication(options(root));
-    const adapter = application.slackAdapters.get("itg_slack001");
-    if (adapter === undefined) throw new Error("Slack adapter missing");
-    const first = await adapter.receive(
-      signed(
-        event({
-          id: "Ev-application-1",
-          ts: "1787191200.000100",
-        }),
-      ),
-    );
-    expect(first.status).toBe("accepted");
-    if (first.status !== "accepted") throw new Error("first event not accepted");
-    application.close();
+    const first = await receive(application, { messageId: "423456789012345678" });
+    await application.close();
 
     application = await openConversationApplication(options(root));
-    const restored = application.slackAdapters.get("itg_slack001");
-    if (restored === undefined) throw new Error("restored Slack adapter missing");
-    const reply = await restored.receive(
-      signed(
-        event({
-          id: "Ev-application-2",
-          ts: "1787191201.000100",
-          threadTs: "1787191200.000100",
-        }),
-      ),
-    );
-    expect(reply.status).toBe("accepted");
-    if (reply.status !== "accepted") throw new Error("reply event not accepted");
+    const reply = await receive(application, {
+      messageId: "423456789012345679",
+      replyToMessageId: "423456789012345678",
+    });
     expect(reply.event.replyToEventId).toBe(first.event.eventId);
-    expect(reply.event.target.threadId).toMatch(/^thd_[a-f0-9]{64}$/);
-    application.close();
+    expect(reply.event.target.threadId).toBeNull();
+    await application.close();
   });
 
   it("rejects bindings for an integration that is not deployed", async () => {
@@ -227,7 +219,7 @@ describe("conversation deployment composition", () => {
     await expect(
       openConversationApplication({
         ...options(root),
-        slack: [],
+        discord: [],
       }),
     ).rejects.toThrow("integration");
   });
@@ -283,19 +275,10 @@ describe("conversation deployment composition", () => {
       },
     };
     let application = await openConversationApplication(configured);
-    const adapter = application.slackAdapters.get("itg_slack001");
-    if (adapter === undefined || application.deliberations === null) {
+    if (application.deliberations === null) {
       throw new Error("Conversation deliberation delivery is missing.");
     }
-    const received = await adapter.receive(
-      signed(
-        event({
-          id: "Ev-deliberation-1",
-          ts: "1787191200.000200",
-        }),
-      ),
-    );
-    if (received.status !== "accepted") throw new Error("The deliberation event was not received.");
+    const received = await receive(application, { messageId: "423456789012345680" });
     const first = await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
@@ -404,14 +387,10 @@ describe("conversation deployment composition", () => {
         workerId: "conversation-worker-1",
       },
     });
-    const adapter = application.slackAdapters.get("itg_slack001");
-    if (adapter === undefined || application.deliberations === null) {
+    if (application.deliberations === null) {
       throw new Error("The deliberation deployment is unavailable.");
     }
-    const received = await adapter.receive(
-      signed(event({ id: "Ev-drain-1", ts: "1787191200.000200" })),
-    );
-    if (received.status !== "accepted") throw new Error("The test event was not accepted.");
+    const received = await receive(application, { messageId: "423456789012345681" });
     await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
@@ -477,22 +456,9 @@ describe("conversation deployment composition", () => {
         workerId: "conversation-worker-1",
       },
     });
-    const adapter = application.slackAdapters.get("itg_slack001");
-    if (
-      adapter === undefined ||
-      application.deliberations === null ||
-      application.reconcileDeliberation === null
-    )
+    if (application.deliberations === null || application.reconcileDeliberation === null)
       throw new Error("Conversation deliberation reconciliation delivery is missing.");
-    const received = await adapter.receive(
-      signed(
-        event({
-          id: "Ev-reconciliation-1",
-          ts: "1787191200.000300",
-        }),
-      ),
-    );
-    if (received.status !== "accepted") throw new Error("The deliberation event was not received.");
+    const received = await receive(application, { messageId: "423456789012345682" });
     const started = await application.deliberations.start({
       event: received.event,
       policyId: "deliberation_product-review",
@@ -520,15 +486,7 @@ describe("conversation deployment composition", () => {
         inspectedAt: now.toISOString(),
       }),
     ).resolves.toMatchObject({ status: "interrupted", artifactCount: 3 });
-    const resumeEvent = await adapter.receive(
-      signed(
-        event({
-          id: "Ev-reconciliation-2",
-          ts: "1787191201.000300",
-        }),
-      ),
-    );
-    if (resumeEvent.status !== "accepted") throw new Error("The resume event was not received.");
+    const resumeEvent = await receive(application, { messageId: "423456789012345683" });
     await expect(
       application.deliberations.resume({
         event: resumeEvent.event,

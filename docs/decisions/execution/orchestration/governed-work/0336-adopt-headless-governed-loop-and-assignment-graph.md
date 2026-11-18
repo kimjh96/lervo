@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the governed loop part (the next-action loop decision, loop policy and resource admission thresholds, approval observations, and `lervo loop status` and `lervo loop run`) is removed. The `@lervo/application-contract` and `@lervo/work-controller` boundary, assignment graph projection, attempt and resource projections, and causal-attempt coordinates for managed runs stay.
+
 ## Context
 
 FH0 through FH5 established compatible event readers, causal managed work, provider resource accounting, stage timing, recovery, security, capacity bounds, and aggregate readiness. Lervo had assignment dependencies and cancellation planning, but no single public projection could tell an operating product whether to claim, run, retry, wait, block, escalate, or complete work. A scheduler database or UI-owned graph would duplicate assignment and event authority.

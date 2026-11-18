@@ -10,9 +10,6 @@ function deployment(overrides: Partial<NodeRuntimeDeployment> = {}): NodeRuntime
     start: async () => undefined,
     reloadBearerToken: async () => undefined,
     reloadRuntimeMaterials: async () => undefined,
-    deliverOrganizationCredential: async () => {
-      throw new Error("organization credential delivery not configured");
-    },
     close: async () => ({ status: "stopped", sync: null, remoteControl: null }),
     ...overrides,
   };

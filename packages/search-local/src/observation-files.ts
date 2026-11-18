@@ -51,20 +51,7 @@ async function safeDirectory(path: string, create: boolean): Promise<void> {
   }
 }
 
-type ObservationDirectories = { attempts: string; assessments: string };
-export type ObservationSubdirectory =
-  | "assessments"
-  | "attempts"
-  | "evaluation-comparisons"
-  | "engine-selections"
-  | "retrieval-plan-selections"
-  | "evaluation-results"
-  | "evaluation-reviews"
-  | "evaluation-runs"
-  | "linked-evidence-shadow"
-  | "linked-evidence-managed-canary"
-  | "rollout-acknowledgements"
-  | "rollout-reviews";
+export type ObservationSubdirectory = "attempts" | "retrieval-plan-selections";
 
 async function observationPaths(repositoryRoot: string): Promise<{ state: string; root: string }> {
   try {
@@ -80,16 +67,6 @@ async function observationPaths(repositoryRoot: string): Promise<{ state: string
       },
     );
   }
-}
-
-export async function prepareObservationDirectories(
-  repositoryRoot: string,
-): Promise<ObservationDirectories> {
-  const [attempts, assessments] = await Promise.all([
-    prepareObservationSubdirectory(repositoryRoot, "attempts"),
-    prepareObservationSubdirectory(repositoryRoot, "assessments"),
-  ]);
-  return { attempts, assessments };
 }
 
 export async function prepareObservationSubdirectory(
@@ -144,37 +121,6 @@ export async function existingObservationSubdirectory(
   }
   await safeDirectory(directory, false);
   return directory;
-}
-
-export async function existingObservationDirectories(
-  repositoryRoot: string,
-): Promise<ObservationDirectories | null> {
-  const paths = await observationPaths(repositoryRoot);
-  try {
-    await lstat(paths.state);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw error;
-  }
-  await safeDirectory(paths.state, false);
-  try {
-    await lstat(paths.root);
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return null;
-    throw new SearchLocalError(
-      "observation_read_failed",
-      "Could not inspect the search observation path.",
-      {
-        cause: error instanceof Error ? error : undefined,
-      },
-    );
-  }
-  await safeDirectory(paths.root, false);
-  const attempts = resolve(paths.root, "attempts");
-  const assessments = resolve(paths.root, "assessments");
-  await safeDirectory(attempts, false);
-  await safeDirectory(assessments, false);
-  return { attempts, assessments };
 }
 
 export async function readObservation<T>(path: string): Promise<T> {
