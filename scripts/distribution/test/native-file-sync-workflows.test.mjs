@@ -10,9 +10,10 @@ it("shares one source-bound macOS artifact with the full CI build", async () => 
   const producer = workflow.jobs["native-runtime"],
     consumer = workflow.jobs["release-artifacts"];
   expect(producer["runs-on"]).toBe(darwinToolchainPin.runner);
-  expect(producer.needs).toBe("plan");
+  expect(producer.needs).toEqual(["plan", "native-runtime-reuse"]);
+  // macOS compiles only when no verified build of identical native inputs was restored (ADR-0590).
   expect(producer.if).toBe(
-    "needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == ''",
+    "${{ !cancelled() && needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == '' && needs.native-runtime-reuse.outputs.restored != 'true' }}",
   );
   expect(consumer.needs).toContain("native-runtime");
   expect(
@@ -53,8 +54,9 @@ it("uses the same native transfer for all packed platforms and attestation", asy
   expect(preparation.jobs.reconcile["runs-on"]).toBe("${{ needs.route.outputs.runner }}");
   expect(preparation.jobs.reconcile.needs).toBe("route");
   expect(preparation.jobs.route.if).toBe(preparation.jobs.reconcile.if);
+  const intent = preparation.jobs.route.steps.find((step) => step.id === "intent").run;
+  expect(intent).toContain("compgen -G '.changes/*.yaml'");
   const route = preparation.jobs.route.steps.at(-1).run;
-  expect(route).toContain("compgen -G '.changes/*.yaml'");
   expect(route).toContain(`runner=${darwinToolchainPin.runner}`);
   expect(route).toContain("runner=ubuntu-latest");
 });

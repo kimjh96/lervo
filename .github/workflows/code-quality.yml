@@ -140,10 +140,76 @@ jobs:
         if: github.event_name == 'push'
         run: pnpm release:completion:check --base "${{ github.event.before }}"
 
-  native-runtime:
-    name: Native runtime artifacts
+  native-runtime-reuse:
+    name: Reuse native runtime artifacts
     needs: plan
     if: needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == ''
+    # Most changes leave the darwin native inputs alone, so this Linux job installs the bytes an
+    # earlier verified build produced for the same inputs instead of compiling them on macOS
+    # (ADR-0590). Every step may fail; then `restored` stays unset and native-runtime builds.
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.find.outputs.run }}
+      artifact: ${{ steps.find.outputs.artifact }}
+      restored: ${{ steps.reused.outputs.restored }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Find a verified build of identical native inputs
+        id: find
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/distribution/native-runtime-reuse.mjs find
+      # The daily audit reuses nothing (ADR-0564); its build checks that the bytes still reproduce.
+      - name: Download the verified native build
+        id: download
+        if: steps.find.outputs.run != '' && github.event_name != 'schedule'
+        continue-on-error: true
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ steps.find.outputs.artifact }}
+          path: ${{ runner.temp }}/native-runtime-reuse
+          run-id: ${{ steps.find.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Validate and install the verified native build
+        id: restore
+        if: steps.download.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/distribution/native-runtime-reuse.mjs restore "${{ runner.temp }}/native-runtime-reuse"
+      - name: Bind artifact to this source and workflow
+        id: bind
+        if: steps.restore.outcome == 'success'
+        continue-on-error: true
+        run: node scripts/distribution/native-runtime-transfer.mjs create "${{ runner.temp }}/native-runtime"
+      - name: Share exact native artifact
+        id: share
+        if: steps.bind.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: native-runtime
+          path: ${{ runner.temp }}/native-runtime
+          if-no-files-found: error
+          retention-days: 3
+          overwrite: true
+      - name: Report the reused native build
+        id: reused
+        if: steps.share.outcome == 'success'
+        run: echo "restored=true" >>"${GITHUB_OUTPUT}"
+
+  native-runtime:
+    name: Native runtime artifacts
+    needs: [plan, native-runtime-reuse]
+    if: ${{ !cancelled() && needs.plan.outputs.coverage == 'full' && needs.plan.outputs.reuseBuild == '' && needs.native-runtime-reuse.outputs.restored != 'true' }}
     # The release manifest records these bytes, so the job names an image and an Xcode instead of
     # following macos-latest and its default Xcode (ADR-0581).
     runs-on: macos-15
@@ -176,12 +242,40 @@ jobs:
           if-no-files-found: error
           retention-days: 3
           overwrite: true
+      # Offering the build for reuse is an optimization; a failure there never fails this job.
+      - name: Key this build by its native inputs
+        id: reusable
+        continue-on-error: true
+        run: node scripts/distribution/native-runtime-reuse.mjs create "${{ runner.temp }}/native-runtime-reusable"
+      # The daily audit finds a reusable build and still compiles, so it proves the bytes reproduce.
+      - name: Download the reusable build of identical inputs
+        id: earlier
+        if: github.event_name == 'schedule' && needs.native-runtime-reuse.outputs.run != '' && steps.reusable.outcome == 'success'
+        continue-on-error: true
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ needs.native-runtime-reuse.outputs.artifact }}
+          path: ${{ runner.temp }}/native-runtime-earlier
+          run-id: ${{ needs.native-runtime-reuse.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Require the reusable build to equal this build
+        if: steps.earlier.outcome == 'success'
+        run: node scripts/distribution/native-runtime-reuse.mjs compare "${{ runner.temp }}/native-runtime-reusable" "${{ runner.temp }}/native-runtime-earlier"
+      - name: Offer this build for identical native inputs
+        if: steps.reusable.outcome == 'success'
+        continue-on-error: true
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ${{ steps.reusable.outputs.artifact }}
+          path: ${{ runner.temp }}/native-runtime-reusable
+          if-no-files-found: error
+          retention-days: 30
 
   release-artifacts:
     name: Release manifest and SBOM
     # The build consumes only the plan, so it runs beside lint; the aggregate still requires both.
-    needs: [plan, native-runtime]
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.coverage == 'full' && (needs.native-runtime.result == 'success' || needs.plan.outputs.reuseBuild != '') }}
+    needs: [plan, native-runtime-reuse, native-runtime]
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.coverage == 'full' && (needs.native-runtime.result == 'success' || needs.native-runtime-reuse.outputs.restored == 'true' || needs.plan.outputs.reuseBuild != '') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:

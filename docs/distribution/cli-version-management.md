@@ -45,6 +45,10 @@ Preparation may consume intent only into the version calculated by the reviewed 
 
 Generated files retain their owners. Both preparation workflows run frozen-lockfile installation, the build, `release:manifest:update`, and `release:sbom:update`. Do not manually edit version-bound fields. A conflict or failed generator restores local inputs and fails the workflow for correction.
 
+## Darwin native files
+
+Only macOS can compile `file-sync-darwin.node` and `cas-io-darwin.node`, and the release manifest records their exact bytes. Code quality compiles them on `macos-15` only when no verified build of identical native inputs exists. The inputs are the C sources and headers, the build scripts, the shared native contracts, the pinned Xcode, and the Node version. Otherwise a Linux job restores the earlier bytes after validating them against the current checkout. The fallback release preparation reuses them the same way. The daily audit compiles and requires equal bytes, and the CLI release matrix still compiles them from the exact tree for every release. See [ADR-0590](../decisions/release/packaging/0590-reuse-verified-darwin-native-builds-for-identical-inputs.md).
+
 ## Release metadata between releases
 
 Release preparation is the only routine writer of `apps/cli/release-artifact-manifest.json` and `apps/cli/release-sbom.cdx.json`. An ordinary pull request does not regenerate or commit them, even when it changes bundled code, the CLI README, or the CLI's dependencies. Code quality decides per run how to verify them:

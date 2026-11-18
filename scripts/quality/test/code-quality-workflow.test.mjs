@@ -260,7 +260,8 @@ it("starts the build beside lint while shards and the aggregate still require li
   const workflow = parse(source);
   const { plan, quality } = workflow.jobs;
   assert.equal(quality.needs, "plan");
-  assert.equal(workflow.jobs["native-runtime"].needs, "plan");
+  assert.deepEqual(workflow.jobs["native-runtime"].needs, ["plan", "native-runtime-reuse"]);
+  assert.equal(workflow.jobs["native-runtime-reuse"].needs, "plan");
   assert.ok(!workflow.jobs["release-artifacts"].needs.includes("quality"));
   assert.doesNotMatch(JSON.stringify(workflow.jobs["release-artifacts"]), /needs\.quality\./u);
   for (const job of ["test", "distribution"]) {
