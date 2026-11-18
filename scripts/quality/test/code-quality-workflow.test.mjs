@@ -34,9 +34,10 @@ describe("code-quality workflow", () => {
     const workflow = parse(await readFile(workflowPath, "utf8"));
     const job = workflow.jobs["release-artifacts"];
     assert.equal(job["runs-on"], "ubuntu-latest");
-    assert.deepEqual(job.needs, ["plan", "native-runtime"]);
+    assert.deepEqual(job.needs, ["plan", "native-runtime-reuse", "native-runtime"]);
     assert.match(job.if, /needs\.plan\.outputs\.coverage == 'full'/u);
     assert.match(job.if, /needs\.native-runtime\.result == 'success'/u);
+    assert.match(job.if, /needs\.native-runtime-reuse\.outputs\.restored == 'true'/u);
     const commands = job.steps.map(({ run }) => run).filter(Boolean);
     assert.ok(commands.includes("pnpm build"));
     assert.ok(commands.includes("pnpm release:manifest:check"));
