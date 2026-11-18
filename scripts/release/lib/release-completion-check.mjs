@@ -105,40 +105,56 @@ async function intentFromGit(repositoryRoot, revision, path) {
   return validateReleaseIntent(parse(source), filename);
 }
 
+const intentPathPattern = /^\.changes\/relint_[a-f0-9]{24}\.yaml$/u;
+
+async function changedReleaseEntries(repositoryRoot, commit) {
+  return lines(
+    await git(repositoryRoot, [
+      "diff-tree",
+      "--no-commit-id",
+      "--name-status",
+      "-r",
+      commit,
+      "--",
+      ".changes",
+    ]),
+  ).map((entry) => {
+    const separator = entry.indexOf("\t");
+    return { status: entry.slice(0, separator), path: entry.slice(separator + 1) };
+  });
+}
+
+// Release preparation writes the current release note and deletes every pending intent in one
+// commit. Any other intent deletion withdraws or replaces that intent before review completes.
+function consumesIntents(entries) {
+  return (
+    entries.some((entry) => entry.status === "D" && intentPathPattern.test(entry.path)) &&
+    entries.some(
+      (entry) => ["A", "M"].includes(entry.status) && entry.path === currentReleaseNotesPath,
+    )
+  );
+}
+
 async function reviewedIntentsFromHistory(repositoryRoot, baseRevision) {
   const discovered = new Map();
   const basePaths = lines(
     await optionalGit(repositoryRoot, ["ls-tree", "-r", "--name-only", baseRevision, ".changes"]),
-  ).filter((path) => /^\.changes\/relint_[a-f0-9]{24}\.yaml$/u.test(path));
-  for (const path of basePaths) {
-    const intent = await intentFromGit(repositoryRoot, baseRevision, path);
-    discovered.set(intent.intentId, intent);
-  }
+  ).filter((path) => intentPathPattern.test(path));
+  for (const path of basePaths)
+    discovered.set(path, await intentFromGit(repositoryRoot, baseRevision, path));
   const commits = lines(
-    await git(repositoryRoot, ["rev-list", "--reverse", `${baseRevision}..HEAD`]),
+    await git(repositoryRoot, ["rev-list", "--topo-order", "--reverse", `${baseRevision}..HEAD`]),
   );
   if (commits.length > maximumComparisonCommits)
     throw new Error(
       `Release completion comparison exceeds ${maximumComparisonCommits} commits; provide a newer base revision.`,
     );
   for (const commit of commits) {
-    const additions = lines(
-      await git(repositoryRoot, [
-        "diff-tree",
-        "--no-commit-id",
-        "--name-status",
-        "-r",
-        commit,
-        "--",
-        ".changes",
-      ]),
-    )
-      .filter((entry) => entry.startsWith("A\t"))
-      .map((entry) => entry.slice(2))
-      .filter((path) => /^\.changes\/relint_[a-f0-9]{24}\.yaml$/u.test(path));
-    for (const path of additions) {
-      const intent = await intentFromGit(repositoryRoot, commit, path);
-      discovered.set(intent.intentId, intent);
+    const entries = await changedReleaseEntries(repositoryRoot, commit);
+    const consumed = consumesIntents(entries);
+    for (const { status, path } of entries.filter((entry) => intentPathPattern.test(entry.path))) {
+      if (status === "A") discovered.set(path, await intentFromGit(repositoryRoot, commit, path));
+      else if (status === "D" && !consumed) discovered.delete(path);
       if (discovered.size > maximumReviewedIntents)
         throw new Error(
           `Reviewed release intent exceeds the bounded limit of ${maximumReviewedIntents}.`,
