@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ae0b9159a0182962114205b4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reuse one repository scan across the plans, knowledge inspections, and lint of one lervo upgrade command while a fingerprint of what it read holds, and stop the host follower from running a --safe apply that its plan shows would be refused."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fa216125f34757877f67d881"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Hold layout moves that would overfill a directory, report existing document overflow as a non-blocking advisory, and name the directory, counts, and limit."

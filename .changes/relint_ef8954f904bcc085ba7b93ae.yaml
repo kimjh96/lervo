@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ef8954f904bcc085ba7b93ae"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let project CAS retention finish its reference scan while the host keeps writing, and name the failure class when it stops."
