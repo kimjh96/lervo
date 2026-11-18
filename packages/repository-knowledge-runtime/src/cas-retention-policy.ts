@@ -1,6 +1,7 @@
 import { replayKnowledgeConvergence } from "@lervo/repository-knowledge";
 import type { EventEnvelope } from "@lervo/schemas";
 import { visitEventSnapshot, type OutboxStore } from "@lervo/storage-contract";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 
 const CONVERGENCE = new Set([
   "repository.knowledge.baseline.requested",
@@ -53,7 +54,7 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
     const refs = casReferences(JSON.stringify(event.payload));
     for (const hash of refs) lastReference.set(hash, event.seq);
     if (lastReference.size > maximumRetainedReferences)
-      throw new Error("CAS event reference inventory exceeds its bound.");
+      throw new CasRetentionBoundError("CAS event reference inventory exceeds its bound.");
     const root = () => {
       for (const hash of refs) reachable.add(hash);
     };
@@ -101,8 +102,8 @@ export function convergenceArtifactRoots(events: OutboxStore): CasRetentionRoots
   for (const row of obligations.values())
     for (const hash of row.settled ? row.latest : row.all) reachable.add(hash);
   for (const hash of parked) reachable.add(hash);
-  if ((events.latest()?.eventHash ?? null) !== head)
-    throw new Error("The CAS reference event head changed.");
+  // The visit ends exactly at `head`. A later append leaves this snapshot exact; the sweep fences
+  // every unlink on `head`, so a busy writer defers deletion without failing the scan (ADR-0584).
   return { head, candidates, reachable, lastReference };
 }
 

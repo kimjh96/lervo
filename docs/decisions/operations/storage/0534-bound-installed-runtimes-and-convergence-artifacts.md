@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0219](0219-typed-derived-state-retention.md), [ADR-0518](0518-retire-settled-convergence-checkouts-on-every-host.md)
+Amended by: [ADR-0584](0584-let-cas-retention-finish-a-pass-on-a-live-host.md) (collector read bounds, live-change handling and the retention observation)
 
 ## Context
 

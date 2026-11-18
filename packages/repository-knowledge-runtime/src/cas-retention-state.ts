@@ -2,6 +2,7 @@ import { lstat, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import type { ReferenceScan } from "./cas-retention-files.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 import { readPrivateJsonFile } from "./private-state-file.js";
 
 const MAXIMUM_STATE_BYTES = 32 * 1024 * 1024;
@@ -73,7 +74,7 @@ export async function readRetentionScan(path: string): Promise<RetentionScan> {
 
 export async function saveScan(path: string, scan: RetentionScan): Promise<void> {
   if (Buffer.byteLength(JSON.stringify(scan)) + 256 > MAXIMUM_STATE_BYTES)
-    throw new Error("CAS retention scan exceeds its bound.");
+    throw new CasRetentionBoundError("CAS retention scan exceeds its bound.");
   await writeRetentionProjection(path, { scan, checksum: scanChecksum(scan) });
 }
 

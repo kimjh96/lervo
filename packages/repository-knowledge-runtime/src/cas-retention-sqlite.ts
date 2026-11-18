@@ -1,6 +1,7 @@
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
 import { sqliteRows } from "./sqlite-row.js";
 import { casReferences } from "./cas-retention-policy.js";
+import { CasRetentionBoundError } from "./cas-retention-errors.js";
 
 export interface SqliteReferenceCursor {
   table: number;
@@ -27,7 +28,8 @@ export function sqliteReferenceChunk(
         )
         .all(),
     );
-    if (tables.length > 256) throw new Error("CAS SQLite reference table capacity exceeded.");
+    if (tables.length > 256)
+      throw new CasRetentionBoundError("CAS SQLite reference table capacity exceeded.");
     const table = tables[cursor.table]?.name;
     if (typeof table !== "string") return { cursor, complete: true, references: [], bytesRead: 0 };
     const quoted = `"${table.replaceAll('"', '""')}"`;
@@ -49,7 +51,7 @@ export function sqliteReferenceChunk(
     for (const size of sizes) {
       const bytes = Number(size.row_bytes);
       if (!Number.isSafeInteger(bytes) || bytes < 0 || bytes > 1024 * 1024)
-        throw new Error("CAS SQLite reference row exceeds its byte bound.");
+        throw new CasRetentionBoundError("CAS SQLite reference row exceeds its byte bound.");
       if (admittedBytes + bytes > 1024 * 1024) break;
       admittedBytes += bytes;
       admitted++;
@@ -67,7 +69,7 @@ export function sqliteReferenceChunk(
         const text = typeof value === "string" ? value : Buffer.from(value).toString("latin1");
         bytes += typeof value === "string" ? Buffer.byteLength(value) : value.byteLength;
         if (bytes > 1024 * 1024)
-          throw new Error("CAS SQLite reference chunk exceeds its byte bound.");
+          throw new CasRetentionBoundError("CAS SQLite reference chunk exceeds its byte bound.");
         for (const hash of casReferences(text)) if (eligible.has(hash)) references.add(hash);
       }
     }

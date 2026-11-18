@@ -182,6 +182,14 @@ it("finishes a bounded body scan before collecting and follows references across
     target,
     trailing: "y".repeat(8 * 1024 * 1024),
   });
+  // A slow disk spends 400 ms per read, so a cycle's one-second read budget ends mid-scan.
+  let now = Date.now();
+  vi.mocked(Date.now).mockImplementation(() => now);
+  const scan = files.scanReferenceChunk;
+  vi.spyOn(files, "scanReferenceChunk").mockImplementation(async (...input) => {
+    now += 400;
+    return scan(...input);
+  });
   expect(await compactProjectConvergenceArtifacts(f.storage)).toMatchObject({
     status: "yielded",
     removedObjects: 0,
