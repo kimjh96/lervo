@@ -10,7 +10,7 @@ import {
   type ProductDeliberationParticipantBindingV1,
   type ProductDeliberationProjectionInputV1,
 } from "./deliberation-projector.js";
-import { readDeliberationArtifactEvents } from "./deliberation-artifact-event-reader.js";
+import { readDeliberationArtifactEvents } from "@lervo/deliberation";
 import { readDeliberationOutcomeEvent } from "./deliberation-outcome-event-reader.js";
 import { readDeliberationVerificationEvents } from "./deliberation-verification-event-reader.js";
 

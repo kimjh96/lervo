@@ -455,6 +455,9 @@ importers:
       '@lervo/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@lervo/deliberation':
+        specifier: workspace:*
+        version: link:../../packages/deliberation
       '@lervo/deliberation-runtime':
         specifier: workspace:*
         version: link:../../packages/deliberation-runtime
@@ -494,9 +497,6 @@ importers:
       '@lervo/policy-sqlite':
         specifier: workspace:*
         version: link:../../packages/policy-sqlite
-      '@lervo/product-surface-projection':
-        specifier: workspace:*
-        version: link:../../packages/product-surface-projection
       '@lervo/project':
         specifier: workspace:*
         version: link:../../packages/project

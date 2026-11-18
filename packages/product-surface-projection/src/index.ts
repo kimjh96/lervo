@@ -1,6 +1,5 @@
 export * from "./activity-event-classification.js";
 export * from "./activity-projector.js";
-export * from "./deliberation-artifact-event-reader.js";
 export * from "./deliberation-application-projector.js";
 export * from "./deliberation-outcome-event-reader.js";
 export * from "./deliberation-policy-event-reader.js";
