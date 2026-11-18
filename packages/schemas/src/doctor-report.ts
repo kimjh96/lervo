@@ -23,9 +23,6 @@ export const doctorCheckIdSchema = {
     "provider_codex_runtime",
     "provider_claude_runtime",
     "search_engine_selection",
-    "search_rollout_policies",
-    "search_rollout_reviews",
-    "search_rollout_actions",
   ],
 } as const;
 
@@ -43,11 +40,6 @@ export const doctorIssueCodeSchema = {
     "provider_probe_failed",
     "provider_platform_unsupported",
     "search_engine_selection_invalid",
-    "search_rollout_policy_invalid",
-    "search_rollout_review_invalid",
-    "search_rollout_review_unavailable",
-    "search_rollout_action_invalid",
-    "search_rollout_action_unavailable",
   ],
 } as const;
 
@@ -62,11 +54,6 @@ export const doctorRecoveryActionCodeSchema = {
     "check_provider_executable",
     "check_provider_platform",
     "inspect_search_selection",
-    "inspect_search_policy",
-    "inspect_search_review",
-    "resolve_search_review_prerequisites",
-    "inspect_search_action",
-    "resolve_search_action_prerequisites",
   ],
 } as const;
 

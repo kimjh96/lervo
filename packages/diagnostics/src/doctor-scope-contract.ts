@@ -6,12 +6,7 @@ const environmentCheckIds = {
   documents: ["document_registry", "document_sources"],
   skills: ["skill_packages", "skill_lock"],
   providers: ["provider_codex_runtime", "provider_claude_runtime"],
-  search: [
-    "search_engine_selection",
-    "search_rollout_policies",
-    "search_rollout_reviews",
-    "search_rollout_actions",
-  ],
+  search: ["search_engine_selection"],
 } as const;
 
 const allEnvironmentCheckIds = [

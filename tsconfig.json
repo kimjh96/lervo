@@ -82,7 +82,6 @@
       "@lervo/roles": ["packages/roles/src/index.ts"],
       "@lervo/runtime-security": ["packages/runtime-security/src/index.ts"],
       "@lervo/search": ["packages/search/src/index.ts"],
-      "@lervo/search-adapter-bm25f": ["packages/search-adapter-bm25f/src/index.ts"],
       "@lervo/search-adapter-lexical-v2": ["packages/search-adapter-lexical-v2/src/index.ts"],
       "@lervo/search-local": ["packages/search-local/src/index.ts"],
       "@lervo/schemas": ["packages/schemas/src/index.ts"],

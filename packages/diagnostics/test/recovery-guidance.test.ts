@@ -5,19 +5,14 @@ describe("doctor recovery guidance", () => {
   it("derives bounded guidance from issue codes and removes duplicate codes", () => {
     const issues: DoctorIssue[] = [
       {
-        code: "search_rollout_action_invalid",
-        eventId: "evt_private_action_01",
+        code: "search_engine_selection_invalid",
+        eventId: "evt_private_selection_01",
         message: "internal error /Users/private/project and secret-token",
       },
       {
-        code: "search_rollout_action_invalid",
-        eventId: "evt_private_action_02",
+        code: "search_engine_selection_invalid",
+        eventId: "evt_private_selection_02",
         message: "another internal error",
-      },
-      {
-        code: "search_rollout_action_unavailable",
-        eventId: null,
-        message: "prerequisite check failed",
       },
       {
         code: "provider_executable_missing",
@@ -30,17 +25,10 @@ describe("doctor recovery guidance", () => {
 
     expect(guidance).toEqual([
       {
-        issueCode: "search_rollout_action_invalid",
-        actionCode: "inspect_search_action",
+        issueCode: "search_engine_selection_invalid",
+        actionCode: "inspect_search_selection",
         message:
-          "Check the relation between the search rollout action and its policy, review, and quality evidence.",
-        actionState: "not_performed",
-      },
-      {
-        issueCode: "search_rollout_action_unavailable",
-        actionCode: "resolve_search_action_prerequisites",
-        message:
-          "Resolve the search selection, policy, and review issues first, then diagnose the rollout action again.",
+          "Check that the product-default search engine is registered with its qualified build, then rerun search-scope diagnostics.",
         actionState: "not_performed",
       },
       {

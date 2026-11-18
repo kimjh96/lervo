@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ed4a40e1f59c276f473f55de"
+"package": "@lervo/cli"
+"impact": "major"
+"summary": "Remove the lervo search engine, rollout, bundle, compare, review, case, assess, evaluate, report, and candidates commands, the bm25f-v1 candidate, and the search rollout doctor checks; lervo search <query> and lervo search plan activate, rollback, and status stay."

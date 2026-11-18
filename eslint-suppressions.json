@@ -449,31 +449,6 @@
       "count": 3
     }
   },
-  "packages/search-local/src/engine-activation-store.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-bundle-files.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-case-files.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-comparison-reader.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/evaluation-review-store.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "packages/search-local/src/observation-files.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
@@ -485,11 +460,6 @@
     }
   },
   "packages/search-local/src/retrieval-plan-activation-store.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "packages/search-local/src/rollout-review-store.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
     }

@@ -5,42 +5,27 @@ const report = {
   schemaVersion: 2,
   projectId: "prj_01234567",
   scope: "search",
-  status: "unknown",
+  status: "unhealthy",
   checks: [
     {
       checkId: "search_engine_selection",
-      status: "healthy",
-      observedCount: 1,
-    },
-    {
-      checkId: "search_rollout_policies",
-      status: "healthy",
-      observedCount: 3,
-    },
-    {
-      checkId: "search_rollout_reviews",
-      status: "unknown",
-      observedCount: 0,
-    },
-    {
-      checkId: "search_rollout_actions",
-      status: "unknown",
+      status: "unhealthy",
       observedCount: 0,
     },
   ],
   issues: [
     {
-      code: "search_rollout_review_unavailable",
+      code: "search_engine_selection_invalid",
       eventId: null,
-      message: "The prerequisite search check could not be completed.",
+      message: "Could not safely resolve the current search engine.",
     },
   ],
   recoveryGuidance: [
     {
-      issueCode: "search_rollout_review_unavailable",
-      actionCode: "resolve_search_review_prerequisites",
+      issueCode: "search_engine_selection_invalid",
+      actionCode: "inspect_search_selection",
       message:
-        "Resolve the search engine selection and policy issues first, then diagnose the rollout review again.",
+        "Check that the product-default search engine is registered with its qualified build, then rerun search-scope diagnostics.",
       actionState: "not_performed",
     },
   ],
@@ -95,7 +80,7 @@ describe("doctor report compatibility contract", () => {
       "scope and checks disagree",
       {
         ...report,
-        checks: report.checks.slice(0, 3),
+        checks: [],
       },
     ],
     [

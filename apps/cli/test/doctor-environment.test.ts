@@ -121,8 +121,8 @@ describe("doctor project environment inspection", () => {
     const { root, userSkillRoot } = await repository();
     const result = await inspect(root, userSkillRoot);
 
-    expect(result).toHaveLength(10);
-    expect(result.map((item) => item.check.status)).toEqual(Array(10).fill("healthy"));
+    expect(result).toHaveLength(7);
+    expect(result.map((item) => item.check.status)).toEqual(Array(7).fill("healthy"));
     expect(
       result.find((item) => item.check.checkId === "provider_claude_runtime")?.check,
     ).toMatchObject({ version: "claude fixture 1.0.0", observedCount: 1 });
@@ -133,16 +133,7 @@ describe("doctor project environment inspection", () => {
     ["documents", ["document_registry", "document_sources"], 0],
     ["skills", ["skill_packages", "skill_lock"], 0],
     ["providers", ["provider_codex_runtime", "provider_claude_runtime"], 2],
-    [
-      "search",
-      [
-        "search_engine_selection",
-        "search_rollout_policies",
-        "search_rollout_reviews",
-        "search_rollout_actions",
-      ],
-      0,
-    ],
+    ["search", ["search_engine_selection"], 0],
   ] as const)(
     "runs only %s inspectors for a limited scope",
     async (scope, expectedCheckIds, expectedProviderCalls) => {

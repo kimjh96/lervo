@@ -20,7 +20,6 @@
     "evaluation:grounding:run": "node scripts/evaluation/run-grounding-evaluation.mjs",
     "evaluation:retrieval-delegation:run": "node scripts/evaluation/run-delegated-retrieval-benchmark.mjs",
     "evaluation:natural-language:check": "node scripts/evaluation/check-natural-language-evaluation.mjs",
-    "evaluation:search-engine:run": "node scripts/evaluation/run-search-performance-benchmark.mjs",
     "evaluation:lexical-v2-provider:run": "node scripts/evaluation/run-lexical-v2-provider-comparison.mjs",
     "evaluation:lexical-v2-real-use:run": "node scripts/evaluation/run-lexical-v2-real-use-projection.mjs",
     "routing:semantic:check": "node scripts/evaluation/check-semantic-routing.mjs",

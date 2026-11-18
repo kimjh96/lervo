@@ -38,12 +38,6 @@ function checkLabel(checkId: DoctorReport["checks"][number]["checkId"]): string 
       return "Claude executable";
     case "search_engine_selection":
       return "search engine selection";
-    case "search_rollout_policies":
-      return "search rollout policies";
-    case "search_rollout_reviews":
-      return "search rollout reviews";
-    case "search_rollout_actions":
-      return "search rollout actions";
   }
 }
 

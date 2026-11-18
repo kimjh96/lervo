@@ -283,13 +283,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/search/src/performance-benchmark.ts",
-      "contentHash": "sha256:d73e3bb3f80a88155c7ff08baa343345d6e31cd32436c226cdb271ed30956f13",
-      "responsibility": "Search quality and latency benchmark",
-      "rationale": "Case validation, paired timing, quality aggregation, latency statistics, environment capture, and reporting form one reproducible benchmark protocol.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "scripts/distribution/lib/real-managed-provider-https-pilot.mjs",
       "contentHash": "sha256:19c3a0c5174ac6c2709030b2e4facad49c04edd555d66f37d6ca037fcc7b8871",
       "responsibility": "Managed-provider HTTPS acceptance pilot",

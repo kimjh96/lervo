@@ -6,7 +6,7 @@ ADR-0306 permits this bounded v2 composition above compatibility ports:
 0..1 query-projection stage -> 1..3 retrieve stages -> 0..1 fusion stage -> 0..1 rerank stage
 ```
 
-It supports distinct complete-plan candidates for external-only replacement, local-plus-external augmentation, and external reranking. The ports and evaluation executor exist; the layer is neither a general DAG nor an operationally selectable plan.
+It supports distinct complete-plan candidates for external-only replacement, local-plus-external augmentation, and external reranking. The ports exist, but the layer is not a general DAG. ADR-0560 removed the evaluation executor that compared candidate plans.
 
 V2 separates index preparation from query execution, binds an immutable preparation receipt, and records a privacy-bounded receipt for every stage.
 

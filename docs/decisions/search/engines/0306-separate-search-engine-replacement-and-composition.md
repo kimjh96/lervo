@@ -3,6 +3,8 @@
 Status: `accepted`
 Date: 2026-08-30
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the evaluation and rollout part is removed. Lervo no longer ships candidate comparison, reviewed engine activation and rollback, or the `bm25f-v1` comparison control named in the Lexical-v2 order. `SearchEnginePort`, `SearchIndexPort`, the bounded retrieval plan with its preparation and stage receipts, and product-default Lexical v2 stay.
+
 ## Context
 
 ADR-0302 directs future retrieval improvements through `SearchEnginePort`, not another post-search context exception. The current port, static candidate registry, build-bound comparison, reviewed activation, fail-closed resolver, and lexical rollback support deterministic whole-engine replacement.

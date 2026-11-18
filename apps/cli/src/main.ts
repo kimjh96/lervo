@@ -141,7 +141,6 @@ export {
 export { formatDeliberationOutcome } from "./deliberate-command.js";
 export { formatRunOutcome } from "./run-command.js";
 export { formatTracePageReport, formatTraceReport } from "./trace-command.js";
-export { formatSearchQualityReport } from "./search-command.js";
 export { formatDoctorReport } from "./doctor-command.js";
 export { formatEnvironmentObservation } from "./environment-command.js";
 export { runRepositoryCommand } from "./repository-command.js";

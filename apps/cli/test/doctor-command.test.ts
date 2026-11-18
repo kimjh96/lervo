@@ -17,9 +17,6 @@ const healthyEnvironmentInspections: DoctorInspection[] = [
   "provider_codex_runtime",
   "provider_claude_runtime",
   "search_engine_selection",
-  "search_rollout_policies",
-  "search_rollout_reviews",
-  "search_rollout_actions",
 ].map((checkId) => ({
   check: {
     checkId: checkId as DoctorInspection["check"]["checkId"],
@@ -158,16 +155,16 @@ describe("lervo doctor command", () => {
     expect(output).toContain("provider_executable_missing");
   });
 
-  it("reports an invalid search rollout action as a doctor failure", async () => {
+  it("reports an invalid search engine selection as a doctor failure", async () => {
     const root = await temporaryRepository();
     await initializeRepository(root);
     const inspections = structuredClone(healthyEnvironmentInspections);
-    const actions = inspections.find((item) => item.check.checkId === "search_rollout_actions")!;
-    actions.check.status = "unhealthy";
-    actions.issues.push({
-      code: "search_rollout_action_invalid",
+    const selection = inspections.find((item) => item.check.checkId === "search_engine_selection")!;
+    selection.check.status = "unhealthy";
+    selection.issues.push({
+      code: "search_engine_selection_invalid",
       eventId: null,
-      message: "The search rollout action and linked evidence could not be verified safely.",
+      message: "Could not safely resolve the current search engine.",
     });
     let output = "";
 
@@ -186,10 +183,10 @@ describe("lervo doctor command", () => {
         },
       ),
     ).toBe(1);
-    expect(output).toContain("unhealthy  search rollout actions");
-    expect(output).toContain("search_rollout_action_invalid");
+    expect(output).toContain("unhealthy  search engine selection");
+    expect(output).toContain("search_engine_selection_invalid");
     expect(output).toContain("Next checks:");
-    expect(output).toContain("inspect_search_action");
+    expect(output).toContain("inspect_search_selection");
     expect(output).toContain("No automatic fixes or state changes were performed");
 
     let jsonOutput = "";
@@ -212,8 +209,8 @@ describe("lervo doctor command", () => {
       schemaVersion: 2,
       recoveryGuidance: [
         {
-          issueCode: "search_rollout_action_invalid",
-          actionCode: "inspect_search_action",
+          issueCode: "search_engine_selection_invalid",
+          actionCode: "inspect_search_selection",
           actionState: "not_performed",
         },
       ],

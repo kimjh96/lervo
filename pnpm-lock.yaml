@@ -191,9 +191,6 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../../packages/search
-      '@lervo/search-adapter-bm25f':
-        specifier: workspace:*
-        version: link:../../packages/search-adapter-bm25f
       '@lervo/search-adapter-lexical-v2':
         specifier: workspace:*
         version: link:../../packages/search-adapter-lexical-v2
@@ -1508,9 +1505,6 @@ importers:
       '@lervo/search':
         specifier: workspace:*
         version: link:../search
-      '@lervo/search-adapter-bm25f':
-        specifier: workspace:*
-        version: link:../search-adapter-bm25f
       '@lervo/search-adapter-lexical-v2':
         specifier: workspace:*
         version: link:../search-adapter-lexical-v2
@@ -1700,12 +1694,6 @@ importers:
       '@lervo/event-contract':
         specifier: workspace:*
         version: link:../event-contract
-
-  packages/search-adapter-bm25f:
-    dependencies:
-      '@lervo/search':
-        specifier: workspace:*
-        version: link:../search
 
   packages/search-adapter-lexical-v2:
     dependencies:

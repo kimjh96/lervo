@@ -67,71 +67,6 @@ export interface SearchAttempt {
   hits: SearchAttemptHit[];
 }
 
-export const searchFailureReasons = [
-  "expected_source_missing",
-  "insufficient_context",
-  "low_rank",
-  "no_results",
-  "results_not_relevant",
-] as const;
-export type SearchFailureReason = (typeof searchFailureReasons)[number];
-
-export interface SearchAssessmentSource {
-  sourceKind: SearchSourceKind;
-  sourceId: string;
-}
-
-export interface SearchAssessment {
-  schemaVersion: 1;
-  assessmentId: string;
-  attemptId: string;
-  projectId: string;
-  assessedAt: string;
-  assessor: "human" | "verification";
-  outcome: "accepted" | "failed";
-  failureReason: SearchFailureReason | null;
-  selectedSources: SearchAssessmentSource[];
-  expectedSources: SearchAssessmentSource[];
-}
-
-export interface SearchQualityReport {
-  schemaVersion: 1;
-  totalAttempts: number;
-  assessedAttempts: number;
-  unassessedAttempts: number;
-  acceptedAttempts: number;
-  failedAttempts: number;
-  failuresByReason: Record<SearchFailureReason, number>;
-  evidenceState: "failures_observed" | "insufficient_assessment" | "no_failures_observed";
-  embeddingDecision: "not_determined";
-}
-
-export interface SearchSelectionQualityCoordinate {
-  selectionTransitionId: string | null;
-  productQualificationId?: string | null;
-  engine: SearchEngineIdentity;
-  selectionState: "implicit_baseline" | "recorded_baseline" | "candidate" | "product_default";
-  adapterBuildId: string | null;
-  buildEvidenceState: "not_applicable" | "bound" | "legacy_unbound" | "product_qualified";
-}
-
-export interface SearchSelectionQualitySlice extends SearchSelectionQualityCoordinate {
-  totalAttempts: number;
-  assessedAttempts: number;
-  unassessedAttempts: number;
-  acceptedAttempts: number;
-  failedAttempts: number;
-  failuresByReason: Record<SearchFailureReason, number>;
-  evidenceState: "failures_observed" | "insufficient_assessment" | "no_failures_observed";
-}
-
-export interface SearchSelectionQualityReport extends Omit<SearchQualityReport, "schemaVersion"> {
-  schemaVersion: 2;
-  selections: SearchSelectionQualitySlice[];
-  rolloutDecision: "not_determined";
-  rollbackDecision: "not_determined";
-}
-
 export interface SearchRecommendation {
   schemaVersion: 1;
   recommendationId: string;
@@ -164,38 +99,15 @@ export interface SearchRecommendationBatch {
 }
 
 export type SearchErrorCode =
-  | "assessment_conflict"
   | "corpus_invalid"
   | "corpus_limit_exceeded"
-  | "invalid_assessment"
   | "invalid_attempt"
-  | "invalid_evaluation_case"
-  | "invalid_evaluation_bundle"
-  | "invalid_evaluation_coverage"
-  | "evaluation_comparison_not_ready"
   | "evaluation_candidate_not_registered"
-  | "candidate_review_not_eligible"
-  | "engine_activation_not_eligible"
-  | "invalid_engine_activation"
-  | "invalid_engine_activation_policy"
-  | "invalid_candidate_review"
-  | "invalid_evaluation_comparison"
   | "invalid_evaluation_engine"
-  | "invalid_evaluation_result"
-  | "invalid_evaluation_run"
   | "invalid_query"
   | "invalid_query_projection"
   | "invalid_retrieval_plan"
-  | "retrieval_plan_not_eligible"
-  | "invalid_recommendation"
-  | "invalid_rollout_review"
-  | "invalid_rollout_policy"
-  | "invalid_rollout_action"
-  | "invalid_rollout_action_policy"
-  | "invalid_rollout_action_preflight"
-  | "invalid_rollout_action_status"
-  | "rollout_action_not_eligible"
-  | "invalid_rollout_status";
+  | "invalid_recommendation";
 
 export class SearchError extends Error {
   constructor(
