@@ -37,6 +37,7 @@ import {
   normalizationLearnedLimit,
 } from "./normalization-cost-controller.js";
 import { convergenceSourceObservation } from "./source-observation.js";
+import { isUpgradePreemption } from "./upgrade-preemption.js";
 
 export interface NormalizationBatch {
   candidateId: string;
@@ -261,36 +262,54 @@ async function generate(
       ...(attempts.length ? [attempts] : []),
     ]),
   );
+  // ADR-0587: a call abandoned for an upgrade stops the whole compilation. Without this, the
+  // compiler retries a multi-document shard one document at a time, and its elapsed or call
+  // ceiling can fail the stage instead of deferring it.
+  const preemption = new AbortController();
   const normalize: NonNullable<
     RepositoryDocumentNormalizationCompiler["normalizeObserved"]
   > = async (envelope, signal) => {
-    // Reserve one of the total eight calls for the independent reviewer, including fallback calls.
-    return withKnowledgeProviderAdmission({
-      budget: { batchId, maximumCalls: ceilings.maximumProviderCalls - 1 },
-      context,
-      state,
-      authority,
-      run: (_observationHash, currentSignal) =>
-        compiler.normalizeObserved!(envelope, AbortSignal.any([signal, currentSignal])),
-    });
+    try {
+      // Reserve one of the total eight calls for the independent reviewer, including fallback calls.
+      return await withKnowledgeProviderAdmission({
+        budget: { batchId, maximumCalls: ceilings.maximumProviderCalls - 1 },
+        context,
+        state,
+        authority,
+        run: (_observationHash, currentSignal) =>
+          compiler.normalizeObserved!(envelope, AbortSignal.any([signal, currentSignal])),
+      });
+    } catch (error) {
+      if (isUpgradePreemption(error)) preemption.abort(error);
+      throw error;
+    }
   };
   const wrapped: RepositoryDocumentNormalizationCompiler = {
     descriptor: compiler.descriptor,
     normalizeObserved: normalize,
     normalize: async (envelope, signal) => (await normalize(envelope, signal)).response,
   };
-  const compilation = await compileConfiguredDocumentNormalizationCandidateObserved({
-    repositoryRoot: root,
-    compiler: wrapped,
-    signal: context.signal,
-    sourcePaths: selected,
-    ...(attempts.length ? { reviewFeedback: regeneration.feedback } : {}),
-    ceilings: {
-      maximumSourceBytes: ceilings.maximumSourceBytes,
-      maximumProviderCalls: ceilings.maximumProviderCalls - 1,
-      maximumElapsedMilliseconds: 25 * 60_000,
-    },
-  });
+  let compilation: Awaited<
+    ReturnType<typeof compileConfiguredDocumentNormalizationCandidateObserved>
+  >;
+  try {
+    compilation = await compileConfiguredDocumentNormalizationCandidateObserved({
+      repositoryRoot: root,
+      compiler: wrapped,
+      signal: AbortSignal.any([context.signal, preemption.signal]),
+      sourcePaths: selected,
+      ...(attempts.length ? { reviewFeedback: regeneration.feedback } : {}),
+      ceilings: {
+        maximumSourceBytes: ceilings.maximumSourceBytes,
+        maximumProviderCalls: ceilings.maximumProviderCalls - 1,
+        maximumElapsedMilliseconds: 25 * 60_000,
+      },
+    });
+  } catch (error) {
+    // Whatever a concurrent shard reported after the abandonment, the stage defers for the upgrade.
+    if (preemption.signal.aborted && !context.signal.aborted) throw preemption.signal.reason;
+    throw error;
+  }
   await authority.assertCurrent();
   context.assertSourceExact(state);
   await storeDocumentNormalizationCandidate({

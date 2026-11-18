@@ -26,6 +26,7 @@ import {
 import { buildFreshnessEvidenceBundle, freshnessBundleBytes } from "./freshness-evidence-bundle.js";
 import { recordFreshnessCandidateOutcome } from "./freshness-events.js";
 import {
+  freshnessCallAbandoned,
   generateFreshnessProposal,
   type FreshnessGenerationContext,
 } from "./freshness-generation.js";
@@ -39,7 +40,7 @@ import { settleFreshnessAssessment } from "./freshness-assessment.js";
 const MAXIMUM_INBOUND_DOCUMENTS = 8_192;
 
 export type FreshnessFindingOutcome =
-  | { status: "deferred"; reason: string }
+  | { status: "deferred"; reason: string; tokensObserved?: number }
   | {
       status: "evidence_deferred";
       reason: "freshness_evidence_unavailable" | "freshness_evidence_incomplete";
@@ -171,7 +172,14 @@ export async function generateFreshnessCandidate(input: {
       attempt: input.attempt,
     });
     const generated = await generateFreshnessProposal({ context, source: bundle, generationId });
-    if (generated.status === "deferred") return { status: "deferred", reason: generated.reason };
+    if (generated.status === "deferred")
+      return {
+        status: "deferred",
+        reason: generated.reason,
+        ...(freshnessCallAbandoned(generated)
+          ? { tokensObserved: input.policy.maximumTokensPerCandidate }
+          : {}),
+      };
     tokensObserved =
       generated.usage?.totalTokens ??
       // Unobserved usage is charged at the per-candidate bound so the daily budget stays a ceiling.

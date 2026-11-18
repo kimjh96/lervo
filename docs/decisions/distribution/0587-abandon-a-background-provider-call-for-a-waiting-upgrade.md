@@ -49,8 +49,9 @@ The watch stops before the caller's exact fence. In convergence, it stops when `
 Each path defers on the existing code `knowledge_capacity_unavailable`:
 
 - **Convergence.** The stage settles as `waiting_authority`, the same path a spent provider quantum takes. No stage attempt is counted. The stall clears once provider admission is not paused or full and no live work runs, so the next cycle after the upgrade runs the stage again.
-- **Freshness.** The call returns `deferred` with `attempted: true`, and its usage is recorded as unavailable. Candidate generation and assessment stay pending. A cross-check settles as `unavailable`, charged at the remaining bound, as any attempted cross-check call that fails.
-- **Change review.** The governor records the call with `knowledge_provider_call_failed` and throws `knowledge_capacity_unavailable`. The job worker reschedules the job as a transient failure. That spends one of its 16 attempts and waits out its backoff.
+- **Normalization generation.** An abandoned call stops the whole compilation. The stage aborts its own compilation signal, so the compiler does not retry a multi-document shard one document at a time. Such a retry would start new calls, and its elapsed or call ceiling, which already includes the abandoned call, could throw `normalization_budget_exceeded` and settle the stage as `attention_required` instead. Whatever error a concurrent shard reports after the abandonment, the stage reports `knowledge_capacity_unavailable`.
+- **Freshness.** The call returns `deferred` with `attempted: true`, and its usage is recorded as unavailable. Candidate generation and assessment stay pending, and the day's token budget is charged with the candidate bound, as for a failed call. A cross-check settles as `unavailable` for good, charged at the remaining bound, as any attempted cross-check call that fails.
+- **Change review.** The governor records the call with `knowledge_provider_call_failed` and throws `knowledge_capacity_unavailable`. The job worker reschedules the job as a transient failure. That spends one of its 16 attempts and one call of its review budget, and waits out its backoff.
 
 The reserved call stays counted against its batch budget, because the cancelled process may have spent tokens.
 
@@ -76,14 +77,20 @@ No event, field, failure code, file, or column is added.
 
 An upgrade that arrives during a background provider call now waits about one second for that call, plus the stage's settlement and the next boundary check. Estimated, not measured: the WSL `lervo` wait on v0.25.4 would have dropped from 703 seconds to the settlement and discovery after the call, under a minute. The longest remaining stages are not provider calls. On WSL `lervo`, ADR-0580 measured freshness lint at 46 seconds and convergence discovery at 52 to 56 seconds of CPU per cycle. The owner-turn assessment and practice calls take up to 120 seconds. The expected worst-case wait is therefore about 2 minutes. A Mac non-owner's debt inspection under heavy host load can still take longer.
 
-Each abandoned call costs the tokens it spent before cancellation. Upgrades are rare, and one host abandons at most one call per upgrade: only one resident holds admission, and every later call in its cycle checks before it starts. A change review spends one retry attempt each time. A freshness cross-check abandoned this way settles without its cross-check.
+Each abandoned call costs the tokens it spent before cancellation. Upgrades are rare, and one host abandons at most one call per upgrade: only one resident holds admission, and every later call in its cycle checks before it starts. These costs are accepted:
+
+- The abandoned call stays counted against its batch or review budget.
+- A freshness generation or assessment is charged its token bound against the day's budget.
+- A freshness cross-check abandoned this way settles `unavailable` for good, and its candidate goes on without the cross-check.
+- A change review spends one of its 16 attempts and one call of its review budget each time.
 
 The gap between the two rounds of one repository's upgrade remains. A resident can still start a cycle there, and the next round waits for its current non-provider stage.
 
 ## Verification
 
-- `upgrade-preemption.test.ts`: the watch aborts within one poll once an upgrade waits; no abort lands after the watch stops, even from a check in flight; an unreadable answer or a one-shot context means no upgrade waits. On origin/main, the module does not exist.
+- `upgrade-preemption.test.ts`: the watch aborts within one poll once an upgrade waits; no abort lands after the watch stops, even from a check in flight that answers that an upgrade waits; an unreadable answer or a one-shot context means no upgrade waits. On origin/main, the module does not exist.
 - `provider-call-abort.test.ts`: a convergence review whose provider call would run for 10 minutes is cancelled within one second of an upgrade starting to wait. It rejects with `knowledge_capacity_unavailable`, writes no observation artifact, and releases provider admission. With an upgrade already waiting, `withKnowledgeProviderAdmission` reserves no budget, starts no call, and leaves the provider quantum unchanged. On origin/main, the call runs on and the budget is reserved.
-- `upgrade-preemption-review-calls.test.ts`: a freshness call is cancelled and returns `deferred` with `knowledge_capacity_unavailable` and `attempted: true`, with its usage recorded once; with an upgrade already waiting, it starts nothing. A change review call is cancelled, recorded with `knowledge_provider_call_failed`, and rejects with `knowledge_capacity_unavailable`; with an upgrade already waiting, it reserves nothing. On origin/main, these calls ignore the waiting upgrade.
+- `upgrade-preemption-review-calls.test.ts`: a freshness call is cancelled and returns `deferred` with `knowledge_capacity_unavailable` and `attempted: true`, with its usage recorded once; with an upgrade already waiting, it starts nothing. Only a call abandoned after it reached the provider is charged. A change review call is cancelled, recorded with `knowledge_provider_call_failed`, and rejects with `knowledge_capacity_unavailable`; with an upgrade already waiting, it reserves nothing. On origin/main, these calls ignore the waiting upgrade.
+- `upgrade-preemption-normalization.test.ts`: the real resident worker runs a fixture repository whose provider holds a two-document generation call for 10 minutes. An upgrade starts waiting once the call runs. The cycle yields within two minutes; the stage settles `waiting_authority` with `knowledge_capacity_unavailable`; exactly one generation call was attempted, with no document-by-document retry; and no stage records `normalization_budget_exceeded`. On origin/main, the call runs to its timeout.
 
 Installed verification: after the release that carries this change, record the `waitMs` of WSL `lervo` and Mac `axli` from the next follower pass in the [release-to-fleet roadmap](../../roadmap/operations/release-to-fleet.md).

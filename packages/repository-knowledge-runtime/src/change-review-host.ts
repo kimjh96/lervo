@@ -140,7 +140,7 @@ export function governChangeReviewCalls(input: ChangeReviewHostInput): Knowledge
           throw new RepositoryKnowledgeReviewError("knowledge_provider_paused", { cause: error });
         }
         // ADR-0587: the abandoned answer is discarded; the job retries after the upgrade.
-        if (abandoned) throw upgradePreemptionError();
+        if (abandoned) throw upgradePreemptionError({ cause: error });
         throw error;
       } finally {
         await endUpgradeWatch();

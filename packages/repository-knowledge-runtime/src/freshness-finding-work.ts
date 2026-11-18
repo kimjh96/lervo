@@ -123,6 +123,9 @@ export async function processFreshnessFindings(input: {
       continue;
     }
     if (outcome.status === "deferred") {
+      // ADR-0587: a call abandoned for an upgrade is charged; it may have spent tokens.
+      tokensObserved += outcome.tokensObserved ?? 0;
+      state.budget.tokensUsed += outcome.tokensObserved ?? 0;
       deferred = outcome.reason;
       break;
     }

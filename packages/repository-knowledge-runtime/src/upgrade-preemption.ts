@@ -11,10 +11,22 @@ export interface UpgradePreemptionSource {
 
 /**
  * ADR-0587: the host's background capacity belongs to the waiting upgrade. Every background
- * provider path already defers on this code without spending a stage attempt.
+ * provider path already defers on this code without spending a stage attempt. Its own class lets
+ * a stage of several calls stop at once instead of retrying the call in smaller parts.
  */
-export function upgradePreemptionError(): KnowledgeConvergenceRuntimeError {
-  return new KnowledgeConvergenceRuntimeError("knowledge_capacity_unavailable");
+class UpgradePreemptionError extends KnowledgeConvergenceRuntimeError {
+  constructor(options?: ErrorOptions) {
+    super("knowledge_capacity_unavailable", options);
+    this.name = "UpgradePreemptionError";
+  }
+}
+
+export function upgradePreemptionError(options?: ErrorOptions): KnowledgeConvergenceRuntimeError {
+  return new UpgradePreemptionError(options);
+}
+
+export function isUpgradePreemption(error: unknown): boolean {
+  return error instanceof UpgradePreemptionError;
 }
 
 /** An unreadable answer counts as no upgrade waiting, as `preempted()` itself answers. */
@@ -34,11 +46,13 @@ export function abandonProviderCallOnUpgrade(
 ): () => Promise<void> {
   if (source.yieldToUpgrade === undefined) return async () => undefined;
   let checking: Promise<void> | null = null;
+  // A check still in flight at stop may answer later; its answer must not abort the call.
+  let stopped = false;
   const timer = setInterval(() => {
     if (checking !== null) return;
     checking = upgradeWaiting(source)
       .then((waiting) => {
-        if (waiting) abort(upgradePreemptionError());
+        if (waiting && !stopped) abort(upgradePreemptionError());
       })
       .finally(() => {
         checking = null;
@@ -46,6 +60,7 @@ export function abandonProviderCallOnUpgrade(
   }, UPGRADE_PREEMPTION_POLL_MILLISECONDS);
   timer.unref();
   return async () => {
+    stopped = true;
     clearInterval(timer);
     await checking;
   };

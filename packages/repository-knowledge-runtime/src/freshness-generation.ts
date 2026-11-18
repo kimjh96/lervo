@@ -61,6 +61,18 @@ export type FreshnessGenerationResult =
       attempted?: true;
     };
 
+/**
+ * ADR-0587: the call was cancelled for a waiting upgrade after it reached the provider. It may
+ * have spent tokens, so the caller charges its bound as it does for a failed call.
+ */
+export function freshnessCallAbandoned(result: FreshnessGenerationResult): boolean {
+  return (
+    result.status === "deferred" &&
+    result.attempted === true &&
+    result.reason === "knowledge_capacity_unavailable"
+  );
+}
+
 /** One document a freshness call injected, measured by its hash and injected byte count. */
 export interface FreshnessMeasuredDocument {
   path: string;

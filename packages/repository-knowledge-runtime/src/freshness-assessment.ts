@@ -13,6 +13,7 @@ import {
   type DocumentFreshnessCandidateV1,
 } from "@lervo/repository-knowledge";
 import {
+  freshnessCallAbandoned,
   generateFreshnessProposal,
   type FreshnessGenerationContext,
 } from "./freshness-generation.js";
@@ -215,7 +216,11 @@ export async function reviewPendingFreshnessAssessment(
     prompt: PROMPT,
   });
   if (result.status === "deferred")
-    return { candidate, tokensObserved: 0, deferred: result.reason };
+    return {
+      candidate,
+      tokensObserved: freshnessCallAbandoned(result) ? maximumTokens : 0,
+      deferred: result.reason,
+    };
   const answer =
     result.status === "generated"
       ? (result.value as {

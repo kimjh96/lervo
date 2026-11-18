@@ -9,7 +9,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 
 import { governChangeReviewCalls } from "../src/change-review-host.js";
 import { recordChangeReviewUsage } from "../src/change-review-usage.js";
-import { generateFreshnessProposal } from "../src/freshness-generation.js";
+import { freshnessCallAbandoned, generateFreshnessProposal } from "../src/freshness-generation.js";
 import { acquireKnowledgeProviderAdmission } from "../src/provider-admission.js";
 import { reserveConvergenceProviderCall } from "../src/provider-budget.js";
 
@@ -141,6 +141,28 @@ it("abandons a freshness call once an upgrade waits and defers it as an attempte
   // The call may have spent tokens, so its usage is still recorded, as unavailable.
   expect(recordTurnMeasurement).toHaveBeenCalledOnce();
   expect(release).toHaveBeenCalledOnce();
+});
+
+it("charges only a freshness call abandoned after it reached the provider (ADR-0587)", () => {
+  expect(
+    freshnessCallAbandoned({
+      status: "deferred",
+      reason: "knowledge_capacity_unavailable",
+      attempted: true,
+    }),
+  ).toBe(true);
+  // Never started: nothing was spent.
+  expect(
+    freshnessCallAbandoned({ status: "deferred", reason: "knowledge_capacity_unavailable" }),
+  ).toBe(false);
+  // A paused provider keeps its existing accounting.
+  expect(
+    freshnessCallAbandoned({
+      status: "deferred",
+      reason: "knowledge_provider_paused",
+      attempted: true,
+    }),
+  ).toBe(false);
 });
 
 it("starts no freshness call while an upgrade already waits (ADR-0587)", async () => {
