@@ -228,13 +228,21 @@ describe("lervo upgrade", () => {
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
 
     expect(
+      await runCli(["upgrade", "--approval", plan.planId], io(root, [], errors), isolatedAdmission),
+    ).toBe(1);
+    expect(errors.join(" ")).toContain("--approval and --approve-role-binding were removed");
+    const refusal: string[] = [];
+    expect(
       await runCli(
-        ["upgrade", "--apply", "--approval", plan.planId],
-        io(root, [], errors),
+        ["upgrade", "--apply", "--approve-role-binding", "--json"],
+        io(root, refusal, errors),
         isolatedAdmission,
       ),
     ).toBe(1);
-    expect(errors.join(" ")).toContain("--approval and --approve-role-binding were removed");
+    expect(JSON.parse(refusal.join(""))).toMatchObject({
+      status: "failed",
+      error: { code: "upgrade_option_removed" },
+    });
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();
   });
 

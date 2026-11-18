@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9ddea0d26be344ee06a0655b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Let lervo upgrade --apply accept the --approval plan ID that the previous release's host follower still sends, and print a JSON failure for every lervo upgrade --json argument error, so a follower no longer rolls a release back as unreadable."

@@ -3,7 +3,7 @@ import { parseArgs } from "node:util";
 
 import { withRepositoryKnowledgeScanReuse } from "@lervo/repository-knowledge";
 
-import { writeCommandError } from "./command-error-output.js";
+import { CommandFailure, writeCommandError } from "./command-error-output.js";
 import { foregroundKnowledgeMaterializationSettlement } from "./knowledge-materialization-wait.js";
 import { hasRemovedOption, REMOVED_UPGRADE_APPROVAL } from "./removed-approval-options.js";
 import type { CliIo, CliServices } from "./types.js";
@@ -48,6 +48,28 @@ export function runUpgradeCommand(
 }
 
 /**
+ * ADR-0591: the host follower runs from the previous release's package while it upgrades
+ * repositories with the CLI it just installed, so a 0.26.x follower still sends
+ * `upgrade --apply --approval <plan-id>`. `--apply` already plans again and applies in one
+ * window, so the echoed plan ID adds nothing and is dropped there. Without `--apply` it stays
+ * removed.
+ */
+function withoutFollowerApproval(args: readonly string[]): string[] {
+  if (!args.includes("--apply")) return [...args];
+  const kept: string[] = [];
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index]!;
+    if (arg.startsWith("--approval=")) continue;
+    if (arg === "--approval" && index + 1 < args.length && !args[index + 1]!.startsWith("--")) {
+      index += 1;
+      continue;
+    }
+    kept.push(arg);
+  }
+  return kept;
+}
+
+/**
  * `lervo upgrade` prints the plan; `--apply` plans again inside the exclusive window and applies
  * that plan (ADR-0487, ADR-0561). No stage waits for an owner approval: each stage plans again and
  * compares before it writes, so the stale-plan guard is internal instead of an echoed plan ID.
@@ -57,14 +79,19 @@ async function runRepositoryUpgradeCommand(
   io: CliIo,
   services: UpgradeCommandServices,
 ): Promise<number> {
-  if (hasRemovedOption(args, "approval", "approve-role-binding")) {
-    io.stderr(`${REMOVED_UPGRADE_APPROVAL}\n${upgradeUsage}\n`);
+  const json = args.includes("--json");
+  const accepted = withoutFollowerApproval(args);
+  if (hasRemovedOption(accepted, "approval", "approve-role-binding")) {
+    writeCommandError(io, new CommandFailure("upgrade_option_removed", REMOVED_UPGRADE_APPROVAL), {
+      json,
+    });
+    if (!json) io.stderr(`${upgradeUsage}\n`);
     return 1;
   }
   let values: { root?: string; apply?: boolean; safe?: boolean; json?: boolean; help?: boolean };
   try {
     values = parseArgs({
-      args,
+      args: accepted,
       strict: true,
       allowPositionals: false,
       options: {
@@ -77,7 +104,9 @@ async function runRepositoryUpgradeCommand(
       },
     }).values;
   } catch (error) {
-    io.stderr(`${error instanceof Error ? error.message : String(error)}\n${upgradeUsage}\n`);
+    const message = error instanceof Error ? error.message : String(error);
+    writeCommandError(io, new CommandFailure("upgrade_arguments_invalid", message), { json });
+    if (!json) io.stderr(`${upgradeUsage}\n`);
     return 1;
   }
   if (values.help) {
@@ -85,7 +114,12 @@ async function runRepositoryUpgradeCommand(
     return 0;
   }
   if (values.safe === true && values.apply !== true) {
-    io.stderr(`--safe must be used with --apply.\n${upgradeUsage}\n`);
+    writeCommandError(
+      io,
+      new CommandFailure("upgrade_arguments_invalid", "--safe must be used with --apply."),
+      { json },
+    );
+    if (!json) io.stderr(`${upgradeUsage}\n`);
     return 1;
   }
   const root = resolve(io.cwd, values.root ?? ".");
