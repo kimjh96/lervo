@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2337542deb306ad30c02e053"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Let a resident knowledge cycle cancel its convergence, freshness or change-review provider call within a second once an upgrade waits for host admission, and start no such call while one waits, so an upgrade no longer waits for the call's whole timeout."
