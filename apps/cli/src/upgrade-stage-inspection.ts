@@ -136,13 +136,19 @@ function blocker(value: unknown): UpgradeStageBlocker | null {
   };
 }
 
-/** Whether a printed plan writes user-owned bytes: a user file, or a moved file it rewrites. */
+/**
+ * Whether a printed plan overwrites user-owned bytes: a user file it updates or deletes, or a moved
+ * file it rewrites. A user file it creates where none existed overwrites nothing.
+ */
 function editsUserOwnedContent(operations: unknown): boolean {
   return (
     Array.isArray(operations) &&
     operations.some((operation) => {
       const item = record(operation);
-      return item?.ownership === "user" || item?.action === "move_update";
+      return (
+        (item?.ownership === "user" && item.action !== "create" && item.action !== "unchanged") ||
+        item?.action === "move_update"
+      );
     })
   );
 }

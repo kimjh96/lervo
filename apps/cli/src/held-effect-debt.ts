@@ -122,13 +122,13 @@ export async function heldUpgradeKnowledgeReason(
  */
 export async function heldTerminalIntegrationReason(
   repositoryRoot: string,
-  planId: string | null,
+  subject: string | null,
 ): Promise<HeldEffectReason | null> {
   const held = (await readHeldEffects(repositoryRoot)).filter(
     (item) => item.effect === "upgrade_terminal_integration",
   );
   if (held.some((item) => item.reasonCode === "owner_restored")) return "owner_restored";
-  return held.some((item) => item.reasonCode === "verification_failed" && item.subject === planId)
+  return held.some((item) => item.reasonCode === "verification_failed" && item.subject === subject)
     ? "verification_failed"
     : null;
 }
@@ -207,4 +207,20 @@ export function heldEffectAttentionItems(held: readonly HeldEffect[]): HeldEffec
       ? `The owner holds ${item.effect} ${item.subject} (${item.reasonCode}) since ${item.since}; Lervo applies nothing there on its own until lervo repository release --root <repository>.`
       : `Lervo debt: Lervo held ${item.effect} ${item.subject} (${item.reasonCode}) since ${item.since} and retries it with ${RETRY[item.effect]}; nothing waits for the owner.`,
   }));
+}
+
+const KNOWLEDGE_EFFECT_HELD_CODES: Readonly<Record<string, HeldEffectReason>> = {
+  knowledge_cross_check_disagreed: "cross_check_disagreement_repeated",
+  knowledge_cross_check_unavailable: "cross_check_unavailable",
+  knowledge_effect_commit_unavailable: "commit_unavailable",
+  knowledge_effect_commit_failed: "commit_unavailable",
+  knowledge_effect_paths_uncommitted: "paths_uncommitted",
+};
+
+/**
+ * ADR-0561: the Lervo debt reason for a reviewed knowledge plan a foreground apply refused: the
+ * cross-check disagreed or could not run, or the effect could not land as its own undo commit.
+ */
+export function heldKnowledgeEffectReason(code: string | null): HeldEffectReason | null {
+  return code === null ? null : (KNOWLEDGE_EFFECT_HELD_CODES[code] ?? null);
 }

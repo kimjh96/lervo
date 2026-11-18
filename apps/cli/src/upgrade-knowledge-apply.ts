@@ -1,7 +1,12 @@
 import type { KnowledgeMaterializationSettlement } from "@lervo/repository-knowledge";
 
 import { CommandFailure } from "./command-error-output.js";
-import { holdEffect, releaseHeldEffects, type HeldEffectReason } from "./held-effect-debt.js";
+import {
+  heldKnowledgeEffectReason,
+  holdEffect,
+  releaseHeldEffects,
+  type HeldEffectReason,
+} from "./held-effect-debt.js";
 import type { CliServices } from "./types.js";
 import type { UpgradeReceipt } from "./upgrade-format.js";
 import {
@@ -17,16 +22,8 @@ const knowledgeRefusedByMarker = (stage: KnowledgeStage): boolean =>
  * ADR-0561: a cross-check that disagreed or could not run, a commit that is not possible, or a
  * touched user path with uncommitted work holds the stage as Lervo debt; nothing was applied.
  */
-const HELD_CODES: Readonly<Record<string, HeldEffectReason>> = {
-  knowledge_cross_check_disagreed: "cross_check_disagreement_repeated",
-  knowledge_cross_check_unavailable: "cross_check_unavailable",
-  knowledge_effect_commit_unavailable: "commit_unavailable",
-  knowledge_effect_commit_failed: "commit_unavailable",
-  knowledge_effect_paths_uncommitted: "paths_uncommitted",
-};
-
 function heldCrossCheck(error: unknown): HeldEffectReason | null {
-  return error instanceof CommandFailure ? (HELD_CODES[error.code] ?? null) : null;
+  return error instanceof CommandFailure ? heldKnowledgeEffectReason(error.code) : null;
 }
 
 /**

@@ -145,5 +145,8 @@ export async function applyLifecycleEffect<T>(input: {
   }).catch((error: unknown) => {
     throw new KnowledgeConvergenceRuntimeError("knowledge_apply_failed", { cause: error });
   });
-  return { receipt: effect.receipt, commit: effect.commit };
+  return {
+    receipt: effect.receipt,
+    commit: effect.commit.status === "committed" ? effect.commit : null,
+  };
 }

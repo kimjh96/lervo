@@ -40,9 +40,10 @@ export function missingConvergencePaths(paths: string[], roots: readonly string[
 }
 
 /**
- * AGENTS.md invariant 5: the paths whose user-owned bytes a plan writes. A user file it creates or
- * updates, and a moved document whose bytes it rewrites, count; a byte-preserving move, a
- * Lervo-generated file, and a Lervo-managed block do not.
+ * AGENTS.md invariant 5: the paths whose user-owned bytes a plan overwrites. A user file it
+ * updates or deletes, and a moved document whose bytes it rewrites, count; a user file it creates
+ * where none existed, a byte-preserving move, a Lervo-generated file, and a Lervo-managed block do
+ * not.
  */
 export function lifecycleUserContentPaths(plan: LifecycleOperations): string[] {
   return [
@@ -50,8 +51,10 @@ export function lifecycleUserContentPaths(plan: LifecycleOperations): string[] {
       plan.operations
         .filter(
           (operation) =>
-            operation.action !== "unchanged" &&
-            (operation.ownership === "user" || operation.action === "move_update"),
+            (operation.ownership === "user" &&
+              operation.action !== "unchanged" &&
+              operation.action !== "create") ||
+            operation.action === "move_update",
         )
         .flatMap((operation) =>
           operation.destinationPath === undefined

@@ -25,6 +25,7 @@ import {
   type RepositoryUpgradePlan,
 } from "./upgrade-plan.js";
 import type { UpgradeResidentExclusion } from "./upgrade-resident-exclusion.js";
+import { terminalIntegrationHoldSubject } from "./upgrade-terminal-inspection.js";
 import {
   inspectTerminalIntegration,
   inspectWorkforce,
@@ -163,7 +164,7 @@ export async function applyRepositoryUpgrade(
       await holdEffect({
         repositoryRoot: root,
         effect: "upgrade_terminal_integration",
-        subject: terminal.stage.planId ?? "terminal_integration",
+        subject: terminalIntegrationHoldSubject(terminal.prepared.plan),
         reasonCode: "verification_failed",
       });
       skippedStages.push({ stage: "terminal_integration", reason: "verification_failed_restored" });

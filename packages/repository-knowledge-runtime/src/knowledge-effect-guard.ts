@@ -68,7 +68,7 @@ export async function knowledgeEffectPreflight(
     ],
     { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 },
   );
-  const dirty = statusPaths(stdout);
+  const dirty = [...new Set(statusPaths(stdout))].sort();
   return dirty.length === 0 ? null : { reason: "paths_uncommitted", paths: dirty.slice(0, 32) };
 }
 
@@ -126,17 +126,23 @@ export class KnowledgeEffectUncommittedError extends Error {
   }
 }
 
+/** The commit an applied effect landed as, or `nothing_to_commit` when it left Git unchanged. */
+export type CommittedKnowledgeEffect =
+  | { status: "committed"; before: string; after: string }
+  | { status: "not_committed"; reason: "nothing_to_commit" };
+
 /**
  * ADR-0561: applies an effect and commits it as the undo point. When the commit does not land,
  * every changed path is restored to its bytes before the apply, so no applied effect is ever left
- * without its undo, and the error is thrown.
+ * without its undo, and the error is thrown. An effect that changed nothing Git tracks needs no
+ * undo commit and stays applied.
  */
 export async function applyCommittedKnowledgeEffect<T>(input: {
   repositoryRoot: string;
   paths: readonly string[];
   notice: KnowledgeEffectNotice;
   apply: () => Promise<T>;
-}): Promise<{ receipt: T; commit: { status: "committed"; before: string; after: string } }> {
+}): Promise<{ receipt: T; commit: CommittedKnowledgeEffect }> {
   const snapshot = await snapshotPaths(input.repositoryRoot, input.paths);
   const receipt = await input.apply();
   const commit = await commitKnowledgeEffect({
@@ -144,9 +150,14 @@ export async function applyCommittedKnowledgeEffect<T>(input: {
     paths: input.paths,
     notice: input.notice,
   });
-  if (commit.status !== "committed") {
-    await restorePaths(input.repositoryRoot, snapshot);
-    throw new KnowledgeEffectUncommittedError(commit.reason);
-  }
-  return { receipt, commit };
+  if (commit.status === "committed" || commit.reason === "nothing_to_commit")
+    return {
+      receipt,
+      commit:
+        commit.status === "committed"
+          ? commit
+          : { status: "not_committed", reason: "nothing_to_commit" },
+    };
+  await restorePaths(input.repositoryRoot, snapshot);
+  throw new KnowledgeEffectUncommittedError(commit.reason);
 }

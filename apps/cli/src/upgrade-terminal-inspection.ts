@@ -7,6 +7,18 @@ import type { TerminalIntegrationStage } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
 /**
+ * What a failed verification holds: the exact provider hook bytes the plan writes, or the plan
+ * itself when only the generated runtime changes. The plan ID also binds the latest application
+ * event, which the failed apply can advance, so it alone would let an upgrade retry the same bytes.
+ */
+export function terminalIntegrationHoldSubject(plan: {
+  planId: string;
+  approvalHash: string | null;
+}): string {
+  return plan.approvalHash ?? plan.planId;
+}
+
+/**
  * The terminal integration stage of `lervo upgrade`: generated runtime updates, and provider hook
  * merges that are backed up, applied, verified, and restored on failure (ADR-0561).
  */
@@ -20,8 +32,8 @@ export async function inspectTerminalIntegration(root: string): Promise<{
   // exact plan, so an upgrade never loops writing, restoring, and backing up again.
   const held =
     plan.status === "ready"
-      ? await heldTerminalIntegrationReason(root, plan.planId).then((reason) =>
-          reason === "owner_restored" && plan.approvalHash === null ? null : reason,
+      ? await heldTerminalIntegrationReason(root, terminalIntegrationHoldSubject(plan)).then(
+          (reason) => (reason === "owner_restored" && plan.approvalHash === null ? null : reason),
         )
       : null;
   const disposition: StageDisposition =

@@ -2,7 +2,7 @@ import { listAgents, registerAgent, type WorkforceEvent } from "@lervo/agent-wor
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
 import { openProjectStorage } from "@lervo/project-storage";
 
-import { holdEffect } from "./held-effect-debt.js";
+import { heldKnowledgeEffectReason, holdEffect } from "./held-effect-debt.js";
 import { knowledgeBackgroundOwner } from "./knowledge-background-owner.js";
 import { runKnowledgeMigration } from "./knowledge-command.js";
 import { recordWorkforceEvent } from "./workforce-events.js";
@@ -106,15 +106,11 @@ export async function bootstrapOnboarding(root: string): Promise<OnboardingResul
         },
         mode: "migrate",
       });
-      const heldCode = applied === 0 ? null : commandErrorCode(applyOutput);
-      if (
-        heldCode === "knowledge_cross_check_disagreed" ||
-        heldCode === "knowledge_cross_check_unavailable"
-      ) {
-        const reasonCode =
-          heldCode === "knowledge_cross_check_disagreed"
-            ? "cross_check_disagreement_repeated"
-            : "cross_check_unavailable";
+      // ADR-0561: a refused cross-check, or an effect that cannot land as its undo commit.
+      const reasonCode = heldKnowledgeEffectReason(
+        applied === 0 ? null : commandErrorCode(applyOutput),
+      );
+      if (reasonCode !== null) {
         await holdEffect({
           repositoryRoot: root,
           effect: "upgrade_knowledge",
