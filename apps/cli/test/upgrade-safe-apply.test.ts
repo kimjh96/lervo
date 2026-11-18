@@ -229,8 +229,10 @@ describe("lervo upgrade --apply (ADR-0561)", () => {
 
   it("fails the removed approval options briefly and points to the undo path", async () => {
     const root = await repository();
+    // ADR-0591: `--apply --approval <id>` is the previous follower's form and is accepted, so only
+    // `--approval` without `--apply` is still refused.
     for (const args of [
-      ["upgrade", "--apply", "--approval", "upg_000000000000000000000000"],
+      ["upgrade", "--approval", "upg_000000000000000000000000"],
       ["upgrade", "--apply", "--approve-role-binding=wrbop_x=sha256:0"],
     ]) {
       const stderr: string[] = [];
