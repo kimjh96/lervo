@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-14
-Amended by: [ADR-0569](../../release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (preparation also dispatches the CLI release matrix, and the merge waits for it), [ADR-0581](../../release/packaging/0581-build-darwin-native-files-with-one-pinned-xcode.md) (preparation runs on `macos-15` with a pinned Xcode)
+Amended by: [ADR-0569](../../release/packaging/0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (preparation also dispatches the CLI release matrix, and the merge waits for it), [ADR-0581](../../release/packaging/0581-build-darwin-native-files-with-one-pinned-xcode.md) (preparation runs on `macos-15` with a pinned Xcode), [ADR-0590](../../release/packaging/0590-reuse-verified-darwin-native-builds-for-identical-inputs.md) (the fallback preparation runs on Linux when it can restore a verified darwin build)
 Amends: [ADR-0221](../../release/packaging/0221-reviewed-cli-release-preparation.md) (the release pull request becomes the fallback), [ADR-0496](0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) (one verification covers a prepared feature pull request), [ADR-0522](0522-reuse-ci-verification-for-identical-content.md) (the daily audit reuses nothing)
 
 ## Context

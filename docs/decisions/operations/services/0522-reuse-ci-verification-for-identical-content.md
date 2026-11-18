@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-18
-Amended by: [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (the daily audit reuses nothing), [ADR-0572](../../release/packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (build reuse also matches the release metadata mode)
+Amended by: [ADR-0564](0564-prepare-the-release-inside-the-feature-pull-request.md) (the daily audit reuses nothing), [ADR-0572](../../release/packaging/0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (build reuse also matches the release metadata mode), [ADR-0590](../../release/packaging/0590-reuse-verified-darwin-native-builds-for-identical-inputs.md) (darwin native builds are reused by build inputs)
 Amends: [ADR-0496](0496-share-exact-ci-builds-and-separate-release-generation-from-verification.md) (verification reuse)
 
 ## Context and authority
