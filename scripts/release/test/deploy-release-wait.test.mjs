@@ -17,9 +17,17 @@ afterEach(async () =>
   Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))),
 );
 
-// gh evaluates --jq itself, so this fake answers with the filtered text the script reads.
+// gh evaluates --jq itself, so this fake answers with the filtered text the script reads. The first
+// FAKE_GH_FAILURES calls fail as an unreachable API would.
 const fakeGh = `#!/bin/bash
 printf '%s\\n' "$*" >>"$FAKE_TRACE"
+failed=$(cat "$FAKE_TRACE.failed" 2>/dev/null || echo 0)
+if [ "$failed" -lt "\${FAKE_GH_FAILURES:-0}" ]; then
+  echo $((failed + 1)) >"$FAKE_TRACE.failed"
+  echo 'error connecting to api.github.com' >&2
+  echo 'check your internet connection or https://githubstatus.com' >&2
+  exit 1
+fi
 case "$1 $2" in
   'run list')
     case "$*" in
@@ -28,7 +36,10 @@ case "$1 $2" in
       *cli-release-matrix.yml*) echo "$FAKE_MATRIX" ;;
       # A rerun replaces the matrix state the next poll reads.
       *"CLI release matrix"*) cat "$FAKE_TRACE.rerun" 2>/dev/null || echo "$FAKE_TAG_MATRIX" ;;
+      *"CLI release preparation"*) echo "$FAKE_RELEASE_PREPARATION" ;;
+      *name,status,conclusion,createdAt*) echo "$FAKE_CANDIDATE" ;;
     esac ;;
+  'pr list') echo "$FAKE_RELEASE_PR" ;;
   'release view') echo "$FAKE_RELEASE" ;;
   'run view') echo "$FAKE_AGGREGATE" ;;
   'pr view')
@@ -43,17 +54,25 @@ case "$1 $2" in
   'pr checks') echo "$FAKE_CHECKS"; exit "\${FAKE_CHECKS_STATUS:-0}" ;;
   'run rerun') echo "$FAKE_TAG_MATRIX_AFTER_RERUN" >"$FAKE_TRACE.rerun" ;;
   api\\ *compare*) echo "$FAKE_COMPARE" ;;
-  api\\ */jobs*) echo "$FAKE_JOBS" ;;
+  api\\ */jobs*)
+    [ -n "\${FAKE_JOBS_STATUS:-}" ] && { echo 'HTTP 502: Bad Gateway' >&2; exit "$FAKE_JOBS_STATUS"; }
+    echo "$FAKE_JOBS" ;;
   api\\ *commits*) echo "$FAKE_AUTHOR" ;;
+  api\\ *contents/apps/cli/package.json*) echo "\${FAKE_MAIN_VERSION:-1.2.3}" ;;
   *) exit 2 ;;
 esac
 `;
 
 // A concluding wait exits at once, so the default deadline only bounds a broken run. Cases that
 // expect a timeout pass "0", which judges the head exactly once and never depends on the clock.
-// The tag stage asks git whether the tag exists on origin; this fake always finds it.
+// The tag stage asks git whether the tag exists on origin; this fake finds it unless
+// FAKE_GIT_STATUS names another ls-remote exit status.
 const fakeGit = `#!/bin/bash
-[ "$1" = ls-remote ] && exit 0
+if [ "$1" = ls-remote ]; then
+  [ -n "\${FAKE_GIT_STATUS:-}" ] || exit 0
+  echo 'fatal: unable to access origin' >&2
+  exit "$FAKE_GIT_STATUS"
+fi
 exit 2
 `;
 
@@ -86,7 +105,12 @@ async function wait(state, timeoutSeconds = "10", stage = ["pr", "7"]) {
       ...state,
     },
   });
-  return { status: result.status, stdout: result.stdout, trace: await readFile(trace, "utf8") };
+  return {
+    status: result.status,
+    stdout: result.stdout,
+    stderr: result.stderr,
+    trace: await readFile(trace, "utf8"),
+  };
 }
 
 describe("deploy-lervo-release pull-request wait", () => {
@@ -186,6 +210,27 @@ describe("deploy-lervo-release pull-request wait", () => {
     );
   });
 
+  it("holds a passed unprepared head until main's release version is tagged", async () => {
+    const author = { FAKE_AUTHOR: "Owner|feat: add capability" };
+    for (const state of [author, { ...author, FAKE_DISPATCH: "11 completed success" }]) {
+      const waiting = await wait({ ...state, FAKE_GIT_STATUS: "2" }, "0");
+      assert.equal(waiting.status, 2, waiting.stdout);
+      assert.match(waiting.stdout, /waiting for v1\.2\.3, the release on main, before a merge/u);
+      assert.match(waiting.stdout, /gh workflow run release-preparation\.yml/u);
+      assert.match(waiting.trace, /contents\/apps\/cli\/package\.json\?ref=main/u);
+    }
+    const unknown = await wait({ ...author, FAKE_GIT_STATUS: "128" }, "0");
+    assert.equal(unknown.status, 2, unknown.stdout);
+    assert.match(unknown.stdout, /last query failure: git_unavailable: fatal: unable to access/u);
+    const unversioned = await wait({ ...author, FAKE_MAIN_VERSION: "next" }, "0");
+    assert.equal(unversioned.status, 2, unversioned.stdout);
+    assert.match(unversioned.stdout, /; main CLI version unknown/u);
+    // A prepared head carries the release itself, so it never waits for main's tag.
+    const prepared = await wait({ FAKE_DISPATCH: "11 completed success", FAKE_GIT_STATUS: "2" });
+    assert.equal(prepared.status, 0, prepared.stdout);
+    assert.doesNotMatch(prepared.trace, /contents\/apps/u);
+  });
+
   it("does not require a release matrix for an unprepared head", async () => {
     const result = await wait({
       FAKE_AUTHOR: "Owner|feat: add capability",
@@ -248,5 +293,94 @@ describe("deploy-lervo-release tag wait", () => {
     });
     assert.equal(bounded.status, 1, bounded.stdout);
     assert.equal(bounded.trace.match(/run rerun 31/gu).length, 2);
+  });
+});
+
+describe("deploy-lervo-release wait with an unavailable GitHub", () => {
+  const unavailable = "gh_unavailable: error connecting to api.github.com";
+  const subjects =
+    "lervo-cli-1.2.3.tgz,release-artifact-manifest.json,release-sbom.cdx.json,release-subjects.json";
+  const stages = {
+    pr: [{ FAKE_DISPATCH: "11 completed success" }, ["pr", "7"]],
+    "release-pr": [
+      {
+        FAKE_RELEASE_PR: "41",
+        FAKE_CANDIDATE:
+          "2 0 0 Code quality=completed/success, CLI release matrix=completed/success",
+      },
+      ["release-pr"],
+    ],
+    tag: [
+      { FAKE_TAG_MATRIX: "completed/success 31", FAKE_RELEASE: `false ${subjects}` },
+      ["tag", "1.2.3"],
+    ],
+  };
+
+  it("retries every stage through failing gh calls and says why", async () => {
+    for (const [name, [state, stage]] of Object.entries(stages)) {
+      const result = await wait({ ...state, FAKE_GH_FAILURES: "3" }, "10", stage);
+      assert.equal(result.status, 0, `${name}: ${result.stdout}${result.stderr}`);
+      assert.match(result.stdout, /passed|released/u);
+      assert.ok(result.stderr.includes(`${unavailable} (2 rounds in a row`), result.stderr);
+      // Backoff doubles the pause after each failed round.
+      assert.ok(result.stderr.includes("(3 rounds in a row; next poll in 4x0.2s)"), result.stderr);
+    }
+  });
+
+  it("names the last failure when a stage times out and keeps the timeout exit", async () => {
+    for (const [name, [state, stage]] of Object.entries(stages)) {
+      const result = await wait({ ...state, FAKE_GH_FAILURES: "1000" }, "0", stage);
+      assert.equal(result.status, 2, `${name}: ${result.stdout}`);
+      assert.match(result.stdout, /^TIMEOUT /u);
+      assert.ok(result.stdout.trimEnd().endsWith(`; last query failure: ${unavailable}`), name);
+    }
+    const origin = await wait({ FAKE_GIT_STATUS: "128" }, "0", ["tag", "1.2.3"]);
+    assert.equal(origin.status, 2, origin.stdout);
+    assert.match(
+      origin.stdout,
+      /v1\.2\.3 on origin unknown; last query failure: git_unavailable: fatal: unable to access origin/u,
+    );
+  });
+
+  it("does not name a failure that a later round recovered from", async () => {
+    const recovered = await wait(
+      { FAKE_GH_FAILURES: "2", FAKE_RELEASE_PR: "", FAKE_RELEASE_PREPARATION: "in_progress/" },
+      "2",
+      ["release-pr"],
+    );
+    assert.equal(recovered.status, 2, recovered.stdout);
+    assert.ok(recovered.stderr.includes(`${unavailable} (2 rounds in a row`), recovered.stderr);
+    assert.match(
+      recovered.stdout,
+      /^TIMEOUT release-pr : no release PR yet; preparation in_progress\//u,
+    );
+    assert.doesNotMatch(recovered.stdout, /query failure/u);
+  });
+
+  it("reads an empty answer as empty, not as unavailable", async () => {
+    const none = await wait(
+      { FAKE_RELEASE_PR: "", FAKE_RELEASE_PREPARATION: "in_progress/" },
+      "0",
+      ["release-pr"],
+    );
+    assert.equal(none.status, 2, none.stdout);
+    assert.match(none.stdout, /no release PR yet; preparation in_progress\//u);
+    const untagged = await wait({ FAKE_GIT_STATUS: "2" }, "0", ["tag", "1.2.3"]);
+    assert.equal(untagged.status, 2, untagged.stdout);
+    assert.match(untagged.stdout, /v1\.2\.3 not pushed yet/u);
+    for (const result of [none, untagged])
+      assert.doesNotMatch(result.stdout + result.stderr, /unavailable|query failure/u);
+  });
+
+  it("does not fail a cancelled matrix whose jobs could not be read", async () => {
+    const result = await wait(
+      { FAKE_TAG_MATRIX: "completed/cancelled 31", FAKE_JOBS_STATUS: "1" },
+      "0",
+      ["tag", "1.2.3"],
+    );
+    assert.equal(result.status, 2, result.stdout);
+    assert.match(result.stdout, /cancelled; its jobs could not be read/u);
+    assert.match(result.stdout, /gh_unavailable: HTTP 502: Bad Gateway/u);
+    assert.doesNotMatch(result.trace, /run rerun/u);
   });
 });

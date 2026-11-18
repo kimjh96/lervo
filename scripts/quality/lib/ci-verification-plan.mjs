@@ -42,7 +42,19 @@ export function createCiVerificationPlan({ repositoryRoot, event, expectedRevisi
     baseRevision,
     commitHead: event.pull_request?.head?.sha ?? revision,
     ...classification,
-    releaseMetadata: planReleaseMetadataVerification({ git, revision, paths }),
+    releaseMetadata: planReleaseMetadataVerification({
+      git,
+      revision,
+      paths,
+      pullRequest:
+        eventName === "pull_request" && suppliedBase === baseRevision
+          ? {
+              baseRevision,
+              headRevision: event.pull_request?.head?.sha,
+              headRef: event.pull_request?.head?.ref,
+            }
+          : undefined,
+    }),
     changedPathCount: paths?.length ?? null,
   };
 }

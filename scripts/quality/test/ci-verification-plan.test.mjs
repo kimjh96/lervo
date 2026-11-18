@@ -148,6 +148,60 @@ describe("release metadata verification", () => {
     expect(f.plan({ eventName: "push", before: prepared })).toBe("generated");
   });
 
+  it("generates the metadata for an unprepared pull request before the release tag", async () => {
+    const f = await released();
+    const prepared = await f.commit({
+      "apps/cli/package.json": '{"name":"@lervo/cli","version":"0.1.1"}\n',
+    });
+    const head = await f.commit({ "apps/cli/src/main.ts": "export const later = true;\n" });
+    const pullRequest = (base, sha = head, ref = "feature") => ({
+      eventName: "pull_request",
+      pull_request: { base: { sha: base }, head: { sha, ref } },
+    });
+    // No tag names a pull request merge commit, so its build need not match main's metadata.
+    expect(f.plan(pullRequest(prepared))).toBe("generated");
+    // Main's own run and a dispatched run may still be tagged, so they stay exact.
+    expect(f.plan({ eventName: "push", before: prepared })).toBe("exact");
+    expect(f.plan({ eventName: "workflow_dispatch", inputs: { base_sha: prepared } })).toBe(
+      "exact",
+    );
+    // A pull request that changes the CLI version is a prepared release head.
+    expect(f.plan(pullRequest(f.release))).toBe("exact");
+    expect(f.plan(pullRequest(prepared, head, "lervo/release-cli"))).toBe("exact");
+    for (const unknownHead of [null, "c".repeat(40)])
+      expect(f.plan(pullRequest(prepared, unknownHead))).toBe("exact");
+    expect(f.plan({ eventName: "pull_request", pull_request: { head: { sha: head } } })).toBe(
+      "exact",
+    );
+    f.git("tag", "-a", "v0.1.1", "-m", "Release @lervo/cli v0.1.1");
+    expect(f.plan(pullRequest(prepared))).toBe("generated");
+    expect(f.plan({ eventName: "push", before: prepared })).toBe("generated");
+  });
+
+  it("keeps exact metadata for a pull request that edits it or carries a release commit", async () => {
+    const f = await released();
+    const prepared = await f.commit({
+      "apps/cli/package.json": '{"name":"@lervo/cli","version":"0.1.1"}\n',
+    });
+    const pullRequest = (sha) => ({
+      eventName: "pull_request",
+      pull_request: { base: { sha: prepared }, head: { sha, ref: "feature" } },
+    });
+    await writeFile(resolve(f.root, "apps/cli/src/main.ts"), "export const again = true;\n");
+    f.git("add", "-A");
+    f.git(
+      "-c",
+      "user.name=lervo-release[bot]",
+      "commit",
+      "--quiet",
+      "-m",
+      "chore(cli): prepare release",
+    );
+    expect(f.plan(pullRequest(f.git("rev-parse", "HEAD")))).toBe("exact");
+    const edited = await f.commit({ "apps/cli/release-artifact-manifest.json": '{"a":1}\n' });
+    expect(f.plan(pullRequest(edited))).toBe("exact");
+  });
+
   it("selects exact verification whenever the change, version, or tag is unknown", async () => {
     const f = await released();
     await f.commit({ "apps/cli/src/main.ts": "export const changed = true;\n" });
