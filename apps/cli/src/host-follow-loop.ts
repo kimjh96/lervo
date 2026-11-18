@@ -84,6 +84,7 @@ export async function runFollowLoop(dependencies: HostFollowLoopDependencies): P
             code: result.code,
             activationId: result.activationId,
             repositories: result.pass?.repositories.length ?? null,
+            ...(result.precededBy === null ? {} : { precededBy: result.precededBy }),
           }),
         );
         if (result.handover) return HOST_FOLLOW_HANDOVER_EXIT_CODE;

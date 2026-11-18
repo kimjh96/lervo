@@ -49,6 +49,14 @@ export interface HostFollowCycleResult {
   pass: HostFollowPass | null;
   /** The process must exit so the service manager restarts it on the CLI the link runs now. */
   handover: boolean;
+  /**
+   * ADR-0589: the pass that installed no release and ran in this cycle before the install it
+   * reports; `yielded` when a newer release stopped it at a repository boundary. Null otherwise.
+   */
+  precededBy: {
+    outcome: "repositories_retried" | "repositories_upgraded";
+    yielded: boolean;
+  } | null;
   consecutiveSourceFailures: number;
   /** The poll delay's backoff level: release-source failures or failed installs in a row. */
   backoff: number;

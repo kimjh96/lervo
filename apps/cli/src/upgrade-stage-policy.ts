@@ -113,3 +113,22 @@ export function applicableUpgradeStages(
         hasDisplayedRoleApprovals),
   );
 }
+
+/**
+ * ADR-0589: why an apply skips knowledge lint, or null when lint runs. Lint reports what the run
+ * left in repository content, so it is skipped only when the run has applied no stage yet and its
+ * own knowledge inspection found the stage current with nothing left to drain. A blocked,
+ * pending, or deferred knowledge stage is always linted (ADR-0547), and so is a `current` stage
+ * whose debt the background resident still owns (`background_owned`), because its content issues
+ * are what the receipt warns about.
+ */
+export function knowledgeLintSkipReason(
+  appliedStages: readonly string[],
+  knowledge: { disposition: StageDisposition; reason: string } | null,
+): "knowledge_current_nothing_applied" | null {
+  return appliedStages.length === 0 &&
+    knowledge?.disposition === "current" &&
+    knowledge.reason !== "background_owned"
+    ? "knowledge_current_nothing_applied"
+    : null;
+}

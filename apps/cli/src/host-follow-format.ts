@@ -37,6 +37,13 @@ export function formatFollowCycle(result: HostFollowCycleResult): string {
       result.code === null ? "" : ` (${result.code})`
     }`,
     ...(result.activationId === null ? [] : [`activation: ${result.activationId}`]),
+    ...(result.precededBy === null
+      ? []
+      : [
+          `after: ${result.precededBy.outcome}${
+            result.precededBy.yielded ? ", stopped at a repository boundary for this release" : ""
+          }`,
+        ]),
     ...passLines(result.pass),
     ...(result.handover ? ["The follower hands over to the active CLI."] : []),
   ].join("\n")}\n`;

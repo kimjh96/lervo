@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  knowledgeLintSkipReason,
   applicableUpgradeStages,
   deferralReason,
   deferringPrerequisite,
@@ -76,5 +77,24 @@ describe("upgrade stage dependency policy", () => {
     expect(
       applicableUpgradeStages({ ...dispositions, workforce: "pending_authority" }, true),
     ).toEqual(["workforce", "terminal_integration", "host_service"]);
+  });
+});
+
+describe("knowledge lint in an upgrade apply (ADR-0589)", () => {
+  it("is skipped only when nothing was applied and knowledge is current", () => {
+    const current = { disposition: "current" as const, reason: "knowledge_current" };
+    // Mac axli on v0.25.5: knowledge current, host and replica services applied after lint.
+    expect(knowledgeLintSkipReason([], current)).toBe("knowledge_current_nothing_applied");
+    expect(knowledgeLintSkipReason(["capabilities"], current)).toBeNull();
+    expect(knowledgeLintSkipReason(["knowledge_materialization"], current)).toBeNull();
+    for (const disposition of ["blocked", "pending_authority", "deferred", "safe_apply"] as const)
+      expect(knowledgeLintSkipReason([], { disposition, reason: "x" })).toBeNull();
+    expect(knowledgeLintSkipReason([], null)).toBeNull();
+  });
+
+  it("still lints a current stage whose debt the background resident owns (ADR-0547)", () => {
+    expect(
+      knowledgeLintSkipReason([], { disposition: "current", reason: "background_owned" }),
+    ).toBeNull();
   });
 });
