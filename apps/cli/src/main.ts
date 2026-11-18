@@ -17,30 +17,9 @@ import { inspectOperatingGoal } from "./operating-goal-inspection.js";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import { inspectOperatingLiveness } from "./operating-liveness-inspection.js";
 import { inspectAssignmentCommunications } from "./assignment-communication-inspection.js";
-import {
-  assignmentCommunicationUsage,
-  runAssignmentCommunicationCommand,
-} from "./assignment-communication-command.js";
-import {
-  assignmentMessageTriggerUsage,
-  runAssignmentMessageTriggerCommand,
-} from "./assignment-message-trigger-command.js";
-import {
-  assignmentRoutineUsage,
-  runAssignmentRoutineCommand,
-} from "./assignment-routine-command.js";
-import {
-  assignmentTopologyUsage,
-  runAssignmentTopologyCommand,
-} from "./assignment-topology-command.js";
-import {
-  assignmentConnectorUsage,
-  runAssignmentConnectorCommand,
-} from "./assignment-connector-command.js";
 import { runInitCommand, initUsage } from "./init-command.js";
 export { ensureStartupHostTerminalRuntime } from "./terminal-runtime.js";
 import { runLoopCommand, loopUsage } from "./loop-command.js";
-import { liveTriggerUsage, runLiveTriggerCommand } from "./live-trigger-command.js";
 import { executeManagedRun } from "./managed-run.js";
 import {
   createAssignedManagedDeliberationExecutor,
@@ -84,7 +63,6 @@ ${migrateUsage}
 ${knowledgeUsage}
 ${applicationUsage}
 ${loopUsage}
-${liveTriggerUsage}
 ${runUsage}
 ${researchUsage}
 ${deliberateUsage}
@@ -101,11 +79,6 @@ ${workstreamUsage}
 ${workspaceUsage}
 ${workforceUsage}
 ${agentOrganizationUsage}
-${assignmentCommunicationUsage}
-${assignmentMessageTriggerUsage}
-${assignmentConnectorUsage}
-${assignmentRoutineUsage}
-${assignmentTopologyUsage}
 ${roleUsage}
 ${readmeUsage}
 `;
@@ -153,7 +126,6 @@ export async function runCli(
   if (command === "knowledge") return runKnowledgeCommand(args.slice(1), io, services);
   if (command === "application") return runApplicationCommand(args.slice(1), io, services);
   if (command === "loop") return runLoopCommand(args.slice(1), io, services);
-  if (command === "trigger") return runLiveTriggerCommand(args.slice(1), io);
   if (command === "run") return runManagedCommand(args.slice(1), io, services);
   if (command === "deliberate") return runDeliberateCommand(args.slice(1), io, services);
   if (command === "trace") return runTraceCommand(args.slice(1), io, services);
@@ -167,23 +139,6 @@ export async function runCli(
   if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
-  if (command === "assignment" && args[1] === "mention") {
-    return runAssignmentCommunicationCommand(args.slice(1), io);
-  }
-  if (command === "assignment" && args[1] === "trigger") {
-    return runAssignmentMessageTriggerCommand(
-      args.slice(1),
-      io,
-      services.assignmentMessageTriggerAdapter,
-    );
-  }
-  if (command === "assignment" && args[1] === "connector") {
-    return runAssignmentConnectorCommand(args.slice(1), io, services);
-  }
-  if (command === "assignment" && args[1] === "topology") {
-    return runAssignmentTopologyCommand(args.slice(2), io);
-  }
-  if (command === "routine") return runAssignmentRoutineCommand(args.slice(1), io);
   if (command === "workforce" || command === "agent" || command === "assignment")
     return runWorkforceCommand(command, args.slice(1), io, services);
   if (command === "organization") return runAgentOrganizationCommand(args.slice(1), io);

@@ -1,12 +1,7 @@
 import { normalizeGovernedLoopPolicy } from "@lervo/application-contract";
 import type { ProjectStorage } from "@lervo/project-storage";
 import type { EventEnvelope } from "@lervo/schemas";
-import {
-  completionEvidenceId,
-  projectGovernedWorkReport,
-  projectManagedAttempts,
-  projectWorkGraphV2,
-} from "@lervo/work-controller";
+import { completionEvidenceId, projectGovernedWorkReport } from "@lervo/work-controller";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { longHistoryEvents } from "../../../packages/storage-contract/test/listed-event-source.fixture.js";
@@ -45,7 +40,6 @@ vi.mock("../src/workstream-services.js", () => ({
 
 const { inspectOperatingGoal } = await import("../src/operating-goal-inspection.js");
 const { inspectGovernedWork } = await import("../src/governed-work-inspection.js");
-const { loadAssignmentTopologySnapshot } = await import("../src/assignment-topology-inspection.js");
 const { recordGovernedCompletionEvidence } = await import("../src/governed-completion-evidence.js");
 
 const node = assignment("1", { status: "leased" });
@@ -120,24 +114,6 @@ describe("governed inspections over long history", () => {
       goal: { goalId: workstreamId },
       hierarchy: { graph: report.graph },
       progress: { total: 1 },
-    });
-  });
-
-  it("projects assignment topology beyond 100,000 events from typed reads", async () => {
-    const { events, storage } = useLongHistory(governedHistory());
-    const snapshot = await loadAssignmentTopologySnapshot(storage);
-    const attempts = projectManagedAttempts({ events, workstreamId }).attempts;
-    expect(attempts).toHaveLength(1);
-    expect({ ...snapshot.graph, observedAt: "" }).toEqual({
-      ...projectWorkGraphV2({
-        projectId,
-        workstreamId,
-        assignments: [node],
-        attempts,
-        events,
-        observedAt: snapshot.graph.observedAt,
-      }),
-      observedAt: "",
     });
   });
 

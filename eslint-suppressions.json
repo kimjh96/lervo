@@ -1,24 +1,4 @@
 {
-  "apps/cli/src/assignment-connector-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "apps/cli/src/assignment-message-trigger-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "apps/cli/src/assignment-routine-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
-  "apps/cli/src/assignment-topology-command.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "apps/cli/src/automatic-verification-suite.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1

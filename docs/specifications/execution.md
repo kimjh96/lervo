@@ -19,7 +19,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 - [Managed linked evidence](execution/managed-linked-evidence-canary.md): historical record of the default-off canary and shadow, removed by [ADR-0528](../decisions/search/activation/0528-remove-the-linked-evidence-canary-and-shadow.md).
 - [Capability packages](execution/capabilities.md): skills, MCP servers, plugins, and bundles.
 - [Provider adapters](execution/provider-adapters.md): provider-specific configuration, terminal integration, usage normalization, publication evaluation, and result projection. Codex and Claude share provider-neutral contracts without invented telemetry.
-- Repository assignments: [interactions](execution/assignment-interactions.md), [routines](execution/assignment-routines.md), and [connectors](execution/assignment-connectors.md).
+- Repository assignments: [interactions](execution/assignment-interactions.md).
 - [Governed loops](../roadmap/governed-loop-assignment-graph.md): bounded continuation.
 - [Repository knowledge compilation](../specs/repository-knowledge-compilation.md): owns scanner, taxonomy, normalization bounds, caching, retry, publication, durable apply, lifecycle, skill, entrypoint, agent-surface, and recovery details.
 - [State lifecycle](execution/state-lifecycle.md): durable local data and rebuildable projections.

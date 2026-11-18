@@ -28,7 +28,7 @@ function outputIo(root: string) {
 }
 
 describe("assignment communication inspection", () => {
-  it("resolves one role mention through an exact handoff and rebuilds thread and inbox views", async () => {
+  it("rebuilds thread and inbox views from an exact acknowledged handoff", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-assignment-communication-"));
     roots.push(root);
     const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
@@ -38,7 +38,7 @@ describe("assignment communication inspection", () => {
       schemaVersion: 1,
       status: "active",
       title: "Assignment communication",
-      objective: "Route one exact workforce mention.",
+      objective: "Record one exact workforce handoff.",
       nextActions: [],
       blockers: [],
       notes: [],
@@ -93,7 +93,7 @@ describe("assignment communication inspection", () => {
           "--role",
           "developer",
           "--criteria",
-          "Route one mention.",
+          "Record one handoff.",
           "--suite",
           "project.quick",
           "--path",
@@ -118,7 +118,7 @@ describe("assignment communication inspection", () => {
           "--agent",
           developer.agentId,
           "--session",
-          "ses_mentionroute0001",
+          "ses_handoffroute0001",
           "--write",
           "--json",
         ],
@@ -129,39 +129,35 @@ describe("assignment communication inspection", () => {
       lease: { leaseId: string };
     };
 
-    const planOutput = outputIo(root);
-    const mentionArgs = [
-      "assignment",
-      "mention",
-      "--assignment",
-      assignment.assignmentId,
-      "--from-agent",
-      developer.agentId,
-      "--mention",
-      "@role:researcher",
-      "--lease",
-      claimed.lease.leaseId,
-      "--request-digest",
-      `sha256:${"d".repeat(64)}`,
-      "--artifact",
-      `art_mentionroute01=sha256:${"e".repeat(64)}`,
-      "--evidence-event",
-      "evt_mentionroute01",
-    ];
-    expect(await runCli([...mentionArgs, "--json"], planOutput.io)).toBe(0);
-    const routePlan = JSON.parse(planOutput.stdout.join("")) as {
-      plan: { planId: string; recipientAgentId: string };
-    };
-    expect(routePlan.plan.recipientAgentId).toBe(researcher.agentId);
-
-    const applyOutput = outputIo(root);
+    const handoffOutput = outputIo(root);
     expect(
       await runCli(
-        [...mentionArgs, "--apply", routePlan.plan.planId, "--write", "--json"],
-        applyOutput.io,
+        [
+          "assignment",
+          "handoff",
+          "--assignment",
+          assignment.assignmentId,
+          "--from-agent",
+          developer.agentId,
+          "--to-agent",
+          researcher.agentId,
+          "--lease",
+          claimed.lease.leaseId,
+          "--request-digest",
+          `sha256:${"d".repeat(64)}`,
+          "--artifact",
+          `art_handoffroute01=sha256:${"e".repeat(64)}`,
+          "--evidence-event",
+          "evt_handoffroute01",
+          "--write",
+          "--json",
+        ],
+        handoffOutput.io,
       ),
     ).toBe(0);
-    const applied = JSON.parse(applyOutput.stdout.join("")) as { appliedHandoffId: string };
+    const handoffId = (
+      JSON.parse(handoffOutput.stdout.join("")) as { handoffs: { handoffId: string }[] }
+    ).handoffs.at(-1)!.handoffId;
     const acknowledgementOutput = outputIo(root);
     expect(
       await runCli(
@@ -171,7 +167,7 @@ describe("assignment communication inspection", () => {
           "--assignment",
           assignment.assignmentId,
           "--handoff",
-          applied.appliedHandoffId,
+          handoffId,
           "--agent",
           researcher.agentId,
           "--write",
@@ -192,7 +188,7 @@ describe("assignment communication inspection", () => {
 
     expect(report.validity).toEqual({ status: "valid", reasonCodes: [] });
     expect(report.threads[0]!.routes[0]).toMatchObject({
-      handoffId: applied.appliedHandoffId,
+      handoffId,
       fromAgentId: developer.agentId,
       toAgentId: researcher.agentId,
       routeState: "recorded",

@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@lervo/adapter-discord": "workspace:*",
-    "@lervo/adapter-slack": "workspace:*",
     "@lervo/cas": "workspace:*",
     "@lervo/conversation-contract": "workspace:*",
     "@lervo/conversation-control": "workspace:*",

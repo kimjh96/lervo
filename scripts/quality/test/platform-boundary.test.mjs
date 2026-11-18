@@ -28,7 +28,7 @@ const baseFiles = {
   "apps/runtime/src/neutral.ts": "export const neutral = true;\n",
   "apps/runtime/test/config.test.ts": "const discord = 'test only';\n",
   "packages/adapter-discord/src/adapter.ts": "export const discord = 'adapter';\n",
-  "packages/adapter-slack/src/adapter.ts": "export const slack = 'adapter';\n",
+  "apps/runtime/src/slack-adapter.ts": "export const slack = 'adapter';\n",
 };
 
 async function observedBaseline(root) {

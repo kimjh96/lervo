@@ -9,7 +9,7 @@
 
 The headless application boundary rebuilds [operating-attention](../../specifications/execution/operating-attention.md) and [operating-liveness](../../specifications/execution/operating-liveness.md) reports alongside assignment, attempt, resource, and next-action reports.
 
-See [resource and performance budgets](../../specifications/execution/resource-and-performance-budgets.md), [bounded unattended scheduling](../../specifications/execution/unattended-scheduling.md), [interactions](../../specifications/execution/assignment-interactions.md), [routines](../../specifications/execution/assignment-routines.md), and [connectors](../../specifications/execution/assignment-connectors.md).
+See [resource and performance budgets](../../specifications/execution/resource-and-performance-budgets.md), [bounded unattended scheduling](../../specifications/execution/unattended-scheduling.md), and [interactions](../../specifications/execution/assignment-interactions.md).
 
 ## Decisions
 

@@ -5,7 +5,6 @@ import {
   DiscordRestTyping,
   DiscordRestWebhookDelivery,
 } from "@lervo/adapter-discord";
-import { SlackWebApiDelivery } from "@lervo/adapter-slack";
 import type {
   ConversationPlatformDeliveryReplayPort,
   PlatformDeliveryReplayDecision,
@@ -72,51 +71,6 @@ const outboundId = `cvo_${"a".repeat(64)}`;
 const at = "2026-08-20T01:00:00.000Z";
 
 describe("credential-backed platform delivery", () => {
-  it("uses Slack OAuth without active markup and replays one confirmed message", async () => {
-    const replay = new MemoryReplay();
-    const request = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
-      expect(init?.headers).toMatchObject({ authorization: `Bearer xoxb-${"s".repeat(40)}` });
-      const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
-      expect(body).toMatchObject({
-        channel: "C123",
-        text: "Review &lt;@U123&gt; &amp; confirm",
-        mrkdwn: false,
-        thread_ts: "1710000000.000100",
-        reply_broadcast: false,
-      });
-      return new Response(JSON.stringify({ ok: true, channel: "C123", ts: "1710000001.000100" }), {
-        status: 200,
-        headers: { "content-type": "application/json" },
-      });
-    });
-    const delivery = new SlackWebApiDelivery({
-      integrationId: "itg_slack001",
-      botToken: `xoxb-${"s".repeat(40)}`,
-      replay,
-      fetch: request as typeof fetch,
-      now: () => new Date(at),
-    });
-    const input = {
-      outboundId,
-      teamId: "T123",
-      channelId: "C123",
-      threadTs: "1710000000.000100",
-      replyToTs: "1710000000.000100",
-      text: "Review <@U123> & confirm",
-      automationDepth: 1,
-      format: "plain" as const,
-    };
-    await expect(delivery.send(input)).resolves.toEqual({
-      messageTs: "1710000001.000100",
-      deliveredAt: at,
-    });
-    await expect(delivery.send(input)).resolves.toEqual({
-      messageTs: "1710000001.000100",
-      deliveredAt: at,
-    });
-    expect(request).toHaveBeenCalledOnce();
-  });
-
   it("sends Discord with an enforced nonce and disables all mention parsing", async () => {
     const replay = new MemoryReplay();
     const request = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
@@ -589,9 +543,9 @@ describe("credential-backed platform delivery", () => {
     const request = vi.fn(async () => {
       throw new Error("connection reset after write");
     });
-    const credential = `xoxb-${"private".repeat(8)}`;
-    const delivery = new SlackWebApiDelivery({
-      integrationId: "itg_slack001",
+    const credential = "private".repeat(8);
+    const delivery = new DiscordRestDelivery({
+      integrationId: "itg_discord01",
       botToken: credential,
       replay,
       fetch: request as typeof fetch,
@@ -599,13 +553,15 @@ describe("credential-backed platform delivery", () => {
     });
     const input = {
       outboundId,
-      teamId: "T123",
-      channelId: "C123",
-      threadTs: null,
-      replyToTs: null,
-      text: "response-loss check",
+      guildId: "123456789012345678",
+      channelId: "223456789012345678",
+      threadId: null,
+      replyToMessageId: null,
+      content: "response-loss check",
       automationDepth: 1,
-      format: "plain" as const,
+      audienceParticipation: "eligible" as const,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
     };
     await expect(delivery.send(input)).rejects.toMatchObject({ code: "platform_delivery_failed" });
     await expect(delivery.send(input)).rejects.toThrow("Operator review is required");
@@ -617,34 +573,33 @@ describe("credential-backed platform delivery", () => {
     }
   });
 
-  it("keeps an explicit Slack rejection distinct from an unknown response", async () => {
+  it("keeps an explicit Discord rejection distinct from an unknown response", async () => {
     const replay = new MemoryReplay();
     const request = vi.fn(
       async () =>
-        new Response(
-          JSON.stringify({
-            ok: false,
-            error: "channel_not_found",
-          }),
-          { status: 200, headers: { "content-type": "application/json" } },
-        ),
+        new Response(JSON.stringify({ code: 10003, message: "Unknown Channel" }), {
+          status: 404,
+          headers: { "content-type": "application/json" },
+        }),
     );
-    const delivery = new SlackWebApiDelivery({
-      integrationId: "itg_slack001",
-      botToken: `xoxb-${"s".repeat(40)}`,
+    const delivery = new DiscordRestDelivery({
+      integrationId: "itg_discord01",
+      botToken: "d".repeat(40),
       replay,
       fetch: request as typeof fetch,
       now: () => new Date(at),
     });
     const input = {
       outboundId,
-      teamId: "T123",
-      channelId: "C404",
-      threadTs: null,
-      replyToTs: null,
-      text: "rejection-state check",
+      guildId: "123456789012345678",
+      channelId: "223456789012345679",
+      threadId: null,
+      replyToMessageId: null,
+      content: "rejection-state check",
       automationDepth: 1,
-      format: "plain" as const,
+      audienceParticipation: "eligible" as const,
+      allowedMentions: "none" as const,
+      enforceIdempotency: true as const,
     };
     await expect(delivery.send(input)).rejects.toThrow("rejected message delivery");
     await expect(delivery.send(input)).rejects.toThrow("rejected message delivery");

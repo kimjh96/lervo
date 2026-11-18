@@ -11,11 +11,11 @@ Verified against `apps/*/src` and `packages/*/src`.
 | Token usage report; CLI budget stops | `wired`; cost is `not_in_foundation_scope` | `docs/evidence/foundation/managed-execution-resource-budgets-v1.md` lists focused tests only |
 | Node supervision token ceiling and owner spend allowance | `installed-proven` | `docs/evidence/foundation/outcome-supervision-local-and-wsl/deployment-and-upgrades/acceptance-and-dispatch/settlement-and-budget.md` |
 | Budget warnings to the operator | `contract-only` toward Discord | Node health only |
-| Routines; authenticated live webhook | `wired`; cron absent | `docs/evidence/foundation/authenticated-live-webhook-trigger-v1.md` (loopback, temp consumer) |
+| Routines; authenticated live webhook | Removed by ADR-0560 | None |
 | Scheduler and liveness | `wired` | `docs/evidence/foundation/installed-bounded-unattended-scheduler-v1.md` (fixture provider) |
-| Mention routing, assignment inbox, direct-message trigger | `wired` (CLI); no Node reference | Packed consumer |
+| Assignment inbox | `wired` (CLI); no Node reference; mention routing and direct-message trigger removed by ADR-0560 | Packed consumer |
 | Approval gating | Gating `wired`, granting `contract-only` | No production approval authority port |
 | Activity feed | `wired` (protocol v8) | No evidence document |
 | Organization portfolio | `wired` | No installed multi-team evidence |
-| Slack connector | `wired` | Controlled transport only |
-| Dynamic topology v2 | `wired` | `docs/evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md` (temp consumer, fixture) |
+| Slack connector | Removed by ADR-0560 | None |
+| Dynamic topology v2 | `wired` through automatic supervision topology; manual CLI route removed by ADR-0560 | `docs/evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md` (temp consumer, fixture; exercised the removed route) |

@@ -7,55 +7,12 @@ import {
   DiscordRestTyping,
   type DiscordDeliveryPort,
 } from "@lervo/adapter-discord";
-import { SlackConversationAdapter, SlackWebApiDelivery } from "@lervo/adapter-slack";
 
-import type {
-  ConversationApplicationOptions,
-  DiscordConversationDeployment,
-  SlackConversationDeployment,
-} from "./types.js";
+import type { ConversationApplicationOptions, DiscordConversationDeployment } from "./types.js";
 import type {
   ConversationIntegrationContext,
   ConversationIntegrationDeployment,
 } from "./integration.js";
-
-function slackIntegration(
-  deployment: SlackConversationDeployment,
-): ConversationIntegrationDeployment {
-  return {
-    integrationId: deployment.integrationId,
-    platform: "slack",
-    create: (context: ConversationIntegrationContext) => {
-      const delivery = new SlackWebApiDelivery({
-        integrationId: deployment.integrationId,
-        botToken: deployment.botToken,
-        replay: context.deliveryReplay,
-        ...(context.now === undefined ? {} : { now: context.now }),
-        ...(context.fetch === undefined ? {} : { fetch: context.fetch }),
-        ...(deployment.requestTimeoutMs === undefined
-          ? {}
-          : {
-              requestTimeoutMs: deployment.requestTimeoutMs,
-            }),
-        ...(deployment.maxResponseBytes === undefined
-          ? {}
-          : {
-              maxResponseBytes: deployment.maxResponseBytes,
-            }),
-      });
-      return new SlackConversationAdapter({
-        integrationId: deployment.integrationId,
-        apiAppId: deployment.apiAppId,
-        allowedTeamIds: deployment.allowedTeamIds,
-        signingSecret: deployment.signingSecret,
-        identity: context.identity,
-        artifactStore: context.artifactStore,
-        delivery,
-        ...(context.now === undefined ? {} : { now: context.now }),
-      });
-    },
-  };
-}
 
 function discordIntegration(
   deployment: DiscordConversationDeployment,
@@ -179,7 +136,6 @@ export function configuredConversationIntegrations(
   > = new Map(),
 ): ConversationIntegrationDeployment[] {
   return [
-    ...(options.slack ?? []).map(slackIntegration),
     ...(options.discord ?? []).map((deployment) => {
       const authentication =
         discordGatewayAuthentications.get(deployment.integrationId) ??

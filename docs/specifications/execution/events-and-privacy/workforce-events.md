@@ -15,7 +15,7 @@ Version-four background convergence assignments also support `assignment.converg
 - [Root-agent liveness](workforce-events/root-agent-liveness.md)
 - [Routine assignment provenance](workforce-events/routine-assignment-provenance.md)
 - [Conversation knowledge-job assignment provenance](workforce-events/knowledge-job-assignment-provenance.md)
-- [Handoff and connector delivery](workforce-events/handoff-and-connector-delivery.md)
+- [Handoff and acknowledgment](workforce-events/handoff-and-acknowledgment.md)
 - [Governed-loop projection](workforce-events/governed-loop-projection.md)
 - [Cancellation](workforce-events/cancellation.md)
 - [Completion preparation](workforce-events/completion-preparation.md)

@@ -1,8 +1,6 @@
 import type { DoctorInspection, DoctorScope } from "@lervo/diagnostics";
 import type { EnvironmentObservation, EnvironmentSourceManifest } from "@lervo/environment";
 import type { ProjectStorage } from "@lervo/project-storage";
-import type { AssignmentMessageTriggerAdapterV1 } from "@lervo/agent-workforce";
-import type { AssignmentConnectorPortV1 } from "@lervo/application-contract";
 
 import type { ExecuteManagedRun } from "./managed-run.js";
 import type {
@@ -62,8 +60,6 @@ export interface CliServices {
   finalizeGovernedAssignment: FinalizeGovernedAssignment;
   reconcileGovernedAssignment: ReconcileGovernedAssignment;
   prepareSearchQueries?: PrepareProductionSearchQueries | undefined;
-  assignmentConnectorPort?: AssignmentConnectorPortV1 | undefined;
-  assignmentMessageTriggerAdapter?: AssignmentMessageTriggerAdapterV1 | undefined;
   /** Test seam for foreground waits on a live knowledge materialization owner. */
   knowledgeMaterializationWait?: KnowledgeMaterializationWaitTiming | undefined;
   /** Test seam for the upgrade's hold on the background resident's full-cycle admission. */

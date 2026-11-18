@@ -2,8 +2,6 @@ export * from "./supervised-assignment-amendment.js";
 export * from "./scoped-work-handoff.js";
 export * from "./supervised-owner-attention.js";
 export * from "./assignment-communication.js";
-export * from "./assignment-connector.js";
-export * from "./assignment-routine.js";
 export * from "./assignment-topology.js";
 export * from "./automatic-topology.js";
 export * from "./improvement-effect.js";

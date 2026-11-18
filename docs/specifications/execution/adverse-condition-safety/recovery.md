@@ -29,7 +29,6 @@ An external timeout, stream failure, stop failure, lost response, or local cance
 | Remote command delivery | command receiver | external | command idempotency key | disabled | receipt reconciliation | execution receipt |
 | Organization deployment | deployment runtime | external | deployment attempt | disabled | target reconciliation | deployment receipt |
 | Repository migration apply | durable knowledge apply | repository | exact migration plan | before effect only | journal rollback | `knowledge.materialization.applied` |
-| Live-trigger assignment invocation | live-trigger reservation store and assignment routine | local | source-event-key and invocation fingerprints | exact replay after recovery only | explicit stale-reservation recovery, then convergent assignment IDs | live-trigger completion plus `assignment.created` |
 
 The machine-readable inventory is versioned in the reliability package and copied into the generated evidence report. Verification fails if a state-changing category lacks an entry.
 

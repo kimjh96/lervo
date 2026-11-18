@@ -20,7 +20,7 @@ manual or bounded scheduler trigger -> verified checkpoint -> assignment decisio
 
 - [Execution and authority](governed-loop-assignment-graph/execution.md): GLA1–3 and GLA17; graph decisions, approval, cancellation, prepared completion, and resource budgets.
 - [Operating reports and product host](governed-loop-assignment-graph/operating.md): GLA4–5 and GLA14–16; local board, objective, observed budgets, capabilities, attention, and goal projection.
-- [Collaboration and connectors](governed-loop-assignment-graph/collaboration.md): GLA6–8, GLA11, and GLA18; interactions, routines, authenticated delivery, Slack, reviewed message triggering, and explicit acknowledgment.
+- [Collaboration and connectors](governed-loop-assignment-graph/collaboration.md): GLA6–8, GLA11, and GLA18; interactions and explicit acknowledgment. [ADR-0560](../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed routines, connector delivery, Slack, and reviewed message triggering.
 - [Improvement observation](governed-loop-assignment-graph/improvement.md): GLA9–10 and GLA12–13; reviewed effects, bounded local metrics, and explicit CLI authority.
 
 ## Responsibility boundaries
@@ -54,8 +54,7 @@ Before implementation, a separate reviewed contract must define signal authentic
 
 ## Conditional future sequence
 
-1. Add a second connector only for a current product need. Reuse shared conformance; keep provider-native credentials, destinations, receipts, and recovery semantics in its adapter.
-2. Add another improvement metric only after its counting unit, evidence source, ground truth, privacy boundary, and versioned policy are explicit.
+1. Add another improvement metric only after its counting unit, evidence source, ground truth, privacy boundary, and versioned policy are explicit.
 
 ## References
 
@@ -81,10 +80,7 @@ Before implementation, a separate reviewed contract must define signal authentic
 - [ADR-0375](../decisions/execution/orchestration/governed-work/0375-route-reviewed-direct-messages-and-record-explicit-handoff-acknowledgment.md)
 - [ADR-0379](../decisions/execution/orchestration/governed-work/0379-install-bounded-unattended-assignment-scheduling.md)
 - [Assignment interaction specification](../specifications/execution/assignment-interactions.md)
-- [Assignment connector specification](../specifications/execution/assignment-connectors.md)
-- [Assignment routine specification](../specifications/execution/assignment-routines.md)
 - [Bounded unattended scheduler specification](../specifications/execution/unattended-scheduling.md)
 - [Bounded dynamic assignment topology](../specifications/execution/dynamic-assignment-topology.md)
-- [Reviewed direct-message trigger specification](../specifications/execution/assignment-message-triggers.md)
 - [Verified improvement-effect dogfood](../evidence/pilots/verified-improvement-effect-dogfood.md)
 - [Execution specification](../specifications/execution.md)

@@ -4,7 +4,7 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { verifyPackedProductHostCapabilities } from "./product-host-capability-consumer.mjs";
-import { verifyPackedProductHostMessageJourney } from "./product-host-message-consumer.mjs";
+import { verifyPackedProductHostHandoffJourney } from "./product-host-handoff-consumer.mjs";
 import { verifyPackedProductHostSurfaces } from "./product-host-surface-consumer.mjs";
 
 function sha256(value) {
@@ -368,11 +368,8 @@ export async function verifyPackedProductHostConsumer(consumerRoot, runCli) {
 
   await verifyPackedProductHostSurfaces(runCli, consumerRoot, workstream.projectId);
 
-  await verifyPackedProductHostMessageJourney({
-    consumerRoot,
+  await verifyPackedProductHostHandoffJourney({
     runCli,
-    projectId: workstream.projectId,
-    workstreamId: workstream.workstreamId,
     assignmentId: assignment.assignmentId,
     sourceAgentId: agentId,
     recipientAgentId: recipient.agentId,

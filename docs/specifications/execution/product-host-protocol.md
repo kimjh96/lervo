@@ -26,6 +26,8 @@ Explicit protocol versions add capabilities without changing earlier versions:
 - v10: source-bound managed-work observability over canonical execution evidence.
 - v11: source-bound installed deliberation projection over queue, event, artifact, verification, organization, resource, publication, and delivery evidence.
 
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the `assignment mention`, `assignment trigger`, `assignment connector`, `assignment topology`, and `routine materialize` commands. The frozen route descriptors that name them no longer resolve to a command, and ADR-0560 removes this protocol in a later batch.
+
 ```bash
 lervo application capabilities --protocol 2 --json
 lervo application capabilities --protocol 3 --json
@@ -66,9 +68,6 @@ Future versions add Lervo-owned reference-product capabilities defined by the [p
 - [Operating goals](operating-goals.md)
 - [Governed loop roadmap](../../roadmap/governed-loop-assignment-graph.md)
 - [Assignment interactions](assignment-interactions.md)
-- [Reviewed direct-message triggers and handoff acknowledgment](assignment-message-triggers.md)
-- [Assignment routines](assignment-routines.md)
-- [Assignment connectors](assignment-connectors.md)
 - [Product surfaces](product-surfaces.md)
 - [ADR-0417](../../decisions/execution/applications/0417-own-discord-visible-reference-product.md)
 - [ADR-0418](../../decisions/execution/applications/0418-retain-deliberation-as-bounded-decision-workflow.md)

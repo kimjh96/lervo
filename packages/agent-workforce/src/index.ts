@@ -3,8 +3,6 @@ export { reconcileSettledAssignmentCompletion } from "./assignment-settled-compl
 export { amendedAssignment } from "./assignment-amendment-state.js";
 export * from "./assignment-graph.js";
 export * from "./agent-liveness.js";
-export * from "./assignment-mention-routing.js";
-export * from "./assignment-message-trigger.js";
 export * from "./assignment-topology-state.js";
 export * from "./assignment-completion-reconciliation.js";
 export * from "./store.js";

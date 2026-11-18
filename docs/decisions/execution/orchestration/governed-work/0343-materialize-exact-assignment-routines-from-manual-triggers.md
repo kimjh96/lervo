@@ -1,7 +1,9 @@
 # ADR-0343: Materialize exact assignment routines from manual triggers
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-02
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 
@@ -31,7 +33,7 @@ Paperclip-like repeatable work becomes available through repository-native workf
 
 ## References
 
-- [Assignment routine specification](../../../../specifications/execution/assignment-routines.md)
+- Assignment routine specification, removed by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 - [Governed loop roadmap](../../../../roadmap/governed-loop-assignment-graph.md)
 - [Recommended Paperclip operating model](../../../../research/paperclip-lervo-comparison/recommendations/operating-model.md)
 - [Execution events and privacy](../../../../specifications/execution/events-and-privacy.md)

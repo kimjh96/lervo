@@ -9,7 +9,6 @@
         "apps/conversation/src/application.ts": { "lines": 16 },
         "apps/conversation/src/built-in-integrations.ts": { "lines": 28 },
         "apps/conversation/src/types.ts": { "lines": 18 },
-        "apps/node-runtime/src/entry.ts": { "lines": 3 },
         "apps/node-runtime/src/config-preflight.ts": { "lines": 7 },
         "apps/node-runtime/src/config-types.ts": { "lines": 3 },
         "apps/node-runtime/src/config.ts": { "lines": 23 },
@@ -81,6 +80,7 @@
         "apps/node-runtime/src/deployment-conversation.ts": { "lines": 34 },
         "apps/node-runtime/src/deployment-supervision.ts": { "lines": 7 },
         "apps/node-runtime/src/deployment.ts": { "lines": 6 },
+        "apps/node-runtime/src/entry.ts": { "lines": 3 },
         "apps/node-runtime/src/index.ts": { "lines": 8 },
         "apps/node-runtime/src/open-ports.ts": { "lines": 5 },
         "apps/node-runtime/src/product-owner-supervision-policy.ts": { "lines": 4 },
@@ -97,13 +97,6 @@
         "packages/schemas/src/surface-observability-report.ts": { "lines": 1 }
       }
     },
-    "slack": {
-      "files": {
-        "apps/conversation/src/application.ts": { "lines": 5 },
-        "apps/conversation/src/built-in-integrations.ts": { "lines": 8 },
-        "apps/conversation/src/types.ts": { "lines": 4 },
-        "packages/conversation-platform/src/types.ts": { "lines": 1 }
-      }
-    }
+    "slack": { "files": { "packages/conversation-platform/src/types.ts": { "lines": 1 } } }
   }
 }

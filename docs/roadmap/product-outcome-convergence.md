@@ -55,6 +55,5 @@ Acceptance records and boundaries:
 - [Installed natural-language capability journey v1](../evidence/foundation/installed-natural-language-capability-journey-v1.md)
 - [Installed fresh-session cross-provider continuation v1](../evidence/foundation/installed-fresh-session-cross-provider-continuation-v1.md)
 - [Evidence-bound agent-profile candidates v1](../evidence/foundation/evidence-bound-agent-profile-candidates-v1.md)
-- [Authenticated live webhook trigger v1](../evidence/foundation/authenticated-live-webhook-trigger-v1.md)
 - [Installed bounded unattended scheduler v1](../evidence/foundation/installed-bounded-unattended-scheduler-v1.md)
 - [Installed bounded dynamic execution graph v2](../evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md)

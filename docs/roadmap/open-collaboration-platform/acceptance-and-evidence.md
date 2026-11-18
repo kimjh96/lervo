@@ -19,7 +19,7 @@ Under ADR-0452 section 5, these entries moved from `implemented` to `wired` beca
 
 - Every [Prime-Agent-derived execution outcome](../product-outcome-convergence/execution.md) except provider-native resume.
 - Every [repository knowledge outcome](../product-outcome-convergence/repository-knowledge.md).
-- Reviewed local and authenticated live triggers, Slack, dynamic execution graphs, replaceable components, and separately installed hosts in [host-product outcomes](../product-outcome-convergence/host-products.md).
+- Dynamic execution graphs, replaceable components, and separately installed hosts in [host-product outcomes](../product-outcome-convergence/host-products.md). ADR-0560 removed the reviewed local and authenticated live trigger and Slack outcomes.
 
 Guild `/goal` intake and the supervision token ceiling retain installed evidence and the label `installed-proven`. The multi-party conversation entry replaces the undefined `installed acceptance required` with `delivery required`.
 
