@@ -11,6 +11,7 @@ import {
 } from "@lervo/repository-knowledge";
 
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { agreeingCrossCheck, planCrossCheck } from "./plan-cross-check-fixture.js";
 import type { ManagedDeliberationOutcome } from "../src/managed-deliberation.js";
 
@@ -116,10 +117,11 @@ describe("lervo init CLI", () => {
         stderr: (message: string) => messages.push(message),
       }),
     ).toBe(0);
-    // ADR-0561: a reviewed stage no session could cross-check is Lervo debt, never owner authority.
+    // ADR-0561: a reviewed stage that cannot land as its own undo commit, here outside Git, is
+    // Lervo debt, never owner authority.
     expect(messages.join("")).toContain("Onboarding: lervo_debt");
     expect(messages.join("")).toContain(
-      "(Lervo debt: cross_check_unavailable; lervo upgrade --apply retries it, no owner action)",
+      "(Lervo debt: commit_unavailable; lervo upgrade --apply retries it, no owner action)",
     );
     expect(messages.join("")).not.toContain("authority");
     expect(messages.join("")).toContain("initial agent: agt_");
@@ -218,6 +220,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(await runCli(["knowledge", "structure", "delete", documentPath, "--json"], io)).toBe(0);
@@ -349,6 +352,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -467,6 +471,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -602,6 +607,7 @@ describe("lervo repository knowledge CLI", () => {
     expect(await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], io)).toBe(
       0,
     );
+    commitRepository(root);
 
     messages.length = 0;
     expect(
@@ -713,6 +719,7 @@ describe("lervo repository knowledge CLI", () => {
       stderr: (message: string) => errors.push(message),
     };
     expect(await runCli(["init"], io)).toBe(0);
+    commitRepository(root);
 
     messages.length = 0;
     expect(

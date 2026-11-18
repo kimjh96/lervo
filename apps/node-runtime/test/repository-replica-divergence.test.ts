@@ -128,20 +128,20 @@ describe("repository replica divergence surfacing", () => {
   it("holds the divergence as Lervo debt when no backup can be saved, then records an external reconciliation", async () => {
     const fixture = await repositories();
     const events = recordingEvents();
-    // A local port without a backup cannot make the preference reversible, so nothing changes.
-    const local = new LocalRepositoryReplicaPeer();
+    // A losing peer that cannot save itself, such as an older peer runtime, cannot make the
+    // preference reversible, so nothing changes.
+    const peer = new LocalRepositoryReplicaPeer();
     const coordinator = new RepositoryReplicaCoordinator({
       stateFile: fixture.stateFile,
-      local: {
-        captureVersion: () => local.captureVersion(),
-        snapshot: (root) => local.snapshot(root),
-        bundle: (root, hash) => local.bundle(root, hash),
-        apply: (input) => local.apply(input),
-        merge: (input) => local.merge(input),
-        reconcileKnowledgeSupersession: (input) => local.reconcileKnowledgeSupersession(input),
-        recordReceipt: (input) => local.recordReceipt(input),
+      local: new LocalRepositoryReplicaPeer(),
+      peer: {
+        captureVersion: () => peer.captureVersion(),
+        snapshot: (root) => peer.snapshot(root),
+        bundle: (root, hash) => peer.bundle(root, hash),
+        apply: (input) => peer.apply(input),
+        reconcileKnowledgeSupersession: (input) => peer.reconcileKnowledgeSupersession(input),
+        recordReceipt: (input) => peer.recordReceipt(input),
       },
-      peer: new LocalRepositoryReplicaPeer(),
       events: events.port,
     });
     const hold = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };

@@ -7,6 +7,7 @@ import { acquireFullCycleAdmission } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli as runUnisolatedCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import * as terminalRuntime from "../src/terminal-runtime.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
@@ -58,6 +59,8 @@ async function applyTerminalIntegration(root: string): Promise<void> {
   };
   for (let index = 0; index < 10; index += 1) {
     const plan = await migrate();
+    // A reviewed knowledge plan lands as its own undo commit over committed sources.
+    commitRepository(root);
     await migrate("--apply", plan.planId);
     if (plan.planKind === "terminal_integration") return;
   }

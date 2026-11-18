@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { formatRepositoryLayoutMigrationPlan } from "../src/knowledge-migration-format.js";
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
@@ -53,7 +54,9 @@ describe("repository layout migration CLI", () => {
       status: "review_required",
     });
     messages.length = 0;
-    // ADR-0561: an independent cross-check agrees, so Lervo applies the adoption itself.
+    // ADR-0561: an independent cross-check agrees, so Lervo applies the adoption itself as its
+    // own undo commit over the committed instruction files.
+    commitRepository(root);
     const crossCheck = planCrossCheck();
     expect(
       await runCli(
@@ -100,6 +103,7 @@ describe("repository layout migration CLI", () => {
       target: { classification: "exact_adopted_duplicate" },
     });
     messages.length = 0;
+    commitRepository(root);
     expect(
       await runCli(
         ["migrate", "knowledge", "--apply", bridge.planId, "--json"],
@@ -138,6 +142,7 @@ describe("repository layout migration CLI", () => {
     };
     expect(plan).toMatchObject({ planKind: "repository_layout", status: "review_required" });
     messages.length = 0;
+    commitRepository(root);
     const { services } = planCrossCheck();
     expect(
       await runCli(["migrate", "knowledge", "--apply", plan.planId, "--json"], io, services),
@@ -164,6 +169,7 @@ describe("repository layout migration CLI", () => {
     };
     expect(bridge.status).toBe("review_required");
     messages.length = 0;
+    commitRepository(root);
     expect(
       await runCli(["migrate", "knowledge", "--apply", bridge.planId, "--json"], io, services),
       errors.join(""),

@@ -18,6 +18,7 @@ import { resolveRepositoryCoordinationHome } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli as runUnisolatedCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { planCrossCheck } from "./plan-cross-check-fixture.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
@@ -346,6 +347,8 @@ describe("lervo upgrade", () => {
       resolve(skill, "SKILL.md"),
       "---\nname: reviewer\ndescription: Review bounded repository changes.\n---\n\nReview the requested files.\n",
     );
+    // A reviewed knowledge plan applies only as its own undo commit over committed sources.
+    commitRepository(root);
 
     const output: string[] = [];
     const errors: string[] = [];
@@ -380,15 +383,17 @@ describe("lervo upgrade", () => {
       expect.arrayContaining(["capabilities", "terminal_integration"]),
     );
     expect(receipt.knowledgeLint).toEqual({ valid: true, issueCount: 0 });
-    // No provider is admitted here, so the reviewed plan is held rather than asked of the owner.
-    expect(receipt.skippedStages).toContainEqual({
-      stage: "knowledge",
-      reason: "cross_check_unavailable",
-    });
+    // No provider is admitted here, so the reviewed plan is held rather than asked of the owner;
+    // a plan that overwrites a user-owned file is held without a cross-check (invariant 5).
+    const held = [
+      ...receipt.skippedStages.filter((item) => item.stage === "knowledge"),
+      ...receipt.pending,
+    ].map((item) => item.reason);
+    expect(
+      held.some((reason) => ["cross_check_unavailable", "user_owned_content"].includes(reason)),
+      JSON.stringify(receipt),
+    ).toBe(true);
     expect(receipt.status).toBe("lervo_debt");
-    expect(receipt.pending).toContainEqual(
-      expect.objectContaining({ reason: "cross_check_unavailable" }),
-    );
     expect(await readFile(resolve(root, "docs/knowledge/index.md"), "utf8")).toContain(
       "Repository knowledge",
     );
@@ -450,7 +455,7 @@ describe("lervo upgrade", () => {
     expect(errors.join("")).toContain("Run lervo init first");
   });
 
-  it("cross-checks and applies a reviewed knowledge plan without a background owner", async () => {
+  it("holds a reviewed plan that rewrites a user-owned file as Lervo debt (AGENTS.md invariant 5)", async () => {
     const root = await ignoreFixture();
     const firstOutput: string[] = [];
     const errors: string[] = [];
@@ -462,77 +467,84 @@ describe("lervo upgrade", () => {
         eventWriter: { disposition: string; reason: string };
       };
     };
-    // A new checkout writes schema 1; the event writer applies after the provider hooks.
     expect(first.status).toBe("ready");
     expect(first.stages.eventWriter).toMatchObject({
       disposition: "deferred",
       reason: "terminal_integration_must_apply_first",
     });
-    // ADR-0561: without a background owner, upgrade cross-checks and applies the plan itself.
+    // Without the owner's delegation, Lervo never rewrites the user's ignore file on its own.
     expect(first.stages.knowledge).toMatchObject({
-      disposition: "safe_apply",
-      reason: "cross_checked_apply",
+      disposition: "lervo_debt",
+      reason: "user_owned_content",
     });
     expect(first.stages.knowledge).not.toHaveProperty("layoutDecision");
 
     const checks = planCrossCheck("agree");
-    const applied: string[] = [];
-    expect(
-      await runCli(["upgrade", "--apply", "--json"], io(root, applied, errors), {
-        ...isolatedAdmission,
-        ...checks.services,
-      }),
-      errors.join(""),
-    ).toBe(0);
-    expect(checks.checked.length).toBeGreaterThan(0);
-    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("coverage/\n");
-    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("docs/knowledge/\n");
-    expect(errors).toEqual([]);
-  }, 30_000);
-
-  it("holds a reviewed knowledge plan the cross-check rejects as Lervo debt", async () => {
-    const root = await ignoreFixture();
-    const errors: string[] = [];
-    const checks = planCrossCheck("disagree");
-    const applied: string[] = [];
-    expect(
-      await runCli(["upgrade", "--apply", "--json"], io(root, applied, errors), {
-        ...isolatedAdmission,
-        ...checks.services,
-      }),
-      errors.join(""),
-    ).toBe(0);
-    const receipt = JSON.parse(applied.join("")) as {
-      skippedStages: Array<{ stage: string; reason: string }>;
-      appliedStages: string[];
-    };
-    expect(receipt.skippedStages).toContainEqual({
-      stage: "knowledge",
-      reason: "cross_check_disagreed",
-    });
-    // Independent stages still applied.
-    expect(receipt.appliedStages).toContain("event_writer");
-    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
-
-    // The rejected exact plan is held, not re-asked, and the plan reports it as Lervo debt.
-    const output: string[] = [];
-    expect(await runCli(["upgrade", "--json"], io(root, output, errors))).toBe(0);
-    const plan = JSON.parse(output.join("")) as {
-      status: string;
-      stages: { knowledge: { disposition: string; reason: string } };
-    };
-    expect(plan.stages.knowledge).toMatchObject({
-      disposition: "lervo_debt",
-      reason: "cross_check_disagreement_repeated",
-    });
-    expect(plan.status).toBe("lervo_debt");
-    const asked = checks.checked.length;
     expect(
       await runCli(["upgrade", "--apply", "--json"], io(root, [], errors), {
         ...isolatedAdmission,
         ...checks.services,
       }),
+      errors.join(""),
     ).toBe(0);
-    expect(checks.checked.length).toBe(asked);
-  }, 30_000);
+    expect(checks.checked).toEqual([]);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
+
+    // An owner command still applies it, cross-checked and committed as its undo point.
+    commitRepository(root);
+    const planned: string[] = [];
+    expect(await runCli(["migrate", "knowledge", "--json"], io(root, planned, errors))).toBe(0);
+    const plan = JSON.parse(planned.join("")) as { planId: string; status: string };
+    expect(plan.status).toBe("review_required");
+    expect(
+      await runCli(
+        ["migrate", "knowledge", "--apply", plan.planId],
+        io(root, [], errors),
+        checks.services,
+      ),
+      errors.join(""),
+    ).toBe(0);
+    expect(checks.checked.length).toBeGreaterThan(0);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toContain("docs/knowledge/\n");
+  }, 60_000);
+
+  it("changes nothing when an owner command's cross-check disagrees or the file is unsaved", async () => {
+    const root = await ignoreFixture();
+    commitRepository(root);
+    const errors: string[] = [];
+    const planned: string[] = [];
+    expect(await runCli(["migrate", "knowledge", "--json"], io(root, planned, errors))).toBe(0);
+    const plan = JSON.parse(planned.join("")) as { planId: string };
+    const disagree = planCrossCheck("disagree");
+    expect(
+      await runCli(
+        ["migrate", "knowledge", "--apply", plan.planId],
+        io(root, [], errors),
+        disagree.services,
+      ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("disagreed with plan");
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\n");
+    // An unsaved edit to a file the plan rewrites would enter its commit and be lost on undo.
+    errors.length = 0;
+    await writeFile(resolve(root, ".gitignore"), "coverage/\ndist/\n");
+    const agree = planCrossCheck("agree");
+    const replanned: string[] = [];
+    expect(await runCli(["migrate", "knowledge", "--json"], io(root, replanned, errors))).toBe(0);
+    expect(
+      await runCli(
+        [
+          "migrate",
+          "knowledge",
+          "--apply",
+          (JSON.parse(replanned.join("")) as { planId: string }).planId,
+        ],
+        io(root, [], errors),
+        agree.services,
+      ),
+    ).toBe(1);
+    expect(errors.join("")).toContain("hold uncommitted work");
+    expect(agree.checked).toEqual([]);
+    expect(await readFile(resolve(root, ".gitignore"), "utf8")).toBe("coverage/\ndist/\n");
+  }, 60_000);
 });

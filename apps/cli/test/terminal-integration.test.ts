@@ -42,9 +42,13 @@ import {
   applyTerminalIntegrationStage,
   planTerminalIntegrationStage,
 } from "../src/terminal-integration-stage.js";
+import { commitRepository } from "./committed-repository.js";
 import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import { holdEffect } from "../src/held-effect-debt.js";
-import { inspectTerminalIntegration } from "../src/upgrade-terminal-inspection.js";
+import {
+  inspectTerminalIntegration,
+  terminalIntegrationHoldSubject,
+} from "../src/upgrade-terminal-inspection.js";
 import { terminalTurnDeclarationRequired } from "../src/terminal-lifecycle-inspection.js";
 import { terminalKnowledgeSnapshotId } from "../src/terminal-compact-context.js";
 import { captureTerminalRepositorySnapshot } from "../src/terminal-repository-snapshot.js";
@@ -789,6 +793,8 @@ describe("terminal integration CLI", () => {
       for (let index = 0; index < 10; index += 1) {
         const plan = await migrate();
         if (plan.planKind === "terminal_integration") return plan;
+        // A reviewed knowledge plan lands as its own undo commit over committed sources.
+        commitRepository(root);
         await migrate("--apply", plan.planId);
       }
       throw new Error("Terminal integration plan did not become reachable.");
@@ -1081,6 +1087,7 @@ describe("terminal integration CLI", () => {
       resolve(root, "HANDOFF.md"),
       "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
     );
+    commitRepository(root);
     const migrationOutput: string[] = [];
     expect(
       await runCli(["migrate", "knowledge", "--json"], {
@@ -1660,6 +1667,7 @@ describe("terminal integration CLI", () => {
       resolve(root, ".claude/settings.json"),
       '{"permissions":{"deny":["Bash"]},"hooks":{"Stop":[{"hooks":[{"type":"command","command":"existing-stop"}]}]}}\n',
     );
+    commitRepository(root);
     const messages: string[] = [];
     const errors: string[] = [];
     const io = {
@@ -1754,7 +1762,7 @@ describe("terminal integration CLI", () => {
     await holdEffect({
       repositoryRoot: root,
       effect: "upgrade_terminal_integration",
-      subject: prepared.plan.planId,
+      subject: terminalIntegrationHoldSubject(prepared.plan),
       reasonCode: "verification_failed",
     });
     expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
@@ -1852,6 +1860,7 @@ describe("compact terminal prompt context", () => {
         resolve(root, "HANDOFF.md"),
         "# Active launch handoff\n\n## Current objective\n\nFinish the cobalt launch gate.\n\n## Next actions\n\n- Verify the device build.\n",
       );
+      commitRepository(root);
       const migrationOutput: string[] = [];
       const quiet = { cwd: root, stdout: () => undefined, stderr: () => undefined };
       expect(

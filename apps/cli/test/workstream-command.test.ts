@@ -7,6 +7,7 @@ import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
@@ -235,6 +236,8 @@ describe("workstream CLI", () => {
       planKind: string;
     };
     expect(plan.planKind).toBe("continuation_workstream");
+    // ADR-0561: the migration lands as its own undo commit over the committed HANDOFF.md.
+    commitRepository(root);
     const applyOutput: string[] = [];
     expect(
       await runCli(

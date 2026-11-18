@@ -6,6 +6,7 @@ import type { DocumentRouteClassificationRequest } from "@lervo/repository-knowl
 import { KnowledgeConvergenceRuntimeError } from "../../../packages/repository-knowledge-runtime/src/failure.js";
 import { pauseKnowledgeProvider } from "../../../packages/repository-knowledge-runtime/src/provider-admission.js";
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const provider = vi.hoisted(() => ({
@@ -167,6 +168,8 @@ it("classifies TRACE during migrate --provider and applies its move after an ind
     code: "ENOENT",
   });
   messages.length = 0;
+  // ADR-0561: the move lands as its own undo commit, so the moved document is committed first.
+  commitRepository(root);
   const crossCheck = planCrossCheck();
   expect(
     await runCli(

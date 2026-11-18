@@ -6,19 +6,21 @@ import { revertFreshnessCandidate } from "../src/freshness-revert.js";
 import { listFreshnessCandidates, readFreshnessCycleState } from "../src/freshness-state-store.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
 
-/** AGENTS.md invariant 5: documents a test treats as Lervo-managed; every other one is user-owned. */
-const ownership = vi.hoisted(() => ({ managed: new Set<string>() }));
+/** AGENTS.md invariant 5: documents a test treats as Lervo-managed or as user-owned. */
+const ownership = vi.hoisted(() => ({ managed: new Set<string>(), user: new Set<string>() }));
 vi.mock("@lervo/repository-knowledge", async (importOriginal) => {
   const { lervoManagedDocuments } = await import("./freshness-ownership.js");
   return lervoManagedDocuments(
     await importOriginal<typeof import("@lervo/repository-knowledge")>(),
     ownership.managed,
+    ownership.user,
   );
 });
 
 const fixtures: FreshnessFixture[] = [];
 afterEach(async () => {
   ownership.managed.clear();
+  ownership.user.clear();
   vi.restoreAllMocks();
   for (const f of fixtures.splice(0)) {
     await f.storage.close();
@@ -141,6 +143,7 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
     "F1 keeps the same safety correction to a user-owned AGENTS.md as a suggestion (invariant 5)",
     { timeout: 120_000 },
     async () => {
+      ownership.user.add("AGENTS.md");
       const f = await setup();
       await argoHistory(f, { "AGENTS.md": AGENTS_V2 });
       await f.plan({
@@ -157,7 +160,10 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
       });
       expect(await f.cycle()).toMatchObject({ status: "completed", appliedCount: 0 });
       const [candidate] = await listFreshnessCandidates(f.root);
-      expect(candidate).toMatchObject({ documentPath: "AGENTS.md", state: "suggested" });
+      expect(candidate, JSON.stringify(candidate?.rejection ?? null)).toMatchObject({
+        documentPath: "AGENTS.md",
+        state: "suggested",
+      });
       expect(candidate!.hunks.map((hunk) => hunk.ownership)).toEqual(["user_owned"]);
       // No cross-check runs for bytes Lervo never applies, and the document stays as it was.
       expect((await f.providerCalls()).map((call) => call.task)).toEqual([

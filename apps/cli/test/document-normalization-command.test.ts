@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { commitRepository } from "./committed-repository.js";
 import { planCrossCheck } from "./plan-cross-check-fixture.js";
 
 const roots: string[] = [];
@@ -135,7 +136,9 @@ console.log(JSON.stringify({ type: "turn.completed", usage: { input_tokens: 15, 
       plan.planId,
       "--json",
     ];
-    // ADR-0561: an independent cross-check of the stored candidate replaces item approvals.
+    // ADR-0561: an independent cross-check of the stored candidate replaces item approvals, and
+    // the rewrite lands as its own undo commit over committed sources.
+    commitRepository(root);
     const crossCheck = planCrossCheck();
     expect(await runCli(apply, io, crossCheck.services), errors.join("")).toBe(0);
     expect(crossCheck.checked).toHaveLength(1);

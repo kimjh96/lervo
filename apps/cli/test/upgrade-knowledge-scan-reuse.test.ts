@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runCli as runUnisolatedCli } from "../src/main.js";
 import * as terminalRuntime from "../src/terminal-runtime.js";
 import * as stageInspection from "../src/upgrade-stage-inspection.js";
+import { commitRepository } from "./committed-repository.js";
 import { agreeingCrossCheck } from "./plan-cross-check-fixture.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
@@ -39,7 +40,8 @@ async function repository(): Promise<string> {
 
 /**
  * Applies every knowledge stage, through the provider hooks, so the next inspection walks every
- * stage plan. A reviewed plan is cross-checked by an agreeing fixture session (ADR-0561).
+ * stage plan. A reviewed plan is cross-checked by an agreeing fixture session and lands as its
+ * own undo commit over committed sources (ADR-0561).
  */
 async function migrateUntilCurrent(root: string): Promise<void> {
   const migrate = async (...args: string[]) => {
@@ -65,6 +67,7 @@ async function migrateUntilCurrent(root: string): Promise<void> {
     const unchanged = plan.operations?.every((operation) => operation.action === "unchanged");
     if ((plan.status !== "ready" && plan.status !== "review_required") || unchanged === true)
       return;
+    commitRepository(root);
     await migrate("--apply", plan.planId);
   }
   throw new Error("The knowledge migration did not become current.");

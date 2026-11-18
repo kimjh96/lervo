@@ -125,9 +125,9 @@ describe("repository replica coordinator", () => {
     expect(settled).toMatchObject({ status: "merged", backup: { side: "peer" } });
     expect(await readFile(join(fixture.local, "source.ts"), "utf8")).toBe("local\n");
     expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("local\n");
-    // The replaced peer bytes, uncommitted as they were, stay on the local backup branch.
+    // The replaced peer bytes, uncommitted as they were, stay on a backup branch on the peer.
     const branch = settled.status === "merged" ? settled.backup!.branch : "";
-    expect(await show(fixture.local, `${branch}:source.ts`)).toBe("peer\n");
+    expect(await show(fixture.peer, `${branch}:source.ts`)).toBe("peer\n");
   }, 15_000);
 
   it("merges non-conflicting changes from both sides and keeps uncommitted work uncommitted", async () => {

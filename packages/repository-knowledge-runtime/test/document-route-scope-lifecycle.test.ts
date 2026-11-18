@@ -42,6 +42,16 @@ it(
       }),
     );
     await writeFile(resolve(f.root, "TRACE.md"), "# Trace\n\nInspect service traces.\n");
+    // The owner's document is committed: a move of unsaved work would lose it on undo.
+    const owner = {
+      ...process.env,
+      GIT_AUTHOR_NAME: "Owner",
+      GIT_AUTHOR_EMAIL: "owner@example.invalid",
+      GIT_COMMITTER_NAME: "Owner",
+      GIT_COMMITTER_EMAIL: "owner@example.invalid",
+    };
+    await execute("git", ["-C", f.root, "add", "TRACE.md"], { env: owner });
+    await execute("git", ["-C", f.root, "commit", "-q", "-m", "docs: add trace"], { env: owner });
     const executable = await readFile(f.executable, "utf8");
     await writeFile(
       f.executable,
