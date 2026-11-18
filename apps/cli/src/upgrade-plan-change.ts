@@ -83,11 +83,14 @@ export function upgradePlanChanges(
 
 /**
  * The refusal for an approval that no longer matches. It names the current plan ID and, when
- * the approved plan was presented on this checkout, the stages or inputs that changed.
+ * the approved plan was presented on this checkout, the stages or inputs that changed. ADR-0589:
+ * it also names the current plan's stages that wait for an owner approval, on which `--safe`
+ * would refuse, so a caller can tell without planning again.
  */
 export async function upgradePlanChangedFailure(
   approval: string | undefined,
   current: RepositoryUpgradePlan,
+  ownerApprovalStages: readonly string[],
 ): Promise<CommandFailure> {
   const approved =
     approval === undefined ? null : await presentedPlan(current.repositoryRoot, approval);
@@ -101,6 +104,11 @@ export async function upgradePlanChangedFailure(
   return new CommandFailure(
     "upgrade_plan_changed",
     `--approval must equal the exact current repository upgrade plan ID. The current plan is ${current.planId}. ${reason} Review it with \`lervo upgrade\`, or use \`lervo upgrade --apply --safe\` when no stage needs owner approval.`,
-    { approvedPlanId: approval ?? null, currentPlanId: current.planId, changes },
+    {
+      approvedPlanId: approval ?? null,
+      currentPlanId: current.planId,
+      changes,
+      ownerApprovalStages: [...ownerApprovalStages],
+    },
   );
 }

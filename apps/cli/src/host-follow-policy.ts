@@ -1,5 +1,6 @@
 import type { ActiveCli } from "./host-follow-runtime.js";
 import type {
+  HostFollowPass,
   HostFollowRepositoryResult,
   HostFollowState,
   RepositoryUpgradeOutcome,
@@ -182,6 +183,42 @@ export const REPOSITORY_RETRY_LIMIT = 3;
 /** A blocked repository is planned again hourly and applied only when its plan changed. */
 export const BLOCKED_REPOSITORY_RECHECK_MS = 60 * 60_000;
 
+/**
+ * ADR-0589: a repository left waiting for an owner approval. It runs after every other
+ * repository of a pass, so its time never delays a repository the release can reach.
+ */
+const ownerApprovalBlock = (result: Pick<HostFollowRepositoryResult, "outcome" | "code">) =>
+  result.outcome === "blocked" && result.code === "upgrade_owner_approval_required";
+
+/**
+ * ADR-0589: an owner-approval block with nothing else to apply. The follower can never apply a
+ * stage that waits for the owner, so it waits for another CLI instead of an hourly recheck. A
+ * `ready` plan still has an applicable stage, such as Node beside a layout decision, so it keeps
+ * the hourly recheck, which applies that stage once the plan holds still.
+ */
+const ownerApprovalOnly = (
+  result: Pick<HostFollowRepositoryResult, "outcome" | "code" | "status">,
+) => ownerApprovalBlock(result) && result.status !== "ready";
+
+/**
+ * ADR-0589: the order of a pass. Repositories the last pass left waiting for an owner approval
+ * go last, so the time they take never delays a repository the release can reach.
+ */
+export function repositoryPassOrder(
+  roots: readonly string[],
+  lastPass: Pick<HostFollowPass, "repositories"> | null,
+): string[] {
+  const waiting = new Set(
+    (lastPass?.repositories ?? [])
+      .filter(ownerApprovalBlock)
+      .map((repository) => repository.repositoryRoot),
+  );
+  return [
+    ...roots.filter((root) => !waiting.has(root)),
+    ...roots.filter((root) => waiting.has(root)),
+  ];
+}
+
 /** When a repository is tried again with the same CLI, given its previous result. */
 export function scheduleRepositoryRetry(
   entry: RepositoryPassEntry,
@@ -200,6 +237,7 @@ export function scheduleRepositoryRetry(
           : null,
     };
   }
+  if (ownerApprovalOnly(entry)) return { ...entry, attempts: 0, nextAttemptAt: null };
   if (entry.outcome === "blocked")
     return { ...entry, attempts: 0, nextAttemptAt: at(BLOCKED_REPOSITORY_RECHECK_MS) };
   return { ...entry, attempts: 0, nextAttemptAt: null };

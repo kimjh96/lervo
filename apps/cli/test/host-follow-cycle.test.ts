@@ -178,8 +178,9 @@ describe("runFollowCycle", () => {
       pinnedTag: null,
       changedAt: "t",
     });
+    const listings = harness.source.listings;
     expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "paused" });
-    expect(harness.source.listings).toBe(0);
+    expect(harness.source.listings).toBe(listings);
     await writeFollowControl(harness.layout, {
       schemaVersion: 1,
       paused: false,
@@ -546,6 +547,133 @@ describe("runFollowCycle", () => {
         (call) => call.args[2] === "/repositories/two" && call.args.includes("--apply"),
       ),
     ).toHaveLength(0);
+  });
+
+  it("stops a retry pass at a repository boundary and installs a newer release at once", async () => {
+    // ADR-0589, Mac v0.25.5: a retry pass ran 9 more minutes after publication, and the release
+    // then waited for the next poll.
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    harness.behavior.current = (args, version) => {
+      if (version !== "9.9.10") return upgradeResult("current");
+      if (!args.includes("--apply")) return upgradeResult("ready", { planId: "plan" });
+      return { kind: "failed", code: "knowledge_cycle_admission_wait_expired" };
+    };
+    expect(await runFollowCycle(harness.dependencies)).toMatchObject({ outcome: "upgraded" });
+    await harness.runActive();
+    harness.calls.splice(0);
+
+    harness.upgrade.now = () => new Date("2026-11-17T00:10:00.000Z");
+    const failing = harness.behavior.current;
+    harness.behavior.current = (args, version) => {
+      if (version === "9.9.10" && args[2] === "/repositories/one" && args.includes("--apply")) {
+        // Published while the first retried repository ran, two minutes into the pass.
+        if (harness.releases.length === 2) harness.releases.push(release("9.9.11"));
+        harness.upgrade.now = () => new Date("2026-11-17T00:12:00.000Z");
+      }
+      return failing(args, version);
+    };
+    const result = await runFollowCycle(harness.dependencies);
+    expect(result).toMatchObject({
+      outcome: "upgraded",
+      tag: "v9.9.11",
+      handover: true,
+      precededBy: { outcome: "repositories_retried", yielded: true },
+    });
+    // The retry ran only the first repository with 9.9.10; the release pass then ran both.
+    const retriedRoots = harness.calls
+      .filter((call) => call.version === "9.9.10")
+      .map((call) => call.args[2]);
+    expect(new Set(retriedRoots)).toEqual(new Set(["/repositories/one"]));
+    expect(
+      harness.calls.filter((call) => call.version === "9.9.11").map((call) => call.args[2]),
+    ).toEqual(["/repositories/one", "/repositories/two"]);
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.11");
+  });
+
+  it("rechecks a ready repository blocked on an owner approval and applies Node once the plan holds", async () => {
+    // ADR-0589, Mac argo: Node is applicable beside a pending layout decision, and the plan moved
+    // between the plan command and the exact apply while the owner worked.
+    const harness = await settledHarness();
+    harness.releases.push(release("9.9.10"));
+    let planMoves = true;
+    let nodeApplied = false;
+    harness.behavior.current = (args, version) => {
+      if (version !== "9.9.10" || args[2] !== "/repositories/two") return upgradeResult("current");
+      if (args.includes("--safe"))
+        return { kind: "failed", code: "upgrade_owner_approval_required" };
+      if (args.includes("--apply")) {
+        if (planMoves)
+          return {
+            kind: "failed",
+            code: "upgrade_plan_changed",
+            ownerApprovalStages: ["knowledge"],
+          };
+        nodeApplied = true;
+        return upgradeResult("pending_authority", {
+          planId: "plan_k",
+          appliedStages: ["repository_node"],
+        });
+      }
+      return nodeApplied
+        ? upgradeResult("pending_authority", {
+            planId: "plan_k",
+            ownerApprovalStages: ["knowledge"],
+          })
+        : upgradeResult("ready", {
+            planId: "plan_n",
+            applicableStages: ["node"],
+            ownerApprovalStages: ["knowledge"],
+          });
+    };
+    const first = await runFollowCycle(harness.dependencies);
+    expect(first.pass?.repositories[1]).toMatchObject({
+      outcome: "blocked",
+      status: "ready",
+      code: "upgrade_owner_approval_required",
+      nextAttemptAt: "2026-11-17T01:00:00.000Z",
+    });
+    expect(harness.calls.some((call) => call.args.includes("--safe"))).toBe(false);
+    await harness.runActive();
+
+    planMoves = false;
+    harness.upgrade.now = () => new Date("2026-11-17T01:00:00.000Z");
+    const retried = await runFollowCycle(harness.dependencies);
+    expect(retried.outcome).toBe("repositories_retried");
+    expect(retried.pass?.repositories[1]).toMatchObject({
+      outcome: "blocked",
+      status: "pending_authority",
+      code: "upgrade_owner_approval_required",
+      appliedStages: ["repository_node"],
+      pendingStages: ["knowledge"],
+      // Only the owner's approval is left, so the follower waits for another CLI.
+      nextAttemptAt: null,
+    });
+    expect(nodeApplied).toBe(true);
+  });
+
+  it("runs a whole pass instead of yielding to a release whose install is held", async () => {
+    // A tag left `waiting` (incomplete assets) or `host_blocked` never counts against itself, so
+    // yielding to it would stop the pass after the first repository every cycle.
+    const harness = await followHarness();
+    harness.releases.push(release("9.9.10"));
+    await writeFollowState(harness.layout, {
+      ...(await readFollowState(harness.layout)),
+      lastOutcome: {
+        at: "2026-11-16T23:55:00.000Z",
+        outcome: "waiting",
+        tag: "v9.9.10",
+        code: "host_release_assets_incomplete",
+      },
+    });
+    const result = await runFollowCycle(harness.dependencies);
+    expect(result).toMatchObject({ outcome: "repositories_upgraded", precededBy: null });
+    expect(harness.calls.map((call) => [call.args[2], call.version])).toEqual([
+      ["/repositories/one", "9.9.9"],
+      ["/repositories/two", "9.9.9"],
+    ]);
+    expect((await readFollowState(harness.layout)).lastPass?.repositories).toHaveLength(2);
+    expect((await readActiveCli(harness.layout)).version).toBe("9.9.9");
   });
 
   it("waits for a manual host upgrade that holds the lock without failing the tag", async () => {

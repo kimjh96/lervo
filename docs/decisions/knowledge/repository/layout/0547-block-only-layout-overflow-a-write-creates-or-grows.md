@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-01
-Amended by: [ADR-0583](0583-hold-moves-that-overfill-a-directory-and-report-existing-overflow.md). Untouched overflow moves from `blockers` to `advisories` and lint reports it as a warning; a move or create into an over-limit directory blocks at an equal count.
+Amended by: [ADR-0583](0583-hold-moves-that-overfill-a-directory-and-report-existing-overflow.md). Untouched overflow moves from `blockers` to `advisories` and lint reports it as a warning; a move or create into an over-limit directory blocks at an equal count. [ADR-0589](../../../distribution/0589-shorten-the-follower-path-from-publication-to-the-last-repository.md): an upgrade apply that applied no stage before lint, and whose knowledge stage is current with no background debt, skips lint.
 Amends: [ADR-0222](../0222-bounded-role-based-document-layout.md) (layout permits), [ADR-0214](../../../operations/services/0214-bounded-repository-upgrade-orchestration.md) (stage dependencies)
 
 ## Context

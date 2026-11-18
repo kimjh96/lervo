@@ -89,6 +89,7 @@ const cycleResult = (fields: Partial<HostFollowCycleResult>): HostFollowCycleRes
   activationId: null,
   pass: null,
   handover: false,
+  precededBy: null,
   consecutiveSourceFailures: 0,
   backoff: 0,
   ...fields,
@@ -110,14 +111,16 @@ describe("lervo host upgrade --follow", () => {
     expect(await runHostCommand(["upgrade", "--follow"], io, overrides(harness))).toBe(0);
     expect(output.pop()).toContain("Follow plan for owner/lervo: repository_pass");
     expect(await lstat(harness.layout.follow.statePath).catch(() => null)).toBeNull();
-    // Nothing configures a Hub: the follower reads only GitHub Releases and this host.
+    // Nothing configures a Hub: the follower reads only GitHub Releases and this host. The first
+    // pass yields to the newer release at its first repository boundary (ADR-0589).
     expect(await runHostCommand([...base, "--apply", "--once"], io, overrides(harness))).toBe(0);
     expect(json()).toMatchObject({
       operation: "host_follow_cycle",
-      outcome: "repositories_upgraded",
+      outcome: "upgraded",
+      tag: "v9.9.10",
+      handover: true,
+      precededBy: { outcome: "repositories_upgraded", yielded: true },
     });
-    expect(await runHostCommand([...base, "--apply", "--once"], io, overrides(harness))).toBe(0);
-    expect(json()).toMatchObject({ outcome: "upgraded", tag: "v9.9.10", handover: true });
     expect((await readActiveCli(harness.layout)).version).toBe("9.9.10");
   });
 

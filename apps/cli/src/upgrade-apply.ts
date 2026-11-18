@@ -29,7 +29,11 @@ import {
   type KnowledgeStage,
   type UpgradeStageBlocker,
 } from "./upgrade-stage-inspection.js";
-import { type StageDisposition, type UpgradeStageName } from "./upgrade-stage-policy.js";
+import {
+  knowledgeLintSkipReason,
+  type StageDisposition,
+  type UpgradeStageName,
+} from "./upgrade-stage-policy.js";
 import type { UpgradeStageClock } from "./upgrade-stage-timing.js";
 import { mutateWorkforceState } from "./workforce-mutation.js";
 
@@ -134,6 +138,7 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("terminal_integration");
 
+  let knowledge: KnowledgeStage | null = null;
   for (let index = 0; index < approved.policy.maximumKnowledgeStages; index += 1) {
     // A marker refusal happens before any write, so inspecting and applying again is safe.
     const stage = await materialization.run(async () => {
@@ -145,6 +150,7 @@ export async function applyRepositoryUpgrade(
       return inspected;
     }, knowledgeRefusedByMarker);
     clock.lap("knowledge");
+    knowledge = stage;
     if (stage.disposition !== "safe_apply") break;
     appliedStages.push(stage.planKind);
     if (index === approved.policy.maximumKnowledgeStages - 1)
@@ -168,9 +174,10 @@ export async function applyRepositoryUpgrade(
     clock.lapNode(onboarding?.timing);
     appliedStages.push("repository_node");
   }
-  const lint: UpgradeReceipt["knowledgeLint"] = await materialization.run(() =>
-    lintKnowledge(root),
-  );
+  const lintSkip = knowledgeLintSkipReason(appliedStages, knowledge);
+  if (lintSkip !== null) skippedStages.push({ stage: "knowledge_lint", reason: lintSkip });
+  const lint: UpgradeReceipt["knowledgeLint"] =
+    lintSkip === null ? await materialization.run(() => lintKnowledge(root)) : null;
   clock.lap("knowledge_lint");
 
   // The event writer stage re-observes the hook reader and the Node and Hub readers itself, so a
