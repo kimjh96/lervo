@@ -132,7 +132,7 @@ export async function resolveConvergenceCandidates(
         const deferred = decisions.find((decision) => decision.decision === "defer");
         if (deferred !== undefined && retry === null)
           return completeConvergenceStage({
-            repositoryRoot: root,
+            sources: convergenceSourceObservation(context),
             artifacts: context.storage.artifacts,
             state,
             stage: "lifecycle_verification",

@@ -93,7 +93,7 @@ describe("knowledge lint in an upgrade apply (ADR-0589)", () => {
     expect(knowledgeLintSkipReason([], current)).toBe("knowledge_current_nothing_applied");
     expect(knowledgeLintSkipReason(["capabilities"], current)).toBeNull();
     expect(knowledgeLintSkipReason(["knowledge_materialization"], current)).toBeNull();
-    for (const disposition of ["blocked", "pending_authority", "deferred", "safe_apply"] as const)
+    for (const disposition of ["blocked", "lervo_debt", "deferred", "safe_apply"] as const)
       expect(knowledgeLintSkipReason([], { disposition, reason: "x" })).toBeNull();
     expect(knowledgeLintSkipReason([], null)).toBeNull();
   });
