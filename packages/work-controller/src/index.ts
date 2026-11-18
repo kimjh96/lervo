@@ -15,9 +15,6 @@ export {
   operatingWorkScopeEventTypes,
   selectOperatingWorkScope,
 } from "./operating-work-scope.js";
-export * from "./organization-operating-report.js";
-export * from "./ceo-policy.js";
-export * from "./ceo-execution.js";
 export {
   assertOperatingMandate,
   assertOperatingActionPlan,

@@ -134,15 +134,9 @@ importers:
       '@lervo/execution-observability':
         specifier: workspace:*
         version: link:../../packages/execution-observability
-      '@lervo/identity-migration':
-        specifier: workspace:*
-        version: link:../../packages/identity-migration
       '@lervo/interaction-sqlite':
         specifier: workspace:*
         version: link:../../packages/interaction-sqlite
-      '@lervo/knowledge-okf':
-        specifier: workspace:*
-        version: link:../../packages/knowledge-okf
       '@lervo/node-runtime':
         specifier: workspace:*
         version: link:../node-runtime
@@ -603,18 +597,12 @@ importers:
 
   packages/adapter-discord:
     dependencies:
-      '@lervo/application-contract':
-        specifier: workspace:*
-        version: link:../application-contract
       '@lervo/conversation-contract':
         specifier: workspace:*
         version: link:../conversation-contract
       '@lervo/conversation-platform':
         specifier: workspace:*
         version: link:../conversation-platform
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
@@ -645,9 +633,6 @@ importers:
       '@lervo/project-storage':
         specifier: workspace:*
         version: link:../project-storage
-      '@lervo/request-grounding':
-        specifier: workspace:*
-        version: link:../request-grounding
       '@lervo/roles':
         specifier: workspace:*
         version: link:../roles
@@ -1158,30 +1143,6 @@ importers:
         specifier: workspace:*
         version: link:../sync-contract
 
-  packages/identity-migration:
-    dependencies:
-      '@lervo/event-contract':
-        specifier: workspace:*
-        version: link:../event-contract
-      '@lervo/event-store-sqlite':
-        specifier: workspace:*
-        version: link:../event-store-sqlite
-      '@lervo/filesystem-durability':
-        specifier: workspace:*
-        version: link:../filesystem-durability
-      '@lervo/project':
-        specifier: workspace:*
-        version: link:../project
-      '@lervo/runtime-security':
-        specifier: workspace:*
-        version: link:../runtime-security
-      '@lervo/schemas':
-        specifier: workspace:*
-        version: link:../schemas
-      yaml:
-        specifier: ^2.9.0
-        version: 2.9.0
-
   packages/interaction:
     dependencies:
       '@lervo/conversation-contract':
@@ -1227,21 +1188,6 @@ importers:
       '@lervo/schemas':
         specifier: workspace:*
         version: link:../schemas
-
-  packages/knowledge-okf:
-    dependencies:
-      '@lervo/filesystem-durability':
-        specifier: workspace:*
-        version: link:../filesystem-durability
-      '@lervo/project':
-        specifier: workspace:*
-        version: link:../project
-      '@lervo/repository-knowledge':
-        specifier: workspace:*
-        version: link:../repository-knowledge
-      yaml:
-        specifier: ^2.9.0
-        version: 2.9.0
 
   packages/managed-provider-host:
     dependencies:

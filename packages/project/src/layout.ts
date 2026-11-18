@@ -33,7 +33,6 @@ export const lervoRelativePaths = {
   knowledgeStructuralConcepts: ".lervo/state/knowledge/current/structural/concepts",
   knowledgeStructuralManifests: ".lervo/state/knowledge/current/structural/manifests",
   knowledgeCandidates: ".lervo/state/knowledge/candidates",
-  knowledgeOkfImports: ".lervo/state/knowledge/okf-imports",
   knowledgeIndexes: ".lervo/state/knowledge/indexes",
   eventDatabase: ".lervo/data/events.sqlite",
   eventContract: ".lervo/data/event-contract.json",
@@ -87,7 +86,6 @@ export interface LervoProjectPaths {
   knowledgeStructuralConcepts: string;
   knowledgeStructuralManifests: string;
   knowledgeCandidates: string;
-  knowledgeOkfImports: string;
   knowledgeIndexes: string;
   eventDatabase: string;
   eventContract: string;
@@ -157,7 +155,6 @@ export function resolveProjectPaths(root: string): LervoProjectPaths {
     knowledgeStructuralConcepts: resolveChild(lervoRelativePaths.knowledgeStructuralConcepts),
     knowledgeStructuralManifests: resolveChild(lervoRelativePaths.knowledgeStructuralManifests),
     knowledgeCandidates: resolveChild(lervoRelativePaths.knowledgeCandidates),
-    knowledgeOkfImports: resolveChild(lervoRelativePaths.knowledgeOkfImports),
     knowledgeIndexes: resolveChild(lervoRelativePaths.knowledgeIndexes),
     eventDatabase: resolveChild(lervoRelativePaths.eventDatabase),
     eventContract: resolveChild(lervoRelativePaths.eventContract),

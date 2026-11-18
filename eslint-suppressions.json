@@ -254,11 +254,6 @@
       "count": 1
     }
   },
-  "packages/identity-migration/src/safe-file.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
-    }
-  },
   "packages/orchestrator/src/file-snapshot.ts": {
     "lervo/require-caught-error-cause": {
       "count": 1
@@ -412,11 +407,6 @@
   "packages/repository-knowledge/src/policy.ts": {
     "lervo/require-caught-error-cause": {
       "count": 2
-    }
-  },
-  "packages/repository-knowledge/src/public-readme.ts": {
-    "lervo/require-caught-error-cause": {
-      "count": 1
     }
   },
   "packages/repository-knowledge/src/reconciliation-review.ts": {

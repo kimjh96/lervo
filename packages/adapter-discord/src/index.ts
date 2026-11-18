@@ -9,6 +9,5 @@ export * from "./rest-history.js";
 export * from "./rest-conversation-address.js";
 export * from "./rest-managed-bot-roles.js";
 export * from "./rest-administration.js";
-export * from "./organization-executive-effects.js";
 export * from "./rest-typing.js";
 export * from "./types.js";

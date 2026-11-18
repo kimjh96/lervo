@@ -22,7 +22,6 @@ import { eventContractUsage, runEventContractCommand } from "./event-contract-co
 import { executeEnvironmentQuery } from "./environment-services.js";
 import { migrateUsage, runMigrateCommand } from "./migrate-command.js";
 import { knowledgeUsage, runKnowledgeCommand } from "./knowledge-command.js";
-import { readmeUsage, runReadmeCommand } from "./readme-command.js";
 import { roleUsage, runRoleCommand } from "./role-command.js";
 import { researchUsage, runResearchCommand } from "./research-command.js";
 import { repositoryUsage, runRepositoryCommand } from "./repository-command.js";
@@ -70,7 +69,6 @@ ${workspaceUsage}
 ${workforceUsage}
 ${agentOrganizationUsage}
 ${roleUsage}
-${readmeUsage}
 `;
 
 const defaultServices: CliServices = {
@@ -120,18 +118,16 @@ export async function runCli(
   if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
-  if (command === "workforce" || command === "agent" || command === "assignment")
-    return runWorkforceCommand(command, args.slice(1), io, services);
+  if (command === "agent" || command === "assignment")
+    return runWorkforceCommand(command, args.slice(1), io);
   if (command === "organization") return runAgentOrganizationCommand(args.slice(1), io);
   if (command === "role") return runRoleCommand(args.slice(1), io);
   if (command === "research") return runResearchCommand(args.slice(1), io);
-  if (command === "readme") return runReadmeCommand(args.slice(1), io);
   io.stderr(`Unknown command: ${command}\n${usage}`);
   return 1;
 }
 
 export { formatInitPlan } from "./init-command.js";
-export { formatIdentityMigrationPlan } from "./migrate-command.js";
 export { formatKnowledgeMigrationPlan } from "./knowledge-command.js";
 export { createManagedRunExecutor, executeManagedRun } from "./managed-run.js";
 export {

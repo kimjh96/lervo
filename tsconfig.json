@@ -57,8 +57,6 @@
       "@lervo/hub-trace": ["packages/hub-trace/src/index.ts"],
       "@lervo/interaction": ["packages/interaction/src/index.ts"],
       "@lervo/interaction-sqlite": ["packages/interaction-sqlite/src/index.ts"],
-      "@lervo/identity-migration": ["packages/identity-migration/src/index.ts"],
-      "@lervo/knowledge-okf": ["packages/knowledge-okf/src/index.ts"],
       "@lervo/knowledge-graph": ["packages/knowledge-graph/src/index.ts"],
       "@lervo/sqlite-connection": ["packages/sqlite-connection/src/index.ts"],
       "@lervo/managed-provider-host": ["packages/managed-provider-host/src/index.ts"],

@@ -8,6 +8,6 @@ Hub capability publication is optional distribution, not a prerequisite for loca
 
 Immutable envelopes bind validated package content hash, scope, publisher principal, and publication time. Each record also has a verified structured header containing `capability_package`, package kind, manifest schema version, file count, total bytes, and `secretMaterial: excluded`. Filesystem storage uses deterministic two-hex ID sharding.
 
-Documents use shared-context publication coordinates and CAS bytes; repository knowledge uses versioned OKF bundles. These content classes remain distinct and independently validated.
+Documents use shared-context publication coordinates and CAS bytes. Repository knowledge has no bundle exchange since [ADR-0560](../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed OKF. These content classes remain distinct and independently validated.
 
 Same-content retries are idempotent; different content at one ID and version conflicts. Hub storage and responses exclude bearer values and MCP credential values.

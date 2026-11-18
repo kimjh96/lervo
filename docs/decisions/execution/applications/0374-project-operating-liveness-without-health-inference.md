@@ -1,7 +1,9 @@
 # ADR-0374: Project operating liveness without health inference
 
-- Status: accepted
+- Status: superseded
 - Date: 2026-09-05
+
+Superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

@@ -1,7 +1,9 @@
 # ADR-0373: Enforce exact managed execution dimension and duration budgets
 
-- Status: `accepted`
+- Status: `superseded`
 - Decision date: 2026-09-05
+
+Superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

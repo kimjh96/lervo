@@ -121,30 +121,6 @@ describe("lervo init CLI", () => {
   });
 });
 
-describe("lervo migrate identity CLI", () => {
-  it("keeps a missing previous state read-only and explains the blocker", async () => {
-    const root = await temporaryRepository();
-    let output = "";
-    let errors = "";
-
-    const exitCode = await runCli(["migrate", "identity"], {
-      cwd: root,
-      stdout: (message) => {
-        output += message;
-      },
-      stderr: (message) => {
-        errors += message;
-      },
-    });
-
-    expect(exitCode).toBe(1);
-    expect(output).toContain("Plan status: blocked");
-    expect(output).toContain("previous managed path does not exist");
-    expect(errors).toBe("");
-    await expect(access(resolve(root, ".lervo"))).rejects.toThrow();
-  });
-});
-
 describe("lervo repository knowledge CLI", () => {
   it("runs dry-run, apply, lint and query with a recorded materialization event", async () => {
     const root = await temporaryRepository();
@@ -186,24 +162,6 @@ describe("lervo repository knowledge CLI", () => {
       semantics: "recommended",
       ranking: { engine: { id: "lexical", version: 2 } },
       hits: [expect.objectContaining({ path: "docs/knowledge/index.md" })],
-    });
-
-    messages.length = 0;
-    expect(await runCli(["knowledge", "impact", "--json"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({
-      status: "current",
-      lineageComplete: true,
-      summary: { current: 0, stale: 0, unknown: 0, affectedConcepts: 0 },
-      items: [],
-    });
-
-    messages.length = 0;
-    expect(await runCli(["knowledge", "refresh-candidate", "--json"], io)).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({
-      semantics: "review_candidate",
-      status: "no_changes",
-      automaticPublicationMutation: false,
-      items: [],
     });
 
     const storage = await openProjectStorage(root);
@@ -819,95 +777,6 @@ describe("lervo repository knowledge CLI", () => {
       expect(JSON.stringify(event?.payload)).not.toContain("AGENTS.md");
       expect(JSON.stringify(event?.payload)).not.toContain("CLAUDE.md");
       expect(JSON.stringify(event?.payload)).not.toContain("Repository instructions");
-    } finally {
-      await storage.close();
-    }
-    expect(errors).toEqual([]);
-  });
-
-  it("exchanges an OKF bundle with another Lervo using a read-only same-ID import plan", async () => {
-    const source = await temporaryRepository();
-    const target = await temporaryRepository();
-    const exchangeParent = await temporaryRepository();
-    const messages: string[] = [];
-    const errors: string[] = [];
-    const sourceIo = {
-      cwd: source,
-      stdout: (message: string) => messages.push(message),
-      stderr: (message: string) => errors.push(message),
-    };
-    expect(await runCli(["init"], sourceIo)).toBe(0);
-    await writeFile(
-      resolve(source, "README.md"),
-      "# Exchange fixture\n\nPortable quasar knowledge.\n",
-    );
-    messages.length = 0;
-    expect(await runCli(["migrate", "knowledge", "--json"], sourceIo)).toBe(0);
-    const migrationPlanId = (JSON.parse(messages.join("")) as { planId: string }).planId;
-    messages.length = 0;
-    expect(
-      await runCli(["migrate", "knowledge", "--apply", migrationPlanId, "--json"], sourceIo),
-    ).toBe(0);
-    messages.length = 0;
-    const bundle = resolve(exchangeParent, "bundle");
-    expect(
-      await runCli(["knowledge", "export", "okf", "--output", bundle, "--json"], sourceIo),
-    ).toBe(0);
-    const exported = JSON.parse(messages.join("")) as { bundleDigest: string };
-
-    const targetIo = {
-      cwd: target,
-      stdout: (message: string) => messages.push(message),
-      stderr: (message: string) => errors.push(message),
-    };
-    messages.length = 0;
-    expect(await runCli(["init"], targetIo)).toBe(0);
-    messages.length = 0;
-    expect(await runCli(["knowledge", "import", "okf", bundle, "--json"], targetIo)).toBe(0);
-    const importPlan = JSON.parse(messages.join("")) as {
-      planId: string;
-      candidateId: string;
-      targetPath: string;
-      bundleDigest: string;
-    };
-    expect(importPlan.bundleDigest).toBe(exported.bundleDigest);
-    await expect(access(resolve(target, importPlan.targetPath))).rejects.toThrow();
-    messages.length = 0;
-    expect(
-      await runCli(
-        ["knowledge", "import", "okf", bundle, "--apply", importPlan.planId, "--json"],
-        targetIo,
-      ),
-    ).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({
-      candidateId: importPlan.candidateId,
-      created: true,
-      localAssurance: "unreviewed",
-    });
-
-    messages.length = 0;
-    expect(await runCli(["knowledge", "okf", "query", bundle, "quasar", "--json"], targetIo)).toBe(
-      0,
-    );
-    expect(JSON.parse(messages.join(""))).toMatchObject({
-      semantics: "recommended",
-      hits: [expect.objectContaining({ localAssurance: "unreviewed" })],
-    });
-    const roundtrip = resolve(exchangeParent, "roundtrip");
-    messages.length = 0;
-    expect(
-      await runCli(
-        ["knowledge", "okf", "re-export", importPlan.candidateId, "--output", roundtrip, "--json"],
-        targetIo,
-      ),
-    ).toBe(0);
-    expect(JSON.parse(messages.join(""))).toMatchObject({ bundleDigest: exported.bundleDigest });
-    expect(await readFile(resolve(roundtrip, "index.md"), "utf8")).toBe(
-      await readFile(resolve(bundle, "index.md"), "utf8"),
-    );
-    const storage = await openProjectStorage(target);
-    try {
-      expect(storage.events.list()).toEqual([]);
     } finally {
       await storage.close();
     }

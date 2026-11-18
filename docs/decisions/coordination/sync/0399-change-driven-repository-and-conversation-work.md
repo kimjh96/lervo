@@ -3,6 +3,8 @@
 Status: accepted
 Date: 2026-09-11
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the unattended scheduler part is removed. Lervo no longer ships the explicit unattended scheduler or its event-database and kill-switch wake-ups. Change-driven repository reconciliation, conversation queue notifications, and workstream audits stay.
+
 ## Decision
 
 Extend ADR-0397's separation of advisory notifications from durable verification to repository replicas, conversation queues, and the explicit unattended scheduler. Idle timers provide recovery, not normal work discovery. Transport heartbeats, lease renewal, retry deadlines, execution timeouts, and integrity audits remain required timers.

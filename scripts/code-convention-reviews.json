@@ -122,13 +122,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/knowledge-okf/src/okf.ts",
-      "contentHash": "sha256:da9242a4abf799e0f394269fda5b7010f72558951ab6cc9c8c3bf42e8c95592f",
-      "responsibility": "OKF v0.2 exchange adapter",
-      "rationale": "Read, lint, query, export, import, and re-export are operations over one external OKF format boundary with shared safety, trust, and byte-preservation rules. Export now requires complete scan admission before binding freshness; other format-bound operations retain their existing ownership and validation boundaries.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
       "contentHash": "sha256:07dce3cc0ce573c5ef89dd3119a6b88800aeb79b3706b8b0a7947806f4f34bf3",
       "responsibility": "Managed provider-run coordinator",
@@ -213,13 +206,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "packages/repository-knowledge/src/public-readme.ts",
-      "contentHash": "sha256:1362ee4dc7a490b3e2ff00868d96c3334a2e5ce48796d1cab01da5bbd4e22e89",
-      "responsibility": "Public README improvement lifecycle",
-      "rationale": "Coordinate extraction, candidate validation, protected-change review, plan creation, and apply implement one byte-safe README improvement contract.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
       "contentHash": "sha256:7530894d7daa5c8bc736745fad6b56df112f7abfd82d609fc5d75ac721ad5835",
       "responsibility": "Repository document-layout migration",
@@ -235,9 +221,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:1737e7ff32eb0b6c03444c18f41490810565a437a15f1dd78a49276e72f2f3b3",
+      "contentHash": "sha256:ccd56d2053f1967c15af68dad84023290f2717ea10b5c1fd77a446eea5d20382",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects. The review adds explicit coverage and skipped summaries to reporting contracts, one scan-incomplete reason, and the observed-only retention marker and summary. Evaluation, admission, storage, and rendering stay in their owning modules; no second implementation concern is added.",
+      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects, including coverage and skipped summaries, the scan-incomplete reason, and the observed-only retention marker. ADR-0560 removed the refresh-review candidate contract. Evaluation, admission, storage, and rendering stay in their owning modules.",
       "disposition": "cohesive"
     },
     {

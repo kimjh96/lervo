@@ -17,8 +17,8 @@ Implemented foundations include:
 - Exact agent and role hashes in conversation records, agent-bound managed read-run causality, and bounded agent-specific recent conversation input.
 - Repository-local append-only contracts for teams, agent membership, external deployment, channel membership, and deliberation participation.
 - Exact-summary-reviewed agent-context promotion, deterministic subject conflict handling, explicit successor handoff, verified-work accumulation, and bounded relevance/freshness/sensitivity-filtered Node injection.
-- A read-only multi-repository organization operating report, explicit central/project team-kind revision, distinct agent display identity, an owner-proxy CEO role with separate approval-bound computer use, and a fail-closed executive policy evaluator.
-- Product-host v7 organization-inspection routes, removed with the protocol by ADR-0560, and an installed exact-effect execution boundary with durable replay-safe repository-team, Discord channel, and Discord thread adapters.
+- Explicit central/project team-kind revision, distinct agent display identity, and an owner-proxy CEO role with separate approval-bound computer use. ADR-0560 removed the read-only multi-repository operating report and the executive policy evaluator.
+- Product-host v7 organization-inspection routes and the exact-effect executive boundary with its repository-team, Discord channel, and Discord thread adapters, both removed by ADR-0560. Natural Discord channel and thread creation stays in the Node runtime.
 - Bounded authoritative reconciliation of uncertain managed deliberations with managed user-visible completion or attention signals.
 
 The CLI can bind current hired agents and Discord deployments. An organization-configured Node fails closed on identity mismatch. These foundations do not complete the outcome.
@@ -27,7 +27,7 @@ The CLI can bind current hired agents and Discord deployments. An organization-c
 
 The [outcome supervision roadmap](../execution/outcome-supervision.md) additionally requires goal-to-artifact execution, autonomous owner-defined worker responsibilities, and central escalation without repeated user dispatch or recovery prompts. This remains `delivery required`.
 
-1. Bind one central repository and the Shiflo, Plen, and Arac repository teams. Run the implemented multi-team operating projection against all four without merging authority or context.
+1. Bind one central repository and the Shiflo, Plen, and Arac repository teams and operate all four without merging authority or context. ADR-0560 removed the multi-team operating projection; a new decision must reintroduce one if this criterion needs it.
 2. Verify the appointed CEO creating an allowlisted repository team, using an installed computer-control capability, hiring internal agents, preparing and binding owner-authorized bot or webhook deployments, creating allowlisted channels and public threads, delegating work, and resolving approval effects without exposing credentials or conflating external Discord presentation with hiring.
 3. Enable each hired agent to inspect and show requested code, perform authorized managed Codex or Claude repository work, publish verified results, create threads, reply, mention eligible participants, and converse with agents through natural addressed routing.
 4. Promote each agent's reviewed identity, work, relationship, and expertise context through real conversation and change turns. Verified work outcomes now accumulate automatically; installed acceptance must also verify restart, provider replacement, role transition, expiry, restricted-memory exclusion, retirement, and explicit successor handoff.

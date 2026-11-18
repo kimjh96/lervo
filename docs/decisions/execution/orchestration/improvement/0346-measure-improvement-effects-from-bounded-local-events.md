@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the local adapter part is removed. Lervo no longer ships `@lervo/improvement-observation-local` or `@lervo/improvement-observation-conformance`. The `ImprovementObservationPortV1` and collection contract types in `@lervo/application-contract` stay.
+
 Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
 ## Context

@@ -2,11 +2,7 @@
 
 ## Decisions and effects
 
-The multi-team operating report is a read-only composition of repository-owned projections. The executive policy evaluator is a pure decision boundary: it checks the named agent's appointment to executive responsibility, action and team allowlists, automation depth, budget observation, report integrity, and approval. It never performs an effect.
-
-An installed organization-executive coordinator binds an allowed decision to one exact effect and a durable replay coordinate. Discord channel and thread creation use the Discord administration adapter. `team.create` uses the repository-organization adapter and can bind only an initialized repository root in the executive command's explicit team-root allowlist. A future Lervo UI can install another adapter without changing organization policy.
-
-Verified completion records a receipt; explicit rejection terminates; uncertain delivery never auto-retries.
+[ADR-0560](../../../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed the multi-team operating report, the executive policy evaluator, and the organization-executive coordinator with its Discord and repository effect adapters. Executive effects now use the same authority paths as every other agent: assignments, workstreams, approvals, and the Discord runtime's own administration actions.
 
 ## CEO authority and evidence
 

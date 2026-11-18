@@ -9,7 +9,6 @@ export * from "./operating-attention.js";
 export * from "./repository-health.js";
 export * from "./operating-mandate.js";
 export * from "./work-responsibility.js";
-export * from "./organization.js";
 export * from "./types.js";
 export * from "./outcome-supervision.js";
 export * from "./supervision-decision.js";

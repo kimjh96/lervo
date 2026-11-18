@@ -55,7 +55,7 @@
 
 ### CEO and org chart
 
-- Current: `wired`; CLI-only `ceo-evaluate`, no decision authority.
+- Current: `contract-only`; ADR-0560 removed the CLI-only `ceo-evaluate`, the portfolio report, and executive effects; no decision authority.
 - Target: principal mandate with recorded decisions, decision memory, and scoped escalation.
 - Mechanism: ADR-0453.
 - Installed proof: ADR-0453 items 1 to 5.

@@ -5,7 +5,6 @@
       "files": {
         "apps/cli/src/agent-organization-deployment-binding.ts": { "lines": 1 },
         "apps/cli/src/agent-organization-runtime-binding.ts": { "lines": 6 },
-        "apps/cli/src/organization-executive-command.ts": { "lines": 15 },
         "apps/conversation/src/application.ts": { "lines": 16 },
         "apps/conversation/src/built-in-integrations.ts": { "lines": 28 },
         "apps/conversation/src/types.ts": { "lines": 18 },

@@ -3,6 +3,8 @@
 - Status: accepted
 - Decision date: 2026-09-09
 
+Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the executive adapter part is removed. Lervo no longer ships the Discord executive adapter or its `agent.deployment.prepare` effect. Webhook-backed identities and the Node runtime's automatic webhook preparation after a product-owner hire stay.
+
 ## Context
 
 ADR-0385 required a separate Discord application, bot token, and guild installation for each visibly distinct hired agent. This prevented presenting one bot user as several, but assumed bot accounts were the only honest presentation identity. Incoming webhooks have distinct IDs and support agent-specific names and avatars. An installed bot with `MANAGE_WEBHOOKS` can create them through the public API.

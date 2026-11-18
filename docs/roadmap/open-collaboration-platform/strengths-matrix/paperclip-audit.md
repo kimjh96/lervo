@@ -16,6 +16,6 @@ Verified against `apps/*/src` and `packages/*/src`.
 | Assignment inbox | Removed by ADR-0560 with mention routing and direct-message trigger | None |
 | Approval gating | Gating `wired`, granting `contract-only` | No production approval authority port |
 | Activity feed | Removed by ADR-0560 | None |
-| Organization portfolio | `wired` | No installed multi-team evidence |
+| Organization portfolio | Removed by ADR-0560 with CEO evaluation and executive effects | None |
 | Slack connector | Removed by ADR-0560 | None |
 | Dynamic topology v2 | `wired` through automatic supervision topology; manual CLI route removed by ADR-0560 | `docs/evidence/foundation/installed-bounded-dynamic-execution-graph-v2.md` (temp consumer, fixture; exercised the removed route) |

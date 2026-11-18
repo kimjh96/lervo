@@ -1,7 +1,9 @@
 # ADR-0060: Policy-bound search-engine selection and rollback
 
-Status: `accepted`; ADR-0061 supersedes `applicationState` and connects operational consumption
+Status: `superseded`; ADR-0061 supersedes `applicationState` and connects operational consumption
 Decision date: 2026-08-20
+
+Superseded by [ADR-0560](../foundation/0560-remove-unused-subsystems-to-harden-the-core.md). Lervo no longer ships this capability.
 
 ## Context
 

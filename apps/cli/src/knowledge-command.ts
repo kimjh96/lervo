@@ -1,23 +1,16 @@
 import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 import { runKnowledgeQuery } from "./knowledge-query-command.js";
-import { runFindReplayCommand } from "./find-replay-command.js";
 import { runKnowledgeConvergenceCommand } from "./knowledge-convergence-command.js";
 import { resolve } from "node:path";
 import { runHostKnowledgeResidentsCommand } from "./knowledge-host-resident-command.js";
 import { runKnowledgeWorkerCommand } from "./knowledge-worker-command.js";
 import { parseArgs } from "node:util";
-import {
-  analyzeRepositoryKnowledgeImpact,
-  createKnowledgeRefreshReviewCandidate,
-  lintRepositoryKnowledge,
-  scanConfiguredRepositoryKnowledge,
-} from "@lervo/repository-knowledge";
+import { lintRepositoryKnowledge } from "@lervo/repository-knowledge";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import { runDocumentNormalizationCommand } from "./document-normalization-command.js";
 import type { CliIo, CliServices } from "./types.js";
 import { runKnowledgeInstruction } from "./knowledge-instruction-command.js";
 import { runKnowledgeMaterializationRecovery } from "./knowledge-materialization-command.js";
-import { runKnowledgeOkfExchange } from "./knowledge-okf-command.js";
 import { runKnowledgeStructure } from "./knowledge-structure-command.js";
 import { runKnowledgeFreshness } from "./knowledge-freshness-command.js";
 import { writeCommandError } from "./command-error-output.js";
@@ -64,8 +57,6 @@ export async function runKnowledgeCommand(
       return 1;
     }
   }
-  if (subcommand === "export" || subcommand === "import" || subcommand === "okf")
-    return runKnowledgeOkfExchange(args, io);
   if (subcommand === "convergence") return runKnowledgeConvergenceCommand(args.slice(1), io);
   if (subcommand === "worker")
     return args.includes("--host")
@@ -74,65 +65,6 @@ export async function runKnowledgeCommand(
   if (subcommand === "refresh")
     return runKnowledgeMigration({ args: args.slice(1), io, mode: "refresh" });
   if (subcommand === "canonicalization") return runKnowledgeCanonicalization(args.slice(1), io);
-  if (subcommand === "impact") {
-    try {
-      const parsed = parseArgs({
-        args: args.slice(1),
-        strict: true,
-        allowPositionals: false,
-        options: { root: { type: "string" }, json: { type: "boolean" } },
-      });
-      const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-      const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-      const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, {
-        supplementalSources,
-      });
-      const report = await analyzeRepositoryKnowledgeImpact({ repositoryRoot, scan });
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(report, null, 2)}\n`
-          : `Repository knowledge impact: ${report.status} · current ${report.summary.current} · stale ${report.summary.stale} · unknown ${report.summary.unknown} · affected concepts ${report.summary.affectedConcepts}\nreport: ${report.reportId} · source snapshot: ${report.sourceSnapshotId} · lineage ${report.lineageComplete ? "complete" : "incomplete"}\n${report.items
-              .filter((item) => item.freshness !== "current")
-              .map(
-                (item) =>
-                  `  ${item.freshness} ${item.subjectKind}:${item.subjectId} · ${item.reasons.join(", ")}`,
-              )
-              .join(
-                "\n",
-              )}${report.items.every((item) => item.freshness === "current") ? "" : "\n"}`,
-      );
-      return 0;
-    } catch (error) {
-      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
-      return 1;
-    }
-  }
-  if (subcommand === "refresh-candidate") {
-    try {
-      const parsed = parseArgs({
-        args: args.slice(1),
-        strict: true,
-        allowPositionals: false,
-        options: { root: { type: "string" }, json: { type: "boolean" } },
-      });
-      const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
-      const supplementalSources = await collectLocalKnowledgeSources(repositoryRoot);
-      const { scan } = await scanConfiguredRepositoryKnowledge(repositoryRoot, {
-        supplementalSources,
-      });
-      const report = await analyzeRepositoryKnowledgeImpact({ repositoryRoot, scan });
-      const candidate = createKnowledgeRefreshReviewCandidate(report);
-      io.stdout(
-        parsed.values.json
-          ? `${JSON.stringify(candidate, null, 2)}\n`
-          : `Repository knowledge refresh review candidate: ${candidate.status} · items ${candidate.items.length}\ncandidate: ${candidate.candidateId} · impact: ${candidate.impactReportId}\n${candidate.items.map((item) => `  ${item.proposedAction} ${item.subjectKind}:${item.subjectId} · ${item.observedFreshness} · ${item.reasons.join(", ")}`).join("\n")}${candidate.items.length === 0 ? "" : "\n"}Publications were not changed automatically.\n`,
-      );
-      return 0;
-    } catch (error) {
-      io.stderr(`${error instanceof Error ? error.message : String(error)}\n${knowledgeUsage}\n`);
-      return 1;
-    }
-  }
   if (subcommand === "normalize") return runDocumentNormalizationCommand(args.slice(1), io);
   if (subcommand === "materialize") return runKnowledgeMaterializationRecovery(args.slice(1), io);
   if (subcommand === "structure") return runKnowledgeStructure(args.slice(1), io);
@@ -173,7 +105,6 @@ export async function runKnowledgeCommand(
     }
   }
   if (subcommand === "query") return runKnowledgeQuery(args.slice(1), io);
-  if (subcommand === "find-replay") return runFindReplayCommand(args.slice(1), io);
   io.stderr(`Specify a supported knowledge subcommand.\n${knowledgeUsage}\n`);
   return 1;
 }

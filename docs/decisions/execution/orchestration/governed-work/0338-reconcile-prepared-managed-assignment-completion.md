@@ -3,6 +3,8 @@
 - Status: `accepted`
 - Decision date: 2026-09-02
 
+Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the governed CLI part is removed. Lervo no longer ships the governed CLI path that recorded `assignment.completion.prepared`, the `reconcile_completion` controller action, or its plan/apply reconciliation command. Both completion events, the completion evidence projection, and the workforce reconciliation transition stay; Node runtime work supervision records and reconciles them.
+
 ## Context
 
 A governed managed run can record `run.completed`, pass repository verification and the writing-publication gate, then lose its process before finalizing the leased assignment. The controller refuses to rerun a verified completed attempt, but `run.completed` does not prove the publication result, exact assignment revision, or lease under which finalization was accepted. Using it as completion authority could complete stale or unpublished work.

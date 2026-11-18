@@ -11,6 +11,8 @@ The usage string in `knowledge-usage.ts` advertises the following interface. Enf
 - Structure: delete, move, merge, and heading-based split of relative Markdown paths, with optional exact plan and operation approvals.
 - Freshness: status, review, apply with an after-hash approval and optional reviewer, revert, reject with `not_stale` or `incorrect`, and acknowledge.
 - Instructions: provider-backed intake from JSON or stdin, status, apply/reject review with reviewer and candidate-hash approval, and a Claude bridge with optional plan and operation approvals.
-- OKF: export to a new path, import with optional apply plan, bundle lint and query, and candidate re-export to a new path.
+- Lint and query: read-only lint and recommended query with optional record, verification, path, artifact, action, and continuation inputs.
+
+[ADR-0560](../../decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md) removed OKF export and import, `impact`, `refresh-candidate`, and the `find-replay` route.
 
 Most families advertise root and JSON options; worker and convergence syntax has narrower option lists. Help text alone proves neither mutation authority nor exact parser validation, imported handler behavior, or successful execution.

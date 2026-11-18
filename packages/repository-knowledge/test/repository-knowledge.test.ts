@@ -22,7 +22,6 @@ import {
   applyKnowledgeMigrationPlan,
   analyzeRepositoryKnowledgeImpact,
   createKnowledgeMigrationPlan,
-  createKnowledgeRefreshReviewCandidate,
   lintRepositoryKnowledge,
   queryRepositoryKnowledge,
   RepositoryKnowledgeQueryIndex,
@@ -1241,11 +1240,6 @@ describe("repository knowledge migration", () => {
     expect(matchingPartial.items).toContainEqual(
       expect.objectContaining({ subjectKind: "claim", freshness: "current" }),
     );
-    expect(createKnowledgeRefreshReviewCandidate(matchingPartial)).toMatchObject({
-      coverage: "partial",
-      status: "review_required",
-      skippedForBudget: partialScan.skippedForBudget,
-    });
     const missingPartial = await analyzeRepositoryKnowledgeImpact({
       repositoryRoot: root,
       scan: {
@@ -1260,11 +1254,6 @@ describe("repository knowledge migration", () => {
         reasons: ["scan_incomplete"],
       }),
     );
-    expect(
-      createKnowledgeRefreshReviewCandidate(missingPartial).items.every(
-        (item) => item.proposedAction !== "consider_deprecation",
-      ),
-    ).toBe(true);
 
     await writeFile(resolve(root, "README.md"), "# Runtime\n\nLocal execution changed.\n");
     const changedScan = await scanConfiguredRepositoryKnowledge(root);
@@ -1282,32 +1271,6 @@ describe("repository knowledge migration", () => {
         reasons: ["source_unit_changed"],
       }),
     );
-    const changedCandidate = createKnowledgeRefreshReviewCandidate(changedImpact);
-    expect(changedCandidate).toMatchObject({
-      semantics: "review_candidate",
-      status: "review_required",
-      sourceSnapshotId: changedImpact.sourceSnapshotId,
-      impactReportId: changedImpact.reportId,
-      automaticPublicationMutation: false,
-    });
-    expect(changedCandidate.items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          subjectKind: "claim",
-          subjectId: "claim_aaaaaaaaaaaaaaaaaaaaaaaa",
-          observedFreshness: "stale",
-          proposedAction: "revalidate",
-          reviewRequired: true,
-        }),
-      ]),
-    );
-    expect(createKnowledgeRefreshReviewCandidate(changedImpact)).toEqual(changedCandidate);
-    expect(() =>
-      createKnowledgeRefreshReviewCandidate({
-        ...changedImpact,
-        summary: { ...changedImpact.summary, stale: changedImpact.summary.stale + 1 },
-      }),
-    ).toThrowError(expect.objectContaining({ code: "knowledge_impact_invalid" }));
     expect(
       (await queryRepositoryKnowledge({ repositoryRoot: root, query: "Runtime" })).hits.find(
         (hit) => hit.conceptId === concept!.conceptId,
@@ -1326,15 +1289,6 @@ describe("repository knowledge migration", () => {
         freshness: "stale",
         reasons: ["source_unit_missing"],
       }),
-    );
-    expect(createKnowledgeRefreshReviewCandidate(deletedImpact).items).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          subjectKind: "claim",
-          proposedAction: "consider_deprecation",
-          reviewRequired: true,
-        }),
-      ]),
     );
   });
 });
