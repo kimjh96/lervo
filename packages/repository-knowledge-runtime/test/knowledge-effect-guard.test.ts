@@ -91,13 +91,15 @@ describe("undoable knowledge effects (ADR-0561)", () => {
       apply: move,
     });
     expect(applied.receipt).toBe("moved");
-    expect(git(root, ["rev-parse", "HEAD"]).trim()).toBe(applied.commit.after);
+    const { commit } = applied;
+    if (commit.status !== "committed") throw new Error("The effect did not land as a commit.");
+    expect(git(root, ["rev-parse", "HEAD"]).trim()).toBe(commit.after);
     expect(git(root, ["log", "-1", "--format=%(trailers:key=Lervo-Effect,valueonly)"]).trim()).toBe(
       "repository_layout",
     );
 
     // A commit hook that refuses makes the commit fail; nothing may stay applied without it.
-    git(root, ["reset", "-q", "--hard", applied.commit.before]);
+    git(root, ["reset", "-q", "--hard", commit.before]);
     const hooks = resolve(root, ".git", "hooks");
     await mkdir(hooks, { recursive: true });
     await writeFile(resolve(hooks, "pre-commit"), "#!/bin/sh\nexit 1\n");
@@ -111,5 +113,19 @@ describe("undoable knowledge effects (ADR-0561)", () => {
       code: "ENOENT",
     });
     expect(git(root, ["status", "--porcelain"]).trim()).toBe("");
+  });
+
+  it("keeps an effect that leaves nothing for Git to commit", async () => {
+    const root = await repository();
+    const unchanged = await applyCommittedKnowledgeEffect({
+      repositoryRoot: root,
+      paths: ["NOTE.md"],
+      notice,
+      apply: async () => "unchanged",
+    });
+    expect(unchanged).toEqual({
+      receipt: "unchanged",
+      commit: { status: "not_committed", reason: "nothing_to_commit" },
+    });
   });
 });
