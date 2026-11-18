@@ -3,6 +3,7 @@ import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { holdRepository } from "@lervo/repository-registry";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -12,7 +13,10 @@ import {
 } from "../src/knowledge-effect-guard.js";
 
 const roots: string[] = [];
+const previousStateDirectory = process.env.LERVO_USER_STATE_DIRECTORY;
 afterEach(async () => {
+  if (previousStateDirectory === undefined) delete process.env.LERVO_USER_STATE_DIRECTORY;
+  else process.env.LERVO_USER_STATE_DIRECTORY = previousStateDirectory;
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 });
 
@@ -113,6 +117,51 @@ describe("undoable knowledge effects (ADR-0561)", () => {
       code: "ENOENT",
     });
     expect(git(root, ["status", "--porcelain"]).trim()).toBe("");
+  });
+
+  it("restores every path when the apply throws after its writes, as on a lost lease", async () => {
+    const root = await repository();
+    await expect(
+      applyCommittedKnowledgeEffect({
+        repositoryRoot: root,
+        paths: ["NOTE.md", "docs/notes/NOTE.md", "README.md"],
+        notice,
+        apply: async () => {
+          await mkdir(resolve(root, "docs/notes"), { recursive: true });
+          await writeFile(resolve(root, "docs/notes/NOTE.md"), "# Note\n\nThe owner's words.\n");
+          await rm(resolve(root, "NOTE.md"));
+          await writeFile(resolve(root, "README.md"), "# Readme\n\nSee docs/notes/NOTE.md.\n");
+          // The lease check after the writes finds another host owning convergence.
+          throw new Error("convergence ownership lost");
+        },
+      }),
+    ).rejects.toThrow("convergence ownership lost");
+    expect(await readFile(resolve(root, "NOTE.md"), "utf8")).toBe("# Note\n\nThe owner's words.\n");
+    expect(await readFile(resolve(root, "README.md"), "utf8")).toBe("# Readme\n\nSee NOTE.md.\n");
+    await expect(readFile(resolve(root, "docs/notes/NOTE.md"))).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    expect(git(root, ["status", "--porcelain"]).trim()).toBe("");
+  });
+
+  it("applies nothing once the owner holds the repository, even after planning", async () => {
+    const root = await repository();
+    process.env.LERVO_USER_STATE_DIRECTORY = await mkdtemp(resolve(tmpdir(), "lervo-guard-hold-"));
+    roots.push(process.env.LERVO_USER_STATE_DIRECTORY);
+    await holdRepository({ repositoryRoot: root, reason: "deferred" });
+    expect(await knowledgeEffectPreflight(root, ["NOTE.md"])).toEqual({ reason: "owner_hold" });
+    let applied = false;
+    await expect(
+      applyCommittedKnowledgeEffect({
+        repositoryRoot: root,
+        paths: ["NOTE.md"],
+        notice,
+        apply: async () => {
+          applied = true;
+        },
+      }),
+    ).rejects.toMatchObject({ code: "repository_owner_hold" });
+    expect(applied).toBe(false);
   });
 
   it("keeps an effect that leaves nothing for Git to commit", async () => {

@@ -4,7 +4,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
-import { readRepositoryHold } from "@lervo/repository-knowledge-runtime";
+import {
+  holdRepository,
+  readRepositoryHold,
+  releaseRepositoryHold,
+} from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { RepositoryReplicaCoordinator } from "../src/repository-replica-coordinator.js";
@@ -67,16 +71,65 @@ describe("replica conflicts and the owner's repository hold (ADR-0561)", () => {
       noticeBackup: async ({ backup }) => void notices.push(backup.branch),
     });
     const coordinates = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };
-    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({
+      status: "held",
+      heldSides: ["local", "peer"],
+    });
     await writeFile(join(fixture.local, "source.ts"), "local\n");
     await writeFile(join(fixture.peer, "source.ts"), "peer\n");
-    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({
-      status: "divergent",
-      heldReason: "owner_hold",
-    });
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "held" });
     expect(await readFile(join(fixture.local, "source.ts"), "utf8")).toBe("local\n");
     expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("peer\n");
     expect(notices).toEqual([]);
+  }, 30_000);
+
+  it("transfers nothing into a peer whose own host holds it, or whose hold cannot be read", async () => {
+    const fixture = await conflictingPair();
+    process.env.LERVO_USER_STATE_DIRECTORY = await temporary("lervo-replica-hold-user-state-");
+    const local = new LocalRepositoryReplicaPeer();
+    const peer = new LocalRepositoryReplicaPeer();
+    const coordinates = { replicaId: "project", localRoot: fixture.local, peerRoot: fixture.peer };
+    const coordinator = new RepositoryReplicaCoordinator({
+      stateFile: fixture.stateFile,
+      local,
+      peer,
+      noticeBackup: async () => undefined,
+    });
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "current" });
+    // The hold is set on the peer's host only; the local repository is not held.
+    await holdRepository({ repositoryRoot: fixture.peer, reason: "deferred on the peer" });
+    await writeFile(join(fixture.local, "source.ts"), "local only\n");
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({
+      status: "held",
+      heldSides: ["peer"],
+    });
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("const initial = true;\n");
+
+    // A peer that reports no hold, such as an older runtime, counts as held.
+    await releaseRepositoryHold({ repositoryRoot: fixture.peer });
+    const silent = new RepositoryReplicaCoordinator({
+      stateFile: fixture.stateFile,
+      local,
+      peer: {
+        captureVersion: () => peer.captureVersion(),
+        snapshot: async (root) => {
+          const { ownerHold: _ownerHold, ...snapshot } = await peer.snapshot(root);
+          return snapshot;
+        },
+        bundle: (root, hash) => peer.bundle(root, hash),
+        apply: (input) => peer.apply(input),
+        reconcileKnowledgeSupersession: (input) => peer.reconcileKnowledgeSupersession(input),
+        recordReceipt: (input) => peer.recordReceipt(input),
+      },
+    });
+    await expect(silent.reconcile(coordinates)).resolves.toMatchObject({
+      status: "held",
+      heldSides: ["peer"],
+    });
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("const initial = true;\n");
+    // Released on its own host, the peer receives the change.
+    await expect(coordinator.reconcile(coordinates)).resolves.toMatchObject({ status: "pushed" });
+    expect(await readFile(join(fixture.peer, "source.ts"), "utf8")).toBe("local only\n");
   }, 30_000);
 
   it("records the notice before either side changes and holds the conflict when it cannot", async () => {
