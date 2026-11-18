@@ -2,7 +2,7 @@
   "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.25.7",
+    "version": "0.26.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -48,8 +48,6 @@
       "@lervo/adapter-codex@0.1.0",
       "@lervo/adapter-contract@0.1.0",
       "@lervo/adapter-discord@0.1.0",
-      "@lervo/adapter-slack@0.1.0",
-      "@lervo/adapter-webhook@0.1.0",
       "@lervo/agent-organization@0.1.0",
       "@lervo/agent-workforce@0.1.0",
       "@lervo/application-contract@0.1.0",
@@ -79,23 +77,14 @@
       "@lervo/execution-observability@0.1.0",
       "@lervo/filesystem-durability@0.1.0",
       "@lervo/hub-sync@0.1.0",
-      "@lervo/identity-migration@0.1.0",
       "@lervo/interaction-sqlite@0.1.0",
       "@lervo/interaction@0.1.0",
-      "@lervo/knowledge-okf@0.1.0",
-      "@lervo/knowledge@0.1.0",
-      "@lervo/live-trigger-contract@0.1.0",
-      "@lervo/live-trigger-sqlite@0.1.0",
       "@lervo/managed-provider-host@0.1.0",
       "@lervo/node-work-admission@0.1.0",
       "@lervo/orchestrator@0.1.0",
-      "@lervo/organization-credential-source-file@0.1.0",
-      "@lervo/organization-deployment-contract@0.1.0",
-      "@lervo/organization-deployment-sqlite@0.1.0",
       "@lervo/policy-contract@0.1.0",
       "@lervo/policy-sqlite@0.1.0",
       "@lervo/policy@0.1.0",
-      "@lervo/product-surface-projection@0.1.0",
       "@lervo/project-storage@0.1.0",
       "@lervo/project@0.1.0",
       "@lervo/provider-writing-evaluator@0.1.0",
@@ -111,7 +100,6 @@
       "@lervo/roles@0.1.0",
       "@lervo/runtime-security@0.1.0",
       "@lervo/schemas@0.1.0",
-      "@lervo/search-adapter-bm25f@0.1.0",
       "@lervo/search-adapter-lexical-v2@0.1.0",
       "@lervo/search-local@0.1.0",
       "@lervo/search@0.1.0",
@@ -168,7 +156,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:d56e1351b2fd90c40394dc7c8ec8702c829ecf674979c9361e39837a131033d5"
+    "bundleDigest": "sha256:5693cce58f6f91e822f1b8d9578b5c7706a14d26225b2726234eb09d0cda3634"
   },
   "archive": {
     "rootFiles": [
@@ -212,18 +200,18 @@
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 8706357,
-        "sha256": "sha256:22e499235f76ab4345739e703daffaed60d36b72fe0ed696c6f2a8105b59432f"
+        "size": 7046251,
+        "sha256": "sha256:b27d0db0ee0b6338e011b9e6f90077d8a08d51356c2fc545de4fb158fe1d5478"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12995677,
-        "sha256": "sha256:0d5305bdf7a58f18dda8cd0986d33c9d37548c391f5e99cd58d67e3c65d1ef8b"
+        "size": 11844450,
+        "sha256": "sha256:d14cb144f84361d4b689c3642a35d2427bb4df466bc23bc88ae82bffd37cdce3"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:f6639ef9ea3087ba2b7933772904089d97acf964cb302f2d3640968bf69d997e"
+        "sha256": "sha256:1b001ef2e372d1754e07a97679e860bd468237e9bcd1a9ed3b3277c731edc7fa"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -232,12 +220,12 @@
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 7904594,
-        "sha256": "sha256:4fb74a79ec8e9561b7bc83c8e8e6219e48451f834817b93a9429489d1e0427cb"
+        "size": 6656430,
+        "sha256": "sha256:8aef4e8e7eaa15f05cb87953618b6a2978d30a9da2b7dc72537a9ac7b165fd29"
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:e3454098dfcf69f61e924a15eb2894cae59a56964ab7f30c3a3f4941aa49b365"
+    "contentDigest": "sha256:8e992e6a45884ee6d79a1c5edb1a1f88c1a17f4d9cb1cbbe504ef3c6dbceacc7"
   },
   "dependencies": {
     "portable": [
@@ -350,5 +338,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:d14323ed737e9d6c186b407059fe900a0fcb91952c6319a8d66c5b4bc72a9685"
+  "artifactDigest": "sha256:cd71aca24763f1836eadec489c18e6ffe1c7712b262773fd4e3aa12762e8d5bd"
 }
