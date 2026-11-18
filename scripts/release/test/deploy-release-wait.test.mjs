@@ -216,12 +216,15 @@ describe("deploy-lervo-release pull-request wait", () => {
       const waiting = await wait({ ...state, FAKE_GIT_STATUS: "2" }, "0");
       assert.equal(waiting.status, 2, waiting.stdout);
       assert.match(waiting.stdout, /waiting for v1\.2\.3, the release on main, before a merge/u);
+      assert.match(waiting.stdout, /gh workflow run release-preparation\.yml/u);
       assert.match(waiting.trace, /contents\/apps\/cli\/package\.json\?ref=main/u);
     }
     const unknown = await wait({ ...author, FAKE_GIT_STATUS: "128" }, "0");
     assert.equal(unknown.status, 2, unknown.stdout);
     assert.match(unknown.stdout, /last query failure: git_unavailable: fatal: unable to access/u);
-    assert.equal((await wait({ ...author, FAKE_MAIN_VERSION: "next" }, "0")).status, 2);
+    const unversioned = await wait({ ...author, FAKE_MAIN_VERSION: "next" }, "0");
+    assert.equal(unversioned.status, 2, unversioned.stdout);
+    assert.match(unversioned.stdout, /; main CLI version unknown/u);
     // A prepared head carries the release itself, so it never waits for main's tag.
     const prepared = await wait({ FAKE_DISPATCH: "11 completed success", FAKE_GIT_STATUS: "2" });
     assert.equal(prepared.status, 0, prepared.stdout);
@@ -337,6 +340,21 @@ describe("deploy-lervo-release wait with an unavailable GitHub", () => {
       origin.stdout,
       /v1\.2\.3 on origin unknown; last query failure: git_unavailable: fatal: unable to access origin/u,
     );
+  });
+
+  it("does not name a failure that a later round recovered from", async () => {
+    const recovered = await wait(
+      { FAKE_GH_FAILURES: "2", FAKE_RELEASE_PR: "", FAKE_RELEASE_PREPARATION: "in_progress/" },
+      "2",
+      ["release-pr"],
+    );
+    assert.equal(recovered.status, 2, recovered.stdout);
+    assert.ok(recovered.stderr.includes(`${unavailable} (2 rounds in a row`), recovered.stderr);
+    assert.match(
+      recovered.stdout,
+      /^TIMEOUT release-pr : no release PR yet; preparation in_progress\//u,
+    );
+    assert.doesNotMatch(recovered.stdout, /query failure/u);
   });
 
   it("reads an empty answer as empty, not as unavailable", async () => {

@@ -11,8 +11,9 @@
 # Every stage is judged at least once, so a timeout of 0 judges it exactly once.
 # A gh or git query that fails is reported as unavailable, never read as an empty answer: the round
 # concludes nothing, repeated failures print `gh_unavailable: <first stderr line>` to stderr and back
-# off up to 8 poll intervals, and a timeout names the last failure.
-# Only gh and its built-in --jq are needed, so the script behaves the same on every host.
+# off up to 8 poll intervals, and a timeout names a failure of its last round.
+# Only gh with its built-in --jq and, for the pr and tag stages, `git ls-remote origin` are needed,
+# so the script behaves the same on every host. Run it from the repository directory.
 set -u
 stage="${1:?stage}"; shift
 case "$stage" in pr|tag) target="${1:?target}"; shift;; *) target="";; esac
@@ -61,7 +62,9 @@ pause() {
     factor=$(( failures >= 4 ? 8 : 1 << (failures - 1) ))
     [ "$failures" -ge 2 ] && echo "$stage${target:+ $target}: $failure ($failures rounds in a row; next poll in ${factor}x${poll}s)" >&2
   else
+    # A recovered query no longer explains the state, so a timeout does not report it.
     failures=0
+    failure=""
   fi
   for ((i = 0; i < factor; i++)); do
     [ "$(date +%s)" -lt "$deadline" ] || break
@@ -167,7 +170,7 @@ main_released() {
   git ls-remote --exit-code --tags origin "refs/tags/v$version" >/dev/null 2>"$round_errors.stderr"; code=$?
   case $code in
     0) return 0;;
-    2) last="$last; waiting for v$version, the release on $base, before a merge";;
+    2) last="$last; waiting for v$version, the release on $base, before a merge; if that release is abandoned, rerun release preparation (gh workflow run release-preparation.yml) or decide to merge from the GitHub interface";;
     *) unavailable git_unavailable "$code" "$round_errors.stderr"; last="$last; v$version on origin unknown";;
   esac
   return 3
