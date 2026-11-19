@@ -1,13 +1,16 @@
 import { execFile } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION } from "@lervo/repository-knowledge";
+import { holdRepository, releaseRepositoryHold } from "@lervo/repository-registry";
 
 import { convergenceSourceFingerprint } from "../src/source-fingerprint.js";
 import { writeResidentCycleState } from "../src/resident-cycle-state.js";
+import { PRACTICE_ROOT } from "../src/practice-store.js";
 import { recordKnowledgeResidentHealth } from "../src/resident-health.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { clearOfFenceTimeWindowBoundary, fixture } from "./fixture.js";
@@ -133,9 +136,10 @@ it("changes for new canonical events and outbox work, and reports due deliveries
       admissionDirectory: f.admissionDirectory,
     }),
   );
-  expect(
-    convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events }).earliestAvailableAt,
-  ).toBeNull();
+  // No delivery is due; only the next local time-based moment (ADR-0595) wakes the resident.
+  const idle = convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events });
+  expect(idle.earliestAvailableAt).toBe(idle.localWakeAt);
+  expect(idle.earliestAvailableAt).toBeGreaterThan(Date.now());
   const event = f.events.latest()!;
   await fence.changed("outbox change", async () =>
     f.events.enqueue({
@@ -156,4 +160,67 @@ it("fails instead of observing a repository without a head", async () => {
   expect(() =>
     convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events }),
   ).toThrow();
+});
+
+it("changes when the owner holds or releases a repository (ADR-0595)", async () => {
+  const previous = process.env.LERVO_USER_STATE_DIRECTORY;
+  const state = await mkdtemp(resolve(tmpdir(), "lervo-fence-hold-state-"));
+  process.env.LERVO_USER_STATE_DIRECTORY = state;
+  try {
+    const f = await fixture();
+    fixtures.push(f);
+    const fence = await observer(f);
+    // A held resident backs off and skips; only this change lets a release run it in full.
+    await fence.changed("hold", () => holdRepository({ repositoryRoot: f.root, reason: null }));
+    fence.unchanged("held tree");
+    await fence.changed("release", () => releaseRepositoryHold({ repositoryRoot: f.root }));
+  } finally {
+    if (previous === undefined) delete process.env.LERVO_USER_STATE_DIRECTORY;
+    else process.env.LERVO_USER_STATE_DIRECTORY = previous;
+    await rm(state, { recursive: true, force: true });
+  }
+});
+
+it("keeps an unchanged repository's fence across 30 minutes and wakes for due practice (ADR-0595)", async () => {
+  const f = await fixture();
+  fixtures.push(f);
+  const start = Date.parse("2026-11-19T01:00:00.000Z");
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(start);
+    const observe = () =>
+      convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events });
+    const first = observe();
+    vi.setSystemTime(start + 45 * 60_000);
+    // No practice work waits, so no clock window forces a full cycle.
+    expect(observe().fingerprint).toBe(first.fingerprint);
+    await mkdir(resolve(f.root, PRACTICE_ROOT), { recursive: true });
+    await writeFile(
+      resolve(f.root, PRACTICE_ROOT, "state.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        works: [{ workDigest: "w1", observedAt: new Date(start + 50 * 60_000).toISOString() }],
+        evidence: [],
+        candidates: [],
+        generated: [],
+        shapes: [],
+        assessed: [],
+        funnel: [],
+      }),
+    );
+    const pending = observe();
+    expect(pending.localWakeAt).toBe(start + 80 * 60_000);
+    vi.setSystemTime(start + 79 * 60_000);
+    expect(observe().fingerprint).toBe(pending.fingerprint);
+    // The quiet period ends: the fence changes once, then stays put while the work waits.
+    vi.setSystemTime(start + 80 * 60_000);
+    const due = observe();
+    expect(due.fingerprint).not.toBe(pending.fingerprint);
+    vi.setSystemTime(start + 120 * 60_000);
+    expect(observe().fingerprint).toBe(due.fingerprint);
+    // A new UTC day changes the fence once, for the daily skill usage window.
+    expect(due.localWakeAt).toBe(Date.parse("2026-11-20T00:00:00.000Z"));
+  } finally {
+    vi.useRealTimers();
+  }
 });
