@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_588c8c88eaad4a45054fc6cd"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Evaluate a document lifecycle over the relation web in shadow: settle changes a document does not name without a provider, sweep unassessed documents daily, and report lifecycle counts in repository health."
