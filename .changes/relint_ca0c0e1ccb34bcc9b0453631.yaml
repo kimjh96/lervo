@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ca0c0e1ccb34bcc9b0453631"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Plan a repository layout migration in linear time: project every moved and rewritten document onto the scan in one batch and digest its snapshot once, instead of once per document."
