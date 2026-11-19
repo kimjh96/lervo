@@ -112,13 +112,15 @@ describe("historical status line", () => {
     expect(historicalDocumentMarker({ path, content, archiveScopes: [] })).toBe("status_line");
   });
 
-  it.each(["Status: `accepted`", "Status: `partially_superseded`", "Status: active"])(
-    "keeps %s current",
-    (line) => {
-      const content = `# ADR-0001: Example\n\n${line}\n`;
-      expect(historicalDocumentMarker({ path, content, archiveScopes: [] })).toBeNull();
-    },
-  );
+  it.each([
+    "Status: `accepted`",
+    "Status: `partially_superseded`",
+    "Status: active",
+    "Status: superseded in part by [ADR-0394](0394.md)",
+  ])("keeps %s current", (line) => {
+    const content = `# ADR-0001: Example\n\n${line}\n`;
+    expect(historicalDocumentMarker({ path, content, archiveScopes: [] })).toBeNull();
+  });
 
   it("ignores a status line below the header", () => {
     const content = "# Plan\n\n## Steps\n\nStatus: `superseded`\n";

@@ -168,7 +168,12 @@ function lineTargets(
 
 function statusValue(rest: string): { status: string; remainder: string } | null {
   const match = statusTokenPattern.exec(rest.replace(/^\s*:?/u, ""));
-  return match === null ? null : { status: match[1]!.toLowerCase(), remainder: match[2]! };
+  if (match === null) return null;
+  const status = match[1]!.toLowerCase();
+  // `superseded in part by …` is partial, and a partially superseded document stays current.
+  return status === "superseded" && /^\s*in\s+part\b/iu.test(match[2]!)
+    ? { status: "partially_superseded", remainder: match[2]! }
+    : { status, remainder: match[2]! };
 }
 
 /** The lowercase first token of the header `Status:` line, or null. */

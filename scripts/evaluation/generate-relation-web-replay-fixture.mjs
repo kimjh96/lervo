@@ -12,8 +12,9 @@ const fixturePath = resolve(
   repositoryRoot,
   "packages/repository-knowledge/test/fixtures/relation-web-adr-0560-replay.json",
 );
-const before = "a472d2eb";
-const after = "ff6b0289";
+// Both sides of the ADR-0560 merge on main (pull request 286).
+const before = "124ad123";
+const after = "a9c25602";
 const supersedingDocument =
   "docs/decisions/foundation/0560-remove-unused-subsystems-to-harden-the-core.md";
 

@@ -8,10 +8,10 @@ import { buildRelationWeb } from "../src/relation-web.js";
 import { relationSuspectsFor } from "../src/relation-web-suspects.js";
 
 /**
- * ADR-0562 acceptance replay. The fixture records the documents on origin/main before the ADR-0560
- * removal that still name a removed package, command, or path, found by an oracle independent of
- * the web (`scripts/evaluation/generate-relation-web-replay-fixture.mjs`) and reviewed line by
- * line. The documents themselves are read from Git history, which CI checks out in full.
+ * ADR-0562 acceptance replay. The fixture records the documents on main before the ADR-0560 merge
+ * (pull request 286) that still name a removed package, command, or path, found by an oracle
+ * independent of the web (`scripts/evaluation/generate-relation-web-replay-fixture.mjs`) and
+ * reviewed line by line. The documents themselves are read from Git history, which CI checks out in full.
  */
 interface ReplayFixture {
   revisions: { before: string; after: string };
@@ -65,7 +65,15 @@ function list(output: string): string[] {
   return output.split("\0").filter((item) => item !== "");
 }
 
-describe.skipIf(!historyAvailable())("relation web ADR-0560 acceptance replay", () => {
+const replayHistory = historyAvailable();
+
+// A local clone without the history may skip the replay, but CI checks out the full history, so a
+// missing revision there is a broken fixture and must fail instead of passing silently.
+it.runIf(process.env.CI !== undefined)("finds both replay revisions in CI", () => {
+  expect(replayHistory, JSON.stringify(fixture.revisions)).toBe(true);
+});
+
+describe.skipIf(!replayHistory)("relation web ADR-0560 acceptance replay", () => {
   it("marks the documents that still describe removed parts as suspect, with reasons", () => {
     const { before, after } = fixture.revisions;
     const files = list(git(["ls-tree", "-r", "-z", "--name-only", before]));
