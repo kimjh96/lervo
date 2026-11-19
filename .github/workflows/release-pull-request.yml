@@ -10,6 +10,10 @@ on:
         description: Same-repository pull request number whose head receives the preparation commit
         type: string
         required: true
+      force_macos:
+        description: Compile the darwin native files on macOS even when a verified build could be restored
+        type: boolean
+        default: false
 
 permissions:
   # Dispatches Code quality for the exact prepared commit, and the route job downloads a verified
@@ -129,8 +133,12 @@ jobs:
           BUILD: ${{ steps.tree.outputs.build }}
           VERIFIED: ${{ steps.verify.outcome }}
           NATIVE_RUN: ${{ steps.find.outputs.run }}
+          FORCE_MACOS: ${{ inputs.force_macos }}
         run: |
-          if [ "${BUILD}" != true ]; then
+          # An explicit dispatch can bypass a Linux preparation that is wrong for any reason.
+          if [ "${FORCE_MACOS}" = true ]; then
+            echo 'runner=macos-15' >>"${GITHUB_OUTPUT}"
+          elif [ "${BUILD}" != true ]; then
             echo 'runner=ubuntu-latest' >>"${GITHUB_OUTPUT}"
           elif [ "${VERIFIED}" = success ]; then
             echo 'runner=ubuntu-latest' >>"${GITHUB_OUTPUT}"

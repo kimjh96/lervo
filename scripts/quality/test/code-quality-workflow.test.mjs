@@ -470,7 +470,9 @@ it("starts the CLI release matrix only after verifying a release-preparation com
   const job = workflow.jobs["release-matrix"];
   assert.deepEqual(job.needs, ["verification"]);
   assert.deepEqual(job.permissions, { contents: "read", actions: "write" });
-  // Without always(), a failed or cancelled verification skips the job (ADR-0593).
+  // !cancelled() keeps a skipped transitive job, such as the restored macOS native build, from
+  // skipping it; a failed verification still does, through its result (ADR-0593).
+  assert.match(job.if, /^\$\{\{ !cancelled\(\) && /u);
   assert.doesNotMatch(job.if, /always\(\)/u);
   assert.match(job.if, /github\.event_name == 'workflow_dispatch'/u);
   assert.match(job.if, /inputs\.expected_sha != ''/u);

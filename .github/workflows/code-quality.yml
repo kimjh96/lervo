@@ -671,9 +671,11 @@ jobs:
     name: Start the CLI release matrix for a prepared commit
     # The release matrix compiles and packs on macOS and Windows, so it starts only after this run
     # verified the exact prepared or candidate commit (ADR-0593). Release preparation dispatched both
-    # before; a commit that failed here still paid for the matrix.
+    # before; a commit that failed here still paid for the matrix. The condition needs a status
+    # function: the implicit success() would also require every transitive job, and the macOS native
+    # build is skipped whenever a verified build is restored.
     needs: [verification]
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha != '' && needs.verification.result == 'success' }}
+    if: ${{ !cancelled() && github.event_name == 'workflow_dispatch' && inputs.expected_sha != '' && needs.verification.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:

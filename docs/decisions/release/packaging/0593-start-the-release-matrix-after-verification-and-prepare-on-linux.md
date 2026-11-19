@@ -22,13 +22,16 @@ The repository is private, so GitHub bills macOS minutes at ten times and Window
 
 - **Code quality starts the matrix.** A new job, `release-matrix` (`Start the CLI release matrix for a prepared commit`), needs `verification` without `always()`, so it runs only when the aggregate passed. On a dispatched run for an exact commit whose author is `lervo-release[bot]` and whose subject is `chore(cli): prepare release`, it dispatches `cli-release-matrix.yml` for that branch and commit through `release_dispatch_once`. Other dispatches start nothing. The job has `actions: write`; a dispatch made with `GITHUB_TOKEN` starts a run.
 - **Preparation starts it only after a pass.** `release_verification_dispatch` still dispatches Code quality once. It also dispatches the matrix, but only when a successful dispatched Code quality run for that commit already exists, because no new run would start it then. This covers a repeated preparation of a verified commit, and both the feature pull request and the fallback `lervo/release-cli` candidate.
+- **The fallback candidate changes too.** On `lervo/release-cli`, the matrix also starts only after the candidate's dispatched Code quality run passes. Only the fallback's runner choice (ADR-0590) is unchanged.
 - **The merge gate is unchanged.** `wait-release.sh pr` still waits for both dispatched runs of the prepared head. The tag run still reuses the matrix of the same tree.
+- **The job needs a status function.** Its condition starts with `!cancelled()`. GitHub's implicit `success()` would also require every transitive job, and Code quality skips its macOS native build whenever it restores a verified one.
 
 ### The pull-request preparation routes like the fallback
 
 - **The route job.** A new Linux job, `route` (`Choose the preparation runner`), checks out the pull-request head with full history and fetches `main`. It then builds the tree the preparation will build: it drops the head's own preparation commit and merges current `main` exactly as `reconcile-release-pull-request.sh` does.
 - **No build, no macOS.** A current preparation is only revalidated, a merge conflict stops before any build, and a tree without pending intent prepares nothing. In these cases the job routes to `ubuntu-latest`.
 - **Restore when possible.** Otherwise it runs the merged tree's `native-runtime-reuse.mjs find`, download and verify. A verified `main` build routes to `ubuntu-latest` and passes the producing run. Anything else routes to `macos-15`, and a route job that fails before deciding leaves `macos-15`, as in ADR-0590.
+- **Forcing macOS.** A dispatch with `-f force_macos=true` routes to `macos-15` in every case, which bypasses a Linux preparation that is wrong for any reason.
 - **Linux restores before preparing.** `reconcile-release-pull-request.sh` restores the build from `NATIVE_REUSE_DIRECTORY` after it merges `main` and installs, before `pnpm release:prepare`. On any system other than Darwin, a missing or invalid restore fails with `release_native_build_unavailable` before any commit or push. The restore checks the key against the checkout, so if `main` moves between the route and the preparation, the restore fails closed. The toolchain check runs only on macOS.
 
 ## Consequences

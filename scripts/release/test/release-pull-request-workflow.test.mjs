@@ -113,6 +113,22 @@ describe("CLI release in pull request workflow", () => {
       assert.deepEqual(route({ BUILD: "true", VERIFIED: verified, NATIVE_RUN: "7" }), {
         runner: "macos-15",
       });
+    // A dispatch can force the pinned macOS compile; a label event leaves the input empty.
+    for (const build of ["true", "false"])
+      assert.deepEqual(
+        route({ BUILD: build, VERIFIED: "success", NATIVE_RUN: "7", FORCE_MACOS: "true" }),
+        { runner: "macos-15" },
+      );
+    assert.deepEqual(
+      route({ BUILD: "true", VERIFIED: "success", NATIVE_RUN: "7", FORCE_MACOS: "" }),
+      { runner: "ubuntu-latest", nativeRun: "7" },
+    );
+    assert.deepEqual(workflow.on.workflow_dispatch.inputs.force_macos, {
+      description:
+        "Compile the darwin native files on macOS even when a verified build could be restored",
+      type: "boolean",
+      default: false,
+    });
     for (const id of ["find", "verify"])
       assert.equal(steps.find((step) => step.id === id)["working-directory"], "pr");
 
