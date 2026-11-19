@@ -39,12 +39,23 @@ function issueCoordinate(issue: KnowledgeLintIssue): string {
   return `${issue.code}:${issue.path}`;
 }
 
+function linkCoordinate(issue: KnowledgeLintIssue): string {
+  return `${issue.path}\0${issue.target ?? ""}`;
+}
+
 export function validateKnowledgeStage(input: {
   stage: string;
   before: KnowledgeLintResult;
   after: KnowledgeLintResult;
   ownedErrorCodes: ReadonlySet<string>;
   expectedTransitionCodes?: ReadonlySet<string>;
+  /**
+   * A stage that rewrites document content in place also rejects every Markdown link it breaks.
+   * Broken links are warnings, so the error rule alone let a background normalization commit two
+   * of them (core-loop host defect 4). A stage that moves documents leaves this off, because a
+   * moved document's existing broken link reappears under its new path.
+   */
+  rejectNewBrokenLinks?: boolean;
 }): KnowledgeLintResult {
   requireCompleteRepositoryKnowledgeCoverage(input.before);
   requireCompleteRepositoryKnowledgeCoverage(input.after);
@@ -54,11 +65,19 @@ export function validateKnowledgeStage(input: {
       .map((issue) => issueCoordinate(issue)),
   );
   const expectedTransitions = input.expectedTransitionCodes ?? new Set<string>();
+  const beforeLinks = new Set(
+    input.before.issues
+      .filter((issue) => issue.code === "markdown_link_target_missing")
+      .map((issue) => linkCoordinate(issue)),
+  );
   const blocking = input.after.issues.filter(
     (issue) =>
-      issue.severity === "error" &&
-      !expectedTransitions.has(issue.code) &&
-      (input.ownedErrorCodes.has(issue.code) || !beforeErrors.has(issueCoordinate(issue))),
+      (issue.severity === "error" &&
+        !expectedTransitions.has(issue.code) &&
+        (input.ownedErrorCodes.has(issue.code) || !beforeErrors.has(issueCoordinate(issue)))) ||
+      (input.rejectNewBrokenLinks === true &&
+        issue.code === "markdown_link_target_missing" &&
+        !beforeLinks.has(linkCoordinate(issue))),
   );
   if (blocking.length > 0) {
     const summary = blocking
