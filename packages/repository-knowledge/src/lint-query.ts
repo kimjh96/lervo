@@ -14,6 +14,7 @@ import {
 } from "./document-layout-enforcement.js";
 import { inspectRepositoryDocumentRewriters } from "./document-rewriter-adapters.js";
 import { lintDocumentDrift, type DocumentStalenessLintMode } from "./document-drift-lint.js";
+import { normalizationMayRewrite } from "./normalization-protected-paths.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { repositoryKnowledgePublicationSnapshotId } from "./publication-snapshot.js";
 import { lintPublicationRootResidents } from "./publication-root-lint.js";
@@ -444,7 +445,12 @@ export async function lintRepositoryKnowledge(
       });
     const historicalPublicReadme =
       record.outputPaths.length === 1 && record.outputPaths[0] === "README.md";
-    if (record.status === "stale" && !historicalPublicReadme)
+    // ADR-0594: a record whose outputs are all protected skill files is ignored; no candidate for
+    // it can ever be created, so its staleness is not work.
+    const protectedSkillFamily =
+      record.outputPaths.length > 0 &&
+      record.outputPaths.every((path) => !normalizationMayRewrite(path));
+    if (record.status === "stale" && !historicalPublicReadme && !protectedSkillFamily)
       issues.push({
         code: "document_normalization_stale",
         severity: "warning",

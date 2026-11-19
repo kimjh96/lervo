@@ -882,6 +882,37 @@ describe("document content normalization", () => {
     );
   });
 
+  it("does not report a stale normalization of a protected skill (ADR-0594)", async () => {
+    const root = await repository();
+    const skill = ".agents/skills/deploy/SKILL.md";
+    await mkdir(resolve(root, ".agents/skills/deploy"), { recursive: true });
+    await writeFile(resolve(root, skill), "# Deploy\n\nCurrent steps.\n");
+    const recordId = "knormdoc_bbbbbbbbbbbbbbbbbbbbbbbb";
+    const directory = resolve(root, ".lervo/knowledge/document-normalizations/bb");
+    await mkdir(directory, { recursive: true });
+    await writeFile(
+      resolve(directory, `${recordId}.yaml`),
+      [
+        `recordId: ${recordId}`,
+        "schemaVersion: 1",
+        "outputLanguage: en",
+        "formatVersion: lervo.document.v1",
+        `sourcePath: ${skill}`,
+        `sourceContentHash: ${sha256("# Deploy\n\nOld steps.\n")}`,
+        "resourceBindings: []",
+        "outputs:",
+        `  - path: ${skill}`,
+        `    contentHash: ${sha256("# Deploy\n\nOld steps.\n")}`,
+        "",
+      ].join("\n"),
+    );
+
+    const lint = await lintRepositoryKnowledge(root);
+    expect(lint.issues).not.toContainEqual(
+      expect.objectContaining({ code: "document_normalization_stale" }),
+    );
+  });
+
   it("preserves repository lifecycle metadata byte-for-byte", async () => {
     const root = await repository();
     await mkdir(resolve(root, "docs/roadmap"), { recursive: true });

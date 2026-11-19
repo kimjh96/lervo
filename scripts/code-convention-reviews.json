@@ -186,7 +186,7 @@
     },
     {
       "path": "packages/repository-knowledge/src/lint-query.ts",
-      "contentHash": "sha256:d0d024cef525bf2f035c938753f2a5063b10786713142c46b14de4ab0a418318",
+      "contentHash": "sha256:c0ce29b15ee826a08d9dd6e1a6db2858aa8b7e725f933fab8504a9836c1525a6",
       "responsibility": "Repository knowledge lifecycle lint",
       "rationale": "Query behavior, safe publication access, and document drift findings were extracted; the rest validates manifests, layout, normalization, lineage, and semantic sidecars and composes drift and publication-root lint. Layout lint maps the shared evaluator's blocking findings to errors and capacity advisories to warnings (ADR-0583). The rewriter inspection gets lint's evidence sources only to share its scan (ADR-0582). Completeness admission stays in scan-completeness.ts.",
       "disposition": "cohesive"
