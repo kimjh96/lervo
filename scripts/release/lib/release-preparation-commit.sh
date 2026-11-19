@@ -52,10 +52,24 @@ release_dispatch_once() {
   fi
 }
 
-# Dispatches full Code quality and the CLI release matrix for the exact prepared commit. The matrix
-# keeps the release subjects that the tag later publishes, so it also runs before merge.
+# Succeeds when a successful dispatched run of the workflow exists for that commit on that branch.
+release_dispatch_succeeded() {
+  local workflow="$1" branch="$2" commit="$3" runs
+  runs="$(gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/workflows/${workflow}/runs" \
+    -f head_sha="${commit}" -f event=workflow_dispatch -F per_page=100 \
+    --jq '"total \(.total_count)", (.workflow_runs[] | select(.conclusion == "success") | "\(.head_sha) \(.head_branch)")')"
+  grep -Fxq "${commit} ${branch}" <<<"${runs}"
+}
+
+# Dispatches full Code quality for the exact prepared commit. The CLI release matrix keeps the
+# release subjects that the tag later publishes, so it also runs before merge, but only after Code
+# quality passed on the commit (ADR-0593): Code quality's release-matrix job starts it. When a
+# successful Code quality run for the commit already exists, no new run would start it, so it starts
+# here.
 release_verification_dispatch() {
   local branch="$1" commit="$2" base="$3"
   release_dispatch_once code-quality.yml "${branch}" "${commit}" -f base_sha="${base}"
-  release_dispatch_once cli-release-matrix.yml "${branch}" "${commit}"
+  if release_dispatch_succeeded code-quality.yml "${branch}" "${commit}"; then
+    release_dispatch_once cli-release-matrix.yml "${branch}" "${commit}"
+  fi
 }

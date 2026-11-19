@@ -88,6 +88,12 @@ describe("CLI release preparation workflow", () => {
       prepare.run,
       /release_dispatch_once cli-release-matrix\.yml "\$\{branch\}" "\$\{commit\}"\n/u,
     );
+    // The matrix starts here only after a successful Code quality run for the commit; otherwise
+    // Code quality starts it once it passes (ADR-0593).
+    assert.match(
+      prepare.run,
+      /if release_dispatch_succeeded code-quality\.yml "\$\{branch\}" "\$\{commit\}"; then\n {4}release_dispatch_once cli-release-matrix/u,
+    );
     assert.match(
       prepare.run,
       /release_verification_dispatch lervo\/release-cli "\$\{release_commit\}" "\$\{RELEASE_SOURCE_SHA\}"/u,

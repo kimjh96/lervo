@@ -23,6 +23,16 @@ git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
 main_sha="$(git rev-parse refs/remotes/origin/main)"
 git switch -C "${PR_HEAD_REF}" "${PR_HEAD_SHA}"
 
+# Linux cannot compile the darwin native files that the preparation commits, so a Linux runner
+# prepares only with the verified build the route job found (ADR-0593); without it nothing is
+# prepared. macOS compiles them with the pinned Xcode (ADR-0581).
+restore_native_build() {
+  [ "$(uname -s)" = Darwin ] && return 0
+  [ -n "${NATIVE_REUSE_DIRECTORY:-}" ] || fail 'release_native_build_unavailable'
+  node scripts/distribution/native-runtime-reuse.mjs restore "${NATIVE_REUSE_DIRECTORY}" ||
+    fail 'release_native_build_unavailable'
+}
+
 is_preparation_commit() {
   [ "$(git log -1 --format=%an "$1")" = "${release_bot_name}" ] &&
     [ "$(git log -1 --format=%s "$1")" = "${release_prepare_subject}" ]
@@ -45,6 +55,7 @@ if ! git merge-base --is-ancestor "${main_sha}" HEAD; then
 fi
 source_sha="$(git rev-parse HEAD)"
 if [ "${source_sha}" != "${PR_HEAD_SHA}" ]; then pnpm install --frozen-lockfile; fi
+restore_native_build
 plan="$(pnpm release:prepare --json)"
 plan_id="$(release_plan_id "${plan}")"
 release_preparation_commit "${plan_id}"

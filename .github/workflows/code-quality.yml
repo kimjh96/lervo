@@ -666,3 +666,41 @@ jobs:
             -f state="${state}" -f context='CI verification (lervo-ci-v1)' \
             -f description="Code quality run ${GITHUB_RUN_ID}: ${VERIFICATION}" \
             -f target_url="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+
+  release-matrix:
+    name: Start the CLI release matrix for a prepared commit
+    # The release matrix compiles and packs on macOS and Windows, so it starts only after this run
+    # verified the exact prepared or candidate commit (ADR-0593). Release preparation dispatched both
+    # before; a commit that failed here still paid for the matrix.
+    needs: [verification]
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.expected_sha != '' && needs.verification.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Check out the verified commit
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.expected_sha }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Dispatch the matrix for a release-preparation commit once
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          [[ "${EXPECTED_SHA}" =~ ^[a-f0-9]{40}$ ]] || { echo 'ci_revision_invalid' >&2; exit 1; }
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+          source scripts/release/lib/release-preparation-commit.sh
+          # Only a preparation commit carries release subjects; other dispatches start no matrix.
+          if [ "$(git log -1 --format=%an HEAD)" != "${release_bot_name}" ] ||
+            [ "$(git log -1 --format=%s HEAD)" != "${release_prepare_subject}" ]; then
+            echo "${EXPECTED_SHA} is not a release-preparation commit; no release matrix."
+            exit 0
+          fi
+          release_dispatch_once cli-release-matrix.yml "${BRANCH}" "${EXPECTED_SHA}"
