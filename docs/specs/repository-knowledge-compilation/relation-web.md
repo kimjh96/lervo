@@ -50,6 +50,50 @@ A document has at most 1,024 edges; a document at the bound is marked truncated.
 
 A document superseded in full by a new declaration is listed under `superseded`, because it becomes historical.
 
+## Document lifecycle
+
+Every document in the web has one lifecycle state ([ADR-0562](../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md) section 2):
+
+| State                  | Meaning                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `current`              | Assessed at `assessedRevision`, and nothing it names changed since                               |
+| `suspect`              | At least one reason is open; `assessedRevision` stays at the last revision it was known to match |
+| `refreshed`            | A `verified_no_change` freshness assessment of its current bytes still matches HEAD              |
+| `superseded`           | Its header `Status:` is `superseded`                                                             |
+| `partially_superseded` | Another document supersedes a named part; the rest stays current                                 |
+| `archived`             | Another historical marker: archive scope, front matter, or banner                                |
+| `retired`              | A reviewed lineage record retired its path                                                       |
+
+A suspect's reasons are the suspect reasons above plus `cadence_due` (the sweep has not reached it) and `superseded_undeclared` (another document supersedes it in full, but its own header does not say so). Each reason is settled in one of four ways:
+
+- `deterministic`, with no edit and no provider call:
+  - the changed lines of a changed path contain no code name the document mentions;
+  - an amendment of a target it names;
+  - a lineage move of a removed target;
+  - a supersession it already names;
+  - a removal that every line naming the removed part already records.
+- `mechanical`: a missing reverse header line (`Amended by`, `Superseded in part by`, or a superseded status). This is a deterministic edit, never a provider call.
+- `provider`: the remainder, which goes to the freshness path of ADR-0463 and ADR-0561.
+- `cadence`: the document is waiting for the sweep.
+
+The sweep reaches at least 16 documents per UTC day, and enough to reach every document within 14 days. Documents that name code go first, then canonical documents, then by path. A never-assessed document is evaluated from its own last commit. A recorded one is evaluated from its assessed revision, with one diff per baseline group. A document whose provider reason is open keeps its baseline. Its reasons are reused until a later change reaches it.
+
+### Record and failure
+
+`.lervo/state/knowledge/document-lifecycle.json` (mode 0600) holds the only lifecycle state the web cannot rebuild: each document's content hash, assessed revision, evaluation time, and up to 32 open provider reasons, plus the day's sweep count. The bounds are 4,096 documents and 4 MiB. A missing, oversized, or malformed record reads as empty, and each document then falls back to its own last commit. An invalid entry is dropped alone.
+
+A baseline that Git cannot diff, such as a rewritten commit, makes the document `suspect` with the evaluation unknown. Its entry is dropped, so the sweep evaluates it again from its last commit. The web's `lifecycle` table stores the latest entries for inspection, and only the evaluation that records them writes it.
+
+### Staleness and health (shadow)
+
+The lifecycle runs in shadow for now. When scan coverage is complete, each staleness observation also evaluates the lifecycle, and records it in `evaluate_and_record` mode. The lifecycle counts are attached to the staleness report as `lifecycle`.
+
+The findings that lint, freshness and health act on still come from the ADR-0023 connected-path evaluator. If the web or the lifecycle fails, the report simply carries no counts.
+
+Repository health adds `freshness.lifecycle` to its projection: counts per state, suspects by what settles them, and cadence coverage. Its text line is unchanged.
+
+Switching the findings to the lifecycle is roadmap item 8, after the shadow counts are measured on installed hosts. That switch also replaces the ADR-0023 review interval (`reviewIntervalDays`, ADR-0464), so it needs its own decision. No new event is recorded, and the lifecycle changes no repository bytes.
+
 ## Inspection
 
 `lervo knowledge web stats [--json]` refreshes the web and prints its counts by node kind, edge kind, and strength. `lervo knowledge web suspects --since <revision> [--json]` refreshes the web and lists the suspects of the change from the revision to the worktree. Renames count as a deletion and an addition, untracked files count as added, and a deleted workspace manifest keeps its package name. It does not compare command removals, because the catalog at the revision is unknown. Both commands change no repository bytes and exit with status 1 when the web is stale.
