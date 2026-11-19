@@ -13,6 +13,7 @@ import {
 } from "./convergence-owner-host.js";
 import {
   migrateDerivedKnowledgePublicationSettings,
+  withOperatorPublicationChecks,
   type KnowledgePublicationSettings,
 } from "./knowledge-publication-settings.js";
 import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.js";
@@ -60,8 +61,14 @@ export interface ConvergenceOwnerHostDerivationResult {
   publication: "configured" | "unavailable" | "not_applicable";
 }
 
+/**
+ * ADR-0596: the operator's `publication.checks` is left out, so adding an ignore list to a derived
+ * configuration keeps it automatic; derivation carries the list over instead of dropping it.
+ */
 export function convergenceOwnerHostConfigHash(config: ConvergenceOwnerHostConfig): string {
-  return sha256(canonicalJson(config));
+  if (config.publication?.checks === undefined) return sha256(canonicalJson(config));
+  const { checks: _checks, ...publication } = config.publication;
+  return sha256(canonicalJson({ ...config, publication }));
 }
 
 /** Pure: whether Lervo may rewrite this host configuration. */
@@ -187,7 +194,11 @@ export async function deriveConvergenceOwnerHost(input: {
     current?.publication === undefined
       ? undefined
       : migrateDerivedKnowledgePublicationSettings(current.publication);
-  const publication = chosen === null ? undefined : (probed ?? kept);
+  const derived = chosen === null ? undefined : (probed ?? kept);
+  const publication =
+    derived === undefined
+      ? undefined
+      : withOperatorPublicationChecks(derived, current?.publication);
   const desired = parseConvergenceOwnerHostConfig({
     schemaVersion: 1,
     hostId: current?.hostId ?? `hst_${(input.random ?? (() => randomBytes(16).toString("hex")))()}`,

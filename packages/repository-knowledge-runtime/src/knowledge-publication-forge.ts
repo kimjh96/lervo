@@ -13,6 +13,26 @@ export interface KnowledgePublicationPullRequest {
 }
 
 /**
+ * One check that blocks a merge, named so attention can say what failed (ADR-0596).
+ * - `kind`: `check_run` is a GitHub Actions or app check run; `status` is an outside commit status,
+ *   such as a deployment preview, which the publisher cannot rerun.
+ * - `conclusion`: the forge's conclusion, or `not_run` for a check run that finished without ever
+ *   starting, such as a job GitHub refused to start for billing.
+ * - `runId`, `jobId`: the Actions run and job behind a check run, when its details link names them.
+ */
+export interface KnowledgePublicationCheckFailure {
+  name: string;
+  kind: "check_run" | "status";
+  conclusion: string;
+  runId: number | null;
+  /** The Actions job behind a check run, used only to tell a job that never started. */
+  jobId: number | null;
+}
+
+/** Bounds the failures one summary carries; the count still covers every failed check. */
+export const MAXIMUM_NAMED_CHECK_FAILURES = 8;
+
+/**
  * - `pending`: at least one check has not finished, or none has succeeded yet.
  * - `passed`: every reported check finished with success, except checks the workflow skipped
  *   because they do not apply to this pull request, and at least one succeeded.
@@ -22,10 +42,15 @@ export interface KnowledgePublicationPullRequest {
 export type KnowledgePublicationChecks =
   | { state: "pending"; total: number }
   | { state: "passed"; total: number }
-  | { state: "failed"; total: number; failed: number };
+  | {
+      state: "failed";
+      total: number;
+      failed: number;
+      failures: KnowledgePublicationCheckFailure[];
+    };
 
 export type KnowledgePublicationForgeOperation =
-  "find" | "create" | "update" | "view" | "close" | "checks" | "merge";
+  "find" | "create" | "update" | "view" | "close" | "checks" | "rerun" | "merge";
 
 /**
  * A closed, privacy-safe cause of one forge failure; the forge's own message never leaves it.
@@ -75,7 +100,18 @@ export interface KnowledgePublicationForge {
   viewPullRequest(number: number): Promise<KnowledgePublicationPullRequest>;
   /** Closes an open pull request with an explanatory comment; the branch stays for the next push. */
   closePullRequest(input: { number: number; comment: string }): Promise<void>;
-  checks(input: { number: number; headSha: string }): Promise<KnowledgePublicationChecks>;
+  /** Checks for the exact head; `ignore` lists exact check or status names that never block. */
+  checks(input: {
+    number: number;
+    headSha: string;
+    ignore?: readonly string[];
+  }): Promise<KnowledgePublicationChecks>;
+  /**
+   * Starts the failed jobs of these Actions runs again on the same head (ADR-0596). A run GitHub
+   * no longer reruns, such as one older than a month, is retriggered by reopening the pull
+   * request, which starts its pull request workflows on the unchanged head.
+   */
+  rerunFailedChecks(input: { number: number; runIds: readonly number[] }): Promise<void>;
   /** Merges with a merge commit only if the head is still exactly `headSha`. */
   merge(input: { number: number; headSha: string }): Promise<void>;
 }

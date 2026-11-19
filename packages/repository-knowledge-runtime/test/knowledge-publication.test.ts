@@ -10,6 +10,7 @@ import { writeConvergenceOwnerFence } from "../src/convergence-owner-fence.js";
 import { CONVERGENCE_OWNER_HOST_PATH } from "../src/convergence-owner-host.js";
 import { renderKnowledgePublicationBody } from "../src/knowledge-publication-body.js";
 import type {
+  KnowledgePublicationCheckFailure,
   KnowledgePublicationChecks,
   KnowledgePublicationForge,
   KnowledgePublicationPullRequest,
@@ -135,18 +136,32 @@ class FakeForge implements KnowledgePublicationForge {
     this.pullRequests.find((pr) => pr.number === input.number)!.state = "closed";
     this.closed.push(input);
   }
+  checkFailures: KnowledgePublicationCheckFailure[] = [];
+  checkCalls: { headSha: string; ignore: readonly string[] | undefined }[] = [];
   async checks({
     number,
     headSha,
+    ignore,
   }: {
     number: number;
     headSha: string;
+    ignore?: readonly string[];
   }): Promise<KnowledgePublicationChecks> {
+    this.checkCalls.push({ headSha, ignore });
     const found = this.pullRequests.find((pr) => pr.number === number)!;
     if ((await this.head(found.head)) !== headSha) return { state: "pending", total: 1 };
     return this.checkState === "failed"
-      ? { state: "failed", total: 2, failed: 1 }
+      ? {
+          state: "failed",
+          total: Math.max(2, this.checkFailures.length),
+          failed: Math.max(1, this.checkFailures.length),
+          failures: this.checkFailures,
+        }
       : { state: this.checkState, total: 2 };
+  }
+  reruns: { number: number; runIds: readonly number[] }[] = [];
+  async rerunFailedChecks(input: { number: number; runIds: readonly number[] }) {
+    this.reruns.push(input);
   }
   mergeError: Error | null = null;
   findError: Error | null = null;
@@ -177,6 +192,7 @@ async function setup(
     scope?: "delegation";
     /** Files the developer commits on the remote base before the owner clones it. */
     seed?: Record<string, string>;
+    checks?: { ignore: string[] };
   } = {},
 ) {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-"));
@@ -208,6 +224,7 @@ async function setup(
         branch: "lervo/knowledge-outputs",
         merge: options.merge ?? "when_checks_pass",
         ...(options.scope === undefined ? {} : { scope: options.scope }),
+        ...(options.checks === undefined ? {} : { checks: options.checks }),
       },
     }),
   );
@@ -243,12 +260,13 @@ async function setup(
     manifest: { projectId: "prj_knowledge_publication" },
     writableEventSchemaVersion: 4,
   } as unknown as KnowledgePublicationRepairEvents;
-  const publish = () =>
+  const publish = (now?: () => Date) =>
     publishKnowledgeOutputs({
       repositoryRoot: root,
       forge,
       formatter: options.formatter ?? null,
       events: store,
+      ...(now === undefined ? {} : { now }),
     });
   return { root, remote, forge, publish, owner, events };
 }
@@ -757,6 +775,101 @@ describe("knowledge output publication", () => {
     },
   );
 
+  it(
+    "reruns transient failures once per head, names failed checks, and backs off while nothing changes",
+    { timeout: 60_000 },
+    async () => {
+      const { root, forge, publish } = await setup({ checks: { ignore: ["Vercel – docs"] } });
+      await commit(root, "docs/runtime.md", "# Runtime\n\nRetry.\n", knowledge);
+      forge.checkState = "failed";
+      forge.checkFailures = [
+        { name: "Lint", kind: "check_run", conclusion: "not_run", runId: 11, jobId: 111 },
+        { name: "Lint copy", kind: "check_run", conclusion: "not_run", runId: 11, jobId: 112 },
+        { name: "Vercel – web", kind: "status", conclusion: "failure", runId: null, jobId: null },
+      ];
+      const start = Date.now();
+      const at = (minutes: number) => () => new Date(start + minutes * 60_000);
+
+      // ADR-0596: a job that never ran is started again once, and the publisher waits for it.
+      const rerun = await publish(at(0));
+      expect(rerun).toMatchObject({
+        state: { status: "awaiting_checks", checksRetry: { rerun: true, attempts: 0 } },
+        retryAfterMs: 120_000,
+      });
+      expect(forge.reruns).toEqual([{ number: 1, runIds: [11] }]);
+      expect(forge.checkCalls[0]!.ignore).toEqual(["Vercel – docs"]);
+
+      const failed = await publish(at(2));
+      expect(failed).toMatchObject({
+        state: {
+          status: "failed",
+          pullRequestNumber: 1,
+          failure: {
+            code: "knowledge_publication_checks_failed",
+            detail:
+              "3 of 3 checks failed: Lint (not_run); Lint copy (not_run); Vercel – web (failure)",
+          },
+          checksRetry: {
+            rerun: true,
+            attempts: 1,
+            retryAt: new Date(start + 17 * 60_000).toISOString(),
+          },
+        },
+      });
+      expect(forge.reruns).toHaveLength(1);
+
+      // Within the wait nothing reaches the forge.
+      const reads = forge.checkCalls.length;
+      expect(await publish(at(10))).toEqual({ status: "unchanged" });
+      expect(forge.checkCalls).toHaveLength(reads);
+
+      const later = await publish(at(18));
+      expect(later).toMatchObject({
+        state: {
+          status: "failed",
+          checksRetry: { attempts: 2, retryAt: new Date(start + 78 * 60_000).toISOString() },
+          failure: { occurrences: 2 },
+        },
+      });
+      expect(forge.checkCalls).toHaveLength(reads + 1);
+      expect(forge.reruns).toHaveLength(1);
+
+      // A new knowledge commit is a new head: its own rerun, and no wait inherited.
+      await commit(root, "docs/runtime.md", "# Runtime\n\nRetry again.\n", knowledge);
+      expect(await publish(at(20))).toMatchObject({
+        state: { status: "awaiting_checks", checksRetry: { rerun: true, attempts: 0 } },
+      });
+      expect(forge.reruns).toHaveLength(2);
+      expect((await readKnowledgePublicationState(root))?.checksRetry?.head).toBe(
+        await git(root, ["rev-parse", "HEAD"]),
+      );
+    },
+  );
+
+  it(
+    "never reruns a real failure or an outside status, and still backs it off",
+    { timeout: 60_000 },
+    async () => {
+      const { root, forge, publish } = await setup();
+      await commit(root, "docs/runtime.md", "# Runtime\n\nReal.\n", knowledge);
+      forge.checkState = "failed";
+      forge.checkFailures = [
+        { name: "Test", kind: "check_run", conclusion: "failure", runId: 21, jobId: 211 },
+        { name: "Preview", kind: "status", conclusion: "error", runId: null, jobId: null },
+      ];
+      const start = Date.now();
+      expect(await publish(() => new Date(start))).toMatchObject({
+        state: {
+          status: "failed",
+          checksRetry: { rerun: false, attempts: 1 },
+          failure: { detail: "2 of 2 checks failed: Test (failure); Preview (error)" },
+        },
+      });
+      expect(forge.reruns).toEqual([]);
+      expect(await publish(() => new Date(start + 5 * 60_000))).toEqual({ status: "unchanged" });
+    },
+  );
+
   it("does nothing on a non-owner and reports a push failure as attention", async () => {
     const { root, remote, publish, owner } = await setup();
     await commit(root, "docs/runtime.md", "# Runtime\n\nC.\n", knowledge);
@@ -1003,9 +1116,16 @@ describe("knowledge publication pull request body", () => {
       summarizeKnowledgePublicationChecks({
         headSha: "a",
         observedHeadSha: "a",
-        rollup: [success, { __typename: "StatusContext", state: "FAILURE" }],
+        rollup: [success, { __typename: "StatusContext", context: "preview", state: "FAILURE" }],
       }),
-    ).toEqual({ state: "failed", total: 2, failed: 1 });
+    ).toEqual({
+      state: "failed",
+      total: 2,
+      failed: 1,
+      failures: [
+        { name: "preview", kind: "status", conclusion: "failure", runId: null, jobId: null },
+      ],
+    });
     expect(
       summarizeKnowledgePublicationChecks({
         headSha: "a",
@@ -1032,22 +1152,61 @@ describe("knowledge publication pull request body", () => {
       "STALE",
       "STARTUP_FAILURE",
     ])
-      expect(summarize([run("SUCCESS"), run(conclusion)])).toEqual({
+      expect(summarize([run("SUCCESS"), run(conclusion)])).toMatchObject({
         state: "failed",
         total: 2,
         failed: 1,
+        failures: [{ name: "unnamed check", conclusion: conclusion.toLowerCase() }],
       });
-    expect(summarize([run("SUCCESS"), { __typename: "StatusContext", state: "ERROR" }])).toEqual({
-      state: "failed",
-      total: 2,
-      failed: 1,
-    });
+    expect(
+      summarize([run("SUCCESS"), { __typename: "StatusContext", state: "ERROR" }]),
+    ).toMatchObject({ state: "failed", total: 2, failed: 1 });
     // A job the workflow skipped for pull requests neither passes nor blocks.
     expect(summarize([run("SUCCESS"), run("SKIPPED")])).toEqual({ state: "passed", total: 2 });
     expect(summarize([run("SKIPPED")])).toEqual({ state: "pending", total: 1 });
     expect(
       summarize([run("SUCCESS"), { __typename: "StatusContext", state: "EXPECTED" }]),
     ).toMatchObject({ state: "pending" });
+  });
+});
+
+describe("named publication check failures", () => {
+  it("names at most eight failures, drops ignored names, and keeps the full count", () => {
+    const failing = Array.from({ length: 10 }, (_, index) => ({
+      __typename: "CheckRun",
+      name: `job ${index}\u0007`,
+      status: "COMPLETED",
+      conclusion: "FAILURE",
+      detailsUrl: `https://github.com/o/r/actions/runs/${index + 1}/job/${index + 100}`,
+    }));
+    const summary = summarizeKnowledgePublicationChecks({
+      headSha: "a",
+      observedHeadSha: "a",
+      rollup: [...failing, { __typename: "StatusContext", context: "Preview", state: "FAILURE" }],
+      ignore: ["Preview"],
+    });
+    expect(summary).toMatchObject({ state: "failed", total: 10, failed: 10 });
+    const failures = summary.state === "failed" ? summary.failures : [];
+    expect(failures).toHaveLength(8);
+    expect(failures[0]).toEqual({
+      name: "job 0",
+      kind: "check_run",
+      conclusion: "failure",
+      runId: 1,
+      jobId: 100,
+    });
+    // Ignoring every failed item leaves only successes, which pass.
+    expect(
+      summarizeKnowledgePublicationChecks({
+        headSha: "a",
+        observedHeadSha: "a",
+        rollup: [
+          { __typename: "CheckRun", name: "Build", status: "COMPLETED", conclusion: "SUCCESS" },
+          { __typename: "StatusContext", context: "Preview", state: "FAILURE" },
+        ],
+        ignore: ["Preview"],
+      }),
+    ).toEqual({ state: "passed", total: 1 });
   });
 });
 
@@ -1098,6 +1257,68 @@ describe("GitHub CLI publication adapter", () => {
       "--merge",
       "--match-head-commit",
       "b".repeat(40),
+    ]);
+  });
+
+  it("names never-started jobs, ignores listed names, and reopens when GitHub refuses a rerun", async () => {
+    const calls: string[][] = [];
+    const head = "b".repeat(40);
+    const rollup = [
+      {
+        __typename: "CheckRun",
+        name: "Lint",
+        status: "COMPLETED",
+        conclusion: "FAILURE",
+        detailsUrl: "https://github.com/o/r/actions/runs/11/job/111",
+      },
+      {
+        __typename: "CheckRun",
+        name: "Test",
+        status: "COMPLETED",
+        conclusion: "FAILURE",
+        detailsUrl: "https://github.com/o/r/actions/runs/12/job/121",
+      },
+      { __typename: "StatusContext", context: "Vercel – web", state: "FAILURE" },
+      { __typename: "CheckRun", name: "Build", status: "COMPLETED", conclusion: "SUCCESS" },
+    ];
+    const forge = createGitHubKnowledgePublicationForge({
+      repositoryRoot: "/repository",
+      run: async (args) => {
+        calls.push(args);
+        if (args[0] === "pr" && args[1] === "view")
+          return JSON.stringify({ headRefOid: head, statusCheckRollup: rollup });
+        // A job GitHub refused to start has no steps.
+        if (args[0] === "api") return args[1]!.endsWith("/111") ? "0\n" : "3\n";
+        if (args[0] === "run" && args[2] === "12")
+          throw Object.assign(new Error("Command failed: gh"), {
+            code: 1,
+            stderr: "run was created over a month ago",
+          });
+        return "";
+      },
+    });
+    expect(await forge.checks({ number: 64, headSha: head })).toEqual({
+      state: "failed",
+      total: 4,
+      failed: 3,
+      failures: [
+        { name: "Lint", kind: "check_run", conclusion: "not_run", runId: 11, jobId: 111 },
+        { name: "Test", kind: "check_run", conclusion: "failure", runId: 12, jobId: 121 },
+        { name: "Vercel – web", kind: "status", conclusion: "failure", runId: null, jobId: null },
+      ],
+    });
+    expect(
+      await forge.checks({ number: 64, headSha: head, ignore: ["Vercel – web"] }),
+    ).toMatchObject({ state: "failed", total: 3, failed: 2 });
+    calls.length = 0;
+    await forge.rerunFailedChecks({ number: 64, runIds: [11] });
+    expect(calls).toEqual([["run", "rerun", "11", "--failed"]]);
+    calls.length = 0;
+    await forge.rerunFailedChecks({ number: 64, runIds: [12] });
+    expect(calls).toEqual([
+      ["run", "rerun", "12", "--failed"],
+      ["pr", "close", "64"],
+      ["pr", "reopen", "64"],
     ]);
   });
 

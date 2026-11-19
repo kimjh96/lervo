@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_342bf661c9eb854db8f6f11c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Rerun never-started knowledge publication checks once, name failed checks, back off, and honor checks.ignore"

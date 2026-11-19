@@ -9,6 +9,12 @@ import {
   type KnowledgeOutputFormatter,
 } from "./knowledge-output-formatter.js";
 import {
+  currentChecksRetry,
+  knowledgePublicationChecksWaiting,
+  knowledgePublicationInventoryKey,
+  recoverFailedKnowledgePublicationChecks,
+} from "./knowledge-publication-checks.js";
+import {
   KnowledgePublicationForgeError,
   type KnowledgePublicationForge,
 } from "./knowledge-publication-forge.js";
@@ -148,6 +154,15 @@ export async function publishKnowledgeOutputs(input: {
     previous.status !== "failed"
   )
     return { status: "unchanged" };
+  // ADR-0596: failed checks on an unchanged head and inventory wait out their backoff offline.
+  if (
+    knowledgePublicationChecksWaiting(
+      previous,
+      local === null ? null : knowledgePublicationInventoryKey(local),
+      now(),
+    )
+  )
+    return { status: "unchanged" };
   const base: KnowledgePublicationState = {
     schemaVersion: 1,
     status: "idle",
@@ -178,6 +193,7 @@ export async function publishKnowledgeOutputs(input: {
       superseded,
       base,
       progress,
+      now: now(),
     });
   } catch (error) {
     if (!(error instanceof PublicationFailure)) throw error;
@@ -224,6 +240,7 @@ async function publish(input: {
   superseded: ReadonlySet<string>;
   base: KnowledgePublicationState;
   progress: { current: KnowledgePublicationState; requeue: boolean };
+  now: Date;
 }): Promise<KnowledgePublicationState> {
   const { root, settings, forge, base } = input;
   await step("knowledge_publication_fetch_failed", () =>
@@ -309,8 +326,10 @@ async function publish(input: {
         });
     return existing;
   });
+  const retry = currentChecksRetry(input.previous, tip);
   const opened: KnowledgePublicationState = {
     ...base,
+    ...(retry === undefined ? {} : { checksRetry: retry }),
     status: "open",
     pullRequestNumber: pullRequest.number,
     pullRequestUrl: pullRequest.url,
@@ -320,14 +339,25 @@ async function publish(input: {
   input.progress.current = opened;
   if (settings.merge === "never") return opened;
   const checks = await step("knowledge_publication_pull_request_failed", () =>
-    forge.checks({ number: pullRequest.number, headSha: tip }),
+    forge.checks({
+      number: pullRequest.number,
+      headSha: tip,
+      ...(settings.checks === undefined ? {} : { ignore: settings.checks.ignore }),
+    }),
   );
   if (checks.state === "pending") return { ...opened, status: "awaiting_checks" };
-  if (checks.state === "failed")
-    throw new PublicationFailure(
-      "knowledge_publication_checks_failed",
-      `${checks.failed} of ${checks.total} checks failed`,
-    );
+  if (checks.state === "failed") {
+    const recovery = await recoverFailedKnowledgePublicationChecks({
+      forge,
+      now: input.now,
+      opened,
+      inventory,
+      checks,
+    });
+    if (recovery.status === "rerun") return recovery.state;
+    input.progress.current = recovery.state;
+    throw new PublicationFailure("knowledge_publication_checks_failed", recovery.detail);
+  }
   const merged = await step("knowledge_publication_merge_failed", () =>
     forge.merge({ number: pullRequest.number, headSha: tip }).then(
       () => true,
