@@ -59,6 +59,7 @@ case "$1 $2" in
     echo "$FAKE_JOBS" ;;
   api\\ *commits*) echo "$FAKE_AUTHOR" ;;
   api\\ *contents/apps/cli/package.json*) echo "\${FAKE_MAIN_VERSION:-1.2.3}" ;;
+  api\\ *contents/.changes*) echo "\${FAKE_INTENTS:-0}" ;;
   *) exit 2 ;;
 esac
 `;
@@ -156,6 +157,15 @@ describe("deploy-lervo-release pull-request wait", () => {
     });
     assert.equal(failed.status, 1);
     assert.equal((await wait({ ...author, FAKE_CHECKS: "2 1 0 Tests=pending" }, "0")).status, 2);
+  });
+
+  it("never admits an unprepared head that still carries release intent (ADR-0592)", async () => {
+    const author = { FAKE_AUTHOR: "Owner|feat: add capability" };
+    const pending = await wait({ ...author, FAKE_INTENTS: "1" }, "0");
+    assert.equal(pending.status, 2, pending.stdout);
+    assert.match(pending.stdout, /carries release intent, so its checks skipped the tests/u);
+    assert.match(pending.stdout, /gh pr edit 7 --add-label release/u);
+    assert.match(pending.trace, /contents\/\.changes\?ref=b{40}/u);
   });
 
   it("judges the head again when it moves during the checks and binds the merge to it", async () => {

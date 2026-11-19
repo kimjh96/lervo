@@ -88,6 +88,65 @@ describe("CI admission", () => {
       }),
     ).toThrow("ci_base_revision_invalid");
   });
+
+  it("leaves a pull request that adds release intent to the preparation's full run", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-pending-"));
+    roots.push(root);
+    const git = (...args) => execFileSync("git", args, { cwd: root, encoding: "utf8" }).trim();
+    git("init", "--quiet", "--initial-branch", "main");
+    git("config", "user.name", "CI Fixture");
+    git("config", "user.email", "ci@lervo.invalid");
+    await mkdir(resolve(root, ".changes"));
+    await writeFile(resolve(root, ".changes/config.json"), "{}\n");
+    await writeFile(resolve(root, "main.ts"), "export const value = 1;\n");
+    git("add", ".");
+    git("commit", "--quiet", "-m", "fixture: initial");
+    // A pull_request checkout is the merge of the head into the current base branch.
+    const pullRequest = async (branch, files) => {
+      git("checkout", "--quiet", "-b", branch, "main");
+      for (const [path, content] of Object.entries(files))
+        await writeFile(resolve(root, path), content);
+      git("add", ".");
+      git("commit", "--quiet", "-m", `fix: ${branch}`);
+      const head = git("rev-parse", "HEAD");
+      git("checkout", "--quiet", "--detach", "main");
+      git("merge", "--quiet", "--no-ff", "-m", `merge ${branch}`, head);
+      const base = git("rev-parse", "HEAD^1");
+      return createCiVerificationPlan({
+        repositoryRoot: root,
+        event: {
+          eventName: "pull_request",
+          pull_request: { base: { sha: base }, head: { sha: head, ref: branch } },
+        },
+      });
+    };
+    const intent = ".changes/relint_0123456789abcdef01234567.yaml";
+    expect(await pullRequest("code", { "main.ts": "export const value = 2;\n" })).toMatchObject({
+      coverage: "full",
+    });
+    expect(
+      await pullRequest("intent", {
+        "main.ts": "export const value = 3;\n",
+        [intent]: '"schemaVersion": 1\n',
+      }),
+    ).toMatchObject({ coverage: "release_pending", reason: "release_preparation_verifies" });
+    // An intent already waiting on the base belongs to the base, not to a later pull request.
+    git("checkout", "--quiet", "main");
+    await writeFile(resolve(root, intent), '"schemaVersion": 1\n');
+    git("add", ".");
+    git("commit", "--quiet", "-m", "fix: unprepared intent on main");
+    expect(await pullRequest("later", { "main.ts": "export const value = 4;\n" })).toMatchObject({
+      coverage: "full",
+    });
+    const before = git("rev-parse", "main^");
+    for (const eventName of ["push", "workflow_dispatch"])
+      expect(
+        createCiVerificationPlan({
+          repositoryRoot: root,
+          event: { eventName, before, inputs: {} },
+        }).coverage,
+      ).toBe("full");
+  });
 });
 
 describe("release metadata verification", () => {
@@ -246,5 +305,16 @@ describe("aggregate verification", () => {
       }),
     ).toBe("passed");
     expect(aggregateCiVerification({ ...complete, coverage: "documentation_only" })).toBe("failed");
+    expect(
+      aggregateCiVerification({
+        ...complete,
+        coverage: "release_pending",
+        build: "skipped",
+        tests: "skipped",
+        distribution: "skipped",
+        distributionRequired: false,
+      }),
+    ).toBe("passed");
+    expect(aggregateCiVerification({ ...complete, coverage: "release_pending" })).toBe("failed");
   });
 });

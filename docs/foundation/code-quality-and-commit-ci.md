@@ -16,7 +16,7 @@ Tests retain two workers, the 30-second default deadline, a 45-minute shard time
 
 Each shard records a test input ledger ([ADR-0565](../decisions/operations/services/0565-record-what-each-ci-test-file-reads-before-reusing-its-result.md)). After the shards, the `Test reuse shadow` job predicts which files earlier trusted runs could have replaced and compares that with this run's results. It publishes the run's input index for seven days and its shadow report for 30 days. No job needs it, and it never fails the run or changes which tests run.
 
-Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes and pull requests without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Prepared feature pull requests and fallback release candidates receive these checks through their explicit dispatch. Under [ADR-0564](../decisions/operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md), pull requests with pending `.changes/*.yaml` retain full tests and metadata checks but skip distribution until preparation verifies the prepared bytes.
+Distribution checks use the same build on explicit dispatch, daily audit, and full main pushes and pull requests without pending release intent. They cover unsigned attestation, built CLI/Hub/Node, standalone distributions, packed CLI, isolated registry publication fixtures, and knowledge lint. Prepared feature pull requests and fallback release candidates receive these checks through their explicit dispatch. Under [ADR-0592](../decisions/release/packaging/0592-leave-pull-requests-with-release-intent-to-the-preparation-run.md), a `pull_request` run whose merge commit adds a pending intent selects coverage `release_pending`. It keeps the plan, quality and type checks and leaves the build, tests and distribution to the preparation's dispatched run for the prepared commit; `wait-release.sh pr` never admits such a head unprepared.
 
 ## Source test package resolution
 
@@ -54,7 +54,7 @@ The toolchain digest of ADR-0565 includes the `scripts/quality/lib/test-*.mjs` s
 
 ## Aggregate, events, and release effects
 
-`CI verification (lervo-ci-v1)` always evaluates the required job results. Its versioned receipt distinguishes `full` and `documentation_only`; failed, cancelled, skipped-required, and unknown results cannot become success. Hosted required-check configuration must be reconciled with this aggregate during rollout; local source checks do not establish that branch protection was changed.
+`CI verification (lervo-ci-v1)` always evaluates the required job results. Its versioned receipt distinguishes `full`, `documentation_only` and `release_pending`; failed, cancelled, skipped-required, and unknown results cannot become success. Hosted required-check configuration must be reconciled with this aggregate during rollout; local source checks do not establish that branch protection was changed.
 
 Explicit candidate dispatch binds both the expected candidate SHA and its source base. A moved branch fails planning. Same-repository `lervo/release-cli` PR events delegate to this dispatch to avoid duplicate heavy verification. A fork with the same branch name retains ordinary PR verification.
 
