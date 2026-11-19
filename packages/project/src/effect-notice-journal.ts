@@ -38,6 +38,8 @@ interface EffectNoticeJournal {
 /** The newest notices kept; older ones were already reported or are no longer worth reporting. */
 const MAXIMUM_NOTICES = 64;
 const MAXIMUM_TARGETS = 16;
+// Long enough for a restore command that names two quoted absolute paths.
+const MAXIMUM_UNDO_LENGTH = 2048;
 const EFFECT = /^[a-z][a-z0-9_]{0,63}$/u;
 
 function journalPath(repositoryRoot: string): string {
@@ -88,6 +90,11 @@ export async function recordEffectNotice(
   notice: Omit<LervoEffectNoticeV1, "schemaVersion">,
 ): Promise<void> {
   if (!EFFECT.test(notice.effect)) throw new Error("An effect notice needs a snake_case effect.");
+  // A cut undo command can split a quoted path and run something else, so refuse it instead.
+  if (notice.undo.length > MAXIMUM_UNDO_LENGTH)
+    throw new Error(
+      `An effect notice undo command must be at most ${MAXIMUM_UNDO_LENGTH} characters.`,
+    );
   const bounded: LervoEffectNoticeV1 = {
     schemaVersion: 1,
     noticeId: line(notice.noticeId, 128),
@@ -99,7 +106,7 @@ export async function recordEffectNotice(
       reviewers: notice.crossCheck.reviewers.slice(0, 4).map((reviewer) => line(reviewer, 120)),
       verdict: line(notice.crossCheck.verdict, 40),
     },
-    undo: line(notice.undo, 300),
+    undo: line(notice.undo, MAXIMUM_UNDO_LENGTH),
   };
   const notices = await readEffectNotices(repositoryRoot);
   if (notices.some((item) => item.noticeId === bounded.noticeId)) return;

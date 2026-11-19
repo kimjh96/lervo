@@ -13,6 +13,7 @@ import {
 } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import { assertNoKnowledgeMaterializationTransaction } from "@lervo/repository-knowledge";
+import { repositoryReleaseCommand } from "@lervo/repository-registry";
 import { visitEventSnapshot } from "@lervo/storage-contract";
 
 import { holdEffect } from "./held-effect-debt.js";
@@ -258,7 +259,7 @@ export async function runStateCommand(
       io.stdout(
         parsed.values.json
           ? `${JSON.stringify({ schemaVersion: 1, operation: "effect_backup_restored", ...restored, ownerHold }, null, 2)}\n`
-          : `Restored backup ${restored.backupId} (${restored.effect}): ${restored.restoredPaths} path(s).${ownerHold ? ` Lervo does not merge the provider hooks again until lervo repository release --root ${repositoryRoot}.` : ""}\n`,
+          : `Restored backup ${restored.backupId} (${restored.effect}): ${restored.restoredPaths} path(s).${ownerHold ? ` Lervo does not merge the provider hooks again until ${repositoryReleaseCommand(repositoryRoot)}.` : ""}\n`,
       );
       return 0;
     }

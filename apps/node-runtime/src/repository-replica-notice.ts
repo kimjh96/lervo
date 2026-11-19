@@ -1,14 +1,7 @@
 import { recordEffectNotice } from "@lervo/project";
+import { shellWord } from "@lervo/repository-knowledge-runtime";
 
 import type { RepositoryReplicaBackup } from "./repository-replica-divergence-resolution.js";
-
-/**
- * Quotes one POSIX shell word only when it needs it, so the printed undo command can be pasted as
- * is: the macOS coordinator config sits under `Application Support`.
- */
-function shellWord(value: string): string {
-  return /^[\w@%+=:,./-]+$/u.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
-}
 
 /** The one command that restores the saved losing side and holds the repository (ADR-0561). */
 export function repositoryReplicaRestoreCommand(input: {

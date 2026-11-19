@@ -5,6 +5,7 @@ import {
   holdRepository,
   readRepositoryHolds,
   releaseRepositoryHold,
+  repositoryReleaseCommand,
   type RepositoryHold,
 } from "@lervo/repository-registry";
 
@@ -75,7 +76,7 @@ export async function runRepositoryHoldCommand(args: string[], io: CliIo): Promi
       io.stdout(
         json
           ? `${JSON.stringify({ schemaVersion: 1, operation: "repository_held", hold }, null, 2)}\n`
-          : `Held ${holdLine(hold)}.\nLervo applies nothing here on its own until lervo repository release --root ${hold.repositoryRoot}.\n`,
+          : `Held ${holdLine(hold)}.\nLervo applies nothing here on its own until ${repositoryReleaseCommand(hold.repositoryRoot)}.\n`,
       );
       return 0;
     }

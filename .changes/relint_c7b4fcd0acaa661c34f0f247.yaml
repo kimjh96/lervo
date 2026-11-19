@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c7b4fcd0acaa661c34f0f247"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Shell-quote every path in commands Lervo prints to paste: the replica restore undo, its cycle report, and each lervo repository release --root line. An effect notice no longer cuts a long undo command; one past 2048 characters is refused."

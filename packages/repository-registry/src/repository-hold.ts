@@ -3,6 +3,7 @@ import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs
 import { dirname, isAbsolute, resolve } from "node:path";
 
 import { defaultRepositoryRegistryPath, RepositoryRegistryError } from "./registry.js";
+import { shellWord } from "./shell-word.js";
 
 /**
  * ADR-0561: the owner's way to defer one repository. While a repository is held, Lervo applies
@@ -28,6 +29,11 @@ interface RepositoryHoldFile {
 const MAXIMUM_HOLDS = 256;
 const MAXIMUM_REASON_LENGTH = 200;
 const MAXIMUM_FILE_BYTES = 256 * 1024;
+
+/** The command that releases a held repository, ready to paste. */
+export function repositoryReleaseCommand(repositoryRoot: string): string {
+  return `lervo repository release --root ${shellWord(repositoryRoot)}`;
+}
 
 /** The hold file sits in the same owner-only directory as the repository registry. */
 export function defaultRepositoryHoldPath(environment: NodeJS.ProcessEnv = process.env): string {

@@ -66,7 +66,11 @@ export class RepositoryReplicaCycleReporter {
   private readonly health = new Map<string, RepositoryReplicaHealthEntry>();
   private readonly failures = new Map<string, FailureStreak>();
 
-  constructor(private readonly watch: boolean) {}
+  constructor(
+    private readonly watch: boolean,
+    /** The coordinator config the run read, so the printed undo command names it. */
+    private readonly configPath?: string,
+  ) {}
 
   observeResult(result: RepositoryReplicaCycleResult): RepositoryReplicaReportLines {
     const lines: RepositoryReplicaReportLines = { stdout: [], stderr: [] };
@@ -121,7 +125,7 @@ export class RepositoryReplicaCycleReporter {
     // ADR-0561 notice: what replaced which side, and where the replaced side is kept.
     if (result.backup !== undefined) {
       lines.stdout.push(
-        `Repository replica ${result.replicaId} saved the ${result.backup.side} side (${result.backup.snapshotHash}) to branch ${result.backup.branch} on the ${result.backup.side} host before preferring the other side; undo: ${repositoryReplicaRestoreCommand({ replicaId: result.replicaId, backup: result.backup })}.`,
+        `Repository replica ${result.replicaId} saved the ${result.backup.side} side (${result.backup.snapshotHash}) to branch ${result.backup.branch} on the ${result.backup.side} host before preferring the other side; undo: ${repositoryReplicaRestoreCommand({ replicaId: result.replicaId, backup: result.backup, ...(this.configPath === undefined ? {} : { configPath: this.configPath }) })}.`,
       );
     }
     return lines;
