@@ -2,7 +2,7 @@
 
 Status: `active`
 
-As of: 2026-11-10
+As of: 2026-11-19
 
 ## Outcome
 
@@ -12,16 +12,20 @@ Decisions: [ADR-0560 core hardening](../decisions/foundation/0560-remove-unused-
 
 ## Release rule
 
-The owner ruled on 2026-11-02 that nothing is released or deployed until every milestone below up to the integration step is done. Then one release and one fleet deployment follow, with the Hub before the Nodes.
+On 2026-11-18 the owner replaced the single release ruled on 2026-11-02. Each step now lands on its own:
+
+1. a pull request from `origin/main` with its release intent;
+2. CI and one independent review;
+3. a release;
+4. the host follower installing it on every host.
 
 ## Ordered milestones
 
 ### Remove unused parts and owner approvals
 
-1. **ADR-0560 removal:** done on branch `remove-unused-subsystems`, unreleased.
-2. **ADR-0561 owner approvals:** A1 to A7 are done on branch `remove-owner-approval-gates`. Open:
+1. **ADR-0560 removal:** released in v0.26.0.
+2. **ADR-0561 owner approvals:** released in v0.27.1, with the follower fix in [ADR-0591](../decisions/distribution/0591-accept-the-previous-followers-upgrade-arguments.md). Both hosts installed it on 2026-11-18. Open:
    - Find and fix the cause of the `failure-recovery` test that takes about 60 seconds. 1,272 synchronous Git calls in source capture explain about 22 seconds; about 44 seconds are unexplained.
-   - Rerun `pnpm quality:check`.
    - Hub remote-command approval stays a documented boundary until a Node two-check path exists.
 
 ### Fix observed host defects
@@ -36,10 +40,10 @@ Found on the Mac host on 2026-11-12. Each fix needs a regression test.
 
 ### One relation web (ADR-0562)
 
-Work happens on branch `core-loop`, stacked on the ADR-0561 branch.
+Each item lands from `origin/main`. Branch `core-loop` keeps the work that has not landed yet.
 
-1. **Relation web and replay:** done. The ADR-0560 replay reaches recall 85/85.
-2. **Document lifecycle** (section 2): in progress. Run the new resolution test, add tests, measure again, update the specification, add release intent, and commit. Fix the source-lineage limit of 256 records before its next write fails.
+1. **Relation web and replay:** done. The ADR-0560 replay reaches recall 85/85. It lands with `lervo knowledge web stats` and `lervo knowledge web suspects`.
+2. **Document lifecycle** (section 2): in progress on `core-loop`. Run the new resolution test, add tests, measure again, update the specification, add release intent, and commit. Fix the source-lineage limit of 256 records before its next write fails.
 3. **Plan ledger** ([ADR-0563](../decisions/foundation/0563-keep-the-plan-in-a-ledger-lervo-owns-and-check-it-at-every-stop.md)): capture items from transcripts, keep them as a tree, close them only with evidence, and generate the workstream from the ledger. Bring related open items into each turn. Make the Stop hook block a turn that skips an owner clause, a related item, a stated finding, or a delivered health line without acting on it or deferring it. Record repeated misses. Restoring the ledger after compaction lands with milestone 9; until then the existing prompt hook prints the open items.
 4. **Find misses and ADR numbers:** classify the 69 of 182 replay documents that are found only through prose, then add co-change edges, code identifiers, and a bounded model pass for the true misses. Renumber the duplicate ADR numbers (0222, 0353 to 0359, 0415, 0425) and add a lint for duplicates.
 5. **Stop ledger** (section 3): only the lease holder reports a stop. Every failure code maps to one action.
@@ -58,12 +62,10 @@ Milestones 4 to 8 do not depend on each other and may run in parallel.
 3. **Shared judgment state:** move host-private judgment state to tracked files or the Hub, with a two-host parity probe.
 4. **Measured replication:** measure sync lag and divergence, and replace 30-second polling with file-watch replication for every registered repository. Today 5 of 13 repositories replicate.
 
-### Integration and release
+### Verification on the fleet
 
-1. Rebase `core-loop` onto the ADR-0561 branch, and both onto `origin/main`, resolving conflicts with the background knowledge commits that landed after 2026-11-02.
-2. Run a Codex adversarial review and judge each finding again.
-3. Open the pull requests, release once, and deploy the fleet with the Hub first.
-4. Verify that Lervo applies the argo layout itself and sends a notice with the undo command.
+1. Verify that Lervo applies the argo layout itself and sends a notice with the undo command.
+2. Deploy the Hub before the Nodes whenever a step changes what the Hub reads.
 
 ## Completion
 
