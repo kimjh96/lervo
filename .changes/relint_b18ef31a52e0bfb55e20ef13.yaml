@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b18ef31a52e0bfb55e20ef13"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reuse each unchanged source file's extracted units across repository scans in one process, so the knowledge host stops re-parsing every JavaScript and TypeScript file on each scan."
