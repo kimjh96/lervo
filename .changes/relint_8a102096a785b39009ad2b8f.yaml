@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8a102096a785b39009ad2b8f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Unblock knowledge publication: default roots widen to the active delegation, skills are never normalized, the repair counts its own commits as Lervo's, and the Node resident applies stored owner rules with recorded failures."

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_bb3706d968e82e9762a150be"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Reject a background document normalization that breaks a Markdown link it did not break before, instead of committing the broken link as a lint warning."
