@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_546ffebbec7ced5ff2626f93"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Treat a document whose header Status line is superseded, historical, or archived as historical, so it leaves the governing index, link web counts, and default knowledge query results."
