@@ -16,6 +16,38 @@ function result(issues: KnowledgeLintResult["issues"]): KnowledgeLintResult {
 }
 
 describe("knowledge stage lint", () => {
+  it("rejects a Markdown link a content rewrite breaks, and keeps one that was already broken", () => {
+    const link = (target: string) => ({
+      code: "markdown_link_target_missing",
+      severity: "warning" as const,
+      path: "docs/roadmap/plan.md",
+      target,
+      message: `Line 3 links to ${target}, which does not exist.`,
+    });
+    const existing = link("docs/old/gone.md");
+    const input = {
+      stage: "background normalization",
+      before: result([existing]),
+      ownedErrorCodes: new Set<string>(),
+    };
+    expect(
+      validateKnowledgeStage({ ...input, after: result([existing]), rejectNewBrokenLinks: true })
+        .valid,
+    ).toBe(true);
+    const broken = link("docs/decisions/typed-context/0292-moved.md");
+    expect(() =>
+      validateKnowledgeStage({
+        ...input,
+        after: result([existing, broken]),
+        rejectNewBrokenLinks: true,
+      }),
+    ).toThrow("markdown_link_target_missing:docs/roadmap/plan.md");
+    // Stages that move documents keep the warning-only behavior.
+    expect(validateKnowledgeStage({ ...input, after: result([existing, broken]) }).valid).toBe(
+      true,
+    );
+  });
+
   it("retains an unrelated pre-existing issue without hiding it", () => {
     const issue = {
       code: "publication_missing",

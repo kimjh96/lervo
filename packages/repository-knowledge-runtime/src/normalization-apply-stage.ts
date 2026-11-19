@@ -127,6 +127,8 @@ export async function applyNormalizationBatch(
             before: beforeLint,
             after: await lintRepositoryKnowledge(root, { allowTransactionPlanId: plan.planId }),
             ownedErrorCodes: normalizationKnowledgeLintCodes,
+            rejectNewBrokenLinks: true,
+            rejectNewBrokenLinks: true,
             expectedTransitionCodes: new Set(
               paths.includes("AGENTS.md") || paths.includes("CLAUDE.md")
                 ? ["instruction_bridge_binding_stale"]
