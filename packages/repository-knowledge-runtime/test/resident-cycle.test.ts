@@ -387,10 +387,18 @@ describe("held repositories, forced full cycles and failure backoff (ADR-0595)",
   it("never lets the forced full cycle fall below the reconcile ceiling", () => {
     expect(residentCadence({})).toEqual({ base: BASE, ceiling: CEILING, forcedFullCycle: FORCED });
     expect(() =>
-      residentCadence({ reconcileCeilingMilliseconds: 5_000, forcedFullCycleMilliseconds: 4_999 }),
+      residentCadence({
+        intervalMilliseconds: 1_000,
+        reconcileCeilingMilliseconds: 5_000,
+        forcedFullCycleMilliseconds: 4_999,
+      }),
     ).toThrow("Invalid forced full-cycle interval.");
     expect(
-      residentCadence({ reconcileCeilingMilliseconds: 5_000, forcedFullCycleMilliseconds: 5_000 }),
+      residentCadence({
+        intervalMilliseconds: 1_000,
+        reconcileCeilingMilliseconds: 5_000,
+        forcedFullCycleMilliseconds: 5_000,
+      }),
     ).toMatchObject({ ceiling: 5_000, forcedFullCycle: 5_000 });
   });
 
