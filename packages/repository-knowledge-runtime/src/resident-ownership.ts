@@ -2,7 +2,7 @@ import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import type { KnowledgeResidentState } from "./resident-health.js";
-import type { ConvergenceSourceFingerprint } from "./source-fingerprint.js";
+import { earliestMoment, type ConvergenceSourceFingerprint } from "./source-fingerprint.js";
 
 /** The owner heartbeat; renewal itself happens only once a third of the lease has elapsed. */
 export const RESIDENT_OWNER_HEARTBEAT_MILLISECONDS = 10 * 60_000;
@@ -29,7 +29,10 @@ export function ownershipFingerprint(
         generation: verdict.holder?.generation ?? null,
       }),
     ),
-    earliestAvailableAt: owner ? observed.earliestAvailableAt : wakeAt,
+    // ADR-0595: local time-based stages run on every host, so a non-owner wakes for them too.
+    earliestAvailableAt: owner
+      ? observed.earliestAvailableAt
+      : earliestMoment(wakeAt, observed.localWakeAt ?? null),
   };
 }
 

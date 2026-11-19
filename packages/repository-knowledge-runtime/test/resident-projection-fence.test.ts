@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { CONVERGENCE_OWNER_FENCE_PATH } from "../src/convergence-owner-fence.js";
 import {
+  RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS as HELD_MAXIMUM_AGE,
   RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS as MAXIMUM_AGE,
   residentProjectionDue,
   residentProjectionRefresher,
@@ -72,9 +73,9 @@ function resident(options: { failRefresh?: () => boolean } = {}) {
     now: () => state.now,
   });
   /** One check tick a minute later. */
-  const tick = async (ageOnly = false) => {
+  const tick = async (ageOnly = false, repositoryDigest?: string) => {
     state.now += MINUTE;
-    await offer({ ageOnly });
+    await offer({ ageOnly, repositoryDigest });
   };
   return { state, offer, tick };
 }
@@ -160,19 +161,40 @@ describe("projection fence (ADR-0595)", () => {
     expect(r.state.refreshes).toBe(3);
   });
 
-  it("refreshes a held repository once, never while held, and again on release", async () => {
+  it("refreshes a held repository when held, then hourly, and again on release", async () => {
     const r = resident();
     await r.offer();
     await holdRepository({ repositoryRoot: root, reason: null });
     r.state.held = true;
     await r.tick();
     expect(r.state.refreshes).toBe(2);
-    // Neither new events nor the maximum age refresh a held repository.
+    const heldAt = r.state.now;
+    // Neither new events nor the 15-minute bound refresh a held repository.
     r.state.head = "evt_held";
-    for (let index = 0; index < 30; index++) await r.tick();
+    while (r.state.now < heldAt + HELD_MAXIMUM_AGE - MINUTE) await r.tick();
     expect(r.state.refreshes).toBe(2);
+    // The hourly bound keeps its Node, replica and attention lines from going stale forever.
+    await r.tick();
+    expect(r.state.refreshes).toBe(3);
+    await r.tick();
+    expect(r.state.refreshes).toBe(3);
     await releaseRepositoryHold({ repositoryRoot: root });
     r.state.held = false;
+    await r.tick();
+    expect(r.state.refreshes).toBe(4);
+  });
+
+  it("uses a digest the observation just computed instead of reading the repository", async () => {
+    const r = resident();
+    await r.offer();
+    const digest = `sha256:${"c".repeat(64)}`;
+    await r.tick(false, digest);
+    expect(r.state.refreshes).toBe(2);
+    // The supplied digest stands in for the repository, so an edit behind it is not read.
+    await writeFile(resolve(root, "README.md"), "# Repository\n\nEdited.\n");
+    await r.tick(false, digest);
+    expect(r.state.refreshes).toBe(2);
+    // The next offer without a digest reads the repository and sees the edit.
     await r.tick();
     expect(r.state.refreshes).toBe(3);
   });
@@ -207,7 +229,10 @@ describe("projection fence (ADR-0595)", () => {
     expect(due({ last: null })).toBe(true);
     expect(due({ now: MAXIMUM_AGE })).toBe(true);
     expect(due({ held: true })).toBe(true);
-    expect(due({ held: true, last: { ...last, held: true }, now: 10 * MAXIMUM_AGE })).toBe(false);
+    expect(due({ held: true, last: { ...last, held: true }, now: HELD_MAXIMUM_AGE - 1 })).toBe(
+      false,
+    );
+    expect(due({ held: true, last: { ...last, held: true }, now: HELD_MAXIMUM_AGE })).toBe(true);
     expect(due({ ageOnly: true, key: "other" })).toBe(false);
     expect(due({ ageOnly: true, now: MAXIMUM_AGE })).toBe(true);
   });

@@ -13,10 +13,20 @@ import { convergenceRepositoryDigest } from "./source-fingerprint.js";
  * this bound passes, under the 20-minute display window of ADR-0535.
  */
 export const RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS = 15 * 60_000;
+/**
+ * A held repository (ADR-0561) refreshes once when the hold starts and then at this age, so its
+ * Node, replica and attention lines stay bounded while the resident itself applies nothing.
+ */
+export const RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS = 60 * 60_000;
 /** How often the resident checks the projection inputs: one stat pass and one repository digest. */
 export const RESIDENT_PROJECTION_CHECK_MILLISECONDS = 60_000;
 
-/** State the health projection reads that can change without a repository content change. */
+/**
+ * State the health projection reads that can change without a repository content change. The
+ * projection also reads cached operating attention sources, the terminal lifecycle cache, the
+ * appearance, Find replay and turn governance summaries, and the publication state; those rely
+ * on the maximum age, because the prefetch rewrites some of them itself.
+ */
 const PROJECTION_INPUTS = [
   ".lervo/state/node-runtime-health.json",
   ".lervo/state/knowledge/maintenance-observation.json",
@@ -69,11 +79,13 @@ export function residentProjectionKey(input: {
   repositoryRoot: string;
   events: OutboxStore;
   residentState: string;
+  /** The digest an observation just computed with no work since; it saves one `git status`. */
+  repositoryDigest?: string | undefined;
 }): string {
   const root = input.repositoryRoot;
   return sha256(
     canonicalJson({
-      repository: convergenceRepositoryDigest(root),
+      repository: input.repositoryDigest ?? convergenceRepositoryDigest(root),
       eventHead: input.events.latest()?.eventId ?? null,
       inputs: PROJECTION_INPUTS.map((path) => [path, identity(resolve(root, path))]),
       owner: ownerProjection(root),
@@ -91,8 +103,8 @@ export interface ResidentProjectionRecord {
 
 /**
  * A refresh is due when the key is unknown or changed, or after the maximum age while nothing
- * changed. A held repository (ADR-0561) is refreshed once, so the projection shows the hold, and
- * then not again until the hold is released: nothing the resident does there can change it.
+ * changed. A held repository (ADR-0561) is refreshed when the hold starts and then only at the
+ * held maximum age: the resident applies nothing there, so its own changes cannot move the key.
  * `ageOnly` (a tick during a running cycle) ignores changes, which the cycle's own offer covers.
  */
 export function residentProjectionDue(input: {
@@ -102,8 +114,15 @@ export function residentProjectionDue(input: {
   held: boolean;
   ageOnly?: boolean;
   maximumAgeMilliseconds: number;
+  heldMaximumAgeMilliseconds?: number;
 }): boolean {
-  if (input.held) return input.last?.held !== true;
+  if (input.held)
+    return (
+      input.last === null ||
+      !input.last.held ||
+      input.now - input.last.at >=
+        (input.heldMaximumAgeMilliseconds ?? RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS)
+    );
   const aged = input.last === null || input.now - input.last.at >= input.maximumAgeMilliseconds;
   if (input.ageOnly === true) return aged;
   return aged || input.key === null || input.key !== input.last?.key;
@@ -123,7 +142,7 @@ export function residentProjectionRefresher(input: {
   held: () => boolean;
   maximumAgeMilliseconds: number;
   now?: () => number;
-}): (options?: { ageOnly?: boolean }) => Promise<void> {
+}): (options?: { ageOnly?: boolean; repositoryDigest?: string | undefined }) => Promise<void> {
   let last: ResidentProjectionRecord | null = null;
   return async (options = {}) => {
     if (!input.enabled || input.signal.aborted) return;
@@ -137,6 +156,7 @@ export function residentProjectionRefresher(input: {
             repositoryRoot: input.repositoryRoot,
             events: input.events,
             residentState: input.residentState(),
+            repositoryDigest: options.repositoryDigest,
           }),
         );
       } catch {

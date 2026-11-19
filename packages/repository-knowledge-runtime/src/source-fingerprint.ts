@@ -7,6 +7,7 @@ import { defaultRepositoryHoldPath } from "@lervo/repository-registry";
 import type { OutboxStore } from "@lervo/storage-contract";
 
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
+import { nextUtcDayAt, observePracticeSchedule } from "./practice-schedule.js";
 import { convergenceSourceCaptureSettings } from "./source-capture-settings.js";
 
 const MAXIMUM_OBSERVED_PATHS = 20_000;
@@ -17,8 +18,21 @@ export interface ConvergenceSourceFingerprint {
   fingerprint: string;
   /** The repository-only part, stable while other processes append unrelated events. */
   sourceDigest: string;
-  /** Earliest moment a pending or lease-expired knowledge delivery becomes claimable. */
+  /**
+   * Earliest moment a pending or lease-expired knowledge delivery becomes claimable, or a local
+   * time-based stage falls due, whichever comes first.
+   */
   earliestAvailableAt: number | null;
+  /**
+   * ADR-0595: the earliest future moment a local time-based stage (practice, the daily skill
+   * usage window) falls due. Every host runs these, so a non-owner wakes for them too.
+   */
+  localWakeAt?: number | null;
+}
+
+/** The earlier of two optional moments. */
+export function earliestMoment(left: number | null, right: number | null): number | null {
+  return left === null ? right : right === null ? left : Math.min(left, right);
 }
 
 function git(root: string, args: string[]): string {
@@ -172,6 +186,19 @@ export function convergenceSourceFingerprint(input: {
 }): ConvergenceSourceFingerprint {
   const sourceDigest = convergenceRepositoryDigest(input.repositoryRoot);
   const queue = observeConvergenceQueue(input.events);
+  const now = Date.now();
+  // ADR-0595: practice enters the fence by what is due, not by a 30-minute clock window; an
+  // unreadable schedule keeps the window, so practice is never delayed.
+  let practiceDue: unknown;
+  let practiceWakeAt: number | null = null;
+  try {
+    const schedule = observePracticeSchedule(input.repositoryRoot, now);
+    practiceDue = schedule.dueDigest;
+    practiceWakeAt = schedule.nextDueAt;
+  } catch {
+    practiceDue = ["window", Math.floor(now / (30 * 60_000))];
+  }
+  const localWakeAt = earliestMoment(practiceWakeAt, nextUtcDayAt(now));
   return {
     fingerprint: sha256(
       canonicalJson({
@@ -183,14 +210,16 @@ export function convergenceSourceFingerprint(input: {
         practice: metadata(
           resolve(input.repositoryRoot, KNOWLEDGE_STATE, "practice", "state.json"),
         ),
-        practiceAssessmentWindow: Math.floor(Date.now() / (30 * 60_000)),
+        practiceDue,
         // ADR-0595: the host hold store lives outside the repository, so a hold or its release
         // changes the fence explicitly and wakes a backed-off held resident.
         repositoryHolds: metadata(defaultRepositoryHoldPath()),
-        terminalSkillsDay: new Date().toISOString().slice(0, 10),
+        // The daily skill usage window; `localWakeAt` wakes the resident when it rolls over.
+        terminalSkillsDay: new Date(now).toISOString().slice(0, 10),
       }),
     ),
     sourceDigest,
-    earliestAvailableAt: queue.earliestAvailableAt,
+    earliestAvailableAt: earliestMoment(queue.earliestAvailableAt, localWakeAt),
+    localWakeAt,
   };
 }

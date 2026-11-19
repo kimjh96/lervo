@@ -128,7 +128,8 @@ it("refreshes health by its age bound while a long cycle runs, one refresh at a 
   }
 });
 
-it("backs a held repository off without health refreshes and wakes it on release (ADR-0595)", async () => {
+/** A resident whose repository the owner holds until `release()`. */
+function startHeldResident() {
   vi.useFakeTimers();
   let holding = true;
   vi.mocked(readRepositoryHold).mockImplementation(async (repositoryRoot) =>
@@ -156,25 +157,54 @@ it("backs a held repository off without health refreshes and wakes it on release
     refreshHealth,
     onFailure: vi.fn(),
   });
+  return {
+    refreshHealth,
+    release: () => {
+      holding = false;
+    },
+    stop: async () => {
+      await stop();
+      vi.mocked(readRepositoryHold).mockImplementation(async () => null);
+      vi.mocked(runResidentCycle).mockReset();
+    },
+  };
+}
+
+it("backs a held repository off and refreshes its health once an hour (ADR-0595)", async () => {
+  const held = startHeldResident();
   try {
     await vi.advanceTimersByTimeAsync(600_000);
     // Held cycles back off 1, 2 and 4 minutes instead of running every minute.
     expect(runResidentCycle).toHaveBeenCalledTimes(4);
     // One refresh shows the hold; neither the check ticks nor the cycles refresh it again.
-    expect(refreshHealth).toHaveBeenCalledTimes(1);
+    expect(held.refreshHealth).toHaveBeenCalledTimes(1);
     expect(recordKnowledgeResidentHealth).toHaveBeenLastCalledWith(
       expect.objectContaining({ state: "busy", reason: "repository_owner_hold" }),
     );
-    holding = false;
+    await vi.advanceTimersByTimeAsync(2_999_000);
+    expect(held.refreshHealth).toHaveBeenCalledTimes(1);
+    // The held maximum age refreshes its Node, replica and attention lines after an hour.
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(held.refreshHealth).toHaveBeenCalledTimes(2);
+  } finally {
+    await held.stop();
+  }
+});
+
+it("wakes a held resident on release through the hold check (ADR-0595)", async () => {
+  const held = startHeldResident();
+  try {
+    await vi.advanceTimersByTimeAsync(600_000);
+    expect(runResidentCycle).toHaveBeenCalledTimes(4);
+    // The next held cycle would wait until 15 minutes; the release must not wait for it.
+    held.release();
     // The release check runs within a minute and wakes the resident after the 30-second debounce.
     await vi.advanceTimersByTimeAsync(91_000);
     expect(runResidentCycle).toHaveBeenCalledTimes(5);
     expect(vi.mocked(runResidentCycle).mock.calls[4]![0].previous).toMatchObject({ idleStreak: 0 });
-    expect(refreshHealth).toHaveBeenCalledTimes(2);
+    expect(held.refreshHealth).toHaveBeenCalledTimes(2);
   } finally {
-    await stop();
-    vi.mocked(readRepositoryHold).mockImplementation(async () => null);
-    vi.mocked(runResidentCycle).mockReset();
+    await held.stop();
   }
 });
 

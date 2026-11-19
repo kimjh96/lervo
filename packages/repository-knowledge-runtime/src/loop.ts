@@ -215,14 +215,15 @@ export function startAutonomousKnowledgeWorker(input: {
     await reconcileContinuity();
     const observedOwner = await observeOwnership();
     const observedPrevious = previous;
+    let observedDigest: string | undefined;
     const { value: cycle, cost } = await measureProcessCost(() =>
       runResidentCycle({
         repositoryRoot: root,
         previous: observedPrevious,
         now: Date.now,
         ceilingMilliseconds: forcedFullCycle,
-        observe: () =>
-          withProcessCostScope("fingerprint", () =>
+        observe: () => {
+          const observed = withProcessCostScope("fingerprint", () =>
             evaluationFingerprint(
               ownershipFingerprint(
                 convergenceSourceFingerprint({
@@ -233,7 +234,10 @@ export function startAutonomousKnowledgeWorker(input: {
               ),
               convergenceEvaluationContract(),
             ),
-          ),
+          );
+          observedDigest = observed.sourceDigest;
+          return observed;
+        },
         runFull,
       }),
     );
@@ -255,7 +259,9 @@ export function startAutonomousKnowledgeWorker(input: {
           })
         : null;
     await healthWrite;
-    await refreshProjection();
+    // ADR-0595: with no cycle work and no publication since, the fence digest is still current.
+    const unchanged = cycle.outcome.kind === "skipped" && publication === null;
+    await refreshProjection({ repositoryDigest: unchanged ? observedDigest : undefined });
     const now = Date.now();
     const reconcileDelay = residentReconcileDelay({
       idleStreak: cycle.state.idleStreak,
