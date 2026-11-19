@@ -30,6 +30,19 @@ function validReplay(value: unknown): boolean {
   );
 }
 
+/** ADR-0562 lifecycle counts: non-negative integers in the shape the projection writes. */
+function validLifecycle(value: unknown): boolean {
+  if (!object(value) || !object(value.suspect) || !object(value.cadence)) return false;
+  const { suspect, cadence } = value;
+  return (
+    ["current", "refreshed", "partiallySuperseded", "superseded", "archived", "retired"].every(
+      (k) => count(value[k]),
+    ) &&
+    ["provider", "mechanical", "cadence", "unknown"].every((k) => count(suspect[k])) &&
+    ["perDay", "periodDays", "unassessed", "remainingDays"].every((k) => count(cadence[k]))
+  );
+}
+
 function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boolean {
   switch (key) {
     case "convergence":
@@ -62,6 +75,7 @@ function validValue(key: (typeof KEYS)[number], v: Record<string, unknown>): boo
           nullable(v[k], count),
         ) &&
         nullable(v.blocked, (x) => typeof x === "boolean") &&
+        (v.lifecycle === undefined || nullable(v.lifecycle, validLifecycle)) &&
         (v.debt === undefined ||
           nullable(
             v.debt,

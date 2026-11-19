@@ -14,7 +14,8 @@ import { relationNodeDocument, type RelationWeb } from "./relation-web.js";
  * Why a document may no longer match the repository (ADR-0562):
  *
  * - `path_changed`: a non-Markdown path it names strongly changed, or a non-Markdown path changed
- *   below a directory it names strongly that is not a top-level directory.
+ *   below a directory it names strongly that is not a top-level directory and that the document is
+ *   about (see `documentAboutDirectory`).
  * - `path_removed`: a path or directory it names no longer exists.
  * - `package_removed`: an `@lervo/` package it names lost its directory.
  * - `command_removed`: a CLI command or command group it names left the catalog.
@@ -157,6 +158,34 @@ function flagRemovedPaths({ web, removedPaths, flag }: SuspectScope): void {
     }
 }
 
+/**
+ * A directory reference is a statement about the directory, not about every file below it. The
+ * document is about the directory when at least half of the non-Markdown paths it names strongly
+ * are the directory or lie below it; only then does a change below the directory reach it. A
+ * removed directory reaches every document naming it as `path_removed`.
+ */
+export function documentAboutDirectory(
+  web: RelationWeb,
+  documentPath: string,
+  directory: string,
+): boolean {
+  const document = web.documents.get(documentPath);
+  if (document === undefined) return false;
+  let total = 0;
+  let below = 0;
+  const seen = new Set<string>();
+  for (const edge of document.edges) {
+    if (!pathEdgeKinds.has(edge.kind) || edge.evidence.strength !== "strong") continue;
+    if (edge.from !== pathNode(documentPath)) continue;
+    const target = edge.to.slice("path:".length);
+    if (markdownPattern.test(target) || seen.has(target)) continue;
+    seen.add(target);
+    total += 1;
+    if (target === directory || target.startsWith(`${directory}/`)) below += 1;
+  }
+  return below > 0 && below * 2 >= total;
+}
+
 function flagChangedPaths({ web, removedPaths, flag }: SuspectScope, paths: string[]): void {
   // A changed document reaches the documents naming it through its header, not as a path change.
   // A top-level directory such as `packages/` names a repository area, not a changed part.
@@ -173,7 +202,8 @@ function flagChangedPaths({ web, removedPaths, flag }: SuspectScope, paths: stri
       if (
         pathEdgeKinds.has(edge.kind) &&
         edge.evidence.strength === "strong" &&
-        edge.evidence.sourceDocument !== via
+        edge.evidence.sourceDocument !== via &&
+        (target === via || documentAboutDirectory(web, edge.evidence.sourceDocument, target))
       )
         flag(edge, {
           reason: "path_changed",
@@ -197,7 +227,12 @@ function flagRemovedPackages(
     .sort(compare);
   for (const name of removed)
     for (const edge of named(web, packageNode(name)))
-      flag(edge, { reason: "package_removed", target: packageNode(name), edgeKind: edge.kind });
+      flag(edge, {
+        reason: "package_removed",
+        target: packageNode(name),
+        edgeKind: edge.kind,
+        via: packages.get(name)!,
+      });
   return removed;
 }
 

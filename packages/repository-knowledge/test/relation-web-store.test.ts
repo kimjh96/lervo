@@ -7,7 +7,12 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { openSqliteDatabase } from "@lervo/sqlite-connection";
 
 import { buildRelationWeb, type RelationWeb } from "../src/relation-web.js";
-import { readRelationWebStore, writeRelationWebStore } from "../src/relation-web-store.js";
+import type { DocumentLifecycleEntry } from "../src/document-lifecycle-model.js";
+import {
+  readRelationWebLifecycle,
+  readRelationWebStore,
+  writeRelationWebStore,
+} from "../src/relation-web-store.js";
 
 function sample(revision: string): RelationWeb {
   return buildRelationWeb({
@@ -59,31 +64,66 @@ describe("relation web store", () => {
   it("round-trips the web privately", async () => {
     expect(readRelationWebStore(path)).toBeNull();
     const web = sample("rev1");
-    writeRelationWebStore(path, web, "2026-11-02T00:00:00.000Z");
+    writeRelationWebStore(path, web, "2026-11-02T00:00:00.000Z", "keep");
     expect((await stat(path)).mode & 0o777).toBe(0o600);
     expect(comparable(readRelationWebStore(path)!)).toEqual(comparable(web));
   });
 
+  it("stores lifecycle rows with the web and keeps those of documents that still exist", () => {
+    const entry = (path: string): DocumentLifecycleEntry => ({
+      path,
+      state: "suspect",
+      reasons: [
+        {
+          reason: "path_removed",
+          target: "path:src/old.ts",
+          edgeKind: "names_path",
+          line: 3,
+          strength: "strong",
+          resolution: "provider",
+        },
+      ],
+      assessedRevision: "a".repeat(40),
+      verifiedRevision: null,
+      supersededParts: [],
+    });
+    const web = sample("rev1");
+    const paths = [...web.documents.keys()];
+    writeRelationWebStore(path, web, "2026-11-02T00:00:00.000Z", [
+      entry(paths[0]!),
+      entry("docs/gone.md"),
+    ]);
+    expect(readRelationWebLifecycle(path).map((item) => item.path)).toEqual(
+      [paths[0]!, "docs/gone.md"].sort(),
+    );
+    expect(readRelationWebLifecycle(path)[0]!.reasons[0]!.resolution).toBe("provider");
+    // A refresh without a lifecycle keeps the rows of documents that still exist.
+    writeRelationWebStore(path, sample("rev2"), "2026-11-02T00:01:00.000Z", "keep");
+    expect(readRelationWebLifecycle(path).map((item) => item.path)).toEqual([paths[0]!]);
+    writeRelationWebStore(path, sample("rev3"), "2026-11-02T00:02:00.000Z", []);
+    expect(readRelationWebLifecycle(path)).toEqual([]);
+  });
+
   it("keeps the previous web when a write fails", () => {
-    writeRelationWebStore(path, sample("rev1"), "2026-11-02T00:00:00.000Z");
+    writeRelationWebStore(path, sample("rev1"), "2026-11-02T00:00:00.000Z", "keep");
     const broken = sample("rev2");
     const document = broken.documents.get("docs/decisions/0001-old.md")!;
     (document as { contentHash: string | null }).contentHash = null;
-    expect(() => writeRelationWebStore(path, broken, "2026-11-02T00:01:00.000Z")).toThrow();
+    expect(() => writeRelationWebStore(path, broken, "2026-11-02T00:01:00.000Z", "keep")).toThrow();
     expect(readRelationWebStore(path)!.observedRevision).toBe("rev1");
   });
 
   it("discards a corrupt or differently versioned store and rebuilds it", async () => {
     await writeFile(path, "not a database");
     expect(readRelationWebStore(path)).toBeNull();
-    writeRelationWebStore(path, sample("rev1"), "2026-11-02T00:00:00.000Z");
+    writeRelationWebStore(path, sample("rev1"), "2026-11-02T00:00:00.000Z", "keep");
     expect(readRelationWebStore(path)!.observedRevision).toBe("rev1");
 
     const database = openSqliteDatabase(path, { busyTimeoutMs: 0 });
     database.exec("PRAGMA user_version = 99");
     database.close();
     expect(readRelationWebStore(path)).toBeNull();
-    writeRelationWebStore(path, sample("rev2"), "2026-11-02T00:00:00.000Z");
+    writeRelationWebStore(path, sample("rev2"), "2026-11-02T00:00:00.000Z", "keep");
     expect(readRelationWebStore(path)!.observedRevision).toBe("rev2");
   });
 });

@@ -29,6 +29,18 @@ export interface RepositoryHealthLervoDebtSourceV1 {
   reason: string;
 }
 
+/** ADR-0562 document lifecycle counts; `suspect` splits by what settles each suspect. */
+export interface RepositoryHealthDocumentLifecycleV1 {
+  current: number;
+  refreshed: number;
+  partiallySuperseded: number;
+  superseded: number;
+  archived: number;
+  retired: number;
+  suspect: { provider: number; mechanical: number; cadence: number; unknown: number };
+  cadence: { perDay: number; periodDays: number; unassessed: number; remainingDays: number };
+}
+
 export interface RepositoryHealthProjectionV1 {
   schemaVersion: 1;
   kind: "repository_health.projection";
@@ -65,6 +77,11 @@ export interface RepositoryHealthProjectionV1 {
       awaitingReview: number | null;
       refreshed: number | null;
       blocked: boolean | null;
+      /**
+       * Additive (ADR-0562): document lifecycle counts from the current-HEAD evaluation, absent
+       * from older projections and null when the evaluation is missing, stale, or not lifecycle.
+       */
+      lifecycle?: RepositoryHealthDocumentLifecycleV1 | null;
       /** Additive (ADR-0561): stale documents Lervo holds as its own debt, oldest first. */
       debt?: Array<{
         path: string;

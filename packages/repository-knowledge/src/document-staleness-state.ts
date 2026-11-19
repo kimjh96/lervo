@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
+import { DOCUMENT_LIFECYCLE_EVALUATOR } from "./document-lifecycle-model.js";
+import { observeDocumentLifecycle } from "./document-lifecycle-observation.js";
 import {
   DOCUMENT_STALENESS_EVALUATOR,
   evaluateRepositoryDocumentStaleness,
@@ -38,6 +40,8 @@ function observationCoordinate(input: {
   return sha256(
     canonicalJson({
       evaluator: DOCUMENT_STALENESS_EVALUATOR,
+      // ADR-0562: the lifecycle counts ride on the report, so its rules version the reading too.
+      lifecycle: DOCUMENT_LIFECYCLE_EVALUATOR,
       assessmentHashes: input.assessmentHashes,
       assessmentPolicyHash: input.assessmentPolicyHash,
       head: input.head,
@@ -99,6 +103,11 @@ export async function readRecordedDocumentStalenessReport(
 /**
  * Returns the staleness report for the current documents, reusing the persisted projection when
  * its coordinate matches. Only `evaluate_and_record` writes, and only `.lervo/state/`.
+ *
+ * ADR-0562 shadow: with complete coverage, the document lifecycle is evaluated beside this report
+ * and its counts are attached; the findings still come from the ADR-0023 evaluator. Switching the
+ * findings to the lifecycle is a later decision (core loop roadmap item 8), because it also
+ * replaces the review-interval policy.
  */
 export async function observeRepositoryDocumentStaleness(
   input: DocumentStalenessInput & {
@@ -133,11 +142,15 @@ export async function observeRepositoryDocumentStaleness(
     const state = await readState(input.root);
     if (state?.coordinate === coordinate) return state.report;
   }
-  const report = await evaluateRepositoryDocumentStaleness({
+  const assessments = assessmentRecords.map((item) => item.assessment);
+  const evaluated = await evaluateRepositoryDocumentStaleness({
     ...input,
-    assessments: assessmentRecords.map((item) => item.assessment),
+    assessments,
     assessmentPolicyHash,
   });
+  const lifecycle =
+    input.coverage === "complete" ? await lifecycleSummary(input, assessments) : null;
+  const report = lifecycle === null ? evaluated : { ...evaluated, lifecycle };
   if (
     input.mode === "evaluate_and_record" &&
     coordinate !== null &&
@@ -146,4 +159,29 @@ export async function observeRepositoryDocumentStaleness(
   )
     await writeState(input.root, { schemaVersion: 1, coordinate, report }).catch(() => undefined);
   return report;
+}
+
+/**
+ * ADR-0562 lifecycle counts, or null when the relation web or the lifecycle cannot be evaluated;
+ * the report then carries no lifecycle until an observation with a new coordinate tries again.
+ */
+async function lifecycleSummary(
+  input: Pick<DocumentStalenessInput, "documents" | "now"> & {
+    root: string;
+    mode: DocumentStalenessObservationMode;
+  },
+  assessments: Parameters<typeof observeDocumentLifecycle>[0]["assessments"],
+): Promise<NonNullable<DocumentStalenessReport["lifecycle"]> | null> {
+  try {
+    const observation = await observeDocumentLifecycle({
+      root: input.root,
+      mode: input.mode,
+      documents: input.documents.map((document) => document.path),
+      assessments,
+      now: input.now,
+    });
+    return observation.evaluation.summary;
+  } catch {
+    return null;
+  }
 }

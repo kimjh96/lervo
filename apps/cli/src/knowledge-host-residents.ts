@@ -29,6 +29,7 @@ import {
   type ResidentProvider,
 } from "./knowledge-host-resident-candidates.js";
 import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
+import { refreshRelationWebWithCatalog } from "./relation-web-catalog.js";
 
 /** How often the host resident looks for newly registered or removed repositories. */
 export const HOST_RESIDENT_SCAN_MILLISECONDS = 5 * 60_000;
@@ -108,6 +109,8 @@ export function startHostKnowledgeResidents(input: {
   };
 
   const startResident = (root: string, storage: ProjectStorage, provider: ResidentProvider) => {
+    // A stale web keeps its previous catalog; the lifecycle never treats it as a failure.
+    void refreshRelationWebWithCatalog(root, now()).catch(() => undefined);
     const stop = startAutonomousKnowledgeWorker({
       storage,
       workerId,

@@ -9,6 +9,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { evaluateRepositoryDocumentStaleness } from "../src/document-staleness-evaluation.js";
 import type { DocumentStalenessGitPort } from "../src/document-staleness-git.js";
+import { DOCUMENT_LIFECYCLE_RECORD_PATH } from "../src/document-lifecycle-record.js";
 import { documentStalenessStatePath } from "../src/document-staleness-state.js";
 import {
   documentDriftAttentionIssues,
@@ -179,6 +180,19 @@ describe("document drift lint", () => {
       ["docs/design.md", ["v2/argo_v2/live/engine.py"]],
     ]);
     expect(await readFile(resolve(root, documentStalenessStatePath), "utf8")).not.toContain(
+      "class Limits",
+    );
+    // ADR-0562 shadow: the lifecycle is evaluated and recorded beside the findings above, and a
+    // small repository is swept completely on its first day.
+    expect(recorded?.lifecycle).toMatchObject({
+      cadence: { periodDays: 14, perDay: 16, unassessed: 0 },
+    });
+    const lifecycleRecord = JSON.parse(
+      await readFile(resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH), "utf8"),
+    ) as { kind: string; documents: Record<string, unknown> };
+    expect(lifecycleRecord.kind).toBe("document_lifecycle.record");
+    expect(Object.keys(lifecycleRecord.documents)).toContain("AGENTS.md");
+    expect(await readFile(resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH), "utf8")).not.toContain(
       "class Limits",
     );
     expect(

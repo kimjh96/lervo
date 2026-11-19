@@ -448,12 +448,22 @@ function validLineage(
       : kind === "document_merge" && validMergeLineage(value, name, projectId, root);
 }
 
+/** A reviewed split or merge record; the relation web reads it as a `split_into` or `merged_into` fact. */
+export interface LoadedDocumentStructureLineage {
+  file: string;
+  kind: "split_into" | "merged_into";
+  sourcePath: string;
+  destinationPath: string;
+}
+
 export async function loadDocumentMoveLineages(input: {
   repositoryRoot: string;
   projectId: string;
 }): Promise<{
   identityPathByCurrentPath: Map<string, string>;
   records: LoadedDocumentMoveLineage[];
+  /** Split and merge records, in file order; they never take part in move chains. */
+  structure: LoadedDocumentStructureLineage[];
 }> {
   const root = resolve(input.repositoryRoot);
   const files = await listKnowledgeArtifactPaths({
@@ -526,5 +536,26 @@ export async function loadDocumentMoveLineages(input: {
     if (activeTerminal) identityPathByCurrentPath.set(item.value.toPath, item.value.identityPath);
     return { ...item, activeTerminal };
   });
-  return { identityPathByCurrentPath, records };
+  const structure = loaded.flatMap(({ file, value }): LoadedDocumentStructureLineage[] =>
+    value.kind === "document_split"
+      ? [
+          {
+            file,
+            kind: "split_into",
+            sourcePath: value.sourcePath,
+            destinationPath: value.destinationPath,
+          },
+        ]
+      : value.kind === "document_merge"
+        ? [
+            {
+              file,
+              kind: "merged_into",
+              sourcePath: value.sourcePath,
+              destinationPath: value.destinationPath,
+            },
+          ]
+        : [],
+  );
+  return { identityPathByCurrentPath, records, structure };
 }

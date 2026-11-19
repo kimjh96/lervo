@@ -1,8 +1,6 @@
-import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
 
 import { loadDecisionTaxonomy } from "@lervo/project";
 import {
@@ -10,12 +8,12 @@ import {
   buildDocumentLinkWeb,
   buildGoverningIndex,
   repositoryScanPriority,
+  repositoryTrackedFiles,
 } from "@lervo/repository-knowledge";
 
 import { readPrivateStateJson, writePrivateStateJson } from "./private-state-file.js";
 import { governingIndexPresent, writeGoverningIndex } from "./turn-governance.js";
 
-const execute = promisify(execFile);
 const STATE = "link-web.json";
 const SAMPLE = 16;
 const MAXIMUM_DOCUMENT_BYTES = 1024 * 1024;
@@ -39,30 +37,6 @@ export interface LinkWebSummary {
 }
 
 /** Tracked and untracked, not ignored, files; private state is excluded. */
-export async function trackedFiles(root: string): Promise<string[]> {
-  const { stdout } = await execute(
-    "git",
-    [
-      "-C",
-      root,
-      "-c",
-      "core.quotePath=false",
-      "ls-files",
-      "-z",
-      "--cached",
-      "--others",
-      "--exclude-standard",
-    ],
-    { timeout: 30_000, maxBuffer: 64 * 1024 * 1024 },
-  );
-  // Private state changes on every refresh and is never a link target.
-  return [
-    ...new Set(
-      stdout.split("\0").filter((path) => path.length > 0 && !path.startsWith(".lervo/state/")),
-    ),
-  ];
-}
-
 /** Publication indexes and root entrypoints are reached from outside the document tree. */
 function needsInboundLink(path: string, canonical: boolean): boolean {
   return canonical && path.includes("/") && !/(^|\/)(README|index)\.mdx?$/iu.test(path);
@@ -73,7 +47,7 @@ function needsInboundLink(path: string, canonical: boolean): boolean {
  * Untracked but not ignored Markdown counts, so a new document is linked before it is committed.
  */
 export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSummary> {
-  const files = await trackedFiles(root);
+  const files = await repositoryTrackedFiles(root);
   // Lervo-generated outputs under .lervo are projections, not repository knowledge.
   const markdown = files
     .filter((path) => /\.mdx?$/iu.test(path) && !path.startsWith(".lervo/"))

@@ -87,7 +87,7 @@ describe("relation web suspects", () => {
       "docs/guide.md": [
         "command_removed command:lervo loop status @5",
         "moved_target path:docs/old-spec.md via docs/spec.md @5",
-        "package_removed package:@lervo/slack @3",
+        "package_removed package:@lervo/slack via packages/slack @3",
         "path_removed path:packages/slack/src/send.ts @3",
       ],
     });
@@ -104,6 +104,31 @@ describe("relation web suspects", () => {
         "path_changed path:packages/core/src/a.ts @4",
       ],
     });
+  });
+
+  it("reaches a document through a named directory only when the document is about it", () => {
+    const overview = [
+      "# Overview",
+      "",
+      "Decisions live in `packages/core/src/`. Sending is `packages/slack/src/send.ts`,",
+      "packaging is `packages/slack/package.json`, and the readme is `packages/core/README.md`.",
+    ].join("\n");
+    const result = relationSuspectsFor(web({ "docs/overview.md": overview }), {
+      changedPaths: ["packages/core/src/b.ts"],
+      deletedPaths: [],
+    });
+    // The guide names `packages/core/src/` and `a.ts` below it: two of its three code paths.
+    expect(summary(result)).toEqual({
+      "docs/guide.md": ["path_changed path:packages/core/src via packages/core/src/b.ts @4"],
+    });
+    // A removed directory still reaches every document that names it.
+    const removed = relationSuspectsFor(web({ "docs/overview.md": overview }), {
+      changedPaths: [],
+      deletedPaths: ["packages/core/src/a.ts", "packages/core/src/b.ts"],
+    });
+    expect(summary(removed)["docs/overview.md"]).toEqual([
+      "path_removed path:packages/core/src @3",
+    ]);
   });
 
   it("closes over a changed header: superseded, superseded in part, and amended targets", () => {

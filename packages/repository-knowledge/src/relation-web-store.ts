@@ -3,6 +3,11 @@ import type { DatabaseSync } from "node:sqlite";
 
 import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
+import type {
+  DocumentLifecycleEntry,
+  DocumentLifecycleEvidence,
+  DocumentLifecycleState,
+} from "./document-lifecycle-model.js";
 import {
   type RelationDocument,
   type RelationEdge,
@@ -16,8 +21,11 @@ import { assembleRelationWeb, type RelationWeb } from "./relation-web.js";
 /** Repository-relative location of the private, rebuildable relation web (ADR-0562). */
 export const RELATION_WEB_STATE_PATH = ".lervo/state/relation-web.sqlite";
 
-/** Bumped when a table changes; a different stored version is discarded and rebuilt. */
-const SCHEMA_VERSION = 1;
+/**
+ * Bumped when a table changes; a different stored version is discarded and rebuilt. Version 2 adds
+ * the document lifecycle table, which is rebuilt from the lifecycle record and the web.
+ */
+const SCHEMA_VERSION = 2;
 
 const schema = [
   "CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL)",
@@ -29,6 +37,7 @@ const schema = [
   "CREATE TABLE packages(name TEXT PRIMARY KEY, directory TEXT NOT NULL)",
   "CREATE TABLE commands(name TEXT PRIMARY KEY)",
   "CREATE TABLE lineage(kind TEXT NOT NULL, from_path TEXT NOT NULL, to_path TEXT, record TEXT NOT NULL)",
+  "CREATE TABLE lifecycle(path TEXT PRIMARY KEY, state TEXT NOT NULL, reasons TEXT NOT NULL, assessed_revision TEXT, verified_revision TEXT, superseded_parts TEXT NOT NULL)",
 ];
 
 type Row = Record<string, unknown>;
@@ -198,12 +207,65 @@ function insertWeb(database: DatabaseSync, web: RelationWeb, builtAt: string): v
     lineage.run(record.kind, record.from, record.to ?? null, record.record);
 }
 
+/** The stored document lifecycle rows, or an empty list when the store is missing or other. */
+export function readRelationWebLifecycle(path: string): DocumentLifecycleEntry[] {
+  let database: DatabaseSync | undefined;
+  try {
+    if (!lstatSync(path).isFile()) return [];
+    database = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS, readOnly: true });
+    if (storedVersion(database) !== SCHEMA_VERSION) return [];
+    return rows(database, "SELECT * FROM lifecycle ORDER BY path").map((row) => ({
+      path: text(row, "path"),
+      state: text(row, "state") as DocumentLifecycleState,
+      reasons: JSON.parse(text(row, "reasons")) as DocumentLifecycleEvidence[],
+      assessedRevision: optionalText(row, "assessed_revision"),
+      verifiedRevision: optionalText(row, "verified_revision"),
+      supersededParts: JSON.parse(text(row, "superseded_parts")) as string[],
+    }));
+  } catch {
+    return [];
+  } finally {
+    database?.close();
+  }
+}
+
+function writeLifecycle(
+  database: DatabaseSync,
+  web: RelationWeb,
+  lifecycle: readonly DocumentLifecycleEntry[] | "keep",
+): void {
+  if (lifecycle === "keep") {
+    // Rows of documents that still exist stay; each carries the revisions it was computed at.
+    const remove = database.prepare("DELETE FROM lifecycle WHERE path = ?");
+    for (const row of rows(database, "SELECT path FROM lifecycle"))
+      if (!web.documents.has(text(row, "path"))) remove.run(text(row, "path"));
+    return;
+  }
+  database.exec("DELETE FROM lifecycle");
+  const insert = database.prepare("INSERT INTO lifecycle VALUES (?, ?, ?, ?, ?, ?)");
+  for (const entry of lifecycle)
+    insert.run(
+      entry.path,
+      entry.state,
+      JSON.stringify(entry.reasons),
+      entry.assessedRevision,
+      entry.verifiedRevision,
+      JSON.stringify(entry.supersededParts),
+    );
+}
+
 /**
  * Replaces the stored web in one transaction. A failure rolls back, so the previous web stays in
  * place; the caller reports `relation_web_stale`. A store that cannot be opened or migrated is
- * deleted and created again, because it is a rebuildable projection.
+ * deleted and created again, because it is a rebuildable projection. `lifecycle` replaces the
+ * lifecycle rows, or `"keep"` keeps the rows of documents that still exist.
  */
-export function writeRelationWebStore(path: string, web: RelationWeb, builtAt: string): void {
+export function writeRelationWebStore(
+  path: string,
+  web: RelationWeb,
+  builtAt: string,
+  lifecycle: readonly DocumentLifecycleEntry[] | "keep",
+): void {
   let database: DatabaseSync | undefined;
   try {
     database = openStore(path);
@@ -232,6 +294,7 @@ export function writeRelationWebStore(path: string, web: RelationWeb, builtAt: s
         ])
           database.exec(`DELETE FROM ${table}`);
       insertWeb(database, web, builtAt);
+      writeLifecycle(database, web, lifecycle);
       database.exec("COMMIT");
     } catch (error) {
       database.exec("ROLLBACK");

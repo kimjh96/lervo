@@ -193,9 +193,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/source-lineage.ts",
-      "contentHash": "sha256:e6778cbbbfb85cedbc1cfc478902f69c17c569c96a4b6238b0601f6c50ca814a",
+      "contentHash": "sha256:f9a33c1ace361107ddf3a22cd529e1cf53138a52497ae47465237e31200b288b",
       "responsibility": "Document-structure lineage registry",
-      "rationale": "Move, split, and merge lineage creation and validation operate on one lineage schema and safe registry-loading boundary.",
+      "rationale": "Move, split, and merge lineage creation and validation operate on one lineage schema and safe registry-loading boundary; loading also returns split and merge records for the relation web.",
       "disposition": "cohesive"
     },
     {
