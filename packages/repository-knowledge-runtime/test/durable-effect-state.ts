@@ -34,9 +34,10 @@ const EXEMPT_STATE_PATHS: readonly RegExp[] = [
   // The observation clock probe, rewritten at every session opening.
   /^knowledge\/observation-clock-probe$/u,
   // Resident bookkeeping and rebuildable projections outside any obligation: the worker lock,
-  // maintenance, retention, freshness and staleness readings, and provider CLI detection.
+  // maintenance, retention, freshness, staleness, and document lifecycle readings, and provider
+  // CLI detection.
   /^knowledge-worker\.lock$/u,
-  /^knowledge\/(cas-retention-observation|maintenance-observation|maintenance-schedule|freshness-cycle|document-staleness|provider-clis|provider-cli-selection|requeue-cursor)\.json$/u,
+  /^knowledge\/(cas-retention-observation|maintenance-observation|maintenance-schedule|freshness-cycle|document-staleness|document-lifecycle|provider-clis|provider-cli-selection|requeue-cursor)\.json$/u,
   /^knowledge\/terminal-skills\/usage\.json$/u,
 ];
 

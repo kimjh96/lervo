@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.28.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.29.0" schema="1" -->
 
 ## What's changed
 
-- Raise the document move lineage bound from 256 to 20,000 records, so a repository whose layout migrations wrote 256 lineage records can still move a document and scan its knowledge.
+- Evaluate a document lifecycle over the relation web in shadow: settle changes a document does not name without a provider, sweep unassessed documents daily, and report lifecycle counts in repository health.

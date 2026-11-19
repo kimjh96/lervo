@@ -252,3 +252,18 @@ export {
 export * from "./relation-web-suspects.js";
 export * from "./relation-web-stats.js";
 export * from "./relation-web-store.js";
+export {
+  refreshRelationWeb,
+  repositoryTrackedFiles,
+  type RelationWebRefresh,
+} from "./relation-web-refresh.js";
+export * from "./document-lifecycle-model.js";
+export {
+  readRecordedDocumentLifecycleSummary,
+  recordDocumentLifecycle,
+  type DocumentLifecycleRecording,
+} from "./document-lifecycle-observation.js";
+export {
+  DOCUMENT_LIFECYCLE_RECORD_PATH,
+  readDocumentLifecycleRecord,
+} from "./document-lifecycle-record.js";

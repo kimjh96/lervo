@@ -1,6 +1,8 @@
-import type { RelationSuspectSet, RelationWebStats } from "@lervo/repository-knowledge";
-
-import type { RelationWebRefresh } from "./relation-web-projection.js";
+import type {
+  RelationSuspectSet,
+  RelationWebRefresh,
+  RelationWebStats,
+} from "@lervo/repository-knowledge";
 
 const SAMPLE = 40;
 

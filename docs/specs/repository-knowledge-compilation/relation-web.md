@@ -50,6 +50,65 @@ A document has at most 1,024 edges; a document at the bound is marked truncated.
 
 A document superseded in full by a new declaration is listed under `superseded`, because it becomes historical.
 
+## Document lifecycle
+
+Every document in the web has one lifecycle state ([ADR-0562](../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md) section 2):
+
+| State                  | Meaning                                                                                          |
+| ---------------------- | ------------------------------------------------------------------------------------------------ |
+| `current`              | Assessed at `assessedRevision`, and nothing it names changed since                               |
+| `suspect`              | At least one reason is open; `assessedRevision` stays at the last revision it was known to match |
+| `refreshed`            | A `verified_no_change` freshness assessment of its current bytes still matches HEAD              |
+| `superseded`           | Its header `Status:` is `superseded`                                                             |
+| `partially_superseded` | Another document supersedes a named part; the rest stays current                                 |
+| `archived`             | Another historical marker: archive scope, front matter, or banner                                |
+| `retired`              | A reviewed lineage record retired its path                                                       |
+
+A suspect's reasons are the suspect reasons above plus `cadence_due` (the sweep has not reached it) and `superseded_undeclared` (another document supersedes it in full, but its own header does not say so). Each reason is settled in one of four ways:
+
+- `deterministic`, with no edit and no provider call:
+  - the changed lines of a changed path contain no code name the document mentions;
+  - an amendment of a target it names;
+  - a lineage move of a removed target;
+  - a supersession it already names;
+  - a removal that every line naming the removed part already records.
+- `mechanical`: a missing reverse header line (`Amended by`, `Superseded in part by`, or a superseded status). This is a deterministic edit, never a provider call.
+- `provider`: the remainder, which goes to the freshness path of ADR-0463 and ADR-0561.
+- `cadence`: the document is waiting for the sweep.
+
+The sweep reaches at least 16 documents per UTC day, and enough to reach every document within 14 days. Documents that name code go first, then canonical documents, then by path. A never-assessed document is evaluated from its own last commit. A recorded one is evaluated from its assessed revision, with one diff per baseline group. A document whose provider reason is open keeps its baseline. Its reasons are reused until a later change reaches it.
+
+### Record and failure
+
+`.lervo/state/knowledge/document-lifecycle.json` (mode 0600) holds the only lifecycle state the web cannot rebuild:
+
+- per document: its content hash, assessed revision, evaluation time, and up to 32 open provider reasons;
+- the day's sweep count;
+- the fence;
+- the last summary.
+
+It holds at most 4,096 documents, the first by path. A document past that bound is never swept, so it stays unassessed instead of being counted as swept. A write that would exceed 4 MiB drops the cached reasons first, because without them a document is evaluated again from its own baseline. A record still too large is refused, so a record never reads back as empty. A missing or malformed record reads as empty, and each document then falls back to its own last commit; an invalid entry is dropped alone.
+
+A baseline that Git cannot diff, such as a rewritten commit, makes the document `suspect` with the evaluation unknown. Its entry is dropped, so the sweep evaluates it again from its last commit.
+
+### When it runs (shadow)
+
+The lifecycle runs in shadow, only in the two callers that record the staleness reading: the knowledge currency pass and the freshness observation. Read-only lint never evaluates it.
+
+**Fence.** The fence is the recorded staleness coordinate: HEAD, the scan's document hashes, the UTC day, coverage, and assessments. A recording call whose coordinate equals the record's fence does nothing, so an unchanged repository builds the web at most once per day.
+
+**Per-call budget.** A call that runs starts at most 32 diff groups, and none after 20 seconds. Each Git call is bounded at 20 seconds.
+
+- A document whose group does not fit is deferred. A swept one is not counted as swept, and a recorded one keeps its assessment.
+- The fence stays open until a call completes without deferring, so the next recording call continues.
+- A failure leaves the shadow reading missing and changes nothing else.
+
+**Writes.** The web is written with its `lifecycle` table, then the record with its fence and summary.
+
+The staleness findings that lint, freshness and health act on still come from the ADR-0023 connected-path evaluator. Repository health reads the recorded summary and never evaluates the lifecycle. When the summary was recorded at the current HEAD, health adds `freshness.lifecycle` to its projection: counts per state, suspects by what settles them, and cadence coverage. Its text line is unchanged.
+
+Switching the findings to the lifecycle is roadmap item 8, after the shadow counts are measured on installed hosts. That switch also replaces the ADR-0023 review interval (`reviewIntervalDays`, ADR-0464), so it needs its own decision. No new event is recorded, and the lifecycle changes no repository bytes.
+
 ## Inspection
 
 `lervo knowledge web stats [--json]` refreshes the web and prints its counts by node kind, edge kind, and strength. `lervo knowledge web suspects --since <revision> [--json]` refreshes the web and lists the suspects of the change from the revision to the worktree. Renames count as a deletion and an addition, untracked files count as added, and a deleted workspace manifest keeps its package name. It does not compare command removals, because the catalog at the revision is unknown. Both commands change no repository bytes and exit with status 1 when the web is stale.

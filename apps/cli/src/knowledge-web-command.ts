@@ -7,15 +7,14 @@ import {
   relationWebStats,
 } from "@lervo/repository-knowledge";
 
-import { cliCommandCatalog } from "./cli-command-catalog.js";
 import { writeCommandError } from "./command-error-output.js";
 import {
   formatRelationWebStats,
   formatRelationWebSuspects,
   relationWebRefreshSummary,
 } from "./knowledge-web-format.js";
+import { refreshRelationWebWithCatalog } from "./relation-web-catalog.js";
 import { relationChangeSince } from "./relation-web-change.js";
-import { refreshRelationWeb } from "./relation-web-projection.js";
 import type { CliIo } from "./types.js";
 
 /**
@@ -40,12 +39,7 @@ export async function runKnowledgeWeb(args: string[], io: CliIo): Promise<number
     if (action === "suspects" && since === undefined)
       throw new Error("Knowledge web suspects requires --since <revision>.");
     const root = resolve(io.cwd, parsed.values.root ?? ".");
-    // The usage text lives in the entrypoint, which is fully loaded once a command runs.
-    const { cliUsage } = await import("./main.js");
-    const refresh = await refreshRelationWeb(root, {
-      commands: cliCommandCatalog(cliUsage),
-      now: new Date(),
-    });
+    const refresh = await refreshRelationWebWithCatalog(root, new Date());
     const status = refresh.status === "current" ? 0 : 1;
     const write = (value: unknown, text: string) =>
       io.stdout(json ? `${JSON.stringify(value, null, 2)}\n` : text);

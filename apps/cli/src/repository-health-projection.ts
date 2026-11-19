@@ -4,6 +4,7 @@ import type {
   RepositoryHealthProjectionV1,
 } from "@lervo/application-contract";
 import type {
+  DocumentLifecycleSummary,
   DocumentStalenessReport,
   KnowledgeConvergenceStatus,
   RepositoryLayoutMigrationPlan,
@@ -37,6 +38,8 @@ export interface HealthProjectionSources {
     holderHostHash?: string | null;
   } | null;
   staleness: DocumentStalenessReport | null;
+  /** ADR-0562 shadow lifecycle counts from the lifecycle record, with the HEAD they ran at. */
+  lifecycle?: { revision: string; summary: DocumentLifecycleSummary } | null;
   freshnessCycle: {
     lastCycleAt: string | null;
     summary: {

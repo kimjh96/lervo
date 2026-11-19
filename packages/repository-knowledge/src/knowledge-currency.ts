@@ -9,6 +9,7 @@ import {
 } from "./compiler.js";
 import { createRepositoryLayoutMigrationPlan } from "./repository-layout-migration.js";
 import { lintRepositoryKnowledge } from "./lint-query.js";
+import { recordDocumentLifecycle } from "./document-lifecycle-observation.js";
 import { inspectConfiguredDocumentNormalization } from "./document-normalization.js";
 import { assertNoKnowledgeMaterializationTransaction } from "./materialization-owner.js";
 import {
@@ -79,6 +80,9 @@ export async function inspectRepositoryKnowledgeCurrency(
     reasons.push("canonicalization_pending");
   const after = await scanCompleteConfiguredRepositoryKnowledge(repositoryRoot);
   if (after.scan.snapshotId !== scan.snapshotId) reasons.push("knowledge_snapshot_changed");
+  // ADR-0562 shadow: after the closing rescan, the lifecycle records beside the staleness reading;
+  // it never decides currency, and a failure only leaves the shadow reading missing.
+  await recordDocumentLifecycle({ root: repositoryRoot, now: new Date() }).catch(() => undefined);
   return {
     current: reasons.length === 0,
     snapshotHash: `sha256:${createHash("sha256").update(scan.snapshotId).digest("hex")}`,

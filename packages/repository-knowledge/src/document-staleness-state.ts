@@ -97,6 +97,19 @@ export async function readRecordedDocumentStalenessReport(
 }
 
 /**
+ * The coordinate of the recorded staleness reading and its revision: HEAD, the scan's document
+ * hashes, the UTC day, coverage, and assessments. The ADR-0562 lifecycle uses it as its fence.
+ */
+export async function readRecordedDocumentStalenessCoordinate(
+  repositoryRoot: string,
+): Promise<{ coordinate: string; revision: string | null } | null> {
+  const state = await readState(resolve(repositoryRoot));
+  return state === null
+    ? null
+    : { coordinate: state.coordinate, revision: state.report.currentRevision };
+}
+
+/**
  * Returns the staleness report for the current documents, reusing the persisted projection when
  * its coordinate matches. Only `evaluate_and_record` writes, and only `.lervo/state/`.
  */

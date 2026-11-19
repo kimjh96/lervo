@@ -2,6 +2,7 @@ import { readRepositoryFile, repositoryFileExists } from "@lervo/context";
 import { openReadOnlyProjectStorage } from "@lervo/project-storage";
 import {
   createRepositoryLayoutMigrationPlan,
+  readRecordedDocumentLifecycleSummary,
   readRecordedDocumentStalenessReport,
 } from "@lervo/repository-knowledge";
 import {
@@ -80,6 +81,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       governance,
       linkWeb,
       nodeHealth,
+      lifecycle,
     ] = await Promise.all([
       observeRepositoryHead(root, now),
       inspectKnowledgeResidentHealth(root, now).catch(() => null),
@@ -125,6 +127,8 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
         root,
         ".lervo/state/node-runtime-health.json",
       ),
+      // ADR-0562: health reads the recorded shadow lifecycle and never evaluates it.
+      readRecordedDocumentLifecycleSummary(root).catch(() => null),
     ]);
     let history: HealthProjectionSources["history"] = null;
     try {
@@ -141,6 +145,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       continuity,
       ownerRole,
       staleness,
+      lifecycle,
       freshnessCycle,
       captureObservedAt: capture?.lastCycleAt ?? null,
       attention,

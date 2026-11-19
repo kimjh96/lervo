@@ -1,4 +1,7 @@
-import type { RepositoryHealthProjectionV1 } from "@lervo/application-contract";
+import type {
+  RepositoryHealthDocumentLifecycleV1,
+  RepositoryHealthProjectionV1,
+} from "@lervo/application-contract";
 import type { HealthProjectionSources } from "./repository-health-projection.js";
 import { unknownHealthMeasure } from "./repository-health-measure.js";
 
@@ -26,6 +29,7 @@ export function expireHealthFreshness(measure: Measure, now: Date): Measure {
     (v.cycleValidUntil === null || Date.parse(v.cycleValidUntil) >= now.getTime());
   if (!evaluation) {
     v.stale = v.evaluated = v.unevaluated = v.unknown = null;
+    if (v.lifecycle !== undefined) v.lifecycle = null;
     v.evaluationObservedAt = v.evaluationValidUntil = null;
   }
   if (evaluation)
@@ -65,6 +69,30 @@ export function expireHealthFreshness(measure: Measure, now: Date): Measure {
   };
 }
 
+/** ADR-0562 shadow lifecycle counts recorded at the current HEAD; null when absent or older. */
+function lifecycleCounts(
+  input: HealthProjectionSources,
+): RepositoryHealthDocumentLifecycleV1 | null {
+  const recorded = input.lifecycle;
+  if (recorded == null || recorded.revision !== input.headRevision) return null;
+  const lifecycle = recorded.summary;
+  return {
+    current: lifecycle.states.current,
+    refreshed: lifecycle.states.refreshed,
+    partiallySuperseded: lifecycle.states.partially_superseded,
+    superseded: lifecycle.states.superseded,
+    archived: lifecycle.states.archived,
+    retired: lifecycle.states.retired,
+    suspect: { ...lifecycle.suspects },
+    cadence: {
+      perDay: lifecycle.cadence.perDay,
+      periodDays: lifecycle.cadence.periodDays,
+      unassessed: lifecycle.cadence.unassessed,
+      remainingDays: lifecycle.cadence.remainingDays,
+    },
+  };
+}
+
 export function projectHealthFreshness(input: HealthProjectionSources): Measure {
   const report = input.staleness;
   const evaluation =
@@ -92,6 +120,7 @@ export function projectHealthFreshness(input: HealthProjectionSources): Measure 
         evaluated: evaluation?.counts.evaluated ?? null,
         unevaluated: evaluation?.counts.unevaluated ?? null,
         unknown: evaluation?.counts.unknown ?? null,
+        lifecycle: evaluation === null ? null : lifecycleCounts(input),
         evaluationObservedAt: evaluation?.evaluatedAt ?? null,
         evaluationValidUntil: null,
         cycleObservedAt: cycle?.lastCycleAt ?? null,
