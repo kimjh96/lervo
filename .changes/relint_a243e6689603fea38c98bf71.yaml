@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a243e6689603fea38c98bf71"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Shell-quote the config path, replica ID and branch in the replica restore undo command, so the command a replica conflict notice prints can be pasted as is when the macOS config sits under Application Support."

@@ -2,13 +2,23 @@ import { recordEffectNotice } from "@lervo/project";
 
 import type { RepositoryReplicaBackup } from "./repository-replica-divergence-resolution.js";
 
+/**
+ * Quotes one POSIX shell word only when it needs it, so the printed undo command can be pasted as
+ * is: the macOS coordinator config sits under `Application Support`.
+ */
+function shellWord(value: string): string {
+  return /^[\w@%+=:,./-]+$/u.test(value) ? value : `'${value.replaceAll("'", `'\\''`)}'`;
+}
+
 /** The one command that restores the saved losing side and holds the repository (ADR-0561). */
 export function repositoryReplicaRestoreCommand(input: {
   replicaId: string;
   backup: Pick<RepositoryReplicaBackup, "branch" | "side">;
   configPath?: string;
 }): string {
-  return `lervo-node repository-replica restore --config ${input.configPath ?? "<coordinator-config>"} --replica ${input.replicaId} --side ${input.backup.side} --branch ${input.backup.branch}`;
+  const config =
+    input.configPath === undefined ? "<coordinator-config>" : shellWord(input.configPath);
+  return `lervo-node repository-replica restore --config ${config} --replica ${shellWord(input.replicaId)} --side ${input.backup.side} --branch ${shellWord(input.backup.branch)}`;
 }
 
 /**
