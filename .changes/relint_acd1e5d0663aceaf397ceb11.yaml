@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_acd1e5d0663aceaf397ceb11"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Raise the document move lineage bound from 256 to 20,000 records, so a repository whose layout migrations wrote 256 lineage records can still move a document and scan its knowledge."
