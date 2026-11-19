@@ -714,7 +714,14 @@ describe("knowledge output publication", () => {
         seed: { [CONVERGENCE_DELEGATION_PATH]: JSON.stringify(publicationDelegation()) },
       });
       await commit(root, "apps/site/README.md", "# Site\n\nReviewed.\n", knowledge);
-      await commit(root, ".agents/skills/review/SKILL.md", "# Review\n", knowledge);
+      // ADR-0594: a skill publishes only from a practice commit, never from a normalization.
+      await commit(
+        root,
+        ".agents/skills/review/SKILL.md",
+        "# Review\n",
+        knowledge,
+        "docs: apply a reviewed practice\n\nLervo-Practice-Candidate: kprac_fixture",
+      );
       expect(await publish()).toMatchObject({
         state: { status: "awaiting_checks", failure: null, commitCount: 2 },
       });
