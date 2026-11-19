@@ -1,7 +1,7 @@
 import { mkdir, rename, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 
-import { readRepositoryHold } from "@lervo/repository-knowledge-runtime";
+import { readRepositoryHold, repositoryReleaseCommand } from "@lervo/repository-knowledge-runtime";
 
 import {
   REPOSITORY_REPLICA_PER_CALL_LAUNCHER,
@@ -139,7 +139,7 @@ export async function runRepositoryReplicaCoordinator(
         now: now(),
       }),
   });
-  const reporter = new RepositoryReplicaCycleReporter(options.watch);
+  const reporter = new RepositoryReplicaCycleReporter(options.watch, configPath);
   const emit = (lines: RepositoryReplicaReportLines) => {
     for (const line of lines.stdout) ports.stdout(`${line}\n`);
     for (const line of lines.stderr) ports.stderr(`${line}\n`);
@@ -210,7 +210,7 @@ export async function runRepositoryReplicaCoordinator(
       if ((await readRepositoryHold(repository.localRoot)) !== null) {
         if (!heldReported.has(repository.replicaId))
           ports.stdout(
-            `Repository replica ${repository.replicaId} is held by the owner; nothing is transferred until lervo repository release --root ${repository.localRoot}.\n`,
+            `Repository replica ${repository.replicaId} is held by the owner; nothing is transferred until ${repositoryReleaseCommand(repository.localRoot)}.\n`,
           );
         heldReported.add(repository.replicaId);
         return "held";

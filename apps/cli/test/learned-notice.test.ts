@@ -335,6 +335,34 @@ describe("learned notice", () => {
     expect(shown!.noticesThrough).toBeUndefined();
   });
 
+  it("keeps a long quoted undo command whole and refuses one it would have to cut (ADR-0561)", async () => {
+    const { root, base } = await repository();
+    const notice = (undo: string) => ({
+      noticeId: `replica_backup:${undo.length}`,
+      occurredAt: new Date().toISOString(),
+      effect: "replica_backup",
+      targets: ["shiflo"],
+      reason: "saved the peer side",
+      crossCheck: { reviewers: ["backup branch snapshot check"], verdict: "agree" },
+      undo,
+    });
+    const long = `lervo-node repository-replica restore --config '/Users/owner/${"Application Support/".repeat(20)}c.json' --replica shiflo`;
+    expect(long.length).toBeGreaterThan(300);
+    await recordEffectNotice(root, notice(long));
+    const projected = await projectLearnedNotice({
+      root,
+      shownThrough: base,
+      noticesShownThrough: null,
+      now: new Date(),
+    });
+    expect(projected!.entries.find((entry) => entry.kind === "effect")).toMatchObject({
+      effect: { undo: long },
+    });
+    await expect(recordEffectNotice(root, notice("x".repeat(2049)))).rejects.toThrow(
+      "at most 2048 characters",
+    );
+  });
+
   it("keeps the line within its byte cap and counts what it omits", () => {
     const entries = Array.from({ length: 16 }, (_, index) => ({
       kind: "updated" as const,

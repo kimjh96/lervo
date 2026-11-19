@@ -202,4 +202,28 @@ describe("replica conflicts and the owner's repository hold (ADR-0561)", () => {
       reason: `replica project backup ${branch} restored`,
     });
   }, 30_000);
+
+  it("prints an undo command that pastes as is when the config path has spaces", async () => {
+    const configPath = "/Users/owner/Library/Application Support/Lervo/it's-coordinator.json";
+    const command = repositoryReplicaRestoreCommand({
+      replicaId: "shiflo",
+      backup: { side: "peer", branch: "lervo/replica-backup/shiflo/00c90b2f2549" },
+      configPath,
+    });
+    expect(command).toContain("--branch lervo/replica-backup/shiflo/00c90b2f2549");
+    const words = await execute("/bin/sh", ["-c", `set -- ${command}; printf '%s\\n' "$@"`]);
+    expect(words.stdout.split("\n").slice(0, -1)).toEqual([
+      "lervo-node",
+      "repository-replica",
+      "restore",
+      "--config",
+      configPath,
+      "--replica",
+      "shiflo",
+      "--side",
+      "peer",
+      "--branch",
+      "lervo/replica-backup/shiflo/00c90b2f2549",
+    ]);
+  });
 });

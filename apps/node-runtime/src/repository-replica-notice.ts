@@ -1,4 +1,5 @@
 import { recordEffectNotice } from "@lervo/project";
+import { shellWord } from "@lervo/repository-knowledge-runtime";
 
 import type { RepositoryReplicaBackup } from "./repository-replica-divergence-resolution.js";
 
@@ -8,7 +9,9 @@ export function repositoryReplicaRestoreCommand(input: {
   backup: Pick<RepositoryReplicaBackup, "branch" | "side">;
   configPath?: string;
 }): string {
-  return `lervo-node repository-replica restore --config ${input.configPath ?? "<coordinator-config>"} --replica ${input.replicaId} --side ${input.backup.side} --branch ${input.backup.branch}`;
+  const config =
+    input.configPath === undefined ? "<coordinator-config>" : shellWord(input.configPath);
+  return `lervo-node repository-replica restore --config ${config} --replica ${shellWord(input.replicaId)} --side ${input.backup.side} --branch ${shellWord(input.backup.branch)}`;
 }
 
 /**

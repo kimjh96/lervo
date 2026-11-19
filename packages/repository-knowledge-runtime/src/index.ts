@@ -214,6 +214,8 @@ export {
   holdRepository,
   readRepositoryHold,
   releaseRepositoryHold,
+  repositoryReleaseCommand,
+  shellWord,
   type RepositoryHold,
 } from "@lervo/repository-registry";
 export {

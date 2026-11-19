@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -9,6 +10,7 @@ import {
   readRepositoryHold,
   readRepositoryHolds,
   releaseRepositoryHold,
+  repositoryReleaseCommand,
 } from "../src/repository-hold.js";
 
 const roots: string[] = [];
@@ -73,5 +75,24 @@ describe("the owner's repository hold (ADR-0561)", () => {
     await expect(readRepositoryHolds(holds)).rejects.toMatchObject({
       code: "repository_hold_invalid",
     });
+  });
+
+  it("prints a release command that pastes as is for any repository root", () => {
+    expect(repositoryReleaseCommand("/home/owner/teams/axli")).toBe(
+      "lervo repository release --root /home/owner/teams/axli",
+    );
+    for (const root of ["/Users/owner/My Projects/axli lab", "/Users/owner/it's/저장소"]) {
+      const words = execFileSync("/bin/sh", [
+        "-c",
+        `set -- ${repositoryReleaseCommand(root)}; printf '%s\\n' "$@"`,
+      ]).toString();
+      expect(words.split("\n").slice(0, -1)).toEqual([
+        "lervo",
+        "repository",
+        "release",
+        "--root",
+        root,
+      ]);
+    }
   });
 });

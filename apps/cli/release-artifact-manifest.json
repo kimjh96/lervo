@@ -2,7 +2,7 @@
   "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.27.1",
+    "version": "0.27.2",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -205,13 +205,13 @@
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 11973199,
-        "sha256": "sha256:3318d667b91d090420ec7d61d92f76af7c2648a22b1d846084d2c570bcd7bf5f"
+        "size": 11974128,
+        "sha256": "sha256:0675b87071c2495d4912a8f62ef8410773a1740f683a87c0d732b2d03c6b75eb"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:79683cb19f803b8985fd0cde5eb7bc4af637204b6a196238a836537e0f8e0a5a"
+        "sha256": "sha256:1b37f5d3aacbc16f37aedafa7ea78a9a87feef46c1fb3382dd757f3aeaecd6ca"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -221,11 +221,11 @@
       {
         "path": "dist/terminal-hook.js",
         "size": 6722373,
-        "sha256": "sha256:0b9d5b4f5d5768d05e8ecbbc48a2e0023aede4a2821e9a696d7114e157810890"
+        "sha256": "sha256:7999b992bb03f21a1858a8c1d9a21ef0522e2f36c59eccdbef69163daf79ae84"
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:c702a800092d3352d540d20f435cbdac743ae7d04009cd61225bd991e3ce586a"
+    "contentDigest": "sha256:716d7ff52e4cb2cacc20a3f3a54a57b9f5d7ee830b9791ea504c1bd363f81fae"
   },
   "dependencies": {
     "portable": [
@@ -338,5 +338,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:2e78e8b1def0fc3488282ea8e8566c8ab80996672e23727b424340257c92101f"
+  "artifactDigest": "sha256:2f19336e37f4d30439875ed157ab59ae1b7e8242a98cd40a25d6ef3b0edb7d03"
 }

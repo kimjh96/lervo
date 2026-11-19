@@ -1,3 +1,4 @@
+import { repositoryReleaseCommand } from "@lervo/repository-registry";
 import { repositoryReplicaPerCallLauncherGuidance } from "@lervo/sync";
 
 import { documentRouteDeferralLines } from "./document-route-deferral-attention.js";
@@ -77,7 +78,7 @@ export function formatUpgradePlan(plan: RepositoryUpgradePlan): string {
     ...(plan.hold === null
       ? []
       : [
-          `repository hold: held by the owner since ${plan.hold.heldAt}${plan.hold.reason === null ? "" : ` (${plan.hold.reason})`}; no stage that changes this repository applies until lervo repository release --root ${plan.repositoryRoot}`,
+          `repository hold: held by the owner since ${plan.hold.heldAt}${plan.hold.reason === null ? "" : ` (${plan.hold.reason})`}; no stage that changes this repository applies until ${repositoryReleaseCommand(plan.repositoryRoot)}`,
         ]),
     `runtime retention: ${plan.stages.runtimeRetention.disposition} (${plan.stages.runtimeRetention.reason}) · ${plan.stages.runtimeRetention.candidates.length} directories, ${plan.stages.runtimeRetention.reclaimableBytes} bytes`,
     ...plan.stages.runtimeRetention.candidates.map(
