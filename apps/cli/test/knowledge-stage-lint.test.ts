@@ -58,8 +58,9 @@ describe("knowledge stage lint", () => {
     // Stages that move documents pass no written set and keep the old rule.
     expect(
       validateKnowledgeStage({
-        ...input,
-        rejectNewBrokenLinksIn: undefined,
+        stage: input.stage,
+        before: input.before,
+        ownedErrorCodes: input.ownedErrorCodes,
         after: result([existing, broken]),
       }).valid,
     ).toBe(true);
