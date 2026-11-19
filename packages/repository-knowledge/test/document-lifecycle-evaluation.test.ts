@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { DocumentFreshnessAssessmentV1 } from "../src/document-freshness-assessment.js";
 import { evaluateDocumentLifecycle } from "../src/document-lifecycle-evaluation.js";
 import type { DocumentLifecycleGitPort } from "../src/document-lifecycle-git.js";
-import { emptyDocumentLifecycleRecord } from "../src/document-lifecycle-record.js";
+import {
+  emptyDocumentLifecycleRecord,
+  MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS,
+} from "../src/document-lifecycle-record.js";
 import { relationContentHash } from "../src/relation-web-extraction.js";
 import { buildRelationWeb } from "../src/relation-web.js";
 
@@ -63,15 +66,11 @@ function git(
   return {
     diffs,
     headRevision: () => Promise.resolve(HEAD),
+    // Every path was last committed at BEFORE.
     latestPathRevisions: () =>
-      Promise.resolve(
-        new Map(
-          Object.keys(documents(40)).map((path) => [
-            path,
-            { revision: BEFORE, committedAt: "2026-11-01T00:00:00.000Z", order: 1 },
-          ]),
-        ),
-      ),
+      Promise.resolve({
+        get: () => ({ revision: BEFORE, committedAt: "2026-11-01T00:00:00.000Z", order: 1 }),
+      } as unknown as Map<string, { revision: string; committedAt: string; order: number }>),
     objectNames: (lookups) =>
       Promise.resolve(
         new Map(lookups.map((lookup) => [lookup, input.objects?.[lookup] ?? null] as const)),
@@ -94,6 +93,7 @@ function evaluate(
   record = emptyDocumentLifecycleRecord(),
   assessments: DocumentFreshnessAssessmentV1[] = [],
   now = NOW,
+  budget?: { maximumGroups: number },
 ) {
   return evaluateDocumentLifecycle({
     web: web(contents),
@@ -102,6 +102,7 @@ function evaluate(
     now,
     readDocument: (path) => Promise.resolve(contents[path] ?? null),
     assessments,
+    ...(budget === undefined ? {} : { budget }),
   });
 }
 
@@ -224,5 +225,64 @@ describe("document lifecycle evaluation (ADR-0562)", () => {
     expect(evaluation.entries.get("docs/guide.md")?.state).toBe("suspect");
     expect(evaluation.summary.suspects.unknown).toBe(1);
     expect(evaluation.record.documents["docs/guide.md"]).toBeUndefined();
+  });
+
+  it("defers what does not fit one call's budget, without counting it as swept", async () => {
+    const contents = documents(3);
+    const port = git();
+    const evaluation = await evaluate(contents, port, emptyDocumentLifecycleRecord(), [], NOW, {
+      maximumGroups: 0,
+    });
+    expect(port.diffs).toEqual([]);
+    expect([...evaluation.deferred].sort()).toEqual([
+      "docs/guide.md",
+      "docs/notes/00.md",
+      "docs/notes/01.md",
+      "docs/notes/02.md",
+    ]);
+    expect(evaluation.entries.get("docs/guide.md")).toMatchObject({
+      state: "suspect",
+      reasons: [expect.objectContaining({ reason: "cadence_due" })],
+    });
+    expect(evaluation.summary.cadence).toMatchObject({ assessedToday: 0, unassessed: 4 });
+    expect(evaluation.record.documents).toEqual({});
+    expect(evaluation.record.cadence.assessed).toBe(0);
+
+    // A deferred recorded document keeps its assessment as it was.
+    const recorded = await evaluate(contents, git({ changedLines: ["runCycle(state);"] }));
+    const changed = git({ changedLines: ["runCycle(state);"] });
+    const later = await evaluate(
+      contents,
+      changed,
+      { ...recorded.record, revision: BEFORE },
+      [],
+      NOW,
+      { maximumGroups: 0 },
+    );
+    expect(later.deferred.has("docs/guide.md")).toBe(true);
+    expect(later.record.documents["docs/guide.md"]).toEqual(
+      recorded.record.documents["docs/guide.md"],
+    );
+  });
+
+  it("sweeps and records only the documents the record can hold", async () => {
+    const contents: Record<string, string> = { "docs/guide.md": guide };
+    for (let index = 0; index < MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS + 4; index += 1)
+      contents[`docs/n/${String(index).padStart(4, "0")}.md`] = prose(index);
+    const evaluation = await evaluate(contents, git());
+    const unrecordable = ["docs/n/4096.md", "docs/n/4097.md", "docs/n/4098.md", "docs/n/4099.md"];
+    // The record holds the first documents by path, so the last notes never count as swept.
+    expect(unrecordable.map((path) => evaluation.entries.get(path)?.state)).toEqual(
+      unrecordable.map(() => "suspect"),
+    );
+    expect(Object.keys(evaluation.record.documents)).toHaveLength(
+      evaluation.summary.cadence.perDay,
+    );
+    expect(unrecordable.some((path) => path in evaluation.record.documents)).toBe(false);
+    const total = MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS + 5;
+    expect(evaluation.summary.cadence).toMatchObject({
+      perDay: Math.ceil(total / 14),
+      unassessed: total - Math.ceil(total / 14),
+    });
   });
 });

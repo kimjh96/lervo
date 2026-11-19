@@ -73,9 +73,6 @@ export interface DocumentLifecycleEntry {
   supersededParts: string[];
 }
 
-/** The lifecycle evaluator's identity; a change to its rules invalidates cached readings. */
-export const DOCUMENT_LIFECYCLE_EVALUATOR = "lervo.document-lifecycle.v1" as const;
-
 /** Every document is reached by the cadence sweep within this many days. */
 export const DOCUMENT_LIFECYCLE_CADENCE_DAYS = 14;
 /** Lower bound of the daily sweep, so a small repository is still swept promptly. */

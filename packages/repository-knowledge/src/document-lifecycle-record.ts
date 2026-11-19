@@ -2,7 +2,11 @@ import { randomUUID } from "node:crypto";
 import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 
-import type { DocumentLifecycleEvidence } from "./document-lifecycle-model.js";
+import {
+  documentLifecycleStates,
+  type DocumentLifecycleEvidence,
+  type DocumentLifecycleSummary,
+} from "./document-lifecycle-model.js";
 
 /**
  * The only lifecycle state the relation web cannot rebuild from canonical sources (ADR-0562): the
@@ -43,6 +47,14 @@ export interface DocumentLifecycleRecord {
   unknownCommands: string[];
   /** Documents the cadence sweep assessed on the UTC `day`. */
   cadence: { day: string; assessed: number };
+  /**
+   * The recorded staleness coordinate this evaluation completed for: HEAD, the scan's document
+   * hashes, the UTC day, and assessments. A recording call with the same coordinate is skipped.
+   * Null when the last evaluation deferred work, so the next recording call continues it.
+   */
+  fence: string | null;
+  /** Lifecycle counts of the last recorded evaluation, read by repository health. */
+  summary: DocumentLifecycleSummary | null;
 }
 
 export function emptyDocumentLifecycleRecord(): DocumentLifecycleRecord {
@@ -53,7 +65,30 @@ export function emptyDocumentLifecycleRecord(): DocumentLifecycleRecord {
     documents: {},
     unknownCommands: [],
     cadence: { day: "", assessed: 0 },
+    fence: null,
+    summary: null,
   };
+}
+
+const count = (value: unknown): boolean => Number.isSafeInteger(value) && (value as number) >= 0;
+
+/** A summary in the shape the evaluation writes; anything else reads as absent. */
+function validSummary(value: unknown): value is DocumentLifecycleSummary {
+  const summary = value as Partial<DocumentLifecycleSummary> | null;
+  return (
+    typeof summary === "object" &&
+    summary !== null &&
+    documentLifecycleStates.every((state) => count(summary.states?.[state])) &&
+    ["mechanical", "provider", "cadence", "unknown"].every((key) =>
+      count((summary.suspects as Record<string, unknown> | undefined)?.[key]),
+    ) &&
+    ["deterministic", "mechanical", "provider"].every((key) =>
+      count((summary.resolution as Record<string, unknown> | undefined)?.[key]),
+    ) &&
+    ["periodDays", "perDay", "assessedToday", "unassessed", "remainingDays"].every((key) =>
+      count((summary.cadence as Record<string, unknown> | undefined)?.[key]),
+    )
+  );
 }
 
 function validEntry(value: unknown): value is DocumentLifecycleRecordEntry {
@@ -107,31 +142,50 @@ export async function readDocumentLifecycleRecord(root: string): Promise<Documen
             .slice(0, MAXIMUM_RECORDED_COMMANDS)
         : [],
       cadence: { day: value.cadence.day, assessed: value.cadence.assessed },
+      fence: typeof value.fence === "string" ? value.fence : null,
+      summary: validSummary(value.summary) ? value.summary : null,
     };
   } catch {
     return emptyDocumentLifecycleRecord();
   }
 }
 
-/** Replaces the record atomically with mode 0600; entries are bounded by the caller's documents. */
-export async function writeDocumentLifecycleRecord(
-  root: string,
-  record: DocumentLifecycleRecord,
-): Promise<void> {
-  const path = resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH);
-  const temporary = `${path}.${randomUUID()}.tmp`;
-  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
+/**
+ * The record's bytes within MAXIMUM_RECORD_BYTES, so it never reads back as empty. Cached reasons
+ * go first: without them a document is evaluated again from its own baseline. A record that is
+ * still too large is refused, which leaves the previous record in place.
+ */
+function boundedRecordText(record: DocumentLifecycleRecord): string {
   const documents = Object.fromEntries(
     Object.entries(record.documents)
       .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
       .slice(0, MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS),
   );
+  const unknownCommands = record.unknownCommands.slice(0, MAXIMUM_RECORDED_COMMANDS);
+  const text = (value: Record<string, DocumentLifecycleRecordEntry>) =>
+    `${JSON.stringify({ ...record, documents: value, unknownCommands })}\n`;
+  const full = text(documents);
+  if (Buffer.byteLength(full) <= MAXIMUM_RECORD_BYTES) return full;
+  const withoutReasons = text(
+    Object.fromEntries(
+      Object.entries(documents).map(([path, { reasons: _reasons, ...entry }]) => [path, entry]),
+    ),
+  );
+  if (Buffer.byteLength(withoutReasons) <= MAXIMUM_RECORD_BYTES) return withoutReasons;
+  throw new Error("The document lifecycle record exceeds its size bound.");
+}
+
+/** Replaces the record atomically with mode 0600, within its document and byte bounds. */
+export async function writeDocumentLifecycleRecord(
+  root: string,
+  record: DocumentLifecycleRecord,
+): Promise<void> {
+  const path = resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH);
+  const text = boundedRecordText(record);
+  const temporary = `${path}.${randomUUID()}.tmp`;
+  await mkdir(dirname(path), { recursive: true, mode: 0o700 });
   try {
-    const unknownCommands = record.unknownCommands.slice(0, MAXIMUM_RECORDED_COMMANDS);
-    await writeFile(temporary, `${JSON.stringify({ ...record, documents, unknownCommands })}\n`, {
-      flag: "wx",
-      mode: 0o600,
-    });
+    await writeFile(temporary, text, { flag: "wx", mode: 0o600 });
     await chmod(temporary, 0o600);
     await rename(temporary, path);
   } finally {

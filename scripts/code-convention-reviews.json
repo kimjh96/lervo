@@ -17,6 +17,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "apps/cli/src/repository-health-projection.ts",
+      "contentHash": "sha256:aea68b660f70c3f23ee8e830a3a61a9315cdc5cc44e86f9f6c8e0762297998a1",
+      "responsibility": "Repository health projection from its recorded sources",
+      "rationale": "One source contract and one small projection per health measure (convergence, longest stop, deferred, find, broken links) feed one projection entrypoint; freshness and Lervo debt are delegated to their own modules, and nothing here reads files or evaluates knowledge.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "apps/hub-runtime/src/deployment.ts",
       "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
       "responsibility": "Hub runtime deployment composition",

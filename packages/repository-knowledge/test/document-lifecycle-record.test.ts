@@ -8,6 +8,7 @@ import {
   DOCUMENT_LIFECYCLE_RECORD_PATH,
   emptyDocumentLifecycleRecord,
   MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS,
+  MAXIMUM_RECORDED_REASONS,
   readDocumentLifecycleRecord,
   writeDocumentLifecycleRecord,
   type DocumentLifecycleRecord,
@@ -41,6 +42,21 @@ function record(documents: number): DocumentLifecycleRecord {
     documents: entries,
     unknownCommands: ["lervo loop"],
     cadence: { day: "2026-11-19", assessed: 3 },
+    fence: `sha256:${"c".repeat(64)}`,
+    summary: {
+      states: {
+        current: 2,
+        suspect: 0,
+        refreshed: 0,
+        superseded: 0,
+        partially_superseded: 0,
+        archived: 0,
+        retired: 0,
+      },
+      suspects: { mechanical: 0, provider: 0, cadence: 0, unknown: 0 },
+      resolution: { deterministic: 1, mechanical: 0, provider: 0 },
+      cadence: { periodDays: 14, perDay: 16, assessedToday: 3, unassessed: 0, remainingDays: 0 },
+    },
   };
 }
 
@@ -94,5 +110,35 @@ describe("document lifecycle record (ADR-0562)", () => {
     const read = await readDocumentLifecycleRecord(repository);
     expect(Object.keys(read.documents)).toEqual(["docs/00000.md"]);
     expect(read.unknownCommands).toEqual(["lervo loop"]);
+  });
+
+  it("drops cached reasons before it would write a record that reads back as empty", async () => {
+    const repository = await root();
+    const value = record(MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS);
+    const reason = {
+      reason: "path_changed" as const,
+      target: `path:src/${"deep/".repeat(20)}module.ts`,
+      edgeKind: "names_path" as const,
+      line: 12,
+      strength: "strong" as const,
+      resolution: "provider" as const,
+    };
+    for (const entry of Object.values(value.documents))
+      entry.reasons = Array.from({ length: MAXIMUM_RECORDED_REASONS }, () => reason);
+    await writeDocumentLifecycleRecord(repository, value);
+    const path = resolve(repository, DOCUMENT_LIFECYCLE_RECORD_PATH);
+    expect((await stat(path)).size).toBeLessThanOrEqual(4 * 1024 * 1024);
+    const read = await readDocumentLifecycleRecord(repository);
+    expect(Object.keys(read.documents)).toHaveLength(MAXIMUM_LIFECYCLE_RECORD_DOCUMENTS);
+    expect(Object.values(read.documents).every((entry) => entry.reasons === undefined)).toBe(true);
+    expect(read.fence).toBe(value.fence);
+  });
+
+  it("reads a malformed summary as absent and keeps the rest", async () => {
+    const repository = await root();
+    await writeRaw(repository, JSON.stringify({ ...record(1), summary: { states: {} } }));
+    const read = await readDocumentLifecycleRecord(repository);
+    expect(read.summary).toBeNull();
+    expect(Object.keys(read.documents)).toEqual(["docs/00000.md"]);
   });
 });

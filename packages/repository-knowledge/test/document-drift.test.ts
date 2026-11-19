@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -9,6 +9,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { evaluateRepositoryDocumentStaleness } from "../src/document-staleness-evaluation.js";
 import type { DocumentStalenessGitPort } from "../src/document-staleness-git.js";
+import {
+  readRecordedDocumentLifecycleSummary,
+  recordDocumentLifecycle,
+} from "../src/document-lifecycle-observation.js";
 import { DOCUMENT_LIFECYCLE_RECORD_PATH } from "../src/document-lifecycle-record.js";
 import { documentStalenessStatePath } from "../src/document-staleness-state.js";
 import {
@@ -182,19 +186,22 @@ describe("document drift lint", () => {
     expect(await readFile(resolve(root, documentStalenessStatePath), "utf8")).not.toContain(
       "class Limits",
     );
-    // ADR-0562 shadow: the lifecycle is evaluated and recorded beside the findings above, and a
-    // small repository is swept completely on its first day.
-    expect(recorded?.lifecycle).toMatchObject({
-      cadence: { periodDays: 14, perDay: 16, unassessed: 0 },
-    });
-    const lifecycleRecord = JSON.parse(
-      await readFile(resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH), "utf8"),
-    ) as { kind: string; documents: Record<string, unknown> };
-    expect(lifecycleRecord.kind).toBe("document_lifecycle.record");
-    expect(Object.keys(lifecycleRecord.documents)).toContain("AGENTS.md");
-    expect(await readFile(resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH), "utf8")).not.toContain(
-      "class Limits",
+    // ADR-0562 shadow: read-only lint never evaluates the lifecycle; the recording call does, once
+    // per staleness coordinate, and sweeps a small repository completely on its first day.
+    await expect(access(resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH))).rejects.toThrow();
+    const recording = await recordDocumentLifecycle({ root, now: new Date() });
+    expect(recording).toMatchObject({ status: "recorded", deferred: 0 });
+    const summary = await readRecordedDocumentLifecycleSummary(root);
+    expect(summary?.revision).toBe(recorded?.currentRevision);
+    expect(summary?.summary.cadence).toMatchObject({ periodDays: 14, perDay: 16, unassessed: 0 });
+    const lifecycleText = await readFile(resolve(root, DOCUMENT_LIFECYCLE_RECORD_PATH), "utf8");
+    expect(Object.keys((JSON.parse(lifecycleText) as { documents: object }).documents)).toContain(
+      "AGENTS.md",
     );
+    expect(lifecycleText).not.toContain("class Limits");
+    expect(await recordDocumentLifecycle({ root, now: new Date() })).toEqual({
+      status: "skipped_current",
+    });
     expect(
       documentDriftAttentionIssues({
         issues: Array.from({ length: 20 }, (_, index) => ({

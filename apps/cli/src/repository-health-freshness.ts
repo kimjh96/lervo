@@ -69,12 +69,13 @@ export function expireHealthFreshness(measure: Measure, now: Date): Measure {
   };
 }
 
-/** ADR-0562 lifecycle counts of a lifecycle evaluation; null for the connected-path evaluator. */
+/** ADR-0562 shadow lifecycle counts recorded at the current HEAD; null when absent or older. */
 function lifecycleCounts(
-  report: NonNullable<HealthProjectionSources["staleness"]>,
+  input: HealthProjectionSources,
 ): RepositoryHealthDocumentLifecycleV1 | null {
-  const lifecycle = report.lifecycle;
-  if (lifecycle === undefined) return null;
+  const recorded = input.lifecycle;
+  if (recorded == null || recorded.revision !== input.headRevision) return null;
+  const lifecycle = recorded.summary;
   return {
     current: lifecycle.states.current,
     refreshed: lifecycle.states.refreshed,
@@ -119,7 +120,7 @@ export function projectHealthFreshness(input: HealthProjectionSources): Measure 
         evaluated: evaluation?.counts.evaluated ?? null,
         unevaluated: evaluation?.counts.unevaluated ?? null,
         unknown: evaluation?.counts.unknown ?? null,
-        lifecycle: evaluation === null ? null : lifecycleCounts(evaluation),
+        lifecycle: evaluation === null ? null : lifecycleCounts(input),
         evaluationObservedAt: evaluation?.evaluatedAt ?? null,
         evaluationValidUntil: null,
         cycleObservedAt: cycle?.lastCycleAt ?? null,

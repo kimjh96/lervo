@@ -18,6 +18,7 @@ import { documentFreshnessFinding } from "./document-freshness-finding.js";
 import { filesystemDocumentFreshnessOracle } from "./document-freshness-filesystem-oracle.js";
 import { documentFreshnessPublicationGroup } from "./document-freshness-publication-group.js";
 import { neverTrackedReferenceTargets } from "./document-freshness-reference-history.js";
+import { recordDocumentLifecycle } from "./document-lifecycle-observation.js";
 import {
   documentFreshnessReferences,
   freshnessReferenceMissing,
@@ -196,9 +197,12 @@ export async function observeDocumentFreshnessFindings(input: {
       truncated: 0,
     };
   }
-  const lint =
-    input.lint ??
-    (await lintRepositoryKnowledge(root, { documentStaleness: "evaluate_and_record" }));
+  let lint = input.lint;
+  if (lint === undefined) {
+    lint = await lintRepositoryKnowledge(root, { documentStaleness: "evaluate_and_record" });
+    // ADR-0562 shadow: the lifecycle records beside the reading; it never changes the findings.
+    await recordDocumentLifecycle({ root, now: input.now }).catch(() => undefined);
+  }
   const report = await readRecordedDocumentStalenessReport(root);
   const reportCurrent =
     lint.coverage === "complete" &&

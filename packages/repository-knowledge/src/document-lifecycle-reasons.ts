@@ -16,6 +16,16 @@ export interface DocumentLifecycleReasons {
   reused: Set<string>;
   /** Command mentions the catalog does not know now, for the next record. */
   unknownCommands: string[];
+  /** Documents whose group did not fit this call's budget; a later call evaluates them. */
+  deferred: Set<string>;
+}
+
+/** Per-call bound on diff groups and wall time, so one call never runs unbounded. */
+export interface DocumentLifecycleBudget {
+  maximumGroups: number;
+  /** Epoch milliseconds after which no further group starts. */
+  deadline: number;
+  clock: () => number;
 }
 
 function compare(left: string, right: string): number {
@@ -42,8 +52,16 @@ export async function findDocumentLifecycleReasons(input: {
   /** Documents whose baseline is their own last commit rather than a recorded assessment. */
   fresh: ReadonlySet<string>;
   readDocument: (path: string) => Promise<string | null>;
+  budget: DocumentLifecycleBudget;
 }): Promise<DocumentLifecycleReasons> {
-  const { web, git, head, record } = input;
+  const { web, git, head, record, budget } = input;
+  let started = 0;
+  const admit = () => {
+    if (started >= budget.maximumGroups || budget.clock() >= budget.deadline) return false;
+    started += 1;
+    return true;
+  };
+  const deferred = new Set<string>();
   const unknownCommands = unknownCatalogCommands(web);
   const knownUnknown = new Set(record.unknownCommands);
   const found = new Map<string, DocumentLifecycleEvidence[]>();
@@ -63,7 +81,12 @@ export async function findDocumentLifecycleReasons(input: {
     else pending.push(path);
   }
   let reached: ReadonlySet<string> | null = since === head ? new Set() : null;
-  if (since !== null && since !== head && main.length + pending.length > 0) {
+  if (since !== null && since !== head && main.length + pending.length > 0 && !admit()) {
+    // Without the shared diff, recorded documents wait for a later call; nothing is reused.
+    for (const path of main) deferred.add(path);
+    for (const path of pending) deferred.add(path);
+    pending.length = 0;
+  } else if (since !== null && since !== head && main.length + pending.length > 0) {
     try {
       const result = await evaluateDocumentLifecycleGroup({
         web,
@@ -91,6 +114,10 @@ export async function findDocumentLifecycleReasons(input: {
     } else addToGroup(input.baselines.get(path)!, path);
   }
   for (const [baseline, paths] of [...groups].sort(([left], [right]) => compare(left, right))) {
+    if (!admit()) {
+      for (const path of paths) deferred.add(path);
+      continue;
+    }
     try {
       const result = await evaluateDocumentLifecycleGroup({
         web,
@@ -105,5 +132,5 @@ export async function findDocumentLifecycleReasons(input: {
       for (const path of paths) unavailable.add(path);
     }
   }
-  return { found, unavailable, reused, unknownCommands };
+  return { found, unavailable, reused, unknownCommands, deferred };
 }

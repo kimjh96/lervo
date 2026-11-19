@@ -9,6 +9,8 @@ import {
 
 const executeFile = promisify(execFile);
 const MAXIMUM_OUTPUT_BYTES = 64 * 1024 * 1024;
+/** No single lifecycle Git call outlasts one call's whole budget (20 seconds). */
+const GIT_CALL_MILLISECONDS = 20_000;
 /** Changed lines kept per file; a larger diff still yields its first lines for name matching. */
 const MAXIMUM_CHANGED_LINES_PER_FILE = 20_000;
 
@@ -67,6 +69,8 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
     });
     const chunks: Buffer[] = [];
     let size = 0;
+    // A blob read is bounded like every other lifecycle Git call; a killed reader fails closed.
+    const timer = setTimeout(() => child.kill(), GIT_CALL_MILLISECONDS);
     child.stdout.on("data", (chunk: Buffer) => {
       size += chunk.length;
       if (size > MAXIMUM_OUTPUT_BYTES) child.kill();
@@ -76,6 +80,7 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
       reject(new DocumentStalenessGitUnavailable("Git is unavailable.", { cause: error })),
     );
     child.on("close", (code) => {
+      clearTimeout(timer);
       if (code !== 0 || size > MAXIMUM_OUTPUT_BYTES) {
         reject(new DocumentStalenessGitUnavailable("Git object read failed."));
         return;
@@ -92,13 +97,21 @@ function readBatch(root: string, lookups: readonly string[]): Promise<Map<string
         const header = output.subarray(offset, end).toString("utf8");
         offset = end + 1;
         const fields = header.split(" ");
-        if (fields.at(-1) === "missing" || fields[1] !== "blob") {
+        if (fields.at(-1) === "missing") {
           result.set(lookup, null);
-          if (fields[1] !== undefined && fields.at(-1) !== "missing")
-            offset += Number(fields[2]) + 1;
           continue;
         }
+        // `<object> <type> <size>`; anything else, such as `<name> ambiguous`, fails closed.
         const length = Number(fields[2]);
+        if (fields.length !== 3 || !Number.isSafeInteger(length) || length < 0) {
+          reject(new DocumentStalenessGitUnavailable("Git object output is malformed."));
+          return;
+        }
+        if (fields[1] !== "blob") {
+          result.set(lookup, null);
+          offset += length + 1;
+          continue;
+        }
         result.set(lookup, output.subarray(offset, offset + length).toString("utf8"));
         offset += length + 1;
       }
@@ -120,7 +133,7 @@ export function gitDocumentLifecyclePort(repositoryRoot: string): DocumentLifecy
           encoding: "utf8",
           env: gitEnvironment,
           maxBuffer: MAXIMUM_OUTPUT_BYTES,
-          timeout: 60_000,
+          timeout: GIT_CALL_MILLISECONDS,
           windowsHide: true,
         },
       );

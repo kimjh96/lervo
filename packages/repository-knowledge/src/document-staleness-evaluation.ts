@@ -1,4 +1,3 @@
-import type { DocumentLifecycleSummary } from "./document-lifecycle-model.js";
 import type { RepositoryKnowledgeScan } from "./types.js";
 import {
   evaluateDocumentStaleness,
@@ -57,11 +56,6 @@ export interface DocumentStalenessReport {
   stale: DocumentStalenessFinding[];
   unknown: DocumentStalenessFinding[];
   truncated: { stale: number; unknown: number };
-  /**
-   * ADR-0562 document lifecycle counts, evaluated beside this report when scan coverage is
-   * complete. The findings above still come from this evaluator; the lifecycle does not change them.
-   */
-  lifecycle?: DocumentLifecycleSummary;
 }
 
 export interface DocumentStalenessInput {

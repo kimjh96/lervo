@@ -80,17 +80,32 @@ The sweep reaches at least 16 documents per UTC day, and enough to reach every d
 
 ### Record and failure
 
-`.lervo/state/knowledge/document-lifecycle.json` (mode 0600) holds the only lifecycle state the web cannot rebuild: each document's content hash, assessed revision, evaluation time, and up to 32 open provider reasons, plus the day's sweep count. The bounds are 4,096 documents and 4 MiB. A missing, oversized, or malformed record reads as empty, and each document then falls back to its own last commit. An invalid entry is dropped alone.
+`.lervo/state/knowledge/document-lifecycle.json` (mode 0600) holds the only lifecycle state the web cannot rebuild:
 
-A baseline that Git cannot diff, such as a rewritten commit, makes the document `suspect` with the evaluation unknown. Its entry is dropped, so the sweep evaluates it again from its last commit. The web's `lifecycle` table stores the latest entries for inspection, and only the evaluation that records them writes it.
+- per document: its content hash, assessed revision, evaluation time, and up to 32 open provider reasons;
+- the day's sweep count;
+- the fence;
+- the last summary.
 
-### Staleness and health (shadow)
+It holds at most 4,096 documents, the first by path. A document past that bound is never swept, so it stays unassessed instead of being counted as swept. A write that would exceed 4 MiB drops the cached reasons first, because without them a document is evaluated again from its own baseline. A record still too large is refused, so a record never reads back as empty. A missing or malformed record reads as empty, and each document then falls back to its own last commit; an invalid entry is dropped alone.
 
-The lifecycle runs in shadow for now. When scan coverage is complete, each staleness observation also evaluates the lifecycle, and records it in `evaluate_and_record` mode. The lifecycle counts are attached to the staleness report as `lifecycle`.
+A baseline that Git cannot diff, such as a rewritten commit, makes the document `suspect` with the evaluation unknown. Its entry is dropped, so the sweep evaluates it again from its last commit.
 
-The findings that lint, freshness and health act on still come from the ADR-0023 connected-path evaluator. If the web or the lifecycle fails, the report simply carries no counts.
+### When it runs (shadow)
 
-Repository health adds `freshness.lifecycle` to its projection: counts per state, suspects by what settles them, and cadence coverage. Its text line is unchanged.
+The lifecycle runs in shadow, only in the two callers that record the staleness reading: the knowledge currency pass and the freshness observation. Read-only lint never evaluates it.
+
+**Fence.** The fence is the recorded staleness coordinate: HEAD, the scan's document hashes, the UTC day, coverage, and assessments. A recording call whose coordinate equals the record's fence does nothing, so an unchanged repository builds the web at most once per day.
+
+**Per-call budget.** A call that runs starts at most 32 diff groups, and none after 20 seconds. Each Git call is bounded at 20 seconds.
+
+- A document whose group does not fit is deferred. A swept one is not counted as swept, and a recorded one keeps its assessment.
+- The fence stays open until a call completes without deferring, so the next recording call continues.
+- A failure leaves the shadow reading missing and changes nothing else.
+
+**Writes.** The web is written with its `lifecycle` table, then the record with its fence and summary.
+
+The staleness findings that lint, freshness and health act on still come from the ADR-0023 connected-path evaluator. Repository health reads the recorded summary and never evaluates the lifecycle. When the summary was recorded at the current HEAD, health adds `freshness.lifecycle` to its projection: counts per state, suspects by what settles them, and cadence coverage. Its text line is unchanged.
 
 Switching the findings to the lifecycle is roadmap item 8, after the shadow counts are measured on installed hosts. That switch also replaces the ADR-0023 review interval (`reviewIntervalDays`, ADR-0464), so it needs its own decision. No new event is recorded, and the lifecycle changes no repository bytes.
 
