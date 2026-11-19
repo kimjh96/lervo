@@ -6,6 +6,28 @@ import { planReleaseMetadataVerification } from "./ci-release-metadata.mjs";
 export const CI_VERIFICATION_CONTRACT = "lervo-ci-v1";
 const revisionPattern = /^[a-f0-9]{40}$/u;
 const pendingIntentPath = /^\.changes\/relint_[a-f0-9]{24}\.yaml$/u;
+function addsReleaseIntent(git, revision) {
+  try {
+    const parents = git(["rev-list", "--parents", "-n", "1", revision]).trim().split(" ");
+    const base = parents.length === 3 ? parents[1] : null;
+    if (base === null) return false;
+    return git([
+      "diff",
+      "--no-renames",
+      "--name-only",
+      "--diff-filter=A",
+      base,
+      revision,
+      "--",
+      ".changes/",
+    ])
+      .split("\n")
+      .some((path) => pendingIntentPath.test(path));
+  } catch {
+    return false;
+  }
+}
+
 export function createCiVerificationPlan({ repositoryRoot, event, expectedRevision = "" }) {
   const git = (args) =>
     execFileSync("git", args, {
@@ -35,11 +57,10 @@ export function createCiVerificationPlan({ repositoryRoot, event, expectedRevisi
     paths = null;
     baseRevision = suppliedBase ?? "0".repeat(40);
   }
-  const releasePending =
-    eventName === "pull_request" &&
-    git(["ls-tree", "--name-only", revision, ".changes/"])
-      .split("\n")
-      .some((path) => pendingIntentPath.test(path));
+  // ADR-0592: only an intent this pull request adds defers its tests. A pull_request checkout is
+  // the merge commit, whose first parent is the current base branch, so an intent already waiting
+  // on the base belongs to the base, not to this change.
+  const releasePending = eventName === "pull_request" && addsReleaseIntent(git, revision);
   const classification = classifyCiChanges(
     paths,
     !["push", "pull_request"].includes(eventName),

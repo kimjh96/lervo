@@ -20,15 +20,17 @@ Every pull request that carries release intent is prepared before it merges (ADR
 
 ## Decision
 
-- **Quality checks only.** On a `pull_request` event whose checked-out tree contains a pending intent (`.changes/relint_<24 hex>.yaml`), the CI plan selects coverage `release_pending` (reason `release_preparation_verifies`).
-  - The plan and quality jobs run as before: lint, format, structure, docs and release completion.
+- **Only an intent the pull request adds counts.** On a `pull_request` event, the CI plan selects coverage `release_pending` (reason `release_preparation_verifies`) when the checked-out merge commit adds a pending intent (`.changes/relint_<24 hex>.yaml`) relative to its first parent, the current base branch. An intent already waiting on the base belongs to the base and changes nothing for other pull requests.
+- **What runs:**
+  - The plan and quality jobs run, including the type check: lint, format, types, structure, docs and release completion.
   - The native build, release artifacts, tests, the test reuse shadow and distribution do not run.
-- **The aggregate accepts it.** `CI verification (lervo-ci-v1)` accepts `release_pending` with skipped build, tests and distribution, exactly like `documentation_only`.
+- **The aggregate accepts it.** `CI verification (lervo-ci-v1)` accepts `release_pending` only with build, tests and distribution skipped, as it does `documentation_only`.
+- **An unprepared head is never admitted on these checks.** `wait-release.sh pr` keeps waiting on an unprepared head that still carries intent and names the preparation command (`gh pr edit <n> --add-label release`). The repository's plan cannot enforce branch protection, so the deploy skill's merge gate is where this is enforced.
 - **Unchanged:**
   - every `push`, dispatch and scheduled run;
-  - every pull request without pending intent;
+  - every pull request that adds no intent;
   - the preparation's dispatched run, which still runs everything for the prepared commit;
-  - the release admission, which only reads runs on `main`.
+  - the release admission, which reads only runs on `main`.
 
 ## Consequences
 
@@ -39,9 +41,12 @@ Every pull request that carries release intent is prepared before it merges (ADR
 
 ## Verification
 
-`scripts/quality/test/ci-verification-plan.test.mjs` checks four cases:
+`scripts/quality/test/ci-verification-plan.test.mjs` builds real merge commits and checks these cases:
 
 - a code change selects `full`;
-- adding a pending intent selects `release_pending` for `pull_request`;
+- a pull request that adds an intent selects `release_pending`;
+- a later pull request on a base that already holds an intent selects `full`;
 - `push` and dispatch stay `full`;
 - the aggregate passes `release_pending` only with skipped build, tests and distribution.
+
+`scripts/release/test/deploy-release-wait.test.mjs` checks that an unprepared head that carries intent is never admitted.

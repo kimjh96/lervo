@@ -176,6 +176,19 @@ main_released() {
   return 3
 }
 
+pr_intent_free() {
+  # ADR-0592: a pull_request run of a head with pending release intent skips tests, because the
+  # preparation's dispatched run verifies the prepared commit. Its checks therefore never admit an
+  # unprepared head that still carries intent. 0 none, 3 intent present or unknown.
+  local count
+  count=$(gh_query api "repos/{owner}/{repo}/contents/.changes?ref=$2" \
+    --jq '[.[] | select(.name | test("^relint_[a-f0-9]{24}\\.yaml$"))] | length') || return 3
+  [[ "$count" =~ ^[0-9]+$ ]] || return 3
+  [ "$count" -eq 0 ] && return 0
+  last="unprepared head $2 carries release intent, so its checks skipped the tests; prepare it first (gh pr edit $1 --add-label release)"
+  return 3
+}
+
 pr_verified() {
   # A dispatch for the exact head decides; a prepared head waits for one and for its release matrix;
   # otherwise PR checks decide, and a passed unprepared head also waits for main's release tag.
@@ -185,7 +198,9 @@ pr_verified() {
     pr_prepared "$head"; code=$?
     case $code in
       0) last="prepared head $head: waiting for its dispatched Code quality run"; return 3;;
-      1) pr_checks "$1"; code=$?; [ $code -eq 0 ] && { main_released "$1"; return $?; }; return $code;;
+      1) pr_checks "$1"; code=$?
+        [ $code -eq 0 ] && { pr_intent_free "$1" "$head" || return $?; main_released "$1"; return $?; }
+        return $code;;
       *) last="head $head author unknown"; return 3;;
     esac
   fi
