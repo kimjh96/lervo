@@ -11,6 +11,7 @@ lervo:
       - no-catalog-conflict
       - repository-scope
 ---
+
 # Claude implements directly; Codex reviews adversarially only
 
 Claude performs all Lervo implementation work directly. Do not delegate implementation to Codex. Use Codex only for adversarial review of Claude's work.
