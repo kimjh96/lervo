@@ -24,9 +24,9 @@ import { authorizeCurrentRepositoryDocumentLayout } from "./document-layout-enfo
 import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { listKnowledgeArtifactPaths, shardedKnowledgeArtifactPath } from "./artifact-paths.js";
 import {
-  relocateRepositoryKnowledgeScanSource,
+  relocateRepositoryKnowledgeScanSources,
   repositoryPathCanRemainIncluded,
-  upsertRepositoryKnowledgeScanSource,
+  upsertRepositoryKnowledgeScanSources,
 } from "./scanner.js";
 import { createDocumentMoveLineage } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
@@ -731,32 +731,19 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   );
   registryMaterials.sort((left, right) => left.file.localeCompare(right.file));
   const registryDigest = sha256(canonicalJson(registryMaterials));
-  let virtualScan = scan;
-  for (const [path, change] of [...movedContentChanges].sort(([left], [right]) =>
-    left.localeCompare(right),
-  )) {
-    virtualScan = upsertRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      path,
-      content: change.content,
-    });
-  }
-  for (const change of [...referenceChanges.values()].sort((left, right) =>
-    left.source.path.localeCompare(right.source.path),
-  )) {
-    virtualScan = upsertRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      path: change.source.path,
-      content: change.content,
-    });
-  }
-  if (managedAgentRouteOperation?.content !== undefined) {
-    virtualScan = upsertRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      path: "AGENTS.md",
-      content: managedAgentRouteOperation.content,
-    });
-  }
+  // One batch, so the scan's snapshot is digested once instead of once per changed document.
+  let virtualScan = upsertRepositoryKnowledgeScanSources(scan, [
+    ...[...movedContentChanges]
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([path, change]) => ({ path, content: change.content })),
+    ...[...referenceChanges.values()]
+      .sort((left, right) => left.source.path.localeCompare(right.source.path))
+      .map((change) => ({ path: change.source.path, content: change.content })),
+    ...(managedAgentRouteOperation?.content === undefined
+      ? []
+      : [{ path: "AGENTS.md", content: managedAgentRouteOperation.content }]),
+  ]);
+  const relocations: Array<{ fromPath: string; toPath: string }> = [];
   const moves: RepositoryLayoutMove[] = [];
   const lineageOperations: KnowledgeFileOperation[] = [];
   const moveOperations: Array<DurableKnowledgeMoveOperation | DurableKnowledgeMoveUpdateOperation> =
@@ -871,12 +858,11 @@ export async function createRepositoryLayoutMigrationPlan(input: {
             content: changedContent.content,
           },
     );
-    virtualScan = relocateRepositoryKnowledgeScanSource({
-      scan: virtualScan,
-      fromPath: item.source.path,
-      toPath: item.toPath,
-    });
+    // Moving a source keeps its units' source IDs, so the unit lookup above reads the same units
+    // before or after the earlier moves; the moves are projected together after the loop.
+    relocations.push({ fromPath: item.source.path, toPath: item.toPath });
   }
+  virtualScan = relocateRepositoryKnowledgeScanSources(virtualScan, relocations);
   const referenceOperations: DurableKnowledgeUserFileOperation[] = [...referenceChanges.values()]
     .sort((left, right) => left.source.path.localeCompare(right.source.path))
     .map((change) => ({
