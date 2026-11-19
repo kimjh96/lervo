@@ -43,6 +43,56 @@ function linkCoordinate(issue: KnowledgeLintIssue): string {
   return `${issue.path}\0${issue.target ?? ""}`;
 }
 
+function linksTruncated(result: KnowledgeLintResult): boolean {
+  return result.issues.some(
+    (issue) =>
+      issue.code === "document_reference_findings_truncated" &&
+      issue.reasons?.includes("markdown_link_target_missing") === true,
+  );
+}
+
+/** Links broken after a content rewrite in a written document that were not broken before it. */
+function newlyBrokenLinks(input: {
+  before: KnowledgeLintResult;
+  after: KnowledgeLintResult;
+  rejectNewBrokenLinksIn?: ReadonlySet<string>;
+}): KnowledgeLintIssue[] {
+  const written = input.rejectNewBrokenLinksIn;
+  if (written === undefined || written.size === 0) return [];
+  if (linksTruncated(input.before) || linksTruncated(input.after)) return [];
+  const before = new Set(
+    input.before.issues
+      .filter((issue) => issue.code === "markdown_link_target_missing")
+      .map((issue) => linkCoordinate(issue)),
+  );
+  return input.after.issues.filter(
+    (issue) =>
+      issue.code === "markdown_link_target_missing" &&
+      written.has(issue.path) &&
+      !before.has(linkCoordinate(issue)),
+  );
+}
+
+/**
+ * A content rewrite broke links it did not break before. The stage's bytes are rolled back like any
+ * other blocking finding; the caller settles the rewrite as rejected instead of retrying it.
+ */
+export class KnowledgeStageBrokenLinkError extends RepositoryKnowledgeError {
+  readonly links: ReadonlyArray<{ path: string; target: string }>;
+
+  constructor(stage: string, issues: readonly KnowledgeLintIssue[]) {
+    const links = issues.map((issue) => ({ path: issue.path, target: issue.target ?? "" }));
+    super(
+      "knowledge_lint_failed",
+      `Deterministic lint failed after ${stage}. Materialized bytes were rejected and rolled back. The rewrite broke ${links.length} Markdown link(s): ${links
+        .slice(0, 20)
+        .map((link) => `${link.path} -> ${link.target}`)
+        .join(", ")}`,
+    );
+    this.links = links;
+  }
+}
+
 export function validateKnowledgeStage(input: {
   stage: string;
   before: KnowledgeLintResult;
@@ -50,12 +100,14 @@ export function validateKnowledgeStage(input: {
   ownedErrorCodes: ReadonlySet<string>;
   expectedTransitionCodes?: ReadonlySet<string>;
   /**
-   * A stage that rewrites document content in place also rejects every Markdown link it breaks.
-   * Broken links are warnings, so the error rule alone let a background normalization commit two
-   * of them (core-loop host defect 4). A stage that moves documents leaves this off, because a
-   * moved document's existing broken link reappears under its new path.
+   * Documents a content-rewriting stage wrote in place. A Markdown link it newly broke in one of
+   * them is rejected with `KnowledgeStageBrokenLinkError`. Broken links are warnings, so the error
+   * rule alone let a background normalization commit two of them (core-loop host defect 4). A
+   * stage that moves documents passes nothing, because a moved document's existing broken link
+   * reappears under its new path. A truncated link report on either side disables the check, since
+   * a link cut from the earlier report would otherwise look new.
    */
-  rejectNewBrokenLinks?: boolean;
+  rejectNewBrokenLinksIn?: ReadonlySet<string>;
 }): KnowledgeLintResult {
   requireCompleteRepositoryKnowledgeCoverage(input.before);
   requireCompleteRepositoryKnowledgeCoverage(input.after);
@@ -65,20 +117,15 @@ export function validateKnowledgeStage(input: {
       .map((issue) => issueCoordinate(issue)),
   );
   const expectedTransitions = input.expectedTransitionCodes ?? new Set<string>();
-  const beforeLinks = new Set(
-    input.before.issues
-      .filter((issue) => issue.code === "markdown_link_target_missing")
-      .map((issue) => linkCoordinate(issue)),
-  );
   const blocking = input.after.issues.filter(
     (issue) =>
-      (issue.severity === "error" &&
-        !expectedTransitions.has(issue.code) &&
-        (input.ownedErrorCodes.has(issue.code) || !beforeErrors.has(issueCoordinate(issue)))) ||
-      (input.rejectNewBrokenLinks === true &&
-        issue.code === "markdown_link_target_missing" &&
-        !beforeLinks.has(linkCoordinate(issue))),
+      issue.severity === "error" &&
+      !expectedTransitions.has(issue.code) &&
+      (input.ownedErrorCodes.has(issue.code) || !beforeErrors.has(issueCoordinate(issue))),
   );
+  const brokenLinks = newlyBrokenLinks(input);
+  if (blocking.length === 0 && brokenLinks.length > 0)
+    throw new KnowledgeStageBrokenLinkError(input.stage, brokenLinks);
   if (blocking.length > 0) {
     const summary = blocking
       .slice(0, 20)
