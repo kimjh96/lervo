@@ -55,7 +55,8 @@ export interface PathHistoryCommit {
  * non-merge `Lervo Knowledge` commits; the restore point is the parent of its oldest commit, so
  * nothing a person or tool committed afterwards is undone. A repair commit at the tip means the
  * path is already restored. For an out-of-scope path only unpublished changes are undone: every
- * commit after `base` must be in the run, and `base` is the restore point.
+ * unpublished commit of the path must be Lervo's own, including an earlier repair commit and the
+ * Lervo change it undid, and `base` is the restore point.
  */
 export function knowledgePublicationRestorePoint(input: {
   history: readonly PathHistoryCommit[];
@@ -67,19 +68,14 @@ export function knowledgePublicationRestorePoint(input: {
   | { status: "restore"; restoreFrom: string; undoes: string[] }
   | { status: "current" }
   | { status: "blocked"; blocker: KnowledgePublicationRepairBlocker } {
+  if (input.reason === "outside_scope") return outOfScopeRestorePoint(input);
   const run: PathHistoryCommit[] = [];
   let boundary = false;
   for (const commit of input.history) {
-    const lervo =
-      commit.parents.length === 1 &&
-      commit.authorEmail === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email &&
-      commit.committerEmail === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email;
-    if (!lervo || isKnowledgePublicationRepairCommit(commit)) {
+    if (!lervoKnowledgeCommit(commit) || isKnowledgePublicationRepairCommit(commit)) {
       boundary = true;
       break;
     }
-    if (input.reason === "outside_scope" && freshnessCommitCandidate(commit) !== null)
-      return { status: "blocked", blocker: "reviewed_freshness" };
     run.push(commit);
   }
   // A newer commit by a person or a tool keeps the path as it is; publication still refuses an
@@ -90,23 +86,58 @@ export function knowledgePublicationRestorePoint(input: {
       (input.unpublished?.size ?? 0) > 0
       ? { status: "blocked", blocker: "developer_change" }
       : { status: "current" };
-  if (input.reason === "outside_scope") {
-    if (input.base === null || input.unpublished === null)
-      return { status: "blocked", blocker: "history_unavailable" };
-    const unpublished = input.unpublished;
-    const runShas = new Set(run.map((commit) => commit.sha));
-    if ([...unpublished].some((sha) => !runShas.has(sha)))
-      return { status: "blocked", blocker: "developer_change" };
-    return {
-      status: "restore",
-      restoreFrom: input.base,
-      undoes: run.filter((commit) => unpublished.has(commit.sha)).map((commit) => commit.sha),
-    };
-  }
   if (!boundary && !input.complete) return { status: "blocked", blocker: "history_unavailable" };
   const parent = run.at(-1)!.parents[0];
   if (parent === undefined) return { status: "blocked", blocker: "history_unavailable" };
   return { status: "restore", restoreFrom: parent, undoes: run.map((commit) => commit.sha) };
+}
+
+function lervoKnowledgeCommit(commit: PathHistoryCommit): boolean {
+  return (
+    commit.parents.length === 1 &&
+    commit.authorEmail === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email &&
+    commit.committerEmail === KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email
+  );
+}
+
+/**
+ * An out-of-scope path is restored to `base`, which undoes exactly its unpublished changes. Each of
+ * them must be a Lervo commit: a repair commit in between is Lervo's own, so a change, its repair
+ * and a later change of the same path never read as a person's change. A repair at the tip means
+ * the path is already restored; a reviewed freshness change is left to its owner.
+ */
+function outOfScopeRestorePoint(input: {
+  history: readonly PathHistoryCommit[];
+  base: string | null;
+  unpublished: ReadonlySet<string> | null;
+}):
+  | { status: "restore"; restoreFrom: string; undoes: string[] }
+  | { status: "current" }
+  | { status: "blocked"; blocker: KnowledgePublicationRepairBlocker } {
+  const tip = input.history[0];
+  if (tip !== undefined && lervoKnowledgeCommit(tip) && isKnowledgePublicationRepairCommit(tip))
+    return { status: "current" };
+  if (input.base === null || input.unpublished === null)
+    return { status: "blocked", blocker: "history_unavailable" };
+  const unpublished = input.unpublished;
+  if (unpublished.size === 0) return { status: "current" };
+  const bySha = new Map(input.history.map((commit) => [commit.sha, commit]));
+  for (const sha of unpublished) {
+    const commit = bySha.get(sha);
+    if (commit === undefined) return { status: "blocked", blocker: "history_unavailable" };
+    if (!lervoKnowledgeCommit(commit)) return { status: "blocked", blocker: "developer_change" };
+    if (freshnessCommitCandidate(commit) !== null)
+      return { status: "blocked", blocker: "reviewed_freshness" };
+  }
+  return {
+    status: "restore",
+    restoreFrom: input.base,
+    undoes: input.history
+      .filter(
+        (commit) => unpublished.has(commit.sha) && !isKnowledgePublicationRepairCommit(commit),
+      )
+      .map((commit) => commit.sha),
+  };
 }
 
 async function pathHistory(

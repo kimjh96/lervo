@@ -38,6 +38,7 @@ import {
 } from "./normalization-cost-controller.js";
 import { convergenceSourceObservation } from "./source-observation.js";
 import { isUpgradePreemption } from "./upgrade-preemption.js";
+import { normalizationMayRewrite } from "./normalization-protected-paths.js";
 
 export interface NormalizationBatch {
   candidateId: string;
@@ -120,8 +121,10 @@ export async function generateNormalizationBatch(
     expectedHash: state.baseline.delegationHash,
     provider: context.provider,
   });
-  const scoped = rotated.filter((path) =>
-    pathWithinConvergenceRoots(path, delegation.normalizationRoots),
+  const scoped = rotated.filter(
+    (path) =>
+      pathWithinConvergenceRoots(path, delegation.normalizationRoots) &&
+      normalizationMayRewrite(path),
   );
   if (!scoped.length)
     return waitingConvergenceStage({
@@ -231,7 +234,11 @@ async function generate(
   const selected: string[] = [];
   let bytes = 0;
   for (const path of paths) {
-    if (!pathWithinConvergenceRoots(path, authority.delegation.normalizationRoots)) continue;
+    if (
+      !pathWithinConvergenceRoots(path, authority.delegation.normalizationRoots) ||
+      !normalizationMayRewrite(path)
+    )
+      continue;
     const size = convergenceSourceBytes(root, path).byteLength;
     if (selected.length >= ceilings.maximumDocuments || bytes + size > ceilings.maximumSourceBytes)
       continue;

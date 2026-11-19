@@ -3,8 +3,15 @@ import { observeToolGeneratedDocuments } from "@lervo/repository-knowledge";
 import { loadConvergenceDelegation, pathWithinConvergenceRoots } from "./delegation.js";
 import { readFreshnessCandidate } from "./freshness-state-store.js";
 import type { KnowledgePublicationCommit } from "./knowledge-publication-git.js";
-import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
+import {
+  DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS,
+  type KnowledgePublicationSettings,
+} from "./knowledge-publication-settings.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
+import {
+  normalizationMayRewrite,
+  practiceMaterializationCommit,
+} from "./normalization-protected-paths.js";
 
 /** Marks a corrective commit that restores paths; its paths always publish (ADR-0473). */
 export const KNOWLEDGE_PUBLICATION_REPAIR_TRAILER = "Lervo-Publication-Repair";
@@ -69,7 +76,28 @@ export async function loadKnowledgePublicationScope(
   settings: KnowledgePublicationSettings,
   now: Date,
 ): Promise<KnowledgePublicationScope> {
-  if (settings.scope !== "delegation") return { source: "roots", roots: settings.allowedRoots };
+  if (settings.scope !== "delegation") {
+    if (!defaultPublicationRoots(settings.allowedRoots))
+      return { source: "roots", roots: settings.allowedRoots };
+    // ADR-0594: the default roots Lervo-derived settings hold also admit an active delegation's
+    // roots, so publication never refuses what the normalizer was delegated to write.
+    const roots = await activeDelegationRoots(root, now);
+    return roots.length === 0
+      ? { source: "roots", roots: settings.allowedRoots }
+      : { source: "delegation", roots: [...new Set([...roots, "docs"])] };
+  }
+  return { source: "delegation", roots: await activeDelegationRoots(root, now) };
+}
+
+function defaultPublicationRoots(roots: readonly string[]): boolean {
+  return (
+    roots.length === DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS.length &&
+    DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS.every((value, index) => roots[index] === value)
+  );
+}
+
+/** The active, unexpired delegation's canonical and normalization roots; none otherwise. */
+async function activeDelegationRoots(root: string, now: Date): Promise<string[]> {
   const loaded = await loadConvergenceDelegation(root).catch(() => null);
   const delegation = loaded?.delegation;
   if (
@@ -77,11 +105,8 @@ export async function loadKnowledgePublicationScope(
     delegation.state !== "active" ||
     Date.parse(delegation.expiresAt) <= now.getTime()
   )
-    return { source: "delegation", roots: [] };
-  return {
-    source: "delegation",
-    roots: [...new Set([...delegation.canonicalRoots, ...delegation.normalizationRoots])],
-  };
+    return [];
+  return [...new Set([...delegation.canonicalRoots, ...delegation.normalizationRoots])];
 }
 
 /**
@@ -133,7 +158,12 @@ export async function knowledgePublicationViolations(input: {
       violations.push({ path, reason: "tool_generated", commit: commit.sha });
       continue;
     }
-    if (knowledgePublicationPathInScope(input.scope, path)) continue;
+    // ADR-0594: a skill file publishes only from practice materialization, even inside the scope.
+    if (
+      knowledgePublicationPathInScope(input.scope, path) &&
+      (normalizationMayRewrite(path) || practiceMaterializationCommit(commit))
+    )
+      continue;
     if (!freshness.has(commit.sha))
       freshness.set(commit.sha, freshnessCommitAuthorized(input.repositoryRoot, commit));
     if (await freshness.get(commit.sha)!) continue;

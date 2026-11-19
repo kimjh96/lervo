@@ -155,6 +155,25 @@ describe("knowledge publication scope", () => {
       expect(knowledgePublicationPathInScope(scope, path)).toBe(false);
   });
 
+  // ADR-0594: the lervo owner's settings held the default roots, which refused a path the
+  // delegation let the normalizer write; publication then blocked for 2,097 attempts.
+  it("widens the default roots to an active delegation and keeps them without one", async () => {
+    const legacy = { ...target, allowedRoots: ["docs/", ".lervo/knowledge/"] };
+    const widened = await loadKnowledgePublicationScope(await checkout(delegation()), legacy, now);
+    expect(widened.source).toBe("delegation");
+    for (const path of ["docs/a.md", "README.md", "AGENTS.md", ".lervo/knowledge/policy.yaml"])
+      expect(knowledgePublicationPathInScope(widened, path)).toBe(true);
+    expect(knowledgePublicationPathInScope(widened, "src/index.ts")).toBe(false);
+    expect(await loadKnowledgePublicationScope(await checkout(), legacy, now)).toEqual({
+      source: "roots",
+      roots: ["docs/", ".lervo/knowledge/"],
+    });
+    const narrowed = { ...target, allowedRoots: ["docs/"] };
+    expect(
+      await loadKnowledgePublicationScope(await checkout(delegation()), narrowed, now),
+    ).toEqual({ source: "roots", roots: ["docs/"] });
+  });
+
   it("admits only Lervo-managed knowledge state without an active delegation", async () => {
     const expired = await checkout(delegation({ expiresAt: "2026-10-05T00:00:00.000Z" }));
     const revoked = await checkout(delegation({ state: "revoked" }));
@@ -169,6 +188,35 @@ describe("knowledge publication scope", () => {
       expect(knowledgePublicationPathInScope(scope, "docs/runtime.md")).toBe(false);
       expect(knowledgePublicationPathInScope(scope, ".lervo/knowledge/policy.yaml")).toBe(true);
     }
+  });
+
+  // ADR-0594: a normalization rewrite of a skill blocked publication on 2026-11-14; inside the
+  // delegation scope a skill still publishes only from practice materialization.
+  it("publishes a skill file only from practice materialization", async () => {
+    const root = await checkout(delegation());
+    const scope = await loadKnowledgePublicationScope(
+      root,
+      { ...target, scope: "delegation" },
+      now,
+    );
+    const skill = ".agents/skills/deploy/SKILL.md";
+    const normalized = commit("d", [skill, "README.md"]);
+    expect(
+      await knowledgePublicationViolations({
+        repositoryRoot: root,
+        commits: [normalized],
+        scope,
+        toolGenerated: new Set(),
+      }),
+    ).toEqual([{ path: skill, reason: "outside_scope", commit: normalized.sha }]);
+    expect(
+      await knowledgePublicationViolations({
+        repositoryRoot: root,
+        commits: [commit("e", [skill], "Practice.\n\nLervo-Practice-Candidate: kprac_1")],
+        scope,
+        toolGenerated: new Set(),
+      }),
+    ).toEqual([]);
   });
 
   it("lets the last change decide: a repair commit passes, tool-owned paths never do", async () => {
@@ -331,6 +379,45 @@ describe("knowledge publication restore point", () => {
         unpublished: new Set(["c3"]),
       }),
     ).toEqual({ status: "blocked", blocker: "reviewed_freshness" });
+  });
+
+  // 2026-11-14: a normalization rewrote a skill outside the publication scope, a repair restored it,
+  // and a later normalization rewrote it again. The repair stopped the run, so the earlier Lervo
+  // change read as a person's and publication stayed blocked for 2,097 attempts.
+  it("restores an out-of-scope path across Lervo's own change, repair and change again", () => {
+    const repair = `Lervo-Publication-Repair: ${"c2".repeat(20)}`;
+    expect(
+      knowledgePublicationRestorePoint({
+        history: [
+          entry("c4", "c3"),
+          entry("c3", "c2", lervo, repair),
+          entry("c2", "c1"),
+          entry("c1", "c0"),
+        ],
+        complete: true,
+        reason: "outside_scope",
+        base: "c1",
+        unpublished: new Set(["c4", "c3", "c2"]),
+      }),
+    ).toEqual({ status: "restore", restoreFrom: "c1", undoes: ["c4", "c2"] });
+    expect(
+      knowledgePublicationRestorePoint({
+        history: [entry("c4", "c3"), entry("c3", "c2", "dev@example.com"), entry("c2", "c1")],
+        complete: true,
+        reason: "outside_scope",
+        base: "c1",
+        unpublished: new Set(["c4", "c3", "c2"]),
+      }),
+    ).toEqual({ status: "blocked", blocker: "developer_change" });
+    expect(
+      knowledgePublicationRestorePoint({
+        history: [entry("c4", "c3")],
+        complete: false,
+        reason: "outside_scope",
+        base: "c1",
+        unpublished: new Set(["c4", "c2"]),
+      }),
+    ).toEqual({ status: "blocked", blocker: "history_unavailable" });
   });
 
   it("blocks instead of guessing when Lervo's run reaches past the history it read", () => {
