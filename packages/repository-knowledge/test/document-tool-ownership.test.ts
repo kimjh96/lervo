@@ -270,6 +270,27 @@ describe("tool-generated document evidence", () => {
     expect(inspection.pendingDocuments).not.toContain("apps/app/CHANGELOG.md");
   });
 
+  // ADR-0594: a skill is executable instructions, so it is never normalization work or debt, even
+  // when an earlier normalization record names it.
+  it("never offers a skill file for normalization", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-protected-skill-normalization-"));
+    roots.push(root);
+    await applyInitPlan(
+      await createInitPlan({
+        root,
+        projectId: "prj_protected_skill",
+        now: new Date("2026-11-19T00:00:00.000Z"),
+      }),
+    );
+    await write(root, ".agents/skills/deploy/SKILL.md", "# Deploy\n\nRun the release.\n");
+    await write(root, ".claude/skills/deploy/SKILL.md", "# Deploy\n\nRun the release.\n");
+    await write(root, "docs/guide.md", "# Guide\n\nHow to run the app.\n");
+
+    const inspection = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
+    expect(inspection.pendingDocuments).toContain("docs/guide.md");
+    expect(inspection.pendingDocuments.filter((path) => path.includes("/skills/"))).toEqual([]);
+  });
+
   it("never proposes a freshness refresh for a tool-generated document", async () => {
     const root = await mkdtemp(resolve(tmpdir(), "lervo-tool-ownership-freshness-"));
     roots.push(root);

@@ -23,7 +23,9 @@ On 2026-11-19 background knowledge for the lervo repository had stopped reaching
 ## Decision
 
 1. **Skill files are not normalized.**
-   - Background normalization never selects a path under `.agents/skills`, `.claude/skills`, or `.codex/skills`, whatever the delegation's roots say. Skills are executable agent instructions, and a prose rewrite can change what an agent does.
+   - A path under `.agents/skills`, `.claude/skills`, or `.codex/skills` is never eligible for normalization, whatever the delegation's roots say. Skills are executable agent instructions, and a prose rewrite can change what an agent does.
+   - A protected path is therefore never pending and never counted as normalization debt in health or upgrade. Like a parked document, it never holds normalization review or lifecycle verification.
+   - An existing normalization record for a skill is ignored and never regenerated.
    - Publication admits a change to those paths only from a practice-materialization commit (`Lervo-Practice-Candidate` trailer, ADR-0543).
    - Other normalization roots are unchanged: docs, README, AGENTS.md, CLAUDE.md.
 2. **The default roots widen to an active delegation.**
@@ -65,5 +67,7 @@ On 2026-11-19 background knowledge for the lervo repository had stopped reaching
 **Owner rules and status:**
 
 - `instruction-apply-failures.test.ts` covers the failure records and the protected skill paths;
+- `document-tool-ownership.test.ts` checks that a skill is never pending normalization;
+- `normalization-protected-skill.test.ts` checks that a skill as the only pending document still lets the later stages run;
 - `apps/node-runtime/test/repository-knowledge-loop-owner-rules.test.ts` covers the Node worker applying stored rules;
 - `maintenance-status.test.ts` covers a non-owner's stale observation.

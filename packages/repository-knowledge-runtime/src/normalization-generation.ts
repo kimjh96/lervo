@@ -79,7 +79,8 @@ export async function generateNormalizationBatch(
     ).map((source) => [source.path, source.contentHash]),
   );
   const admission = admitNormalizationDocuments(
-    inspection.pendingDocuments,
+    // ADR-0594: a protected skill path never holds the pipeline, like a parked document.
+    inspection.pendingDocuments.filter(normalizationMayRewrite),
     sources,
     normalizationRejections(state),
     mergeParkedSources(
