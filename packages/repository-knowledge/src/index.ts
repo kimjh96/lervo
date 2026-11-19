@@ -241,3 +241,14 @@ export {
 export * from "./practice-contract.js";
 export * from "./practice-privacy.js";
 export * from "./document-governing-index.js";
+export * from "./relation-web-model.js";
+export { extractRelationDocument } from "./relation-web-extraction.js";
+export {
+  buildRelationWeb,
+  type RelationWeb,
+  type RelationWebBuild,
+  type RelationWebInput,
+} from "./relation-web.js";
+export * from "./relation-web-suspects.js";
+export * from "./relation-web-stats.js";
+export * from "./relation-web-store.js";

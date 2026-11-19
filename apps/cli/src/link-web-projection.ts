@@ -38,7 +38,8 @@ export interface LinkWebSummary {
   missingBacklinks: { path: string; target: string }[];
 }
 
-async function trackedFiles(root: string): Promise<string[]> {
+/** Tracked and untracked, not ignored, files; private state is excluded. */
+export async function trackedFiles(root: string): Promise<string[]> {
   const { stdout } = await execute(
     "git",
     [

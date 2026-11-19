@@ -46,7 +46,8 @@ import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
 import { runWorkspaceCommand, workspaceUsage } from "./workspace-command.js";
 import { runWorkforceCommand, workforceUsage } from "./workforce-command.js";
 
-const usage = `Usage:
+/** The complete usage text; the relation web reads its command catalog from it (ADR-0562). */
+export const cliUsage = `Usage:
 ${versionUsage}
 ${initUsage}
 ${upgradeUsage}
@@ -97,7 +98,7 @@ export async function runCli(
   const services = { ...defaultServices, ...serviceOverrides };
   const command = args[0];
   if (command === "--help" || command === "-h" || command === undefined) {
-    io.stdout(usage);
+    io.stdout(cliUsage);
     return command === undefined ? 1 : 0;
   }
   if (command === "--version" || command === "-v") {
@@ -127,7 +128,7 @@ export async function runCli(
   if (command === "organization") return runAgentOrganizationCommand(args.slice(1), io);
   if (command === "role") return runRoleCommand(args.slice(1), io);
   if (command === "research") return runResearchCommand(args.slice(1), io);
-  io.stderr(`Unknown command: ${command}\n${usage}`);
+  io.stderr(`Unknown command: ${command}\n${cliUsage}`);
   return 1;
 }
 

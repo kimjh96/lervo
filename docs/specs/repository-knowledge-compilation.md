@@ -13,6 +13,7 @@ The compilation contract comprises:
 - [Semantic compilation, review, and materialization](repository-knowledge-compilation/semantic-review.md): historical; removed by [ADR-0529](../decisions/knowledge/semantics/0529-remove-the-semantic-compilation-pipeline.md).
 - [Exchange, failures, and acceptance](repository-knowledge-compilation/validation-and-exchange.md).
 - [Document drift and historical documents](repository-knowledge-compilation/document-drift.md).
+- [Relation web](repository-knowledge-compilation/relation-web.md): the private, rebuildable web of documents, paths, packages, commands, and ADR headers, and its suspect lookup.
 
 ## Related specifications
 

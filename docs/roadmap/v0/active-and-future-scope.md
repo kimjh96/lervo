@@ -3,6 +3,7 @@
 These scopes do not reopen v0 acceptance; each follows its linked ADR and roadmap.
 
 - [Core outcomes](../../product/vision/core-outcomes.md): sets the priority of every scope below. Work proceeds Know, Find, Do, Connect, Collaborate, then Surface. An item is complete only when the owner can observe it in installed use and its live measure moves.
+- [Core loop](../core-loop.md): the active priority. It removes unused parts and owner approvals, joins the loop on one relation web with a plan ledger, and makes Lervo the same on every host before one release.
 - [Product outcome convergence](../product-outcome-convergence.md): truth ledger for outcomes, evidence, and gaps.
 - [CI cost and duration](../operations/ci-cost-and-duration.md): approved shared-build and release-verification redesign; local and hosted acceptance are tracked separately.
 - [Release to fleet](../operations/release-to-fleet.md): fix to every host without a manual deploy; host install from the verified release, priority upgrade admission, and `lervo host upgrade --follow`.

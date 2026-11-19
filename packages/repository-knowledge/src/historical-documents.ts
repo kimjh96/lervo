@@ -1,5 +1,7 @@
 import type { DecisionTaxonomy } from "@lervo/project";
 
+import { documentHeaderStatus, historicalHeaderStatus } from "./document-header-grammar.js";
+
 /**
  * Recognized historical-document markers (ADR-0464):
  *
@@ -10,8 +12,11 @@ import type { DecisionTaxonomy } from "@lervo/project";
  * - `banner`: one of the first three non-empty body lines is a blockquote whose text, after
  *   emphasis markers, starts with `Historical`, `Archived`, or `Superseded` followed by `.`, `:`,
  *   `(`, `-`, or the end of the line.
+ * - `status_line`: the plain `Status:` header line of the ADR-0562 header grammar has a first token
+ *   of `superseded`, `historical`, or `archived`, such as `` Status: `superseded` `` or
+ *   `- Status: superseded by [ADR-0394](...)`. `partially_superseded` stays current.
  */
-export type HistoricalDocumentMarker = "archive_scope" | "front_matter" | "banner";
+export type HistoricalDocumentMarker = "archive_scope" | "front_matter" | "banner" | "status_line";
 
 export const defaultArchiveScope = "docs/archive";
 
@@ -62,7 +67,7 @@ export function historicalDocumentMarker(input: {
     const text = quoted.replace(/^[*_\s]+/u, "");
     if (bannerText.test(text)) return "banner";
   }
-  return null;
+  return historicalHeaderStatus(documentHeaderStatus(input.content)) ? "status_line" : null;
 }
 
 const historyQueryTerms = new Set([

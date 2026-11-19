@@ -19,6 +19,7 @@ import { runKnowledgeMigration } from "./knowledge-migration-command.js";
 import { knowledgeUsage } from "./knowledge-usage.js";
 import { runKnowledgeCanonicalization } from "./knowledge-canonicalization-command.js";
 import { runKnowledgeRevert } from "./knowledge-revert-command.js";
+import { runKnowledgeWeb } from "./knowledge-web-command.js";
 export { runKnowledgeMigration } from "./knowledge-migration-command.js";
 export { formatKnowledgeMigrationPlan } from "./knowledge-migration-format.js";
 export { knowledgeUsage } from "./knowledge-usage.js";
@@ -108,6 +109,7 @@ export async function runKnowledgeCommand(
     }
   }
   if (subcommand === "query") return runKnowledgeQuery(args.slice(1), io);
+  if (subcommand === "web") return runKnowledgeWeb(args.slice(1), io);
   io.stderr(`Specify a supported knowledge subcommand.\n${knowledgeUsage}\n`);
   return 1;
 }
