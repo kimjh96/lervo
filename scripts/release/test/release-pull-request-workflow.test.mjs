@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { writeFileSync } from "node:fs";
+import { readFileSync, rmSync, writeFileSync } from "node:fs";
 import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -50,7 +50,19 @@ describe("CLI release in pull request workflow", () => {
     assert.match(workflow["run-name"], /^Prepare release in PR #/u);
     assert.doesNotMatch(source, /pull_request_target|NODE_AUTH_TOKEN|NPM_TOKEN|npm publish/u);
     const job = workflow.jobs.prepare;
-    assert.equal(job["runs-on"], "macos-15");
+    // The route job picks Linux when nothing builds or a verified build restores (ADR-0593); a
+    // route that fails before deciding leaves the pinned macOS image.
+    assert.equal(job["runs-on"], "${{ needs.route.outputs.runner || 'macos-15' }}");
+    assert.equal(job.needs, "route");
+    assert.match(job.if, /^!cancelled\(\) &&/u);
+    for (const condition of ["github.event_name == 'workflow_dispatch'", "pull_request.head.repo"])
+      assert.ok(workflow.jobs.route.if.includes(condition), condition);
+    assert.deepEqual(workflow.jobs.route.permissions, {
+      contents: "read",
+      actions: "read",
+      "pull-requests": "read",
+    });
+    assert.equal(workflow.jobs.route["runs-on"], "ubuntu-latest");
     assert.match(job.if, /github\.event\.label\.name == 'release'/u);
     assert.match(job.if, /pull_request\.head\.repo\.full_name == github\.repository/u);
     const [resolveStep, tooling, checkout] = job.steps;
@@ -76,7 +88,67 @@ describe("CLI release in pull request workflow", () => {
       'node tooling/scripts/release/commands/reconcile-release-workflow.mjs pull-request "${GITHUB_WORKSPACE}/pr"',
     );
     assert.equal(prepare.env.PR_HEAD_SHA, "${{ steps.target.outputs.head_sha }}");
+    assert.match(prepare.env.NATIVE_REUSE_DIRECTORY, /needs\.route\.outputs\.nativeRun != ''/u);
     assert.ok(job.steps.indexOf(install) < job.steps.indexOf(prepare));
+    const download = job.steps.find(({ name }) => name === "Download the verified native build");
+    assert.equal(download.if, "needs.route.outputs.nativeRun != ''");
+    assert.equal(download.with["run-id"], "${{ needs.route.outputs.nativeRun }}");
+    assert.ok(job.steps.indexOf(download) < job.steps.indexOf(prepare));
+  });
+
+  it("routes to Linux unless the preparation builds without a verified native build", async () => {
+    const workflow = parse(await readFile(workflowPath, "utf8"));
+    const steps = workflow.jobs.route.steps;
+    const tree = steps.find(({ id }) => id === "tree");
+    const decide = steps.find(({ id }) => id === "route");
+    const route = (env) => runStep(decide.run, { env }).outputs;
+    assert.deepEqual(route({ BUILD: "false", VERIFIED: "skipped", NATIVE_RUN: "" }), {
+      runner: "ubuntu-latest",
+    });
+    assert.deepEqual(route({ BUILD: "true", VERIFIED: "success", NATIVE_RUN: "7" }), {
+      runner: "ubuntu-latest",
+      nativeRun: "7",
+    });
+    for (const verified of ["failure", "skipped", ""])
+      assert.deepEqual(route({ BUILD: "true", VERIFIED: verified, NATIVE_RUN: "7" }), {
+        runner: "macos-15",
+      });
+    // A dispatch can force the pinned macOS compile; a label event leaves the input empty.
+    for (const build of ["true", "false"])
+      assert.deepEqual(
+        route({ BUILD: build, VERIFIED: "success", NATIVE_RUN: "7", FORCE_MACOS: "true" }),
+        { runner: "macos-15" },
+      );
+    assert.deepEqual(
+      route({ BUILD: "true", VERIFIED: "success", NATIVE_RUN: "7", FORCE_MACOS: "" }),
+      { runner: "ubuntu-latest", nativeRun: "7" },
+    );
+    assert.deepEqual(workflow.on.workflow_dispatch.inputs.force_macos, {
+      description:
+        "Compile the darwin native files on macOS even when a verified build could be restored",
+      type: "boolean",
+      default: false,
+    });
+    for (const id of ["find", "verify"])
+      assert.equal(steps.find((step) => step.id === id)["working-directory"], "pr");
+
+    // The tree step builds exactly what reconcile-release-pull-request.sh would build.
+    const repo = await fixture();
+    const build = (head) => {
+      repo.git("checkout", "--quiet", "--detach", head);
+      const result = runStep(tree.run, { cwd: repo.work });
+      assert.equal(result.status, 0, result.stderr);
+      return result.outputs.build;
+    };
+    assert.equal(build(repo.featureSha), "true");
+    assert.equal(repo.run().status, 0);
+    const prepared = repo.remoteHead();
+    assert.equal(build(prepared), "false");
+    repo.advanceMain();
+    assert.equal(build(prepared), "true");
+    assert.equal(build(repo.mainSha), "false");
+    repo.advanceMain("feature.txt", "conflicting\n");
+    assert.equal(build(repo.featureSha), "false");
   });
 
   it("pushes one preparation commit on current main and dispatches its exact verification", async () => {
@@ -105,13 +177,9 @@ describe("CLI release in pull request workflow", () => {
         "u",
       ),
     );
-    assert.match(
-      await readFile(repo.trace, "utf8"),
-      new RegExp(
-        `workflow run cli-release-matrix\\.yml --ref feature -f expected_sha=${prepared}$`,
-        "mu",
-      ),
-    );
+    // Code quality starts the matrix once it passes on the commit (ADR-0593), so preparation
+    // does not start it next to a run that may still fail.
+    assert.doesNotMatch(await readFile(repo.trace, "utf8"), /workflow run cli-release-matrix/u);
 
     await writeFile(repo.trace, "");
     const replay = repo.run({ PR_HEAD_SHA: prepared });
@@ -119,6 +187,56 @@ describe("CLI release in pull request workflow", () => {
     assert.match(await readFile(repo.output, "utf8"), /^disposition=current$/mu);
     assert.equal(repo.remoteHead(), prepared);
     assert.doesNotMatch(await readFile(repo.trace, "utf8"), /release:prepare --apply/u);
+    assert.doesNotMatch(await readFile(repo.trace, "utf8"), /workflow run cli-release-matrix/u);
+
+    // Once Code quality passed on the commit, no new run would start the matrix, so a repeated
+    // preparation starts it and dispatches no second Code quality run.
+    await writeFile(repo.trace, "");
+    const passed = repo.run({ PR_HEAD_SHA: prepared, FIXTURE_CQ_SUCCESS: prepared });
+    assert.equal(passed.status, 0, passed.stderr);
+    const trace = await readFile(repo.trace, "utf8");
+    assert.doesNotMatch(trace, /workflow run code-quality/u);
+    assert.match(
+      trace,
+      new RegExp(
+        `workflow run cli-release-matrix\\.yml --ref feature -f expected_sha=${prepared}$`,
+        "mu",
+      ),
+    );
+  });
+
+  it("prepares on Linux only with the verified native build restored first", async () => {
+    const missing = await fixture();
+    const refused = missing.run({ FIXTURE_UNAME: "Linux" });
+    assert.equal(refused.status, 1);
+    assert.match(refused.stderr, /release_native_build_unavailable/u);
+    assert.equal(missing.remoteHead(), missing.featureSha);
+    assert.doesNotMatch(await readFile(missing.trace, "utf8"), /release:prepare|workflow run/u);
+
+    const failing = await fixture();
+    const invalid = failing.run({
+      FIXTURE_UNAME: "Linux",
+      NATIVE_REUSE_DIRECTORY: "/tmp/native",
+      FIXTURE_RESTORE_STATUS: "1",
+    });
+    assert.equal(invalid.status, 1);
+    assert.match(invalid.stderr, /release_native_build_unavailable/u);
+    assert.equal(failing.remoteHead(), failing.featureSha);
+
+    const repo = await fixture();
+    const result = repo.run({ FIXTURE_UNAME: "Linux", NATIVE_REUSE_DIRECTORY: "/tmp/native" });
+    assert.equal(result.status, 0, result.stderr);
+    const trace = await readFile(repo.trace, "utf8");
+    assert.ok(
+      trace.indexOf("native restore /tmp/native") < trace.indexOf("pnpm release:prepare --json"),
+      trace,
+    );
+    assert.ok(trace.includes("native restore /tmp/native"), trace);
+    // A current preparation builds nothing, so Linux revalidates it without a native build.
+    const prepared = repo.remoteHead();
+    const current = repo.run({ PR_HEAD_SHA: prepared, FIXTURE_UNAME: "Linux" });
+    assert.equal(current.status, 0, current.stderr);
+    assert.match(await readFile(repo.output, "utf8"), /^disposition=current$/mu);
   });
 
   it("re-prepares on moved main by replacing only its own preparation commit", async () => {
@@ -184,6 +302,33 @@ describe("CLI release in pull request workflow", () => {
   });
 });
 
+/** Runs one workflow shell step and returns its status and GITHUB_OUTPUT values. */
+function runStep(script, { env = {}, cwd = tmpdir() } = {}) {
+  const output = resolve(
+    tmpdir(),
+    `lervo-step-${process.pid}-${Math.random().toString(16).slice(2)}`,
+  );
+  const result = spawnSync("bash", ["--noprofile", "--norc", "-eo", "pipefail", "-c", script], {
+    cwd,
+    encoding: "utf8",
+    env: { ...process.env, GITHUB_OUTPUT: output, ...env },
+  });
+  let written = "";
+  try {
+    written = readFileSync(output, "utf8");
+    rmSync(output, { force: true });
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  const outputs = Object.fromEntries(
+    written
+      .split("\n")
+      .filter(Boolean)
+      .map((line) => line.split("=")),
+  );
+  return { status: result.status, stderr: result.stderr, outputs };
+}
+
 async function fixture({ prState = "OPEN", legacyHead = false } = {}) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-release-pr-"));
   roots.push(root);
@@ -214,6 +359,15 @@ async function fixture({ prState = "OPEN", legacyHead = false } = {}) {
   ])
     await writeFile(resolve(work, path), "{}\n");
   await writeFile(resolve(work, "README.md"), "base\n");
+  // Records the Linux restore of the verified darwin build; its owner is tested elsewhere.
+  await mkdir(resolve(work, "scripts/distribution"), { recursive: true });
+  await writeFile(
+    resolve(work, "scripts/distribution/native-runtime-reuse.mjs"),
+    `import { appendFileSync } from "node:fs";
+appendFileSync(process.env.FIXTURE_TRACE, \`native \${process.argv.slice(2).join(" ")}\\n\`);
+process.exitCode = Number(process.env.FIXTURE_RESTORE_STATUS ?? 0);
+`,
+  );
   git("add", "-A");
   git("commit", "--quiet", "-m", "chore: base");
   git("push", "--quiet", "origin", "main");
@@ -247,11 +401,19 @@ case "$1 $2" in
     echo 'notes' >.changes/current-release.md ;;
 esac
 `,
+    // The preparation runs on the macOS runner unless a case names another system.
+    uname: `#!/bin/bash
+echo "\${FIXTURE_UNAME:-Darwin}"
+`,
     gh: `#!/bin/bash
 printf 'gh %s\\n' "$*" >>"$FIXTURE_TRACE"
 case "$1 $2" in
   'pr view') echo "$FIXTURE_PR_STATE $FIXTURE_REMOTE_HEAD" ;;
-  'api --method') echo 'total 0' ;;
+  'api --method')
+    case "$*" in
+      *code-quality.yml*) if [ -n "\${FIXTURE_CQ_SUCCESS:-}" ]; then printf 'total 1\\n%s feature\\n' "$FIXTURE_CQ_SUCCESS"; else echo 'total 0'; fi ;;
+      *) echo 'total 0' ;;
+    esac ;;
   'workflow run') ;;
   *) exit 2 ;;
 esac

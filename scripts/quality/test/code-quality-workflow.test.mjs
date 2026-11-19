@@ -464,3 +464,88 @@ it("shows a dispatched verification on its exact commit as a commit status", asy
     await rm(root, { recursive: true, force: true });
   }
 });
+
+it("starts the CLI release matrix only after verifying a release-preparation commit", async () => {
+  const workflow = parse(await readFile(workflowPath, "utf8"));
+  const job = workflow.jobs["release-matrix"];
+  assert.deepEqual(job.needs, ["verification"]);
+  assert.deepEqual(job.permissions, { contents: "read", actions: "write" });
+  // !cancelled() keeps a skipped transitive job, such as the restored macOS native build, from
+  // skipping it; a failed verification still does, through its result (ADR-0593).
+  assert.match(job.if, /^\$\{\{ !cancelled\(\) && /u);
+  assert.doesNotMatch(job.if, /always\(\)/u);
+  assert.match(job.if, /github\.event_name == 'workflow_dispatch'/u);
+  assert.match(job.if, /inputs\.expected_sha != ''/u);
+  assert.match(job.if, /needs\.verification\.result == 'success'/u);
+  const [checkout, step] = job.steps;
+  assert.equal(checkout.with.ref, "${{ inputs.expected_sha }}");
+  assert.equal(step.env.BRANCH, "${{ github.ref_name }}");
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-ci-release-matrix-"));
+  try {
+    const bin = resolve(root, "bin");
+    const trace = resolve(root, "trace.log");
+    await mkdir(bin);
+    await writeFile(
+      resolve(bin, "gh"),
+      `#!/bin/bash\nprintf '%s\\n' "$*" >>"${trace}"\ncase "$1" in api) echo 'total 0' ;; esac\n`,
+      { mode: 0o755 },
+    );
+    const git = (...args) => spawnSync("git", args, { cwd: root, encoding: "utf8" }).stdout.trim();
+    git("init", "--quiet");
+    await mkdir(resolve(root, "scripts/release/lib"), { recursive: true });
+    await writeFile(
+      resolve(root, "scripts/release/lib/release-preparation-commit.sh"),
+      await readFile(
+        resolve(repositoryRoot, "scripts/release/lib/release-preparation-commit.sh"),
+        "utf8",
+      ),
+    );
+    git("add", ".");
+    git("-c", "user.name=Author", "-c", "user.email=a@example.invalid", "commit", "-qm", "feat: x");
+    const run = async (env = {}) => {
+      await writeFile(trace, "");
+      const result = spawnSync("bash", ["-c", step.run], {
+        cwd: root,
+        encoding: "utf8",
+        env: {
+          ...process.env,
+          PATH: `${bin}:${process.env.PATH}`,
+          GITHUB_REPOSITORY: "owner/lervo",
+          BRANCH: "feature",
+          EXPECTED_SHA: git("rev-parse", "HEAD"),
+          ...env,
+        },
+      });
+      return { status: result.status, calls: await readFile(trace, "utf8") };
+    };
+    const ordinary = await run();
+    assert.equal(ordinary.status, 0);
+    assert.equal(ordinary.calls, "");
+    git(
+      "-c",
+      "user.name=lervo-release[bot]",
+      "-c",
+      "user.email=lervo-release[bot]@users.noreply.github.com",
+      "commit",
+      "-q",
+      "--allow-empty",
+      "-m",
+      "chore(cli): prepare release",
+    );
+    const prepared = git("rev-parse", "HEAD");
+    const started = await run();
+    assert.equal(started.status, 0);
+    assert.match(
+      started.calls,
+      new RegExp(
+        `^workflow run cli-release-matrix\\.yml --ref feature -f expected_sha=${prepared}$`,
+        "mu",
+      ),
+    );
+    const moved = await run({ EXPECTED_SHA: "d".repeat(40) });
+    assert.notEqual(moved.status, 0);
+    assert.doesNotMatch(moved.calls, /workflow run/u);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -10,9 +10,14 @@ on:
         description: Same-repository pull request number whose head receives the preparation commit
         type: string
         required: true
+      force_macos:
+        description: Compile the darwin native files on macOS even when a verified build could be restored
+        type: boolean
+        default: false
 
 permissions:
-  # Dispatches Code quality for the exact prepared commit.
+  # Dispatches Code quality for the exact prepared commit, and the route job downloads a verified
+  # native build.
   actions: write
   # Pushes the preparation commit to the same-repository head branch only.
   contents: write
@@ -27,15 +32,134 @@ env:
   PR_NUMBER: ${{ github.event.pull_request.number || inputs.pull_request }}
 
 jobs:
-  prepare:
-    name: Prepare release in pull request
+  route:
+    # Only a preparation that builds needs the darwin native files, so only it may need macOS, on the
+    # pinned image (ADR-0581). When a verified main build of the identical native inputs exists, the
+    # preparation restores those bytes and runs on Linux (ADR-0593). The inputs are those of the
+    # tree the preparation builds: the head without its own preparation commit, merged with current
+    # main exactly as reconcile-release-pull-request.sh merges it.
+    name: Choose the preparation runner
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.label.name == 'release' &&
        github.event.pull_request.head.repo.full_name == github.repository)
-    # Preparation commits the manifest of darwin native files built here, so it uses the image and
-    # Xcode that CI's native-runtime job uses (ADR-0581).
-    runs-on: macos-15
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      # Finds and downloads the reusable native build of an earlier Code quality run.
+      actions: read
+      pull-requests: read
+    outputs:
+      runner: ${{ steps.route.outputs.runner }}
+      nativeRun: ${{ steps.route.outputs.nativeRun }}
+      nativeArtifact: ${{ steps.find.outputs.artifact }}
+    steps:
+      - name: Resolve the same-repository pull request
+        id: target
+        shell: bash
+        run: |
+          [[ "${PR_NUMBER}" =~ ^[1-9][0-9]{0,8}$ ]] || { echo 'release_pull_request_invalid' >&2; exit 1; }
+          target="$(gh pr view "${PR_NUMBER}" --repo "${GITHUB_REPOSITORY}" \
+            --json state,baseRefName,headRefName,headRefOid,isCrossRepository \
+            --jq 'select(.state == "OPEN" and .baseRefName == "main" and .isCrossRepository == false and (.headRefName | IN("main", "lervo/release-cli") | not)) | "\(.headRefOid) \(.headRefName)"')"
+          [ -n "${target}" ] || { echo 'release_pull_request_ineligible' >&2; exit 1; }
+          echo "head_sha=${target%% *}" >>"${GITHUB_OUTPUT}"
+          echo "head_ref=${target#* }" >>"${GITHUB_OUTPUT}"
+      - name: Check out exact pull-request head
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ steps.target.outputs.head_sha }}
+          path: pr
+          fetch-depth: 0
+          persist-credentials: true
+      - name: Build the tree the preparation builds
+        id: tree
+        shell: bash
+        working-directory: pr
+        run: |
+          git fetch --no-tags origin '+refs/heads/main:refs/remotes/origin/main'
+          main_sha="$(git rev-parse refs/remotes/origin/main)"
+          prepared() {
+            [ "$(git log -1 --format=%an "$1")" = 'lervo-release[bot]' ] &&
+              [ "$(git log -1 --format=%s "$1")" = 'chore(cli): prepare release' ]
+          }
+          # A current preparation is only revalidated, and a merge conflict stops the preparation
+          # before it builds, so neither builds the darwin native files.
+          build=true
+          if prepared HEAD && git merge-base --is-ancestor "${main_sha}" HEAD^; then
+            build=false
+          else
+            if prepared HEAD; then git reset --quiet --hard HEAD^; fi
+            if ! git merge-base --is-ancestor "${main_sha}" HEAD; then
+              git -c user.name=route -c user.email=route@users.noreply.github.com \
+                merge --quiet --no-ff --no-edit "${main_sha}" || { git merge --abort || true; build=false; }
+            fi
+            if ! compgen -G '.changes/relint_*.yaml' > /dev/null; then build=false; fi
+          fi
+          echo "build=${build}" >>"${GITHUB_OUTPUT}"
+      - name: Set up Node
+        if: steps.tree.outputs.build == 'true'
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22.13.0
+          package-manager-cache: false
+      - name: Find a verified build of identical native inputs
+        id: find
+        if: steps.tree.outputs.build == 'true'
+        continue-on-error: true
+        working-directory: pr
+        run: node scripts/distribution/native-runtime-reuse.mjs find
+      - name: Download the verified native build
+        id: download
+        if: steps.find.outputs.run != ''
+        continue-on-error: true
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ steps.find.outputs.artifact }}
+          path: ${{ runner.temp }}/native-runtime-reuse
+          run-id: ${{ steps.find.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Validate the verified native build
+        id: verify
+        if: steps.download.outcome == 'success'
+        continue-on-error: true
+        working-directory: pr
+        run: node scripts/distribution/native-runtime-reuse.mjs verify "${{ runner.temp }}/native-runtime-reuse"
+      - name: Route by build need and reusable native build
+        id: route
+        shell: bash
+        env:
+          BUILD: ${{ steps.tree.outputs.build }}
+          VERIFIED: ${{ steps.verify.outcome }}
+          NATIVE_RUN: ${{ steps.find.outputs.run }}
+          FORCE_MACOS: ${{ inputs.force_macos }}
+        run: |
+          # An explicit dispatch can bypass a Linux preparation that is wrong for any reason.
+          if [ "${FORCE_MACOS}" = true ]; then
+            echo 'runner=macos-15' >>"${GITHUB_OUTPUT}"
+          elif [ "${BUILD}" != true ]; then
+            echo 'runner=ubuntu-latest' >>"${GITHUB_OUTPUT}"
+          elif [ "${VERIFIED}" = success ]; then
+            echo 'runner=ubuntu-latest' >>"${GITHUB_OUTPUT}"
+            echo "nativeRun=${NATIVE_RUN}" >>"${GITHUB_OUTPUT}"
+          else
+            echo 'runner=macos-15' >>"${GITHUB_OUTPUT}"
+          fi
+  prepare:
+    name: Prepare release in pull request
+    needs: route
+    # A route job that fails before deciding leaves no runner; the preparation then runs on the
+    # pinned macOS image, which can prepare with or without a reusable build.
+    if: >-
+      !cancelled() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.label.name == 'release' &&
+        github.event.pull_request.head.repo.full_name == github.repository))
+    # Preparation on macOS commits the manifest of darwin native files built here, so it uses the
+    # image and Xcode that CI's native-runtime job uses (ADR-0581). Linux ignores the variable and
+    # restores the verified build that the route job found instead (ADR-0593).
+    runs-on: ${{ needs.route.outputs.runner || 'macos-15' }}
     timeout-minutes: 30
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
@@ -79,11 +203,22 @@ jobs:
         working-directory: pr
         run: pnpm install --frozen-lockfile
       - name: Check the pinned darwin toolchain
+        if: runner.os == 'macOS'
         run: node tooling/scripts/distribution/check-darwin-toolchain.mjs
+      - name: Download the verified native build
+        if: needs.route.outputs.nativeRun != ''
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
+        with:
+          name: ${{ needs.route.outputs.nativeArtifact }}
+          path: ${{ runner.temp }}/native-runtime-reuse
+          run-id: ${{ needs.route.outputs.nativeRun }}
+          github-token: ${{ github.token }}
       - name: Prepare the release on the pull-request head
         id: prepare
         shell: bash
         env:
           PR_HEAD_REF: ${{ steps.target.outputs.head_ref }}
           PR_HEAD_SHA: ${{ steps.target.outputs.head_sha }}
+          # Linux restores this verified build after merging main and before preparing (ADR-0593).
+          NATIVE_REUSE_DIRECTORY: ${{ needs.route.outputs.nativeRun != '' && format('{0}/native-runtime-reuse', runner.temp) || '' }}
         run: node tooling/scripts/release/commands/reconcile-release-workflow.mjs pull-request "${GITHUB_WORKSPACE}/pr"

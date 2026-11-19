@@ -84,12 +84,19 @@ it("builds every recorded darwin native file with the pinned image and Xcode", a
   }
   for (const job of [codeQuality.jobs["native-runtime"], matrix.jobs["native-runtime"]])
     expect(job["runs-on"]).toBe(darwinToolchainPin.runner);
-  expect(pullRequest.jobs.prepare["runs-on"]).toBe(darwinToolchainPin.runner);
-  // A tag-only reconcile runs on Linux, where neither the variable nor the check applies.
-  const preparationCheck = preparation.jobs.reconcile.steps.find((step) =>
-    step.run?.endsWith("check-darwin-toolchain.mjs"),
-  );
-  expect(preparationCheck.if).toContain("runner.os == 'macOS'");
+  // Both preparations build on the pinned image unless their route job found nothing to build or a
+  // verified build to restore (ADR-0590, ADR-0593).
+  for (const job of [pullRequest.jobs.prepare, preparation.jobs.reconcile]) {
+    expect(job["runs-on"]).toBe(
+      `\${{ needs.route.outputs.runner || '${darwinToolchainPin.runner}' }}`,
+    );
+    // On Linux neither the variable nor the check applies.
+    const check = job.steps.find((step) => step.run?.endsWith("check-darwin-toolchain.mjs"));
+    expect(check.if).toContain("runner.os == 'macOS'");
+  }
+  const pullRequestRoute = pullRequest.jobs.route.steps.at(-1).run;
+  expect(pullRequestRoute).toContain(`runner=${darwinToolchainPin.runner}`);
+  expect(pullRequestRoute).toContain("runner=ubuntu-latest");
   // No job follows macos-latest, whose image and default Xcode change without a commit.
   const labels = [];
   const collect = (value) => {

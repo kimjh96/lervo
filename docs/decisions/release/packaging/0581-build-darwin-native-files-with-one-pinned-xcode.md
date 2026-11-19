@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-17
-Amended by: [ADR-0590](0590-reuse-verified-darwin-native-builds-for-identical-inputs.md) (Code quality and the fallback preparation restore a verified build of identical native inputs instead of compiling)
+Amended by: [ADR-0590](0590-reuse-verified-darwin-native-builds-for-identical-inputs.md) (Code quality and the fallback preparation restore a verified build of identical native inputs instead of compiling), [ADR-0593](0593-start-the-release-matrix-after-verification-and-prepare-on-linux.md) (the pull-request preparation does too)
 Amends: [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (preparation runs on `macos-15` with Xcode 26.3 instead of `macos-latest`), [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the macOS jobs of the release matrix run on `macos-15`, and reuse requires `Packed CLI (macos-15)`), [ADR-0572](0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (the committed native digests now name one toolchain)
 Related: [ADR-0086](0086-canonical-cli-release-artifact-manifest.md) (the manifest records each packaged file's digest)
 

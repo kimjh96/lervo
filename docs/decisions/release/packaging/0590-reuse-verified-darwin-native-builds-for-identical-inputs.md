@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-18
 Amends: [ADR-0581](0581-build-darwin-native-files-with-one-pinned-xcode.md) (Code quality compiles the darwin files only when no verified build of identical inputs can be restored, and fallback preparation with pending intent runs on Linux when one can), [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (the fallback preparation no longer always needs macOS), [ADR-0522](../../operations/services/0522-reuse-ci-verification-for-identical-content.md) (one more reusable component, keyed by build inputs instead of the tree)
+Amended by: [ADR-0593](0593-start-the-release-matrix-after-verification-and-prepare-on-linux.md) (pull-request preparation routes too)
 Related: [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the release matrix keeps compiling), [ADR-0572](0572-commit-cli-release-metadata-only-when-a-release-is-prepared.md) (exact metadata checks)
 
 ## Context
