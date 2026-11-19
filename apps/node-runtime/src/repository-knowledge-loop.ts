@@ -1,4 +1,5 @@
 import {
+  applyStoredInstructionCandidates,
   startAutonomousKnowledgeWorker,
   createChangeReviewHost,
   admittedBackgroundContext,
@@ -67,6 +68,12 @@ export function startRepositoryKnowledgeLoop(input: {
       ownership: createKnowledgeConvergenceOwnership(input.storage!, input.provider),
       continuity: createKnowledgeConvergenceContinuity(input.storage!, input.hub ?? null),
       instructionCandidateTransport,
+      // ADR-0594: the owner applies stored owner rules here exactly as the CLI host does.
+      applyOwnerStatedInstructions: () =>
+        applyStoredInstructionCandidates({
+          repositoryRoot: input.repositoryRoot,
+          now: () => new Date(),
+        }),
       publish: createKnowledgePublisher(input.repositoryRoot),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
       subscribe: (notify) => watchLocalEventChanges(input.store, notify),

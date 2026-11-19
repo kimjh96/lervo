@@ -2,6 +2,7 @@ import { isAbsolute } from "node:path";
 
 import { openProjectStorage } from "@lervo/project-storage";
 import {
+  applyStoredInstructionCandidates,
   knowledgeResidentHoldReason,
   startAutonomousKnowledgeWorker,
 } from "@lervo/repository-knowledge-runtime";
@@ -101,6 +102,9 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
         decodeKnowledgeHubCoordinates(process.env[KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT]),
       ),
       instructionCandidateTransport,
+      // ADR-0594: the owner applies stored owner rules here exactly as the CLI host does.
+      applyOwnerStatedInstructions: () =>
+        applyStoredInstructionCandidates({ repositoryRoot: parsed.root, now: () => new Date() }),
       publish: createKnowledgePublisher(parsed.root),
       ...(parsed.executable === undefined ? {} : { executable: parsed.executable }),
       signal: controller.signal,
