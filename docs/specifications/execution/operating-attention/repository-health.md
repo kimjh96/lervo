@@ -39,8 +39,10 @@ unknown. Missing, unreadable, invalid, stale and changed-revision projections
 have explicit reasons. An old file is never healthy by default. Terminal turns
 accept a changed-revision projection inside the 20-minute window and label its
 age `before the latest repository change`; operating attention keeps the exact
-revision. The resident refreshes the projection every five minutes and after each
-cycle, one refresh at a time ([ADR-0555](../../../decisions/execution/applications/0555-keep-operating-signals-visible-and-honest.md)).
+revision. The resident offers a refresh after each observation and checks every
+minute, one refresh at a time ([ADR-0555](../../../decisions/execution/applications/0555-keep-operating-signals-visible-and-honest.md)).
+It refreshes only when the projection's inputs changed, or after 15 unchanged
+minutes, and a held repository refreshes once until its release ([ADR-0595](../../../decisions/knowledge/maintenance/0595-back-off-held-and-failing-residents-and-refresh-health-only-on-change.md)).
 
 A singleton private `.lervo/state/repository-health-generation.sqlite` counter
 is claimed before source reads. Publication rechecks this generation and renames

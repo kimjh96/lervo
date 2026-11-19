@@ -10,7 +10,9 @@ import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 import {
   RESIDENT_RECONCILE_BASE_MILLISECONDS as BASE,
   RESIDENT_RECONCILE_CEILING_MILLISECONDS as CEILING,
+  RESIDENT_FORCED_FULL_CYCLE_MILLISECONDS as FORCED,
   nextIdleStreak,
+  residentCadence,
   residentReconcileDelay,
   runResidentCycle,
 } from "../src/resident-cycle.js";
@@ -63,13 +65,14 @@ async function cycle(input: {
   fails?: boolean;
   error?: unknown;
   now?: number;
+  ceilingMilliseconds?: number;
 }) {
   let full = 0;
   const outcome = await runResidentCycle({
     repositoryRoot: "/work/repo",
     previous: input.previous,
     now: () => input.now ?? NOW,
-    ceilingMilliseconds: CEILING,
+    ceilingMilliseconds: input.ceilingMilliseconds ?? CEILING,
     observe: () => {
       if (input.observeFails) throw new Error("git unavailable");
       return {
@@ -322,6 +325,92 @@ describe("change fence", () => {
   });
 });
 
+describe("held repositories, forced full cycles and failure backoff (ADR-0595)", () => {
+  const HELD = { status: "busy", reason: "repository_owner_hold" };
+  const delay = (idleStreak: number) =>
+    residentReconcileDelay({
+      idleStreak,
+      now: NOW,
+      earliestAvailableAt: null,
+      baseMilliseconds: BASE,
+      ceilingMilliseconds: CEILING,
+    });
+
+  it("classifies a held repository as held, skips it unchanged, and backs it off", async () => {
+    const held = await cycle({ previous: null, result: HELD });
+    expect(held.state).toMatchObject({
+      lastResult: "held",
+      idleStreak: 1,
+      fingerprint: FINGERPRINT,
+    });
+    let state = { ...held.state, nextReconcileAt: null };
+    const delays = [delay(state.idleStreak)];
+    for (let index = 1; index < 4; index++) {
+      const next = await cycle({ previous: state, now: NOW + index * 1_000 });
+      expect(next).toMatchObject({ outcome: { kind: "skipped" }, full: 0 });
+      state = { ...next.state, nextReconcileAt: null };
+      delays.push(delay(state.idleStreak));
+    }
+    expect(state.lastResult).toBe("held");
+    expect(delays).toEqual([60_000, 120_000, 240_000, 480_000]);
+    // A busy cycle that is not a hold, such as one that yielded to an upgrade, is still work.
+    expect(
+      await cycle({
+        previous: null,
+        result: { status: "busy", reason: "knowledge_cycle_yielded_to_upgrade" },
+      }),
+    ).toMatchObject({ state: { lastResult: "processed", idleStreak: 0 } });
+  });
+
+  it("runs the held repository in full once the hold changes its fingerprint", async () => {
+    const held = previous({ lastResult: "held", idleStreak: 6 });
+    const released = await cycle({ previous: held, fingerprint: OTHER });
+    expect(released).toMatchObject({
+      full: 1,
+      outcome: { kind: "completed" },
+      state: { lastResult: "idle", fingerprint: OTHER },
+    });
+  });
+
+  it("skips an unchanged fingerprint for an hour, then forces one full cycle", async () => {
+    const at = (elapsed: number) =>
+      cycle({
+        previous: previous({ lastCycleAt: new Date(NOW - elapsed).toISOString() }),
+        ceilingMilliseconds: FORCED,
+      });
+    expect(FORCED).toBe(60 * 60_000);
+    expect(await at(CEILING)).toMatchObject({ full: 0, outcome: { kind: "skipped" } });
+    expect(await at(FORCED - 1)).toMatchObject({ full: 0, outcome: { kind: "skipped" } });
+    expect(await at(FORCED)).toMatchObject({ full: 1, outcome: { kind: "completed" } });
+  });
+
+  it("never lets the forced full cycle fall below the reconcile ceiling", () => {
+    expect(residentCadence({})).toEqual({ base: BASE, ceiling: CEILING, forcedFullCycle: FORCED });
+    expect(() =>
+      residentCadence({ reconcileCeilingMilliseconds: 5_000, forcedFullCycleMilliseconds: 4_999 }),
+    ).toThrow("Invalid forced full-cycle interval.");
+    expect(
+      residentCadence({ reconcileCeilingMilliseconds: 5_000, forcedFullCycleMilliseconds: 5_000 }),
+    ).toMatchObject({ ceiling: 5_000, forcedFullCycle: 5_000 });
+  });
+
+  it("backs repeated failures off without ever skipping them", async () => {
+    let state: ResidentCycleState | null = null;
+    const delays: number[] = [];
+    for (let index = 0; index < 3; index++) {
+      const failed = await cycle({ previous: state, fails: true });
+      // A failure records no fingerprint, so the next observation always runs in full.
+      expect(failed).toMatchObject({ full: 1, state: { lastResult: "failed", fingerprint: null } });
+      state = { ...failed.state, nextReconcileAt: null };
+      delays.push(delay(state.idleStreak));
+    }
+    expect(delays).toEqual([60_000, 120_000, 240_000]);
+    expect(
+      await cycle({ previous: { ...state!, fingerprint: FINGERPRINT }, fails: true }),
+    ).toMatchObject({ full: 1 });
+  });
+});
+
 describe("resident cycle state", () => {
   const directories: string[] = [];
   afterEach(async () => {
@@ -367,6 +456,9 @@ describe("resident cycle state", () => {
     await writeResidentCycleState(root, state);
     expect(await readResidentCycleState(root)).toEqual(state);
     expect((await stat(resolve(root, RESIDENT_CYCLE_STATE_PATH))).mode & 0o777).toBe(0o600);
+    const held = previous({ lastResult: "held", idleStreak: 3 });
+    await writeResidentCycleState(root, held);
+    expect(await readResidentCycleState(root)).toEqual(held);
     for (const invalid of [
       "not json",
       JSON.stringify({ ...state, schemaVersion: 2 }),

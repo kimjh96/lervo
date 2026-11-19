@@ -1,10 +1,12 @@
 import { execFile } from "node:child_process";
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { afterEach, expect, it } from "vitest";
 import { REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION } from "@lervo/repository-knowledge";
+import { holdRepository, releaseRepositoryHold } from "@lervo/repository-registry";
 
 import { convergenceSourceFingerprint } from "../src/source-fingerprint.js";
 import { writeResidentCycleState } from "../src/resident-cycle-state.js";
@@ -156,4 +158,23 @@ it("fails instead of observing a repository without a head", async () => {
   expect(() =>
     convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events }),
   ).toThrow();
+});
+
+it("changes when the owner holds or releases a repository (ADR-0595)", async () => {
+  const previous = process.env.LERVO_USER_STATE_DIRECTORY;
+  const state = await mkdtemp(resolve(tmpdir(), "lervo-fence-hold-state-"));
+  process.env.LERVO_USER_STATE_DIRECTORY = state;
+  try {
+    const f = await fixture();
+    fixtures.push(f);
+    const fence = await observer(f);
+    // A held resident backs off and skips; only this change lets a release run it in full.
+    await fence.changed("hold", () => holdRepository({ repositoryRoot: f.root, reason: null }));
+    fence.unchanged("held tree");
+    await fence.changed("release", () => releaseRepositoryHold({ repositoryRoot: f.root }));
+  } finally {
+    if (previous === undefined) delete process.env.LERVO_USER_STATE_DIRECTORY;
+    else process.env.LERVO_USER_STATE_DIRECTORY = previous;
+    await rm(state, { recursive: true, force: true });
+  }
 });

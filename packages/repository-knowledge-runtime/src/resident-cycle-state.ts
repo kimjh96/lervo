@@ -6,7 +6,9 @@ import { RESIDENT_FAILURE_CODE } from "./resident-cycle-failure.js";
 
 export const RESIDENT_CYCLE_STATE_PATH = ".lervo/state/knowledge/resident-cycle.json";
 
-export type ResidentCycleResult = "idle" | "waiting" | "attention" | "processed" | "failed";
+/** `held`: the owner holds the repository (ADR-0561), so the cycle applied nothing and backs off. */
+export type ResidentCycleResult =
+  "idle" | "waiting" | "attention" | "held" | "processed" | "failed";
 
 export interface ResidentCycleFailure {
   code: string;
@@ -25,7 +27,7 @@ export interface ResidentCycleState {
   lastFailure?: ResidentCycleFailure | null;
 }
 
-const RESULTS = new Set<string>(["idle", "waiting", "attention", "processed", "failed"]);
+const RESULTS = new Set<string>(["idle", "waiting", "attention", "held", "processed", "failed"]);
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
 function timestamp(value: unknown): value is string | null {

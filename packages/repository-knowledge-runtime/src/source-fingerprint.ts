@@ -3,6 +3,7 @@ import { lstatSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { canonicalJson, recordSynchronousGitProcess, sha256 } from "@lervo/repository-knowledge";
+import { defaultRepositoryHoldPath } from "@lervo/repository-registry";
 import type { OutboxStore } from "@lervo/storage-contract";
 
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
@@ -183,6 +184,9 @@ export function convergenceSourceFingerprint(input: {
           resolve(input.repositoryRoot, KNOWLEDGE_STATE, "practice", "state.json"),
         ),
         practiceAssessmentWindow: Math.floor(Date.now() / (30 * 60_000)),
+        // ADR-0595: the host hold store lives outside the repository, so a hold or its release
+        // changes the fence explicitly and wakes a backed-off held resident.
+        repositoryHolds: metadata(defaultRepositoryHoldPath()),
         terminalSkillsDay: new Date().toISOString().slice(0, 10),
       }),
     ),

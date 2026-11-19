@@ -8,6 +8,7 @@ import { readRepositoryHold } from "@lervo/repository-registry";
 import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { coalescedRefresh } from "./resident-projection-refresh.js";
+import { residentCycleHealth } from "./resident-cycle-health.js";
 import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
 import { convergenceSourceFingerprint } from "./source-fingerprint.js";
@@ -16,12 +17,12 @@ import {
   writeResidentCycleState,
   type ResidentCycleState,
 } from "./resident-cycle-state.js";
+import { residentCadence, residentReconcileDelay, runResidentCycle } from "./resident-cycle.js";
 import {
-  RESIDENT_RECONCILE_BASE_MILLISECONDS,
-  RESIDENT_RECONCILE_CEILING_MILLISECONDS,
-  residentReconcileDelay,
-  runResidentCycle,
-} from "./resident-cycle.js";
+  RESIDENT_PROJECTION_CHECK_MILLISECONDS,
+  RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS,
+  residentProjectionRefresher,
+} from "./resident-projection-fence.js";
 import type { ConvergenceOwnership } from "./convergence-owner.js";
 import type { ConvergenceContinuity } from "./convergence-continuity.js";
 import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
@@ -29,7 +30,6 @@ import type { KnowledgePublicationOutcome } from "./knowledge-publication.js";
 import type { KnowledgePublicationRepairEvents } from "./knowledge-publication-repair.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
-  nonOwnerHealth,
   ownershipFingerprint,
   evaluationFingerprint,
   RESIDENT_OWNER_HEARTBEAT_MILLISECONDS,
@@ -43,22 +43,13 @@ type WorkerResult = Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
  * host-wide full-cycle admission cannot starve it. Reconciliation is rate-limited internally.
  */
 export const RESIDENT_CONTINUITY_TICK_MILLISECONDS = 60_000;
-/** Under the 20-minute display window of the health projection (ADR-0535). */
-export const RESIDENT_HEALTH_REFRESH_MILLISECONDS = 5 * 60_000;
-
-function healthOf(result: WorkerResult): KnowledgeResidentState {
-  if (result.status === "busy") return "busy";
-  if (result.status === "waiting_owner") return nonOwnerHealth(result.owner).state;
-  switch (result.convergence.state) {
-    case "waiting_authority":
-      return "waiting";
-    case "attention_required":
-    case "recovery_required":
-      return "attention";
-    default:
-      return "idle";
-  }
-}
+/** ADR-0595: a held resident backs off, so it checks this often whether the owner released it. */
+export const RESIDENT_HOLD_RELEASE_CHECK_MILLISECONDS = 60_000;
+/**
+ * ADR-0595: how often the resident checks whether the health projection's inputs changed. A
+ * refresh runs only on a change, or after `RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS` unchanged.
+ */
+export const RESIDENT_HEALTH_REFRESH_MILLISECONDS = RESIDENT_PROJECTION_CHECK_MILLISECONDS;
 
 /**
  * The standalone host needs no Hub. Startup, event and repository wakeups, and an adaptive
@@ -75,11 +66,16 @@ export function startAutonomousKnowledgeWorker(input: {
   /** `cost` covers the fence observation and the full cycle, attributed by scope. */
   onCycle?: (result: WorkerResult, cost: ProcessCostMeasurement) => void;
   /**
-   * Read-only projections run after every observation, including skipped and failed cycles, and
-   * on their own cadence so a long cycle never leaves the projection older than its display window.
+   * Read-only projections, offered after every observation (including skipped and failed cycles)
+   * and on their own check cadence, so a long cycle never leaves the projection older than its
+   * display window. ADR-0595: an offer refreshes only when the projection's inputs changed, or
+   * after the maximum age while nothing changed; a held repository has no age refresh.
    */
   refreshHealth?: () => Promise<void>;
   healthRefreshMilliseconds?: number;
+  projectionMaximumAgeMilliseconds?: number;
+  /** ADR-0595: the longest an unchanged fingerprint may skip the full cycle. */
+  forcedFullCycleMilliseconds?: number;
   onFailure: (error: unknown) => void;
   intervalMilliseconds?: number;
   reconcileCeilingMilliseconds?: number;
@@ -100,17 +96,9 @@ export function startAutonomousKnowledgeWorker(input: {
   /** ADR-0469 delegation and host continuity; it runs before each ownership observation. */
   continuity?: ConvergenceContinuity;
   continuityTickMilliseconds?: number;
+  holdReleaseCheckMilliseconds?: number;
 }): () => Promise<void> {
-  const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
-  if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
-    throw new Error("Invalid convergence interval.");
-  const ceiling = input.reconcileCeilingMilliseconds ?? RESIDENT_RECONCILE_CEILING_MILLISECONDS;
-  if (
-    !Number.isSafeInteger(ceiling) ||
-    ceiling < base ||
-    ceiling > RESIDENT_RECONCILE_CEILING_MILLISECONDS
-  )
-    throw new Error("Invalid convergence reconciliation ceiling.");
+  const { base, ceiling, forcedFullCycle } = residentCadence(input);
   const root = input.storage.paths.repositoryRoot;
   const controller = new AbortController();
   const signal =
@@ -125,6 +113,7 @@ export function startAutonomousKnowledgeWorker(input: {
   let debounce: ReturnType<typeof setTimeout> | null = null;
   let reconcile: ReturnType<typeof setTimeout> | null = null;
   let previous: ResidentCycleState | null | undefined;
+  let failureStreak = 0;
   let healthState: KnowledgeResidentState = "idle";
   let healthReason: string | null = null;
   let healthWrite = Promise.resolve();
@@ -206,7 +195,18 @@ export function startAutonomousKnowledgeWorker(input: {
   };
   // One refresh at a time; the cycle's own refresh and this cadence share the same single flight.
   const projection = coalescedRefresh(input.refreshHealth, signal, input.onFailure);
-  const refreshProjection = projection.refresh;
+  let held = false;
+  const refreshProjection = residentProjectionRefresher({
+    repositoryRoot: root,
+    events: input.storage.events,
+    enabled: input.refreshHealth !== undefined,
+    signal,
+    refresh: projection.refresh,
+    residentState: () => `${healthState}\0${healthReason ?? ""}`,
+    held: () => held,
+    maximumAgeMilliseconds:
+      input.projectionMaximumAgeMilliseconds ?? RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS,
+  });
   const runOnce = async () => {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
@@ -220,7 +220,7 @@ export function startAutonomousKnowledgeWorker(input: {
         repositoryRoot: root,
         previous: observedPrevious,
         now: Date.now,
-        ceilingMilliseconds: ceiling,
+        ceilingMilliseconds: forcedFullCycle,
         observe: () =>
           withProcessCostScope("fingerprint", () =>
             evaluationFingerprint(
@@ -237,34 +237,12 @@ export function startAutonomousKnowledgeWorker(input: {
         runFull,
       }),
     );
-    if (cycle.outcome.kind === "skipped") {
-      const state =
-        cycle.state.lastResult === "waiting"
-          ? "waiting"
-          : cycle.state.lastResult === "attention"
-            ? "attention"
-            : "idle";
-      report(
-        state,
-        state !== "idle" && healthState === state && healthReason !== null
-          ? healthReason
-          : "source_unchanged",
-      );
-    } else if (cycle.outcome.kind === "completed") {
-      const { result } = cycle.outcome;
-      report(
-        healthOf(result),
-        result.status === "processed"
-          ? result.convergence.reason
-          : result.status === "waiting_owner"
-            ? nonOwnerHealth(result.owner).reason
-            : (result.reason ?? null),
-      );
-      input.onCycle?.(result, cost);
-    } else {
-      report("attention", "knowledge_resident_cycle_failed");
-      if (!signal.aborted) input.onFailure(cycle.outcome.error);
-    }
+    held = cycle.state.lastResult === "held";
+    const health = residentCycleHealth(cycle, { state: healthState, reason: healthReason });
+    report(health.state, health.reason);
+    if (cycle.outcome.kind === "completed") input.onCycle?.(cycle.outcome.result, cost);
+    else if (cycle.outcome.kind === "failed" && !signal.aborted)
+      input.onFailure(cycle.outcome.error);
     // Publication follows the cycle so commits made by it go out at once; only an owner publishes.
     const publication =
       input.publish !== undefined &&
@@ -309,10 +287,21 @@ export function startAutonomousKnowledgeWorker(input: {
     running = runOnce()
       .then((next) => {
         delay = next;
+        failureStreak = 0;
       })
       .catch(async (error) => {
         if (!signal.aborted) input.onFailure(error);
         report("attention", "knowledge_resident_cycle_failed");
+        // ADR-0595: a cycle that keeps failing backs off like an idle one instead of retrying at
+        // the base cadence; a wakeup or a successful cycle resets the streak.
+        failureStreak = Math.min(failureStreak + 1, 64);
+        delay = residentReconcileDelay({
+          idleStreak: failureStreak,
+          now: Date.now(),
+          earliestAvailableAt: null,
+          baseMilliseconds: base,
+          ceilingMilliseconds: ceiling,
+        });
         await healthWrite;
         await refreshProjection();
       })
@@ -329,6 +318,7 @@ export function startAutonomousKnowledgeWorker(input: {
   const schedule = () => {
     const now = Date.now();
     woken = true;
+    failureStreak = 0;
     firstWake ??= now;
     lastWake = now;
     if (debounce !== null) clearTimeout(debounce);
@@ -351,7 +341,8 @@ export function startAutonomousKnowledgeWorker(input: {
     input.refreshHealth === undefined
       ? null
       : setInterval(
-          () => void refreshProjection(),
+          // During a cycle only the age bound applies; the cycle's own offer follows its changes.
+          () => void refreshProjection({ ageOnly: running !== null }),
           input.healthRefreshMilliseconds ?? RESIDENT_HEALTH_REFRESH_MILLISECONDS,
         );
   const ownerHeartbeat =
@@ -368,6 +359,16 @@ export function startAutonomousKnowledgeWorker(input: {
           () => void reconcileContinuity(),
           input.continuityTickMilliseconds ?? RESIDENT_CONTINUITY_TICK_MILLISECONDS,
         );
+  // A release wakes the resident like an event, so it never waits out its held backoff.
+  const holdReleaseTimer = setInterval(() => {
+    if (held && running === null)
+      repositoryHeld().then((still) => {
+        if (!still && held && !signal.aborted) {
+          held = false;
+          schedule();
+        }
+      }, input.onFailure);
+  }, input.holdReleaseCheckMilliseconds ?? RESIDENT_HOLD_RELEASE_CHECK_MILLISECONDS);
   cycle();
   return async () => {
     controller.abort();
@@ -375,6 +376,7 @@ export function startAutonomousKnowledgeWorker(input: {
     clearInterval(healthTimer);
     if (projectionTimer !== null) clearInterval(projectionTimer);
     if (continuityTimer !== null) clearInterval(continuityTimer);
+    clearInterval(holdReleaseTimer);
     if (ownerHeartbeat !== null) clearInterval(ownerHeartbeat);
     if (debounce !== null) clearTimeout(debounce);
     unsubscribe?.();

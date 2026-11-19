@@ -5,7 +5,13 @@ import { residentCycleFailure } from "./resident-cycle-failure.js";
 
 export const RESIDENT_RECONCILE_BASE_MILLISECONDS = 60_000;
 export const RESIDENT_RECONCILE_CEILING_MILLISECONDS = 900_000;
-const SKIPPABLE = new Set<ResidentCycleResult>(["idle", "waiting", "attention"]);
+/**
+ * ADR-0595: an unchanged fingerprint skips the full cycle for up to an hour. Every time-based input
+ * (practice window, skill day, earliest due delivery) is already in the fingerprint, so this is
+ * only a backstop; observation still follows the 15-minute reconcile ceiling.
+ */
+export const RESIDENT_FORCED_FULL_CYCLE_MILLISECONDS = 3_600_000;
+const SKIPPABLE = new Set<ResidentCycleResult>(["idle", "waiting", "attention", "held"]);
 const MINIMUM_DUE_DELAY_MILLISECONDS = 1_000;
 
 type WorkerResult = Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
@@ -39,7 +45,11 @@ export function classifyResidentCycle(result: WorkerResult, now: number): Reside
     return ["waiting_owner", "ineligible", "yielding"].includes(result.owner.role)
       ? "waiting"
       : "attention";
-  if (result.status === "busy" || result.outcomes.length > 0) return "processed";
+  // ADR-0595: a held repository did nothing, so it backs off like an idle one instead of
+  // spinning at the base cadence; the hold is in the fingerprint, so a release wakes it.
+  if (result.status === "busy")
+    return result.reason === "repository_owner_hold" ? "held" : "processed";
+  if (result.outcomes.length > 0) return "processed";
   if (
     result.freshness?.status === "completed" &&
     (result.freshness.candidateCount > 0 || result.freshness.verifiedCount > 0)
@@ -122,7 +132,36 @@ export function residentReconcileDelay(input: {
   return delay;
 }
 
-/** Idle, skipped and failed cycles back off; work, busy owners and wakeups reset the streak. */
+/**
+ * The validated reconcile cadence. The base and ceiling bound the backoff; the forced full cycle
+ * bounds how long an unchanged fingerprint may skip and is never shorter than the ceiling.
+ */
+export function residentCadence(input: {
+  intervalMilliseconds?: number;
+  reconcileCeilingMilliseconds?: number;
+  forcedFullCycleMilliseconds?: number;
+}): { base: number; ceiling: number; forcedFullCycle: number } {
+  const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
+  if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
+    throw new Error("Invalid convergence interval.");
+  const ceiling = input.reconcileCeilingMilliseconds ?? RESIDENT_RECONCILE_CEILING_MILLISECONDS;
+  if (
+    !Number.isSafeInteger(ceiling) ||
+    ceiling < base ||
+    ceiling > RESIDENT_RECONCILE_CEILING_MILLISECONDS
+  )
+    throw new Error("Invalid convergence reconciliation ceiling.");
+  const forcedFullCycle =
+    input.forcedFullCycleMilliseconds ?? RESIDENT_FORCED_FULL_CYCLE_MILLISECONDS;
+  if (!Number.isSafeInteger(forcedFullCycle) || forcedFullCycle < ceiling)
+    throw new Error("Invalid forced full-cycle interval.");
+  return { base, ceiling, forcedFullCycle };
+}
+
+/**
+ * Idle, held, skipped and failed cycles back off (ADR-0595 adds held); work, a busy cycle that is
+ * not a hold, and wakeups reset the streak.
+ */
 export function nextIdleStreak(streak: number, outcome: ResidentCycleResult | "skipped"): number {
   return outcome === "processed" ? 0 : Math.min(streak + 1, 64);
 }
