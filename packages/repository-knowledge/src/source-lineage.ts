@@ -9,7 +9,9 @@ import { canonicalJson, sha256, stableId } from "./integrity.js";
 import { RepositoryKnowledgeError } from "./types.js";
 
 const LINEAGE_DIRECTORY = ".lervo/knowledge/source-lineage";
-const MAX_LINEAGES = 256;
+// Lineage records are never deleted, and one layout migration writes one per moved document, so
+// the bound matches the knowledge source inventory (20,000) instead of a few hundred.
+const MAX_LINEAGES = 20_000;
 const MAX_LINEAGE_BYTES = 64 * 1024;
 const HASH = /^sha256:[a-f0-9]{64}$/;
 
