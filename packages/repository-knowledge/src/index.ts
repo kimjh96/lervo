@@ -258,6 +258,7 @@ export {
   type RelationWebRefresh,
 } from "./relation-web-refresh.js";
 export * from "./document-lifecycle-model.js";
+export * from "./normalization-protected-paths.js";
 export {
   readRecordedDocumentLifecycleSummary,
   recordDocumentLifecycle,

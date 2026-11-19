@@ -16,6 +16,56 @@ function result(issues: KnowledgeLintResult["issues"]): KnowledgeLintResult {
 }
 
 describe("knowledge stage lint", () => {
+  it("rejects a Markdown link a content rewrite breaks, and keeps one that was already broken", () => {
+    const link = (target: string, path = "docs/roadmap/plan.md") => ({
+      code: "markdown_link_target_missing",
+      severity: "warning" as const,
+      path,
+      target,
+      message: `Line 3 links to ${target}, which does not exist.`,
+    });
+    const existing = link("docs/old/gone.md");
+    const input = {
+      stage: "background normalization",
+      before: result([existing]),
+      ownedErrorCodes: new Set<string>(),
+      rejectNewBrokenLinksIn: new Set(["docs/roadmap/plan.md"]),
+    };
+    expect(validateKnowledgeStage({ ...input, after: result([existing]) }).valid).toBe(true);
+    const broken = link("docs/decisions/typed-context/0292-moved.md");
+    expect(() => validateKnowledgeStage({ ...input, after: result([existing, broken]) })).toThrow(
+      expect.objectContaining({
+        code: "knowledge_lint_failed",
+        links: [{ path: "docs/roadmap/plan.md", target: broken.target }],
+      }),
+    );
+    // A document the stage did not write keeps warning-only behavior.
+    const elsewhere = link("docs/missing.md", "docs/other.md");
+    expect(validateKnowledgeStage({ ...input, after: result([existing, elsewhere]) }).valid).toBe(
+      true,
+    );
+    // A truncated link report could hide an old broken link, so the check stands down.
+    const truncated = {
+      code: "document_reference_findings_truncated",
+      severity: "warning" as const,
+      path: ".",
+      reasons: ["markdown_link_target_missing"],
+      message: "1 additional markdown_link_target_missing findings were omitted.",
+    };
+    expect(
+      validateKnowledgeStage({ ...input, after: result([existing, broken, truncated]) }).valid,
+    ).toBe(true);
+    // Stages that move documents pass no written set and keep the old rule.
+    expect(
+      validateKnowledgeStage({
+        stage: input.stage,
+        before: input.before,
+        ownedErrorCodes: input.ownedErrorCodes,
+        after: result([existing, broken]),
+      }).valid,
+    ).toBe(true);
+  });
+
   it("retains an unrelated pre-existing issue without hiding it", () => {
     const issue = {
       code: "publication_missing",

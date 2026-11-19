@@ -53,6 +53,7 @@ import {
   type RepositorySource,
   type RepositorySourceUnit,
 } from "./types.js";
+import { normalizationMayRewrite } from "./normalization-protected-paths.js";
 
 const MAX_ENVELOPE_DOCUMENTS = 2;
 const MAX_ENVELOPE_BYTES = 32 * 1024;
@@ -540,7 +541,8 @@ function eligibleDocuments(
         source.path.startsWith(generatedPrefix) ||
         (taxonomy !== undefined && bytePreservedDocumentCollection(source.path, taxonomy)) ||
         repositoryPathMatchesPatterns(source.path, normalizationExclude) ||
-        toolGeneratedPaths.has(source.path)
+        toolGeneratedPaths.has(source.path) ||
+        !normalizationMayRewrite(source.path)
       )
         return [];
       const profile = normalizationProfile(source);

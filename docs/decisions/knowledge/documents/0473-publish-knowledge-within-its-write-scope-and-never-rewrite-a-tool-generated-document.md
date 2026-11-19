@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md), [ADR-0469](../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md), and [ADR-0195](../repository/0195-reviewed-document-content-normalization.md)
-Amended by: [ADR-0491](../semantics/0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md) (package-manager lockfile evidence)
+Amended by: [ADR-0491](../semantics/0491-never-pin-tool-generated-files-as-assets-and-memoize-the-role-registry.md) (package-manager lockfile evidence), [ADR-0594](../maintenance/0594-keep-knowledge-publication-moving-and-apply-owner-rules-on-every-host.md) (default roots widen to an active delegation; skill files publish only from practice)
 
 ## Context
 

@@ -14,7 +14,9 @@ import {
 
 import { parseNormalizationSemanticReview } from "../src/normalization-review.js";
 import {
+  normalizationAdmission,
   normalizationRejections,
+  recordNormalizationLinkRejections,
   recordNormalizationRejections,
 } from "../src/normalization-rejection.js";
 
@@ -230,4 +232,34 @@ it("restarts the attempt count when the rejected document has new bytes", async 
       reasons: [`${MEANING} (failed checks: meaning)`],
     },
   });
+});
+
+it("settles a rewrite that broke a link as one rejected generation of the blamed document", () => {
+  const item = (sourcePath: string, sourceContentHash: string) => ({
+    operationId: `op_${sourcePath}`,
+    sourcePath,
+    sourceContentHash,
+    outputs: [{ path: sourcePath }],
+  });
+  const candidate = {
+    items: [
+      item("docs/a.md", `sha256:${"a".repeat(64)}`),
+      item("docs/b.md", `sha256:${"b".repeat(64)}`),
+    ],
+  } as unknown as DocumentNormalizationCandidate;
+  const links = [{ path: "docs/b.md", target: "docs/typed-context/0292.md" }];
+  const first = recordNormalizationLinkRejections(new Map(), candidate, links);
+  expect(Object.keys(first)).toEqual(["docs/b.md"]);
+  expect(first["docs/b.md"]).toMatchObject({ attempts: 1 });
+  expect(first["docs/b.md"]!.reasons[0]).toContain("docs/typed-context/0292.md");
+  // The next generation regenerates with the reason; a second break counts as another attempt.
+  expect(
+    normalizationAdmission("docs/b.md", `sha256:${"b".repeat(64)}`, first["docs/b.md"]),
+  ).toMatchObject({ kind: "regenerate" });
+  const second = recordNormalizationLinkRejections(
+    new Map(Object.entries(first)),
+    candidate,
+    links,
+  );
+  expect(second["docs/b.md"]).toMatchObject({ attempts: 2 });
 });

@@ -6,6 +6,7 @@ import {
   inspectConfiguredDocumentNormalization,
   lintRepositoryKnowledge,
   normalizationKnowledgeLintCodes,
+  KnowledgeStageBrokenLinkError,
   validateKnowledgeStage,
   type KnowledgeConvergenceInput,
   type KnowledgeConvergenceStageResult,
@@ -19,6 +20,10 @@ import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import type { NormalizationBatch } from "./normalization-generation.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { convergenceSourceObservation } from "./source-observation.js";
+import {
+  normalizationRejections,
+  recordNormalizationLinkRejections,
+} from "./normalization-rejection.js";
 
 export async function applyNormalizationBatch(
   context: ConvergenceRuntimeContext,
@@ -112,45 +117,81 @@ export async function applyNormalizationBatch(
       });
       const beforeLint = await lintRepositoryKnowledge(root);
       let verification: string[] = [];
-      const receipt = await applyDocumentNormalizationPlan({
-        plan,
-        candidate,
-        now: new Date(),
-        approvals: candidate.items.map(({ operationId, approvalHash }) => ({
-          operationId,
-          approvalHash,
-        })),
-        recordApplied: async (effect) => {
-          await authority.assertCurrent();
-          const validation = validateKnowledgeStage({
-            stage: "background normalization",
-            before: beforeLint,
-            after: await lintRepositoryKnowledge(root, { allowTransactionPlanId: plan.planId }),
-            ownedErrorCodes: normalizationKnowledgeLintCodes,
-            expectedTransitionCodes: new Set(
-              paths.includes("AGENTS.md") || paths.includes("CLAUDE.md")
-                ? ["instruction_bridge_binding_stale"]
-                : [],
+      let receipt: Awaited<ReturnType<typeof applyDocumentNormalizationPlan>>;
+      try {
+        receipt = await applyDocumentNormalizationPlan({
+          plan,
+          candidate,
+          now: new Date(),
+          approvals: candidate.items.map(({ operationId, approvalHash }) => ({
+            operationId,
+            approvalHash,
+          })),
+          recordApplied: async (effect) => {
+            await authority.assertCurrent();
+            const validation = validateKnowledgeStage({
+              stage: "background normalization",
+              before: beforeLint,
+              after: await lintRepositoryKnowledge(root, { allowTransactionPlanId: plan.planId }),
+              ownedErrorCodes: normalizationKnowledgeLintCodes,
+              rejectNewBrokenLinksIn: new Set(
+                plan.operations
+                  .filter(
+                    (operation) =>
+                      operation.action !== "delete" && operation.action !== "unchanged",
+                  )
+                  .map((operation) => operation.path),
+              ),
+              expectedTransitionCodes: new Set(
+                paths.includes("AGENTS.md") || paths.includes("CLAUDE.md")
+                  ? ["instruction_bridge_binding_stale"]
+                  : [],
+              ),
+            });
+            verification = await verifyConvergenceEffect(
+              context,
+              authority,
+              state.baseline.policyHash,
+            );
+            await recordConvergenceMaterialization(context.storage, {
+              operation: "normalize_documents",
+              planId: plan.planId,
+              sourceSnapshotId: plan.sourceSnapshotId,
+              policyHash: state.baseline.policyHash,
+              receipt: effect,
+              created: effect.created,
+              updated: effect.updated,
+              deleted: effect.deleted,
+              validation,
+            });
+          },
+        });
+      } catch (error) {
+        if (!(error instanceof KnowledgeStageBrokenLinkError)) throw error;
+        // The bytes are already rolled back. The rewrite is settled like a review rejection, so it
+        // regenerates with the reason until its bounded attempts run out and is then parked; convergence
+        // moves on either way.
+        return completeConvergenceStage({
+          sources: convergenceSourceObservation(context),
+          artifacts: context.storage.artifacts,
+          state,
+          stage: "normalization_apply",
+          nextStage: "normalization_generation",
+          stageData: {
+            normalizationCursor: batch.paths.at(-1) ?? "",
+            normalizationBatch: null,
+            normalizationAcceptedCandidateId: null,
+            normalizationReview: null,
+            normalizationRejected: null,
+            normalizationRejections: recordNormalizationLinkRejections(
+              normalizationRejections(state),
+              candidate,
+              error.links,
             ),
-          });
-          verification = await verifyConvergenceEffect(
-            context,
-            authority,
-            state.baseline.policyHash,
-          );
-          await recordConvergenceMaterialization(context.storage, {
-            operation: "normalize_documents",
-            planId: plan.planId,
-            sourceSnapshotId: plan.sourceSnapshotId,
-            policyHash: state.baseline.policyHash,
-            receipt: effect,
-            created: effect.created,
-            updated: effect.updated,
-            deleted: effect.deleted,
-            validation,
-          });
-        },
-      });
+          },
+          proof: { status: "broken_links_rejected", links: error.links.slice(0, 20) },
+        });
+      }
       context.sourceObservation?.noteChange();
       const pending = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
       return completeConvergenceStage({

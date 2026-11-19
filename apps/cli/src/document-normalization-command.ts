@@ -240,6 +240,14 @@ export async function runDocumentNormalizationCommand(
                 before: baselineValidation,
                 after: observedValidation,
                 ownedErrorCodes: normalizationKnowledgeLintCodes,
+                rejectNewBrokenLinksIn: new Set(
+                  plan.operations
+                    .filter(
+                      (operation) =>
+                        operation.action !== "delete" && operation.action !== "unchanged",
+                    )
+                    .map((operation) => operation.path),
+                ),
                 expectedTransitionCodes,
               });
               const validationHash = sha256(canonicalJson(stageValidation));

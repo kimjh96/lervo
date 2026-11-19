@@ -96,6 +96,22 @@ export {
   recordInstructionCandidateResolution,
 } from "./instruction-candidate-exchange-state.js";
 export {
+  applyDurableInstructionCandidate,
+  InstructionApplyOwnerElsewhereError,
+  InstructionCommitPendingError,
+  LERVO_INSTRUCTION_SETTLER,
+  type AppliedDurableInstruction,
+} from "./durable-instruction-apply.js";
+export {
+  applyStoredInstructionCandidates,
+  type InstructionCandidateApplyResult,
+} from "./durable-instruction-auto-apply.js";
+export {
+  readInstructionApplyFailures,
+  type InstructionApplyFailure,
+} from "./instruction-apply-failures.js";
+export { collectLocalKnowledgeSources } from "./knowledge-supplemental-sources.js";
+export {
   commitAppliedInstructionCandidate,
   commitRetiredInstruction,
   appliedInstructionCandidateCommitted,

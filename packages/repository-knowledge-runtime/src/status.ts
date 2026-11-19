@@ -87,6 +87,9 @@ export async function readAutonomousKnowledgeStatus(
     observation !== null &&
     observation.ownerGeneration === (owner?.holder?.generation ?? null) &&
     observation.ownerHostHash === (owner?.hostHash ?? null);
+  // A host that does not own convergence never retries its own old obligation, so its local
+  // observation describes that leftover, not the owner's live state: report it as stale.
+  const ownedElsewhere = owner?.reason === "convergence_owner_elsewhere";
   const age =
     observation === null ? null : Math.max(0, now.getTime() - Date.parse(observation.observedAt));
   const status = observation?.status ?? {
@@ -109,7 +112,11 @@ export async function readAutonomousKnowledgeStatus(
     observation: {
       schemaVersion: 1,
       coverage:
-        observation === null ? "unknown" : sameOwner && age! <= 900_000 ? "observed" : "stale",
+        observation === null
+          ? "unknown"
+          : sameOwner && !ownedElsewhere && age! <= 900_000
+            ? "observed"
+            : "stale",
       observedAt: observation?.observedAt ?? null,
       ageMilliseconds: age,
       verifiedAt: observation?.verifiedAt ?? null,
@@ -119,9 +126,11 @@ export async function readAutonomousKnowledgeStatus(
       reason:
         observation === null
           ? "maintenance_observation_unavailable"
-          : !sameOwner
-            ? "maintenance_owner_changed"
-            : "maintenance_currency_unverified",
+          : ownedElsewhere
+            ? "maintenance_owner_elsewhere"
+            : !sameOwner
+              ? "maintenance_owner_changed"
+              : "maintenance_currency_unverified",
     },
   };
 }

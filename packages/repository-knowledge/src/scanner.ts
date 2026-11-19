@@ -1,7 +1,8 @@
 import { resolve } from "node:path";
 
 import { canonicalJson, sha256, stableId } from "./integrity.js";
-import { extractUnits, supplementalEvidenceUnit, unit } from "./repository-source-units.js";
+import { supplementalEvidenceUnit, unit } from "./repository-source-units.js";
+import { beginMemoizedSourceUnits } from "./source-unit-memo.js";
 import { withProcessCostScope } from "./process-cost-observation.js";
 import { observedOnlySource } from "./scan-retention.js";
 import { compileKnowledgeScannerExclusion } from "./knowledge-intake-policy.js";
@@ -85,8 +86,7 @@ async function scanRepositoryKnowledgeOnce(
   const root = input.repositoryRoot;
   const extractSourceUnits =
     input.sourceUnitCache?.begin(input) ??
-    ((source: RepositorySource & { content: string; contentHash: string }) =>
-      extractUnits(input.projectId, source, input.sourceUnitFailureMode));
+    beginMemoizedSourceUnits(input.projectId, input.sourceUnitFailureMode);
   sources.sort((left, right) => left.path.localeCompare(right.path));
   if (new Set(sources.map((source) => source.sourceId)).size !== sources.length) {
     throw new RepositoryKnowledgeError(

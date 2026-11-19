@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-01
 Amends: [ADR-0467](../0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) (review and application)
+Amended by: [ADR-0594](../../maintenance/0594-keep-knowledge-publication-moving-and-apply-owner-rules-on-every-host.md) (the Node resident worker applies stored rules; failures are recorded)
 Superseded in part by: [ADR-0561](../../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md) (the plan gate, the `explicit_user` restriction, the catalog binding, and `lervo knowledge instruction review` are removed)
 Related: [ADR-0535](../../../execution/applications/0535-project-core-health-with-actor-owned-attention.md) (actor-owned attention)
 
