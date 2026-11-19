@@ -93,6 +93,36 @@ export function recordNormalizationRejections(
   return Object.fromEntries([...records].sort(([left], [right]) => left.localeCompare(right)));
 }
 
+/**
+ * Rejects each candidate item whose written documents broke a Markdown link (core-loop host defect
+ * 4). It counts as one rejected generation, like a review rejection, so the document regenerates
+ * with the reason until its bounded attempts run out and is then parked.
+ */
+export function recordNormalizationLinkRejections(
+  previous: Map<string, NormalizationRejection>,
+  candidate: DocumentNormalizationCandidate,
+  links: ReadonlyArray<{ path: string; target: string }>,
+): Record<string, NormalizationRejection> {
+  const records = new Map(previous);
+  const writes = (item: DocumentNormalizationCandidate["items"][number]) =>
+    new Set([item.sourcePath, ...item.outputs.map((output) => output.path)]);
+  const blamed = candidate.items.filter((item) =>
+    links.some((link) => writes(item).has(link.path)),
+  );
+  for (const item of blamed.length ? blamed : candidate.items) {
+    const own = links.filter((link) => writes(item).has(link.path)).map((link) => link.target);
+    const prior = records.get(item.sourcePath);
+    records.set(item.sourcePath, {
+      contentHash: item.sourceContentHash,
+      attempts: prior?.contentHash === item.sourceContentHash ? prior.attempts + 1 : 1,
+      reasons: boundedReviewReasons([
+        `The rewrite broke Markdown links that the original did not: ${(own.length ? own : links.map((link) => link.target)).slice(0, 10).join(", ")}. Keep every link target an existing repository path.`,
+      ]),
+    });
+  }
+  return Object.fromEntries([...records].sort(([left], [right]) => left.localeCompare(right)));
+}
+
 export type NormalizationAdmission =
   | { kind: "fresh" }
   | { kind: "regenerate"; feedback: DocumentNormalizationReviewFeedback }
