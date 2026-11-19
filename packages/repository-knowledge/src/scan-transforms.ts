@@ -18,11 +18,61 @@ export function serializableScan(scan: RepositoryKnowledgeScan): RepositoryKnowl
   };
 }
 
+/**
+ * The scan's two snapshot IDs over its current sources and units. Each digests the whole scan, so a
+ * batch of projections computes them once at the end instead of once per changed source.
+ */
+function withSnapshotIds(scan: RepositoryKnowledgeScan): RepositoryKnowledgeScan {
+  const snapshotMaterials = scan.sources.map(({ content: _content, ...item }) => item);
+  const contentSnapshotMaterials = snapshotMaterials.filter(
+    (item) =>
+      item.kind !== "revision_metadata" &&
+      item.kind !== "verification_result" &&
+      item.kind !== "execution_event",
+  );
+  const contentUnitVersions = scan.units
+    .filter(
+      (item) =>
+        item.unitKind !== "revision" &&
+        item.unitKind !== "verification" &&
+        item.unitKind !== "event",
+    )
+    .map((item) => item.unitVersionId);
+  return {
+    ...scan,
+    snapshotId: stableId("ksnap", {
+      sources: snapshotMaterials,
+      units: scan.units.map((item) => item.unitVersionId),
+    }),
+    contentSnapshotId: stableId("ksnap", {
+      sources: contentSnapshotMaterials,
+      units: contentUnitVersions,
+    }),
+  };
+}
+
 export function relocateRepositoryKnowledgeScanSource(input: {
   scan: RepositoryKnowledgeScan;
   fromPath: string;
   toPath: string;
 }): RepositoryKnowledgeScan {
+  return withSnapshotIds(relocateSource(input.scan, input));
+}
+
+/** Moves of several sources in order; the snapshot IDs are computed once, after the last move. */
+export function relocateRepositoryKnowledgeScanSources(
+  scan: RepositoryKnowledgeScan,
+  moves: ReadonlyArray<{ fromPath: string; toPath: string }>,
+): RepositoryKnowledgeScan {
+  return withSnapshotIds(moves.reduce((current, move) => relocateSource(current, move), scan));
+}
+
+/** One move without its snapshot IDs, which the caller computes. */
+function relocateSource(
+  scan: RepositoryKnowledgeScan,
+  move: { fromPath: string; toPath: string },
+): RepositoryKnowledgeScan {
+  const input = { scan, ...move };
   const source = input.scan.sources.find((item) => item.path === input.fromPath);
   if (
     source?.status !== "included" ||
@@ -71,34 +121,7 @@ export function relocateRepositoryKnowledgeScanSource(input: {
         left.unitId.localeCompare(right.unitId) ||
         left.unitVersionId.localeCompare(right.unitVersionId),
     );
-  const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
-  const contentSnapshotMaterials = snapshotMaterials.filter(
-    (item) =>
-      item.kind !== "revision_metadata" &&
-      item.kind !== "verification_result" &&
-      item.kind !== "execution_event",
-  );
-  const contentUnitVersions = units
-    .filter(
-      (item) =>
-        item.unitKind !== "revision" &&
-        item.unitKind !== "verification" &&
-        item.unitKind !== "event",
-    )
-    .map((item) => item.unitVersionId);
-  return {
-    ...input.scan,
-    snapshotId: stableId("ksnap", {
-      sources: snapshotMaterials,
-      units: units.map((item) => item.unitVersionId),
-    }),
-    contentSnapshotId: stableId("ksnap", {
-      sources: contentSnapshotMaterials,
-      units: contentUnitVersions,
-    }),
-    sources,
-    units,
-  };
+  return { ...input.scan, sources, units };
 }
 
 export function splitRepositoryKnowledgeScanSource(input: {
@@ -207,6 +230,27 @@ export function upsertRepositoryKnowledgeScanSource(input: {
   path: string;
   content: string;
 }): RepositoryKnowledgeScan {
+  return withSnapshotIds(upsertSource(input.scan, input));
+}
+
+/**
+ * Replacements of several sources in order; the snapshot IDs are computed once, after the last one.
+ * A layout migration projects every moved and rewritten document this way, which made planning
+ * quadratic in the number of changed documents when each replacement digested the whole scan.
+ */
+export function upsertRepositoryKnowledgeScanSources(
+  scan: RepositoryKnowledgeScan,
+  changes: ReadonlyArray<{ path: string; content: string }>,
+): RepositoryKnowledgeScan {
+  return withSnapshotIds(changes.reduce((current, change) => upsertSource(current, change), scan));
+}
+
+/** One replacement without its snapshot IDs, which the caller computes. */
+function upsertSource(
+  scan: RepositoryKnowledgeScan,
+  change: { path: string; content: string },
+): RepositoryKnowledgeScan {
+  const input = { scan, ...change };
   const existing = input.scan.sources.find((item) => item.path === input.path);
   // An observed-only source stays observed-only. If the new size moves the retention boundary, the
   // real rescan differs and digest comparison fails instead of inventing retained units.
@@ -250,31 +294,8 @@ export function upsertRepositoryKnowledgeScanSource(input: {
       left.unitId.localeCompare(right.unitId) ||
       left.unitVersionId.localeCompare(right.unitVersionId),
   );
-  const snapshotMaterials = sources.map(({ content: _content, ...item }) => item);
-  const contentSnapshotMaterials = snapshotMaterials.filter(
-    (item) =>
-      item.kind !== "revision_metadata" &&
-      item.kind !== "verification_result" &&
-      item.kind !== "execution_event",
-  );
-  const contentUnitVersions = units
-    .filter(
-      (item) =>
-        item.unitKind !== "revision" &&
-        item.unitKind !== "verification" &&
-        item.unitKind !== "event",
-    )
-    .map((item) => item.unitVersionId);
   return {
     ...input.scan,
-    snapshotId: stableId("ksnap", {
-      sources: snapshotMaterials,
-      units: units.map((item) => item.unitVersionId),
-    }),
-    contentSnapshotId: stableId("ksnap", {
-      sources: contentSnapshotMaterials,
-      units: contentUnitVersions,
-    }),
     ...(observedOnly && existing !== undefined
       ? observedOnlyByteChange(input.scan, source.byteCount - existing.byteCount)
       : {}),

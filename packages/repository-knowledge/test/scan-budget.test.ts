@@ -3,7 +3,13 @@ import { tmpdir } from "node:os";
 import { dirname, resolve } from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
-import { scanDigest, upsertRepositoryKnowledgeScanSource } from "../src/scan-transforms.js";
+import {
+  relocateRepositoryKnowledgeScanSource,
+  relocateRepositoryKnowledgeScanSources,
+  scanDigest,
+  upsertRepositoryKnowledgeScanSource,
+  upsertRepositoryKnowledgeScanSources,
+} from "../src/scan-transforms.js";
 import { compareScanPaths } from "../src/scan-priority.js";
 import { SourceUnitCache } from "../src/source-unit-cache.js";
 import {
@@ -376,4 +382,35 @@ it("orders budget admission by Unicode code point, including astral paths", () =
   expect(compareScanPaths("a.md", "a.md")).toBe(0);
   expect(compareScanPaths("docs/\uE000.md", "docs/\u{10000}.md")).toBeLessThan(0);
   expect(compareScanPaths("docs/a.md", "docs/Z.md")).toBeGreaterThan(0);
+});
+
+it("projects a batch of replacements and moves exactly as one at a time", async () => {
+  const root = await repository(["docs/a.md", "docs/b.md", "docs/c.md", "src/main.ts"]);
+  const before = await scan(root, 4096);
+  const changes = [
+    { path: "docs/a.md", content: "# A\n\nRewritten.\n" },
+    { path: "docs/c.md", content: "# C\n\nRewritten too.\n" },
+    { path: "docs/new.md", content: "# New\n" },
+  ];
+  const sequential = changes.reduce(
+    (current, change) => upsertRepositoryKnowledgeScanSource({ scan: current, ...change }),
+    before,
+  );
+  const batched = upsertRepositoryKnowledgeScanSources(before, changes);
+  expect(batched).toEqual(sequential);
+  expect(scanDigest(batched)).toBe(scanDigest(sequential));
+  const moves = [
+    { fromPath: "docs/a.md", toPath: "docs/moved/a.md" },
+    { fromPath: "docs/b.md", toPath: "docs/moved/b.md" },
+  ];
+  const movedOneByOne = moves.reduce(
+    (current, move) => relocateRepositoryKnowledgeScanSource({ scan: current, ...move }),
+    sequential,
+  );
+  const movedTogether = relocateRepositoryKnowledgeScanSources(batched, moves);
+  expect(movedTogether).toEqual(movedOneByOne);
+  expect(movedTogether.snapshotId).not.toBe(batched.snapshotId);
+  expect(upsertRepositoryKnowledgeScanSources(before, [])).toEqual(
+    expect.objectContaining({ snapshotId: before.snapshotId, sources: before.sources }),
+  );
 });

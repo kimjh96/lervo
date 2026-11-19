@@ -217,7 +217,9 @@ export {
   serializableScan,
   scanDigest,
   relocateRepositoryKnowledgeScanSource,
+  relocateRepositoryKnowledgeScanSources,
   splitRepositoryKnowledgeScanSource,
   upsertRepositoryKnowledgeScanSource,
+  upsertRepositoryKnowledgeScanSources,
   mergeRepositoryKnowledgeScanSources,
 } from "./scan-transforms.js";

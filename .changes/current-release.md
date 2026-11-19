@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.29.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.29.1" schema="1" -->
 
 ## What's changed
 
-- Evaluate a document lifecycle over the relation web in shadow: settle changes a document does not name without a provider, sweep unassessed documents daily, and report lifecycle counts in repository health.
+- Plan a repository layout migration in linear time: project every moved and rewritten document onto the scan in one batch and digest its snapshot once, instead of once per document.
