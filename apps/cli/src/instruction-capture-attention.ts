@@ -12,8 +12,10 @@ import {
 } from "@lervo/repository-knowledge";
 import {
   instructionCandidateApplyAuthority,
+  readInstructionApplyFailures,
   readInstructionCaptureState,
   type HeldCapture,
+  type InstructionApplyFailure,
 } from "@lervo/repository-knowledge-runtime";
 
 /** Rebuildable capture state the attention projection and compact prompt read (ADR-0467). */
@@ -28,6 +30,8 @@ export interface InstructionCaptureAttentionInput {
   applyElsewhere?: { holderLabel: string | null };
   /** Owner turns this host may not assess because it has no background-work authority. */
   authorityBlocked?: { since: string; queuedCount: number } | null;
+  /** This host's last apply failure per candidate; recorded only where candidates are applied. */
+  applyFailures?: ReadonlyMap<string, InstructionApplyFailure>;
 }
 
 const MAXIMUM_LINE_BYTES = 600;
@@ -45,10 +49,17 @@ function ownerHost(input: InstructionCaptureAttentionInput): string {
     : `the convergence owner host (${input.applyElsewhere.holderLabel})`;
 }
 
+function applyFailureNote(failure: InstructionApplyFailure | undefined): string {
+  return failure === undefined
+    ? ""
+    : ` The last apply attempt failed with ${failure.code} at ${failure.lastFailedAt} (${failure.attempts} attempt${failure.attempts === 1 ? "" : "s"} since ${failure.firstFailedAt}).`;
+}
+
 function candidateItem(
   candidate: DurableInstructionCandidateInspection,
   input: InstructionCaptureAttentionInput,
 ): DurableInstructionCandidateAttentionItemV1 {
+  const failure = applyFailureNote(input.applyFailures?.get(candidate.candidateId));
   return {
     schemaVersion: 1,
     kind: "durable_instruction_candidate",
@@ -63,10 +74,11 @@ function candidateItem(
     actionOwner: "host resident",
     requiresUserAction: false,
     blocking: false,
-    instruction:
+    instruction: boundedLine(
       input.applyElsewhere === undefined
-        ? `The knowledge resident applies this stored owner rule in its next cycle; inspect it with lervo knowledge instruction status ${candidate.candidateId}.`
-        : `${ownerHost(input)} applies this stored owner rule after its next Hub exchange; inspect it with lervo knowledge instruction status ${candidate.candidateId}.`,
+        ? `The knowledge resident applies this stored owner rule in its next cycle; inspect it with lervo knowledge instruction status ${candidate.candidateId}.${failure}`
+        : `${ownerHost(input)} applies this stored owner rule after its next Hub exchange; inspect it with lervo knowledge instruction status ${candidate.candidateId}.${failure}`,
+    ),
   };
 }
 
@@ -182,11 +194,12 @@ export function instructionCaptureCompactLines(
 export async function readInstructionCaptureAttention(
   root: string,
 ): Promise<InstructionCaptureAttentionInput> {
-  const [candidates, state, applied, authority] = await Promise.all([
+  const [candidates, state, applied, authority, applyFailures] = await Promise.all([
     listDurableInstructionCandidates(root).catch(() => []),
     readInstructionCaptureState(root).catch(() => null),
     listGeneratedDurableInstructions(root).catch(() => ({ rules: [], totalCount: 0 })),
     instructionCandidateApplyAuthority(root).catch(() => ({ status: "single_host" as const })),
+    readInstructionApplyFailures(root),
   ]);
   return {
     candidates,
@@ -196,5 +209,6 @@ export async function readInstructionCaptureAttention(
       ? { applyElsewhere: { holderLabel: authority.holderLabel } }
       : {}),
     authorityBlocked: state?.authorityBlocked ?? null,
+    ...(applyFailures.size === 0 ? {} : { applyFailures }),
   };
 }
