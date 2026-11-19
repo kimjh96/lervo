@@ -3,8 +3,6 @@ import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
-import type { SkillManifest } from "@lervo/schemas";
-import { hashSkillPackage } from "@lervo/skills";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -591,7 +589,8 @@ describe("document content normalization", () => {
       signal: new AbortController().signal,
     });
     expect(candidate).toMatchObject({
-      coverage: { eligibleDocuments: 2, normalizedDocuments: 2, complete: true },
+      // ADR-0594: the skill is never a normalization source, so only the guide is eligible.
+      coverage: { eligibleDocuments: 1, normalizedDocuments: 1, complete: true },
       assurance: "unreviewed",
     });
     expect(calls).toHaveLength(1);
@@ -637,8 +636,8 @@ describe("document content normalization", () => {
     });
     expect(receipt).toMatchObject({
       operation: "normalize_documents",
-      normalizedDocumentCount: 2,
-      outputDocumentCount: 3,
+      normalizedDocumentCount: 1,
+      outputDocumentCount: 2,
     });
     expect(await readFile(resolve(root, "docs/operations/runtime-guide.md"), "utf8")).toContain(
       "Use the focused topics below",
@@ -646,8 +645,8 @@ describe("document content normalization", () => {
     expect(
       await readFile(resolve(root, "docs/operations/runtime-guide/start.md"), "utf8"),
     ).toContain("pnpm start");
-    expect(await readFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "utf8")).toContain(
-      "name: deploy-check",
+    expect(await readFile(resolve(root, ".agents/skills/deploy-check/SKILL.md"), "utf8")).toBe(
+      "---\nname: deploy-check\ndescription: Old deployment checker.\n---\n# Old skill\n\nInspect deployment status.\n",
     );
     expect(await readFile(resolve(root, ".prettierignore"), "utf8")).toBe(formatterIgnore);
     await expect(
@@ -687,44 +686,22 @@ describe("document content normalization", () => {
     ).not.toContain("docs/operations/runtime-guide/start.md");
   });
 
-  it("rejects a skill rewrite that changes the portable skill identity", async () => {
+  it("never offers a skill to the normalizer, so a rewrite cannot change its identity (ADR-0594)", async () => {
     const root = await repository();
     await mkdir(resolve(root, ".agents/skills/deploy-check"), { recursive: true });
     await writeFile(
       resolve(root, ".agents/skills/deploy-check/SKILL.md"),
       "---\nname: deploy-check\ndescription: Check deployment.\n---\n# Check\n\nInspect status.\n",
     );
-    const invalid = compiler([]);
-    invalid.normalize = async (envelope) => ({
-      schemaVersion: 1,
-      documents: envelope.documents.map((document) => ({
-        sourcePath: document.path,
-        outputs: [
-          {
-            path: document.path,
-            content: "---\nname: renamed-skill\ndescription: Changed.\n---\n# Changed\n",
-            coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-          },
-        ],
-      })),
-      telemetry: {
-        filesystemReads: 0,
-        filesystemWrites: 0,
-        shellProcesses: 0,
-        networkRequests: 0,
-        externalActions: 0,
-        toolCalls: 0,
-        complete: true,
-      },
+    const calls: DocumentNormalizationEnvelope[] = [];
+    const candidate = await compileConfiguredDocumentNormalizationCandidate({
+      repositoryRoot: root,
+      compiler: compiler(calls),
+      signal: new AbortController().signal,
     });
-
-    await expect(
-      compileConfiguredDocumentNormalizationCandidate({
-        repositoryRoot: root,
-        compiler: invalid,
-        signal: new AbortController().signal,
-      }),
-    ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
+    expect(candidate.items).toEqual([]);
+    expect(candidate.coverage.eligibleDocuments).toBe(0);
+    expect(calls).toHaveLength(0);
   });
 
   it("rejects trailing whitespace introduced by a document normalizer", async () => {
@@ -954,136 +931,25 @@ describe("document content normalization", () => {
     ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
   });
 
-  it("uses the portable skill package directory as identity when legacy SKILL.md has no frontmatter", async () => {
-    const root = await repository();
-    await mkdir(resolve(root, ".agents/skills/deploy-check"), { recursive: true });
-    await writeFile(
-      resolve(root, ".agents/skills/deploy-check/SKILL.md"),
-      "# Legacy check\n\nInspect deployment status.\n",
-    );
-    const calls: DocumentNormalizationEnvelope[] = [];
-    const normalizer = compiler(calls);
-
-    const candidate = await compileConfiguredDocumentNormalizationCandidate({
-      repositoryRoot: root,
-      compiler: normalizer,
-      signal: new AbortController().signal,
-    });
-
-    expect(calls[0]?.documents[0]).toMatchObject({
-      profile: "portable_skill",
-      requiredSkillName: "deploy-check",
-    });
-    expect(candidate.items[0]?.outputs[0]?.content).toContain("name: deploy-check");
-  });
-
-  it("updates a project skill manifest atomically with normalized package documents", async () => {
+  it("leaves skill packages and their manifest to practice commits, never to normalization (ADR-0594)", async () => {
     const root = await repository();
     const skillRoot = resolve(root, ".agents/skills/deploy-check");
     await mkdir(resolve(skillRoot, "references"), { recursive: true });
     await writeFile(
       resolve(skillRoot, "SKILL.md"),
-      "---\nname: deploy-check\ndescription: Check deployment.\n---\n# Check\n\nInspect status.\n",
+      "# Deploy check\n\nInspect deployment status.\n",
     );
-    await writeFile(resolve(skillRoot, "references/status.md"), "# Status\n\nRead health.\n");
-    const manifest: SkillManifest = {
-      schemaVersion: 1,
-      skillId: "deploy-check",
-      version: "1.0.0",
-      contentHash: await hashSkillPackage(skillRoot),
-      source: {
-        kind: "project",
-        uri: ".agents/skills/deploy-check",
-        publisher: { id: "fixture", name: "Fixture" },
-      },
-      supportedRoles: ["developer"],
-      compatibility: {
-        providers: { mode: "any" },
-        minimumRuntimeVersion: "0.1.0",
-        platforms: [process.platform as "darwin" | "linux" | "win32"],
-        requiredTools: [],
-        unknownIsCompatible: false,
-      },
-      requiredCapabilities: ["filesystem.read"],
-      contracts: {
-        inputSchemaRef: "lervo-schema://skill/input/v1",
-        outputSchemaRef: "lervo-schema://skill/output/v1",
-      },
-      trust: { level: "untrusted", signatureStatus: "unsigned" },
-      enabledScope: { kind: "user" },
-      pinned: false,
-    };
-    await writeFile(
-      resolve(skillRoot, "lervo-skill.json"),
-      `${JSON.stringify(manifest, null, 2)}\n`,
-    );
-    const normalizer: RepositoryDocumentNormalizationCompiler = {
-      descriptor: compiler([]).descriptor,
-      async normalize(envelope) {
-        return {
-          schemaVersion: 1,
-          documents: envelope.documents.map((document) => ({
-            sourcePath: document.path,
-            outputs: [
-              {
-                path: document.path,
-                content: document.path.endsWith("SKILL.md")
-                  ? "---\nname: deploy-check\ndescription: Check a deployment safely.\n---\n# Deployment check\n\nInspect status and report evidence.\n"
-                  : "# Deployment status\n\nRead the bounded health evidence.\n",
-                coveredUnitIndexes: document.sourceUnits.map((unit) => unit.index),
-              },
-            ],
-          })),
-          telemetry: {
-            filesystemReads: 0,
-            filesystemWrites: 0,
-            shellProcesses: 0,
-            networkRequests: 0,
-            externalActions: 0,
-            toolCalls: 0,
-            complete: true,
-          },
-        };
-      },
-    };
+    await writeFile(resolve(skillRoot, "references/steps.md"), "# Steps\n\nRun the check.\n");
+    const calls: DocumentNormalizationEnvelope[] = [];
     const candidate = await compileConfiguredDocumentNormalizationCandidate({
       repositoryRoot: root,
-      compiler: normalizer,
+      compiler: compiler(calls),
       signal: new AbortController().signal,
     });
-    const plan = await createDocumentNormalizationPlan({
-      repositoryRoot: root,
-      candidate,
-      now: new Date("2026-09-04T00:00:00.000Z"),
-    });
-
     expect(
-      plan.operations.find(
-        (operation) => operation.path === ".agents/skills/deploy-check/lervo-skill.json",
-      ),
-    ).toMatchObject({ action: "update", mediaType: "application/json" });
-    await applyDocumentNormalizationPlan({
-      plan,
-      candidate,
-      approvals: plan.items.map((item) => ({
-        operationId: item.operationId,
-        approvalHash: item.approvalHash,
-      })),
-      now: new Date("2026-09-04T00:00:00.000Z"),
-      recordApplied: () => undefined,
-    });
-
-    const updatedManifest = JSON.parse(
-      await readFile(resolve(skillRoot, "lervo-skill.json"), "utf8"),
-    ) as SkillManifest;
-    expect(updatedManifest.contentHash).toBe(await hashSkillPackage(skillRoot));
-    const lifecycle = await inspectConfiguredDocumentNormalization({ repositoryRoot: root });
-    expect(
-      lifecycle.records.find(
-        (record) => record.outputPaths[0] === ".agents/skills/deploy-check/SKILL.md",
-      )?.status,
-    ).toBe("current");
-    expect((await lintRepositoryKnowledge(root)).valid).toBe(true);
+      candidate.items.flatMap((item) => [item.sourcePath, ...item.outputs.map((o) => o.path)]),
+    ).not.toEqual(expect.arrayContaining([expect.stringMatching(/^\.agents\/skills\//u)]));
+    expect(calls.flatMap((call) => call.documents.map((document) => document.path))).toEqual([]);
   });
 
   it("keeps agent routing outside the public README while rewriting internal non-portable wiki links", async () => {
