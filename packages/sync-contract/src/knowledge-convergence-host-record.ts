@@ -69,6 +69,27 @@ export type KnowledgeConvergenceHostListing = KnowledgeConvergenceHostRecord & {
   presence?: KnowledgeConvergenceHostPresence;
 };
 
+/**
+ * ADR-0602: a record's facts without any observation time, at any depth (the record's own and its
+ * provider admission's). Two publications with equal facts say the same thing, so the Hub wakes
+ * no peer for the second and a host never republishes it.
+ */
+export function knowledgeConvergenceHostRecordFacts(
+  record: KnowledgeConvergenceHostRecord,
+): string {
+  const strip = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(strip)
+      : value !== null && typeof value === "object"
+        ? Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+              .filter(([key]) => key !== "observedAt")
+              .map(([key, item]) => [key, strip(item)]),
+          )
+        : value;
+  return canonicalJson(strip(record));
+}
+
 /** The list response's separate `presence` entries, one per listed host. */
 export interface KnowledgeConvergenceHostPresenceEntry extends KnowledgeConvergenceHostPresence {
   hostHash: string;

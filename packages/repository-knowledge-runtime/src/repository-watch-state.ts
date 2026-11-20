@@ -18,12 +18,14 @@ export const REPOSITORY_WATCH_STATE_DIRECTORY = ".lervo/state/repository-watch";
 export type WakeSourceIssueCode =
   | "repository_watch_unavailable"
   | "hub_knowledge_changes_unavailable"
-  | "hub_runtime_changes_unavailable";
+  | "hub_runtime_changes_unavailable"
+  | "hub_upgrade_required";
 
 const CODES: ReadonlySet<string> = new Set<WakeSourceIssueCode>([
   "repository_watch_unavailable",
   "hub_knowledge_changes_unavailable",
   "hub_runtime_changes_unavailable",
+  "hub_upgrade_required",
 ]);
 
 export interface RepositoryWatchIssue {
@@ -39,6 +41,8 @@ interface RepositoryWatchRecord extends RepositoryWatchIssue {
 }
 
 function remediation(code: WakeSourceIssueCode, errno: string | null): string {
+  if (code === "hub_upgrade_required")
+    return "upgrade the Hub to this Lervo release first (deploy the Hub before Nodes and hosts); until then each repository runs one full knowledge cycle an hour";
   if (code !== "repository_watch_unavailable")
     return "check that the Hub is running and reachable and that this host's Hub token is valid; the wait reconnects on its own";
   switch (errno) {
@@ -66,6 +70,8 @@ function detail(code: WakeSourceIssueCode, errno: string | null): string {
       return `Repository changes cannot be watched (${cause}), so edits wake nothing until the watch is armed.`;
     case "hub_knowledge_changes_unavailable":
       return `The Hub's knowledge change wait failed (${cause}), so lease releases, owner rules and host records from other hosts wake nothing until it reconnects.`;
+    case "hub_upgrade_required":
+      return `The Hub is older than this release and refuses knowledge change waits (${cause}), so lease releases, owner rules and host records from other hosts are picked up only by an hourly full cycle.`;
     case "hub_runtime_changes_unavailable":
       return `The Hub's runtime change wait failed (${cause}), so Hub workstreams and commands wake nothing until it reconnects.`;
   }

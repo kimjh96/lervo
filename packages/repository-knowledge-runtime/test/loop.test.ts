@@ -53,9 +53,12 @@ it(
       // Continuity names its own next due time; ADR-0602 offers it a turn exactly then.
       continuity: {
         inputPaths: () => [],
-        reconcile: async () => {
+        turn: async () => {
           reconciliations += 1;
-          return { nextReconcileAt: new Date(Date.now() + 50).toISOString() };
+          return {
+            status: "reconciled",
+            state: { nextReconcileAt: new Date(Date.now() + 50).toISOString() },
+          };
         },
       } as never,
     });

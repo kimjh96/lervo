@@ -10,6 +10,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import {
   calculateProjectIdentityHash,
+  knowledgeConvergenceHostRecordFacts,
   knowledgeConvergenceOwnerFailureOf,
   type KnowledgeConvergenceHostListing,
   type KnowledgeConvergenceHostPublishStatus,
@@ -17,6 +18,8 @@ import {
 } from "@lervo/sync-contract";
 
 import { continuityNextDeadline } from "./continuity-deadline.js";
+import { continuityHostPort } from "./continuity-hub-port.js";
+import type { ContinuityTurnOutcome } from "./continuity-turn-outcome.js";
 import { continuityInputFingerprint } from "./continuity-inputs.js";
 
 import { continuityFindings } from "./continuity-findings.js";
@@ -32,7 +35,6 @@ import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import {
   CONVERGENCE_OWNER_HOST_PATH,
   readConvergenceOwnerHost,
-  type ConvergenceOwnerHost,
   type ConvergenceOwnerHubCoordinates,
 } from "./convergence-owner-host.js";
 import {
@@ -53,12 +55,10 @@ import type { KnowledgePublicationSettings } from "./knowledge-publication-setti
 import { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
 
-/**
- * ADR-0602: a turn that produced no state (another process held the worker lock) is offered again
- * after this bound. A reconciliation itself has no cadence: it runs when its inputs or the Hub's
- * `knowledge` token changed, or at its own next time-based deadline.
- */
-export const CONTINUITY_RETRY_MILLISECONDS = 15 * 60_000;
+export {
+  CONTINUITY_RETRY_MILLISECONDS,
+  type ContinuityTurnOutcome,
+} from "./continuity-turn-outcome.js";
 
 /** The Hub operations continuity needs; `@lervo/sync` provides the HTTP adapter. */
 export interface ConvergenceHostRecordPort {
@@ -122,6 +122,15 @@ export class ConvergenceContinuity {
   reconcile(
     options: { signal?: AbortSignal; force?: boolean } = {},
   ): Promise<ConvergenceContinuityState | null> {
+    return this.turn(options).then((outcome) => outcome.state);
+  }
+
+  /**
+   * ADR-0602: one reconciliation, telling a busy worker lock (another cycle holds it, so nothing
+   * was reconciled) apart from a state that is current, so the caller never reads the last
+   * state's passed deadline as a reason to look again at once.
+   */
+  turn(options: { signal?: AbortSignal; force?: boolean } = {}): Promise<ContinuityTurnOutcome> {
     const next = this.queue.then(() => this.reconcileNow(options));
     this.queue = next.catch(() => undefined);
     return next;
@@ -139,7 +148,7 @@ export class ConvergenceContinuity {
   private async reconcileNow(options: {
     signal?: AbortSignal;
     force?: boolean;
-  }): Promise<ConvergenceContinuityState | null> {
+  }): Promise<ContinuityTurnOutcome> {
     const previous = await readConvergenceContinuityState(this.root);
     const candidates = await this.input.hubCandidates().catch(() => []);
     const inputs = await continuityInputFingerprint({
@@ -156,30 +165,13 @@ export class ConvergenceContinuity {
       previous.inputFingerprint === inputs &&
       !(dueAt !== null && (!Number.isFinite(dueAt) || dueAt <= this.now()))
     )
-      return previous;
+      return { status: "current", state: previous };
     const locked = await withRepositoryKnowledgeWorkerLock(this.root, () =>
       this.reconcileLocked(previous, candidates, options.signal),
     );
-    return locked.status === "busy" ? previous : locked.result;
-  }
-
-  private async hostPort(
-    host: ConvergenceOwnerHost | null,
-  ): Promise<{ port: ConvergenceHostRecordPort | null; failureCode: string | null }> {
-    if (host?.config.coordination.mode !== "hub" || this.input.transport === undefined)
-      return { port: null, failureCode: null };
-    try {
-      return {
-        port: await this.input.transport({
-          ...host.config.coordination.hub,
-          projectId: this.input.storage.manifest.projectId,
-          repositoryIdentityHash: calculateProjectIdentityHash(this.input.storage.manifest),
-        }),
-        failureCode: null,
-      };
-    } catch (error) {
-      return { port: null, failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode };
-    }
+    return locked.status === "busy"
+      ? { status: "busy", state: previous }
+      : { status: "reconciled", state: locked.result };
   }
 
   private async reconcileLocked(
@@ -211,12 +203,20 @@ export class ConvergenceContinuity {
       now: startedAt,
     }).catch(() => null);
     const host = await readConvergenceOwnerHost(this.root).catch(() => null);
-    const { port, failureCode: portFailure } = await this.hostPort(host);
+    const { port, failureCode: portFailure } = await continuityHostPort(
+      host,
+      this.input.transport,
+      this.input.storage,
+    );
     let hubFailure = portFailure;
     let peers: KnowledgeConvergenceHostRecord[] = [];
+    // This host's own record as the Hub holds it, so an identical one is never published again.
+    let ownListed: KnowledgeConvergenceHostRecord | null = null;
     if (port !== null)
       try {
-        peers = (await port.list(signal)).filter((record) => record.hostHash !== host?.hostHash);
+        const listed = await port.list(signal);
+        peers = listed.filter((record) => record.hostHash !== host?.hostHash);
+        ownListed = listed.find((record) => record.hostHash === host?.hostHash) ?? null;
       } catch (error) {
         hubFailure = knowledgeConvergenceOwnerFailureOf(error).failureCode;
       }
@@ -294,10 +294,10 @@ export class ConvergenceContinuity {
         peers: peerSummaries,
       }),
     ].slice(0, 32);
-    if (port !== null && host !== null)
-      await port
-        .publish(
-          continuityHostRecord({
+    const record =
+      host === null
+        ? null
+        : continuityHostRecord({
             ...identity,
             host,
             observedAt: startedAt.toISOString(),
@@ -309,12 +309,18 @@ export class ConvergenceContinuity {
             health,
             findings,
             providerAdmission,
-          }),
-          signal,
-        )
-        .catch((error: unknown) => {
-          hubFailure ??= knowledgeConvergenceOwnerFailureOf(error).failureCode;
-        });
+          });
+    // ADR-0602: a record whose facts the Hub already holds is not published again, so two hosts
+    // never wake each other with records that differ only in when they were observed.
+    const unchanged =
+      record !== null &&
+      ownListed !== null &&
+      knowledgeConvergenceHostRecordFacts(ownListed) ===
+        knowledgeConvergenceHostRecordFacts(record);
+    if (port !== null && record !== null && !unchanged)
+      await port.publish(record, signal).catch((error: unknown) => {
+        hubFailure ??= knowledgeConvergenceOwnerFailureOf(error).failureCode;
+      });
     // ADR-0602: no cadence. A failure retries with exponential backoff; a due renewal this host
     // may not write (ADR-0478) waits for the ownership change that lets it, which the fence and
     // the Hub's change token both deliver; time-based decisions and findings set the deadline.
@@ -324,6 +330,9 @@ export class ConvergenceContinuity {
     const nextReconcileAt = continuityNextDeadline({
       now: startedAt.getTime(),
       failures,
+      // ADR-0478: a due renewal this host may not write is looked at again within the retry
+      // bound, so a host that just took over renews without waiting for another change.
+      awaitingOwner: continuity.awaitingOwner,
       renewAt: continuity.renewal?.kind === "current" ? continuity.renewal.renewAt : null,
       delegationExpiresAt: current?.expiresAt ?? null,
       policyHorizonAt: policy.status === "loaded" ? policy.policy.horizonAt : null,

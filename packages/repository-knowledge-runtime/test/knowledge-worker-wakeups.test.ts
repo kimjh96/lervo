@@ -81,3 +81,19 @@ it("backs a watcher that keeps failing to start off exponentially, and resets on
   expect(vi.getTimerCount()).toBe(0);
   unsubscribe();
 });
+
+it("keeps backing off a watch that arms and then fails at once (a flapping watch, ADR-0602)", async () => {
+  vi.useFakeTimers();
+  const startedAt: number[] = [];
+  const watch = vi.fn(async (_root: string, _changed: () => void, failed?: () => void) => {
+    startedAt.push(Date.now());
+    // Armed, then lost right away, as a watch over a limit that keeps being reached.
+    setTimeout(() => failed!(), 10);
+    return () => undefined;
+  });
+  const start = Date.now();
+  const unsubscribe = subscribeKnowledgeWakeups(await storage(), vi.fn(), watch);
+  await vi.advanceTimersByTimeAsync(16 * 60_000);
+  expect(startedAt.map((at) => Math.floor((at - start) / 60_000))).toEqual([0, 1, 3, 7, 15]);
+  unsubscribe();
+});

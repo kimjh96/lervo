@@ -1,9 +1,9 @@
 import { type DatabaseSync } from "node:sqlite";
 
-import { canonicalJson } from "@lervo/event-contract";
 import { type HubKnowledgeConvergenceHostCoordinate } from "@lervo/hub-sync";
 import {
   isKnowledgeConvergenceHostRecord,
+  knowledgeConvergenceHostRecordFacts,
   MAXIMUM_CONVERGENCE_HOST_RECORDS,
   mergeKnowledgeConvergenceHostRecord,
   type KnowledgeConvergenceHostPublishStatus,
@@ -12,12 +12,6 @@ import {
 
 import { HubSyncStoreError } from "./errors.js";
 import { sqliteRow } from "./sqlite-row.js";
-
-/** A record without its observation time, so a republish of the same facts reads as unchanged. */
-function observedContent(record: KnowledgeConvergenceHostRecord): string {
-  const { observedAt: _observedAt, ...content } = record;
-  return canonicalJson(content);
-}
 
 /**
  * One row per repository and host holds an ADR-0469 continuity record. Storage is bounded per
@@ -65,7 +59,9 @@ export class HubKnowledgeConvergenceHostSQLiteRepository {
     const current = row === undefined ? null : this.parse(row.record_json);
     const { next, status } = mergeKnowledgeConvergenceHostRecord({ current, incoming: record });
     if (status === "stale") return { status, record: next, changed: false };
-    const changed = current === null || observedContent(current) !== observedContent(next);
+    const changed =
+      current === null ||
+      knowledgeConvergenceHostRecordFacts(current) !== knowledgeConvergenceHostRecordFacts(next);
     this.database
       .prepare(
         `INSERT INTO hub_knowledge_convergence_hosts

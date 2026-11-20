@@ -6,12 +6,16 @@ import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connec
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 
 const DATABASE_NAME = "full-cycle-admission.sqlite";
-/** The base wait between admission polls. */
+/**
+ * The base wait between admission retries. ADR-0602: a waiter of this release retries only on a
+ * signal (a ping, a holder's or the waiter ahead's exit, a lease's expiry); this backoff applies
+ * only while a holder or waiter of an earlier release, which records no presence, is in the way,
+ * and to lock contention.
+ */
 export const POLL_MILLISECONDS = 1_000;
 /**
- * ADR-0598: a waiter backs off from the base poll, doubling to at most eight times it and never
- * past eight seconds. With the jitter below, its heartbeat stays within ten seconds, a third of
- * the stale bound, so a backed-off waiter never loses its turn.
+ * ADR-0598: that retry backs off from the base, doubling to at most eight times it and never past
+ * eight seconds, so an earlier release's waiter, which still heartbeats, never loses its turn.
  */
 const MAXIMUM_POLL_MULTIPLE = 8;
 const MAXIMUM_POLL_MILLISECONDS = 8_000;
@@ -52,6 +56,11 @@ export async function database(directory: string): Promise<DatabaseSync> {
     );
     db.exec(
       "CREATE TABLE IF NOT EXISTS waiters(nonce TEXT PRIMARY KEY,owner_pid INTEGER NOT NULL,repository_hash TEXT NOT NULL,since INTEGER NOT NULL,heartbeat INTEGER NOT NULL)",
+    );
+    // ADR-0602: each holder and waiter names its process presence in a table of its own, so
+    // earlier releases, which insert rows by position, never see a changed column list.
+    db.exec(
+      "CREATE TABLE IF NOT EXISTS admission_presence(nonce TEXT PRIMARY KEY,presence TEXT NOT NULL)",
     );
     return db;
   } catch (error) {

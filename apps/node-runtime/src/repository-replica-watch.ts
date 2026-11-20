@@ -138,10 +138,11 @@ export async function watchReplicaReconciliation(input: {
   let localStops: Array<() => void> = [];
   const remote = new Map<
     string,
-    { stop: () => void; ready: boolean; retryAt: number; failures: number }
+    { stop: () => void; ready: boolean; retryAt: number; failures: number; openedAt: number }
   >();
   let localAvailable = true;
   let localFailures = 0;
+  let localArmedAt: number | null = null;
   let localRetryAt = 0;
   let fallbackBy: number | null = null;
   let reportedWatch = "null";
@@ -163,7 +164,12 @@ export async function watchReplicaReconciliation(input: {
     input.onWatchBackoff?.(state);
   };
   const localFailed = () => {
-    if (localAvailable) localFailures += 1;
+    if (localAvailable) {
+      // As for a peer: only a watch that stayed armed as long as its delay resets the backoff.
+      if (localArmedAt !== null && Date.now() - localArmedAt >= retryDelay(localFailures))
+        localFailures = 0;
+      localFailures += 1;
+    }
     localAvailable = false;
     localRetryAt = Date.now() + retryDelay(localFailures);
     reportWatch();
@@ -189,7 +195,7 @@ export async function watchReplicaReconciliation(input: {
         localFailed();
       }
     }
-    if (localAvailable) localFailures = 0;
+    if (localAvailable) localArmedAt = Date.now();
     reportWatch();
   };
   let startup = true;
@@ -240,17 +246,20 @@ export async function watchReplicaReconciliation(input: {
             ready: false,
             retryAt: Date.now() + retryDelay(failures + 1),
             failures,
+            openedAt: Date.now(),
           };
           remote.set(repository.replicaId, entry);
           entry.stop = input.peer.subscribe(
             repository.peerRoot,
             () => {
               entry.ready = true;
-              entry.failures = 0;
               reportWatch();
               changed(repository.replicaId);
             },
             () => {
+              // A subscription that lasted as long as its delay was stable; one that keeps
+              // dropping right after it opened (a flapping peer) keeps backing off.
+              if (Date.now() - entry.openedAt >= retryDelay(entry.failures)) entry.failures = 0;
               entry.ready = false;
               entry.failures += 1;
               entry.retryAt = Date.now() + retryDelay(entry.failures);

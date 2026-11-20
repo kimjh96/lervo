@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b4b907dc833bc105386a4c07"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Idle hosts do no periodic work: commits, Hub changes and process exits wake what waits on them"

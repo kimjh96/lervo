@@ -28,11 +28,16 @@ export type KnowledgeHubChangeTransport = (
   target: ConvergenceOwnerHubCoordinates & { projectId: string; repositoryIdentityHash: string },
 ) => Promise<KnowledgeHubChangePort>;
 
-export type HubKnowledgeChangeIssue = "hub_knowledge_changes_unavailable";
+export type HubKnowledgeChangeIssue = "hub_knowledge_changes_unavailable" | "hub_upgrade_required";
 
 export interface HubKnowledgeChangeWatch {
   /** The Hub cursor last observed; null while standalone or before the first answer. */
   token(): string | null;
+  /**
+   * Whether the Hub answers `knowledge` waits now, so it pushes coordination changes and keeps a
+   * present holder's lease live; false while standalone, failing, or on a Hub older than ADR-0602.
+   */
+  pushing(): boolean;
   /** Settles at the first answer, the first failure, standalone, or the startup bound. */
   ready(): Promise<void>;
   stop(): Promise<void>;
@@ -43,6 +48,11 @@ export const HUB_KNOWLEDGE_CHANGE_RETRY_BASE_MILLISECONDS = 1_000;
 export const HUB_KNOWLEDGE_CHANGE_RETRY_CEILING_MILLISECONDS = 5 * 60_000;
 /** The longest a resident's first cycle waits for the first answer. */
 export const HUB_KNOWLEDGE_CHANGE_READY_MILLISECONDS = 10_000;
+/**
+ * ADR-0602: a Hub older than this release refuses the `knowledge` wait. Until it is upgraded the
+ * resident runs one full cycle at this cadence, the bound it had before, and asks the Hub again.
+ */
+export const HUB_KNOWLEDGE_LEGACY_CYCLE_MILLISECONDS = 60 * 60_000;
 
 export function hubKnowledgeChangeRetryDelay(
   failures: number,
@@ -70,17 +80,28 @@ export function watchHubKnowledgeChanges(input: {
 }): HubKnowledgeChangeWatch {
   const transport = input.transport;
   if (transport === undefined)
-    return { token: () => null, ready: async () => undefined, stop: async () => undefined };
+    return {
+      token: () => null,
+      pushing: () => false,
+      ready: async () => undefined,
+      stop: async () => undefined,
+    };
   const root = input.storage.paths.repositoryRoot;
   const stopped = new AbortController();
   let token: string | null = null;
   let answered = false;
+  let pushing = false;
+  // The first answer after the startup bound gave up is a change: the first cycle ran without it.
+  let readyTimedOut = false;
   let issue: HubKnowledgeChangeIssue | null = null;
   // Aborts the held wait or the retry sleep when the coordinates change.
   let interrupt = new AbortController();
   let markReady: () => void = () => undefined;
   const readiness = new Promise<void>((resolveReady) => {
-    const bound = setTimeout(resolveReady, HUB_KNOWLEDGE_CHANGE_READY_MILLISECONDS);
+    const bound = setTimeout(() => {
+      readyTimedOut = true;
+      resolveReady();
+    }, HUB_KNOWLEDGE_CHANGE_READY_MILLISECONDS);
     bound.unref();
     markReady = () => {
       clearTimeout(bound);
@@ -98,7 +119,7 @@ export function watchHubKnowledgeChanges(input: {
     markReady();
     if (next === token) return;
     token = next;
-    if (!first) input.onChange();
+    if (!first || readyTimedOut) input.onChange();
   };
   const coordinates = watchFiles([resolve(root, CONVERGENCE_OWNER_HOST_PATH)], () =>
     interrupt.abort(),
@@ -145,13 +166,25 @@ export function watchHubKnowledgeChanges(input: {
           });
           cursor = { key, value: answer.cursor };
           failures = 0;
+          pushing = true;
           report(null);
           observe(answer.cursor);
         }
       } catch (error) {
+        pushing = false;
         if (signal.aborted) continue;
+        const status = (error as { httpStatus?: unknown } | null)?.httpStatus;
+        if (status === 400 || status === 404) {
+          // A Hub older than ADR-0602: no pushes, so one full cycle per legacy cadence, through a
+          // new token, until it is upgraded; asked again each time.
+          report("hub_upgrade_required", error);
+          observe(`legacy-${Date.now()}`);
+          await sleep(HUB_KNOWLEDGE_LEGACY_CYCLE_MILLISECONDS, signal);
+          continue;
+        }
         failures += 1;
-        report("hub_knowledge_changes_unavailable", error);
+        // One lost connection is routine; a failure that repeats is attention.
+        if (failures >= 2) report("hub_knowledge_changes_unavailable", error);
         markReady();
         await sleep(
           hubKnowledgeChangeRetryDelay(
@@ -167,6 +200,7 @@ export function watchHubKnowledgeChanges(input: {
   const running = run();
   return {
     token: () => token,
+    pushing: () => pushing,
     ready: () => readiness,
     stop: async () => {
       stopped.abort();

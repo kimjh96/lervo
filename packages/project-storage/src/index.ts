@@ -8,9 +8,16 @@ export * from "./types.js";
 export { watchProjectEventChanges, type ProjectEventWatchOptions } from "./event-wakeup.js";
 /** ADR-0602: the visible state of the event-store wake channel, for health and attention. */
 export {
+  holdProcessPresence,
   inspectEventStoreChannel,
   localProcessAlive,
   localProcessIdentity,
+  probeProcessPresence,
+  processPresenceDirectory,
+  wakeProcessPresence,
+  waitForProcessExit,
+  type HeldProcessPresence,
+  type ProcessPresenceProbe,
   type EventStoreChannelIssue,
   type LocalProcessIdentity,
 } from "@lervo/event-store-sqlite";

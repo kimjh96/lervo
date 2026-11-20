@@ -77,7 +77,8 @@ describe("runtime idle scheduling", () => {
     await third;
     await wait.wait(signal);
     expect(request).toHaveBeenCalledTimes(4);
-    expect(failures).toHaveLength(3);
+    // The first failure is routine; the second in a row is reported, and the answer clears it.
+    expect(failures).toHaveLength(2);
     expect(failures.at(-1)).toBeNull();
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -109,5 +110,35 @@ describe("runtime idle scheduling", () => {
     abort.abort();
     await pending;
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("waits again on a bound answer without returning, and uses the legacy hold on an old Hub (ADR-0602)", async () => {
+    const timeout = { ...reply, body: { schemaVersion: 1, status: "timeout", cursor } };
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(reply)
+      // The Hub's ten-minute bound passed with no change: held again here.
+      .mockResolvedValueOnce(timeout)
+      .mockResolvedValueOnce(timeout)
+      .mockRejectedValueOnce(Object.assign(new Error("invalid_request"), { status: 400 }))
+      .mockResolvedValueOnce({
+        ...reply,
+        body: {
+          schemaVersion: 1,
+          status: "changed",
+          cursor: "22345678-1234-1234-1234-123456789abc",
+        },
+      });
+    const wait = new RuntimeIdleWait({
+      ...options(),
+      transport: () => ({ waitForRuntimeChange: request }),
+    });
+    const signal = new AbortController().signal;
+    await wait.wait(signal);
+    await wait.wait(signal);
+    expect(request).toHaveBeenCalledTimes(5);
+    // An old Hub refused the open hold; its bounded legacy hold is asked for instead.
+    expect(request.mock.calls[3]![0]).not.toHaveProperty("legacy");
+    expect(request.mock.calls[4]![0]).toMatchObject({ legacy: true });
   });
 });

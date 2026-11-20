@@ -61,13 +61,11 @@ export async function readRepositoryHealth(input: {
       }
       if (key === "convergence" && value.measures.convergence.value !== null) {
         const convergence = value.measures.convergence;
+        // ADR-0602: liveness is the resident's presence, probed now, not its last write's age.
         const live = await inspectKnowledgeResidentHealth(input.root, input.now).catch(() => null);
-        const heartbeatAge = input.now.getTime() - Date.parse(live?.heartbeatAt ?? "");
         if (
           live === null ||
-          !Number.isFinite(heartbeatAge) ||
-          heartbeatAge < 0 ||
-          heartbeatAge > 120_000 ||
+          live.status === "not_running" ||
           live.state !== convergence.value!.residentState
         ) {
           value.measures.convergence = unknownHealthMeasure(
@@ -77,10 +75,7 @@ export async function readRepositoryHealth(input: {
           continue;
         }
         convergence.validUntil = new Date(
-          Math.min(
-            Date.parse(convergence.observedAt!) + HEALTH_MAXIMUM_AGE_MS,
-            Date.parse(live.heartbeatAt!) + 120_000,
-          ),
+          Date.parse(convergence.observedAt!) + HEALTH_MAXIMUM_AGE_MS,
         ).toISOString();
       }
       if (

@@ -9,6 +9,13 @@ import { HubJsonHttpStatusError } from "./hub-json-http-client.js";
  */
 export const HUB_HELD_REQUEST_KEEPALIVE_MILLISECONDS = 15_000;
 const MAXIMUM_HELD_RESPONSE_BYTES = 4_096;
+/**
+ * ADR-0602: the Hub answers an open hold within ten minutes; a request still unanswered this long
+ * after it was sent lost its connection somewhere a keepalive cannot see (a proxy hop), so it is
+ * ended and the caller reconnects. A legacy hold is answered within 25 seconds.
+ */
+export const HUB_OPEN_HOLD_DEADLINE_MILLISECONDS = 10 * 60_000 + 60_000;
+export const HUB_LEGACY_HOLD_DEADLINE_MILLISECONDS = 25_000 + 60_000;
 const utf8 = new TextDecoder("utf-8", { fatal: true });
 
 /** The same result shape HubJsonHttpClient.requestJson returns. */
@@ -60,10 +67,11 @@ function readBody(response: IncomingMessage): Promise<unknown> {
 }
 
 /**
- * ADR-0602: one GET the Hub may hold for as long as nothing changes. Unlike fetch, whose header and
- * body timeouts end a silent request after five minutes, it arms no timer: the socket's TCP
- * keepalive notices a vanished Hub or network, which ends the request with an error, and `signal`
- * ends it on the caller's side. The identity, status and content checks match HubJsonHttpClient.
+ * ADR-0602: one GET the Hub holds until something changes or its hold bound. Unlike fetch, whose
+ * header and body timeouts end a silent request after five minutes, it arms one deadline per
+ * request, just past the Hub's bound: TCP keepalive notices a vanished first hop at once, and the
+ * deadline a connection dropped silently further along. `signal` ends it on the caller's side.
+ * The identity, status and content checks match HubJsonHttpClient.
  */
 export function holdHubRequest(input: {
   url: URL;
@@ -71,6 +79,7 @@ export function holdHubRequest(input: {
   expectedHubIdentityHash: string;
   destinationId: string;
   signal: AbortSignal;
+  deadlineMilliseconds?: number;
 }): Promise<HubHeldResult> {
   return new Promise<HubHeldResult>((resolve, reject) => {
     if (input.signal.aborted) {
@@ -86,7 +95,20 @@ export function holdHubRequest(input: {
     });
     const abort = () => request.destroy(input.signal.reason as Error);
     input.signal.addEventListener("abort", abort, { once: true });
-    const settle = () => input.signal.removeEventListener("abort", abort);
+    const deadline = setTimeout(
+      () =>
+        request.destroy(
+          Object.assign(new Error("The Hub held request outlived its bound."), {
+            code: "ERR_HUB_HOLD_DEADLINE",
+          }),
+        ),
+      input.deadlineMilliseconds ?? HUB_OPEN_HOLD_DEADLINE_MILLISECONDS,
+    );
+    deadline.unref();
+    const settle = () => {
+      clearTimeout(deadline);
+      input.signal.removeEventListener("abort", abort);
+    };
     request.once("socket", (socket) => {
       socket.setKeepAlive(true, HUB_HELD_REQUEST_KEEPALIVE_MILLISECONDS);
       socket.setNoDelay(true);

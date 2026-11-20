@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_8fbfdf5e1d03e015258720d6"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Event-store commits wake their watchers, and idle Node history readers re-read nothing"

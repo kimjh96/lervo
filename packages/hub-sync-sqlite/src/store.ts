@@ -136,7 +136,36 @@ export class HubSyncSQLiteStore
     HubCommandArtifactLifecycleRepository,
     HubCommandArtifactCleanupScheduleStore
 {
-  private readonly runtimeChanges = new RuntimeChangeNotifications();
+  // ADR-0602: the owner lease follows its holder's presence on the `knowledge` topic.
+  private readonly runtimeChanges = new RuntimeChangeNotifications(
+    Date.now,
+    (scope, host, connected) => {
+      if (scope.topic !== "knowledge" || this.closed) return;
+      try {
+        this.transactionRunner.write(() =>
+          this.knowledgeConvergenceOwnerRepository.presence(
+            scope,
+            host,
+            connected,
+            new Date().toISOString(),
+          ),
+        );
+      } catch {
+        // A failed write leaves the recorded expiry, which still ends the lease on time.
+      }
+    },
+  );
+
+  private holderPresent(coordinate: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+  }): (hostHash: string) => number | null {
+    return (hostHash) => {
+      const presence = this.runtimeChanges.hostPresence(coordinate, hostHash);
+      return presence?.connected === true ? Date.parse(presence.since) : null;
+    };
+  }
 
   async waitForRuntimeChange(input: Parameters<HubRuntimeChangeSource["waitForRuntimeChange"]>[0]) {
     this.assertOpen();
@@ -336,7 +365,10 @@ export class HubSyncSQLiteStore
   }): Promise<KnowledgeConvergenceOwnerDecision> {
     this.assertOpen();
     const decision = this.transactionRunner.write(() =>
-      this.knowledgeConvergenceOwnerRepository.mutate(input),
+      this.knowledgeConvergenceOwnerRepository.mutate(
+        input,
+        this.holderPresent({ destinationId: input.destinationId, ...input.mutation.request }),
+      ),
     );
     // A new holder or a release changes who may own; a renewal changes nothing a peer acts on.
     if (decision.status === "granted" || decision.status === "released")
@@ -410,10 +442,11 @@ export class HubSyncSQLiteStore
     input: HubKnowledgeConvergenceHostCoordinate & { hostHashes: readonly string[] },
   ): Promise<KnowledgeConvergenceHostPresenceEntry[]> {
     this.assertOpen();
-    return input.hostHashes.map((hostHash) => ({
-      hostHash,
-      ...this.runtimeChanges.hostPresence(input, hostHash),
-    }));
+    // A host never seen waiting has no entry, so its peers judge it by its record's age.
+    return input.hostHashes.flatMap((hostHash) => {
+      const presence = this.runtimeChanges.hostPresence(input, hostHash);
+      return presence === null ? [] : [{ hostHash, ...presence }];
+    });
   }
 
   async publishKnowledgeConvergenceDefinition(input: {
@@ -455,7 +488,9 @@ export class HubSyncSQLiteStore
     input: HubKnowledgeConvergenceOwnerCoordinate & { acceptedAt: string },
   ): Promise<KnowledgeConvergenceOwnerReading> {
     this.assertOpen();
-    return this.transactionRunner.read(() => this.knowledgeConvergenceOwnerRepository.read(input));
+    return this.transactionRunner.read(() =>
+      this.knowledgeConvergenceOwnerRepository.read(input, this.holderPresent(input)),
+    );
   }
 
   async publishWorkspaceSummary(input: {

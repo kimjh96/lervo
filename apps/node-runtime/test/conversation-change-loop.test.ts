@@ -176,3 +176,27 @@ it("backs repeated failures off exponentially, resets on success, and waits for 
   expect(at).toHaveLength(settled + 1);
   await loop.stop();
 });
+
+it("backs an unreadable deadline off even though each cycle succeeds, and reports it (ADR-0602)", async () => {
+  vi.useFakeTimers();
+  const at: number[] = [];
+  const begin = Date.now();
+  const onFailure = vi.fn();
+  const loop = new ConversationChangeLoop({
+    runCycle: async () => {
+      at.push((Date.now() - begin) / 1_000);
+    },
+    onFailure,
+    intervalMs: 1_000,
+    continueOnFailure: true,
+    failureRetryCeilingMs: 8_000,
+    nextWakeupAt: () => {
+      throw new Error("deadline unreadable");
+    },
+  });
+  loop.start();
+  await vi.advanceTimersByTimeAsync(30_000);
+  expect(at).toEqual([0, 1, 3, 7, 15, 23]);
+  expect(onFailure).toHaveBeenCalledTimes(at.length);
+  await loop.stop();
+});

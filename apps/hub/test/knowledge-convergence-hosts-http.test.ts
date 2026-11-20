@@ -192,9 +192,9 @@ it(
     expect(listed.find((item) => item.hostHash === wsl)?.presence).toMatchObject({
       connected: true,
     });
-    expect(listed.find((item) => item.hostHash === mac)?.presence).toMatchObject({
-      connected: false,
-    });
+    // mac never waited (as an earlier release, which names no host): no presence, so peers
+    // judge it by its record's age instead of reading it as gone.
+    expect(listed.find((item) => item.hostHash === mac)?.presence).toBeUndefined();
     // wsl's own record never wakes wsl.
     expect(await held(waiting, 300)).toBe(true);
   },

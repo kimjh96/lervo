@@ -20,11 +20,13 @@ function sleep(milliseconds: number, signal: AbortSignal): Promise<void> {
 
 /**
  * Coalesces hints; durable cursors, policy, and execution remain in the existing cycles.
- * ADR-0602: a wait is an open hold on the Hub, answered only when Hub state changed, so an idle
- * Node arms no timer and makes no request; a local `notify` ends it at once. A failed wait
- * retries after `fallbackIntervalMs`, doubling to a ceiling, and `onAvailability` reports the
- * failure until the next answer. Without a hint-capable transport it waits for local changes
- * only, and reports that once.
+ * ADR-0602: a wait is an open hold on the Hub, answered when Hub state changed or at the Hub's
+ * ten-minute bound; a bound answer with no change is waited on again here, so the caller's cycle
+ * runs only for a change, and a local `notify` ends it at once. A Hub older than ADR-0602 refuses
+ * the open hold (400 or 404), and its bounded legacy hold is used instead. A failed wait retries
+ * after `fallbackIntervalMs`, doubling to a ceiling, and `onAvailability` reports the failure
+ * once it repeats, until the next answer. Without a hint-capable transport it waits for local
+ * changes only, and reports that once.
  */
 export class RuntimeIdleWait {
   private cursor: string | null = null;
@@ -33,6 +35,7 @@ export class RuntimeIdleWait {
   private failures = 0;
   private retryAt = 0;
   private unavailable = false;
+  private legacy = false;
 
   constructor(
     private readonly options: {
@@ -94,12 +97,31 @@ export class RuntimeIdleWait {
         return await sleep(Number.POSITIVE_INFINITY, combined);
       }
       try {
-        const result = await transport.waitForRuntimeChange({
-          topic: this.options.topic,
-          ...(this.options.nodeId === undefined ? {} : { nodeId: this.options.nodeId }),
-          cursor: this.cursor,
-          signal: combined,
-        });
+        let result: unknown;
+        for (;;) {
+          try {
+            result = await transport.waitForRuntimeChange({
+              topic: this.options.topic,
+              ...(this.options.nodeId === undefined ? {} : { nodeId: this.options.nodeId }),
+              cursor: this.cursor,
+              signal: combined,
+              ...(this.legacy ? { legacy: true } : {}),
+            });
+          } catch (error) {
+            const status = (error as { status?: unknown } | null)?.status;
+            if (!this.legacy && (status === 400 || status === 404)) {
+              this.legacy = true;
+              continue;
+            }
+            throw error;
+          }
+          if (combined.aborted) return;
+          // A bound answer with the same cursor changed nothing: hold again.
+          const body = (result as { body?: { status?: unknown; cursor?: unknown } } | null)?.body;
+          if (body?.status === "timeout" && body.cursor === this.cursor && this.cursor !== null)
+            continue;
+          break;
+        }
         if (combined.aborted) return;
         const value = result as {
           authentication?: { status?: string; destinationId?: string; peerIdentityHash?: string };
@@ -127,7 +149,8 @@ export class RuntimeIdleWait {
         this.failures = Math.min(this.failures + 1, 64);
         const delay = this.retryDelay();
         this.retryAt = Date.now() + delay;
-        this.report(error);
+        // One lost connection is routine; a failure that repeats is attention.
+        if (this.failures >= 2) this.report(error);
         await sleep(delay, combined);
       }
     } finally {

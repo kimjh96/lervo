@@ -36,7 +36,7 @@ afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
 });
 
-async function hub() {
+async function hub(clock: { now: number | null } = { now: null }) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-hub-knowledge-changes-"));
   const store = await HubSyncSQLiteStore.open({ path: resolve(root, "hub.sqlite") });
   const authenticator = new ConfiguredBearerAuthenticator([
@@ -55,7 +55,12 @@ async function hub() {
   ]);
   const server = createHubServer({
     trace: { authenticator, source: store },
-    sync: { authenticator, store, hubIdentityHash, now: () => new Date() },
+    sync: {
+      authenticator,
+      store,
+      hubIdentityHash,
+      now: () => new Date(clock.now ?? Date.now()),
+    },
   });
   await new Promise<void>((resolveListen, reject) => {
     server.once("error", reject);
@@ -183,3 +188,50 @@ it("names an unreachable Hub as unreachable", async () => {
     client.wait({ cursor: null, hostHash: wsl, signal: new AbortController().signal }),
   ).rejects.toMatchObject({ failureCode: "hub_unreachable" });
 });
+
+it(
+  "keeps a present holder's lease live past its length and pushes its expiry when the holder leaves (ADR-0602)",
+  { timeout: 60_000 },
+  async () => {
+    const clock: { now: number | null } = { now: null };
+    const running = await hub(clock);
+    const changes = running.changes();
+    const macWait = new AbortController();
+    const stop = new AbortController();
+    cleanups.push(async () => {
+      macWait.abort();
+      stop.abort();
+    });
+    await expect(running.owner.mutate(claim(mac, "mac"))).resolves.toMatchObject({
+      status: "granted",
+    });
+    // mac holds its knowledge wait, as its resident does.
+    const first = await changes.wait({ cursor: null, hostHash: mac, signal: macWait.signal });
+    changes
+      .wait({ cursor: first.cursor, hostHash: mac, signal: macWait.signal })
+      .catch(() => undefined);
+    await new Promise((settle) => setTimeout(settle, 200));
+    // Long past the thirty-minute lease, with no renewal: the present holder still holds it.
+    clock.now = Date.now() + 2 * 60 * 60_000;
+    const refused = await running.owner.mutate(claim(wsl, "wsl"));
+    expect(refused).toMatchObject({ status: "held_elsewhere", holderPresent: true });
+    // wsl waits; mac's resident stops, and after the presence grace wsl is woken.
+    const wslFirst = await changes.wait({ cursor: null, hostHash: wsl, signal: stop.signal });
+    const wslWait = changes.wait({ cursor: wslFirst.cursor, hostHash: wsl, signal: stop.signal });
+    wslWait.catch(() => undefined);
+    // wsl's own arrival wakes mac only; drain any presence change before mac leaves.
+    clock.now = null;
+    macWait.abort();
+    const woken = await wslWait;
+    expect(woken.cursor).not.toBe(wslFirst.cursor);
+    const reading = await running.owner.read();
+    expect(reading).toMatchObject({ status: "held", holderPresent: false });
+    const left = Date.parse(reading.lease!.expiresAt) - Date.now();
+    expect(left).toBeGreaterThan(0);
+    expect(left).toBeLessThanOrEqual(60_000);
+    clock.now = Date.parse(reading.lease!.expiresAt) + 1;
+    await expect(running.owner.mutate(claim(wsl, "wsl"))).resolves.toMatchObject({
+      status: "granted",
+    });
+  },
+);

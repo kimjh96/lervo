@@ -11,6 +11,15 @@ export {
   type EventStoreChannelListener,
 } from "./change-channel.js";
 export {
+  holdProcessPresence,
+  probeProcessPresence,
+  processPresenceDirectory,
+  wakeProcessPresence,
+  waitForProcessExit,
+  type HeldProcessPresence,
+  type ProcessPresenceProbe,
+} from "./process-presence.js";
+export {
   localBootKey,
   localProcessAlive,
   localProcessIdentity,

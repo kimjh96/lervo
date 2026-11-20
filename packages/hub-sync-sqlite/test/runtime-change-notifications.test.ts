@@ -91,7 +91,7 @@ describe("knowledge change waits (ADR-0602)", () => {
   const mac = `sha256:${"a".repeat(64)}`;
   const wsl = `sha256:${"b".repeat(64)}`;
 
-  it("arms no timer for an open hold and never wakes the host that made the change", async () => {
+  it("bounds an open hold at ten minutes and never wakes the host that made the change", async () => {
     vi.useFakeTimers();
     const source = new RuntimeChangeNotifications();
     const signal = new AbortController().signal;
@@ -102,8 +102,9 @@ describe("knowledge change waits (ADR-0602)", () => {
       signal,
       hold: "open",
     });
-    expect(vi.getTimerCount()).toBe(0);
-    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    // One timer: the ten-minute bound that reclaims a waiter whose connection died unseen.
+    expect(vi.getTimerCount()).toBe(1);
+    await vi.advanceTimersByTimeAsync(9 * 60_000);
     // mac's own change leaves mac's cursor alone, and wakes the hostless wait.
     const own = await source.waitForRuntimeChange({
       ...knowledge,
@@ -120,6 +121,14 @@ describe("knowledge change waits (ADR-0602)", () => {
     });
     expect(after.cursor).toBe(own.cursor);
     expect(await waiting).toMatchObject({ status: "changed" });
+    const bounded = source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: (await source.waitForRuntimeChange({ ...knowledge, cursor: null, signal })).cursor,
+      signal,
+      hold: "open",
+    });
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
+    expect(await bounded).toMatchObject({ status: "timeout" });
     source.close();
   });
 
@@ -132,10 +141,8 @@ describe("knowledge change waits (ADR-0602)", () => {
       repositoryIdentityHash: knowledge.repositoryIdentityHash,
       destinationId: knowledge.destinationId,
     };
-    expect(source.hostPresence(coordinate, wsl)).toEqual({
-      connected: false,
-      since: "2026-11-20T00:00:00.000Z",
-    });
+    // Never seen waiting (an earlier release names no host): unknown, never absent.
+    expect(source.hostPresence(coordinate, wsl)).toBeNull();
     const peer = await source.waitForRuntimeChange({
       ...knowledge,
       cursor: null,
@@ -173,7 +180,7 @@ describe("knowledge change waits (ADR-0602)", () => {
     await held;
     // A departure shorter than the grace is the gap between two waits: no change.
     await vi.advanceTimersByTimeAsync(HUB_PRESENCE_GRACE_MILLISECONDS - 1);
-    expect(source.hostPresence(coordinate, wsl).connected).toBe(true);
+    expect(source.hostPresence(coordinate, wsl)?.connected).toBe(true);
     await vi.advanceTimersByTimeAsync(1);
     expect(source.hostPresence(coordinate, wsl)).toEqual({
       connected: false,

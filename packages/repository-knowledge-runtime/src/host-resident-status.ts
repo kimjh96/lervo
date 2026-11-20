@@ -1,5 +1,6 @@
 import { dirname, isAbsolute, resolve } from "node:path";
 
+import { probeProcessPresence } from "@lervo/project-storage";
 import { defaultRepositoryRegistryPath } from "@lervo/repository-registry";
 
 import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.js";
@@ -7,7 +8,11 @@ import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.
 export const HOST_KNOWLEDGE_RESIDENT_STATUS_FILE = "knowledge-host-resident.json";
 const MAXIMUM_STATUS_BYTES = 128 * 1024;
 const MAXIMUM_REPOSITORIES = 256;
-/** A heartbeat older than this, or a dead process, means no host resident runs. */
+/**
+ * ADR-0602: a host resident proves it runs through its process presence, probed when read; it
+ * rewrites its status only on change. A record without a presence (an earlier release, which
+ * still heartbeats) is judged by this heartbeat age and its process.
+ */
 export const HOST_KNOWLEDGE_RESIDENT_STALE_MILLISECONDS = 3 * 60_000;
 /** A repository scan running longer than this is stalled; a healthy scan takes seconds. */
 export const HOST_KNOWLEDGE_RESIDENT_SCAN_STALL_MILLISECONDS = 10 * 60_000;
@@ -34,7 +39,10 @@ export interface HostKnowledgeResidentStatus {
   schemaVersion: 1;
   pid: number;
   startedAt: string;
+  /** When the record was last written; liveness is the presence, never this age. */
   heartbeatAt: string;
+  /** ADR-0602: the writer's process presence token; absent from earlier releases. */
+  presence?: string;
   /** `service` when started by the Lervo-managed service definition; `manual` otherwise. */
   launch: "service" | "manual";
   /** `standby` while another host resident holds the host lock; it serves nothing. */
@@ -102,6 +110,8 @@ export function parseHostKnowledgeResidentStatus(
     Number.isNaN(Date.parse(record.heartbeatAt)) ||
     (record.launch !== "service" && record.launch !== "manual") ||
     (record.role !== "active" && record.role !== "standby") ||
+    (record.presence !== undefined &&
+      (typeof record.presence !== "string" || !/^[0-9a-z-]{1,96}$/u.test(record.presence))) ||
     !Array.isArray(record.repositories) ||
     record.repositories.length > MAXIMUM_REPOSITORIES
   )
@@ -116,6 +126,7 @@ export function parseHostKnowledgeResidentStatus(
     pid: record.pid as number,
     startedAt: record.startedAt,
     heartbeatAt: record.heartbeatAt,
+    ...(record.presence === undefined ? {} : { presence: record.presence as string }),
     launch: record.launch,
     role: record.role,
     repositories: repositories as HostResidentRepository[],
@@ -168,6 +179,11 @@ export async function readHostKnowledgeResidentStatus(
   if (file.status !== "read") return file;
   const record = parseHostKnowledgeResidentStatus(file.value);
   if (record === null) return { status: "invalid" };
+  if (record.presence !== undefined) {
+    const probe = await probeProcessPresence(record.presence);
+    const running = probe === "alive" || (probe === "unknown" && alive(record.pid));
+    return { status: running ? "running" : "stale", record };
+  }
   const fresh =
     now.getTime() - Date.parse(record.heartbeatAt) <= HOST_KNOWLEDGE_RESIDENT_STALE_MILLISECONDS;
   return { status: fresh && alive(record.pid) ? "running" : "stale", record };

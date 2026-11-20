@@ -25,6 +25,7 @@ vi.mock("@lervo/repository-knowledge-runtime", async (original) => ({
 }));
 
 const { startHostKnowledgeResidents } = await import("../src/knowledge-host-residents.js");
+const { holdProcessPresence } = await import("@lervo/project-storage");
 
 const fixtures: Awaited<ReturnType<typeof fixture>>[] = [];
 afterEach(async () => {
@@ -167,6 +168,41 @@ it("stays on standby while another live host resident holds the host lock", asyn
     expect(ports.open).not.toHaveBeenCalled();
     expect(ports.start).not.toHaveBeenCalled();
   } finally {
+    await stop();
+  }
+});
+
+it("takes the host lock as soon as the holder's presence closes, with no retry timer (ADR-0602)", async () => {
+  const { state } = await delegatedHost();
+  const holder = holdProcessPresence();
+  await holder.ready;
+  await writeFile(
+    resolve(state, "knowledge-host-resident.lock"),
+    JSON.stringify({ schemaVersion: 1, pid: process.ppid, presence: holder.token }),
+  );
+  const status = () => {
+    try {
+      return JSON.parse(readFileSync(resolve(state, "knowledge-host-resident.json"), "utf8")) as {
+        role: string;
+        presence?: string;
+      };
+    } catch {
+      return null;
+    }
+  };
+  const stop = startHostKnowledgeResidents({
+    provider: null,
+    onFailure: () => undefined,
+    // Far beyond the test: only the holder's exit can end the standby in time.
+    scanMilliseconds: 24 * 60 * 60_000,
+  });
+  try {
+    await until(() => status()?.role === "standby");
+    expect(status()?.presence).toEqual(expect.any(String));
+    holder.release();
+    await until(() => status()?.role === "active");
+  } finally {
+    holder.release();
     await stop();
   }
 });

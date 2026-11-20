@@ -142,9 +142,11 @@ it.each([
       expect(cycles[0]).toMatchObject({ status: "waiting_owner" });
       const released = Date.now();
       await mac.release();
-      // The release wakes the waiting host through its Hub change wait, long before the expiry.
-      await until(() => hub.lease?.holderLabel === "wsl", 5_000);
-      expect(Date.now() - released).toBeLessThan(5_000);
+      // The release wakes the waiting host through its Hub change wait. The bound is generous for
+      // a loaded host, yet below the time the expiry alone would take (the lease plus its grace).
+      const bound = elapsed === 0 ? 60_000 : 15_000;
+      await until(() => hub.lease?.holderLabel === "wsl", bound);
+      expect(Date.now() - released).toBeLessThan(bound);
       expect(failures).toEqual([]);
     } finally {
       await stop();

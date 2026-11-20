@@ -89,8 +89,9 @@ it("publishes nothing and reconciles no continuity while the owner holds the rep
     },
     continuity: {
       inputPaths: () => [],
-      reconcile: async () => {
+      turn: async () => {
         calls.continuity += 1;
+        return { status: "reconciled", state: null };
       },
     } as unknown as ConvergenceContinuity,
   });

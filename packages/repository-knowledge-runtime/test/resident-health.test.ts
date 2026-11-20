@@ -2,9 +2,8 @@ import { chmod, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
+import { holdProcessPresence } from "@lervo/project-storage";
 import {
-  RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS,
-  RESIDENT_HEALTH_STALE_MILLISECONDS,
   recordKnowledgeResidentHealth,
   inspectKnowledgeResidentHealth,
 } from "../src/resident-health.js";
@@ -61,8 +60,22 @@ it("reuses one write handle and reopens it only when the database file changes (
   }
 });
 
-it("leaves at least a 75-second blocked-loop margin under the stale bound", () => {
-  expect(
-    RESIDENT_HEALTH_STALE_MILLISECONDS - RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS,
-  ).toBeGreaterThanOrEqual(75_000);
+it("proves a resident by its presence however old its record, and none once it is gone (ADR-0602)", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-health-"));
+  const presence = holdProcessPresence();
+  try {
+    await presence.ready;
+    const input = { repositoryRoot: root, workerId: "resident-presence", presence: presence.token };
+    await recordKnowledgeResidentHealth({ ...input, state: "idle" });
+    // A day without a write is still a running resident: nothing heartbeats.
+    expect(
+      await inspectKnowledgeResidentHealth(root, new Date(Date.now() + 86_400_000)),
+    ).toMatchObject({ status: "healthy", state: "idle" });
+    presence.release();
+    await new Promise((settle) => setTimeout(settle, 50));
+    expect(await inspectKnowledgeResidentHealth(root)).toMatchObject({ status: "not_running" });
+  } finally {
+    presence.release();
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  }
 });

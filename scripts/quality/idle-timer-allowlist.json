@@ -23,12 +23,6 @@
   ],
   "entries": [
     {
-      "path": "apps/cli/src/knowledge-host-residents.ts",
-      "kind": "interval",
-      "count": 1,
-      "reason": "Host resident status heartbeat (60 s); ADR-0602 step 3 replaces it with on-demand liveness."
-    },
-    {
       "path": "apps/node-runtime/src/health.ts",
       "kind": "interval",
       "count": 1,
@@ -134,13 +128,13 @@
       "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-store.ts",
       "kind": "period",
       "name": "POLL_MILLISECONDS",
-      "reason": "Admission wait base while a waiter queues behind another cycle; step 3 replaces the waiter heartbeat and poll with pid liveness and channel pings."
+      "reason": "Admission retry base, used only while an earlier release's holder or waiter is in the way or under lock contention; a waiter otherwise waits on a wake, an exit or the lease's exact expiry (ADR-0602)."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-store.ts",
       "kind": "period",
       "name": "MAXIMUM_POLL_MILLISECONDS",
-      "reason": "Admission wait ceiling while a waiter queues; replaced in step 3 with the base."
+      "reason": "Ceiling of that retry."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/full-cycle-admission.ts",
@@ -151,20 +145,14 @@
     {
       "path": "packages/repository-knowledge-runtime/src/full-cycle-admission.ts",
       "kind": "loop",
-      "count": 3,
-      "reason": "Admission wait and release confirmation while a waiter queues or a release is contended; bounded, and replaced in step 3 with pid liveness and channel pings."
+      "count": 2,
+      "reason": "Release and confirmation retries under lock contention while a holder releases or confirms; bounded by the lease (ADR-0577). Waiting itself is signal-driven (ADR-0602)."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
       "kind": "period",
       "name": "KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS",
       "reason": "Recheck of remote publication checks (GitHub CI) only while they run; remote state has no local signal."
-    },
-    {
-      "path": "packages/repository-knowledge-runtime/src/loop.ts",
-      "kind": "interval",
-      "count": 1,
-      "reason": "Resident health heartbeat (45 s); ADR-0602 step 3 replaces it with on-demand liveness."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/provider-call.ts",
@@ -179,12 +167,6 @@
       "reason": "Validation while a provider probe runs; it ends with the probe."
     },
     {
-      "path": "packages/repository-knowledge-runtime/src/resident-admission.ts",
-      "kind": "interval",
-      "count": 1,
-      "reason": "Hold heartbeat while a resident waits for admission. ADR-0602 step 3 replaces it with on-demand liveness."
-    },
-    {
       "path": "packages/repository-knowledge-runtime/src/resident-projection-fence.ts",
       "kind": "period",
       "name": "RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS",
@@ -194,13 +176,13 @@
       "path": "packages/repository-knowledge-runtime/src/upgrade-preemption.ts",
       "kind": "interval",
       "count": 1,
-      "reason": "Upgrade-waiting check only while a cycle runs; step 3 moves it onto the admission channel."
+      "reason": "Upgrade-waiting check while a provider call runs, only when no admission in this process can be woken; otherwise an upgrade's wake triggers the check (ADR-0602)."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/upgrade-preemption.ts",
       "kind": "period",
       "name": "UPGRADE_PREEMPTION_POLL_MILLISECONDS",
-      "reason": "The upgrade-waiting check above."
+      "reason": "Upgrade-waiting check while a provider call runs, only when no admission in this process can be woken; otherwise an upgrade's wake triggers the check (ADR-0602)."
     },
     {
       "path": "packages/adapter-discord/src/rest-typing.ts",
@@ -224,7 +206,7 @@
       "path": "apps/cli/src/knowledge-host-residents.ts",
       "kind": "rearm",
       "count": 1,
-      "reason": "One deadline re-armed after each scan: a held checkout's retry time, or on standby the host lock retry, which step 3 replaces with lock liveness. Watched inputs drive every other rescan."
+      "reason": "One deadline re-armed after each scan: a held checkout's retry time, or on standby behind a holder of an earlier release, the lock retry; a standby otherwise waits on the holder's presence (ADR-0602). Watched inputs drive every other rescan."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/knowledge-worker-wakeups.ts",
@@ -253,8 +235,8 @@
     {
       "path": "packages/repository-knowledge-runtime/src/hub-knowledge-changes.ts",
       "kind": "loop",
-      "count": 2,
-      "reason": "Retry of a failed Hub knowledge change wait with exponential backoff, visible as hub_knowledge_changes_unavailable, and the one-shot startup bound on the first answer; nothing is armed while the wait is held (ADR-0602)."
+      "count": 3,
+      "reason": "Retry of a failed Hub knowledge change wait with exponential backoff (attention once it repeats), the hourly full cycle against a Hub older than ADR-0602 (hub_upgrade_required), and the one-shot startup bound on the first answer; nothing is armed while a wait is held (ADR-0602)."
     },
     {
       "path": "packages/repository-knowledge-runtime/src/resident-cycle-trigger.ts",
@@ -267,6 +249,18 @@
       "kind": "loop",
       "count": 1,
       "reason": "One look after an ancestor watch is armed for a missing directory, once the macOS event stream is surely running; armed only while a watched directory is missing (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/loop.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "Retry of a failed health write with exponential backoff; armed only after a failure, since nothing rewrites an unchanged state (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-admission.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "Retry of a failed held-resident record with exponential backoff; armed only after a failure (ADR-0602)."
     }
   ]
 }

@@ -98,7 +98,7 @@ function readMachineId(): string | null {
  * This user's private Lervo state directory on this host: never a shared temporary directory.
  * `LERVO_USER_STATE_DIRECTORY` overrides it, as for the repository registry.
  */
-function userStateDirectory(): string {
+export function userStateDirectory(): string {
   const override = process.env.LERVO_USER_STATE_DIRECTORY;
   if (override !== undefined && isAbsolute(override)) return override;
   if (process.platform === "darwin")

@@ -1,6 +1,12 @@
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { admissionSignalsHeld, onHeldAdmissionSignal } from "./full-cycle-admission.js";
 
-/** ADR-0587: how often an in-flight background provider call asks whether an upgrade waits. */
+/**
+ * ADR-0587: how often an in-flight background provider call asks whether an upgrade waits, when
+ * no admission in this process can be woken (a caller without one, or an upgrade of an earlier
+ * release that sends no wake). ADR-0602: otherwise it asks once at the start and again only when
+ * an upgrade wakes the held admission.
+ */
 const UPGRADE_PREEMPTION_POLL_MILLISECONDS = 1_000;
 
 /** A background context that a resident cycle runs; one-shot callers leave it unset. */
@@ -48,8 +54,8 @@ export function abandonProviderCallOnUpgrade(
   let checking: Promise<void> | null = null;
   // A check still in flight at stop may answer later; its answer must not abort the call.
   let stopped = false;
-  const timer = setInterval(() => {
-    if (checking !== null) return;
+  const check = () => {
+    if (checking !== null || stopped) return;
     checking = upgradeWaiting(source)
       .then((waiting) => {
         if (waiting && !stopped) abort(upgradePreemptionError());
@@ -57,7 +63,17 @@ export function abandonProviderCallOnUpgrade(
       .finally(() => {
         checking = null;
       });
-  }, UPGRADE_PREEMPTION_POLL_MILLISECONDS);
+  };
+  if (admissionSignalsHeld()) {
+    const unsubscribe = onHeldAdmissionSignal(check);
+    check();
+    return async () => {
+      stopped = true;
+      unsubscribe();
+      await checking;
+    };
+  }
+  const timer = setInterval(check, UPGRADE_PREEMPTION_POLL_MILLISECONDS);
   timer.unref();
   return async () => {
     stopped = true;

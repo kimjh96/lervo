@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { closeSync, constants, lstatSync, openSync, readSync, renameSync, rmSync } from "node:fs";
 import { Socket } from "node:net";
@@ -37,44 +36,16 @@ import { localBootKey, localHostKey } from "./process-identity.js";
  * A subscriber records its presence and issues in the channel records, so a lost or refused
  * channel is visible (`inspectEventStoreChannel`). This module imports only Node built-ins.
  */
+import { createFifo, MKFIFO } from "./fifo.js";
 export { eventStoreChannelDirectory, eventStoreChannelLocation } from "./change-channel-layout.js";
 export { notifyEventStoreChange } from "./change-channel-notify.js";
 export { inspectEventStoreChannel } from "./change-channel-inspection.js";
 export type { EventStoreChannelListener } from "./change-channel-listener.js";
 export type { EventStoreChannelIssue, EventStoreChannelIssueCode } from "./change-channel-state.js";
 
-/** Absolute paths first, so a missing PATH entry is told apart from a missing tool. */
-const MKFIFO = ["/usr/bin/mkfifo", "/bin/mkfifo", "mkfifo"] as const;
-
 export interface EventStoreChannelListenOptions {
   /** Test seam: the mkfifo tools tried in order. */
   mkfifo?: readonly string[];
-}
-
-function createFifo(path: string, tools: readonly string[]): EventStoreChannelIssue | null {
-  let missing = 0;
-  for (const tool of tools) {
-    try {
-      // Node has no mkfifo; the system tool runs once per subscription, never per commit.
-      execFileSync(tool, ["-m", "600", path], { stdio: "ignore" });
-      return null;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-        missing += 1;
-        continue;
-      }
-      return {
-        code: "event_channel_unsupported",
-        detail: `mkfifo failed in ${path}: ${(error as Error).message.split("\n")[0]}. Move the repository to a filesystem that supports named pipes.`,
-      };
-    }
-  }
-  return missing === tools.length
-    ? {
-        code: "event_channel_mkfifo_missing",
-        detail: "No mkfifo tool was found in /usr/bin, /bin or PATH. Install coreutils.",
-      }
-    : null;
 }
 
 /**

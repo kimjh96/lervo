@@ -43,6 +43,7 @@ export class ConversationChangeLoop<TResult = unknown> {
   /** The lapsed deadline that already got its one extra cycle. */
   private lapsedHandled: number | null = null;
   private failures = 0;
+  private deadlineFailures = 0;
 
   constructor(private readonly options: ConversationChangeLoopOptions<TResult>) {
     if (
@@ -151,16 +152,19 @@ export class ConversationChangeLoop<TResult = unknown> {
     let deadline: number | null;
     try {
       deadline = this.options.nextWakeupAt?.() ?? null;
-    } catch {
-      // An unreadable deadline is retried like a failure, with the same backoff, never polled.
-      this.failures = Math.min(this.failures + 1, 64);
+      this.deadlineFailures = 0;
+    } catch (error) {
+      // An unreadable deadline is a failure of its own: reported, and retried with its own
+      // backoff, since the cycle before it succeeded and reset the cycle's.
+      this.options.onFailure(error);
+      this.deadlineFailures = Math.min(this.deadlineFailures + 1, 64);
       this.schedule(
         Math.min(
           Math.max(
             this.options.intervalMs,
             this.options.failureRetryCeilingMs ?? CHANGE_LOOP_RETRY_CEILING_MILLISECONDS,
           ),
-          this.options.intervalMs * 2 ** Math.min(this.failures - 1, 30),
+          this.options.intervalMs * 2 ** Math.min(this.deadlineFailures - 1, 30),
         ),
       );
       return;

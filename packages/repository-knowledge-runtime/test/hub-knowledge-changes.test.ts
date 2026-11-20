@@ -57,6 +57,13 @@ function scriptedHub() {
       await vi.waitFor(() => expect(release).not.toBeNull());
       release!(outcome);
     },
+    /** For fake timers: waits on real turns only, never advancing the clock. */
+    answerOnTurns: async (outcome: { cursor: string } | Error) => {
+      for (let turn = 0; turn < 500 && release === null; turn++)
+        await new Promise((settle) => setImmediate(settle));
+      if (release === null) throw new Error("No wait was held.");
+      release(outcome);
+    },
   };
 }
 
@@ -103,7 +110,11 @@ it("primes the first token silently, then reports each change and keeps the curs
     await hub.answer({ cursor: cursor(2) });
     await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
     expect(watch.token()).toBe(cursor(2));
-    // The Hub drops the connection: attention, then the same cursor again after the backoff.
+    // One dropped connection is routine; the same cursor is asked again after the backoff.
+    await hub.answer(new Error("socket hang up"));
+    await vi.waitFor(() => expect(hub.waits.at(-1)).toMatchObject({ cursor: cursor(2) }));
+    expect(issues).toEqual([]);
+    // A second failure in a row is attention.
     await hub.answer(new Error("socket hang up"));
     await vi.waitFor(() => expect(issues).toEqual(["hub_knowledge_changes_unavailable"]));
     await vi.waitFor(() => expect(hub.waits.at(-1)).toMatchObject({ cursor: cursor(2) }));
@@ -165,6 +176,101 @@ it(
           expect(notify).toHaveBeenCalled();
         },
         { timeout: 15_000, interval: 200 },
+      );
+    } finally {
+      watch.stop();
+    }
+  },
+);
+
+it("falls back to an hourly full cycle against a Hub too old to push, with attention (ADR-0602)", async () => {
+  await writeHostConfig(root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode: "hub" });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const hub = scriptedHub();
+  const onChange = vi.fn();
+  const issues: (string | null)[] = [];
+  const watch = watchHubKnowledgeChanges({
+    storage,
+    transport: hub.transport,
+    onChange,
+    onIssue: (issue) => issues.push(issue),
+  });
+  const turns = async (count: number) => {
+    for (let turn = 0; turn < count; turn++) await new Promise((settle) => setImmediate(settle));
+  };
+  const old = () => Object.assign(new Error("invalid_request"), { httpStatus: 400 });
+  try {
+    for (let turn = 0; turn < 200 && hub.waits.length === 0; turn++) await turns(1);
+    await hub.answerOnTurns(old());
+    await turns(20);
+    expect(issues).toEqual(["hub_upgrade_required"]);
+    expect(watch.pushing()).toBe(false);
+    expect(watch.token()).toMatch(/^legacy-/u);
+    // The hour passes: the Hub is asked again, still refuses, and a new token runs a full cycle.
+    await vi.advanceTimersByTimeAsync(60 * 60_000);
+    await turns(20);
+    await hub.answerOnTurns(old());
+    await turns(20);
+    expect(onChange).toHaveBeenCalledTimes(1);
+    // Upgraded: the next answer pushes, and the attention clears.
+    await vi.advanceTimersByTimeAsync(60 * 60_000);
+    await turns(20);
+    await hub.answerOnTurns({ cursor: cursor(7) });
+    await turns(20);
+    expect(watch.pushing()).toBe(true);
+    expect(issues.at(-1)).toBeNull();
+  } finally {
+    vi.useRealTimers();
+    await watch.stop();
+  }
+});
+
+it("treats the first answer as a change once startup stopped waiting for it (ADR-0602)", async () => {
+  await writeHostConfig(root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode: "hub" });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const hub = scriptedHub();
+  const onChange = vi.fn();
+  const watch = watchHubKnowledgeChanges({ storage, transport: hub.transport, onChange });
+  try {
+    await vi.advanceTimersByTimeAsync(10_000);
+    await watch.ready();
+    await hub.answerOnTurns({ cursor: cursor(1) });
+    for (let turn = 0; turn < 20; turn++) await new Promise((settle) => setImmediate(settle));
+    // The first cycle ran without the token, so its arrival must run another.
+    expect(onChange).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+    await watch.stop();
+  }
+});
+
+// On Linux a removed directory ends its inotify watch, which this re-arms; macOS keeps watching
+// the path natively, so there the test shows the behavior holds either way.
+it(
+  "re-arms a watch whose directory was removed and created again (ADR-0602)",
+  { timeout: 30_000 },
+  async () => {
+    const target = resolve(root, "watched/file.json");
+    await mkdir(resolve(root, "watched"), { recursive: true });
+    const notify = vi.fn();
+    const watch = watchFiles([target], notify);
+    try {
+      await vi.waitFor(
+        async () => {
+          await writeFile(target, `${Date.now()}\n`);
+          expect(notify).toHaveBeenCalled();
+        },
+        { timeout: 10_000, interval: 200 },
+      );
+      await rm(resolve(root, "watched"), { recursive: true, force: true });
+      await mkdir(resolve(root, "watched"), { recursive: true });
+      notify.mockClear();
+      await vi.waitFor(
+        async () => {
+          await writeFile(target, `${Date.now()}\n`);
+          expect(notify).toHaveBeenCalled();
+        },
+        { timeout: 15_000, interval: 250 },
       );
     } finally {
       watch.stop();

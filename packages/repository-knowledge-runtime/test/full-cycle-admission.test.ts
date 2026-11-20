@@ -422,3 +422,76 @@ it("backs an admission waiter off without letting its heartbeat go stale (ADR-05
     20, 40, 80, 80, 80,
   ]);
 });
+
+it("admits a waiter the moment the holder releases, with no poll (ADR-0602)", async () => {
+  const path = await directory();
+  const signal = AbortSignal.timeout(30_000);
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/one",
+    directory: path,
+    signal,
+  });
+  // A minute between retries: only the release's wake can admit the waiter in time.
+  const started = Date.now();
+  const waiting = acquireFullCycleAdmission({
+    repositoryRoot: "/two",
+    directory: path,
+    signal,
+    pollMilliseconds: 60_000,
+  });
+  await new Promise((settle) => setTimeout(settle, 300));
+  await holder.release();
+  const admitted = await waiting;
+  expect(Date.now() - started).toBeLessThan(5_000);
+  await admitted.release();
+});
+
+it(
+  "admits a waiter when the holder's process dies, with no poll (ADR-0602)",
+  { timeout: 60_000 },
+  async () => {
+    const path = await directory();
+    const hooks = resolve(
+      import.meta.dirname,
+      "../../event-store-sqlite/test/support/register-workspace-source.mjs",
+    );
+    const child = spawn(
+      process.execPath,
+      [
+        "--import",
+        hooks,
+        "--input-type=module",
+        "-e",
+        `const { acquireFullCycleAdmission } = await import("@lervo/repository-knowledge-runtime");
+       await acquireFullCycleAdmission({ repositoryRoot: "/held", directory: process.argv[1], signal: new AbortController().signal });
+       process.stdout.write("held\\n");
+       setInterval(() => {}, 1 << 30);`,
+        path,
+      ],
+      { stdio: ["ignore", "pipe", "inherit"] },
+    );
+    try {
+      await new Promise<void>((resolveHeld, reject) => {
+        child.stdout.on("data", (chunk: Buffer) => {
+          if (chunk.toString().includes("held")) resolveHeld();
+        });
+        child.once("exit", () => reject(new Error("The holder exited before holding.")));
+      });
+      const waiting = acquireFullCycleAdmission({
+        repositoryRoot: "/waiting",
+        directory: path,
+        signal: AbortSignal.timeout(30_000),
+        pollMilliseconds: 60_000,
+      });
+      await new Promise((settle) => setTimeout(settle, 300));
+      const killed = Date.now();
+      child.kill("SIGKILL");
+      const admitted = await waiting;
+      // The held connection closed with the process; the ten-minute lease never had to lapse.
+      expect(Date.now() - killed).toBeLessThan(5_000);
+      await admitted.release();
+    } finally {
+      child.kill("SIGKILL");
+    }
+  },
+);

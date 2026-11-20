@@ -30,7 +30,12 @@ export function wireResidentWakes(input: {
   /** Host-local continuity inputs outside every other watch, and the handler for their change. */
   continuityInputs?: readonly string[];
   onContinuityInput?: () => void;
-}): { hubToken(): string | null; ready(): Promise<void>; stop(): Promise<void> } {
+}): {
+  hubToken(): string | null;
+  hubPushing(): boolean;
+  ready(): Promise<void>;
+  stop(): Promise<void>;
+} {
   const keepAlive = new MessageChannel();
   keepAlive.port1.on("message", () => undefined);
   const unsubscribe = input.subscribe
@@ -43,11 +48,15 @@ export function wireResidentWakes(input: {
     onHoldStore: input.onHoldStore,
     onOwnerFence: input.onOwnerFence,
   });
-  // A failing Hub wait is attention for as long as it fails (`hub_knowledge_changes_unavailable`).
-  const hubIssues = repositoryWatchReporter(
-    input.storage.paths.repositoryRoot,
-    "hub_knowledge_changes_unavailable",
-  );
+  // A failing Hub wait, or a Hub too old to push, is attention for as long as it lasts.
+  const root = input.storage.paths.repositoryRoot;
+  const reporters = {
+    hub_knowledge_changes_unavailable: repositoryWatchReporter(
+      root,
+      "hub_knowledge_changes_unavailable",
+    ),
+    hub_upgrade_required: repositoryWatchReporter(root, "hub_upgrade_required"),
+  };
   let hubIssue: Promise<void> = Promise.resolve();
   const continuity =
     input.continuityInputs === undefined || input.continuityInputs.length === 0
@@ -58,20 +67,23 @@ export function wireResidentWakes(input: {
     transport: input.hubChanges,
     onChange: input.onHubChange,
     onIssue: (issue, error) => {
-      hubIssue = hubIssue.then(() =>
-        issue === null ? hubIssues.armed() : hubIssues.failed(error),
-      );
+      hubIssue = hubIssue.then(async () => {
+        for (const [code, reporter] of Object.entries(reporters))
+          if (code !== issue) await reporter.armed();
+        if (issue !== null) await reporters[issue].failed(error);
+      });
     },
   });
   return {
     hubToken: () => hub.token(),
+    hubPushing: () => hub.pushing(),
     ready: () => hub.ready(),
     stop: async () => {
       unsubscribe?.();
       continuity?.stop();
       await Promise.all([inputs.stop(), hub.stop()]);
       await hubIssue;
-      await hubIssues.armed();
+      for (const reporter of Object.values(reporters)) await reporter.armed();
       keepAlive.port1.close();
     },
   };

@@ -17,13 +17,6 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/repository-health-projection.ts",
-      "contentHash": "sha256:aea68b660f70c3f23ee8e830a3a61a9315cdc5cc44e86f9f6c8e0762297998a1",
-      "responsibility": "Repository health projection from its recorded sources",
-      "rationale": "One source contract and one small projection per health measure (convergence, longest stop, deferred, find, broken links) feed one projection entrypoint; freshness and Lervo debt are delegated to their own modules, and nothing here reads files or evaluates knowledge.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/hub-runtime/src/deployment.ts",
       "contentHash": "sha256:dadee63b441860f490c96b26bc6e86d1289897ef448e13bd7f5b4251727c5bc1",
       "responsibility": "Hub runtime deployment composition",
@@ -102,9 +95,9 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:b8fbb221e8349087707d830ee5c210f36bce7d57b8596fea36b222887bfc6e80",
+      "contentHash": "sha256:add7c4fa761ecf59174d4259f383081a92e4a3041b6bf61f0b99a7db4d9dc037",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates, including the knowledge topic with its source host, passes presence through, and closes notifications with the store. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories.",
+      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates, passes presence through, and lets the owner lease follow it. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories.",
       "disposition": "cohesive"
     },
     {

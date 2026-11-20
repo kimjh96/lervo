@@ -192,6 +192,45 @@ it("re-opens a failing peer subscription with exponential backoff and reports it
   }
 });
 
+it("keeps backing off a peer subscription that opens and drops at once (a flapping peer, ADR-0602)", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const opened: number[] = [];
+  vi.spyOn(peer, "subscribe").mockImplementation((_root, notify, failed) => {
+    opened.push(Date.now());
+    // The first line arrives, then the link drops: ready for a moment, every time.
+    queueMicrotask(() => {
+      notify();
+      setTimeout(failed, 10);
+    });
+    return () => {};
+  });
+  const abort = new AbortController();
+  const start = Date.now();
+  const running = watchReplicaReconciliation({
+    repositories: [{ replicaId: "only", localRoot: "/only", peerRoot: "/peer/only" }],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    signal: abort.signal,
+    reconcile: async () => "current" as const,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(16_000);
+    expect(opened.map((at) => Math.round((at - start) / 1_000))).toEqual([0, 1, 3, 7, 15]);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
 it("does not let one slow repository block reconciliation for the others", async () => {
   const peer = new SshRepositoryReplicaPeer({
     executable: "ssh",

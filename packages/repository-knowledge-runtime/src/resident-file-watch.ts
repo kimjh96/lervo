@@ -36,17 +36,33 @@ export function watchFiles(
     directory: string,
     listener: (name: string | null) => void,
     recursive = false,
+    /** Re-arms after the watched directory itself was removed or its watch failed. */
+    rearm?: () => void,
   ): FSWatcher | "missing" | "failed" => {
     try {
-      const watcher = watch(directory, { persistent: false, recursive }, (_event, name) => {
-        if (!closed) listener(name === null ? null : name.toString());
-      });
-      watcher.on("error", (error) => {
+      let ended = false;
+      const end = () => {
+        if (ended) return false;
+        ended = true;
         watcher.close();
         watchers.delete(watcher);
-        if (closed) return;
+        return !closed;
+      };
+      const watcher = watch(directory, { persistent: false, recursive }, (_event, name) => {
+        if (closed || ended) return;
+        // ADR-0602: a removed directory ends its watch silently; re-arm toward it instead.
+        if (rearm !== undefined && !existsSync(directory)) {
+          if (end()) rearm();
+          return;
+        }
+        listener(name === null ? null : name.toString());
+      });
+      watcher.on("error", (error) => {
+        if (!end()) return;
         onFailure(error);
         notify();
+        // One fresh watch; a failure to open it is reported by `open` itself.
+        rearm?.();
       });
       watchers.add(watcher);
       return watcher;
@@ -64,6 +80,11 @@ export function watchFiles(
         if (names === null || name === null || names.has(name)) notify();
       },
       recursiveDirectories.has(directory),
+      () => {
+        // Its files went with it.
+        notify();
+        arm(directory, names, true);
+      },
     );
     if (target !== "missing") {
       if (target !== "failed" && appeared) notify();

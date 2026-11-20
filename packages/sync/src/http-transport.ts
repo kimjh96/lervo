@@ -17,7 +17,11 @@ import {
   calculateProjectRegistrationId,
 } from "@lervo/sync-contract";
 
-import { holdHubRequest } from "./hub-held-request.js";
+import {
+  HUB_LEGACY_HOLD_DEADLINE_MILLISECONDS,
+  HUB_OPEN_HOLD_DEADLINE_MILLISECONDS,
+  holdHubRequest,
+} from "./hub-held-request.js";
 import { HubJsonHttpClient } from "./hub-json-http-client.js";
 import type {
   AuthenticatedHubCapabilityTransport,
@@ -154,6 +158,8 @@ export class AuthenticatedHubHttpTransport
     nodeId?: string;
     cursor: string | null;
     signal: AbortSignal;
+    /** A Hub older than ADR-0602 refuses `hold`; this asks for its bounded hold instead. */
+    legacy?: boolean;
   }): Promise<unknown> {
     const url = new URL(
       `v1/runtime-changes/projects/${encodeURIComponent(this.target.projectId)}`,
@@ -164,13 +170,17 @@ export class AuthenticatedHubHttpTransport
     url.searchParams.set("topic", input.topic);
     if (input.nodeId !== undefined) url.searchParams.set("nodeId", input.nodeId);
     if (input.cursor !== null) url.searchParams.set("cursor", input.cursor);
-    url.searchParams.set("hold", "open");
+    if (input.legacy !== true) url.searchParams.set("hold", "open");
     return holdHubRequest({
       url,
       bearerToken: this.bearerToken,
       expectedHubIdentityHash: this.expectedHubIdentityHash,
       destinationId: this.destinationId,
       signal: input.signal,
+      deadlineMilliseconds:
+        input.legacy === true
+          ? HUB_LEGACY_HOLD_DEADLINE_MILLISECONDS
+          : HUB_OPEN_HOLD_DEADLINE_MILLISECONDS,
     });
   }
 

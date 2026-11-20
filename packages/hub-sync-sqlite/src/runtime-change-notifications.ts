@@ -5,8 +5,14 @@ import {
   type HubRuntimeChangeSource,
 } from "@lervo/hub-sync";
 
-/** The bounded hold older clients expect; an `open` hold arms no timer. */
+/** The bounded hold older clients expect. */
 const BOUNDED_HOLD_MILLISECONDS = 25_000;
+/**
+ * ADR-0602, the owner's decided end-to-end liveness bound: an `open` hold is answered `timeout`
+ * after ten minutes, so a connection a proxy hop dropped silently, and its waiter here, never
+ * outlive it, and the client waits again at once.
+ */
+export const HUB_OPEN_HOLD_MILLISECONDS = 10 * 60_000;
 /**
  * ADR-0602: a host that stops waiting is reported absent only after this grace, so the gap between
  * one answered wait and the next never reads as a disconnection.
@@ -37,13 +43,21 @@ export interface HubHostPresence {
 export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
   private readonly entries = new Map<string, Entry>();
   private readonly presence = new Map<string, Presence>();
-  private readonly startedAt: number;
   private waiting = 0;
   private closed = false;
 
-  constructor(private readonly now: () => number = Date.now) {
-    this.startedAt = now();
-  }
+  constructor(
+    private readonly now: () => number = Date.now,
+    /**
+     * ADR-0602: runs on a host's connection or departure, before its peers are woken, so state
+     * that follows presence (the owner lease) is current when they read it.
+     */
+    private readonly onPresence?: (
+      scope: HubRuntimeChangeScope,
+      hostHash: string,
+      connected: boolean,
+    ) => void,
+  ) {}
 
   private key(scope: HubRuntimeChangeScope): string {
     return JSON.stringify([
@@ -74,11 +88,18 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
     }
   }
 
-  /** ADR-0602: whether a host holds a `knowledge` wait for this scope, by the Hub's clock. */
-  hostPresence(scope: Omit<HubRuntimeChangeScope, "topic">, hostHash: string): HubHostPresence {
+  /**
+   * ADR-0602: whether a host holds a `knowledge` wait for this scope, by the Hub's clock. Null for
+   * a host never seen waiting since the Hub started, such as one of an earlier release that names
+   * no host: unknown, never absent.
+   */
+  hostPresence(
+    scope: Omit<HubRuntimeChangeScope, "topic">,
+    hostHash: string,
+  ): HubHostPresence | null {
     const state = this.presence.get(this.presenceKey({ ...scope, topic: "knowledge" }, hostHash));
     return state === undefined
-      ? { connected: false, since: new Date(this.startedAt).toISOString() }
+      ? null
       : { connected: state.connected, since: new Date(state.since).toISOString() };
   }
 
@@ -118,6 +139,7 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
     if (!tracked.connected) {
       tracked.connected = true;
       tracked.since = this.now();
+      this.onPresence?.(scope, hostHash, true);
       this.notify(scope, hostHash);
     }
     return () => {
@@ -129,6 +151,7 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
         if (tracked.waiting > 0) return;
         tracked.connected = false;
         tracked.since = this.now();
+        this.onPresence?.(scope, hostHash, false);
         this.notify(scope, hostHash);
       }, HUB_PRESENCE_GRACE_MILLISECONDS);
       tracked.absent.unref();
@@ -158,12 +181,15 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
     this.waiting += 1;
     try {
       await new Promise<void>((resolve) => {
-        const timer = input.hold === "open" ? null : setTimeout(finish, BOUNDED_HOLD_MILLISECONDS);
+        const timer = setTimeout(
+          finish,
+          input.hold === "open" ? HUB_OPEN_HOLD_MILLISECONDS : BOUNDED_HOLD_MILLISECONDS,
+        );
         listeners.add(finish);
         input.signal.addEventListener("abort", finish, { once: true });
         if (input.signal.aborted || this.closed) finish();
         function finish(): void {
-          if (timer !== null) clearTimeout(timer);
+          clearTimeout(timer);
           listeners.delete(finish);
           input.signal.removeEventListener("abort", finish);
           resolve();

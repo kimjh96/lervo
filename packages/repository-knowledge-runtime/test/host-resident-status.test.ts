@@ -2,7 +2,8 @@ import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { holdProcessPresence, waitForProcessExit } from "@lervo/project-storage";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { acquireHostKnowledgeResidentLock } from "../src/host-resident-lock.js";
 import {
@@ -114,12 +115,31 @@ describe("host resident lock", () => {
     expect(await acquireHostKnowledgeResidentLock(path, 200, () => true)).toEqual({
       acquired: false,
       holderPid: 100,
+      holderPresence: null,
     });
     if (first.acquired) await first.release();
     const second = await acquireHostKnowledgeResidentLock(path, 200, () => true);
     expect(second.acquired).toBe(true);
     if (first.acquired) await first.release();
     expect(JSON.parse(await readFile(path, "utf8"))).toEqual({ schemaVersion: 1, pid: 200 });
+  });
+
+  it("judges a holder by its presence, so a reused process id never holds the lock (ADR-0602)", async () => {
+    const path = resolve(await directory(), "knowledge-host-resident.lock");
+    const presence = holdProcessPresence();
+    await presence.ready;
+    const first = await acquireHostKnowledgeResidentLock(path, 100, () => true, presence.token);
+    expect(first.acquired).toBe(true);
+    // The pid check would call it alive; the presence answers.
+    expect(await acquireHostKnowledgeResidentLock(path, 200, () => true)).toMatchObject({
+      acquired: false,
+      holderPresence: presence.token,
+    });
+    const exited = vi.fn();
+    waitForProcessExit(presence.token, exited);
+    presence.release();
+    await vi.waitFor(() => expect(exited).toHaveBeenCalledOnce());
+    expect((await acquireHostKnowledgeResidentLock(path, 200, () => true)).acquired).toBe(true);
   });
 
   it("replaces a lock whose holder process is gone", async () => {

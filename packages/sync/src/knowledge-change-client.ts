@@ -14,7 +14,9 @@ const HASH = /^sha256:[a-f0-9]{64}$/u;
 /** A socket that failed without an HTTP answer: the Hub or the network is not there. */
 function unreachable(error: unknown): boolean {
   const code = (error as { code?: unknown } | null)?.code;
-  return typeof code === "string" && /^(E[A-Z]+|ERR_SOCKET_[A-Z_]+)$/u.test(code);
+  return (
+    typeof code === "string" && /^(E[A-Z]+|ERR_SOCKET_[A-Z_]+|ERR_HUB_HOLD_DEADLINE)$/u.test(code)
+  );
 }
 
 /**
