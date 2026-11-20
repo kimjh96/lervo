@@ -1,5 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { RuntimeChangeNotifications } from "../src/runtime-change-notifications.js";
+import {
+  HUB_PRESENCE_GRACE_MILLISECONDS,
+  RuntimeChangeNotifications,
+} from "../src/runtime-change-notifications.js";
 
 const scope = {
   topic: "workstream" as const,
@@ -80,5 +83,110 @@ describe("bounded runtime notification hints", () => {
         })
       ).status,
     ).toBe("changed");
+  });
+});
+
+describe("knowledge change waits (ADR-0602)", () => {
+  const knowledge = { ...scope, topic: "knowledge" as const };
+  const mac = `sha256:${"a".repeat(64)}`;
+  const wsl = `sha256:${"b".repeat(64)}`;
+
+  it("arms no timer for an open hold and never wakes the host that made the change", async () => {
+    vi.useFakeTimers();
+    const source = new RuntimeChangeNotifications();
+    const signal = new AbortController().signal;
+    const first = await source.waitForRuntimeChange({ ...knowledge, cursor: null, signal });
+    const waiting = source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: first.cursor,
+      signal,
+      hold: "open",
+    });
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    // mac's own change leaves mac's cursor alone, and wakes the hostless wait.
+    const own = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal,
+      hostHash: mac,
+    });
+    source.notify(knowledge, mac);
+    const after = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal,
+      hostHash: mac,
+    });
+    expect(after.cursor).toBe(own.cursor);
+    expect(await waiting).toMatchObject({ status: "changed" });
+    source.close();
+  });
+
+  it("reports presence by the Hub's clock and wakes peers only after a departure outlasts the grace", async () => {
+    vi.useFakeTimers({ now: Date.parse("2026-11-20T00:00:00.000Z") });
+    const source = new RuntimeChangeNotifications();
+    const signal = new AbortController().signal;
+    const coordinate = {
+      projectId: knowledge.projectId,
+      repositoryIdentityHash: knowledge.repositoryIdentityHash,
+      destinationId: knowledge.destinationId,
+    };
+    expect(source.hostPresence(coordinate, wsl)).toEqual({
+      connected: false,
+      since: "2026-11-20T00:00:00.000Z",
+    });
+    const peer = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal,
+      hostHash: mac,
+    });
+    const wslFirst = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal,
+      hostHash: wsl,
+    });
+    const leave = new AbortController();
+    await vi.advanceTimersByTimeAsync(1_000);
+    const held = source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: wslFirst.cursor,
+      signal: leave.signal,
+      hostHash: wsl,
+      hold: "open",
+    });
+    expect(source.hostPresence(coordinate, wsl)).toEqual({
+      connected: true,
+      since: "2026-11-20T00:00:01.000Z",
+    });
+    // The connection changed what mac reads, so mac's cursor moved.
+    const macChanged = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: peer.cursor,
+      signal,
+      hostHash: mac,
+    });
+    expect(macChanged.status).toBe("changed");
+    leave.abort();
+    await held;
+    // A departure shorter than the grace is the gap between two waits: no change.
+    await vi.advanceTimersByTimeAsync(HUB_PRESENCE_GRACE_MILLISECONDS - 1);
+    expect(source.hostPresence(coordinate, wsl).connected).toBe(true);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(source.hostPresence(coordinate, wsl)).toEqual({
+      connected: false,
+      since: new Date(Date.now()).toISOString(),
+    });
+    const macAgain = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: macChanged.cursor,
+      signal,
+      hostHash: mac,
+    });
+    expect(macAgain.status).toBe("changed");
+    expect(vi.getTimerCount()).toBe(0);
+    source.close();
   });
 });

@@ -26,7 +26,12 @@ export interface ContinuityPeerSummary extends ContinuityPeerObservation {
 export interface ConvergenceContinuityState {
   schemaVersion: 1;
   observedAt: string;
-  nextReconcileAt: string;
+  /** ADR-0602: continuity's own next time-based deadline; null when only a change is due. */
+  nextReconcileAt: string | null;
+  /** ADR-0602: the host-local inputs this reconciliation read; absent before ADR-0602. */
+  inputFingerprint?: string;
+  /** ADR-0602: consecutive failed reconciliations, for the retry backoff. */
+  failureStreak?: number;
   hostHash: string | null;
   hostLabel: string | null;
   ownerHost: ContinuityOwnerHostObservation;
@@ -82,7 +87,7 @@ export async function readConvergenceContinuityState(
   if (
     value?.schemaVersion !== 1 ||
     typeof value.observedAt !== "string" ||
-    typeof value.nextReconcileAt !== "string" ||
+    !(value.nextReconcileAt === null || typeof value.nextReconcileAt === "string") ||
     !Array.isArray(value.findings) ||
     !Array.isArray(value.peers)
   )

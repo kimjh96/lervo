@@ -60,10 +60,7 @@ it("observes nested source edits and replica requests without watching ignored f
     await writeFile(join(root, "source/nested/file.ts"), "first");
     await writeFile(join(root, "cache/file"), "first");
     const notify = vi.fn();
-    stop = await watchRepositoryChanges(root, notify, notify, {
-      recoveryIntervalMs: 1000,
-      watchMode: "directories",
-    });
+    stop = await watchRepositoryChanges(root, notify, notify, { watchMode: "directories" });
     // Native watch registration can settle asynchronously; first observe a source hint.
     await vi.waitFor(
       async () => {
@@ -132,9 +129,6 @@ const resetRecords = () => {
   failOnce.clear();
 };
 
-// The metadata recovery timer would notify for any write; keep it out of the evidence.
-const quietRecovery = 60_000;
-
 const linkedWorktree = async () => {
   const main = await temporaryDirectory("lervo-watch-main-");
   const linked = `${main}-linked`;
@@ -184,7 +178,6 @@ const churnRepository = async (options: { watchMode?: "recursive" }) => {
     const notify = vi.fn();
     resetRecords();
     stop = await watchRepositoryChanges(root, notify, notify, {
-      recoveryIntervalMs: quietRecovery,
       ...options,
     });
     await expectNotified(notify, join(root, "source/nested/file.ts"));
@@ -211,6 +204,26 @@ const churnRepository = async (options: { watchMode?: "recursive" }) => {
   }
 };
 
+it.each(["directories", "recursive"] as const)(
+  "notifies and refreshes for an edit to .git/info/exclude (%s, ADR-0602)",
+  async (watchMode) => {
+    const root = await mkdtemp(join(tmpdir(), "lervo-watch-exclude-"));
+    let stop: (() => void) | undefined;
+    try {
+      await execute("git", ["-C", root, "init"]);
+      await mkdir(join(root, ".git/info"), { recursive: true });
+      await writeFile(join(root, "README.md"), "readme");
+      const notify = vi.fn();
+      stop = await watchRepositoryChanges(root, notify, notify, { watchMode });
+      await expectNotified(notify, join(root, ".git/info/exclude"));
+    } finally {
+      stop?.();
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+  30_000,
+);
+
 it("selects recursive watching only where per-directory handles leak or are unnecessary", () => {
   expect(defaultRepositoryChangeWatchMode("darwin")).toBe("recursive");
   expect(defaultRepositoryChangeWatchMode("win32")).toBe("recursive");
@@ -236,7 +249,6 @@ it("watches a linked worktree and its outside common Git directory once each", a
     const notify = vi.fn();
     resetRecords();
     stop = await watchRepositoryChanges(linked, notify, notify, {
-      recoveryIntervalMs: quietRecovery,
       watchMode: "recursive",
     });
     // The worktree's own Git directory lies inside the common directory, so it needs no handle.
@@ -262,7 +274,6 @@ it("reopens a missing outside Git directory on refresh without reopening open ha
     resetRecords();
     failOnce.add(commonDirectory);
     stop = await watchRepositoryChanges(linked, notify, notify, {
-      recoveryIntervalMs: quietRecovery,
       watchMode: "recursive",
     });
     // Without the common directory, the worktree's Git directory needs its own handle; it stays
@@ -307,7 +318,6 @@ it("watches runtime state linked outside the worktree at its real target", async
     const notify = vi.fn();
     resetRecords();
     stop = await watchRepositoryChanges(root, notify, notify, {
-      recoveryIntervalMs: quietRecovery,
       watchMode: "recursive",
     });
     expect(opened).toEqual([

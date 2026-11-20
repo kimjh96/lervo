@@ -124,7 +124,7 @@ it("wakes daily for usage of generated skills and expires unresolved candidates"
   );
 });
 
-it("throws on unreadable practice state so the fence keeps its clock window", async () => {
+it("throws on unreadable practice state so the fence keys it by the file identity", async () => {
   await mkdir(resolve(root, PRACTICE_ROOT), { recursive: true });
   await writeFile(resolve(root, PRACTICE_ROOT, "state.json"), "{not json");
   expect(() => observePracticeSchedule(root, T)).toThrow();

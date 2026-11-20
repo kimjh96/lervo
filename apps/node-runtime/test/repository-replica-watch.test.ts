@@ -2,7 +2,8 @@ import { afterEach, expect, it, vi } from "vitest";
 import { SshRepositoryReplicaPeer } from "../src/repository-replica-ssh-peer.js";
 import { watchReplicaReconciliation } from "../src/repository-replica-watch.js";
 const callbacks = vi.hoisted(() => ({ local: () => {}, stop: vi.fn() }));
-vi.mock("../src/repository-change-watch.js", () => ({
+vi.mock("@lervo/repository-knowledge-runtime", async (original) => ({
+  ...(await original<typeof import("@lervo/repository-knowledge-runtime")>()),
   watchRepositoryChanges: async (_root: string, notify: () => void) => {
     callbacks.local = notify;
     return callbacks.stop;
@@ -57,7 +58,7 @@ afterEach(() => {
   callbacks.stop.mockClear();
 });
 
-it("does not let a busy peer postpone another repository's recovery sweep", async () => {
+it("does not let a busy peer postpone another repository's recovery while its source is down", async () => {
   vi.useFakeTimers();
   const peer = new SshRepositoryReplicaPeer({
     executable: "ssh",
@@ -69,7 +70,8 @@ it("does not let a busy peer postpone another repository's recovery sweep", asyn
   const signals = new Map<string, () => void>();
   vi.spyOn(peer, "subscribe").mockImplementation((root, notify) => {
     signals.set(root, notify);
-    notify();
+    // The second peer subscription never comes up, so recovery has to cover it.
+    if (root === "/peer/first") notify();
     return () => {};
   });
   const abort = new AbortController();
@@ -95,6 +97,94 @@ it("does not let a busy peer postpone another repository's recovery sweep", asyn
     expect(
       reconcile.mock.calls.filter(([repository]) => repository.replicaId === "second").length,
     ).toBeGreaterThanOrEqual(2);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+it("runs no recovery cycle while the local watch and every peer subscription are live (ADR-0602)", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  vi.spyOn(peer, "subscribe").mockImplementation((_root, notify) => {
+    notify();
+    return () => {};
+  });
+  const abort = new AbortController();
+  const reconcile = vi.fn(async () => "current" as const);
+  const running = watchReplicaReconciliation({
+    repositories: [
+      { replicaId: "first", localRoot: "/first", peerRoot: "/peer/first" },
+      { replicaId: "second", localRoot: "/second", peerRoot: "/peer/second" },
+    ],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    signal: abort.signal,
+    reconcile,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(1_000);
+    const settled = reconcile.mock.calls.length;
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    expect(reconcile.mock.calls.length).toBe(settled);
+    // A hint still reconciles at once.
+    callbacks.local();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(reconcile.mock.calls.length).toBeGreaterThan(settled);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(0);
+    await running;
+  }
+});
+
+it("re-opens a failing peer subscription with exponential backoff and reports it until it works (ADR-0602)", async () => {
+  vi.useFakeTimers();
+  const peer = new SshRepositoryReplicaPeer({
+    executable: "ssh",
+    arguments: [],
+    destination: "fixture",
+    remoteNodeExecutable: "node",
+    remoteRuntimeExecutable: "runtime",
+  });
+  const opened: number[] = [];
+  let healthy = false;
+  vi.spyOn(peer, "subscribe").mockImplementation((_root, notify, failed) => {
+    opened.push(Date.now());
+    if (healthy) notify();
+    else queueMicrotask(failed);
+    return () => {};
+  });
+  const states: unknown[] = [];
+  const abort = new AbortController();
+  const start = Date.now();
+  const running = watchReplicaReconciliation({
+    repositories: [{ replicaId: "only", localRoot: "/only", peerRoot: "/peer/only" }],
+    peer,
+    fallbackIntervalMs: 1_000,
+    watch: true,
+    signal: abort.signal,
+    onWatchBackoff: (state) => states.push(state),
+    reconcile: async () => "current" as const,
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(16_000);
+    // Opened at 0, then after 1, 2, 4 and 8 seconds: never at a fixed minute.
+    expect(opened.map((at) => Math.round((at - start) / 1_000))).toEqual([0, 1, 3, 7, 15]);
+    expect(states.at(-1)).toMatchObject({ source: "peer", consecutiveFailures: 5 });
+    healthy = true;
+    await vi.advanceTimersByTimeAsync(16_000);
+    expect(states.at(-1)).toBeNull();
+    const settled = opened.length;
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    expect(opened.length).toBe(settled);
   } finally {
     abort.abort();
     await vi.advanceTimersByTimeAsync(0);

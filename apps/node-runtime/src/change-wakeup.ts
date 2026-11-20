@@ -8,16 +8,19 @@ export class ChangeWakeup {
     for (const listener of [...this.listeners]) listener();
   }
 
+  /** Waits for a notification, at most `maximumWaitMs`; `Infinity` waits with no timer. */
   wait(after: number, maximumWaitMs: number, signal?: AbortSignal): Promise<void> {
     if (this.revision !== after || signal?.aborted || maximumWaitMs <= 0) return Promise.resolve();
     return new Promise((resolve) => {
       const done = () => {
-        clearTimeout(timer);
+        if (timer !== undefined) clearTimeout(timer);
         this.listeners.delete(done);
         signal?.removeEventListener("abort", done);
         resolve();
       };
-      const timer = setTimeout(done, maximumWaitMs);
+      const timer = Number.isFinite(maximumWaitMs)
+        ? setTimeout(done, Math.min(maximumWaitMs, 2_147_483_647))
+        : undefined;
       this.listeners.add(done);
       signal?.addEventListener("abort", done, { once: true });
       if (this.revision !== after || signal?.aborted) done();

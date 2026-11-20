@@ -28,6 +28,26 @@ Each failure is prevented, recovered or visible; the test that proves it follows
 - **Windows.** Prevented: the same guarantees over ping files and exclusive locks, with no pipe to impersonate a writer. A watch that cannot be armed raises `event_channel_unavailable`. → `change-channel.test.ts` in the Windows job.
 - **An idle host.** Prevented: there is no token read, store call, database open or timer. → `resident-idle-wait.test.ts` (12 simulated hours).
 
+## Deadlines and push (step 2)
+
+Nothing runs on a cadence. A timer is armed only for a known moment (a due time, a lease expiry, a failure retry), and Hub state arrives as a push. A wall-clock step or a sleep only ever makes a deadline late, never early: timers run on the monotonic clock and fire only names whose wall-clock moment has passed.
+
+- **A resident with nothing due.** Prevented: no timer at all, and no age bound on an unchanged fingerprint. → `loop.test.ts` (no `setTimeout` or `setInterval` while asleep), `loop-health.test.ts`, `resident-cycle.test.ts`, `resident-deadline-timer.test.ts`.
+- **Hub state with no local signal** (owner-rule candidates, host records, definitions, the lease holder). Recovered at once: each Hub write notifies the `knowledge` topic of the repository's other hosts, never the writer's own; the resident holds that wait open and folds its token into the fingerprint, so the next cycle runs in full. → `knowledge-change-wait-http.test.ts`, `knowledge-convergence-hosts-http.test.ts`, `hub-knowledge-changes.test.ts`.
+- **A held wait with no traffic.** Prevented: an `open` hold arms no timer on either side; TCP keepalive (15 seconds, in the kernel) ends a dead connection, and the wait reconnects with its cursor, so the same Hub holds again with no change. → `runtime-change-notifications.test.ts`, `runtime-idle-wait.test.ts`.
+- **A Hub wait that fails.** Recovered and visible: it retries with exponential backoff and raises `hub_knowledge_changes_unavailable` or `hub_runtime_changes_unavailable` until it is answered again. → `hub-knowledge-changes.test.ts`, `runtime-idle-wait.test.ts`.
+- **A lease released by its holder.** Recovered at once: the release notifies the waiting host, which takes over without waiting for the expiry; on the same checkout a release command rewrites the watched owner fence. A holder that vanishes without releasing is taken over at its lease expiry, the one deadline. → `non-owner-takeover.test.ts` (no clock skew, with the whole lease and with twenty seconds left).
+- **Peer liveness.** Prevented from needing a heartbeat: the Hub reports whether each host holds its `knowledge` wait, and a peer is unreported only after ten minutes without one; a disconnection is pushed after a five-second grace. → `runtime-change-notifications.test.ts`, `continuity-findings.test.ts`.
+- **Continuity.** Recovered on change: it reconciles when its host-local inputs differ from the ones it recorded, when a Hub change forces it, or at its own next time-based moment; its policy, owner-host and provider-pause files are watched. Its state is stale only once that moment passed unobserved. → `continuity-findings.test.ts`, `convergence-continuity.test.ts`.
+- **A projection deadline during a cycle.** Prevented from spinning: an age-only offer's deadline is the age bound, a due retry refreshes, and the timer refuses a deadline set back to the past moment it just fired at. → `loop-health.test.ts` (a moved head during a running cycle), `resident-projection-fence.test.ts`, `resident-deadline-timer.test.ts`.
+- **A hold released during a cycle.** Recovered: the cycle runs once more. → `loop-health.test.ts`.
+- **A watched directory created later, or a change during a CLI host scan.** Recovered: the nearest existing ancestor is watched and re-armed toward it, and the CLI host keeps its watch across scans. → `hub-knowledge-changes.test.ts`, `knowledge-host-residents.test.ts`.
+- **An edit to `.git/info/exclude`.** Recovered at once: `.git/info` is watched. → `repository-change-watch.test.ts`.
+- **A failure that keeps recurring** (a change loop cycle, an unreadable writer coordinate, a repository watch that cannot be armed, a lost replica source). Recovered and visible: exponential backoff to a ceiling, reported until it clears. → `conversation-change-loop.test.ts`, `knowledge-worker-admission.test.ts`, `knowledge-worker-wakeups.test.ts`, `repository-replica-watch.test.ts`.
+- **A dormant supervision owner.** Prevented from polling: an inactive workstream is settled, woken by an event or by the current-workstream and branch-binding files; workforce sources are watched too. → `supervision-change-loop.test.ts`, `supervision-wake-sources.test.ts`.
+- **An idle replica peer stream.** Prevented: a quiet stream writes nothing and arms no timer. SSH keepalives end a dead link, and that EOF is the only failure; a stopped peer process that keeps the link open does no harm while nothing is pending, and the next transfer's command deadline reports it once work arrives. → `repository-replica-ssh-subscription.test.ts`, `repository-replica-watch.test.ts`.
+- **A held Node resident waiting for activation.** Recovered when the writer coordinate changes. → `knowledge-worker-admission.test.ts`.
+
 ## References
 
 - [ADR-0602](../../decisions/knowledge/maintenance/0602-wait-on-change-tokens-and-guard-idle-timers.md)

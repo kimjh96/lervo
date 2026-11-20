@@ -37,6 +37,78 @@ it.each([true, false])(
   },
 );
 
+it("arms no timer for a quiet stream, ignores an older peer's alive line, and fails only at EOF (ADR-0602)", async () => {
+  const root = await mkdtemp(join(tmpdir(), "lervo-peer-quiet-"));
+  let stop: (() => void) | undefined;
+  const timeouts = vi.spyOn(globalThis, "setTimeout");
+  try {
+    const script = join(root, "peer.mjs");
+    // An older peer says `alive`, then a change, then its link ends.
+    await writeFile(
+      script,
+      `process.stdout.write('{"schemaVersion":1,"status":"alive"}\\n'); setTimeout(() => process.stdout.write('{"schemaVersion":1,"status":"changed"}\\n'), 200); setTimeout(() => process.exit(0), 600);`,
+    );
+    const peer = new SshRepositoryReplicaPeer({
+      executable: process.execPath,
+      arguments: [script],
+      destination: "fixture",
+      remoteNodeExecutable: "node",
+      remoteRuntimeExecutable: "runtime",
+    });
+    const changed = vi.fn();
+    const failed = vi.fn();
+    const armed = timeouts.mock.calls.length;
+    stop = peer.subscribe("/fixture", changed, failed);
+    expect(timeouts.mock.calls.length).toBe(armed);
+    await vi.waitFor(() => expect(changed).toHaveBeenCalledOnce(), { timeout: 5_000 });
+    expect(failed).not.toHaveBeenCalled();
+    // Nothing but the end of the stream reports a failure, and no line re-arms anything.
+    await vi.waitFor(() => expect(failed).toHaveBeenCalledOnce(), { timeout: 5_000 });
+    expect(timeouts.mock.calls.length).toBe(armed);
+  } finally {
+    timeouts.mockRestore();
+    stop?.();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+it("writes nothing and arms no timer while the repository is quiet (ADR-0602)", async () => {
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const lines: string[] = [];
+  const notify: { local: () => void } = { local: () => undefined };
+  vi.doMock("@lervo/repository-knowledge-runtime", async (original) => ({
+    ...(await original<typeof import("@lervo/repository-knowledge-runtime")>()),
+    watchRepositoryChanges: async (_root: string, changed: () => void) => {
+      notify.local = changed;
+      return () => undefined;
+    },
+  }));
+  const { publishRepositoryChangeHints } = await import("../src/repository-replica-watch.js");
+  const abort = new AbortController();
+  const publishing = publishRepositoryChangeHints({
+    root: "/fixture",
+    signal: abort.signal,
+    write: (line) => lines.push(line.trim()),
+  });
+  try {
+    await vi.advanceTimersByTimeAsync(0);
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    expect(lines.map((line) => JSON.parse(line).status)).toEqual(["changed"]);
+    expect(vi.getTimerCount()).toBe(0);
+    notify.local();
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(lines.map((line) => JSON.parse(line).status)).toEqual(["changed", "changed"]);
+    expect(vi.getTimerCount()).toBe(0);
+  } finally {
+    abort.abort();
+    await vi.advanceTimersByTimeAsync(1_000);
+    await publishing;
+    vi.doUnmock("@lervo/repository-knowledge-runtime");
+    vi.useRealTimers();
+  }
+});
+
 it("terminates a repository replica SSH command that exceeds its deadline", async () => {
   const root = await mkdtemp(join(tmpdir(), "lervo-peer-timeout-"));
   try {

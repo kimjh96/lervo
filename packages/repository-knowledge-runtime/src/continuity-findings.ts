@@ -7,7 +7,13 @@ const HOUR_MS = 60 * 60_000;
 /** Without a policy, an expiring delegation is reported this long before it lapses. */
 export const CONTINUITY_ATTENTION_LEAD_MS = 72 * HOUR_MS;
 /** A peer that has not published for this long is reported as unreported. */
+/** A peer record with no Hub presence (a Hub older than ADR-0602) is unreported past this age. */
 export const CONTINUITY_PEER_STALE_MS = 2 * HOUR_MS;
+/**
+ * ADR-0602: a peer whose resident holds no Hub change wait for this long is unreported. Presence
+ * is the Hub's view of the held wait, so no host republishes its record on a timer to look alive.
+ */
+export const CONTINUITY_PEER_ABSENT_GRACE_MS = 10 * 60_000;
 
 /**
  * `info` is reported by the doctor only. `attention` is an operating-attention item the system
@@ -88,6 +94,18 @@ export interface ContinuityPeerObservation {
   delegationState: "active" | "expired" | "revoked" | "missing";
   delegationExpiresAt: string | null;
   policy: string;
+  /** ADR-0602: the Hub's presence for the peer when it was listed; absent from older Hubs. */
+  presence?: { connected: boolean; since: string };
+}
+
+/** Whether a peer has stopped reporting: by Hub presence, or by record age without it. */
+export function continuityPeerUnreported(peer: ContinuityPeerObservation, now: number): boolean {
+  if (peer.presence === undefined)
+    return now - Date.parse(peer.observedAt) > CONTINUITY_PEER_STALE_MS;
+  return (
+    !peer.presence.connected &&
+    now - Date.parse(peer.presence.since) > CONTINUITY_PEER_ABSENT_GRACE_MS
+  );
 }
 
 export interface ContinuityFindingsInput {
@@ -217,7 +235,7 @@ export function continuityPeerFindings(
   const input = { peers, now };
   const findings: ContinuityFinding[] = [];
   for (const peer of input.peers) {
-    if (input.now - Date.parse(peer.observedAt) > CONTINUITY_PEER_STALE_MS)
+    if (continuityPeerUnreported(peer, input.now))
       findings.push({ code: "peer_unreported", severity: "info", detail: peer.hostLabel });
     else if (peer.delegationState !== "active" || peer.delegationExpiresAt === null)
       findings.push({ code: "peer_delegation_missing", severity: "info", detail: peer.hostLabel });
@@ -252,6 +270,11 @@ export function continuityFindings(input: ContinuityFindingsInput): ContinuityFi
 }
 
 /** A continuity projection older than this means no resident reconciles this checkout. */
+/**
+ * ADR-0602: how long past its own deadline continuity's state may stand before it is stale. With
+ * no cadence, an old state is current until an input changes or its deadline passes, so only a
+ * missed deadline, never age alone, makes it stale.
+ */
 export const CONTINUITY_STATE_STALE_MS = 2 * HOUR_MS;
 
 /** The closed detail naming which host should run an unobserved checkout's resident. */
@@ -279,6 +302,8 @@ export function localContinuityFindings(input: {
   now: number;
   expected: boolean;
   stateObservedAt: string | null;
+  /** The state's own next deadline; null when only a change was due. */
+  stateDueAt?: string | null;
   residentRunning: boolean | null;
   hookRuntime: "current" | "unavailable" | "unknown";
   replicaDiverged: boolean;
@@ -314,7 +339,9 @@ export function localContinuityFindings(input: {
   else if (
     input.expected &&
     input.stateObservedAt !== null &&
-    input.now - Date.parse(input.stateObservedAt) > CONTINUITY_STATE_STALE_MS
+    input.stateDueAt !== undefined &&
+    input.stateDueAt !== null &&
+    input.now - Date.parse(input.stateDueAt) > CONTINUITY_STATE_STALE_MS
   )
     findings.push({ code: "continuity_stale", severity: "attention", detail });
   if (!held && input.expected && input.residentRunning === false && host?.kind !== "host_serving")

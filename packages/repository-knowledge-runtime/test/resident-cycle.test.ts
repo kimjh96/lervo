@@ -10,7 +10,6 @@ import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 import {
   RESIDENT_RECONCILE_BASE_MILLISECONDS as BASE,
   RESIDENT_RECONCILE_CEILING_MILLISECONDS as CEILING,
-  RESIDENT_FORCED_FULL_CYCLE_MILLISECONDS as FORCED,
   nextIdleStreak,
   residentCadence,
   residentReconcileDelay,
@@ -65,14 +64,12 @@ async function cycle(input: {
   fails?: boolean;
   error?: unknown;
   now?: number;
-  ceilingMilliseconds?: number;
 }) {
   let full = 0;
   const outcome = await runResidentCycle({
     repositoryRoot: "/work/repo",
     previous: input.previous,
     now: () => input.now ?? NOW,
-    ceilingMilliseconds: input.ceilingMilliseconds ?? CEILING,
     observe: () => {
       if (input.observeFails) throw new Error("git unavailable");
       return {
@@ -234,7 +231,7 @@ describe("change fence", () => {
     expect(result).toMatchObject({ full: 1, state: { fingerprint: null, lastResult: "idle" } });
   });
 
-  it("runs a due delivery and the ceiling cycle without the fence", async () => {
+  it("runs a due delivery without the fence, but no age alone forces a cycle", async () => {
     expect(await cycle({ previous: previous(), earliestAvailableAt: NOW })).toMatchObject({
       full: 1,
     });
@@ -242,7 +239,7 @@ describe("change fence", () => {
       await cycle({
         previous: previous({ lastCycleAt: new Date(NOW - CEILING).toISOString() }),
       }),
-    ).toMatchObject({ full: 1 });
+    ).toMatchObject({ full: 0 });
     expect(await cycle({ previous: previous(), earliestAvailableAt: NOW + 1_000 })).toMatchObject({
       full: 0,
     });
@@ -325,7 +322,7 @@ describe("change fence", () => {
   });
 });
 
-describe("held repositories, forced full cycles and failure backoff (ADR-0595)", () => {
+describe("held repositories, unbounded skips and failure backoff (ADR-0595, ADR-0602)", () => {
   const HELD = { status: "busy", reason: "repository_owner_hold" };
   const delay = (idleStreak: number) =>
     residentReconcileDelay({
@@ -372,34 +369,26 @@ describe("held repositories, forced full cycles and failure backoff (ADR-0595)",
     });
   });
 
-  it("skips an unchanged fingerprint for an hour, then forces one full cycle", async () => {
+  it("skips an unchanged fingerprint however old the last full cycle is (ADR-0602)", async () => {
     const at = (elapsed: number) =>
-      cycle({
-        previous: previous({ lastCycleAt: new Date(NOW - elapsed).toISOString() }),
-        ceilingMilliseconds: FORCED,
-      });
-    expect(FORCED).toBe(60 * 60_000);
+      cycle({ previous: previous({ lastCycleAt: new Date(NOW - elapsed).toISOString() }) });
     expect(await at(CEILING)).toMatchObject({ full: 0, outcome: { kind: "skipped" } });
-    expect(await at(FORCED - 1)).toMatchObject({ full: 0, outcome: { kind: "skipped" } });
-    expect(await at(FORCED)).toMatchObject({ full: 1, outcome: { kind: "completed" } });
+    expect(await at(60 * 60_000)).toMatchObject({ full: 0, outcome: { kind: "skipped" } });
+    expect(await at(30 * 86_400_000)).toMatchObject({ full: 0, outcome: { kind: "skipped" } });
+    // A changed fingerprint, such as a new Hub change token, runs in full at once.
+    expect(
+      await cycle({
+        previous: previous({ lastCycleAt: new Date(NOW).toISOString() }),
+        fingerprint: OTHER,
+      }),
+    ).toMatchObject({ full: 1, outcome: { kind: "completed" } });
   });
 
-  it("never lets the forced full cycle fall below the reconcile ceiling", () => {
-    expect(residentCadence({})).toEqual({ base: BASE, ceiling: CEILING, forcedFullCycle: FORCED });
+  it("validates the failure retry cadence", () => {
+    expect(residentCadence({})).toEqual({ base: BASE, ceiling: CEILING });
     expect(() =>
-      residentCadence({
-        intervalMilliseconds: 1_000,
-        reconcileCeilingMilliseconds: 5_000,
-        forcedFullCycleMilliseconds: 4_999,
-      }),
-    ).toThrow("Invalid forced full-cycle interval.");
-    expect(
-      residentCadence({
-        intervalMilliseconds: 1_000,
-        reconcileCeilingMilliseconds: 5_000,
-        forcedFullCycleMilliseconds: 5_000,
-      }),
-    ).toMatchObject({ ceiling: 5_000, forcedFullCycle: 5_000 });
+      residentCadence({ intervalMilliseconds: 1_000, reconcileCeilingMilliseconds: 999 }),
+    ).toThrow("Invalid convergence reconciliation ceiling.");
   });
 
   it("backs repeated failures off without ever skipping them", async () => {

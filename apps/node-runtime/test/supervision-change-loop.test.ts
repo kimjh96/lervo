@@ -107,7 +107,7 @@ describe("supervision event and deadline scheduling", () => {
     await loop.stop();
   });
 
-  it("backs off an inactive standing workstream while retaining event wakeup", async () => {
+  it("keeps an inactive standing workstream asleep while retaining event wakeup", async () => {
     vi.useFakeTimers();
     let notify = () => {};
     const cycle = vi
@@ -135,7 +135,7 @@ describe("supervision event and deadline scheduling", () => {
     await loop.stop();
   });
 
-  it("backs a lapsed progress deadline off to five minutes and resets on an event hint", async () => {
+  it("gives a lapsed progress deadline one more cycle, then waits for an event hint (ADR-0602)", async () => {
     vi.useFakeTimers();
     let notify = () => {};
     const lapsed = report(new Date(Date.now() - 1_000).toISOString());
@@ -155,17 +155,17 @@ describe("supervision event and deadline scheduling", () => {
     });
     loop.start();
     await vi.advanceTimersByTimeAsync(0);
-    // The first evaluation records the source; later identical evaluations back off.
-    await vi.advanceTimersByTimeAsync(5_000 + 5_000 + 10_000 + 20_000 + 40_000 + 80_000);
-    await vi.advanceTimersByTimeAsync(160_000 + 300_000 + 300_000);
-    const gaps = starts.slice(1).map((start, index) => start - starts[index]!);
-    expect(gaps).toEqual([5_000, 5_000, 10_000, 20_000, 40_000, 80_000, 160_000, 300_000, 300_000]);
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    // The lapsed deadline's one extra cycle five seconds later, then nothing for a day.
+    expect(starts.slice(1).map((start, index) => start - starts[index]!)).toEqual([5_000]);
+    expect(vi.getTimerCount()).toBe(0);
     starts.length = 0;
     notify();
     await vi.advanceTimersByTimeAsync(0);
     expect(starts).toHaveLength(1);
-    await vi.advanceTimersByTimeAsync(5_000);
-    expect(starts).toHaveLength(2);
+    // The same lapsed deadline already had its extra cycle.
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(starts).toHaveLength(1);
     await loop.stop();
   });
 
@@ -195,31 +195,32 @@ describe("supervision event and deadline scheduling", () => {
     await loop.stop();
   });
 
-  it("does not back off while the owner lease is busy or an effect changed the source", async () => {
+  it("settles an inactive workstream with no timer until a hint arrives (ADR-0602)", async () => {
     vi.useFakeTimers();
-    const lapsed = report(new Date(Date.now() - 1_000).toISOString());
+    let notify = () => {};
     const cycle = vi
       .fn()
-      .mockResolvedValueOnce({ disposition: "idle", report: lapsed })
-      .mockResolvedValueOnce({ disposition: "idle", report: lapsed })
-      .mockResolvedValueOnce({ disposition: "busy", report: null })
-      .mockResolvedValueOnce({ disposition: "effect_confirmed", report: lapsed })
-      .mockResolvedValue({ disposition: "idle", report: lapsed });
+      .mockRejectedValueOnce(
+        Object.assign(new Error("inactive"), { code: "supervision_workstream_inactive" }),
+      )
+      .mockResolvedValue({ disposition: "idle", report: report(null) });
     const loop = createSupervisionChangeLoop({
       runCycle: cycle,
-      subscribe: () => () => {},
+      subscribe: (callback) => {
+        notify = callback;
+        return () => {};
+      },
       nextAuthorityCheckAt: () => null,
       onFailure: vi.fn(),
     });
     loop.start();
     await vi.advanceTimersByTimeAsync(0);
-    // idle (record) 5 s, idle (same) 5 s, busy 5 s, effect 5 s, idle (record) 5 s, idle 5 s, 10 s.
-    await vi.advanceTimersByTimeAsync(30_000);
-    expect(cycle).toHaveBeenCalledTimes(7);
-    await vi.advanceTimersByTimeAsync(9_999);
-    expect(cycle).toHaveBeenCalledTimes(7);
-    await vi.advanceTimersByTimeAsync(1);
-    expect(cycle).toHaveBeenCalledTimes(8);
+    expect(vi.getTimerCount()).toBe(0);
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    expect(cycle).toHaveBeenCalledOnce();
+    notify();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(cycle).toHaveBeenCalledTimes(2);
     await loop.stop();
   });
 });

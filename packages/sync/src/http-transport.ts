@@ -17,6 +17,7 @@ import {
   calculateProjectRegistrationId,
 } from "@lervo/sync-contract";
 
+import { holdHubRequest } from "./hub-held-request.js";
 import { HubJsonHttpClient } from "./hub-json-http-client.js";
 import type {
   AuthenticatedHubCapabilityTransport,
@@ -66,6 +67,8 @@ export class AuthenticatedHubHttpTransport
   private readonly target: RemoteCommandTarget;
   private readonly registrationId: string;
   private readonly client: HubJsonHttpClient;
+  private readonly bearerToken: string;
+  private readonly expectedHubIdentityHash: string;
 
   constructor(options: SyncHttpTransportOptions) {
     this.baseUrl = configuredUrl(options.baseUrl, options.allowInsecureHttpForTests === true);
@@ -76,6 +79,8 @@ export class AuthenticatedHubHttpTransport
       throw new Error("The Hub synchronization HTTP transport configuration is invalid.");
     this.destinationId = options.destinationId;
     this.target = { ...options.target };
+    this.bearerToken = options.bearerToken;
+    this.expectedHubIdentityHash = options.expectedHubIdentityHash;
     this.client = new HubJsonHttpClient({
       bearerToken: options.bearerToken,
       expectedHubIdentityHash: options.expectedHubIdentityHash,
@@ -139,6 +144,11 @@ export class AuthenticatedHubHttpTransport
     return this.requestJson("workstreams", "POST", request, [200, 201]);
   }
 
+  /**
+   * ADR-0602: an open hold. The Hub answers only when something changed (or at once for a stale
+   * cursor), so an idle Node makes no request at all; TCP keepalive owns the connection's
+   * liveness. A Hub older than ADR-0602 rejects `hold` as an invalid request.
+   */
   async waitForRuntimeChange(input: {
     topic: "workstream" | "command";
     nodeId?: string;
@@ -154,11 +164,12 @@ export class AuthenticatedHubHttpTransport
     url.searchParams.set("topic", input.topic);
     if (input.nodeId !== undefined) url.searchParams.set("nodeId", input.nodeId);
     if (input.cursor !== null) url.searchParams.set("cursor", input.cursor);
-    return this.client.requestJson({
+    url.searchParams.set("hold", "open");
+    return holdHubRequest({
       url,
-      method: "GET",
-      acceptedStatuses: [200],
-      credentialMode: "bearer",
+      bearerToken: this.bearerToken,
+      expectedHubIdentityHash: this.expectedHubIdentityHash,
+      destinationId: this.destinationId,
       signal: input.signal,
     });
   }

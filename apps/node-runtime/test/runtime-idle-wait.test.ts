@@ -40,30 +40,65 @@ describe("runtime idle scheduling", () => {
     expect(request.mock.calls[0]![0].signal.aborted).toBe(true);
   });
 
-  it("resumes using only a verified cursor and falls back after an invalid peer response", async () => {
+  it("holds with no timer, resumes with a verified cursor, and backs failures off (ADR-0602)", async () => {
     vi.useFakeTimers();
+    const failures: unknown[] = [];
     const request = vi
       .fn()
       .mockResolvedValueOnce(reply)
       .mockResolvedValueOnce({
         ...reply,
         authentication: { ...reply.authentication, peerIdentityHash: `sha256:${"2".repeat(64)}` },
-      });
+      })
+      .mockRejectedValueOnce(new Error("socket hang up"))
+      .mockResolvedValueOnce(reply);
     const wait = new RuntimeIdleWait({
       ...options(),
       transport: () => ({ waitForRuntimeChange: request }),
+      onAvailability: (failure) => failures.push(failure),
     });
     const signal = new AbortController().signal;
     await wait.wait(signal);
+    expect(vi.getTimerCount()).toBe(0);
+    // An invalid peer answer: the cursor is dropped and the retry waits the base interval.
     const second = wait.wait(signal);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(request.mock.calls[1]![0].cursor).toBe(cursor);
+    expect(vi.getTimerCount()).toBe(1);
     await vi.advanceTimersByTimeAsync(2_000);
     await second;
-    expect(request.mock.calls[1]![0].cursor).toBe(cursor);
-    const fallback = wait.wait(signal);
-    await vi.advanceTimersByTimeAsync(2_000);
-    await fallback;
-    expect(request).toHaveBeenCalledTimes(2);
+    // A transport failure doubles the wait.
+    const third = wait.wait(signal);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(request.mock.calls[2]![0].cursor).toBeNull();
+    await vi.advanceTimersByTimeAsync(3_999);
+    expect(request).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(1);
+    await third;
+    await wait.wait(signal);
+    expect(request).toHaveBeenCalledTimes(4);
+    expect(failures).toHaveLength(3);
+    expect(failures.at(-1)).toBeNull();
     expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("waits for local changes only without a hint transport, and reports it once", async () => {
+    vi.useFakeTimers();
+    const failures: unknown[] = [];
+    const wait = new RuntimeIdleWait({
+      ...options(),
+      transport: () => null,
+      onAvailability: (failure) => failures.push(failure),
+    });
+    const pending = wait.wait(new AbortController().signal);
+    await vi.advanceTimersByTimeAsync(24 * 60 * 60_000);
+    expect(vi.getTimerCount()).toBe(0);
+    wait.notify();
+    await pending;
+    const again = wait.wait(new AbortController().signal);
+    wait.notify();
+    await again;
+    expect(failures).toHaveLength(1);
   });
 
   it("aborts a fallback timer promptly and leaves no timers", async () => {

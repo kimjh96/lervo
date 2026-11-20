@@ -69,6 +69,22 @@ Each record has one owner and a unique name, in `.lervo/state/event-channel/<nam
 
 `inspectEventStoreChannel` counts a record only while its subscriber lives and removes records proven gone. It also reports a refused run directory, a run directory missing while subscribers run, and FIFOs of another host or an unknown identity. Each repository watch has its own record in `.lervo/state/repository-watch/`. The CLI adds both to operating attention, and each issue carries a fix.
 
+### Step 2: one deadline instead of intervals
+
+Each loop arms one timer for its earliest known deadline, recomputed whenever a deadline changes, and none when it knows none:
+
+- **Resident loop:** the deadlines are a delivery or local stage falling due (practice, the skill day boundary, `availableAt`), a publication retry, the owner's lease renewal, continuity's next time-based moment, the health projection's age bound, and a retry after a failure or an ownership the Hub could not confirm. There is no idle backoff and no forced cycle: an unchanged fingerprint skips however old it is. A wall-clock step or a sleep only ever makes a deadline late, never early.
+- **Hub state is pushed.** The Hub long-poll gains a `knowledge` topic: a new lease holder or release, an owner-rule candidate, a host record whose facts changed or a new definition wakes the repository's other hosts, never the writer. The resident holds it open (no timer on either side; TCP keepalive owns liveness) and folds its token into the fingerprint. A release is taken over at once; a holder that vanishes is taken over at its lease expiry. Node's workstream and command waits hold open too. Hub presence (who holds a wait) replaces record age as peer liveness.
+- **Continuity** reconciles when its fingerprinted host-local inputs change, on a Hub change, or at its next time-based moment; its state is stale only once that moment passed.
+- **Wakes:** every host's resident watches events and the repository by default (the repository watch moved into the resident runtime). The repository watch has no recovery poll; its notifications are level-triggered. The projection inputs, the host hold store and the writer coordinate are watched files.
+- **Change loop** (supervision, result branch, Node knowledge loop): a change or the next deadline, never an interval. A deadline already past when a cycle ends gets one more cycle, then waits for a change or a new deadline.
+- **CLI host residents:** a rescan follows a change of the repository or Node registry, the continuity policy, a delegation or the terminal runtime pointer, or a held checkout's retry time.
+- **Replica watch:** with the local watch and every peer subscription live, no recovery cycle runs. A quiet peer stream writes nothing; SSH keepalives end a dead link and the subscriber reacts only to EOF or an error. A stopped peer that keeps the link open harms nothing while no work is pending, and the next transfer's deadline reports it. A lost source is re-armed with backoff and shown in health.
+- **Supervision peers:** a live peer is observed again only when its event store changes; one that could not be opened is retried after a minute. An inactive workstream is settled until an event or its workstream files change, and workforce sources are watched.
+- **Failures** that recur back off exponentially to a ceiling and stay visible until they clear.
+
+The full-cycle admission wait and upgrade preemption run only while work is queued or running; their waiter heartbeat moves to step 3 with liveness.
+
 ## Failure modes
 
 [Idle wakeups and the event-store wake channel](../../../specifications/execution/idle-wake-channel.md) lists every failure of the wake path with the mechanism that prevents, recovers or surfaces it and the test that proves it.
@@ -87,8 +103,8 @@ Each finding must be listed in `scripts/quality/idle-timer-allowlist.json` with 
 ## Inventory of periodic work (2026-11-20, v0.29.9)
 
 - Event watchers polled every 1 s and the knowledge resident every 30 s; they now use the FIFO channel. The workstream audit (45 to 60 s) and the supervision audit (15 min, tail 60 s) now verify on open, on an anchor change and at use.
-- Step 2: the supervision change loop, result branch and Node knowledge loop; the 15-minute full reads; the resident loop's reconcile backoff, projection check, owner renewal, continuity and hold release; repository watch and replica recovery; admission and upgrade waits; the CLI host rescan.
-- Step 3: the resident, Node, admission-hold and CLI host heartbeats.
+- Step 2: the change loops' backoff, the resident loop's reconcile backoff, projection check, owner renewal, continuity and hold release, the repository watch recovery poll, idle replica recovery and the per-minute peer reconcile, the supervision peer re-observation, the writer coordinate poll and the CLI host rescan became watches and single deadlines. The 15-minute full reads only compare an age when a wake reads.
+- Step 3: the resident, Node, admission-hold and CLI host heartbeats, the admission waiter heartbeat and poll, upgrade preemption, and the standby host lock retry.
 - Allowlisted: timers that end with their work (provider calls, leases, managed processes, reasoning effects, Discord typing) or are never armed while idle (restarts, debounces, the peer stream watchdog).
 
 ## Consequences

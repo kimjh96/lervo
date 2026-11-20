@@ -244,6 +244,44 @@ describe("projection fence (ADR-0595)", () => {
     expect(r.state.refreshes).toBe(3);
   });
 
+  it("never hands back a past deadline that an offer would not act on (ADR-0602)", async () => {
+    const r = resident();
+    await r.offer();
+    // A moved head during a running cycle: the age-only offer ignores it, so its deadline is
+    // the age bound, never the event interval that already passed.
+    r.state.head = "evt_2";
+    r.state.now += EVENT_INTERVAL;
+    await r.offer();
+    expect(r.state.refreshes).toBe(2);
+    r.state.head = "evt_3";
+    await r.offer({ ageOnly: true });
+    r.state.now += EVENT_INTERVAL;
+    expect(r.offer.nextDueAt({ ageOnly: true })).toBe(EVENT_INTERVAL + MAXIMUM_AGE);
+    expect(r.offer.nextDueAt({ ageOnly: true })!).toBeGreaterThan(r.state.now);
+    // The age-only offer never read the head, so its deadline is the age bound too; the cycle's
+    // own offer reads it and refreshes for the moved head.
+    expect(r.offer.nextDueAt()).toBe(EVENT_INTERVAL + MAXIMUM_AGE);
+    await r.offer();
+    expect(r.state.refreshes).toBe(3);
+    expect(r.offer.nextDueAt()!).toBeGreaterThan(r.state.now);
+  });
+
+  it("refreshes at a retry that fell due even when no input changed (ADR-0602)", async () => {
+    let failing = true;
+    const r = resident({ failRefresh: () => failing });
+    await r.offer();
+    expect(r.state.refreshes).toBe(1);
+    const retryAt = r.offer.nextDueAt()!;
+    expect(retryAt).toBeGreaterThan(r.state.now);
+    failing = false;
+    r.state.now = retryAt;
+    // Nothing changed since the failed refresh, yet the due retry refreshes instead of returning
+    // with the same past deadline.
+    await r.offer({ ageOnly: true });
+    expect(r.state.refreshes).toBe(2);
+    expect(r.offer.nextDueAt()).toBe(retryAt + MAXIMUM_AGE);
+  });
+
   it("decides due refreshes from the key, the age and the hold", () => {
     const last = { key: "k", at: 0, held: false };
     const due = (input: Partial<Parameters<typeof residentProjectionDue>[0]>) =>

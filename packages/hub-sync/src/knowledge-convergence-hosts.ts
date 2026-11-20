@@ -1,5 +1,6 @@
 import {
   isKnowledgeConvergenceHostRecord,
+  type KnowledgeConvergenceHostPresenceEntry,
   type KnowledgeConvergenceHostPublishStatus,
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
@@ -29,6 +30,11 @@ export interface HubKnowledgeConvergenceHostStore {
   listKnowledgeConvergenceHosts(
     input: HubKnowledgeConvergenceHostCoordinate,
   ): Promise<KnowledgeConvergenceHostRecord[]>;
+
+  /** ADR-0602: whether each host waits on the `knowledge` topic now; absent before ADR-0602. */
+  knowledgeConvergenceHostPresence?(
+    input: HubKnowledgeConvergenceHostCoordinate & { hostHashes: readonly string[] },
+  ): Promise<KnowledgeConvergenceHostPresenceEntry[]>;
 }
 
 export class HubKnowledgeConvergenceHostError extends Error {
@@ -68,6 +74,18 @@ export async function handleKnowledgeConvergenceHostPublish(input: {
 export async function handleKnowledgeConvergenceHostList(input: {
   store: HubKnowledgeConvergenceHostStore;
   coordinate: HubKnowledgeConvergenceHostCoordinate;
-}): Promise<{ records: KnowledgeConvergenceHostRecord[] }> {
-  return { records: await input.store.listKnowledgeConvergenceHosts(input.coordinate) };
+}): Promise<{
+  records: KnowledgeConvergenceHostRecord[];
+  presence?: KnowledgeConvergenceHostPresenceEntry[];
+}> {
+  const records = await input.store.listKnowledgeConvergenceHosts(input.coordinate);
+  // A separate field, so clients older than ADR-0602, which check record keys exactly, still read.
+  if (input.store.knowledgeConvergenceHostPresence === undefined) return { records };
+  return {
+    records,
+    presence: await input.store.knowledgeConvergenceHostPresence({
+      ...input.coordinate,
+      hostHashes: records.map((record) => record.hostHash),
+    }),
+  };
 }

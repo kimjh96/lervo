@@ -9,6 +9,7 @@ import {
   attachHubArtifactCleanupLifecycle,
   createHubRequestListener,
   createHubServerWithArtifactCleanup,
+  HUB_SOCKET_KEEPALIVE_MILLISECONDS,
   type HubArtifactCleanupLifecycleResult,
 } from "@lervo/hub";
 import { FileSystemCapabilityRegistry } from "@lervo/capabilities";
@@ -370,6 +371,8 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
               cert: tls.certificate,
               key: tls.privateKey,
               minVersion: "TLSv1.3",
+              keepAlive: true,
+              keepAliveInitialDelay: HUB_SOCKET_KEEPALIVE_MILLISECONDS,
             },
             createHubRequestListener(serverOptions),
           );

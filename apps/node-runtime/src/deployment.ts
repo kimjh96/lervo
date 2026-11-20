@@ -127,6 +127,7 @@ export async function openNodeRuntime(
           },
         },
         trust: runtimeTrust,
+        repositoryRoot: paths.repositoryRoot,
       });
     }
     const { idleWait, transport, workstreamTransport, workspaceTransport } =
@@ -134,6 +135,7 @@ export async function openNodeRuntime(
         config: validated,
         target,
         bearerToken: () => bearerToken.current(),
+        repositoryRoot: paths.repositoryRoot,
         ...(ports.createTransport === undefined ? {} : { createTransport: ports.createTransport }),
       });
     const localWorkstreams = new NodeWorkstreamReplicationLocalPort(

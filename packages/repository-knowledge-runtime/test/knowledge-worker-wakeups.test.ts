@@ -62,3 +62,22 @@ it("retries a watcher that cannot start", async () => {
   expect(attempts).toBe(2);
   unsubscribe();
 });
+
+it("backs a watcher that keeps failing to start off exponentially, and resets once it arms (ADR-0602)", async () => {
+  vi.useFakeTimers();
+  let attempts = 0;
+  const startedAt: number[] = [];
+  const watch = vi.fn(async () => {
+    attempts++;
+    startedAt.push(Date.now());
+    if (attempts <= 6) throw Object.assign(new Error("watch limit"), { code: "ENOSPC" });
+    return () => undefined;
+  });
+  const start = Date.now();
+  const unsubscribe = subscribeKnowledgeWakeups(await storage(), vi.fn(), watch);
+  await vi.advanceTimersByTimeAsync(60 * 60_000);
+  // 1, 2, 4, 8, 15 and 15 minutes apart: never a fixed minute while the limit stays hit.
+  expect(startedAt.map((at) => (at - start) / 60_000)).toEqual([0, 1, 3, 7, 15, 30, 45]);
+  expect(vi.getTimerCount()).toBe(0);
+  unsubscribe();
+});

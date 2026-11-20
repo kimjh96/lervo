@@ -1,10 +1,9 @@
-import type { ProjectStorage } from "@lervo/project-storage";
 import {
   measureProcessCost,
   withProcessCostScope,
-  type ProcessCostMeasurement,
 } from "@lervo/repository-knowledge";
 import { readRepositoryHold } from "@lervo/repository-registry";
+import { residentContinuityTurns } from "./resident-continuity-turns.js";
 import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { coalescedRefresh } from "./resident-projection-refresh.js";
@@ -17,94 +16,42 @@ import {
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
 import { convergenceSourceFingerprint } from "./source-fingerprint.js";
 import { residentWakeOffset } from "./resident-wake-offset.js";
-import { watchResidentEventChanges } from "./resident-event-wakeup.js";
 import {
   readResidentCycleState,
   writeResidentCycleState,
   type ResidentCycleState,
 } from "./resident-cycle-state.js";
-import { residentCadence, residentReconcileDelay, runResidentCycle } from "./resident-cycle.js";
 import {
-  RESIDENT_PROJECTION_CHECK_MILLISECONDS,
+  residentCadence,
+  residentNextCycleAt,
+  residentReconcileDelay,
+  runResidentCycle,
+} from "./resident-cycle.js";
+import {
   RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS,
   residentProjectionRefresher,
 } from "./resident-projection-fence.js";
-import type { ConvergenceOwnership } from "./convergence-owner.js";
-import type { ConvergenceContinuity } from "./convergence-continuity.js";
-import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
-import type { KnowledgePublicationOutcome } from "./knowledge-publication.js";
-import type { KnowledgePublicationRepairEvents } from "./knowledge-publication-repair.js";
+import { residentDeadlines } from "./resident-deadlines.js";
+import { wireResidentWakes } from "./resident-wakes.js";
+import { residentCycleTrigger } from "./resident-cycle-trigger.js";
+import type { AutonomousKnowledgeWorkerInput } from "./loop-options.js";
+import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import {
   ownershipFingerprint,
   evaluationFingerprint,
+  hubTokenFingerprint,
   RESIDENT_OWNER_HEARTBEAT_MILLISECONDS,
 } from "./resident-ownership.js";
-
-type WorkerResult = Awaited<ReturnType<typeof runAutonomousKnowledgeWorker>>;
-
-/**
- * ADR-0470: continuity (including owner-host derivation, which decides whether this host may own
- * at all) is offered a turn on this timer as well as before each cycle, so a cycle waiting for
- * host-wide full-cycle admission cannot starve it. Reconciliation is rate-limited internally.
- */
-export const RESIDENT_CONTINUITY_TICK_MILLISECONDS = 60_000;
-/** ADR-0595: a held resident backs off, so it checks this often whether the owner released it. */
-export const RESIDENT_HOLD_RELEASE_CHECK_MILLISECONDS = 60_000;
-/**
- * ADR-0595: how often the resident checks whether the health projection's inputs changed. A
- * refresh runs only on a change, or after `RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS` unchanged.
- */
-export const RESIDENT_HEALTH_REFRESH_MILLISECONDS = RESIDENT_PROJECTION_CHECK_MILLISECONDS;
 
 /**
  * The standalone host needs no Hub. Startup, event and repository wakeups, and an adaptive
  * reconciliation timer share one owner; an unchanged change fence skips the full cycle.
  */
-export function startAutonomousKnowledgeWorker(input: {
-  storage: ProjectStorage;
-  signal?: AbortSignal;
-  workerId: string;
-  provider: "codex" | "claude";
-  executable?: string;
-  admissionDirectory?: string;
-  subscribe?: (notify: () => void, lastVerdictIsOwner: () => boolean) => () => void;
-  /** `cost` covers the fence observation and the full cycle, attributed by scope. */
-  onCycle?: (result: WorkerResult, cost: ProcessCostMeasurement) => void;
-  /**
-   * Read-only projections, offered after every observation (including skipped and failed cycles)
-   * and on their own check cadence, so a long cycle never leaves the projection older than its
-   * display window. ADR-0595: an offer refreshes only when the projection's inputs changed, or
-   * after the maximum age while nothing changed; a held repository has no age refresh.
-   */
-  refreshHealth?: () => Promise<void>;
-  healthRefreshMilliseconds?: number;
-  projectionMaximumAgeMilliseconds?: number;
-  /** ADR-0595: the longest an unchanged fingerprint may skip the full cycle. */
-  forcedFullCycleMilliseconds?: number;
-  onFailure: (error: unknown) => void;
-  intervalMilliseconds?: number;
-  reconcileCeilingMilliseconds?: number;
-  /** ADR-0466 cross-host owner; absent keeps the legacy single-host resident. */
-  ownership?: ConvergenceOwnership;
-  ownerHeartbeatMilliseconds?: number;
-  /**
-   * Publishes the owner's settled commits after each cycle; absent disables publication. The
-   * resident's event store receives `knowledge.publication.repaired` (ADR-0473).
-   */
-  publish?: (context: {
-    events: KnowledgePublicationRepairEvents;
-  }) => Promise<KnowledgePublicationOutcome>;
-  /** ADR-0467 Hub adapter for owner-rule candidates; absent keeps them host-local. */
-  instructionCandidateTransport?: InstructionCandidateExchangeTransport;
-  /** ADR-0545 owner-stated rule application on the convergence owner; absent keeps candidates. */
-  applyOwnerStatedInstructions?: () => Promise<unknown>;
-  /** ADR-0469 delegation and host continuity; it runs before each ownership observation. */
-  continuity?: ConvergenceContinuity;
-  continuityTickMilliseconds?: number;
-  holdReleaseCheckMilliseconds?: number;
-}): () => Promise<void> {
-  const { base, ceiling, forcedFullCycle } = residentCadence(input);
+export function startAutonomousKnowledgeWorker(
+  input: AutonomousKnowledgeWorkerInput,
+): () => Promise<void> {
+  const { base, ceiling } = residentCadence(input);
   const root = input.storage.paths.repositoryRoot;
   const wakeOffset = residentWakeOffset(input.storage.manifest.projectId);
   const controller = new AbortController();
@@ -112,13 +59,7 @@ export function startAutonomousKnowledgeWorker(input: {
     input.signal === undefined
       ? controller.signal
       : AbortSignal.any([input.signal, controller.signal]);
-  let running: Promise<void> | null = null;
-  let pending = false;
   let woken = false;
-  let firstWake: number | null = null;
-  let lastWake: number | null = null;
-  let debounce: ReturnType<typeof setTimeout> | null = null;
-  let reconcile: ReturnType<typeof setTimeout> | null = null;
   let previous: ResidentCycleState | null | undefined;
   let failureStreak = 0;
   let healthState: KnowledgeResidentState = "idle";
@@ -144,10 +85,33 @@ export function startAutonomousKnowledgeWorker(input: {
     healthReason = reason;
     heartbeat();
   };
+  const deadlines = residentDeadlines(
+    {
+      reconcile: () => cycle(),
+      continuity: () => void continuityTurns.run(),
+      // Renewal only; a lost lease aborts the running cycle and the next cycle reports it.
+      owner: () => {
+        if (verdict?.role === "owner") observeOwnership().catch(input.onFailure);
+      },
+      // During a cycle only the age bound applies; the cycle's own offer follows its changes.
+      projection: () => void offerProjection({ ageOnly: trigger.running() !== null }),
+    },
+    (name) => input.onFailure(new Error(`The resident's ${name} deadline came back in the past.`)),
+  );
+  // The observation in flight, so a fence event its own write caused compares with its verdict.
+  let observing: Promise<unknown> = Promise.resolve();
   const observeOwnership = async () => {
     if (input.ownership === undefined) return null;
-    verdict = await input.ownership.observe(signal);
+    const observation = input.ownership.observe(signal);
+    observing = observation.catch(() => undefined);
+    verdict = await observation;
     if (verdict.role !== "owner") ownedCycle?.abort();
+    deadlines.set(
+      "owner",
+      verdict.role === "owner"
+        ? Date.now() + (input.ownerHeartbeatMilliseconds ?? RESIDENT_OWNER_HEARTBEAT_MILLISECONDS)
+        : null,
+    );
     return verdict;
   };
   const runFull = async () => {
@@ -180,30 +144,25 @@ export function startAutonomousKnowledgeWorker(input: {
   // ADR-0561: while the owner holds the repository, the resident applies nothing there: the cycle
   // returns before any stage, and continuity and publication, which commit, push, and renew, wait.
   const repositoryHeld = async () => (await readRepositoryHold(root)) !== null;
-  let continuityRun: Promise<void> | null = null;
-  // One reconciliation at a time, whether the timer or the cycle asks for it.
-  const reconcileContinuity = (): Promise<void> => {
-    const continuity = input.continuity;
-    if (continuity === undefined || signal.aborted) return Promise.resolve();
-    continuityRun ??= repositoryHeld()
-      .then(async (held) => {
-        if (!held) await continuity.reconcile({ signal });
-      })
-      .then(
-        () => undefined,
-        (error: unknown) => {
-          if (!signal.aborted) input.onFailure(error);
-        },
-      )
-      .finally(() => {
-        continuityRun = null;
-      });
-    return continuityRun;
+  // One reconciliation at a time, whether its deadline or the cycle asks for it.
+  const continuityTurns = residentContinuityTurns({
+    continuity: input.continuity,
+    signal,
+    held: repositoryHeld,
+    onDue: (at) => deadlines.set("continuity", at),
+    onFailure: input.onFailure,
+  });
+  // ADR-0602: a Hub change can carry peer records or definitions, so the next turn reconciles.
+  let continuityForced = false;
+  const reconcileContinuity = () => {
+    const force = continuityForced;
+    continuityForced = false;
+    return continuityTurns.run({ force });
   };
   // One refresh at a time; the cycle's own refresh and this cadence share the same single flight.
   const projection = coalescedRefresh(input.refreshHealth, signal, input.onFailure);
   let held = false;
-  const refreshProjection = residentProjectionRefresher({
+  const refresher = residentProjectionRefresher({
     repositoryRoot: root,
     events: input.storage.events,
     enabled: input.refreshHealth !== undefined,
@@ -214,6 +173,11 @@ export function startAutonomousKnowledgeWorker(input: {
     maximumAgeMilliseconds:
       input.projectionMaximumAgeMilliseconds ?? RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS,
   });
+  const offerProjection = async (options: { ageOnly?: boolean } = {}) => {
+    await refresher(options);
+    deadlines.set("projection", refresher.nextDueAt(options));
+  };
+  const refreshProjection = () => offerProjection();
   const runOnce = async () => {
     previous ??= await readResidentCycleState(root);
     if (woken && previous !== null) previous = { ...previous, idleStreak: 0 };
@@ -227,18 +191,19 @@ export function startAutonomousKnowledgeWorker(input: {
         repositoryRoot: root,
         previous: observedPrevious,
         now: Date.now,
-        // ADR-0597: the forced cycle is spread like the day boundary, so residents never align.
-        ceilingMilliseconds: forcedFullCycle + wakeOffset,
         observe: () =>
           withProcessCostScope("fingerprint", () =>
             evaluationFingerprint(
               ownershipFingerprint(
-                convergenceSourceFingerprint({
-                  repositoryRoot: root,
-                  events: input.storage.events,
-                  wakeOffsetMilliseconds: wakeOffset,
-                  owner: observedOwner === null || observedOwner.role === "owner",
-                }),
+                hubTokenFingerprint(
+                  convergenceSourceFingerprint({
+                    repositoryRoot: root,
+                    events: input.storage.events,
+                    wakeOffsetMilliseconds: wakeOffset,
+                    owner: observedOwner === null || observedOwner.role === "owner",
+                  }),
+                  wakes.hubToken(),
+                ),
                 observedOwner,
               ),
               convergenceEvaluationContract(),
@@ -267,131 +232,125 @@ export function startAutonomousKnowledgeWorker(input: {
     await healthWrite;
     await refreshProjection();
     const now = Date.now();
-    const reconcileDelay = residentReconcileDelay({
-      idleStreak: cycle.state.idleStreak,
+    const at = residentNextCycleAt({
       now,
-      earliestAvailableAt: cycle.earliestAvailableAt,
-      // Publication and projection refresh run in between, so a due time can pass meanwhile.
-      observedAt: cycle.observedAt,
+      cycle,
+      unverifiable: observedOwner?.role === "unverifiable",
+      publicationRetryAfterMs:
+        publication?.status === "published" ? publication.retryAfterMs : null,
       baseMilliseconds: base,
       ceilingMilliseconds: ceiling,
     });
-    const delay =
-      publication?.status === "published" && publication.retryAfterMs !== null
-        ? Math.min(reconcileDelay, publication.retryAfterMs)
-        : reconcileDelay;
-    previous = { ...cycle.state, nextReconcileAt: new Date(now + delay).toISOString() };
+    previous = {
+      ...cycle.state,
+      lastObservedAt: new Date(cycle.observedAt).toISOString(),
+      // ADR-0602: none when only a change can give it work.
+      nextReconcileAt: Number.isFinite(at) ? new Date(at).toISOString() : null,
+    };
     // The file is a rebuildable projection; losing it costs one full cycle after a restart.
     await writeResidentCycleState(root, previous).catch(() => undefined);
-    return delay;
+    return at;
   };
-  const cycle = () => {
-    if (signal.aborted) return;
-    if (running !== null) {
-      pending = true;
-      return;
-    }
-    if (reconcile !== null) clearTimeout(reconcile);
-    reconcile = null;
-    let delay = base;
-    running = runOnce()
-      .then((next) => {
-        delay = next;
-        failureStreak = 0;
-      })
-      .catch(async (error) => {
-        if (!signal.aborted) input.onFailure(error);
-        report("attention", "knowledge_resident_cycle_failed");
-        // ADR-0595: a cycle that keeps failing backs off like an idle one instead of retrying at
-        // the base cadence; a wakeup or a successful cycle resets the streak.
-        failureStreak = Math.min(failureStreak + 1, 64);
-        delay = residentReconcileDelay({
+  // One cycle; ADR-0602: Infinity clears the deadline, so only a change or a due time wakes it.
+  const runCycle = async () => {
+    deadlines.set("reconcile", null);
+    let at: number;
+    try {
+      at = await runOnce();
+      failureStreak = 0;
+    } catch (error) {
+      if (!signal.aborted) input.onFailure(error);
+      report("attention", "knowledge_resident_cycle_failed");
+      // ADR-0595: a cycle that keeps failing backs off like an idle one instead of retrying at the
+      // base cadence; a wakeup or a successful cycle resets the streak.
+      failureStreak = Math.min(failureStreak + 1, 64);
+      at =
+        Date.now() +
+        residentReconcileDelay({
           idleStreak: failureStreak,
           now: Date.now(),
           earliestAvailableAt: null,
           baseMilliseconds: base,
           ceilingMilliseconds: ceiling,
         });
-        await healthWrite;
-        await refreshProjection();
-      })
-      .finally(() => {
-        running = null;
-        if (signal.aborted) return;
-        if (pending) {
-          pending = false;
-          schedule();
-        }
-        reconcile = setTimeout(cycle, delay);
-      });
+      await healthWrite;
+      await refreshProjection();
+    }
+    if (!signal.aborted) deadlines.set("reconcile", at);
   };
-  const schedule = () => {
-    const now = Date.now();
-    woken = true;
-    failureStreak = 0;
-    firstWake ??= now;
-    lastWake = now;
-    if (debounce !== null) clearTimeout(debounce);
-    const delay = Math.max(0, Math.min(lastWake + 30_000, firstWake + 60_000) - now);
-    debounce = setTimeout(() => {
-      debounce = null;
-      firstWake = null;
-      lastWake = null;
-      cycle();
-    }, delay);
-  };
+  const trigger = residentCycleTrigger({
+    signal,
+    debounceMilliseconds: input.wakeDebounceMilliseconds ?? 30_000,
+    run: runCycle,
+    onWake: () => {
+      woken = true;
+      failureStreak = 0;
+    },
+  });
+  const cycle = trigger.cycle;
   const ownsQueue = () => verdict === null || verdict.role === "owner";
-  const unsubscribe = input.subscribe
-    ? input.subscribe(schedule, ownsQueue)
-    : watchResidentEventChanges(input.storage, schedule, ownsQueue);
+  const wakes = wireResidentWakes({
+    storage: input.storage,
+    ...(input.subscribe === undefined ? {} : { subscribe: input.subscribe }),
+    ownsQueue,
+    projection: input.refreshHealth !== undefined,
+    hubChanges: input.hubChanges,
+    onChange: trigger.schedule,
+    // A projection input written by another process offers a refresh at once.
+    onProjectionInput: () => {
+      if (trigger.running() === null) void offerProjection();
+    },
+    // A release wakes a held resident like an event.
+    onHoldStore: () => {
+      // A change during a cycle is re-checked after it, since the cycle read the hold already.
+      if (trigger.running() !== null) {
+        trigger.again();
+        return;
+      }
+      if (held)
+        repositoryHeld().then((still) => {
+          if (!still && held && !signal.aborted) {
+            held = false;
+            trigger.schedule();
+          }
+        }, input.onFailure);
+    },
+    // ADR-0602: a release command in another process rewrites this checkout's fence; the
+    // resident's own observations write the verdict it already holds and are ignored.
+    onOwnerFence: () => {
+      observing
+        .then(() => readConvergenceOwnerFence(root))
+        .then((fence) => {
+          const written = fence?.verdict ?? null;
+          if (written === null || signal.aborted) return;
+          if (written.observedAt === verdict?.observedAt && written.role === verdict.role) return;
+          if (trigger.running() !== null) observeOwnership().catch(input.onFailure);
+          trigger.wakeNow();
+        }, input.onFailure);
+    },
+    onHubChange: () => {
+      continuityForced = true;
+      trigger.wakeNow();
+    },
+    // ADR-0602: a host policy, owner-host or provider pause change reconciles at once.
+    continuityInputs: input.continuity?.inputPaths() ?? [],
+    onContinuityInput: () => void continuityTurns.run(),
+  });
   const healthTimer = setInterval(heartbeat, RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS);
-  const projectionTimer =
-    input.refreshHealth === undefined
-      ? null
-      : setInterval(
-          // During a cycle only the age bound applies; the cycle's own offer follows its changes.
-          () => void refreshProjection({ ageOnly: running !== null }),
-          input.healthRefreshMilliseconds ?? RESIDENT_HEALTH_REFRESH_MILLISECONDS,
-        );
-  const ownerHeartbeat =
-    input.ownership === undefined
-      ? null
-      : setInterval(() => {
-          // Renewal only; a lost lease aborts the running cycle and the next cycle reports it.
-          if (verdict?.role === "owner") observeOwnership().catch(input.onFailure);
-        }, input.ownerHeartbeatMilliseconds ?? RESIDENT_OWNER_HEARTBEAT_MILLISECONDS);
-  const continuityTimer =
-    input.continuity === undefined
-      ? null
-      : setInterval(
-          () => void reconcileContinuity(),
-          input.continuityTickMilliseconds ?? RESIDENT_CONTINUITY_TICK_MILLISECONDS,
-        );
-  // A release wakes the resident like an event, so it never waits out its held backoff.
-  const holdReleaseTimer = setInterval(() => {
-    if (held && running === null)
-      repositoryHeld().then((still) => {
-        if (!still && held && !signal.aborted) {
-          held = false;
-          schedule();
-        }
-      }, input.onFailure);
-  }, input.holdReleaseCheckMilliseconds ?? RESIDENT_HOLD_RELEASE_CHECK_MILLISECONDS);
-  cycle();
+  deadlines.set("projection", refresher.nextDueAt());
+  // ADR-0602: the first cycle folds the Hub token in when it arrives in time, so a restart does
+  // not run one full cycle without it and another with it.
+  void wakes.ready().then(() => cycle());
   return async () => {
     controller.abort();
-    if (reconcile !== null) clearTimeout(reconcile);
+    deadlines.stop();
     clearInterval(healthTimer);
-    if (projectionTimer !== null) clearInterval(projectionTimer);
-    if (continuityTimer !== null) clearInterval(continuityTimer);
-    clearInterval(holdReleaseTimer);
-    if (ownerHeartbeat !== null) clearInterval(ownerHeartbeat);
-    if (debounce !== null) clearTimeout(debounce);
-    unsubscribe?.();
-    await running;
+    trigger.stop();
+    await wakes.stop();
+    await trigger.running();
     await projection.running();
-    await continuityRun;
-    if (reconcile !== null) clearTimeout(reconcile);
+    await continuityTurns.settled();
+    deadlines.stop();
     healthState = "stopped";
     heartbeat();
     await healthWrite;

@@ -17,5 +17,7 @@ export * from "./workstream-divergence.js";
 export * from "./knowledge-convergence-owner-client.js";
 export * from "./knowledge-instruction-candidate-client.js";
 export * from "./knowledge-convergence-host-client.js";
+export * from "./knowledge-change-client.js";
+export * from "./hub-held-request.js";
 export * from "./knowledge-convergence-definition-client.js";
 export * from "./delivery-verification.js";

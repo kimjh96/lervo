@@ -1,6 +1,6 @@
 import { ChangeWakeup } from "./change-wakeup.js";
 import { RepositoryReconciliationPool } from "./repository-reconciliation-pool.js";
-import { watchRepositoryChanges } from "./repository-change-watch.js";
+import { watchRepositoryChanges } from "@lervo/repository-knowledge-runtime";
 import type { RepositoryReplicaCycleTrigger } from "./repository-replica-coordinator.js";
 import { ReplicaPeerBackoff } from "./repository-replica-peer-backoff.js";
 import {
@@ -15,6 +15,19 @@ type WatchedRepository = {
   peerRoot: string;
   conflictPolicy?: "hold" | "prefer_local" | "prefer_peer";
 };
+
+/** A lost watch source retries after the fallback interval, doubling to this ceiling. */
+export const REPLICA_WATCH_RETRY_CEILING_MILLISECONDS = 15 * 60_000;
+
+/**
+ * ADR-0602: a change source that is down: the local repository watch or a peer subscription.
+ * Health shows it for as long as it is down; it clears when every source is armed again.
+ */
+export interface ReplicaWatchBackoffState {
+  source: "local" | "peer";
+  consecutiveFailures: number;
+  retryAt: number;
+}
 
 /** The peer gate as health reports it; `retryAt` is null while the peer is reachable. */
 export interface ReplicaPeerBackoffState {
@@ -39,6 +52,8 @@ export async function watchReplicaReconciliation(input: {
    */
   probePeer?(): Promise<boolean>;
   onPeerBackoff?(state: ReplicaPeerBackoffState): void;
+  /** ADR-0602: the worst source that is down, or null once all are armed. */
+  onWatchBackoff?(state: ReplicaWatchBackoffState | null): void;
   reconcile(
     repository: WatchedRepository,
     context: { trigger: RepositoryReplicaCycleTrigger },
@@ -115,10 +130,68 @@ export async function watchReplicaReconciliation(input: {
       wakeup.notify();
     });
   };
-  const localStops: Array<() => void> = [];
-  const remote = new Map<string, { stop: () => void; ready: boolean; retryAt: number }>();
+  const retryDelay = (failures: number) =>
+    Math.min(
+      Math.max(REPLICA_WATCH_RETRY_CEILING_MILLISECONDS, input.fallbackIntervalMs),
+      input.fallbackIntervalMs * 2 ** Math.min(Math.max(0, failures - 1), 30),
+    );
+  let localStops: Array<() => void> = [];
+  const remote = new Map<
+    string,
+    { stop: () => void; ready: boolean; retryAt: number; failures: number }
+  >();
   let localAvailable = true;
+  let localFailures = 0;
+  let localRetryAt = 0;
   let fallbackBy: number | null = null;
+  let reportedWatch = "null";
+  const reportWatch = () => {
+    const local: ReplicaWatchBackoffState | null = localAvailable
+      ? null
+      : { source: "local", consecutiveFailures: localFailures, retryAt: localRetryAt };
+    const peer = [...remote.values()]
+      .filter((entry) => !entry.ready && entry.failures > 0)
+      .sort((left, right) => right.failures - left.failures)[0];
+    const state =
+      local ??
+      (peer === undefined
+        ? null
+        : { source: "peer" as const, consecutiveFailures: peer.failures, retryAt: peer.retryAt });
+    const key = JSON.stringify(state);
+    if (key === reportedWatch) return;
+    reportedWatch = key;
+    input.onWatchBackoff?.(state);
+  };
+  const localFailed = () => {
+    if (localAvailable) localFailures += 1;
+    localAvailable = false;
+    localRetryAt = Date.now() + retryDelay(localFailures);
+    reportWatch();
+  };
+  // ADR-0602: a lost local watch (for example ENOSPC) is re-armed with exponential backoff.
+  const armLocal = async () => {
+    for (const stop of localStops) stop();
+    localStops = [];
+    localAvailable = true;
+    for (const repository of input.repositories) {
+      try {
+        localStops.push(
+          await watchRepositoryChanges(
+            repository.localRoot,
+            () => changed(repository.replicaId),
+            () => {
+              localFailed();
+              changed(repository.replicaId);
+            },
+          ),
+        );
+      } catch {
+        localFailed();
+      }
+    }
+    if (localAvailable) localFailures = 0;
+    reportWatch();
+  };
   let startup = true;
   const changed = (id: string) => {
     hinted.add(id);
@@ -127,48 +200,61 @@ export async function watchReplicaReconciliation(input: {
     pool.notify(id);
   };
   try {
-    if (input.watch) {
-      for (const repository of input.repositories) {
-        try {
-          localStops.push(
-            await watchRepositoryChanges(
-              repository.localRoot,
-              () => changed(repository.replicaId),
-              () => {
-                localAvailable = false;
-                changed(repository.replicaId);
-              },
-            ),
-          );
-        } catch {
-          localAvailable = false;
-        }
-      }
-    }
+    if (input.watch) await armLocal();
     while (!input.signal?.aborted) {
+      if (input.watch && !localAvailable && Date.now() >= localRetryAt) {
+        await armLocal();
+        // The source was down, so a change may have been missed: look once.
+        if (localAvailable) pool.notifyAll();
+      }
       const peerClosed = peerGate?.closed === true;
-      const due = schedule.takeDue(Date.now()).filter((replicaId) => !pool.busy(replicaId));
+      // ADR-0602: with the local watch and every peer subscription live, a change reaches this
+      // loop as a hint, so no recovery cycle runs; recovery covers only a lost source.
+      const watched =
+        input.watch &&
+        input.peerWatch !== false &&
+        localAvailable &&
+        input.repositories.every((repository) => remote.get(repository.replicaId)?.ready === true);
+      const due = watched
+        ? []
+        : schedule.takeDue(Date.now()).filter((replicaId) => !pool.busy(replicaId));
       if (due.length > 0) pool.notifyAll(due);
+      const downFailures = Math.max(
+        localAvailable ? 0 : localFailures,
+        ...[...remote.values()].filter((entry) => !entry.ready).map((entry) => entry.failures),
+        1,
+      );
       if (fallbackBy !== null && Date.now() >= fallbackBy) {
         if (pool.idle()) pool.notifyAll();
-        fallbackBy = Date.now() + input.fallbackIntervalMs;
+        fallbackBy = Date.now() + retryDelay(downFailures);
       }
       if (input.watch && input.peerWatch !== false && !peerClosed) {
         for (const repository of input.repositories) {
           const previous = remote.get(repository.replicaId);
           if (previous !== undefined && (previous.ready || previous.retryAt > Date.now())) continue;
           previous?.stop();
-          const entry = { stop: () => {}, ready: false, retryAt: Date.now() + 60_000 };
+          // ADR-0602: an unopenable or lost subscription retries with exponential backoff.
+          const failures = previous?.failures ?? 0;
+          const entry = {
+            stop: () => {},
+            ready: false,
+            retryAt: Date.now() + retryDelay(failures + 1),
+            failures,
+          };
           remote.set(repository.replicaId, entry);
           entry.stop = input.peer.subscribe(
             repository.peerRoot,
             () => {
               entry.ready = true;
+              entry.failures = 0;
+              reportWatch();
               changed(repository.replicaId);
             },
             () => {
               entry.ready = false;
-              entry.retryAt = Date.now() + 60_000;
+              entry.failures += 1;
+              entry.retryAt = Date.now() + retryDelay(entry.failures);
+              reportWatch();
               changed(repository.replicaId);
             },
           );
@@ -188,21 +274,24 @@ export async function watchReplicaReconciliation(input: {
       }
       if (pool.error() !== null) throw pool.error();
       const available = localAvailable && [...remote.values()].every((entry) => entry.ready);
-      fallbackBy = available ? null : (fallbackBy ?? Date.now() + input.fallbackIntervalMs);
+      fallbackBy = available ? null : (fallbackBy ?? Date.now() + retryDelay(downFailures));
       const revision = wakeup.revision;
       // While the peer gate is closed, queued work and subscription retries wait for its probe.
+      const recoveryAt = watched ? null : schedule.nextDueAt();
       const deadlines = peerClosed
-        ? [schedule.nextDueAt(), fallbackBy, probe === null ? peerGate!.retryAt : null]
+        ? [recoveryAt, fallbackBy, probe === null ? peerGate!.retryAt : null]
         : [
-            schedule.nextDueAt(),
+            recoveryAt,
             fallbackBy,
             pool.nextReadyAt(),
             ...[...remote.values()].filter((entry) => !entry.ready).map((entry) => entry.retryAt),
+            input.watch && !localAvailable ? localRetryAt : null,
           ];
       const next = deadlines.filter((value): value is number => value !== null);
+      // No deadline: wait for a hint alone, with no timer.
       await wakeup.wait(
         revision,
-        next.length === 0 ? 60_000 : Math.max(0, Math.min(...next) - Date.now()),
+        next.length === 0 ? Number.POSITIVE_INFINITY : Math.max(0, Math.min(...next) - Date.now()),
         input.signal,
       );
     }
@@ -231,11 +320,19 @@ export async function publishRepositoryChangeHints(input: {
     },
   );
   try {
+    // The first line tells the subscriber the stream is live and the state may have moved.
+    input.write('{"schemaVersion":1,"status":"changed"}\n');
+    // ADR-0602: a quiet stream writes nothing and arms no timer. The SSH transport's own
+    // keepalives (ServerAliveInterval) end a dead link, and the subscriber reacts to that EOF; a
+    // stopped peer process that keeps the link open only matters once work is pending, and the
+    // next transfer's command deadline reports it then.
     while (!input.signal?.aborted) {
       if (failed) throw new Error("The repository notification source is unavailable.");
       const revision = wakeup.revision;
+      await wakeup.wait(revision, Number.POSITIVE_INFINITY, input.signal);
+      if (input.signal?.aborted) break;
       input.write('{"schemaVersion":1,"status":"changed"}\n');
-      await wakeup.wait(revision, 60_000, input.signal);
+      // Coalesces a burst of edits into one line.
       await new ChangeWakeup().wait(0, 250, input.signal);
     }
   } finally {

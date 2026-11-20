@@ -12,6 +12,7 @@ import {
   createKnowledgeConvergenceOwnership,
   createKnowledgePublisher,
   instructionCandidateTransport,
+  knowledgeHubChangeTransport,
 } from "./knowledge-convergence-ownership.js";
 import { knowledgeWorkerFailureLine } from "./knowledge-worker-failure.js";
 import { untilTerminated } from "./process-termination.js";
@@ -114,6 +115,7 @@ export async function runKnowledgeWorkerCommand(
         ownership: createKnowledgeConvergenceOwnership(storage, provider),
         continuity: createKnowledgeConvergenceContinuity(storage),
         instructionCandidateTransport,
+        hubChanges: knowledgeHubChangeTransport,
         applyOwnerStatedInstructions: () =>
           applyStoredInstructionCandidates({
             repositoryRoot: storage.paths.repositoryRoot,

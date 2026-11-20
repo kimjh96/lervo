@@ -148,13 +148,19 @@ export async function runRepositoryReplicaCoordinator(
   const heldReported = new Set<string>();
   let recoveryIntervalMs: number | undefined;
   let peerBackoff: RepositoryReplicaHealthSnapshot["peer"];
+  let watchBackoff: RepositoryReplicaHealthSnapshot["watch"];
   let healthWrite = Promise.resolve();
   const publishHealth = () => {
     healthWrite = healthWrite
       .then(() =>
         writeHealth(
           healthPath,
-          reporter.snapshot(now(), { recoveryIntervalMs, peer: peerBackoff, advisories }),
+          reporter.snapshot(now(), {
+            recoveryIntervalMs,
+            peer: peerBackoff,
+            watch: watchBackoff,
+            advisories,
+          }),
         ),
       )
       .catch((error: unknown) => {
@@ -201,6 +207,23 @@ export async function runRepositoryReplicaCoordinator(
       else
         ports.stderr(
           `Repository replica peer is unreachable; the next attempt is at ${peerBackoff.retryAt} (${peerBackoff.consecutiveFailures} consecutive).\n`,
+        );
+      void publishHealth();
+    },
+    onWatchBackoff: (state) => {
+      watchBackoff =
+        state === null
+          ? undefined
+          : {
+              status: "unavailable",
+              source: state.source,
+              consecutiveFailures: state.consecutiveFailures,
+              retryAt: new Date(state.retryAt).toISOString(),
+            };
+      if (state === null) ports.stdout("Repository replica change sources are armed again.\n");
+      else
+        ports.stderr(
+          `Repository replica ${state.source} change source is down; it is re-armed at ${watchBackoff!.retryAt} (${state.consecutiveFailures} consecutive).\n`,
         );
       void publishHealth();
     },

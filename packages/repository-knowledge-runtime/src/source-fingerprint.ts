@@ -8,6 +8,7 @@ import type { OutboxStore } from "@lervo/storage-contract";
 
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
 import { nextUtcDayAt, observePracticeSchedule } from "./practice-schedule.js";
+import { PRACTICE_ROOT } from "./practice-store.js";
 import { repositoryHeadIdentity } from "./repository-head-identity.js";
 import { convergenceSourceCaptureSettings } from "./source-capture-settings.js";
 
@@ -198,7 +199,9 @@ export function convergenceRepositoryDigest(root: string): string {
  * so it needs only what changes its host-local duties or its next role: HEAD, refs and index from
  * file metadata, the capture settings, the candidate shards, and the freshness, materialization
  * and owner-turn queue state. It runs no Git process and walks no candidate entry. A
- * working-tree-only edit is left to the owner and to the forced full cycle.
+ * working-tree-only edit is left to the owner: a non-owner's duties never read the working tree,
+ * and a takeover changes the verdict in the fingerprint, so the new owner's first cycle runs the
+ * full digest (ADR-0602).
  */
 export function nonOwnerRepositoryDigest(root: string): string {
   const settings = convergenceSourceCaptureSettings(root);
@@ -241,16 +244,22 @@ export function convergenceSourceFingerprint(input: {
   const queue = observeConvergenceQueue(input.events, { owner: input.owner !== false });
   const now = Date.now();
   const offset = input.wakeOffsetMilliseconds ?? 0;
-  // ADR-0595: practice enters the fence by what is due, not by a 30-minute clock window; an
-  // unreadable schedule keeps the window, so practice is never delayed.
+  // ADR-0595: practice enters the fence by what is due, not by a 30-minute clock window.
+  // ADR-0602: an unreadable schedule enters by the state file's identity, so the full cycle,
+  // whose practice stage reports the invalid state, runs once for it and again when it is
+  // rewritten, with no clock window to wake for.
   let practiceDue: unknown;
-  let practiceWakeAt: number | null = null;
+  let practiceWakeAt: number | null;
   try {
     const schedule = observePracticeSchedule(input.repositoryRoot, now, offset);
     practiceDue = schedule.dueDigest;
     practiceWakeAt = schedule.nextDueAt;
   } catch {
-    practiceDue = ["window", Math.floor(now / (30 * 60_000))];
+    practiceDue = [
+      "unreadable",
+      metadata(resolve(input.repositoryRoot, PRACTICE_ROOT, "state.json")),
+    ];
+    practiceWakeAt = null;
   }
   const localWakeAt = earliestMoment(practiceWakeAt, nextUtcDayAt(now, offset));
   return {

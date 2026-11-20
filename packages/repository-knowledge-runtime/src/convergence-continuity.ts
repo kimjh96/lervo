@@ -1,3 +1,6 @@
+import { homedir } from "node:os";
+import { resolve } from "node:path";
+
 import { readKnowledgeProviderPauseStates } from "./provider-admission-inspection.js";
 import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import { readWorkerProviderSelection } from "./provider-cli-selection.js";
@@ -8,11 +11,16 @@ import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-c
 import {
   calculateProjectIdentityHash,
   knowledgeConvergenceOwnerFailureOf,
+  type KnowledgeConvergenceHostListing,
   type KnowledgeConvergenceHostPublishStatus,
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
 
-import { continuityFindings, type ContinuityOwnerHostObservation } from "./continuity-findings.js";
+import { continuityNextDeadline } from "./continuity-deadline.js";
+import { continuityInputFingerprint } from "./continuity-inputs.js";
+
+import { continuityFindings } from "./continuity-findings.js";
+import { ownerHostObservation } from "./continuity-owner-host-observation.js";
 import { continuityHostRecord, continuityPeerSummary } from "./continuity-host-record.js";
 import {
   nextContinuationFailure,
@@ -22,13 +30,13 @@ import {
 } from "./continuity-state.js";
 import { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 import {
+  CONVERGENCE_OWNER_HOST_PATH,
   readConvergenceOwnerHost,
   type ConvergenceOwnerHost,
   type ConvergenceOwnerHubCoordinates,
 } from "./convergence-owner-host.js";
 import {
   deriveConvergenceOwnerHost,
-  type ConvergenceOwnerHostDerivationResult,
   type ConvergenceOwnerHubCandidate,
 } from "./convergence-owner-host-derivation.js";
 import { loadConvergenceDelegation } from "./delegation.js";
@@ -45,34 +53,11 @@ import type { KnowledgePublicationSettings } from "./knowledge-publication-setti
 import { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
 
-/** Pure: the owner-host outcome the state records and findings read. */
-function ownerHostObservation(
-  derivation: ConvergenceOwnerHostDerivationResult | null,
-  host: ConvergenceOwnerHost | null,
-): ContinuityOwnerHostObservation {
-  const state: ContinuityOwnerHostObservation["state"] =
-    host === null || derivation === null || derivation.derivation.status === "invalid"
-      ? "invalid"
-      : derivation.derivation.status === "operator"
-        ? "operator"
-        : host.config.coordination.mode;
-  return {
-    state,
-    hubFailureCode:
-      state === "standalone" || state === "hub"
-        ? (derivation?.hubFailure?.failureCode ?? null)
-        : null,
-    publication:
-      host?.config.coordination.mode !== "hub"
-        ? "not_applicable"
-        : host.config.publication === undefined
-          ? "unavailable"
-          : "configured",
-  };
-}
-
-/** Healthy hosts reconcile hourly; a failed step retries after a quarter hour. */
-export const CONTINUITY_RECONCILE_MILLISECONDS = 60 * 60_000;
+/**
+ * ADR-0602: a turn that produced no state (another process held the worker lock) is offered again
+ * after this bound. A reconciliation itself has no cadence: it runs when its inputs or the Hub's
+ * `knowledge` token changed, or at its own next time-based deadline.
+ */
 export const CONTINUITY_RETRY_MILLISECONDS = 15 * 60_000;
 
 /** The Hub operations continuity needs; `@lervo/sync` provides the HTTP adapter. */
@@ -81,7 +66,8 @@ export interface ConvergenceHostRecordPort {
     record: KnowledgeConvergenceHostRecord,
     signal?: AbortSignal,
   ): Promise<KnowledgeConvergenceHostPublishStatus>;
-  list(signal?: AbortSignal): Promise<KnowledgeConvergenceHostRecord[]>;
+  /** ADR-0602: listings may carry each host's Hub presence. */
+  list(signal?: AbortSignal): Promise<KnowledgeConvergenceHostListing[]>;
   /** ADR-0477 delegation-bound definitions through the same Hub; absent in older adapters. */
   definitions?: ConvergenceDefinitionPort;
 }
@@ -118,6 +104,21 @@ export class ConvergenceContinuity {
     this.now = input.now ?? Date.now;
   }
 
+  /**
+   * ADR-0602: the host-local files a reconciliation reads that no repository or event watch
+   * covers: the host policy, the owner-host coordinates and the provider pause store. Their
+   * change makes the next turn reconcile.
+   */
+  inputPaths(): string[] {
+    const pauses = resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
+    return [
+      ...(this.input.policyPath === null ? [] : [this.input.policyPath]),
+      resolve(this.root, CONVERGENCE_OWNER_HOST_PATH),
+      resolve(pauses, "admission.sqlite"),
+      resolve(pauses, "admission.sqlite-wal"),
+    ];
+  }
+
   reconcile(
     options: { signal?: AbortSignal; force?: boolean } = {},
   ): Promise<ConvergenceContinuityState | null> {
@@ -130,29 +131,36 @@ export class ConvergenceContinuity {
     return this.input.storage.paths.repositoryRoot;
   }
 
+  /**
+   * ADR-0602: a reconciliation runs when forced (a Hub change), when its host-local inputs differ
+   * from the ones the last one recorded, or once its own next deadline has passed; otherwise the
+   * last state stands, however old it is.
+   */
   private async reconcileNow(options: {
     signal?: AbortSignal;
     force?: boolean;
   }): Promise<ConvergenceContinuityState | null> {
     const previous = await readConvergenceContinuityState(this.root);
+    const candidates = await this.input.hubCandidates().catch(() => []);
+    const inputs = await continuityInputFingerprint({
+      root: this.root,
+      policyPath: this.input.policyPath,
+      hubCandidates: candidates,
+      now: new Date(this.now()),
+    });
+    const recorded = previous?.nextReconcileAt ?? null;
+    const dueAt = recorded === null ? null : Date.parse(recorded);
     if (
       options.force !== true &&
       previous !== null &&
-      Date.parse(previous.nextReconcileAt) > this.now() &&
-      !(await this.delegationChangedSince(previous))
+      previous.inputFingerprint === inputs &&
+      !(dueAt !== null && (!Number.isFinite(dueAt) || dueAt <= this.now()))
     )
       return previous;
     const locked = await withRepositoryKnowledgeWorkerLock(this.root, () =>
-      this.reconcileLocked(previous, options.signal),
+      this.reconcileLocked(previous, candidates, options.signal),
     );
     return locked.status === "busy" ? previous : locked.result;
-  }
-
-  /** A delegation replaced by the owner since the last reconciliation is observed at once. */
-  private async delegationChangedSince(previous: ConvergenceContinuityState): Promise<boolean> {
-    const loaded = await loadConvergenceDelegation(this.root).catch(() => undefined);
-    const expiresAt = loaded === undefined ? undefined : (loaded?.delegation.expiresAt ?? null);
-    return expiresAt !== previous.delegation.expiresAt;
   }
 
   private async hostPort(
@@ -176,6 +184,7 @@ export class ConvergenceContinuity {
 
   private async reconcileLocked(
     previous: ConvergenceContinuityState | null,
+    candidates: ConvergenceOwnerHubCandidate[],
     signal: AbortSignal | undefined,
   ): Promise<ConvergenceContinuityState> {
     const startedAt = new Date(this.now());
@@ -183,7 +192,6 @@ export class ConvergenceContinuity {
       projectId: this.input.storage.manifest.projectId,
       repositoryIdentityHash: calculateProjectIdentityHash(this.input.storage.manifest),
     };
-    const candidates = await this.input.hubCandidates().catch(() => []);
     const ownerHost = await deriveConvergenceOwnerHost({
       root: this.root,
       candidates,
@@ -307,23 +315,35 @@ export class ConvergenceContinuity {
         .catch((error: unknown) => {
           hubFailure ??= knowledgeConvergenceOwnerFailureOf(error).failureCode;
         });
-    // ADR-0478: a due renewal this host may not write is checked again at the retry interval,
-    // so a host that just took over ownership renews without waiting a whole hour.
-    const failed =
-      continuity.failureCode !== null || hubFailure !== null || continuity.awaitingOwner;
-    const renewAt =
-      continuity.renewal?.kind === "current" ? Date.parse(continuity.renewal.renewAt) : Infinity;
-    const nextReconcileAt = Math.min(
-      startedAt.getTime() +
-        (failed ? CONTINUITY_RETRY_MILLISECONDS : CONTINUITY_RECONCILE_MILLISECONDS),
-      Math.max(renewAt, startedAt.getTime() + 60_000),
-    );
+    // ADR-0602: no cadence. A failure retries with exponential backoff; a due renewal this host
+    // may not write (ADR-0478) waits for the ownership change that lets it, which the fence and
+    // the Hub's change token both deliver; time-based decisions and findings set the deadline.
+    const failed = continuity.failureCode !== null || hubFailure !== null;
+    const failures = failed ? Math.min((previous?.failureStreak ?? 0) + 1, 64) : 0;
     const policy = continuity.policy;
+    const nextReconcileAt = continuityNextDeadline({
+      now: startedAt.getTime(),
+      failures,
+      renewAt: continuity.renewal?.kind === "current" ? continuity.renewal.renewAt : null,
+      delegationExpiresAt: current?.expiresAt ?? null,
+      policyHorizonAt: policy.status === "loaded" ? policy.policy.horizonAt : null,
+      peers: peerSummaries,
+      pauses,
+    });
+    // Recorded after the reconciliation's own writes, so they never read as a new input.
+    const inputFingerprint = await continuityInputFingerprint({
+      root: this.root,
+      policyPath: this.input.policyPath,
+      hubCandidates: candidates,
+      now: startedAt,
+    });
     const state: ConvergenceContinuityState = {
       ...(providerAdmission === null ? {} : { providerAdmission }),
       schemaVersion: 1,
       observedAt: startedAt.toISOString(),
-      nextReconcileAt: new Date(nextReconcileAt).toISOString(),
+      nextReconcileAt: nextReconcileAt === null ? null : new Date(nextReconcileAt).toISOString(),
+      inputFingerprint,
+      failureStreak: failures,
       hostHash: host?.hostHash ?? null,
       hostLabel: host?.config.hostLabel ?? null,
       ownerHost: ownerHostState,

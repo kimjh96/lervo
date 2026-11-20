@@ -1,6 +1,9 @@
 import { readOwnerOnlyText } from "@lervo/runtime-security";
 import {
+  isKnowledgeConvergenceHostPresenceEntry,
   isKnowledgeConvergenceHostRecord,
+  type KnowledgeConvergenceHostListing,
+  type KnowledgeConvergenceHostPresenceEntry,
   type KnowledgeConvergenceHostPublishStatus,
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
@@ -83,16 +86,32 @@ export class HubKnowledgeConvergenceHostClient {
     return status;
   }
 
-  async list(signal?: AbortSignal): Promise<KnowledgeConvergenceHostRecord[]> {
+  /** ADR-0602: each record carries its host's presence when the Hub reports it. */
+  async list(signal?: AbortSignal): Promise<KnowledgeConvergenceHostListing[]> {
     const body = (await this.request("GET", undefined, [200], signal)) as {
       records?: unknown;
+      presence?: unknown;
     } | null;
-    if (!Array.isArray(body?.records) || !body.records.every(isKnowledgeConvergenceHostRecord))
+    if (
+      !Array.isArray(body?.records) ||
+      !body.records.every(isKnowledgeConvergenceHostRecord) ||
+      (body.presence !== undefined &&
+        (!Array.isArray(body.presence) ||
+          !body.presence.every(isKnowledgeConvergenceHostPresenceEntry)))
+    )
       throw new HubKnowledgeConvergenceOwnerUnavailableError(
         "The Hub returned an invalid convergence host list.",
         "hub_response_invalid",
       );
-    return body.records;
+    const presence = new Map(
+      ((body.presence as KnowledgeConvergenceHostPresenceEntry[] | undefined) ?? []).map(
+        ({ hostHash, connected, since }) => [hostHash, { connected, since }],
+      ),
+    );
+    return (body.records as KnowledgeConvergenceHostRecord[]).map((record) => {
+      const entry = presence.get(record.hostHash);
+      return entry === undefined ? record : { ...record, presence: entry };
+    });
   }
 
   private async request(

@@ -81,7 +81,6 @@ it("publishes nothing and reconciles no continuity while the owner holds the rep
     onFailure: () => undefined,
     intervalMilliseconds: 100,
     reconcileCeilingMilliseconds: 1_000,
-    continuityTickMilliseconds: 50,
     ownership,
     // Publication can drop, repair, push, merge, and reset; continuity renews the delegation.
     publish: async () => {
@@ -89,6 +88,7 @@ it("publishes nothing and reconciles no continuity while the owner holds the rep
       return null as unknown as KnowledgePublicationOutcome;
     },
     continuity: {
+      inputPaths: () => [],
       reconcile: async () => {
         calls.continuity += 1;
       },

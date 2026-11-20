@@ -17,6 +17,10 @@ export {
   type ConvergenceRoleBinding,
 } from "./delegation.js";
 export { startAutonomousKnowledgeWorker } from "./loop.js";
+export type {
+  AutonomousKnowledgeWorkerInput,
+  AutonomousKnowledgeWorkerResult,
+} from "./loop-options.js";
 export { foreignEventsHead, RESIDENT_AUTHORED_EVENT_TYPES } from "./resident-authored-events.js";
 export { residentWakeKey } from "./convergence-queue-observation.js";
 export { knowledgeCandidateStoreIdentity } from "./source-fingerprint.js";
@@ -71,6 +75,13 @@ export {
 } from "./convergence-owner.js";
 export { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
 export { readConvergenceOwnerHost, CONVERGENCE_OWNER_HOST_PATH } from "./convergence-owner-host.js";
+export {
+  watchHubKnowledgeChanges,
+  type HubKnowledgeChangeIssue,
+  type HubKnowledgeChangeWatch,
+  type KnowledgeHubChangePort,
+  type KnowledgeHubChangeTransport,
+} from "./hub-knowledge-changes.js";
 export type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 export {
   publishKnowledgeOutputs,
@@ -246,3 +257,13 @@ export {
   type KnowledgeEffectHold,
 } from "./knowledge-effect-guard.js";
 export { lifecycleUserContentPaths } from "./lifecycle-plan-scope.js";
+export { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
+export { watchRepositoryChanges } from "./repository-change-watch.js";
+export {
+  readRepositoryWatchIssues,
+  REPOSITORY_WATCH_STATE_DIRECTORY,
+  repositoryWatchReporter,
+  type RepositoryWatchIssue,
+  type WakeSourceIssueCode,
+} from "./repository-watch-state.js";
+export { watchFiles } from "./resident-file-watch.js";

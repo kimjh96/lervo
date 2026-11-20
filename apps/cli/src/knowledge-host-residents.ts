@@ -1,9 +1,20 @@
+import { statSync } from "node:fs";
+import { resolve } from "node:path";
+
 import { applyStoredInstructionCandidates } from "./durable-instruction-auto-apply.js";
 import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
+import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
+import {
+  defaultNodeFleetRegistryPath,
+  defaultRepositoryRegistryPath,
+} from "@lervo/repository-registry";
 import {
   acquireHostKnowledgeResidentLock,
+  CONVERGENCE_DELEGATION_PATH,
+  defaultConvergenceContinuityPolicyPath,
+  watchFiles,
   hostKnowledgeResidentLockPath,
   hostKnowledgeResidentStatusPath,
   knowledgeResidentHoldReason,
@@ -23,6 +34,7 @@ import {
   createKnowledgeConvergenceOwnership,
   createKnowledgePublisher,
   instructionCandidateTransport,
+  knowledgeHubChangeTransport,
 } from "./knowledge-convergence-ownership.js";
 import {
   hostResidentCandidates,
@@ -31,7 +43,11 @@ import {
 import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
 import { refreshRelationWebWithCatalog } from "./relation-web-catalog.js";
 
-/** How often the host resident looks for newly registered or removed repositories. */
+/**
+ * How often a standby host resident retries the host lock. ADR-0602: an active one never rescans
+ * on a timer; it rescans when a registry, policy, delegation or the terminal runtime pointer
+ * changes, and at a held checkout's retry time.
+ */
 export const HOST_RESIDENT_SCAN_MILLISECONDS = 5 * 60_000;
 /** How often the host status heartbeat is refreshed between scans. */
 export const HOST_RESIDENT_HEARTBEAT_MILLISECONDS = 60_000;
@@ -71,6 +87,8 @@ export function startHostKnowledgeResidents(input: {
   activate?: (root: string) => Promise<LocalEventWriterActivation>;
   now?: () => Date;
   materializeRuntime?: () => Promise<unknown>;
+  /** Test seam: the terminal runtime store whose pointer a rescan repairs. */
+  runtimeStore?: string;
 }): () => Promise<void> {
   const workerId = `cli-host-${process.pid}`;
   const activate = input.activate ?? ((root: string) => activateLocalEventWriter(root));
@@ -118,6 +136,7 @@ export function startHostKnowledgeResidents(input: {
       ownership: createKnowledgeConvergenceOwnership(storage, provider),
       continuity: createKnowledgeConvergenceContinuity(storage),
       instructionCandidateTransport,
+      hubChanges: knowledgeHubChangeTransport,
       applyOwnerStatedInstructions: () =>
         applyStoredInstructionCandidates({
           repositoryRoot: storage.paths.repositoryRoot,
@@ -244,19 +263,94 @@ export function startHostKnowledgeResidents(input: {
     scanProgress.repositoryRoot = null;
     await writeStatus();
   };
-  const rescan = () => {
-    scanning = scanning.then(scan).catch((error: unknown) => input.onFailure("", error));
+  // ADR-0602: the inputs a scan reads are watched, and the next scan is armed only for a held
+  // checkout's retry time or, on standby, the lock retry. The watch stays armed across scans, so
+  // a change while a scan runs queues the next one; a new path set is armed before the old one
+  // is closed, and a newly watched file changed since its scan began rescans at once.
+  let inputs: { stop(): void } | null = null;
+  let watched = new Set<string>();
+  let next: ReturnType<typeof setTimeout> | null = null;
+  let scanStartedAt = 0;
+  const watchInputs = () => {
+    const paths = [
+      ...[
+        defaultRepositoryRegistryPath,
+        defaultNodeFleetRegistryPath,
+        () => defaultConvergenceContinuityPolicyPath(),
+        () => resolve(input.runtimeStore ?? terminalHookRuntimeStorePath(), "current.json"),
+      ].flatMap((path) => {
+        try {
+          const value = path();
+          return value === null ? [] : [value];
+        } catch {
+          return [];
+        }
+      }),
+      ...[...residents.keys(), ...held.keys()].map((root) =>
+        resolve(root, CONVERGENCE_DELEGATION_PATH),
+      ),
+    ];
+    const wanted = new Set(paths);
+    if (wanted.size === watched.size && [...wanted].every((path) => watched.has(path))) return;
+    const added = [...wanted].filter((path) => !watched.has(path));
+    const armed = watchFiles([...wanted], rescan, (error) => input.onFailure("", error));
+    inputs?.stop();
+    inputs = armed;
+    watched = wanted;
+    // A file first watched now may have changed after the scan read it.
+    if (
+      added.some((path) => {
+        try {
+          return statSync(path).mtimeMs >= scanStartedAt;
+        } catch {
+          return false;
+        }
+      })
+    )
+      rescan();
   };
+  const armNext = () => {
+    if (next !== null) clearTimeout(next);
+    next = null;
+    if (stopped) return;
+    const retries = [...held.values()].map((entry) => entry.retryAt);
+    const at =
+      lock?.acquired !== true
+        ? now().getTime() + (input.scanMilliseconds ?? HOST_RESIDENT_SCAN_MILLISECONDS)
+        : retries.length === 0
+          ? null
+          : Math.min(...retries);
+    if (at !== null) next = setTimeout(rescan, Math.max(0, at - now().getTime()));
+  };
+  let queued = false;
+  function rescan() {
+    // Changes that arrive before the queued scan starts are covered by it.
+    if (queued) return;
+    queued = true;
+    scanning = scanning
+      .then(() => {
+        queued = false;
+        scanStartedAt = Date.now() - 1_000;
+        return scan();
+      })
+      .catch((error: unknown) => input.onFailure("", error))
+      .finally(() => {
+        if (stopped) return;
+        watchInputs();
+        armNext();
+      });
+  }
+  watchInputs();
   rescan();
-  const scanTimer = setInterval(rescan, input.scanMilliseconds ?? HOST_RESIDENT_SCAN_MILLISECONDS);
   const heartbeatTimer = setInterval(
     () => void writeStatus(),
     input.heartbeatMilliseconds ?? HOST_RESIDENT_HEARTBEAT_MILLISECONDS,
   );
   return async () => {
-    clearInterval(scanTimer);
-    clearInterval(heartbeatTimer);
     stopped = true;
+    inputs?.stop();
+    if (next !== null) clearTimeout(next);
+    clearInterval(heartbeatTimer);
     await scanning;
     await Promise.all([...new Set([...residents.keys(), ...held.keys()])].map(release));
     if (lock?.acquired === true) await lock.release();

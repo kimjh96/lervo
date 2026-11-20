@@ -59,10 +59,10 @@ export class SupervisionPeerCatalog {
       }
     };
   }
+  /** ADR-0602: the next retry of a peer that could not be opened; live peers wake by event. */
   nextAuditAt() {
-    return this.entries.length === 0
-      ? null
-      : Math.min(...this.entries.map((entry) => entry.auditAt));
+    const retries = this.entries.map((entry) => entry.auditAt).filter((at) => Number.isFinite(at));
+    return retries.length === 0 ? null : Math.min(...retries);
   }
   async refresh(owner: Pick<NodeSupervisionSession, "readAuthority" | "commit">) {
     const runId = `run_${operatingContractHash({ supervisionId: this.binding.supervisionId }).slice(7, 39)}`;
@@ -118,7 +118,9 @@ export class SupervisionPeerCatalog {
         entry.head = null;
         observation = unavailable;
       }
-      entry.auditAt = now + 60_000;
+      // A live peer's event store wakes this catalog through its channel, so it is observed again
+      // only on a change; one that could not be opened is retried after a minute.
+      entry.auditAt = entry.peer === null ? now + 60_000 : Number.POSITIVE_INFINITY;
       await this.publish(observation, owner, runId);
     }
     for (const projectId of this.published.keys()) {

@@ -9,13 +9,26 @@ import {
 } from "@lervo/project-storage";
 
 /**
- * ADR-0602: one record per watching process while its repository watch cannot be armed. Only
- * its owner writes or clears it, and a reader counts it only while that process lives.
+ * ADR-0602: one record per watching process and wake source while that source cannot deliver
+ * wakes: the repository watch, or a Hub change wait. Only its owner writes or clears it, and a
+ * reader counts it only while that process lives.
  */
 export const REPOSITORY_WATCH_STATE_DIRECTORY = ".lervo/state/repository-watch";
 
+export type WakeSourceIssueCode =
+  | "repository_watch_unavailable"
+  | "hub_knowledge_changes_unavailable"
+  | "hub_runtime_changes_unavailable";
+
+const CODES: ReadonlySet<string> = new Set<WakeSourceIssueCode>([
+  "repository_watch_unavailable",
+  "hub_knowledge_changes_unavailable",
+  "hub_runtime_changes_unavailable",
+]);
+
 export interface RepositoryWatchIssue {
-  code: "repository_watch_unavailable";
+  code: WakeSourceIssueCode;
+  /** The errno, or the Hub failure code, when one is known. */
   errno: string | null;
   detail: string;
   command: string;
@@ -25,7 +38,9 @@ interface RepositoryWatchRecord extends RepositoryWatchIssue {
   identity: LocalProcessIdentity;
 }
 
-function remediation(errno: string | null): string {
+function remediation(code: WakeSourceIssueCode, errno: string | null): string {
+  if (code !== "repository_watch_unavailable")
+    return "check that the Hub is running and reachable and that this host's Hub token is valid; the wait reconnects on its own";
   switch (errno) {
     case "ENOSPC":
       return "raise the file watch limit (Linux: sysctl fs.inotify.max_user_watches=524288) and restart the Lervo services";
@@ -44,19 +59,36 @@ export interface RepositoryWatchReporter {
   armed(): Promise<void>;
 }
 
-export function repositoryWatchReporter(root: string): RepositoryWatchReporter {
+function detail(code: WakeSourceIssueCode, errno: string | null): string {
+  const cause = errno ?? "unknown error";
+  switch (code) {
+    case "repository_watch_unavailable":
+      return `Repository changes cannot be watched (${cause}), so edits wake nothing until the watch is armed.`;
+    case "hub_knowledge_changes_unavailable":
+      return `The Hub's knowledge change wait failed (${cause}), so lease releases, owner rules and host records from other hosts wake nothing until it reconnects.`;
+    case "hub_runtime_changes_unavailable":
+      return `The Hub's runtime change wait failed (${cause}), so Hub workstreams and commands wake nothing until it reconnects.`;
+  }
+}
+
+export function repositoryWatchReporter(
+  root: string,
+  code: WakeSourceIssueCode = "repository_watch_unavailable",
+): RepositoryWatchReporter {
   const identity = localProcessIdentity();
   const id = `${identity.boot}-${identity.pid}-${randomBytes(6).toString("hex")}`;
   const path = resolve(root, REPOSITORY_WATCH_STATE_DIRECTORY, `${id}.json`);
   return {
     failed: async (error) => {
       try {
-        const errno = (error as NodeJS.ErrnoException | null)?.code ?? null;
+        const failure = error as { code?: unknown; failureCode?: unknown } | null;
+        const named = failure?.failureCode ?? failure?.code;
+        const errno = typeof named === "string" ? named : null;
         const record: RepositoryWatchRecord = {
-          code: "repository_watch_unavailable",
+          code,
           errno,
-          detail: `Repository changes cannot be watched (${errno ?? "unknown error"}), so edits wake nothing until the watch is armed.`,
-          command: remediation(errno),
+          detail: detail(code, errno),
+          command: remediation(code, errno),
           identity,
         };
         await mkdir(resolve(path, ".."), { recursive: true, mode: 0o700 });
@@ -88,7 +120,8 @@ export async function readRepositoryWatchIssues(root: string): Promise<Repositor
       const value = JSON.parse(
         await readFile(resolve(directory, name), "utf8"),
       ) as Partial<RepositoryWatchRecord>;
-      if (value.code !== "repository_watch_unavailable" || value.identity === undefined) continue;
+      if (value.code === undefined || !CODES.has(value.code) || value.identity === undefined)
+        continue;
       // A record of a process proven gone (dead, or of another boot of this host) is removed; one
       // that cannot be judged here stays visible.
       if (localProcessAlive(value.identity) === false) {

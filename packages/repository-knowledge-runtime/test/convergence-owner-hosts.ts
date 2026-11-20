@@ -14,6 +14,7 @@ import {
 } from "@lervo/sync-contract";
 
 import type { ConvergenceOwnerLeasePort } from "../src/convergence-owner.js";
+import type { KnowledgeHubChangeTransport } from "../src/hub-knowledge-changes.js";
 import { CONVERGENCE_OWNER_HOST_PATH } from "../src/convergence-owner-host.js";
 
 const execute = promisify(execFile);
@@ -26,7 +27,47 @@ export class FakeConvergenceOwnerHub {
   failure: { failureCode: string; httpStatus: number | null } | null = null;
   requests = 0;
 
+  /** ADR-0602 `knowledge` change waits: one cursor per waiting host, as the Hub keeps them. */
+  private readonly cursors = new Map<string, number>();
+  private readonly waiters = new Set<() => void>();
+  waits = 0;
+
   constructor(private readonly clock: () => number) {}
+
+  private notify(sourceHostHash: string): void {
+    for (const host of this.cursors.keys())
+      if (host !== sourceHostHash) this.cursors.set(host, this.cursors.get(host)! + 1);
+    for (const wake of [...this.waiters]) wake();
+  }
+
+  changes(): KnowledgeHubChangeTransport {
+    return async () => ({
+      wait: ({ cursor, hostHash, signal }) => {
+        this.waits++;
+        const host = hostHash ?? "";
+        if (!this.cursors.has(host)) this.cursors.set(host, 1);
+        const current = () =>
+          `00000000-0000-4000-8000-${String(this.cursors.get(host)).padStart(12, "0")}`;
+        if (cursor !== current()) return Promise.resolve({ cursor: current() });
+        return new Promise((resolveWait, rejectWait) => {
+          const wake = () => {
+            if (cursor === current()) return;
+            this.waiters.delete(wake);
+            resolveWait({ cursor: current() });
+          };
+          this.waiters.add(wake);
+          signal.addEventListener(
+            "abort",
+            () => {
+              this.waiters.delete(wake);
+              rejectWait(signal.reason);
+            },
+            { once: true },
+          );
+        });
+      },
+    });
+  }
 
   port(): ConvergenceOwnerLeasePort {
     return {
@@ -40,6 +81,9 @@ export class FakeConvergenceOwnerHub {
           acceptedAt: new Date(this.clock()).toISOString(),
         });
         this.lease = next;
+        // ADR-0602: a new holder or a release wakes every other host's change wait.
+        if (decision.status === "granted" || decision.status === "released")
+          this.notify(mutation.request.hostHash);
         return structuredClone(decision);
       },
       read: async () => {

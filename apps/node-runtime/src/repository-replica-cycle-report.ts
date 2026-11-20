@@ -26,6 +26,13 @@ export interface RepositoryReplicaHealthSnapshot {
   recoveryIntervalMs?: number;
   /** Present only while the unreachable peer is backed off (ADR-0570). */
   peer?: { status: "backing_off"; consecutiveFailures: number; retryAt: string };
+  /** ADR-0602: present only while a change source is down and being re-armed. */
+  watch?: {
+    status: "unavailable";
+    source: "local" | "peer";
+    consecutiveFailures: number;
+    retryAt: string;
+  };
   /** Stable advisory codes about the coordinator configuration, such as a per-call launcher. */
   advisories?: string[];
   replicas: Record<string, RepositoryReplicaHealthEntry>;
@@ -35,6 +42,7 @@ export interface RepositoryReplicaHealthSnapshot {
 export interface RepositoryReplicaHealthContext {
   recoveryIntervalMs?: number | undefined;
   peer?: RepositoryReplicaHealthSnapshot["peer"] | undefined;
+  watch?: RepositoryReplicaHealthSnapshot["watch"] | undefined;
   advisories?: string[] | undefined;
 }
 
@@ -187,16 +195,19 @@ export class RepositoryReplicaCycleReporter {
     );
     return {
       schemaVersion: 1,
-      status: Object.values(replicas).some(
-        (entry) => entry.status === "divergent" || entry.status === "failed",
-      )
-        ? "degraded"
-        : "ready",
+      status:
+        context.watch !== undefined ||
+        Object.values(replicas).some(
+          (entry) => entry.status === "divergent" || entry.status === "failed",
+        )
+          ? "degraded"
+          : "ready",
       updatedAt: now.toISOString(),
       ...(context.recoveryIntervalMs === undefined
         ? {}
         : { recoveryIntervalMs: context.recoveryIntervalMs }),
       ...(context.peer === undefined ? {} : { peer: context.peer }),
+      ...(context.watch === undefined ? {} : { watch: context.watch }),
       ...(context.advisories === undefined || context.advisories.length === 0
         ? {}
         : { advisories: context.advisories }),

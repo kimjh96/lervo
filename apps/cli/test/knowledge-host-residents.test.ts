@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
-import { registerRepository } from "@lervo/repository-registry";
+import { defaultRepositoryRegistryPath, registerRepository } from "@lervo/repository-registry";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { fixture } from "../../../packages/repository-knowledge-runtime/test/fixture.js";
@@ -205,51 +205,56 @@ it("starts one resident per delegated registered checkout and none for unenrolle
   }
 });
 
-it("repairs missing and invalid host pointers each cycle without owner action", async () => {
-  const { state } = await delegatedHost();
-  const store = resolve(state, "terminal-hooks");
-  const { ensureHostTerminalRuntime } = await vi.importActual<
-    typeof import("../src/terminal-runtime.js")
-  >("../src/terminal-runtime.js");
-  ports.materialize.mockImplementation(() =>
-    ensureHostTerminalRuntime({ store, authority: "repair" }),
-  );
-  const failures: unknown[] = [];
-  const stop = startHostKnowledgeResidents({
-    provider: null,
-    scanMilliseconds: 20,
-    onFailure: (_root, error) => {
-      failures.push(error);
-    },
-  });
-  try {
-    await until(() => existsSync(resolve(store, "current.json")));
-    const current = await readFile(resolve(store, "current.json"), "utf8");
-    await writeFile(
-      resolve(store, "current.json"),
-      JSON.stringify({
-        schemaVersion: 1,
-        contentHash: `sha256:${"a".repeat(64)}`,
-        directory: "a".repeat(16),
-        predecessor: null,
-      }),
+it(
+  "repairs missing and invalid host pointers each cycle without owner action",
+  { timeout: 30_000 },
+  async () => {
+    const { state } = await delegatedHost();
+    const store = resolve(state, "terminal-hooks");
+    const { ensureHostTerminalRuntime } = await vi.importActual<
+      typeof import("../src/terminal-runtime.js")
+    >("../src/terminal-runtime.js");
+    ports.materialize.mockImplementation(() =>
+      ensureHostTerminalRuntime({ store, authority: "repair" }),
     );
-    await until(() =>
-      readFileSync(resolve(store, "current.json"), "utf8").includes(
+    const failures: unknown[] = [];
+    const stop = startHostKnowledgeResidents({
+      provider: null,
+      // ADR-0602: a broken pointer is repaired because the rescan watches it, not on a timer.
+      runtimeStore: store,
+      onFailure: (_root, error) => {
+        failures.push(error);
+      },
+    });
+    try {
+      await until(() => existsSync(resolve(store, "current.json")));
+      const current = await readFile(resolve(store, "current.json"), "utf8");
+      await writeFile(
+        resolve(store, "current.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          contentHash: `sha256:${"a".repeat(64)}`,
+          directory: "a".repeat(16),
+          predecessor: null,
+        }),
+      );
+      await until(() =>
+        readFileSync(resolve(store, "current.json"), "utf8").includes(
+          JSON.parse(current).contentHash,
+        ),
+      );
+      await rm(resolve(store, "current.json"));
+      await until(() => existsSync(resolve(store, "current.json")));
+      expect(JSON.parse(await readFile(resolve(store, "current.json"), "utf8")).contentHash).toBe(
         JSON.parse(current).contentHash,
-      ),
-    );
-    await rm(resolve(store, "current.json"));
-    await until(() => existsSync(resolve(store, "current.json")));
-    expect(JSON.parse(await readFile(resolve(store, "current.json"), "utf8")).contentHash).toBe(
-      JSON.parse(current).contentHash,
-    );
-    expect(failures).toEqual([]);
-  } finally {
-    await stop();
-    ports.materialize.mockResolvedValue("current");
-  }
-});
+      );
+      expect(failures).toEqual([]);
+    } finally {
+      await stop();
+      ports.materialize.mockResolvedValue("current");
+    }
+  },
+);
 
 it("does not revert CLI B after resident A rescans", async () => {
   const { delegated, state } = await delegatedHost();
@@ -268,7 +273,7 @@ it("does not revert CLI B after resident A rescans", async () => {
   const failures: unknown[] = [];
   const stop = startHostKnowledgeResidents({
     provider: null,
-    scanMilliseconds: 20,
+    runtimeStore: store,
     onFailure: (_root, error) => {
       failures.push(error);
     },
@@ -285,7 +290,16 @@ it("does not revert CLI B after resident A rescans", async () => {
       publisher,
     });
     const pointerB = await readFile(resolve(store, "current.json"), "utf8");
+    // CLI B's pointer write is itself a watched change: the rescan it causes, and the next one a
+    // later registry change causes, must both keep B.
     const previousScans = scans;
+    await until(() => scans >= previousScans + 1);
+    const registry = defaultRepositoryRegistryPath();
+    const contents = await readFile(registry, "utf8");
+    for (let attempt = 0; scans < previousScans + 2 && attempt < 100; attempt++) {
+      await writeFile(registry, contents);
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
+    }
     await until(() => scans >= previousScans + 2);
     expect(await readFile(resolve(store, "current.json"), "utf8")).toBe(pointerB);
     expect(JSON.parse(pointerB).contentHash).toBe(sha256(runtimeB));
@@ -295,3 +309,36 @@ it("does not revert CLI B after resident A rescans", async () => {
     ports.materialize.mockResolvedValue("current");
   }
 });
+
+it(
+  "rescans for a watched change that lands while a scan runs (ADR-0602)",
+  { timeout: 60_000 },
+  async () => {
+    const { delegated } = await delegatedHost();
+    ports.open.mockResolvedValue({ ...delegated.storage, close: async () => undefined });
+    let scans = 0;
+    let release!: () => void;
+    // The first scan stays inside its runtime check until the change has landed.
+    ports.materialize.mockImplementation(async () => {
+      scans++;
+      if (scans === 1) await new Promise<void>((resolveScan) => (release = resolveScan));
+      return "current";
+    });
+    const stop = startHostKnowledgeResidents({ provider: null, onFailure: () => undefined });
+    try {
+      await until(() => scans === 1);
+      const registry = defaultRepositoryRegistryPath();
+      const contents = await readFile(registry, "utf8");
+      // The watch event takes real file-system time; keep the scan open until it has surely come.
+      for (let attempt = 0; attempt < 10; attempt++) {
+        await writeFile(registry, contents);
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
+      }
+      release();
+      await until(() => scans >= 2);
+    } finally {
+      await stop();
+      ports.materialize.mockResolvedValue("current");
+    }
+  },
+);

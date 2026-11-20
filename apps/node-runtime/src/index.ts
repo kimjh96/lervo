@@ -56,4 +56,4 @@ export {
   REPOSITORY_WATCH_STATE_DIRECTORY,
   repositoryWatchReporter,
   type RepositoryWatchIssue,
-} from "./repository-watch-state.js";
+} from "@lervo/repository-knowledge-runtime";

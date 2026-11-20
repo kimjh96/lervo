@@ -21,6 +21,7 @@ import {
   createKnowledgeConvergenceContinuity,
   createKnowledgeConvergenceOwnership,
   instructionCandidateTransport,
+  knowledgeHubChangeTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
 
@@ -68,6 +69,7 @@ export function startRepositoryKnowledgeLoop(input: {
       ownership: createKnowledgeConvergenceOwnership(input.storage!, input.provider),
       continuity: createKnowledgeConvergenceContinuity(input.storage!, input.hub ?? null),
       instructionCandidateTransport,
+      hubChanges: knowledgeHubChangeTransport,
       // ADR-0594: the owner applies stored owner rules here exactly as the CLI host does.
       applyOwnerStatedInstructions: () =>
         applyStoredInstructionCandidates({

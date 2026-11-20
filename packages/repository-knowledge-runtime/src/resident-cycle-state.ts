@@ -24,6 +24,8 @@ export interface ResidentCycleState {
   lastResult: ResidentCycleResult;
   idleStreak: number;
   nextReconcileAt: string | null;
+  /** ADR-0602: when the fence was last observed, full cycle or skip; absent in older states. */
+  lastObservedAt?: string | null;
   lastFailure?: ResidentCycleFailure | null;
 }
 
@@ -65,6 +67,7 @@ export async function readResidentCycleState(root: string): Promise<ResidentCycl
       ) ||
       !timestamp(value.lastCycleAt) ||
       !timestamp(value.nextReconcileAt) ||
+      !(value.lastObservedAt === undefined || timestamp(value.lastObservedAt)) ||
       typeof value.lastResult !== "string" ||
       !RESULTS.has(value.lastResult) ||
       !Number.isSafeInteger(value.idleStreak) ||

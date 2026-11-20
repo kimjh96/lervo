@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { watchRepositoryChanges } from "../src/repository-change-watch.js";
+import { watchRepositoryChanges } from "@lervo/repository-knowledge-runtime";
 import {
   applyRepositoryReplicaBundle,
   captureRepositoryReplicaSnapshot,
@@ -74,7 +74,7 @@ describe("Git repository replica", () => {
     const root = await repository();
     await captureRepositoryReplicaSnapshot(root);
     const notify = vi.fn();
-    const stop = await watchRepositoryChanges(root, notify, notify, { recoveryIntervalMs: 1000 });
+    const stop = await watchRepositoryChanges(root, notify, notify);
     // The watcher reacts to these Git files and to root entries, so comparing their exact bytes
     // proves an observation cannot wake itself. Waiting for a notification that must never
     // arrive could only ever prove that it had not arrived yet.

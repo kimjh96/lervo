@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   continuityFindings,
+  continuityPeerFindings,
   localContinuityFindings,
   type ContinuityFindingsInput,
 } from "../src/continuity-findings.js";
@@ -206,16 +207,58 @@ describe("continuity findings", () => {
         replicaDiverged: false,
       }).map((finding) => finding.code),
     ).toEqual(["hook_runtime_unavailable"]);
+    // ADR-0602: an old state with no deadline due is current; only a missed deadline is stale.
+    const old = {
+      now,
+      expected: true,
+      stateObservedAt: new Date(now - 30 * 24 * HOUR).toISOString(),
+      residentRunning: true,
+      hookRuntime: "current" as const,
+      replicaDiverged: false,
+    };
+    expect(localContinuityFindings({ ...old, stateDueAt: null })).toEqual([]);
+    expect(
+      localContinuityFindings({ ...old, stateDueAt: new Date(now - HOUR).toISOString() }),
+    ).toEqual([]);
     expect(
       localContinuityFindings({
         now,
         expected: true,
         stateObservedAt: new Date(now - 3 * HOUR).toISOString(),
+        stateDueAt: new Date(now - 3 * HOUR).toISOString(),
         residentRunning: false,
         hookRuntime: "current",
         replicaDiverged: true,
       }).map((finding) => finding.code),
     ).toEqual(["continuity_stale", "resident_not_running", "replica_diverged"]);
+  });
+
+  it("judges a peer by its Hub presence, and by record age only without it (ADR-0602)", () => {
+    const peer = {
+      hostLabel: "wsl",
+      observedAt: new Date(now - 30 * 24 * HOUR).toISOString(),
+      delegationState: "active" as const,
+      delegationExpiresAt: new Date(now + 30 * 24 * HOUR).toISOString(),
+      policy: "active",
+    };
+    const codes = (
+      observation: typeof peer & { presence?: { connected: boolean; since: string } },
+    ) => continuityPeerFindings([observation], now).map((finding) => finding.code);
+    // A month-old record of a peer that holds its Hub wait is current.
+    expect(codes({ ...peer, presence: { connected: true, since: peer.observedAt } })).toEqual([]);
+    expect(
+      codes({
+        ...peer,
+        presence: { connected: false, since: new Date(now - 9 * 60_000).toISOString() },
+      }),
+    ).toEqual([]);
+    expect(
+      codes({
+        ...peer,
+        presence: { connected: false, since: new Date(now - 11 * 60_000).toISOString() },
+      }),
+    ).toEqual(["peer_unreported"]);
+    expect(codes(peer)).toEqual(["peer_unreported"]);
   });
 
   it("reports a held resident's cause instead of an absent resident (ADR-0470)", () => {

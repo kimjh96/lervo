@@ -35,15 +35,17 @@ export function createSupervisionChangeLoop(input: {
   return new ConversationChangeLoop<boolean>({
     intervalMs: 5_000,
     continueOnFailure: true,
+    // ADR-0602: an inactive workstream is a settled state: it waits for the event or the
+    // workstream file change that can end it. Every other failure backs off from five seconds.
     failureRetryMs: (error) =>
       (error as { code?: unknown } | null)?.code === "supervision_workstream_inactive"
-        ? 60_000
+        ? null
         : 5_000,
     subscribe: input.subscribe,
     onFailure: input.onFailure,
-    // A lapsed progress deadline re-evaluates an unchanged source; any event hint still wakes the
-    // owner at once, and every cycle re-reads authority and expiry before an effect can run.
-    idleBackoff: { baseMs: 5_000, ceilingMs: 300_000, unchanged: (unchanged) => unchanged },
+    // ADR-0602: a lapsed progress deadline gets one more cycle, then waits for a change or a new
+    // deadline; any event hint still wakes the owner at once, and every cycle re-reads authority
+    // and expiry before an effect can run.
     runCycle: async () => {
       const result = await input.runCycle();
       if (result.report !== null)
