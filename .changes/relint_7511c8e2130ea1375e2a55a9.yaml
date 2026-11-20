@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7511c8e2130ea1375e2a55a9"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read health history incrementally, slow the resident heartbeat, and fence non-owner residents without Git"
