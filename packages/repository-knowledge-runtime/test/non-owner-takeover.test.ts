@@ -71,9 +71,10 @@ it(
       await until(() => hub.lease?.holderLabel === "wsl", 15_000);
       const before = cycles.length;
       await until(() => cycles.length > before, 120_000);
-      // The first cycle after the takeover is the owner's own full cycle, not another wait.
-      expect(cycles[before]).toMatchObject({ owner: { role: "owner" } });
+      // The first cycle after the takeover is the owner's own full cycle, not another wait: it
+      // inspects convergence, which only an owner does (ADR-0597).
       expect(cycles[before]!.status).not.toBe("waiting_owner");
+      expect(cycles[before]).toHaveProperty("convergence.transport", "ready");
       expect(failures).toEqual([]);
     } finally {
       await stop();
