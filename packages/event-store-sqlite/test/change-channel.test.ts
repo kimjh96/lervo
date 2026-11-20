@@ -628,14 +628,17 @@ describe.runIf(process.platform === "win32")(
       const path = database();
       const ping = vi.fn();
       listen(path, ping);
-      for (let commit = 0; commit < 20_000; commit += 1) notifyEventStoreChange(path);
-      await vi.waitFor(() => expect(ping).toHaveBeenCalled());
-      await vi.waitFor(() =>
-        expect(
-          statSync(join(eventStoreChannelDirectory(path), pings(path)[0]!)).size,
-        ).toBeLessThanOrEqual(4_096),
+      // Past the 4 KiB bound; each Windows append is a file open, so keep the count modest.
+      for (let commit = 0; commit < 5_000; commit += 1) notifyEventStoreChange(path);
+      await vi.waitFor(() => expect(ping).toHaveBeenCalled(), { timeout: 10_000 });
+      await vi.waitFor(
+        () =>
+          expect(
+            statSync(join(eventStoreChannelDirectory(path), pings(path)[0]!)).size,
+          ).toBeLessThanOrEqual(4_096),
+        { timeout: 10_000 },
       );
-    });
+    }, 60_000);
 
     it("reports a live subscriber's issues and stops once it closes", () => {
       const path = database();
