@@ -1412,6 +1412,44 @@ describe("GitHub CLI publication adapter", () => {
     ]);
   });
 
+  it("counts only the newest run of each Actions check after a rerun or reopen", () => {
+    const head = "a".repeat(40);
+    const run = (name: string, workflowName: string, startedAt: string, conclusion: string) => ({
+      __typename: "CheckRun",
+      name,
+      workflowName,
+      status: "COMPLETED",
+      conclusion,
+      startedAt,
+      completedAt: startedAt,
+    });
+    const rollup = [
+      run("Lint", "Code Quality", "2026-10-12T17:11:01Z", "FAILURE"),
+      run("Validate PR title", "PR Title", "2026-10-12T17:11:01Z", "FAILURE"),
+      run("Validate PR title", "PR Title", "2026-10-12T17:11:02Z", "FAILURE"),
+      run("Lint", "Code Quality", "2026-11-20T02:02:26Z", "SUCCESS"),
+      run("Validate PR title", "PR Title", "2026-11-20T02:02:26Z", "SUCCESS"),
+      { __typename: "StatusContext", context: "Vercel", state: "FAILURE" },
+    ];
+    expect(
+      summarizeKnowledgePublicationChecks({
+        headSha: head,
+        observedHeadSha: head,
+        rollup,
+        ignore: ["Vercel"],
+      }),
+    ).toEqual({ state: "passed", total: 2 });
+    // A job of the same name in another workflow is its own check.
+    expect(
+      summarizeKnowledgePublicationChecks({
+        headSha: head,
+        observedHeadSha: head,
+        rollup: [...rollup, run("Lint", "Nightly", "2026-10-01T00:00:00Z", "FAILURE")],
+        ignore: ["Vercel"],
+      }),
+    ).toMatchObject({ state: "failed", failed: 1, failures: [{ name: "Lint" }] });
+  });
+
   it("treats a run older than a month as expired whatever gh calls the refusal", async () => {
     const calls: string[][] = [];
     const forge = createGitHubKnowledgePublicationForge({

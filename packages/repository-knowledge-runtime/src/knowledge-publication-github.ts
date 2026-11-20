@@ -149,6 +149,30 @@ function linkedId(item: Record<string, unknown>, pattern: RegExp): number | null
 }
 
 /**
+ * The newest run of each Actions check. A rerun or a reopened pull request adds runs to the same
+ * head and leaves the earlier ones in the rollup; like GitHub's merge gate, only the latest run of
+ * a workflow job counts. Commit statuses already arrive as the latest state per context.
+ */
+function latestCheckRuns(items: Record<string, unknown>[]): Record<string, unknown>[] {
+  const latest = new Map<string, { index: number; startedAt: string }>();
+  // A run without a name or a start time cannot be matched to a later one, so it always counts.
+  const comparable = (item: Record<string, unknown>) =>
+    item.__typename !== "StatusContext" &&
+    typeof item.name === "string" &&
+    item.name !== "" &&
+    typeof item.startedAt === "string";
+  items.forEach((item, index) => {
+    if (!comparable(item)) return;
+    const key = `${String(item.workflowName ?? "")}\u0000${String(item.name)}`;
+    const startedAt = String(item.startedAt);
+    const seen = latest.get(key);
+    if (seen === undefined || startedAt >= seen.startedAt) latest.set(key, { index, startedAt });
+  });
+  const kept = new Set([...latest.values()].map((entry) => entry.index));
+  return items.filter((item, index) => !comparable(item) || kept.has(index));
+}
+
+/**
  * Reduces a status rollup for one exact head; a moved head is still pending. Only success
  * passes. A skipped check did not run for this pull request, so it neither passes nor blocks;
  * every other finished conclusion, including neutral and cancelled, fails. A commit status
@@ -163,9 +187,11 @@ export function summarizeKnowledgePublicationChecks(input: {
 }): KnowledgePublicationChecks {
   const ignored = new Set(input.ignore ?? []);
   // Only outside commit statuses can be ignored; an Actions job with the same name still counts.
-  const items = (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
-    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
-    .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item))));
+  const items = latestCheckRuns(
+    (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
+      .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+      .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item)))),
+  );
   if (input.observedHeadSha !== input.headSha || items.length === 0)
     return { state: "pending", total: items.length };
   let failed = 0;
