@@ -52,6 +52,37 @@ export interface KnowledgePublicationState {
    * last and at most 64; they are never selected again. Absent in state written before it existed.
    */
   supersededCommits?: string[];
+  /**
+   * ADR-0596: failed checks on one published head. The publisher reruns its transient Actions
+   * failures once per head, then waits out `retryAt` while the head and the unpublished commits
+   * stay the same. Absent in state written before it existed or for a head without failures.
+   */
+  checksRetry?: KnowledgePublicationChecksRetry;
+}
+
+export interface KnowledgePublicationChecksRetry {
+  /** The published head whose checks failed. */
+  head: string;
+  /** Digest of the local base and the unpublished knowledge commits; a change ends the wait. */
+  inventoryKey: string;
+  /** Failed observations of this head after its rerun; selects the backoff step. */
+  attempts: number;
+  /** No check is read again for this head before this instant, unless the inventory changed. */
+  retryAt: string;
+  /** Whether this head's failed Actions runs were already started again. */
+  rerun: boolean;
+}
+
+/** ADR-0596: waits between failed-check observations of one unchanged head: 15 min, 1 h, then 6 h. */
+export const KNOWLEDGE_PUBLICATION_CHECKS_BACKOFF_MS = [
+  15 * 60_000,
+  60 * 60_000,
+  6 * 60 * 60_000,
+] as const;
+
+export function knowledgePublicationChecksBackoff(attempts: number): number {
+  const steps = KNOWLEDGE_PUBLICATION_CHECKS_BACKOFF_MS;
+  return steps[Math.min(Math.max(attempts, 1), steps.length) - 1]!;
 }
 
 /** Bounds `supersededCommits`; older entries drop out and, if still local, conflict once more. */
@@ -68,7 +99,27 @@ const STATUSES = new Set([
 ]);
 const COMMIT = /^[0-9a-f]{40,64}$/u;
 
-/** Missing or invalid state reads as null; the next publication rebuilds it from Git and GitHub. */
+function validChecksRetry(value: unknown): value is KnowledgePublicationChecksRetry {
+  const retry = value as Partial<KnowledgePublicationChecksRetry> | null;
+  return (
+    retry !== null &&
+    typeof retry === "object" &&
+    typeof retry.head === "string" &&
+    COMMIT.test(retry.head) &&
+    typeof retry.inventoryKey === "string" &&
+    /^sha256:[0-9a-f]{64}$/u.test(retry.inventoryKey) &&
+    Number.isSafeInteger(retry.attempts) &&
+    retry.attempts! >= 0 &&
+    typeof retry.retryAt === "string" &&
+    !Number.isNaN(Date.parse(retry.retryAt)) &&
+    typeof retry.rerun === "boolean"
+  );
+}
+
+/**
+ * Missing or invalid state reads as null; the next publication rebuilds it from Git and GitHub.
+ * An invalid `checksRetry` alone is dropped, which costs at most one early check read.
+ */
 export async function readKnowledgePublicationState(
   root: string,
 ): Promise<KnowledgePublicationState | null> {
@@ -77,6 +128,8 @@ export async function readKnowledgePublicationState(
     const stat = await lstat(path);
     if (!stat.isFile() || stat.size > 8_192) return null;
     const value = JSON.parse(await readFile(path, "utf8")) as Partial<KnowledgePublicationState>;
+    if (value?.checksRetry !== undefined && !validChecksRetry(value.checksRetry))
+      delete value.checksRetry;
     return value?.schemaVersion === 1 &&
       typeof value.status === "string" &&
       STATUSES.has(value.status) &&

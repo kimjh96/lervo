@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -216,6 +216,36 @@ describe("owner-host derivation", () => {
     expect(probes).toBe(0);
     expect(result.derivation.status).toBe("derived");
     expect((await readConvergenceOwnerHost(root))?.config.publication).toEqual(publication);
+  });
+
+  it("keeps an ignore list the operator added to a derived configuration (ADR-0596)", async () => {
+    const root = await checkout();
+    await derive(root);
+    const path = resolve(root, CONVERGENCE_OWNER_HOST_PATH);
+    const written = JSON.parse(await readFile(path, "utf8")) as {
+      publication: Record<string, unknown>;
+    };
+    const checks = { ignore: ["Vercel – web"] };
+    written.publication.checks = checks;
+    await writeFile(path, JSON.stringify(written));
+    await chmod(path, 0o600);
+    // The list does not turn the file into an operator configuration: derivation still follows
+    // the remote and carries the list into what it writes.
+    const corrected = await derive(root, {
+      publication: async () => ({ ...publication, baseBranch: "trunk" }),
+      now: new Date("2026-10-06T06:00:00.000Z"),
+    });
+    expect(corrected.derivation.status).toBe("derived");
+    expect((await readConvergenceOwnerHost(root))?.config.publication).toEqual({
+      ...publication,
+      baseBranch: "trunk",
+      checks,
+    });
+    const again = await derive(root, {
+      publication: async () => ({ ...publication, baseBranch: "trunk" }),
+      now: new Date("2026-10-06T12:00:00.000Z"),
+    });
+    expect(again.derivation.status).toBe("unchanged");
   });
 
   it("leaves an operator configuration's publication setting alone", async () => {

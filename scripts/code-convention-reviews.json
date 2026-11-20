@@ -130,9 +130,9 @@
     },
     {
       "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
-      "contentHash": "sha256:44aebaa1bf03512d62ca212a39260582f97df4ea3037d16240a8b3e940d6c72f",
+      "contentHash": "sha256:bff416b61a41c794686ceb7b83c033b8fd999ecded9b641eb616186abea3f515",
       "responsibility": "Knowledge publication orchestration",
-      "rationale": "The module sequences one owner publication (repair, scope check, replay, push, pull request, merge, supersession, local catch-up) into one durable state and failure code. ADR-0473 scope rules, repair planning and commits, Git mechanics, forge transport, body rendering, tip building, supersession ledgers, and state persistence are sibling modules; the remaining functions share one progress and failure contract.",
+      "rationale": "The module sequences one owner publication (repair, scope check, replay, push, pull request, merge, supersession, local catch-up) into one durable state and failure code. ADR-0473 scope rules, repair planning and commits, ADR-0596 failed-check recovery and backoff, Git mechanics, forge transport, body rendering, tip building, supersession ledgers, and state persistence are sibling modules; the remaining functions share one progress and failure contract.",
       "disposition": "cohesive"
     },
     {

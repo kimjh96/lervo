@@ -94,6 +94,7 @@ const forge: KnowledgePublicationForge = {
   viewPullRequest: () => Promise.reject(new Error("unexpected view")),
   closePullRequest: () => Promise.reject(new Error("unexpected close")),
   checks: () => Promise.reject(new Error("unexpected checks")),
+  rerunFailedChecks: () => Promise.reject(new Error("unexpected rerun")),
   merge: () => Promise.reject(new Error("unexpected merge")),
 };
 

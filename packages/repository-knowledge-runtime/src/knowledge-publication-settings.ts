@@ -15,6 +15,12 @@ interface KnowledgePublicationTarget {
    * `never` stops at opening or updating it.
    */
   merge: "when_checks_pass" | "never";
+  /**
+   * ADR-0596: exact commit status names that never block a merge, such as a deployment preview
+   * that cannot verify the `Lervo Knowledge` author. Check runs are never ignored. Only the
+   * operator sets it; derivation keeps it.
+   */
+  checks?: { ignore: string[] };
 }
 
 /**
@@ -31,6 +37,26 @@ export const DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS = ["docs/", ".lervo/knowledge/"
 const REMOTE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/u;
 const BRANCH = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/u;
 const ROOT = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[^\0\s]{1,127}\/$/u;
+/** At most 8 names of 1 to 100 printable characters, so the 4 KiB host file always fits them. */
+export const MAXIMUM_IGNORED_PUBLICATION_CHECKS = 8;
+const CHECK_NAME = /^(?=\S)(?!.*\s$)[^\p{Cc}\p{Cf}]{1,100}$/u;
+
+/** The `checks` object, or null when present and invalid; undefined when absent. Unknown keys are ignored. */
+function parseChecks(value: unknown): { ignore: string[] } | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  const input = value as Record<string, unknown>;
+  const ignore = input.ignore;
+  if (
+    !Array.isArray(ignore) ||
+    ignore.length < 1 ||
+    ignore.length > MAXIMUM_IGNORED_PUBLICATION_CHECKS ||
+    !ignore.every((name) => typeof name === "string" && CHECK_NAME.test(name)) ||
+    new Set(ignore).size !== ignore.length
+  )
+    return null;
+  return { ignore: [...(ignore as string[])] };
+}
 
 function validBranch(value: unknown): value is string {
   return (
@@ -51,11 +77,9 @@ export function parseKnowledgePublicationSettings(
 ): KnowledgePublicationSettings | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
-  const keys = Object.keys(input);
+  // ADR-0596: unknown keys are ignored, so a setting from a newer release, or one left behind by a
+  // rollback, never invalidates the host configuration. Known keys stay strictly validated.
   if (
-    !keys.every((key) =>
-      ["remote", "baseBranch", "branch", "merge", "allowedRoots", "scope"].includes(key),
-    ) ||
     typeof input.remote !== "string" ||
     !REMOTE.test(input.remote) ||
     !validBranch(input.baseBranch) ||
@@ -64,11 +88,14 @@ export function parseKnowledgePublicationSettings(
     (input.merge !== "when_checks_pass" && input.merge !== "never")
   )
     return null;
+  const checks = parseChecks(input.checks);
+  if (checks === null) return null;
   const target: KnowledgePublicationTarget = {
     remote: input.remote,
     baseBranch: input.baseBranch,
     branch: input.branch,
     merge: input.merge,
+    ...(checks === undefined ? {} : { checks }),
   };
   if ("scope" in input)
     return input.scope === "delegation" && !("allowedRoots" in input)
@@ -106,6 +133,16 @@ export function migrateDerivedKnowledgePublicationSettings(
     baseBranch: settings.baseBranch,
     branch: settings.branch,
     merge: settings.merge,
+    ...(settings.checks === undefined ? {} : { checks: settings.checks }),
     scope: "delegation",
   };
+}
+
+/** ADR-0596: a probed setting keeps the operator's `checks`, which a probe never derives. */
+export function withOperatorPublicationChecks(
+  settings: KnowledgePublicationSettings,
+  current: KnowledgePublicationSettings | undefined,
+): KnowledgePublicationSettings {
+  if (current?.checks === undefined) return settings;
+  return { ...settings, checks: current.checks };
 }

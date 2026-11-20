@@ -72,7 +72,7 @@ const PUBLICATION_INSTRUCTIONS: Record<string, string> = {
   knowledge_publication_pull_request_failed:
     "Check that gh is installed and authenticated on this host, then run lervo knowledge convergence owner publish.",
   knowledge_publication_checks_failed:
-    "A check on the knowledge publication pull request finished without success, for example failed, cancelled, or neutral. Inspect its CI result; the publisher will not merge until every check succeeds.",
+    "A check on the knowledge publication pull request finished without success; the detail names each failed check and its conclusion. The publisher starts Actions jobs that never ran or did not finish again once for the same head, then reads the head again after 15 minutes, 1 hour, and every 6 hours, and sooner when new knowledge commits or a new base arrive. Fix a failing check in the repository, or, for an outside status that can never pass for Lervo Knowledge commits, such as a deployment preview, list its exact commit status name in publication.checks.ignore of this host's convergence owner configuration.",
   knowledge_publication_merge_failed:
     "Merging the knowledge publication pull request failed. Inspect the pull request and merge or close it.",
 };

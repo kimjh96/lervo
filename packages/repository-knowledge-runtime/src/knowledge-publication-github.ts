@@ -2,6 +2,8 @@ import { execFile } from "node:child_process";
 
 import {
   KnowledgePublicationForgeError,
+  MAXIMUM_NAMED_CHECK_FAILURES,
+  type KnowledgePublicationCheckFailure,
   type KnowledgePublicationChecks,
   type KnowledgePublicationForge,
   type KnowledgePublicationForgeFailureClass,
@@ -115,34 +117,79 @@ async function guarded<T>(
   }
 }
 
+/** GitHub's refusal to rerun a workflow run that is too old to retry. */
+const RERUN_EXPIRED =
+  /created over a month ago|older than (?:a month|30 days)|(?:is )?not retryable/iu;
+
+function rerunExpired(error: unknown): boolean {
+  const stderr = (error as { stderr?: unknown } | null)?.stderr;
+  return RERUN_EXPIRED.test(typeof stderr === "string" ? stderr : String(stderr ?? ""));
+}
+
+const CHECK_NAME_LIMIT = 100;
+const RUN_LINK = /\/actions\/runs\/(\d{1,19})(?:\/|$)/u;
+const JOB_LINK = /\/actions\/runs\/\d{1,19}\/job\/(\d{1,19})$/u;
+
+/** A bounded, printable check name; control characters and overlong names never reach state. */
+function checkName(item: Record<string, unknown>): string {
+  const raw = item.__typename === "StatusContext" ? item.context : item.name;
+  const name = (typeof raw === "string" ? raw : "").replace(/[\p{Cc}\p{Cf}]/gu, " ").trim();
+  if (name === "") return item.__typename === "StatusContext" ? "unnamed status" : "unnamed check";
+  return name.length > CHECK_NAME_LIMIT ? `${name.slice(0, CHECK_NAME_LIMIT - 1)}…` : name;
+}
+
+function linkedId(item: Record<string, unknown>, pattern: RegExp): number | null {
+  const link = typeof item.detailsUrl === "string" ? item.detailsUrl : "";
+  const id = Number(pattern.exec(link)?.[1]);
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
+}
+
 /**
  * Reduces a status rollup for one exact head; a moved head is still pending. Only success
  * passes. A skipped check did not run for this pull request, so it neither passes nor blocks;
- * every other finished conclusion, including neutral and cancelled, fails.
+ * every other finished conclusion, including neutral and cancelled, fails. A commit status
+ * whose exact name is in `ignore` is left out entirely (ADR-0596); check runs are never ignored. Failed items are named, at
+ * most eight, with the Actions run that owns each check run.
  */
 export function summarizeKnowledgePublicationChecks(input: {
   headSha: string;
   observedHeadSha: string;
   rollup: unknown;
+  ignore?: readonly string[];
 }): KnowledgePublicationChecks {
-  const items = Array.isArray(input.rollup) ? (input.rollup as Record<string, unknown>[]) : [];
+  const ignored = new Set(input.ignore ?? []);
+  // Only outside commit statuses can be ignored; an Actions job with the same name still counts.
+  const items = (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
+    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+    .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item))));
   if (input.observedHeadSha !== input.headSha || items.length === 0)
     return { state: "pending", total: items.length };
   let failed = 0;
   let succeeded = 0;
+  const failures: KnowledgePublicationCheckFailure[] = [];
   for (const item of items) {
-    const conclusion =
-      item.__typename === "StatusContext"
-        ? String(item.state ?? "")
-        : String(item.status ?? "") === "COMPLETED"
-          ? String(item.conclusion ?? "")
-          : "";
+    const status = item.__typename === "StatusContext";
+    const conclusion = status
+      ? String(item.state ?? "")
+      : String(item.status ?? "") === "COMPLETED"
+        ? String(item.conclusion ?? "")
+        : "";
     if (conclusion === "" || conclusion === "PENDING" || conclusion === "EXPECTED")
       return { state: "pending", total: items.length };
     if (conclusion === "SUCCESS") succeeded++;
-    else if (conclusion !== "SKIPPED") failed++;
+    else if (conclusion !== "SKIPPED") {
+      failed++;
+      if (failures.length < MAXIMUM_NAMED_CHECK_FAILURES)
+        failures.push({
+          name: checkName(item),
+          kind: status ? "status" : "check_run",
+          conclusion: conclusion.toLowerCase(),
+          runId: status ? null : linkedId(item, RUN_LINK),
+          jobId: status ? null : linkedId(item, JOB_LINK),
+        });
+    }
   }
-  if (failed > 0) return { state: "failed", total: items.length, failed };
+  if (failed > 0) return { state: "failed", total: items.length, failed, failures };
   return succeeded === 0
     ? { state: "pending", total: items.length }
     : { state: "passed", total: items.length };
@@ -212,16 +259,50 @@ export function createGitHubKnowledgePublicationForge(input: {
       guarded("close", async () => {
         await run(["pr", "close", String(number), "--comment", comment]);
       }),
-    checks: ({ number, headSha }) =>
+    checks: ({ number, headSha, ignore }) =>
       guarded("checks", async () => {
         const value = JSON.parse(
           await run(["pr", "view", String(number), "--json", "headRefOid,statusCheckRollup"]),
         ) as { headRefOid?: unknown; statusCheckRollup?: unknown };
-        return summarizeKnowledgePublicationChecks({
+        const summary = summarizeKnowledgePublicationChecks({
           headSha,
           observedHeadSha: String(value.headRefOid ?? ""),
           rollup: value.statusCheckRollup,
+          ...(ignore === undefined ? {} : { ignore }),
         });
+        if (summary.state !== "failed") return summary;
+        // The rollup times a job GitHub refused to start like a real one, so its steps tell.
+        const failures = await Promise.all(
+          summary.failures.map(async (failure) => {
+            if (failure.jobId === null || failure.conclusion !== "failure") return failure;
+            const steps = await run([
+              "api",
+              `repos/{owner}/{repo}/actions/jobs/${failure.jobId}`,
+              "--jq",
+              ".steps | length",
+            ])
+              .then((output) => Number(output.trim()))
+              .catch(() => Number.NaN);
+            return steps === 0 ? { ...failure, conclusion: "not_run" } : failure;
+          }),
+        );
+        return { ...summary, failures };
+      }),
+    rerunFailedChecks: ({ number, runIds }) =>
+      guarded("rerun", async () => {
+        // GitHub refuses to rerun a run older than a month; reopening retriggers it instead.
+        // Any other refusal fails the step, and nothing is closed.
+        let expired = false;
+        for (const id of runIds)
+          await run(["run", "rerun", String(id), "--failed"]).catch((error: unknown) => {
+            if (!rerunExpired(error)) throw error;
+            expired = true;
+          });
+        if (!expired) return;
+        await run(["pr", "close", String(number)]);
+        await run(["pr", "reopen", String(number)]).catch(() =>
+          run(["pr", "reopen", String(number)]),
+        );
       }),
     merge: ({ number, headSha }) =>
       guarded("merge", async () => {
