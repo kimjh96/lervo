@@ -123,7 +123,7 @@ export async function runDocumentFreshnessCycle(input: {
       )
     ) &&
     !candidates.some(freshnessCrossCheckPending) &&
-    !freshnessBackoffDue(state, candidates, now) &&
+    !freshnessBackoffDue(state, candidates, now, { debtAffordable: reviewAffordable }) &&
     !Object.values(state.evidenceRecovery ?? {}).some(
       (item) => item.attempts < 2 || item.nextCursor !== null,
     )
@@ -306,36 +306,47 @@ export async function runDocumentFreshnessCycle(input: {
     debt,
     zeroSuccessHold,
   };
-  // A deferral over the same findings that made no progress records nothing new (ADR-0580).
+  const payload = {
+    cycleId,
+    findingCount: observation.findings.length,
+    admittedCount: admission.admitted.length,
+    candidateCount,
+    verifiedCount,
+    appliedCount,
+    skippedForBudget: admission.skippedForBudget,
+    skippedForHold: admission.skippedForHold,
+    usageObserved: tokensObserved,
+    occurredAt: now.toISOString(),
+  };
+  // A cycle over the same findings that made no progress and reports nothing new records nothing
+  // (ADR-0580, generalized by ADR-0598).
+  const outcomeDigest = freshnessOutcomeDigest(payload);
+  next.lastOutcomeDigest = state.lastOutcomeDigest ?? null;
   if (
-    findingsDigest !== state.findingsDigest ||
-    !deferredWithoutProgress({
-      deferred,
-      candidateCount,
-      verifiedCount,
-      appliedCount,
-      tokensObserved,
+    freshnessCycleNewsworthy({
+      previous: state,
+      findingsDigest,
+      outcomeDigest,
+      outcome: {
+        deferred,
+        admittedCount: admission.admitted.length,
+        candidateCount,
+        verifiedCount,
+        appliedCount,
+        tokensObserved,
+      },
     })
-  )
+  ) {
     appendFreshnessEvent({
       storage,
       type: "document.freshness.cycle.completed",
       correlationId: cycleId,
       coordinate: null,
       occurredAt: now.toISOString(),
-      payload: {
-        cycleId,
-        findingCount: observation.findings.length,
-        admittedCount: admission.admitted.length,
-        candidateCount,
-        verifiedCount,
-        appliedCount,
-        skippedForBudget: admission.skippedForBudget,
-        skippedForHold: admission.skippedForHold,
-        usageObserved: tokensObserved,
-        occurredAt: now.toISOString(),
-      },
+      payload,
     });
+    next.lastOutcomeDigest = outcomeDigest;
+  }
   // The fence is recorded after this cycle's own writes, so only a later change runs the stage.
   // A deferred call, findings left by the per-cycle count, a pending cross-check, or a cross-check
   // disagreement (whose finding regenerates once) keep the stage running next cycle.
@@ -371,7 +382,9 @@ export async function runDocumentFreshnessCycle(input: {
 
 import {
   deferredWithoutProgress,
+  freshnessCycleNewsworthy,
   freshnessDebtSummary,
+  freshnessOutcomeDigest,
   observationKey,
   workingBytes,
   summarize,

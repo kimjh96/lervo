@@ -192,6 +192,21 @@ export class SQLiteEventRepository {
     return typeof hash === "string" ? hash : null;
   }
 
+  /** The head hash among events whose type is not in `types` (ADR-0598); no row decode. */
+  latestHashExcluding(types: readonly string[]): string | null {
+    if (types.length === 0) return this.latestHash();
+    const row = sqliteRow(
+      preparedStatement(
+        this.database,
+        `SELECT event_hash FROM events WHERE project_id = ? AND type NOT IN (${types
+          .map(() => "?")
+          .join(", ")}) ORDER BY seq DESC LIMIT 1`,
+      ).get(this.projectId, ...types),
+    );
+    const hash = row?.event_hash;
+    return typeof hash === "string" ? hash : null;
+  }
+
   list(options: ListEventsOptions = {}): EventEnvelope[] {
     const afterSeq = options.afterSeq ?? 0;
     const limit = options.limit ?? 100;

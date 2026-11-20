@@ -1,25 +1,24 @@
-import { chmod, lstat, mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
 import type { DatabaseSync } from "node:sqlite";
-import {
-  isSqliteLockContention,
-  openSqliteDatabase,
-  SQLITE_BUSY_TIMEOUT_MS,
-} from "@lervo/sqlite-connection";
+import { isSqliteLockContention } from "@lervo/sqlite-connection";
 
 import { sha256 } from "@lervo/repository-knowledge";
 
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import {
+  database,
+  identifiedFailure,
+  nextAdmissionPoll,
+  POLL_MILLISECONDS,
+} from "./full-cycle-admission-store.js";
 import { sqliteRow } from "./sqlite-row.js";
 
-const DATABASE_NAME = "full-cycle-admission.sqlite";
 const LEASE_MILLISECONDS = 10 * 60_000;
 /** A holder renews this often, or ten times per lease when its lease is shorter. */
 const RENEW_MILLISECONDS = 60_000;
-const POLL_MILLISECONDS = 1_000;
 /**
  * ADR-0577: how long `confirm()` retries lock contention before it answers `unconfirmed`. One
  * attempt can wait out the 5-second busy timeout, and ADR-0576 saw convoys outlast it, so the
@@ -81,113 +80,67 @@ function alive(pid: number): boolean {
   }
 }
 
-async function database(directory: string): Promise<DatabaseSync> {
-  await mkdir(directory, { recursive: true, mode: 0o700 });
-  const parent = await lstat(directory);
-  if (!parent.isDirectory() || parent.isSymbolicLink())
-    throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  const path = resolve(directory, DATABASE_NAME);
-  try {
-    const file = await lstat(path);
-    if (!file.isFile() || file.isSymbolicLink())
-      throw new KnowledgeConvergenceRuntimeError("host_coordinate_invalid");
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
-  }
-  const db = openSqliteDatabase(path, { busyTimeoutMs: SQLITE_BUSY_TIMEOUT_MS });
-  try {
-    await chmod(path, 0o600);
-    // ADR-0576: every waiter writes a heartbeat each poll. In rollback-journal mode a commit
-    // holds the file exclusively while it waits for readers and syncs, so co-hosted waiters
-    // convoy past the busy timeout. WAL lets readers proceed and keeps each write short. The
-    // rows only coordinate live processes, so a commit lost to power failure loses nothing.
-    db.exec("PRAGMA journal_mode = WAL; PRAGMA synchronous = NORMAL;");
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS holder(slot INTEGER PRIMARY KEY CHECK(slot=1),owner_pid INTEGER NOT NULL,nonce TEXT NOT NULL,repository_hash TEXT NOT NULL,acquired_at INTEGER NOT NULL,expires_at INTEGER NOT NULL)",
-    );
-    db.exec(
-      "CREATE TABLE IF NOT EXISTS waiters(nonce TEXT PRIMARY KEY,owner_pid INTEGER NOT NULL,repository_hash TEXT NOT NULL,since INTEGER NOT NULL,heartbeat INTEGER NOT NULL)",
-    );
-    return db;
-  } catch (error) {
-    db.close();
-    throw error;
-  }
-}
-
 /**
- * ADR-0576: a SQLite failure that leaves this module names the admission database, so a command
- * that reports only an error code and message still identifies which host database failed. The
- * SQLite `code` and `errcode` are kept.
+ * ADR-0576: a poll that meets lock contention is a poll that was not admitted. ADR-0598: one
+ * connection serves every poll of an acquisition, so the pragmas and table checks run once; a
+ * connection that could not open is opened again at the next poll.
  */
-function identifiedFailure(error: unknown): unknown {
-  const { code, errcode } = (error ?? {}) as { code?: unknown; errcode?: unknown };
-  if (!(error instanceof Error) || typeof code !== "string" || !code.startsWith("ERR_SQLITE"))
-    return error;
-  return Object.assign(new Error(`${DATABASE_NAME}: ${error.message}`, { cause: error }), {
-    code,
-    errcode,
-  });
-}
-
-/** ADR-0576: a poll that meets lock contention is a poll that was not admitted. */
-async function tryAcquireOrWait(input: Parameters<typeof tryAcquire>[0]): Promise<boolean> {
+async function tryAcquireOrWait(
+  connection: { db: DatabaseSync | null },
+  input: Parameters<typeof tryAcquire>[1] & { directory: string },
+): Promise<boolean> {
   try {
-    return await tryAcquire(input);
+    const db = (connection.db ??= await database(input.directory));
+    return tryAcquire(db, input);
   } catch (error) {
     if (isSqliteLockContention(error)) return false;
     throw identifiedFailure(error);
   }
 }
 
-async function tryAcquire(input: {
-  directory: string;
-  repositoryHash: string;
-  nonce: string;
-  since: number;
-  now: number;
-  leaseMilliseconds: number;
-}): Promise<boolean> {
-  const db = await database(input.directory);
+function tryAcquire(
+  db: DatabaseSync,
+  input: {
+    repositoryHash: string;
+    nonce: string;
+    since: number;
+    now: number;
+    leaseMilliseconds: number;
+  },
+): boolean {
+  db.exec("BEGIN IMMEDIATE");
   try {
-    db.exec("BEGIN IMMEDIATE");
-    try {
-      const holder = sqliteRow(db.prepare("SELECT * FROM holder WHERE slot=1").get());
-      // ADR-0577: an expired lease frees the slot even while its process lives. Residents of
-      // earlier releases apply the same rule, so only the holder's own lease length protects it.
-      const held =
-        holder !== undefined &&
-        Number(holder.expires_at) > input.now &&
-        alive(Number(holder.owner_pid));
-      // ADR-0485: waiters take turns in arrival order; a gone waiter forfeits its place.
-      db.prepare("DELETE FROM waiters WHERE heartbeat<?").run(
-        input.now - WAITER_STALE_MILLISECONDS,
+    const holder = sqliteRow(db.prepare("SELECT * FROM holder WHERE slot=1").get());
+    // ADR-0577: an expired lease frees the slot even while its process lives. Residents of
+    // earlier releases apply the same rule, so only the holder's own lease length protects it.
+    const held =
+      holder !== undefined &&
+      Number(holder.expires_at) > input.now &&
+      alive(Number(holder.owner_pid));
+    // ADR-0485: waiters take turns in arrival order; a gone waiter forfeits its place.
+    db.prepare("DELETE FROM waiters WHERE heartbeat<?").run(input.now - WAITER_STALE_MILLISECONDS);
+    db.prepare(
+      "INSERT INTO waiters VALUES(?,?,?,?,?) ON CONFLICT(nonce) DO UPDATE SET heartbeat=excluded.heartbeat",
+    ).run(input.nonce, process.pid, input.repositoryHash, input.since, input.now);
+    const first = sqliteRow(
+      db.prepare("SELECT nonce FROM waiters ORDER BY since, nonce LIMIT 1").get(),
+    );
+    const admitted = !held && first?.nonce === input.nonce;
+    if (admitted) {
+      db.prepare("INSERT OR REPLACE INTO holder VALUES(1,?,?,?,?,?)").run(
+        process.pid,
+        input.nonce,
+        input.repositoryHash,
+        input.now,
+        input.now + input.leaseMilliseconds,
       );
-      db.prepare(
-        "INSERT INTO waiters VALUES(?,?,?,?,?) ON CONFLICT(nonce) DO UPDATE SET heartbeat=excluded.heartbeat",
-      ).run(input.nonce, process.pid, input.repositoryHash, input.since, input.now);
-      const first = sqliteRow(
-        db.prepare("SELECT nonce FROM waiters ORDER BY since, nonce LIMIT 1").get(),
-      );
-      const admitted = !held && first?.nonce === input.nonce;
-      if (admitted) {
-        db.prepare("INSERT OR REPLACE INTO holder VALUES(1,?,?,?,?,?)").run(
-          process.pid,
-          input.nonce,
-          input.repositoryHash,
-          input.now,
-          input.now + input.leaseMilliseconds,
-        );
-        db.prepare("DELETE FROM waiters WHERE nonce=?").run(input.nonce);
-      }
-      db.exec("COMMIT");
-      return admitted;
-    } catch (error) {
-      db.exec("ROLLBACK");
-      throw error;
+      db.prepare("DELETE FROM waiters WHERE nonce=?").run(input.nonce);
     }
-  } finally {
-    db.close();
+    db.exec("COMMIT");
+    return admitted;
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
   }
 }
 
@@ -241,6 +194,41 @@ function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
 }
 
 /**
+ * Polls until this waiter is admitted and returns the admission time. ADR-0598: one connection
+ * serves every poll, and the wait between polls backs off.
+ */
+async function waitForAdmission(input: {
+  directory: string;
+  repositoryHash: string;
+  nonce: string;
+  since: number;
+  leaseMilliseconds: number;
+  signal: AbortSignal;
+  pollMilliseconds: number;
+  onWait?: () => void;
+}): Promise<number> {
+  const connection: { db: DatabaseSync | null } = { db: null };
+  let poll = input.pollMilliseconds;
+  try {
+    for (let waited = false; ; waited = true) {
+      if (input.signal.aborted) {
+        await update(input.directory, "DELETE FROM waiters WHERE nonce=?", input.nonce).catch(
+          () => undefined,
+        );
+        throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
+      }
+      const now = Date.now();
+      if (await tryAcquireOrWait(connection, { ...input, now })) return now;
+      if (!waited) input.onWait?.();
+      await delay(poll * (0.75 + Math.random() / 2), input.signal);
+      poll = nextAdmissionPoll(poll, input.pollMilliseconds);
+    }
+  } finally {
+    connection.db?.close();
+  }
+}
+
+/**
  * One full knowledge cycle per host at a time, so co-hosted residents serialise their bursts.
  * Upgrades are admitted first, then residents, each in arrival order. Waiting ends on abort with
  * `knowledge_cancelled`, which withdraws the waiter; a dead or expired holder never blocks.
@@ -273,32 +261,16 @@ export async function acquireFullCycleAdmission(input: {
   const nonce = randomUUID();
   const since = Date.now() - (input.priority === "upgrade" ? PRIORITY_ADVANCE_MILLISECONDS : 0);
   const leaseMilliseconds = input.leaseMilliseconds ?? LEASE_MILLISECONDS;
-  let waited = false;
-  let admittedAt: number;
-  for (;;) {
-    if (input.signal.aborted) {
-      await update(directory, "DELETE FROM waiters WHERE nonce=?", nonce).catch(() => undefined);
-      throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
-    }
-    admittedAt = Date.now();
-    if (
-      await tryAcquireOrWait({
-        directory,
-        repositoryHash,
-        nonce,
-        since,
-        now: admittedAt,
-        leaseMilliseconds,
-      })
-    )
-      break;
-    if (!waited) input.onWait?.();
-    waited = true;
-    await delay(
-      (input.pollMilliseconds ?? POLL_MILLISECONDS) * (0.75 + Math.random() / 2),
-      input.signal,
-    );
-  }
+  const admittedAt = await waitForAdmission({
+    directory,
+    repositoryHash,
+    nonce,
+    since,
+    leaseMilliseconds,
+    signal: input.signal,
+    pollMilliseconds: input.pollMilliseconds ?? POLL_MILLISECONDS,
+    ...(input.onWait === undefined ? {} : { onWait: input.onWait }),
+  });
   /** The latest expiry this holder wrote and saw applied; the row never holds an earlier one. */
   let expiresAt = admittedAt + leaseMilliseconds;
   let lost = false;

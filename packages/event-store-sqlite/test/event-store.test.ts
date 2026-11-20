@@ -183,6 +183,20 @@ describe("SQLite append-only event store", () => {
     expect(() => store.latestHash()).toThrow();
   });
 
+  it("reads the head hash outside excluded event types (ADR-0598)", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    expect(store.latestHashExcluding(["run.requested"])).toBeNull();
+    const first = store.append(draft());
+    expect(store.latestHashExcluding(["run.requested"])).toBeNull();
+    expect(store.latestHashExcluding(["session.started", "run.completed"])).toBe(
+      first.event.eventHash,
+    );
+    expect(store.latestHashExcluding([])).toBe(store.latestHash());
+    store.close();
+    expect(() => store.latestHashExcluding([])).toThrow();
+  });
+
   it("stores only allowlisted payload fields", async () => {
     const path = await databasePath();
     const store = await SQLiteEventStore.open({ path, projectId });
