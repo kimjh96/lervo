@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-20
 Amends: [ADR-0597](0597-keep-idle-and-non-owner-residents-off-the-repository.md) (which events enter the fence), [ADR-0580](0580-let-a-resident-with-parked-work-back-off.md) (which freshness cycles record an event and when a debt retry reopens the stage), [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md) (which events wake a resident), [ADR-0576](../../operations/storage/0576-keep-full-cycle-admission-waits-through-sqlite-lock-contention.md) and [ADR-0577](../../distribution/0577-keep-the-upgrade-exclusion-through-event-loop-stalls.md) (how an admission waiter polls)
+Amended by: [ADR-0601](0601-read-queues-health-inputs-and-retention-roots-once-per-change.md) (the wake key's outbox read)
 Related: [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md), [ADR-0463](../documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md), [core loop roadmap](../../../roadmap/core-loop.md) item 6
 
 ## Context

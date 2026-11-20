@@ -16,12 +16,14 @@ export const RESIDENT_EVENT_POLL_MILLISECONDS = 30_000;
 export function watchResidentEventChanges(
   storage: Pick<ProjectStorage, "paths" | "events">,
   notify: () => void,
+  /** ADR-0601: whether this host's last verdict is owner; a non-owner ignores the outbox. */
+  owner: () => boolean = () => true,
 ): () => void {
   return watchProjectEventChanges(
     {
       path: storage.paths.eventDatabase,
       latest: () => storage.events.latest(),
-      latestHash: () => residentWakeKey(storage.events),
+      latestHash: () => residentWakeKey(storage.events, owner()),
     },
     notify,
     { watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS },

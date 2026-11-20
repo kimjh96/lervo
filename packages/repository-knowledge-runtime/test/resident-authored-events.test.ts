@@ -111,3 +111,67 @@ it("wakes the resident for a foreign event or new work, never for its own outcom
     stop();
   }
 });
+
+it("reads one aggregate per destination and lists no delivery when the store has it (ADR-0601)", () => {
+  const events = log();
+  events.append("run.requested");
+  const listOutbox = vi.fn(() => []);
+  const outboxSummary = vi.fn((destinationId: string) =>
+    destinationId === "knowledge:convergence"
+      ? {
+          outstanding: 2,
+          earliestAvailableAt: "2026-11-20T01:00:00.000Z",
+          earliestLeaseExpiresAt: "2026-11-20T00:30:00.000Z",
+        }
+      : { outstanding: 0, earliestAvailableAt: null, earliestLeaseExpiresAt: null },
+  );
+  const queue = observeConvergenceQueue({ ...events, listOutbox, outboxSummary } as never);
+  expect(listOutbox).not.toHaveBeenCalled();
+  expect(outboxSummary).toHaveBeenCalledTimes(3);
+  expect(queue.outboxOutstanding["knowledge:convergence"]).toBe(2);
+  // The earliest due moment is the lease expiry, as the listing would report it.
+  expect(queue.earliestAvailableAt).toBe(Date.parse("2026-11-20T00:30:00.000Z"));
+});
+
+it("leaves the owner-drained backlog out of a non-owner's wake key (ADR-0601)", () => {
+  const events = log();
+  events.append("run.requested");
+  const owner = residentWakeKey(events as never);
+  const waiting = residentWakeKey(events as never, false);
+  events.enqueue();
+  // Work only the owner drains changes the owner's key and never a non-owner's.
+  expect(residentWakeKey(events as never)).not.toBe(owner);
+  expect(residentWakeKey(events as never, false)).toBe(waiting);
+  expect(observeConvergenceQueue(events as never, { owner: false })).toEqual({
+    eventsHead: events.latestHash(),
+    outboxOutstanding: {},
+    earliestAvailableAt: null,
+  });
+  // A foreign event still wakes a non-owner.
+  events.append("knowledge.instruction_candidate.exchanged");
+  expect(residentWakeKey(events as never, false)).not.toBe(waiting);
+});
+
+it("keeps a non-owner watch asleep through its backlog and wakes it for a foreign event", async () => {
+  vi.useFakeTimers();
+  const root = await mkdtemp(join(tmpdir(), "lervo-resident-non-owner-"));
+  roots.push(root);
+  const events = log();
+  const notify = vi.fn();
+  const stop = watchResidentEventChanges(
+    { paths: { eventDatabase: join(root, "events.sqlite") }, events } as never,
+    notify,
+    () => false,
+  );
+  try {
+    events.enqueue();
+    events.enqueue();
+    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    expect(notify).not.toHaveBeenCalled();
+    events.append("knowledge.instruction_candidate.exchanged");
+    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    expect(notify).toHaveBeenCalledTimes(1);
+  } finally {
+    stop();
+  }
+});

@@ -8,6 +8,7 @@ import {
   type EnqueueOutboxResult,
   type ListOutboxOptions,
   type OutboxDelivery,
+  type OutboxSummary,
   type PurgeAcknowledgedOutboxRequest,
   type PurgeAcknowledgedOutboxResult,
   type RescheduleOutboxRequest,
@@ -85,6 +86,33 @@ export class SQLiteOutboxRepository {
       throw new EventStoreError("integrity_failed", "The outstanding outbox count is invalid.");
     }
     return row.count;
+  }
+
+  /** ADR-0601: one aggregate over the unacknowledged rows; no delivery is decoded. */
+  summary(destinationId: string): OutboxSummary {
+    const destination = requireOutboxIdentifier(destinationId, "destinationId");
+    const row = sqliteRow(
+      this.database
+        .prepare(
+          `SELECT COUNT(*) AS count,
+             MIN(CASE WHEN lease_owner IS NULL THEN available_at END) AS available_at,
+             MIN(CASE WHEN lease_owner IS NOT NULL THEN lease_expires_at END) AS lease_expires_at
+           FROM outbox WHERE destination_id = ? AND acknowledged_at IS NULL`,
+        )
+        .get(destination),
+    );
+    const optional = (value: unknown) =>
+      value === null || value === undefined ? null : typeof value === "string" ? value : undefined;
+    const earliestAvailableAt = optional(row?.available_at);
+    const earliestLeaseExpiresAt = optional(row?.lease_expires_at);
+    if (
+      typeof row?.count !== "number" ||
+      earliestAvailableAt === undefined ||
+      earliestLeaseExpiresAt === undefined
+    ) {
+      throw new EventStoreError("integrity_failed", "The outbox summary is invalid.");
+    }
+    return { outstanding: row.count, earliestAvailableAt, earliestLeaseExpiresAt };
   }
 
   get(eventId: string, destinationId: string): OutboxDelivery | null {

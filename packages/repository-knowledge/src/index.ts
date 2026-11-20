@@ -213,6 +213,7 @@ export * from "./skill-contract-source-units.js";
 export * from "./source-lineage.js";
 export * from "./state-projections.js";
 export * from "./store-reader.js";
+export { ConceptSidecarCache } from "./concept-sidecar-cache.js";
 export * from "./structural-projection.js";
 export * from "./terminal-integration.js";
 export * from "./types.js";

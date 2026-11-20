@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-20
 Amends: [ADR-0597](0597-keep-idle-and-non-owner-residents-off-the-repository.md) (the projection key, the resident heartbeat, and the non-owner fence)
+Amended by: [ADR-0601](0601-read-queues-health-inputs-and-retention-roots-once-per-change.md) (the health prefetch's remaining inputs)
 Related: [ADR-0595](0595-back-off-held-and-failing-residents-and-refresh-health-only-on-change.md), [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md), [ADR-0535](../../execution/applications/0535-project-core-health-with-actor-owned-attention.md), [core loop roadmap](../../../roadmap/core-loop.md) item 6
 
 ## Context

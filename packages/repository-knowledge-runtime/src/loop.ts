@@ -68,7 +68,7 @@ export function startAutonomousKnowledgeWorker(input: {
   provider: "codex" | "claude";
   executable?: string;
   admissionDirectory?: string;
-  subscribe?: (notify: () => void) => () => void;
+  subscribe?: (notify: () => void, lastVerdictIsOwner: () => boolean) => () => void;
   /** `cost` covers the fence observation and the full cycle, attributed by scope. */
   onCycle?: (result: WorkerResult, cost: ProcessCostMeasurement) => void;
   /**
@@ -340,9 +340,10 @@ export function startAutonomousKnowledgeWorker(input: {
       cycle();
     }, delay);
   };
+  const ownsQueue = () => verdict === null || verdict.role === "owner";
   const unsubscribe = input.subscribe
-    ? input.subscribe(schedule)
-    : watchResidentEventChanges(input.storage, schedule);
+    ? input.subscribe(schedule, ownsQueue)
+    : watchResidentEventChanges(input.storage, schedule, ownsQueue);
   const healthTimer = setInterval(heartbeat, RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS);
   const projectionTimer =
     input.refreshHealth === undefined

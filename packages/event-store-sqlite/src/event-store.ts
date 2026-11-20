@@ -15,6 +15,7 @@ import {
   type ListOutboxOptions,
   type OutboxDelivery,
   type OutboxStore,
+  type OutboxSummary,
   type OutboxTransaction,
   type ReportReader,
   type ReportWriter,
@@ -257,6 +258,11 @@ export class SQLiteEventStore implements OutboxStore {
   outstandingCount(destinationId: string): number {
     this.assertOpen();
     return this.outbox.outstandingCount(destinationId);
+  }
+
+  outboxSummary(destinationId: string): OutboxSummary {
+    this.assertOpen();
+    return this.outbox.summary(destinationId);
   }
 
   claim(request: ClaimOutboxRequest): OutboxDelivery[] {

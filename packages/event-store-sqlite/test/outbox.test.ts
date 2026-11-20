@@ -570,3 +570,56 @@ describe("SQLite transactional outbox", () => {
     }
   });
 });
+
+it("summarizes a destination's unacknowledged deliveries exactly as its listing reports them (ADR-0601)", async () => {
+  const store = await SQLiteEventStore.open({ path: await databasePath(), projectId });
+  try {
+    expect(store.outboxSummary(destinationId)).toEqual({
+      outstanding: 0,
+      earliestAvailableAt: null,
+      earliestLeaseExpiresAt: null,
+    });
+    for (let index = 1; index <= 3; index++) {
+      const event = store.append(draft(index)).event;
+      store.enqueue({
+        ...enqueueRequest(event.eventId, index),
+        availableAt: `2026-08-18T00:0${index + 2}:00Z`,
+      });
+    }
+    // Another destination's work never enters this destination's summary.
+    store.enqueue({
+      ...enqueueRequest(draft(1).eventId, 9),
+      destinationId: "knowledge:convergence",
+    });
+    const [leased] = store.claim({
+      destinationId,
+      workerId: "summary-worker",
+      claimedAt: "2026-08-18T00:10:00Z",
+      leaseDurationMs: 60_000,
+      limit: 1,
+    });
+    const pending = store.listOutbox({ destinationId, status: "pending" });
+    const leasedRows = store.listOutbox({ destinationId, status: "leased" });
+    expect(pending).toHaveLength(2);
+    expect(leasedRows).toHaveLength(1);
+    expect(store.outboxSummary(destinationId)).toEqual({
+      outstanding: 3,
+      earliestAvailableAt: pending.map((delivery) => delivery.availableAt).sort()[0],
+      earliestLeaseExpiresAt: leasedRows[0]!.lease!.expiresAt,
+    });
+    // An acknowledged delivery leaves the summary.
+    store.acknowledge({
+      eventId: leased!.event.eventId,
+      destinationId,
+      workerId: "summary-worker",
+      acknowledgedAt: "2026-08-18T00:10:01Z",
+    });
+    expect(store.outboxSummary(destinationId)).toMatchObject({
+      outstanding: 2,
+      earliestLeaseExpiresAt: null,
+    });
+    expect(store.outboxSummary("knowledge:convergence")).toMatchObject({ outstanding: 1 });
+  } finally {
+    store.close();
+  }
+});
