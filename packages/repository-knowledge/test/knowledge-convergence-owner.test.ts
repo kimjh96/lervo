@@ -529,7 +529,16 @@ function stageRecords(f: Awaited<ReturnType<typeof fixture>>) {
   return f.events
     .list({ limit: 1_000 })
     .filter((event) => event.type === "repository.knowledge.stage.recorded")
-    .map((event) => event.payload as { stage: string; state: string; failureCode: string | null });
+    .map(
+      (event) =>
+        event.payload as {
+          stage: string;
+          state: string;
+          failureCode: string | null;
+          nextObligationId: string | null;
+          dependencyHash: string | null;
+        },
+    );
 }
 
 it("rewinds an obligation whose own commit was reset to its baseline (ADR-0600)", async () => {
@@ -616,7 +625,12 @@ it("settles an obligation whose effects keep being undone as attention after thr
       (record) => record.failureCode === "knowledge_effect_undone_repeatedly",
     );
     expect(undone).toHaveLength(1);
-    expect(undone[0]).toMatchObject({ state: "attention_required" });
+    // The event contract needs a dependency for attention; it is bound to the current bytes.
+    expect(undone[0]).toMatchObject({
+      state: "attention_required",
+      nextObligationId: null,
+      dependencyHash: expect.stringMatching(/^sha256:[a-f0-9]{64}$/u),
+    });
     expect(records.at(-1)).toBe(undone[0]);
     // Three rewinds restarted assessment; the fourth undo stopped the obligation.
     expect(f.calls.filter((stage) => stage === "assessment")).toHaveLength(4);

@@ -5,7 +5,9 @@ import {
   KNOWLEDGE_CONVERGENCE_DESTINATION,
   MAXIMUM_CONVERGENCE_OBLIGATIONS,
   type KnowledgeConvergenceBaseline,
+  type KnowledgeConvergenceHost,
 } from "./knowledge-convergence-contract.js";
+import { KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT } from "./knowledge-convergence-failure.js";
 import type { KnowledgeConvergenceProjection } from "./knowledge-convergence-replay.js";
 import { convergenceEventId, queuedConvergenceStage } from "./knowledge-convergence-settlement.js";
 
@@ -27,6 +29,7 @@ export const KNOWLEDGE_EFFECT_UNDONE_REPEATEDLY = "knowledge_effect_undone_repea
  */
 export async function reconcileUndoneObligation(input: {
   events: OutboxStore;
+  host: Pick<KnowledgeConvergenceHost, "evaluationContract">;
   artifacts: ArtifactStore;
   rows: readonly KnowledgeConvergenceProjection[];
   obligationId: string;
@@ -47,6 +50,21 @@ export async function reconcileUndoneObligation(input: {
   const occurredAt = input.now.toISOString();
   const rewinds = countObligationRewinds(input.events, input.obligationId);
   if (rewinds >= MAXIMUM_OBLIGATION_REWINDS) {
+    // Attention needs a dependency (event contract). It is bound to the bytes the repository is at
+    // now, so it holds while they stay and any byte change lets discovery supersede the obligation.
+    const dependency = await input.artifacts.put(
+      canonicalJson({
+        schemaVersion: 1,
+        kind: "stage_failure",
+        code: KNOWLEDGE_EFFECT_UNDONE_REPEATEDLY,
+        evaluationContract:
+          input.host.evaluationContract ?? KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
+        snapshotHash: input.baseline.sourceSnapshotHash,
+        delegationHash: input.baseline.delegationHash,
+        evidenceHash: null,
+        rewinds,
+      }),
+    );
     input.events.transact((transaction) => {
       transaction.append({
         eventId: convergenceEventId([latest.eventId, KNOWLEDGE_EFFECT_UNDONE_REPEATEDLY]),
@@ -71,8 +89,7 @@ export async function reconcileUndoneObligation(input: {
           inputArtifactHash: latest.payload.inputArtifactHash,
           resultArtifactHash: latest.payload.resultArtifactHash,
           nextObligationId: null,
-          // No dependency: nothing the host observes clears it; new bytes supersede the obligation.
-          dependencyHash: null,
+          dependencyHash: dependency.contentHash,
           failureCode: KNOWLEDGE_EFFECT_UNDONE_REPEATEDLY,
           occurredAt,
         },
