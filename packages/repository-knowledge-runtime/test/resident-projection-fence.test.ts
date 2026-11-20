@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { promisify } from "node:util";
@@ -50,7 +50,6 @@ function resident(options: { failRefresh?: () => boolean } = {}) {
     now: 0,
     held: false,
     head: "evt_1" as string | null,
-    eventsFail: false,
     refreshes: 0,
   };
   const events = {
@@ -58,10 +57,7 @@ function resident(options: { failRefresh?: () => boolean } = {}) {
     latest: () => {
       throw new Error("the projection key must not decode the latest event");
     },
-    latestHash: () => {
-      if (state.eventsFail) throw new Error("event store unreadable");
-      return state.head;
-    },
+    latestHash: () => state.head,
   } as unknown as OutboxStore;
   const offer = residentProjectionRefresher({
     repositoryRoot: root,
@@ -145,18 +141,23 @@ describe("projection fence (ADR-0595)", () => {
     await once("owner role change", () => fence("waiting_owner", "2026-11-19T00:02:00.000Z"));
   });
 
-  it("refreshes whenever the key cannot be read", async () => {
+  it("backs an uncomputable key off like a failed refresh (ADR-0597)", async () => {
+    // A `.git` symlink is not read through, so the key cannot be computed at all.
+    await rename(resolve(root, ".git"), resolve(directory, "git-directory"));
+    await symlink(resolve(directory, "git-directory"), resolve(root, ".git"));
     const r = resident();
     await r.offer();
-    r.state.eventsFail = true;
+    while (r.state.now < 60 * MINUTE) await r.tick();
+    // Refreshed at 0, 1, 3, 7, 15, 30, 45 and 60 minutes, instead of every minute.
+    expect(r.state.refreshes).toBe(8);
+    // Once the key is readable again, the next attempt records it and the fence settles.
+    await rm(resolve(root, ".git"));
+    await rename(resolve(directory, "git-directory"), resolve(root, ".git"));
+    while (r.state.now < 75 * MINUTE) await r.tick();
+    expect(r.state.refreshes).toBe(9);
     await r.tick();
     await r.tick();
-    expect(r.state.refreshes).toBe(3);
-    r.state.eventsFail = false;
-    await r.tick();
-    expect(r.state.refreshes).toBe(4);
-    await r.tick();
-    expect(r.state.refreshes).toBe(4);
+    expect(r.state.refreshes).toBe(9);
   });
 
   it("backs a failing refresh off from one minute to fifteen (ADR-0597)", async () => {

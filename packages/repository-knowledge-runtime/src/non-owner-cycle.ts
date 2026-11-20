@@ -34,15 +34,25 @@ export function waitingOwnerStatus(): KnowledgeConvergenceStatus {
   };
 }
 
-/** Whether this host has queued owner turns or practice work of its own (ADR-0467). */
+/** Candidate states the practice stage still acts on, as the practice schedule counts them. */
+const ACTIVE_PRACTICE_CANDIDATE_STATES = new Set([
+  "assessed",
+  "unresolved",
+  "drafted",
+  "reviewed_accepted",
+]);
+
+/**
+ * Whether this host has queued owner turns or practice work of its own (ADR-0467): unassessed
+ * work, an active candidate, or a generated skill whose daily usage is assessed here.
+ */
 export async function nonOwnerCapturePending(root: string): Promise<boolean> {
   if ((await listQueuedInstructionCaptures(root).catch(() => [])).length > 0) return true;
   const practice = await readPracticeState(root);
   return (
     practice.works.length > 0 ||
-    practice.candidates.some((candidate) =>
-      ["assessed", "unresolved", "drafted"].includes(candidate.state),
-    )
+    practice.generated.length > 0 ||
+    practice.candidates.some((candidate) => ACTIVE_PRACTICE_CANDIDATE_STATES.has(candidate.state))
   );
 }
 

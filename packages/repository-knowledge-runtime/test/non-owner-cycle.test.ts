@@ -1,4 +1,5 @@
-import { access, rm } from "node:fs/promises";
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
 import { observeProcessCost } from "@lervo/repository-knowledge";
@@ -6,7 +7,8 @@ import { afterEach, expect, it } from "vitest";
 
 import type { ConvergenceOwnerVerdict } from "../src/convergence-owner-verdict.js";
 import { readMaintenanceObservation } from "../src/maintenance-observation.js";
-import { WAITING_OWNER_REASON } from "../src/non-owner-cycle.js";
+import { nonOwnerCapturePending, WAITING_OWNER_REASON } from "../src/non-owner-cycle.js";
+import { PRACTICE_ROOT } from "../src/practice-store.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
 
@@ -119,4 +121,42 @@ it("runs only the Hub exchange on a non-owner with nothing queued", async () => 
     },
   });
   expect(exchanges).toBe(0);
+});
+
+it("counts every practice state the practice stage still acts on", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-non-owner-practice-"));
+  try {
+    const practice = async (value: Record<string, unknown[]>) => {
+      await mkdir(resolve(root, PRACTICE_ROOT), { recursive: true, mode: 0o700 });
+      await writeFile(
+        resolve(root, PRACTICE_ROOT, "state.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          works: [],
+          evidence: [],
+          candidates: [],
+          generated: [],
+          shapes: [],
+          assessed: [],
+          funnel: [],
+          ...value,
+        }),
+        { mode: 0o600 },
+      );
+    };
+    expect(await nonOwnerCapturePending(root)).toBe(false);
+    await practice({});
+    expect(await nonOwnerCapturePending(root)).toBe(false);
+    // An accepted candidate still waits for its commit and its 7-day expiry.
+    await practice({ candidates: [{ candidateId: "c1", state: "reviewed_accepted" }] });
+    expect(await nonOwnerCapturePending(root)).toBe(true);
+    // A generated skill's usage is assessed daily on this host.
+    await practice({ generated: [{ candidateId: "c1", resumeAt: null }] });
+    expect(await nonOwnerCapturePending(root)).toBe(true);
+    // A settled candidate needs nothing more.
+    await practice({ candidates: [{ candidateId: "c1", state: "rejected" }] });
+    expect(await nonOwnerCapturePending(root)).toBe(false);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

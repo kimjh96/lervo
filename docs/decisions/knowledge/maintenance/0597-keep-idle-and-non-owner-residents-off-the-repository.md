@@ -37,7 +37,7 @@ When the cross-host owner gate answers any role other than `owner`, the cycle ru
 - retirement of its own convergence checkouts (ADR-0518);
 - terminal skill observation and artifact retention, which run on every host before the owner gate.
 
-Capture runs only when this host has queued turns or practice work, not merely because a Hub transport exists.
+Capture runs only when this host has queued turns or practice work, not merely because a Hub transport exists. Practice work counts as the practice schedule does: unassessed work, an assessed, unresolved, drafted or accepted candidate, and any generated skill whose daily usage is assessed here.
 
 The cycle records a maintenance observation with source `inspection`. Its status has no debt counts and the reason `maintenance_owner_elsewhere`. The record's owner fields name the holder's host hash and lease generation. The owner path is unchanged.
 
@@ -51,15 +51,21 @@ The key no longer computes the repository digest. It reads, with no Git process:
 - the event head hash through the new `latestHash()`;
 - the listed state files, the owner role and holder, the host hold store, and the resident's own state, as before.
 
-A commit, checkout, reset or staging moves the key. An edit that touches only the working tree does not; the 15-minute age bound covers it, and so does the cycle's own refresh after a full cycle.
+A commit, checkout, reset or staging moves the key. These changes reach the projection only at the 15-minute age bound, or with the cycle's own refresh after a full cycle:
 
-A refresh that fails waits 1, 2, 4 and 8 minutes, then 15 minutes between attempts, instead of retrying every minute. A success resets the wait.
+- an edit that touches only the working tree;
+- remote-tracking refs a fetch updates, because the key reads only the ref `HEAD` names and `packed-refs`;
+- a repository in the reftable format, whose refs live outside the files the key reads.
+
+A `.git` that is a symbolic link is not read through.
+
+A refresh that fails, or a key that cannot be computed, waits 1, 2, 4 and 8 minutes, then 15 minutes between attempts, instead of retrying every minute. The first offer still refreshes, so the projection is never left unrefreshed. A success with a readable key resets the wait.
 
 ### Event reads take only what they need
 
 `EventStore.latestHash()` returns the latest event's hash without decoding, validating or rehashing the row. The SQLite store implements it with a single-column select. It is optional in the contract, and `latestEventHash()` falls back to `latest()` for stores without it. It only detects that the head moved; a reader that acts on the event still uses `latest()`.
 
-- **Head poll.** The event watcher polls with `latestHash()`. A knowledge resident polls every 30 seconds while its directory watch works. After a watch failure, every watcher returns to the one-second poll. Other watchers keep the one-second poll, now on the cheap read.
+- **Head poll.** The event watcher polls with `latestHash()`. A knowledge resident polls every 30 seconds while its directory watch works: the CLI host resident, the Node worker process and the Node in-process resident alike. After a watch failure, every watcher returns to the one-second poll. Other Node watchers (deployment, supervision and conversation) keep the one-second poll, now on the cheap read, because their wakeup latency is part of their own contracts.
 - **Artifact retention.** When a complete classification finds nothing eligible, retention records the event head and the time. Until the head moves, or 6 hours pass, it does not replay the log again. The 6-hour recheck remains because the 14-day grace horizon moves with time.
 - **Terminal skill usage.** The projection is skipped while its inputs are unchanged: the event head, the UTC day and the installed skills. When it runs, it reads skill events only after the last one that fell before the 30-day window. The window only moves forward. A cursor file names that event, and the read starts from zero when the event is not in the log. A cycle that retained private turns rebuilds the projection, because those turns append no event.
 
@@ -102,12 +108,13 @@ The owner still scans the repository several times in each full cycle. A per-cyc
   - a non-owner cycle opens no `scan` cost scope;
   - it writes no staleness or lifecycle record and appends no knowledge event;
   - its observation names the holder with null debt;
-  - with nothing queued, only the Hub exchange runs.
+  - with nothing queued, only the Hub exchange runs;
+  - accepted candidates and generated skills count as practice work, and settled candidates do not.
 - **`packages/repository-knowledge-runtime/test/convergence-owner-resident.test.ts`:** the resident's non-owner cycle reports null debt with the owner-elsewhere reason.
 - **`packages/repository-knowledge-runtime/test/resident-projection-fence.test.ts`:**
   - the key never decodes the latest event;
   - a working-tree edit alone does not refresh, while staging and a commit each refresh once;
-  - a failing refresh runs 8 times in an hour instead of 60.
+  - a failing refresh, and a key made uncomputable by a symlinked `.git`, each run 8 times in an hour instead of 60, and the fence settles once the key is readable again.
 - **`packages/event-store-sqlite/test/event-store.test.ts`:** `latestHash()` matches `latest()` and still reads past a corrupt payload that `latest()` rejects.
 - **`packages/repository-knowledge-runtime/test/cas-retention.test.ts`:** with nothing eligible, the same head skips the inventory; it rechecks after 6 hours, and a new head ends the skip at once.
 - **`packages/repository-knowledge-runtime/test/terminal-skill-usage-state.test.ts`:**

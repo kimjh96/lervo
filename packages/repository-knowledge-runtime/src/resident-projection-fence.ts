@@ -130,9 +130,8 @@ export function residentProjectionDue(input: {
 
 /**
  * The resident's projection offer: it computes the key under its own cost scope, refreshes only
- * when due, and records the key only after a refresh that succeeded. A failure is retried after
- * a growing wait (ADR-0597), so a repository whose refresh keeps failing is not refreshed every
- * minute.
+ * when due, and records the key only after a refresh that succeeded. A failed refresh or an
+ * uncomputable key is retried after a growing wait (ADR-0597), so neither refreshes every minute.
  */
 export function residentProjectionRefresher(input: {
   repositoryRoot: string;
@@ -178,9 +177,12 @@ export function residentProjectionRefresher(input: {
       })
     )
       return;
-    if (await input.refresh()) {
-      // A refresh without a key records an empty one, so the next keyed offer refreshes again.
-      last = { key: key ?? "", at: now, held };
+    const refreshed = await input.refresh();
+    // A refresh without a key records an empty one, so the next keyed offer refreshes again.
+    if (refreshed) last = { key: key ?? "", at: now, held };
+    // ADR-0597: an uncomputable key backs off like a failed refresh, so a repository whose key
+    // stays unreadable is refreshed at a growing interval instead of every minute.
+    if (refreshed && (key !== null || held || ageOnly)) {
       failures = 0;
       retryAt = 0;
       return;
