@@ -29,6 +29,14 @@ export interface HealthEventHistory {
   complete: boolean;
 }
 
+type HistoryEvents = Pick<EventStore, "list" | "get">;
+
+interface HistoryScan {
+  history: HealthEventHistory;
+  /** The last typed event scanned, or null when the store held none. */
+  anchor: { eventId: string; seq: number } | null;
+}
+
 /**
  * Bounded typed pages, off the critical path. Stage records are kept whole so a long stop keeps
  * its start; per-turn activity older than eight days is dropped, so prompt volume alone never
@@ -38,9 +46,25 @@ export function readHealthEventHistory(
   events: Pick<EventStore, "list">,
   now = new Date(),
 ): HealthEventHistory {
-  const found: EventEnvelope[] = [];
+  return scanHealthEvents(events, [], null, now).history;
+}
+
+function outsideWindow(event: EventEnvelope, activityStart: number): boolean {
+  return ACTIVITY_TYPES.includes(event.type) && Date.parse(event.occurredAt) < activityStart;
+}
+
+/** Continues from `anchor` over `kept`; a full read starts with neither. */
+function scanHealthEvents(
+  events: Pick<EventStore, "list">,
+  kept: readonly EventEnvelope[],
+  anchor: HistoryScan["anchor"],
+  now: Date,
+): HistoryScan {
   const activityStart = now.getTime() - ACTIVITY_WINDOW_MS;
-  let afterSeq = 0;
+  // Activity that aged out of the window since the last read leaves the cached history too.
+  const found = kept.filter((event) => !outsideWindow(event, activityStart));
+  let afterSeq = anchor?.seq ?? 0;
+  let last = anchor;
   let scanned = 0;
   while (scanned < MAXIMUM_SCANNED) {
     const page = events.list({
@@ -48,20 +72,55 @@ export function readHealthEventHistory(
       limit: Math.min(1_000, MAXIMUM_SCANNED - scanned),
       types: TYPES,
     });
-    if (page.length === 0) return { events: found, complete: true };
+    if (page.length === 0) return { history: { events: found, complete: true }, anchor: last };
     for (const event of page) {
       scanned += 1;
       if (event.seq <= afterSeq) throw new Error("Health event history did not advance.");
       afterSeq = event.seq;
-      if (!TYPES.includes(event.type)) continue;
-      if (ACTIVITY_TYPES.includes(event.type) && Date.parse(event.occurredAt) < activityStart)
-        continue;
+      last = { eventId: event.eventId, seq: event.seq };
+      if (!TYPES.includes(event.type) || outsideWindow(event, activityStart)) continue;
       found.push(event);
       if (found.length > MAXIMUM_EVENTS)
-        return { events: found.slice(0, MAXIMUM_EVENTS), complete: false };
+        return {
+          history: { events: found.slice(0, MAXIMUM_EVENTS), complete: false },
+          anchor: last,
+        };
     }
   }
-  return { events: found, complete: false };
+  return { history: { events: found, complete: false }, anchor: last };
+}
+
+interface CachedHistory {
+  events: EventEnvelope[];
+  anchor: NonNullable<HistoryScan["anchor"]>;
+}
+/** ADR-0599: one cached history per repository in a long-lived resident process. */
+const cachedHistories = new Map<string, CachedHistory>();
+const MAXIMUM_CACHED_HISTORIES = 64;
+
+/**
+ * ADR-0599: the same history as `readHealthEventHistory`, read from where the previous read in
+ * this process stopped. The cache is kept only for a complete history whose last event still
+ * sits at its sequence; a replaced store, a sequence regression, or a partial read starts over.
+ */
+export function readHealthEventHistoryIncrementally(
+  key: string,
+  events: HistoryEvents,
+  now = new Date(),
+): HealthEventHistory {
+  const cached = cachedHistories.get(key);
+  cachedHistories.delete(key);
+  const resumable =
+    cached !== undefined && events.get(cached.anchor.eventId)?.seq === cached.anchor.seq;
+  const scan = resumable
+    ? scanHealthEvents(events, cached.events, cached.anchor, now)
+    : scanHealthEvents(events, [], null, now);
+  if (scan.history.complete && scan.anchor !== null) {
+    if (cachedHistories.size >= MAXIMUM_CACHED_HISTORIES)
+      cachedHistories.delete(cachedHistories.keys().next().value!);
+    cachedHistories.set(key, { events: scan.history.events, anchor: scan.anchor });
+  }
+  return scan.history;
 }
 
 export interface RecordedStop {

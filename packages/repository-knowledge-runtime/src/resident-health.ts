@@ -6,6 +6,15 @@ import { sha256 } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { sqliteRow, sqliteRows } from "./sqlite-row.js";
 
+/** A heartbeat older than this, or a dead process, no longer proves a running resident. */
+export const RESIDENT_HEALTH_STALE_MILLISECONDS = 120_000;
+/**
+ * ADR-0599: an unchanged resident rewrites its heartbeat at this interval, so a resident whose
+ * event loop is blocked for up to 75 seconds still reads as running under the stale bound; a
+ * state change is written at once by the loop's `report`.
+ */
+export const RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS = 45_000;
+
 export type KnowledgeResidentState =
   "running" | "idle" | "waiting" | "attention" | "busy" | "stopped";
 export interface KnowledgeResidentHealth {
@@ -54,6 +63,44 @@ async function healthDatabase(root: string, create: boolean): Promise<DatabaseSy
   return db;
 }
 
+interface WriteHandle {
+  db: DatabaseSync;
+  /** The database file's inode, so a replaced or removed file is reopened, never written blind. */
+  inode: bigint;
+}
+/** ADR-0599: one write handle per repository, so a heartbeat runs no mkdir, chmod or DDL. */
+const writeHandles = new Map<string, WriteHandle>();
+const MAXIMUM_WRITE_HANDLES = 64;
+
+function healthPath(root: string): string {
+  return resolve(root, ".lervo", "state", "knowledge", "resident-health.sqlite");
+}
+
+function closeWriteHandle(root: string): void {
+  const handle = writeHandles.get(root);
+  writeHandles.delete(root);
+  try {
+    handle?.db.close();
+  } catch {
+    /* Already closed. */
+  }
+}
+
+async function writeHandle(root: string): Promise<DatabaseSync> {
+  const cached = writeHandles.get(root);
+  if (cached !== undefined) {
+    const stat = await lstat(healthPath(root), { bigint: true }).catch(() => null);
+    if (stat !== null && stat.isFile() && stat.ino === cached.inode) return cached.db;
+    closeWriteHandle(root);
+  }
+  const db = (await healthDatabase(root, true))!;
+  const inode = (await lstat(healthPath(root), { bigint: true })).ino;
+  if (writeHandles.size >= MAXIMUM_WRITE_HANDLES)
+    closeWriteHandle(writeHandles.keys().next().value!);
+  writeHandles.set(root, { db, inode });
+  return db;
+}
+
 function alive(pid: number): boolean {
   try {
     process.kill(pid, 0);
@@ -71,7 +118,8 @@ export async function recordKnowledgeResidentHealth(input: {
   reason?: string | null;
   now?: Date;
 }): Promise<void> {
-  const db = (await healthDatabase(input.repositoryRoot, true))!;
+  const db = await writeHandle(input.repositoryRoot);
+  let committed = false;
   try {
     db.exec("BEGIN IMMEDIATE");
     const now = (input.now ?? new Date()).getTime();
@@ -79,7 +127,8 @@ export async function recordKnowledgeResidentHealth(input: {
     for (const row of sqliteRows(db.prepare("SELECT * FROM residents").all())) {
       if (
         String(row.worker_hash) !== key &&
-        (now - Number(row.heartbeat) > 120_000 || !alive(Number(row.pid)))
+        (now - Number(row.heartbeat) > RESIDENT_HEALTH_STALE_MILLISECONDS ||
+          !alive(Number(row.pid)))
       )
         db.prepare("DELETE FROM residents WHERE worker_hash=?").run(String(row.worker_hash));
     }
@@ -93,8 +142,18 @@ export async function recordKnowledgeResidentHealth(input: {
       "INSERT INTO residents VALUES(?,?,?,?,?) ON CONFLICT(worker_hash) DO UPDATE SET pid=excluded.pid,heartbeat=excluded.heartbeat,state=excluded.state,reason=excluded.reason",
     ).run(key, process.pid, now, input.state, input.reason?.slice(0, 128) ?? null);
     db.exec("COMMIT");
+    committed = true;
   } finally {
-    db.close();
+    // A failed write drops the handle, so the next heartbeat starts from a fresh connection; a
+    // stopped resident releases it, so a removed repository holds no open database.
+    if (!committed || input.state === "stopped") {
+      try {
+        if (!committed) db.exec("ROLLBACK");
+      } catch {
+        /* No open transaction. */
+      }
+      closeWriteHandle(input.repositoryRoot);
+    }
   }
 }
 
@@ -112,7 +171,9 @@ export async function inspectKnowledgeResidentHealth(
         )
       : [];
     const row = residents.find(
-      (item) => now.getTime() - Number(item.heartbeat) <= 120_000 && alive(Number(item.pid)),
+      (item) =>
+        now.getTime() - Number(item.heartbeat) <= RESIDENT_HEALTH_STALE_MILLISECONDS &&
+        alive(Number(item.pid)),
     );
     if (!row)
       return {

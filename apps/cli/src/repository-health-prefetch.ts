@@ -11,7 +11,7 @@ import {
   readConvergenceOwnerFence,
 } from "@lervo/repository-knowledge-runtime";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
-import { readHealthEventHistory } from "./repository-health-events.js";
+import { readHealthEventHistoryIncrementally } from "./repository-health-events.js";
 import { readHealthAppearance } from "./repository-health-appearance.js";
 import { projectLearnedNotice } from "./learned-notice-projection.js";
 import { refreshLinkWeb } from "./link-web-projection.js";
@@ -132,7 +132,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
     ]);
     let history: HealthProjectionSources["history"] = null;
     try {
-      history = readHealthEventHistory(storage.events, now);
+      history = readHealthEventHistoryIncrementally(root, storage.events, now);
     } catch {
       /* Unreadable evidence stays unknown. */
     }

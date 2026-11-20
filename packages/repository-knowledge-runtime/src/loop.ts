@@ -9,7 +9,11 @@ import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { coalescedRefresh } from "./resident-projection-refresh.js";
 import { residentCycleHealth } from "./resident-cycle-health.js";
-import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
+import {
+  RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS,
+  recordKnowledgeResidentHealth,
+  type KnowledgeResidentState,
+} from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
 import { convergenceSourceFingerprint } from "./source-fingerprint.js";
 import { residentWakeOffset } from "./resident-wake-offset.js";
@@ -233,6 +237,7 @@ export function startAutonomousKnowledgeWorker(input: {
                   repositoryRoot: root,
                   events: input.storage.events,
                   wakeOffsetMilliseconds: wakeOffset,
+                  owner: observedOwner === null || observedOwner.role === "owner",
                 }),
                 observedOwner,
               ),
@@ -338,7 +343,7 @@ export function startAutonomousKnowledgeWorker(input: {
   const unsubscribe = input.subscribe
     ? input.subscribe(schedule)
     : watchResidentEventChanges(input.storage, schedule);
-  const healthTimer = setInterval(heartbeat, 15_000);
+  const healthTimer = setInterval(heartbeat, RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS);
   const projectionTimer =
     input.refreshHealth === undefined
       ? null

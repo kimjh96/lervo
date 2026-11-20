@@ -8,6 +8,7 @@ import type { OutboxStore } from "@lervo/storage-contract";
 
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
 import { nextUtcDayAt, observePracticeSchedule } from "./practice-schedule.js";
+import { repositoryHeadIdentity } from "./repository-head-identity.js";
 import { convergenceSourceCaptureSettings } from "./source-capture-settings.js";
 
 const MAXIMUM_OBSERVED_PATHS = 20_000;
@@ -85,8 +86,12 @@ function porcelainStatusPaths(status: string): string[] {
   return paths;
 }
 
-/** Candidate stores are ignored by Git, so their shard and entry metadata is observed directly. */
-function candidateMetadata(root: string): unknown[] {
+/**
+ * Candidate stores are ignored by Git, so their shard and entry metadata is observed directly.
+ * `depth` 2 reaches each entry; ADR-0599's non-owner digest stops at the shards (depth 1), whose
+ * metadata moves whenever an entry is renamed in or out.
+ */
+function candidateMetadata(root: string, depth = 2): unknown[] {
   const state = resolve(root, KNOWLEDGE_STATE);
   let stores: string[];
   try {
@@ -106,7 +111,7 @@ function candidateMetadata(root: string): unknown[] {
     if (own?.[0] !== "directory" || depth === 0) return;
     for (const name of readdirSync(path).sort()) visit(resolve(path, name), depth - 1);
   };
-  for (const store of stores) visit(resolve(state, store), 2);
+  for (const store of stores) visit(resolve(state, store), depth);
   return observed;
 }
 
@@ -180,13 +185,51 @@ export function convergenceRepositoryDigest(root: string): string {
   );
 }
 
+/**
+ * ADR-0599: the digest a non-owner resident fences on. A non-owner inspects nothing (ADR-0597),
+ * so it needs only what changes its host-local duties or its next role: HEAD, refs and index from
+ * file metadata, the capture settings, the candidate shards, and the freshness, materialization
+ * and owner-turn queue state. It runs no Git process and walks no candidate entry. A
+ * working-tree-only edit is left to the owner and to the forced full cycle.
+ */
+export function nonOwnerRepositoryDigest(root: string): string {
+  const settings = convergenceSourceCaptureSettings(root);
+  return sha256(
+    canonicalJson({
+      scope: "non_owner",
+      repository: repositoryHeadIdentity(root),
+      policy: sha256(canonicalJson(settings.policy)),
+      delegation: settings.delegationContentHash,
+      candidates: sha256(canonicalJson(candidateMetadata(root, 1))),
+      materialization: metadata(resolve(root, KNOWLEDGE_STATE, "materialization-transaction")),
+      freshness: freshnessObservation(root),
+      instructionCapture: instructionCaptureQueueNames(root),
+    }),
+  );
+}
+
+/** The non-owner digest, or the full one when the checkout's Git metadata cannot be read directly. */
+function residentRepositoryDigest(root: string, owner: boolean): string {
+  if (owner) return convergenceRepositoryDigest(root);
+  try {
+    return nonOwnerRepositoryDigest(root);
+  } catch {
+    return convergenceRepositoryDigest(root);
+  }
+}
+
 export function convergenceSourceFingerprint(input: {
   repositoryRoot: string;
   events: OutboxStore;
   /** ADR-0597: this resident's delay for the shared day-boundary wake. */
   wakeOffsetMilliseconds?: number;
+  /**
+   * ADR-0599: false when this host's last ownership verdict is not owner. A host without an
+   * ownership observation, and any owner, keeps the full digest.
+   */
+  owner?: boolean;
 }): ConvergenceSourceFingerprint {
-  const sourceDigest = convergenceRepositoryDigest(input.repositoryRoot);
+  const sourceDigest = residentRepositoryDigest(input.repositoryRoot, input.owner !== false);
   const queue = observeConvergenceQueue(input.events);
   const now = Date.now();
   const offset = input.wakeOffsetMilliseconds ?? 0;
