@@ -64,6 +64,7 @@ async function resumeDependencies(
   input: OwnerInput,
   now: Date,
   replay: () => KnowledgeConvergenceProjection[],
+  discoveredSnapshotHash: string,
 ): Promise<void> {
   for (const row of replay()) {
     if (
@@ -73,7 +74,13 @@ async function resumeDependencies(
       row.latest.payload.state === "queued"
     )
       continue;
-    if (await input.host.dependencyCurrent(row.latest.payload.dependencyHash)) continue;
+    // ADR-0600: a stage that went stale reruns only once the repository is back at the bytes it
+    // was bound to. At any other snapshot it would fail the same way, so discovery either opens a
+    // successor or rewinds an obligation whose own effects were undone.
+    const stale = row.latest.payload.state === "stale";
+    if (stale) {
+      if (row.latest.payload.snapshotHash !== discoveredSnapshotHash) continue;
+    } else if (await input.host.dependencyCurrent(row.latest.payload.dependencyHash)) continue;
     const hash = row.latest.payload.resultArtifactHash ?? row.latest.payload.inputArtifactHash;
     if (hash === null) continue;
     const draft = queuedConvergenceStage({
@@ -83,6 +90,7 @@ async function resumeDependencies(
       snapshotHash: row.latest.payload.snapshotHash,
       inputArtifactHash: hash,
       occurredAt: now.toISOString(),
+      ...(stale ? { priorAttempts: row.latest.payload.attemptCount } : {}),
     });
     input.events.transact((transaction) => {
       transaction.append(draft);
@@ -145,7 +153,7 @@ export async function processKnowledgeConvergence(
     keepMostRecent: 1_024,
     limit: 1_000,
   });
-  await resumeDependencies(input, now(), replay);
+  await resumeDependencies(input, now(), replay, baseline.sourceSnapshotHash);
   reconcileKnowledgeConvergenceOutbox(input.events, replay(), now().toISOString());
   for (let index = 0; index < (input.maximumStages ?? 8); index++) {
     if (index > 0 && (await input.shouldYield?.()) === true) break;
@@ -184,6 +192,8 @@ export async function processKnowledgeConvergence(
       delivery.event.type === "repository.knowledge.baseline.requested"
         ? "assessment"
         : (delivery.event.payload as { stage: KnowledgeConvergenceStage }).stage;
+    // ADR-0600: a requeued stage counts the attempts its queued record carried forward.
+    const attempts = delivery.attemptCount + carriedAttempts(delivery.event);
     scoped.enterStage(stage);
     const state = await loadInput(
       input.artifacts,
@@ -207,7 +217,7 @@ export async function processKnowledgeConvergence(
       else {
         await input.host.assertCurrent(state);
         assertLease();
-        if (delivery.attemptCount > MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS)
+        if (attempts > MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS)
           throw Object.assign(new Error("Retry ceiling reached."), {
             code: "knowledge_retry_exhausted",
           });
@@ -262,9 +272,10 @@ export async function processKnowledgeConvergence(
             : {}),
         }),
       );
+      const exhausted = attempts >= MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS;
       result = {
         state:
-          code === "source_bytes_changed"
+          code === "source_bytes_changed" && !exhausted
             ? "stale"
             : [
                   "knowledge_effect_uncertain",
@@ -287,10 +298,7 @@ export async function processKnowledgeConvergence(
         input: state,
         assignmentId: null,
         leaseGeneration: null,
-        failureCode:
-          delivery.attemptCount >= MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS
-            ? "knowledge_retry_exhausted"
-            : code,
+        failureCode: exhausted ? "knowledge_retry_exhausted" : code,
         dependencyHash: dependency.contentHash,
         nextStage: null,
       };
@@ -308,6 +316,7 @@ export async function processKnowledgeConvergence(
       result,
       resultArtifactHash: stored.contentHash,
       now: now(),
+      attempts,
       assertSettlement: () => input.host.assertSettlement(result.input),
     });
   }
@@ -321,6 +330,12 @@ export async function processKnowledgeConvergence(
     "ready",
     replay(),
   );
+}
+
+function carriedAttempts(event: { type: string; payload: unknown }): number {
+  if (event.type !== "repository.knowledge.stage.recorded") return 0;
+  const count = (event.payload as { attemptCount?: unknown }).attemptCount;
+  return Number.isSafeInteger(count) && (count as number) > 0 ? (count as number) : 0;
 }
 
 /** Read-only status never creates a baseline, a provider call or document effect. */

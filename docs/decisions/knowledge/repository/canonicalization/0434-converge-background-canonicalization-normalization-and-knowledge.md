@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-09-27
-Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (delegation continuity under an owner-installed host policy) and [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (divergent integration targets park their batch instead of holding later stages)
+Amended by: [ADR-0469](../../../coordination/sync/0469-keep-background-knowledge-continuous-on-every-host.md) (delegation continuity under an owner-installed host policy), [ADR-0530](../../maintenance/0530-keep-background-knowledge-moving-past-divergent-targets.md) (divergent integration targets park their batch instead of holding later stages), and [ADR-0600](../../maintenance/0600-rewind-an-obligation-whose-own-commits-were-undone.md) (an obligation whose own commits were undone restarts from its baseline)
 
 ## Context
 
