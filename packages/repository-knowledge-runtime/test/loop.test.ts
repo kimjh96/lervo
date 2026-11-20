@@ -101,11 +101,11 @@ it(
         appendFreshnessEvent({
           storage: f.storage,
           type: "document.freshness.cycle.completed",
-          correlationId: `kfcy_quiet_${index}`,
+          correlationId: `kfcy_${String(index).padStart(24, "0")}`,
           coordinate: null,
           occurredAt: at,
           payload: {
-            cycleId: `kfcy_quiet_${index}`,
+            cycleId: `kfcy_${String(index).padStart(24, "0")}`,
             findingCount: 7,
             admittedCount: 0,
             candidateCount: 0,
