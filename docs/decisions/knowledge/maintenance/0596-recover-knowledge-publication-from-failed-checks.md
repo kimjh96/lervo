@@ -30,6 +30,7 @@ ADR-0594 handles a replay conflict. A failed check on an equivalent head had no 
    - Check runs that concluded `not_run`, `cancelled`, `timed_out`, `startup_failure`, or `stale` belong to Actions runs. The publisher starts those runs' failed jobs again with `gh run rerun <run> --failed`, at most once for each published head, and waits for them as `awaiting_checks`.
    - GitHub refuses to rerun a run older than a month. Only when every refused run got that refusal does the publisher close and reopen the pull request, which starts its pull request workflows on the same head. It tries a failed reopen once more. Any other refusal fails the step and closes nothing.
    - Closing and reopening also fires the `closed` and `reopened` pull request events, so workflows that listen for them run too.
+   - The run's age decides that refusal, not the error text: the publisher reads each run's `created_at` and treats a run more than 30 days old as expired without asking GitHub to rerun it. `gh` words the same refusal differently by version (2.46 reports a broken workflow file), so the text is only a fallback. An unreadable age tries the rerun.
    - If the pull request stays closed, the next publication after the wait opens a new one for the same head and follows it.
    - A real `failure` and an outside status are never rerun: the same bytes would fail again, and each rerun costs Actions minutes.
    - A rerun the forge refuses still counts as that head's one rerun.
@@ -73,6 +74,7 @@ ADR-0594 handles a replay conflict. A failed check on an equivalent head had no 
   - a real failure and an outside status are never rerun;
   - the GitHub adapter reads job steps and applies `ignore` to commit statuses only;
   - it closes only after a too-old refusal, retries a failed reopen, and fails without closing on any other refusal;
+  - a run older than 30 days is expired by its age whatever `gh` prints, and a recent run refused with the same words closes nothing;
   - after a close whose reopen failed, the next publication opens a new pull request and follows it;
   - at most 8 failures are named.
 - `knowledge-publication-checks.test.ts`: settings validation, ignored unknown keys, backoff steps, rerunnable runs, the bounded detail, the wait predicate, and dropping an invalid retry record.

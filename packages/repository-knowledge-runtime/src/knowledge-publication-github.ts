@@ -121,6 +121,10 @@ async function guarded<T>(
 const RERUN_EXPIRED =
   /created over a month ago|older than (?:a month|30 days)|(?:is )?not retryable/iu;
 
+/** GitHub retries a workflow run only within a month of its creation. */
+const RERUN_WINDOW_MILLISECONDS = 30 * 24 * 60 * 60_000;
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u;
+
 function rerunExpired(error: unknown): boolean {
   const stderr = (error as { stderr?: unknown } | null)?.stderr;
   return RERUN_EXPIRED.test(typeof stderr === "string" ? stderr : String(stderr ?? ""));
@@ -203,8 +207,24 @@ export function createGitHubKnowledgePublicationForge(input: {
   repositoryRoot: string;
   executable?: string;
   run?: Runner;
+  now?: () => Date;
 }): KnowledgePublicationForge {
   const run = input.run ?? ghRunner(input.repositoryRoot, input.executable ?? "gh");
+  const now = input.now ?? (() => new Date());
+  // The run's age decides expiry: `gh` words the refusal differently by version (2.46 calls it a
+  // broken workflow file), so the refusal text is only a fallback. An unreadable age tries the rerun.
+  const outsideRerunWindow = async (id: number) => {
+    const createdAt = await run([
+      "api",
+      `repos/{owner}/{repo}/actions/runs/${id}`,
+      "--jq",
+      ".created_at",
+    ]).then(
+      (output) => (ISO_TIMESTAMP.test(output.trim()) ? Date.parse(output.trim()) : Number.NaN),
+      () => Number.NaN,
+    );
+    return Number.isFinite(createdAt) && now().getTime() - createdAt > RERUN_WINDOW_MILLISECONDS;
+  };
   const view = async (number: number) =>
     pullRequest(
       JSON.parse(await run(["pr", "view", String(number), "--json", PULL_REQUEST_FIELDS])),
@@ -293,11 +313,16 @@ export function createGitHubKnowledgePublicationForge(input: {
         // GitHub refuses to rerun a run older than a month; reopening retriggers it instead.
         // Any other refusal fails the step, and nothing is closed.
         let expired = false;
-        for (const id of runIds)
+        for (const id of runIds) {
+          if (await outsideRerunWindow(id)) {
+            expired = true;
+            continue;
+          }
           await run(["run", "rerun", String(id), "--failed"]).catch((error: unknown) => {
             if (!rerunExpired(error)) throw error;
             expired = true;
           });
+        }
         if (!expired) return;
         await run(["pr", "close", String(number)]);
         await run(["pr", "reopen", String(number)]).catch(() =>
