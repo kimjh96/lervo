@@ -26,6 +26,11 @@ export function queuedConvergenceStage(input: {
   snapshotHash: string;
   inputArtifactHash: string;
   occurredAt: string;
+  /**
+   * ADR-0600: attempts a requeued stale stage already spent. Fresh handoffs carry none; a
+   * requeue keeps the count so a mismatch that never clears reaches the retry ceiling.
+   */
+  priorAttempts?: number;
 }): EventDraftV4 {
   return {
     eventId: convergenceEventId([input.predecessor.eventId, input.stage, "queued"]),
@@ -46,7 +51,7 @@ export function queuedConvergenceStage(input: {
       snapshotHash: input.snapshotHash,
       assignmentId: null,
       leaseGeneration: null,
-      attemptCount: 0,
+      attemptCount: Math.min(16, Math.max(0, input.priorAttempts ?? 0)),
       inputArtifactHash: input.inputArtifactHash,
       resultArtifactHash: null,
       nextObligationId: input.obligationId,
@@ -67,6 +72,8 @@ export function settleKnowledgeConvergenceStage(input: {
   result: KnowledgeConvergenceStageResult;
   resultArtifactHash: string;
   now: Date;
+  /** Delivery attempts plus the attempts its queued record carried (ADR-0600). */
+  attempts?: number;
   assertSettlement(): void;
 }): void {
   const { result, delivery, row } = input;
@@ -136,7 +143,7 @@ export function settleKnowledgeConvergenceStage(input: {
           snapshotHash: result.input.snapshotHash,
           assignmentId: result.assignmentId,
           leaseGeneration: result.leaseGeneration,
-          attemptCount: Math.min(16, delivery.attemptCount),
+          attemptCount: Math.min(16, input.attempts ?? delivery.attemptCount),
           inputArtifactHash: (source.payload as { inputArtifactHash: string }).inputArtifactHash,
           resultArtifactHash: input.resultArtifactHash,
           nextObligationId: result.nextStage === null ? null : row.baseline.payload.obligationId,

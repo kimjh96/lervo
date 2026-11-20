@@ -48,6 +48,8 @@ async function fixture() {
   };
   let current = false;
   let snapshotHash = sha256("source");
+  // A stage named here commits: it moves the repository and its own input to new bytes.
+  let commitAt: string | null = null;
   const calls: string[] = [];
   const baseline = (): KnowledgeConvergenceBaseline => ({
     schemaVersion: 1,
@@ -82,12 +84,18 @@ async function fixture() {
       assertLease();
       calls.push(stage);
       const index = knowledgeConvergenceStages.indexOf(stage);
+      // A committing stage reads its input bytes and leaves the committed bytes behind; its proof
+      // must name both, as a real stage receipt does.
+      if (stage === commitAt) {
+        commitAt = null;
+        snapshotHash = sha256("committed");
+      }
       const proof = await artifacts.put(
         canonicalJson({
           schemaVersion: 1,
           obligationId: input.obligationId,
           stage,
-          sourceSnapshotHash: snapshotHash,
+          sourceSnapshotHash: input.snapshotHash,
           resultSnapshotHash: snapshotHash,
           policyHash: input.baseline.policyHash,
           delegationHash: input.baseline.delegationHash,
@@ -95,6 +103,7 @@ async function fixture() {
       );
       const state: KnowledgeConvergenceInput = {
         ...input,
+        snapshotHash,
         receipts: [...input.receipts, { stage, artifactHash: proof.contentHash, snapshotHash }],
       };
       if (stage === "lifecycle_verification") current = true;
@@ -128,6 +137,13 @@ async function fixture() {
     cycle,
     drift: () => {
       snapshotHash = sha256("new source");
+    },
+    commitAt: (stage: string) => {
+      commitAt = stage;
+    },
+    // A supersession or publication sync resets the obligation's own commit.
+    revert: () => {
+      snapshotHash = sha256("source");
     },
     current: () => current,
   };
@@ -494,6 +510,121 @@ it("waits for provider admission without attempts and resumes the same stage whe
     admitted = true;
     expect(await f.cycle(8)).toMatchObject({ state: "idle", outstanding: 0 });
     expect(f.calls[0]).toBe("assessment");
+  } finally {
+    f.events.close();
+  }
+});
+
+/** The real host: a stall's dependency is current only while the repository is at its bytes. */
+function snapshotDependencies(f: Awaited<ReturnType<typeof fixture>>) {
+  f.host.dependencyCurrent = async (hash) => {
+    const dependency = JSON.parse(
+      Buffer.from(await f.artifacts.get(`lervo-cas://sha256/${hash.slice(7)}`)).toString("utf8"),
+    ) as { snapshotHash?: string };
+    return dependency.snapshotHash === (await f.host.discover()).sourceSnapshotHash;
+  };
+}
+
+function stageRecords(f: Awaited<ReturnType<typeof fixture>>) {
+  return f.events
+    .list({ limit: 1_000 })
+    .filter((event) => event.type === "repository.knowledge.stage.recorded")
+    .map((event) => event.payload as { stage: string; state: string; failureCode: string | null });
+}
+
+it("rewinds an obligation whose own commit was reset to its baseline (ADR-0600)", async () => {
+  const f = await fixture();
+  snapshotDependencies(f);
+  try {
+    // flemo, 2026-11-14: canonical integration commits, then a reset puts the baseline back.
+    f.commitAt("canonical_integration");
+    await f.cycle(3);
+    f.revert();
+    await f.cycle();
+    expect(stageRecords(f).at(-1)).toMatchObject({
+      stage: "normalization_generation",
+      state: "stale",
+      failureCode: "source_bytes_changed",
+    });
+    for (let index = 0; index < 12 && !f.current(); index++) await f.cycle(8);
+    expect(f.current()).toBe(true);
+    // One stale record, then one rewind to assessment; no stale and queued pairs repeat.
+    expect(stageRecords(f).filter((record) => record.state === "stale")).toHaveLength(1);
+    expect(f.calls.filter((stage) => stage === "assessment")).toHaveLength(2);
+  } finally {
+    f.events.close();
+  }
+});
+
+it("never requeues a stale stage at bytes the repository has left", async () => {
+  const f = await fixture();
+  snapshotDependencies(f);
+  try {
+    f.commitAt("canonical_integration");
+    await f.cycle(3);
+    f.revert();
+    await f.cycle();
+    const before = stageRecords(f).length;
+    await f.cycle(1);
+    const after = stageRecords(f).slice(before);
+    expect(after.some((record) => record.stage === "normalization_generation")).toBe(false);
+    expect(after[0]).toMatchObject({ stage: "assessment" });
+  } finally {
+    f.events.close();
+  }
+});
+
+it("settles a mismatch that never clears as retry exhaustion instead of looping (ADR-0600)", async () => {
+  const f = await fixture();
+  snapshotDependencies(f);
+  // The stage keeps reading bytes the repository was never at, though discovery sees no move.
+  f.host.assertCurrent = async (input) => {
+    if (input.receipts.length > 0)
+      throw Object.assign(new Error("drift"), { code: "source_bytes_changed" });
+  };
+  try {
+    for (let index = 0; index < 24; index++) await f.cycle();
+    const records = stageRecords(f);
+    expect(records.at(-1)).toMatchObject({
+      state: "attention_required",
+      failureCode: "knowledge_retry_exhausted",
+    });
+    const settled = records.length;
+    await f.cycle();
+    await f.cycle();
+    expect(stageRecords(f)).toHaveLength(settled);
+  } finally {
+    f.events.close();
+  }
+});
+
+it("settles an obligation whose effects keep being undone as attention after three rewinds (ADR-0600)", async () => {
+  const f = await fixture();
+  snapshotDependencies(f);
+  try {
+    // Every run commits at canonical integration and something resets it, again and again.
+    f.commitAt("canonical_integration");
+    await f.cycle(3);
+    for (let round = 0; round < 6; round++) {
+      f.revert();
+      await f.cycle();
+      f.commitAt("canonical_integration");
+      await f.cycle(3);
+    }
+    const records = stageRecords(f);
+    const undone = records.filter(
+      (record) => record.failureCode === "knowledge_effect_undone_repeatedly",
+    );
+    expect(undone).toHaveLength(1);
+    expect(undone[0]).toMatchObject({ state: "attention_required" });
+    expect(records.at(-1)).toBe(undone[0]);
+    // Three rewinds restarted assessment; the fourth undo stopped the obligation.
+    expect(f.calls.filter((stage) => stage === "assessment")).toHaveLength(4);
+    const settled = records.length;
+    f.revert();
+    await f.cycle(3);
+    await f.cycle(3);
+    expect(stageRecords(f)).toHaveLength(settled);
   } finally {
     f.events.close();
   }

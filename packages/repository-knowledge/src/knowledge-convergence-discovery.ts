@@ -9,11 +9,14 @@ import {
   type KnowledgeConvergenceInput,
 } from "./knowledge-convergence-contract.js";
 import type { KnowledgeConvergenceProjection } from "./knowledge-convergence-replay.js";
+import { reconcileUndoneObligation } from "./knowledge-convergence-rewind.js";
 import { convergenceEventId } from "./knowledge-convergence-settlement.js";
 
 /**
  * Opens at most one obligation for the observed baseline and supersedes every older open one in
- * the same transaction. A current or already open matching obligation records nothing.
+ * the same transaction. A current or already open matching obligation records nothing, except
+ * that an open obligation whose own effects were undone restarts from its baseline, at most
+ * three times (ADR-0600).
  */
 export async function discoverKnowledgeConvergenceObligation(
   input: {
@@ -53,7 +56,10 @@ export async function discoverKnowledgeConvergenceObligation(
     delegation: baseline.delegationHash,
   });
   const eventId = convergenceEventId([obligationId, "baseline"]);
-  if (input.events.get(eventId) !== null) return baseline;
+  if (input.events.get(eventId) !== null) {
+    await reconcileUndoneObligation({ ...input, rows, obligationId, baseline, now });
+    return baseline;
+  }
   const state: KnowledgeConvergenceInput = {
     schemaVersion: 1,
     obligationId,

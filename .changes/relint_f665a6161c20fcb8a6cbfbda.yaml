@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f665a6161c20fcb8a6cbfbda"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Rewind a knowledge obligation whose own commits a reset undid, and stop requeuing stale stages that can never match"
