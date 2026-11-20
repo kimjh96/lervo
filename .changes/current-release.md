@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.29.4" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.29.5" schema="1" -->
 
 ## What's changed
 
-- Rerun never-started knowledge publication checks once, name failed checks, back off, and honor checks.ignore
+- Stop non-owner debt inspection, make the health check Git-free, gate whole-log reads on the event head, and spread shared resident wakes

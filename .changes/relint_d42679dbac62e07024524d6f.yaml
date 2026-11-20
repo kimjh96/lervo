@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_d42679dbac62e07024524d6f"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Stop non-owner debt inspection, make the health check Git-free, gate whole-log reads on the event head, and spread shared resident wakes"
