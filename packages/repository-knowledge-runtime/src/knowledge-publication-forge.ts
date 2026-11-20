@@ -100,16 +100,17 @@ export interface KnowledgePublicationForge {
   viewPullRequest(number: number): Promise<KnowledgePublicationPullRequest>;
   /** Closes an open pull request with an explanatory comment; the branch stays for the next push. */
   closePullRequest(input: { number: number; comment: string }): Promise<void>;
-  /** Checks for the exact head; `ignore` lists exact check or status names that never block. */
+  /** Checks for the exact head; `ignore` lists exact commit status names that never block. */
   checks(input: {
     number: number;
     headSha: string;
     ignore?: readonly string[];
   }): Promise<KnowledgePublicationChecks>;
   /**
-   * Starts the failed jobs of these Actions runs again on the same head (ADR-0596). A run GitHub
-   * no longer reruns, such as one older than a month, is retriggered by reopening the pull
-   * request, which starts its pull request workflows on the unchanged head.
+   * Starts the failed jobs of these Actions runs again on the same head (ADR-0596). When GitHub
+   * refuses only because a run is too old to retry, the pull request is closed and reopened, which
+   * starts its pull request workflows on the unchanged head; a failed reopen is tried once more.
+   * Any other refusal throws without closing anything.
    */
   rerunFailedChecks(input: { number: number; runIds: readonly number[] }): Promise<void>;
   /** Merges with a merge commit only if the head is still exactly `headSha`. */

@@ -28,17 +28,22 @@ ADR-0594 handles a replay conflict. A failed check on an equivalent head had no 
    - The failure detail names them, for example `5 of 8 checks failed: Lint and convention tests (not_run); Vercel – shiflo-web-next (failure)`. It is bounded to 480 characters and holds no stderr, path, or URL.
 2. **Rerun a transient failure once per head.**
    - Check runs that concluded `not_run`, `cancelled`, `timed_out`, `startup_failure`, or `stale` belong to Actions runs. The publisher starts those runs' failed jobs again with `gh run rerun <run> --failed`, at most once for each published head, and waits for them as `awaiting_checks`.
-   - GitHub refuses to rerun a run older than a month. The publisher then closes and reopens the pull request, which starts its pull request workflows on the same head.
+   - GitHub refuses to rerun a run older than a month. Only when every refused run got that refusal does the publisher close and reopen the pull request, which starts its pull request workflows on the same head. It tries a failed reopen once more. Any other refusal fails the step and closes nothing.
+   - Closing and reopening also fires the `closed` and `reopened` pull request events, so workflows that listen for them run too.
+   - If the pull request stays closed, the next publication after the wait opens a new one for the same head and follows it.
    - A real `failure` and an outside status are never rerun: the same bytes would fail again, and each rerun costs Actions minutes.
    - A rerun the forge refuses still counts as that head's one rerun.
 3. **Back off failed checks while nothing changes.**
    - After a failed observation the publisher waits 15 minutes, then 1 hour, then every 6 hours before it reads the same head again.
    - While it waits, it makes no fetch and no forge call, and reports `unchanged`.
    - A new knowledge commit, a moved local base, or a new published head ends the wait at once. The inventory key is a digest of the local base and the unpublished commits.
+   - Because the wait makes no fetch, a move of the remote base or an outside push to the knowledge branch is noticed only when the wait ends, at most 6 hours later.
 4. **Let the operator ignore outside statuses by exact name.**
-   - `publication.checks.ignore` in the host's convergence owner configuration lists 1 to 8 exact check or status names, each 1 to 100 printable characters, with no repeats. A listed item neither passes nor blocks.
+   - `publication.checks.ignore` in the host's convergence owner configuration lists 1 to 8 exact commit status names, each 1 to 100 printable characters, with no repeats. A listed status neither passes nor blocks.
+   - Only commit statuses can be ignored. An Actions job or other check run with the same name still counts.
    - The publisher never guesses: a repository without readable required checks still blocks on every reported check.
    - The list does not make a derived configuration operator-owned. Derivation carries it into what it writes, and the configuration hash leaves it out.
+5. **Unknown publication keys are ignored.** From this release on, an unknown key inside `publication` or `publication.checks` is dropped instead of invalidating the host configuration. Known keys are still validated strictly. A setting from a newer release, or one left behind by a rollback, therefore never makes a host `unverifiable`. Releases before this one still refuse `checks`, so the list is added only after every host that can own the repository runs this release.
 
 ### States, privacy, and failure meaning
 
@@ -52,6 +57,7 @@ ADR-0594 handles a replay conflict. A failed check on an equivalent head had no 
 - shiflo's 3 billing-blocked jobs run again once on the unchanged head. With `checks.ignore` set to the two Vercel statuses on the owner host, pull request #64 merges once they pass, and the local `main` catches up.
 - A real check failure stays visible with its check named and is read again at most every 6 hours, until a new knowledge commit or base starts a new head.
 - A pull request merged or closed by hand while the publisher waits is noticed after the current wait, at most 6 hours later.
+- **Follow-up:** a check that stays pending forever is still read every cycle as `awaiting_checks`. A pending-check bound is a separate change.
 - **Rollback:** revert this change. Publication again reads stale failed checks every cycle and never recovers them.
 
 ## Verification
@@ -65,7 +71,9 @@ ADR-0594 handles a replay conflict. A failed check on an equivalent head had no 
   - the second wait is 1 hour;
   - a new commit starts a new head with its own rerun;
   - a real failure and an outside status are never rerun;
-  - the GitHub adapter reads job steps, applies `ignore`, and reopens when a rerun is refused;
+  - the GitHub adapter reads job steps and applies `ignore` to commit statuses only;
+  - it closes only after a too-old refusal, retries a failed reopen, and fails without closing on any other refusal;
+  - after a close whose reopen failed, the next publication opens a new pull request and follows it;
   - at most 8 failures are named.
-- `knowledge-publication-checks.test.ts`: settings validation, backoff steps, rerunnable runs, the bounded detail, the wait predicate, and dropping an invalid retry record.
+- `knowledge-publication-checks.test.ts`: settings validation, ignored unknown keys, backoff steps, rerunnable runs, the bounded detail, the wait predicate, and dropping an invalid retry record.
 - `convergence-owner-host-derivation.test.ts`: derivation keeps an operator's ignore list and still follows the remote.

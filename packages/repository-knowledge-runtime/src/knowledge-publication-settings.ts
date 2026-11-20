@@ -16,8 +16,9 @@ interface KnowledgePublicationTarget {
    */
   merge: "when_checks_pass" | "never";
   /**
-   * ADR-0596: exact check or status names that never block a merge, such as a deployment preview
-   * that cannot verify the `Lervo Knowledge` author. Only the operator sets it; derivation keeps it.
+   * ADR-0596: exact commit status names that never block a merge, such as a deployment preview
+   * that cannot verify the `Lervo Knowledge` author. Check runs are never ignored. Only the
+   * operator sets it; derivation keeps it.
    */
   checks?: { ignore: string[] };
 }
@@ -40,14 +41,13 @@ const ROOT = /^(?!\/)(?!.*(?:^|\/)\.\.(?:\/|$))[^\0\s]{1,127}\/$/u;
 export const MAXIMUM_IGNORED_PUBLICATION_CHECKS = 8;
 const CHECK_NAME = /^(?=\S)(?!.*\s$)[^\p{Cc}\p{Cf}]{1,100}$/u;
 
-/** The `checks` object, or null when present and invalid; undefined when absent. */
+/** The `checks` object, or null when present and invalid; undefined when absent. Unknown keys are ignored. */
 function parseChecks(value: unknown): { ignore: string[] } | null | undefined {
   if (value === undefined) return undefined;
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
   const ignore = input.ignore;
   if (
-    Object.keys(input).some((key) => key !== "ignore") ||
     !Array.isArray(ignore) ||
     ignore.length < 1 ||
     ignore.length > MAXIMUM_IGNORED_PUBLICATION_CHECKS ||
@@ -77,11 +77,9 @@ export function parseKnowledgePublicationSettings(
 ): KnowledgePublicationSettings | null {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
   const input = value as Record<string, unknown>;
-  const keys = Object.keys(input);
+  // ADR-0596: unknown keys are ignored, so a setting from a newer release, or one left behind by a
+  // rollback, never invalidates the host configuration. Known keys stay strictly validated.
   if (
-    !keys.every((key) =>
-      ["remote", "baseBranch", "branch", "merge", "allowedRoots", "scope", "checks"].includes(key),
-    ) ||
     typeof input.remote !== "string" ||
     !REMOTE.test(input.remote) ||
     !validBranch(input.baseBranch) ||

@@ -117,6 +117,15 @@ async function guarded<T>(
   }
 }
 
+/** GitHub's refusal to rerun a workflow run that is too old to retry. */
+const RERUN_EXPIRED =
+  /created over a month ago|older than (?:a month|30 days)|(?:is )?not retryable/iu;
+
+function rerunExpired(error: unknown): boolean {
+  const stderr = (error as { stderr?: unknown } | null)?.stderr;
+  return RERUN_EXPIRED.test(typeof stderr === "string" ? stderr : String(stderr ?? ""));
+}
+
 const CHECK_NAME_LIMIT = 100;
 const RUN_LINK = /\/actions\/runs\/(\d{1,19})(?:\/|$)/u;
 const JOB_LINK = /\/actions\/runs\/\d{1,19}\/job\/(\d{1,19})$/u;
@@ -138,8 +147,8 @@ function linkedId(item: Record<string, unknown>, pattern: RegExp): number | null
 /**
  * Reduces a status rollup for one exact head; a moved head is still pending. Only success
  * passes. A skipped check did not run for this pull request, so it neither passes nor blocks;
- * every other finished conclusion, including neutral and cancelled, fails. A check or status
- * whose exact name is in `ignore` is left out entirely (ADR-0596). Failed items are named, at
+ * every other finished conclusion, including neutral and cancelled, fails. A commit status
+ * whose exact name is in `ignore` is left out entirely (ADR-0596); check runs are never ignored. Failed items are named, at
  * most eight, with the Actions run that owns each check run.
  */
 export function summarizeKnowledgePublicationChecks(input: {
@@ -149,9 +158,10 @@ export function summarizeKnowledgePublicationChecks(input: {
   ignore?: readonly string[];
 }): KnowledgePublicationChecks {
   const ignored = new Set(input.ignore ?? []);
+  // Only outside commit statuses can be ignored; an Actions job with the same name still counts.
   const items = (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
     .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
-    .filter((item) => !ignored.has(checkName(item)));
+    .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item))));
   if (input.observedHeadSha !== input.headSha || items.length === 0)
     return { state: "pending", total: items.length };
   let failed = 0;
@@ -280,15 +290,19 @@ export function createGitHubKnowledgePublicationForge(input: {
       }),
     rerunFailedChecks: ({ number, runIds }) =>
       guarded("rerun", async () => {
-        let refused = runIds.length === 0;
+        // GitHub refuses to rerun a run older than a month; reopening retriggers it instead.
+        // Any other refusal fails the step, and nothing is closed.
+        let expired = false;
         for (const id of runIds)
-          // GitHub refuses to rerun a run older than a month; reopening retriggers it instead.
-          await run(["run", "rerun", String(id), "--failed"]).catch(() => {
-            refused = true;
+          await run(["run", "rerun", String(id), "--failed"]).catch((error: unknown) => {
+            if (!rerunExpired(error)) throw error;
+            expired = true;
           });
-        if (!refused) return;
+        if (!expired) return;
         await run(["pr", "close", String(number)]);
-        await run(["pr", "reopen", String(number)]);
+        await run(["pr", "reopen", String(number)]).catch(() =>
+          run(["pr", "reopen", String(number)]),
+        );
       }),
     merge: ({ number, headSha }) =>
       guarded("merge", async () => {

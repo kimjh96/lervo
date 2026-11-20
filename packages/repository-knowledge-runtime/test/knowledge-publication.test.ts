@@ -160,8 +160,10 @@ class FakeForge implements KnowledgePublicationForge {
       : { state: this.checkState, total: 2 };
   }
   reruns: { number: number; runIds: readonly number[] }[] = [];
+  rerunEffect: ((input: { number: number }) => Promise<void>) | null = null;
   async rerunFailedChecks(input: { number: number; runIds: readonly number[] }) {
     this.reruns.push(input);
+    if (this.rerunEffect !== null) await this.rerunEffect(input);
   }
   mergeError: Error | null = null;
   findError: Error | null = null;
@@ -847,6 +849,46 @@ describe("knowledge output publication", () => {
   );
 
   it(
+    "follows a new pull request when a reopen after an expired rerun failed",
+    { timeout: 60_000 },
+    async () => {
+      const { root, forge, publish } = await setup();
+      await commit(root, "docs/runtime.md", "# Runtime\n\nReopen.\n", knowledge);
+      forge.checkState = "failed";
+      forge.checkFailures = [
+        { name: "Lint", kind: "check_run", conclusion: "not_run", runId: 31, jobId: 311 },
+      ];
+      // The close succeeded and both reopens failed: the pull request stays closed.
+      forge.rerunEffect = async ({ number }) => {
+        forge.pullRequests.find((pr) => pr.number === number)!.state = "closed";
+        throw new KnowledgePublicationForgeError("rerun", 1, "unknown");
+      };
+      const start = Date.now();
+      expect(await publish(() => new Date(start))).toMatchObject({
+        state: {
+          status: "failed",
+          pullRequestNumber: 1,
+          checksRetry: { rerun: true, attempts: 1 },
+          failure: { code: "knowledge_publication_checks_failed" },
+        },
+      });
+      // After the wait the publisher opens a new pull request for the same head and follows it,
+      // without a second rerun.
+      forge.checkState = "pending";
+      expect(await publish(() => new Date(start + 16 * 60_000))).toMatchObject({
+        state: {
+          status: "awaiting_checks",
+          pullRequestNumber: 2,
+          pullRequestUrl: "https://github.invalid/pull/2",
+        },
+      });
+      expect(forge.pullRequests.map((pr) => pr.state)).toEqual(["closed", "open"]);
+      expect(forge.reruns).toHaveLength(1);
+      expect(await readKnowledgePublicationState(root)).toMatchObject({ pullRequestNumber: 2 });
+    },
+  );
+
+  it(
     "never reruns a real failure or an outside status, and still backs it off",
     { timeout: 60_000 },
     async () => {
@@ -1319,6 +1361,49 @@ describe("GitHub CLI publication adapter", () => {
       ["run", "rerun", "12", "--failed"],
       ["pr", "close", "64"],
       ["pr", "reopen", "64"],
+    ]);
+    // An Actions job is never ignored, even when a commit status of the same name is.
+    expect(
+      await forge.checks({ number: 64, headSha: head, ignore: ["Lint", "Vercel – web"] }),
+    ).toMatchObject({ state: "failed", total: 3, failed: 2 });
+  });
+
+  it("closes a pull request only when GitHub refused a rerun as too old, and retries a reopen", async () => {
+    const calls: string[][] = [];
+    let reopenFailures = 1;
+    const forge = createGitHubKnowledgePublicationForge({
+      repositoryRoot: "/repository",
+      run: async (args) => {
+        calls.push(args);
+        if (args[0] === "run" && args[2] === "40")
+          throw Object.assign(new Error("Command failed: gh"), {
+            code: 1,
+            stderr: "HTTP 403: Resource not accessible by integration",
+          });
+        if (args[0] === "run" && args[2] === "41")
+          throw Object.assign(new Error("Command failed: gh"), {
+            code: 1,
+            stderr: "run 41 cannot be rerun; This workflow run is not retryable",
+          });
+        if (args[1] === "reopen" && reopenFailures-- > 0)
+          throw Object.assign(new Error("Command failed: gh"), { code: 1, stderr: "timeout" });
+        return "";
+      },
+    });
+    const refused = await forge.rerunFailedChecks({ number: 7, runIds: [41, 40] }).then(
+      () => null,
+      (error: unknown) => error as KnowledgePublicationForgeError,
+    );
+    expect(refused).toBeInstanceOf(KnowledgePublicationForgeError);
+    expect(refused!.detail).toBe("gh rerun exit 1 auth");
+    expect(calls.some((args) => args[1] === "close")).toBe(false);
+    calls.length = 0;
+    await forge.rerunFailedChecks({ number: 7, runIds: [41] });
+    expect(calls).toEqual([
+      ["run", "rerun", "41", "--failed"],
+      ["pr", "close", "7"],
+      ["pr", "reopen", "7"],
+      ["pr", "reopen", "7"],
     ]);
   });
 

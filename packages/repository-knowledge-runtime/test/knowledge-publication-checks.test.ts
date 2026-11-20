@@ -11,6 +11,7 @@ import {
   nextChecksRetry,
   rerunnableRunIds,
 } from "../src/knowledge-publication-checks.js";
+import { parseConvergenceOwnerHostConfig } from "../src/convergence-owner-host.js";
 import type { KnowledgePublicationCheckFailure } from "../src/knowledge-publication-forge.js";
 import { parseKnowledgePublicationSettings } from "../src/knowledge-publication-settings.js";
 import {
@@ -71,9 +72,35 @@ describe("publication check settings (ADR-0596)", () => {
       { ignore: ["x".repeat(101)] },
       { ignore: ["same", "same"] },
       { ignore: Array.from({ length: 9 }, (_, index) => `check ${index}`) },
-      { ignore: ["a"], extra: true },
     ])
       expect(parseKnowledgePublicationSettings({ ...target, checks })).toBeNull();
+  });
+
+  it("ignores unknown keys so a newer or rolled-back setting never invalidates the host", () => {
+    const known = parseKnowledgePublicationSettings({
+      ...target,
+      checks: { ignore: ["Preview"] },
+    });
+    expect(
+      parseKnowledgePublicationSettings({
+        ...target,
+        checks: { ignore: ["Preview"], futureOption: true },
+        futureSetting: { anything: 1 },
+      }),
+    ).toEqual(known);
+    // Known keys are still validated strictly.
+    expect(
+      parseKnowledgePublicationSettings({ ...target, merge: "always", futureSetting: 1 }),
+    ).toBeNull();
+    const config = parseConvergenceOwnerHostConfig({
+      schemaVersion: 1,
+      hostId: `hst_${"1".repeat(32)}`,
+      hostLabel: "wsl",
+      coordination: { mode: "standalone" },
+      publication: { ...target, futureSetting: "x" },
+    });
+    expect(config.publication).toEqual({ ...target, merge: "when_checks_pass" });
+    expect(config.publication).not.toHaveProperty("futureSetting");
   });
 });
 
