@@ -93,7 +93,7 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
     const opened = storage;
     stop = startAutonomousKnowledgeWorker({
       storage,
-      subscribe: (notify) => subscribeKnowledgeWakeups(opened, notify),
+      subscribe: (notify, owner) => subscribeKnowledgeWakeups(opened, notify, undefined, owner),
       workerId,
       provider: parsed.provider,
       ownership: createKnowledgeConvergenceOwnership(opened, parsed.provider),

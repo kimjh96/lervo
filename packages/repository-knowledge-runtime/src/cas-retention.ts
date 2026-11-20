@@ -1,14 +1,9 @@
 import { collectReportReferences } from "./cas-retention-reports.js";
-import {
-  readRetentionScan,
-  retentionIdle,
-  saveScan,
-  writeRetentionProjection,
-} from "./cas-retention-state.js";
+import { readRetentionScan, saveScan, writeRetentionProjection } from "./cas-retention-state.js";
+import { memoizedConvergenceArtifactRoots, retentionStillIdle } from "./cas-retention-memo.js";
 import { resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
-import { latestEventHash } from "@lervo/storage-contract";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
 import { CasRetentionBoundError } from "./cas-retention-errors.js";
@@ -19,7 +14,6 @@ import {
 } from "./cas-retention-budget.js";
 import {
   CONVERGENCE_ARTIFACT_GRACE_MS,
-  convergenceArtifactRoots,
   eligibleConvergenceArtifacts,
   reachableConvergenceArtifacts,
   retentionNamedAt,
@@ -70,9 +64,10 @@ async function collect(
   const statePath = resolve(storage.paths.knowledgeState, CAS_RETENTION_SCAN);
   const scan = await readRetentionScan(statePath);
   if (scan.nextScanAt > Date.now()) return;
-  // ADR-0597: replaying the event log found nothing eligible at this head; skip until it moves.
-  if (retentionIdle(scan, latestEventHash(storage.events), Date.now())) return;
-  const roots = convergenceArtifactRoots(storage.events);
+  // ADR-0597: replaying the event log found nothing eligible at this head; ADR-0601: events with
+  // no artifact lifecycle since then leave that answer standing, and roots extend the last replay.
+  if (retentionStillIdle(scan, storage.events, Date.now())) return;
+  const roots = memoizedConvergenceArtifactRoots(storage.events);
   const files = await casReferenceFiles(storage);
   await bindEventWriterBackups(storage, roots.headSeq, files);
   const before = Date.parse(observation.observedAt) - CONVERGENCE_ARTIFACT_GRACE_MS;
@@ -102,7 +97,10 @@ async function collect(
       return;
     }
     if (!scan.eligible.length) {
-      await saveScan(statePath, { ...scan, idle: { head: roots.head, at: Date.now() } });
+      await saveScan(statePath, {
+        ...scan,
+        idle: { head: roots.head, at: Date.now(), seq: roots.headSeq },
+      });
       return;
     }
   }

@@ -30,22 +30,13 @@ export interface RetentionScan {
   /**
    * ADR-0597: the event head at which a complete classification found nothing eligible, and when.
    * Until the head moves or the recheck interval passes, no pass replays the event log again.
+   * ADR-0601: `seq` is the head's sequence, so later events can be checked for lifecycle events.
    */
-  idle?: { head: string | null; at: number };
+  idle?: { head: string | null; at: number; seq?: number };
 }
 
 /** An unchanged head is rechecked this often, because the grace horizon still moves with time. */
 export const RETENTION_IDLE_RECHECK_MILLISECONDS = 6 * 60 * 60_000;
-
-/** Whether the last complete classification still answers "nothing eligible" (ADR-0597). */
-export function retentionIdle(scan: RetentionScan, head: string | null, now: number): boolean {
-  return (
-    scan.idle !== undefined &&
-    scan.idle.head === head &&
-    now >= scan.idle.at &&
-    now - scan.idle.at < RETENTION_IDLE_RECHECK_MILLISECONDS
-  );
-}
 
 function validScan(value: unknown): value is RetentionScan {
   if (!value || typeof value !== "object") return false;
@@ -60,7 +51,9 @@ function validScan(value: unknown): value is RetentionScan {
       (scan.idle !== null &&
         typeof scan.idle === "object" &&
         (scan.idle.head === null || typeof scan.idle.head === "string") &&
-        Number.isFinite(scan.idle.at))) &&
+        Number.isFinite(scan.idle.at) &&
+        (scan.idle.seq === undefined ||
+          (Number.isSafeInteger(scan.idle.seq) && scan.idle.seq >= 0)))) &&
     scan.reports !== null &&
     typeof scan.reports === "object" &&
     Object.keys(scan.reports).length <= 200_000 &&

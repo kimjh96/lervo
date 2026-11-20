@@ -116,6 +116,14 @@ function candidateMetadata(root: string, depth = 2): unknown[] {
 }
 
 /**
+ * ADR-0601: the identity of every knowledge candidate store entry. These stores live under
+ * `.lervo/state`, outside the repository snapshot, so a cache of anything read from them keys on it.
+ */
+export function knowledgeCandidateStoreIdentity(root: string): string {
+  return sha256(canonicalJson(candidateMetadata(root)));
+}
+
+/**
  * ADR-0463 adds the freshness findings digest and the hold store to the fence, so a changed
  * detection report or an owner hold wakes the resident; candidate stores are observed above.
  */
@@ -230,7 +238,7 @@ export function convergenceSourceFingerprint(input: {
   owner?: boolean;
 }): ConvergenceSourceFingerprint {
   const sourceDigest = residentRepositoryDigest(input.repositoryRoot, input.owner !== false);
-  const queue = observeConvergenceQueue(input.events);
+  const queue = observeConvergenceQueue(input.events, { owner: input.owner !== false });
   const now = Date.now();
   const offset = input.wakeOffsetMilliseconds ?? 0;
   // ADR-0595: practice enters the fence by what is due, not by a 30-minute clock window; an

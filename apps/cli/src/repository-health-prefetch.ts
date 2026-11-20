@@ -1,7 +1,6 @@
 import { readRepositoryFile, repositoryFileExists } from "@lervo/context";
 import { openReadOnlyProjectStorage } from "@lervo/project-storage";
 import {
-  createRepositoryLayoutMigrationPlan,
   readRecordedDocumentLifecycleSummary,
   readRecordedDocumentStalenessReport,
 } from "@lervo/repository-knowledge";
@@ -13,6 +12,7 @@ import {
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import { readHealthEventHistoryIncrementally } from "./repository-health-events.js";
 import { readHealthAppearance } from "./repository-health-appearance.js";
+import { healthLayoutPlan } from "./repository-health-layout.js";
 import { projectLearnedNotice } from "./learned-notice-projection.js";
 import { refreshLinkWeb } from "./link-web-projection.js";
 import { readTurnGovernance, turnGovernanceSummary } from "./turn-governance.js";
@@ -111,7 +111,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
         ".lervo/state/knowledge/instruction-capture/state.json",
       ),
       inspectOperatingAttention({ repositoryRoot: root, observedAt: now, cachedSourcesOnly: true }),
-      createRepositoryLayoutMigrationPlan({ repositoryRoot: root }).catch(() => null),
+      healthLayoutPlan({ root, revision: snapshot.revision, now }),
       readTerminalKnowledgeLifecycleCacheEntry({
         root,
         repositoryRevision: snapshot.revision,
@@ -158,9 +158,9 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       linkWeb,
       nodeHealth,
     });
-    // A racing repository edit never acquires a current-revision label.
-    if ((await captureTerminalRepositorySnapshot(root)).revision === snapshot.revision)
-      await publishRepositoryHealth(root, projection, generation);
+    // ADR-0601: the label is the revision captured before any read, so a racing repository edit
+    // leaves a projection whose label readers already see as an earlier revision, never current.
+    await publishRepositoryHealth(root, projection, generation);
     // ADR-0549: the learned notice is prepared here, off the prompt path. Failure loses one notice.
     await refreshLearnedNotice(root, now).catch(() => undefined);
     // ADR-0550: a weekly provider-free replay keeps the Find evaluation current.

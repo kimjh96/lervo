@@ -193,9 +193,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/repository-layout-migration.ts",
-      "contentHash": "sha256:09903da458d7d6ddcfbcbbe6ace6abed5bbe0177add32fbfa1ca04449f82f5a7",
+      "contentHash": "sha256:c95a7d3ab77f99e22cec8f116ab721c5582797522eaf873258ade2df190fe650",
       "responsibility": "Repository document-layout migration",
-      "rationale": "One exact layout transaction with virtual scanning, exact item content binding, and apply-time revalidation. Accounting lives in repository-layout-accounting.ts and the ADR-0583 capacity hold in repository-layout-capacity.ts. Classification, route evidence, durable apply, providers, lifecycle authority, ADR-0561 reverted-move holds, and health keep separate owners.",
+      "rationale": "One exact layout transaction with virtual scanning, exact item content binding, and apply-time revalidation. Accounting lives in repository-layout-accounting.ts and the ADR-0583 capacity hold in repository-layout-capacity.ts. Classification, route evidence, durable apply, providers, lifecycle authority, ADR-0561 reverted-move holds, and health keep separate owners; record decoding memory lives in normalization-record-version.ts.",
       "disposition": "cohesive"
     },
     {

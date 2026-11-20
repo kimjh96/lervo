@@ -3,7 +3,7 @@ import { lstat, open, readFile } from "node:fs/promises";
 import { posix, resolve } from "node:path";
 
 import { fromMarkdown } from "mdast-util-from-markdown";
-import { parse, stringify } from "yaml";
+import { stringify } from "yaml";
 import { loadDecisionTaxonomy } from "@lervo/project";
 
 import {
@@ -30,6 +30,8 @@ import {
 } from "./scanner.js";
 import { createDocumentMoveLineage } from "./source-lineage.js";
 import { loadStoredConcepts } from "./store-reader.js";
+import type { ConceptSidecarCache } from "./concept-sidecar-cache.js";
+import { legacyNormalizationRecord } from "./normalization-record-version.js";
 import { inspectGroupedDecisionPaths, type DecisionLayoutBlockerCode } from "./decision-layout.js";
 import {
   bytePreservedDocumentCollection,
@@ -339,8 +341,8 @@ async function normalizationOwnershipUpgradeOperations(
   });
   for (const path of paths) {
     const source = await readFile(resolve(root, path), "utf8");
-    const value = parse(source) as Record<string, unknown>;
-    if (value.schemaVersion !== 1) continue;
+    const value = legacyNormalizationRecord(source);
+    if (value === null) continue;
     const content = stringify(
       {
         ...value,
@@ -500,6 +502,8 @@ export async function createRepositoryLayoutMigrationPlan(input: {
   supplementalSources?: RepositoryKnowledgeScanOptions["supplementalSources"];
   preparedScan?: RepositoryKnowledgePreparedScanOptions["preparedScan"];
   documentRouteContext?: DocumentRouteResolutionContext;
+  /** ADR-0601: a long-lived reader reuses concept decoding across plans; bytes are always read. */
+  conceptCache?: ConceptSidecarCache;
 }): Promise<RepositoryLayoutMigrationPlan> {
   const root = resolve(input.repositoryRoot);
   const taxonomyPath = resolve(root, ".lervo/knowledge/document-layout.yaml");
@@ -511,7 +515,7 @@ export async function createRepositoryLayoutMigrationPlan(input: {
         : { supplementalSources: input.supplementalSources }),
       ...(input.preparedScan === undefined ? {} : { preparedScan: input.preparedScan }),
     }),
-    loadStoredConcepts(root),
+    loadStoredConcepts(root, input.conceptCache),
     recordedGeneratedKnowledgePaths(root),
     loadDecisionTaxonomy(root),
   ]);

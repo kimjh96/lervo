@@ -16,13 +16,15 @@ export function subscribeKnowledgeWakeups(
   storage: Pick<ProjectStorage, "paths" | "events">,
   notify: () => void,
   watchRepository: typeof watchRepositoryChanges = watchRepositoryChanges,
+  /** ADR-0601: whether the resident's last verdict is owner; a non-owner ignores the outbox. */
+  owner: () => boolean = () => true,
 ): () => void {
   const stopEvents = watchProjectEventChanges(
     {
       path: storage.paths.eventDatabase,
       latest: () => storage.events.latest(),
       // ADR-0598: the resident's own outcome records never wake it, as on the CLI host.
-      latestHash: () => residentWakeKey(storage.events),
+      latestHash: () => residentWakeKey(storage.events, owner()),
     },
     notify,
     // ADR-0597: the same watched poll as the CLI host resident.

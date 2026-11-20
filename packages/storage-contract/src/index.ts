@@ -104,6 +104,17 @@ export interface ListOutboxOptions {
   limit?: number;
 }
 
+/**
+ * ADR-0601: one destination's unacknowledged deliveries in aggregate. `earliestAvailableAt` is
+ * the earliest `availableAt` of an unleased delivery, `earliestLeaseExpiresAt` the earliest lease
+ * expiry of a leased one; both are null when there is none.
+ */
+export interface OutboxSummary {
+  outstanding: number;
+  earliestAvailableAt: string | null;
+  earliestLeaseExpiresAt: string | null;
+}
+
 export interface OutboxTransaction extends EventStoreTransaction {
   enqueue(request: EnqueueOutboxRequest): EnqueueOutboxResult;
   outstandingCount(destinationId: string): number;
@@ -164,6 +175,11 @@ export interface OutboxStore extends EventStore<OutboxTransaction> {
   readonly reports?: ReportReader;
   enqueue(request: EnqueueOutboxRequest): EnqueueOutboxResult;
   outstandingCount(destinationId: string): number;
+  /**
+   * ADR-0601: the destination's outstanding count and earliest due moments from one aggregate
+   * read, decoding no delivery. Optional: without it a reader lists the deliveries instead.
+   */
+  outboxSummary?(destinationId: string): OutboxSummary;
   claim(request: ClaimOutboxRequest): OutboxDelivery[];
   acknowledge(request: AcknowledgeOutboxRequest): AcknowledgeOutboxResult;
   reschedule(request: RescheduleOutboxRequest): RescheduleOutboxResult;

@@ -33,6 +33,20 @@ export const CONVERGENCE_ARTIFACT_GRACE_MS = 14 * 24 * 60 * 60 * 1000;
 
 /** Bounds the distinct references the inventory retains, never the length of history (ADR-0554). */
 const maximumRetainedReferences = 200_000;
+export const MAXIMUM_RETAINED_CAS_REFERENCES = maximumRetainedReferences;
+
+/**
+ * ADR-0601: whether an event can change more than the plain roots. Convergence records, every
+ * assignment event and any event naming an assignment take part in a lifecycle that can release
+ * artifacts; any other event only roots the references in its payload.
+ */
+export function retentionLifecycleEvent(event: EventEnvelope): boolean {
+  return (
+    CONVERGENCE.has(event.type) ||
+    event.type.startsWith("assignment.") ||
+    typeof event.payload.assignmentId === "string"
+  );
+}
 
 export interface CasRetentionRoots {
   head: string | null;
