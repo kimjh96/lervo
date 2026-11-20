@@ -9,7 +9,7 @@
   },
   "scripts": {
     "brand:check": "node scripts/quality/check-brand.mjs",
-    "architecture:check": "node scripts/quality/check-package-boundaries.mjs && node scripts/quality/check-platform-boundary.mjs",
+    "architecture:check": "node scripts/quality/check-package-boundaries.mjs && node scripts/quality/check-platform-boundary.mjs && node scripts/quality/check-idle-timers.mjs",
     "architecture:baseline": "node scripts/quality/check-platform-boundary.mjs --refresh-baseline",
     "build": "pnpm -r --sort --workspace-concurrency=1 run build",
     "check": "pnpm quality:check && pnpm evaluation:natural-language:check && pnpm release:completion:check && pnpm architecture:check && pnpm typecheck && pnpm build && pnpm test && pnpm release:metadata:check && pnpm smoke:built-cli && pnpm smoke:built-hub && pnpm smoke:hub-distribution && pnpm smoke:built-node && pnpm smoke:node-distribution && pnpm smoke:packed-cli && pnpm smoke:registry-publish && pnpm docs:check && pnpm brand:check",

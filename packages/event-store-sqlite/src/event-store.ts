@@ -31,6 +31,8 @@ import {
   validateCheckpointOptions,
   type CheckpointOptions,
 } from "./checkpoint-policy.js";
+import { recordCommitTime } from "./change-channel-commit-times.js";
+import { notifyEventStoreChange } from "./change-channel-notify.js";
 import { ensureDatabasePath } from "./database-lifecycle.js";
 import { bindDatabaseMetadata } from "./database-metadata.js";
 import { EventStoreError } from "./errors.js";
@@ -218,6 +220,9 @@ export class SQLiteEventStore implements OutboxStore {
     }
     this.database.exec("BEGIN IMMEDIATE;");
     this.transactionActive = true;
+    let committed = false;
+    // ADR-0602: the head before the work, so the commit's own sequence range is known after it.
+    const headBefore = this.events.latestSeq();
     try {
       // Every write first confirms that this handle still owns the expected store.
       this.verifyBinding();
@@ -237,13 +242,20 @@ export class SQLiteEventStore implements OutboxStore {
           "The event store transaction callback must be synchronous.",
         );
       }
+      // ADR-0602: the commit's time, recorded while the write lock still serializes writers.
+      const headAfter = this.events.latestSeq();
+      if (headAfter !== null && headAfter !== headBefore)
+        recordCommitTime(this.path, { from: (headBefore ?? 0) + 1, to: headAfter });
       this.database.exec("COMMIT;");
+      committed = true;
       return result;
     } catch (error) {
       this.database.exec("ROLLBACK;");
       throw error;
     } finally {
       this.transactionActive = false;
+      // ADR-0602: subscribers in any process wake on the commit, never on a timer.
+      if (committed) notifyEventStoreChange(this.path);
     }
   }
 
@@ -289,6 +301,11 @@ export class SQLiteEventStore implements OutboxStore {
   latest() {
     this.assertOpen();
     return this.events.latest();
+  }
+
+  latestSeq() {
+    this.assertOpen();
+    return this.events.latestSeq();
   }
 
   latestHash() {

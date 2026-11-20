@@ -38,6 +38,8 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
     private readonly now: () => Date = () => new Date(),
   ) {}
 
+  async verifyForPublish(): Promise<void> {}
+
   async readRevisionChain(): Promise<LocalWorkstreamRevision[]> {
     const current = await readCurrentWorkstreamState(this.repositoryRoot);
     const recorded = allEvents(this.events).filter(

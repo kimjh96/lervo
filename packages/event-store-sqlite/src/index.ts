@@ -1,5 +1,21 @@
 export * from "./event-store.js";
 export * from "./errors.js";
+export {
+  eventStoreChannelDirectory,
+  eventStoreChannelLocation,
+  inspectEventStoreChannel,
+  listenEventStoreChanges,
+  notifyEventStoreChange,
+  type EventStoreChannelIssue,
+  type EventStoreChannelIssueCode,
+  type EventStoreChannelListener,
+} from "./change-channel.js";
+export {
+  localBootKey,
+  localProcessAlive,
+  localProcessIdentity,
+  type LocalProcessIdentity,
+} from "./process-identity.js";
 export * from "./inspection.js";
 export {
   computeEventHash,

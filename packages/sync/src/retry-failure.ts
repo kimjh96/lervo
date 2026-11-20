@@ -10,7 +10,7 @@ export class RetryableSyncFailure extends Error {
 
 export type RegistrationFailureCode = Exclude<
   SyncRetryFailureCode,
-  "invalid_sync_ack" | "local_batch_invalid"
+  "invalid_sync_ack" | "local_batch_invalid" | "local_history_invalid"
 >;
 
 export function registrationFailureCode(code: SyncRetryFailureCode): RegistrationFailureCode {

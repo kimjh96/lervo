@@ -17,7 +17,6 @@ export {
   type ConvergenceRoleBinding,
 } from "./delegation.js";
 export { startAutonomousKnowledgeWorker } from "./loop.js";
-export { RESIDENT_EVENT_POLL_MILLISECONDS } from "./resident-event-wakeup.js";
 export { foreignEventsHead, RESIDENT_AUTHORED_EVENT_TYPES } from "./resident-authored-events.js";
 export { residentWakeKey } from "./convergence-queue-observation.js";
 export { knowledgeCandidateStoreIdentity } from "./source-fingerprint.js";

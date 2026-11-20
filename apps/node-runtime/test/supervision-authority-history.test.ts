@@ -19,21 +19,13 @@ afterEach(async () => {
 async function fixture() {
   const f = await supervisionFixture(roots);
   const storage = await openProjectStorage(f.root);
-  let at = Date.now();
-  const reader = new SupervisionAuthorityHistory(
-    storage.events,
-    storage.paths.eventDatabase,
-    storage.manifest.projectId,
-    () => at,
-  );
-  return {
-    ...f,
-    storage,
-    reader,
-    advance: (ms: number) => {
-      at += ms;
-    },
-  };
+  const open = () =>
+    new SupervisionAuthorityHistory(
+      storage.events,
+      storage.paths.eventDatabase,
+      storage.manifest.projectId,
+    );
+  return { ...f, storage, reader: open(), open };
 }
 
 describe("incremental supervision authority history", () => {
@@ -143,40 +135,31 @@ describe("incremental supervision authority history", () => {
     }
   });
 
-  it("schedules a tail audit after each read and re-proves history only every 900 seconds", async () => {
+  it("re-reads no history across any number of idle reads; a new reader re-proves it (ADR-0602)", async () => {
     const f = await fixture();
     try {
       await f.reader.read();
-      const first = f.reader.nextAuditAt()!;
       const list = vi.spyOn(f.storage.events, "list");
-      for (let minute = 1; minute <= 14; minute += 1) {
-        f.advance(60_000);
-        await f.reader.read();
-        expect(f.reader.nextAuditAt()).toBe(first + minute * 60_000);
-      }
-      expect(list.mock.calls.some(([options]) => options?.afterSeq === 0)).toBe(false);
-      f.advance(60_000);
-      await f.reader.read();
+      for (let read = 0; read < 360; read += 1) await f.reader.read();
+      expect(list).not.toHaveBeenCalled();
+      await f.open().read();
       expect(list.mock.calls.some(([options]) => options?.afterSeq === 0)).toBe(true);
     } finally {
       await f.storage.close();
     }
   });
 
-  it("observes an appended authority event on the tail audit without a full re-read", async () => {
+  it("observes an appended authority event from the anchor without a full re-read", async () => {
     const f = await fixture();
     try {
-      let at = Date.now();
       const reader = new SupervisionAuthorityHistory(
         f.storage.events,
         f.storage.paths.eventDatabase,
         f.storage.manifest.projectId,
-        () => at,
         "execution",
       );
       const before = await reader.read();
       const head = f.storage.events.latest()!;
-      at += 60_000;
       f.storage.events.append({
         eventId: `evt_${"9".repeat(32)}`,
         projectId: f.owner.projectId,
@@ -199,34 +182,31 @@ describe("incremental supervision authority history", () => {
     }
   });
 
-  it.each([900_000, -1])(
-    "revalidates historical bytes on audit expiry or clock rollback (%s)",
-    async (advance) => {
-      const f = await fixture();
+  it("rejects rewritten historical bytes when a reader next opens (ADR-0602)", async () => {
+    const f = await fixture();
+    try {
+      await f.reader.read();
+      const raw = new DatabaseSync(f.storage.paths.eventDatabase);
+      const original = sqliteRow(
+        raw.prepare("SELECT payload_json FROM events WHERE seq = 1").get(),
+      )!.payload_json;
+      const setPayload = (payload: unknown) =>
+        raw.prepare("UPDATE events SET payload_json = ? WHERE seq = 1").run(payload as string);
+      const reopened = f.open();
       try {
-        await f.reader.read();
-        const raw = new DatabaseSync(f.storage.paths.eventDatabase);
-        const original = sqliteRow(
-          raw.prepare("SELECT payload_json FROM events WHERE seq = 1").get(),
-        )!.payload_json;
-        const setPayload = (payload: unknown) =>
-          raw.prepare("UPDATE events SET payload_json = ? WHERE seq = 1").run(payload as string);
-        try {
-          raw.exec("DROP TRIGGER events_no_update");
-          setPayload(JSON.stringify({ ...JSON.parse(String(original)), changedHistory: true }));
-          f.advance(advance);
-          // The audit rereads history from the first event, where the store rejects the change.
-          await expect(f.reader.read()).rejects.toMatchObject({ code: "integrity_failed" });
-          setPayload(original);
-        } finally {
-          raw.close();
-        }
-        expect((await f.reader.read()).length).toBeGreaterThan(0);
+        raw.exec("DROP TRIGGER events_no_update");
+        setPayload(JSON.stringify({ ...JSON.parse(String(original)), changedHistory: true }));
+        // A newly opened reader reads history from the first event, where the store rejects it.
+        await expect(reopened.read()).rejects.toMatchObject({ code: "integrity_failed" });
+        setPayload(original);
       } finally {
-        await f.storage.close();
+        raw.close();
       }
-    },
-  );
+      expect((await reopened.read()).length).toBeGreaterThan(0);
+    } finally {
+      await f.storage.close();
+    }
+  });
 
   it("follows events a worker appends during the observation instead of failing", async () => {
     const f = await fixture();
@@ -280,15 +260,13 @@ describe("incremental supervision authority history", () => {
     for (let index = 0; index < 100_050; index += 1) f.append("adapter.started", runId);
     f.append("organization.team.bound", runId);
     const authority = (rows: typeof f.rows) => rows.filter((row) => row.type !== "adapter.started");
-    let at = Date.now();
-    const reader = new SupervisionAuthorityHistory(f.events, f.databasePath, projectId, () => at);
+    const reader = new SupervisionAuthorityHistory(f.events, f.databasePath, projectId);
     expect(await reader.read()).toEqual(authority(f.rows));
 
     // An appended authority change is read from the anchor without re-streaming history.
     const head = f.rows.at(-1)!.seq;
     f.append("work.supervision.mandate.installed", runId);
     const list = vi.spyOn(f.events, "list");
-    at += 60_000;
     expect(await reader.read()).toEqual(authority(f.rows));
     expect(list.mock.calls).toEqual([[{ afterSeq: head, limit: 1000 }]]);
 
@@ -296,14 +274,13 @@ describe("incremental supervision authority history", () => {
     f.rows.splice(50_000);
     expect(await reader.read()).toEqual(authority(f.rows));
 
-    // The periodic audit re-proves every link below the anchor.
+    // A newly opened reader re-proves every link below the open reader's anchor.
     for (let index = 0; index < 60_000; index += 1) f.append("adapter.started", runId);
     expect(await reader.read()).toHaveLength(1);
     const rewritten = { ...eventWithoutHash(f.rows[70_000]!), previousHash: f.rows[0]!.eventHash };
     f.rows[70_000] = { ...rewritten, eventHash: computeEventHash(rewritten) };
-    at += 60_000;
     expect(await reader.read()).toHaveLength(1);
-    at += 900_000;
-    await expect(reader.read()).rejects.toThrow("event chain is invalid");
+    const reopened = new SupervisionAuthorityHistory(f.events, f.databasePath, projectId);
+    await expect(reopened.read()).rejects.toThrow("event chain is invalid");
   }, 60_000);
 });

@@ -163,11 +163,53 @@ export class SQLiteEventRepository {
     return tail;
   }
 
+  /** The stored hash of the event at `seq`, or undefined when there is none; no decode. */
+  private hashAt(seq: number): string | undefined {
+    const row = sqliteRow(
+      preparedStatement(
+        this.database,
+        "SELECT event_hash FROM events WHERE project_id = ? AND seq = ?",
+      ).get(this.projectId, seq),
+    );
+    return typeof row?.event_hash === "string" ? row.event_hash : undefined;
+  }
+
+  /**
+   * ADR-0602: every event a caller reads is proven at use. Its own hash is checked when it is
+   * decoded, and here its links to the stored events before and after it, so a row rewritten
+   * after it was first verified is rejected wherever it is read.
+   */
+  private linkedToNeighbours(first: EventEnvelope, last: EventEnvelope = first): void {
+    const previous = first.seq > 1 ? this.hashAt(first.seq - 1) : null;
+    if (first.previousHash !== previous)
+      throw new EventStoreError(
+        "integrity_failed",
+        `The event chain coordinates break at ${first.eventId}.`,
+      );
+    const next = sqliteRow(
+      preparedStatement(
+        this.database,
+        "SELECT previous_hash FROM events WHERE project_id = ? AND seq = ?",
+      ).get(this.projectId, last.seq + 1),
+    );
+    if (next !== undefined && next.previous_hash !== last.eventHash)
+      throw new EventStoreError(
+        "integrity_failed",
+        `The event chain coordinates break after ${last.eventId}.`,
+      );
+  }
+
   get(eventId: string): EventEnvelope | null {
     const row = sqliteRow(
-      preparedStatement(this.database, "SELECT * FROM events WHERE event_id = ?").get(eventId),
+      preparedStatement(
+        this.database,
+        "SELECT * FROM events WHERE project_id = ? AND event_id = ?",
+      ).get(this.projectId, eventId),
     );
-    return row ? rowToEvent(row) : null;
+    if (!row) return null;
+    const event = rowToEvent(row);
+    this.linkedToNeighbours(event);
+    return event;
   }
 
   latest(): EventEnvelope | null {
@@ -178,6 +220,17 @@ export class SQLiteEventRepository {
       ).get(this.projectId),
     );
     return row ? rowToEvent(row) : null;
+  }
+
+  /** The head sequence only, with no row decode (ADR-0602 stall detection). */
+  latestSeq(): number | null {
+    const row = sqliteRow(
+      preparedStatement(
+        this.database,
+        "SELECT seq FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1",
+      ).get(this.projectId),
+    );
+    return typeof row?.seq === "number" ? row.seq : null;
   }
 
   /** The head hash only: no row decode, schema validation or rehash (ADR-0597). */
@@ -229,7 +282,7 @@ export class SQLiteEventRepository {
     }
     const conditions = ["project_id = ?"];
     const parameters: (string | number)[] = [this.projectId];
-    if (options.runId) {
+    if (options.runId !== undefined) {
       conditions.push("run_id = ?");
       parameters.push(options.runId);
     }
@@ -244,7 +297,13 @@ export class SQLiteEventRepository {
         .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
         .all(...parameters),
     );
-    return linkedEvents(rows.map(rowToEvent));
+    const events = linkedEvents(rows.map(rowToEvent));
+    // A filtered page skips sequences, so each returned run of adjacent events is checked at its
+    // edges; an unfiltered page is one run.
+    if (events.length > 0 && options.runId === undefined && types === undefined)
+      this.linkedToNeighbours(events[0]!, events.at(-1)!);
+    else for (const event of events) this.linkedToNeighbours(event);
+    return events;
   }
 
   verifyIntegrity(): EventChainReport {

@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { lstat } from "node:fs/promises";
 import { canonicalJson } from "@lervo/event-contract";
 import type { SQLiteEventStore } from "@lervo/event-store-sqlite";
@@ -15,39 +14,46 @@ import {
 import type { ArtifactStore } from "@lervo/storage-contract";
 import type { LocalWorkstreamRevision } from "@lervo/sync";
 
-const maximumCachedRevisions = 4_096;
+/**
+ * Bounds on the artifact cache. Above either, only the cached snapshots are dropped; the cursor
+ * and the event bindings stay, so the reader never re-verifies the log because history grew.
+ */
+const maximumCachedRevisions = 65_536;
 const maximumCachedBytes = 32 * 1024 * 1024;
 
 type Recorded = WorkstreamSnapshotRecordedEventPayload;
 
-/** A rebuildable, process-local projection; persisted events and CAS remain authoritative. */
+/**
+ * A rebuildable, process-local projection; persisted events and CAS remain authoritative.
+ *
+ * ADR-0602: the whole history and every snapshot artifact are verified when the reader first
+ * reads and again whenever its anchor no longer matches the store. Every later read verifies each
+ * appended link from the anchor. There is no periodic re-read: an idle reader decodes nothing.
+ * Before a revision leaves this host, `verifyForUse` re-proves exactly what is sent.
+ */
 export class WorkstreamRevisionReader {
   private cursor: EventEnvelope | null = null;
   private recorded = new Map<string, Recorded>();
+  /** The event that recorded each snapshot, as verified when it was read. */
+  private bindings = new Map<string, { eventId: string; eventHash: string }>();
   private validated = new Map<string, LocalWorkstreamRevision>();
   private latestByWorkstream = new Map<string, Recorded>();
-  private auditedAt: number | null = null;
   private cachedBytes = 0;
   private chain: { head: string; revisions: LocalWorkstreamRevision[] } | null = null;
   private databaseIdentity: string | null = null;
-  private readonly auditIntervalMs: number;
 
   constructor(
     private readonly repositoryRoot: string,
     private readonly events: SQLiteEventStore,
     private readonly artifacts: ArtifactStore,
-    private readonly now: () => number = Date.now,
-  ) {
-    const phase = createHash("sha256").update(repositoryRoot).digest().readUInt32BE(0);
-    this.auditIntervalMs = 45_000 + (phase % 15_001);
-  }
+  ) {}
 
   private reset(): void {
     this.cursor = null;
     this.recorded.clear();
+    this.bindings.clear();
     this.validated.clear();
     this.latestByWorkstream.clear();
-    this.auditedAt = null;
     this.cachedBytes = 0;
     this.chain = null;
   }
@@ -72,15 +78,7 @@ export class WorkstreamRevisionReader {
       throw new Error("The local event database was replaced; reopen the runtime.");
     }
     this.databaseIdentity = identity;
-    const at = this.now();
-    if (!Number.isFinite(at)) throw new Error("The workstream audit clock is invalid.");
-    if (
-      this.auditedAt === null ||
-      at < this.auditedAt ||
-      at - this.auditedAt >= this.auditIntervalMs
-    ) {
-      this.reset();
-    } else if (this.cursor !== null) {
+    if (this.cursor !== null) {
       const anchor = this.events.get(this.cursor.eventId);
       const tail = this.events.latest();
       if (
@@ -93,10 +91,7 @@ export class WorkstreamRevisionReader {
         this.reset();
     }
     const head = await this.replicatedHeadHash();
-    if (head === null) {
-      this.auditedAt ??= at;
-      return [];
-    }
+    if (head === null) return [];
 
     if (this.chain?.head === head) return structuredClone(this.chain.revisions);
 
@@ -117,7 +112,6 @@ export class WorkstreamRevisionReader {
       reverse.push(revision);
       nextHash = payload.previousSnapshotContentHash;
     }
-    this.auditedAt ??= at;
     const revisions = reverse.reverse();
     for (let index = 1; index < revisions.length; index += 1) {
       const parent = revisions[index - 1]!;
@@ -135,9 +129,41 @@ export class WorkstreamRevisionReader {
     }
     this.chain = { head, revisions };
     const result = structuredClone(this.chain.revisions);
-    if (this.recorded.size > maximumCachedRevisions || this.cachedBytes > maximumCachedBytes)
-      this.reset();
+    if (this.validated.size > maximumCachedRevisions || this.cachedBytes > maximumCachedBytes) {
+      this.validated.clear();
+      this.chain = null;
+      this.cachedBytes = 0;
+    }
     return result;
+  }
+
+  /**
+   * ADR-0602: re-proves the revisions about to leave this host, right before they do. The anchor
+   * must still be the verified event, each revision's recording event must still be the exact
+   * verified row (the store re-checks its hash on read), and each artifact must still be present
+   * with its content hash. A failure resets the reader, so the next read verifies from the start.
+   */
+  async verifyForUse(revisions: readonly LocalWorkstreamRevision[]): Promise<void> {
+    // A reader reset since the revisions were read verifies the history again first.
+    if (this.cursor === null) await this.read();
+    try {
+      const cursor = this.cursor;
+      const anchor = cursor === null ? null : this.events.get(cursor.eventId);
+      if (cursor === null || anchor?.seq !== cursor.seq || anchor.eventHash !== cursor.eventHash)
+        throw new Error("The local workstream anchor changed before use.");
+      for (const revision of revisions) {
+        const binding = this.bindings.get(revision.snapshotContentHash);
+        const row = binding === undefined ? null : this.events.get(binding.eventId);
+        if (binding === undefined || row?.eventHash !== binding.eventHash)
+          throw new Error("A local workstream event changed before use.");
+        const uri = `lervo-cas://sha256/${revision.snapshotContentHash.slice("sha256:".length)}`;
+        // get verifies existence and the content hash.
+        await this.artifacts.get(uri);
+      }
+    } catch (error) {
+      this.reset();
+      throw error;
+    }
   }
 
   /**
@@ -198,6 +224,10 @@ export class WorkstreamRevisionReader {
             throw new Error("A local workstream hash has conflicting event bindings.");
           }
           this.recorded.set(payload.snapshotContentHash, payload);
+          this.bindings.set(payload.snapshotContentHash, {
+            eventId: event.eventId,
+            eventHash: event.eventHash,
+          });
           const previousHead = this.latestByWorkstream.get(payload.workstreamId);
           if (
             previousHead !== undefined &&

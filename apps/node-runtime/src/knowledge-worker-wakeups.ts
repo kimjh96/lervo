@@ -1,8 +1,5 @@
 import { watchProjectEventChanges, type ProjectStorage } from "@lervo/project-storage";
-import {
-  RESIDENT_EVENT_POLL_MILLISECONDS,
-  residentWakeKey,
-} from "@lervo/repository-knowledge-runtime";
+import { residentWakeKey } from "@lervo/repository-knowledge-runtime";
 
 import { watchRepositoryChanges } from "./repository-change-watch.js";
 
@@ -26,9 +23,8 @@ export function subscribeKnowledgeWakeups(
       // ADR-0598: the resident's own outcome records never wake it, as on the CLI host.
       latestHash: () => residentWakeKey(storage.events, owner()),
     },
+    // ADR-0602: the same channel-driven wait as the CLI host resident, with no poll.
     notify,
-    // ADR-0597: the same watched poll as the CLI host resident.
-    { watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS },
   );
   let stopped = false;
   let stopRepository: (() => void) | undefined;

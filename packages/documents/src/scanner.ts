@@ -27,7 +27,9 @@ function compareText(left: string, right: string): number {
 function isExcluded(path: string, configured: ReadonlySet<string>): boolean {
   const segments = path.split("/");
   if (segments.includes(".git") || segments.includes("node_modules")) return true;
-  if (path === ".lervo/state" || path.startsWith(".lervo/state/")) return true;
+  // Derived state, durable data and the live event-channel FIFOs are never documents (ADR-0602).
+  for (const runtime of [".lervo/state", ".lervo/data", ".lervo/run"])
+    if (path === runtime || path.startsWith(`${runtime}/`)) return true;
   for (const excluded of configured) {
     if (path === excluded || path.startsWith(`${excluded}/`)) return true;
   }

@@ -59,7 +59,6 @@ export class SupervisionTaskSource {
       databasePath: storage.paths.eventDatabase,
       projectId: storage.manifest.projectId,
       workstreamId: binding.workstreamId,
-      now: () => Date.parse(now()),
     });
     this.authorityHistory =
       authorityHistory ??
@@ -67,7 +66,6 @@ export class SupervisionTaskSource {
         storage.events,
         storage.paths.eventDatabase,
         storage.manifest.projectId,
-        () => Date.parse(now()),
       );
   }
 
@@ -234,13 +232,6 @@ export class SupervisionTaskSource {
   /** Checks the history anchor and tail without observing the task source. */
   async auditHistory(): Promise<void> {
     await this.history.read();
-  }
-
-  nextAuditAt() {
-    const audits = [this.history.nextAuditAt(), this.authorityHistory.nextAuditAt()].filter(
-      (value): value is number => value !== null,
-    );
-    return audits.length === 0 ? null : Math.min(...audits);
   }
 
   async readOwnerControlReadiness(plan: OperatingActionPlanV1): Promise<OwnerControlReadinessV1> {

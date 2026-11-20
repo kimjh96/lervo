@@ -62,6 +62,7 @@ function local(
 ): WorkstreamReplicationLocalPort & { importCurrent: ReturnType<typeof vi.fn> } {
   return {
     readRevisionChain: async () => structuredClone(chain),
+    verifyForPublish: async () => undefined,
     importCurrent: vi.fn(async () => undefined),
   };
 }
@@ -160,6 +161,47 @@ describe("workstream replication cycle", () => {
     expect(publishWorkstream).toHaveBeenCalledTimes(1);
     expect(publishWorkstream.mock.calls[0]?.[0].snapshotContentHash).toBe(secondHash);
     expect(readWorkstream).toHaveBeenCalledTimes(2);
+  });
+
+  it("publishes nothing when the revisions changed after they were read (ADR-0602)", async () => {
+    const registration = createProjectRegistrationRequest({
+      manifest,
+      destinationId,
+      requestedAt: "2026-08-24T00:00:00.000Z",
+    });
+    const first = snapshot(1);
+    const second = snapshot(2);
+    const state = local([
+      { snapshot: first, snapshotContentHash: firstHash, previousSnapshotContentHash: null },
+      { snapshot: second, snapshotContentHash: secondHash, previousSnapshotContentHash: firstHash },
+    ]);
+    const verifyForPublish = vi.fn(async (_revisions: readonly LocalWorkstreamRevision[]) => {
+      throw new Error("A local workstream event changed before use.");
+    });
+    const publishWorkstream = vi.fn();
+    const readWorkstream = vi.fn().mockResolvedValue(
+      response({
+        schemaVersion: 1,
+        status: "current",
+        projectId: registration.project.projectId,
+        repositoryIdentityHash: registration.projectIdentityHash,
+        heads: [head(first, firstHash, null)],
+        snapshot: first,
+      }),
+    );
+    await expect(
+      runWorkstreamReplicationCycle({
+        local: { ...state, verifyForPublish },
+        transport: { publishWorkstream, readWorkstream },
+        registration,
+        destinationId,
+        expectedPeerIdentityHash: peerIdentityHash,
+      }),
+    ).rejects.toMatchObject({ code: "local_state_invalid" });
+    expect(verifyForPublish.mock.calls[0]?.[0]).toEqual([
+      { snapshot: second, snapshotContentHash: secondHash, previousSnapshotContentHash: firstHash },
+    ]);
+    expect(publishWorkstream).not.toHaveBeenCalled();
   });
 
   it("imports a newer unique head after publishing local ancestry", async () => {

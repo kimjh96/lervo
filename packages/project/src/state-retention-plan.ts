@@ -37,7 +37,12 @@ const maximumFiles = 100_000;
  * ADR-0518: Git worktrees whose records and removal belong to the workspace lifecycle. Deleting
  * their files here would strand registered worktrees, and their dependency links are not state.
  */
-const lifecycleOwnedRoots = new Set(["knowledge/convergence-workspaces"]);
+// ADR-0602: live subscribers and repository watches own their records and clear them themselves.
+const lifecycleOwnedRoots = new Set([
+  "knowledge/convergence-workspaces",
+  "event-channel",
+  "repository-watch",
+]);
 const maximumBytes = 8 * 1024 * 1024 * 1024;
 
 function sha256(value: string): string {

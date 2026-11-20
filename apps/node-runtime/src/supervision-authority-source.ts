@@ -32,7 +32,6 @@ function oneShotSourceHistory(storage: ProjectStorage): SupervisionAuthorityHist
     storage.events,
     storage.paths.eventDatabase,
     storage.manifest.projectId,
-    Date.now,
     (event) =>
       isSupervisionAuthorityEvent(event) || operatingWorkScopeEventTypes.includes(event.type),
   );

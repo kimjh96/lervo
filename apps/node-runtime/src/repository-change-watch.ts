@@ -14,6 +14,7 @@ import {
 } from "./repository-change-classification.js";
 import { listRepositoryChangeDirectories } from "./repository-change-directories.js";
 import { observeRepositoryChangeHint } from "./repository-change-observation.js";
+import { repositoryWatchReporter } from "./repository-watch-state.js";
 import {
   defaultRepositoryChangeWatchMode,
   foldsRepositoryPathCase,
@@ -39,6 +40,7 @@ export async function watchRepositoryChanges(
   )
     throw new Error("Repository watcher recovery interval is invalid.");
   const watchers = new Map<string, FSWatcher>();
+  const report = repositoryWatchReporter(root);
   let stopped = false;
   let refreshTimer: ReturnType<typeof setTimeout> | undefined;
   let refreshing: Promise<void> | undefined;
@@ -88,7 +90,9 @@ export async function watchRepositoryChanges(
       const watcher = watch(path, { persistent: false, recursive }, (event, filename) =>
         listener(event, filename?.toString()),
       );
-      watcher.on("error", () => {
+      watcher.on("error", (error) => {
+        // ADR-0602: a lost watch is visible until a new one is armed.
+        void report.failed(error);
         close();
         failed();
       });
@@ -184,9 +188,14 @@ export async function watchRepositoryChanges(
         });
     }, recoveryInterval);
     recoveryTimer.unref();
+    await report.armed();
   } catch (error) {
+    await report.failed(error);
     close();
     throw error;
   }
-  return close;
+  return () => {
+    close();
+    void report.armed();
+  };
 }

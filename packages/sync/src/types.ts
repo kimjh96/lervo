@@ -12,7 +12,9 @@ export type SyncRetryFailureCode =
   | "transport_authentication_failed"
   | "invalid_registration_response"
   | "invalid_sync_ack"
-  | "local_batch_invalid";
+  | "local_batch_invalid"
+  /** ADR-0602: the claimed range no longer matches the stored history; nothing was sent. */
+  | "local_history_invalid";
 
 export interface SyncClock {
   now(): string;

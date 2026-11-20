@@ -11,14 +11,14 @@ import type { NodeSupervisionStore } from "./supervision-store.js";
 type LoopOptions = Pick<Parameters<typeof createSupervisionChangeLoop>[0], "onFailure" | "onCycle">;
 
 /**
- * Decides when one supervision wakes and whether a wake-up needs a full observation. Hints, history
- * audits and every duty deadline wake the loop; the observation gate skips a wake-up that would
+ * Decides when one supervision wakes and whether a wake-up needs a full observation. Event-store
+ * change signals and every duty deadline wake the loop; the observation gate skips a wake-up that would
  * only repeat an unchanged observation.
  */
 export function createNodeSupervisionWakeSchedule(input: {
   repositoryRoot: string;
   runCycle(): Promise<OutcomeSupervisionCycleResult>;
-  store: Pick<NodeSupervisionStore, "subscribe" | "nextAuthorityAuditAt" | "auditHistory">;
+  store: Pick<NodeSupervisionStore, "subscribe" | "auditHistory">;
   peers: Pick<SupervisionPeerCatalog, "subscribe" | "nextAuditAt">;
   delivery: Pick<SupervisionResultDelivery, "nextRetryAt"> | null;
   events: Pick<EventStore, "latest">;
@@ -75,7 +75,6 @@ export function createNodeSupervisionWakeSchedule(input: {
           input.nextCheckAt(),
           peers.nextAuditAt(),
           delivery?.nextRetryAt() ?? null,
-          store.nextAuthorityAuditAt(),
         ].filter((value): value is number => value !== null);
         return candidates.length === 0 ? null : Math.min(...candidates);
       },

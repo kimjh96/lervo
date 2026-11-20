@@ -133,6 +133,7 @@ function cycle(
     imported,
     local: {
       readRevisionChain: async () => [...chain, ...imported],
+      verifyForPublish: async () => undefined,
       importCurrent: async (item) => {
         imported.push(item);
       },

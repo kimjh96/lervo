@@ -89,7 +89,7 @@ export async function inspectTerminalWorkspace(input: {
       const partition = partitionWorkspaceChanges({
         expectedPaths,
         changedPaths: host.changedPaths,
-        runtimeExcludedPaths: [".lervo/state", ".lervo/data"],
+        runtimeExcludedPaths: [".lervo/state", ".lervo/data", ".lervo/run"],
       });
       if (partition.outsideScope.length > 0)
         issues.push({ code: "workspace_path_escape", command: "lervo workspace inspect --json" });

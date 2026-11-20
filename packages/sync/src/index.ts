@@ -18,3 +18,4 @@ export * from "./knowledge-convergence-owner-client.js";
 export * from "./knowledge-instruction-candidate-client.js";
 export * from "./knowledge-convergence-host-client.js";
 export * from "./knowledge-convergence-definition-client.js";
+export * from "./delivery-verification.js";

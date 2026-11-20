@@ -28,6 +28,7 @@ export const HOST_LOCAL_REPLICA_PATHS = [
   CONVERGENCE_DELEGATION_PATH,
   ".lervo/state",
   ".lervo/data",
+  ".lervo/run",
 ] as const;
 
 async function hostLocalPathspecs(repositoryRoot: string): Promise<string[]> {

@@ -1,6 +1,5 @@
 import {
   applyStoredInstructionCandidates,
-  RESIDENT_EVENT_POLL_MILLISECONDS,
   startAutonomousKnowledgeWorker,
   createChangeReviewHost,
   admittedBackgroundContext,
@@ -77,20 +76,14 @@ export function startRepositoryKnowledgeLoop(input: {
         }),
       publish: createKnowledgePublisher(input.repositoryRoot),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
-      subscribe: (notify) =>
-        watchLocalEventChanges(input.store, notify, {
-          watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS,
-        }),
+      subscribe: (notify) => watchLocalEventChanges(input.store, notify),
       onFailure: input.onFailure,
     });
   const loop = new ConversationChangeLoop({
     intervalMs: 60_000,
     continueOnFailure: true,
     failureRetryMs: () => 60_000,
-    subscribe: (notify) =>
-      watchLocalEventChanges(input.store, notify, {
-        watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS,
-      }),
+    subscribe: (notify) => watchLocalEventChanges(input.store, notify),
     onFailure: input.onFailure,
     runCycle: async () => {
       if (input.host === undefined && input.storage === undefined)

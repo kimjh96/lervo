@@ -1,0 +1,266 @@
+{
+  "schemaVersion": 2,
+  "scope": [
+    "apps/node-runtime/src",
+    "packages/repository-knowledge-runtime/src",
+    "packages/project-storage/src",
+    "packages/event-store-sqlite/src",
+    "apps/cli/src/knowledge-host-residents.ts",
+    "apps/hub/src",
+    "apps/hub-runtime/src",
+    "apps/conversation/src",
+    "packages/hub-sync/src",
+    "packages/hub-sync-sqlite/src",
+    "packages/hub-command/src",
+    "packages/hub-control/src",
+    "packages/conversation-platform/src",
+    "packages/conversation-platform-sqlite/src",
+    "packages/conversation-control/src",
+    "packages/conversation-responder/src",
+    "packages/adapter-discord/src",
+    "packages/discord-gateway/src",
+    "packages/sync/src"
+  ],
+  "entries": [
+    {
+      "path": "apps/cli/src/knowledge-host-residents.ts",
+      "kind": "interval",
+      "count": 2,
+      "reason": "Host resident registry rescan (5 min) and status heartbeat (60 s). ADR-0602 step 2 replaces it with one earliest-deadline timer. The heartbeat goes in step 3."
+    },
+    {
+      "path": "apps/node-runtime/src/health.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Starting heartbeat while the runtime starts; it stops once the runtime settles. ADR-0602 step 3 replaces it with on-demand liveness."
+    },
+    {
+      "path": "apps/node-runtime/src/knowledge-worker-admission.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "A held Node resident rereads the writer coordinate while it waits for admission. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/knowledge-worker-admission.ts",
+      "kind": "period",
+      "name": "KNOWLEDGE_WORKER_ADMISSION_POLL_MILLISECONDS",
+      "reason": "The hold wait above."
+    },
+    {
+      "path": "apps/node-runtime/src/knowledge-worker-process.ts",
+      "kind": "rearm",
+      "count": 2,
+      "reason": "Restarts a crashed knowledge worker after 60 s; it is armed only after a failure, never while idle."
+    },
+    {
+      "path": "apps/node-runtime/src/node-requested-runtime-process.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Bounded readiness wait while a requested runtime starts; it ends at its deadline."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-change-watch.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Recovery check for a missed repository watch (60 s). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-change-watch.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "Debounce that re-arms once while a refresh is still running; it is armed only by a file change."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-knowledge-loop.ts",
+      "kind": "period",
+      "name": "intervalMs",
+      "reason": "Change loop cadence for the Node knowledge loop (60 s). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-replica-ssh-peer.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Watchdog reset for each change line a peer sends; it is armed only while a peer stream is open."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-replica-watch.ts",
+      "kind": "period",
+      "name": "fallbackIntervalMs",
+      "reason": "Recovery cadence when a peer cannot be watched. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-accepted-results.ts",
+      "kind": "period",
+      "name": "fullReadIntervalMs",
+      "reason": "Full reread of accepted results (15 min). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-change-loop.ts",
+      "kind": "period",
+      "name": "intervalMs",
+      "reason": "Supervision change loop with idle backoff (5 s to 5 min). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-managed-process.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Lease renewal while a managed process runs; it ends with the process."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-observation-gate.ts",
+      "kind": "period",
+      "name": "FULL_OBSERVATION_INTERVAL_MS",
+      "reason": "Full supervision observation at least every 15 min. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-reasoning-effects.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Authority revalidation while a reasoning effect runs; it ends with the effect."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-request-presence.ts",
+      "kind": "period",
+      "name": "presenceFullReadIntervalMs",
+      "reason": "Full reread of request presence (15 min). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-result-branch.ts",
+      "kind": "period",
+      "name": "intervalMs",
+      "reason": "Result branch change loop (60 s). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/project-storage/src/coordination-initialization-lock.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Bounded 10 ms retry while another process initializes the coordination home; it ends when the lock is taken or its attempts run out."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/cas-retention-budget.ts",
+      "kind": "period",
+      "name": "PROBE_INTERVAL_MS",
+      "reason": "Rate limit for a retention probe inside one read; it is not a timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/convergence-assignment-lease.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Lease renewal while a convergence assignment runs; it ends with the assignment."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/convergence-assignment-lease.ts",
+      "kind": "period",
+      "name": "RENEWAL_INTERVAL_MS",
+      "reason": "The lease renewal above."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/convergence-owner-host-derivation.ts",
+      "kind": "period",
+      "name": "PUBLICATION_PROBE_INTERVAL_MS",
+      "reason": "Age bound for a cached publication probe, compared on read; it is not a timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-store.ts",
+      "kind": "period",
+      "name": "POLL_MILLISECONDS",
+      "reason": "Admission wait base (1 s), used only while a waiter queues. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-store.ts",
+      "kind": "period",
+      "name": "MAXIMUM_POLL_MILLISECONDS",
+      "reason": "Admission wait ceiling (8 s), used only while a waiter queues. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Admission lease renewal while a full cycle holds the slot; it ends with the cycle."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission.ts",
+      "kind": "loop",
+      "count": 3,
+      "reason": "Admission and release-confirmation waits while a waiter queues or a release is confirmed. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
+      "kind": "period",
+      "name": "KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS",
+      "reason": "Recheck delay while publication checks run. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/loop.ts",
+      "kind": "interval",
+      "count": 5,
+      "reason": "Resident heartbeat (45 s), health age refresh, owner lease renewal, continuity tick and hold-release check. ADR-0602 step 2 replaces it with one earliest-deadline timer. The heartbeats go in step 3."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/loop.ts",
+      "kind": "rearm",
+      "count": 2,
+      "reason": "Resident reconcile timer with idle backoff, and the wake debounce that a running cycle re-arms through its pending flag. ADR-0602 step 2 replaces the reconcile timer with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/provider-call.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Source and authority check while a provider call runs; it ends with the call."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/provider-probe.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Validation while a provider probe runs; it ends with the probe."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-admission.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Hold heartbeat while a resident waits for admission. ADR-0602 step 3 replaces it with on-demand liveness."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-projection-fence.ts",
+      "kind": "period",
+      "name": "RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS",
+      "reason": "Projection event refresh bound (5 min). ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/upgrade-preemption.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Upgrade-waiting check while a cycle runs, so an upgrade preempts it; it ends with the cycle. ADR-0602 step 2 replaces it with one earliest-deadline timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/upgrade-preemption.ts",
+      "kind": "period",
+      "name": "UPGRADE_PREEMPTION_POLL_MILLISECONDS",
+      "reason": "The upgrade-waiting check above."
+    },
+    {
+      "path": "apps/node-runtime/src/knowledge-worker-wakeups.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "Restarts the repository watch 60 s after it failed; it is armed only after a failure and stops once a watch is armed."
+    },
+    {
+      "path": "packages/adapter-discord/src/rest-typing.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Discord typing indicator refresh while a reply is being written; Discord drops the indicator after 10 s, and the refresh ends with the reply."
+    },
+    {
+      "path": "packages/adapter-discord/src/rest-typing.ts",
+      "kind": "period",
+      "name": "DEFAULT_REFRESH_INTERVAL_MS",
+      "reason": "The typing indicator refresh above."
+    },
+    {
+      "path": "packages/conversation-control/src/deliberation-lease-worker.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Lease renewal while a deliberation runs; it ends with the deliberation."
+    }
+  ]
+}

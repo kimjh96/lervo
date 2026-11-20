@@ -12,7 +12,6 @@ export async function scopedHistoryFixture(roots: string[]) {
   const databasePath = resolve(root, "events.sqlite");
   await writeFile(databasePath, "owned event-store test port");
   const rows: ReturnType<typeof event>[] = [];
-  let at = Date.now();
   const append = (
     type: string,
     runId: string,
@@ -58,22 +57,7 @@ export async function scopedHistoryFixture(roots: string[]) {
     }),
     close() {},
   };
-  const reader = new ScopedSupervisionExecutionHistory({
-    events,
-    databasePath,
-    projectId,
-    workstreamId,
-    now: () => at,
-  });
-  return {
-    root,
-    databasePath,
-    rows,
-    events,
-    append,
-    reader,
-    advance: (ms: number) => {
-      at += ms;
-    },
-  };
+  const open = () =>
+    new ScopedSupervisionExecutionHistory({ events, databasePath, projectId, workstreamId });
+  return { root, databasePath, rows, events, append, reader: open(), open };
 }
