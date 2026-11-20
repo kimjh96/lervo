@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f834b249580443996e94b5d4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read knowledge queues, health layout inputs, and retention roots only when they change"
