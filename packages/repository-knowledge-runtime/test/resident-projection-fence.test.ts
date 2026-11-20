@@ -11,6 +11,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { CONVERGENCE_OWNER_FENCE_PATH } from "../src/convergence-owner-fence.js";
 import {
   RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS as HELD_MAXIMUM_AGE,
+  RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS as EVENT_INTERVAL,
   RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS as MAXIMUM_AGE,
   residentProjectionDue,
   residentProjectionRefresher,
@@ -95,7 +96,30 @@ describe("projection fence (ADR-0595)", () => {
     expect(r.state.refreshes).toBe(2);
   });
 
-  it("refreshes once after an event append, a state rewrite, a commit or an owner change", async () => {
+  it("refreshes after an event append only once the event interval passes (ADR-0599)", async () => {
+    const r = resident();
+    await r.offer();
+    // Every turn of an active session appends events; alone they refresh at most every 5 minutes.
+    r.state.head = "evt_2";
+    while (r.state.now < EVENT_INTERVAL - MINUTE) await r.tick();
+    expect(r.state.refreshes).toBe(1);
+    r.state.head = "evt_3";
+    await r.tick();
+    expect(r.state.now).toBe(EVENT_INTERVAL);
+    expect(r.state.refreshes).toBe(2);
+    // An unchanged head stays quiet afterwards, and a state rewrite still refreshes at once.
+    await r.tick();
+    expect(r.state.refreshes).toBe(2);
+    r.state.head = "evt_4";
+    await writeFile(
+      resolve(root, ".lervo/state/knowledge/freshness-cycle.json"),
+      '{"schemaVersion":1}\n',
+    );
+    await r.tick();
+    expect(r.state.refreshes).toBe(3);
+  });
+
+  it("refreshes once after a state rewrite, a commit or an owner change", async () => {
     const r = resident();
     await r.offer();
     const once = async (label: string, change: () => Promise<unknown> | void) => {
@@ -106,9 +130,6 @@ describe("projection fence (ADR-0595)", () => {
       await r.tick();
       expect(r.state.refreshes, `${label} is stable`).toBe(before + 1);
     };
-    await once("event append", () => {
-      r.state.head = "evt_2";
-    });
     await once("state rewrite", () =>
       writeFile(
         resolve(root, ".lervo/state/knowledge/freshness-cycle.json"),
@@ -210,7 +231,10 @@ describe("projection fence (ADR-0595)", () => {
   it("applies only the age bound to a tick during a running cycle", async () => {
     const r = resident();
     await r.offer();
-    r.state.head = "evt_2";
+    await writeFile(
+      resolve(root, ".lervo/state/knowledge/maintenance-observation.json"),
+      '{"schemaVersion":1}\n',
+    );
     await r.tick(true);
     expect(r.state.refreshes).toBe(1);
     // The cycle's own offer afterwards sees the change.
@@ -243,5 +267,11 @@ describe("projection fence (ADR-0595)", () => {
     expect(due({ held: true, last: { ...last, held: true }, now: HELD_MAXIMUM_AGE })).toBe(true);
     expect(due({ ageOnly: true, key: "other" })).toBe(false);
     expect(due({ ageOnly: true, now: MAXIMUM_AGE })).toBe(true);
+    // ADR-0599: an event head change alone waits for the event interval.
+    const seen = { ...last, eventHead: "h1" };
+    expect(due({ last: seen, eventHead: "h2", now: EVENT_INTERVAL - 1 })).toBe(false);
+    expect(due({ last: seen, eventHead: "h2", now: EVENT_INTERVAL })).toBe(true);
+    expect(due({ last: seen, eventHead: "h1", now: EVENT_INTERVAL })).toBe(false);
+    expect(due({ last: seen, eventHead: "h2", key: "other" })).toBe(true);
   });
 });

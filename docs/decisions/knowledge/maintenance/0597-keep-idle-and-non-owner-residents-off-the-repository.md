@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-20
 Amends: [ADR-0595](0595-back-off-held-and-failing-residents-and-refresh-health-only-on-change.md) (the projection key, refresh failures, and shared wake moments), [ADR-0486](../semantics/0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md) (which hosts observe the repository), [ADR-0467](../documents/0467-capture-owner-turns-semantically-in-the-knowledge-resident.md) and [ADR-0518](../../operations/storage/0518-retire-settled-convergence-checkouts-on-every-host.md) (the duties a non-owner keeps)
-Amended by: [ADR-0598](0598-keep-an-owner-resident-from-waking-itself.md) (resident outcome records stay out of the fence)
+Amended by: [ADR-0598](0598-keep-an-owner-resident-from-waking-itself.md) (resident outcome records stay out of the fence), [ADR-0599](0599-read-health-history-incrementally-and-fence-non-owners-without-git.md) (the projection key's event head, the heartbeat, and the non-owner fence)
 Related: [ADR-0466](../../coordination/sync/0466-coordinate-cross-host-knowledge-convergence-with-a-hub-owner-lease.md), [ADR-0554](../../execution/verification/0554-bound-what-a-reader-retains-never-history-length.md), [core loop roadmap](../../../roadmap/core-loop.md) item 6
 
 ## Context

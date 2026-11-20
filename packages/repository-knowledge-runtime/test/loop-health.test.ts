@@ -14,7 +14,8 @@ vi.mock("@lervo/repository-registry", async (original) => ({
   ...(await original<typeof import("@lervo/repository-registry")>()),
   readRepositoryHold: vi.fn(async () => null),
 }));
-vi.mock("../src/resident-health.js", () => ({
+vi.mock("../src/resident-health.js", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../src/resident-health.js")>()),
   recordKnowledgeResidentHealth: vi.fn(async () => undefined),
 }));
 vi.mock("../src/resident-cycle-state.js", () => ({

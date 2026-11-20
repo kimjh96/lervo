@@ -20,6 +20,12 @@ export const RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS = 15 * 60_000;
 export const RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS = 60 * 60_000;
 /** How often the resident checks the projection inputs: one stat pass, with no Git process. */
 export const RESIDENT_PROJECTION_CHECK_MILLISECONDS = 60_000;
+/**
+ * ADR-0599: an event-head change alone refreshes the projection at most this often. Every turn
+ * of an active terminal session appends events, and health shows them only as counts and stop
+ * times inside the 20-minute display window.
+ */
+export const RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS = 5 * 60_000;
 /** ADR-0597: a failed refresh is retried after 1, 2, 4 and 8 minutes, then every 15 minutes. */
 export const RESIDENT_PROJECTION_RETRY_CEILING_MILLISECONDS = 15 * 60_000;
 
@@ -64,26 +70,30 @@ function ownerProjection(root: string): unknown {
 
 /**
  * The digest of what the health projection reads: the repository head and index (ADR-0597, from
- * file metadata alone), the event head hash, the listed state files, the owner role, the host
- * hold store, and the resident's own reported state. Working-tree-only edits are left to the
- * maximum age. Any other read failure throws, so the caller refreshes instead of trusting it.
+ * file metadata alone), the listed state files, the owner role, the host hold store, and the
+ * resident's own reported state. ADR-0599 keeps the event head out of it (see
+ * `residentProjectionEventHead`). Working-tree-only edits are left to the maximum age. Any other
+ * read failure throws, so the caller refreshes instead of trusting it.
  */
 export function residentProjectionKey(input: {
   repositoryRoot: string;
-  events: OutboxStore;
   residentState: string;
 }): string {
   const root = input.repositoryRoot;
   return sha256(
     canonicalJson({
       repository: repositoryHeadIdentity(root),
-      eventHead: latestEventHash(input.events),
       inputs: PROJECTION_INPUTS.map((path) => [path, fileIdentity(resolve(root, path))]),
       owner: ownerProjection(root),
       repositoryHolds: fileIdentity(defaultRepositoryHoldPath()),
       resident: input.residentState,
     }),
   );
+}
+
+/** ADR-0599: the event head the projection last showed; its change alone is rate-limited. */
+export function residentProjectionEventHead(events: OutboxStore): string | null {
+  return latestEventHash(events);
 }
 
 /** The wait after `failures` consecutive failed refreshes (ADR-0597). */
@@ -99,22 +109,28 @@ export interface ResidentProjectionRecord {
   key: string;
   at: number;
   held: boolean;
+  /** ADR-0599: the event head at that refresh; undefined compares as unchanged. */
+  eventHead?: string | null;
 }
 
 /**
  * A refresh is due when the key is unknown or changed, or after the maximum age while nothing
- * changed. A held repository (ADR-0561) is refreshed when the hold starts and then only at the
- * held maximum age: the resident applies nothing there, so its own changes cannot move the key.
- * `ageOnly` (a tick during a running cycle) ignores changes, which the cycle's own offer covers.
+ * changed. ADR-0599: a changed event head alone is due once the event interval has passed since
+ * the last refresh. A held repository (ADR-0561) is refreshed when the hold starts and then only
+ * at the held maximum age: the resident applies nothing there, so its own changes cannot move the
+ * key. `ageOnly` (a tick during a running cycle) ignores changes, which the cycle's own offer
+ * covers.
  */
 export function residentProjectionDue(input: {
   key: string | null;
+  eventHead?: string | null;
   last: ResidentProjectionRecord | null;
   now: number;
   held: boolean;
   ageOnly?: boolean;
   maximumAgeMilliseconds: number;
   heldMaximumAgeMilliseconds?: number;
+  eventIntervalMilliseconds?: number;
 }): boolean {
   if (input.held)
     return (
@@ -125,7 +141,16 @@ export function residentProjectionDue(input: {
     );
   const aged = input.last === null || input.now - input.last.at >= input.maximumAgeMilliseconds;
   if (input.ageOnly === true) return aged;
-  return aged || input.key === null || input.key !== input.last?.key;
+  if (aged || input.key === null || input.key !== input.last?.key) return true;
+  const eventMoved =
+    input.eventHead !== undefined &&
+    input.last.eventHead !== undefined &&
+    input.eventHead !== input.last.eventHead;
+  return (
+    eventMoved &&
+    input.now - input.last.at >=
+      (input.eventIntervalMilliseconds ?? RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS)
+  );
 }
 
 /**
@@ -154,21 +179,23 @@ export function residentProjectionRefresher(input: {
     const held = input.held();
     const ageOnly = options.ageOnly === true;
     let key: string | null = null;
+    let eventHead: string | null | undefined;
     if (!held && !ageOnly)
       try {
-        key = withProcessCostScope("projection_fence", () =>
-          residentProjectionKey({
+        ({ key, eventHead } = withProcessCostScope("projection_fence", () => ({
+          key: residentProjectionKey({
             repositoryRoot: input.repositoryRoot,
-            events: input.events,
             residentState: input.residentState(),
           }),
-        );
+          eventHead: residentProjectionEventHead(input.events),
+        })));
       } catch {
         key = null;
       }
     if (
       !residentProjectionDue({
         key,
+        ...(eventHead === undefined ? {} : { eventHead }),
         last,
         now,
         held,
@@ -179,7 +206,8 @@ export function residentProjectionRefresher(input: {
       return;
     const refreshed = await input.refresh();
     // A refresh without a key records an empty one, so the next keyed offer refreshes again.
-    if (refreshed) last = { key: key ?? "", at: now, held };
+    if (refreshed)
+      last = { key: key ?? "", at: now, held, ...(eventHead === undefined ? {} : { eventHead }) };
     // ADR-0597: an uncomputable key backs off like a failed refresh, so a repository whose key
     // stays unreadable is refreshed at a growing interval instead of every minute.
     if (refreshed && (key !== null || held || ageOnly)) {
