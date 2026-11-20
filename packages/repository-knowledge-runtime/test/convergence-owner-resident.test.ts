@@ -65,7 +65,8 @@ it(
       expect(cycles[0]).toMatchObject({
         status: "waiting_owner",
         owner: { role: "waiting_owner", holder: { label: "mac" } },
-        convergence: { debtCounts: expect.any(Object) },
+        // ADR-0597: a non-owner observes no debt; only the owner scans the repository.
+        convergence: { debtCounts: null, reason: "maintenance_owner_elsewhere" },
       });
       // The 100 ms loop may already be in its next cycle (`running`); wait for the waiting state.
       let health = await inspectKnowledgeResidentHealth(f.root);

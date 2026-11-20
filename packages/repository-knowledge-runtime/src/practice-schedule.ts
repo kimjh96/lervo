@@ -39,7 +39,7 @@ interface PracticeMoment {
   wake: boolean;
 }
 
-function practiceMoments(state: PracticeState, now: number): PracticeMoment[] {
+function practiceMoments(state: PracticeState, now: number, dayOffset: number): PracticeMoment[] {
   const moments: PracticeMoment[] = [];
   const resumed = (key: string, value: string | null | undefined) => {
     if (value != null) moments.push({ key, at: at(value), wake: false });
@@ -64,9 +64,10 @@ function practiceMoments(state: PracticeState, now: number): PracticeMoment[] {
       });
   }
   for (const skill of state.generated) resumed(`skill:${skill.candidateId}:resume`, skill.resumeAt);
-  // Usage of generated skills is assessed once per UTC day.
+  // Usage of generated skills is assessed once per UTC day; ADR-0597 shifts this resident's wake
+  // by its offset, so a host's residents do not all wake at midnight.
   if (state.generated.length > 0) {
-    const today = Math.floor(now / DAY) * DAY;
+    const today = Math.floor((now - dayOffset) / DAY) * DAY + dayOffset;
     moments.push(
       { key: `usage:${today}`, at: today, wake: true },
       { key: `usage:${today + DAY}`, at: today + DAY, wake: true },
@@ -86,7 +87,11 @@ const cached = new Map<string, { identity: string; state: PracticeState }>();
  * again only when its metadata changes. Any read or parse failure throws; the caller then keeps
  * the clock window, so practice is never delayed by an unreadable schedule.
  */
-export function observePracticeSchedule(root: string, now: number): PracticeSchedule {
+export function observePracticeSchedule(
+  root: string,
+  now: number,
+  dayOffsetMilliseconds = 0,
+): PracticeSchedule {
   const path = resolve(root, PRACTICE_ROOT, "state.json");
   let state: PracticeState | null = null;
   try {
@@ -109,7 +114,7 @@ export function observePracticeSchedule(root: string, now: number): PracticeSche
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
   }
-  const moments = state === null ? [] : practiceMoments(state, now);
+  const moments = state === null ? [] : practiceMoments(state, now, dayOffsetMilliseconds);
   const due = moments
     .filter((moment) => moment.at <= now)
     .map((moment) => `${moment.key}@${moment.at}`)
@@ -123,7 +128,10 @@ export function observePracticeSchedule(root: string, now: number): PracticeSche
   };
 }
 
-/** The next UTC day boundary, when the daily terminal skill usage window rolls over. */
-export function nextUtcDayAt(now: number): number {
-  return (Math.floor(now / DAY) + 1) * DAY;
+/**
+ * The next UTC day boundary, when the daily terminal skill usage window rolls over, delayed by
+ * the resident's wake offset (ADR-0597).
+ */
+export function nextUtcDayAt(now: number, offsetMilliseconds = 0): number {
+  return (Math.floor((now - offsetMilliseconds) / DAY) + 1) * DAY + offsetMilliseconds;
 }

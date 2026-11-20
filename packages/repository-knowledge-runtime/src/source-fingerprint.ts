@@ -183,22 +183,25 @@ export function convergenceRepositoryDigest(root: string): string {
 export function convergenceSourceFingerprint(input: {
   repositoryRoot: string;
   events: OutboxStore;
+  /** ADR-0597: this resident's delay for the shared day-boundary wake. */
+  wakeOffsetMilliseconds?: number;
 }): ConvergenceSourceFingerprint {
   const sourceDigest = convergenceRepositoryDigest(input.repositoryRoot);
   const queue = observeConvergenceQueue(input.events);
   const now = Date.now();
+  const offset = input.wakeOffsetMilliseconds ?? 0;
   // ADR-0595: practice enters the fence by what is due, not by a 30-minute clock window; an
   // unreadable schedule keeps the window, so practice is never delayed.
   let practiceDue: unknown;
   let practiceWakeAt: number | null = null;
   try {
-    const schedule = observePracticeSchedule(input.repositoryRoot, now);
+    const schedule = observePracticeSchedule(input.repositoryRoot, now, offset);
     practiceDue = schedule.dueDigest;
     practiceWakeAt = schedule.nextDueAt;
   } catch {
     practiceDue = ["window", Math.floor(now / (30 * 60_000))];
   }
-  const localWakeAt = earliestMoment(practiceWakeAt, nextUtcDayAt(now));
+  const localWakeAt = earliestMoment(practiceWakeAt, nextUtcDayAt(now, offset));
   return {
     fingerprint: sha256(
       canonicalJson({
@@ -215,7 +218,7 @@ export function convergenceSourceFingerprint(input: {
         // changes the fence explicitly and wakes a backed-off held resident.
         repositoryHolds: metadata(defaultRepositoryHoldPath()),
         // The daily skill usage window; `localWakeAt` wakes the resident when it rolls over.
-        terminalSkillsDay: new Date(now).toISOString().slice(0, 10),
+        terminalSkillsDay: new Date(now - offset).toISOString().slice(0, 10),
       }),
     ),
     sourceDigest,

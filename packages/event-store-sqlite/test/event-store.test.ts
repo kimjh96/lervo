@@ -157,6 +157,32 @@ describe("SQLite append-only event store", () => {
     store.close();
   });
 
+  it("reads the head hash without decoding the row (ADR-0597)", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId });
+    expect(store.latestHash()).toBeNull();
+    store.append(draft());
+    const second = store.append(
+      draft({
+        eventId: "evt_12345678",
+        runId: "run_12345678",
+        sessionId: "ses_12345678",
+        occurredAt: "2026-08-18T00:00:01Z",
+      }),
+    );
+    expect(store.latestHash()).toBe(second.event.eventHash);
+    expect(store.latestHash()).toBe(store.latest()?.eventHash);
+    // A corrupt payload would fail `latest()`; the hash read never decodes it.
+    const database = new DatabaseSync(path);
+    database.exec("DROP TRIGGER events_no_update");
+    database.prepare("UPDATE events SET payload_json = ? WHERE seq = 2").run("{");
+    database.close();
+    expect(() => store.latest()).toThrow();
+    expect(store.latestHash()).toBe(second.event.eventHash);
+    store.close();
+    expect(() => store.latestHash()).toThrow();
+  });
+
   it("stores only allowlisted payload fields", async () => {
     const path = await databasePath();
     const store = await SQLiteEventStore.open({ path, projectId });

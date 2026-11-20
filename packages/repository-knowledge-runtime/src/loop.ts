@@ -1,4 +1,4 @@
-import { watchProjectEventChanges, type ProjectStorage } from "@lervo/project-storage";
+import type { ProjectStorage } from "@lervo/project-storage";
 import {
   measureProcessCost,
   withProcessCostScope,
@@ -12,6 +12,8 @@ import { residentCycleHealth } from "./resident-cycle-health.js";
 import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
 import { convergenceSourceFingerprint } from "./source-fingerprint.js";
+import { residentWakeOffset } from "./resident-wake-offset.js";
+import { watchResidentEventChanges } from "./resident-event-wakeup.js";
 import {
   readResidentCycleState,
   writeResidentCycleState,
@@ -100,6 +102,7 @@ export function startAutonomousKnowledgeWorker(input: {
 }): () => Promise<void> {
   const { base, ceiling, forcedFullCycle } = residentCadence(input);
   const root = input.storage.paths.repositoryRoot;
+  const wakeOffset = residentWakeOffset(input.storage.manifest.projectId);
   const controller = new AbortController();
   const signal =
     input.signal === undefined
@@ -215,29 +218,27 @@ export function startAutonomousKnowledgeWorker(input: {
     await reconcileContinuity();
     const observedOwner = await observeOwnership();
     const observedPrevious = previous;
-    let observedDigest: string | undefined;
     const { value: cycle, cost } = await measureProcessCost(() =>
       runResidentCycle({
         repositoryRoot: root,
         previous: observedPrevious,
         now: Date.now,
-        ceilingMilliseconds: forcedFullCycle,
-        observe: () => {
-          const observed = withProcessCostScope("fingerprint", () =>
+        // ADR-0597: the forced cycle is spread like the day boundary, so residents never align.
+        ceilingMilliseconds: forcedFullCycle + wakeOffset,
+        observe: () =>
+          withProcessCostScope("fingerprint", () =>
             evaluationFingerprint(
               ownershipFingerprint(
                 convergenceSourceFingerprint({
                   repositoryRoot: root,
                   events: input.storage.events,
+                  wakeOffsetMilliseconds: wakeOffset,
                 }),
                 observedOwner,
               ),
               convergenceEvaluationContract(),
             ),
-          );
-          observedDigest = observed.sourceDigest;
-          return observed;
-        },
+          ),
         runFull,
       }),
     );
@@ -259,9 +260,7 @@ export function startAutonomousKnowledgeWorker(input: {
           })
         : null;
     await healthWrite;
-    // ADR-0595: with no cycle work and no publication since, the fence digest is still current.
-    const unchanged = cycle.outcome.kind === "skipped" && publication === null;
-    await refreshProjection({ repositoryDigest: unchanged ? observedDigest : undefined });
+    await refreshProjection();
     const now = Date.now();
     const reconcileDelay = residentReconcileDelay({
       idleStreak: cycle.state.idleStreak,
@@ -338,10 +337,7 @@ export function startAutonomousKnowledgeWorker(input: {
   };
   const unsubscribe = input.subscribe
     ? input.subscribe(schedule)
-    : watchProjectEventChanges(
-        { path: input.storage.paths.eventDatabase, latest: () => input.storage.events.latest() },
-        schedule,
-      );
+    : watchResidentEventChanges(input.storage, schedule);
   const healthTimer = setInterval(heartbeat, 15_000);
   const projectionTimer =
     input.refreshHealth === undefined

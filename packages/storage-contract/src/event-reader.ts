@@ -4,6 +4,11 @@ import type { EventStore } from "./index.js";
 
 const maximumPageSize = 1_000;
 
+/** The head event hash through the store's cheap path when it has one (ADR-0597). */
+export function latestEventHash(store: Pick<EventStore, "latest" | "latestHash">): string | null {
+  return store.latestHash === undefined ? (store.latest()?.eventHash ?? null) : store.latestHash();
+}
+
 export type EventReadFailureCode = "event_limit_exceeded" | "event_sequence_invalid";
 
 export class EventReadError extends Error {

@@ -108,6 +108,10 @@ it("wakes daily for usage of generated skills and expires unresolved candidates"
   });
   const today = observePracticeSchedule(root, T + MINUTE);
   expect(today.nextDueAt).toBe(nextUtcDayAt(T));
+  // ADR-0597: a resident's offset delays the daily usage wake by the same amount.
+  expect(observePracticeSchedule(root, T + MINUTE, 5 * MINUTE).nextDueAt).toBe(
+    nextUtcDayAt(T, 5 * MINUTE),
+  );
   const tomorrow = observePracticeSchedule(root, nextUtcDayAt(T) + MINUTE);
   expect(tomorrow.dueDigest).not.toBe(today.dueDigest);
   expect(observePracticeSchedule(root, T + 6 * 86_400_000).nextDueAt).toBe(

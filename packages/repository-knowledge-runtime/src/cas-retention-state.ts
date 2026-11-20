@@ -27,6 +27,24 @@ export interface RetentionScan {
    * outlive a pass; entries of removed objects are dropped. Absent in scans written before.
    */
   records?: ConvergenceRecordShapes;
+  /**
+   * ADR-0597: the event head at which a complete classification found nothing eligible, and when.
+   * Until the head moves or the recheck interval passes, no pass replays the event log again.
+   */
+  idle?: { head: string | null; at: number };
+}
+
+/** An unchanged head is rechecked this often, because the grace horizon still moves with time. */
+export const RETENTION_IDLE_RECHECK_MILLISECONDS = 6 * 60 * 60_000;
+
+/** Whether the last complete classification still answers "nothing eligible" (ADR-0597). */
+export function retentionIdle(scan: RetentionScan, head: string | null, now: number): boolean {
+  return (
+    scan.idle !== undefined &&
+    scan.idle.head === head &&
+    now >= scan.idle.at &&
+    now - scan.idle.at < RETENTION_IDLE_RECHECK_MILLISECONDS
+  );
 }
 
 function validScan(value: unknown): value is RetentionScan {
@@ -38,6 +56,11 @@ function validScan(value: unknown): value is RetentionScan {
     Array.isArray(scan.eligible) &&
     scan.eligible.length <= 100_000 &&
     scan.eligible.every((hash) => /^[a-f0-9]{64}$/u.test(hash)) &&
+    (scan.idle === undefined ||
+      (scan.idle !== null &&
+        typeof scan.idle === "object" &&
+        (scan.idle.head === null || typeof scan.idle.head === "string") &&
+        Number.isFinite(scan.idle.at))) &&
     scan.reports !== null &&
     typeof scan.reports === "object" &&
     Object.keys(scan.reports).length <= 200_000 &&

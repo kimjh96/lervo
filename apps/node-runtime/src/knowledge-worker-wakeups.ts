@@ -1,4 +1,5 @@
 import { watchProjectEventChanges, type ProjectStorage } from "@lervo/project-storage";
+import { latestEventHash } from "@lervo/storage-contract";
 
 import { watchRepositoryChanges } from "./repository-change-watch.js";
 
@@ -14,7 +15,11 @@ export function subscribeKnowledgeWakeups(
   watchRepository: typeof watchRepositoryChanges = watchRepositoryChanges,
 ): () => void {
   const stopEvents = watchProjectEventChanges(
-    { path: storage.paths.eventDatabase, latest: () => storage.events.latest() },
+    {
+      path: storage.paths.eventDatabase,
+      latest: () => storage.events.latest(),
+      latestHash: () => latestEventHash(storage.events),
+    },
     notify,
   );
   let stopped = false;

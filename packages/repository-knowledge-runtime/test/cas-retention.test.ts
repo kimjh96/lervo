@@ -255,3 +255,27 @@ it("replaces an interrupted collector projection without treating its partial by
   });
   expect(await f.artifacts.has(obsolete.uri)).toBe(false);
 });
+
+it("skips the event replay while nothing is eligible at an unchanged head (ADR-0597)", async () => {
+  const f = await fixture();
+  const inventory = vi.spyOn(files, "casReferenceFiles");
+  expect(await compactProjectConvergenceArtifacts(f.storage)).toMatchObject({ removedObjects: 0 });
+  const first = inventory.mock.calls.length;
+  expect(first).toBeGreaterThan(0);
+  const scan = JSON.parse(
+    await readFile(resolve(f.storage.paths.knowledgeState, files.CAS_RETENTION_SCAN), "utf8"),
+  ) as { scan: { idle?: { head: string | null } } };
+  expect(scan.scan.idle).toMatchObject({ head: f.storage.events.latest()?.eventHash ?? null });
+  // Same head, inside the recheck interval: no inventory and no replay.
+  await compactProjectConvergenceArtifacts(f.storage);
+  expect(inventory.mock.calls.length).toBe(first);
+  // The grace horizon moves with time, so an unchanged head is rechecked after six hours.
+  vi.mocked(Date.now).mockReturnValue(Date.parse("2026-10-25T06:00:00Z"));
+  await compactProjectConvergenceArtifacts(f.storage);
+  expect(inventory.mock.calls.length).toBeGreaterThan(first);
+  // A new head ends the skip at once.
+  const rechecked = inventory.mock.calls.length;
+  await f.settled("new head");
+  await compactProjectConvergenceArtifacts(f.storage);
+  expect(inventory.mock.calls.length).toBeGreaterThan(rechecked);
+});

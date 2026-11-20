@@ -14,10 +14,13 @@ import {
   RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS as MAXIMUM_AGE,
   residentProjectionDue,
   residentProjectionRefresher,
+  residentProjectionRetryDelay,
 } from "../src/resident-projection-fence.js";
 
 const execute = promisify(execFile);
 const MINUTE = 60_000;
+const git = (...args: string[]) =>
+  execute("git", ["-C", root, "-c", "user.name=T", "-c", "user.email=t@lervo.invalid", ...args]);
 const previousState = process.env.LERVO_USER_STATE_DIRECTORY;
 let directory: string;
 let root: string;
@@ -28,8 +31,6 @@ beforeEach(async () => {
   await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
   // The host hold store must never be the developer's own.
   process.env.LERVO_USER_STATE_DIRECTORY = resolve(directory, "user-state");
-  const git = (...args: string[]) =>
-    execute("git", ["-C", root, "-c", "user.name=T", "-c", "user.email=t@lervo.invalid", ...args]);
   await git("init", "-b", "main");
   await writeFile(resolve(root, ".gitignore"), ".lervo/state/\n");
   await writeFile(resolve(root, "README.md"), "# Repository\n");
@@ -53,9 +54,13 @@ function resident(options: { failRefresh?: () => boolean } = {}) {
     refreshes: 0,
   };
   const events = {
+    // ADR-0597: the key reads only the head hash; decoding the latest event is never needed.
     latest: () => {
+      throw new Error("the projection key must not decode the latest event");
+    },
+    latestHash: () => {
       if (state.eventsFail) throw new Error("event store unreadable");
-      return state.head === null ? null : { eventId: state.head };
+      return state.head;
     },
   } as unknown as OutboxStore;
   const offer = residentProjectionRefresher({
@@ -73,9 +78,9 @@ function resident(options: { failRefresh?: () => boolean } = {}) {
     now: () => state.now,
   });
   /** One check tick a minute later. */
-  const tick = async (ageOnly = false, repositoryDigest?: string) => {
+  const tick = async (ageOnly = false) => {
     state.now += MINUTE;
-    await offer({ ageOnly, repositoryDigest });
+    await offer({ ageOnly });
   };
   return { state, offer, tick };
 }
@@ -94,7 +99,7 @@ describe("projection fence (ADR-0595)", () => {
     expect(r.state.refreshes).toBe(2);
   });
 
-  it("refreshes once after an event append, a state rewrite, a repository edit or an owner change", async () => {
+  it("refreshes once after an event append, a state rewrite, a commit or an owner change", async () => {
     const r = resident();
     await r.offer();
     const once = async (label: string, change: () => Promise<unknown> | void) => {
@@ -114,9 +119,14 @@ describe("projection fence (ADR-0595)", () => {
         '{"schemaVersion":1}\n',
       ),
     );
-    await once("repository edit", () =>
-      writeFile(resolve(root, "README.md"), "# Repository\n\nEdited.\n"),
-    );
+    // ADR-0597: a working-tree edit alone is left to the maximum age; staging or committing it
+    // moves the index or HEAD, which the key reads from file metadata without a Git process.
+    await writeFile(resolve(root, "README.md"), "# Repository\n\nEdited.\n");
+    const unstaged = r.state.refreshes;
+    await r.tick();
+    expect(r.state.refreshes, "working-tree edit").toBe(unstaged);
+    await once("staging", () => git("add", "README.md"));
+    await once("commit", () => git("commit", "-m", "edit"));
     const fence = (role: string, observedAt: string) =>
       writeFile(
         resolve(root, CONVERGENCE_OWNER_FENCE_PATH),
@@ -147,6 +157,18 @@ describe("projection fence (ADR-0595)", () => {
     expect(r.state.refreshes).toBe(4);
     await r.tick();
     expect(r.state.refreshes).toBe(4);
+  });
+
+  it("backs a failing refresh off from one minute to fifteen (ADR-0597)", async () => {
+    const r = resident({ failRefresh: () => true });
+    await r.offer();
+    while (r.state.now < 60 * MINUTE) await r.tick();
+    // Attempts at 0, 1, 3, 7, 15, 30, 45 and 60 minutes, instead of one every minute.
+    expect(r.state.refreshes).toBe(8);
+    expect([1, 2, 3, 4, 5, 6].map(residentProjectionRetryDelay)).toEqual(
+      [1, 2, 4, 8, 15, 15].map((minutes) => minutes * MINUTE),
+    );
+    expect(residentProjectionRetryDelay(0)).toBe(0);
   });
 
   it("retries a refresh that failed instead of recording it", async () => {
@@ -182,21 +204,6 @@ describe("projection fence (ADR-0595)", () => {
     r.state.held = false;
     await r.tick();
     expect(r.state.refreshes).toBe(4);
-  });
-
-  it("uses a digest the observation just computed instead of reading the repository", async () => {
-    const r = resident();
-    await r.offer();
-    const digest = `sha256:${"c".repeat(64)}`;
-    await r.tick(false, digest);
-    expect(r.state.refreshes).toBe(2);
-    // The supplied digest stands in for the repository, so an edit behind it is not read.
-    await writeFile(resolve(root, "README.md"), "# Repository\n\nEdited.\n");
-    await r.tick(false, digest);
-    expect(r.state.refreshes).toBe(2);
-    // The next offer without a digest reads the repository and sees the edit.
-    await r.tick();
-    expect(r.state.refreshes).toBe(3);
   });
 
   it("applies only the age bound to a tick during a running cycle", async () => {
