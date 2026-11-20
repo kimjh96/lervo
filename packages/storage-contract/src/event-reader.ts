@@ -9,6 +9,20 @@ export function latestEventHash(store: Pick<EventStore, "latest" | "latestHash">
   return store.latestHash === undefined ? (store.latest()?.eventHash ?? null) : store.latestHash();
 }
 
+/**
+ * ADR-0598: the hash of the latest event of any type outside `types`. A store without the typed
+ * read reports the unfiltered head instead, so a caller can only see a change it could have
+ * ignored, never miss one.
+ */
+export function latestEventHashExcluding(
+  store: Pick<EventStore, "latest" | "latestHash" | "latestHashExcluding">,
+  types: readonly string[],
+): string | null {
+  return store.latestHashExcluding === undefined
+    ? latestEventHash(store)
+    : store.latestHashExcluding(types);
+}
+
 export type EventReadFailureCode = "event_limit_exceeded" | "event_sequence_invalid";
 
 export class EventReadError extends Error {

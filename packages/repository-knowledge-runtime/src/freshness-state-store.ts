@@ -52,6 +52,11 @@ export interface FreshnessCycleState {
    * pauses until `until`; `level` doubles the backoff while the window stays without success.
    */
   zeroSuccessHold?: { since: string; until: string; level: number } | null;
+  /**
+   * Additive (ADR-0598): the outcome the last recorded cycle event reported, without its identity
+   * and time, so a cycle that repeats it without progress records nothing new.
+   */
+  lastOutcomeDigest?: string | null;
 }
 
 export function emptyFreshnessCycleState(): FreshnessCycleState {

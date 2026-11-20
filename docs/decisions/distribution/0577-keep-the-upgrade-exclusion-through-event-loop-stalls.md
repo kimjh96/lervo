@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-17
 Amends: [ADR-0574](0574-admit-upgrades-ahead-of-background-knowledge-cycles.md) (the upgrade's lease and the checks before each stage), [ADR-0575](0575-follow-published-releases-on-every-host.md) (the follower's launchd process type), [ADR-0576](../operations/storage/0576-keep-full-cycle-admission-waits-through-sqlite-lock-contention.md) (renewal checks the row it changed)
+Amended by: [ADR-0598](../knowledge/maintenance/0598-keep-an-owner-resident-from-waking-itself.md) (a waiter reuses one connection and backs off its poll)
 Related: [ADR-0484](../operations/services/0484-keep-upgrades-exclusive-with-background-knowledge-work.md) (upgrade exclusion), [ADR-0487](../operations/services/0487-plan-and-apply-approval-free-upgrades-in-one-exclusive-window.md) (planning inside the window)
 
 ## Context

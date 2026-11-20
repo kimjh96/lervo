@@ -44,11 +44,16 @@ export function nextFreshnessZeroSuccessHold(
   };
 }
 
-/** Whether a held cross-check, a debt retry, or the zero-success hold is due to run now. */
+/**
+ * Whether a held cross-check, a debt retry, or the zero-success hold is due to run now. ADR-0598:
+ * a debt retry generates again, so it counts only when today's budget can pay for one candidate,
+ * like the ADR-0580 pending review; the day in the fence reopens the stage with a new budget.
+ */
 export function freshnessBackoffDue(
   state: FreshnessCycleState,
   candidates: readonly DocumentFreshnessCandidateV1[],
   now: Date,
+  options: { debtAffordable?: boolean } = {},
 ): boolean {
   const hold = state.zeroSuccessHold;
   return (
@@ -56,7 +61,8 @@ export function freshnessBackoffDue(
       const retryAt = documentFreshnessCrossCheckRetryAt(candidate);
       return retryAt !== null && retryAt <= now;
     }) ||
-    (state.debt ?? []).some((debt) => Date.parse(debt.retryAt) <= now.getTime()) ||
+    ((options.debtAffordable ?? true) &&
+      (state.debt ?? []).some((debt) => Date.parse(debt.retryAt) <= now.getTime())) ||
     (hold !== undefined && hold !== null && Date.parse(hold.until) <= now.getTime())
   );
 }

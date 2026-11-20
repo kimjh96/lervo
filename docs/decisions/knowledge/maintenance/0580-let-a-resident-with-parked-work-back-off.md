@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-17
 Amends: [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md) (which results are idle-class), [ADR-0463](../documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) (when a pending no-change review reopens the freshness stage)
+Amended by: [ADR-0598](0598-keep-an-owner-resident-from-waking-itself.md) (quiet freshness cycles record nothing, and a debt retry reopens the stage only when affordable)
 
 ## Context
 

@@ -11,6 +11,9 @@ import {
   type DocumentFreshnessSummary,
   type PrioritizedDocumentFreshnessFinding,
 } from "@lervo/repository-knowledge";
+
+import type { FreshnessCycleState } from "./freshness-state-store.js";
+
 const execute = promisify(execFile);
 const RECENT_APPLY_MILLISECONDS = 24 * 3_600_000;
 export async function observationKey(root: string, input: unknown): Promise<string | null> {
@@ -83,6 +86,38 @@ export function summarize(input: {
     blocked: input.blocked,
     debt: freshnessDebtSummary(input.debt),
   };
+}
+
+/**
+ * ADR-0598: what a cycle event reports, without the cycle identity and time. Two cycles with the
+ * same digest told the event log the same thing.
+ */
+export function freshnessOutcomeDigest(payload: Record<string, unknown>): string {
+  const { cycleId: _cycleId, occurredAt: _occurredAt, ...outcome } = payload;
+  return sha256(canonicalJson(outcome));
+}
+
+/**
+ * ADR-0598 generalizes ADR-0580: a cycle that admitted, generated, verified, applied, and spent
+ * nothing over the same findings records an event only when its outcome differs from the last
+ * recorded one. Otherwise the event would only move the head, and a stage reopened by a debt it
+ * cannot afford would append the same event every cycle.
+ */
+export function freshnessCycleNewsworthy(input: {
+  previous: Pick<FreshnessCycleState, "findingsDigest" | "lastOutcomeDigest">;
+  findingsDigest: string | null;
+  outcomeDigest: string;
+  outcome: Parameters<typeof deferredWithoutProgress>[0] & { admittedCount: number };
+}): boolean {
+  if (input.findingsDigest !== input.previous.findingsDigest) return true;
+  if (deferredWithoutProgress(input.outcome)) return false;
+  const progress =
+    input.outcome.admittedCount > 0 ||
+    input.outcome.candidateCount > 0 ||
+    input.outcome.verifiedCount > 0 ||
+    input.outcome.appliedCount > 0 ||
+    input.outcome.tokensObserved > 0;
+  return progress || input.outcomeDigest !== (input.previous.lastOutcomeDigest ?? null);
 }
 
 /**

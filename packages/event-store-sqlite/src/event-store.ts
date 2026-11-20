@@ -290,6 +290,11 @@ export class SQLiteEventStore implements OutboxStore {
     return this.events.latestHash();
   }
 
+  latestHashExcluding(types: readonly string[]) {
+    this.assertOpen();
+    return this.events.latestHashExcluding(types);
+  }
+
   list(options: ListEventsOptions = {}) {
     this.assertOpen();
     return this.events.list(options);

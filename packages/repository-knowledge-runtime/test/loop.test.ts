@@ -5,6 +5,7 @@ import type { ProcessCostMeasurement } from "@lervo/repository-knowledge";
 import { afterEach, expect, it } from "vitest";
 
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
+import { appendFreshnessEvent } from "../src/freshness-events.js";
 import { startAutonomousKnowledgeWorker } from "../src/loop.js";
 import { readResidentCycleState } from "../src/resident-cycle-state.js";
 import { inspectKnowledgeResidentHealth } from "../src/resident-health.js";
@@ -62,6 +63,71 @@ it(
       expect(cycles).toEqual([]);
     } finally {
       await held.release();
+      await stop();
+    }
+  },
+);
+
+it(
+  "keeps backing off while only its own outcome records are appended (ADR-0598)",
+  { timeout: 120_000 },
+  async () => {
+    const f = await fixture();
+    fixtures.push(f);
+    await clearOfFenceTimeWindowBoundary();
+    const cycles: unknown[] = [];
+    const failures: unknown[] = [];
+    // No `subscribe`: the resident's own event watch is the wakeup under test.
+    const stop = startAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "resident",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      onCycle: (result) => cycles.push(result),
+      onFailure: (error) => failures.push(error),
+      intervalMilliseconds: 100,
+      reconcileCeilingMilliseconds: 2_000,
+    });
+    const streak = async () => (await readResidentCycleState(f.root))?.idleStreak ?? 0;
+    try {
+      await until(() => cycles.length >= 2);
+      await until(async () => (await streak()) >= 4);
+      const settled = cycles.length;
+      const before = await streak();
+      // The records an idle owner appended every two minutes on 2026-11-20.
+      for (let index = 0; index < 3; index++) {
+        const at = new Date().toISOString();
+        appendFreshnessEvent({
+          storage: f.storage,
+          type: "document.freshness.cycle.completed",
+          correlationId: `kfcy_${String(index).padStart(24, "0")}`,
+          coordinate: null,
+          occurredAt: at,
+          payload: {
+            cycleId: `kfcy_${String(index).padStart(24, "0")}`,
+            findingCount: 7,
+            admittedCount: 0,
+            candidateCount: 0,
+            verifiedCount: 0,
+            appliedCount: 0,
+            skippedForBudget: 1,
+            skippedForHold: 2,
+            usageObserved: 0,
+            occurredAt: at,
+          },
+        });
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
+      }
+      // Several reconcile ceilings later the fence still matches and the streak kept growing.
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 6_000));
+      expect(cycles).toHaveLength(settled);
+      expect(await streak()).toBeGreaterThan(before);
+      // A foreign change still runs the resident in full.
+      await writeFile(resolve(f.root, "README.md"), "# Repository\n\nEdited.\n");
+      await until(() => cycles.length > settled);
+      expect(failures).toEqual([]);
+    } finally {
       await stop();
     }
   },

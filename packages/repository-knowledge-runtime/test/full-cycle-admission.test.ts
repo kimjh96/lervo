@@ -8,6 +8,7 @@ import { SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
+import { nextAdmissionPoll } from "../src/full-cycle-admission-store.js";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -409,3 +410,15 @@ it("confirms through a write lock held for 12 seconds, past several busy waits (
   await released;
   await holder.release();
 }, 60_000);
+
+it("backs an admission waiter off without letting its heartbeat go stale (ADR-0598)", () => {
+  const polls = [1_000];
+  for (let index = 0; index < 6; index++) polls.push(nextAdmissionPoll(polls.at(-1)!));
+  expect(polls).toEqual([1_000, 2_000, 4_000, 8_000, 8_000, 8_000, 8_000]);
+  // With the ±25% jitter the longest wait is 10 s, a third of the 30-second stale bound.
+  expect(Math.max(...polls) * 1.25).toBeLessThanOrEqual(10_000);
+  // A short test poll backs off relative to itself, so admission stays prompt.
+  expect([10, 20, 40, 80, 80].map((poll) => nextAdmissionPoll(poll, 10))).toEqual([
+    20, 40, 80, 80, 80,
+  ]);
+});
