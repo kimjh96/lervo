@@ -17,6 +17,7 @@ export {
   type ConvergenceRoleBinding,
 } from "./delegation.js";
 export { startAutonomousKnowledgeWorker } from "./loop.js";
+export { RESIDENT_EVENT_POLL_MILLISECONDS } from "./resident-event-wakeup.js";
 export { acquireFullCycleAdmission, type FullCycleAdmission } from "./full-cycle-admission.js";
 export { inspectAutonomousKnowledgeStatus, readAutonomousKnowledgeStatus } from "./status.js";
 export {

@@ -43,6 +43,9 @@ revision. The resident offers a refresh after each observation and checks every
 minute, one refresh at a time ([ADR-0555](../../../decisions/execution/applications/0555-keep-operating-signals-visible-and-honest.md)).
 It refreshes only when the projection's inputs changed, or after 15 unchanged
 minutes; a held repository refreshes when held and then hourly ([ADR-0595](../../../decisions/knowledge/maintenance/0595-back-off-held-and-failing-residents-and-refresh-health-only-on-change.md)).
+The input check reads Git metadata files and the event head hash without a Git
+process, so a working-tree-only edit waits for the age bound; a failed refresh
+waits 1, 2, 4 and 8 minutes, then 15 ([ADR-0597](../../../decisions/knowledge/maintenance/0597-keep-idle-and-non-owner-residents-off-the-repository.md)).
 
 A singleton private `.lervo/state/repository-health-generation.sqlite` counter
 is claimed before source reads. Publication rechecks this generation and renames

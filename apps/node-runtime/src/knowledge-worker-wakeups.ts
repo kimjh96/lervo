@@ -1,4 +1,6 @@
 import { watchProjectEventChanges, type ProjectStorage } from "@lervo/project-storage";
+import { RESIDENT_EVENT_POLL_MILLISECONDS } from "@lervo/repository-knowledge-runtime";
+import { latestEventHash } from "@lervo/storage-contract";
 
 import { watchRepositoryChanges } from "./repository-change-watch.js";
 
@@ -14,8 +16,14 @@ export function subscribeKnowledgeWakeups(
   watchRepository: typeof watchRepositoryChanges = watchRepositoryChanges,
 ): () => void {
   const stopEvents = watchProjectEventChanges(
-    { path: storage.paths.eventDatabase, latest: () => storage.events.latest() },
+    {
+      path: storage.paths.eventDatabase,
+      latest: () => storage.events.latest(),
+      latestHash: () => latestEventHash(storage.events),
+    },
     notify,
+    // ADR-0597: the same watched poll as the CLI host resident.
+    { watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS },
   );
   let stopped = false;
   let stopRepository: (() => void) | undefined;

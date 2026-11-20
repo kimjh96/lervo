@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-19
 Amends: [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md) (which results are idle-class, and when an unchanged fence must run in full), [ADR-0555](../../execution/applications/0555-keep-operating-signals-visible-and-honest.md) (when the resident refreshes the health projection)
+Amended by: [ADR-0597](0597-keep-idle-and-non-owner-residents-off-the-repository.md) (the projection key reads file metadata, failed refreshes back off, and shared wakes are spread per project)
 Related: [ADR-0561](../../foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), [ADR-0580](0580-let-a-resident-with-parked-work-back-off.md), [ADR-0535](../../execution/applications/0535-project-core-health-with-actor-owned-attention.md), [core loop roadmap](../../../roadmap/core-loop.md) item 6
 
 ## Context

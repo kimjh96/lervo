@@ -51,7 +51,10 @@ it.each(["skipped", "failed", "rejected"] as const)(
       expect(recordKnowledgeResidentHealth).toHaveBeenCalled();
     });
     const onFailure = vi.fn();
-    const storage = { paths: { repositoryRoot: "/fixture" } } as unknown as ProjectStorage;
+    const storage = {
+      paths: { repositoryRoot: "/fixture" },
+      manifest: { projectId: "prj_fixture" },
+    } as unknown as ProjectStorage;
     const stop = startAutonomousKnowledgeWorker({
       storage,
       workerId: "resident",
@@ -104,7 +107,10 @@ it("refreshes health by its age bound while a long cycle runs, one refresh at a 
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     active -= 1;
   });
-  const storage = { paths: { repositoryRoot: "/fixture" } } as unknown as ProjectStorage;
+  const storage = {
+    paths: { repositoryRoot: "/fixture" },
+    manifest: { projectId: "prj_fixture" },
+  } as unknown as ProjectStorage;
   const stop = startAutonomousKnowledgeWorker({
     storage,
     workerId: "resident",
@@ -148,7 +154,10 @@ function startHeldResident() {
     outcome: { kind: "skipped" },
   }));
   const refreshHealth = vi.fn(async () => undefined);
-  const storage = { paths: { repositoryRoot: "/fixture" } } as unknown as ProjectStorage;
+  const storage = {
+    paths: { repositoryRoot: "/fixture" },
+    manifest: { projectId: "prj_fixture" },
+  } as unknown as ProjectStorage;
   const stop = startAutonomousKnowledgeWorker({
     storage,
     workerId: "resident",
@@ -212,7 +221,10 @@ it("backs off a cycle that keeps failing outside the fence and resets on a wakeu
   vi.useFakeTimers();
   vi.mocked(runResidentCycle).mockRejectedValue(new Error("Observation failed"));
   let wake!: () => void;
-  const storage = { paths: { repositoryRoot: "/fixture" } } as unknown as ProjectStorage;
+  const storage = {
+    paths: { repositoryRoot: "/fixture" },
+    manifest: { projectId: "prj_fixture" },
+  } as unknown as ProjectStorage;
   const stop = startAutonomousKnowledgeWorker({
     storage,
     workerId: "resident",

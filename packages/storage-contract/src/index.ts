@@ -126,6 +126,12 @@ export interface EventStore<TTransaction extends EventStoreTransaction = EventSt
   transact<T>(work: (transaction: TTransaction) => T): T;
   get(eventId: string): EventEnvelope | null;
   latest(): EventEnvelope | null;
+  /**
+   * ADR-0597: the hash of the latest event, read without decoding, validating or rehashing the
+   * row. It only detects that the head moved; a reader that acts on the event uses `latest()`.
+   * Optional, so a store without a cheap path is read through `latestEventHash`.
+   */
+  latestHash?(): string | null;
   list(options?: ListEventsOptions): EventEnvelope[];
   /** Complete structural, outbox and chain verification; proportional to history size. */
   verifyIntegrity(): EventChainReport;

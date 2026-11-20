@@ -5,6 +5,7 @@ Decision date: 2026-10-14
 Amends: [ADR-0219](0219-typed-derived-state-retention.md)
 
 Amended by: [ADR-0534](0534-bound-installed-runtimes-and-convergence-artifacts.md)
+Amended by: [ADR-0597](../../knowledge/maintenance/0597-keep-idle-and-non-owner-residents-off-the-repository.md) (a non-owner keeps checkout retirement and drops debt inspection)
 
 ## Context
 

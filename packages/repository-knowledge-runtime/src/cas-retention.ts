@@ -1,8 +1,14 @@
 import { collectReportReferences } from "./cas-retention-reports.js";
-import { readRetentionScan, saveScan, writeRetentionProjection } from "./cas-retention-state.js";
+import {
+  readRetentionScan,
+  retentionIdle,
+  saveScan,
+  writeRetentionProjection,
+} from "./cas-retention-state.js";
 import { resolve } from "node:path";
 
 import type { ProjectStorage } from "@lervo/project-storage";
+import { latestEventHash } from "@lervo/storage-contract";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import { materializationTransactionState } from "./materialization-transaction.js";
 import { CasRetentionBoundError } from "./cas-retention-errors.js";
@@ -64,6 +70,8 @@ async function collect(
   const statePath = resolve(storage.paths.knowledgeState, CAS_RETENTION_SCAN);
   const scan = await readRetentionScan(statePath);
   if (scan.nextScanAt > Date.now()) return;
+  // ADR-0597: replaying the event log found nothing eligible at this head; skip until it moves.
+  if (retentionIdle(scan, latestEventHash(storage.events), Date.now())) return;
   const roots = convergenceArtifactRoots(storage.events);
   const files = await casReferenceFiles(storage);
   await bindEventWriterBackups(storage, roots.headSeq, files);
@@ -89,8 +97,12 @@ async function collect(
           ...releasedConvergenceRecords(files, roots.superseded, records, before).keys(),
         ]),
       ];
-    if (!classified.complete || !scan.eligible.length) {
+    if (!classified.complete) {
       if (classified.changed) await saveScan(statePath, scan);
+      return;
+    }
+    if (!scan.eligible.length) {
+      await saveScan(statePath, { ...scan, idle: { head: roots.head, at: Date.now() } });
       return;
     }
   }

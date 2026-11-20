@@ -35,10 +35,11 @@ const EXEMPT_STATE_PATHS: readonly RegExp[] = [
   /^knowledge\/observation-clock-probe$/u,
   // Resident bookkeeping and rebuildable projections outside any obligation: the worker lock,
   // maintenance, retention, freshness, staleness, and document lifecycle readings, and provider
-  // CLI detection.
+  // CLI detection. ADR-0597 adds the retention scan gate and the skill usage cursor: both only let
+  // a later pass skip work, and a missing or invalid one rebuilds from the full event log.
   /^knowledge-worker\.lock$/u,
-  /^knowledge\/(cas-retention-observation|maintenance-observation|maintenance-schedule|freshness-cycle|document-staleness|document-lifecycle|provider-clis|provider-cli-selection|requeue-cursor)\.json$/u,
-  /^knowledge\/terminal-skills\/usage\.json$/u,
+  /^knowledge\/(cas-retention-observation|cas-retention-scan|maintenance-observation|maintenance-schedule|freshness-cycle|document-staleness|document-lifecycle|provider-clis|provider-cli-selection|requeue-cursor)\.json$/u,
+  /^knowledge\/terminal-skills\/usage(-cursor)?\.json$/u,
 ];
 
 function walkFiles(root: string, directory: string, skip: (path: string) => boolean): string[] {

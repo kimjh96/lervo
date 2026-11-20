@@ -121,6 +121,10 @@ async function guarded<T>(
 const RERUN_EXPIRED =
   /created over a month ago|older than (?:a month|30 days)|(?:is )?not retryable/iu;
 
+/** GitHub retries a workflow run only within a month of its creation. */
+const RERUN_WINDOW_MILLISECONDS = 30 * 24 * 60 * 60_000;
+const ISO_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/u;
+
 function rerunExpired(error: unknown): boolean {
   const stderr = (error as { stderr?: unknown } | null)?.stderr;
   return RERUN_EXPIRED.test(typeof stderr === "string" ? stderr : String(stderr ?? ""));
@@ -145,6 +149,30 @@ function linkedId(item: Record<string, unknown>, pattern: RegExp): number | null
 }
 
 /**
+ * The newest run of each Actions check. A rerun or a reopened pull request adds runs to the same
+ * head and leaves the earlier ones in the rollup; like GitHub's merge gate, only the latest run of
+ * a workflow job counts. Commit statuses already arrive as the latest state per context.
+ */
+function latestCheckRuns(items: Record<string, unknown>[]): Record<string, unknown>[] {
+  const latest = new Map<string, { index: number; startedAt: string }>();
+  // A run without a name or a start time cannot be matched to a later one, so it always counts.
+  const comparable = (item: Record<string, unknown>) =>
+    item.__typename !== "StatusContext" &&
+    typeof item.name === "string" &&
+    item.name !== "" &&
+    typeof item.startedAt === "string";
+  items.forEach((item, index) => {
+    if (!comparable(item)) return;
+    const key = `${String(item.workflowName ?? "")}\u0000${String(item.name)}`;
+    const startedAt = String(item.startedAt);
+    const seen = latest.get(key);
+    if (seen === undefined || startedAt >= seen.startedAt) latest.set(key, { index, startedAt });
+  });
+  const kept = new Set([...latest.values()].map((entry) => entry.index));
+  return items.filter((item, index) => !comparable(item) || kept.has(index));
+}
+
+/**
  * Reduces a status rollup for one exact head; a moved head is still pending. Only success
  * passes. A skipped check did not run for this pull request, so it neither passes nor blocks;
  * every other finished conclusion, including neutral and cancelled, fails. A commit status
@@ -159,9 +187,11 @@ export function summarizeKnowledgePublicationChecks(input: {
 }): KnowledgePublicationChecks {
   const ignored = new Set(input.ignore ?? []);
   // Only outside commit statuses can be ignored; an Actions job with the same name still counts.
-  const items = (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
-    .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
-    .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item))));
+  const items = latestCheckRuns(
+    (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
+      .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
+      .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item)))),
+  );
   if (input.observedHeadSha !== input.headSha || items.length === 0)
     return { state: "pending", total: items.length };
   let failed = 0;
@@ -203,8 +233,24 @@ export function createGitHubKnowledgePublicationForge(input: {
   repositoryRoot: string;
   executable?: string;
   run?: Runner;
+  now?: () => Date;
 }): KnowledgePublicationForge {
   const run = input.run ?? ghRunner(input.repositoryRoot, input.executable ?? "gh");
+  const now = input.now ?? (() => new Date());
+  // The run's age decides expiry: `gh` words the refusal differently by version (2.46 calls it a
+  // broken workflow file), so the refusal text is only a fallback. An unreadable age tries the rerun.
+  const outsideRerunWindow = async (id: number) => {
+    const createdAt = await run([
+      "api",
+      `repos/{owner}/{repo}/actions/runs/${id}`,
+      "--jq",
+      ".created_at",
+    ]).then(
+      (output) => (ISO_TIMESTAMP.test(output.trim()) ? Date.parse(output.trim()) : Number.NaN),
+      () => Number.NaN,
+    );
+    return Number.isFinite(createdAt) && now().getTime() - createdAt > RERUN_WINDOW_MILLISECONDS;
+  };
   const view = async (number: number) =>
     pullRequest(
       JSON.parse(await run(["pr", "view", String(number), "--json", PULL_REQUEST_FIELDS])),
@@ -293,11 +339,16 @@ export function createGitHubKnowledgePublicationForge(input: {
         // GitHub refuses to rerun a run older than a month; reopening retriggers it instead.
         // Any other refusal fails the step, and nothing is closed.
         let expired = false;
-        for (const id of runIds)
+        for (const id of runIds) {
+          if (await outsideRerunWindow(id)) {
+            expired = true;
+            continue;
+          }
           await run(["run", "rerun", String(id), "--failed"]).catch((error: unknown) => {
             if (!rerunExpired(error)) throw error;
             expired = true;
           });
+        }
         if (!expired) return;
         await run(["pr", "close", String(number)]);
         await run(["pr", "reopen", String(number)]).catch(() =>

@@ -180,6 +180,18 @@ export class SQLiteEventRepository {
     return row ? rowToEvent(row) : null;
   }
 
+  /** The head hash only: no row decode, schema validation or rehash (ADR-0597). */
+  latestHash(): string | null {
+    const row = sqliteRow(
+      preparedStatement(
+        this.database,
+        "SELECT event_hash FROM events WHERE project_id = ? ORDER BY seq DESC LIMIT 1",
+      ).get(this.projectId),
+    );
+    const hash = row?.event_hash;
+    return typeof hash === "string" ? hash : null;
+  }
+
   list(options: ListEventsOptions = {}): EventEnvelope[] {
     const afterSeq = options.afterSeq ?? 0;
     const limit = options.limit ?? 100;

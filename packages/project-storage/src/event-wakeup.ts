@@ -1,18 +1,30 @@
 import { watch, type FSWatcher } from "node:fs";
 import { basename, dirname } from "node:path";
 import type { EventEnvelope } from "@lervo/schemas";
+import { latestEventHash } from "@lervo/storage-contract";
+
+/**
+ * Some local filesystems omit directory notifications for WAL commits, so the head is also
+ * polled. ADR-0597: the poll reads only the head hash, and a caller that tolerates a slower
+ * backup (the knowledge resident) may poll less often while the watch works; after a watch
+ * failure the poll always returns to this interval.
+ */
+export const EVENT_WAKEUP_POLL_MILLISECONDS = 1_000;
 
 /** Directory notifications include WAL commits from other CLI processes. */
 export function watchProjectEventChanges(
-  store: { path: string; latest(): EventEnvelope | null },
+  store: { path: string; latest(): EventEnvelope | null; latestHash?(): string | null },
   notify: () => void,
+  options: { watchedPollMilliseconds?: number } = {},
 ): () => void {
   let watcher: FSWatcher | undefined;
   let timer: ReturnType<typeof setTimeout> | undefined;
-  let head = store.latest()?.eventHash ?? null;
+  let fallback: ReturnType<typeof setInterval> | undefined;
+  let closed = false;
+  let head = latestEventHash(store);
   const check = () => {
     try {
-      const next = store.latest()?.eventHash ?? null;
+      const next = latestEventHash(store);
       if (head !== next) {
         head = next;
         notify();
@@ -21,9 +33,16 @@ export function watchProjectEventChanges(
       notify();
     }
   };
-  // Some local filesystems silently omit WAL notifications; head polling remains bounded and cheap.
-  const fallback = setInterval(check, 1_000);
-  fallback.unref();
+  const poll = (milliseconds: number) => {
+    if (fallback !== undefined) clearInterval(fallback);
+    fallback = setInterval(check, milliseconds);
+    fallback.unref();
+  };
+  const unwatched = () => {
+    watcher?.close();
+    watcher = undefined;
+    if (!closed) poll(EVENT_WAKEUP_POLL_MILLISECONDS);
+  };
   const filename = basename(store.path);
   try {
     watcher = watch(dirname(store.path), { persistent: false }, (_event, changed) => {
@@ -39,14 +58,17 @@ export function watchProjectEventChanges(
       }, 50);
     });
     watcher.on("error", () => {
-      watcher?.close();
+      unwatched();
       notify();
     });
+    poll(options.watchedPollMilliseconds ?? EVENT_WAKEUP_POLL_MILLISECONDS);
   } catch {
-    // Unsupported watchers retain the idle wait's bounded reconciliation fallback.
+    // Unsupported watchers keep the one-second head poll.
+    unwatched();
   }
   return () => {
-    clearInterval(fallback);
+    closed = true;
+    if (fallback !== undefined) clearInterval(fallback);
     if (timer !== undefined) clearTimeout(timer);
     watcher?.close();
   };

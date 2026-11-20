@@ -220,6 +220,21 @@ it("keeps an unchanged repository's fence across 30 minutes and wakes for due pr
     expect(observe().fingerprint).toBe(due.fingerprint);
     // A new UTC day changes the fence once, for the daily skill usage window.
     expect(due.localWakeAt).toBe(Date.parse("2026-11-20T00:00:00.000Z"));
+    // ADR-0597: a resident's offset delays that wake, and the day key rolls over with it.
+    const offset = 9 * 60_000;
+    const shifted = () =>
+      convergenceSourceFingerprint({
+        repositoryRoot: f.root,
+        events: f.events,
+        wakeOffsetMilliseconds: offset,
+      });
+    expect(shifted().localWakeAt).toBe(Date.parse("2026-11-20T00:00:00.000Z") + offset);
+    vi.setSystemTime(Date.parse("2026-11-20T00:05:00.000Z"));
+    const beforeOffset = shifted();
+    vi.setSystemTime(Date.parse("2026-11-20T00:08:59.000Z"));
+    expect(shifted().fingerprint).toBe(beforeOffset.fingerprint);
+    vi.setSystemTime(Date.parse("2026-11-20T00:09:00.000Z"));
+    expect(shifted().fingerprint).not.toBe(beforeOffset.fingerprint);
   } finally {
     vi.useRealTimers();
   }

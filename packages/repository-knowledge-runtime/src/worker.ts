@@ -2,7 +2,6 @@ import { readRepositoryHold } from "@lervo/repository-registry";
 import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
 import { admittedBackgroundContext } from "./background-provider.js";
 import { runPracticeLearningCycle } from "./practice-stage.js";
-import { readPracticeState } from "./practice-store.js";
 import { loadConvergenceDelegation } from "./delegation.js";
 import { listAssignments } from "@lervo/agent-workforce";
 import { hasCurrentForegroundLease } from "./foreground-admission.js";
@@ -29,7 +28,8 @@ import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { runDocumentFreshnessCycle, type DocumentFreshnessCycleResult } from "./freshness-stage.js";
 import { documentFreshnessMayRun } from "./freshness-convergence-gate.js";
 import type { InstructionCandidateExchangeTransport } from "./instruction-candidate-exchange.js";
-import { listQueuedInstructionCaptures } from "./instruction-capture-queue.js";
+import { exchangeInstructionCandidates } from "./instruction-candidate-exchange.js";
+import { runNonOwnerCycle } from "./non-owner-cycle.js";
 import {
   runOwnerTurnCaptureWork,
   type OwnerTurnCaptureWorkResult,
@@ -37,19 +37,18 @@ import {
 import { materializationTransactionState } from "./materialization-transaction.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import { inspectConvergenceDebt } from "./status.js";
-import { recordMaintenanceObservation } from "./maintenance-observation.js";
+import {
+  readMaintenanceObservation,
+  recordMaintenanceObservation,
+} from "./maintenance-observation.js";
 import { reserveFreshnessPreparation } from "./maintenance-schedule.js";
-import { readMaintenanceObservation } from "./maintenance-observation.js";
 
 /** A live materialization owns the repository; the cycle yields like a held worker lock. */
 const MATERIALIZATION_BUSY = Symbol("materialization_busy");
 /** ADR-0574: an upgrade waits for the host's full-cycle admission; the cycle stopped between stages. */
 const YIELDED_TO_UPGRADE = Symbol("yielded_to_upgrade");
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
-import {
-  compactConvergenceWorkspaces,
-  hasConvergenceWorkspaceRetention,
-} from "./workspace-retention.js";
+import { compactConvergenceWorkspaces } from "./workspace-retention.js";
 
 async function changeReviewDeferred(context: ConvergenceRuntimeContext): Promise<boolean> {
   if (await context.liveWorkPending()) return true;
@@ -99,8 +98,8 @@ export async function runAutonomousKnowledgeWorker(input: {
    */
   yieldToUpgrade?: () => Promise<boolean>;
   /**
-   * ADR-0466 cross-host owner gate. When present, a non-owner runs only read-only debt detection;
-   * when absent, the legacy single-host behavior applies.
+   * ADR-0466 cross-host owner gate. When present, a non-owner runs only its host-local duties
+   * (ADR-0597); when absent, the legacy single-host behavior applies.
    */
   owner?: () => Promise<ConvergenceOwnerVerdict>;
   /** ADR-0467 Hub adapter for exchanging owner-rule candidates; absent keeps them host-local. */
@@ -191,46 +190,25 @@ export async function runAutonomousKnowledgeWorker(input: {
     reason: "knowledge_cycle_yielded_to_upgrade",
   } as const;
   const owner = input.owner === undefined ? null : await input.owner();
-  if (owner !== null && owner.role !== "owner") {
-    if (await upgradeWaiting()) return yieldedToUpgrade;
-    // ADR-0467: assessing this host's own owner turns is not convergence work, so it runs here too.
-    // A non-owner with no queued turn and no Hub exchange has nothing to do and takes no lock.
-    const pending =
-      input.instructionCandidateTransport !== undefined ||
-      (await listQueuedInstructionCaptures(root).catch(() => [])).length > 0 ||
-      (await readPracticeState(root)).works.length > 0 ||
-      (await readPracticeState(root)).candidates.some((c) =>
-        ["assessed", "unresolved", "drafted"].includes(c.state),
-      );
-    const ownerTurns = pending
-      ? await withRepositoryKnowledgeWorkerLock(root, async () => {
-          const captured = await ownerTurnWork();
-          await runPracticeLearningCycle(practiceContext, "observe");
-          return captured;
-        })
-      : null;
-    if (await upgradeWaiting()) return yieldedToUpgrade;
-    // ADR-0518: convergence checkouts are host-local, so a non-owner still retires its own.
-    if (await hasConvergenceWorkspaceRetention(input.storage))
-      await withRepositoryKnowledgeWorkerLock(root, () =>
-        compactConvergenceWorkspaces(input.storage),
-      );
-    const inspected = await inspectConvergenceDebt(input.storage);
-    await recordMaintenanceObservation({
-      root,
-      projectId: input.storage.manifest.projectId,
-      status: inspected.status,
-      baselineCurrent: inspected.baselineCurrent,
+  const transport = input.instructionCandidateTransport;
+  if (owner !== null && owner.role !== "owner")
+    return runNonOwnerCycle({
+      storage: input.storage,
       owner,
-      source: "inspection",
+      captureOwnerTurns: ownerTurnWork,
+      observePractice: () => runPracticeLearningCycle(practiceContext, "observe"),
+      ...(transport === undefined
+        ? {}
+        : {
+            exchangeCandidates: () =>
+              exchangeInstructionCandidates({
+                storage: input.storage,
+                transport,
+                now: () => new Date(),
+              }),
+          }),
+      upgradeWaiting,
     });
-    return {
-      status: "waiting_owner",
-      owner,
-      convergence: inspected.status,
-      ownerTurns: ownerTurns === null || ownerTurns.status === "busy" ? null : ownerTurns.result,
-    };
-  }
   const upgradePreemption =
     input.yieldToUpgrade === undefined ? {} : { yieldToUpgrade: input.yieldToUpgrade };
   const context: ConvergenceRuntimeContext = {

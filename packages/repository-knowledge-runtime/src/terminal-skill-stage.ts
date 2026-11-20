@@ -102,6 +102,10 @@ export async function runTerminalSkillObservationCycle(input: {
     await removeTerminalSkillTurn(root, turn.contextEventId);
     assessedCount++;
   }
-  if (currentCatalog !== null) await refreshTerminalSkillUsage(storage, currentCatalog.skills, now);
+  // Turns retained privately append no event, so they rebuild the projection explicitly.
+  if (currentCatalog !== null)
+    await refreshTerminalSkillUsage(storage, currentCatalog.skills, now, {
+      force: assessedCount > 0,
+    });
   return { assessedCount };
 }

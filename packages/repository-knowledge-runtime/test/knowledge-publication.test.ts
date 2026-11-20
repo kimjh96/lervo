@@ -1354,10 +1354,14 @@ describe("GitHub CLI publication adapter", () => {
     ).toMatchObject({ state: "failed", total: 3, failed: 2 });
     calls.length = 0;
     await forge.rerunFailedChecks({ number: 64, runIds: [11] });
-    expect(calls).toEqual([["run", "rerun", "11", "--failed"]]);
+    expect(calls).toEqual([
+      ["api", "repos/{owner}/{repo}/actions/runs/11", "--jq", ".created_at"],
+      ["run", "rerun", "11", "--failed"],
+    ]);
     calls.length = 0;
     await forge.rerunFailedChecks({ number: 64, runIds: [12] });
     expect(calls).toEqual([
+      ["api", "repos/{owner}/{repo}/actions/runs/12", "--jq", ".created_at"],
       ["run", "rerun", "12", "--failed"],
       ["pr", "close", "64"],
       ["pr", "reopen", "64"],
@@ -1400,11 +1404,82 @@ describe("GitHub CLI publication adapter", () => {
     calls.length = 0;
     await forge.rerunFailedChecks({ number: 7, runIds: [41] });
     expect(calls).toEqual([
+      ["api", "repos/{owner}/{repo}/actions/runs/41", "--jq", ".created_at"],
       ["run", "rerun", "41", "--failed"],
       ["pr", "close", "7"],
       ["pr", "reopen", "7"],
       ["pr", "reopen", "7"],
     ]);
+  });
+
+  it("counts only the newest run of each Actions check after a rerun or reopen", () => {
+    const head = "a".repeat(40);
+    const run = (name: string, workflowName: string, startedAt: string, conclusion: string) => ({
+      __typename: "CheckRun",
+      name,
+      workflowName,
+      status: "COMPLETED",
+      conclusion,
+      startedAt,
+      completedAt: startedAt,
+    });
+    const rollup = [
+      run("Lint", "Code Quality", "2026-10-12T17:11:01Z", "FAILURE"),
+      run("Validate PR title", "PR Title", "2026-10-12T17:11:01Z", "FAILURE"),
+      run("Validate PR title", "PR Title", "2026-10-12T17:11:02Z", "FAILURE"),
+      run("Lint", "Code Quality", "2026-11-20T02:02:26Z", "SUCCESS"),
+      run("Validate PR title", "PR Title", "2026-11-20T02:02:26Z", "SUCCESS"),
+      { __typename: "StatusContext", context: "Vercel", state: "FAILURE" },
+    ];
+    expect(
+      summarizeKnowledgePublicationChecks({
+        headSha: head,
+        observedHeadSha: head,
+        rollup,
+        ignore: ["Vercel"],
+      }),
+    ).toEqual({ state: "passed", total: 2 });
+    // A job of the same name in another workflow is its own check.
+    expect(
+      summarizeKnowledgePublicationChecks({
+        headSha: head,
+        observedHeadSha: head,
+        rollup: [...rollup, run("Lint", "Nightly", "2026-10-01T00:00:00Z", "FAILURE")],
+        ignore: ["Vercel"],
+      }),
+    ).toMatchObject({ state: "failed", failed: 1, failures: [{ name: "Lint" }] });
+  });
+
+  it("treats a run older than a month as expired whatever gh calls the refusal", async () => {
+    const calls: string[][] = [];
+    const forge = createGitHubKnowledgePublicationForge({
+      repositoryRoot: "/repository",
+      now: () => new Date("2026-11-20T02:00:00.000Z"),
+      run: async (args) => {
+        calls.push(args);
+        if (args[0] === "api" && args[1]!.endsWith("/38282516554")) return "2026-10-12T17:11:01Z\n";
+        if (args[0] === "api") return "2026-11-19T00:00:00Z\n";
+        // gh 2.46 words GitHub's refusal of an old run as a broken workflow file.
+        if (args[0] === "run")
+          throw Object.assign(new Error("Command failed: gh"), {
+            code: 1,
+            stderr: "run 9 cannot be rerun; its workflow file may be broken",
+          });
+        return "";
+      },
+    });
+    await forge.rerunFailedChecks({ number: 64, runIds: [38282516554] });
+    expect(calls).toEqual([
+      ["api", "repos/{owner}/{repo}/actions/runs/38282516554", "--jq", ".created_at"],
+      ["pr", "close", "64"],
+      ["pr", "reopen", "64"],
+    ]);
+    // A recent run refused with the same words is not expired, so nothing is closed.
+    calls.length = 0;
+    await expect(forge.rerunFailedChecks({ number: 64, runIds: [9] })).rejects.toBeInstanceOf(
+      KnowledgePublicationForgeError,
+    );
+    expect(calls.some((args) => args[1] === "close")).toBe(false);
   });
 
   it("reports each gh failure as its step, exit code, and a closed class without stderr", async () => {
