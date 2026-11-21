@@ -5,6 +5,10 @@ export type RuntimeChangeTransport = Pick<AuthenticatedHubHttpTransport, "waitFo
 /** A failed hint wait retries after the fallback interval, doubling to this ceiling. */
 export const RUNTIME_HINT_RETRY_CEILING_MILLISECONDS = 5 * 60_000;
 
+/** After an open hold is refused, it is asked for again after a minute, doubling to an hour. */
+export const RUNTIME_OPEN_HOLD_RETRY_MILLISECONDS = 60_000;
+export const RUNTIME_OPEN_HOLD_RETRY_CEILING_MILLISECONDS = 60 * 60_000;
+
 function sleep(milliseconds: number, signal: AbortSignal): Promise<void> {
   return new Promise<void>((resolve) => {
     if (signal.aborted) return resolve();
@@ -18,12 +22,20 @@ function sleep(milliseconds: number, signal: AbortSignal): Promise<void> {
   });
 }
 
+function upgradeRequired(): Error {
+  return Object.assign(new Error("The Hub is older than this release."), {
+    code: "hub_upgrade_required",
+  });
+}
+
 /**
  * Coalesces hints; durable cursors, policy, and execution remain in the existing cycles.
  * ADR-0602: a wait is an open hold on the Hub, answered when Hub state changed or at the Hub's
  * ten-minute bound; a bound answer with no change is waited on again here, so the caller's cycle
  * runs only for a change, and a local `notify` ends it at once. A Hub older than ADR-0602 refuses
- * the open hold (400 or 404), and its bounded legacy hold is used instead. A failed wait retries
+ * the open hold (400 or 404), and its bounded legacy hold is used instead, reported as
+ * `hub_upgrade_required` until an open hold is answered; the open hold is asked for again from a
+ * minute after the refusal, doubling to an hour, so an upgraded Hub is used soon. A failed wait retries
  * after `fallbackIntervalMs`, doubling to a ceiling, and `onAvailability` reports the failure
  * once it repeats, until the next answer. Without a hint-capable transport it waits for local
  * changes only, and reports that once.
@@ -35,7 +47,11 @@ export class RuntimeIdleWait {
   private failures = 0;
   private retryAt = 0;
   private unavailable = false;
-  private legacy = false;
+  /** An open hold was refused as too new for the Hub; attention until one is answered. */
+  private downgraded = false;
+  /** While downgraded, when the open hold is asked for again, and how often it was refused. */
+  private openRetryAt = 0;
+  private openRefusals = 0;
 
   constructor(
     private readonly options: {
@@ -60,7 +76,8 @@ export class RuntimeIdleWait {
     const unavailable = failure !== null;
     if (unavailable === this.unavailable && !unavailable) return;
     this.unavailable = unavailable;
-    this.options.onAvailability?.(failure);
+    // A recovered wait on a Hub still too old keeps that attention.
+    this.options.onAvailability?.(failure ?? (this.downgraded ? upgradeRequired() : null));
   }
 
   private retryDelay(): number {
@@ -99,23 +116,40 @@ export class RuntimeIdleWait {
       try {
         let result: unknown;
         for (;;) {
+          const legacy = this.downgraded && Date.now() < this.openRetryAt;
           try {
             result = await transport.waitForRuntimeChange({
               topic: this.options.topic,
               ...(this.options.nodeId === undefined ? {} : { nodeId: this.options.nodeId }),
               cursor: this.cursor,
               signal: combined,
-              ...(this.legacy ? { legacy: true } : {}),
+              ...(legacy ? { legacy: true } : {}),
             });
           } catch (error) {
             const status = (error as { status?: unknown } | null)?.status;
-            if (!this.legacy && (status === 400 || status === 404)) {
-              this.legacy = true;
+            if (!legacy && (status === 400 || status === 404)) {
+              this.openRefusals = Math.min(this.openRefusals + 1, 32);
+              this.openRetryAt =
+                Date.now() +
+                Math.min(
+                  RUNTIME_OPEN_HOLD_RETRY_CEILING_MILLISECONDS,
+                  RUNTIME_OPEN_HOLD_RETRY_MILLISECONDS * 2 ** (this.openRefusals - 1),
+                );
+              if (!this.downgraded) {
+                this.downgraded = true;
+                if (!this.unavailable) this.options.onAvailability?.(upgradeRequired());
+              }
               continue;
             }
             throw error;
           }
           if (combined.aborted) return;
+          // An answered open hold: the Hub was upgraded, and the attention clears.
+          if (!legacy && this.downgraded) {
+            this.downgraded = false;
+            this.openRefusals = 0;
+            if (!this.unavailable) this.options.onAvailability?.(null);
+          }
           // A bound answer with the same cursor changed nothing: hold again.
           const body = (result as { body?: { status?: unknown; cursor?: unknown } } | null)?.body;
           if (body?.status === "timeout" && body.cursor === this.cursor && this.cursor !== null)

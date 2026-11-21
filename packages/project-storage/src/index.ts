@@ -9,6 +9,7 @@ export { watchProjectEventChanges, type ProjectEventWatchOptions } from "./event
 /** ADR-0602: the visible state of the event-store wake channel, for health and attention. */
 export {
   holdProcessPresence,
+  ownedPresenceDirectory,
   inspectEventStoreChannel,
   localProcessAlive,
   localProcessIdentity,

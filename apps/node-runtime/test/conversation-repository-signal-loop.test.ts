@@ -6,7 +6,7 @@ import {
 } from "../src/conversation-repository-signal-loop.js";
 
 describe("conversation repository signal loop", () => {
-  it("runs immediately, repeats on its bound interval, and stops after failure", async () => {
+  it("runs immediately, looks again each minute without a change source, and stops after failure", async () => {
     const callbacks: Array<() => void> = [];
     const schedule: ConversationRepositorySignalSchedule = {
       schedule: vi.fn((_delay, callback) => callbacks.push(callback)),
@@ -24,7 +24,8 @@ describe("conversation repository signal loop", () => {
     expect(schedule.schedule).toHaveBeenNthCalledWith(1, 0, expect.any(Function));
     callbacks.shift()!();
     await vi.waitFor(() => expect(runCycle).toHaveBeenCalledTimes(1));
-    expect(schedule.schedule).toHaveBeenNthCalledWith(2, 500, expect.any(Function));
+    // ADR-0602: no change source can wake it, so it looks again each minute (with attention).
+    expect(schedule.schedule).toHaveBeenNthCalledWith(2, 60_000, expect.any(Function));
     callbacks.shift()!();
     await vi.waitFor(() => expect(onFailure).toHaveBeenCalledTimes(1));
     expect(schedule.schedule).toHaveBeenCalledTimes(2);

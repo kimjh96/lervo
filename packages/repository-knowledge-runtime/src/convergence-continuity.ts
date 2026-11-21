@@ -212,11 +212,14 @@ export class ConvergenceContinuity {
     let peers: KnowledgeConvergenceHostRecord[] = [];
     // This host's own record as the Hub holds it, so an identical one is never published again.
     let ownListed: KnowledgeConvergenceHostRecord | null = null;
+    // A Hub that reports presence judges peers by it; an earlier one judges them by record age.
+    let presenceHub = false;
     if (port !== null)
       try {
         const listed = await port.list(signal);
         peers = listed.filter((record) => record.hostHash !== host?.hostHash);
         ownListed = listed.find((record) => record.hostHash === host?.hostHash) ?? null;
+        presenceHub = listed.some((record) => record.presence !== undefined);
       } catch (error) {
         hubFailure = knowledgeConvergenceOwnerFailureOf(error).failureCode;
       }
@@ -311,8 +314,10 @@ export class ConvergenceContinuity {
             providerAdmission,
           });
     // ADR-0602: a record whose facts the Hub already holds is not published again, so two hosts
-    // never wake each other with records that differ only in when they were observed.
+    // never wake each other with records that differ only in when they were observed. A Hub older
+    // than ADR-0602 judges a peer by its record's age, so there it is published every time.
     const unchanged =
+      presenceHub &&
       record !== null &&
       ownListed !== null &&
       knowledgeConvergenceHostRecordFacts(ownListed) ===
@@ -330,9 +335,6 @@ export class ConvergenceContinuity {
     const nextReconcileAt = continuityNextDeadline({
       now: startedAt.getTime(),
       failures,
-      // ADR-0478: a due renewal this host may not write is looked at again within the retry
-      // bound, so a host that just took over renews without waiting for another change.
-      awaitingOwner: continuity.awaitingOwner,
       renewAt: continuity.renewal?.kind === "current" ? continuity.renewal.renewAt : null,
       delegationExpiresAt: current?.expiresAt ?? null,
       policyHorizonAt: policy.status === "loaded" ? policy.policy.horizonAt : null,

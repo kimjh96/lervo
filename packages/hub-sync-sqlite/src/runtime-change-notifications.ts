@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 import {
   HubRuntimeChangeError,
+  type HubKnowledgeChangeKind,
+  type HubRuntimeChangeAnswer,
   type HubRuntimeChangeScope,
   type HubRuntimeChangeSource,
 } from "@lervo/hub-sync";
@@ -21,13 +23,51 @@ export const HUB_PRESENCE_GRACE_MILLISECONDS = 5_000;
 const MAXIMUM_WAITERS = 1_024;
 const MAXIMUM_ENTRIES = 1_024;
 const MAXIMUM_PRESENCE = 4_096;
+/**
+ * ADR-0602: hosts with a cursor in one scope. Past it, the host that waited least recently and is
+ * not waiting now is forgotten; it is told no kinds when it returns, so it runs a full cycle.
+ */
+export const MAXIMUM_HOSTS_PER_SCOPE = 256;
 const NO_HOST = "";
 
 /**
  * One scope's cursors. ADR-0602: each waiting host has its own cursor, so a change a host made
  * itself never wakes it; hosts that wait without naming themselves share the empty key.
  */
-type Entry = { cursors: Map<string, string>; listeners: Map<string, Set<() => void>> };
+/**
+ * ADR-0602: per host, the kinds changed since each cursor it was recently handed, null once a
+ * change of unknown kind joined them. Every change adds to each, and an answer starts one at the
+ * cursor it hands out, so an answer lost on the way never loses a kind: the host asks again with
+ * its earlier cursor and is told everything since. A cursor with no record is told no kinds, which
+ * means anything may have changed.
+ */
+type KindsSince = Map<string, Set<HubKnowledgeChangeKind> | null>;
+const MAXIMUM_KIND_RECORDS = 4;
+type Entry = {
+  cursors: Map<string, string>;
+  listeners: Map<string, Set<() => void>>;
+  kinds: Map<string, KindsSince>;
+};
+
+/** Makes room for one more host, forgetting the one that waited least recently and waits not. */
+function evictLeastRecentlyWaited(entry: Entry): void {
+  if (entry.cursors.size < MAXIMUM_HOSTS_PER_SCOPE) return;
+  for (const host of entry.cursors.keys())
+    if ((entry.listeners.get(host)?.size ?? 0) === 0) {
+      entry.cursors.delete(host);
+      entry.kinds.delete(host);
+      entry.listeners.delete(host);
+      return;
+    }
+  throw new HubRuntimeChangeError("capacity_exceeded");
+}
+
+/** Starts recording kinds from `cursor`, keeping only the most recent few starting points. */
+function recordFrom(since: KindsSince, cursor: string): void {
+  if (since.has(cursor)) return;
+  since.set(cursor, new Set());
+  while (since.size > MAXIMUM_KIND_RECORDS) since.delete(since.keys().next().value!);
+}
 type Presence = {
   waiting: number;
   connected: boolean;
@@ -56,7 +96,7 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
       scope: HubRuntimeChangeScope,
       hostHash: string,
       connected: boolean,
-    ) => void,
+    ) => readonly HubKnowledgeChangeKind[],
   ) {}
 
   private key(scope: HubRuntimeChangeScope): string {
@@ -78,12 +118,23 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
   }
 
   /** Every waiter of the scope wakes, except the host that made the change. */
-  notify(scope: HubRuntimeChangeScope, sourceHostHash?: string): void {
+  notify(
+    scope: HubRuntimeChangeScope,
+    sourceHostHash?: string,
+    kinds?: readonly HubKnowledgeChangeKind[],
+  ): void {
     const entry = this.entries.get(this.key(scope));
     if (entry === undefined) return;
-    for (const host of entry.cursors.keys()) {
+    for (const [host, previous] of entry.cursors) {
       if (sourceHostHash !== undefined && host === sourceHostHash) continue;
       entry.cursors.set(host, randomUUID());
+      const since = entry.kinds.get(host) ?? new Map();
+      entry.kinds.set(host, since);
+      recordFrom(since, previous);
+      for (const [from, recorded] of since)
+        if (recorded !== null)
+          if (kinds === undefined) since.set(from, null);
+          else for (const kind of kinds) recorded.add(kind);
       for (const listener of [...(entry.listeners.get(host) ?? [])]) listener();
     }
   }
@@ -113,7 +164,7 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
         if (unused === undefined) throw new HubRuntimeChangeError("capacity_exceeded");
         this.entries.delete(unused[0]);
       }
-      entry = { cursors: new Map(), listeners: new Map() };
+      entry = { cursors: new Map(), listeners: new Map(), kinds: new Map() };
       this.entries.set(key, entry);
     }
     return entry;
@@ -139,8 +190,8 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
     if (!tracked.connected) {
       tracked.connected = true;
       tracked.since = this.now();
-      this.onPresence?.(scope, hostHash, true);
-      this.notify(scope, hostHash);
+      const also = this.onPresence?.(scope, hostHash, true) ?? [];
+      this.notify(scope, hostHash, ["presence", ...also]);
     }
     return () => {
       tracked.waiting -= 1;
@@ -151,8 +202,8 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
         if (tracked.waiting > 0) return;
         tracked.connected = false;
         tracked.since = this.now();
-        this.onPresence?.(scope, hostHash, false);
-        this.notify(scope, hostHash);
+        const also = this.onPresence?.(scope, hostHash, false) ?? [];
+        this.notify(scope, hostHash, ["presence", ...also]);
       }, HUB_PRESENCE_GRACE_MILLISECONDS);
       tracked.absent.unref();
     };
@@ -160,17 +211,34 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
 
   async waitForRuntimeChange(
     input: Parameters<HubRuntimeChangeSource["waitForRuntimeChange"]>[0],
-  ): Promise<{ cursor: string; status: "changed" | "timeout" }> {
+  ): Promise<HubRuntimeChangeAnswer> {
     if (this.closed) throw new HubRuntimeChangeError("source_closed");
     if (this.waiting >= MAXIMUM_WAITERS) throw new HubRuntimeChangeError("capacity_exceeded");
     const selected = this.entry(this.key(input));
     const host = input.topic === "knowledge" ? (input.hostHash ?? NO_HOST) : NO_HOST;
     let cursor = selected.cursors.get(host);
     if (cursor === undefined) {
+      evictLeastRecentlyWaited(selected);
       cursor = randomUUID();
-      selected.cursors.set(host, cursor);
     }
-    if (input.cursor !== cursor) return { cursor, status: "changed" };
+    // Insertion order is the order hosts last waited in.
+    selected.cursors.delete(host);
+    selected.cursors.set(host, cursor);
+    const since: KindsSince = selected.kinds.get(host) ?? new Map();
+    selected.kinds.set(host, since);
+    // Caught up: what came before this cursor was told, so only its own record stays.
+    if (input.cursor === cursor) {
+      for (const from of [...since.keys()]) if (from !== cursor) since.delete(from);
+      recordFrom(since, cursor);
+    }
+    const changed = (at: string): HubRuntimeChangeAnswer => {
+      const kinds = input.cursor === null ? null : (since.get(input.cursor) ?? null);
+      recordFrom(since, at);
+      return input.topic === "knowledge" && kinds !== null && kinds.size > 0
+        ? { cursor: at, status: "changed", kinds: [...kinds].sort() }
+        : { cursor: at, status: "changed" };
+    };
+    if (input.cursor !== cursor) return changed(cursor);
     const leave =
       input.topic === "knowledge" && input.hostHash !== undefined
         ? this.arrive(input, input.hostHash)
@@ -200,7 +268,7 @@ export class RuntimeChangeNotifications implements HubRuntimeChangeSource {
       leave();
     }
     const current = selected.cursors.get(host) ?? cursor;
-    return { cursor: current, status: input.cursor === current ? "timeout" : "changed" };
+    return input.cursor === current ? { cursor: current, status: "timeout" } : changed(current);
   }
 
   close(): void {

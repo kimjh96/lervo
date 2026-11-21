@@ -1,5 +1,9 @@
 import { RuntimeChangeNotifications } from "./runtime-change-notifications.js";
-import { HubRuntimeChangeError, type HubRuntimeChangeSource } from "@lervo/hub-sync";
+import {
+  HubRuntimeChangeError,
+  type HubKnowledgeChangeKind,
+  type HubRuntimeChangeSource,
+} from "@lervo/hub-sync";
 
 import type { DatabaseSync } from "node:sqlite";
 import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
@@ -140,18 +144,23 @@ export class HubSyncSQLiteStore
   private readonly runtimeChanges = new RuntimeChangeNotifications(
     Date.now,
     (scope, host, connected) => {
-      if (scope.topic !== "knowledge" || this.closed) return;
+      if (scope.topic !== "knowledge" || this.closed) return [];
       try {
-        this.transactionRunner.write(() =>
+        // The holder's arrival or departure changes what its peers read of the lease.
+        return this.transactionRunner.write(() =>
           this.knowledgeConvergenceOwnerRepository.presence(
             scope,
             host,
             connected,
             new Date().toISOString(),
           ),
-        );
+        )
+          ? ["lease"]
+          : [];
       } catch {
-        // A failed write leaves the recorded expiry, which still ends the lease on time.
+        // A failed write leaves the recorded expiry, which still ends the lease on time; peers
+        // look at the lease again all the same.
+        return ["lease"];
       }
     },
   );
@@ -346,6 +355,7 @@ export class HubSyncSQLiteStore
   private notifyKnowledge(
     input: { destinationId: string; projectId: string; repositoryIdentityHash: string },
     sourceHostHash: string,
+    kind: HubKnowledgeChangeKind,
   ): void {
     this.runtimeChanges.notify(
       {
@@ -355,6 +365,7 @@ export class HubSyncSQLiteStore
         destinationId: input.destinationId,
       },
       sourceHostHash,
+      [kind],
     );
   }
 
@@ -375,6 +386,7 @@ export class HubSyncSQLiteStore
       this.notifyKnowledge(
         { destinationId: input.destinationId, ...input.mutation.request },
         input.mutation.request.hostHash,
+        "lease",
       );
     return decision;
   }
@@ -397,6 +409,7 @@ export class HubSyncSQLiteStore
         input.record.resolution === "open"
           ? input.record.sourceHostHash
           : (input.record.resolvedByHostHash ?? input.record.sourceHostHash),
+        "candidate",
       );
     return result;
   }
@@ -426,6 +439,7 @@ export class HubSyncSQLiteStore
       this.notifyKnowledge(
         { destinationId: input.destinationId, ...input.record },
         input.record.hostHash,
+        "host",
       );
     return { status: result.status, record: result.record };
   }
@@ -462,6 +476,7 @@ export class HubSyncSQLiteStore
       this.notifyKnowledge(
         { destinationId: input.destinationId, ...input.definition },
         input.definition.sourceHostHash,
+        "definition",
       );
     return result;
   }

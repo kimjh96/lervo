@@ -136,6 +136,8 @@ it(
     });
     const granted = await wslWait;
     expect(granted.cursor).not.toBe(wslCursor);
+    // The answer names what changed, so wsl runs a full cycle for a lease change.
+    expect(granted.kinds).toContain("lease");
     expect(await heldFor(macWait, 300)).toBe(true);
     // A renewal changes nothing a peer acts on.
     wslWait = hold(wsl, granted.cursor);
@@ -159,6 +161,7 @@ it(
     const released = await wslWait;
     expect(Date.now() - started).toBeLessThan(1_000);
     expect(released.cursor).not.toBe(granted.cursor);
+    expect(released.kinds).toEqual(["lease"]);
     expect(await heldFor(macWait, 200)).toBe(true);
   },
 );
@@ -190,7 +193,7 @@ it("names an unreachable Hub as unreachable", async () => {
 });
 
 it(
-  "keeps a present holder's lease live past its length and pushes its expiry when the holder leaves (ADR-0602)",
+  "keeps a present holder's lease live, and never hands it to a peer while the holder's own validity lasts (ADR-0602)",
   { timeout: 60_000 },
   async () => {
     const clock: { now: number | null } = { now: null };
@@ -226,9 +229,17 @@ it(
     expect(woken.cursor).not.toBe(wslFirst.cursor);
     const reading = await running.owner.read();
     expect(reading).toMatchObject({ status: "held", holderPresent: false });
+    // The Hub saw mac leave while mac still held the validity of its last claim (thirty minutes,
+    // minus its safety margin). A one-sided drop leaves mac able to commit until then, so the
+    // expiry is never pulled below it: a peer one minute later is still refused.
     const left = Date.parse(reading.lease!.expiresAt) - Date.now();
-    expect(left).toBeGreaterThan(0);
-    expect(left).toBeLessThanOrEqual(60_000);
+    expect(left).toBeGreaterThan(29 * 60_000);
+    expect(left).toBeLessThanOrEqual(30 * 60_000);
+    clock.now = Date.now() + 61_000;
+    await expect(running.owner.mutate(claim(wsl, "wsl"))).resolves.toMatchObject({
+      status: "held_elsewhere",
+      holderPresent: false,
+    });
     clock.now = Date.parse(reading.lease!.expiresAt) + 1;
     await expect(running.owner.mutate(claim(wsl, "wsl"))).resolves.toMatchObject({
       status: "granted",

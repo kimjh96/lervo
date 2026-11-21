@@ -200,3 +200,58 @@ it("backs an unreadable deadline off even though each cycle succeeds, and report
   expect(onFailure).toHaveBeenCalledTimes(at.length);
   await loop.stop();
 });
+
+it.each([
+  ["no change source", undefined],
+  [
+    "a change source that cannot be armed",
+    () => {
+      throw Object.assign(new Error("watch limit reached"), { code: "ENOSPC" });
+    },
+  ],
+])(
+  "looks again each minute with %s, honours an earlier deadline, and reports it until it stops (ADR-0602)",
+  async (_name, subscribe) => {
+    vi.useFakeTimers();
+    let deadline: number | null = null;
+    const cycle = vi.fn(async () => {});
+    const signals: unknown[] = [];
+    const loop = new ConversationChangeLoop({
+      runCycle: cycle,
+      onFailure: vi.fn(),
+      intervalMs: 2_000,
+      continueOnFailure: true,
+      ...(subscribe === undefined ? {} : { subscribe }),
+      nextWakeupAt: () => deadline,
+      onChangeSignal: (failure) => signals.push(failure),
+    });
+    loop.start();
+    expect(signals).toEqual([
+      expect.objectContaining({ code: "conversation_change_signal_unavailable" }),
+    ]);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(cycle).toHaveBeenCalledTimes(1);
+    // Nothing can wake it, so it looks again each minute instead of going silent; attention is
+    // already raised, so it looks no faster than that.
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(cycle).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cycle).toHaveBeenCalledTimes(2);
+    // A sooner deadline, read at the end of a cycle, runs at its moment.
+    deadline = Date.now() + 60_000 + 2_500;
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(cycle).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(2_500);
+    expect(cycle).toHaveBeenCalledTimes(4);
+    // Lapsed, it gets one more cycle after the interval, then waits the minute: it never spins.
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(cycle).toHaveBeenCalledTimes(5);
+    await vi.advanceTimersByTimeAsync(59_999);
+    expect(cycle).toHaveBeenCalledTimes(5);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cycle).toHaveBeenCalledTimes(6);
+    await loop.stop();
+    expect(signals.at(-1)).toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  },
+);

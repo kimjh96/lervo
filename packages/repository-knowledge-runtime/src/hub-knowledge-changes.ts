@@ -21,7 +21,22 @@ export interface KnowledgeHubChangePort {
     cursor: string | null;
     hostHash: string | null;
     signal: AbortSignal;
-  }): Promise<{ cursor: string }>;
+  }): Promise<{ cursor: string; kinds?: readonly string[] }>;
+}
+
+/**
+ * ADR-0602: the change kinds only continuity reads: host records and presence. Every other kind,
+ * including one a later Hub adds, runs a full cycle, as does an answer without kinds (a
+ * reconnection, a Hub restart), which may hold any of them.
+ */
+const CONTINUITY_ONLY_KINDS: ReadonlySet<string> = new Set(["host", "presence"]);
+
+function cycleRelevant(kinds: readonly string[] | undefined): boolean {
+  return (
+    kinds === undefined ||
+    kinds.length === 0 ||
+    !kinds.every((kind) => CONTINUITY_ONLY_KINDS.has(kind))
+  );
 }
 
 export type KnowledgeHubChangeTransport = (
@@ -31,7 +46,10 @@ export type KnowledgeHubChangeTransport = (
 export type HubKnowledgeChangeIssue = "hub_knowledge_changes_unavailable" | "hub_upgrade_required";
 
 export interface HubKnowledgeChangeWatch {
-  /** The Hub cursor last observed; null while standalone or before the first answer. */
+  /**
+   * The token of the last change a full cycle acts on; null while standalone or before the first
+   * answer. A change only continuity reads leaves it unchanged.
+   */
   token(): string | null;
   /**
    * Whether the Hub answers `knowledge` waits now, so it pushes coordination changes and keeps a
@@ -54,6 +72,9 @@ export const HUB_KNOWLEDGE_CHANGE_READY_MILLISECONDS = 10_000;
  */
 export const HUB_KNOWLEDGE_LEGACY_CYCLE_MILLISECONDS = 60 * 60_000;
 
+/** Against a Hub too old to push, how seldom it is asked again at most, from a minute up. */
+export const HUB_KNOWLEDGE_UPGRADE_RECHECK_CEILING_MILLISECONDS = 10 * 60_000;
+
 export function hubKnowledgeChangeRetryDelay(
   failures: number,
   base = HUB_KNOWLEDGE_CHANGE_RETRY_BASE_MILLISECONDS,
@@ -73,7 +94,8 @@ export function hubKnowledgeChangeRetryDelay(
 export function watchHubKnowledgeChanges(input: {
   storage: ProjectStorage;
   transport: KnowledgeHubChangeTransport | undefined;
-  onChange: () => void;
+  /** `cycle` is false for a change only continuity reads (a host record, a presence change). */
+  onChange: (cycle: boolean) => void;
   /** The failure that raised the issue rides along, so its cause can be shown. */
   onIssue?: (issue: HubKnowledgeChangeIssue | null, error?: unknown) => void;
   retry?: { baseMilliseconds: number; ceilingMilliseconds: number };
@@ -105,6 +127,8 @@ export function watchHubKnowledgeChanges(input: {
     bound.unref();
     markReady = () => {
       clearTimeout(bound);
+      // Startup released without an answer (a failed first wait): the first answer is a change.
+      if (!answered) readyTimedOut = true;
       resolveReady();
     };
   });
@@ -113,13 +137,17 @@ export function watchHubKnowledgeChanges(input: {
     issue = next;
     input.onIssue?.(next, error);
   };
-  const observe = (next: string | null) => {
+  // The last cursor seen, apart from the token, which moves only for a change a cycle acts on.
+  let seen: string | null = null;
+  const observe = (next: string | null, kinds?: readonly string[]) => {
     const first = !answered;
     answered = true;
     markReady();
-    if (next === token) return;
-    token = next;
-    if (!first || readyTimedOut) input.onChange();
+    if (next === seen) return;
+    seen = next;
+    const cycle = first || next === null || cycleRelevant(kinds);
+    if (cycle) token = next;
+    if (!first || readyTimedOut) input.onChange(cycle);
   };
   const coordinates = watchFiles([resolve(root, CONVERGENCE_OWNER_HOST_PATH)], () =>
     interrupt.abort(),
@@ -137,6 +165,8 @@ export function watchHubKnowledgeChanges(input: {
     });
   const run = async () => {
     let failures = 0;
+    let legacyAttempts = 0;
+    let legacyCycleAt = Number.NEGATIVE_INFINITY;
     let cursor = null as { key: string; value: string } | null;
     while (!stopped.signal.aborted) {
       interrupt = new AbortController();
@@ -166,9 +196,10 @@ export function watchHubKnowledgeChanges(input: {
           });
           cursor = { key, value: answer.cursor };
           failures = 0;
+          legacyAttempts = 0;
           pushing = true;
           report(null);
-          observe(answer.cursor);
+          observe(answer.cursor, answer.kinds);
         }
       } catch (error) {
         pushing = false;
@@ -176,12 +207,25 @@ export function watchHubKnowledgeChanges(input: {
         const status = (error as { httpStatus?: unknown } | null)?.httpStatus;
         if (status === 400 || status === 404) {
           // A Hub older than ADR-0602: no pushes, so one full cycle per legacy cadence, through a
-          // new token, until it is upgraded; asked again each time.
+          // new token, until it is upgraded. It is asked again sooner, from a minute doubling to
+          // ten minutes, so an upgraded Hub is noticed within minutes.
           report("hub_upgrade_required", error);
-          observe(`legacy-${Date.now()}`);
-          await sleep(HUB_KNOWLEDGE_LEGACY_CYCLE_MILLISECONDS, signal);
+          legacyAttempts += 1;
+          if (Date.now() - legacyCycleAt >= HUB_KNOWLEDGE_LEGACY_CYCLE_MILLISECONDS) {
+            legacyCycleAt = Date.now();
+            observe(`legacy-${legacyCycleAt}`);
+          }
+          markReady();
+          await sleep(
+            Math.min(
+              HUB_KNOWLEDGE_UPGRADE_RECHECK_CEILING_MILLISECONDS,
+              60_000 * 2 ** Math.min(legacyAttempts - 1, 10),
+            ),
+            signal,
+          );
           continue;
         }
+        legacyAttempts = 0;
         failures += 1;
         // One lost connection is routine; a failure that repeats is attention.
         if (failures >= 2) report("hub_knowledge_changes_unavailable", error);

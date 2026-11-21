@@ -29,6 +29,7 @@ function nextSignal(input: {
   woken: Promise<void> | null;
   retryMilliseconds: number;
   signal: AbortSignal;
+  onIssue: (issue: string | null) => void;
 }): Promise<void> {
   return new Promise((resolveSignal) => {
     const cancels: (() => void)[] = [];
@@ -51,12 +52,15 @@ function nextSignal(input: {
     }
     if (attempt.holder !== null) {
       if (attempt.holder.presence !== null)
-        cancels.push(waitForProcessExit(attempt.holder.presence, finish));
+        cancels.push(
+          waitForProcessExit(attempt.holder.presence, finish, { onIssue: input.onIssue }),
+        );
       // The exact lease expiry: a holder that lives but stopped renewing is replaced then.
       const timer = setTimeout(finish, Math.max(0, attempt.holder.expiresAt - Date.now()) + 1);
       cancels.push(() => clearTimeout(timer));
     }
-    if (attempt.ahead !== null) cancels.push(waitForProcessExit(attempt.ahead, finish));
+    if (attempt.ahead !== null)
+      cancels.push(waitForProcessExit(attempt.ahead, finish, { onIssue: input.onIssue }));
   });
 }
 
@@ -85,9 +89,12 @@ export async function waitForAdmission(input: {
   presence: string | null;
   wakes: { next(): Promise<void> } | null;
   onWait?: () => void;
+  /** An exit wait that cannot see its process, then null once it can again. */
+  onIssue?: (issue: string | null) => void;
 }): Promise<number> {
   const connection: { db: DatabaseSync | null } = { db: null };
   let retry = input.pollMilliseconds;
+  let wokenHolder: string | null = null;
   try {
     for (let waited = false; ; waited = true) {
       if (input.signal.aborted) {
@@ -103,14 +110,25 @@ export async function waitForAdmission(input: {
       const woken = input.wakes?.next() ?? null;
       const attempt = await tryAcquireOrWait(connection, { ...input, now });
       if (attempt?.admitted === true) return now;
-      if (!waited) {
-        input.onWait?.();
-        // An upgrade asks the holder to stop at its next stage boundary at once (ADR-0574).
-        const holder = attempt?.holder?.presence ?? null;
-        if (holder !== null && input.since < now - PRIORITY_ADVANCE_MILLISECONDS / 2)
-          await wakeProcessPresence(holder);
+      if (!waited) input.onWait?.();
+      // An upgrade asks each holder it waits behind to stop at its next stage boundary
+      // (ADR-0574), once per holder, also when lock contention hid the holder at first.
+      const holder = attempt?.holder?.presence ?? null;
+      if (
+        holder !== null &&
+        holder !== wokenHolder &&
+        input.since < now - PRIORITY_ADVANCE_MILLISECONDS / 2
+      ) {
+        wokenHolder = holder;
+        await wakeProcessPresence(holder);
       }
-      await nextSignal({ attempt, woken, retryMilliseconds: retry, signal: input.signal });
+      await nextSignal({
+        attempt,
+        woken,
+        retryMilliseconds: retry,
+        signal: input.signal,
+        onIssue: input.onIssue ?? (() => undefined),
+      });
       retry = nextAdmissionPoll(retry, input.pollMilliseconds);
     }
   } finally {

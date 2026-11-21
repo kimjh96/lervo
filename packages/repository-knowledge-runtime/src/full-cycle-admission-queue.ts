@@ -40,7 +40,7 @@ export interface AdmissionAttempt {
   holder: { presence: string | null; expiresAt: number } | null;
   /** The presence of the waiter just ahead, if any. */
   ahead: string | null;
-  /** A holder or waiter of an earlier release, which only a retry can observe, is in the way. */
+  /** A holder or waiter of an earlier release is present, which only a retry can observe. */
   legacy: boolean;
 }
 
@@ -139,9 +139,12 @@ function tryAcquire(
             }
           : null,
       ahead: ahead !== null && typeof ahead.presence === "string" ? ahead.presence : null,
+      // Mixed versions only: a holder or waiter of an earlier release either blocks this waiter
+      // without a signal or deletes rows by heartbeat age, so this waiter keeps retrying, which
+      // refreshes its heartbeat, until none is left.
       legacy:
-        (held && typeof holder?.presence !== "string") ||
-        queue.slice(0, Math.max(0, position)).some((row) => typeof row.presence !== "string"),
+        (holder !== undefined && typeof holder.presence !== "string") ||
+        queue.some((row) => typeof row.presence !== "string"),
     };
   } catch (error) {
     db.exec("ROLLBACK");

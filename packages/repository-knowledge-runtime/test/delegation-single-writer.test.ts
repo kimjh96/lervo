@@ -233,7 +233,10 @@ describe("one writer per delegation renewal (ADR-0478)", () => {
     const wslEarly = await hosts.continuity(wsl).reconcile({ force: true });
     expect(await bytes(wsl)).toBe(committed);
     expect(continued(wsl)).toEqual([]);
-    expect(Date.parse(wslEarly!.nextReconcileAt!) - clock.now).toBeLessThanOrEqual(15 * 60_000);
+    // ADR-0602: the follower does not poll for the owner's renewal. Its takeover runs a forced
+    // turn, and the owner's changed host record reaches it as a Hub push (as below).
+    const followerDue = wslEarly!.nextReconcileAt;
+    expect(followerDue === null || Date.parse(followerDue) - clock.now > 15 * 60_000).toBe(true);
     clock.now += 12 * 60_000;
     const macState = await hosts.continuity(mac).reconcile({ force: true });
     expect(macState?.lastContinuation).toMatchObject({ action: "renewed", source: "renewal" });

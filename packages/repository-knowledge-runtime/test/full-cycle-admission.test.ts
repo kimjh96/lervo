@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
+import { acquireFullCycleAdmission, onHeldAdmissionSignal } from "../src/full-cycle-admission.js";
 import { nextAdmissionPoll } from "../src/full-cycle-admission-store.js";
 
 const directories: string[] = [];
@@ -181,6 +181,82 @@ it("releases through a write lock held past the SQLite busy wait (ADR-0576)", as
   const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
   expect(db.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 0 });
   db.close();
+}, 30_000);
+
+it("wakes the holder for an upgrade that lock contention kept from seeing it at first (ADR-0574, ADR-0602)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal,
+    directory: admission,
+  });
+  let wakes = 0;
+  const unsubscribe = onHeldAdmissionSignal(() => {
+    wakes += 1;
+  });
+  try {
+    // The upgrade's first attempt meets another process's write lock, so it sees no holder.
+    const { released } = await holdAdmissionDatabase(admission, "BEGIN EXCLUSIVE");
+    const upgrade = acquireFullCycleAdmission({
+      repositoryRoot: "/repo/b",
+      signal,
+      directory: admission,
+      pollMilliseconds: 10,
+      priority: "upgrade",
+    });
+    await released;
+    // Its next attempt sees the holder and asks it to stop at its next stage boundary.
+    await vi.waitFor(() => expect(wakes).toBeGreaterThan(0), { timeout: 15_000 });
+    expect(await held.preempted()).toBe(true);
+    await held.release();
+    await (await upgrade).release();
+    expect(wakes).toBe(1);
+  } finally {
+    unsubscribe();
+  }
+}, 30_000);
+
+it("keeps its heartbeat fresh while an earlier release's waiter queues behind it (ADR-0602)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal,
+    directory: admission,
+  });
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  try {
+    // An earlier release removes waiters whose heartbeat is old, by age alone; it queued last.
+    db.prepare("INSERT INTO waiters VALUES(?,?,?,?,?)").run(
+      "earlier",
+      process.pid,
+      "sha256:earlier",
+      Date.now() + 60_000,
+      Date.now(),
+    );
+    const waiting = acquireFullCycleAdmission({
+      repositoryRoot: "/repo/b",
+      signal,
+      directory: admission,
+      pollMilliseconds: 10,
+    });
+    const ours = () =>
+      db
+        .prepare(
+          "SELECT heartbeat FROM waiters WHERE nonce IN (SELECT nonce FROM admission_presence)",
+        )
+        .get() as { heartbeat: number } | undefined;
+    await vi.waitFor(() => expect(ours()).toBeDefined());
+    const first = ours()!.heartbeat;
+    // Mixed versions only: this waiter retries, which rewrites its heartbeat, while that row lasts.
+    await vi.waitFor(() => expect(ours()!.heartbeat).toBeGreaterThan(first), { timeout: 5_000 });
+    db.prepare("DELETE FROM waiters WHERE nonce='earlier'").run();
+    await held.release();
+    await (await waiting).release();
+  } finally {
+    db.close();
+  }
 }, 30_000);
 
 it("answers the holder's queue checks while another process writes (ADR-0576)", async () => {

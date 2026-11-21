@@ -1,12 +1,11 @@
 import { measureProcessCost, withProcessCostScope } from "@lervo/repository-knowledge";
-import { holdProcessPresence } from "@lervo/project-storage";
 import { readRepositoryHold } from "@lervo/repository-registry";
 import { residentContinuityTurns } from "./resident-continuity-turns.js";
 import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import { runAutonomousKnowledgeWorker } from "./worker.js";
 import { coalescedRefresh } from "./resident-projection-refresh.js";
 import { residentCycleHealth } from "./resident-cycle-health.js";
-import { recordKnowledgeResidentHealth, type KnowledgeResidentState } from "./resident-health.js";
+import type { KnowledgeResidentState } from "./resident-health.js";
 import { acquireFullCycleAdmission } from "./full-cycle-admission.js";
 import { convergenceSourceFingerprint } from "./source-fingerprint.js";
 import { residentWakeOffset } from "./resident-wake-offset.js";
@@ -26,6 +25,7 @@ import {
   residentProjectionRefresher,
 } from "./resident-projection-fence.js";
 import { residentDeadlines } from "./resident-deadlines.js";
+import { residentHealthWriter } from "./resident-health-writer.js";
 import { wireResidentWakes } from "./resident-wakes.js";
 import { residentCycleTrigger } from "./resident-cycle-trigger.js";
 import type { AutonomousKnowledgeWorkerInput } from "./loop-options.js";
@@ -56,58 +56,17 @@ export function startAutonomousKnowledgeWorker(
   let woken = false;
   let previous: ResidentCycleState | null | undefined;
   let failureStreak = 0;
-  let healthState: KnowledgeResidentState = "idle";
-  let healthReason: string | null = null;
-  let healthWrite = Promise.resolve();
   let verdict: ConvergenceOwnerVerdict | null = null;
   // Aborts an in-flight full cycle when an observation proves this host no longer owns convergence.
   let ownedCycle: AbortController | null = null;
-  // ADR-0602: readers probe this presence, so health is written only when it changes.
-  const presence = holdProcessPresence();
-  let written: string | null = null;
-  let healthFailures = 0;
-  let healthRetry: NodeJS.Timeout | null = null;
-  const writeHealth = () => {
-    const key = `${healthState}\0${healthReason ?? ""}`;
-    if (key === written) return;
-    written = key;
-    healthWrite = healthWrite
-      .then(() => presence.ready)
-      .then(() =>
-        recordKnowledgeResidentHealth({
-          repositoryRoot: root,
-          workerId: input.workerId,
-          state: healthState,
-          reason: healthReason,
-          presence: presence.token,
-        }),
-      )
-      .then(
-        () => {
-          healthFailures = 0;
-        },
-        (error: unknown) => {
-          written = null;
-          input.onFailure(error);
-          // ADR-0602: nothing rewrites an unchanged state, so a lost write retries with backoff.
-          if (signal.aborted || healthRetry !== null) return;
-          healthFailures = Math.min(healthFailures + 1, 64);
-          healthRetry = setTimeout(
-            () => {
-              healthRetry = null;
-              if (!signal.aborted) writeHealth();
-            },
-            Math.min(15 * 60_000, 1_000 * 2 ** (healthFailures - 1)),
-          );
-          healthRetry.unref();
-        },
-      );
-  };
-  const report = (state: KnowledgeResidentState, reason: string | null) => {
-    healthState = state;
-    healthReason = reason;
-    writeHealth();
-  };
+  const health = residentHealthWriter({
+    repositoryRoot: root,
+    workerId: input.workerId,
+    signal,
+    onFailure: input.onFailure,
+  });
+  const report = (state: KnowledgeResidentState, reason: string | null) =>
+    health.report(state, reason);
   const deadlines = residentDeadlines(
     {
       reconcile: () => cycle(),
@@ -123,22 +82,32 @@ export function startAutonomousKnowledgeWorker(
   );
   // The observation in flight, so a fence event its own write caused compares with its verdict.
   let observing: Promise<unknown> = Promise.resolve();
-  const observeOwnership = async () => {
-    if (input.ownership === undefined) return null;
-    const observation = input.ownership.observe(signal);
-    observing = observation.catch(() => undefined);
-    verdict = await observation;
-    if (verdict.role !== "owner") ownedCycle?.abort();
-    // ADR-0602: on a Hub that keeps a present holder's lease live, the owner renews only while a
-    // cycle runs, so its commit fence stays valid; while its Hub wait is down, or on an earlier
-    // Hub, it renews as before.
-    const renews = verdict.role === "owner" && (trigger.running() !== null || !wakes.hubPushing());
+  // ADR-0602: on a Hub that keeps a present holder's lease live, the owner renews only while a
+  // cycle runs, so its commit fence stays valid; while its Hub wait is down, or on an earlier Hub,
+  // it renews as before. A standalone owner holds no Hub lease, so it never renews. Re-armed after
+  // each observation and each cycle, so an idle owner keeps no renewal deadline.
+  const armOwnerRenewal = (cycleRunning: boolean) => {
+    const renews =
+      verdict?.role === "owner" && verdict.mode === "hub" && (cycleRunning || !wakes.hubPushing());
     deadlines.set(
       "owner",
       renews
         ? Date.now() + (input.ownerHeartbeatMilliseconds ?? RESIDENT_OWNER_HEARTBEAT_MILLISECONDS)
         : null,
     );
+  };
+  const observeOwnership = async () => {
+    if (input.ownership === undefined) return null;
+    const observation = input.ownership.observe(signal);
+    observing = observation.catch(() => undefined);
+    const was = verdict?.role ?? null;
+    verdict = await observation;
+    // ADR-0478, ADR-0602: a takeover makes a due renewal this host's to write, so continuity
+    // turns at once instead of polling while it waits for an owner.
+    if (verdict.role === "owner" && was !== null && was !== "owner")
+      void continuityTurns.run({ force: true });
+    if (verdict.role !== "owner") ownedCycle?.abort();
+    armOwnerRenewal(trigger.running() !== null);
     return verdict;
   };
   const runFull = async () => {
@@ -154,7 +123,7 @@ export function startAutonomousKnowledgeWorker(
       onWait: () => report("busy", "knowledge_cycle_admission_wait"),
     });
     try {
-      if (healthState !== "running") report("running", null);
+      if (health.state() !== "running") report("running", null);
       return await runAutonomousKnowledgeWorker({
         ...input,
         maximumProviderCallsPerTurn: 1,
@@ -196,7 +165,7 @@ export function startAutonomousKnowledgeWorker(
     enabled: input.refreshHealth !== undefined,
     signal,
     refresh: projection.refresh,
-    residentState: () => `${healthState}\0${healthReason ?? ""}`,
+    residentState: () => `${health.state()}\0${health.reason() ?? ""}`,
     held: () => held,
     maximumAgeMilliseconds:
       input.projectionMaximumAgeMilliseconds ?? RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS,
@@ -241,8 +210,11 @@ export function startAutonomousKnowledgeWorker(
       }),
     );
     held = cycle.state.lastResult === "held";
-    const health = residentCycleHealth(cycle, { state: healthState, reason: healthReason });
-    report(health.state, health.reason);
+    const cycleHealth = residentCycleHealth(cycle, {
+      state: health.state(),
+      reason: health.reason(),
+    });
+    report(cycleHealth.state, cycleHealth.reason);
     if (cycle.outcome.kind === "completed") input.onCycle?.(cycle.outcome.result, cost);
     else if (cycle.outcome.kind === "failed" && !signal.aborted)
       input.onFailure(cycle.outcome.error);
@@ -257,7 +229,7 @@ export function startAutonomousKnowledgeWorker(
             return null;
           })
         : null;
-    await healthWrite;
+    await health.settled();
     await refreshProjection();
     const now = Date.now();
     const at = residentNextCycleAt({
@@ -301,10 +273,12 @@ export function startAutonomousKnowledgeWorker(
           baseMilliseconds: base,
           ceilingMilliseconds: ceiling,
         });
-      await healthWrite;
+      await health.settled();
       await refreshProjection();
     }
     if (!signal.aborted) deadlines.set("reconcile", at);
+    // The cycle has ended; a next one observes ownership again and re-arms the renewal.
+    if (!signal.aborted) armOwnerRenewal(false);
     // A continuity turn that met this cycle's own lock runs once the cycle has fully ended.
     setImmediate(() => continuityTurns.afterCycle());
   };
@@ -358,15 +332,19 @@ export function startAutonomousKnowledgeWorker(
           trigger.wakeNow();
         }, input.onFailure);
     },
-    onHubChange: () => {
-      continuityForced = true;
-      trigger.wakeNow();
+    // ADR-0602: a change the cycle acts on runs it at once; one only continuity reads (a peer's
+    // host record, a presence change) runs a forced continuity turn and no cycle.
+    onHubChange: (cycle) => {
+      if (cycle) {
+        continuityForced = true;
+        trigger.wakeNow();
+      } else void continuityTurns.run({ force: true });
     },
     // ADR-0602: a host policy, owner-host or provider pause change reconciles at once.
     continuityInputs: input.continuity?.inputPaths() ?? [],
     onContinuityInput: () => void continuityTurns.run(),
   });
-  writeHealth();
+  health.report("idle", null);
   deadlines.set("projection", refresher.nextDueAt());
   // ADR-0602: the first cycle folds the Hub token in when it arrives in time, so a restart does
   // not run one full cycle without it and another with it.
@@ -380,10 +358,6 @@ export function startAutonomousKnowledgeWorker(
     await projection.running();
     await continuityTurns.settled();
     deadlines.stop();
-    if (healthRetry !== null) clearTimeout(healthRetry);
-    healthState = "stopped";
-    writeHealth();
-    await healthWrite;
-    presence.release();
+    await health.stop();
   };
 }

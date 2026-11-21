@@ -19,13 +19,19 @@ export type WakeSourceIssueCode =
   | "repository_watch_unavailable"
   | "hub_knowledge_changes_unavailable"
   | "hub_runtime_changes_unavailable"
-  | "hub_upgrade_required";
+  | "hub_upgrade_required"
+  | "process_presence_unavailable"
+  | "process_exit_wait_unavailable"
+  | "conversation_change_signal_unavailable";
 
 const CODES: ReadonlySet<string> = new Set<WakeSourceIssueCode>([
   "repository_watch_unavailable",
   "hub_knowledge_changes_unavailable",
   "hub_runtime_changes_unavailable",
   "hub_upgrade_required",
+  "process_presence_unavailable",
+  "process_exit_wait_unavailable",
+  "conversation_change_signal_unavailable",
 ]);
 
 export interface RepositoryWatchIssue {
@@ -41,6 +47,12 @@ interface RepositoryWatchRecord extends RepositoryWatchIssue {
 }
 
 function remediation(code: WakeSourceIssueCode, errno: string | null): string {
+  if (code === "process_presence_unavailable")
+    return "make this user's Lervo state directory (and its run/presence directory) owned by this user and closed to everyone else, then restart the Lervo services";
+  if (code === "conversation_change_signal_unavailable")
+    return "raise the file watch limit (Linux: sysctl fs.inotify.max_user_watches=524288) and restart the Lervo Node";
+  if (code === "process_exit_wait_unavailable")
+    return "run every Lervo service for this repository as one user, in one container or namespace and with one LERVO_USER_STATE_DIRECTORY; restart a Lervo process that is stuck";
   if (code === "hub_upgrade_required")
     return "upgrade the Hub to this Lervo release first (deploy the Hub before Nodes and hosts); until then each repository runs one full knowledge cycle an hour";
   if (code !== "repository_watch_unavailable")
@@ -70,8 +82,14 @@ function detail(code: WakeSourceIssueCode, errno: string | null): string {
       return `Repository changes cannot be watched (${cause}), so edits wake nothing until the watch is armed.`;
     case "hub_knowledge_changes_unavailable":
       return `The Hub's knowledge change wait failed (${cause}), so lease releases, owner rules and host records from other hosts wake nothing until it reconnects.`;
+    case "process_presence_unavailable":
+      return `This process could not hold its presence socket (${cause}), so readers cannot prove it runs and judge it by its last write's age.`;
+    case "conversation_change_signal_unavailable":
+      return `A Node conversation loop has no change signal (${cause}), so it checks on its interval instead of waiting for a change.`;
+    case "process_exit_wait_unavailable":
+      return `This process cannot see the exit of the process it waits behind (${cause}), so it moves on only when that process's record changes or its lease ends.`;
     case "hub_upgrade_required":
-      return `The Hub is older than this release and refuses knowledge change waits (${cause}), so lease releases, owner rules and host records from other hosts are picked up only by an hourly full cycle.`;
+      return `The Hub is older than this release and refuses its newer waits (${cause}), so lease releases, owner rules and host records from other hosts are picked up only by an hourly full cycle, and Node waits use the older bounded hold.`;
     case "hub_runtime_changes_unavailable":
       return `The Hub's runtime change wait failed (${cause}), so Hub workstreams and commands wake nothing until it reconnects.`;
   }
@@ -145,4 +163,33 @@ export async function readRepositoryWatchIssues(root: string): Promise<Repositor
     }
   }
   return issues;
+}
+
+/**
+ * ADR-0602: attention for an issue reported as text, then null once it clears: written on the
+ * first report, rewritten when it changes, and cleared by null or `clear`. Never throws.
+ */
+export function issueAttention(
+  root: string,
+  code: WakeSourceIssueCode,
+): { report(issue: string | null): void; clear(): Promise<void> } {
+  let reporter: RepositoryWatchReporter | null = null;
+  let last: string | null = null;
+  let writing: Promise<void> = Promise.resolve();
+  const report = (issue: string | null) => {
+    if (issue === last) return;
+    last = issue;
+    reporter ??= repositoryWatchReporter(root, code);
+    const target = reporter;
+    writing = writing.then(() =>
+      issue === null ? target.armed() : target.failed(Object.assign(new Error(issue), { code })),
+    );
+  };
+  return {
+    report,
+    clear: async () => {
+      if (last !== null) report(null);
+      await writing;
+    },
+  };
 }

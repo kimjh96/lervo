@@ -140,13 +140,89 @@ it.each([
     try {
       await until(() => cycles.length >= 1, 60_000);
       expect(cycles[0]).toMatchObject({ status: "waiting_owner" });
+      // At least twenty seconds of the holder's lease remain, so its expiry cannot be the wake.
+      expect(Date.parse(hub.lease!.expiresAt) - Date.now()).toBeGreaterThan(15_000);
       const released = Date.now();
       await mac.release();
-      // The release wakes the waiting host through its Hub change wait. The bound is generous for
-      // a loaded host, yet below the time the expiry alone would take (the lease plus its grace).
-      const bound = elapsed === 0 ? 60_000 : 15_000;
+      // The release wakes the waiting host through its Hub change wait. Without that push the
+      // only wake is the holder's lease expiry, at least twenty seconds out in both cases, so a
+      // takeover within fifteen seconds proves the push; the margin is for a loaded CI host. The
+      // takeover is the observation's claim, which comes before the owner's full cycle.
+      const bound = 15_000;
       await until(() => hub.lease?.holderLabel === "wsl", bound);
       expect(Date.now() - released).toBeLessThan(bound);
+      expect(failures).toEqual([]);
+    } finally {
+      await stop();
+    }
+  },
+);
+
+it(
+  "takes over at the lease expiry after the holder vanishes without releasing (ADR-0602)",
+  { timeout: 180_000 },
+  async () => {
+    // Three seconds of the holder's recorded lease remain; while it waits on the Hub, its lease
+    // stays live, and no host arms a deadline for it.
+    let skew = 0;
+    const hub = new FakeConvergenceOwnerHub(() => Date.now() + skew, { presence: true });
+    const f = await fixture(true);
+    const peer = await peerHost({ sourceRoot: f.root, directory: f.directory });
+    cleanups.push(async () => {
+      await f.storage.close();
+      await peer.storage.close();
+      await rm(f.directory, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+    });
+    await writeHostConfig(peer.root, {
+      hostId: `hst_${"1".repeat(32)}`,
+      label: "mac",
+      mode: "hub",
+    });
+    await writeHostConfig(f.root, { hostId: `hst_${"2".repeat(32)}`, label: "wsl", mode: "hub" });
+    const ownership = (storage: typeof f.storage) =>
+      new ConvergenceOwnership({ storage, provider: "claude", transport: async () => hub.port() });
+    const mac = ownership(peer.storage);
+    const macVerdict = await mac.observe();
+    expect(macVerdict).toMatchObject({ role: "owner" });
+    // mac's resident holds its knowledge wait, as a running holder does.
+    const macWait = new AbortController();
+    cleanups.push(async () => macWait.abort());
+    const port = await hub.changes()({} as never);
+    const first = await port.wait({
+      cursor: null,
+      hostHash: macVerdict.hostHash!,
+      signal: macWait.signal,
+    });
+    void port
+      .wait({ cursor: first.cursor, hostHash: macVerdict.hostHash!, signal: macWait.signal })
+      .catch(() => undefined);
+    skew = CONVERGENCE_OWNER_LEASE_TTL_MS - 3_000;
+
+    const cycles: Record<string, unknown>[] = [];
+    const failures: unknown[] = [];
+    const stop = startAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "wsl-crash-takeover",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      subscribe: () => () => undefined,
+      onCycle: (result) => cycles.push(result as unknown as Record<string, unknown>),
+      onFailure: (error) => failures.push(error),
+      ownership: ownership(f.storage),
+      hubChanges: hub.changes(),
+    });
+    try {
+      await until(() => cycles.length >= 1, 60_000);
+      expect(cycles[0]).toMatchObject({ status: "waiting_owner" });
+      // Long past the recorded expiry, the present holder still holds the lease.
+      await new Promise((settle) => setTimeout(settle, 4_000));
+      expect(hub.lease?.holderLabel).toBe("mac");
+      // mac's process dies: its wait ends without a release. The Hub pushes a lease change, wsl
+      // looks again, sees the holder gone, and takes over once the stored expiry passes.
+      macWait.abort();
+      await until(() => hub.lease?.holderLabel === "wsl", 30_000);
+      expect(hub.lease?.releasedAt ?? null).toBeNull();
       expect(failures).toEqual([]);
     } finally {
       await stop();

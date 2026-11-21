@@ -9,6 +9,7 @@ import {
 
 const MAXIMUM_BEARER_TOKEN_FILE_BYTES = 8_192;
 const CURSOR = /^[a-f0-9-]{36}$/u;
+const KIND = /^[a-z]{1,16}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
 /** A socket that failed without an HTTP answer: the Hub or the network is not there. */
@@ -54,7 +55,7 @@ export class HubKnowledgeChangeClient {
     cursor: string | null;
     hostHash: string | null;
     signal: AbortSignal;
-  }): Promise<{ cursor: string }> {
+  }): Promise<{ cursor: string; kinds?: string[] }> {
     const url = new URL(this.url);
     if (input.cursor !== null) url.searchParams.set("cursor", input.cursor);
     if (input.hostHash !== null) url.searchParams.set("hostHash", input.hostHash);
@@ -84,18 +85,30 @@ export class HubKnowledgeChangeClient {
         "The Hub identity did not match the configured convergence Hub.",
         "hub_identity_mismatch",
       );
-    const body = result.body as { schemaVersion?: unknown; cursor?: unknown; status?: unknown };
+    const body = result.body as {
+      schemaVersion?: unknown;
+      cursor?: unknown;
+      status?: unknown;
+      kinds?: unknown;
+    };
     if (
       body?.schemaVersion !== 1 ||
       typeof body.cursor !== "string" ||
       !CURSOR.test(body.cursor) ||
-      (body.status !== "changed" && body.status !== "timeout")
+      (body.status !== "changed" && body.status !== "timeout") ||
+      (body.kinds !== undefined &&
+        (!Array.isArray(body.kinds) ||
+          body.kinds.length > 8 ||
+          !body.kinds.every((kind) => typeof kind === "string" && KIND.test(kind))))
     )
       throw new HubKnowledgeConvergenceOwnerUnavailableError(
         "The Hub returned an invalid knowledge change answer.",
         "hub_response_invalid",
       );
-    return { cursor: body.cursor };
+    return {
+      cursor: body.cursor,
+      ...(body.kinds === undefined ? {} : { kinds: body.kinds as string[] }),
+    };
   }
 }
 

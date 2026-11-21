@@ -11,6 +11,19 @@ export interface HubRuntimeChangeScope {
   destinationId: string;
 }
 
+/**
+ * ADR-0602: what changed since this host's last answer on the `knowledge` topic, so a host can
+ * tell a change its cycle acts on (the lease holder, an owner-rule candidate, a definition) from
+ * one only its continuity reads (a host record, a presence change). Absent when unknown.
+ */
+export type HubKnowledgeChangeKind = "lease" | "candidate" | "definition" | "host" | "presence";
+
+export interface HubRuntimeChangeAnswer {
+  cursor: string;
+  status: "changed" | "timeout";
+  kinds?: HubKnowledgeChangeKind[];
+}
+
 export interface HubRuntimeChangeSource {
   waitForRuntimeChange(
     input: HubRuntimeChangeScope & {
@@ -24,7 +37,7 @@ export interface HubRuntimeChangeSource {
       /** ADR-0602: the waiting host on the `knowledge` topic, so host listings carry presence. */
       hostHash?: string;
     },
-  ): Promise<{ cursor: string; status: "changed" | "timeout" }>;
+  ): Promise<HubRuntimeChangeAnswer>;
 }
 
 export class HubRuntimeChangeError extends Error {

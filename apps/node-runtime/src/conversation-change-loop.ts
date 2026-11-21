@@ -22,6 +22,11 @@ export interface ConversationChangeLoopOptions<TResult = unknown> {
   schedule?: ConversationChangeSchedule;
   subscribe?(notify: () => void): () => void;
   nextWakeupAt?(): number | null;
+  /**
+   * ADR-0602: called with the reason when the loop has no change signal (no `subscribe`, or one
+   * that threw), and with null when it stops. Without it, the reason is written to stderr once.
+   */
+  onChangeSignal?(failure: unknown): void;
 }
 
 /**
@@ -30,9 +35,17 @@ export interface ConversationChangeLoopOptions<TResult = unknown> {
  * if it is still the same lapsed deadline after that, the loop waits for a change or a new
  * deadline instead of polling it. `intervalMs` is the delay of that one cycle and the base retry
  * after a failure without its own; consecutive failures back off exponentially to a ceiling, and
- * every failure reaches `onFailure`, which reports it, until a cycle succeeds.
+ * every failure reaches `onFailure`, which reports it, until a cycle succeeds. A loop with no change
+ * signal never goes silent: it runs again at least every minute, and reports that it has none
+ * through `onChangeSignal`.
  */
 export const CHANGE_LOOP_RETRY_CEILING_MILLISECONDS = 15 * 60_000;
+
+/**
+ * ADR-0602: how often a loop without a working change signal looks again. Its attention is already
+ * raised, so a faster look would only spend CPU.
+ */
+export const CHANGE_LOOP_UNWATCHED_MILLISECONDS = 60_000;
 
 export class ConversationChangeLoop<TResult = unknown> {
   private handle: unknown;
@@ -44,6 +57,8 @@ export class ConversationChangeLoop<TResult = unknown> {
   private lapsedHandled: number | null = null;
   private failures = 0;
   private deadlineFailures = 0;
+  /** Whether a change notification can wake the loop; without one it keeps its interval. */
+  private watched = false;
 
   constructor(private readonly options: ConversationChangeLoopOptions<TResult>) {
     if (
@@ -58,21 +73,41 @@ export class ConversationChangeLoop<TResult = unknown> {
   start(): void {
     if (!this.stopped) return;
     this.stopped = false;
+    let failure: unknown = null;
     try {
       this.unsubscribe = this.options.subscribe?.(() => this.notify());
-    } catch {
+    } catch (error) {
       this.unsubscribe = undefined;
+      failure = error;
     }
+    this.watched = this.unsubscribe !== undefined;
+    if (!this.watched) this.reportUnwatched(failure);
     this.cancel();
     this.schedule(0);
   }
 
   stop(): Promise<void> {
+    const reported = !this.stopped && !this.watched;
     this.stopped = true;
     this.unsubscribe?.();
     this.unsubscribe = undefined;
+    if (reported) this.options.onChangeSignal?.(null);
     this.cancel();
     return this.inFlight ?? Promise.resolve();
+  }
+
+  private reportUnwatched(cause: unknown): void {
+    const failure = Object.assign(
+      new Error(
+        cause === null
+          ? "This loop has no change signal, so it runs on its interval."
+          : `This loop's change signal could not be armed (${cause instanceof Error ? cause.message : String(cause)}), so it runs on its interval.`,
+        { cause },
+      ),
+      { code: "conversation_change_signal_unavailable" },
+    );
+    if (this.options.onChangeSignal !== undefined) this.options.onChangeSignal(failure);
+    else process.stderr.write(`Lervo change loop: ${failure.message}\n`);
   }
 
   private cancel(): void {
@@ -167,6 +202,23 @@ export class ConversationChangeLoop<TResult = unknown> {
           this.options.intervalMs * 2 ** Math.min(this.deadlineFailures - 1, 30),
         ),
       );
+      return;
+    }
+    // Without a change signal, nothing else would wake the loop: it looks again within a minute.
+    if (!this.watched) {
+      const unwatched = Math.max(this.options.intervalMs, CHANGE_LOOP_UNWATCHED_MILLISECONDS);
+      const due =
+        deadline === null || !Number.isFinite(deadline) ? Infinity : deadline - Date.now();
+      if (due > 0) {
+        this.lapsedHandled = null;
+        this.schedule(Math.min(due, unwatched));
+        return;
+      }
+      // A lapsed deadline gets one more cycle after the interval, as it does with a signal; the
+      // same lapsed deadline again waits the minute, so it never spins.
+      const again = this.lapsedHandled === deadline;
+      this.lapsedHandled = deadline;
+      this.schedule(again ? unwatched : this.options.intervalMs);
       return;
     }
     if (deadline === null || !Number.isFinite(deadline)) return;

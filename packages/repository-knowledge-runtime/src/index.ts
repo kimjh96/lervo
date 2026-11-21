@@ -260,6 +260,7 @@ export { lifecycleUserContentPaths } from "./lifecycle-plan-scope.js";
 export { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
 export { watchRepositoryChanges } from "./repository-change-watch.js";
 export {
+  issueAttention,
   readRepositoryWatchIssues,
   REPOSITORY_WATCH_STATE_DIRECTORY,
   repositoryWatchReporter,

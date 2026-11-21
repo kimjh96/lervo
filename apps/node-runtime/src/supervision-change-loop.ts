@@ -11,6 +11,8 @@ export function createSupervisionChangeLoop(input: {
   nextAuthorityCheckAt(): number | null;
   onFailure(error: unknown): void;
   onCycle?(result: OutcomeSupervisionCycleResult): void | Promise<void>;
+  /** ADR-0602: attention for a loop whose change signal could not be armed. */
+  onChangeSignal?(failure: unknown): void;
 }) {
   let deadline: number | null = null;
   let settled: SettledSource | null = null;
@@ -42,6 +44,7 @@ export function createSupervisionChangeLoop(input: {
         ? null
         : 5_000,
     subscribe: input.subscribe,
+    ...(input.onChangeSignal === undefined ? {} : { onChangeSignal: input.onChangeSignal }),
     onFailure: input.onFailure,
     // ADR-0602: a lapsed progress deadline gets one more cycle, then waits for a change or a new
     // deadline; any event hint still wakes the owner at once, and every cycle re-reads authority

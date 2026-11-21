@@ -95,6 +95,22 @@ function functionBodies(code) {
   return bodies;
 }
 
+/** Each top-level function declaration, up to the next top-level statement. */
+function declarationSpans(code) {
+  const spans = new Map();
+  const starts = [
+    ...code.matchAll(/^(?:export\s+)?(?:async\s+)?function\s*\*?\s*([A-Za-z_$][\w$]*)/gmu),
+  ];
+  for (const match of starts) {
+    const from = match.index + match[0].length;
+    const next = /^(?:export|function|async|const|let|var|class|interface|type|import)\b/mu.exec(
+      code.slice(from),
+    );
+    spans.set(match[1], code.slice(from, next === null ? code.length : from + next.index));
+  }
+  return spans;
+}
+
 function calls(text, name) {
   return new RegExp(
     `(?:^|[^\\w$.])(?:this\\.)?${escape(name)}\\s*\\(|(?:^|[,(\\s=:])(?:this\\.)?${escape(name)}\\s*[,);]`,
@@ -122,12 +138,32 @@ function reachable(callback, bodies) {
  * - `interval`: a `setInterval` call;
  * - `rearm`: a `setTimeout`, `setImmediate`, `process.nextTick` or `queueMicrotask` whose
  *   callback reaches, through calls within the module, a function that encloses it;
- * - `loop`: such a call, or an awaited `sleep` or `delay`, inside a `while`, `for` or `do`;
+ * - `loop`: such a call, an awaited `sleep` or `delay`, or an awaited call of a function in this
+ *   module that arms one, inside a `while`, `for` or `do`;
  * - `period`: a poll or interval constant or option set to a number.
  */
 export function findIdleTimers(code) {
   const found = { interval: 0, rearm: 0, loop: 0, period: [] };
   const bodies = functionBodies(code);
+  const deferredPattern = new RegExp(
+    `(?:^|[^\\w$.])(?:${[...deferredCalls, "setInterval"].map(escape).join("|")})\\s*\\(`,
+    "u",
+  );
+  // Module functions that arm a timer themselves or through calls within the module. A
+  // top-level declaration spans to the next top-level statement, which also covers a function
+  // whose parameters hold an object type and so whose body brace has no name of its own.
+  const spans = new Map(bodies);
+  for (const [name, span] of declarationSpans(code))
+    spans.set(name, `${spans.get(name) ?? ""}\n${span}`);
+  const arming = new Set(
+    [...spans]
+      .filter(([, body]) =>
+        [body, ...[...reachable(body, spans)].map((reached) => spans.get(reached) ?? "")].some(
+          (text) => deferredPattern.test(text),
+        ),
+      )
+      .map(([name]) => name),
+  );
   const blocks = [];
   for (let index = 0; index < code.length; index += 1) {
     const character = code[index];
@@ -161,8 +197,12 @@ export function findIdleTimers(code) {
       else if (inLoop) found.loop += 1;
       continue;
     }
-    if (inLoop && /^await\s+(?:sleep|delay)\w*\s*\(/u.test(code.slice(index, index + 40)))
+    if (inLoop && /^await\s+(?:sleep|delay)\w*\s*\(/u.test(code.slice(index, index + 40))) {
       found.loop += 1;
+      continue;
+    }
+    const awaited = inLoop ? /^await\s+([\w$]+)\s*\(/u.exec(code.slice(index, index + 80)) : null;
+    if (awaited !== null && arming.has(awaited[1])) found.loop += 1;
   }
   for (const match of code.matchAll(periodName)) found.period.push(match[1]);
   return found;

@@ -34,10 +34,12 @@ afterEach(async () => {
   await rm(root, { recursive: true, force: true });
 });
 
+type Answer = { cursor: string; kinds?: string[] };
+
 /** A scripted Hub: each wait takes the next answer, or holds until `answer` or abort. */
 function scriptedHub() {
   const waits: { cursor: string | null; hostHash: string | null }[] = [];
-  let release: ((outcome: { cursor: string } | Error) => void) | null = null;
+  let release: ((outcome: Answer | Error) => void) | null = null;
   const transport: KnowledgeHubChangeTransport = async () => ({
     wait: ({ cursor, hostHash, signal }) =>
       new Promise((resolveWait, rejectWait) => {
@@ -53,12 +55,12 @@ function scriptedHub() {
   return {
     transport,
     waits,
-    answer: async (outcome: { cursor: string } | Error) => {
+    answer: async (outcome: Answer | Error) => {
       await vi.waitFor(() => expect(release).not.toBeNull());
       release!(outcome);
     },
     /** For fake timers: waits on real turns only, never advancing the clock. */
-    answerOnTurns: async (outcome: { cursor: string } | Error) => {
+    answerOnTurns: async (outcome: Answer | Error) => {
       for (let turn = 0; turn < 500 && release === null; turn++)
         await new Promise((settle) => setImmediate(settle));
       if (release === null) throw new Error("No wait was held.");
@@ -183,9 +185,9 @@ it(
   },
 );
 
-it("falls back to an hourly full cycle against a Hub too old to push, with attention (ADR-0602)", async () => {
+it("falls back to an hourly full cycle against a Hub too old to push, rechecking it within minutes (ADR-0602)", async () => {
   await writeHostConfig(root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode: "hub" });
-  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout", "Date"] });
   const hub = scriptedHub();
   const onChange = vi.fn();
   const issues: (string | null)[] = [];
@@ -206,14 +208,21 @@ it("falls back to an hourly full cycle against a Hub too old to push, with atten
     expect(issues).toEqual(["hub_upgrade_required"]);
     expect(watch.pushing()).toBe(false);
     expect(watch.token()).toMatch(/^legacy-/u);
-    // The hour passes: the Hub is asked again, still refuses, and a new token runs a full cycle.
-    await vi.advanceTimersByTimeAsync(60 * 60_000);
-    await turns(20);
-    await hub.answerOnTurns(old());
-    await turns(20);
+    // Asked again after 1, 2, 4, 8, 10, 10, ... minutes; each refusal within the hour runs nothing.
+    const refuseAfter = async (minutes: number) => {
+      await vi.advanceTimersByTimeAsync(minutes * 60_000);
+      await turns(20);
+      await hub.answerOnTurns(old());
+      await turns(20);
+    };
+    for (const minutes of [1, 2, 4, 8, 10, 10, 10, 10]) await refuseAfter(minutes);
+    expect(onChange).not.toHaveBeenCalled();
+    // The hour passed: still refused, and a new token runs one full cycle.
+    await refuseAfter(10);
     expect(onChange).toHaveBeenCalledTimes(1);
-    // Upgraded: the next answer pushes, and the attention clears.
-    await vi.advanceTimersByTimeAsync(60 * 60_000);
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    // Upgraded: within ten minutes the next answer pushes, and the attention clears.
+    await vi.advanceTimersByTimeAsync(10 * 60_000);
     await turns(20);
     await hub.answerOnTurns({ cursor: cursor(7) });
     await turns(20);
@@ -240,6 +249,56 @@ it("treats the first answer as a change once startup stopped waiting for it (ADR
     expect(onChange).toHaveBeenCalledTimes(1);
   } finally {
     vi.useRealTimers();
+    await watch.stop();
+  }
+});
+
+it("treats the first answer as a change when a failed first wait released startup (ADR-0602)", async () => {
+  await writeHostConfig(root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode: "hub" });
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+  const hub = scriptedHub();
+  const onChange = vi.fn();
+  const watch = watchHubKnowledgeChanges({ storage, transport: hub.transport, onChange });
+  try {
+    await hub.answerOnTurns(Object.assign(new Error("connection reset"), { code: "ECONNRESET" }));
+    // Startup is released within its ten seconds, by the failure rather than an answer.
+    await watch.ready();
+    await vi.advanceTimersByTimeAsync(hubKnowledgeChangeRetryDelay(1));
+    await hub.answerOnTurns({ cursor: cursor(1) });
+    for (let turn = 0; turn < 20; turn++) await new Promise((settle) => setImmediate(settle));
+    expect(onChange).toHaveBeenCalledTimes(1);
+  } finally {
+    vi.useRealTimers();
+    await watch.stop();
+  }
+});
+
+it("runs a cycle only for a change it acts on, and continuity alone for a peer's host record (ADR-0602)", async () => {
+  await writeHostConfig(root, { hostId: `hst_${"1".repeat(32)}`, label: "mac", mode: "hub" });
+  const hub = scriptedHub();
+  const onChange = vi.fn();
+  const watch = watchHubKnowledgeChanges({ storage, transport: hub.transport, onChange });
+  try {
+    await hub.answer({ cursor: cursor(1) });
+    await watch.ready();
+    const first = watch.token();
+    await hub.answer({ cursor: cursor(2), kinds: ["host", "presence"] });
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(1));
+    expect(onChange).toHaveBeenLastCalledWith(false);
+    expect(watch.token()).toBe(first);
+    await hub.answer({ cursor: cursor(3), kinds: ["host", "lease"] });
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    expect(watch.token()).toBe(cursor(3));
+    // An answer without kinds (a Hub restart, a reconnection) may hold anything.
+    await hub.answer({ cursor: cursor(4) });
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(3));
+    expect(onChange).toHaveBeenLastCalledWith(true);
+    // A kind a later Hub adds is acted on, unless only continuity's kinds came with it.
+    await hub.answer({ cursor: cursor(5), kinds: ["presence", "schedule"] });
+    await vi.waitFor(() => expect(onChange).toHaveBeenCalledTimes(4));
+    expect(onChange).toHaveBeenLastCalledWith(true);
+  } finally {
     await watch.stop();
   }
 });

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   HUB_PRESENCE_GRACE_MILLISECONDS,
+  MAXIMUM_HOSTS_PER_SCOPE,
   RuntimeChangeNotifications,
 } from "../src/runtime-change-notifications.js";
 
@@ -129,6 +130,173 @@ describe("knowledge change waits (ADR-0602)", () => {
     });
     await vi.advanceTimersByTimeAsync(10 * 60_000);
     expect(await bounded).toMatchObject({ status: "timeout" });
+    source.close();
+  });
+
+  it("names the kinds changed since a host's last answer, once", async () => {
+    const source = new RuntimeChangeNotifications();
+    const signal = new AbortController().signal;
+    const first = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal,
+      hostHash: wsl,
+    });
+    source.notify(knowledge, mac, ["host"]);
+    source.notify(knowledge, mac, ["lease"]);
+    source.notify(knowledge, mac, ["host"]);
+    const changed = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: first.cursor,
+      signal,
+      hostHash: wsl,
+    });
+    expect(changed).toMatchObject({ status: "changed", kinds: ["host", "lease"] });
+    source.notify(knowledge, mac, ["presence"]);
+    expect(
+      await source.waitForRuntimeChange({
+        ...knowledge,
+        cursor: changed.cursor,
+        signal,
+        hostHash: wsl,
+      }),
+    ).toMatchObject({ kinds: ["presence"] });
+    source.close();
+  });
+
+  it("still names a lease change whose answer was lost, after later changes (ADR-0602)", async () => {
+    const source = new RuntimeChangeNotifications();
+    const signal = new AbortController().signal;
+    const wait = (cursor: string | null) =>
+      source.waitForRuntimeChange({ ...knowledge, cursor, signal, hostHash: wsl });
+    const first = await wait(null);
+    // Caught up at `first`: its held wait is answered with the lease change, which never arrives.
+    const held = wait(first.cursor);
+    source.notify(knowledge, mac, ["lease"]);
+    expect(await held).toMatchObject({ kinds: ["lease"] });
+    source.notify(knowledge, mac, ["presence"]);
+    // The host reconnects with the cursor it still holds, and is told both.
+    expect(await wait(first.cursor)).toMatchObject({ kinds: ["lease", "presence"] });
+    // A cursor the Hub has no record for is told no kinds: anything may have changed.
+    const unknown = await wait("00000000-0000-4000-8000-000000000000");
+    expect(unknown).toMatchObject({ status: "changed" });
+    expect(unknown).not.toHaveProperty("kinds");
+    source.close();
+  });
+
+  it("forgets the host that waited least recently past the per-scope cap, which then runs a full cycle", async () => {
+    const source = new RuntimeChangeNotifications();
+    const signal = new AbortController().signal;
+    const host = (index: number) => `sha256:${index.toString(16).padStart(64, "0")}`;
+    const wait = (hostHash: string, cursor: string | null) =>
+      source.waitForRuntimeChange({ ...knowledge, cursor, signal, hostHash });
+    const forgotten = await wait(wsl, null);
+    source.notify(knowledge, mac, ["host"]);
+    for (let index = 1; index < MAXIMUM_HOSTS_PER_SCOPE; index++) await wait(host(index), null);
+    // One more host makes room by forgetting wsl, the one that waited least recently.
+    await wait(host(MAXIMUM_HOSTS_PER_SCOPE), null);
+    const returned = await wait(wsl, forgotten.cursor);
+    expect(returned).toMatchObject({ status: "changed" });
+    expect(returned).not.toHaveProperty("kinds");
+    source.close();
+  });
+
+  it("never forgets a host that is waiting, and refuses a new one while every host waits", async () => {
+    const source = new RuntimeChangeNotifications();
+    const host = (index: number) => `sha256:${index.toString(16).padStart(64, "0")}`;
+    type Hold = { stop: AbortController; held: Promise<unknown>; answered: string | null };
+    const holds: Hold[] = [];
+    const hold = (entry: Hold, index: number, cursor: string | null) => {
+      entry.answered = null;
+      entry.held = source
+        .waitForRuntimeChange({
+          ...knowledge,
+          cursor,
+          signal: entry.stop.signal,
+          hostHash: host(index),
+        })
+        .then(
+          (answer) => {
+            entry.answered = answer.cursor;
+          },
+          () => undefined,
+        );
+    };
+    for (let index = 0; index < MAXIMUM_HOSTS_PER_SCOPE; index++) {
+      const entry: Hold = { stop: new AbortController(), held: Promise.resolve(), answered: null };
+      holds.push(entry);
+      hold(entry, index, null);
+      await entry.held;
+      hold(entry, index, entry.answered);
+    }
+    // Each arrival woke the hosts already waiting; they wait again until every one is held.
+    for (let round = 0; round < 10; round++) {
+      await new Promise((settle) => setImmediate(settle));
+      const woken = holds.filter((entry) => entry.answered !== null);
+      if (woken.length === 0) break;
+      for (const entry of woken) hold(entry, holds.indexOf(entry), entry.answered);
+    }
+    expect(holds.every((entry) => entry.answered === null)).toBe(true);
+    const signal = new AbortController().signal;
+    await expect(
+      source.waitForRuntimeChange({ ...knowledge, cursor: null, signal, hostHash: wsl }),
+    ).rejects.toMatchObject({ code: "capacity_exceeded" });
+    // Once one host stops waiting, it is the one forgotten.
+    holds[0]!.stop.abort();
+    await holds[0]!.held;
+    await expect(
+      source.waitForRuntimeChange({ ...knowledge, cursor: null, signal, hostHash: wsl }),
+    ).resolves.toMatchObject({ status: "changed" });
+    for (const { stop } of holds) stop.abort();
+    await Promise.all(holds.map(({ held }) => held));
+    source.close();
+  });
+
+  it("tells peers the lease changed when its holder arrives or leaves (ADR-0602)", async () => {
+    vi.useFakeTimers();
+    const holder = mac;
+    const source = new RuntimeChangeNotifications(Date.now, (_scope, host) =>
+      host === holder ? ["lease"] : [],
+    );
+    const signal = new AbortController().signal;
+    const wslFirst = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal,
+      hostHash: wsl,
+    });
+    const arrived = source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: wslFirst.cursor,
+      signal,
+      hostHash: wsl,
+    });
+    const leave = new AbortController();
+    const macFirst = await source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: null,
+      signal: leave.signal,
+      hostHash: mac,
+    });
+    void source
+      .waitForRuntimeChange({
+        ...knowledge,
+        cursor: macFirst.cursor,
+        signal: leave.signal,
+        hostHash: mac,
+      })
+      .catch(() => undefined);
+    const told = await arrived;
+    expect(told.kinds).toEqual(["lease", "presence"]);
+    const departed = source.waitForRuntimeChange({
+      ...knowledge,
+      cursor: told.cursor,
+      signal,
+      hostHash: wsl,
+    });
+    leave.abort();
+    await vi.advanceTimersByTimeAsync(HUB_PRESENCE_GRACE_MILLISECONDS + 1);
+    expect(await departed).toMatchObject({ kinds: ["lease", "presence"] });
     source.close();
   });
 

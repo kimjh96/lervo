@@ -9,6 +9,7 @@ import { sha256 } from "@lervo/repository-knowledge";
 
 import { othersWaiting, update, wakeWaiters } from "./full-cycle-admission-queue.js";
 import { identifiedFailure, POLL_MILLISECONDS } from "./full-cycle-admission-store.js";
+import { issueAttention } from "./repository-watch-state.js";
 import {
   PRIORITY_ADVANCE_MILLISECONDS,
   waitForAdmission,
@@ -124,6 +125,8 @@ export async function acquireFullCycleAdmission(input: {
   });
   await presence.ready;
   const presenceToken = presence.issue() === null ? presence.token : null;
+  // A holder or waiter ahead whose exit cannot be seen is attention while this waiter waits.
+  const exitWaitIssues = issueAttention(input.repositoryRoot, "process_exit_wait_unavailable");
   let admittedAt: number;
   try {
     admittedAt = await waitForAdmission({
@@ -137,10 +140,13 @@ export async function acquireFullCycleAdmission(input: {
       presence: presenceToken,
       wakes: presenceToken === null ? null : wakes,
       ...(input.onWait === undefined ? {} : { onWait: input.onWait }),
+      onIssue: exitWaitIssues.report,
     });
   } catch (error) {
     presence.release();
     throw error;
+  } finally {
+    await exitWaitIssues.clear();
   }
   holding = true;
   if (presenceToken !== null) signalCapableHolders += 1;

@@ -95,9 +95,9 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:add7c4fa761ecf59174d4259f383081a92e4a3041b6bf61f0b99a7db4d9dc037",
+      "contentHash": "sha256:938c6861902b4b0a69e0a80192442a8b454b0c94803fd658cbc549550a13f254",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates, passes presence through, and lets the owner lease follow it. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories.",
+      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors, change kinds and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates with the kind of change, passes presence through, and lets the owner lease follow it. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories.",
       "disposition": "cohesive"
     },
     {

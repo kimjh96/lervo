@@ -74,9 +74,9 @@ Each record has one owner and a unique name, in `.lervo/state/event-channel/<nam
 Each loop arms one timer for its earliest known deadline, recomputed whenever a deadline changes, and none when it knows none:
 
 - **Resident loop:** the deadlines are a delivery or local stage falling due (practice, the skill day boundary, `availableAt`), a publication retry, the owner's lease renewal, continuity's next time-based moment, the health projection's age bound, and a retry after a failure or an ownership the Hub could not confirm. There is no idle backoff and no forced cycle: an unchanged fingerprint skips however old it is. A wall-clock step or a sleep only ever makes a deadline late, never early.
-- **Hub state is pushed.** The Hub long-poll gains a `knowledge` topic: a new lease holder or release, an owner-rule candidate, a host record whose facts changed or a new definition wakes the repository's other hosts, never the writer. The resident holds it, and folds its token into the fingerprint. The decided end-to-end liveness bound: every held wait is answered within ten minutes and reconnects at once, and the client ends one unanswered past it. A release is taken over at once; a holder that vanishes is taken over at its lease expiry. Node's workstream and command waits hold open too. Hub presence (who holds a wait) replaces record age as peer liveness.
-- **Continuity** reconciles when its fingerprinted host-local inputs change, on a Hub change, or at its next time-based moment; its state is stale only once that moment passed.
-- **Wakes:** every host's resident watches events and the repository by default (the repository watch moved into the resident runtime). The repository watch has no recovery poll; its notifications are level-triggered. The projection inputs, the host hold store and the writer coordinate are watched files.
+- **Hub state is pushed.** The Hub long-poll gains a `knowledge` topic: a new lease holder or release, an owner-rule candidate, a host record whose facts changed or a new definition wakes the repository's other hosts, never the writer; an answer names what changed, and a host record or presence change turns only continuity. The resident holds it, and folds its token into the fingerprint. Liveness bound (decided): every held wait is answered within ten minutes and reconnects at once, and the client ends one unanswered past it. A release is taken over at once; a holder that vanishes is taken over at its lease expiry. Node's workstream and command waits hold open too. Hub presence (who holds a wait) replaces record age as peer liveness.
+- **Continuity** reconciles when its host-local inputs change, on a Hub change or a takeover, or at its next time-based moment.
+- **Wakes:** every host's resident watches events and the repository by default. The repository watch has no recovery poll; its notifications are level-triggered. The projection inputs, the host hold store and the writer coordinate are watched files.
 - **Change loop** (supervision, result branch, Node knowledge loop): a change or the next deadline, never an interval. A deadline already past when a cycle ends gets one more cycle, then waits for a change or a new deadline.
 - **CLI host residents:** a rescan follows a change of the repository or Node registry, the continuity policy, a delegation or the terminal runtime pointer, or a held checkout's retry time.
 - **Replica watch:** with the local watch and every peer subscription live, no recovery cycle runs. A quiet peer stream writes nothing; SSH keepalives end a dead link and the subscriber reacts only to EOF or an error. A stopped peer that keeps the link open harms nothing while no work is pending, and the next transfer's deadline reports it. A lost source is re-armed with backoff and shown in health.
@@ -85,7 +85,7 @@ Each loop arms one timer for its earliest known deadline, recomputed whenever a 
 
 ### Step 3: liveness on demand
 
-A process proves it runs by holding a local presence socket, never by a heartbeat; a reader probes it, and a waiter holds a connection the kernel closes at the holder's exit. Resident and CLI host health are written only on change; admission waiters, a standby host and upgrade preemption wake on a release, an exit or a ping; the owner lease stays live while its holder holds its Hub wait, and the Hub pushes its expiry when the holder leaves. Earlier releases' records keep their heartbeat rules; an earlier Hub raises `hub_upgrade_required` and gets an hourly full cycle and timed renewal.
+A process proves it runs by holding a local presence socket, never by a heartbeat; a reader probes it, and a waiter holds a connection the kernel closes at the holder's exit. Resident and CLI host health are written only on change; admission waiters, a standby host and upgrade preemption wake on a release, an exit or a ping; the owner lease stays live while its holder holds its Hub wait; when the holder leaves, its expiry never drops below the one the holder was last given. Earlier releases' records keep their heartbeat rules; an earlier Hub raises `hub_upgrade_required` and gets an hourly full cycle and timed renewal.
 
 ## Failure modes
 
@@ -97,7 +97,7 @@ A process proves it runs by holding a local presence socket, never by a heartbea
 
 - `interval`: a `setInterval` call;
 - `rearm`: a `setTimeout`, `setImmediate`, `process.nextTick` or `queueMicrotask` whose callback reaches a function that encloses it, directly or through calls within the module;
-- `loop`: such a call, or an awaited `sleep` or `delay`, inside a `while`, `for` or `do` block;
+- `loop`: such a call, an awaited `sleep` or `delay`, or an awaited module function that arms one, inside a loop;
 - `period`: a constant or option whose name contains poll or interval and ends in milliseconds, set to a number.
 
 Each finding must be listed in `scripts/quality/idle-timer-allowlist.json` with a reason and an exact count, and a stale entry fails. Entries that steps 2 and 3 remove say so. The rest run only while bounded work runs, are armed only after a failure, or are rate limits that arm no timer.

@@ -145,7 +145,11 @@ async function rowAlive(row: Record<string, unknown>, now: number): Promise<bool
   );
 }
 
-/** A bounded private projection proves hosting, never document currency or authority. */
+/**
+ * A bounded private projection proves hosting, never document currency or authority.
+ * `earlierWriters` reports a live resident of an earlier release, which removes rows by heartbeat
+ * age: while one is present, the caller rewrites its row within that age (mixed versions only).
+ */
 export async function recordKnowledgeResidentHealth(input: {
   repositoryRoot: string;
   workerId: string;
@@ -154,15 +158,18 @@ export async function recordKnowledgeResidentHealth(input: {
   /** ADR-0602: the writer's process presence token, which readers probe. */
   presence?: string | null;
   now?: Date;
-}): Promise<void> {
+}): Promise<{ earlierWriters: boolean }> {
   const db = await writeHandle(input.repositoryRoot);
   const now = (input.now ?? new Date()).getTime();
   const key = sha256(input.workerId);
   // Probed before the write transaction, which must not wait on another process.
   const dead: string[] = [];
-  for (const row of sqliteRows(db.prepare(RESIDENTS).all()))
-    if (String(row.worker_hash) !== key && !(await rowAlive(row, now)))
-      dead.push(String(row.worker_hash));
+  let earlierWriters = false;
+  for (const row of sqliteRows(db.prepare(RESIDENTS).all())) {
+    if (String(row.worker_hash) === key) continue;
+    if (!(await rowAlive(row, now))) dead.push(String(row.worker_hash));
+    else if (typeof row.presence !== "string") earlierWriters = true;
+  }
   let committed = false;
   try {
     db.exec("BEGIN IMMEDIATE");
@@ -186,6 +193,7 @@ export async function recordKnowledgeResidentHealth(input: {
       db.prepare("INSERT OR REPLACE INTO resident_presence VALUES(?,?)").run(key, input.presence);
     db.exec("COMMIT");
     committed = true;
+    return { earlierWriters };
   } finally {
     // A failed write drops the handle, so the next heartbeat starts from a fresh connection; a
     // stopped resident releases it, so a removed repository holds no open database.

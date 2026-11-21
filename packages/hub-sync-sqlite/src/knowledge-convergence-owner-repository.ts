@@ -104,7 +104,9 @@ export class HubKnowledgeConvergenceOwnerSQLiteRepository {
       mutation: input.mutation,
       acceptedAt: input.acceptedAt,
     });
-    if (next !== null && next !== stored?.lease) this.write(coordinate, next, input.acceptedAt);
+    // A present holder's extension lives only in memory: the stored lease is the last one the
+    // holder itself was given, so its expiry never drops below the validity the holder holds.
+    if (next !== null && next !== current) this.write(coordinate, next, input.acceptedAt);
     return decision.lease === null
       ? decision
       : { ...decision, holderPresent: present(decision.lease.holderHostHash) !== null };
@@ -149,34 +151,26 @@ export class HubKnowledgeConvergenceOwnerSQLiteRepository {
   }
 
   /**
-   * ADR-0602: a live lease follows its holder's presence. While the holder waits on the Hub, the
-   * lease is kept live, so it needs no renewal; once it leaves, the lease expires within the
-   * absence grace unless the holder returns first.
+   * ADR-0602: a lease follows its holder's presence. While the holder waits on the Hub, its lease
+   * is extended in memory at every decision and read, so it needs no renewal. When the holder
+   * leaves, the stored expiry, which is the last one the holder was given and so bounds every
+   * validity it holds, is kept, and moved out to the absence grace when that is later; it never
+   * moves earlier, so a peer can never be granted the lease while the holder may still commit.
+   * Returns whether the host holds the lease, so its peers are told the lease changed.
    */
   presence(
     coordinate: HubKnowledgeConvergenceOwnerCoordinate,
     hostHash: string,
     connected: boolean,
     at: string,
-  ): void {
-    const stored = this.current(coordinate);
-    const lease = stored?.lease;
-    if (
-      lease === undefined ||
-      lease.holderHostHash !== hostHash ||
-      lease.releasedAt !== null ||
-      Date.parse(lease.expiresAt) <= Date.parse(at)
-    )
-      return;
-    const expiresAt = connected
-      ? presentLease(lease, at, () => Date.parse(at)).expiresAt
-      : new Date(
-          Math.min(
-            Date.parse(lease.expiresAt),
-            Date.parse(at) + KNOWLEDGE_CONVERGENCE_OWNER_ABSENCE_GRACE_MS,
-          ),
-        ).toISOString();
-    if (expiresAt === lease.expiresAt) return;
-    this.write(coordinate, { ...lease, expiresAt }, at);
+  ): boolean {
+    const lease = this.current(coordinate)?.lease;
+    if (lease === undefined || lease.holderHostHash !== hostHash || lease.releasedAt !== null)
+      return false;
+    if (connected) return true;
+    const grace = Date.parse(at) + KNOWLEDGE_CONVERGENCE_OWNER_ABSENCE_GRACE_MS;
+    if (Date.parse(lease.expiresAt) < grace)
+      this.write(coordinate, { ...lease, expiresAt: new Date(grace).toISOString() }, at);
+    return true;
   }
 }

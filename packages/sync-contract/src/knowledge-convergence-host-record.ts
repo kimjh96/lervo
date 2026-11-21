@@ -71,8 +71,9 @@ export type KnowledgeConvergenceHostListing = KnowledgeConvergenceHostRecord & {
 
 /**
  * ADR-0602: a record's facts without any observation time, at any depth (the record's own and its
- * provider admission's). Two publications with equal facts say the same thing, so the Hub wakes
- * no peer for the second and a host never republishes it.
+ * provider admission's), and without the presence a Hub listing adds. Two publications with equal
+ * facts say the same thing, so the Hub wakes no peer for the second and a host never republishes
+ * it.
  */
 export function knowledgeConvergenceHostRecordFacts(
   record: KnowledgeConvergenceHostRecord,
@@ -87,7 +88,9 @@ export function knowledgeConvergenceHostRecordFacts(
               .map(([key, item]) => [key, strip(item)]),
           )
         : value;
-  return canonicalJson(strip(record));
+  // A listing's Hub presence is the Hub's, never part of what the host published.
+  const { presence: _presence, ...published } = record as KnowledgeConvergenceHostListing;
+  return canonicalJson(strip(published));
 }
 
 /** The list response's separate `presence` entries, one per listed host. */

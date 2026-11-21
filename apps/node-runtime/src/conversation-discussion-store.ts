@@ -1,4 +1,8 @@
 import { DatabaseSync } from "node:sqlite";
+import {
+  announceDiscussionChange,
+  subscribeDiscussionChanges,
+} from "./conversation-discussion-changes.js";
 
 import type { ConversationAgentBinding, ConversationContentReference } from "@lervo/schemas";
 
@@ -128,6 +132,7 @@ export class SQLiteConversationDiscussionStore {
       }
       this.prune();
       this.database.exec("COMMIT;");
+      this.changed();
     } catch (error) {
       this.database.exec("ROLLBACK;");
       throw error;
@@ -236,6 +241,7 @@ export class SQLiteConversationDiscussionStore {
           .run(input.contribution.eventId, input.discussionId);
       }
       this.database.exec("COMMIT;");
+      this.changed();
       return { discussion: this.get(input.discussionId)!, complete };
     } catch (error) {
       this.database.exec("ROLLBACK;");
@@ -275,7 +281,18 @@ export class SQLiteConversationDiscussionStore {
 
   claimDecision(input: { discussionId: string; eventId: string }): boolean {
     this.assertOpen();
-    return claimConversationDiscussionDecision(this.database, input);
+    const claimed = claimConversationDiscussionDecision(this.database, input);
+    if (claimed) this.changed();
+    return claimed;
+  }
+
+  /** Calls `notify` after each committed write to this store's file, outside the transaction. */
+  subscribeChanges(notify: () => void): () => void {
+    return subscribeDiscussionChanges(this.path, notify);
+  }
+
+  private changed(): void {
+    announceDiscussionChange(this.path);
   }
 
   recordProtocolState(input: {
@@ -292,6 +309,7 @@ export class SQLiteConversationDiscussionStore {
       this.recordProtocolStateInTransaction(input);
       this.pruneProtocolEvents();
       this.database.exec("COMMIT;");
+      this.changed();
     } catch (error) {
       this.database.exec("ROLLBACK;");
       throw error;

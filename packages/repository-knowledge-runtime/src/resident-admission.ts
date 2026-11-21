@@ -1,4 +1,4 @@
-import { holdProcessPresence } from "@lervo/project-storage";
+import { EARLIER_WRITER_REFRESH_MILLISECONDS, heldRepositoryPresence } from "./held-presence.js";
 
 import { recordKnowledgeResidentHealth } from "./resident-health.js";
 
@@ -34,29 +34,44 @@ export function startKnowledgeResidentHold(input: {
   workerId: string;
   reason: KnowledgeResidentHoldReason;
   onFailure: (error: unknown) => void;
-  record?: typeof recordKnowledgeResidentHealth;
+  record?: (
+    input: Parameters<typeof recordKnowledgeResidentHealth>[0],
+  ) => Promise<{ earlierWriters: boolean } | void>;
 }): () => Promise<void> {
   const record = input.record ?? recordKnowledgeResidentHealth;
-  const presence = holdProcessPresence();
+  const presence = heldRepositoryPresence(input.repositoryRoot);
   let writing: Promise<void> = Promise.resolve();
   let failures = 0;
   let retry: NodeJS.Timeout | null = null;
   let stopped: Promise<void> | null = null;
   const write = (state: "attention" | "stopped") => {
     writing = writing
-      .then(() => presence.ready)
-      .then(() =>
+      .then(() => presence.token())
+      .then((token) =>
         record({
           repositoryRoot: input.repositoryRoot,
           workerId: input.workerId,
           state,
           reason: state === "attention" ? input.reason : null,
-          presence: presence.token,
+          presence: token,
         }),
       )
       .then(
-        () => {
+        (outcome) => {
           failures = 0;
+          // Mixed versions only: an earlier release's writer removes rows by heartbeat age.
+          if (
+            outcome?.earlierWriters === true &&
+            state === "attention" &&
+            stopped === null &&
+            retry === null
+          ) {
+            retry = setTimeout(() => {
+              retry = null;
+              if (stopped === null) void write("attention");
+            }, EARLIER_WRITER_REFRESH_MILLISECONDS);
+            retry.unref();
+          }
         },
         (error: unknown) => {
           input.onFailure(error);
@@ -80,7 +95,7 @@ export function startKnowledgeResidentHold(input: {
     stopped ??= (async () => {
       if (retry !== null) clearTimeout(retry);
       await write("stopped");
-      presence.release();
+      await presence.release();
     })();
     return stopped;
   };

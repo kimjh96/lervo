@@ -11,6 +11,7 @@ import { SupervisionObservationGate } from "./supervision-observation-gate.js";
 import type { SupervisionPeerCatalog } from "./supervision-peer-catalog.js";
 import type { SupervisionResultDelivery } from "./supervision-result-delivery.js";
 import type { NodeSupervisionStore } from "./supervision-store.js";
+import { changeSignalAttention } from "./change-signal-attention.js";
 
 /**
  * ADR-0602: files that change what supervision may do without an event: the current workstream
@@ -88,6 +89,7 @@ export function createNodeSupervisionWakeSchedule(input: {
   return (options) =>
     createSupervisionChangeLoop({
       ...options,
+      onChangeSignal: changeSignalAttention(input.repositoryRoot),
       runCycle: () => gate.run(input.runCycle),
       subscribe: (notify) => {
         const hint = () => {

@@ -12,6 +12,7 @@ export {
 } from "./change-channel.js";
 export {
   holdProcessPresence,
+  ownedPresenceDirectory,
   probeProcessPresence,
   processPresenceDirectory,
   wakeProcessPresence,

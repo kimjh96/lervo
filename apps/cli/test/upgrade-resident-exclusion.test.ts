@@ -142,6 +142,13 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     });
     expect(code, stdout.join("") + stderr.join("")).toBe(0);
     expect(admittedDuringApply).toEqual([false]);
+    // The release removed the holder row itself, not only let its lease lapse.
+    const db = new DatabaseSync(resolve(directory, "full-cycle-admission.sqlite"));
+    try {
+      expect(db.prepare("SELECT COUNT(*) AS count FROM holder").get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
     expect(await residentCycleAdmitted(directory, root)).toBe(true);
   }, 60_000);
 

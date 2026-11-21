@@ -26,7 +26,8 @@ export function wireResidentWakes(input: {
   onProjectionInput: () => void;
   onHoldStore: () => void;
   onOwnerFence: () => void;
-  onHubChange: () => void;
+  /** `cycle` is false for a Hub change only continuity reads. */
+  onHubChange: (cycle: boolean) => void;
   /** Host-local continuity inputs outside every other watch, and the handler for their change. */
   continuityInputs?: readonly string[];
   onContinuityInput?: () => void;

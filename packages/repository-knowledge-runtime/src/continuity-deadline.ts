@@ -9,9 +9,6 @@ import {
 export const CONTINUITY_RETRY_BASE_MILLISECONDS = 60_000;
 export const CONTINUITY_RETRY_CEILING_MILLISECONDS = 60 * 60_000;
 
-/** ADR-0478: how soon a due renewal this host may not write yet is looked at again. */
-export const CONTINUITY_AWAITING_OWNER_MILLISECONDS = 15 * 60_000;
-
 export function continuityRetryDelay(failures: number): number {
   return Math.min(
     CONTINUITY_RETRY_CEILING_MILLISECONDS,
@@ -35,7 +32,6 @@ function moment(value: string | null | undefined, offset = 0): number | null {
 export function continuityNextDeadline(input: {
   now: number;
   failures: number;
-  awaitingOwner?: boolean;
   renewAt: string | null;
   delegationExpiresAt: string | null;
   policyHorizonAt: string | null;
@@ -59,8 +55,6 @@ export function continuityNextDeadline(input: {
   for (const pause of input.pauses)
     moments.push(moment(pause.resetAt), moment(pause.nextReprobeAt));
   if (input.failures > 0) moments.push(input.now + continuityRetryDelay(input.failures));
-  if (input.awaitingOwner === true)
-    moments.push(input.now + CONTINUITY_AWAITING_OWNER_MILLISECONDS);
   // A moment is due strictly after now, so a passed one never rearms itself.
   const future = moments.filter((at): at is number => at !== null && at > input.now);
   return future.length === 0 ? null : Math.min(...future);

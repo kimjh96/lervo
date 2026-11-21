@@ -4,12 +4,7 @@ import { resolve } from "node:path";
 import { applyStoredInstructionCandidates } from "./durable-instruction-auto-apply.js";
 import { ensureHostTerminalRuntime } from "./terminal-runtime.js";
 import { inspectEventWriterCoordinate, resolveProjectPaths } from "@lervo/project";
-import {
-  holdProcessPresence,
-  openProjectStorage,
-  waitForProcessExit,
-  type ProjectStorage,
-} from "@lervo/project-storage";
+import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
 import {
   defaultNodeFleetRegistryPath,
@@ -25,7 +20,6 @@ import {
   knowledgeResidentHoldReason,
   startAutonomousKnowledgeWorker,
   startKnowledgeResidentHold,
-  writeHostKnowledgeResidentStatus,
   type HostKnowledgeResidentLock,
   type HostResidentRepository,
 } from "@lervo/repository-knowledge-runtime";
@@ -46,6 +40,8 @@ import {
   type ResidentProvider,
 } from "./knowledge-host-resident-candidates.js";
 import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
+import { hostResidentStatusWriter } from "./knowledge-host-status-writer.js";
+import { watchStandbyHolder } from "./knowledge-host-standby-watch.js";
 import { activationRetryAt } from "./knowledge-host-activation-retry.js";
 import { refreshRelationWebWithCatalog } from "./relation-web-catalog.js";
 
@@ -112,34 +108,22 @@ export function startHostKnowledgeResidents(input: {
   let lock: HostKnowledgeResidentLock | null = null;
   let stopped = false;
   let scanning: Promise<void> = Promise.resolve();
-  const presence = holdProcessPresence();
-  let writtenStatus: string | null = null;
-
-  const writeStatus = async () => {
-    if (statusPath === null || stopped) return;
-    await presence.ready;
-    const status = {
-      schemaVersion: 1 as const,
-      pid: process.pid,
-      startedAt,
-      launch: input.launch ?? ("manual" as const),
-      role: lock?.acquired === true ? ("active" as const) : ("standby" as const),
-      presence: presence.token,
-      repositories: observed,
-      scan: { ...scanProgress },
-    };
-    const key = JSON.stringify(status);
-    if (key === writtenStatus) return;
-    await writeHostKnowledgeResidentStatus(statusPath, {
-      ...status,
-      heartbeatAt: now().toISOString(),
-    }).then(
-      () => {
-        writtenStatus = key;
-      },
-      (error: unknown) => input.onFailure("", error),
-    );
-  };
+  const status = hostResidentStatusWriter({
+    path: statusPath,
+    startedAt,
+    launch: input.launch ?? "manual",
+    now,
+    onFailure: (error) => input.onFailure("", error),
+  });
+  const presenceToken = status.presenceToken;
+  const writeStatus = () =>
+    stopped
+      ? Promise.resolve()
+      : status.write({
+          role: lock?.acquired === true ? "active" : "standby",
+          repositories: observed,
+          scan: { ...scanProgress },
+        });
 
   const startResident = (root: string, storage: ProjectStorage, provider: ResidentProvider) => {
     // A stale web keeps its previous catalog; the lifecycle never treats it as a failure.
@@ -236,16 +220,11 @@ export function startHostKnowledgeResidents(input: {
     scanProgress.startedAt = now().toISOString();
     scanProgress.repositoryRoot = null;
     if (lock?.acquired !== true) {
-      await presence.ready;
+      const token = await presenceToken;
       lock =
         lockPath === null
           ? { acquired: false, holderPid: null, holderPresence: null }
-          : await acquireHostKnowledgeResidentLock(
-              lockPath,
-              process.pid,
-              undefined,
-              presence.token,
-            );
+          : await acquireHostKnowledgeResidentLock(lockPath, process.pid, undefined, token);
       if (!lock.acquired) {
         observed = [];
         await writeStatus();
@@ -310,6 +289,7 @@ export function startHostKnowledgeResidents(input: {
         defaultNodeFleetRegistryPath,
         () => defaultConvergenceContinuityPolicyPath(),
         () => resolve(input.runtimeStore ?? terminalHookRuntimeStorePath(), "current.json"),
+        () => lockPath,
       ].flatMap((path) => {
         try {
           const value = path();
@@ -352,7 +332,12 @@ export function startHostKnowledgeResidents(input: {
     if (stopped) return;
     // ADR-0602: on standby, the holder's exit or release is the signal to try the lock again.
     if (lock?.acquired === false && lock.holderPresence !== null) {
-      holderExit = waitForProcessExit(lock.holderPresence, rescan);
+      holderExit = watchStandbyHolder({
+        holderPresence: lock.holderPresence,
+        provider: input.provider,
+        onExit: rescan,
+        onFailure: (error) => input.onFailure("", error),
+      });
       return;
     }
     const retries = [...held.values()]
@@ -394,6 +379,6 @@ export function startHostKnowledgeResidents(input: {
     await scanning;
     await Promise.all([...new Set([...residents.keys(), ...held.keys()])].map(release));
     if (lock?.acquired === true) await lock.release();
-    presence.release();
+    status.release();
   };
 }

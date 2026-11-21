@@ -14,6 +14,7 @@ import {
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
+import { changeSignalAttention } from "./change-signal-attention.js";
 import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { startKnowledgeWorkerProcess } from "./knowledge-worker-process.js";
 import type { KnowledgeHubCoordinates } from "./knowledge-hub-coordinates.js";
@@ -86,6 +87,7 @@ export function startRepositoryKnowledgeLoop(input: {
     continueOnFailure: true,
     failureRetryMs: () => 60_000,
     subscribe: (notify) => watchLocalEventChanges(input.store, notify),
+    onChangeSignal: changeSignalAttention(input.repositoryRoot),
     onFailure: input.onFailure,
     runCycle: async () => {
       if (input.host === undefined && input.storage === undefined)

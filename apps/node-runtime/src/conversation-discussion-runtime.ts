@@ -362,6 +362,11 @@ export class ConversationDiscussionRuntime {
     return this.options.store.nextDeadlineAt(this.options.participantId);
   }
 
+  /** ADR-0602: a committed discussion write, which can move the next deadline. */
+  subscribeChanges(notify: () => void): () => void {
+    return this.options.store.subscribeChanges(notify);
+  }
+
   markConverged(input: { discussionId: string; eventId: string; occurredAt: string }): void {
     this.options.store.recordProtocolState({
       discussionId: input.discussionId,

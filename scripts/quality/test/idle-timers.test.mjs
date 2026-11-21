@@ -89,6 +89,19 @@ describe("idle timer guard (ADR-0602)", () => {
     expect(counts.issues).toEqual([]);
   });
 
+  it("counts a loop that awaits a module helper arming a timer, also one with typed parameters", async () => {
+    const repositoryRoot = await fixture({
+      "service/src/helper.ts":
+        "function nextSignal(input: { retry: number }): Promise<void> {\n  return new Promise((r) => setTimeout(r, input.retry));\n}\nexport async function wait() {\n  for (;;) {\n    if (ready()) return;\n    await nextSignal({ retry: 1_000 });\n  }\n}\n",
+      "service/src/plain.ts":
+        "function read(input: { path: string }): string {\n  return input.path;\n}\nexport async function each() {\n  for (;;) {\n    await read({ path: next() });\n  }\n}\n",
+    });
+    const result = await inspectIdleTimers({ repositoryRoot, allowlist: allowlist() });
+    expect(result.issues).toEqual([
+      "service/src/helper.ts adds a loop timer; wait on a change signal or one deadline, or list it with a reason.",
+    ]);
+  });
+
   it("accepts one-shot timers, listed exceptions, tests and prose, and flags stale entries", async () => {
     const repositoryRoot = await fixture({
       "service/src/debounce.ts":
