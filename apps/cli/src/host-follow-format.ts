@@ -2,6 +2,7 @@ import type { HostFollowCycleResult } from "./host-follow-cycle.js";
 import type { HostFollowInspection, HostFollowStatus } from "./host-follow-inspection.js";
 import type { FollowServiceDefinition, HostFollowServicePlan } from "./host-follow-service.js";
 import type { HostFollowControl, HostFollowPass } from "./host-follow-state.js";
+import { formatFailureDetail } from "./host-follow-failure-detail.js";
 
 function passLines(pass: HostFollowPass | null): string[] {
   if (pass === null) return [];
@@ -93,7 +94,12 @@ export function formatFollowStatus(status: HostFollowStatus): string {
       ? []
       : [`in flight: ${state.inFlight.tag} (${state.inFlight.activationId})`]),
     ...state.failedTags.map(
-      (entry) => `failed on this host: ${entry.tag} (${entry.code}) at ${entry.failedAt}`,
+      (entry) =>
+        `failed on this host: ${entry.tag} (${entry.code}) at ${entry.failedAt}${
+          entry.failure === undefined
+            ? ""
+            : `; ${entry.failure.repositoryRoot}: ${formatFailureDetail(entry.failure)}`
+        }`,
     ),
     ...status.holds.map(
       (hold) =>

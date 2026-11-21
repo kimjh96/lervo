@@ -5,7 +5,10 @@ import { workforceSourcePaths } from "@lervo/agent-workforce";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { fixture } from "../../../packages/repository-knowledge-runtime/test/fixture.js";
-import { watchSupervisionSources } from "../src/supervision-wake-schedule.js";
+import {
+  supervisionDutyDeadlines,
+  watchSupervisionSources,
+} from "../src/supervision-wake-schedule.js";
 
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
@@ -57,3 +60,15 @@ it(
     await seen(hint, () => writeFile(paths.files[1]!, `${Date.now()}\n`));
   },
 );
+
+it("reports every duty deadline as it is, a lapsed one too (ADR-0602)", () => {
+  const lapsed = Date.now() - 5_000;
+  expect(
+    supervisionDutyDeadlines({
+      mandateExpiresAt: () => lapsed - 1,
+      nextCheckAt: () => lapsed,
+      peers: { nextAuditAt: () => null },
+      delivery: { nextRetryAt: () => lapsed + 1 },
+    }),
+  ).toEqual([lapsed - 1, lapsed, null, lapsed + 1]);
+});

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c9ec7000cb58a7c0a20d6d0d"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A restarted Node whose first supervision cycle outlasts its startup grace now still evaluates its owner, readiness counts only the replacement's heartbeat, and a rolled-back release keeps why it failed"

@@ -45,6 +45,25 @@ export function watchSupervisionSources(repositoryRoot: string, hint: () => void
   };
 }
 
+/**
+ * ADR-0602: every deadline of a supervision owner's duties, as each duty reports it. A lapsed one
+ * stays in the list: the observation gate observes again for it, and the change loop gives it one
+ * more cycle without letting it hide a later deadline.
+ */
+export function supervisionDutyDeadlines(input: {
+  mandateExpiresAt(): number | null;
+  nextCheckAt(): number | null;
+  peers: Pick<SupervisionPeerCatalog, "nextAuditAt">;
+  delivery: Pick<SupervisionResultDelivery, "nextRetryAt"> | null;
+}): (number | null)[] {
+  return [
+    input.mandateExpiresAt(),
+    input.nextCheckAt(),
+    input.peers.nextAuditAt(),
+    input.delivery?.nextRetryAt() ?? null,
+  ];
+}
+
 type LoopOptions = Pick<Parameters<typeof createSupervisionChangeLoop>[0], "onFailure" | "onCycle">;
 
 /**
@@ -64,12 +83,7 @@ export function createNodeSupervisionWakeSchedule(input: {
   now(): string;
 }): (options: LoopOptions) => ReturnType<typeof createSupervisionChangeLoop> {
   const { store, peers, delivery } = input;
-  const dutyDeadlines = () => [
-    input.mandateExpiresAt(),
-    input.nextCheckAt(),
-    peers.nextAuditAt(),
-    delivery?.nextRetryAt() ?? null,
-  ];
+  const dutyDeadlines = () => supervisionDutyDeadlines({ ...input, peers, delivery });
   let observedPaths: ReturnType<typeof workforceSourcePaths> | undefined;
   const gate = new SupervisionObservationGate({
     head: () => {
@@ -105,18 +119,8 @@ export function createNodeSupervisionWakeSchedule(input: {
           stopFiles();
         };
       },
-      nextAuthorityCheckAt: () => {
-        // A lapsed mandate wakes nothing; its expiry is observed by the cycle it ended.
-        const mandateExpiresAt = input.mandateExpiresAt();
-        const candidates = [
-          mandateExpiresAt !== null && mandateExpiresAt > Date.parse(input.now())
-            ? mandateExpiresAt
-            : null,
-          input.nextCheckAt(),
-          peers.nextAuditAt(),
-          delivery?.nextRetryAt() ?? null,
-        ].filter((value): value is number => value !== null);
-        return candidates.length === 0 ? null : Math.min(...candidates);
-      },
+      // ADR-0602: lapsed deadlines are reported too. One that lapsed while a slow cycle ran, such
+      // as the startup grace, still gets its cycle, and it never hides a later deadline.
+      dutyDeadlines,
     });
 }

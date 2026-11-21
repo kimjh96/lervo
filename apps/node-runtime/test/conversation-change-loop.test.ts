@@ -134,6 +134,33 @@ it("gives a lapsed deadline one more cycle, then waits for a change or a new dea
   await loop.stop();
 });
 
+it("never lets a lapsed deadline hide a later one, watched or not (ADR-0602)", async () => {
+  for (const watched of [true, false]) {
+    vi.useFakeTimers();
+    const later = Date.now() + 120_000;
+    const cycle = vi.fn(async () => {});
+    const loop = new ConversationChangeLoop({
+      runCycle: cycle,
+      onFailure: vi.fn(),
+      onChangeSignal: () => undefined,
+      intervalMs: 5_000,
+      continueOnFailure: true,
+      ...(watched ? { subscribe: () => () => {} } : {}),
+      nextWakeupAt: () => [0, null, later],
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(5_000);
+    // The start cycle and the lapsed deadline's one extra cycle.
+    expect(cycle).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(later - Date.now());
+    // The later deadline still woke the loop; an unwatched loop also looked each minute.
+    expect(cycle.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(cycle).toHaveBeenCalledTimes(watched ? 3 : 4);
+    await loop.stop();
+    vi.useRealTimers();
+  }
+});
+
 it("backs repeated failures off exponentially, resets on success, and waits for a change on a settled failure (ADR-0602)", async () => {
   vi.useFakeTimers();
   let notify = () => {};

@@ -12,6 +12,7 @@ import type {
   RepositoryUpgradeInvocation,
   RepositoryUpgradeRunner,
 } from "./host-repository-upgrade-runner.js";
+import type { RepositoryUpgradeFailureDetail } from "./host-follow-failure-detail.js";
 
 /** The deploy skill's bound: a plan that keeps changing stops after five rounds. */
 export const REPOSITORY_UPGRADE_ROUNDS = 5;
@@ -83,9 +84,15 @@ async function upgradeRepository(
     elapsedMs: 0,
     stageTimings,
   };
-  const finish = (outcome: RepositoryUpgradeOutcome, code: string | null) => {
+  const finish = (
+    outcome: RepositoryUpgradeOutcome,
+    code: string | null,
+    failure?: RepositoryUpgradeFailureDetail,
+  ) => {
     entry.outcome = outcome;
     entry.code = code;
+    if (failure === undefined) delete entry.failure;
+    else entry.failure = failure;
     entry.elapsedMs = now() - started;
     return entry;
   };
@@ -106,6 +113,7 @@ async function upgradeRepository(
   const base = ["upgrade", "--root", repositoryRoot];
   let hostFailureSeen = false;
   let lastCode: string | null = null;
+  let lastFailure: RepositoryUpgradeFailureDetail | undefined;
   for (let round = 1; round <= REPOSITORY_UPGRADE_ROUNDS; round += 1) {
     if (options.signal?.aborted === true) return "interrupted";
     entry.rounds = round;
@@ -119,7 +127,11 @@ async function upgradeRepository(
         hostFailureSeen = true;
         continue;
       }
-      return finish(classifyRepositoryFailure(code), code);
+      return finish(
+        classifyRepositoryFailure(code),
+        code,
+        plan.kind === "failed" ? plan.failure : undefined,
+      );
     }
     entry.status = plan.status;
     entry.planId = plan.planId;
@@ -143,12 +155,15 @@ async function upgradeRepository(
       const code = failureCode(applied);
       const outcome = classifyRepositoryFailure(code);
       lastCode = code;
-      if (outcome === "host_failure" && hostFailureSeen) return finish(outcome, code);
+      lastFailure = applied.kind === "failed" ? applied.failure : undefined;
+      if (outcome === "host_failure" && hostFailureSeen) return finish(outcome, code, lastFailure);
       if (outcome === "host_failure") hostFailureSeen = true;
-      else if (outcome === "blocked" || plan.status !== "ready") return finish(outcome, code);
+      else if (outcome === "blocked" || plan.status !== "ready")
+        return finish(outcome, code, lastFailure);
       continue;
     }
     lastCode = null;
+    lastFailure = undefined;
     entry.status = applied.status;
     entry.planId = applied.planId;
     entry.appliedStages.push(...applied.appliedStages);
@@ -164,7 +179,7 @@ async function upgradeRepository(
   }
   if (lastCode !== null) {
     const outcome = classifyRepositoryFailure(lastCode);
-    return finish(outcome === "host_failure" ? "failed" : outcome, lastCode);
+    return finish(outcome === "host_failure" ? "failed" : outcome, lastCode, lastFailure);
   }
   return finish(
     entry.status === "blocked" ? "blocked" : "failed",

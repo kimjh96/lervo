@@ -4,6 +4,11 @@ import { dirname } from "node:path";
 
 import { CommandFailure } from "./command-error-output.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
+import {
+  validFailureDetail,
+  type HostFollowFailureDetail,
+  type RepositoryUpgradeFailureDetail,
+} from "./host-follow-failure-detail.js";
 
 /**
  * ADR-0575: what one host's follower remembers, beside the ADR-0571 activation journal. Two files
@@ -21,6 +26,8 @@ export interface HostFollowFailedTag {
   code: string;
   /** The follower's activation that was rolled back or restored; null when none switched. */
   activationId: string | null;
+  /** The failing repository and why it failed, when its command reported a detail. */
+  failure?: HostFollowFailureDetail;
 }
 
 export type RepositoryUpgradeOutcome = "current" | "blocked" | "failed" | "host_failure";
@@ -50,6 +57,8 @@ export interface HostFollowRepositoryResult {
    * receipt's parts. Absent from passes of earlier CLIs.
    */
   stageTimings?: HostFollowStageTiming[];
+  /** Why the last failed command failed, when it reported a detail; absent otherwise. */
+  failure?: RepositoryUpgradeFailureDetail;
 }
 
 export interface HostFollowStageTiming {
@@ -161,7 +170,8 @@ function validRepositoryResult(value: unknown): boolean {
     nullableNumber(value.waitMs) &&
     nullableNumber(value.applyMs) &&
     typeof value.elapsedMs === "number" &&
-    (value.stageTimings === undefined || validStageTimings(value.stageTimings))
+    (value.stageTimings === undefined || validStageTimings(value.stageTimings)) &&
+    (value.failure === undefined || validFailureDetail(value.failure, false))
   );
 }
 
@@ -186,7 +196,8 @@ function validState(value: unknown): value is HostFollowState {
         typeof entry.tag === "string" &&
         typeof entry.failedAt === "string" &&
         typeof entry.code === "string" &&
-        nullableString(entry.activationId),
+        nullableString(entry.activationId) &&
+        (entry.failure === undefined || validFailureDetail(entry.failure, true)),
     ) &&
     (inFlight === null ||
       (isRecord(inFlight) &&

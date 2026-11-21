@@ -21,7 +21,11 @@ export interface ConversationChangeLoopOptions<TResult = unknown> {
   failureRetryCeilingMs?: number;
   schedule?: ConversationChangeSchedule;
   subscribe?(notify: () => void): () => void;
-  nextWakeupAt?(): number | null;
+  /**
+   * The next deadline, or every deadline the loop's duties have. A lapsed one is reported as it is,
+   * never dropped: it gets its one extra cycle, and it never hides a later deadline.
+   */
+  nextWakeupAt?(): number | readonly (number | null)[] | null;
   /**
    * ADR-0602: called with the reason when the loop has no change signal (no `subscribe`, or one
    * that threw), and with null when it stops. Without it, the reason is written to stderr once.
@@ -33,7 +37,8 @@ export interface ConversationChangeLoopOptions<TResult = unknown> {
  * Serial change-driven work. ADR-0602: it runs on a change notification or at the next deadline,
  * never on an interval. A deadline that has already passed when a cycle ends gets one more cycle;
  * if it is still the same lapsed deadline after that, the loop waits for a change or a new
- * deadline instead of polling it. `intervalMs` is the delay of that one cycle and the base retry
+ * deadline instead of polling it. A lapsed deadline never hides a later one: the earliest future
+ * deadline always arms the timer. `intervalMs` is the delay of that one cycle and the base retry
  * after a failure without its own; consecutive failures back off exponentially to a ceiling, and
  * every failure reaches `onFailure`, which reports it, until a cycle succeeds. A loop with no change
  * signal never goes silent: it runs again at least every minute, and reports that it has none
@@ -53,8 +58,8 @@ export class ConversationChangeLoop<TResult = unknown> {
   private inFlight: Promise<void> | null = null;
   private unsubscribe: (() => void) | undefined;
   private pending = false;
-  /** The lapsed deadline that already got its one extra cycle. */
-  private lapsedHandled: number | null = null;
+  /** The lapsed deadlines, still reported, that already got their one extra cycle. */
+  private lapsedHandled = new Set<number>();
   private failures = 0;
   private deadlineFailures = 0;
   /** Whether a change notification can wake the loop; without one it keeps its interval. */
@@ -184,9 +189,9 @@ export class ConversationChangeLoop<TResult = unknown> {
       return;
     }
     this.failures = 0;
-    let deadline: number | null;
+    let reported: number | readonly (number | null)[] | null;
     try {
-      deadline = this.options.nextWakeupAt?.() ?? null;
+      reported = this.options.nextWakeupAt?.() ?? null;
       this.deadlineFailures = 0;
     } catch (error) {
       // An unreadable deadline is a failure of its own: reported, and retried with its own
@@ -204,33 +209,28 @@ export class ConversationChangeLoop<TResult = unknown> {
       );
       return;
     }
+    void result;
+    const now = Date.now();
+    const deadlines = (Array.isArray(reported) ? reported : [reported]).filter(
+      (value): value is number => typeof value === "number" && Number.isFinite(value),
+    );
+    const lapsed = deadlines.filter((deadline) => deadline <= now);
+    const future = deadlines.filter((deadline) => deadline > now);
+    // A lapsed deadline gets one more cycle; the same one again does not, so it never spins. The
+    // set holds only what is still reported, so it stays bounded by the duties.
+    const fresh = lapsed.some((deadline) => !this.lapsedHandled.has(deadline));
+    this.lapsedHandled = new Set(lapsed);
+    const next = future.length === 0 ? null : Math.min(...future) - now;
     // Without a change signal, nothing else would wake the loop: it looks again within a minute.
     if (!this.watched) {
       const unwatched = Math.max(this.options.intervalMs, CHANGE_LOOP_UNWATCHED_MILLISECONDS);
-      const due =
-        deadline === null || !Number.isFinite(deadline) ? Infinity : deadline - Date.now();
-      if (due > 0) {
-        this.lapsedHandled = null;
-        this.schedule(Math.min(due, unwatched));
-        return;
-      }
-      // A lapsed deadline gets one more cycle after the interval, as it does with a signal; the
-      // same lapsed deadline again waits the minute, so it never spins.
-      const again = this.lapsedHandled === deadline;
-      this.lapsedHandled = deadline;
-      this.schedule(again ? unwatched : this.options.intervalMs);
+      this.schedule(fresh ? this.options.intervalMs : Math.min(next ?? Infinity, unwatched));
       return;
     }
-    if (deadline === null || !Number.isFinite(deadline)) return;
-    if (deadline > Date.now()) {
-      this.lapsedHandled = null;
-      this.schedule(Math.min(deadline - Date.now(), 2_147_483_647));
+    if (fresh) {
+      this.schedule(this.options.intervalMs);
       return;
     }
-    // A lapsed deadline gets one more cycle; the same lapsed deadline again waits for a change.
-    if (this.lapsedHandled === deadline) return;
-    this.lapsedHandled = deadline;
-    void result;
-    this.schedule(this.options.intervalMs);
+    if (next !== null) this.schedule(Math.min(next, 2_147_483_647));
   }
 }

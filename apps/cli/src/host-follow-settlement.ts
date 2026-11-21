@@ -26,6 +26,7 @@ import {
 import { reconcilePendingActivations } from "./host-link-activation.js";
 import { runRepositoryPass } from "./host-repository-pass.js";
 import { rollbackActivation } from "./host-upgrade-rollback.js";
+import type { RepositoryUpgradeFailureDetail } from "./host-follow-failure-detail.js";
 
 /** Passes cut short by an outside signal, such as the OOM killer, before that counts as a host failure. */
 export const FOLLOW_INTERRUPTION_LIMIT = 3;
@@ -331,6 +332,9 @@ export async function settleInFlight(
     null,
   );
   let hostFailure: string | null = null;
+  let failing:
+    | { repositoryRoot: string; code: string | null; failure?: RepositoryUpgradeFailureDetail }
+    | undefined;
   if (pass === null) {
     if (dependencies.signal?.aborted === true)
       return { state, step: { outcome: "interrupted", ...base } };
@@ -345,10 +349,10 @@ export async function settleInFlight(
         },
       };
     hostFailure = "host_follow_repository_upgrade_interrupted";
-  } else if (pass.outcome === "host_failure")
-    hostFailure =
-      pass.repositories.find((repository) => repository.outcome === "host_failure")?.code ??
-      "host_follow_repository_upgrade_unreadable";
+  } else if (pass.outcome === "host_failure") {
+    failing = pass.repositories.find((repository) => repository.outcome === "host_failure");
+    hostFailure = failing?.code ?? "host_follow_repository_upgrade_unreadable";
+  }
   if (hostFailure === null && pass !== null)
     return {
       state: { ...initial, inFlight: null, lastPass: pass },
@@ -360,17 +364,21 @@ export async function settleInFlight(
       },
     };
   const code = hostFailure as string;
-  const failing = { ...inFlight, rollback: { code } };
+  const rollingBack = { ...inFlight, rollback: { code } };
   state = withFailedTag(
-    { ...state, inFlight: failing },
+    { ...state, inFlight: rollingBack },
     {
       tag: inFlight.tag,
       failedAt: dependencies.upgrade.now().toISOString(),
       code,
       activationId: inFlight.activationId,
+      // ADR-0575: the rollback's converging pass replaces lastPass, so the failed tag keeps why.
+      ...(failing?.failure === undefined
+        ? {}
+        : { failure: { repositoryRoot: failing.repositoryRoot, ...failing.failure } }),
     },
   );
   // The failed tag and the pending rollback are recorded first, so a crash never retries the tag.
   await writeFollowState(layout, state);
-  return rollBack(dependencies, state, failing);
+  return rollBack(dependencies, state, rollingBack);
 }
