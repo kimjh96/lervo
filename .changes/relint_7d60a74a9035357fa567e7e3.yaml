@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7d60a74a9035357fa567e7e3"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A Node upgrade no longer rolls back a release for a condition the predecessor never evaluated, a settled predecessor's own state counts as its readiness baseline, and the failing CLI records why its Node stage failed"
