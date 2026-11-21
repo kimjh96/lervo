@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_46adb6878cc6c7f24831a262"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Knowledge publication reads what is published from GitHub on every host, stops polling GitHub after a bounded wait, keeps closed pull requests closed, and adds lervo knowledge convergence owner acknowledge"

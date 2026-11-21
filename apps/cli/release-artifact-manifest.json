@@ -2,7 +2,7 @@
   "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.29.10",
+    "version": "0.30.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -200,18 +200,18 @@
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 7129079,
-        "sha256": "sha256:2b7c46e8780daa3fda97841dce7a3ae15ee38264e02896e5c21a4b224f59f424"
+        "size": 7130980,
+        "sha256": "sha256:33402da70bec2c0e73cf443e2de77d9cbe511d22f9de1871be5de93a7c15b107"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12395921,
-        "sha256": "sha256:d7f7ea1af9fa9f6778c2121ded566a56b94e9eabcdac1d66c49c1f78b6973acc"
+        "size": 12539307,
+        "sha256": "sha256:50c1fcd27d04af97fea6acbfc7efe20c2a36aac835ee54fe98bc9793bfff3df4"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:91a1dad5c91432cca46578b0b0bce2300aa7db52178880d3385be792cc709c8b"
+        "sha256": "sha256:e6fbf7f09b75a075a518e45327c5ff22ab06c5235064763a76aa0f404bd6218e"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -220,12 +220,12 @@
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 6743227,
-        "sha256": "sha256:d92f98eae722535315532e0ad778f0114fedc81f67f1d7277cad74c023ec4e9d"
+        "size": 6764390,
+        "sha256": "sha256:f0eab23167246e7250b0fcd4e782b6d2532f157964055f7229b1dfea3c10e2f2"
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:5c0105767e4999f4a2abd224722dc97659831c68027d95311d701c79d241ee5a"
+    "contentDigest": "sha256:937f8d8b8fe658ae99b0b86f639c84c9358260deba1c3ac740fd32584884ca5d"
   },
   "dependencies": {
     "portable": [
@@ -338,5 +338,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:ff1099a5bdfd20ec22a0eb573a0eb8bd91905ade6c56a6eac3158b807c96950a"
+  "artifactDigest": "sha256:364d4abdaece197b8ab46b30ba0c1fde523dfb8693e2657cf104d2b0bb4e8811"
 }
