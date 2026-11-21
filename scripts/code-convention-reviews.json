@@ -11,7 +11,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:83293bd989140de3c358eec9a2b960b90431674e5ac0564011c4da9c514b9466",
+      "contentHash": "sha256:1e387b55498895936d9470278c5adcd8d337f3d63087fd1fa4779e240b7371e3",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module sequences one admitted run through context, execution, outcome checks, writing publication, finalization, and cleanup. Public command contracts, provider construction, grounded capability selection and package ceilings, and outcome verification are separate modules. Existing research, role, skill, workspace and project-verification owners retain their boundaries; the remaining lifecycle shares one ordered failure and storage-cleanup contract.",
       "disposition": "cohesive"
@@ -46,14 +46,14 @@
     },
     {
       "path": "packages/adapter-claude/src/claude-adapter.ts",
-      "contentHash": "sha256:3f69d13667490abfa5e71bc81cd6fb94d3c2177dd6335661647cbeeb2a310c39",
+      "contentHash": "sha256:aae68d8b4208434552c6403bf9d35ff4c5cc08ada241d94f4b6697c566f981bf",
       "responsibility": "Claude managed-provider adapter",
       "rationale": "The class owns one external Claude protocol boundary and translates native session, tool, telemetry, stop, and result behavior into common adapter contracts; the accounting declaration remains in a linked descriptor module. The explicit login profile is snapshotted for this same provider-session lifecycle; environment construction and native process transport remain separate modules.",
       "disposition": "cohesive"
     },
     {
       "path": "packages/adapter-codex/src/codex-adapter.ts",
-      "contentHash": "sha256:610ad2458f589e3478e5e02b167e50f6cbdf41167225afdf6efb970e9ce3d027",
+      "contentHash": "sha256:74b7fc0888c760ac9067c58a48ca71d633723c7aa0d6c07d2590c2289eb44a23",
       "responsibility": "Codex managed-provider adapter",
       "rationale": "The class owns the Codex provider boundary, selects one injected native transport, and translates thread, turn, telemetry, stop, and result behavior into common adapter contracts; transport parsing and the accounting declaration remain linked modules. The explicit login profile is snapshotted for this same provider-session lifecycle; environment construction and native process transport remain separate modules.",
       "disposition": "cohesive"
@@ -102,7 +102,7 @@
     },
     {
       "path": "packages/orchestrator/src/managed-provider-run.ts",
-      "contentHash": "sha256:07dce3cc0ce573c5ef89dd3119a6b88800aeb79b3706b8b0a7947806f4f34bf3",
+      "contentHash": "sha256:8859b9b55d3aaebc0bfba452d10c1e4c9ce6687b4a542fe344e1d4d778dfa97f",
       "responsibility": "Managed provider-run coordinator",
       "rationale": "One provider-neutral run lifecycle delegates source capture, process observation, capability policy, result collection and verification to existing ports. Source admission uses the project-storage gate for the complete run; failed reference-result preservation stays behind its own CAS/evidence boundary. The coordinator sequences both without owning SQLite or background retry policy.",
       "disposition": "cohesive"
@@ -123,9 +123,9 @@
     },
     {
       "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
-      "contentHash": "sha256:bff416b61a41c794686ceb7b83c033b8fd999ecded9b641eb616186abea3f515",
+      "contentHash": "sha256:697801e39cf9e1e6f70e6d03a59b2f46159749cc085522151e70ae3f976b9233",
       "responsibility": "Knowledge publication orchestration",
-      "rationale": "The module sequences one owner publication (repair, scope check, replay, push, pull request, merge, supersession, local catch-up) into one durable state and failure code. ADR-0473 scope rules, repair planning and commits, ADR-0596 failed-check recovery and backoff, Git mechanics, forge transport, body rendering, tip building, supersession ledgers, and state persistence are sibling modules; the remaining functions share one progress and failure contract.",
+      "rationale": "The module sequences one owner publication (standing, repair, scope, policy plan, head, merge, supersession, catch-up) into one durable state, failure code and wait. GitHub-derived standing and history, pull patches, the head and pull request, waits, base-change tracking, check recovery, policy, failure, merge gate, Git inventory, forge transport, body, tip and state are sibling modules (ADR-0596, ADR-0603, ADR-0607).",
       "disposition": "cohesive"
     },
     {
@@ -137,9 +137,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/document-normalization.ts",
-      "contentHash": "sha256:9b9c9dafb484416a26f9da24826d711ac4c752574cfa0ff545b81c490053e73f",
+      "contentHash": "sha256:52bbd3306d52567d5142efcb0fe20a5898364d31d305f185186f9f3623c08f66",
       "responsibility": "Reviewed document normalization lifecycle",
-      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, and tool ownership remain separate modules. The public compiler now delegates complete-coverage admission to the pure shared guard before provider calls; configured preparation and apply use the complete scanner. No independent scan or persistence policy is added.",
+      "rationale": "One reviewed rewrite lifecycle binds profiles, candidates, exact plans, and atomic apply. Observation, resource tracking, selection, caching, and tool ownership remain separate modules. The public compiler now delegates complete-coverage admission to the pure shared guard before provider calls; configured preparation and apply use the complete scanner. ADR-0604 only reclassifies a lifecycle mismatch at the same snapshot as a stale candidate; no independent scan or persistence policy is added.",
       "disposition": "cohesive"
     },
     {
@@ -221,7 +221,7 @@
     },
     {
       "path": "packages/schemas/src/adapter.ts",
-      "contentHash": "sha256:f715e26177c86ddbe74c59fcddb0c98ac1174fdb8f6e3cd36c3777c2cc1cdd48",
+      "contentHash": "sha256:e544363c869c5df60fd8217c8cd170d3b4056820c0695052eb24b6fdd5f7dd16",
       "responsibility": "Managed provider adapter schema catalog",
       "rationale": "The file is a declarative schema catalog for one adapter protocol; its length is data-shaped and contains no independent executable workflow.",
       "disposition": "cohesive"

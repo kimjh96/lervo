@@ -4,6 +4,7 @@ import {
   appendRepositoryChange,
   planRepositoryChangeInRepository,
 } from "@lervo/repository-knowledge";
+import { readRepositoryKnowledgeJobAdmission } from "@lervo/repository-knowledge-runtime";
 
 import { launchDetachedKnowledgeWorker } from "./detached-knowledge-worker.js";
 
@@ -55,6 +56,8 @@ export async function recordManagedRunRepositoryChange(input: {
   const stored = await input.storage.artifacts.put(planned.manifestContent);
   if (stored.contentHash !== planned.payload.sourceManifest.contentHash)
     throw new Error("The repository change manifest differs from its stored artifact.");
+  // ADR-0605: only a host that runs knowledge jobs receives one.
+  const admission = await readRepositoryKnowledgeJobAdmission(input.storage.paths.repositoryRoot);
   const recorded = input.storage.events.transact((transaction) =>
     appendRepositoryChange(
       transaction,
@@ -68,6 +71,7 @@ export async function recordManagedRunRepositoryChange(input: {
         policyVersion: input.policyVersion,
       },
       planned,
+      admission,
     ),
   );
   // Only the installed CLI entry launches a worker; tests and embedded callers never spawn one.

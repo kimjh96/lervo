@@ -34,7 +34,7 @@ import {
   documentFreshnessPriorityClass,
   orderDocumentFreshnessFindings,
 } from "../src/document-freshness-priority.js";
-import { parseDocumentFreshnessProposal } from "../src/document-freshness-response.js";
+import { documentFreshnessResponseContract } from "../src/document-freshness-response.js";
 import {
   documentFreshnessCompactLine,
   documentFreshnessTurnReportSegment,
@@ -412,36 +412,79 @@ describe("document freshness hunks", () => {
 });
 
 describe("document freshness provider response", () => {
-  it("accepts only the response contract", () => {
-    const hash = `sha256:${"f".repeat(64)}`;
-    const valid = {
-      operation: "edit",
-      hunks: [
-        {
-          before: "a",
-          after: "b",
-          claims: [{ text: "Moved.", evidence: [{ path: "x.md", hash }] }],
-        },
-      ],
-      archiveName: null,
-      currentDocumentPath: null,
-      explanation: "",
+  const hash = (seed: string) => `sha256:${seed.repeat(64)}`;
+  // The same path at two revisions is two evidence items.
+  const evidence = [
+    { path: "x.md", hash: hash("a") },
+    { path: "x.md", hash: hash("b") },
+    { path: "y.md", hash: hash("c") },
+  ];
+  const contract = documentFreshnessResponseContract(evidence);
+  const proposal = (citations: unknown[]) => ({
+    operation: "edit",
+    hunks: [{ before: "a", after: "b", claims: [{ text: "Moved.", evidence: citations }] }],
+    archiveName: null,
+    currentDocumentPath: null,
+    explanation: "",
+  });
+
+  it("gives the provider evidence references, never hashes, to cite (ADR-0604)", () => {
+    expect(contract.view).toEqual([
+      { evidence: "e1", path: "x.md" },
+      { evidence: "e2", path: "x.md" },
+      { evidence: "e3", path: "y.md" },
+    ]);
+    const native = contract.schema as unknown as {
+      properties: {
+        hunks: {
+          items: {
+            properties: { claims: { items: { properties: { evidence: { items: unknown } } } } };
+          };
+        };
+      };
     };
-    expect(parseDocumentFreshnessProposal(valid)?.hunks).toHaveLength(1);
-    expect(parseDocumentFreshnessProposal({ ...valid, hunks: [] })).toBeNull();
-    expect(parseDocumentFreshnessProposal({ ...valid, operation: "rewrite" })).toBeNull();
+    expect(native.properties.hunks.items.properties.claims.items.properties.evidence.items).toEqual(
+      {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          evidence: { enum: ["e1", "e2", "e3"] },
+          path: { enum: ["x.md", "y.md"], "x-lervo-ref-kind": "path" },
+        },
+        required: ["evidence", "path"],
+      },
+    );
+    // Nothing in the contract asks for a hash any more.
+    expect(JSON.stringify(contract.schema)).not.toMatch(/hash|minLength":71/u);
+  });
+
+  it("maps cited references to exact hashes and accepts only the response contract", () => {
+    const valid = proposal([{ evidence: "e2", path: "x.md" }]);
+    expect(contract.parse(valid)?.hunks[0]?.claims[0]?.evidence).toEqual([
+      { path: "x.md", hash: hash("b") },
+    ]);
+    expect(contract.parse({ ...valid, hunks: [] })).toBeNull();
+    expect(contract.parse({ ...valid, operation: "rewrite" })).toBeNull();
+    for (const citation of [
+      // A hash copied back, a garbled reference, and a reference whose path names another item.
+      { path: "x.md", hash: hash("a") },
+      { evidence: "e4", path: "x.md" },
+      { evidence: "e3", path: "x.md" },
+    ])
+      expect(contract.parse(proposal([citation]))).toBeNull();
+    expect(contract.parse({ ...valid, operation: "no_change_needed", hunks: [] })?.operation).toBe(
+      "no_change_needed",
+    );
+  });
+
+  it("allows no hunk when the bundle has no evidence, without an empty enum", () => {
+    const empty = documentFreshnessResponseContract([]);
+    expect(JSON.stringify(empty.schema)).not.toContain('"enum":[]');
+    expect(empty.schema).toMatchObject({ properties: { hunks: { maxItems: 0 } } });
+    expect(empty.parse(proposal([{ evidence: "e1", path: "x.md" }]))).toBeNull();
     expect(
-      parseDocumentFreshnessProposal({
-        ...valid,
-        hunks: [
-          { ...valid.hunks[0], claims: [{ text: "x", evidence: [{ path: "x", hash: "nope" }] }] },
-        ],
-      }),
-    ).toBeNull();
-    expect(
-      parseDocumentFreshnessProposal({ ...valid, operation: "no_change_needed", hunks: [] })
-        ?.operation,
-    ).toBe("no_change_needed");
+      empty.parse({ ...proposal([]), operation: "needs_owner_input", hunks: [] })?.operation,
+    ).toBe("needs_owner_input");
   });
 });
 

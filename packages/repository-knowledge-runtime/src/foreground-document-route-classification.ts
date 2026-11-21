@@ -5,11 +5,11 @@ import {
   createDocumentRouteClassificationRecords,
   createDocumentRouteClassificationRequest,
   DOCUMENT_ROUTE_CLASSIFICATION_TASK,
+  documentRouteClassificationContract,
   documentRouteClassificationInstruction,
-  documentRouteClassificationResponseSchema,
-  interpretDocumentRouteClassificationResponse,
   MAXIMUM_DOCUMENT_ROUTE_BATCH,
   recordDocumentRouteClassifications,
+  recordDocumentRouteClassificationViolation,
   sha256,
   type RepositoryLayoutMigrationPlan,
 } from "@lervo/repository-knowledge";
@@ -73,6 +73,7 @@ export async function classifyForegroundDocumentRoutes(input: {
       taxonomy: await loadDecisionTaxonomy(root),
       documents,
     });
+    const contract = documentRouteClassificationContract(request);
     let observed;
     try {
       const runner = await createNoCapabilityProviderJsonRunner({
@@ -86,8 +87,9 @@ export async function classifyForegroundDocumentRoutes(input: {
       observed = await runner.resolveObserved({
         schemaVersion: 1,
         task: DOCUMENT_ROUTE_CLASSIFICATION_TASK,
-        responseContract: { schemaVersion: 1, schema: documentRouteClassificationResponseSchema },
-        untrustedSourceData: request,
+        responseContract: { schemaVersion: 1, schema: contract.schema },
+        // ADR-0604: the classifier sees references, never the content hashes it used to copy.
+        untrustedSourceData: contract.view,
       });
       if (observed.usage === null) return { recorded: 0, providerAvailable: false };
     } catch (error) {
@@ -112,12 +114,27 @@ export async function classifyForegroundDocumentRoutes(input: {
         admissionObservationHash: admission.observationHash,
       }),
     );
+    let verdicts;
+    try {
+      verdicts = contract.parse(observed.value);
+    } catch {
+      // ADR-0604: a malformed answer records no verdict; the documents stay pending, counted as
+      // `classification_invalid` attention until an answer classifies them.
+      await recordDocumentRouteClassificationViolation({
+        repositoryRoot: root,
+        request,
+        requestDigest,
+        liveClassificationIds: new Set(input.layout.semanticClassificationIds),
+        observedAt: new Date(),
+      });
+      return { recorded: 0, providerAvailable: true };
+    }
     await recordDocumentRouteClassifications({
       repositoryRoot: root,
       records: createDocumentRouteClassificationRecords({
         request,
         requestDigest,
-        verdicts: interpretDocumentRouteClassificationResponse(request, observed.value),
+        verdicts,
         provider: input.provider,
         responseDigest: sha256(canonicalJson(observed.value)),
         observationArtifactHash: proof.contentHash,

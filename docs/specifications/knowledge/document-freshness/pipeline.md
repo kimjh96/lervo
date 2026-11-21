@@ -78,6 +78,8 @@ Write `FreshnessEvidenceBundleV1` to CAS before the provider call; its hash beco
 
 The provider never receives absolute paths, event history, credentials, or other documents' full bodies.
 
+The provider sees `evidence[]` as `{ evidence: e<n>, path }`, without the hash ([ADR-0604](../../../decisions/knowledge/semantics/0604-share-one-review-contract-per-candidate-and-cache-only-accepted-answers.md)). A claim cites `{ evidence, path }`; the response schema allows only the bundle's references and paths. Lervo maps each citation back to the exact `{ path, hash }`. An unknown reference, or a reference whose path names another item, makes the response invalid. With no evidence, the schema allows no hunk. The CAS bundle keeps the exact hashes. The independent no-change assessment returns only `agrees` and `explanation`; Lervo binds the verdict to the document hash and dependency digest it sent.
+
 The implemented related-document selector does not establish prepared-snapshot ranking or canonical-document eligibility. ADR-0463's intended requirement remains the top three related canonical documents from the prepared retrieval snapshot. Integrating and verifying that selection, or reviewing an amendment, remains open; path-and-hash bindings alone do not establish equivalence. See the [specification correction](../document-freshness.md#related-document-evidence-selection).
 
 ## Evidence recovery and assessment settlement

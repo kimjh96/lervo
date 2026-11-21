@@ -1,3 +1,4 @@
+import { providerOutputSchema } from "@lervo/schemas";
 export { defaultEnglishWritingContract as practiceWritingContract } from "@lervo/core";
 
 /** Provider-neutral procedure and exact review bindings for ADR-0543. */
@@ -19,7 +20,7 @@ export interface ReusablePractice {
 
 const text = { type: "string", minLength: 1, maxLength: 512 } as const;
 const list = { type: "array", minItems: 1, maxItems: 12, items: text } as const;
-export const reusablePracticeSchema = {
+export const reusablePracticeSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -52,7 +53,7 @@ export const reusablePracticeSchema = {
     "assumptions",
     "sourcePaths",
   ],
-} as const;
+} as const);
 
 export function parseReusablePractice(value: unknown): ReusablePractice | null {
   if (value === null || value === undefined) return null;

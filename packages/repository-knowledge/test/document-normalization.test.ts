@@ -1,4 +1,4 @@
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -1236,6 +1236,19 @@ describe("document content normalization", () => {
       compiler: normalizer,
       signal: new AbortController().signal,
     });
+    // ADR-0604: a lifecycle that moved since the candidate, at the same source snapshot (as after
+    // a rewind replayed its generation), reads as stale, not invalid, so convergence regenerates.
+    const records = resolve(root, ".lervo/knowledge/document-normalizations");
+    const aside = `${root}-records`;
+    await rename(records, aside);
+    await expect(
+      createDocumentNormalizationPlan({
+        repositoryRoot: root,
+        candidate: replacement,
+        now: new Date("2026-08-24T03:00:00.000Z"),
+      }),
+    ).rejects.toMatchObject({ code: "knowledge_plan_stale" });
+    await rename(aside, records);
     const replacementPlan = await createDocumentNormalizationPlan({
       repositoryRoot: root,
       candidate: replacement,

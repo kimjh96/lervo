@@ -5,6 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import {
   getBuiltInRoleDefinition,
   prepareResearchInputs,
+  researchBriefInstructions,
   researchContractHash,
   verifyResearchBrief,
   type ResearchSourcePolicyV1,
@@ -72,6 +73,34 @@ it("binds a brief to actual repository source bytes and rejects invented provena
   expect(() =>
     verifyResearchBrief({ content, inputs: captured.inputs, now: "2026-09-12T08:02:00.000Z" }),
   ).toThrow(/retrieval age/iu);
+  // ADR-0608: the worker is never asked to copy a hash; it cites source ids and Lervo binds the rest.
+  const instructions = researchBriefInstructions(captured.inputs);
+  const prompt = instructions.split("Exact prepared research inputs:")[0]!;
+  expect(prompt).not.toContain(contentHash);
+  expect(prompt).not.toContain(captured.inputHash);
+  expect(prompt).not.toMatch(/content hash/iu);
+  const cited = `Local execution works without a Hub.[^S1]\n\n[^S1]: ${url}\n\n<!-- lervo-research ${JSON.stringify({ schemaVersion: 2, kind: "research.brief", sources: [sourceId] })} -->`;
+  expect(verifyResearchBrief({ content: cited, inputs: captured.inputs, now })).toMatchObject({
+    status: "passed",
+    inputHash: captured.inputHash,
+    sourceHashes: [contentHash],
+    manifest: { sources: [{ sourceId, url, retrievedAt, contentHash }] },
+  });
+  for (const invalid of [
+    { schemaVersion: 2, kind: "research.brief", sources: ["S9"] },
+    { schemaVersion: 2, kind: "research.brief", sources: [sourceId], contentHash },
+    { schemaVersion: 3, kind: "research.brief", sources: [sourceId] },
+  ])
+    expect(() =>
+      verifyResearchBrief({
+        content: cited.replace(
+          /<!-- lervo-research .* -->/u,
+          `<!-- lervo-research ${JSON.stringify(invalid)} -->`,
+        ),
+        inputs: captured.inputs,
+        now,
+      }),
+    ).toThrow(/citation|schema/iu);
   await rm(resolve(root, "README.md"));
   await symlink(resolve(root, ".lervo/research/source-policy.json"), resolve(root, "README.md"));
   await expect(prepareResearchInputs(request)).rejects.toThrow(/regular files/iu);

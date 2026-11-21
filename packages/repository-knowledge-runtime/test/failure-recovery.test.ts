@@ -146,7 +146,7 @@ it(
         .replace("import {appendFileSync}", "import {appendFileSync,readFileSync}")
         .replace(
           "console.log(JSON.stringify({is_error:false",
-          `if(request.task==='independent_normalization_review'&&readFileSync(${JSON.stringify(f.log)},'utf8').split('\\n').filter(line=>line.includes('independent_normalization_review')).length===1){response.decisions[0].unitReviews[0].outputHashes.push('sha256:${"0".repeat(64)}');}\nconsole.log(JSON.stringify({is_error:false`,
+          `if(request.task==='independent_normalization_review'&&readFileSync(${JSON.stringify(f.log)},'utf8').split('\\n').filter(line=>line.includes('independent_normalization_review')).length===1){response.decisions[0].unitReviews[0].outputs.push({output:'d9.o9',path:'docs/d9.md'});}\nconsole.log(JSON.stringify({is_error:false`,
         ),
     );
     let result: Awaited<ReturnType<typeof run>>;

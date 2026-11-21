@@ -5,9 +5,9 @@ import { resolve } from "node:path";
 import {
   buildDocumentFreshnessCandidate,
   documentFreshnessFindingActionable,
+  documentFreshnessResponseContract,
   filesystemDocumentFreshnessOracle,
   freshnessReferenceMissing,
-  parseDocumentFreshnessProposal,
   recordSynchronousGitProcess,
   reviewIntervalOnlyFreshnessCandidate,
   stableId,
@@ -193,8 +193,11 @@ export async function generateFreshnessCandidate(input: {
       ...shared,
       generationId,
       bundleHash: stored.contentHash,
+      // ADR-0604: the same contract the call sent maps cited references back to exact hashes.
       proposal:
-        generated.status === "generated" ? parseDocumentFreshnessProposal(generated.value) : null,
+        generated.status === "generated"
+          ? documentFreshnessResponseContract(bundle.evidence).parse(generated.value)
+          : null,
       evidence,
       evidenceTruncated: bundle.evidenceTruncated,
       tokensObserved,

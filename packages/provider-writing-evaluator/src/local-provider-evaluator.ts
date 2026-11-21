@@ -14,7 +14,9 @@ import type {
   AdapterSession,
   AdapterStopRequest,
   AdapterTurn,
+  ProviderOutputSchema,
 } from "@lervo/schemas";
+import { assertProviderTurnAsksNoHashCopy } from "@lervo/schemas";
 import type { SemanticWritingEvaluationRequest, WritingSemanticEvaluator } from "@lervo/writing";
 
 import {
@@ -36,24 +38,30 @@ function digest(value: string | Uint8Array): string {
 }
 
 function evaluationInstructions(request: SemanticWritingEvaluationRequest): string {
-  return [
-    "Evaluate the JSON request below under the injected Lervo protocol.",
-    'Return this exact shape: {"checks":[{"checkId":"...","status":"passed|failed","violationCount":0}]}',
-    "Preserve check order, include every check exactly once, use zero violations for passed, and a positive count for failed.",
-    "",
-    JSON.stringify({
-      schemaVersion: 1,
-      writingPolicyId: request.writingPolicyId,
-      locale: request.locale,
-      surface: request.surface,
-      audience: request.audience,
-      register: request.register,
-      artifactId: request.artifactId,
-      contentHash: request.contentHash,
-      content: request.content,
-      checks: request.checks,
-    }),
-  ].join("\n");
+  return [...EVALUATION_PROTOCOL, evaluationData(request)].join("\n");
+}
+
+const EVALUATION_PROTOCOL = [
+  "Evaluate the JSON request below under the injected Lervo protocol.",
+  'Return this exact shape: {"checks":[{"checkId":"...","status":"passed|failed","violationCount":0}]}',
+  "Preserve check order, include every check exactly once, use zero violations for passed, and a positive count for failed.",
+  "",
+];
+
+/** ADR-0608: the request and its content are data, never Lervo's words. */
+function evaluationData(request: SemanticWritingEvaluationRequest): string {
+  return JSON.stringify({
+    schemaVersion: 1,
+    writingPolicyId: request.writingPolicyId,
+    locale: request.locale,
+    surface: request.surface,
+    audience: request.audience,
+    register: request.register,
+    artifactId: request.artifactId,
+    contentHash: request.contentHash,
+    content: request.content,
+    checks: request.checks,
+  });
 }
 
 async function waitForTerminal(
@@ -108,7 +116,7 @@ export interface LocalProviderWritingEvaluatorOptions {
     provider: "codex" | "claude";
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
-    structuredOutputSchema: Record<string, unknown>;
+    structuredOutputSchema: ProviderOutputSchema;
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "envelope" | "turn"): string;
   now(): Date;
@@ -189,6 +197,8 @@ export function createLocalProviderWritingEvaluator(
             throw new Error("A read-only writing evaluator cannot report a completed write.");
           },
         });
+        // ADR-0608: the protocol is Lervo's; the request and its content are declared as data.
+        assertProviderTurnAsksNoHashCopy(instructions, [evaluationData(request)]);
         let accepted: AdapterTurn | undefined;
         const turn = await adapter.startTurn(
           session,
@@ -202,6 +212,7 @@ export function createLocalProviderWritingEvaluator(
             providerSessionId: session.providerSessionId,
             targetTurnId,
             instructions,
+            untrustedInstructions: [evaluationData(request)],
             requestedAt: input.now().toISOString(),
           },
           (value) => {

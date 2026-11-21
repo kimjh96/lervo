@@ -4,14 +4,17 @@ import {
   SEARCH_QUERY_PROJECTION_MAXIMUM_QUERIES,
   SEARCH_QUERY_PROJECTION_MAXIMUM_QUERY_CHARACTERS,
 } from "@lervo/search";
+import { providerOutputSchema, type ProviderOutputSchema } from "@lervo/schemas";
 
 export type RepositoryContextProvider = "codex" | "claude";
 
 export type ProductionQueryProjectorRuntimeContract =
   "codex.persistent_isolated_thread_direct.v1" | "claude.serialized_process_direct.v1";
 
-export function searchQueryProjectionResponseSchema(maximumGeneratedQueries: number) {
-  return {
+export function searchQueryProjectionResponseSchema(
+  maximumGeneratedQueries: number,
+): ProviderOutputSchema {
+  return providerOutputSchema({
     type: "object",
     additionalProperties: false,
     properties: {
@@ -28,7 +31,7 @@ export function searchQueryProjectionResponseSchema(maximumGeneratedQueries: num
       },
     },
     required: ["schemaVersion", "retrievalQueries"],
-  } as const;
+  } as const);
 }
 
 export const repositoryQueryProjectionInstruction = [

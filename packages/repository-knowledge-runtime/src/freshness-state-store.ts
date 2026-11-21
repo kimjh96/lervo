@@ -57,6 +57,16 @@ export interface FreshnessCycleState {
    * and time, so a cycle that repeats it without progress records nothing new.
    */
   lastOutcomeDigest?: string | null;
+  /**
+   * Additive (ADR-0604): no-change reviews in a row whose provider reported no usage. From the
+   * third, that provider's reviews are not paid for until `until`; a review with usage clears it.
+   */
+  usageUnavailable?: {
+    provider: string;
+    count: number;
+    since: string;
+    until: string | null;
+  } | null;
 }
 
 export function emptyFreshnessCycleState(): FreshnessCycleState {

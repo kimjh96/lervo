@@ -20,7 +20,10 @@ function boundedText(value: unknown, maximumLength: number): value is string {
   );
 }
 
-/** Keeps local owner attention and recipient-bound handoff as disjoint effects. */
+/**
+ * Keeps local owner attention and recipient-bound handoff as disjoint effects. ADR-0608: it checks
+ * details after the Node maps the owner's evidence references to hashes; the model returns none.
+ */
 export function classifyOwnerEscalationDetails(
   details: Record<string, unknown>,
 ): EscalationDetails {
@@ -53,6 +56,7 @@ export function classifyOwnerEscalationDetails(
   };
 }
 
+/** ADR-0608: checks acceptance details after the Node maps the owner's handoff reference. */
 export function validOwnerHandoffAcceptanceDetails(details: Record<string, unknown>): boolean {
   return (
     Object.keys(details).join(",") === "handoffHash" &&

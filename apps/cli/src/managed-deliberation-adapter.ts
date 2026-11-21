@@ -3,6 +3,7 @@ import { ClaudeAdapter } from "@lervo/adapter-claude";
 import { CodexAdapter } from "@lervo/adapter-codex";
 
 import type { RunProvider } from "./managed-run.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export const managedDeliberationEvidenceBoundaryInstruction = [
   "Use only the Lervo-injected canonical documents and shared deliberation publications as evidence.",
@@ -31,7 +32,7 @@ export function createManagedDeliberationAdapter(input: {
   reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
   repositoryRoot: string;
   resolveArtifact: (uri: string) => Promise<Uint8Array>;
-  structuredOutputSchema?: Record<string, unknown>;
+  structuredOutputSchema?: ProviderOutputSchema;
 }): ProviderAdapter {
   const common = {
     repositoryRoot: input.repositoryRoot,

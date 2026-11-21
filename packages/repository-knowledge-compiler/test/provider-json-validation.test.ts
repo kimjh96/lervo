@@ -1,6 +1,7 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { createNoCapabilityProviderJsonRunner } from "../src/index.js";
 import * as processHost from "../src/process-host.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -20,7 +21,9 @@ it.each(["codex", "claude"] as const)(
     }));
     const runner = await createNoCapabilityProviderJsonRunner({ provider });
     await expect(
-      runner.resolveObserved?.({ responseContract: { schema: { type: "object" } } }),
+      runner.resolveObserved?.({
+        responseContract: { schema: providerOutputSchema({ type: "object" }) },
+      }),
     ).rejects.toMatchObject({ code: "knowledge_compile_failed" });
   },
 );
@@ -39,6 +42,8 @@ it("treats invalid native Codex usage as unavailable rather than throwing a type
   }));
   const runner = await createNoCapabilityProviderJsonRunner({ provider: "codex" });
   await expect(
-    runner.resolveObserved?.({ responseContract: { schema: { type: "object" } } }),
+    runner.resolveObserved?.({
+      responseContract: { schema: providerOutputSchema({ type: "object" }) },
+    }),
   ).resolves.toMatchObject({ usage: null });
 });

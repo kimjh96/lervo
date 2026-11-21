@@ -274,6 +274,8 @@ export async function documentFreshnessAttentionSources(
   applied: DocumentFreshnessCandidateV1[];
   zeroSuccessHold: { since: string; until: string; attempts: number } | null;
   debt: DocumentFreshnessDebt[];
+  /** ADR-0604: a provider whose no-change reviews are paused for reporting no usage. */
+  usageUnavailable: { provider: string; count: number; since: string; until: string } | null;
 }> {
   const [cycle, candidates] = await Promise.all([
     readFreshnessCycleState(root),
@@ -292,6 +294,14 @@ export async function documentFreshnessAttentionSources(
     ),
     zeroSuccessHold: hold === null ? null : { ...hold, attempts: cycle.budget.attempts },
     debt: cycle.debt ?? [],
+    // ADR-0604: attention only while the pause lasts; it ends by itself when the pause does.
+    usageUnavailable:
+      cycle.usageUnavailable?.until === null ||
+      cycle.usageUnavailable === undefined ||
+      cycle.usageUnavailable === null ||
+      Date.parse(cycle.usageUnavailable.until) <= now.getTime()
+        ? null
+        : { ...cycle.usageUnavailable, until: cycle.usageUnavailable.until },
   };
 }
 

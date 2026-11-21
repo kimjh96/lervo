@@ -12,6 +12,7 @@ import {
   identifyProviderCli,
 } from "../src/provider-cli-detection.js";
 import { runProviderCliCommand } from "../src/provider-cli-command.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const roots: string[] = [];
 vi.mock("node:os", async (original) => {
@@ -75,11 +76,11 @@ console.log(JSON.stringify({is_error:false,result:'{"ok":true}',...(structured ?
       await runner.resolve({
         task: "background",
         responseContract: {
-          schema: {
+          schema: providerOutputSchema({
             type: "object",
             properties: { ok: { type: "boolean" } },
             required: ["ok"],
-          },
+          }),
         },
       }),
     ).toEqual({ ok: true });
@@ -139,7 +140,11 @@ console.log(JSON.stringify({ is_error: false, result: '{"ok":true}', ...(structu
     await runner.resolve({
       task: "background",
       responseContract: {
-        schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
+        schema: providerOutputSchema({
+          type: "object",
+          properties: { ok: { type: "boolean" } },
+          required: ["ok"],
+        }),
       },
     }),
   ).toEqual({ ok: true });

@@ -3,7 +3,12 @@ import { rm, writeFile } from "node:fs/promises";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { revertFreshnessCandidate } from "../src/freshness-revert.js";
-import { listFreshnessCandidates, readFreshnessCycleState } from "../src/freshness-state-store.js";
+import {
+  listFreshnessCandidates,
+  readFreshnessCycleState,
+  writeFreshnessCycleState,
+} from "../src/freshness-state-store.js";
+import { documentFreshnessAttentionSources } from "../src/freshness-review.js";
 import { freshnessFixture, type FreshnessFixture } from "./freshness-fixture.js";
 
 /** AGENTS.md invariant 5: documents a test treats as Lervo-managed or as user-owned. */
@@ -114,6 +119,12 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
         "document_freshness_candidate",
         "document_freshness_cross_check",
         "document_freshness_cross_check",
+      ]);
+      // ADR-0604: the provider cited evidence and hunks by reference; no call offered a hash or id.
+      expect((await f.providerCalls()).map((call) => call.offersIdentifiers)).toEqual([
+        false,
+        false,
+        false,
       ]);
       expect(candidate!.checks.every((check) => check.status === "passed")).toBe(true);
       expect(await f.read("AGENTS.md")).toContain("`v4/argo4/live/engine.py: Limits`");
@@ -341,6 +352,158 @@ describe("document freshness fixtures (ADR-0463, ADR-0561)", () => {
           reason: "cross_check_disagreement_repeated",
         }),
       ]);
+    },
+  );
+
+  it(
+    "asks a malformed no-change review again instead of reading it as a disagreement (ADR-0604)",
+    { timeout: 120_000 },
+    async () => {
+      // A no-change assessment is recorded in schema 5 events.
+      const f = await freshnessFixture(5);
+      fixtures.push(f);
+      await f.write("src/flag.ts", "export const flag = 1;\n");
+      await f.write("docs/specs/flag.md", "# Flag\n\nThe flag lives in `src/flag.ts`.\n");
+      await f.commit("add the flag document", "2023-01-02T00:00:00Z");
+      await f.write("src/flag.ts", "export const flag = 2;\n");
+      await f.commit("change the flag");
+      await f.plan({
+        "docs/specs/flag.md": {
+          operation: "no_change_needed",
+          explanation: "The document names the file, not its value.",
+          // Two malformed answers, then a well-formed agreement.
+          assessmentSequence: ["invalid", "invalid", "agree"],
+        },
+      });
+      // The candidate first, then its review.
+      await f.cycle();
+      await f.cycle(new Date(Date.now() + 60_000));
+      const reviews = () =>
+        f
+          .providerCalls()
+          .then((calls) =>
+            calls.filter((call) => call.task === "document_freshness_assessment_review"),
+          );
+      // Asked once more at once; still malformed, it waits, charged, and is no disagreement.
+      expect(await reviews()).toHaveLength(2);
+      const [waiting] = await listFreshnessCandidates(f.root);
+      expect(waiting).not.toMatchObject({ state: "rejected" });
+      expect(waiting!.tokensObserved).toBeGreaterThan(0);
+      // The next cycle asks again, and the well-formed agreement verifies it.
+      await f.cycle(new Date(Date.now() + 120_000));
+      expect(await reviews()).toHaveLength(3);
+      const [verified] = await listFreshnessCandidates(f.root);
+      expect(verified).toMatchObject({ operation: "no_change_needed", state: "verified" });
+    },
+  );
+
+  it(
+    "keeps an agreement with no usage unverifiable and charges an over-budget one as unavailable (ADR-0604)",
+    { timeout: 120_000 },
+    async () => {
+      const run = async (entry: Record<string, unknown>) => {
+        const f = await freshnessFixture(5);
+        fixtures.push(f);
+        await f.write("src/flag.ts", "export const flag = 1;\n");
+        await f.write("docs/specs/flag.md", "# Flag\n\nThe flag lives in `src/flag.ts`.\n");
+        await f.commit("add the flag document", "2023-01-02T00:00:00Z");
+        await f.write("src/flag.ts", "export const flag = 2;\n");
+        await f.commit("change the flag");
+        await f.plan({
+          "docs/specs/flag.md": {
+            operation: "no_change_needed",
+            explanation: "The document names the file, not its value.",
+            ...entry,
+          },
+        });
+        await f.cycle();
+        await f.cycle(new Date(Date.now() + 60_000));
+        const [candidate] = await listFreshnessCandidates(f.root);
+        return candidate!;
+      };
+      // No usage figure: no verdict can be checked against the budget, and the call is charged
+      // its request's size, never the whole budget.
+      const unknown = await run({ assessmentUsage: "omit" });
+      expect(unknown).not.toMatchObject({ state: "rejected" });
+      expect(unknown.state).toBe("generated");
+      expect(unknown.tokensObserved).toBeGreaterThan(1_500);
+      expect(unknown.tokensObserved).toBeLessThan(30_000);
+      // An agreement that came in over the candidate budget is unavailable, not a disagreement.
+      const expensive = await run({ assessmentInputTokens: 40_000 });
+      expect(expensive).toMatchObject({
+        state: "rejected",
+        rejection: { reasonCode: "freshness_budget_exhausted", rejectorKind: "budget" },
+      });
+    },
+  );
+
+  it(
+    "stops paying a provider that reports no usage after three reviews, and says so (ADR-0604)",
+    { timeout: 180_000 },
+    async () => {
+      const f = await freshnessFixture(5);
+      fixtures.push(f);
+      await f.write("src/flag.ts", "export const flag = 1;\n");
+      await f.write("docs/specs/flag.md", "# Flag\n\nThe flag lives in `src/flag.ts`.\n");
+      await f.commit("add the flag document", "2023-01-02T00:00:00Z");
+      await f.write("src/flag.ts", "export const flag = 2;\n");
+      await f.commit("change the flag");
+      await f.plan({
+        "docs/specs/flag.md": {
+          operation: "no_change_needed",
+          explanation: "The document names the file, not its value.",
+          assessmentUsage: "omit",
+        },
+      });
+      const reviews = async () =>
+        (await f.providerCalls()).filter(
+          (call) => call.task === "document_freshness_assessment_review",
+        ).length;
+      const start = Date.now();
+      await f.cycle(new Date(start));
+      for (let minute = 1; minute <= 3; minute++) await f.cycle(new Date(start + minute * 60_000));
+      expect(await reviews()).toBe(3);
+      // The fourth cycle pays nothing: the provider's reviews are paused.
+      await f.cycle(new Date(start + 4 * 60_000));
+      expect(await reviews()).toBe(3);
+      const sources = await documentFreshnessAttentionSources(f.root, new Date(start + 5 * 60_000));
+      expect(sources.usageUnavailable).toMatchObject({ provider: "claude", count: 3 });
+    },
+  );
+
+  it(
+    "keeps a usage pause across full cycles, and returns to unchanged once it ends (ADR-0604)",
+    { timeout: 120_000 },
+    async () => {
+      const f = await freshnessFixture(5);
+      fixtures.push(f);
+      await f.write("src/stable.ts", "export const stable = true;\n");
+      await f.write("docs/specs/stable.md", "# Stable\n\nThe flag lives in `src/stable.ts`.\n");
+      await f.commit("add a stable document", "2023-01-02T00:00:00Z");
+      await f.plan({});
+      const start = Date.now();
+      await f.cycle(new Date(start));
+      const until = new Date(start + 24 * 60 * 60_000).toISOString();
+      const pause = { provider: "claude", count: 3, since: new Date(start).toISOString(), until };
+      await writeFreshnessCycleState(f.root, {
+        ...(await readFreshnessCycleState(f.root)),
+        usageUnavailable: pause,
+      });
+      // A full cycle over new findings keeps the pause it did not record.
+      await f.write("v3/scripts/run.sh", "echo run\n");
+      await f.commit("unrelated script edit");
+      expect(await f.cycle(new Date(start + 60_000))).toMatchObject({ status: "completed" });
+      expect((await readFreshnessCycleState(f.root)).usageUnavailable).toEqual(pause);
+      expect(await f.cycle(new Date(start + 120_000))).toEqual({ status: "unchanged" });
+      // The end of the pause reopens the stage once; after that nothing is due again.
+      const after = Date.parse(until) + 60_000;
+      expect(await f.cycle(new Date(after))).not.toEqual({ status: "unchanged" });
+      expect((await readFreshnessCycleState(f.root)).usageUnavailable).toEqual({
+        ...pause,
+        until: null,
+      });
+      expect(await f.cycle(new Date(after + 60_000))).toEqual({ status: "unchanged" });
+      expect(await f.providerCalls()).toEqual([]);
     },
   );
 

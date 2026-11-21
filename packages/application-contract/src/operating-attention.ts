@@ -143,6 +143,7 @@ export interface DocumentFreshnessBlockedAttentionItemV1 extends OperatingAttent
   state: "lervo_debt";
   reasonCode:
     | "zero_success_window"
+    | "usage_unavailable"
     | "cross_check_disagreement_repeated"
     | "freshness_evidence_undetermined"
     | "budget_exceeded";

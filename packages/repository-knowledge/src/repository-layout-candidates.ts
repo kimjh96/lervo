@@ -10,6 +10,7 @@ import {
 import { classifyFlatDecision } from "./decision-layout.js";
 import { repositoryDocumentationRoot, structuralMigrationCandidate } from "./document-layout.js";
 import { loadDocumentRouteClassifications } from "./document-route-classification-store.js";
+import { loadDocumentRouteClassificationViolations } from "./document-route-classification-violations.js";
 import { readObservedSourceText } from "./scanner-file-source.js";
 import type {
   DeferredDocumentRoute,
@@ -184,6 +185,9 @@ export async function classifyRepositoryLayoutCandidates(input: {
   });
   const evidence: DocumentRouteEvidence = {
     classifications: await loadDocumentRouteClassifications(root),
+    classificationViolations: new Set(
+      (await loadDocumentRouteClassificationViolations(root)).keys(),
+    ),
     applicationContent: await observeApplicationContent({
       sources: scan.sources,
       readObservedText: (source) => readObservedSourceText(root, source),
@@ -265,10 +269,14 @@ export async function classifyRepositoryLayoutCandidates(input: {
           ? "destination_conflict"
           : item.reason === "semantic_classification_uncertain"
             ? "route_metadata"
-            : // ADR-0561: the resident classifies and moves a document whatever the roots.
-              input.documentRouteContext?.providerAvailable
-              ? "background_classification"
-              : "provider_unavailable",
+            : // ADR-0604: a broken classifier answer stays visible as attention while it retries.
+              item.reason === "semantic_classification_pending" &&
+                evidence.classificationViolations?.has(item.classificationId) === true
+              ? "classification_invalid"
+              : // ADR-0561: the resident classifies and moves a document whatever the roots.
+                input.documentRouteContext?.providerAvailable
+                ? "background_classification"
+                : "provider_unavailable",
       workspacePackage: owningWorkspacePackage(item.path, packages),
     })),
     deferredDocumentCount: deferred.length,

@@ -36,7 +36,9 @@ export * from "./document-layout-enforcement.js";
 export * from "./document-layout.js";
 export type { ApplicationContentEvidence } from "./application-content-evidence.js";
 export * from "./document-route-classification-contract.js";
+export * from "./review-references.js";
 export * from "./document-route-classification-store.js";
+export * from "./document-route-classification-violations.js";
 export { documentRouteDeferralResolution } from "./document-route-resolution.js";
 export type {
   DocumentRouteDeferralResolution,
@@ -159,9 +161,10 @@ export { documentFreshnessWritingContract } from "./document-freshness-checks.js
 export { documentFreshnessSelectedOutput } from "./document-freshness-output.js";
 export {
   documentFreshnessGenerationInstruction,
-  documentFreshnessResponseSchema,
-  parseDocumentFreshnessProposal,
+  documentFreshnessResponseContract,
+  type DocumentFreshnessEvidenceCitation,
   type DocumentFreshnessProposal,
+  type DocumentFreshnessResponseContract,
 } from "./document-freshness-response.js";
 export {
   documentFreshnessAutoApplicableHunks,
@@ -175,11 +178,11 @@ export {
 export {
   buildDocumentFreshnessCrossCheckInput,
   documentFreshnessCandidateNeedsCrossCheck,
+  documentFreshnessCrossCheckContract,
   documentFreshnessCrossCheckInstruction,
-  documentFreshnessCrossCheckResponseSchema,
-  parseDocumentFreshnessCrossCheckResponse,
   pendingDocumentFreshnessCrossCheck,
   settleDocumentFreshnessCrossCheck,
+  type DocumentFreshnessCrossCheckContract,
   type DocumentFreshnessCrossCheckInputV1,
 } from "./document-freshness-cross-check.js";
 export { buildDocumentFreshnessArchiveCrossCheckInput } from "./document-freshness-archive-cross-check.js";
@@ -204,6 +207,7 @@ export { repositorySourceKindForPath } from "./repository-source-classification.
 export { archiveScopes } from "./historical-documents.js";
 export * from "./repository-change-source.js";
 export * from "./repository-knowledge-worker.js";
+export * from "./repository-knowledge-job-admission.js";
 export * from "./repository-layout-migration.js";
 export type { RepositoryLayoutCapacityFinding } from "./repository-layout-capacity.js";
 export * from "./repository-layout-revert.js";
@@ -269,3 +273,14 @@ export {
   DOCUMENT_LIFECYCLE_RECORD_PATH,
   readDocumentLifecycleRecord,
 } from "./document-lifecycle-record.js";
+
+/** ADR-0604: the one way to build a provider output schema, for packages without @lervo/schemas. */
+export {
+  assertProviderOutputSchemaForSource,
+  assertProviderPromptAsksNoHashCopy,
+  providerOutputSchema,
+  providerReferenceEnum,
+  providerWireSchema,
+  type ProviderJsonRequest,
+  type ProviderOutputSchema,
+} from "@lervo/schemas";

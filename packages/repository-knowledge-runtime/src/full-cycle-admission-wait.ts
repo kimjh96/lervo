@@ -22,7 +22,8 @@ export const PRIORITY_ADVANCE_MILLISECONDS = 365 * 24 * 60 * 60_000;
  * ADR-0602: waits for the first signal that can change an attempt's answer: a wake of this
  * waiter's presence (a release or a departure), the holder's or the waiter ahead's exit, the
  * holder's exact lease expiry, or abort. Only when an earlier release is in the way, the attempt
- * met lock contention, or no presence is held does it fall back to a bounded retry delay.
+ * met lock contention, or no presence is held does it fall back to a bounded retry delay, and a
+ * known holder's lease expiry still bounds that wait. Resolves whether it used the retry delay.
  */
 function nextSignal(input: {
   attempt: AdmissionAttempt | null;
@@ -30,23 +31,31 @@ function nextSignal(input: {
   retryMilliseconds: number;
   signal: AbortSignal;
   onIssue: (issue: string | null) => void;
-}): Promise<void> {
+}): Promise<"retry" | "signal"> {
   return new Promise((resolveSignal) => {
     const cancels: (() => void)[] = [];
     let done = false;
+    let fellBack = false;
     const finish = () => {
       if (done) return;
       done = true;
       for (const cancel of cancels) cancel();
       input.signal.removeEventListener("abort", finish);
-      resolveSignal();
+      resolveSignal(fellBack ? "retry" : "signal");
     };
     input.signal.addEventListener("abort", finish, { once: true });
     if (input.signal.aborted) return finish();
     void input.woken?.then(finish);
     const { attempt } = input;
     if (attempt === null || attempt.legacy || input.woken === null) {
-      const timer = setTimeout(finish, input.retryMilliseconds * (0.75 + Math.random() / 2));
+      fellBack = true;
+      const delay = input.retryMilliseconds * (0.75 + Math.random() / 2);
+      // A known holder's lease ends the wait at its expiry even on this path.
+      const expiry =
+        attempt?.holder === null || attempt?.holder === undefined
+          ? Infinity
+          : Math.max(0, attempt.holder.expiresAt - Date.now()) + 1;
+      const timer = setTimeout(finish, Math.min(delay, expiry));
       cancels.push(() => clearTimeout(timer));
       return;
     }
@@ -77,6 +86,17 @@ export function wakeSequence(): { wake(): void; next(): Promise<void> } {
   };
 }
 
+/**
+ * The holder an attempt saw: its nonce, null when the slot is free, or the previous one when the
+ * attempt met lock contention, which says nothing about the holder.
+ */
+export function observedHolder(
+  attempt: AdmissionAttempt | null,
+  previous: string | null,
+): string | null {
+  return attempt === null ? previous : (attempt.holder?.nonce ?? null);
+}
+
 /** Waits until this waiter is admitted and returns the admission time. */
 export async function waitForAdmission(input: {
   directory: string;
@@ -94,6 +114,7 @@ export async function waitForAdmission(input: {
 }): Promise<number> {
   const connection: { db: DatabaseSync | null } = { db: null };
   let retry = input.pollMilliseconds;
+  let holderNonce: string | null = null;
   let wokenHolder: string | null = null;
   try {
     for (let waited = false; ; waited = true) {
@@ -122,14 +143,20 @@ export async function waitForAdmission(input: {
         wokenHolder = holder;
         await wakeProcessPresence(holder);
       }
-      await nextSignal({
+      // A new holder starts the retry over; only a wait that fell back to it grows it.
+      const nonce = observedHolder(attempt, holderNonce);
+      if (nonce !== holderNonce) {
+        holderNonce = nonce;
+        retry = input.pollMilliseconds;
+      }
+      const signalled = await nextSignal({
         attempt,
         woken,
         retryMilliseconds: retry,
         signal: input.signal,
         onIssue: input.onIssue ?? (() => undefined),
       });
-      retry = nextAdmissionPoll(retry, input.pollMilliseconds);
+      if (signalled === "retry") retry = nextAdmissionPoll(retry, input.pollMilliseconds);
     }
   } finally {
     connection.db?.close();

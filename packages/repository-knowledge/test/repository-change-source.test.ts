@@ -64,7 +64,7 @@ it("records one change event and one knowledge job in a single transaction", asy
   const store = await openStore();
   try {
     const result = store.transact((transaction) =>
-      appendRepositoryChange(transaction, draft, planned),
+      appendRepositoryChange(transaction, draft, planned, { admitted: true }),
     );
     expect(result).toEqual({ eventId: draft.eventId, enqueued: true });
     expect(store.get(draft.eventId)?.type).toBe("repository.change.completed");
@@ -73,9 +73,31 @@ it("records one change event and one knowledge job in a single transaction", asy
     );
     // A replay of the same unit is idempotent and never creates a second job.
     expect(
-      store.transact((transaction) => appendRepositoryChange(transaction, draft, planned)),
+      store.transact((transaction) =>
+        appendRepositoryChange(transaction, draft, planned, { admitted: true }),
+      ),
     ).toEqual({ eventId: draft.eventId, enqueued: false });
     expect(store.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION)).toBe(1);
+  } finally {
+    store.close();
+  }
+});
+
+it("records the change but no job on a host whose convergence another host owns (ADR-0605)", async () => {
+  const planned = plan({ "docs/a.md": hash("9") })!;
+  const store = await openStore();
+  try {
+    const result = store.transact((transaction) =>
+      appendRepositoryChange(transaction, draft, planned, {
+        admitted: false,
+        reason: "convergence_owner_elsewhere",
+      }),
+    );
+    // The canonical event is recorded; no job waits for a worker this host never runs.
+    expect(result).toEqual({ eventId: draft.eventId, enqueued: false });
+    expect(store.get(draft.eventId)?.type).toBe("repository.change.completed");
+    expect(store.getOutbox(draft.eventId, REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION)).toBeNull();
+    expect(store.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION)).toBe(0);
   } finally {
     store.close();
   }
@@ -95,7 +117,9 @@ it("publishes only the count beyond the path bound while the manifest keeps ever
   expect(JSON.parse(planned.manifestContent).paths).toHaveLength(72);
   const store = await openStore();
   try {
-    store.transact((transaction) => appendRepositoryChange(transaction, draft, planned));
+    store.transact((transaction) =>
+      appendRepositoryChange(transaction, draft, planned, { admitted: true }),
+    );
     expect(store.get(draft.eventId)?.payload.changedPathCount).toBe(72);
   } finally {
     store.close();

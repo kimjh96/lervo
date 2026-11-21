@@ -11,12 +11,13 @@ import type {
   ReviewSourceValue,
   RepositoryWorkReviewSnapshot,
 } from "./repository-work-review-snapshot.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const MAXIMUM_PROVIDER_INPUT_BYTES = 256 * 1024;
 const MAXIMUM_CONTEXT_DOCUMENTS = 8;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 
-const responseSchema = {
+const responseSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -40,7 +41,7 @@ const responseSchema = {
     },
   },
   required: ["schemaVersion", "classification", "rationale", "evidencePaths", "targetPaths"],
-} as const;
+} as const);
 
 const systemPrompt = [
   "You are an isolated, no-tool repository knowledge reviewer.",

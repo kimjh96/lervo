@@ -39,6 +39,7 @@ import {
   validOwnerHandoffAcceptanceDetails,
 } from "@lervo/work-controller";
 import { nativeAllocation } from "./supervision-native-allocation.js";
+import { bindOwnerDecisionReferences } from "./supervision-reasoning-references.js";
 import type { NodeRuntimeReadinessConfiguration } from "./supervision-runtime-configuration.js";
 import type { canonicalOwnerReasoningFacts } from "./supervision-reasoning-context.js";
 
@@ -81,12 +82,15 @@ export async function materializeNativeOwnerProposal(
     | SupervisedAssignmentRecovery
     | SupervisedResponsibilityClaimV1;
   let fields: Partial<OperatingActionPlanV1>;
+  // ADR-0608: handoff and evidence references become exact hashes; an unknown one is refused.
+  const bound = bindOwnerDecisionReferences(decision.operation, details, facts);
   if (decision.operation === "escalate" || decision.operation === "request_team_support") {
-    const selected = classifyOwnerEscalationDetails(details);
+    const selected =
+      bound === null ? { kind: "invalid" as const } : classifyOwnerEscalationDetails(bound);
     if (decision.operation === "escalate" && selected.kind === "attention") {
       ({ effect, fields } = nativeOwnerAttention(base, selected.reasonCode, rationaleArtifactHash));
-    } else if (selected.kind === "handoff") {
-      const handoff = await nativeScopedHandoff(input, details, rationaleArtifactHash);
+    } else if (selected.kind === "handoff" && bound !== null) {
+      const handoff = await nativeScopedHandoff(input, bound, rationaleArtifactHash);
       effect = handoff.effect;
       fields = handoff.fields;
     } else {
@@ -99,8 +103,8 @@ export async function materializeNativeOwnerProposal(
       }));
     }
   } else if (decision.operation === "accept_team_support") {
-    if (validOwnerHandoffAcceptanceDetails(details)) {
-      const handoff = await nativeScopedHandoff(input, details, rationaleArtifactHash);
+    if (bound !== null && validOwnerHandoffAcceptanceDetails(bound)) {
+      const handoff = await nativeScopedHandoff(input, bound, rationaleArtifactHash);
       effect = handoff.effect;
       fields = handoff.fields;
     } else {

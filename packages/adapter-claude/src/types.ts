@@ -5,6 +5,7 @@ import type {
   AdapterSession,
   AdapterTurn,
 } from "@lervo/schemas";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export type ClaudePermissionMode = "default" | "plan" | "dontAsk";
 export type ClaudeReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
@@ -63,7 +64,8 @@ export interface ClaudeAdapterOptions {
   permissionMode?: ClaudePermissionMode;
   requestTimeoutMs?: number;
   tools?: string[];
-  structuredOutputSchema?: Record<string, unknown>;
+  /** ADR-0608: only a schema `providerOutputSchema` checked. */
+  structuredOutputSchema?: ProviderOutputSchema;
   reasoningEffort?: ClaudeReasoningEffort;
   clientFactory?: ClaudeAgentClientFactory;
   sdkStartup?: typeof startup;

@@ -34,44 +34,36 @@ export function reviewedRuntimeDraft(target: {
  */
 export const canonicalFixtureReview: typeof reviewKnowledgeJson = async (input) => {
   canonicalProviderCalls.push({ task: input.task, untrustedSourceData: input.untrustedSourceData });
+  // It answers only from the view and schema a real provider receives (ADR-0604).
   const data = input.untrustedSourceData as {
-    sources: { path: string; contentHash: string; content?: string }[];
-    context: { path: string; contentHash: string; content: string }[];
-    assessmentHash?: string;
-    sourceHashes?: string[];
-    draftHashes?: string[];
+    sources: { source: string; path: string; content?: string }[];
+    context: { document: string; path: string; content: string }[];
   };
   let value: unknown;
   if (input.task === "canonical_baseline_assessment") {
     const decisions = data.sources.map((source) => ({
-      path: source.path,
-      contentHash: source.contentHash,
+      source: source.source,
+      sourcePath: source.path,
       disposition: "no_change",
       rationale: NO_CHANGE,
       canonicalReferences: [],
     }));
-    const source = decisions.find((decision) => decision.path === CANONICAL_SOURCE);
+    const source = decisions.find((decision) => decision.sourcePath === CANONICAL_SOURCE);
     const target =
       data.sources.find((item) => item.path === CANONICAL_TARGET && item.content !== undefined) ??
       data.context.find((item) => item.path === CANONICAL_TARGET);
     if (source === undefined || target === undefined) value = { decisions, drafts: [] };
     else {
       source.disposition = "candidate";
-      value = {
-        decisions,
-        drafts: [
-          reviewedRuntimeDraft(target as { path: string; content: string; contentHash: string }),
-        ],
-      };
+      const { path, content } = reviewedRuntimeDraft({
+        path: target.path,
+        content: target.content!,
+        contentHash: "",
+      });
+      value = { decisions, drafts: [{ path, content }] };
     }
   } else if (input.task === "independent_canonical_review")
-    value = {
-      assessmentHash: data.assessmentHash,
-      decision: "approve",
-      rationale: APPROVAL,
-      sourceHashes: data.sourceHashes,
-      draftHashes: data.draftHashes,
-    };
+    value = { decision: "approve", rationale: APPROVAL };
   else throw new Error(`Unexpected fixture provider task ${input.task}.`);
   return {
     value,

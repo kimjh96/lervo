@@ -9,6 +9,7 @@ import {
   createRepositoryLayoutMigrationPlan,
   DOCUMENT_ROUTE_CLASSIFICATION_TASK,
   loadDocumentRouteClassifications,
+  loadDocumentRouteClassificationViolations,
   type DocumentRouteClassificationRequest,
   type KnowledgeConvergenceInput,
 } from "@lervo/repository-knowledge";
@@ -20,7 +21,13 @@ import { captureConvergenceSources } from "../src/source-capture.js";
 import { lyingSourceObservation } from "./lying-source-observation.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
 
-const providerRequests: Array<{ task: string; request: DocumentRouteClassificationRequest }> = [];
+/** The view the classifier sees (ADR-0604): documents by reference, never by content hash. */
+type RouteView = Omit<DocumentRouteClassificationRequest, "documents" | "routeSetDigest"> & {
+  documents: Array<{ document: string; path: string }>;
+};
+const providerRequests: Array<{ task: string; request: RouteView }> = [];
+/** Makes the classifier answer with another document's path, as a garbled answer would. */
+let mispaired = false;
 /** Runs while the provider answers, as another writer would. */
 let duringReview: (() => void) | null = null;
 const assignedPaths: string[][] = [];
@@ -48,37 +55,55 @@ vi.mock("../src/workforce.js", () => ({
 }));
 
 vi.mock("../src/provider-call.js", () => ({
-  reviewKnowledgeJson: async (input: { task: string; untrustedSourceData: unknown }) => {
-    const request = input.untrustedSourceData as DocumentRouteClassificationRequest;
+  reviewKnowledgeJson: async (input: {
+    task: string;
+    untrustedSourceData: unknown;
+    accept: (value: unknown) => unknown;
+  }) => {
+    const request = input.untrustedSourceData as RouteView;
     providerRequests.push({ task: input.task, request });
     duringReview?.();
+    const value = {
+      classifications: request.documents.map((document, index) => ({
+        document: document.document,
+        sourcePath: mispaired
+          ? request.documents[(index + 1) % request.documents.length]!.path
+          : document.path,
+        outcome:
+          document.path.endsWith("runbook.md") || document.path === "TRACE.md"
+            ? "route"
+            : "uncertain",
+        routeId:
+          document.path.endsWith("runbook.md") || document.path === "TRACE.md"
+            ? "operations"
+            : null,
+        roleId: null,
+        rationale: "The runbook explains how operators recover the running service.",
+      })),
+    };
+    // As the real call does: an answer the stage's contract rejects is never kept as accepted.
+    let accepted = true;
+    try {
+      input.accept(value);
+    } catch {
+      accepted = false;
+    }
+    acceptance.push(accepted);
     return {
-      value: {
-        classifications: request.documents.map((document) => ({
-          path: document.path,
-          contentHash: document.contentHash,
-          outcome:
-            document.path.endsWith("runbook.md") || document.path === "TRACE.md"
-              ? "route"
-              : "uncertain",
-          routeId:
-            document.path.endsWith("runbook.md") || document.path === "TRACE.md"
-              ? "operations"
-              : null,
-          roleId: null,
-          rationale: "The runbook explains how operators recover the running service.",
-        })),
-      },
+      value,
       usage: null,
       admissionObservationHash: "sha256:" + "a".repeat(64),
       observationArtifactHash: "sha256:" + "b".repeat(64),
     };
   },
 }));
+const acceptance: boolean[] = [];
 
 const roots: string[] = [];
 afterEach(async () => {
   providerRequests.length = 0;
+  acceptance.length = 0;
+  mispaired = false;
   assignedPaths.length = 0;
   duringReview = null;
   await Promise.all(
@@ -194,4 +219,65 @@ it("refuses to record classifications when another writer edits during the revie
     classifyDeferredDocumentRoutes(context, state, () => undefined, plan),
   ).rejects.toMatchObject({ code: "source_bytes_changed" });
   expect([...(await loadDocumentRouteClassifications(root)).values()]).toEqual([]);
+});
+
+it("records nothing for a garbled answer and never keeps it as a verdict (ADR-0604)", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-route-classification-"));
+  roots.push(root);
+  await applyInitPlan(await createInitPlan({ root, projectId: "prj_route_classification" }));
+  await mkdir(resolve(root, "notes"), { recursive: true });
+  await writeFile(resolve(root, "notes/runbook.md"), "# Recovery runbook\n\nRestart steps.\n");
+  await writeFile(resolve(root, "notes/zebra.md"), "# Purple zebra quorum\n\nNotes.\n");
+  const context = {
+    storage: { paths: { repositoryRoot: root } },
+    provider: "codex",
+    assertSourceExact: () => {},
+    assertSourceCurrent: () => {},
+  } as unknown as ConvergenceRuntimeContext;
+  const state = {
+    obligationId: "kobl_fixture",
+    baseline: { projectId: "prj_route_classification", delegationHash: null },
+  } as unknown as KnowledgeConvergenceInput;
+  // Each answer cites a valid document reference with another document's path.
+  mispaired = true;
+  const plan = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  expect(await classifyDeferredDocumentRoutes(context, state, () => undefined, plan)).toBe(0);
+  expect(acceptance).toEqual([false]);
+  expect(JSON.stringify(providerRequests[0]!.request)).not.toContain("sha256:");
+  expect([...(await loadDocumentRouteClassifications(root)).values()]).toEqual([]);
+  const after = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  expect(after.deferredDocuments.map((item) => item.reason)).toEqual([
+    "semantic_classification_pending",
+    "semantic_classification_pending",
+  ]);
+  // ADR-0604: the violation is counted, so the pending documents read as named attention.
+  expect(after.deferredDocuments.map((item) => item.resolution)).toEqual([
+    "classification_invalid",
+    "classification_invalid",
+  ]);
+  const violations = [...(await loadDocumentRouteClassificationViolations(root)).values()];
+  expect(violations.map((item) => [item.path, item.count, item.code])).toEqual(
+    expect.arrayContaining([
+      ["notes/runbook.md", 1, "knowledge_semantic_review_invalid"],
+      ["notes/zebra.md", 1, "knowledge_semantic_review_invalid"],
+    ]),
+  );
+  // A repeat counts again; a later valid answer classifies the documents and ends the attention.
+  expect(
+    await classifyDeferredDocumentRoutes(
+      context,
+      { ...state, obligationId: "kobl_second" } as KnowledgeConvergenceInput,
+      () => undefined,
+      after,
+    ),
+  ).toBe(0);
+  expect(
+    [...(await loadDocumentRouteClassificationViolations(root)).values()].map((item) => item.count),
+  ).toEqual([2, 2]);
+  mispaired = false;
+  expect(await classifyDeferredDocumentRoutes(context, state, () => undefined, after)).toBe(2);
+  const classified = await createRepositoryLayoutMigrationPlan({ repositoryRoot: root });
+  expect(classified.deferredDocuments.map((item) => item.resolution)).not.toContain(
+    "classification_invalid",
+  );
 });

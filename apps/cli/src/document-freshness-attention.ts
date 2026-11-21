@@ -23,6 +23,8 @@ export interface DocumentFreshnessAttentionInput {
   applied: readonly DocumentFreshnessCandidateV1[];
   zeroSuccessHold: { since: string; until: string; attempts: number } | null;
   debt: readonly DocumentFreshnessDebt[];
+  /** ADR-0604: absent in older inputs; a provider whose reviews report no usage. */
+  usageUnavailable?: { provider: string; count: number; since: string; until: string } | null;
 }
 
 function changeClasses(
@@ -110,6 +112,29 @@ function zeroSuccessItem(hold: {
   };
 }
 
+function usageUnavailableItem(pause: {
+  provider: string;
+  count: number;
+  since: string;
+  until: string;
+}): DocumentFreshnessBlockedAttentionItemV1 {
+  return {
+    schemaVersion: 1,
+    kind: "document_freshness_blocked",
+    itemId: `document_freshness_blocked_usage_unavailable_${pause.provider}`,
+    state: "lervo_debt",
+    reasonCode: "usage_unavailable",
+    documentPath: null,
+    attempts: pause.count,
+    since: pause.since,
+    retryAt: pause.until,
+    actionOwner: "host resident",
+    requiresUserAction: false,
+    blocking: false,
+    instruction: `Lervo debt: the ${pause.provider} provider reported no token usage for ${pause.count} no-change freshness reviews in a row, so their answers cannot be checked against the budget and Lervo stops paying for them until ${pause.until}. Update the provider CLI, or select a provider that reports usage.`,
+  };
+}
+
 const debtWords: Record<DocumentFreshnessDebt["reason"], string> = {
   cross_check_disagreement_repeated:
     "the independent cross-check disagreed with the candidate and its regeneration",
@@ -144,6 +169,9 @@ export function documentFreshnessAttentionItems(
     ...input.held.map(heldItem),
     ...input.applied.map(appliedItem),
     ...(input.zeroSuccessHold === null ? [] : [zeroSuccessItem(input.zeroSuccessHold)]),
+    ...(input.usageUnavailable === null || input.usageUnavailable === undefined
+      ? []
+      : [usageUnavailableItem(input.usageUnavailable)]),
     ...input.debt.map(debtItem),
   ];
 }

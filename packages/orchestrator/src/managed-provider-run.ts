@@ -1,4 +1,5 @@
 import {
+  assertProviderTurnAsksNoHashCopy,
   type AdapterCapabilityActivationReceipt,
   type AdapterNormalizedEvent,
   type AdapterSession,
@@ -494,8 +495,14 @@ export class ManagedProviderRunCoordinator {
                   "Change only the repository-relative path above in this turn.",
                   "Submit its complete change through exactly one provider file-change request; a second request fails the run.",
                 ].join("\n"),
+          ...untrustedTurnInstructions(input.untrustedInstructions),
           requestedAt: this.time(),
         };
+        // ADR-0608: checked here for every adapter, and again by each provider adapter.
+        assertProviderTurnAsksNoHashCopy(
+          turnRequest.instructions,
+          turnRequest.untrustedInstructions,
+        );
         let acceptedTurn: AdapterTurn | undefined;
         const returnedTurn = await this.options.adapter.startTurn(
           state.session,
@@ -851,4 +858,10 @@ export class ManagedProviderRunCoordinator {
   private time(): string {
     return this.date().toISOString();
   }
+}
+
+/** ADR-0608: the turn request field naming the instruction parts Lervo did not write. */
+function untrustedTurnInstructions(parts: readonly string[] | undefined) {
+  const untrusted = [...new Set(parts ?? [])].filter((part) => part.length > 0);
+  return untrusted.length === 0 ? {} : { untrustedInstructions: untrusted };
 }

@@ -24,6 +24,11 @@ import {
   normalizationRejections,
   recordNormalizationLinkRejections,
 } from "./normalization-rejection.js";
+import {
+  normalizationPlanStale,
+  settledStaleNormalization,
+  staleNormalizationCandidate,
+} from "./normalization-stale.js";
 
 export async function applyNormalizationBatch(
   context: ConvergenceRuntimeContext,
@@ -44,6 +49,7 @@ export async function applyNormalizationBatch(
       stageData: {
         normalizationCursor: batch?.paths.at(-1) ?? "",
         ...(batch === null ? {} : { normalizationReview: null }),
+        ...settledStaleNormalization,
       },
       proof: { status: "no_approved_effect" },
     });
@@ -53,11 +59,17 @@ export async function applyNormalizationBatch(
     repositoryRoot: root,
     candidateId: id,
   });
-  const reviewedPlan = await createDocumentNormalizationPlan({
-    repositoryRoot: root,
-    candidate,
-    now: new Date(),
-  });
+  let reviewedPlan;
+  try {
+    reviewedPlan = await createDocumentNormalizationPlan({
+      repositoryRoot: root,
+      candidate,
+      now: new Date(),
+    });
+  } catch (error) {
+    if (!normalizationPlanStale(error)) throw error;
+    return staleNormalizationCandidate(context, state, candidate.candidateId);
+  }
   const writePaths = [
     ...new Set(
       reviewedPlan.operations
@@ -110,11 +122,18 @@ export async function applyNormalizationBatch(
         throw new KnowledgeConvergenceRuntimeError("knowledge_semantic_review_invalid");
       await authority.assertCurrent();
       context.assertSourceExact(state);
-      const plan = await createDocumentNormalizationPlan({
-        repositoryRoot: root,
-        candidate,
-        now: new Date(),
-      });
+      let plan;
+      try {
+        plan = await createDocumentNormalizationPlan({
+          repositoryRoot: root,
+          candidate,
+          now: new Date(),
+        });
+      } catch (error) {
+        // ADR-0604: the lifecycle can also move between the first plan and this exact check.
+        if (!normalizationPlanStale(error)) throw error;
+        return staleNormalizationCandidate(context, state, candidate.candidateId);
+      }
       const beforeLint = await lintRepositoryKnowledge(root);
       let verification: string[] = [];
       let receipt: Awaited<ReturnType<typeof applyDocumentNormalizationPlan>>;
@@ -183,6 +202,7 @@ export async function applyNormalizationBatch(
             normalizationAcceptedCandidateId: null,
             normalizationReview: null,
             normalizationRejected: null,
+            ...settledStaleNormalization,
             normalizationRejections: recordNormalizationLinkRejections(
               normalizationRejections(state),
               candidate,
@@ -208,6 +228,7 @@ export async function applyNormalizationBatch(
           normalizationAcceptedCandidateId: null,
           normalizationReview: null,
           canonicalBatch: null,
+          ...settledStaleNormalization,
         },
         approvedEffects: convergenceOperationEffects(plan.operations),
         proof: { receipt, verification, review },

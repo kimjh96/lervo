@@ -1,6 +1,9 @@
 import { readConversationControlMessage } from "@lervo/conversation-control";
 import type { ConversationContextTurn } from "@lervo/conversation-responder";
-import { enqueueInstructionCapture } from "@lervo/repository-knowledge-runtime";
+import {
+  enqueueInstructionCapture,
+  requestKnowledgeResidentCycle,
+} from "@lervo/repository-knowledge-runtime";
 import type { ConversationInboundEvent } from "@lervo/schemas";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
@@ -44,6 +47,8 @@ export function createConversationOwnerTurnCapture(options: {
           },
           now: (options.now ?? (() => new Date()))(),
         });
+        // ADR-0606: the queue appends no event, so the resident is asked to look at it.
+        await requestKnowledgeResidentCycle(options.repositoryRoot);
       } catch {
         // A failed queue write loses only this capture; the conversation turn continues.
       }

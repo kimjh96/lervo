@@ -933,6 +933,18 @@ function safeRelativePath(path: string): boolean {
   );
 }
 
+/**
+ * ADR-0604: the normalization lifecycle moved since the candidate was generated, such as after a
+ * rewind replayed an earlier generation. The candidate is not invalid, only out of date: the
+ * caller generates a new one against the current lifecycle.
+ */
+function staleCandidate(message: string): never {
+  throw new RepositoryKnowledgeError(
+    "knowledge_plan_stale",
+    `The document normalization candidate is stale: ${message}`,
+  );
+}
+
 function invalidCandidate(message: string): never {
   throw new RepositoryKnowledgeError(
     "knowledge_compile_failed",
@@ -1197,8 +1209,18 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     if (
       error instanceof RepositoryKnowledgeError &&
       error.code === "normalization_selection_invalid"
-    )
+    ) {
+      // ADR-0604: a selected source that is still an eligible document but no longer pending was
+      // normalized or rescoped after generation, so the candidate is stale, not invalid.
+      const eligiblePaths = new Set(eligible.map((item) => item.source.path));
+      const requested = input.candidate.items.map((item) => item.sourcePath);
+      if (
+        new Set(requested).size === requested.length &&
+        requested.every((path) => eligiblePaths.has(path))
+      )
+        staleCandidate("a selected source is no longer pending in the current lifecycle");
       invalidCandidate("the explicit source selection is outside the current lifecycle scope");
+    }
     throw error;
   }
   const expected = pending.filter((item) => selectedPaths.has(item.source.path));
@@ -1208,7 +1230,7 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     candidatePaths.size !== expected.length ||
     expected.some((item) => !candidatePaths.has(item.source.path))
   )
-    invalidCandidate(
+    staleCandidate(
       "the claimed complete source set does not match the current normalization lifecycle",
     );
   const expectedWorkset = documentNormalizationWorksetBinding({
@@ -1231,7 +1253,7 @@ async function validateDocumentNormalizationCandidateAgainstScan(input: {
     input.scan.snapshotId === input.candidate.sourceSnapshotId &&
     canonicalJson(expectedWorkset) !== canonicalJson(input.candidate.workset)
   )
-    invalidCandidate("the workset does not match the current normalization lifecycle");
+    staleCandidate("the workset does not match the current normalization lifecycle");
 
   const hasRootAgentInstructions = input.scan.sources.some(
     (source) => source.path === "AGENTS.md" && source.status === "included",

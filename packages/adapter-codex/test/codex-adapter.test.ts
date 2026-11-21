@@ -1,3 +1,4 @@
+import { providerOutputSchema, providerReferenceEnum } from "@lervo/schemas";
 import { createHash } from "node:crypto";
 
 import {
@@ -541,12 +542,12 @@ describe("Codex managed adapter", () => {
 
   it("passes an opt-in structured result schema to the Codex turn boundary", async () => {
     const client = new FakeCodexClient();
-    const outputSchema = {
+    const outputSchema = providerOutputSchema({
       type: "object",
       properties: { evidenceTokens: { type: "array", items: { type: "string" } } },
       required: ["evidenceTokens"],
       additionalProperties: false,
-    };
+    });
     const instance = adapter(client, {
       reasoningEffort: "low",
       structuredOutputSchema: outputSchema,
@@ -565,6 +566,91 @@ describe("Codex managed adapter", () => {
         options: { reasoningEffort: "low", outputSchema },
       },
     });
+  });
+
+  it("starts a turn whose schema offers a marked path and anchor, and sends it unmarked (ADR-0608)", async () => {
+    const client = new FakeCodexClient();
+    const rule = "docs/instructions/generated/rule_5d2a8f0c1e9b7a6d4c3b2a10.md";
+    const anchor =
+      "Pin the tool at 9c41e2f07a33b5d1e8c0a7f2b6d4e9a1c3f5b7d0 first. -> Pin the tool at its release first.";
+    // Rebuilt from JSON, as a schema is after crossing a process boundary; the marks survive.
+    const schema = providerOutputSchema(
+      JSON.parse(
+        JSON.stringify({
+          type: "object",
+          properties: {
+            sourcePath: providerReferenceEnum([rule], "path"),
+            anchor: providerReferenceEnum([anchor], "anchor"),
+          },
+        }),
+      ) as object,
+    );
+    const instance = adapter(client, { structuredOutputSchema: schema });
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    await expect(
+      instance.startTurn(
+        session,
+        { ...data.turnRequest, instructions: `Review ${rule} at ${anchor}.` },
+        () => undefined,
+      ),
+    ).resolves.toMatchObject({ kind: "turn" });
+    const call = client.calls.find((item) => item.method === "startTurn")!.value as {
+      options: { outputSchema: unknown };
+    };
+    expect(JSON.stringify(call.options.outputSchema)).toContain(rule);
+    expect(JSON.stringify(call.options.outputSchema)).not.toContain("x-lervo-ref-kind");
+  });
+
+  it("refuses a turn whose Lervo-written text asks to copy a hash, and only that text (ADR-0608)", async () => {
+    const client = new FakeCodexClient();
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    const owner = "Copy the release commit SHA exactly into the changelog.";
+    await expect(
+      instance.startTurn(
+        session,
+        { ...data.turnRequest, instructions: `${owner}\n\nReport the result.` },
+        () => undefined,
+      ),
+    ).rejects.toThrow(/asks to copy a hash/u);
+    expect(client.calls.some((call) => call.method === "startTurn")).toBe(false);
+    // The same words from the owner are the owner's to ask for, so the turn starts.
+    await expect(
+      instance.startTurn(
+        session,
+        {
+          ...data.turnRequest,
+          instructions: `${owner}\n\nReport the result.`,
+          untrustedInstructions: [owner],
+        },
+        () => undefined,
+      ),
+    ).resolves.toMatchObject({ kind: "turn" });
+  });
+
+  it("refuses a schema that offers this turn's own identifier, before any turn starts (ADR-0608)", async () => {
+    const client = new FakeCodexClient();
+    const instance = adapter(client, {
+      structuredOutputSchema: providerOutputSchema({
+        type: "object",
+        properties: { pick: { enum: ["kco_7f3a9c2e41b8"] } },
+      }),
+    });
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    await expect(
+      instance.startTurn(
+        session,
+        { ...data.turnRequest, instructions: "Settle obligation kco_7f3a9c2e41b8 now." },
+        () => undefined,
+      ),
+    ).rejects.toThrow(/offers an identifier or hash from the source data/u);
+    expect(client.calls.some((call) => call.method === "startTurn")).toBe(false);
   });
 
   it("reports only the capabilities effective for the selected session mode", async () => {

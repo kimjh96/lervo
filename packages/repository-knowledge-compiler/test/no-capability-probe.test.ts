@@ -10,6 +10,7 @@ import {
   CODEX_NO_CAPABILITY_DISABLED_FEATURES,
   providerCliDispatchContext,
 } from "../src/index.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -80,12 +81,12 @@ it("the admitted fallback executes a capability-free background turn", async () 
   expect(
     await runner.resolve({
       responseContract: {
-        schema: {
+        schema: providerOutputSchema({
           type: "object",
           properties: { ok: { type: "boolean" } },
           required: ["ok"],
           additionalProperties: false,
-        },
+        }),
       },
       task: "background_assessment",
     }),
@@ -181,7 +182,11 @@ it.each(["json", "normalization"] as const)(
       call = () => compiler.normalize({ documents: [] } as never, signal);
     } else {
       const runner = await createNoCapabilityProviderJsonRunner(options);
-      call = () => runner.resolve({ responseContract: { schema: { type: "object" } } }, signal);
+      call = () =>
+        runner.resolve(
+          { responseContract: { schema: providerOutputSchema({ type: "object" }) } },
+          signal,
+        );
     }
     expect(onCall).not.toHaveBeenCalled();
     await expect(call()).rejects.toBe(failure);

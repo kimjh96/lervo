@@ -11,6 +11,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { readCurrentWorkstreamState } from "@lervo/repository-knowledge/workstream";
 import { MAXIMUM_CONVERSATION_REPOSITORY_WORK_CHANGED_PATHS } from "@lervo/schemas";
 import { appendRepositoryChange } from "@lervo/repository-knowledge";
+import { readRepositoryKnowledgeJobAdmission } from "@lervo/repository-knowledge-runtime";
 import { collectRunEventsBounded } from "@lervo/storage-contract";
 
 import {
@@ -258,9 +259,12 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
               completedAt: input.completedAt,
             })
           : null;
+      // ADR-0605: only a host that runs knowledge jobs receives one.
+      const admission =
+        change === null ? null : await readRepositoryKnowledgeJobAdmission(input.repositoryRoot);
       storage.events.transact((transaction) => {
         const completion = transaction.append(draft).event;
-        if (change !== null)
+        if (change !== null && admission !== null)
           appendRepositoryChange(
             transaction,
             {
@@ -273,6 +277,7 @@ export async function verifyConversationRepositoryWorkCompletion(input: {
               policyVersion: CONVERSATION_REPOSITORY_WORK_ASYNC_POLICY_VERSION,
             },
             change,
+            admission,
           );
         transaction.append(
           createVerifiedConversationWorkMemoryDraft({

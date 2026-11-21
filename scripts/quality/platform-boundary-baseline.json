@@ -88,7 +88,7 @@
         "apps/node-runtime/src/supervision-discord-request-provenance.ts": { "lines": 12 },
         "apps/node-runtime/src/supervision-native-publication.ts": { "lines": 1 },
         "apps/node-runtime/src/supervision-reasoning-context.ts": { "lines": 3 },
-        "apps/node-runtime/src/supervision-reasoning-run.ts": { "lines": 2 },
+        "apps/node-runtime/src/supervision-reasoning-instructions.ts": { "lines": 2 },
         "apps/node-runtime/src/supervision-request-binding.ts": { "lines": 1 },
         "packages/conversation-platform-sqlite/src/database.ts": { "lines": 1 },
         "packages/conversation-platform/src/types.ts": { "lines": 1 },

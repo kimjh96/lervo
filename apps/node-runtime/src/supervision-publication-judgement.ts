@@ -18,6 +18,7 @@ import {
 import { inspectOwnerReasoning } from "./supervision-reasoning-receipt.js";
 import type { OwnerReasoningContext } from "./supervision-reasoning-context.js";
 import { resultWritingContract } from "./conversation-result-publication.js";
+import { boundResultDetails } from "./supervision-reasoning-references.js";
 
 /** Checks the immutable native model evidence behind a publication permit, including retries. */
 export async function assertNativePublicationJudgement(input: {
@@ -66,8 +67,7 @@ export async function assertNativePublicationJudgement(input: {
   const evaluation = candidate.publicationEvidence.evaluation;
   if (
     decision.operation !== "prepare_publication" ||
-    Object.keys(details).sort().join(",") !== "checks,resultContentHash,writingPolicyId" ||
-    details.resultContentHash !== effect.resultArtifactHash ||
+    !boundResultDetails(details, "checks,writingPolicyId", effect.resultArtifactHash) ||
     details.writingPolicyId !== resultWritingContract.writingPolicyId ||
     context.trigger.nextAction !== "publish_result" ||
     accepted?.completionPlanHash !== effect.completionPlanHash ||

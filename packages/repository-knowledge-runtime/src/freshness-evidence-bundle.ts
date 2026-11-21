@@ -37,7 +37,6 @@ const definitionPattern = (symbol: string) =>
 export interface FreshnessEvidenceBundleV1 {
   schemaVersion: 1;
   dependencyWitness?: DocumentFreshnessDependencyWitness;
-  assessmentDependencyDigest?: string;
   kind: "document_freshness.evidence_bundle";
   document: { path: string; hash: string; text: string };
   reasons: DocumentFreshnessFindingV1["reasons"];

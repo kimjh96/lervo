@@ -47,10 +47,17 @@ export async function crossCheckPlan(input: PlanCrossCheckInput): Promise<PlanCr
     systemPrompt: prepared.systemPrompt,
     timeoutMs: CROSS_CHECK_TIMEOUT_MS,
   });
-  const verdict = lifecyclePlanReviewVerdict(
-    await runner.resolve(prepared.request),
-    prepared.planHash,
-  );
+  const answer = await runner.resolve(prepared.request);
+  let verdict: ReturnType<typeof lifecyclePlanReviewVerdict>;
+  try {
+    verdict = lifecyclePlanReviewVerdict(answer);
+  } catch {
+    // ADR-0604: a malformed answer is no verdict, so it is never read as a disagreement.
+    throw new CommandFailure(
+      "knowledge_cross_check_unavailable",
+      `The independent cross-check (no-capability ${provider} session) returned an answer that breaks the review contract, so nothing was applied. Run the command again, or let the background knowledge resident review and apply the plan.`,
+    );
+  }
   return {
     verdict: verdict.approved ? "agree" : "disagree",
     rationale: verdict.rationale,

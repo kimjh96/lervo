@@ -39,6 +39,8 @@ export type DocumentRouteDeferralReason =
 
 export type DocumentRouteDeferralResolution =
   | "background_classification"
+  /** ADR-0604: a classifier answer for these exact bytes broke its contract; it retries. */
+  | "classification_invalid"
   | "route_metadata"
   | "provider_unavailable"
   | "destination_conflict"
@@ -75,6 +77,8 @@ export type RetainedDocumentPlacement =
 
 export interface DocumentRouteEvidence {
   classifications: ReadonlyMap<string, DocumentRouteClassificationRecord>;
+  /** ADR-0604: classification ids whose classifier answers broke their contract. */
+  classificationViolations?: ReadonlySet<string>;
   applicationContent: ReadonlyMap<string, readonly ApplicationContentEvidence[]>;
 }
 

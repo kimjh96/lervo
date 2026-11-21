@@ -11,8 +11,8 @@ import {
 } from "@lervo/repository-knowledge";
 import {
   freshnessEvidencePathAllowed,
-  freshnessObject,
   freshnessGit,
+  freshnessObjects,
 } from "./freshness-git-evidence.js";
 
 export async function captureFreshnessDependencies(input: {
@@ -32,13 +32,9 @@ export async function captureFreshnessDependencies(input: {
   ].sort();
   if (paths.length > 256 || paths.some((path) => !freshnessEvidencePathAllowed(path))) return null;
   try {
-    const objects = [];
-    for (const path of paths)
-      objects.push({
-        path,
-        objectName:
-          (await freshnessObject(input.root, input.finding.currentRevision, path))?.id ?? null,
-      });
+    // ADR-0606: one Git process per batch of paths, not one per path.
+    const found = await freshnessObjects(input.root, input.finding.currentRevision, paths);
+    const objects = paths.map((path) => ({ path, objectName: found.get(path)?.id ?? null }));
     return {
       schemaVersion: 1,
       policyHash: sha256(canonicalJson(await loadRepositoryKnowledgePolicy(input.root))),
@@ -66,11 +62,13 @@ export async function freshnessDependenciesCurrent(
       witness.evidence.length > 256
     )
       return false;
+    const found = await freshnessObjects(
+      root,
+      "HEAD",
+      witness.objects.map((object) => object.path),
+    );
     for (const object of witness.objects)
-      if (
-        (await freshnessObject(root, "HEAD", object.path))?.id !== (object.objectName ?? undefined)
-      )
-        return false;
+      if ((found.get(object.path)?.id ?? null) !== (object.objectName ?? null)) return false;
     if (
       witness.objects.length > 0 &&
       (await freshnessGit(root, [

@@ -276,3 +276,93 @@ it("projects superseded knowledge commits a checkout could not drop as one atten
     }),
   ).toEqual([]);
 });
+
+it("shows a review, a spent wait, a closed pull request and a base change until acknowledged (ADR-0603)", () => {
+  const head = "a".repeat(40);
+  const since = "2026-11-21T00:00:00.000Z";
+  const publication = {
+    ...failedPublication,
+    status: "open" as const,
+    failure: null,
+    wait: {
+      pullRequestNumber: 6,
+      carried: `sha256:${"d".repeat(64)}`,
+      head,
+      kind: "review" as const,
+      reason: "review_required",
+      attempts: 2,
+      since,
+    },
+    declined: [{ pullRequestNumber: 7, commitCount: 2 }],
+    baseChanged: {
+      pullRequestNumber: 6,
+      mergeCommit: "b".repeat(40),
+      paths: 3,
+      key: `sha256:${"c".repeat(64)}`,
+    },
+  };
+  const items = knowledgeConvergenceAttentionItems({ owner: null, publication });
+  expect(items.map((item) => (item as { failureCode?: string }).failureCode)).toEqual([
+    "knowledge_publication_awaiting_review",
+    "knowledge_publication_declined",
+    "knowledge_publication_base_changed",
+  ]);
+  expect(items[0]).toMatchObject({
+    detail: "2 look(s) at head aaaaaaaaaaaa",
+    firstObservedAt: since,
+    blocking: false,
+  });
+  expect(items[1]).toMatchObject({ detail: "#7 (2 commit(s))" });
+  expect(items[2]).toMatchObject({
+    detail: "3 path(s) of pull request #6 differ on the base from its merge commit bbbbbbbbbbbb",
+  });
+  // ADR-0602: a GitHub-side wait is attention only once its schedule is spent.
+  const waiting = (attempts: number) =>
+    knowledgeConvergenceAttentionItems({
+      owner: null,
+      publication: {
+        ...failedPublication,
+        status: "awaiting_checks",
+        failure: null,
+        wait: {
+          pullRequestNumber: 6,
+          carried: `sha256:${"d".repeat(64)}`,
+          head,
+          kind: "checks",
+          reason: "none",
+          attempts,
+          since,
+        },
+      },
+    }).map((item) => (item as { failureCode?: string }).failureCode);
+  expect(waiting(6)).toEqual([]);
+  expect(waiting(7)).toEqual(["knowledge_publication_waiting"]);
+  // The owner's acknowledgement ends the decisions' attention, not the review's.
+  const acknowledged = knowledgeConvergenceAttentionItems({
+    owner: null,
+    publication,
+    publicationAcknowledged: {
+      schemaVersion: 1,
+      baseChange: publication.baseChanged.key,
+      declined: [7],
+    },
+  });
+  expect(acknowledged.map((item) => (item as { failureCode?: string }).failureCode)).toEqual([
+    "knowledge_publication_awaiting_review",
+  ]);
+});
+
+it("still reads missing gh credentials when GitHub's reason follows the class", () => {
+  const [item] = knowledgeConvergenceAttentionItems({
+    owner: null,
+    publication: {
+      ...failedPublication,
+      failure: {
+        ...failedPublication.failure!,
+        code: "knowledge_publication_pull_request_failed",
+        detail: "gh find exit 4 auth: HTTP 401: Bad credentials",
+      },
+    },
+  });
+  expect(item).toMatchObject({ state: "credentials_missing", requiresUserAction: true });
+});

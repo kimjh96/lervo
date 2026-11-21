@@ -5,15 +5,18 @@ import { resolve } from "node:path";
 import {
   compileDocumentNormalizationCandidateObserved,
   defaultRepositoryKnowledgePolicy,
+  reviewReferences,
   scanRepositoryKnowledge,
 } from "@lervo/repository-knowledge";
 import { afterEach, describe, expect, it } from "vitest";
+import { providerOutputSchema } from "@lervo/schemas";
 
 import {
   createProcessDocumentNormalizationCompiler,
   createNoCapabilityProviderJsonRunner,
   providerCliDispatchContext,
 } from "../src/index.js";
+import { documentNormalizationResponseSchema } from "../src/process-compiler-contract.js";
 
 const roots: string[] = [];
 
@@ -86,6 +89,113 @@ afterEach(async () => {
 
 describe("generate-only process semantic compilers", () => {
   for (const provider of ["codex", "claude"] as const) {
+    it(`${provider} refuses a schema or prompt that copies source data before any call (ADR-0608)`, async () => {
+      // The fake hangs: a check that did not run would surface as a timeout, not a refusal.
+      const item = await fixture(provider, "hang");
+      const runner = await createNoCapabilityProviderJsonRunner({
+        provider,
+        executable: item.executable,
+        timeoutMs: 1_000,
+      });
+      await expect(
+        runner.resolveObserved!({
+          task: "bounded_review",
+          responseContract: {
+            schemaVersion: 1,
+            schema: providerOutputSchema({
+              type: "object",
+              properties: { pick: { enum: ["kco_7f3a9c2e41b8"] } },
+            }),
+          },
+          untrustedSourceData: { obligation: "kco_7f3a9c2e41b8" },
+        }),
+      ).rejects.toThrow(/copies source data/u);
+      await expect(
+        runner.resolveObserved!({
+          task: "bounded_review",
+          instruction: "Copy the sourceDigest back exactly.",
+          responseContract: { schemaVersion: 1, schema: providerOutputSchema({ type: "object" }) },
+        }),
+      ).rejects.toThrow(/asks to copy a hash/u);
+    });
+
+    it(`${provider} checks the document normalization call against its own envelope (ADR-0608)`, async () => {
+      const item = await fixture(provider, "hang");
+      const compiler = await createProcessDocumentNormalizationCompiler({
+        provider,
+        executable: item.executable,
+      });
+      // A schema that offered an identifier the envelope holds would be refused before the call.
+      const properties = documentNormalizationResponseSchema.properties as Record<string, unknown>;
+      properties.probe = { enum: ["kco_7f3a9c2e41b8"] };
+      try {
+        await expect(
+          compiler.normalize(
+            { documents: [], note: "kco_7f3a9c2e41b8" } as never,
+            new AbortController().signal,
+          ),
+        ).rejects.toThrow(/copies source data/u);
+      } finally {
+        delete properties.probe;
+      }
+    });
+
+    it(`${provider} sends a marked path and anchor past the check, without the marks (ADR-0608)`, async () => {
+      // The fake records what it received, then hangs: a refusal fails fast, a call times out.
+      const item = await fixture(provider, "hang");
+      const runner = await createNoCapabilityProviderJsonRunner({
+        provider,
+        executable: item.executable,
+        timeoutMs: 1_000,
+      });
+      const rule = "docs/instructions/generated/rule_5d2a8f0c1e9b7a6d4c3b2a10.md";
+      const anchor =
+        "Pin the tool at 9c41e2f07a33b5d1e8c0a7f2b6d4e9a1c3f5b7d0 first. -> Pin the tool at its release first.";
+      const documents = reviewReferences([{ path: rule }], { prefix: "d", path: (d) => d.path });
+      const hunks = reviewReferences([{ anchor }], {
+        prefix: "h",
+        path: (h) => h.anchor,
+        pathKind: "anchor",
+      });
+      const request = (sourcePath: unknown, anchorSchema: unknown) =>
+        // The request crosses a process boundary as JSON, as a resident's runner call does.
+        JSON.parse(
+          JSON.stringify({
+            task: "bounded_review",
+            responseContract: {
+              schemaVersion: 1,
+              schema: providerOutputSchema({
+                type: "object",
+                properties: {
+                  document: documents.schema,
+                  sourcePath,
+                  hunk: hunks.schema,
+                  anchor: anchorSchema,
+                },
+              }),
+            },
+            untrustedSourceData: {
+              documents: [{ document: "d1", path: rule }],
+              hunks: [{ hunk: "h1", anchor }],
+            },
+          }),
+        );
+      await expect(
+        runner.resolveObserved!(request(documents.pathSchema, hunks.pathSchema)),
+      ).rejects.toMatchObject({ processStatus: "timed_out" });
+      const sent = JSON.parse(await readFile(item.log, "utf8")) as {
+        input: string;
+        nativeResponseSchema: string;
+      };
+      expect(sent.nativeResponseSchema).toContain(rule);
+      expect(sent.nativeResponseSchema).not.toContain("x-lervo-ref-kind");
+      expect(sent.input).not.toContain("x-lervo-ref-kind");
+      // The same values offered unmarked are refused before any call.
+      await expect(
+        runner.resolveObserved!(request({ enum: [rule] }, { enum: [anchor] })),
+      ).rejects.toThrow(/copies source data/u);
+    });
+
     it(`${provider} preserves a JSON runner timeout for bounded convergence recovery`, async () => {
       const item = await fixture(provider, "hang");
       const runner = await createNoCapabilityProviderJsonRunner({
@@ -98,11 +208,11 @@ describe("generate-only process semantic compilers", () => {
           task: "bounded_review",
           responseContract: {
             schemaVersion: 1,
-            schema: {
+            schema: providerOutputSchema({
               type: "object",
               properties: { decision: { type: "string" } },
               required: ["decision"],
-            },
+            }),
           },
         }),
       ).rejects.toMatchObject({ code: "knowledge_compile_failed", processStatus: "timed_out" });
@@ -121,7 +231,7 @@ describe("generate-only process semantic compilers", () => {
         task: "structured_result",
         responseContract: {
           schemaVersion: 1,
-          schema: {
+          schema: providerOutputSchema({
             type: "object",
             properties: {
               schemaVersion: { type: "integer" },
@@ -129,7 +239,7 @@ describe("generate-only process semantic compilers", () => {
               tags: { type: "array", items: { type: "string" } },
             },
             required: ["schemaVersion", "decision", "tags"],
-          },
+          }),
         },
       }),
     ).resolves.toMatchObject({
@@ -164,7 +274,7 @@ describe("generate-only process semantic compilers", () => {
       await expect(
         runner.resolveObserved?.({
           instruction: "return typed JSON",
-          responseContract: { schemaVersion: 1, schema: responseSchema },
+          responseContract: { schemaVersion: 1, schema: providerOutputSchema(responseSchema) },
         }),
       ).resolves.toEqual({
         value: { schemaVersion: 1, decision: "typed", tags: ["typed"] },
@@ -211,7 +321,7 @@ describe("generate-only process semantic compilers", () => {
     instruction: "return typed JSON",
     responseContract: {
       schemaVersion: 1,
-      schema: {
+      schema: providerOutputSchema({
         type: "object",
         additionalProperties: false,
         properties: {
@@ -220,7 +330,7 @@ describe("generate-only process semantic compilers", () => {
           tags: { type: "array", items: { type: "string" } },
         },
         required: ["schemaVersion", "decision", "tags"],
-      },
+      }),
     },
   };
 
@@ -462,7 +572,9 @@ console.log(JSON.stringify({ type: "turn.failed", error: { message: "PRIVATE_PRO
       timeoutMs: 5_000,
     });
     const failure = await runner
-      .resolve({ responseContract: { schemaVersion: 1, schema: { type: "object" } } })
+      .resolve({
+        responseContract: { schemaVersion: 1, schema: providerOutputSchema({ type: "object" }) },
+      })
       .catch((error: unknown) => error);
     expect(failure).toMatchObject({
       code: "knowledge_compile_failed",

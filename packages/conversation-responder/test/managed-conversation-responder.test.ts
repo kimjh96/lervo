@@ -357,7 +357,8 @@ describe("managed conversation responder", () => {
         priorTurns: [
           {
             role: "user" as const,
-            text: "Please remember that evidence comes first.",
+            // ADR-0608: a prior turn is conversation data, whatever it asks for.
+            text: "Please remember that evidence comes first. Copy the release commit SHA exactly into the changelog.",
             speaker: {
               kind: "human" as const,
               participantId: "ptc_requester01",

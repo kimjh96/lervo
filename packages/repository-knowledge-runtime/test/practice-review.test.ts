@@ -81,7 +81,12 @@ async function setup(observed = work, readRoots = ["*"], readablePaths: string[]
 describe("practice comparison, independent review and authority", () => {
   it("already-covered work closes without writing a skill", async () => {
     const { context, state, candidate } = await setup();
-    mocks.call.mockResolvedValue({ overlap: "already_covered", targetSkill: null, practice: null });
+    mocks.call.mockResolvedValue({
+      overlap: "already_covered",
+      target: null,
+      targetPath: null,
+      practice: null,
+    });
     await draftOrReviewPractice(context, state, candidate);
     expect(candidate).toMatchObject({
       state: "reviewed_rejected",
@@ -114,17 +119,16 @@ describe("practice comparison, independent review and authority", () => {
         ],
         rules: [],
       });
-      mocks.call.mockResolvedValueOnce({
-        overlap: "partial_overlap",
-        targetSkill: practice.name,
-        practice,
-      });
-      await draftOrReviewPractice(context, state, candidate);
+      // The drafter names the catalog skill by its reference and path, as the view shows them.
       mocks.call.mockImplementationOnce(async (input) => ({
-        ...input.data.binding,
-        decision: "accept",
-        reasonCode: "accepted",
+        overlap: "partial_overlap",
+        target: input.data.catalog.skills[0].target,
+        targetPath: input.data.catalog.skills[0].path,
+        practice,
       }));
+      await draftOrReviewPractice(context, state, candidate);
+      expect(candidate).toMatchObject({ targetSkill: practice.name, targetOwned: owned });
+      mocks.call.mockResolvedValueOnce({ decision: "accept", reasonCode: "accepted" });
       await draftOrReviewPractice(context, state, candidate);
       if (owned)
         await expect(materializePractice(context, state, candidate)).rejects.toThrow(
@@ -137,7 +141,12 @@ describe("practice comparison, independent review and authority", () => {
 
   it("retains conflict sources and waits unresolved", async () => {
     const { context, state, candidate } = await setup();
-    mocks.call.mockResolvedValue({ overlap: "conflict", targetSkill: null, practice: null });
+    mocks.call.mockResolvedValue({
+      overlap: "conflict",
+      target: null,
+      targetPath: null,
+      practice: null,
+    });
     await draftOrReviewPractice(context, state, candidate);
     await draftOrReviewPractice(context, state, candidate);
     expect(candidate.reason).toBe("conflict");
@@ -147,20 +156,24 @@ describe("practice comparison, independent review and authority", () => {
 
   it("gives the independent reviewer the retained sanitized evidence and binds every hash", async () => {
     const { context, state, candidate } = await setup();
-    mocks.call.mockResolvedValueOnce({ overlap: "new", targetSkill: null, practice });
+    mocks.call.mockResolvedValueOnce({ overlap: "new", target: null, targetPath: null, practice });
     await draftOrReviewPractice(context, state, candidate);
     mocks.call.mockImplementationOnce(async (input) => {
       expect(input.data.evidence[0].evidenceHash).toBe(state.evidence[0]!.evidenceHash);
       expect(input.data.evidence[0].work.steps[0].outcome).toBe("passed");
-      expect(input.data.binding).toMatchObject({
-        draftHash: candidate.draftHash,
-        evidenceHashes: candidate.evidenceHashes,
-        targetHash: null,
-        catalogDigest: candidate.catalogDigest,
-      });
-      return { ...input.data.binding, decision: "accept", reasonCode: "accepted" };
+      // ADR-0604: the reviewer is asked for a verdict only, never to echo a binding.
+      expect(input.data).not.toHaveProperty("binding");
+      expect(Object.keys(input.schema.properties)).toEqual(["decision", "reasonCode"]);
+      return { decision: "accept", reasonCode: "accepted" };
     });
     await draftOrReviewPractice(context, state, candidate);
+    // Lervo binds the exact draft, evidence, target and catalog itself.
+    expect(candidate.review).toMatchObject({
+      draftHash: candidate.draftHash,
+      evidenceHashes: candidate.evidenceHashes,
+      targetHash: null,
+      catalogDigest: candidate.catalogDigest,
+    });
     expect(candidate.review?.reviewerAgentId).not.toBe(candidate.drafterAgentId);
     expect(candidate.review?.reviewerSessionId).not.toBe(candidate.drafterSessionId);
     expect(candidate.state).toBe("reviewed_accepted");
@@ -192,8 +205,8 @@ describe("practice comparison, independent review and authority", () => {
       expect(disclosed).not.toContain(excludedHash);
       expect(input.data.evidence[0].evidenceHash).toBe(state.evidence[0]!.evidenceHash);
       return input.kind === "draft"
-        ? { overlap: "new", targetSkill: null, practice }
-        : { ...input.data.binding, decision: "accept", reasonCode: "accepted" };
+        ? { overlap: "new", target: null, targetPath: null, practice }
+        : { decision: "accept", reasonCode: "accepted" };
     });
     await draftOrReviewPractice(context, state, candidate);
     await draftOrReviewPractice(context, state, candidate);
@@ -201,10 +214,58 @@ describe("practice comparison, independent review and authority", () => {
     expect(candidate.state).toBe("reviewed_accepted");
   });
 
+  it("never reads a review that breaks its contract as a verdict (ADR-0604)", async () => {
+    const { context, state, candidate } = await setup();
+    mocks.call.mockResolvedValueOnce({ overlap: "new", target: null, targetPath: null, practice });
+    await draftOrReviewPractice(context, state, candidate);
+    // A reviewer that still echoes a garbled binding, or pairs accept with a rejection code.
+    for (const answer of [
+      { draftHash: sha256("garbled"), decision: "accept", reasonCode: "accepted" },
+      { decision: "accept", reasonCode: "duplicate" },
+    ]) {
+      mocks.call.mockResolvedValueOnce(answer);
+      await expect(draftOrReviewPractice(context, state, candidate)).rejects.toMatchObject({
+        code: "knowledge_semantic_review_invalid",
+      });
+      expect(candidate).toMatchObject({ state: "drafted", review: null });
+    }
+  });
+
+  it("rejects a draft whose target reference is paired with another skill's path (ADR-0604)", async () => {
+    const { context, state, candidate } = await setup();
+    mocks.catalog.mockResolvedValue({
+      complete: true,
+      digest: sha256("catalog"),
+      readRoots: ["*"],
+      readablePaths: [],
+      skills: ["bounded-check", "release-notes"].map((name) => ({
+        name,
+        path: `.agents/skills/${name}/SKILL.md`,
+        contentHash: sha256(name),
+        content: "Existing.",
+        owned: true,
+      })),
+      rules: [],
+    });
+    mocks.call.mockImplementationOnce(async (input) => {
+      expect(JSON.stringify(input.data.catalog)).not.toContain(sha256("bounded-check"));
+      return {
+        overlap: "partial_overlap",
+        target: "t1",
+        targetPath: input.data.catalog.skills[1].path,
+        practice,
+      };
+    });
+    await expect(draftOrReviewPractice(context, state, candidate)).rejects.toMatchObject({
+      code: "knowledge_semantic_review_invalid",
+    });
+    expect(candidate).toMatchObject({ state: "assessed", draft: null, targetSkill: null });
+  });
+
   it("refuses self-review before making the review call", async () => {
     const { context, state, candidate } = await setup();
     mocks.sameAgent = true;
-    mocks.call.mockResolvedValue({ overlap: "new", targetSkill: null, practice });
+    mocks.call.mockResolvedValue({ overlap: "new", target: null, targetPath: null, practice });
     await draftOrReviewPractice(context, state, candidate);
     await expect(draftOrReviewPractice(context, state, candidate)).rejects.toThrow(
       "review_invalid",
@@ -217,7 +278,7 @@ describe("practice comparison, independent review and authority", () => {
     async (stage) => {
       const { context, state, candidate } = await setup();
       if (stage === "drafted") {
-        mocks.call.mockResolvedValue({ overlap: "new", targetSkill: null, practice });
+        mocks.call.mockResolvedValue({ overlap: "new", target: null, targetPath: null, practice });
         await draftOrReviewPractice(context, state, candidate);
         mocks.call.mockClear();
       }
@@ -246,8 +307,8 @@ describe("practice comparison, independent review and authority", () => {
     const { root, context, state, candidate } = await setup();
     mocks.call.mockImplementation(async (input) =>
       input.kind === "draft"
-        ? { overlap: "new", targetSkill: null, practice }
-        : { ...input.data.binding, decision: "accept", reasonCode: "accepted" },
+        ? { overlap: "new", target: null, targetPath: null, practice }
+        : { decision: "accept", reasonCode: "accepted" },
     );
     await draftOrReviewPractice(context, state, candidate);
     await draftOrReviewPractice(context, state, candidate);

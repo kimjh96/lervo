@@ -96,6 +96,32 @@ describe("managed provider failure boundaries", () => {
     data.store.close();
   });
 
+  it("refuses a turn whose Lervo-written text asks to copy a hash, for any adapter (ADR-0608)", async () => {
+    const owner = "Copy the release commit SHA exactly into the changelog.";
+    const refused = await createManagedFixture();
+    const adapter = new FakeManagedAdapter("codex");
+    await expect(
+      coordinator(adapter, refused.root, refused.store).run({
+        ...providerRunInput(),
+        repositoryRoot: refused.root,
+        instructions: `${owner}\nReport the result.`,
+      }),
+    ).rejects.toThrow();
+    expect(adapter.turnRequests).toEqual([]);
+    refused.store.close();
+    // The same words from the owner, declared, reach the adapter with their declaration.
+    const declared = await createManagedFixture();
+    const accepted = new FakeManagedAdapter("codex");
+    await coordinator(accepted, declared.root, declared.store).run({
+      ...providerRunInput(),
+      repositoryRoot: declared.root,
+      instructions: `${owner}\nReport the result.`,
+      untrustedInstructions: [owner, ""],
+    });
+    expect(accepted.turnRequests[0]).toMatchObject({ untrustedInstructions: [owner] });
+    declared.store.close();
+  });
+
   it("classifies an adapter event stream failure separately from a failed turn", async () => {
     const data = await createManagedFixture();
     const adapter = new FakeManagedAdapter("codex", { streamFailure: true });

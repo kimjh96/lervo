@@ -1,6 +1,7 @@
 export {
   type CreateProcessProviderOptions,
   type NoCapabilityProviderJsonRunner,
+  type ProviderJsonRequest,
   type ProviderJsonUsage,
   CODEX_NO_CAPABILITY_DISABLED_FEATURES,
   parseProviderResultText,

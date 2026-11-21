@@ -45,7 +45,8 @@ export function nextFreshnessZeroSuccessHold(
 }
 
 /**
- * Whether a held cross-check, a debt retry, or the zero-success hold is due to run now. ADR-0598:
+ * Whether a held cross-check, a debt retry, the zero-success hold, or the end of a provider's
+ * usage pause is due to run now. ADR-0598:
  * a debt retry generates again, so it counts only when today's budget can pay for one candidate,
  * like the ADR-0580 pending review; the day in the fence reopens the stage with a new budget.
  */
@@ -63,7 +64,12 @@ export function freshnessBackoffDue(
     }) ||
     ((options.debtAffordable ?? true) &&
       (state.debt ?? []).some((debt) => Date.parse(debt.retryAt) <= now.getTime())) ||
-    (hold !== undefined && hold !== null && Date.parse(hold.until) <= now.getTime())
+    (hold !== undefined && hold !== null && Date.parse(hold.until) <= now.getTime()) ||
+    // ADR-0604: a provider's paused reviews resume once the pause ends. This is due once: the
+    // stage clears the ended pause (`expireUsagePause`) as soon as it reopens.
+    (state.usageUnavailable?.until !== null &&
+      state.usageUnavailable?.until !== undefined &&
+      Date.parse(state.usageUnavailable.until) <= now.getTime())
   );
 }
 

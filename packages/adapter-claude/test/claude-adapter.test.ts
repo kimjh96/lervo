@@ -1,3 +1,4 @@
+import { providerOutputSchema, providerReferenceEnum } from "@lervo/schemas";
 import { createHash } from "node:crypto";
 
 import {
@@ -400,11 +401,11 @@ describe("Claude managed adapter", () => {
     client.structuredOutput = { evidenceTokens: ["lervo-e4:doc:sha256:abc"] };
     const report = await evaluateAdapterContract(
       adapter(client, {
-        structuredOutputSchema: {
+        structuredOutputSchema: providerOutputSchema({
           type: "object",
           properties: { evidenceTokens: { type: "array", items: { type: "string" } } },
           required: ["evidenceTokens"],
-        },
+        }),
       }),
       {
         expectedProvider: "claude",
@@ -418,10 +419,103 @@ describe("Claude managed adapter", () => {
     expect(report).toEqual({ passed: true, violations: [] });
   });
 
+  it("starts a turn whose schema offers a marked path and anchor, and sends it unmarked (ADR-0608)", async () => {
+    const client = new FakeClaudeClient();
+    const rule = "docs/instructions/generated/rule_5d2a8f0c1e9b7a6d4c3b2a10.md";
+    const anchor =
+      "Pin the tool at 9c41e2f07a33b5d1e8c0a7f2b6d4e9a1c3f5b7d0 first. -> Pin the tool at its release first.";
+    // Rebuilt from JSON, as a schema is after crossing a process boundary; the marks survive.
+    const schema = providerOutputSchema(
+      JSON.parse(
+        JSON.stringify({
+          type: "object",
+          properties: {
+            sourcePath: providerReferenceEnum([rule], "path"),
+            anchor: providerReferenceEnum([anchor], "anchor"),
+          },
+        }),
+      ) as object,
+    );
+    let sent: unknown;
+    const instance = adapter(client, {
+      clientFactory: async (options) => {
+        sent = (options as { outputFormat?: { schema: unknown } }).outputFormat?.schema;
+        return client;
+      },
+      structuredOutputSchema: schema,
+    });
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    await expect(
+      instance.startTurn(
+        session,
+        { ...data.turnRequest, instructions: `Review ${rule} at ${anchor}.` },
+        () => undefined,
+      ),
+    ).resolves.toMatchObject({ kind: "turn" });
+    expect(JSON.stringify(sent)).toContain(rule);
+    expect(JSON.stringify(sent)).not.toContain("x-lervo-ref-kind");
+  });
+
+  it("refuses a turn whose Lervo-written text asks to copy a hash, and only that text (ADR-0608)", async () => {
+    const client = new FakeClaudeClient();
+    const instance = adapter(client);
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    const owner = "Copy the release commit SHA exactly into the changelog.";
+    await expect(
+      instance.startTurn(
+        session,
+        { ...data.turnRequest, instructions: `${owner}\n\nReport the result.` },
+        () => undefined,
+      ),
+    ).rejects.toThrow(/asks to copy a hash/u);
+    expect(client.calls.some((call) => call.method === "startTurn")).toBe(false);
+    // The same words from the owner are the owner's to ask for, so the turn starts.
+    await expect(
+      instance.startTurn(
+        session,
+        {
+          ...data.turnRequest,
+          instructions: `${owner}\n\nReport the result.`,
+          untrustedInstructions: [owner],
+        },
+        () => undefined,
+      ),
+    ).resolves.toMatchObject({ kind: "turn" });
+  });
+
+  it("refuses a schema that offers this turn's own identifier, before any turn starts (ADR-0608)", async () => {
+    const client = new FakeClaudeClient();
+    const instance = adapter(client, {
+      structuredOutputSchema: providerOutputSchema({
+        type: "object",
+        properties: { pick: { enum: ["kco_7f3a9c2e41b8"] } },
+      }),
+    });
+    const data = fixture();
+    const session = await instance.start(data.startRequest);
+    await instance.injectContext(session, data.contextEnvelope);
+    await expect(
+      instance.startTurn(
+        session,
+        { ...data.turnRequest, instructions: "Settle obligation kco_7f3a9c2e41b8 now." },
+        () => undefined,
+      ),
+    ).rejects.toThrow(/offers an identifier or hash from the source data/u);
+    // Nothing reached the provider, and no turn is left marked active: a clean turn still starts.
+    expect(client.calls.some((call) => call.method === "startTurn")).toBe(false);
+    await expect(
+      instance.startTurn(session, data.turnRequest, () => undefined),
+    ).resolves.toMatchObject({ kind: "turn" });
+  });
+
   it("fails closed when requested structured output is absent", async () => {
     const client = new FakeClaudeClient();
     const instance = adapter(client, {
-      structuredOutputSchema: { type: "object" },
+      structuredOutputSchema: providerOutputSchema({ type: "object" }),
     });
     const data = fixture();
     const session = await instance.start(data.startRequest);

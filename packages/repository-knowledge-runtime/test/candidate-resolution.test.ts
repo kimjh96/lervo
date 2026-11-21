@@ -59,18 +59,19 @@ async function candidates(sources: Record<string, string>) {
   const state = obligationInput("kconv_candidate_resolution", baseline);
   const context = seamContext(f.storage);
   vi.mocked(reviewKnowledgeJson).mockImplementation(async (input) => {
+    // ADR-0604: the reviewer answers from its view, citing each candidate by reference.
     const { candidates } = input.untrustedSourceData as {
-      candidates: { candidateId: string; contentHash: string }[];
+      candidates: { candidate: string; sourcePath: string }[];
     };
     return {
       value: {
         decisions: candidates.map((candidate) => ({
-          candidateId: candidate.candidateId,
-          contentHash: candidate.contentHash,
+          candidate: candidate.candidate,
+          sourcePath: candidate.sourcePath,
           decision: "reject",
           rationale: RATIONALE,
+          target: null,
           targetPath: null,
-          targetContentHash: null,
           targetQuote: null,
         })),
       },
@@ -88,12 +89,14 @@ async function candidates(sources: Record<string, string>) {
 }
 
 function reviewedCandidates() {
-  return vi
-    .mocked(reviewKnowledgeJson)
-    .mock.calls.map(
-      ([input]) =>
-        (input.untrustedSourceData as { candidates: { candidateId: string }[] }).candidates,
-    );
+  return vi.mocked(reviewKnowledgeJson).mock.calls.map(
+    ([input]) =>
+      (
+        input.untrustedSourceData as {
+          candidates: { candidate: string; sourceBindings: { path: string }[] }[];
+        }
+      ).candidates,
+  );
 }
 
 it("independently closes an old exact candidate and never repeats its transition after an interrupted settlement", async () => {
@@ -160,8 +163,12 @@ it("reviews old candidates with separate source-specific contexts", async () => 
   expect(input).toBeUndefined();
   const reviews = reviewedCandidates();
   expect(reviews).toEqual([
-    [expect.objectContaining({ candidateId: expect.any(String) })],
-    [expect.objectContaining({ candidateId: expect.any(String) })],
+    [expect.objectContaining({ candidate: "k1" })],
+    [expect.objectContaining({ candidate: "k1" })],
   ]);
-  expect(new Set(reviews.map(([candidate]) => candidate!.candidateId)).size).toBe(2);
+  // Each review saw a different candidate, told apart by its source bindings.
+  expect(
+    new Set(reviews.map(([candidate]) => JSON.stringify(candidate!.sourceBindings))).size,
+  ).toBe(2);
+  expect(JSON.stringify(reviews)).not.toContain("kcanon_");
 });

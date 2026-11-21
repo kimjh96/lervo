@@ -99,9 +99,10 @@ async function recordSemanticRoutes(
     documents,
   });
   const response = {
-    classifications: entries.map((entry, index) => ({
-      path: entry.path,
-      contentHash: documents[index]!.contentHash,
+    // ADR-0604: the classifier cites each document by its reference and path.
+    classifications: entries.map((entry) => ({
+      document: `d${request.documents.findIndex((document) => document.path === entry.path) + 1}`,
+      sourcePath: entry.path,
       outcome: entry.outcome ?? "route",
       routeId: entry.outcome === undefined || entry.outcome === "route" ? entry.routeId! : null,
       roleId: entry.outcome === "role" ? entry.roleId! : null,

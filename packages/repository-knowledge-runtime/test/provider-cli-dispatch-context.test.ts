@@ -8,6 +8,7 @@ import {
 } from "@lervo/repository-knowledge-compiler";
 import { identifyProviderCli, providerCliIdentityCurrent } from "../src/provider-cli-identity.js";
 import { runProviderCliCommand } from "../src/provider-cli-command.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -57,7 +58,11 @@ else {
       expect(await providerCliIdentityCurrent(identity)).toBe(true);
     });
     const runner = await createNoCapabilityProviderJsonRunner({ ...identity, beforeCall });
-    expect(await runner.resolve({ responseContract: { schema: { type: "object" } } })).toEqual({
+    expect(
+      await runner.resolve({
+        responseContract: { schema: providerOutputSchema({ type: "object" }) },
+      }),
+    ).toEqual({
       ok: true,
     });
     expect(beforeCall).toHaveBeenCalledTimes(2);

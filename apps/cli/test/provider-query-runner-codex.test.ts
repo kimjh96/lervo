@@ -4,10 +4,12 @@ import {
   createCodexPersistentQueryRunner,
   type CodexPersistentQueryRunnerDependencies,
 } from "../src/provider-query-runner-codex.js";
+import { reviewReferences } from "@lervo/repository-knowledge";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const responseInput = {
   responseContract: {
-    schema: {
+    schema: providerOutputSchema({
       type: "object",
       additionalProperties: false,
       properties: {
@@ -15,7 +17,7 @@ const responseInput = {
         retrievalQueries: { type: "array", items: { type: "string" } },
       },
       required: ["schemaVersion", "retrievalQueries"],
-    },
+    }),
   },
 };
 
@@ -115,6 +117,84 @@ describe("Codex persistent query runner", () => {
     });
     expect(fake.close).toHaveBeenCalledTimes(1);
     expect(fake.removeDirectory).toHaveBeenCalledWith("/tmp/lervo-query-runner-test");
+  });
+
+  it("refuses a schema or prompt that copies source data before any turn (ADR-0608)", async () => {
+    const fake = dependencies(["agentMessage"]);
+    const prepared = await createCodexPersistentQueryRunner(
+      { systemPrompt: "Return JSON only.", timeoutMs: 20_000 },
+      fake.value,
+    );
+    await expect(
+      prepared.runner.resolveObserved!({
+        responseContract: {
+          schemaVersion: 1,
+          schema: providerOutputSchema({
+            type: "object",
+            properties: { pick: { enum: ["kco_7f3a9c2e41b8"] } },
+          }),
+        },
+        untrustedRequest: "Settle obligation kco_7f3a9c2e41b8.",
+      }),
+    ).rejects.toThrow(/offers an identifier or hash from the source data/u);
+    await expect(
+      prepared.runner.resolveObserved!({
+        ...responseInput,
+        instruction: "Echo the planHash back exactly.",
+      }),
+    ).rejects.toThrow(/asks to copy a hash/u);
+    expect(fake.startTurn).not.toHaveBeenCalled();
+    await prepared.close();
+  });
+
+  it("sends a marked path and anchor past the check, without the marks (ADR-0608)", async () => {
+    const fake = dependencies(["agentMessage"]);
+    const prepared = await createCodexPersistentQueryRunner(
+      { systemPrompt: "Return JSON only.", timeoutMs: 20_000 },
+      fake.value,
+    );
+    const rule = "docs/instructions/generated/rule_5d2a8f0c1e9b7a6d4c3b2a10.md";
+    const anchor =
+      "Pin the tool at 9c41e2f07a33b5d1e8c0a7f2b6d4e9a1c3f5b7d0 first. -> Pin the tool at its release first.";
+    const documents = reviewReferences([{ path: rule }], { prefix: "d", path: (d) => d.path });
+    const hunks = reviewReferences([{ anchor }], {
+      prefix: "h",
+      path: (h) => h.anchor,
+      pathKind: "anchor",
+    });
+    const request = (sourcePath: unknown, anchorSchema: unknown) =>
+      // The request crosses a process boundary as JSON, as a resident's runner call does.
+      JSON.parse(
+        JSON.stringify({
+          task: "bounded_review",
+          responseContract: {
+            schemaVersion: 1,
+            schema: providerOutputSchema({
+              type: "object",
+              properties: { document: documents.schema, sourcePath, anchor: anchorSchema },
+            }),
+          },
+          untrustedSourceData: { documents: [{ document: "d1", path: rule }], anchor },
+        }),
+      );
+    // The fake's answer does not fit this schema; only whether the turn started matters here.
+    await prepared.runner.resolveObserved!(request(documents.pathSchema, hunks.pathSchema)).catch(
+      () => undefined,
+    );
+    expect(fake.startTurn).toHaveBeenCalledTimes(1);
+    const [, prompt, options] = fake.startTurn.mock.calls[0] as unknown as [
+      string,
+      string,
+      { outputSchema: unknown },
+    ];
+    expect(JSON.stringify(options.outputSchema)).toContain(rule);
+    expect(JSON.stringify(options.outputSchema)).not.toContain("x-lervo-ref-kind");
+    expect(prompt).not.toContain("x-lervo-ref-kind");
+    await expect(
+      prepared.runner.resolveObserved!(request({ enum: [rule] }, { enum: [anchor] })),
+    ).rejects.toThrow(/offers an identifier or hash from the source data/u);
+    expect(fake.startTurn).toHaveBeenCalledTimes(1);
+    await prepared.close();
   });
 
   it.each(["commandExecution", "futureItem"])(

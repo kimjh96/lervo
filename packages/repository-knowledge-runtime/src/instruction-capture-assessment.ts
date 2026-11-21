@@ -18,6 +18,7 @@ import {
 
 import { knowledgeReviewCallCeiling } from "./change-review-host.js";
 import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
+import type { ProviderJsonRequest } from "@lervo/schemas";
 
 export const INSTRUCTION_CAPTURE_STAGE = "instruction_capture";
 /** Background assessment never blocks a hook, so it may wait for a slow provider start. */
@@ -131,7 +132,7 @@ export async function runGovernedCaptureCall(input: {
   systemPrompt: string;
   catalogEntries: ReadonlyArray<{ path: string; contentHash: string; excerpt: string }>;
   sourceRevision: string;
-  request(): Promise<unknown>;
+  request(): Promise<ProviderJsonRequest>;
 }): Promise<InstructionCaptureAssessmentCall> {
   if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
     return { status: "deferred", reason: "knowledge_capacity_unavailable" };

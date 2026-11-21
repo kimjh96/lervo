@@ -2,6 +2,7 @@ import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 import {
   createNoCapabilityProviderJsonRunner,
   type NoCapabilityProviderJsonRunner,
+  type ProviderJsonRequest,
 } from "@lervo/repository-knowledge-compiler";
 import {
   productionSearchQueryProjectorIdentity,
@@ -136,7 +137,7 @@ export function createProcessSearchQueryProjector(
           requestDigest: input.requestDigest,
           untrustedRequest: input.request,
           boundedContext: input.context,
-        };
+        } satisfies ProviderJsonRequest;
         const observation =
           verifiedRunner.resolveObserved === undefined
             ? {

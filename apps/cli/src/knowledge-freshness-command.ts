@@ -7,6 +7,7 @@ import {
   loadRepositoryKnowledgePolicy,
 } from "@lervo/repository-knowledge";
 import {
+  requestKnowledgeResidentCycle,
   acknowledgeFreshnessCandidate,
   assertFreshnessEventsWritable,
   inspectDocumentFreshnessStatus,
@@ -97,6 +98,8 @@ export async function runKnowledgeFreshness(args: string[], io: CliIo): Promise<
             })
           : acknowledgeFreshnessCandidate(repositoryRoot, candidate, now);
       });
+      // ADR-0606: the decision changes freshness state no event records.
+      await requestKnowledgeResidentCycle(repositoryRoot);
       write(
         { schemaVersion: 1, candidate: result },
         `Freshness candidate ${result.candidateId}: ${result.state}\n`,

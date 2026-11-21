@@ -1,4 +1,5 @@
 import type { DocumentNormalizationEnvelope } from "@lervo/repository-knowledge";
+import { providerOutputSchema } from "@lervo/repository-knowledge";
 const NORMALIZATION_PROFILE = [
   "human_readme",
   "agent_instruction",
@@ -16,7 +17,7 @@ const NORMALIZATION_PROFILE = [
   "repository_document",
 ] as const;
 
-export const documentNormalizationResponseSchema = {
+export const documentNormalizationResponseSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -56,7 +57,7 @@ export const documentNormalizationResponseSchema = {
     },
   },
   required: ["schemaVersion", "documents"],
-} as const;
+} as const);
 
 export const documentNormalizationInstruction = [
   "You are Lervo's repository document normalizer.",

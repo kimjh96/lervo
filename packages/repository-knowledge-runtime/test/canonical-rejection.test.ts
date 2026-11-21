@@ -39,8 +39,7 @@ it(
     const f = await fixture(true, true);
     fixtures.push(f);
     const script = await readFile(f.executable, "utf8");
-    const marker =
-      "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
+    const marker = "if(request.task==='independent_canonical_review')response={decision:'approve'";
     expect(script).toContain(marker);
     await writeFile(f.executable, script.replace(marker, marker.replace("'approve'", "'reject'")));
     const refBefore = integrationRef(f);
@@ -349,8 +348,7 @@ it(
     const readme = resolve(f.root, "README.md");
     await writeFile(readme, `${await readFile(readme, "utf8")}\nThe runtime starts locally.\n`);
     const script = await readFile(f.executable, "utf8");
-    const marker =
-      "if(request.task==='independent_canonical_review')response={assessmentHash:data.assessmentHash,decision:'approve'";
+    const marker = "if(request.task==='independent_canonical_review')response={decision:'approve'";
     expect(script).toContain(marker);
     // ADR-0561: a generator that cannot decide (`needs_review`) regenerates once like a rejection
     // and then parks as Lervo debt, never at once as an owner decision.

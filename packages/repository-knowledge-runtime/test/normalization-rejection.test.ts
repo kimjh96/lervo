@@ -12,7 +12,7 @@ import {
   type RepositoryDocumentNormalizationCompiler,
 } from "@lervo/repository-knowledge";
 
-import { parseNormalizationSemanticReview } from "../src/normalization-review.js";
+import { normalizationReviewContract } from "../src/normalization-review.js";
 import {
   normalizationAdmission,
   normalizationRejections,
@@ -103,33 +103,39 @@ function review(
   candidate: DocumentNormalizationCandidate,
   rejected: Record<string, { rationale: string; failed: string[] }>,
 ) {
-  return parseNormalizationSemanticReview(
-    {
-      candidateId: candidate.candidateId,
-      decisions: candidate.items.map((item) => {
-        const rejection = rejected[item.sourcePath];
-        return {
-          operationId: item.operationId,
-          sourceContentHash: item.sourceContentHash,
-          decision: rejection === undefined ? "approve" : "reject",
-          rationale:
-            rejection?.rationale ??
-            "The exact source and all output bytes preserve every requirement and link.",
-          checks: Object.fromEntries(
-            CHECKS.map((check) => [check, !rejection?.failed.includes(check)]),
-          ),
-          unitReviews: item.sourceUnitVersionIds.map((id) => ({
-            unitVersionId: id,
-            outputHashes: item.outputs
-              .filter((output) => output.coveredUnitVersionIds.includes(id))
-              .map((output) => output.contentHash),
-            rationale: "This exact source unit is preserved in the output bytes.",
-          })),
-        };
-      }),
-    },
-    candidate,
-  );
+  // The reviewer answers from the view it is given, by reference (ADR-0604).
+  const contract = normalizationReviewContract(candidate);
+  const view = contract.view as {
+    documents: {
+      document: string;
+      sourcePath: string;
+      units: string[];
+      outputs: { output: string; path: string; coversUnits: string[] }[];
+    }[];
+  };
+  return contract.parse({
+    decisions: view.documents.map((document) => {
+      const rejection = rejected[document.sourcePath];
+      return {
+        document: document.document,
+        sourcePath: document.sourcePath,
+        decision: rejection === undefined ? "approve" : "reject",
+        rationale:
+          rejection?.rationale ??
+          "The exact source and all output bytes preserve every requirement and link.",
+        checks: Object.fromEntries(
+          CHECKS.map((check) => [check, !rejection?.failed.includes(check)]),
+        ),
+        unitReviews: document.units.map((unit) => ({
+          unit,
+          outputs: document.outputs
+            .filter((output) => output.coversUnits.includes(unit))
+            .map(({ output, path }) => ({ output, path })),
+          rationale: "This exact source unit is preserved in the output bytes.",
+        })),
+      };
+    }),
+  });
 }
 
 /** The stage data the review stage wrote, as the next stage of the obligation reads it back. */

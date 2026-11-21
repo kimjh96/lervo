@@ -7,6 +7,7 @@ import { defaultRepositoryHoldPath } from "@lervo/repository-registry";
 import type { OutboxStore } from "@lervo/storage-contract";
 
 import { observeConvergenceQueue } from "./convergence-queue-observation.js";
+import { freshnessUsagePauseEndsAt } from "./freshness-usage-pause.js";
 import { nextUtcDayAt, observePracticeSchedule } from "./practice-schedule.js";
 import { PRACTICE_ROOT } from "./practice-store.js";
 import { repositoryHeadIdentity } from "./repository-head-identity.js";
@@ -261,7 +262,10 @@ export function convergenceSourceFingerprint(input: {
     ];
     practiceWakeAt = null;
   }
-  const localWakeAt = earliestMoment(practiceWakeAt, nextUtcDayAt(now, offset));
+  const localWakeAt = earliestMoment(
+    earliestMoment(practiceWakeAt, nextUtcDayAt(now, offset)),
+    freshnessUsagePauseEndsAt(input.repositoryRoot, now),
+  );
   return {
     fingerprint: sha256(
       canonicalJson({

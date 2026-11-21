@@ -5,7 +5,7 @@ import { createTurnMeasurement, recordTurnMeasurement } from "@lervo/execution-c
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   documentFreshnessGenerationInstruction,
-  documentFreshnessResponseSchema,
+  documentFreshnessResponseContract,
 } from "@lervo/repository-knowledge";
 import {
   createNoCapabilityProviderJsonRunner,
@@ -21,6 +21,7 @@ import {
   upgradeWaiting,
   type UpgradePreemptionSource,
 } from "./upgrade-preemption.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export const DOCUMENT_FRESHNESS_TASK = "document_freshness_candidate";
 export const DOCUMENT_FRESHNESS_STAGE = "document_freshness";
@@ -87,10 +88,14 @@ export interface FreshnessCallSource {
   sourceRevision: string;
 }
 
-/** The generation bundle as a call source: the stale document and its related documents. */
+/**
+ * The generation bundle as a call source: the stale document and its related documents. ADR-0604:
+ * the provider sees the evidence list by reference (`e1`) and path, never by hash; the CAS bundle
+ * keeps the exact hashes and the generation contract maps citations back to them.
+ */
 export function freshnessBundleCallSource(bundle: FreshnessEvidenceBundleV1): FreshnessCallSource {
   return {
-    sourceData: bundle,
+    sourceData: { ...bundle, evidence: documentFreshnessResponseContract(bundle.evidence).view },
     documents: [
       { path: bundle.document.path, hash: bundle.document.hash, text: bundle.document.text },
       ...bundle.relatedDocuments.map((document) => ({
@@ -173,7 +178,8 @@ export async function generateFreshnessProposal(input: {
   source: FreshnessEvidenceBundleV1 | FreshnessCallSource;
   generationId: string;
   task?: string;
-  responseSchema?: unknown;
+  /** Defaults to the generation contract of a bundle source (ADR-0604). */
+  responseSchema?: ProviderOutputSchema;
   prompt?: string;
 }): Promise<FreshnessGenerationResult> {
   if (input.context.providerQuantum !== undefined && input.context.providerQuantum.remaining <= 0)
@@ -250,7 +256,11 @@ export async function generateFreshnessProposal(input: {
         task: input.task ?? DOCUMENT_FRESHNESS_TASK,
         responseContract: {
           schemaVersion: 1,
-          schema: input.responseSchema ?? documentFreshnessResponseSchema,
+          schema:
+            input.responseSchema ??
+            documentFreshnessResponseContract(
+              "sourceData" in input.source ? [] : input.source.evidence,
+            ).schema,
         },
         untrustedSourceData: source.sourceData,
       };

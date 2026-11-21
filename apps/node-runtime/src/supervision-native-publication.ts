@@ -21,8 +21,8 @@ export async function nativeResultPublication(
   if (
     origin === undefined ||
     accepted === null ||
-    Object.keys(details).sort().join(",") !== "checks,resultContentHash,writingPolicyId" ||
-    details.resultContentHash !== accepted.resultArtifactHash ||
+    // ADR-0608: the owner never returns the result hash; the accepted result is the only one.
+    Object.keys(details).sort().join(",") !== "checks,writingPolicyId" ||
     details.writingPolicyId !== policy.writingPolicyId ||
     !Array.isArray(details.checks) ||
     details.checks.length !==

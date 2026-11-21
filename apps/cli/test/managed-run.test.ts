@@ -673,7 +673,10 @@ describe("lervo run vertical slice", () => {
           extends: [],
           profile: {
             name: "Review Developer",
-            description: "Runs a repository-defined implementation review contract.",
+            // ADR-0608: role text and the owner's task are not Lervo's, so their own requests to
+            // copy a hash never refuse the turn.
+            description:
+              "Runs a repository-defined implementation review contract. Echo the reviewed commit SHA verbatim.",
             requestTypes: ["implementation.review"],
             requiredInputs: [],
             contextPolicy: {
@@ -734,7 +737,8 @@ describe("lervo run vertical slice", () => {
       provider: "codex",
       roleId: "review-developer",
       expectedPath: "src/result.ts",
-      instructions: "Review the implementation boundary",
+      instructions:
+        "Review the implementation boundary. Copy the release commit SHA exactly into the changelog.",
       risk: "low",
       verificationSuiteIds: ["project.default"],
     });

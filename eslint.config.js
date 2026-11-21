@@ -5,6 +5,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 import { errorCausePlugin } from "./scripts/quality/lib/eslint-error-cause-rule.mjs";
+import { providerSchemaPlugin } from "./scripts/quality/lib/eslint-provider-schema-any-rule.mjs";
 
 export default defineConfig(
   globalIgnores(
@@ -98,6 +99,19 @@ export default defineConfig(
     plugins: { lervo: errorCausePlugin },
     rules: {
       "lervo/require-caught-error-cause": "error",
+    },
+  },
+  {
+    // ADR-0608: an `any` value may not stand where a provider output schema is expected. The rule
+    // reads types, so only production source pays for the project service.
+    name: "lervo/provider-schema-any",
+    files: ["apps/*/src/**/*.ts", "packages/*/src/**/*.ts"],
+    languageOptions: {
+      parserOptions: { projectService: true, tsconfigRootDir: import.meta.dirname },
+    },
+    plugins: { "lervo-provider-schema": providerSchemaPlugin },
+    rules: {
+      "lervo-provider-schema/no-any-provider-schema": "error",
     },
   },
   {

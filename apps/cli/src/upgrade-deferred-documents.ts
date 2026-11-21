@@ -22,6 +22,7 @@ const DEFERRAL_REASONS: readonly DocumentRouteDeferralReason[] = [
 ];
 const DEFERRAL_RESOLUTIONS: readonly DocumentRouteDeferralResolution[] = [
   "background_classification",
+  "classification_invalid",
   "route_metadata",
   "provider_unavailable",
   "destination_conflict",

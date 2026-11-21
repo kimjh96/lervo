@@ -63,6 +63,7 @@ async function repository() {
         policyVersion: digest("policy"),
       },
       planned,
+      { admitted: true },
     ),
   );
   const storage = {

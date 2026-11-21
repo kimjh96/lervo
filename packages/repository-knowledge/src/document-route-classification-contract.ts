@@ -2,6 +2,12 @@ import type { DecisionTaxonomy } from "@lervo/project";
 
 import { placeableDocumentRoles } from "./document-role-catalog.js";
 import { canonicalJson, sha256 } from "./integrity.js";
+import {
+  nullableReviewEnum,
+  ReviewAnswerInvalidError,
+  reviewReferences,
+} from "./review-references.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 /**
  * ADR-0476 semantic route classification: which configured route or repository document role a
@@ -52,33 +58,8 @@ export const documentRouteClassificationInstruction = [
   "Otherwise choose outcome route with the one configured route whose description best states the document's subject when the document is repository documentation: decisions, specifications, architecture, product, operations, development guidance, or agent instructions.",
   "Choose retain_in_place when the document is not repository documentation: content the application renders or ships to its users, fixtures, templates, data consumed by code, or third-party material.",
   "Choose uncertain when no single route or role fits clearly or the evidence is insufficient; never guess.",
-  "Return one entry per supplied document with its exact path and contentHash, routeId null unless the outcome is route, roleId null unless the outcome is role, and a rationale of one or two sentences grounded in the document.",
+  "Return one entry per supplied document with its document reference and path, routeId null unless the outcome is route, roleId null unless the outcome is role, and a rationale of one or two sentences grounded in the document.",
 ].join(" ");
-
-export const documentRouteClassificationResponseSchema = {
-  type: "object",
-  additionalProperties: false,
-  required: ["classifications"],
-  properties: {
-    classifications: {
-      type: "array",
-      maxItems: MAXIMUM_DOCUMENT_ROUTE_BATCH,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        required: ["path", "contentHash", "outcome", "routeId", "roleId", "rationale"],
-        properties: {
-          path: { type: "string" },
-          contentHash: { type: "string" },
-          outcome: { enum: ["route", "role", "retain_in_place", "uncertain"] },
-          routeId: { type: ["string", "null"] },
-          roleId: { type: ["string", "null"] },
-          rationale: { type: "string", minLength: 20, maxLength: 1024 },
-        },
-      },
-    },
-  },
-} as const;
 
 function routeCatalog(taxonomy: DecisionTaxonomy) {
   return taxonomy.routes.map(({ id, path, description }) => ({ id, path, description }));
@@ -133,11 +114,11 @@ export function createDocumentRouteClassificationRequest(input: {
 }
 
 function validOutcome(
-  entry: Partial<DocumentRouteVerdict>,
+  entry: { outcome?: unknown; routeId?: unknown; roleId?: unknown },
   subject: DocumentRouteSubject,
   routeIds: ReadonlySet<string>,
   roleIds: ReadonlySet<string>,
-): boolean {
+): entry is { outcome: DocumentRouteOutcome; routeId: string | null; roleId: string | null } {
   if (entry.outcome === "route")
     return (
       typeof entry.routeId === "string" && routeIds.has(entry.routeId) && entry.roleId === null
@@ -157,49 +138,96 @@ function validOutcome(
 }
 
 /**
- * Maps a provider response onto every requested document. A missing, duplicated, mismatched, or
- * unknown-route or unknown-role entry becomes `uncertain`, so one malformed answer never moves a
- * document and never leaves it to be asked again for the same bytes.
+ * ADR-0604: one classification request's contract, shared by the provider call and the parser. The
+ * provider sees each document as `d<n>` paired with its path and never its content hash, and the
+ * schema allows only those references and the configured route and role ids. `parse` maps the
+ * references back to the exact path and hash. A well-formed `uncertain` is a verdict; a missing,
+ * duplicated, mismatched, or unknown-route or unknown-role entry throws, so a malformed answer is
+ * never cached or recorded as a verdict.
  */
+export function documentRouteClassificationContract(request: DocumentRouteClassificationRequest) {
+  const documents = reviewReferences(request.documents, {
+    prefix: "d",
+    path: (document) => document.path,
+  });
+  const routeIds = new Set(request.routes.map((route) => route.id));
+  const roleIds = new Set(request.roles.map((role) => role.roleId));
+  const schema = providerOutputSchema({
+    type: "object",
+    additionalProperties: false,
+    required: ["classifications"],
+    properties: {
+      classifications: {
+        type: "array",
+        minItems: request.documents.length,
+        maxItems: request.documents.length,
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["document", "sourcePath", "outcome", "routeId", "roleId", "rationale"],
+          properties: {
+            document: documents.schema,
+            sourcePath: documents.pathSchema,
+            outcome: { enum: ["route", "role", "retain_in_place", "uncertain"] },
+            routeId: nullableReviewEnum([...routeIds]),
+            roleId: nullableReviewEnum([...roleIds]),
+            rationale: { type: "string", minLength: 20, maxLength: 1024 },
+          },
+        },
+      },
+    },
+  });
+  const view = {
+    schemaVersion: request.schemaVersion,
+    contract: request.contract,
+    taxonomyId: request.taxonomyId,
+    routes: request.routes,
+    roles: request.roles,
+    documents: request.documents.map(({ contentHash: _hash, ...document }, index) => ({
+      document: documents.reference(index),
+      ...document,
+    })),
+  };
+  const parse = (value: unknown): DocumentRouteVerdict[] => {
+    const entries = (value as { classifications?: unknown } | null)?.classifications;
+    if (!Array.isArray(entries) || entries.length !== request.documents.length)
+      throw new ReviewAnswerInvalidError("one classification per document is required");
+    const verdicts = new Map<
+      DocumentRouteClassificationRequest["documents"][number],
+      DocumentRouteVerdict
+    >();
+    for (const raw of entries as unknown[]) {
+      const entry = (raw ?? {}) as Record<string, unknown>;
+      const document = documents.resolve(entry.document, entry.sourcePath);
+      const rationale =
+        typeof entry.rationale === "string" ? entry.rationale.trim().slice(0, 1024) : "";
+      if (
+        document === undefined ||
+        verdicts.has(document) ||
+        rationale.length < 20 ||
+        !validOutcome(entry, document.subject, routeIds, roleIds)
+      )
+        throw new ReviewAnswerInvalidError(
+          "a classification names no valid outcome for its document",
+        );
+      verdicts.set(document, {
+        path: document.path,
+        contentHash: document.contentHash,
+        outcome: entry.outcome,
+        routeId: entry.routeId,
+        roleId: entry.roleId,
+        rationale,
+      });
+    }
+    return request.documents.map((document) => verdicts.get(document)!);
+  };
+  return { schema, view, parse };
+}
+
+/** Parses a provider response with the request's contract; it throws on a malformed answer. */
 export function interpretDocumentRouteClassificationResponse(
   request: DocumentRouteClassificationRequest,
   value: unknown,
 ): DocumentRouteVerdict[] {
-  const entries = (value as { classifications?: unknown } | null)?.classifications;
-  const supplied = Array.isArray(entries) ? entries : [];
-  const routeIds = new Set(request.routes.map((route) => route.id));
-  const roleIds = new Set(request.roles.map((role) => role.roleId));
-  return request.documents.map((document) => {
-    const matches = supplied.filter(
-      (entry) =>
-        entry !== null &&
-        typeof entry === "object" &&
-        (entry as { path?: unknown }).path === document.path,
-    ) as Array<Partial<DocumentRouteVerdict>>;
-    const entry = matches.length === 1 ? matches[0]! : null;
-    const rationale =
-      typeof entry?.rationale === "string" ? entry.rationale.trim().slice(0, 1024) : "";
-    const valid =
-      entry !== null &&
-      entry.contentHash === document.contentHash &&
-      rationale.length >= 20 &&
-      validOutcome(entry, document.subject, routeIds, roleIds);
-    return valid
-      ? {
-          path: document.path,
-          contentHash: document.contentHash,
-          outcome: entry.outcome!,
-          routeId: entry.routeId ?? null,
-          roleId: entry.roleId ?? null,
-          rationale,
-        }
-      : {
-          path: document.path,
-          contentHash: document.contentHash,
-          outcome: "uncertain",
-          routeId: null,
-          roleId: null,
-          rationale: "The classifier response did not name one valid outcome for this document.",
-        };
-  });
+  return documentRouteClassificationContract(request).parse(value);
 }

@@ -1,10 +1,6 @@
 import { knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import { readConvergenceOwnerHost } from "./convergence-owner-host.js";
 import {
-  KNOWLEDGE_PUBLICATION_TITLE,
-  renderKnowledgePublicationBody,
-} from "./knowledge-publication-body.js";
-import {
   loadRepositoryKnowledgeOutputFormatter,
   type KnowledgeOutputFormatter,
 } from "./knowledge-output-formatter.js";
@@ -14,17 +10,40 @@ import {
   knowledgePublicationInventoryKey,
   recoverFailedKnowledgePublicationChecks,
 } from "./knowledge-publication-checks.js";
+import type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 import {
-  KnowledgePublicationForgeError,
-  type KnowledgePublicationForge,
-} from "./knowledge-publication-forge.js";
+  knowledgePublicationRetryDelay,
+  PublicationFailure,
+  step,
+} from "./knowledge-publication-failure.js";
+import { openKnowledgePublicationHead } from "./knowledge-publication-head.js";
+import {
+  readKnowledgePublicationHistoryCache,
+  type KnowledgePublicationHistoryCache,
+} from "./knowledge-publication-history.js";
+import {
+  carriedState,
+  observe,
+  readKnowledgePublicationStanding,
+  withoutWait,
+} from "./knowledge-publication-standing.js";
+import {
+  supersedeKnowledgePublication,
+  withoutPullRequest,
+} from "./knowledge-publication-conflict.js";
+import { mergeKnowledgePublication } from "./knowledge-publication-merge.js";
+import { observeBaseChange } from "./knowledge-publication-tracking.js";
+import {
+  knowledgePublicationCarriedDigest,
+  knowledgePublicationWaitDelay,
+  nextKnowledgePublicationWait,
+  sameKnowledgePublicationWait,
+  type KnowledgePublicationWaitKind,
+} from "./knowledge-publication-wait.js";
+import { planKnowledgePublication } from "./knowledge-publication-policy.js";
 import {
   fetchKnowledgePublicationRefs,
   inventoryKnowledgePublication,
-  KnowledgePublicationGitError,
-  type KnowledgePublicationInventory,
-  pushKnowledgePublicationTip,
-  remoteTrackingHead,
   syncLocalBaseAfterPublication,
 } from "./knowledge-publication-git.js";
 import {
@@ -40,25 +59,13 @@ import {
 } from "./knowledge-publication-scope.js";
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 import {
-  MAXIMUM_SUPERSEDED_COMMITS,
   nextKnowledgePublicationFailure,
   readKnowledgePublicationState,
   writeKnowledgePublicationState,
-  type KnowledgePublicationFailureCode,
   type KnowledgePublicationState,
 } from "./knowledge-publication-state.js";
-import { supersedeStaleKnowledgeCommits } from "./knowledge-publication-supersession.js";
-import {
-  reconcileKnowledgeSupersession,
-  recordKnowledgeSupersession,
-} from "./knowledge-supersession.js";
-import {
-  buildKnowledgePublicationTip,
-  equivalentPublishedHead,
-} from "./knowledge-publication-tip.js";
+import { reconcileKnowledgeSupersession } from "./knowledge-supersession.js";
 
-/** While checks run, the resident looks again after this delay instead of its idle backoff. */
-export const KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS = 2 * 60_000;
 /**
  * After superseded commits left the local base branch, the resident runs its next cycle this soon:
  * the moved head changes the source fingerprint, so convergence regenerates the outputs against
@@ -66,41 +73,18 @@ export const KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS = 2 * 60_000;
  */
 export const KNOWLEDGE_PUBLICATION_REQUEUE_DELAY_MS = 5_000;
 
-const SUPERSEDED_COMMENT =
-  "Closed by the Lervo knowledge publisher: these knowledge commits were computed against an older base and conflict with the current base, so they will not be published. Convergence regenerates the affected outputs against the current base, and the next publication opens a new pull request.";
-
 export type KnowledgePublicationOutcome =
   | { status: "disabled" | "not_owner" | "unchanged" }
   | { status: "published"; state: KnowledgePublicationState; retryAfterMs: number | null };
 
-class PublicationFailure extends Error {
-  constructor(
-    readonly code: KnowledgePublicationFailureCode,
-    readonly detail: string | null,
-    options?: ErrorOptions,
-  ) {
-    super(code, options);
-  }
-}
-
-/** Path-free detail of a Git or forge failure: the step, the exit code, and the forge's class. */
-function failureDetail(error: unknown): string | null {
-  if (error instanceof KnowledgePublicationGitError)
-    return `git ${error.stage} exit ${error.exitCode ?? "unknown"}`;
-  if (error instanceof KnowledgePublicationForgeError) return error.detail;
-  return null;
-}
-
-async function step<T>(code: KnowledgePublicationFailureCode, work: () => Promise<T>): Promise<T> {
-  try {
-    return await work();
-  } catch (error) {
-    if (error instanceof PublicationFailure) throw error;
-    throw new PublicationFailure(code, failureDetail(error), { cause: error });
-  }
-}
-
 const PULL_REQUEST_OPEN = new Set(["awaiting_checks", "open"]);
+
+type Progress = {
+  current: KnowledgePublicationState;
+  requeue: boolean;
+  /** Re-keys the history cache once the publication is over; set once GitHub was read. */
+  refresh?: () => Promise<void>;
+};
 
 /**
  * Publishes the convergence owner's settled knowledge commits to one rolling branch and pull
@@ -125,6 +109,9 @@ export async function publishKnowledgeOutputs(input: {
   if (!(await knowledgeOutputCommitGrant(root, now().getTime())).allowed)
     return { status: "not_owner" };
   const previous = await readKnowledgePublicationState(root);
+  const cache = await readKnowledgePublicationHistoryCache(root);
+  // ADR-0607: the local part answers only for this host; the history part, for the repository.
+  const cachedLocal = cache?.local?.hostHash === host.hostHash ? cache.local : null;
   // Superseded commits a replica brought back from another host leave this branch first.
   const supersession = await reconcileKnowledgeSupersession({ repositoryRoot: root, now }).catch(
     () => null,
@@ -132,6 +119,12 @@ export async function publishKnowledgeOutputs(input: {
   const superseded = new Set([
     ...(previous?.supersededCommits ?? []),
     ...(supersession?.entries.map((entry) => entry.commit) ?? []),
+  ]);
+  // ADR-0603: GitHub says what is published; this cache and the legacy local ledger only spare a
+  // cycle that has nothing to ask it, and the next cycle that asks rebuilds them.
+  const published = new Set<string>([
+    ...(cachedLocal?.published ?? []),
+    ...(previous?.publishedCommits ?? []),
   ]);
   const scope = await loadKnowledgePublicationScope(root, settings, now());
   // ADR-0473: tool-owned and out-of-scope paths are restored before anything is published. A
@@ -145,15 +138,34 @@ export async function publishKnowledgeOutputs(input: {
     ...(input.events === undefined ? {} : { events: input.events }),
   }).catch(() => null);
   // Without new local commits or an open pull request there is nothing to ask the remote.
-  const local = await inventoryKnowledgePublication(root, settings, superseded).catch(() => null);
-  if (
+  const local = await inventoryKnowledgePublication(
+    root,
+    settings,
+    new Set([...superseded, ...(cachedLocal?.declined ?? []).flatMap((item) => item.commits)]),
+    published,
+  ).catch(() => null);
+  // ADR-0603: the cache answers only for the host, base and head it was derived for; anything
+  // else, and a merge whose commit the forge had not reported yet, asks GitHub again.
+  const covered =
+    cachedLocal !== null &&
     local !== null &&
+    cachedLocal.base === local.base &&
+    cachedLocal.head === local.head &&
+    cachedLocal.lastMerged?.mergeCommit !== null;
+  if (
+    covered &&
     local.knowledge.length === 0 &&
     previous !== null &&
     !PULL_REQUEST_OPEN.has(previous.status) &&
     previous.status !== "failed"
-  )
+  ) {
+    // ADR-0603: a revert of the last merged publication is noticed without asking the remote.
+    const observed = { ...previous };
+    observe(observed, null, await observeBaseChange(root, local.base, cachedLocal.lastMerged));
+    if (observed.baseChanged?.key !== previous.baseChanged?.key)
+      await writeKnowledgePublicationState(root, observed);
     return { status: "unchanged" };
+  }
   // ADR-0596: failed checks on an unchanged head and inventory wait out their backoff offline.
   if (
     knowledgePublicationChecksWaiting(
@@ -173,9 +185,10 @@ export async function publishKnowledgeOutputs(input: {
     updatedAt: now().toISOString(),
     failure: null,
     supersededCommits: previous?.supersededCommits ?? [],
+    ...carriedState(previous),
   };
   // The latest durable progress, so a failure after the pull request opened keeps its coordinates.
-  const progress = { current: base, requeue: false };
+  const progress: Progress = { current: base, requeue: false };
   let state: KnowledgePublicationState;
   try {
     state = await publish({
@@ -191,42 +204,49 @@ export async function publishKnowledgeOutputs(input: {
       repair,
       previous,
       superseded,
+      published,
+      cache,
       base,
       progress,
       now: now(),
     });
   } catch (error) {
     if (!(error instanceof PublicationFailure)) throw error;
-    state = {
-      ...progress.current,
-      status: "failed",
-      failure: nextKnowledgePublicationFailure(
-        previous?.failure ?? null,
-        error.code,
-        error.detail,
-        base.updatedAt,
-      ),
-    };
+    const failure = nextKnowledgePublicationFailure(
+      previous?.failure ?? null,
+      error.code,
+      error.detail,
+      base.updatedAt,
+    );
+    state = { ...progress.current, status: "failed", failure };
+    // ADR-0603: a failure that can clear on its own is tried again at a backoff deadline; one that
+    // needs a person or a policy change stays attention and waits for a change. The backoff
+    // counts every transient failure in a row, so alternating codes cannot restart it.
+    if (error.transient) {
+      const streak = Math.min((previous?.transientFailures ?? 0) + 1, 1_000_000);
+      state = { ...state, transientFailures: streak };
+      await writeKnowledgePublicationState(root, state);
+      await progress.refresh?.();
+      return {
+        status: "published",
+        state,
+        retryAfterMs: knowledgePublicationRetryDelay(streak),
+      };
+    }
   }
   await writeKnowledgePublicationState(root, state);
+  await progress.refresh?.();
   return {
     status: "published",
     state,
-    retryAfterMs:
-      state.status === "awaiting_checks"
-        ? KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS
-        : progress.requeue
-          ? KNOWLEDGE_PUBLICATION_REQUEUE_DELAY_MS
-          : null,
+    retryAfterMs: progress.requeue
+      ? KNOWLEDGE_PUBLICATION_REQUEUE_DELAY_MS
+      : // ADR-0602: GitHub-side waits look again on a growing schedule, then arm no timer.
+        state.wait !== undefined && PULL_REQUEST_OPEN.has(state.status)
+        ? knowledgePublicationWaitDelay(state.wait)
+        : null,
   };
 }
-
-const withoutPullRequest = (state: KnowledgePublicationState): KnowledgePublicationState => ({
-  ...state,
-  pullRequestNumber: null,
-  pullRequestUrl: null,
-  publishedHead: null,
-});
 
 async function publish(input: {
   root: string;
@@ -238,20 +258,27 @@ async function publish(input: {
   repair: KnowledgePublicationRepairOutcome | null;
   previous: KnowledgePublicationState | null;
   superseded: ReadonlySet<string>;
+  published: Set<string>;
+  cache: KnowledgePublicationHistoryCache | null;
   base: KnowledgePublicationState;
-  progress: { current: KnowledgePublicationState; requeue: boolean };
+  progress: Progress;
   now: Date;
 }): Promise<KnowledgePublicationState> {
   const { root, settings, forge, base } = input;
   await step("knowledge_publication_fetch_failed", () =>
     fetchKnowledgePublicationRefs(root, settings),
   );
-  const inventory = await step("knowledge_publication_fetch_failed", async () => {
-    const value = await inventoryKnowledgePublication(root, settings, input.superseded);
-    if (value === null)
-      throw new PublicationFailure("knowledge_publication_fetch_failed", "base branch absent");
-    return value;
+  const { inventory, recordMerge, refresh } = await readKnowledgePublicationStanding({
+    root,
+    settings,
+    forge,
+    hostHash: input.host.hostHash,
+    superseded: input.superseded,
+    published: input.published,
+    state: base,
+    cache: input.cache,
   });
+  input.progress.refresh = refresh;
   if (inventory.knowledge.length === 0) {
     const number = input.previous?.pullRequestNumber ?? null;
     if (number === null || !PULL_REQUEST_OPEN.has(input.previous?.status ?? "idle"))
@@ -273,7 +300,7 @@ async function publish(input: {
         pullRequestNumber: pullRequest.number,
         pullRequestUrl: pullRequest.url,
       };
-    return afterMerge(root, settings, base);
+    return afterMerge(root, settings, withoutWait(base), input.published);
   }
   const violations = await knowledgePublicationViolations({
     repositoryRoot: root,
@@ -285,50 +312,41 @@ async function publish(input: {
       "knowledge_publication_scope_violation",
       knowledgePublicationViolationDetail(violations, input.repair),
     );
-  const built = await step("knowledge_publication_conflict", async () =>
-    buildKnowledgePublicationTip(root, inventory, await input.formatter()),
-  );
-  if (built.status === "conflict")
-    return supersede({ ...input, inventory, conflictPathCount: built.conflictPathCount });
-  // Unchanged content keeps the published head, so its checks are not restarted.
-  const tip = await step("knowledge_publication_push_failed", async () => {
-    const remoteHead = await remoteTrackingHead(root, settings, settings.branch);
-    const published = await equivalentPublishedHead(root, inventory.base, built.tip, remoteHead);
-    if (published !== null) return published;
-    await pushKnowledgePublicationTip(root, settings, built.tip, remoteHead);
-    return built.tip;
-  });
-  const body = renderKnowledgePublicationBody({
-    commits: inventory.knowledge,
+  // ADR-0603: how to publish comes from the repository's own policy, read before anything is
+  // pushed; a requirement Lervo cannot meet is refused here, never discovered at merge.
+  const plan = planKnowledgePublication(
+    await step("knowledge_publication_pull_request_failed", () =>
+      forge.policy({ base: settings.baseBranch, branch: settings.branch }),
+    ),
     settings,
-    host: input.host,
-    rebuilt: built.replayed,
-    formattedPathCount: built.formattedPathCount,
-  });
-  const pullRequest = await step("knowledge_publication_pull_request_failed", async () => {
-    const existing = await forge.findPullRequest({
-      head: settings.branch,
-      base: settings.baseBranch,
+  );
+  if (plan.status === "refused")
+    throw new PublicationFailure("knowledge_publication_policy_refused", plan.detail, {
+      transient: false,
     });
-    if (existing === null)
-      return forge.createPullRequest({
-        head: settings.branch,
-        base: settings.baseBranch,
-        title: KNOWLEDGE_PUBLICATION_TITLE,
-        body,
-      });
-    if (existing.title !== KNOWLEDGE_PUBLICATION_TITLE || existing.body.trim() !== body.trim())
-      // A stale description never blocks merging reviewed outputs; the next cycle retries it.
-      await forge
-        .updatePullRequest({ number: existing.number, title: KNOWLEDGE_PUBLICATION_TITLE, body })
-        .catch((error: unknown) => {
-          if (!(error instanceof KnowledgePublicationForgeError)) throw error;
-        });
-    return existing;
+  const head = await openKnowledgePublicationHead({
+    root,
+    settings,
+    forge,
+    inventory,
+    formatter: input.formatter,
+    host: input.host,
+    method: plan.merge,
   });
+  if (head.status === "conflict")
+    return supersedeKnowledgePublication({
+      ...input,
+      inventory,
+      conflictPathCount: head.conflictPathCount,
+    });
+  const { tip, pullRequest } = head;
   const retry = currentChecksRetry(input.previous, tip);
+  const carried = knowledgePublicationCarriedDigest(
+    inventory.knowledge.map((commit) => commit.sha),
+  );
+  const waitKey = { pullRequestNumber: pullRequest.number, carried };
   const opened: KnowledgePublicationState = {
-    ...base,
+    ...(sameKnowledgePublicationWait(base.wait, waitKey) ? base : withoutWait(base)),
     ...(retry === undefined ? {} : { checksRetry: retry }),
     status: "open",
     pullRequestNumber: pullRequest.number,
@@ -337,15 +355,28 @@ async function publish(input: {
     commitCount: inventory.knowledge.length,
   };
   input.progress.current = opened;
-  if (settings.merge === "never") return opened;
+  // A person merges; nothing is awaited, so nothing is read again on a timer.
+  if (plan.merge === null) return withoutWait(opened);
+  const waiting = (kind: KnowledgePublicationWaitKind, reason: string) => ({
+    ...opened,
+    status: kind === "review" ? ("open" as const) : ("awaiting_checks" as const),
+    wait: nextKnowledgePublicationWait(opened.wait, {
+      ...waitKey,
+      head: tip,
+      kind,
+      reason,
+      now: input.now,
+    }),
+  });
   const checks = await step("knowledge_publication_pull_request_failed", () =>
     forge.checks({
       number: pullRequest.number,
       headSha: tip,
       ...(settings.checks === undefined ? {} : { ignore: settings.checks.ignore }),
+      ...(plan.requiredChecks.length === 0 ? {} : { required: plan.requiredChecks }),
     }),
   );
-  if (checks.state === "pending") return { ...opened, status: "awaiting_checks" };
+  if (checks.state === "pending") return waiting("checks", checks.reason);
   if (checks.state === "failed") {
     const recovery = await recoverFailedKnowledgePublicationChecks({
       forge,
@@ -354,100 +385,37 @@ async function publish(input: {
       inventory,
       checks,
     });
-    if (recovery.status === "rerun") return recovery.state;
+    if (recovery.status === "rerun") return { ...recovery.state, ...waiting("checks", "rerun") };
     input.progress.current = recovery.state;
     throw new PublicationFailure("knowledge_publication_checks_failed", recovery.detail);
   }
-  const merged = await step("knowledge_publication_merge_failed", () =>
-    forge.merge({ number: pullRequest.number, headSha: tip }).then(
-      () => true,
-      (error: unknown) => {
-        // GitHub can still count a check as running after the rollup reported it finished.
-        if (error instanceof KnowledgePublicationForgeError) {
-          if (error.failureClass === "checks_pending") return false;
-          if (error.failureClass === "checks_failed")
-            throw new PublicationFailure("knowledge_publication_checks_failed", error.detail);
-        }
-        throw error;
-      },
-    ),
-  );
-  if (!merged) return { ...opened, status: "awaiting_checks" };
+  const merged = await mergeKnowledgePublication({
+    forge,
+    number: pullRequest.number,
+    headSha: tip,
+    method: plan.merge,
+  });
+  if (merged.status === "waiting") return waiting(merged.kind, merged.reason);
+  // ADR-0603: the record in the body says the same; a merge commit not reported yet is read again.
+  for (const commit of inventory.knowledge) input.published.add(commit.sha);
+  const done = withoutWait(opened);
+  delete done.baseChanged;
+  input.progress.current = done;
   await step("knowledge_publication_fetch_failed", () =>
     fetchKnowledgePublicationRefs(root, settings),
   );
-  return afterMerge(root, settings, opened);
-}
-
-/**
- * A replay conflict means the commits were computed against stale source bytes. They are never
- * published: they enter the supersession ledger the replica carries to other checkouts, an open
- * publication pull request, which carries only them, is closed, then the local branch is backed
- * up and moved to the remote base when no work can be lost, which requeues convergence there. One `knowledge_publication_superseded` failure records the outcome.
- */
-async function supersede(input: {
-  root: string;
-  settings: KnowledgePublicationSettings;
-  forge: KnowledgePublicationForge;
-  previous: KnowledgePublicationState | null;
-  base: KnowledgePublicationState;
-  progress: { current: KnowledgePublicationState; requeue: boolean };
-  inventory: KnowledgePublicationInventory;
-  conflictPathCount: number;
-}): Promise<KnowledgePublicationState> {
-  const { root, settings, forge, base, inventory } = input;
-  // Recorded first, so a replica drops the same commits on every host even if a later step fails.
-  await step("knowledge_publication_conflict", () =>
-    recordKnowledgeSupersession({
-      repositoryRoot: root,
-      commits: inventory.knowledge.map((commit) => commit.sha),
-      base: inventory.base,
-      supersededAt: base.updatedAt,
-    }),
-  );
-  const open = await step("knowledge_publication_pull_request_failed", () =>
-    forge.findPullRequest({ head: settings.branch, base: settings.baseBranch }),
-  );
-  if (open !== null)
-    await step("knowledge_publication_pull_request_failed", () =>
-      forge.closePullRequest({ number: open.number, comment: SUPERSEDED_COMMENT }),
-    );
-  input.progress.current = withoutPullRequest(base);
-  const { backupRef, localReset } = await step("knowledge_publication_conflict", () =>
-    supersedeStaleKnowledgeCommits(root, settings, inventory),
-  );
-  input.progress.requeue = localReset;
-  const detail = `${input.conflictPathCount} conflicting path(s) in ${inventory.knowledge.length} commit(s); ${
-    localReset
-      ? "local base reset to the remote base and convergence requeued"
-      : "local base kept because it holds other work or moved"
-  }; backup ${backupRef}`;
-  return {
-    ...withoutPullRequest(base),
-    status: "superseded",
-    commitCount: inventory.knowledge.length,
-    failure: nextKnowledgePublicationFailure(
-      input.previous?.failure ?? null,
-      "knowledge_publication_superseded",
-      detail,
-      base.updatedAt,
-    ),
-    supersededCommits: localReset
-      ? []
-      : [
-          ...(base.supersededCommits ?? []),
-          ...inventory.knowledge.map((commit) => commit.sha),
-        ].slice(-MAXIMUM_SUPERSEDED_COMMITS),
-  };
+  recordMerge({ pullRequestNumber: pullRequest.number, mergeCommit: merged.mergeCommit });
+  return afterMerge(root, settings, done, input.published);
 }
 
 async function afterMerge(
   root: string,
   settings: KnowledgePublicationSettings,
   state: KnowledgePublicationState,
+  published: ReadonlySet<string>,
 ): Promise<KnowledgePublicationState> {
   // A failed local catch-up never undoes the merge; the next cycle retries it.
-  const synced = await syncLocalBaseAfterPublication(root, settings).catch(
+  const synced = await syncLocalBaseAfterPublication(root, settings, published).catch(
     () => "diverged" as const,
   );
   return { ...state, status: synced === "diverged" ? "local_diverged" : "merged" };

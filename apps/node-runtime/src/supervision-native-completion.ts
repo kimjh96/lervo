@@ -37,9 +37,10 @@ export async function nativeAssignmentCompletion(
     input.facts.roles
       .find((item) => item.roleId === assignment?.roleId)
       ?.profile.contextPolicy.requiredDocumentRuleIds.includes("research.source-policy") === true;
+  // ADR-0608: the owner never returns the result hash; Lervo binds the single returned result.
   const expectedKeys = researchRequired
-    ? ["assignmentId", "checks", "researchChecks", "resultContentHash", "writingPolicyId"]
-    : ["assignmentId", "checks", "resultContentHash", "writingPolicyId"];
+    ? ["assignmentId", "checks", "researchChecks", "writingPolicyId"]
+    : ["assignmentId", "checks", "writingPolicyId"];
   // Each mismatch names its detail key so the next owner turn corrects it instead of the cycle
   // failing on every attempt without evidence.
   const invalidFields = [
@@ -49,16 +50,12 @@ export async function nativeAssignmentCompletion(
       : []),
     ...(task?.terminalEventId === null ||
     task === undefined ||
+    task.artifactHashes.length !== 1 ||
     assignment?.status !== "leased" ||
     assignment.lease === null ||
     binding === undefined ||
     binding === null
       ? ["assignmentId"]
-      : []),
-    ...(task === undefined ||
-    task.artifactHashes.length !== 1 ||
-    details.resultContentHash !== task.artifactHashes[0]
-      ? ["resultContentHash"]
       : []),
     ...(details.writingPolicyId !== policy.writingPolicyId ? ["writingPolicyId"] : []),
     ...(!Array.isArray(details.checks) ||

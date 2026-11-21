@@ -1,6 +1,8 @@
 import { basename, dirname, resolve, sep } from "node:path";
 
 const replicaRequestName = "repository-replica-request.json";
+/** ADR-0606: a foreground writer's request that the resident looks at its knowledge inputs. */
+export const KNOWLEDGE_RESIDENT_REQUEST_NAME = "knowledge-resident-request.json";
 const gitCoordinateNames = new Set(["HEAD", "index", "packed-refs", "config"]);
 const refreshNames = new Set([".gitignore", "exclude"]);
 
@@ -68,7 +70,7 @@ export function classifyRepositoryChange(
   const name = basename(path);
   const notify =
     parent === scope.state
-      ? name === replicaRequestName
+      ? name === replicaRequestName || name === KNOWLEDGE_RESIDENT_REQUEST_NAME
       : scope.gitRoots.has(parent)
         ? gitCoordinateNames.has(name)
         : scope.directories.has(parent);

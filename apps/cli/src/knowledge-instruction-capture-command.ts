@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
+  requestKnowledgeResidentCycle,
   dismissHeldCapture,
   listQueuedInstructionCaptures,
   instructionCandidateApplyAuthority,
@@ -29,6 +30,8 @@ export async function runKnowledgeInstructionCapture(args: string[], io: CliIo):
     if (!/^kcap_[a-f0-9]{24}$/u.test(parsed.values.dismiss))
       throw new Error("--dismiss requires a capture ID (kcap_...).");
     const dismissed = await dismissHeldCapture(repositoryRoot, parsed.values.dismiss, now);
+    // ADR-0606: a dismissal changes capture state no event records.
+    if (dismissed) await requestKnowledgeResidentCycle(repositoryRoot);
     io.stdout(
       parsed.values.json
         ? `${JSON.stringify({ schemaVersion: 1, captureId: parsed.values.dismiss, dismissed })}\n`

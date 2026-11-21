@@ -7,6 +7,7 @@ import type {
   ManagedConversationTurnResolution,
 } from "./types.js";
 import { ManagedConversationResponseError } from "./types.js";
+import { providerOutputSchema, type ProviderOutputSchema } from "@lervo/schemas";
 
 export interface ManagedTurnBody {
   schemaVersion: 3;
@@ -66,9 +67,9 @@ function effectIds(effects: readonly ManagedConversationSurfaceEffect[]): string
 export function managedConversationTurnOutputSchema(
   effects: readonly ManagedConversationSurfaceEffect[],
   maximumResponseCharacters = 2_000,
-): Record<string, unknown> {
+): ProviderOutputSchema {
   const ids = effectIds(effects);
-  return {
+  return providerOutputSchema({
     type: "object",
     additionalProperties: false,
     properties: {
@@ -109,7 +110,7 @@ export function managedConversationTurnOutputSchema(
       "deliveryRelation",
       "reply",
     ],
-  };
+  });
 }
 
 export function parseManagedConversationTurn(

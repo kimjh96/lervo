@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
 import type { ConversationContextTurn } from "@lervo/conversation-responder";
+import { providerOutputSchema, type ProviderJsonRequest } from "@lervo/schemas";
 
 export type ConversationIntent = "answer" | "continue_work" | "clarify";
 
@@ -144,10 +145,10 @@ export interface ConversationIntentResolver {
 export interface ConversationIntentProviderPort {
   providerId: string;
   model: string | null;
-  resolve(input: unknown): Promise<unknown>;
+  resolve(input: ProviderJsonRequest): Promise<unknown>;
 }
 
-const responseSchema = {
+const responseSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -174,7 +175,7 @@ const responseSchema = {
     },
   },
   required: ["intent", "confidence", "participation", "effect", "executionProfile"],
-} as const;
+} as const);
 
 const instruction = [
   "Classify one conversational turn by meaning and bounded context, never by keyword, prefix, regular expression, alias, or synonym-list matching.",

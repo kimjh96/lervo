@@ -1,3 +1,4 @@
+import { reviewUnlessUsagePaused, expireUsagePause } from "./freshness-usage-pause.js";
 import {
   admitDocumentFreshnessFindings,
   documentFreshnessFindingsDigest,
@@ -21,7 +22,6 @@ import {
   supersedeMovedCandidates,
   resumeVerifiedCandidates,
 } from "./freshness-candidate-recovery.js";
-import { reviewPendingFreshnessAssessment } from "./freshness-assessment.js";
 import { freshnessCrossCheckPending } from "./freshness-cross-check.js";
 import {
   rearmFreshnessCrossChecks,
@@ -129,6 +129,8 @@ export async function runDocumentFreshnessCycle(input: {
     )
   )
     return { status: "unchanged" };
+  // ADR-0604: an ended pause was due this once; written now, since some exits below write nothing.
+  if (expireUsagePause(state, now)) await writeFreshnessCycleState(root, state);
   await pruneFreshnessState(root, now);
   candidates = await recoverFreshnessCandidates(context, await listFreshnessCandidates(root));
   candidates = await supersedeMovedCandidates(context, candidates);
@@ -156,11 +158,10 @@ export async function runDocumentFreshnessCycle(input: {
     pendingAssessment !== undefined &&
     state.budget.tokensUsed + policy.maximumTokensPerCandidate <= policy.maximumTokensPerDay
   ) {
-    const review = await reviewPendingFreshnessAssessment(
-      context,
-      pendingAssessment,
-      policy.maximumTokensPerCandidate,
-    );
+    const review = await reviewUnlessUsagePaused(context, state, pendingAssessment, {
+      now,
+      maximumTokens: policy.maximumTokensPerCandidate,
+    });
     state.budget.tokensUsed += review.tokensObserved;
     if (review.candidate.state === "verified") state.budget.verified += 1;
     const cycleId = stableId("kfcy", [pendingAssessment.candidateId, now.toISOString()]);
@@ -305,6 +306,8 @@ export async function runDocumentFreshnessCycle(input: {
     ),
     debt,
     zeroSuccessHold,
+    // ADR-0604: the usage count and pause outlive the cycle that recorded them.
+    ...(state.usageUnavailable === undefined ? {} : { usageUnavailable: state.usageUnavailable }),
   };
   const payload = {
     cycleId,

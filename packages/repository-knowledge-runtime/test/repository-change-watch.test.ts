@@ -1,3 +1,4 @@
+import { requestKnowledgeResidentCycle } from "../src/knowledge-resident-request.js";
 import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, realpath, rename, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -100,6 +101,21 @@ it("observes nested source edits and replica requests without watching ignored f
       },
       { timeout: 10_000 },
     );
+    // ADR-0606: a foreground command's request that the resident look at its inputs.
+    notify.mockClear();
+    await vi.waitFor(
+      async () => {
+        await requestKnowledgeResidentCycle(root);
+        expect(notify).toHaveBeenCalled();
+      },
+      { timeout: 10_000 },
+    );
+    // Other files the resident itself writes there wake nothing, once the request's own events end.
+    await new Promise((settle) => setTimeout(settle, 500));
+    notify.mockClear();
+    await writeFile(join(root, ".lervo/state/knowledge-resident-cycle.json"), "{}");
+    await new Promise((settle) => setTimeout(settle, 500));
+    expect(notify).not.toHaveBeenCalled();
     expect(watchedUnder(join(root, "cache"))).toEqual([]);
   } finally {
     stop?.();

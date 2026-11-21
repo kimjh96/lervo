@@ -87,3 +87,33 @@ it("reports host identity and verdict without exposing Hub coordinates", async (
   expect(JSON.stringify(forbidden)).not.toContain("/secure/hub-token");
   expect(await run(root, ["owner", "claim"])).toMatchObject({ code: 1 });
 });
+
+it("acknowledges the publication's owner decisions without contacting GitHub (ADR-0603)", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-owner-command-"));
+  roots.push(root);
+  await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
+  const key = `sha256:${"c".repeat(64)}`;
+  await writeFile(
+    resolve(root, ".lervo/state/knowledge/knowledge-publication.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      status: "idle",
+      pullRequestNumber: null,
+      pullRequestUrl: null,
+      publishedHead: null,
+      commitCount: 0,
+      updatedAt: "2026-11-21T00:00:00.000Z",
+      failure: null,
+      declined: [{ pullRequestNumber: 7, commitCount: 2 }],
+      baseChanged: { pullRequestNumber: 6, mergeCommit: "b".repeat(40), paths: 3, key },
+    }),
+  );
+  const acknowledged = await run(root, ["owner", "acknowledge"]);
+  expect(acknowledged.code).toBe(0);
+  expect(JSON.parse(acknowledged.stdout)).toEqual({
+    schemaVersion: 1,
+    baseChange: key,
+    declined: [7],
+  });
+  expect((await run(root, ["owner", "acknowledge", "--bogus"])).code).toBe(1);
+});

@@ -3,9 +3,8 @@ import {
   buildDocumentFreshnessCrossCheckInput,
   canonicalJson,
   documentFreshnessCandidateNeedsCrossCheck,
+  documentFreshnessCrossCheckContract,
   documentFreshnessCrossCheckInstruction,
-  documentFreshnessCrossCheckResponseSchema,
-  parseDocumentFreshnessCrossCheckResponse,
   pendingDocumentFreshnessCrossCheck,
   settleDocumentFreshnessCrossCheck,
   sha256,
@@ -28,7 +27,7 @@ import { writeFreshnessCandidate } from "./freshness-state-store.js";
 export const DOCUMENT_FRESHNESS_CROSS_CHECK_TASK = "document_freshness_cross_check";
 /** Turn-capacity deferrals a pending cross-check survives before it settles as unavailable. */
 const MAXIMUM_CAPACITY_DEFERRALS = 8;
-const ESTIMATED_BYTES_PER_TOKEN = 4;
+export const ESTIMATED_BYTES_PER_TOKEN = 4;
 
 export interface FreshnessCrossCheckResult {
   candidate: DocumentFreshnessCandidateV1;
@@ -163,11 +162,13 @@ async function runFreshnessCrossCheckRound(input: {
     });
   const stored = await readCrossCheckInput(context.storage, review.inputHash);
   if (stored === null) return unavailable("cross_check_input_unavailable");
+  // ADR-0604: the reviewer cites hunks by reference; the parser maps them to exact hunk ids.
+  const contract = documentFreshnessCrossCheckContract(stored.value);
   const remaining = Math.max(0, input.maximumTokens - candidate.tokensObserved);
   const estimated = Math.ceil(
     (stored.bytes +
       Buffer.byteLength(documentFreshnessCrossCheckInstruction, "utf8") +
-      Buffer.byteLength(JSON.stringify(documentFreshnessCrossCheckResponseSchema), "utf8")) /
+      Buffer.byteLength(JSON.stringify(contract.schema), "utf8")) /
       ESTIMATED_BYTES_PER_TOKEN,
   );
   if (estimated > remaining) return unavailable("freshness_budget_exhausted");
@@ -188,7 +189,7 @@ async function runFreshnessCrossCheckRound(input: {
   const result = await generateFreshnessProposal({
     context: roundContext(context, candidate),
     source: {
-      sourceData: stored.value,
+      sourceData: contract.view,
       documents: [
         {
           path: stored.value.document.path,
@@ -202,7 +203,7 @@ async function runFreshnessCrossCheckRound(input: {
     },
     generationId,
     task: DOCUMENT_FRESHNESS_CROSS_CHECK_TASK,
-    responseSchema: documentFreshnessCrossCheckResponseSchema,
+    responseSchema: contract.schema,
     prompt: documentFreshnessCrossCheckInstruction,
   });
   // A call that reached the provider and then failed may have spent tokens: charge the bound.
@@ -231,10 +232,7 @@ async function runFreshnessCrossCheckRound(input: {
   const observed = result.usage.totalTokens;
   if (observed > remaining)
     return unavailable("freshness_budget_exhausted", observed, runId, result.provider);
-  const verdicts = parseDocumentFreshnessCrossCheckResponse(
-    result.value,
-    stored.value.hunks.map((hunk) => hunk.hunkId),
-  );
+  const verdicts = contract.parse(result.value);
   if (verdicts === null)
     return unavailable("cross_check_response_invalid", observed, runId, result.provider);
   return settle({

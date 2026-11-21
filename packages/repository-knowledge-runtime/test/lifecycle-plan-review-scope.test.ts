@@ -15,14 +15,10 @@ vi.mock("../src/provider-call.js", async (importOriginal) => {
   return {
     ...actual,
     reviewKnowledgeJson: async (input: Parameters<typeof actual.reviewKnowledgeJson>[0]) => {
-      const data = input.untrustedSourceData as {
-        planHash: string;
-        sources: { path: string }[];
-      };
+      const data = input.untrustedSourceData as { sources: { path: string }[] };
       reviewed.push({ plan: (data as { plan?: unknown }).plan, sources: data.sources });
       return {
         value: {
-          planHash: data.planHash,
           decision: "approve",
           rationale:
             "The exact lifecycle plan preserves every changed document's meaning, links and user-owned regions.",

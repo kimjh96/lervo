@@ -6,6 +6,7 @@ import type {
 } from "@lervo/schemas";
 import type { AdapterNativeProcessState, ProviderLoginContext } from "@lervo/adapter-contract";
 import type { ProviderFailureDiagnostic } from "@lervo/adapter-contract";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export type CodexApprovalPolicy = "untrusted" | "on-request" | "never";
 export type CodexSandboxMode = "read-only" | "workspace-write" | "danger-full-access";
@@ -43,7 +44,8 @@ export interface CodexTurn {
 }
 
 export interface CodexTurnStartOptions {
-  outputSchema?: Record<string, unknown>;
+  /** ADR-0608: only a schema `providerOutputSchema` checked. */
+  outputSchema?: ProviderOutputSchema;
   reasoningEffort?: CodexReasoningEffort;
 }
 
@@ -85,7 +87,8 @@ export interface CodexAdapterOptions {
   sandbox?: CodexSandboxMode;
   executable?: string;
   requestTimeoutMs?: number;
-  structuredOutputSchema?: Record<string, unknown>;
+  /** ADR-0608: only a schema `providerOutputSchema` checked. */
+  structuredOutputSchema?: ProviderOutputSchema;
   reasoningEffort?: CodexReasoningEffort;
   clientFactory?: CodexAppServerClientFactory;
   resolveArtifact?: (uri: string) => Promise<Uint8Array>;

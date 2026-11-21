@@ -1,3 +1,6 @@
+import type { ProviderJsonRequest } from "@lervo/repository-knowledge";
+
+export type { ProviderJsonRequest };
 type Provider = "codex" | "claude";
 
 /** Capability counters a no-capability provider run must report as zero. */
@@ -25,9 +28,9 @@ export interface CreateProcessProviderOptions {
 
 export interface NoCapabilityProviderJsonRunner {
   provider: Provider;
-  resolve(input: unknown, signal?: AbortSignal): Promise<unknown>;
+  resolve(input: ProviderJsonRequest, signal?: AbortSignal): Promise<unknown>;
   resolveObserved?(
-    input: unknown,
+    input: ProviderJsonRequest,
     signal?: AbortSignal,
   ): Promise<{
     value: unknown;

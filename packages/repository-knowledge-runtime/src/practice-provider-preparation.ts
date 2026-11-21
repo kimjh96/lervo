@@ -7,13 +7,14 @@ import type { InstructionCaptureContext } from "./instruction-capture-assessment
 import { acquireKnowledgeProviderAdmission } from "./provider-admission.js";
 import { admittedBackgroundContext } from "./background-provider.js";
 import { reservePracticeBudget, releaseUnattemptedPracticeBudget } from "./practice-budget.js";
+import type { ProviderOutputSchema, ProviderJsonRequest } from "@lervo/schemas";
 
 export interface PracticeProviderRequest {
   context: InstructionCaptureContext;
   kind: "assessment" | "draft" | "review";
   key: string;
   data: unknown;
-  schema: unknown;
+  schema: ProviderOutputSchema;
   prompt: string;
   beforeCall?(): Promise<void>;
 }
@@ -45,7 +46,7 @@ export async function preparePracticeProvider(input: PracticeProviderRequest) {
       task: `practice_${input.kind}`,
       responseContract: { schemaVersion: 1, schema: input.schema },
       untrustedData: input.data,
-    };
+    } satisfies ProviderJsonRequest;
     const reservation = await reservePracticeBudget({
       projectId: context.storage.manifest.projectId,
       kind: input.kind,
