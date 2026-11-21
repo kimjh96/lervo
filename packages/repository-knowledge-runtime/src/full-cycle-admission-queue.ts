@@ -37,7 +37,7 @@ async function rowAlive(row: { owner_pid?: unknown; presence?: unknown }): Promi
 export interface AdmissionAttempt {
   admitted: boolean;
   /** The holder's presence and lease expiry while it holds; null when free. */
-  holder: { presence: string | null; expiresAt: number } | null;
+  holder: { nonce: string; presence: string | null; expiresAt: number } | null;
   /** The presence of the waiter just ahead, if any. */
   ahead: string | null;
   /** A holder or waiter of an earlier release is present, which only a retry can observe. */
@@ -134,6 +134,7 @@ function tryAcquire(
       holder:
         held && holder !== undefined
           ? {
+              nonce: String(holder.nonce),
               presence: typeof holder.presence === "string" ? holder.presence : null,
               expiresAt: Number(holder.expires_at),
             }

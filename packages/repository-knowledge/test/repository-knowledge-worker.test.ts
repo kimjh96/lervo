@@ -90,6 +90,7 @@ async function queuedChange(
         policyVersion: digest("policy"),
       },
       planned,
+      { admitted: true },
     ),
   );
   return { root, events, artifacts: artifacts as never };
@@ -144,6 +145,7 @@ async function queuedFiles(files: Record<string, string>) {
         policyVersion: digest("policy"),
       },
       planned,
+      { admitted: true },
     ),
   );
   return { root, events, artifacts: artifacts as never };

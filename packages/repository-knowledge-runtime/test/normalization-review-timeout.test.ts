@@ -15,8 +15,8 @@ vi.mock("../src/provider-call.js", async (importOriginal) => {
   return {
     ...actual,
     reviewKnowledgeJson: async (input: Parameters<typeof actual.reviewKnowledgeJson>[0]) => {
-      const items = (input.untrustedSourceData as { candidate?: { items?: unknown[] } }).candidate
-        ?.items;
+      const items = (input.untrustedSourceData as { candidate?: { documents?: unknown[] } })
+        .candidate?.documents;
       // The installed failure: every review of a multi-document batch outran the runner timeout.
       if (input.task === "independent_normalization_review" && (items?.length ?? 0) > 1) {
         timedOutBatches.push((items as { sourcePath: string }[]).map((item) => item.sourcePath));

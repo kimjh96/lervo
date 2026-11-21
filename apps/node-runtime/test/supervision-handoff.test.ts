@@ -18,6 +18,7 @@ import { SupervisionPeerCatalog } from "../src/supervision-peer-catalog.js";
 import { NodeSupervisionStore } from "../src/supervision-store.js";
 import { canonicalOwnerReasoningFacts } from "../src/supervision-reasoning-context.js";
 import { nativeScopedHandoff } from "../src/supervision-native-handoff.js";
+import { bindOwnerDecisionReferences } from "../src/supervision-reasoning-references.js";
 import { supervisionFixture } from "./supervision.fixture.js";
 
 const roots: string[] = [];
@@ -120,24 +121,39 @@ it.each(["team_support", "central_escalation"] as const)(
                 tasks,
                 f.ports.now,
               );
-              const details =
+              // ADR-0608: the owner cites references; Lervo binds them to the same exact hashes.
+              const { evidenceArtifactHashes: _evidence, ...cited } = request;
+              const decided =
+                effect.kind === "work.scoped_handoff_acceptance"
+                  ? { handoffReference: "h1" }
+                  : {
+                      recipientProjectId: recipient.owner.projectId,
+                      request: { ...cited, evidenceReferences: [] },
+                    };
+              const operation =
+                effect.kind === "work.scoped_handoff_acceptance"
+                  ? ("accept_team_support" as const)
+                  : purpose === "central_escalation"
+                    ? ("escalate" as const)
+                    : ("request_team_support" as const);
+              expect(facts.handoffs.pendingIncoming).toEqual(
+                effect.kind === "work.scoped_handoff_acceptance" ? [effect.handoffHash] : [],
+              );
+              const details = bindOwnerDecisionReferences(operation, decided, facts)!;
+              expect(details).toEqual(
                 effect.kind === "work.scoped_handoff_acceptance"
                   ? { handoffHash: effect.handoffHash }
-                  : { recipientProjectId: recipient.owner.projectId, request };
+                  : { recipientProjectId: recipient.owner.projectId, request },
+              );
               const nativeInput = {
                 storage,
                 facts,
                 base: admitted,
                 decision: {
                   schemaVersion: 1 as const,
-                  operation:
-                    effect.kind === "work.scoped_handoff_acceptance"
-                      ? ("accept_team_support" as const)
-                      : purpose === "central_escalation"
-                        ? ("escalate" as const)
-                        : ("request_team_support" as const),
+                  operation,
                   rationale,
-                  details: JSON.stringify(details),
+                  details: JSON.stringify(decided),
                 },
                 reasoningPlanHash: operatingContractHash("controlled native proposal"),
                 resultArtifactHash: operatingContractHash("controlled native response"),

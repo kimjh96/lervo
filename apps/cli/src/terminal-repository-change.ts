@@ -4,6 +4,7 @@ import {
   appendRepositoryChange,
   planRepositoryChangeInRepository,
   type PlannedRepositoryChange,
+  type RepositoryKnowledgeJobAdmission,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
 import type { OutboxTransaction } from "@lervo/storage-contract";
@@ -70,8 +71,10 @@ export function appendTerminalRepositoryChange(
     provider: TerminalIntegrationProvider;
     occurredAt: string;
     change: PlannedRepositoryChange;
+    /** ADR-0605: whether this host holds knowledge jobs; the event is appended either way. */
+    admission: RepositoryKnowledgeJobAdmission;
   },
-): void {
+): boolean {
   const {
     type: _type,
     payload: _payload,
@@ -85,5 +88,5 @@ export function appendTerminalRepositoryChange(
     occurredAt: input.occurredAt,
     payload: {},
   });
-  appendRepositoryChange(transaction, draft, input.change);
+  return appendRepositoryChange(transaction, draft, input.change, input.admission).enqueued;
 }

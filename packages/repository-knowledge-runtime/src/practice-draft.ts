@@ -1,11 +1,8 @@
 import {
   canonicalJson,
-  parseReusablePractice,
   practiceReviewValid,
   renderPracticeSkill,
-  reusablePracticeSchema,
   sha256,
-  type PracticeReview,
 } from "@lervo/repository-knowledge";
 import type { InstructionCaptureContext } from "./instruction-capture-assessment.js";
 import type { PracticeCandidate, PracticeState } from "./practice-state.js";
@@ -18,37 +15,11 @@ import { writePracticeState } from "./practice-store.js";
 import { resolve } from "node:path";
 import { loadRepositoryKnowledgeOutputFormatter } from "./knowledge-output-formatter.js";
 import { assertPracticeEvidenceDisclosure } from "./practice-evidence-disclosure.js";
-
-const draftSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    overlap: { enum: ["already_covered", "partial_overlap", "conflict", "new"] },
-    targetSkill: { type: ["string", "null"] },
-    practice: { anyOf: [{ type: "null" }, reusablePracticeSchema] },
-  },
-  required: ["overlap", "targetSkill", "practice"],
-} as const;
-const reviewSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    draftHash: { type: "string" },
-    evidenceHashes: { type: "array", items: { type: "string" } },
-    targetHash: { type: ["string", "null"] },
-    catalogDigest: { type: "string" },
-    decision: { enum: ["accept", "reject"] },
-    reasonCode: { enum: ["accepted", "not_reusable", "duplicate", "incomplete", "ungrounded"] },
-  },
-  required: [
-    "draftHash",
-    "evidenceHashes",
-    "targetHash",
-    "catalogDigest",
-    "decision",
-    "reasonCode",
-  ],
-} as const;
+import {
+  practiceCatalogView,
+  practiceDraftContract,
+  practiceReviewContract,
+} from "./practice-review-contract.js";
 
 export async function draftOrReviewPractice(
   context: InstructionCaptureContext,
@@ -92,6 +63,11 @@ export async function draftOrReviewPractice(
   if (candidate.state === "unresolved") return;
   if (candidate.state === "assessed") {
     if (candidate.reason === "conflict" && candidate.catalogDigest === catalog.digest) return;
+    // ADR-0604: the drafter names a target by reference and path; the contract maps it back.
+    const contract = practiceDraftContract({
+      catalog: disclosePracticeCatalog(catalog),
+      evidencePaths: evidence.flatMap((e) => e.procedure.sourcePaths),
+    });
     const drafted = await withPracticeProviderAssignment({
       context,
       role: "generator",
@@ -101,62 +77,36 @@ export async function draftOrReviewPractice(
       kind: "draft",
       beforeCall: assertDisclosure,
       key: candidate.candidateId,
-      data: {
-        evidence,
-        shapeObservationCount,
-        catalog: disclosePracticeCatalog(catalog),
-      },
-      schema: draftSchema,
+      data: { evidence, shapeObservationCount, catalog: contract.view },
+      schema: contract.schema,
       prompt:
-        "Use shapeObservationCount as a ranking and confidence signal, never proof or a prerequisite. Compare this practice semantically with every installed skill and applied rule. Choose already_covered (no change), partial_overlap (a delta to the named skill), conflict (hold both sources), or new. Name a target only from the catalog. Draft one complete procedure only for new or partial_overlap. Merge equivalent practices regardless of their names. Distinguish verified parts from assumptions. Cite only supplied repository paths. Do not invent capabilities.",
-      resolve: (result, authority) => {
-        const value = result as { overlap?: unknown; targetSkill?: unknown; practice?: unknown };
-        if (
-          !["already_covered", "partial_overlap", "conflict", "new"].includes(
-            String(value?.overlap),
-          )
-        )
-          throw new TypeError("Invalid practice overlap.");
-        return {
-          value,
-          agentId: authority.agent.agentId,
-          sessionId: authority.assignment.lease!.sessionId,
-        };
-      },
+        "Use shapeObservationCount as a ranking and confidence signal, never proof or a prerequisite. Compare this practice semantically with every installed skill and applied rule. Choose already_covered (no change), partial_overlap (a delta to the named skill), conflict (hold both sources), or new. Name a target skill only by its catalog target reference and path, and null for both otherwise; partial_overlap needs one and new allows none. Draft one complete procedure only for new or partial_overlap, and null otherwise. Merge equivalent practices regardless of their names. Distinguish verified parts from assumptions. Cite only supplied repository paths. Do not invent capabilities.",
+      resolve: (result, authority) => ({
+        value: contract.parse(result),
+        agentId: authority.agent.agentId,
+        sessionId: authority.assignment.lease!.sessionId,
+      }),
     });
-    const value = drafted.value;
+    const answer = drafted.value;
     candidate.catalogDigest = catalog.digest;
-    if (value.overlap === "already_covered") {
+    if (answer.overlap === "already_covered") {
       candidate.state = "reviewed_rejected";
       candidate.reason = "duplicate";
       practiceFunnel(state, context.now(), "drafted", "already_covered");
       return;
     }
-    const target =
-      typeof value.targetSkill === "string"
-        ? catalog.skills.find((s) => s.name === value.targetSkill)
-        : undefined;
-    if (value.overlap === "partial_overlap" && !target)
-      throw new TypeError("Invalid practice target.");
-    if (value.overlap === "new" && value.targetSkill !== null)
-      throw new TypeError("Unexpected practice target.");
-    candidate.overlap = value.overlap as PracticeCandidate["overlap"];
+    const target = answer.target;
+    candidate.overlap = answer.overlap;
     candidate.targetSkill = target?.name ?? null;
     candidate.targetHash = target?.contentHash ?? null;
     candidate.targetOwned = target?.owned ?? false;
-    if (value.overlap === "conflict") {
+    if (answer.overlap === "conflict") {
       candidate.state = "unresolved";
       candidate.reason = "conflict";
       practiceFunnel(state, context.now(), "drafted", "conflict");
       return;
     }
-    const procedure = parseReusablePractice(value.practice);
-    if (
-      !procedure ||
-      (target && procedure.name !== target.name) ||
-      procedure.sourcePaths.some((p) => !evidence.some((e) => e.procedure.sourcePaths.includes(p)))
-    )
-      throw new TypeError("Ungrounded practice draft.");
+    const procedure = answer.practice;
     if (!target && catalog.skills.some((s) => s.name === procedure.name))
       throw new Error("target_changed");
     candidate.draft = renderPracticeSkill(procedure);
@@ -201,6 +151,7 @@ export async function draftOrReviewPractice(
     targetHash: candidate.targetHash,
     catalogDigest: catalog.digest,
   };
+  const contract = practiceReviewContract(binding);
   const review = await withPracticeProviderAssignment({
     context,
     role: "reviewer",
@@ -217,23 +168,22 @@ export async function draftOrReviewPractice(
     beforeCall: assertDisclosure,
     key: candidate.candidateId,
     data: {
-      binding,
       draft: candidate.draft,
       evidence,
-      catalog: disclosePracticeCatalog(catalog),
+      catalog: practiceCatalogView(disclosePracticeCatalog(catalog)),
       shapeObservationCount,
     },
-    schema: reviewSchema,
+    // ADR-0604: the reviewer answers a verdict only; Lervo attaches the exact binding at parse.
+    schema: contract.schema,
     prompt:
-      "Use shapeObservationCount as a confidence signal, never proof or a prerequisite. Independently review the exact skill draft against the retained sanitized evidence bundle and catalog. Check invocation and exclusion conditions, practical knowledge beyond existing rules and skills, inputs, preconditions, confirmation, stop conditions, verified steps versus assumptions, grounding, secrets, host-specific values and absence of capabilities. Echo every supplied binding. Accept exactly or reject with not_reusable, duplicate, incomplete, or ungrounded. Do not defer review to the owner.",
+      "Use shapeObservationCount as a confidence signal, never proof or a prerequisite. Independently review the exact skill draft against the retained sanitized evidence bundle and catalog. Check invocation and exclusion conditions, practical knowledge beyond existing rules and skills, inputs, preconditions, confirmation, stop conditions, verified steps versus assumptions, grounding, secrets, host-specific values and absence of capabilities. Accept exactly with accepted, or reject with not_reusable, duplicate, incomplete, or ungrounded. Do not defer review to the owner.",
     resolve: (value, authority) => {
-      const review = {
-        ...(value as PracticeReview),
-        reviewerAgentId: authority.agent.agentId,
-        reviewerSessionId: authority.assignment.lease!.sessionId,
-      };
+      const review = contract.parse(value, {
+        agentId: authority.agent.agentId,
+        sessionId: authority.assignment.lease!.sessionId,
+      });
+      // Independence of the reviewer from the drafter, checked again on the bound review.
       if (
-        !Array.isArray(review.evidenceHashes) ||
         !practiceReviewValid({
           expected: binding,
           review,

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { CodexStdioAppServerClient } from "../src/index.js";
 import { codexStoredLoginEnvironment } from "../src/index.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 /**
  * The CI test input recorder's own variables (ADR-0565), when a ledger is being recorded. A child
@@ -70,12 +71,12 @@ describe("Codex stdio app-server client", () => {
     ]);
     const turn = await client.startTurn(thread.threadId, "fixture task", {
       reasoningEffort: "low",
-      outputSchema: {
+      outputSchema: providerOutputSchema({
         type: "object",
         properties: { evidenceTokens: { type: "array", items: { type: "string" } } },
         required: ["evidenceTokens"],
         additionalProperties: false,
-      },
+      }),
     });
     const controller = new AbortController();
     const iterator = client.notifications(controller.signal)[Symbol.asyncIterator]();

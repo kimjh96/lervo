@@ -56,8 +56,10 @@ describe("standalone resident practice lifecycle", () => {
     };
     provider.mockImplementation(async (input) => {
       if (input.kind === "assessment") return { practice };
-      if (input.kind === "draft") return { overlap: "new", targetSkill: null, practice };
-      return { ...input.data.binding, decision: "accept", reasonCode: "accepted" };
+      // ADR-0604: answers carry references and verdicts only; Lervo binds every hash itself.
+      if (input.kind === "draft")
+        return { overlap: "new", target: null, targetPath: null, practice };
+      return { decision: "accept", reasonCode: "accepted" };
     });
     for (let cycle = 0; cycle < 4; cycle++) await runPracticeLearningCycle(context, "write");
     const settled = await readPracticeState(f.root);

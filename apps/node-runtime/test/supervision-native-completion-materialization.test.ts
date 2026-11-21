@@ -126,7 +126,6 @@ async function completion(scenario: Scenario) {
     input,
     {
       assignmentId,
-      resultContentHash: contentHash,
       writingPolicyId: writingContract.writingPolicyId,
       checks,
     },
@@ -142,7 +141,9 @@ async function readText(artifacts: FileSystemCas, contentHash: string) {
 }
 
 it("prepares an on-time accepted writing verdict as a v1 completion", async () => {
-  const { output, artifacts, assignment, rationaleArtifactHash } = await completion({ now: 60 });
+  const { output, artifacts, assignment, contentHash, rationaleArtifactHash } = await completion({
+    now: 60,
+  });
   expect(output.fields.effectContract).toBe("work.assignment_completion.v1");
   expect(output.effect).toMatchObject({
     schemaVersion: 1,
@@ -164,6 +165,8 @@ it("prepares an on-time accepted writing verdict as a v1 completion", async () =
     status: "allowed",
     semanticEvaluationStatus: "completed",
   });
+  // ADR-0608: the decision carries no result hash; Lervo binds the single returned result.
+  expect(writing.artifact.contentHash).toBe(contentHash);
 });
 
 it("turns a failed writing judgement into a rework review instead of a completion", async () => {

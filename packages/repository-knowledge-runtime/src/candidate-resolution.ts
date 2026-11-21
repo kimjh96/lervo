@@ -15,9 +15,8 @@ import { loadCanonicalReviewContext } from "./review-context.js";
 import { convergenceSourceBytes } from "./source-capture.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import {
+  candidateReviewContract,
   candidateReviewPrompt,
-  candidateReviewSchema,
-  parseCandidateReview,
   type CandidateReview,
 } from "./candidate-review-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -107,6 +106,8 @@ export async function resolveConvergenceCandidates(
       paths,
       assertLease,
       run: async (authority) => {
+        // ADR-0604: the reviewer cites references; the contract maps them back to exact hashes.
+        const contract = candidateReviewContract({ candidates, documents, priorDeferral: retry });
         const observed = await reviewKnowledgeJson({
           context,
           state,
@@ -117,18 +118,17 @@ export async function resolveConvergenceCandidates(
           },
           prompt: candidateReviewPrompt,
           task: "canonical_candidate_resolution",
-          schema: candidateReviewSchema,
+          schema: contract.schema,
+          accept: contract.parse,
           contextDocuments: documents,
           contextSkips,
           untrustedSourceData: {
-            candidates,
+            ...contract.view,
             sources,
-            context: documents,
             canonicalCoverage: state.stageData.canonicalCoverage,
-            ...(retry === null ? {} : { priorDeferral: retry }),
           },
         });
-        const decisions = parseCandidateReview(observed.value, candidates, documents);
+        const decisions = contract.parse(observed.value);
         const deferred = decisions.find((decision) => decision.decision === "defer");
         if (deferred !== undefined && retry === null)
           return completeConvergenceStage({

@@ -48,6 +48,7 @@ import {
   createConversationReadOnlyRole,
   provisionConversationWritingPolicy,
 } from "./conversation-read-policy.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export interface ManagedConversationRepositoryResources {
   captureSnapshot: CaptureRepositorySnapshot;
@@ -176,7 +177,7 @@ export async function openManagedConversationReadResponder(input: {
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
-      structuredOutputSchema?: Record<string, unknown>;
+      structuredOutputSchema?: ProviderOutputSchema;
       executionProfile?: NodeRepositoryWorkExecutionProfile;
     }) => {
       const route = responseRoute(adapterInput.executionProfile);
@@ -238,7 +239,7 @@ export async function openManagedConversationReadResponder(input: {
           executionProfile?: NodeRepositoryWorkExecutionProfile;
         };
       },
-      structuredOutputSchema?: Record<string, unknown>,
+      structuredOutputSchema?: ProviderOutputSchema,
     ) => {
       const runId = id("run");
       const sessionId = id("ses");

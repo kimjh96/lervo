@@ -18,6 +18,14 @@ function evidenceBoundary(locale: string): string {
     : "Use only the canonical documents and shared deliberation publications injected by Lervo. Do not inspect the repository, filesystem, terminal, or tools directly.";
 }
 
+/**
+ * ADR-0608: the parts of a deliberation prompt Lervo did not write: the owner's topic and the
+ * role's own name and perspective, which every prompt here embeds.
+ */
+export function deliberationPromptUntrusted(topic: string, role: PromptRole): string[] {
+  return [topic, role.name, role.description];
+}
+
 export function proposalPrompt(topic: string, role: PromptRole, locale: string): string {
   const language = deliberationLanguageFor(locale);
   if (language.locale === "ko") {

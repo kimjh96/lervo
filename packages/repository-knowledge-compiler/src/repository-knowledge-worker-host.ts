@@ -13,6 +13,7 @@ import {
   type RepositoryKnowledgeReviewJob,
   type RepositoryKnowledgeReviewSource,
   type RepositoryKnowledgeWorkerHost,
+  providerOutputSchema,
 } from "@lervo/repository-knowledge";
 
 import type { KnowledgeReviewCallGovernor } from "./knowledge-review-governance.js";
@@ -35,7 +36,7 @@ const systemPrompt = [
   'Return only JSON of the form {"classification":"implementation_only|canonical_change_candidate|needs_review"}.',
 ].join(" ");
 
-const responseSchema = {
+const responseSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -44,7 +45,7 @@ const responseSchema = {
     },
   },
   required: ["classification"],
-} as const;
+} as const);
 
 /**
  * The no-capability review host: a private process with no tools, fed only bounded text. Without a

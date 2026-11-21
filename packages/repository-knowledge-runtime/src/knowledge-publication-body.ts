@@ -1,4 +1,6 @@
 import type { KnowledgePublicationCommit } from "./knowledge-publication-git.js";
+import { renderKnowledgePublicationRecord } from "./knowledge-publication-history.js";
+import type { KnowledgePublicationMergeMethod } from "./knowledge-publication-policy.js";
 import type { KnowledgePublicationSettings } from "./knowledge-publication-settings.js";
 
 export const KNOWLEDGE_PUBLICATION_TITLE = "docs: publish reviewed background knowledge";
@@ -16,9 +18,17 @@ function origin(commit: KnowledgePublicationCommit): string {
     : `freshness candidate \`${freshness}\``;
 }
 
+const METHOD_WORDS: Record<KnowledgePublicationMergeMethod | "queue", string> = {
+  merge: "with a merge commit",
+  squash: "as one squashed commit",
+  rebase: "by rebasing its commits",
+  queue: "through the base branch's merge queue, which uses its own method,",
+};
+
 /**
  * The pull request body for one publication. It follows `.github/PULL_REQUEST_TEMPLATE.md`
- * section by section, starts at H2, and checks only the items the publisher itself verified.
+ * section by section, starts at H2, and checks only the items the publisher itself verified. It
+ * ends with the publication record (ADR-0603), which says what this pull request carries.
  */
 export function renderKnowledgePublicationBody(input: {
   commits: readonly KnowledgePublicationCommit[];
@@ -27,6 +37,10 @@ export function renderKnowledgePublicationBody(input: {
   rebuilt: boolean;
   /** Paths the publisher's own formatting commit changed; 0 when none was needed. */
   formattedPathCount?: number;
+  /** The head pushed for this publication. */
+  head: string;
+  /** How the publisher merges, from the repository's policy; null when a person merges. */
+  method: KnowledgePublicationMergeMethod | "queue" | null;
 }): string {
   const formatted = input.formattedPathCount ?? 0;
   const { commits, settings, host } = input;
@@ -37,8 +51,8 @@ export function renderKnowledgePublicationBody(input: {
       ? "the active convergence delegation's canonical and normalization roots or Lervo-managed knowledge state"
       : settings.allowedRoots.map((root) => `\`${root}\``).join(" and ");
   const merge =
-    settings.merge === "when_checks_pass"
-      ? "The publisher merges this pull request with a merge commit after every reported check succeeds, and only while its head is still the commit it pushed."
+    input.method !== null
+      ? `The publisher merges this pull request ${METHOD_WORDS[input.method]} after every reported check succeeds, and only while its head is still the commit it pushed.`
       : "The publisher does not merge. A person reviews and merges this pull request.";
   return [
     "## Summary",
@@ -82,7 +96,7 @@ export function renderKnowledgePublicationBody(input: {
     "",
     "## Risk and recovery",
     "",
-    "If a check fails or the push is refused, the publisher leaves this pull request open, stops merging, and records one `knowledge_publication` attention item on the owner host. If these commits stop applying to the current base, the publisher closes this pull request instead of publishing stale outputs, and convergence regenerates them. To undo a merged output, revert its merge commit. The next convergence cycle then reviews the affected documents again.",
+    "If a check fails or the push is refused, the publisher leaves this pull request open, stops merging, and records one `knowledge_publication` attention item on the owner host. If these commits stop applying to the current base, the publisher closes this pull request instead of publishing stale outputs, and convergence regenerates them. Closing this pull request without merging is your decision: Lervo does not reopen it or publish these commits again, and reports it as attention. To undo a merged output, revert its merge commit. The next convergence cycle then reviews the affected documents again.",
     "",
     "## Checklist",
     "",
@@ -95,6 +109,11 @@ export function renderKnowledgePublicationBody(input: {
     "- [ ] Affected documentation and roadmap completion criteria are current.",
     "- [ ] Relevant tests, `pnpm quality:check`, and required Lervo migration/lint checks pass.",
     "- [ ] No secret, mutable credential, or unsupported authority is included.",
+    "",
+    renderKnowledgePublicationRecord({
+      head: input.head,
+      commits: commits.map((commit) => commit.sha),
+    }),
     "",
   ].join("\n");
 }

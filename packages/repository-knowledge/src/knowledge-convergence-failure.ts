@@ -73,6 +73,8 @@ export function normalizedConvergenceFailure(error: unknown): string {
     "knowledge_compile_failed",
     "knowledge_compile_policy_violation",
     "normalization_selection_invalid",
+    // ADR-0604: stale normalization regeneration did not converge; attention, never retried.
+    "normalization_candidate_stale_repeated",
     "knowledge_source_unsafe",
     "knowledge_unit_extraction_failed",
     "knowledge_rollback_failed",

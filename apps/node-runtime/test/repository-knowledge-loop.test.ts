@@ -58,6 +58,7 @@ it("settles a queued repository change from the Node loop", async () => {
         policyVersion: digest("policy"),
       },
       planned,
+      { admitted: true },
     ),
   );
   const failures: unknown[] = [];

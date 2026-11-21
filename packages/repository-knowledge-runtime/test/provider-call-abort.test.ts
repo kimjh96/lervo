@@ -7,6 +7,7 @@ import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
 import { reviewKnowledgeJson, withKnowledgeProviderAdmission } from "../src/provider-call.js";
 import type { ConvergenceAssignmentAuthority } from "../src/workforce.js";
 import type { ConvergenceRuntimeContext } from "../src/stage-context.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 vi.mock("@lervo/repository-knowledge-compiler", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@lervo/repository-knowledge-compiler")>()),
@@ -97,9 +98,11 @@ it.each([
       budget: { batchId: "batch", maximumCalls: 3 },
       prompt: "Review the exact sources.",
       task: "canonical_baseline_assessment",
-      schema: {},
+      schema: providerOutputSchema({}),
       untrustedSourceData: {},
       contextDocuments: [],
+      // ADR-0604: these calls are aborted; any answer would be accepted as it is.
+      accept: (value: unknown) => value,
     }).then(
       (value) => ({ value }),
       (error: unknown) => ({ error }),
@@ -170,9 +173,10 @@ it("ends the source poll, including one in flight, before the exact fence and it
     budget: { batchId: "batch", maximumCalls: 3 },
     prompt: "Review the exact sources.",
     task: "canonical_baseline_assessment",
-    schema: {},
+    schema: providerOutputSchema({}),
     untrustedSourceData: {},
     contextDocuments: [],
+    accept: (value: unknown) => value,
   });
   await vi.advanceTimersByTimeAsync(12_000);
   await outcome;
@@ -280,9 +284,10 @@ it("abandons a convergence provider call once an upgrade waits and discards its 
     budget: { batchId: "batch", maximumCalls: 3 },
     prompt: "Review the exact sources.",
     task: "canonical_baseline_assessment",
-    schema: {},
+    schema: providerOutputSchema({}),
     untrustedSourceData: {},
     contextDocuments: [],
+    accept: (value: unknown) => value,
   }).then(
     (value) => ({ value }),
     (error: unknown) => ({ error }),

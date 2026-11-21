@@ -61,6 +61,8 @@ export async function prepareManagedResearchContext(input: {
     registry,
     documentRules: { "research.source-policy": ids },
     instructions: researchBriefInstructions(prepared.inputs),
+    // ADR-0608: the prepared inputs hold the question and source text; the rest is Lervo's.
+    untrustedInstructions: [canonicalJson(prepared.inputs)],
     inputs: prepared.inputs,
     binding: {
       contractId: "research.inputs.v1",

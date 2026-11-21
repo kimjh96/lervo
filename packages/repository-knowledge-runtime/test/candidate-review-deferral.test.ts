@@ -75,7 +75,8 @@ it(
     // One review, one regeneration with the deferral as evidence, and then no further review.
     expect(calls.map((call) => call.request.untrustedSourceData?.priorDeferral ?? null)).toEqual([
       null,
-      expect.objectContaining({ candidateId: candidate!.candidateId }),
+      // ADR-0604: the deferral names the candidate by its reference, never its identifier.
+      expect.objectContaining({ candidate: "k1" }),
     ]);
     await run(f);
     expect(

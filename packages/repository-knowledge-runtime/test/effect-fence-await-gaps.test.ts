@@ -139,8 +139,8 @@ vi.mock("../src/provider-call.js", async (load) => {
   return {
     ...actual,
     reviewKnowledgeJson: async (input: Parameters<typeof actual.reviewKnowledgeJson>[0]) => {
-      const items = (input.untrustedSourceData as { candidate?: { items?: unknown[] } }).candidate
-        ?.items;
+      const items = (input.untrustedSourceData as { candidate?: { documents?: unknown[] } })
+        .candidate?.documents;
       if (
         plan.edit === "normalization_timeout" &&
         input.task === "independent_normalization_review" &&

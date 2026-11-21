@@ -360,6 +360,15 @@ export const adapterTurnRequestSchema = {
     providerSessionId: { type: "string", minLength: 1 },
     targetTurnId: { type: "string", minLength: 1 },
     instructions: { type: "string", minLength: 1 },
+    /**
+     * ADR-0608: the parts of `instructions` Lervo did not write (the owner's task, role and skill
+     * text, repository or conversation data). Adapters check the rest for a request to copy a hash.
+     */
+    untrustedInstructions: {
+      type: "array",
+      maxItems: 1024,
+      items: { type: "string", minLength: 1 },
+    },
     requestedAt: timestampSchema,
   },
   required: [

@@ -115,6 +115,11 @@ export interface ManagedProviderRunInput {
   requestDigest: string;
   risk: string;
   instructions: string;
+  /**
+   * ADR-0608: the parts of `instructions` Lervo did not write: the owner's task, role and skill
+   * text, and repository or conversation data. Everything else is checked as Lervo's own words.
+   */
+  untrustedInstructions?: readonly string[];
   targetTurnId: string;
   context: Omit<
     ManagedPrepareContextInput,

@@ -41,7 +41,7 @@ it.each(["passed", "failed"] as const)(
     if(instructions.includes("Act as the registered product owner.")) {
       const context=JSON.parse(instructions.slice(instructions.lastIndexOf("\\n\\n")+2));
       const task=context.facts.tasks.assignments[0];
-      const details={assignmentId:task.assignmentId,resultContentHash:task.artifactHashes[0],writingPolicyId:context.facts.writingContract.writingPolicyId,
+      const details={assignmentId:task.assignmentId,writingPolicyId:context.facts.writingContract.writingPolicyId,
         checks:context.facts.writingContract.verification.semanticChecks.filter(item=>item.required).map(item=>({checkId:item.checkId,status:"passed",violationCount:0})),
         researchChecks:[{checkId:"research.citation-integrity",status:"${verdict}"},{checkId:"research.claim-support",status:"${verdict}"}]};
       await appendFile(${JSON.stringify(log)},"independent-review\\n");

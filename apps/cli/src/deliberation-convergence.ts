@@ -3,7 +3,11 @@ import { DeliberationRuntime, type DeliberationTurnResult } from "@lervo/deliber
 import type { DeliberationPolicy } from "@lervo/schemas";
 
 import { createConvergedOutcome, createNoConsensusOutcome } from "./deliberation-contract.js";
-import { decisionPrompt, verificationPrompt } from "./deliberation-prompts.js";
+import {
+  decisionPrompt,
+  verificationPrompt,
+  deliberationPromptUntrusted,
+} from "./deliberation-prompts.js";
 import type { DeliberationExecutionPlan, DeliberationParticipant } from "./deliberation-roles.js";
 import {
   executeWithPublicationRepair,
@@ -51,6 +55,10 @@ export async function completeApprovedDeliberation(input: {
       instructions: verificationInstructions,
       execute: (instructions) =>
         input.runner.execute({
+          untrustedInstructions: deliberationPromptUntrusted(
+            input.request.topic.trim(),
+            input.verifier.role,
+          ),
           provider: input.verifier.provider,
           role: input.verifier.role,
           instructions,
@@ -132,6 +140,10 @@ export async function completeApprovedDeliberation(input: {
     ),
     execute: (instructions) =>
       input.runner.execute({
+        untrustedInstructions: deliberationPromptUntrusted(
+          input.request.topic.trim(),
+          input.proposer.role,
+        ),
         provider: input.proposer.provider,
         role: input.proposer.role,
         instructions,

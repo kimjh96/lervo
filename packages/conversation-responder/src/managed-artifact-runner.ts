@@ -1,3 +1,4 @@
+import { providerJsonTurnUntrusted } from "@lervo/schemas";
 import {
   createCachedRepositorySnapshotCapture,
   ManagedProviderRunCoordinator,
@@ -51,6 +52,12 @@ export class ManagedConversationArtifactRunner {
       requestDigest: input.requestDigest,
       risk: "low",
       instructions: input.instructions,
+      // ADR-0608: a conversation turn's data fields are not Lervo's words; its rules are.
+      untrustedInstructions: providerJsonTurnUntrusted(input.instructions, [
+        "task",
+        "instruction",
+        "requirements",
+      ]),
       targetTurnId: input.plan.targetTurnId,
       context: {
         registry: input.plan.registry,

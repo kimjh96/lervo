@@ -58,6 +58,7 @@ async function queueChange(f: Awaited<ReturnType<typeof fixture>>, files: Record
         policyVersion: digest("policy"),
       },
       planned,
+      { admitted: true },
     ),
   );
 }

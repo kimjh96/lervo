@@ -246,6 +246,10 @@ describe("explicit durable-instruction intake (ADR-0561)", () => {
     expect(await listQueuedInstructionCaptures(other)).toEqual([
       expect.objectContaining({ captureId: disagreed.result!.captureId, retained: true }),
     ]);
+    // ADR-0606: the queue appends no event, so the command asks the resident to look.
+    await expect(
+      readFile(resolve(other, ".lervo/state/knowledge-resident-request.json"), "utf8"),
+    ).resolves.toContain('"schemaVersion":1');
     await expect(access(resolve(other, "docs/instructions/generated"))).rejects.toMatchObject({
       code: "ENOENT",
     });

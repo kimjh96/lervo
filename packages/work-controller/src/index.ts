@@ -88,7 +88,9 @@ export {
 } from "./owner-spend-allowance.js";
 export { supervisedOwnerReasoningFields } from "./supervised-owner-reasoning.js";
 export {
+  OWNER_REASONING_OPERATIONS,
   ownerReasoningDecisionSchema,
+  ownerReasoningDecisionSchemaFor,
   parseOwnerReasoningDecision,
 } from "./owner-reasoning-decision.js";
 export {

@@ -1,6 +1,7 @@
 import { loadProjectManifest } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
 import {
+  acknowledgeKnowledgePublicationAttention,
   readConvergenceOwnerFence,
   readConvergenceOwnerHost,
   readKnowledgePublicationState,
@@ -13,13 +14,17 @@ import {
 } from "./knowledge-convergence-ownership.js";
 import type { CliIo } from "./types.js";
 
-const usage = "Usage: lervo knowledge convergence owner <status|release|publish> [--json]\n";
+const usage =
+  "Usage: lervo knowledge convergence owner <status|release|publish|acknowledge> [--json]\n";
+const ACTIONS = new Set(["status", "release", "publish", "acknowledge"]);
 
 /**
  * `status` reports this host's identity, latest ownership verdict, and publication state without
  * contacting the Hub or GitHub. `release` hands a held Hub lease to a peer: this host yields for
  * one lease lifetime. `publish` runs one knowledge publication now, as the owner's resident does
- * after each cycle.
+ * after each cycle. `acknowledge` keeps the owner decisions the publisher reports, a base change
+ * of the last merged publication and pull requests closed without merge, without their attention
+ * (ADR-0603); Lervo still never publishes those commits.
  */
 export async function runKnowledgeConvergenceOwnerCommand(
   args: readonly string[],
@@ -27,7 +32,8 @@ export async function runKnowledgeConvergenceOwnerCommand(
 ): Promise<number> {
   const action = args[0];
   if (
-    (action !== "status" && action !== "release" && action !== "publish") ||
+    action === undefined ||
+    !ACTIONS.has(action) ||
     args.slice(1).some((arg) => arg !== "--json")
   ) {
     io.stderr(usage);
@@ -65,6 +71,15 @@ export async function runKnowledgeConvergenceOwnerCommand(
               ),
         publication: await readKnowledgePublicationState(io.cwd),
       });
+      return 0;
+    }
+    if (action === "acknowledge") {
+      print(
+        await acknowledgeKnowledgePublicationAttention(
+          io.cwd,
+          await readKnowledgePublicationState(io.cwd),
+        ),
+      );
       return 0;
     }
     const storage = await openProjectStorage(io.cwd);

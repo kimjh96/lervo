@@ -81,9 +81,10 @@ it("accounts for every candidate once across moved, retained, and deferred outco
     documents,
   });
   const value = {
-    classifications: request.documents.map((document) => ({
-      path: document.path,
-      contentHash: document.contentHash,
+    // ADR-0604: the classifier cites each document by its reference and path.
+    classifications: request.documents.map((document, index) => ({
+      document: `d${index + 1}`,
+      sourcePath: document.path,
       outcome: document.path === "TRACE.md" ? "route" : "uncertain",
       routeId: document.path === "TRACE.md" ? "operations" : null,
       roleId: null,

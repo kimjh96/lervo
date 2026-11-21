@@ -25,6 +25,10 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
+  assertProviderOutputSchemaForSource,
+  assertProviderPromptAsksNoHashCopy,
+  assertProviderTurnAsksNoHashCopy,
+  providerWireSchema,
 } from "@lervo/schemas";
 
 import {
@@ -378,6 +382,16 @@ export class CodexAdapter implements ProviderAdapter {
         "The Codex turn has already started or is still active.",
       );
     }
+    // ADR-0608: the output schema may name or offer nothing this turn's data holds, and Lervo's
+    // own base instructions may not ask to copy a hash.
+    if (this.options.structuredOutputSchema !== undefined)
+      assertProviderOutputSchemaForSource(
+        this.options.structuredOutputSchema,
+        request.instructions,
+      );
+    if (this.options.baseInstructions !== undefined)
+      assertProviderPromptAsksNoHashCopy(this.options.baseInstructions);
+    assertProviderTurnAsksNoHashCopy(request.instructions, request.untrustedInstructions);
     const providerTurn = await state.client.startTurn(
       session.providerSessionId,
       request.instructions,
@@ -387,7 +401,8 @@ export class CodexAdapter implements ProviderAdapter {
           : { reasoningEffort: this.options.reasoningEffort }),
         ...(this.options.structuredOutputSchema === undefined
           ? {}
-          : { outputSchema: structuredClone(this.options.structuredOutputSchema) }),
+          : // ADR-0608: checked before the turn; sent without reference-kind marks.
+            { outputSchema: providerWireSchema(this.options.structuredOutputSchema) }),
       },
     );
     state.activeProviderTurnId = providerTurn.turnId;

@@ -1,5 +1,6 @@
 import type { TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 import {
+  requestKnowledgeResidentCycle,
   enqueueInstructionCapture,
   listQueuedInstructionCaptures,
   readPrecedingAgentTurn,
@@ -37,6 +38,8 @@ export async function queueTerminalOwnerTurn(input: {
     precedingAgentTurn,
     now: input.now,
   });
+  // ADR-0606: the queue appends no event, so the resident is asked to look at it.
+  if (result.status === "queued") await requestKnowledgeResidentCycle(input.root);
   return result.status === "queued" || result.status === "already_queued";
 }
 

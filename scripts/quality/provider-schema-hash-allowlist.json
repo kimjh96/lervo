@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "scope": ["apps", "packages", "scripts"],
+  "nonProviderScopes": [
+    {
+      "path": "packages/schemas/src",
+      "reason": "Event, record and report validation schemas that Lervo writes and validates itself; no provider answers with them. A cast to the brand, its key or a parsed schema is still refused here."
+    }
+  ],
+  "entries": [],
+  "constructions": [
+    {
+      "path": "packages/discord-gateway/src/driver.ts",
+      "symbol": "hello",
+      "reason": "The Discord gateway identify payload has a `properties` field (os, browser, device) that Discord defines; it is sent to Discord, never to a provider as an output schema."
+    },
+    {
+      "path": "scripts/natural-language-evaluation/lexical-v2-provider-comparison-contract.mjs",
+      "symbol": "lexicalV2ProviderOutputSchema",
+      "reason": "An offline natural-language evaluation harness schema that names no hash; the Claude adapter checks it against each turn's data before the turn starts."
+    },
+    {
+      "path": "scripts/natural-language-evaluation/lexical-v2-provider-comparison-contract.mjs",
+      "symbol": "lexicalV2ProviderOutputSchemaV2",
+      "reason": "An offline natural-language evaluation harness schema that names no hash; the Claude adapter checks it against each turn's data before the turn starts."
+    },
+    {
+      "path": "scripts/natural-language-evaluation/linked-evidence-provider-shadow-pilot-v2-policy.mjs",
+      "symbol": "createProviderShadowV2StructuredSelectionSchema",
+      "reason": "An offline evaluation pilot whose measured variable is whether a model returns the exact lervo-e4 evidence markers it was shown; its results are evaluation data, never stored knowledge or publication."
+    },
+    {
+      "path": "scripts/release/lib/cli-release-sbom.mjs",
+      "symbol": "rootComponent",
+      "reason": "A CycloneDX SBOM component's `properties` list, which the release writes for package consumers; it is never sent to a provider."
+    },
+    {
+      "path": "scripts/release/lib/cli-release-sbom.mjs",
+      "symbol": "sbom",
+      "reason": "A CycloneDX SBOM component's `properties` list, which the release writes for package consumers; it is never sent to a provider."
+    },
+    {
+      "path": "scripts/release/lib/cli-release-sbom.mjs",
+      "symbol": "createCliReleaseSbom",
+      "reason": "A CycloneDX SBOM component's `properties` list, which the release writes for package consumers; it is never sent to a provider."
+    },
+    {
+      "path": "scripts/release/lib/cli-terminal-hook-components.mjs",
+      "symbol": "terminalHookComponents",
+      "reason": "A CycloneDX SBOM component's `properties` list, which the release writes for package consumers; it is never sent to a provider."
+    },
+    {
+      "path": "scripts/quality/lib/provider-schema-hashes.mjs",
+      "symbol": "visit",
+      "reason": "The provider schema scan names the brand's key only to refuse it everywhere else."
+    },
+    {
+      "path": "scripts/quality/lib/eslint-provider-schema-any-rule.mjs",
+      "symbol": "BRAND",
+      "reason": "The lint rule names the brand's key only to find the types that carry it and refuse an `any` value there."
+    }
+  ]
+}

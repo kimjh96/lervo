@@ -106,7 +106,7 @@ async function pendingReview(
   }
 }
 
-function emptyIntakeSummary(): RepositoryKnowledgeIntakeSummary {
+export function emptyRepositoryKnowledgeIntakeSummary(): RepositoryKnowledgeIntakeSummary {
   return { skippedPathCount: 0, skippedReasons: [], subJobIndex: null, subJobCount: 0 };
 }
 
@@ -240,7 +240,8 @@ async function recheckSuccess(
   }
 }
 
-function claimNext(
+/** Claims the next queued job, new jobs before re-queued ones. */
+export function claimRepositoryKnowledgeJob(
   events: OutboxStore,
   workerId: string,
   claimedAt: string,
@@ -280,7 +281,7 @@ export async function processRepositoryKnowledgeJobs(input: {
   const outcomes: RepositoryKnowledgeJobOutcome[] = [];
   const intakePolicy = await loadKnowledgeIntakePolicy(input.repositoryRoot);
   for (let index = 0; index < (input.maximumJobs ?? 8); index++) {
-    const delivery = claimNext(
+    const delivery = claimRepositoryKnowledgeJob(
       input.events,
       input.workerId,
       now().toISOString(),
@@ -288,7 +289,7 @@ export async function processRepositoryKnowledgeJobs(input: {
     );
     if (delivery === undefined) break;
     let outcome: TerminalOutcome;
-    const summary = emptyIntakeSummary();
+    const summary = emptyRepositoryKnowledgeIntakeSummary();
     const assertLease = () =>
       assertRepositoryKnowledgeJobLease({ events: input.events, delivery, now: now() });
     try {

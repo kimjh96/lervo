@@ -2,11 +2,12 @@ import type {
   SemanticWritingEvaluationRequest,
   SemanticWritingEvaluationResponse,
 } from "@lervo/writing";
+import { providerOutputSchema, type ProviderOutputSchema } from "@lervo/schemas";
 
 export function providerSemanticEvaluationSchema(
   request: SemanticWritingEvaluationRequest,
-): Record<string, unknown> {
-  return {
+): ProviderOutputSchema {
+  return providerOutputSchema({
     type: "object",
     additionalProperties: false,
     required: ["checks"],
@@ -27,7 +28,7 @@ export function providerSemanticEvaluationSchema(
         },
       },
     },
-  };
+  });
 }
 
 export function parseProviderSemanticEvaluation(

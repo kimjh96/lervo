@@ -16,6 +16,7 @@ import type { ManagedSearchContextSummary } from "./repository-context.js";
 import type { LocalProviderWritingEvaluatorInput } from "./managed-writing-evaluator.js";
 import type { PreparedRunVerification } from "./run-verification.js";
 import type { GroundProductionRequest } from "./semantic-grounding.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export type RunProvider = "codex" | "claude";
 
@@ -69,7 +70,7 @@ export interface ManagedRunDependencies {
     provider: RunProvider;
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
-    structuredOutputSchema?: Record<string, unknown>;
+    structuredOutputSchema?: ProviderOutputSchema;
     executable?: string;
   }): ProviderAdapter;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;

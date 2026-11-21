@@ -53,9 +53,10 @@ export async function reviewedBatches(f: ConvergenceFixture) {
   return (await providerRequests(f))
     .filter((request) => request.task === "independent_normalization_review")
     .map((request) =>
-      (request.untrustedSourceData!.candidate as { items: { sourcePath: string }[] }).items.map(
-        (item) => item.sourcePath,
-      ),
+      // ADR-0604: the reviewer sees the candidate's documents by reference.
+      (
+        request.untrustedSourceData!.candidate as { documents: { sourcePath: string }[] }
+      ).documents.map((document) => document.sourcePath),
     );
 }
 
@@ -78,7 +79,7 @@ export async function rejectWhen(
     f.executable,
     script.replace(
       "console.log(JSON.stringify({is_error:false",
-      `if(request.task==='independent_normalization_review'){for(const decision of response.decisions){const item=data.candidate.items.find(source=>source.operationId===decision.operationId);if(${normalization}){decision.decision='reject';decision.checks.links=false;decision.rationale='The link to runtime.md#local-runtime loses its anchor in this rewrite.';}}}
+      `if(request.task==='independent_normalization_review'){for(const decision of response.decisions){const item=data.candidate.documents.find(source=>source.document===decision.document);if(${normalization}){decision.decision='reject';decision.checks.links=false;decision.rationale='The link to runtime.md#local-runtime loses its anchor in this rewrite.';}}}
 if(request.task==='independent_canonical_review'&&(${canonical})){response.decision='reject';response.rationale='The workset claims coverage for docs/specs/b.md that no exact canonical quotation supports.';}
 console.log(JSON.stringify({is_error:false`,
     ),

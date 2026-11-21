@@ -23,6 +23,7 @@ import {
   readSupervisionTextArtifact,
 } from "./supervision-artifact-json.js";
 import { inspectOwnerReasoning } from "./supervision-reasoning-receipt.js";
+import { boundResultDetails } from "./supervision-reasoning-references.js";
 import { prepareSupervisionResearchEvaluation } from "./supervision-research-evaluation.js";
 import { readSupervisionResearchEvidence } from "./supervision-research-evidence.js";
 import {
@@ -89,11 +90,13 @@ export async function readAssignmentCompletionEffect(
   if (
     decision.operation !== "prepare_completion" ||
     details.assignmentId !== effect.responsibility.assignmentId ||
-    Object.keys(details).sort().join(",") !==
-      (roleEvaluationHash !== null
-        ? "assignmentId,checks,researchChecks,resultContentHash,writingPolicyId"
-        : "assignmentId,checks,resultContentHash,writingPolicyId") ||
-    details.resultContentHash !== writing.artifact.contentHash ||
+    !boundResultDetails(
+      details,
+      roleEvaluationHash !== null
+        ? "assignmentId,checks,researchChecks,writingPolicyId"
+        : "assignmentId,checks,writingPolicyId",
+      writing.artifact.contentHash,
+    ) ||
     details.writingPolicyId !== context.facts.writingContract.writingPolicyId ||
     writing.publication.status !== "allowed" ||
     writing.publication.semanticEvaluationStatus !== "completed" ||

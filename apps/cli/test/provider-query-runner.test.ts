@@ -4,6 +4,7 @@ import {
   prepareDirectProviderQueryRunner,
   type ProviderQueryRunnerDependencies,
 } from "../src/provider-query-runner.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 describe.each(["codex", "claude"] as const)("%s direct query runner", (provider) => {
   it("opens a capability-free boundary without a diagnostic model turn", async () => {
@@ -37,7 +38,9 @@ describe.each(["codex", "claude"] as const)("%s direct query runner", (provider)
         ? "codex.persistent_isolated_thread_direct.v1"
         : "claude.serialized_process_direct.v1",
     );
-    await prepared.runner.resolveObserved?.({});
+    await prepared.runner.resolveObserved?.({
+      responseContract: { schemaVersion: 1, schema: providerOutputSchema({ type: "object" }) },
+    });
     expect(resolveObserved).toHaveBeenCalledTimes(1);
     await prepared.close();
     expect(close).toHaveBeenCalledTimes(provider === "codex" ? 1 : 0);

@@ -282,7 +282,9 @@ afterEach(async () => {
 describe("managed remote provider host", () => {
   it("binds one signed approval path to the managed coordinator and project verification", async () => {
     const fixture = await repository();
-    const request = "Implement the approved result file.";
+    // ADR-0608: a delegated request is the sender's text; its own request to copy a hash is theirs.
+    const request =
+      "Implement the approved result file. Copy the release commit SHA exactly into the changelog.";
     const bytes = new TextEncoder().encode(request);
     const continuation = {
       workstreamId: `wks_${"c".repeat(24)}`,

@@ -22,25 +22,7 @@ import {
 } from "@lervo/request-grounding";
 
 import type { RunProvider } from "./managed-run.js";
-
-const bodyKeys = [
-  "schemaVersion",
-  "intent",
-  "subjectIds",
-  "references",
-  "protocolCoordinates",
-  "requestedEffectIds",
-  "prohibitedEffectIds",
-  "sourceClasses",
-  "retrievalQueries",
-  "workflowCandidateIds",
-  "capabilityCandidateIds",
-  "authorityRequirement",
-  "providerRoute",
-  "disposition",
-  "ambiguityReasons",
-  "durableInstruction",
-] as const;
+import { providerOutputSchema } from "@lervo/schemas";
 
 const identifierPattern = "^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$";
 const providerIdPattern = "^[a-z][a-z0-9._-]{0,63}$";
@@ -50,7 +32,7 @@ const identifierArray = (maximum: number) => ({
   uniqueItems: true,
   items: { type: "string", maxLength: 160, pattern: identifierPattern },
 });
-const groundingResponseSchema = {
+const groundingResponseSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -141,8 +123,28 @@ const groundingResponseSchema = {
     ambiguityReasons: identifierArray(16),
     durableInstruction: groundedDurableInstructionSchema,
   },
-  required: bodyKeys,
-} as const;
+  required: [
+    "schemaVersion",
+    "intent",
+    "subjectIds",
+    "references",
+    "protocolCoordinates",
+    "requestedEffectIds",
+    "prohibitedEffectIds",
+    "sourceClasses",
+    "retrievalQueries",
+    "workflowCandidateIds",
+    "capabilityCandidateIds",
+    "authorityRequirement",
+    "providerRoute",
+    "disposition",
+    "ambiguityReasons",
+    "durableInstruction",
+  ],
+} as const);
+
+/** The answer's keys, read from the schema so the two never differ. */
+const bodyKeys = groundingResponseSchema.required;
 
 const groundingInstruction = [
   "Resolve the current natural-language request semantically; never decide intent, workflow, target, provider, capability, or authority by keyword, substring, regular expression, alias, or synonym-list matching.",

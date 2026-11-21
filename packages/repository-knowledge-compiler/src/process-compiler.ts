@@ -39,6 +39,9 @@ import {
   sha256,
   type DocumentNormalizationResponse,
   type RepositoryDocumentNormalizationCompiler,
+  assertProviderOutputSchemaForSource,
+  assertProviderPromptAsksNoHashCopy,
+  providerWireSchema,
 } from "@lervo/repository-knowledge";
 
 import type {
@@ -49,6 +52,7 @@ import type {
 export type {
   CreateProcessProviderOptions,
   NoCapabilityProviderJsonRunner,
+  ProviderJsonRequest,
   ProviderJsonUsage,
 } from "./process-provider-contract.js";
 import { runNoCapabilityProcess } from "./provider-invocation-call.js";
@@ -79,12 +83,25 @@ export async function createNoCapabilityProviderJsonRunner(
   const resolveObserved = async (input: unknown, signal?: AbortSignal) => {
     const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-json-`));
     try {
-      const prompt = canonicalJson(input);
+      const prompt = canonicalJson(providerWireRequest(input));
       const responseContractSchema = providerResponseContractSchema(input);
+      // ADR-0608: the schema crossed into this process as JSON, without its brand, so it is
+      // checked whole, and against this request's own data, before it leaves for the provider.
+      try {
+        assertProviderOutputSchemaForSource(responseContractSchema, {
+          ...(input as Record<string, unknown>),
+          responseContract: null,
+        });
+        assertProviderPromptAsksNoHashCopy(options.systemPrompt ?? "", ...lervoAuthoredText(input));
+      } catch (error) {
+        throw compileFailure(
+          `The provider JSON runner response schema copies source data: ${(error as Error).message}`,
+        );
+      }
+      // Checked above as built; the provider receives it without reference-kind marks.
+      const wireSchema = providerWireSchema(responseContractSchema);
       const responseSchema =
-        options.provider === "codex"
-          ? providerNativeResponseSchema(responseContractSchema)
-          : responseContractSchema;
+        options.provider === "codex" ? providerNativeResponseSchema(wireSchema) : wireSchema;
       const responseSchemaJson = canonicalJson(responseSchema);
       const codexResponseSchemaPath = resolve(directory, "response-schema.json");
       if (options.provider === "codex") {
@@ -187,13 +204,23 @@ export async function createProcessDocumentNormalizationCompiler(
   > = async (envelope, signal) => {
     const directory = await mkdtemp(resolve(tmpdir(), `lervo-${options.provider}-normalization-`));
     try {
+      const instruction = documentNormalizationPromptInstruction(envelope);
+      // ADR-0608: the normalization call is checked like every other, against its own envelope.
+      try {
+        assertProviderOutputSchemaForSource(documentNormalizationResponseSchema, envelope);
+        assertProviderPromptAsksNoHashCopy(documentNormalizationInstruction, instruction);
+      } catch (error) {
+        throw compileFailure(
+          `The document normalization response schema copies source data: ${(error as Error).message}`,
+        );
+      }
       const prompt = canonicalJson({
-        instruction: documentNormalizationPromptInstruction(envelope),
-        responseSchema: documentNormalizationResponseSchema,
+        instruction,
+        responseSchema: providerWireSchema(documentNormalizationResponseSchema),
         envelope,
       });
       const responseSchemaJson = canonicalJson(
-        providerNativeResponseSchema(documentNormalizationResponseSchema),
+        providerNativeResponseSchema(providerWireSchema(documentNormalizationResponseSchema)),
       );
       const codexResponseSchemaPath = resolve(directory, "response-schema.json");
       if (options.provider === "codex")
@@ -260,3 +287,26 @@ export async function createProcessDocumentNormalizationCompiler(
 }
 
 export const documentNormalizationProviderResponseSchema = documentNormalizationResponseSchema;
+
+/**
+ * ADR-0608: the request's own words, which Lervo wrote: every string field outside the response
+ * contract and the untrusted data a request carries.
+ */
+function lervoAuthoredText(input: unknown): string[] {
+  if (input === null || typeof input !== "object") return [];
+  return Object.entries(input as Record<string, unknown>)
+    .filter(([key, value]) => typeof value === "string" && !/^untrusted/iu.test(key))
+    .map(([, value]) => value as string);
+}
+
+/** The request as the provider reads it: its response schema without reference-kind marks. */
+function providerWireRequest(value: unknown): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+  const request = value as Record<string, unknown>;
+  const contract = request.responseContract as Record<string, unknown> | undefined;
+  if (contract === null || typeof contract !== "object" || !("schema" in contract)) return value;
+  return {
+    ...request,
+    responseContract: { ...contract, schema: providerWireSchema(contract.schema) },
+  };
+}

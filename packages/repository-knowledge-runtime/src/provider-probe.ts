@@ -15,6 +15,7 @@ import {
   settleKnowledgeProviderProbe,
 } from "./provider-admission.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 /** Explicitly requested native observation: one capability-free call, shared admission, observed usage and exact nonce. */
 export async function probeKnowledgeProviderAvailability(input: {
@@ -74,12 +75,12 @@ export async function probeKnowledgeProviderAvailability(input: {
         task: "knowledge_provider_availability_probe",
         responseContract: {
           schemaVersion: 1,
-          schema: {
+          schema: providerOutputSchema({
             type: "object",
             additionalProperties: false,
             properties: { nonce: { type: "string" } },
             required: ["nonce"],
-          },
+          }),
         },
         untrustedSourceData: { nonce },
       },

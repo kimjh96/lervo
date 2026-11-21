@@ -9,6 +9,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { acquireFullCycleAdmission, onHeldAdmissionSignal } from "../src/full-cycle-admission.js";
 import { nextAdmissionPoll } from "../src/full-cycle-admission-store.js";
+import { observedHolder } from "../src/full-cycle-admission-wait.js";
 
 const directories: string[] = [];
 afterEach(async () => {
@@ -257,6 +258,36 @@ it("keeps its heartbeat fresh while an earlier release's waiter queues behind it
   } finally {
     db.close();
   }
+}, 30_000);
+
+it("admits at an earlier release's holder's lease expiry, not after a long retry delay", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  await (
+    await acquireFullCycleAdmission({ repositoryRoot: "/repo/a", signal, directory: admission })
+  ).release();
+  // A live holder of an earlier release: no presence, a lease that ends in 1.5 seconds.
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  const expiresAt = Date.now() + 1_500;
+  db.prepare("INSERT INTO holder VALUES(1,?,?,?,?,?)").run(
+    process.pid,
+    "earlier",
+    "sha256:earlier",
+    Date.now(),
+    expiresAt,
+  );
+  db.close();
+  const started = Date.now();
+  // A retry delay far past the lease: only the lease's expiry can admit this waiter in time.
+  const waiting = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/b",
+    signal,
+    directory: admission,
+    pollMilliseconds: 8_000,
+  });
+  expect(Date.now()).toBeGreaterThanOrEqual(expiresAt);
+  expect(Date.now() - started).toBeLessThan(4_000);
+  await waiting.release();
 }, 30_000);
 
 it("answers the holder's queue checks while another process writes (ADR-0576)", async () => {
@@ -571,3 +602,17 @@ it(
     }
   },
 );
+
+it("keeps the holder it last saw when lock contention hides it, so the retry is not reset", () => {
+  const held = (nonce: string) => ({
+    admitted: false,
+    holder: { nonce, presence: null, expiresAt: 0 },
+    ahead: null,
+    legacy: true,
+  });
+  expect(observedHolder(held("first"), null)).toBe("first");
+  // Contention: no attempt, and nothing learned about the holder.
+  expect(observedHolder(null, "first")).toBe("first");
+  expect(observedHolder(held("second"), "first")).toBe("second");
+  expect(observedHolder({ ...held("x"), holder: null }, "second")).toBeNull();
+});

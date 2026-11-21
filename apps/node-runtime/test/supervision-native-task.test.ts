@@ -116,9 +116,23 @@ it("names the fields of a completion verdict that cannot be materialized", async
   ).catch((caught: unknown) => caught);
   expect(error).toBeInstanceOf(InvalidNativeOwnerProposalError);
   expect((error as InvalidNativeOwnerProposalError).invalidFields).toEqual([
-    "resultContentHash",
     "assignmentId",
     "writingPolicyId",
     "checks",
+  ]);
+  // ADR-0608: the owner no longer returns the result hash, so a returned one is unexpected.
+  const echoed = await nativeAssignmentCompletion(
+    completionInput,
+    {
+      assignmentId: "asn_000000000000000000000000",
+      resultContentHash: `sha256:${"f".repeat(64)}`,
+      writingPolicyId: "writing_en-human",
+      checks: [{}, {}],
+    },
+    `sha256:${"e".repeat(64)}`,
+  ).catch((caught: unknown) => caught);
+  expect((echoed as InvalidNativeOwnerProposalError).invalidFields).toEqual([
+    "unexpected_field",
+    "assignmentId",
   ]);
 });

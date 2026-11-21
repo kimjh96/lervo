@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   createDocumentRouteClassificationRequest,
+  documentRouteClassificationContract,
   documentRouteSetDigest,
   interpretDocumentRouteClassificationResponse,
   sha256,
@@ -50,57 +51,67 @@ describe("document route classification contract", () => {
     expect(JSON.stringify(first.request)).not.toContain("titleTerms");
   });
 
-  it("turns missing, mismatched, duplicated, or unknown-route answers into uncertain verdicts", () => {
+  it("shows references, not hashes, and enumerates exactly the documents, routes and roles (ADR-0604)", () => {
+    const { request } = createDocumentRouteClassificationRequest({
+      taxonomy: defaultDecisionTaxonomy,
+      documents,
+    });
+    const contract = documentRouteClassificationContract(request);
+    expect(JSON.stringify(contract.view)).not.toContain("sha256:");
+    expect(contract.view.documents.map((document) => [document.document, document.path])).toEqual([
+      ["d1", "notes/a.md"],
+      ["d2", "notes/b.md"],
+    ]);
+    const properties = contract.schema.properties.classifications.items.properties;
+    expect(properties.document).toEqual({ enum: ["d1", "d2"] });
+    // ADR-0608: a path enum carries its kind, which only the provider boundary removes.
+    expect(properties.sourcePath).toEqual({
+      enum: ["notes/a.md", "notes/b.md"],
+      "x-lervo-ref-kind": "path",
+    });
+    expect(properties.routeId).toMatchObject({
+      enum: expect.arrayContaining(["operations", null]),
+    });
+    expect(properties.roleId).toMatchObject({
+      enum: expect.arrayContaining(["product_vision", null]),
+    });
+  });
+
+  it("maps references back to exact hashes, and throws on a malformed answer instead of guessing", () => {
     const { request } = createDocumentRouteClassificationRequest({
       taxonomy: defaultDecisionTaxonomy,
       documents,
     });
     const rationale = "The document describes how operators restore the running service.";
-
-    const verdicts = interpretDocumentRouteClassificationResponse(request, {
-      classifications: [
-        {
-          path: "notes/a.md",
-          contentHash: documents[1]!.contentHash,
-          outcome: "route",
-          routeId: "operations",
-          roleId: null,
-          rationale,
-        },
-        {
-          path: "notes/b.md",
-          contentHash: documents[0]!.contentHash,
-          outcome: "route",
-          routeId: "invented",
-          roleId: null,
-          rationale,
-        },
-      ],
+    const entry = (document: string, sourcePath: string, routeId: string | null) => ({
+      document,
+      sourcePath,
+      outcome: routeId === null ? "uncertain" : "route",
+      routeId,
+      roleId: null,
+      rationale,
     });
-
-    expect(verdicts.map((verdict) => [verdict.path, verdict.outcome, verdict.routeId])).toEqual([
-      ["notes/a.md", "route", "operations"],
-      ["notes/b.md", "uncertain", null],
-    ]);
-    expect(
-      interpretDocumentRouteClassificationResponse(request, { classifications: [] }).map(
-        (verdict) => verdict.outcome,
-      ),
-    ).toEqual(["uncertain", "uncertain"]);
-    expect(
-      interpretDocumentRouteClassificationResponse(request, {
-        classifications: [
-          {
-            path: "notes/a.md",
-            contentHash: sha256("stale bytes"),
-            outcome: "retain_in_place",
-            routeId: null,
-            roleId: null,
-            rationale,
-          },
-        ],
-      })[0]!.outcome,
-    ).toBe("uncertain");
+    const verdicts = interpretDocumentRouteClassificationResponse(request, {
+      classifications: [entry("d2", "notes/b.md", null), entry("d1", "notes/a.md", "operations")],
+    });
+    // A well-formed `uncertain` is a verdict.
+    expect(verdicts.map((verdict) => [verdict.path, verdict.contentHash, verdict.outcome])).toEqual(
+      [
+        ["notes/a.md", documents[1]!.contentHash, "route"],
+        ["notes/b.md", documents[0]!.contentHash, "uncertain"],
+      ],
+    );
+    for (const classifications of [
+      [],
+      [entry("d1", "notes/a.md", "operations")],
+      // A valid reference paired with the other document's path.
+      [entry("d1", "notes/b.md", null), entry("d2", "notes/a.md", null)],
+      [entry("d1", "notes/a.md", null), entry("d1", "notes/a.md", null)],
+      [entry("d1", "notes/a.md", "invented"), entry("d2", "notes/b.md", null)],
+    ])
+      expect(() =>
+        interpretDocumentRouteClassificationResponse(request, { classifications }),
+      ).toThrowError(expect.objectContaining({ code: "knowledge_semantic_review_invalid" }));
   });
 
   it("admits a role only for a document subject and only from the role catalog", () => {
@@ -112,29 +123,30 @@ describe("document route classification contract", () => {
       ],
     });
     const rationale = "The document states the long-term product direction for the repository.";
-    const verdicts = interpretDocumentRouteClassificationResponse(request, {
-      classifications: [
-        {
-          path: "VISION_NOTES.md",
-          contentHash: documents[0]!.contentHash,
-          outcome: "role",
-          routeId: null,
-          roleId: "product_vision",
-          rationale,
-        },
-        {
-          path: ".claude/rules/a.md",
-          contentHash: documents[1]!.contentHash,
-          outcome: "role",
-          routeId: null,
-          roleId: "product_vision",
-          rationale,
-        },
-      ],
+    const role = (document: string, sourcePath: string) => ({
+      document,
+      sourcePath,
+      outcome: "role",
+      routeId: null,
+      roleId: "product_vision",
+      rationale,
     });
-    expect(verdicts.map((verdict) => [verdict.path, verdict.outcome, verdict.roleId])).toEqual([
+    // Requests sort by path: d1 is the instruction, d2 the document.
+    expect(
+      interpretDocumentRouteClassificationResponse(request, {
+        classifications: [
+          role("d2", "VISION_NOTES.md"),
+          { ...role("d1", ".claude/rules/a.md"), outcome: "uncertain", roleId: null },
+        ],
+      }).map((verdict) => [verdict.path, verdict.outcome, verdict.roleId]),
+    ).toEqual([
       [".claude/rules/a.md", "uncertain", null],
       ["VISION_NOTES.md", "role", "product_vision"],
     ]);
+    expect(() =>
+      interpretDocumentRouteClassificationResponse(request, {
+        classifications: [role("d2", "VISION_NOTES.md"), role("d1", ".claude/rules/a.md")],
+      }),
+    ).toThrowError(expect.objectContaining({ code: "knowledge_semantic_review_invalid" }));
   });
 });

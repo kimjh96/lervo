@@ -42,14 +42,14 @@ export async function configureNativeCompletionProvider(
       let operation, details;
       if (context.trigger.nextAction === "publish_result") {
         operation = "prepare_publication";
-        details = {resultContentHash:context.facts.acceptedGoal.resultArtifactHash,writingPolicyId:context.facts.resultWritingContract.writingPolicyId,checks:context.facts.resultWritingContract.verification.semanticChecks.filter(check=>check.required).map(check=>({checkId:check.checkId,status:"passed",violationCount:0}))};
+        details = {writingPolicyId:context.facts.resultWritingContract.writingPolicyId,checks:context.facts.resultWritingContract.verification.semanticChecks.filter(check=>check.required).map(check=>({checkId:check.checkId,status:"passed",violationCount:0}))};
       } else if (task.review?.verdict === "rework") {
         operation="request_rework";
         const before = context.facts.responsibilities[0].binding.responsibility;
         details={assignmentId:task.assignmentId,task:{roleId:before.roleId,taskPurpose:"Recheck and correct the rejected result while preserving the saved value.",deliverables:before.deliverables,acceptanceCriteria:before.acceptanceCriteria,decisionLatitude:before.decisionLatitude,expectedPaths:before.expectedPaths,requiredCapabilities:before.requiredCapabilities,verificationSuiteIds:before.verificationSuiteIds,completionSeconds:600}};
       } else if (task.status === "leased") {
         operation = "prepare_completion";
-        details = {assignmentId:task.assignmentId,resultContentHash:task.artifactHashes[0],writingPolicyId:context.facts.writingContract.writingPolicyId,checks:context.facts.writingContract.verification.semanticChecks.filter(check=>check.required).map(check=>({checkId:check.checkId,status:${writingFailed} ? "failed" : "passed",violationCount:${writingFailed} ? 1 : 0}))};
+        details = {assignmentId:task.assignmentId,writingPolicyId:context.facts.writingContract.writingPolicyId,checks:context.facts.writingContract.verification.semanticChecks.filter(check=>check.required).map(check=>({checkId:check.checkId,status:${writingFailed} ? "failed" : "passed",violationCount:${writingFailed} ? 1 : 0}))};
       } else if (task.review === null) {operation="review_artifacts";details={assignmentId:task.assignmentId,verdict:${reviewRejected} ? "rework" : "accepted"};}
 
       else {operation="complete_workstream";details={result:"The saved value was updated and verified in the assigned workspace. The original repository remains available for integration."};}

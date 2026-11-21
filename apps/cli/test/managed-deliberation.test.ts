@@ -388,7 +388,9 @@ describe("managed CLI deliberation convergence", () => {
       proposerProvider: "codex",
       reviewerProvider: "claude",
       verificationSuiteIds: ["project.default"],
-      topic: "Decide how two providers review the same context independently.",
+      // ADR-0608: the topic is the owner's, so its own request to copy a hash never refuses a turn.
+      topic:
+        "Decide how two providers review the same context independently. Copy the release commit SHA exactly into the changelog.",
       providerExecutables: {
         codex: "/opt/providers/codex",
         claude: "/opt/providers/claude",

@@ -11,6 +11,11 @@ import type {
   DocumentFreshnessCrossCheckVerdict,
 } from "./document-freshness-contract.js";
 
+export {
+  documentFreshnessCrossCheckContract,
+  type DocumentFreshnessCrossCheckContract,
+} from "./document-freshness-cross-check-contract.js";
+
 /**
  * ADR-0557 Tier 0 cross-check for document freshness: the fixed question, the bounded reviewer
  * input, the strict response contract, and the settlement of a candidate from its outcome. Pure;
@@ -27,39 +32,12 @@ export const documentFreshnessCrossCheckInstruction = [
   "Agree only when the cited evidence excerpts show the new value and the replacement changes no other fact, instruction, or meaning in the surrounding text.",
   "Disagree when the evidence is missing, contradicts the replacement, is truncated before the value it should show, or when the replacement changes anything the evidence does not require.",
   "For an archive, the hunks are the move with its historical banner and the inbound link rewrites: agree only when the evidence shows the document describes a superseded design and the move and rewrites change nothing else.",
-  "Return exactly one verdict for every hunkId with a short concrete reason, in the response schema.",
+  "Return exactly one verdict for every hunk, naming it by its hunk reference and its anchor, with a short concrete reason, in the response schema.",
 ].join(" ");
 
-const MAXIMUM_HUNKS = 16;
-const MAXIMUM_REASON_CHARACTERS = 400;
 const MAXIMUM_CONTEXT_CHARACTERS = 400;
 export const DOCUMENT_FRESHNESS_CROSS_CHECK_EXCERPT_BYTES = 6 * 1024;
 export const DOCUMENT_FRESHNESS_CROSS_CHECK_TOTAL_EXCERPT_BYTES = 24 * 1024;
-const hunkIdPattern = /^kfh_[a-f0-9]{16}$/u;
-
-export const documentFreshnessCrossCheckResponseSchema = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    hunks: {
-      type: "array",
-      minItems: 1,
-      maxItems: MAXIMUM_HUNKS,
-      items: {
-        type: "object",
-        additionalProperties: false,
-        properties: {
-          hunkId: { type: "string", pattern: hunkIdPattern.source },
-          verdict: { enum: ["agree", "disagree"] },
-          reason: { type: "string", minLength: 1, maxLength: MAXIMUM_REASON_CHARACTERS },
-        },
-        required: ["hunkId", "verdict", "reason"],
-      },
-    },
-  },
-  required: ["hunks"],
-} as const;
-
 /** The reviewer's only input. Stored in CAS by hash; it never enters an event. */
 export interface DocumentFreshnessCrossCheckInputV1 {
   schemaVersion: 1;
@@ -191,45 +169,6 @@ export function buildDocumentFreshnessCrossCheckInput(input: {
     evidence,
     excerptsTruncated,
   };
-}
-
-/**
- * Validates a reviewer response against the contract and the candidate's exact hunk set: one
- * verdict per hunk, no unknown or duplicate identifier. Null means invalid, never agreement.
- */
-export function parseDocumentFreshnessCrossCheckResponse(
-  value: unknown,
-  hunkIds: readonly string[],
-): DocumentFreshnessCrossCheckVerdict[] | null {
-  const item = value as { hunks?: unknown } | null;
-  if (item === null || typeof item !== "object" || Array.isArray(item)) return null;
-  if (Object.keys(item).some((key) => key !== "hunks")) return null;
-  if (!Array.isArray(item.hunks) || item.hunks.length > MAXIMUM_HUNKS) return null;
-  const expected = new Set(hunkIds);
-  const verdicts = new Map<string, DocumentFreshnessCrossCheckVerdict>();
-  for (const raw of item.hunks as unknown[]) {
-    const entry = raw as Partial<DocumentFreshnessCrossCheckVerdict> | null;
-    if (
-      entry === null ||
-      typeof entry !== "object" ||
-      Object.keys(entry).some((key) => !["hunkId", "verdict", "reason"].includes(key)) ||
-      typeof entry.hunkId !== "string" ||
-      !expected.has(entry.hunkId) ||
-      verdicts.has(entry.hunkId) ||
-      (entry.verdict !== "agree" && entry.verdict !== "disagree") ||
-      typeof entry.reason !== "string" ||
-      entry.reason.trim().length === 0 ||
-      entry.reason.length > MAXIMUM_REASON_CHARACTERS
-    )
-      return null;
-    verdicts.set(entry.hunkId, {
-      hunkId: entry.hunkId,
-      verdict: entry.verdict,
-      reason: entry.reason,
-    });
-  }
-  if (verdicts.size !== expected.size) return null;
-  return hunkIds.map((hunkId) => verdicts.get(hunkId)!);
 }
 
 export type DocumentFreshnessCrossCheckSettlement = {

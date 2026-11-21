@@ -65,6 +65,29 @@ function normalizationDocumentLimit(state: KnowledgeConvergenceInput, ceiling: n
     : ceiling;
 }
 
+/**
+ * The identity of one generation's call budget. Each regeneration attempt is its own bounded
+ * batch; a first generation keeps its identity. ADR-0604: so is a regeneration after a stale
+ * candidate, which the apply stage bounds, so a lifecycle move never spends the calls the batch
+ * had left for its review.
+ */
+export function normalizationGenerationBatchId(
+  state: KnowledgeConvergenceInput,
+  paths: readonly string[],
+  attempts: readonly (readonly [string, number])[],
+): string {
+  const stale = state.stageData.normalizationStaleCandidateId;
+  return sha256(
+    canonicalJson([
+      state.obligationId,
+      paths,
+      state.snapshotHash,
+      ...(attempts.length ? [attempts] : []),
+      ...(typeof stale === "string" ? [{ stale }] : []),
+    ]),
+  );
+}
+
 export async function generateNormalizationBatch(
   context: ConvergenceRuntimeContext,
   state: KnowledgeConvergenceInput,
@@ -259,17 +282,9 @@ async function generate(
     });
   const attempts = selected.flatMap((path) => {
     const feedback = regeneration.feedback.get(path);
-    return feedback === undefined ? [] : [[path, feedback.attempt]];
+    return feedback === undefined ? [] : [[path, feedback.attempt] as const];
   });
-  // Each regeneration attempt is its own bounded batch; a first generation keeps its identity.
-  const batchId = sha256(
-    canonicalJson([
-      state.obligationId,
-      selected,
-      state.snapshotHash,
-      ...(attempts.length ? [attempts] : []),
-    ]),
-  );
+  const batchId = normalizationGenerationBatchId(state, selected, attempts);
   // ADR-0587: a call abandoned for an upgrade stops the whole compilation. Without this, the
   // compiler retries a multi-document shard one document at a time, and its elapsed or call
   // ceiling can fail the stage instead of deferring it.

@@ -96,6 +96,21 @@ const forge: KnowledgePublicationForge = {
   checks: () => Promise.reject(new Error("unexpected checks")),
   rerunFailedChecks: () => Promise.reject(new Error("unexpected rerun")),
   merge: () => Promise.reject(new Error("unexpected merge")),
+  // ADR-0603: nothing published yet, and a policy that allows a merge commit.
+  publicationHistory: async () => [],
+  policy: async () => ({
+    mergeMethods: ["merge"],
+    excluded: [],
+    requiredChecks: [],
+    strict: false,
+    reviewRequired: false,
+    mergeQueue: false,
+    baseRefusals: [],
+    branchRefusals: [],
+  }),
+  gate: () => Promise.reject(new Error("unexpected gate")),
+  closureCause: () => Promise.reject(new Error("unexpected closure")),
+  repository: async () => "example/repository",
 };
 
 async function hosts() {

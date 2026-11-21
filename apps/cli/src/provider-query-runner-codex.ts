@@ -13,6 +13,11 @@ import {
   type NoCapabilityProviderJsonRunner,
   type ProviderJsonUsage,
 } from "@lervo/repository-knowledge-compiler";
+import {
+  assertProviderOutputSchemaForSource,
+  assertProviderPromptAsksNoHashCopy,
+  providerWireSchema,
+} from "@lervo/schemas";
 
 type CodexQueryClient = Pick<
   CodexStdioAppServerClient,
@@ -73,9 +78,21 @@ async function observedTurn(input: {
   value: unknown;
   signal?: AbortSignal;
 }): Promise<{ value: unknown; usage: ProviderJsonUsage | null }> {
-  const schema = providerNativeResponseSchema(
-    providerResponseContractSchema(input.value),
-  ) as Record<string, unknown>;
+  const contract = providerResponseContractSchema(input.value);
+  // ADR-0608: the schema is checked as built, against the request's own data, before any native
+  // conversion; only then are its reference-kind marks removed for the provider.
+  assertProviderOutputSchemaForSource(contract, {
+    ...(input.value as Record<string, unknown>),
+    responseContract: null,
+  });
+  const schema = providerNativeResponseSchema(providerWireSchema(contract));
+  const request = providerWireRequest(input.value);
+  assertProviderPromptAsksNoHashCopy(
+    input.systemPrompt,
+    ...Object.entries(input.value as Record<string, unknown>)
+      .filter(([key, value]) => typeof value === "string" && !/^untrusted/iu.test(key))
+      .map(([, value]) => value as string),
+  );
   const thread = await input.client.startThread({
     cwd: input.cwd,
     approvalPolicy: "never",
@@ -90,7 +107,7 @@ async function observedTurn(input: {
   input.signal?.addEventListener("abort", abort, { once: true });
   const timer = setTimeout(() => controller.abort(), input.timeoutMs);
   try {
-    const turn = await input.client.startTurn(thread.threadId, canonicalJson(input.value), {
+    const turn = await input.client.startTurn(thread.threadId, canonicalJson(request), {
       outputSchema: schema,
       reasoningEffort: "low",
     });
@@ -201,4 +218,16 @@ export async function createCodexPersistentQueryRunner(
     await dependencies.removeDirectory(directory);
     throw error;
   }
+}
+
+/** The request as the provider reads it: its response schema without reference-kind marks. */
+function providerWireRequest(value: unknown): unknown {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return value;
+  const request = value as Record<string, unknown>;
+  const contract = request.responseContract as Record<string, unknown> | undefined;
+  if (contract === null || typeof contract !== "object" || !("schema" in contract)) return value;
+  return {
+    ...request,
+    responseContract: { ...contract, schema: providerWireSchema(contract.schema) },
+  };
 }

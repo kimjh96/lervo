@@ -11,6 +11,7 @@ import type { ProviderAdapter, ProviderLoginContext } from "@lervo/adapter-contr
 import type { NodeRuntimeConfig } from "./config-types.js";
 import type { NodeRemoteCommandPorts } from "./control-runtime.js";
 import { NodeRuntimeError } from "./errors.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export interface ManagedProviderRemoteCommandDependencies {
   createAdapter?: ManagedProviderHostAdapterFactory["create"];
@@ -26,7 +27,7 @@ export function createNodeProviderAdapter(input: {
   model?: string;
   reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
   requestTimeoutMs?: number;
-  structuredOutputSchema?: Record<string, unknown>;
+  structuredOutputSchema?: ProviderOutputSchema;
 }): ProviderAdapter {
   return input.provider === "codex"
     ? new CodexAdapter({

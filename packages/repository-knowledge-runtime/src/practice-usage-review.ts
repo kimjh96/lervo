@@ -1,10 +1,4 @@
-import {
-  canonicalJson,
-  practiceReviewValid,
-  sanitizePracticeText,
-  sha256,
-  type PracticeReview,
-} from "@lervo/repository-knowledge";
+import { canonicalJson, sanitizePracticeText, sha256 } from "@lervo/repository-knowledge";
 import type { InstructionCaptureContext } from "./instruction-capture-assessment.js";
 import type { GeneratedPracticeSkill, PracticeState } from "./practice-state.js";
 import type { PracticeVersionUsage } from "./practice-usage-projection.js";
@@ -13,6 +7,7 @@ import { loadPracticeCatalog } from "./practice-catalog.js";
 import { ordinaryConvergenceSourceBytes } from "./source-file.js";
 import { withPracticeProviderAssignment } from "./practice-provider-assignment.js";
 import { appendPracticeEvent } from "./practice-events.js";
+import { practiceUsageReviewContract } from "./practice-review-contract.js";
 
 export async function reviewPracticeUsage(
   context: InstructionCaptureContext,
@@ -37,16 +32,13 @@ export async function reviewPracticeUsage(
     shapeCounts.set(shape.digest, row);
   }
   const shapes = [...shapeCounts.values()].sort((a, b) => b.count - a.count).slice(0, 20);
-  const binding = {
-    draftHash: skill.versionHash,
-    targetHash: skill.versionHash,
-    catalogDigest: catalog.digest,
-    evidenceHashes: [sha256(canonicalJson([usage, shapes]))],
-  };
+  // ADR-0604: the reviewer answers keep or retire only; Lervo binds the exact version itself.
+  const contract = practiceUsageReviewContract();
+  const evidenceHash = sha256(canonicalJson([usage, shapes]));
   const reviewed = await withPracticeProviderAssignment({
     context,
     role: "reviewer",
-    assignmentKey: `${skill.versionHash}:retirement:${binding.evidenceHashes[0]}`,
+    assignmentKey: `${skill.versionHash}:retirement:${evidenceHash}`,
     paths: [skill.path],
     assertAuthority: (authority) => {
       if (
@@ -71,47 +63,22 @@ export async function reviewPracticeUsage(
         throw new Error("source_incomplete");
     },
     data: {
-      binding,
-      skill: { ...skill, content: sanitizePracticeText(bytes.toString("utf8")) },
+      skill: {
+        name: skill.name,
+        path: skill.path,
+        exposedAt: skill.exposedAt,
+        content: sanitizePracticeText(bytes.toString("utf8")),
+      },
       usage,
       shapes,
     },
-    schema: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        decision: { enum: ["keep", "retire"] },
-        draftHash: { type: "string" },
-        targetHash: { type: "string" },
-        catalogDigest: { type: "string" },
-        evidenceHashes: { type: "array", items: { type: "string" } },
-      },
-      required: ["decision", "draftHash", "targetHash", "catalogDigest", "evidenceHashes"],
-    },
+    schema: contract.schema,
     prompt:
-      "Re-evaluate this exact unused skill. Consider the frequency of its trigger situation in observed work. Shapes are a ranking signal and do not prove a trigger occurred. Keep rare-task skills such as quarterly releases, and keep whenever trigger-frequency evidence is insufficient. Unknown coverage never permits retirement. Echo every supplied binding. A retire verdict proposes removal through the normal reviewed write path.",
-    resolve: (value, authority) => {
-      const result = value as Omit<PracticeReview, "decision"> & { decision: "keep" | "retire" };
-      const review = {
-        ...result,
-        decision: "accept" as const,
-        reasonCode: "accepted" as const,
-        reviewerAgentId: authority.agent.agentId,
-        reviewerSessionId: authority.assignment.lease!.sessionId,
-      };
-      if (
-        !Array.isArray(result.evidenceHashes) ||
-        !practiceReviewValid({
-          expected: binding,
-          review,
-          drafterAgentId: candidate.drafterAgentId!,
-          drafterSessionId: candidate.drafterSessionId!,
-        }) ||
-        !["keep", "retire"].includes(result.decision)
-      )
-        throw new Error("review_invalid");
-      return { decision: result.decision, reviewerAgentId: authority.agent.agentId };
-    },
+      "Re-evaluate this exact unused skill. Consider the frequency of its trigger situation in observed work. Shapes are a ranking signal and do not prove a trigger occurred. Keep rare-task skills such as quarterly releases, and keep whenever trigger-frequency evidence is insufficient. Unknown coverage never permits retirement. Answer keep or retire only. A retire verdict proposes removal through the normal reviewed write path.",
+    resolve: (value, authority) => ({
+      decision: contract.parse(value),
+      reviewerAgentId: authority.agent.agentId,
+    }),
   });
   appendPracticeEvent(context.storage, "knowledge.skill_candidate.resolved", {
     candidateId: skill.candidateId,

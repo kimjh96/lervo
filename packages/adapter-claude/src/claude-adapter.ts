@@ -25,6 +25,10 @@ import {
   type AdapterTurn,
   type AdapterTurnResult,
   type AdapterTurnRequest,
+  assertProviderOutputSchemaForSource,
+  assertProviderPromptAsksNoHashCopy,
+  assertProviderTurnAsksNoHashCopy,
+  providerWireSchema,
 } from "@lervo/schemas";
 
 import {
@@ -291,6 +295,17 @@ export class ClaudeAdapter implements ProviderAdapter {
         "The Claude turn has already started or is still active.",
       );
     }
+    // ADR-0608: checked before the turn is marked active, so a refused schema leaves no turn. The
+    // output schema may name or offer nothing this turn's data holds, and Lervo's own system prompt
+    // may not ask to copy a hash.
+    if (this.options.structuredOutputSchema !== undefined)
+      assertProviderOutputSchemaForSource(
+        this.options.structuredOutputSchema,
+        request.instructions,
+      );
+    if (this.options.systemPrompt !== undefined)
+      assertProviderPromptAsksNoHashCopy(this.options.systemPrompt);
+    assertProviderTurnAsksNoHashCopy(request.instructions, request.untrustedInstructions);
     const providerTurnId = this.uuid(this.createProviderMessageId(), "Claude provider turn ID");
     state.activeProviderTurnId = providerTurnId;
     const turn: AdapterTurn = {
@@ -492,7 +507,8 @@ export class ClaudeAdapter implements ProviderAdapter {
         : {
             outputFormat: {
               type: "json_schema" as const,
-              schema: structuredClone(this.options.structuredOutputSchema),
+              // ADR-0608: checked before the turn; sent without reference-kind marks.
+              schema: providerWireSchema(this.options.structuredOutputSchema),
             },
           }),
       capabilityActivations: structuredClone(capabilityActivations),

@@ -47,20 +47,21 @@ async function assessment() {
   };
 }
 
-/** Each queued answer is one provider observation; `false` copies a wrong source hash. */
+/** Each queued answer is one provider observation; `false` cites a source with a wrong path. */
 function provider(answers: (boolean | Error)[]) {
   let call = 0;
   vi.mocked(reviewKnowledgeJson).mockImplementation(async (input) => {
     const answer = answers[call++];
     if (answer instanceof Error) throw answer;
+    // ADR-0604: it answers from the view, citing each source by reference and path.
     const { sources } = input.untrustedSourceData as {
-      sources: { path: string; contentHash: string }[];
+      sources: { source: string; path: string }[];
     };
     return {
       value: {
         decisions: sources.map((source, index) => ({
-          path: source.path,
-          contentHash: answer || index > 0 ? source.contentHash : sha256("wrong source bytes"),
+          source: source.source,
+          sourcePath: answer || index > 0 ? source.path : "src/wrong-source.ts",
           disposition: "no_change",
           rationale: RATIONALE,
           canonicalReferences: [],
@@ -74,7 +75,7 @@ function provider(answers: (boolean | Error)[]) {
   });
 }
 
-it("retries an invalid canonical assessment once without accepting its source hash", async () => {
+it("retries an invalid canonical assessment once without accepting its source citation", async () => {
   const { assess, source } = await assessment();
   provider([false, true]);
   const result = await assess();

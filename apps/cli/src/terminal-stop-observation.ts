@@ -2,6 +2,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import { gitHeadRevision } from "./terminal-repository-revision.js";
 import {
   enqueueTerminalSkillTurn,
+  readRepositoryKnowledgeJobAdmission,
   terminalTranscriptPosition,
 } from "@lervo/repository-knowledge-runtime";
 import {
@@ -94,6 +95,9 @@ export async function recordObservedTerminalTurn(input: {
       input.hookInput.transcriptPath,
     );
     const repositoryRevision = await gitHeadRevision(input.root);
+    // ADR-0605: only a host that runs knowledge jobs receives one.
+    const admission = await readRepositoryKnowledgeJobAdmission(input.root);
+    let knowledgeJobQueued = false;
     const change = await plannedTerminalRepositoryChange({
       root: input.root,
       storage,
@@ -166,12 +170,13 @@ export async function recordObservedTerminalTurn(input: {
         }),
       );
       if (change !== null)
-        appendTerminalRepositoryChange(transaction, {
+        knowledgeJobQueued = appendTerminalRepositoryChange(transaction, {
           projectId: storage.manifest.projectId,
           coordinates: input.coordinates,
           provider: input.provider,
           occurredAt: input.occurredAt,
           change,
+          admission,
         });
     });
     await enqueueTerminalSkillTurn(input.root, {
@@ -194,7 +199,7 @@ export async function recordObservedTerminalTurn(input: {
       referenceCount: references.length,
       selectedCount: selected.length,
       pathMentionCount,
-      knowledgeJobQueued: change !== null,
+      knowledgeJobQueued,
       consultedPaths: [
         ...new Set([...selected.map((item) => item.path), ...documents.map((item) => item.path)]),
       ],

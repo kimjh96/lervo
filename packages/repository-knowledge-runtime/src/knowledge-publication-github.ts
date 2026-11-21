@@ -1,40 +1,33 @@
-import { execFile } from "node:child_process";
-
 import {
-  KnowledgePublicationForgeError,
-  MAXIMUM_NAMED_CHECK_FAILURES,
-  type KnowledgePublicationCheckFailure,
-  type KnowledgePublicationChecks,
   type KnowledgePublicationForge,
-  type KnowledgePublicationForgeFailureClass,
-  type KnowledgePublicationForgeOperation,
+  type KnowledgePublicationHistoryEntry,
   type KnowledgePublicationPullRequest,
 } from "./knowledge-publication-forge.js";
+import { summarizeKnowledgePublicationChecks } from "./knowledge-publication-github-checks.js";
+import {
+  githubRepositoryOnce,
+  resolveGitHubRepositoryDetail,
+  type ResolvedGitHubRepository,
+  scopeGitHubArguments,
+} from "./knowledge-publication-github-repository.js";
+import { markKnowledgePublicationClosed } from "./knowledge-publication-history.js";
+import {
+  ghRunner,
+  guarded,
+  InvalidResponse,
+  type Runner,
+} from "./knowledge-publication-github-cli.js";
+import { jsonLines, mergeGate, readGitHubPolicy } from "./knowledge-publication-github-policy.js";
+import { reduceKnowledgePublicationPolicy } from "./knowledge-publication-policy.js";
 
-const PULL_REQUEST_FIELDS = "number,url,state,headRefOid,title,body";
+export {
+  classifyGitHubCliFailure,
+  githubFailureReason,
+} from "./knowledge-publication-github-cli.js";
+export { mergeGate } from "./knowledge-publication-github-policy.js";
+export { summarizeKnowledgePublicationChecks } from "./knowledge-publication-github-checks.js";
 
-type Runner = (args: string[], input?: string) => Promise<string>;
-
-function ghRunner(root: string, executable: string): Runner {
-  return (args, input) =>
-    new Promise((resolveRun, reject) => {
-      const child = execFile(
-        executable,
-        args,
-        {
-          cwd: root,
-          maxBuffer: 4 * 1024 * 1024,
-          timeout: 60_000,
-          env: { ...process.env, GH_PROMPT_DISABLED: "1" },
-        },
-        (error, stdout, stderr) =>
-          error === null ? resolveRun(stdout) : reject(Object.assign(error, { stderr })),
-      );
-      if (input !== undefined) child.stdin?.end(input);
-    });
-}
-
-class InvalidResponse extends Error {}
+const PULL_REQUEST_FIELDS = "number,url,state,headRefOid,title,body,mergeCommit";
 
 function pullRequest(value: unknown): KnowledgePublicationPullRequest {
   const item = value as Record<string, unknown> | null;
@@ -54,68 +47,86 @@ function pullRequest(value: unknown): KnowledgePublicationPullRequest {
     headSha: item.headRefOid,
     title: typeof item.title === "string" ? item.title : "",
     body: typeof item.body === "string" ? item.body : "",
+    mergeCommit:
+      typeof (item.mergeCommit as { oid?: unknown } | null)?.oid === "string"
+        ? (item.mergeCommit as { oid: string }).oid
+        : null,
   };
 }
 
-// Ordered: the first matching class wins, so a refused merge names its most specific cause.
-const STDERR_CLASSES: readonly [KnowledgePublicationForgeFailureClass, RegExp][] = [
-  [
-    "checks_pending",
-    /status checks? .*(?:expected|pending|in progress|queued)|checks? (?:are |is )?(?:still )?(?:pending|in progress|queued)|waiting (?:for|on) (?:status )?checks?/iu,
-  ],
-  ["checks_failed", /status checks? .*(?:fail|error)|checks? (?:have |has )?failed/iu],
-  [
-    "not_mergeable",
-    /not mergeable|merge conflict|cannot be merged|head branch was modified|head branch is out of date|base branch policy|match-head-commit|expected head/iu,
-  ],
-  [
-    "auth",
-    /authenticat|gh auth login|bad credentials|HTTP 40[13]|forbidden|permission|must have (?:push|write|admin)|not logged in|resource not accessible/iu,
-  ],
-  [
-    "network",
-    /could not resolve host|connection|timed? ?out|timeout|network|ECONN|ENOTFOUND|EAI_AGAIN|TLS|HTTP 5\d\d|unexpected EOF|i\/o/iu,
-  ],
-  ["not_found", /not found|could not find|could not resolve to|no pull requests? found|HTTP 404/iu],
-];
+const RECORD_START = "<!-- lervo-publication-record";
+/**
+ * ADR-0603: each closed pull request with only the record block of its body, so the paginated
+ * history stays small. `merge_commit_sha` names a test merge on an unmerged pull request, so only
+ * `merged_at` says it merged.
+ */
+const HISTORY_JQ = `.[] | {number, merged: (.merged_at != null), mergeCommit: (if .merged_at == null then null else .merge_commit_sha end), mergedAt: .merged_at, updatedAt: .updated_at, open: (.state == "open"), headSha: .head.sha, record: ((.body // "") | split("${RECORD_START}") | if length > 1 then "${RECORD_START}" + .[-1] else "" end)}`;
+const COMMIT = /^[0-9a-f]{40,64}$/u;
+
+function historyEntry(value: unknown): KnowledgePublicationHistoryEntry {
+  const item = value as Partial<KnowledgePublicationHistoryEntry> | null;
+  if (
+    item === null ||
+    typeof item !== "object" ||
+    !Number.isSafeInteger(item.number) ||
+    typeof item.merged !== "boolean" ||
+    typeof item.headSha !== "string" ||
+    !COMMIT.test(item.headSha) ||
+    !(
+      item.mergeCommit === null ||
+      (typeof item.mergeCommit === "string" && COMMIT.test(item.mergeCommit))
+    ) ||
+    !(
+      item.mergedAt === null ||
+      (typeof item.mergedAt === "string" && ISO_TIMESTAMP.test(item.mergedAt))
+    ) ||
+    typeof item.updatedAt !== "string" ||
+    !ISO_TIMESTAMP.test(item.updatedAt) ||
+    typeof item.record !== "string"
+  )
+    throw new InvalidResponse("The GitHub pull request history is invalid.");
+  return {
+    number: item.number!,
+    merged: item.merged,
+    headSha: item.headSha,
+    mergeCommit: item.mergeCommit ?? null,
+    mergedAt: item.mergedAt ?? null,
+    updatedAt: item.updatedAt,
+    record: item.record,
+    ...(item.open === true ? { open: true } : {}),
+  };
+}
+
+/** GitHub closes a pull request whose head branch was deleted at about the same moment. */
+const BRANCH_DELETION_WINDOW_MS = 60_000;
 
 /**
- * Reduces one `gh` failure to a closed class. Only the class, exit code, and operation are kept;
- * stderr can carry repository names, URLs, or account names and never leaves this function.
+ * ADR-0607: how a pull request was last closed. A close at most a minute after a deletion of its
+ * head branch is GitHub's, after a person deleted the branch; any other close, including one a
+ * person made just before deleting the branch, is a person's decision.
  */
-export function classifyGitHubCliFailure(error: unknown): {
-  exitCode: number | null;
-  failureClass: KnowledgePublicationForgeFailureClass;
-} {
-  if (error instanceof InvalidResponse || error instanceof SyntaxError)
-    return { exitCode: null, failureClass: "invalid_response" };
-  const value = (error ?? {}) as {
-    code?: unknown;
-    killed?: unknown;
-    signal?: unknown;
-    stderr?: unknown;
-  };
-  if (value.code === "ENOENT") return { exitCode: null, failureClass: "not_installed" };
-  const exitCode = typeof value.code === "number" ? value.code : null;
-  if (value.killed === true || value.signal === "SIGTERM")
-    return { exitCode, failureClass: "network" };
-  const stderr = typeof value.stderr === "string" ? value.stderr : String(value.stderr ?? "");
-  const match = STDERR_CLASSES.find(([, pattern]) => pattern.test(stderr));
-  return { exitCode, failureClass: match?.[0] ?? "unknown" };
+export function closureCause(events: readonly unknown[]): "person" | "branch_deleted" {
+  const items = events
+    .map((value) => value as { event?: unknown; created_at?: unknown } | null)
+    .filter((item) => typeof item?.event === "string" && typeof item.created_at === "string")
+    .map((item) => ({ event: item!.event as string, at: Date.parse(item!.created_at as string) }));
+  const closed = items.filter((item) => item.event === "closed").at(-1);
+  if (closed === undefined || Number.isNaN(closed.at)) return "person";
+  // Only a deletion at or before the close closed it; a person who closed it and then deleted
+  // the branch decided first.
+  return items.some(
+    (item) =>
+      item.event === "head_ref_deleted" &&
+      item.at <= closed.at &&
+      closed.at - item.at <= BRANCH_DELETION_WINDOW_MS,
+  )
+    ? "branch_deleted"
+    : "person";
 }
 
-async function guarded<T>(
-  operation: KnowledgePublicationForgeOperation,
-  work: () => Promise<T>,
-): Promise<T> {
-  try {
-    return await work();
-  } catch (error) {
-    if (error instanceof KnowledgePublicationForgeError) throw error;
-    const { exitCode, failureClass } = classifyGitHubCliFailure(error);
-    throw new KnowledgePublicationForgeError(operation, exitCode, failureClass, { cause: error });
-  }
-}
+/** ADR-0603: the merge gate, with the draft flag and merge queue `gh pr view` does not report. */
+const GATE_QUERY =
+  "query($owner:String!,$repo:String!,$number:Int!){repository(owner:$owner,name:$repo){pullRequest(number:$number){mergeStateStatus reviewDecision isDraft isInMergeQueue isMergeQueueEnabled}}}";
 
 /** GitHub's refusal to rerun a workflow run that is too old to retry. */
 const RERUN_EXPIRED =
@@ -130,101 +141,6 @@ function rerunExpired(error: unknown): boolean {
   return RERUN_EXPIRED.test(typeof stderr === "string" ? stderr : String(stderr ?? ""));
 }
 
-const CHECK_NAME_LIMIT = 100;
-const RUN_LINK = /\/actions\/runs\/(\d{1,19})(?:\/|$)/u;
-const JOB_LINK = /\/actions\/runs\/\d{1,19}\/job\/(\d{1,19})$/u;
-
-/** A bounded, printable check name; control characters and overlong names never reach state. */
-function checkName(item: Record<string, unknown>): string {
-  const raw = item.__typename === "StatusContext" ? item.context : item.name;
-  const name = (typeof raw === "string" ? raw : "").replace(/[\p{Cc}\p{Cf}]/gu, " ").trim();
-  if (name === "") return item.__typename === "StatusContext" ? "unnamed status" : "unnamed check";
-  return name.length > CHECK_NAME_LIMIT ? `${name.slice(0, CHECK_NAME_LIMIT - 1)}…` : name;
-}
-
-function linkedId(item: Record<string, unknown>, pattern: RegExp): number | null {
-  const link = typeof item.detailsUrl === "string" ? item.detailsUrl : "";
-  const id = Number(pattern.exec(link)?.[1]);
-  return Number.isSafeInteger(id) && id > 0 ? id : null;
-}
-
-/**
- * The newest run of each Actions check. A rerun or a reopened pull request adds runs to the same
- * head and leaves the earlier ones in the rollup; like GitHub's merge gate, only the latest run of
- * a workflow job counts. Commit statuses already arrive as the latest state per context.
- */
-function latestCheckRuns(items: Record<string, unknown>[]): Record<string, unknown>[] {
-  const latest = new Map<string, { index: number; startedAt: string }>();
-  // A run without a name or a start time cannot be matched to a later one, so it always counts.
-  const comparable = (item: Record<string, unknown>) =>
-    item.__typename !== "StatusContext" &&
-    typeof item.name === "string" &&
-    item.name !== "" &&
-    typeof item.startedAt === "string";
-  items.forEach((item, index) => {
-    if (!comparable(item)) return;
-    const key = `${String(item.workflowName ?? "")}\u0000${String(item.name)}`;
-    const startedAt = String(item.startedAt);
-    const seen = latest.get(key);
-    if (seen === undefined || startedAt >= seen.startedAt) latest.set(key, { index, startedAt });
-  });
-  const kept = new Set([...latest.values()].map((entry) => entry.index));
-  return items.filter((item, index) => !comparable(item) || kept.has(index));
-}
-
-/**
- * Reduces a status rollup for one exact head; a moved head is still pending. Only success
- * passes. A skipped check did not run for this pull request, so it neither passes nor blocks;
- * every other finished conclusion, including neutral and cancelled, fails. A commit status
- * whose exact name is in `ignore` is left out entirely (ADR-0596); check runs are never ignored. Failed items are named, at
- * most eight, with the Actions run that owns each check run.
- */
-export function summarizeKnowledgePublicationChecks(input: {
-  headSha: string;
-  observedHeadSha: string;
-  rollup: unknown;
-  ignore?: readonly string[];
-}): KnowledgePublicationChecks {
-  const ignored = new Set(input.ignore ?? []);
-  // Only outside commit statuses can be ignored; an Actions job with the same name still counts.
-  const items = latestCheckRuns(
-    (Array.isArray(input.rollup) ? (input.rollup as unknown[]) : [])
-      .filter((item): item is Record<string, unknown> => item !== null && typeof item === "object")
-      .filter((item) => !(item.__typename === "StatusContext" && ignored.has(checkName(item)))),
-  );
-  if (input.observedHeadSha !== input.headSha || items.length === 0)
-    return { state: "pending", total: items.length };
-  let failed = 0;
-  let succeeded = 0;
-  const failures: KnowledgePublicationCheckFailure[] = [];
-  for (const item of items) {
-    const status = item.__typename === "StatusContext";
-    const conclusion = status
-      ? String(item.state ?? "")
-      : String(item.status ?? "") === "COMPLETED"
-        ? String(item.conclusion ?? "")
-        : "";
-    if (conclusion === "" || conclusion === "PENDING" || conclusion === "EXPECTED")
-      return { state: "pending", total: items.length };
-    if (conclusion === "SUCCESS") succeeded++;
-    else if (conclusion !== "SKIPPED") {
-      failed++;
-      if (failures.length < MAXIMUM_NAMED_CHECK_FAILURES)
-        failures.push({
-          name: checkName(item),
-          kind: status ? "status" : "check_run",
-          conclusion: conclusion.toLowerCase(),
-          runId: status ? null : linkedId(item, RUN_LINK),
-          jobId: status ? null : linkedId(item, JOB_LINK),
-        });
-    }
-  }
-  if (failed > 0) return { state: "failed", total: items.length, failed, failures };
-  return succeeded === 0
-    ? { state: "pending", total: items.length }
-    : { state: "passed", total: items.length };
-}
-
 /**
  * GitHub through the host's authenticated `gh` CLI. It uses whatever credential that host already
  * has; it never reads or stores a token itself.
@@ -234,8 +150,35 @@ export function createGitHubKnowledgePublicationForge(input: {
   executable?: string;
   run?: Runner;
   now?: () => Date;
+  /**
+   * ADR-0603: `owner/name` every gh call targets. Absent resolves it from the publication remote;
+   * null leaves gh's own resolution, only for an injected runner in tests.
+   */
+  repository?: string | null;
+  /** Pull requests per history page; GitHub allows at most 100. */
+  historyPageSize?: number;
+  /** How the repository is resolved when `repository` is absent; replaced only in tests. */
+  resolveRepository?: (root: string) => Promise<ResolvedGitHubRepository>;
 }): KnowledgePublicationForge {
-  const run = input.run ?? ghRunner(input.repositoryRoot, input.executable ?? "gh");
+  const pageSize = input.historyPageSize ?? 100;
+  const raw = input.run ?? ghRunner(input.repositoryRoot, input.executable ?? "gh");
+  const repository = githubRepositoryOnce({
+    root: input.repositoryRoot,
+    fixed:
+      input.repository !== undefined
+        ? input.repository
+        : input.run !== undefined
+          ? null
+          : undefined,
+    resolve:
+      input.resolveRepository ??
+      ((root) => resolveGitHubRepositoryDetail(root, { executable: input.executable ?? "gh" })),
+    now: input.now ?? (() => new Date()),
+  });
+  const run: Runner = async (args, stdin) => {
+    const target = await repository();
+    return raw(target === null ? args : scopeGitHubArguments(args, target), stdin);
+  };
   const now = input.now ?? (() => new Date());
   // The run's age decides expiry: `gh` words the refusal differently by version (2.46 calls it a
   // broken workflow file), so the refusal text is only a fallback. An unreadable age tries the rerun.
@@ -255,6 +198,20 @@ export function createGitHubKnowledgePublicationForge(input: {
     pullRequest(
       JSON.parse(await run(["pr", "view", String(number), "--json", PULL_REQUEST_FIELDS])),
     );
+  // ADR-0603: before Lervo closes a pull request itself, its record says so, so the closure never
+  // reads as a person's decision on another host.
+  const markClosed = async (number: number, reason: string) => {
+    const { body } = JSON.parse(await run(["pr", "view", String(number), "--json", "body"])) as {
+      body?: unknown;
+    };
+    if (typeof body !== "string") throw new InvalidResponse("The pull request body is invalid.");
+    const marked = markKnowledgePublicationClosed(body, reason);
+    if (marked !== body)
+      await run(
+        ["api", "--method", "PATCH", `repos/{owner}/{repo}/pulls/${number}`, "--input", "-"],
+        JSON.stringify({ body: marked }),
+      );
+  };
   return {
     findPullRequest: ({ head, base }) =>
       guarded("find", async () => {
@@ -269,14 +226,19 @@ export function createGitHubKnowledgePublicationForge(input: {
             "--state",
             "open",
             "--limit",
-            "2",
+            "20",
             "--json",
-            PULL_REQUEST_FIELDS,
+            `${PULL_REQUEST_FIELDS},isCrossRepository`,
           ]),
         ) as unknown[];
         if (!Array.isArray(list))
           throw new InvalidResponse("The GitHub pull request list is invalid.");
-        return list.length === 0 ? null : pullRequest(list[0]);
+        // ADR-0603: `--head` matches a branch name in any fork; only the pull request from this
+        // repository's own publication branch counts.
+        const own = list.find(
+          (item) => (item as { isCrossRepository?: unknown } | null)?.isCrossRepository === false,
+        );
+        return own === undefined ? null : pullRequest(own);
       }),
     createPullRequest: ({ head, base, title, body }) =>
       guarded("create", async () => {
@@ -301,11 +263,46 @@ export function createGitHubKnowledgePublicationForge(input: {
         );
       }),
     viewPullRequest: (number) => guarded("view", () => view(number)),
+    // ADR-0607: newest change first, page by page, stopping once a page reaches back past `since`.
+    publicationHistory: ({ head, base, since }) =>
+      guarded("history", async () => {
+        const entries: KnowledgePublicationHistoryEntry[] = [];
+        for (let page = 1; ; page++) {
+          const items = jsonLines(
+            await run([
+              "api",
+              `repos/{owner}/{repo}/pulls?state=all&head={owner}:${encodeURIComponent(head)}&base=${encodeURIComponent(base)}&sort=updated&direction=desc&per_page=${pageSize}&page=${page}`,
+              "--jq",
+              HISTORY_JQ,
+            ]),
+          ).map(historyEntry);
+          entries.push(...items);
+          if (items.length < pageSize) break;
+          if (since !== undefined && items.at(-1)!.updatedAt < since) break;
+        }
+        return entries;
+      }),
+    repository: async () => (await repository()) ?? "default",
+    closureCause: (number) =>
+      guarded("history", async () =>
+        closureCause(
+          jsonLines(
+            await run([
+              "api",
+              "--paginate",
+              `repos/{owner}/{repo}/issues/${number}/events?per_page=100`,
+              "--jq",
+              ".[] | {event, created_at}",
+            ]),
+          ),
+        ),
+      ),
     closePullRequest: ({ number, comment }) =>
       guarded("close", async () => {
+        await markClosed(number, "superseded");
         await run(["pr", "close", String(number), "--comment", comment]);
       }),
-    checks: ({ number, headSha, ignore }) =>
+    checks: ({ number, headSha, ignore, required }) =>
       guarded("checks", async () => {
         const value = JSON.parse(
           await run(["pr", "view", String(number), "--json", "headRefOid,statusCheckRollup"]),
@@ -315,6 +312,7 @@ export function createGitHubKnowledgePublicationForge(input: {
           observedHeadSha: String(value.headRefOid ?? ""),
           rollup: value.statusCheckRollup,
           ...(ignore === undefined ? {} : { ignore }),
+          ...(required === undefined ? {} : { required }),
         });
         if (summary.state !== "failed") return summary;
         // The rollup times a job GitHub refused to start like a real one, so its steps tell.
@@ -350,14 +348,49 @@ export function createGitHubKnowledgePublicationForge(input: {
           });
         }
         if (!expired) return;
+        // The next publication renders the body again, which drops the mark once it reopened.
+        await markClosed(number, "rerun");
         await run(["pr", "close", String(number)]);
         await run(["pr", "reopen", String(number)]).catch(() =>
           run(["pr", "reopen", String(number)]),
         );
       }),
-    merge: ({ number, headSha }) =>
+    merge: ({ number, headSha, method }) =>
       guarded("merge", async () => {
-        await run(["pr", "merge", String(number), "--merge", "--match-head-commit", headSha]);
+        // A merge queue merges with its own method; gh enqueues when no method is given.
+        await run([
+          "pr",
+          "merge",
+          String(number),
+          ...(method === "queue" ? [] : [`--${method}`]),
+          "--match-head-commit",
+          headSha,
+        ]);
+      }),
+    policy: ({ base, branch }) =>
+      guarded("policy", async () =>
+        reduceKnowledgePublicationPolicy(await readGitHubPolicy(run, base, branch)),
+      ),
+    gate: (number) =>
+      guarded("gate", async () => {
+        const value = JSON.parse(
+          await run([
+            "api",
+            "graphql",
+            "-F",
+            "owner={owner}",
+            "-F",
+            "repo={repo}",
+            "-F",
+            `number=${number}`,
+            "-f",
+            `query=${GATE_QUERY}`,
+          ]),
+        ) as { data?: { repository?: { pullRequest?: Record<string, unknown> | null } } };
+        const pull = value?.data?.repository?.pullRequest;
+        if (pull === null || pull === undefined || typeof pull !== "object")
+          throw new InvalidResponse("The GitHub merge state is invalid.");
+        return mergeGate(pull.mergeStateStatus, pull.reviewDecision, pull);
       }),
   };
 }

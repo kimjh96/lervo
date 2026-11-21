@@ -1,7 +1,14 @@
-import type { KnowledgeConvergenceStatus } from "@lervo/repository-knowledge";
+import {
+  MAXIMUM_REPOSITORY_KNOWLEDGE_OUTSTANDING,
+  REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION,
+  REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION,
+  retireRepositoryKnowledgeJobs,
+  type KnowledgeConvergenceStatus,
+} from "@lervo/repository-knowledge";
 import { withRepositoryKnowledgeWorkerLock } from "@lervo/repository-knowledge-compiler";
 import type { ProjectStorage } from "@lervo/project-storage";
 
+import { repositoryKnowledgeJobAdmission } from "./convergence-owner-fence.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 import type { InstructionCandidateExchangeResult } from "./instruction-candidate-exchange.js";
 import { listQueuedInstructionCaptures } from "./instruction-capture-queue.js";
@@ -69,7 +76,9 @@ export type NonOwnerCycleResult =
  * ADR-0597 (amending ADR-0466, ADR-0467 and ADR-0518): a host that does not own convergence runs
  * only its host-local duties: its own queued owner turns and practice observation, the Hub
  * candidate exchange, and retirement of its own convergence checkouts. It never scans, lints or
- * records staleness or lifecycle, because the owner discards a non-owner's observation.
+ * records staleness or lifecycle, because the owner discards a non-owner's observation. ADR-0605:
+ * it holds no repository knowledge job either; any it still has, from before it lost ownership or
+ * from an earlier release, settle as `stale` (`convergence_owner_elsewhere`).
  */
 export async function runNonOwnerCycle(input: {
   storage: ProjectStorage;
@@ -100,6 +109,23 @@ export async function runNonOwnerCycle(input: {
         });
   const ownerTurns = work === null ? null : await withRepositoryKnowledgeWorkerLock(root, work);
   if (await input.upgradeWaiting()) return yielded;
+  // ADR-0605: the admission rule that keeps jobs off this host settles the ones it still holds.
+  const admission = repositoryKnowledgeJobAdmission(input.owner);
+  if (
+    !admission.admitted &&
+    input.storage.events.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION) +
+      input.storage.events.outstandingCount(REPOSITORY_KNOWLEDGE_REQUEUE_DESTINATION) >
+      0
+  )
+    await withRepositoryKnowledgeWorkerLock(root, async () =>
+      retireRepositoryKnowledgeJobs({
+        events: input.storage.events,
+        workerId: `retire-${process.pid}`,
+        reason: admission.reason,
+        // The queue's own bound, so one cycle settles every job it can hold.
+        maximumJobs: MAXIMUM_REPOSITORY_KNOWLEDGE_OUTSTANDING * 2,
+      }),
+    );
   // ADR-0518: convergence checkouts are host-local, so a non-owner still retires its own.
   if (await hasConvergenceWorkspaceRetention(input.storage))
     await withRepositoryKnowledgeWorkerLock(root, () =>

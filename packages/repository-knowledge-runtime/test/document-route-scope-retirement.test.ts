@@ -49,9 +49,10 @@ it("asks no scope change for classified outside-root moves and retires a recorde
     documents,
   });
   const value = {
-    classifications: request.documents.map((document) => ({
-      path: document.path,
-      contentHash: document.contentHash,
+    // ADR-0604: the classifier cites each document by its reference and path.
+    classifications: request.documents.map((document, index) => ({
+      document: `d${index + 1}`,
+      sourcePath: document.path,
       outcome: "route",
       routeId: "operations",
       roleId: null,

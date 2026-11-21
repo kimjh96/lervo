@@ -8,6 +8,7 @@ import {
 } from "@lervo/repository-knowledge-compiler";
 import type { ProviderCliIdentity } from "./provider-cli-identity.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 /** A model-input contract alone cannot prove that quota or authentication recovered. */
 export async function probeProviderPauseAvailability(
@@ -32,12 +33,12 @@ export async function probeProviderPauseAvailability(
       task: "knowledge_provider_availability_probe",
       responseContract: {
         schemaVersion: 1,
-        schema: {
+        schema: providerOutputSchema({
           type: "object",
           additionalProperties: false,
           properties: { nonce: { type: "string" } },
           required: ["nonce"],
-        },
+        }),
       },
       untrustedSourceData: { nonce },
     });

@@ -14,6 +14,7 @@ export interface OwnerProposalFeedback {
 const FEEDBACK_FIELDS = new Set([
   ...NATIVE_TASK_DETAIL_KEYS,
   "assignmentId",
+  // ADR-0608: no longer emitted, since the owner never returns it; recorded feedback may name it.
   "resultContentHash",
   "writingPolicyId",
   "checks",

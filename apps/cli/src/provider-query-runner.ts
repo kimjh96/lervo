@@ -3,12 +3,14 @@ import {
   createNoCapabilityProviderJsonRunner,
   type NoCapabilityProviderJsonRunner,
   type ProviderJsonUsage,
+  type ProviderJsonRequest,
 } from "@lervo/repository-knowledge-compiler";
 
 import type { RunProvider } from "./managed-run.js";
 import { createCodexPersistentQueryRunner } from "./provider-query-runner-codex.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
-const admissionSchema = {
+const admissionSchema = providerOutputSchema({
   type: "object",
   additionalProperties: false,
   properties: {
@@ -20,7 +22,7 @@ const admissionSchema = {
     },
   },
   required: ["schemaVersion", "retrievalQueries"],
-} as const;
+} as const);
 
 const admissionInput = {
   instruction: "Return one bounded diagnostic retrieval query using the response contract.",
@@ -34,7 +36,7 @@ const admissionInput = {
   requestDigest: sha256("lervo.provider-query-runner.admission.v1"),
   untrustedRequest: "repository retrieval readiness",
   boundedContext: { contextRequirement: "none" },
-} as const;
+} as const satisfies ProviderJsonRequest;
 
 export interface ProviderQueryRunnerAdmission {
   schemaVersion: 1;

@@ -21,6 +21,7 @@ import { resolveAdmittedProviderCli } from "../src/provider-cli-admission.js";
 import { runProviderCliCommand } from "../src/provider-cli-command.js";
 import { backgroundProviderOptions } from "../src/background-provider-invocation.js";
 import { readWorkerProviderSelection } from "../src/provider-cli-selection.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 vi.mock("@lervo/repository-knowledge-compiler", async (original) => ({
   ...(await original<typeof import("@lervo/repository-knowledge-compiler")>()),
@@ -236,7 +237,11 @@ console.log(JSON.stringify({type:'turn.completed',usage:{input_tokens:10,output_
       await runner.resolve({
         task: "background",
         responseContract: {
-          schema: { type: "object", properties: { ok: { type: "boolean" } }, required: ["ok"] },
+          schema: providerOutputSchema({
+            type: "object",
+            properties: { ok: { type: "boolean" } },
+            required: ["ok"],
+          }),
         },
       }),
     ).toEqual({ ok: true });

@@ -3,7 +3,8 @@
 // Fixture Claude provider for ADR-0463 document freshness. It answers the no-capability JSON
 // contract from `document-freshness-plan.json` beside this script, so a test or a local journey
 // controls exactly which hunks the "provider" proposes. Each planned hunk names the evidence paths
-// it cites; the fixture binds them to the hashes the evidence bundle supplies. The Tier 0
+// it cites; like a real provider, the fixture answers only from the view it receives, so it cites
+// each by the evidence reference listed for that path (ADR-0604). The Tier 0
 // cross-check task answers from the entry's `crossCheck` (`agree` by default, `disagree`,
 // `invalid`, or `fail`); `crossCheckDisagree` limits disagreement to hunks with those `before` texts.
 // `crossCheckSequence` instead answers the nth cross-check call for the document with its nth mode,
@@ -47,21 +48,29 @@ if (request.task === "provider_cli_admission_probe") {
   process.exit(0);
 }
 const documentPath = request.untrustedSourceData?.document?.path ?? null;
-const priorCrossChecks = existsSync(logPath)
-  ? readFileSync(logPath, "utf8")
-      .split("\n")
-      .filter(Boolean)
-      .map((line) => JSON.parse(line))
-      .filter(
-        (call) => call.task === "document_freshness_cross_check" && call.document === documentPath,
-      ).length
-  : 0;
+const priorCalls = (task) =>
+  existsSync(logPath)
+    ? readFileSync(logPath, "utf8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line))
+        .filter((call) => call.task === task && call.document === documentPath).length
+    : 0;
+const priorAssessments = priorCalls("document_freshness_assessment_review");
+const priorCrossChecks = priorCalls("document_freshness_cross_check");
 appendFileSync(
   logPath,
   `${JSON.stringify({
     task: request.task,
     document: documentPath,
     regeneration: request.untrustedSourceData?.regeneration?.failure ?? null,
+    // ADR-0604: whether the request offered an evidence hash or hunk id to copy back.
+    offersIdentifiers:
+      (request.untrustedSourceData?.evidence ?? []).some((item) => "hash" in item) ||
+      (request.untrustedSourceData?.hunks ?? []).some((hunk) => "hunkId" in hunk) ||
+      /"(hash|hunkId|documentHash|dependencyDigest)"/u.test(
+        JSON.stringify(request.responseContract?.schema ?? {}),
+      ),
   })}\n`,
 );
 if (
@@ -97,7 +106,7 @@ if (request.task === "document_freshness_cross_check" && crossCheckMode === "quo
 const cite = (path) => {
   const item = bundle.evidence.find((evidence) => evidence.path === path);
   if (item === undefined) throw new Error(`The bundle has no evidence for ${path}`);
-  return { path: item.path, hash: item.hash };
+  return { evidence: item.evidence, path: item.path };
 };
 const crossCheckResponse = () => {
   if (crossCheckMode === "invalid") return { hunks: [{ verdict: "agree" }] };
@@ -108,7 +117,8 @@ const crossCheckResponse = () => {
         crossCheckMode === "disagree" &&
         (contested === undefined || contested.includes(hunk.before));
       return {
-        hunkId: hunk.hunkId,
+        hunk: hunk.hunk,
+        anchor: hunk.anchor,
         verdict: disagree ? "disagree" : "agree",
         reason: disagree
           ? "The cited evidence does not show the replacement value."
@@ -121,12 +131,16 @@ const isCrossCheck = request.task === "document_freshness_cross_check";
 const response = isCrossCheck
   ? crossCheckResponse()
   : request.task === "document_freshness_assessment_review"
-    ? {
-        agrees: entry.assessmentAgrees ?? true,
-        documentHash: bundle.document.hash,
-        dependencyDigest: bundle.assessmentDependencyDigest,
-        explanation: "The complete supplied change leaves the cited document claim unchanged.",
-      }
+    ? // ADR-0604: `invalid` answers outside the contract; it must be asked again, never read.
+      (entry.assessmentSequence?.[priorAssessments] ??
+        (entry.assessmentAgrees === false ? "disagree" : "agree")) === "invalid"
+      ? { agrees: "yes" }
+      : {
+          agrees:
+            (entry.assessmentSequence?.[priorAssessments] ??
+              (entry.assessmentAgrees === false ? "disagree" : "agree")) === "agree",
+          explanation: "The complete supplied change leaves the cited document claim unchanged.",
+        }
     : {
         operation: entry.operation,
         hunks: (entry.hunks ?? []).map((hunk) => ({
@@ -152,14 +166,24 @@ console.log(
     stop_reason: "tool_use",
     num_turns: 2,
     usage: { server_tool_use: { web_search_requests: 0, web_fetch_requests: 0 } },
-    modelUsage: {
-      fixture: {
-        inputTokens: (isCrossCheck ? entry.crossCheckInputTokens : entry.inputTokens) ?? 1_200,
-        cacheReadInputTokens: 0,
-        cacheCreationInputTokens: 0,
-        outputTokens: entry.outputTokens ?? 300,
-        contextWindow: 200_000,
-      },
-    },
+    // ADR-0604: `assessmentUsage: "omit"` models a provider that reports no usage for the review.
+    ...(request.task === "document_freshness_assessment_review" && entry.assessmentUsage === "omit"
+      ? {}
+      : {
+          modelUsage: {
+            fixture: {
+              inputTokens:
+                (isCrossCheck
+                  ? entry.crossCheckInputTokens
+                  : request.task === "document_freshness_assessment_review"
+                    ? (entry.assessmentInputTokens ?? entry.inputTokens)
+                    : entry.inputTokens) ?? 1_200,
+              cacheReadInputTokens: 0,
+              cacheCreationInputTokens: 0,
+              outputTokens: entry.outputTokens ?? 300,
+              contextWindow: 200_000,
+            },
+          },
+        }),
   }),
 );

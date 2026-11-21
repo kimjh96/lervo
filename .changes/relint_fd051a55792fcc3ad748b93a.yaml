@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fd051a55792fcc3ad748b93a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Knowledge publication follows each repository's merge policy, reviews cannot be broken by a mistyped hash, and non-owner hosts no longer pile up knowledge jobs"

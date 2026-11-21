@@ -7,6 +7,7 @@ import type { ConversationReplyCandidate } from "@lervo/interaction";
 import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 import { managedExecutionIdentity } from "@lervo/work-controller";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -90,7 +91,6 @@ async function judgement(variation: Variation = {}) {
     operation: "prepare_publication",
     rationale: "The accepted result is ready for its origin conversation.",
     details: JSON.stringify({
-      resultContentHash: resultArtifactHash,
       writingPolicyId: resultWritingContract.writingPolicyId,
       checks: semanticChecks,
       ...variation.details,
@@ -147,6 +147,11 @@ async function judgement(variation: Variation = {}) {
 
 it("accepts a permit backed by the exact settled native publication verdict", async () => {
   await expect(judgement()).resolves.toBeUndefined();
+});
+
+it("accepts a verdict recorded before ADR-0608 that names the exact accepted result", async () => {
+  const resultContentHash = `sha256:${createHash("sha256").update(text).digest("hex")}`;
+  await expect(judgement({ details: { resultContentHash } })).resolves.toBeUndefined();
 });
 
 it.each([

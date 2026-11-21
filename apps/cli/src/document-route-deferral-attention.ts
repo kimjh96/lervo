@@ -23,6 +23,8 @@ export function documentRouteDeferralInstruction(
   const resolution = documentRouteDeferralResolution(document);
   if (resolution === "provider_unavailable")
     return `No provider is admitted to classify ${document.path}. Run lervo migrate knowledge --provider codex (or claude) after provider admission is available.`;
+  if (resolution === "classification_invalid")
+    return `The semantic classifier's answer for ${document.path} broke its review contract, so Lervo recorded no route and retries on a later cycle. To place it now, add ${metadata} front matter naming a configured route, or exclude the path in .lervo/knowledge/policy.yaml if it is not repository documentation.`;
   if (resolution === "destination_conflict")
     return `Resolve the occupied or ambiguous destination for ${document.path}, then rebuild the migration plan. The source remains in place.`;
   if (resolution === "destination_capacity")
@@ -44,12 +46,23 @@ export function documentRouteDeferralLines(
   );
 }
 
-/** Non-gating lifecycle advisories, one per deferred document, for operating attention. */
+/**
+ * Non-gating lifecycle advisories, one per deferred document, for operating attention. ADR-0604:
+ * a document whose classifier answer broke its contract is named first, with its own code.
+ */
 export function documentRouteDeferralAdvisories(
   documents: readonly RepositoryLayoutDeferredDocument[],
 ): Array<{ code: string; command: string; detail: string }> {
-  return documents.slice(0, MAXIMUM_DOCUMENT_ROUTE_ATTENTION_ITEMS).map((document) => ({
-    code: "document_route_classification_deferred",
+  const invalid = (document: RepositoryLayoutDeferredDocument) =>
+    documentRouteDeferralResolution(document) === "classification_invalid";
+  const ordered = [
+    ...documents.filter((document) => invalid(document)),
+    ...documents.filter((document) => !invalid(document)),
+  ];
+  return ordered.slice(0, MAXIMUM_DOCUMENT_ROUTE_ATTENTION_ITEMS).map((document) => ({
+    code: invalid(document)
+      ? "document_route_classification_invalid"
+      : "document_route_classification_deferred",
     command: documentRouteDeferralInstruction(document),
     detail: `${document.path}: ${document.reason} (${documentRouteDeferralResolution(document)})`,
   }));

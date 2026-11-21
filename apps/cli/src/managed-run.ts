@@ -330,6 +330,13 @@ export function createManagedRunExecutor(
         requestDigest: digest(instructions),
         risk: request.risk.trim(),
         instructions: providerInstructions,
+        // ADR-0608: the owner's task, the role text, research data and skill bodies are not Lervo's.
+        untrustedInstructions: [
+          instructions,
+          ...(roleId === "developer" ? [] : [role.description]),
+          ...(research?.untrustedInstructions ?? []),
+          ...preparedSkills.instructionBlocks.map((skill) => skill.content),
+        ],
         targetTurnId: dependencies.createId("turn"),
         // Each additional expected path is written in its own target turn.
         createTargetTurnId: () => dependencies.createId("turn"),

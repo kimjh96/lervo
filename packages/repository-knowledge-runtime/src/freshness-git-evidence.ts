@@ -74,6 +74,58 @@ export async function freshnessObject(
   return match === null ? null : { kind: match[1] as "blob" | "tree", id: match[2]! };
 }
 
+/** Keeps one `git ls-tree` argument list well inside every platform's command-line limit. */
+const MAXIMUM_BATCH_ARGUMENT_BYTES = 16_384;
+
+/**
+ * ADR-0606: the objects at many paths with as few Git processes as `ls-tree` allows, instead of
+ * one per path. Given a directory and a path inside it together, `ls-tree` shows the inner path and
+ * drops the directory's own entry, so a path is never batched with one of its requested ancestors:
+ * each goes into the batch for its count of requested ancestors. Each result equals
+ * `freshnessObject` for that path, including its refusal of symlinks and gitlinks.
+ */
+export async function freshnessObjects(
+  root: string,
+  revision: string,
+  paths: readonly string[],
+): Promise<Map<string, { kind: "blob" | "tree"; id: string } | null>> {
+  const result = new Map<string, { kind: "blob" | "tree"; id: string } | null>(
+    paths.map((path) => [path, null]),
+  );
+  const allowed = [...new Set(paths.filter(freshnessEvidencePathAllowed))];
+  const levels = new Map<number, string[]>();
+  for (const path of allowed) {
+    const level = allowed.filter((other) => path.startsWith(`${other}/`)).length;
+    levels.set(level, [...(levels.get(level) ?? []), path]);
+  }
+  for (const batch of levels.values())
+    for (let start = 0; start < batch.length;) {
+      const chunk: string[] = [];
+      let bytes = 0;
+      while (start < batch.length && (chunk.length === 0 || bytes < MAXIMUM_BATCH_ARGUMENT_BYTES)) {
+        bytes += Buffer.byteLength(batch[start]!) + 1;
+        chunk.push(batch[start++]!);
+      }
+      const wanted = new Set(chunk);
+      const raw = await freshnessGit(root, ["ls-tree", "-z", revision, "--", ...chunk]);
+      for (const record of raw.split("\0")) {
+        if (record === "") continue;
+        const match = /^(\d{6}) (\w+) ([a-f0-9]{40,64})\t(.+)$/su.exec(record);
+        if (match === null || !wanted.has(match[4]!)) continue;
+        if (
+          !((match[1] === "100644" || match[1] === "100755") && match[2] === "blob") &&
+          !(match[1] === "040000" && match[2] === "tree")
+        )
+          throw Object.assign(
+            new Error("Freshness evidence object is not a regular file or directory."),
+            { code: "freshness_evidence_unavailable" },
+          );
+        result.set(match[4]!, { kind: match[2] as "blob" | "tree", id: match[3]! });
+      }
+    }
+  return result;
+}
+
 export function freshnessExcerpt(text: string, needles: readonly string[]): string[] {
   const lines = text.split(/\r?\n/u);
   const selected = new Set<number>();

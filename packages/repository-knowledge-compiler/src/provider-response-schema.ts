@@ -34,8 +34,16 @@ function nativeJsonSchemaType(value: unknown): string | undefined {
   }
 }
 
-export function providerNativeResponseSchema(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map((item) => providerNativeResponseSchema(item));
+/**
+ * The schema in the subset native structured output accepts. It only drops keywords and renames
+ * `oneOf`, so the result keeps the input's type, a checked provider schema included.
+ */
+export function providerNativeResponseSchema<T>(value: T): T {
+  return nativeResponseSchema(value) as T;
+}
+
+function nativeResponseSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map((item) => nativeResponseSchema(item));
   if (typeof value !== "object" || value === null) return value;
   const source = value as Record<string, unknown>;
   const result = Object.fromEntries(
@@ -46,7 +54,7 @@ export function providerNativeResponseSchema(value: unknown): unknown {
             key,
           ),
       )
-      .map(([key, item]) => [key === "oneOf" ? "anyOf" : key, providerNativeResponseSchema(item)]),
+      .map(([key, item]) => [key === "oneOf" ? "anyOf" : key, nativeResponseSchema(item)]),
   );
   if (result.type === undefined && Object.hasOwn(source, "const")) {
     const inferred = nativeJsonSchemaType(source.const);

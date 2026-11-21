@@ -26,6 +26,12 @@ export interface FreshnessPlanEntry {
   currentDocumentPath?: string;
   explanation?: string;
   assessmentAgrees?: boolean;
+  /** The nth no-change review for the document answers with the nth mode; then `assessmentAgrees`. */
+  assessmentSequence?: Array<"agree" | "disagree" | "invalid">;
+  /** `omit` reports no usage for the no-change review. */
+  assessmentUsage?: "omit";
+  /** Input tokens the no-change review reports; `inputTokens` when absent. */
+  assessmentInputTokens?: number;
   /** Tier 0 reviewer answer; `agree` when absent. */
   crossCheck?: "agree" | "disagree" | "invalid" | "fail" | "quota";
   /** The nth cross-check call for the document answers with the nth mode; then `crossCheck`. */
@@ -86,7 +92,12 @@ export async function freshnessFixture(eventSchema: 4 | 5 = 4) {
       );
     },
     async providerCalls(): Promise<
-      Array<{ task: string; document: string | null; regeneration?: string | null }>
+      Array<{
+        task: string;
+        document: string | null;
+        regeneration?: string | null;
+        offersIdentifiers?: boolean;
+      }>
     > {
       try {
         return (
@@ -101,6 +112,7 @@ export async function freshnessFixture(eventSchema: 4 | 5 = 4) {
                 task: string;
                 document: string | null;
                 regeneration?: string | null;
+                offersIdentifiers?: boolean;
               },
           );
       } catch {

@@ -13,6 +13,7 @@ import { materializePractice } from "./practice-materialization.js";
 import { assessPracticeUsage } from "./practice-usage.js";
 import { disclosePracticeWork } from "./practice-disclosure.js";
 import { appendPracticeEvent } from "./practice-events.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const failures = new Set([
   "source_incomplete",
@@ -93,12 +94,12 @@ export async function runPracticeLearningCycle(
               throw new Error("source_incomplete");
           },
           prompt: PRACTICE_ASSESSMENT_PROMPT,
-          schema: {
+          schema: providerOutputSchema({
             type: "object",
             additionalProperties: false,
             properties: { practice: { anyOf: [{ type: "null" }, reusablePracticeSchema] } },
             required: ["practice"],
-          },
+          }),
           resolve: (value) => value,
         });
         await settlePracticeAssessment({
@@ -160,21 +161,25 @@ export async function runPracticeLearningCycle(
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
+    const code = String((error as { code?: unknown } | null)?.code);
     practiceFunnel(
       state,
       context.now(),
       "waiting",
-      failures.has(message)
-        ? message
-        : error instanceof TypeError
-          ? "source_incomplete"
-          : [
-                "knowledge_provider_paused",
-                "knowledge_capacity_unavailable",
-                "knowledge_authority_unavailable",
-              ].includes(String((error as { code?: unknown })?.code))
-            ? "provider_not_admitted"
-            : "assessment_failed",
+      // ADR-0604: an answer that breaks its practice review contract is recorded as invalid.
+      code === "knowledge_semantic_review_invalid"
+        ? "review_invalid"
+        : failures.has(message)
+          ? message
+          : error instanceof TypeError
+            ? "source_incomplete"
+            : [
+                  "knowledge_provider_paused",
+                  "knowledge_capacity_unavailable",
+                  "knowledge_authority_unavailable",
+                ].includes(code)
+              ? "provider_not_admitted"
+              : "assessment_failed",
     );
   } finally {
     await writePracticeState(root, state, context.now());

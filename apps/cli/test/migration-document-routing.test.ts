@@ -63,15 +63,18 @@ vi.mock("../src/document-normalization-command.js", () => ({
 vi.mock("@lervo/repository-knowledge-compiler", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@lervo/repository-knowledge-compiler")>()),
   createNoCapabilityProviderJsonRunner: async () => ({
-    resolveObserved: async (input: { untrustedSourceData: DocumentRouteClassificationRequest }) => {
+    // ADR-0604: it answers from the view it receives, citing each document by reference.
+    resolveObserved: async (input: {
+      untrustedSourceData: { documents: Array<{ document: string; path: string }> };
+    }) => {
       provider.calls.push(input);
       if (provider.fail) throw new Error("Provider unavailable");
       return {
         usage: { inputTokens: 10, outputTokens: 10, cachedInputTokens: 0, totalTokens: 20 },
         value: {
           classifications: input.untrustedSourceData.documents.map((document) => ({
-            path: document.path,
-            contentHash: document.contentHash,
+            document: document.document,
+            sourcePath: document.path,
             outcome: "route",
             routeId: "operations",
             roleId: null,

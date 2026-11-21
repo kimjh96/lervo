@@ -50,18 +50,25 @@ export async function reviewLifecyclePlan(
         prompt: LIFECYCLE_PLAN_REVIEW_PROMPT,
         task: LIFECYCLE_PLAN_REVIEW_TASK,
         schema: lifecyclePlanReviewSchema,
+        accept: lifecyclePlanReviewVerdict,
+        binding: { planHash },
         contextDocuments: review.context,
         contextSkips: review.contextSkips,
         untrustedSourceData: {
           plan: review.disclosedPlan,
-          planHash,
           sources: review.sources,
           context: review.context,
           changedPaths: [...new Set(paths)].sort(),
           managedTargets: convergenceManagedKnowledgeRoots,
         },
       });
-      const verdict = lifecyclePlanReviewVerdict(observed.value, planHash);
+      // ADR-0604: a malformed answer is not a rejection; it settles as invalid with its evidence.
+      let verdict: ReturnType<typeof lifecyclePlanReviewVerdict>;
+      try {
+        verdict = lifecyclePlanReviewVerdict(observed.value);
+      } catch (error) {
+        throw Object.assign(error as Error, { dependencyHash: observed.observationArtifactHash });
+      }
       if (!verdict.approved) {
         const evidence = await context.storage.artifacts.put(
           canonicalJson({

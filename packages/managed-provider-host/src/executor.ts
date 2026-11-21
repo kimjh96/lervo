@@ -236,6 +236,8 @@ export class ManagedRemoteProviderHost implements ManagedProviderHost {
         requestDigest: command.action.request.contentHash,
         risk: command.action.risk,
         instructions: input.request,
+        // ADR-0608: a delegated request is the sender's text, never Lervo's.
+        untrustedInstructions: [input.request],
         targetTurnId: this.createId("turn"),
         context: {
           registry,

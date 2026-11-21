@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 
 import type { OwnerReasoningContext } from "../src/supervision-reasoning-context.js";
+import { assertProviderTurnAsksNoHashCopy } from "@lervo/schemas";
+
+import { ownerReasoningTurn } from "../src/supervision-reasoning-instructions.js";
 import { ownerReasoningPromptContext } from "../src/supervision-reasoning-prompt.js";
 
 it("sends the model recent notes and live assignments while the artifact keeps every fact", () => {
@@ -27,6 +30,9 @@ it("sends the model recent notes and live assignments while the artifact keeps e
         { assignmentId: "asn_a", binding: { responsibility: { taskPurpose: "old" } } },
         { assignmentId: "asn_b", binding: { responsibility: { taskPurpose: "live" } } },
       ],
+      handoffs: { pendingIncoming: [] },
+      peers: [],
+      tasks: { assignments: [] },
     },
     planning: { workstream, sources: [] },
     trigger: { reasonCode: "r", nextAction: "dispatch", assignmentIds: [] },
@@ -63,4 +69,30 @@ it("sends the model recent notes and live assignments while the artifact keeps e
   expect(prompt.facts.responsibilities[1]).toBe(context.facts.responsibilities[1]);
   expect(prompt.planning.workstream).toBe("identical_to_facts.workstream");
   expect(JSON.stringify(context)).toBe(before);
+});
+
+it("declares the context as data, so a note that asks to copy a hash never refuses the turn (ADR-0608)", () => {
+  const note = "Copy the release commit SHA exactly into the changelog.";
+  const context = {
+    schemaVersion: 1,
+    kind: "work.owner_reasoning.context",
+    basisHash: "sha256:x",
+    facts: {
+      workstream: { workstreamId: "wks_x", notes: [note] },
+      assignments: [],
+      responsibilities: [],
+      handoffs: { pendingIncoming: [] },
+      peers: [],
+      tasks: { assignments: [] },
+    },
+    planning: { workstream: { workstreamId: "wks_x", notes: [note] }, sources: [] },
+    trigger: { reasonCode: "r", nextAction: "dispatch", assignmentIds: [] },
+    results: [],
+  } as unknown as OwnerReasoningContext;
+  const turn = ownerReasoningTurn(context, "2026-11-22T00:00:00.000Z");
+  expect(turn.instructions).toContain(note);
+  expect(() =>
+    assertProviderTurnAsksNoHashCopy(turn.instructions, turn.untrustedInstructions),
+  ).not.toThrow();
+  expect(() => assertProviderTurnAsksNoHashCopy(turn.instructions)).toThrow(/asks to copy a hash/u);
 });

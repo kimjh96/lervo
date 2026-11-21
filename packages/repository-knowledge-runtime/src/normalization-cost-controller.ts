@@ -4,7 +4,7 @@ import {
   sha256,
   type DocumentNormalizationCompilerDescriptor,
 } from "@lervo/repository-knowledge";
-import { normalizationReviewResponseSchema } from "./normalization-review.js";
+import { NORMALIZATION_REVIEW_CONTRACT_VERSION } from "./normalization-review.js";
 import { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.js";
 
 const PATH = ".lervo/state/knowledge/normalization-cost-controller.json";
@@ -20,7 +20,7 @@ export function normalizationCostKey(
   return sha256(
     canonicalJson([
       compiler,
-      normalizationReviewResponseSchema,
+      NORMALIZATION_REVIEW_CONTRACT_VERSION,
       size <= 16_384 ? "small" : size <= 65_536 ? "medium" : "large",
     ]),
   );

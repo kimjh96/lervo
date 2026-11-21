@@ -1,3 +1,4 @@
+import { assertProviderOutputSchemaForSource, providerOutputSchema } from "@lervo/schemas";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,7 +17,7 @@ import { buildDocumentFreshnessArchiveCrossCheckInput } from "../src/document-fr
 import {
   buildDocumentFreshnessCrossCheckInput,
   documentFreshnessCandidateNeedsCrossCheck,
-  parseDocumentFreshnessCrossCheckResponse,
+  documentFreshnessCrossCheckContract,
   pendingDocumentFreshnessCrossCheck,
   settleDocumentFreshnessCrossCheck,
 } from "../src/document-freshness-cross-check.js";
@@ -139,25 +140,114 @@ describe("document freshness Tier 0 cross-check (ADR-0557)", () => {
     expect(JSON.stringify(input)).not.toContain("never cited");
   });
 
-  it("accepts exactly one bounded verdict per hunk and rejects every other shape", () => {
-    const ids = [managed.hunkId, userOwned.hunkId];
-    const verdict = (hunkId: string, value = "agree") => ({ hunkId, verdict: value, reason: "ok" });
+  it("lets an anchor hold a commit SHA the source holds, as an anchor and nowhere else (ADR-0608)", () => {
+    const sha = "9c41e2f07a33b5d1e8c0a7f2b6d4e9a1c3f5b7d0";
+    const pinned = "# Guide\n\nPin the tool at ${sha} before you build.\n".replace("${sha}", sha);
+    const contract = documentFreshnessCrossCheckContract(
+      buildDocumentFreshnessCrossCheckInput({
+        candidate: candidate([
+          hunk({
+            range: { startByte: 9, endByte: pinned.length - 1 },
+            replacement: "Pin the tool at its current release before you build.",
+          }),
+        ]),
+        source: new Uint8Array(Buffer.from(pinned)),
+        evidence: [],
+      }),
+    );
+    const anchors = (contract.view as { hunks: { anchor: string }[] }).hunks.map(
+      (item) => item.anchor,
+    );
+    expect(anchors.join("")).toContain(sha.slice(0, 8));
+    // The anchor repeats the source by design, and its kind says so.
+    expect(() => assertProviderOutputSchemaForSource(contract.schema, contract.view)).not.toThrow();
+    // The same text offered as any other value is still refused.
+    expect(() =>
+      assertProviderOutputSchemaForSource(
+        providerOutputSchema({ type: "object", properties: { pick: { enum: anchors } } }),
+        contract.view,
+      ),
+    ).toThrow(/offers an identifier or hash from the source data/u);
+  });
+
+  it("gives the reviewer hunk references, not hunk ids or hashes, to cite (ADR-0604)", () => {
+    const contract = documentFreshnessCrossCheckContract(
+      buildDocumentFreshnessCrossCheckInput({
+        candidate: candidate([managed, userOwned]),
+        source: new Uint8Array(Buffer.from(source)),
+        evidence: [{ path: "ops/build.md", hash: evidenceHash, text: "build" }],
+      }),
+    );
+    const view = contract.view as {
+      hunks: { hunk: string; claims: { evidence: { evidence: string | null }[] }[] }[];
+      evidence: { evidence: string; path: string }[];
+    };
+    // Only the document's own hash stays: the reviewer cites nothing by hash or id.
+    expect(JSON.stringify(view)).not.toMatch(/kfh_|sha256:e/u);
+    expect(view.hunks.map((item) => item.hunk)).toEqual(["h1", "h2"]);
+    expect(view.hunks[0]!.claims[0]!.evidence).toEqual([{ evidence: "e1", path: "ops/build.md" }]);
+    expect(view.evidence).toMatchObject([{ evidence: "e1", path: "ops/build.md" }]);
+    const native = contract.schema as unknown as {
+      properties: { hunks: { items: { properties: { hunk: unknown } } } };
+    };
+    expect(native.properties.hunks.items.properties.hunk).toEqual({ enum: ["h1", "h2"] });
+    // Each hunk is paired with its anchor, the start of its before and after text.
+    expect(view.hunks.map((item) => (item as unknown as { anchor: string }).anchor)).toEqual([
+      "The build guide is in `ops/old.md`. -> The build guide now sits in `ops/build.m...",
+      expect.stringContaining(" -> "),
+    ]);
     expect(
-      parseDocumentFreshnessCrossCheckResponse({ hunks: ids.map((id) => verdict(id)) }, ids),
+      (native.properties.hunks.items.properties as unknown as { anchor: { enum: string[] } }).anchor
+        .enum,
     ).toHaveLength(2);
+  });
+
+  it("maps exactly one bounded verdict per hunk reference and rejects every other shape", () => {
+    const contract = documentFreshnessCrossCheckContract(
+      buildDocumentFreshnessCrossCheckInput({
+        candidate: candidate([managed, userOwned]),
+        source: new Uint8Array(Buffer.from(source)),
+        evidence: [],
+      }),
+    );
+    const references = ["h1", "h2"];
+    const anchors = (contract.view as { hunks: { anchor: string }[] }).hunks.map(
+      (item) => item.anchor,
+    );
+    const anchor = (hunk: string) => anchors[Number(hunk.slice(1)) - 1] ?? anchors[0]!;
+    const verdict = (hunk: string, value = "agree") => ({
+      hunk,
+      anchor: anchor(hunk),
+      verdict: value,
+      reason: "ok",
+    });
+    expect(contract.parse({ hunks: references.map((id) => verdict(id, "disagree")) })).toEqual([
+      { hunkId: managed.hunkId, verdict: "disagree", reason: "ok" },
+      { hunkId: userOwned.hunkId, verdict: "disagree", reason: "ok" },
+    ]);
     for (const invalid of [
       null,
       "agree",
-      { hunks: [verdict(managed.hunkId)] },
-      { hunks: [verdict(managed.hunkId), verdict(managed.hunkId)] },
-      { hunks: [verdict(managed.hunkId), verdict(`kfh_${"3".repeat(16)}`)] },
-      { hunks: [verdict(managed.hunkId), verdict(userOwned.hunkId, "maybe")] },
-      { hunks: ids.map((id) => ({ ...verdict(id), reason: "" })) },
-      { hunks: ids.map((id) => ({ ...verdict(id), reason: "r".repeat(401) })) },
-      { hunks: ids.map((id) => ({ ...verdict(id), extra: true })) },
-      { hunks: ids.map((id) => verdict(id)), agree: true },
+      { hunks: [verdict("h1")] },
+      { hunks: [verdict("h1"), verdict("h1")] },
+      { hunks: [verdict("h1"), verdict("h3")] },
+      // The exact hunk id a provider would once have copied is no longer a valid citation.
+      { hunks: [verdict("h1"), verdict(userOwned.hunkId)] },
+      { hunks: [verdict("h1"), verdict("h2", "maybe")] },
+      // ADR-0604: a valid reference filed under another hunk's anchor names no single hunk.
+      {
+        hunks: [
+          { ...verdict("h1"), anchor: anchors[1] },
+          { ...verdict("h2"), anchor: anchors[0] },
+        ],
+      },
+      { hunks: [{ ...verdict("h1"), anchor: null }, verdict("h2")] },
+      { hunks: references.map((id) => ({ ...verdict(id), reason: "" })) },
+      { hunks: references.map((id) => ({ ...verdict(id), reason: "r".repeat(401) })) },
+      { hunks: references.map((id) => ({ ...verdict(id), extra: true })) },
+      { hunks: references.map((id) => verdict(id)), agree: true },
     ])
-      expect(parseDocumentFreshnessCrossCheckResponse(invalid, ids)).toBeNull();
+      expect(contract.parse(invalid)).toBeNull();
   });
 
   it("lets agreement apply a Lervo-managed statement hunk without the owner", () => {

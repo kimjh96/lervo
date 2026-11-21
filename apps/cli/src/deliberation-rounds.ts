@@ -6,7 +6,12 @@ import {
   initialClaimId,
   reviewDetails,
 } from "./deliberation-contract.js";
-import { proposalPrompt, revisionPrompt, reviewPrompt } from "./deliberation-prompts.js";
+import {
+  proposalPrompt,
+  revisionPrompt,
+  reviewPrompt,
+  deliberationPromptUntrusted,
+} from "./deliberation-prompts.js";
 import type { DeliberationExecutionPlan } from "./deliberation-roles.js";
 import {
   executeWithPublicationRepair,
@@ -56,6 +61,10 @@ export async function executeDeliberationRounds(input: {
     ),
     execute: (instructions) =>
       input.runner.execute({
+        untrustedInstructions: deliberationPromptUntrusted(
+          input.request.topic.trim(),
+          input.plan.proposer.role,
+        ),
         provider: input.plan.proposer.provider,
         role: input.plan.proposer.role,
         instructions,
@@ -98,6 +107,10 @@ export async function executeDeliberationRounds(input: {
         ),
         execute: (instructions) =>
           input.runner.execute({
+            untrustedInstructions: deliberationPromptUntrusted(
+              input.request.topic.trim(),
+              reviewer.role,
+            ),
             provider: reviewer.provider,
             role: reviewer.role,
             instructions,
@@ -173,6 +186,10 @@ export async function executeDeliberationRounds(input: {
       ),
       execute: (instructions) =>
         input.runner.execute({
+          untrustedInstructions: deliberationPromptUntrusted(
+            input.request.topic.trim(),
+            input.plan.proposer.role,
+          ),
           provider: input.plan.proposer.provider,
           role: input.plan.proposer.role,
           instructions,

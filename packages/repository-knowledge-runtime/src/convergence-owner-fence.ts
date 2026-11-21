@@ -7,6 +7,8 @@ import {
   KNOWLEDGE_CONVERGENCE_OWNER_FAILURE_CODES,
 } from "@lervo/sync-contract";
 
+import type { RepositoryKnowledgeJobAdmission } from "@lervo/repository-knowledge";
+
 import { readConvergenceOwnerHost } from "./convergence-owner-host.js";
 import type { ConvergenceOwnerVerdict } from "./convergence-owner-verdict.js";
 
@@ -134,6 +136,35 @@ export async function knowledgeOutputCommitGrant(
       reason: verdict.role === "owner" ? "convergence_owner_unverifiable" : verdict.reason,
     };
   return { allowed: true, hostHash: verdict.hostHash };
+}
+
+/**
+ * ADR-0605: whether this host may hold repository knowledge jobs, decided by the same verdict that
+ * decides who runs them. Only a host that runs them, or may again in a moment, holds them: an
+ * owner, a host never configured for coordination, and the transient roles (`unverifiable`,
+ * `yielding`, `contended`). A host another host owns convergence for (`waiting_owner`) or that may
+ * not own it at all (`ineligible`, such as Hub mode without a delegation) runs no job (ADR-0597),
+ * so it never receives one.
+ */
+export function repositoryKnowledgeJobAdmission(
+  verdict: Pick<ConvergenceOwnerVerdict, "role"> | null,
+): RepositoryKnowledgeJobAdmission {
+  switch (verdict?.role) {
+    case "waiting_owner":
+      return { admitted: false, reason: "convergence_owner_elsewhere" };
+    case "ineligible":
+      return { admitted: false, reason: "convergence_owner_ineligible" };
+    default:
+      return { admitted: true };
+  }
+}
+
+/** This checkout's job admission from its recorded owner verdict. */
+export async function readRepositoryKnowledgeJobAdmission(
+  root: string,
+): Promise<RepositoryKnowledgeJobAdmission> {
+  const fence = await readConvergenceOwnerFence(root).catch(() => null);
+  return repositoryKnowledgeJobAdmission(fence?.verdict ?? null);
 }
 
 /** The Git trailer that names the committing host, used by standalone contention detection. */

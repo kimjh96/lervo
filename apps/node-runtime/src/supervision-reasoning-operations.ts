@@ -1,10 +1,12 @@
-import { ownerReasoningDecisionSchema } from "@lervo/work-controller";
+import {
+  OWNER_REASONING_OPERATIONS,
+  ownerReasoningDecisionSchemaFor,
+} from "@lervo/work-controller";
 import type { OwnerReasoningContext } from "./supervision-reasoning-context.js";
 
 /** Constrains the provider response to the observed lifecycle stage; admission remains separate. */
 export function supervisionReasoningDecisionSchema(context: OwnerReasoningContext) {
-  const schema = structuredClone(ownerReasoningDecisionSchema);
-  let operations: readonly string[] = schema.properties.operation.enum;
+  let operations: readonly string[] = OWNER_REASONING_OPERATIONS;
   if (context.trigger.reasonCode === "scoped_handoff_acceptance_required") {
     operations = ["accept_team_support", "escalate"];
   } else if (context.trigger.reasonCode === "acceptance_blocked") {
@@ -38,8 +40,6 @@ export function supervisionReasoningDecisionSchema(context: OwnerReasoningContex
   // Past the escalation bound the principal proxy decides within its mandate (ADR-0561).
   if (context.trigger.reasonCode.startsWith("principal_proxy_"))
     operations = operations.filter((operation) => operation !== "escalate");
-  return {
-    ...schema,
-    properties: { ...schema.properties, operation: { type: "string", enum: [...operations] } },
-  };
+  // ADR-0604: one literal schema, never a spread of another.
+  return ownerReasoningDecisionSchemaFor(operations);
 }

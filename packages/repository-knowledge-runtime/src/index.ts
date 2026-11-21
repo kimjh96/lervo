@@ -73,7 +73,11 @@ export {
   type ConvergenceOwnerLeasePort,
   type ConvergenceOwnerLeaseTransport,
 } from "./convergence-owner.js";
-export { readConvergenceOwnerFence } from "./convergence-owner-fence.js";
+export {
+  readConvergenceOwnerFence,
+  readRepositoryKnowledgeJobAdmission,
+  repositoryKnowledgeJobAdmission,
+} from "./convergence-owner-fence.js";
 export { readConvergenceOwnerHost, CONVERGENCE_OWNER_HOST_PATH } from "./convergence-owner-host.js";
 export {
   watchHubKnowledgeChanges,
@@ -90,6 +94,12 @@ export {
 export { createGitHubKnowledgePublicationForge } from "./knowledge-publication-github.js";
 export type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 export { readKnowledgePublicationState } from "./knowledge-publication-state.js";
+export {
+  acknowledgeKnowledgePublicationAttention,
+  readKnowledgePublicationAcknowledged,
+  type KnowledgePublicationAcknowledged,
+} from "./knowledge-publication-tracking.js";
+export { knowledgePublicationWaitExhausted } from "./knowledge-publication-wait.js";
 export type { KnowledgePublicationRepairEvents } from "./knowledge-publication-repair.js";
 export { reconcileKnowledgeSupersession } from "./knowledge-supersession.js";
 export {
@@ -259,6 +269,7 @@ export {
 export { lifecycleUserContentPaths } from "./lifecycle-plan-scope.js";
 export { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
 export { watchRepositoryChanges } from "./repository-change-watch.js";
+export { requestKnowledgeResidentCycle } from "./knowledge-resident-request.js";
 export {
   issueAttention,
   readRepositoryWatchIssues,

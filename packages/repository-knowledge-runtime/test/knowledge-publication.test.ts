@@ -1,338 +1,45 @@
-import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { promisify } from "node:util";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
-import { writeConvergenceOwnerFence } from "../src/convergence-owner-fence.js";
-import { CONVERGENCE_OWNER_HOST_PATH } from "../src/convergence-owner-host.js";
 import { renderKnowledgePublicationBody } from "../src/knowledge-publication-body.js";
-import type {
-  KnowledgePublicationCheckFailure,
-  KnowledgePublicationChecks,
-  KnowledgePublicationForge,
-  KnowledgePublicationPullRequest,
-} from "../src/knowledge-publication-forge.js";
 import {
   createGitHubKnowledgePublicationForge,
   summarizeKnowledgePublicationChecks,
 } from "../src/knowledge-publication-github.js";
 import type { KnowledgeOutputFormatter } from "../src/knowledge-output-formatter.js";
 import { KnowledgePublicationForgeError } from "../src/knowledge-publication-forge.js";
-import { publishKnowledgeOutputs } from "../src/knowledge-publication.js";
-import type { KnowledgePublicationRepairEvents } from "../src/knowledge-publication-repair.js";
 import {
-  CONVERGENCE_DELEGATION_PATH,
-  convergenceDelegationPlanHash,
-  type ConvergenceDelegation,
-} from "../src/delegation-contract.js";
+  markKnowledgePublicationClosed,
+  parseKnowledgePublicationRecord,
+  renderKnowledgePublicationRecord,
+} from "../src/knowledge-publication-history.js";
+
+/** A publication body as gh returns it, for adapter tests that close a pull request. */
+const RECORDED_BODY = JSON.stringify({
+  body: `## Summary\n\n${renderKnowledgePublicationRecord({ head: "c".repeat(40), commits: ["d".repeat(40)] })}\n`,
+});
+const viewsBody = (args: string[]) => args[0] === "pr" && args[1] === "view" && args[4] === "body";
+const MARK_CLOSED = (number: number) => [
+  ["pr", "view", String(number), "--json", "body"],
+  ["api", "--method", "PATCH", `repos/{owner}/{repo}/pulls/${number}`, "--input", "-"],
+];
+import { CONVERGENCE_DELEGATION_PATH } from "../src/delegation-contract.js";
 import { readKnowledgePublicationState } from "../src/knowledge-publication-state.js";
 import { readKnowledgeSupersessionLedger } from "../src/knowledge-supersession-ledger.js";
-
-const execute = promisify(execFile);
-const directories: string[] = [];
-afterEach(async () => {
-  await Promise.all(
-    directories
-      .splice(0)
-      .map((path) => rm(path, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 })),
-  );
-});
-
-const developer = {
-  GIT_AUTHOR_NAME: "Developer",
-  GIT_AUTHOR_EMAIL: "dev@example.com",
-  GIT_COMMITTER_NAME: "Developer",
-  GIT_COMMITTER_EMAIL: "dev@example.com",
-};
-const knowledge = {
-  GIT_AUTHOR_NAME: "Lervo Knowledge",
-  GIT_AUTHOR_EMAIL: "knowledge@lervo.invalid",
-  GIT_COMMITTER_NAME: "Lervo Knowledge",
-  GIT_COMMITTER_EMAIL: "knowledge@lervo.invalid",
-};
-
-async function git(root: string, args: string[], env: NodeJS.ProcessEnv = developer) {
-  const { stdout } = await execute("git", ["-C", root, ...args], {
-    env: { ...process.env, ...env },
-  });
-  return stdout.trim();
-}
-
-async function commit(
-  root: string,
-  path: string,
-  content: string,
-  identity: NodeJS.ProcessEnv,
-  message = "docs: apply reviewed background knowledge",
-) {
-  await mkdir(resolve(root, path, ".."), { recursive: true });
-  await writeFile(resolve(root, path), content);
-  await git(root, ["add", "--", path], identity);
-  await git(
-    root,
-    [
-      "commit",
-      "--quiet",
-      "-m",
-      message,
-      "-m",
-      "Lervo convergence kco_fixture settled these reviewed outputs.",
-    ],
-    identity,
-  );
-}
-
-/** A GitHub stand-in: pull requests in memory, merges as real merge commits on the bare remote. */
-class FakeForge implements KnowledgePublicationForge {
-  pullRequests: (KnowledgePublicationPullRequest & { head: string; base: string })[] = [];
-  checkState: KnowledgePublicationChecks["state"] = "pending";
-  merges = 0;
-
-  constructor(
-    private readonly remote: string,
-    private readonly scratch: string,
-  ) {}
-
-  private async head(branch: string) {
-    return (await git(this.remote, ["rev-parse", `refs/heads/${branch}`])).trim();
-  }
-
-  async findPullRequest({ head, base }: { head: string; base: string }) {
-    if (this.findError !== null) throw this.findError;
-    const found = this.pullRequests.find(
-      (pr) => pr.head === head && pr.base === base && pr.state === "open",
-    );
-    return found === undefined ? null : { ...found, headSha: await this.head(head) };
-  }
-  async createPullRequest(input: { head: string; base: string; title: string; body: string }) {
-    const number = this.pullRequests.length + 1;
-    const created = {
-      ...input,
-      number,
-      url: `https://github.invalid/pull/${number}`,
-      state: "open" as const,
-      headSha: await this.head(input.head),
-    };
-    this.pullRequests.push(created);
-    return created;
-  }
-  updateError: Error | null = null;
-  async updatePullRequest(input: { number: number; title: string; body: string }) {
-    if (this.updateError !== null) throw this.updateError;
-    const found = this.pullRequests.find((pr) => pr.number === input.number)!;
-    found.title = input.title;
-    found.body = input.body;
-  }
-  async viewPullRequest(number: number) {
-    const found = this.pullRequests.find((pr) => pr.number === number);
-    if (found === undefined) throw new Error("pull request not found");
-    return found;
-  }
-  closed: { number: number; comment: string }[] = [];
-  async closePullRequest(input: { number: number; comment: string }) {
-    this.pullRequests.find((pr) => pr.number === input.number)!.state = "closed";
-    this.closed.push(input);
-  }
-  checkFailures: KnowledgePublicationCheckFailure[] = [];
-  checkCalls: { headSha: string; ignore: readonly string[] | undefined }[] = [];
-  async checks({
-    number,
-    headSha,
-    ignore,
-  }: {
-    number: number;
-    headSha: string;
-    ignore?: readonly string[];
-  }): Promise<KnowledgePublicationChecks> {
-    this.checkCalls.push({ headSha, ignore });
-    const found = this.pullRequests.find((pr) => pr.number === number)!;
-    if ((await this.head(found.head)) !== headSha) return { state: "pending", total: 1 };
-    return this.checkState === "failed"
-      ? {
-          state: "failed",
-          total: Math.max(2, this.checkFailures.length),
-          failed: Math.max(1, this.checkFailures.length),
-          failures: this.checkFailures,
-        }
-      : { state: this.checkState, total: 2 };
-  }
-  reruns: { number: number; runIds: readonly number[] }[] = [];
-  rerunEffect: ((input: { number: number }) => Promise<void>) | null = null;
-  async rerunFailedChecks(input: { number: number; runIds: readonly number[] }) {
-    this.reruns.push(input);
-    if (this.rerunEffect !== null) await this.rerunEffect(input);
-  }
-  mergeError: Error | null = null;
-  findError: Error | null = null;
-  async merge({ number, headSha }: { number: number; headSha: string }) {
-    if (this.mergeError !== null) throw this.mergeError;
-    const found = this.pullRequests.find((pr) => pr.number === number)!;
-    expect(await this.head(found.head)).toBe(headSha);
-    const clone = resolve(this.scratch, `merge-${number}`);
-    await execute("git", ["clone", "--quiet", this.remote, clone]);
-    await git(clone, [
-      "merge",
-      "--no-ff",
-      "--quiet",
-      "-m",
-      `Merge pull request #${number}`,
-      `origin/${found.head}`,
-    ]);
-    await git(clone, ["push", "--quiet", "origin", `HEAD:refs/heads/${found.base}`]);
-    found.state = "merged";
-    this.merges++;
-  }
-}
-
-async function setup(
-  options: {
-    merge?: "when_checks_pass" | "never";
-    formatter?: KnowledgeOutputFormatter;
-    scope?: "delegation";
-    /** Files the developer commits on the remote base before the owner clones it. */
-    seed?: Record<string, string>;
-    checks?: { ignore: string[] };
-  } = {},
-) {
-  const directory = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-"));
-  directories.push(directory);
-  const remote = resolve(directory, "remote.git");
-  await execute("git", ["init", "--quiet", "--bare", "-b", "main", remote]);
-  const seed = resolve(directory, "seed");
-  await execute("git", ["clone", "--quiet", remote, seed]);
-  await git(seed, ["checkout", "--quiet", "-b", "main"]);
-  await writeFile(resolve(seed, ".gitignore"), ".lervo/state/\n");
-  await git(seed, ["add", ".gitignore"]);
-  await commit(seed, "docs/runtime.md", "# Runtime\n", developer, "docs: seed");
-  for (const [path, content] of Object.entries(options.seed ?? {}))
-    await commit(seed, path, content, developer, `chore: seed ${path}`);
-  await git(seed, ["push", "--quiet", "origin", "main"]);
-  const root = resolve(directory, "owner");
-  await execute("git", ["clone", "--quiet", remote, root]);
-  await mkdir(resolve(root, ".lervo/state/knowledge"), { recursive: true });
-  await writeFile(
-    resolve(root, CONVERGENCE_OWNER_HOST_PATH),
-    JSON.stringify({
-      schemaVersion: 1,
-      hostId: `hst_${"1".repeat(32)}`,
-      hostLabel: "mac",
-      coordination: { mode: "standalone" },
-      publication: {
-        remote: "origin",
-        baseBranch: "main",
-        branch: "lervo/knowledge-outputs",
-        merge: options.merge ?? "when_checks_pass",
-        ...(options.scope === undefined ? {} : { scope: options.scope }),
-        ...(options.checks === undefined ? {} : { checks: options.checks }),
-      },
-    }),
-  );
-  const owner = async (role: "owner" | "waiting_owner") =>
-    writeConvergenceOwnerFence(root, {
-      schemaVersion: 1,
-      recordedHolderKey: null,
-      verdict: {
-        role,
-        reason: role === "owner" ? "standalone_owner" : "convergence_owner_elsewhere",
-        mode: "standalone",
-        hostHash: `sha256:${"1".repeat(64)}`,
-        hostLabel: "mac",
-        holder: null,
-        validUntil: role === "owner" ? new Date(Date.now() + 3_600_000).toISOString() : null,
-        wakeAt: null,
-        grantedAt: null,
-        yieldUntil: null,
-        observedAt: new Date().toISOString(),
-      },
-    });
-  await owner("owner");
-  const forge = new FakeForge(remote, directory);
-  // The bare remote keeps a reflog, so tests can count every update of the publication branch.
-  await git(remote, ["config", "core.logAllRefUpdates", "always"]);
-  const events: { type: string; payload: Record<string, unknown> }[] = [];
-  const store = {
-    events: {
-      get: (eventId: string) =>
-        events.find((event) => (event as { eventId?: string }).eventId === eventId) ?? null,
-      append: (event: { type: string; payload: Record<string, unknown> }) => events.push(event),
-    },
-    manifest: { projectId: "prj_knowledge_publication" },
-    writableEventSchemaVersion: 4,
-  } as unknown as KnowledgePublicationRepairEvents;
-  const publish = (now?: () => Date) =>
-    publishKnowledgeOutputs({
-      repositoryRoot: root,
-      forge,
-      formatter: options.formatter ?? null,
-      events: store,
-      ...(now === undefined ? {} : { now }),
-    });
-  return { root, remote, forge, publish, owner, events };
-}
-
-const remoteMain = (remote: string) => git(remote, ["rev-parse", "refs/heads/main"]);
-
-/** An active delegation whose normalization roots reach outside `docs/`, as in production. */
-function publicationDelegation(): ConvergenceDelegation {
-  const hash = (digit: string) => `sha256:${digit.repeat(64)}`;
-  const binding = {
-    roleId: "developer",
-    version: "1.0.0",
-    contractHash: hash("1"),
-    profileHash: hash("2"),
-    capabilityHash: hash("3"),
-  };
-  const plan: Omit<ConvergenceDelegation, "review"> = {
-    schemaVersion: 1,
-    projectId: "prj_knowledge_publication",
-    state: "active",
-    parentAgentId: `agt_${"a".repeat(24)}`,
-    parentRoleHash: hash("1"),
-    roles: { generator: binding, reviewer: binding, writer: binding, integrator: binding },
-    canonicalRoots: ["docs"],
-    normalizationRoots: ["README.md", "AGENTS.md", ".agents/skills", "apps/site/README.md"],
-    providers: ["codex"],
-    verification: [{ suiteId: "repository.default.v1", suiteHash: hash("4") }],
-    integrationTarget: {
-      ref: "refs/heads/lervo/knowledge-integration",
-      repositoryIdentityHash: hash("5"),
-    },
-    expiresAt: new Date(Date.now() + 86_400_000).toISOString(),
-    resourceCeilings: {
-      maximumStages: 4,
-      maximumDocuments: 4,
-      maximumSourceBytes: 65_536,
-      maximumProviderCalls: 4,
-    },
-  };
-  return {
-    ...plan,
-    review: {
-      reviewerAgentId: `agt_${"b".repeat(24)}`,
-      reviewedAt: new Date().toISOString(),
-      planHash: convergenceDelegationPlanHash(plan),
-    },
-  };
-}
-
-/** Lands a developer commit on the remote base from another clone, moving `origin/main`. */
-async function advanceRemoteMain(remote: string, path: string, content: string) {
-  const other = await mkdtemp(resolve(tmpdir(), "lervo-knowledge-publication-other-"));
-  directories.push(other);
-  const clone = resolve(other, "clone");
-  await execute("git", ["clone", "--quiet", remote, clone]);
-  await commit(clone, path, content, developer, "docs: land other work");
-  await git(clone, ["push", "--quiet", "origin", "main"]);
-}
-
-const isAncestor = (root: string, ancestor: string, descendant: string) =>
-  git(root, ["merge-base", "--is-ancestor", ancestor, descendant]).then(
-    () => true,
-    () => false,
-  );
+import {
+  advanceRemoteMain,
+  commit,
+  developer,
+  execute,
+  git,
+  isAncestor,
+  knowledge,
+  publicationDelegation,
+  remoteMain,
+  setup,
+} from "./knowledge-publication-fixture.js";
 
 describe("knowledge output publication", () => {
   it(
@@ -357,6 +64,7 @@ describe("knowledge output publication", () => {
           pullRequestNumber: 1,
           commitCount: 2,
           publishedHead: head,
+          wait: { kind: "checks", reason: "running", attempts: 1 },
         },
         retryAfterMs: 120_000,
       });
@@ -369,11 +77,19 @@ describe("knowledge output publication", () => {
       expect(forge.merges).toBe(0);
 
       forge.checkState = "passed";
-      // A description update that gh refuses must not block merging the checked head.
+      // ADR-0603: the body's record is what every host reads as published, so a description
+      // update gh refuses blocks the merge until the record names the pushed head.
       forge.pullRequests[0]!.body = "stale description";
       forge.updateError = new KnowledgePublicationForgeError("update", 1, "unknown");
+      expect(await publish()).toMatchObject({
+        state: { status: "failed", failure: { code: "knowledge_publication_pull_request_failed" } },
+        retryAfterMs: 2 * 60_000,
+      });
+      expect(forge.merges).toBe(0);
+      forge.updateError = null;
       expect(await publish()).toMatchObject({ state: { status: "merged" } });
       expect(forge.merges).toBe(1);
+      expect(forge.pullRequests[0]!.body).toContain(`Lervo-Publication-Head: ${head}`);
       // The merge commit has the local commits as its second parent, so local main fast-forwards.
       expect(await git(root, ["rev-parse", "HEAD"])).toBe(await remoteMain(remote));
       expect(await git(root, ["status", "--porcelain"])).toBe("");
@@ -546,6 +262,9 @@ describe("knowledge output publication", () => {
       await expect(
         git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"]),
       ).rejects.toThrow();
+      // The next cycle's supersession drops the stale commit from the branch, which moves the
+      // head the history cache was keyed to: GitHub is asked once more, then nothing changes.
+      await expect(publish()).resolves.toMatchObject({ state: { status: "idle" } });
       expect(await publish()).toEqual({ status: "unchanged" });
       expect(await readKnowledgePublicationState(root)).toMatchObject({
         supersededCommits: [head],
@@ -554,7 +273,7 @@ describe("knowledge output publication", () => {
   );
 
   it(
-    "recreates a pull request that was closed outside the publisher",
+    "keeps a pull request a person closed without merge closed, as a decision, until it reopens (ADR-0603)",
     { timeout: 60_000 },
     async () => {
       const { root, remote, forge, publish } = await setup();
@@ -562,19 +281,32 @@ describe("knowledge output publication", () => {
       expect(await publish()).toMatchObject({
         state: { status: "awaiting_checks", pullRequestNumber: 1 },
       });
-      forge.pullRequests[0]!.state = "closed";
+      // A person closes it and deletes the branch: no new pull request, no push, attention.
+      await forge.closeByPerson(1);
       await git(remote, ["update-ref", "-d", "refs/heads/lervo/knowledge-outputs"]);
-      expect(await publish()).toMatchObject({
-        state: {
-          status: "awaiting_checks",
-          pullRequestNumber: 2,
-          pullRequestUrl: "https://github.invalid/pull/2",
-        },
+      const declined = await publish();
+      expect(declined).toMatchObject({
+        state: { status: "idle", declined: [{ pullRequestNumber: 1, commitCount: 1 }] },
+        retryAfterMs: null,
       });
-      expect(await git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"])).toBe(
-        await git(root, ["rev-parse", "HEAD"]),
+      expect(forge.pullRequests).toHaveLength(1);
+      await expect(
+        git(remote, ["rev-parse", "refs/heads/lervo/knowledge-outputs"]),
+      ).rejects.toThrow();
+      // Still a decision on the next cycle, which needs no GitHub read for it.
+      const reads = forge.historyCalls;
+      expect(await publish()).toEqual({ status: "unchanged" });
+      expect(forge.historyCalls).toBe(reads);
+      // A new knowledge commit publishes alone; the declined one stays out.
+      await commit(root, "docs/other.md", "# Other\n", knowledge);
+      const head = await git(root, ["rev-parse", "HEAD"]);
+      expect(await publish()).toMatchObject({
+        state: { status: "awaiting_checks", pullRequestNumber: 2, commitCount: 1 },
+      });
+      expect(forge.pullRequests[1]!.body).toContain(`Lervo-Publication-Commit: ${head}`);
+      expect(forge.pullRequests[1]!.body).not.toContain(
+        `Lervo-Publication-Commit: ${await git(root, ["rev-parse", "HEAD~1"])}`,
       );
-
       // Without unpublished commits, a closed or unknown pull request leaves nothing to wait for.
       forge.pullRequests[1]!.state = "closed";
       await git(root, ["reset", "--quiet", "--hard", "origin/main"]);
@@ -860,7 +592,10 @@ describe("knowledge output publication", () => {
       ];
       // The close succeeded and both reopens failed: the pull request stays closed.
       forge.rerunEffect = async ({ number }) => {
-        forge.pullRequests.find((pr) => pr.number === number)!.state = "closed";
+        // As the GitHub adapter: Lervo marks the record closed by itself before it closes.
+        const closed = forge.pullRequests.find((pr) => pr.number === number)!;
+        closed.body = markKnowledgePublicationClosed(closed.body, "rerun");
+        closed.state = "closed";
         throw new KnowledgePublicationForgeError("rerun", 1, "unknown");
       };
       const start = Date.now();
@@ -1124,10 +859,21 @@ describe("knowledge publication pull request body", () => {
       },
       host: { hostHash: `sha256:${"1".repeat(64)}`, hostLabel: "wsl" },
       rebuilt: false,
+      head: "b".repeat(40),
+      method: "squash",
     });
     expect(body.split("\n").filter((line) => line.startsWith("## "))).toEqual(headings);
     expect(body).not.toMatch(/^# /mu);
-    expect(body).not.toContain("<!--");
+    // ADR-0603: the only comment is the closing publication record, which names what it carries.
+    const record = body.indexOf("<!-- lervo-publication-record");
+    expect(body.slice(0, record)).not.toContain("<!--");
+    expect(parseKnowledgePublicationRecord(body)).toEqual({
+      head: "b".repeat(40),
+      commits: ["a".repeat(40)],
+      closed: null,
+    });
+    // The body says the method the policy chose, not a fixed one.
+    expect(body).toContain("merges this pull request as one squashed commit");
     const items = template.split("\n").filter((line) => line.startsWith("- [ ] "));
     const rendered = body.split("\n").filter((line) => /^- \[[ x]\] /u.test(line));
     expect(rendered.map((line) => line.slice(6))).toEqual(items.map((line) => line.slice(6)));
@@ -1143,17 +889,18 @@ describe("knowledge publication pull request body", () => {
         observedHeadSha: "b",
         rollup: [success],
       }),
-    ).toMatchObject({ state: "pending" });
+    ).toMatchObject({ state: "pending", reason: "head_moved" });
+    // ADR-0603: no check at all is pending for a named reason, so its wait can say why.
     expect(
       summarizeKnowledgePublicationChecks({ headSha: "a", observedHeadSha: "a", rollup: [] }),
-    ).toMatchObject({ state: "pending" });
+    ).toMatchObject({ state: "pending", reason: "none" });
     expect(
       summarizeKnowledgePublicationChecks({
         headSha: "a",
         observedHeadSha: "a",
-        rollup: [success, { __typename: "CheckRun", status: "IN_PROGRESS", conclusion: "" }],
+        rollup: [success, { __typename: "CheckRun", status: "QUEUED", conclusion: "" }],
       }),
-    ).toMatchObject({ state: "pending" });
+    ).toMatchObject({ state: "pending", reason: "running" });
     expect(
       summarizeKnowledgePublicationChecks({
         headSha: "a",
@@ -1205,7 +952,11 @@ describe("knowledge publication pull request body", () => {
     ).toMatchObject({ state: "failed", total: 2, failed: 1 });
     // A job the workflow skipped for pull requests neither passes nor blocks.
     expect(summarize([run("SUCCESS"), run("SKIPPED")])).toEqual({ state: "passed", total: 2 });
-    expect(summarize([run("SKIPPED")])).toEqual({ state: "pending", total: 1 });
+    expect(summarize([run("SKIPPED")])).toEqual({
+      state: "pending",
+      total: 1,
+      reason: "skipped_only",
+    });
     expect(
       summarize([run("SUCCESS"), { __typename: "StatusContext", state: "EXPECTED" }]),
     ).toMatchObject({ state: "pending" });
@@ -1290,7 +1041,7 @@ describe("GitHub CLI publication adapter", () => {
     });
     await forge.closePullRequest({ number: 12, comment: "superseded" });
     expect(calls.at(-1)!.args).toEqual(["pr", "close", "12", "--comment", "superseded"]);
-    await forge.merge({ number: 12, headSha: "b".repeat(40) });
+    await forge.merge({ number: 12, headSha: "b".repeat(40), method: "merge" });
     expect(calls.find((call) => call.args[1] === "create")).toMatchObject({ input: "b" });
     expect(calls.at(-1)!.args).toEqual([
       "pr",
@@ -1300,6 +1051,18 @@ describe("GitHub CLI publication adapter", () => {
       "--match-head-commit",
       "b".repeat(40),
     ]);
+    // ADR-0603: the method the repository policy allows, always for the exact head.
+    for (const method of ["squash", "rebase"] as const) {
+      await forge.merge({ number: 12, headSha: "b".repeat(40), method });
+      expect(calls.at(-1)!.args).toEqual([
+        "pr",
+        "merge",
+        "12",
+        `--${method}`,
+        "--match-head-commit",
+        "b".repeat(40),
+      ]);
+    }
   });
 
   it("names never-started jobs, ignores listed names, and reopens when GitHub refuses a rerun", async () => {
@@ -1327,6 +1090,7 @@ describe("GitHub CLI publication adapter", () => {
       repositoryRoot: "/repository",
       run: async (args) => {
         calls.push(args);
+        if (viewsBody(args)) return RECORDED_BODY;
         if (args[0] === "pr" && args[1] === "view")
           return JSON.stringify({ headRefOid: head, statusCheckRollup: rollup });
         // A job GitHub refused to start has no steps.
@@ -1363,6 +1127,8 @@ describe("GitHub CLI publication adapter", () => {
     expect(calls).toEqual([
       ["api", "repos/{owner}/{repo}/actions/runs/12", "--jq", ".created_at"],
       ["run", "rerun", "12", "--failed"],
+      // ADR-0603: the record says Lervo closed it, so no host reads it as a person's decision.
+      ...MARK_CLOSED(64),
       ["pr", "close", "64"],
       ["pr", "reopen", "64"],
     ]);
@@ -1375,10 +1141,13 @@ describe("GitHub CLI publication adapter", () => {
   it("closes a pull request only when GitHub refused a rerun as too old, and retries a reopen", async () => {
     const calls: string[][] = [];
     let reopenFailures = 1;
+    const patched: string[] = [];
     const forge = createGitHubKnowledgePublicationForge({
       repositoryRoot: "/repository",
-      run: async (args) => {
+      run: async (args, input) => {
         calls.push(args);
+        if (viewsBody(args)) return RECORDED_BODY;
+        if (args.includes("PATCH")) patched.push(input!);
         if (args[0] === "run" && args[2] === "40")
           throw Object.assign(new Error("Command failed: gh"), {
             code: 1,
@@ -1399,17 +1168,97 @@ describe("GitHub CLI publication adapter", () => {
       (error: unknown) => error as KnowledgePublicationForgeError,
     );
     expect(refused).toBeInstanceOf(KnowledgePublicationForgeError);
-    expect(refused!.detail).toBe("gh rerun exit 1 auth");
+    expect(refused!.detail).toMatch(/^gh rerun exit 1 auth(?::|$)/u);
     expect(calls.some((args) => args[1] === "close")).toBe(false);
     calls.length = 0;
     await forge.rerunFailedChecks({ number: 7, runIds: [41] });
     expect(calls).toEqual([
       ["api", "repos/{owner}/{repo}/actions/runs/41", "--jq", ".created_at"],
       ["run", "rerun", "41", "--failed"],
+      ...MARK_CLOSED(7),
       ["pr", "close", "7"],
       ["pr", "reopen", "7"],
       ["pr", "reopen", "7"],
     ]);
+    expect(
+      parseKnowledgePublicationRecord((JSON.parse(patched[0]!) as { body: string }).body),
+    ).toMatchObject({ closed: "rerun" });
+  });
+
+  it("reads the closed history, the GraphQL gate and a queue merge through gh (ADR-0603)", async () => {
+    const calls: string[][] = [];
+    const record = renderKnowledgePublicationRecord({
+      head: "a".repeat(40),
+      commits: ["b".repeat(40)],
+    });
+    const at = "2026-11-21T00:00:00Z";
+    let history = `${JSON.stringify({ number: 3, merged: true, mergeCommit: "c".repeat(40), mergedAt: at, updatedAt: at, headSha: "a".repeat(40), record })}\n${JSON.stringify({ number: 2, merged: false, mergeCommit: null, mergedAt: null, updatedAt: at, headSha: "d".repeat(40), record: "" })}\n`;
+    const forge = createGitHubKnowledgePublicationForge({
+      repositoryRoot: "/repository",
+      run: async (args) => {
+        calls.push(args);
+        if (args[0] === "api" && args[1]!.includes("/pulls?")) return history;
+        if (args[1] === "graphql")
+          return JSON.stringify({
+            data: {
+              repository: {
+                pullRequest: {
+                  mergeStateStatus: "CLEAN",
+                  reviewDecision: null,
+                  isDraft: false,
+                  isInMergeQueue: false,
+                  isMergeQueueEnabled: true,
+                },
+              },
+            },
+          });
+        return "";
+      },
+    });
+    await expect(
+      forge.publicationHistory({ head: "lervo/knowledge-outputs", base: "main" }),
+    ).resolves.toEqual([
+      {
+        number: 3,
+        merged: true,
+        mergeCommit: "c".repeat(40),
+        mergedAt: at,
+        updatedAt: at,
+        headSha: "a".repeat(40),
+        record,
+      },
+      {
+        number: 2,
+        merged: false,
+        mergeCommit: null,
+        mergedAt: null,
+        updatedAt: at,
+        headSha: "d".repeat(40),
+        record: "",
+      },
+    ]);
+    expect(calls[0]!.slice(0, 2)).toEqual([
+      "api",
+      "repos/{owner}/{repo}/pulls?state=all&head={owner}:lervo%2Fknowledge-outputs&base=main&sort=updated&direction=desc&per_page=100&page=1",
+    ]);
+    // A classic merge queue no rule reports still shows on the pull request.
+    await expect(forge.gate(5)).resolves.toBe("queue");
+    await forge.merge({ number: 5, headSha: "e".repeat(40), method: "queue" });
+    expect(calls.at(-1)).toEqual(["pr", "merge", "5", "--match-head-commit", "e".repeat(40)]);
+    await forge.merge({ number: 5, headSha: "e".repeat(40), method: "squash" });
+    expect(calls.at(-1)).toEqual([
+      "pr",
+      "merge",
+      "5",
+      "--squash",
+      "--match-head-commit",
+      "e".repeat(40),
+    ]);
+    // A malformed history entry is an invalid response, never a guess.
+    history = `${JSON.stringify({ number: 4, merged: "yes" })}\n`;
+    await expect(
+      forge.publicationHistory({ head: "lervo/knowledge-outputs", base: "main" }),
+    ).rejects.toMatchObject({ operation: "history", failureClass: "invalid_response" });
   });
 
   it("counts only the newest run of each Actions check after a rerun or reopen", () => {
@@ -1457,6 +1306,7 @@ describe("GitHub CLI publication adapter", () => {
       now: () => new Date("2026-11-20T02:00:00.000Z"),
       run: async (args) => {
         calls.push(args);
+        if (viewsBody(args)) return RECORDED_BODY;
         if (args[0] === "api" && args[1]!.endsWith("/38282516554")) return "2026-10-12T17:11:01Z\n";
         if (args[0] === "api") return "2026-11-19T00:00:00Z\n";
         // gh 2.46 words GitHub's refusal of an old run as a broken workflow file.
@@ -1471,6 +1321,7 @@ describe("GitHub CLI publication adapter", () => {
     await forge.rerunFailedChecks({ number: 64, runIds: [38282516554] });
     expect(calls).toEqual([
       ["api", "repos/{owner}/{repo}/actions/runs/38282516554", "--jq", ".created_at"],
+      ...MARK_CLOSED(64),
       ["pr", "close", "64"],
       ["pr", "reopen", "64"],
     ]);
@@ -1482,7 +1333,7 @@ describe("GitHub CLI publication adapter", () => {
     expect(calls.some((args) => args[1] === "close")).toBe(false);
   });
 
-  it("reports each gh failure as its step, exit code, and a closed class without stderr", async () => {
+  it("reports each gh failure as its step, exit code, closed class, and GitHub's redacted reason", async () => {
     const failing = (stderr: string, code: number | string = 1) =>
       createGitHubKnowledgePublicationForge({
         repositoryRoot: "/repository",
@@ -1499,37 +1350,51 @@ describe("GitHub CLI publication adapter", () => {
       [
         failing(
           "X Pull request #49 is not mergeable: the merge commit cannot be cleanly created.",
-        ).merge({ number: 49, headSha: "b".repeat(40) }),
-        "gh merge exit 1 not_mergeable",
+        ).merge({ number: 49, headSha: "b".repeat(40), method: "merge" }),
+        "gh merge exit 1 not_mergeable: X Pull request #49 is not mergeable: the merge commit cannot be cleanly created.",
       ],
       [
         failing('X Required status check "quality" is expected.').merge({
           number: 49,
           headSha: "b".repeat(40),
+          method: "merge",
         }),
-        "gh merge exit 1 checks_pending",
+        'gh merge exit 1 checks_pending: X Required status check "quality" is expected.',
+      ],
+      [
+        // The flemo refusal (ADR-0603): squash-only, and before this release the detail was "unknown".
+        failing(
+          "GraphQL: Merge commits are not allowed on this repository. (mergePullRequest)",
+        ).merge({
+          number: 557,
+          headSha: "b".repeat(40),
+          method: "merge",
+        }),
+        "gh merge exit 1 method_not_allowed: GraphQL: Merge commits are not allowed on this repository. (mergePullRequest)",
       ],
       [
         failing("HTTP 401: Bad credentials (https://api.github.com/graphql)", 4).findPullRequest({
           head: "lervo/knowledge-outputs",
           base: "main",
         }),
-        "gh find exit 4 auth",
+        "gh find exit 4 auth: HTTP 401: Bad credentials (https://api.github.com/graphql)",
       ],
       [
         failing("error connecting to api.github.com: dial tcp: i/o timeout").checks({
           number: 49,
           headSha: "b".repeat(40),
         }),
-        "gh checks exit 1 network",
+        "gh checks exit 1 network: error connecting to api.github.com: dial tcp: i/o timeout",
       ],
       [
-        failing("GraphQL: something unexpected").updatePullRequest({
+        failing(
+          "fatal: unable to access 'https://x-access-token:ghs_abcdefghijklmnopqrstuvwxyz@github.com/o/r'\nGraphQL: something unexpected",
+        ).updatePullRequest({
           number: 49,
           title: "t",
           body: "b",
         }),
-        "gh update exit 1 unknown",
+        "gh update exit 1 unknown: fatal: unable to access 'https://github.com/o/r' | GraphQL: something unexpected",
       ],
       [
         failing("", "ENOENT").closePullRequest({ number: 49, comment: "c" }),

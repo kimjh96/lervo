@@ -25,6 +25,7 @@ import {
 } from "./managed-deliberation-budget.js";
 import { createManagedDeliberationAdapter } from "./managed-deliberation-adapter.js";
 import type { BoundDeliberationParticipantExecution } from "./deliberation-participant-binding.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export { parseSemanticEvaluation } from "./semantic-evaluation-response.js";
 
@@ -44,7 +45,7 @@ export interface ManagedDeliberationRunnerDependencies {
     reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
-    structuredOutputSchema?: Record<string, unknown>;
+    structuredOutputSchema?: ProviderOutputSchema;
   }): ProviderAdapter;
   createId(prefix: string): string;
   now(): Date;
@@ -160,11 +161,13 @@ export class ManagedDeliberationRunner {
     provider: RunProvider;
     role: RoleProfile;
     instructions: string;
+    /** ADR-0608: the parts of `instructions` Lervo did not write, such as the owner's topic. */
+    untrustedInstructions?: readonly string[];
     documentRules: Record<string, string[]>;
     verificationSuiteId?: string;
     workRelationship?: "deliberation" | "publication_evaluation";
     workAttemptOrdinal?: number;
-    structuredOutputSchema?: Record<string, unknown>;
+    structuredOutputSchema?: ProviderOutputSchema;
   }): Promise<ManagedDeliberationRunResult> {
     const activeRunDeadlineMs = this.budget.admit(this.finalizationReserveMs);
     const repositoryRoot = this.storage.paths.repositoryRoot;
@@ -244,6 +247,9 @@ export class ManagedDeliberationRunner {
         requestDigest: digest(input.instructions),
         risk: "medium",
         instructions: input.instructions,
+        ...(input.untrustedInstructions === undefined
+          ? {}
+          : { untrustedInstructions: input.untrustedInstructions }),
         targetTurnId: this.dependencies.createId("turn"),
         context: {
           registry: this.workspace.registry(),

@@ -24,6 +24,7 @@ import {
   upgradePreemptionError,
   upgradeWaiting,
 } from "./upgrade-preemption.js";
+import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export async function withKnowledgeProviderAdmission<T>(input: {
   context: ConvergenceRuntimeContext;
@@ -108,11 +109,22 @@ export async function reviewKnowledgeJson(input: {
   budget: { batchId: string; maximumCalls: number };
   prompt: string;
   task: string;
-  schema: unknown;
+  schema: ProviderOutputSchema;
   untrustedSourceData: unknown;
   /** The canonical review context Lervo loaded for this call; it forms the ADR-0459 receipt. */
   contextDocuments: readonly SemanticReviewContextDocument[];
   contextSkips?: readonly ReviewContextSkip[];
+  /**
+   * ADR-0604: the caller's own parser, which throws on an answer its contract rejects. Only an
+   * accepted answer is cached, and a cached answer it rejects is asked for again, so an invalid
+   * answer is never replayed.
+   */
+  accept: (value: unknown) => unknown;
+  /**
+   * ADR-0604: what the answer is bound to that the provider is not shown, such as an exact plan
+   * hash. It is part of the cache key only, so an answer is replayed only for the same binding.
+   */
+  binding?: unknown;
 }): Promise<{
   value: unknown;
   usage: unknown;
@@ -139,6 +151,7 @@ export async function reviewKnowledgeJson(input: {
         input.untrustedSourceData,
         input.contextDocuments,
         input.contextSkips ?? [],
+        ...(input.binding === undefined ? [] : [input.binding]),
       ]),
     ),
   };
@@ -151,7 +164,8 @@ export async function reviewKnowledgeJson(input: {
   if (
     prior !== null &&
     typeof prior.admissionObservationHash === "string" &&
-    typeof prior.observationArtifactHash === "string"
+    typeof prior.observationArtifactHash === "string" &&
+    accepted(input.accept, prior.value)
   )
     return prior;
   const result = await withKnowledgeProviderAdmission({
@@ -208,6 +222,17 @@ export async function reviewKnowledgeJson(input: {
       return { ...result, admissionObservationHash, observationArtifactHash: proof.contentHash };
     },
   });
-  await storeProviderReviewCache({ ...cache, value: result });
+  // The caller still parses and reports an invalid answer; it is only never kept for a replay.
+  if (accepted(input.accept, result.value))
+    await storeProviderReviewCache({ ...cache, value: result });
   return result;
+}
+
+function accepted(accept: (value: unknown) => unknown, value: unknown): boolean {
+  try {
+    accept(value);
+    return true;
+  } catch {
+    return false;
+  }
 }

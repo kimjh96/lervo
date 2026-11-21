@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import type { EventDraftV3 } from "@lervo/event-contract";
 import type { OutboxTransaction } from "@lervo/storage-contract";
 
+import type { RepositoryKnowledgeJobAdmission } from "./repository-knowledge-job-admission.js";
 import {
   knowledgeIntakeDisposition,
   loadKnowledgeIntakePolicy,
@@ -120,12 +121,15 @@ export function planRepositoryChange(input: {
 
 /**
  * Appends the change event and its knowledge job in the caller's transaction. A full queue leaves
- * the canonical event discoverable for reconciliation instead of dropping it.
+ * the canonical event discoverable for reconciliation instead of dropping it. ADR-0605: the job is
+ * enqueued only when `admission` admits this host, which every writer must decide; the event is
+ * appended either way.
  */
 export function appendRepositoryChange(
   transaction: OutboxTransaction,
   draft: Omit<EventDraftV3, "type" | "payload" | "schemaVersion">,
   planned: PlannedRepositoryChange,
+  admission: RepositoryKnowledgeJobAdmission,
 ): { eventId: string; enqueued: boolean } {
   const appended = transaction.append({
     ...draft,
@@ -136,6 +140,7 @@ export function appendRepositoryChange(
   if (appended.redactions.length !== 0)
     throw new Error("The repository change event must not require redaction.");
   const enqueued =
+    admission.admitted &&
     transaction.outstandingCount(REPOSITORY_KNOWLEDGE_OUTBOX_DESTINATION) <
       MAXIMUM_REPOSITORY_KNOWLEDGE_OUTSTANDING &&
     transaction.enqueue({

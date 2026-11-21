@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { runPracticeLearningCycle } from "../src/practice-stage.js";
 import { readPracticeState, writePracticeState } from "../src/practice-store.js";
 import { practice, practiceContext, work, now } from "./practice-fixture.js";
-import { sha256 } from "@lervo/repository-knowledge";
+import { ReviewAnswerInvalidError, sha256 } from "@lervo/repository-knowledge";
 import { settlePracticeAssessment } from "../src/practice-assessment.js";
 
 const mocks = vi.hoisted(() => ({
@@ -110,6 +110,25 @@ describe("practice-only resident scheduling", () => {
     expect(
       (await readPracticeState(root)).assessed.some((a) => a.workDigest === work.workDigest),
     ).toBe(true);
+  });
+  it("records an answer that breaks its review contract as review_invalid (ADR-0604)", async () => {
+    const { root, context } = await setup(29);
+    const state = await readPracticeState(root);
+    await settlePracticeAssessment({
+      context,
+      state,
+      work: { ...work, workDigest: sha256("drafted work") },
+      value: practice,
+      readRoots: ["*"],
+    });
+    state.candidates[0]!.state = "drafted";
+    await writePracticeState(root, state, now);
+    mocks.drafts.mockRejectedValueOnce(new ReviewAnswerInvalidError("a garbled verdict"));
+    await runPracticeLearningCycle(context, "observe");
+    const after = await readPracticeState(root);
+    expect(mocks.drafts).toHaveBeenCalledOnce();
+    expect(after.funnel.at(-1)!.drops["waiting:review_invalid"]).toBe(1);
+    expect(after.candidates[0]!.state).toBe("drafted");
   });
   it.todo(
     "Hub typed exchange merges candidates from two observing hosts without exchanging work-record text (bounded ADR-0543 exchange follow-up)",

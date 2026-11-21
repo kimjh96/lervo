@@ -4,11 +4,11 @@ import {
   createDocumentRouteClassificationRecords,
   createDocumentRouteClassificationRequest,
   DOCUMENT_ROUTE_CLASSIFICATION_TASK,
+  documentRouteClassificationContract,
   documentRouteClassificationInstruction,
-  documentRouteClassificationResponseSchema,
-  interpretDocumentRouteClassificationResponse,
   MAXIMUM_DOCUMENT_ROUTE_BATCH,
   recordDocumentRouteClassifications,
+  recordDocumentRouteClassificationViolation,
   sha256,
   type KnowledgeConvergenceInput,
   type RepositoryLayoutMigrationPlan,
@@ -66,6 +66,7 @@ export async function classifyDeferredDocumentRoutes(
     })),
   });
   const paths = request.documents.map((document) => document.path);
+  const contract = documentRouteClassificationContract(request);
   try {
     await withConvergenceAssignment({
       storage: context.storage,
@@ -86,11 +87,14 @@ export async function classifyDeferredDocumentRoutes(
           authority,
           prompt: documentRouteClassificationInstruction,
           task: DOCUMENT_ROUTE_CLASSIFICATION_TASK,
-          schema: documentRouteClassificationResponseSchema,
+          schema: contract.schema,
+          accept: contract.parse,
           contextDocuments: [],
-          untrustedSourceData: request,
+          // ADR-0604: the classifier sees references, not content hashes; the request binds them.
+          untrustedSourceData: contract.view,
+          binding: { requestDigest },
         });
-        const verdicts = interpretDocumentRouteClassificationResponse(request, observed.value);
+        const verdicts = contract.parse(observed.value);
         context.assertSourceExact(state);
         await recordDocumentRouteClassifications({
           repositoryRoot: root,
@@ -118,6 +122,17 @@ export async function classifyDeferredDocumentRoutes(
     });
   } catch (error) {
     const code = (error as { code?: string } | null)?.code;
+    // ADR-0604: a malformed answer records no verdict and is not cached. The documents stay
+    // pending, and the violation is counted so they read as `classification_invalid` attention;
+    // the batch's one call keeps a repeat from spending again.
+    if (code === "knowledge_semantic_review_invalid")
+      await recordDocumentRouteClassificationViolation({
+        repositoryRoot: root,
+        request,
+        requestDigest,
+        liveClassificationIds: new Set(layout.semanticClassificationIds),
+        observedAt: new Date(),
+      });
     if (
       code !== undefined &&
       [
@@ -125,6 +140,8 @@ export async function classifyDeferredDocumentRoutes(
         "knowledge_provider_paused",
         "knowledge_usage_unavailable",
         "knowledge_compile_failed",
+        "knowledge_semantic_review_invalid",
+        "normalization_budget_exceeded",
       ].includes(code)
     )
       return 0;

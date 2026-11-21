@@ -137,6 +137,8 @@ it(
       "document_freshness_candidate",
       "document_freshness_assessment_review",
     ]);
+    // ADR-0604: the assessment reviewer answers its verdict only; Lervo binds the exact hashes.
+    expect((await f.providerCalls()).every((call) => call.offersIdentifiers === false)).toBe(true);
     const current = await observeDocumentFreshnessFindings({
       repositoryRoot: f.root,
       now: new Date(),

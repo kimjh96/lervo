@@ -10,16 +10,26 @@
 
 The planner drops Git-ignored untracked paths. Source manifest schema version 4 keeps every other changed path with `disposition: reviewable | generated`, so excluded paths remain counted. An all-generated unit produces no job.
 
+## Only the host that runs jobs holds them
+
+[ADR-0605](../../../../decisions/knowledge/repository/source-intake/0605-queue-knowledge-jobs-only-on-the-host-that-runs-them.md) admits a job only on a host that runs its queue. `appendRepositoryChange` always appends the change event and adds the `knowledge:repository` job only when its required admission says so. The terminal Stop observation, the managed run recorder and the Node conversation completion read the admission from the recorded owner fence:
+
+- A `waiting_owner` verdict, which means another host holds convergence, refuses with `convergence_owner_elsewhere`.
+- An `ineligible` verdict, such as Hub mode without a delegation, refuses with `convergence_owner_ineligible`.
+- An owner, a host never configured for coordination and the transient roles (`unverifiable`, `yielding`, `contended`) are admitted.
+
+A refused host's non-owner cycle settles every job it still holds as `stale` with its refusal reason as failure code, one `repository.knowledge.resolved` event each, which the requeue never puts back. A change without a `current` resolution stays convergence debt, so a host that becomes owner later assesses it again.
+
 ## Per-file degradation
 
 Before review, each manifest path receives one outcome:
 
-| Outcome | Condition |
-| --- | --- |
-| `reviewed` | Exact UTF-8 text on both sides; combined before and after bytes total at most 256 KiB |
-| `skipped_generated` | Manifest or intake policy marks the path generated; bytes are not read |
-| `skipped_oversize` | Combined before and after bytes exceed 256 KiB |
-| `skipped_binary` | Either side is not UTF-8 text or contains NUL |
+| Outcome             | Condition                                                                             |
+| ------------------- | ------------------------------------------------------------------------------------- |
+| `reviewed`          | Exact UTF-8 text on both sides; combined before and after bytes total at most 256 KiB |
+| `skipped_generated` | Manifest or intake policy marks the path generated; bytes are not read                |
+| `skipped_oversize`  | Combined before and after bytes exceed 256 KiB                                        |
+| `skipped_binary`    | Either side is not UTF-8 text or contains NUL                                         |
 
 Oversize and binary paths still prove currency by digest: a change during review makes the whole unit `stale`. Generated paths are outside this fence.
 
@@ -38,12 +48,12 @@ This worker no longer emits `repository_change_path_limit_exceeded`, `review_sou
 
 `repository.knowledge.resolved` adds optional fields; earlier events remain valid without them.
 
-| Field | Meaning |
-| --- | --- |
-| `skippedPathCount` | Paths skipped as generated, oversize, or binary |
-| `skippedReasons` | Sorted unique subset of `skipped_binary`, `skipped_generated`, `skipped_oversize` |
-| `subJobIndex` | Zero-based sub-job whose review decided a non-current outcome, or null |
-| `subJobCount` | Reviewed sub-jobs; zero when nothing was reviewable |
+| Field                         | Meaning                                                                                       |
+| ----------------------------- | --------------------------------------------------------------------------------------------- |
+| `skippedPathCount`            | Paths skipped as generated, oversize, or binary                                               |
+| `skippedReasons`              | Sorted unique subset of `skipped_binary`, `skipped_generated`, `skipped_oversize`             |
+| `subJobIndex`                 | Zero-based sub-job whose review decided a non-current outcome, or null                        |
+| `subJobCount`                 | Reviewed sub-jobs; zero when nothing was reviewable                                           |
 | `supersedesResolutionEventId` | Present only on a re-queued resolution; identifies the original resolution of the same change |
 
 These fields carry counts, fixed reason codes, and an event ID. They exclude paths, source bytes, and provider output.

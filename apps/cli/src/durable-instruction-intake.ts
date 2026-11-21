@@ -10,6 +10,7 @@ import {
   type GroundedDurableInstruction,
 } from "@lervo/repository-knowledge";
 import {
+  requestKnowledgeResidentCycle,
   enqueueInstructionCapture,
   instructionCandidateApplyAuthority,
 } from "@lervo/repository-knowledge-runtime";
@@ -80,6 +81,8 @@ async function queueForBackground(input: {
     retained: true,
     now: input.now,
   });
+  // ADR-0606: the queue appends no event, so the resident is asked to look at it.
+  if (queued.status !== "skipped") await requestKnowledgeResidentCycle(input.repositoryRoot);
   return queued.status === "skipped"
     ? { ...EMPTY, status: "not_stored", reasonIds: [...input.reasonIds, queued.reason] }
     : { ...EMPTY, status: "queued", reasonIds: input.reasonIds, captureId: queued.captureId };
@@ -197,6 +200,8 @@ export async function intakeDurableInstruction(input: {
   } finally {
     await storage.close();
   }
+  // ADR-0606: a stored candidate the command cannot apply here waits for the resident.
+  await requestKnowledgeResidentCycle(input.repositoryRoot);
   if ((await instructionCandidateApplyAuthority(input.repositoryRoot)).status !== "owner_elsewhere")
     try {
       const applied = await applyDurableInstructionCandidate({

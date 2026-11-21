@@ -6,6 +6,7 @@ import type { ConvergenceAssignmentAuthority } from "../src/workforce.js";
 import { practiceContext } from "./practice-fixture.js";
 import { assessInstructionCapture } from "../src/instruction-capture-assessment.js";
 import { KnowledgeConvergenceRuntimeError } from "../src/failure.js";
+import { providerOutputSchema } from "@lervo/schemas";
 
 const mocks = vi.hoisted(() => ({
   resolve: vi.fn(),
@@ -69,7 +70,7 @@ function request(data: unknown) {
     kind: "assessment" as const,
     key: "work",
     data,
-    schema: {},
+    schema: providerOutputSchema({}),
     prompt: "Assess observed work.",
   };
 }
