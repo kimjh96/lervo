@@ -10,6 +10,7 @@ export function safeConvergenceSourcePath(path: unknown): path is string {
     !path.split("/").some((part) => !part || part === "." || part === "..") &&
     !path.startsWith(".lervo/state") &&
     !path.startsWith(".lervo/data") &&
+    !path.startsWith(".lervo/run") &&
     path !== ".lervo" &&
     !path.startsWith(".lervo/knowledge")
   );

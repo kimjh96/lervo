@@ -24,6 +24,7 @@ vi.mock("../src/knowledge-convergence-ownership.js", () => ({
   createKnowledgeConvergenceContinuity: () => ({}),
   createKnowledgePublisher: () => async () => undefined,
   instructionCandidateTransport: () => null,
+  knowledgeHubChangeTransport: undefined,
 }));
 
 const { startRepositoryKnowledgeLoop } = await import("../src/repository-knowledge-loop.js");

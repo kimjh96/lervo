@@ -5,16 +5,17 @@ import {
   applyStoredInstructionCandidates,
   knowledgeResidentHoldReason,
   startAutonomousKnowledgeWorker,
+  subscribeKnowledgeWakeups,
 } from "@lervo/repository-knowledge-runtime";
 
 import {
   createKnowledgeConvergenceContinuity,
   createKnowledgeConvergenceOwnership,
   instructionCandidateTransport,
+  knowledgeHubChangeTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
 import { awaitKnowledgeWorkerAdmission } from "./knowledge-worker-admission.js";
-import { subscribeKnowledgeWakeups } from "./knowledge-worker-wakeups.js";
 import {
   decodeKnowledgeHubCoordinates,
   KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT,
@@ -102,6 +103,7 @@ export async function runKnowledgeWorkerCli(args: readonly string[]): Promise<nu
         decodeKnowledgeHubCoordinates(process.env[KNOWLEDGE_HUB_COORDINATES_ENVIRONMENT]),
       ),
       instructionCandidateTransport,
+      hubChanges: knowledgeHubChangeTransport,
       // ADR-0594: the owner applies stored owner rules here exactly as the CLI host does.
       applyOwnerStatedInstructions: () =>
         applyStoredInstructionCandidates({ repositoryRoot: parsed.root, now: () => new Date() }),

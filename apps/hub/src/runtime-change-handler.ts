@@ -19,9 +19,21 @@ interface RuntimeChangeChannel {
   hubIdentityHash: string;
 }
 
+/** The permission a held wait needs: knowledge waits read like the knowledge coordination GETs. */
+function topicPermitted(
+  topic: "workstream" | "command" | "knowledge",
+  permissions: readonly string[],
+) {
+  if (topic === "command") return permissions.includes("command.delivery");
+  if (topic === "workstream") return permissions.includes("workstream.read");
+  return permissions.includes("workspace.read") || permissions.includes("sync.write");
+}
+
 export function createHubRuntimeChangeHandler(channels: {
   workstream?: RuntimeChangeChannel;
   command?: RuntimeChangeChannel;
+  /** ADR-0602 cross-host knowledge coordination changes. */
+  knowledge?: RuntimeChangeChannel;
 }) {
   return async (request: IncomingMessage, response: ServerResponse): Promise<void> => {
     let headers: Record<string, string> = {};
@@ -39,7 +51,15 @@ export function createHubRuntimeChangeHandler(channels: {
       const match = /^\/v1\/runtime-changes\/projects\/([^/]+)$/.exec(url.pathname);
       const projectId = match?.[1] ?? "";
       const parameters = url.searchParams;
-      const allowed = ["destinationId", "repositoryIdentityHash", "topic", "nodeId", "cursor"];
+      const allowed = [
+        "destinationId",
+        "repositoryIdentityHash",
+        "topic",
+        "nodeId",
+        "cursor",
+        "hold",
+        "hostHash",
+      ];
       if (
         [...parameters.keys()].some(
           (key) => !allowed.includes(key) || parameters.getAll(key).length !== 1,
@@ -51,12 +71,16 @@ export function createHubRuntimeChangeHandler(channels: {
       const topic = parameters.get("topic");
       const nodeId = parameters.get("nodeId");
       const cursor = parameters.get("cursor");
+      const hold = parameters.get("hold");
+      const hostHash = parameters.get("hostHash");
       if (
         !HUB_PROJECT_ID_PATTERN.test(projectId) ||
         !HUB_DESTINATION_ID_PATTERN.test(destinationId) ||
         !/^sha256:[a-f0-9]{64}$/.test(repositoryIdentityHash) ||
-        (topic !== "workstream" && topic !== "command") ||
+        (topic !== "workstream" && topic !== "command" && topic !== "knowledge") ||
         (cursor !== null && !/^[a-f0-9-]{36}$/.test(cursor)) ||
+        (hold !== null && hold !== "open") ||
+        (hostHash !== null && (topic !== "knowledge" || !/^sha256:[a-f0-9]{64}$/.test(hostHash))) ||
         (topic === "command"
           ? nodeId === null || !HUB_PRINCIPAL_ID_PATTERN.test(nodeId)
           : nodeId !== null)
@@ -79,9 +103,7 @@ export function createHubRuntimeChangeHandler(channels: {
         principal.projects.some(
           (p) => p.projectId === projectId && p.destinationId === destinationId,
         ) &&
-        principal.permissions.includes(
-          topic === "command" ? "command.delivery" : "workstream.read",
-        ) &&
+        topicPermitted(topic, principal.permissions) &&
         (topic !== "command" || principal.principalId === nodeId);
       if (!permitted()) {
         sendHubError(response, 403, "forbidden", maximum, headers);
@@ -98,6 +120,8 @@ export function createHubRuntimeChangeHandler(channels: {
         destinationId,
         cursor,
         signal: controller.signal,
+        ...(hold === "open" ? { hold } : {}),
+        ...(hostHash === null ? {} : { hostHash }),
       });
       if (controller.signal.aborted) return;
       // A held request must not disclose a hint after credential revocation.
@@ -110,9 +134,7 @@ export function createHubRuntimeChangeHandler(channels: {
         !refreshed.projects.some(
           (p) => p.projectId === projectId && p.destinationId === destinationId,
         ) ||
-        !refreshed.permissions.includes(
-          topic === "command" ? "command.delivery" : "workstream.read",
-        )
+        !topicPermitted(topic, refreshed.permissions)
       ) {
         sendHubError(response, 403, "forbidden", maximum, headers);
         return;

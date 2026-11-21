@@ -25,6 +25,7 @@ Defines provider-neutral managed execution and evidence contracts. ADRs retain r
 - [State lifecycle](execution/state-lifecycle.md): durable local data and rebuildable projections.
 - [Events and privacy](execution/events-and-privacy.md): owns event contracts, reader compatibility, writer activation, and failure codes.
 - [Stage observation and performance](execution/stage-observation-and-performance.md): timing, environment, projection, and performance gates.
+- [Idle wakeups and the event-store wake channel](execution/idle-wake-channel.md): how each failure of the wake path is prevented, recovered or made visible, with its test.
 - [Bounded dynamic assignment topology](execution/dynamic-assignment-topology.md): additive branch-and-join changes, exact review, graph bounds, interruption recovery, migration, and historical replay.
 - [Adverse-condition safety](execution/adverse-condition-safety.md): common effect inventory, exact completion/rollback/recovery projection, cancellation and backpressure bounds, telemetry field registry, threat model, capacity and retention profiles, and compatibility rehearsals.
 - [Hub and Node coordination](coordination/hub-and-node.md): remote coordination.

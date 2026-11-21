@@ -7,7 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 import { afterEach, expect, it, vi } from "vitest";
 
-import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
+import { acquireFullCycleAdmission, onHeldAdmissionSignal } from "../src/full-cycle-admission.js";
 import { nextAdmissionPoll } from "../src/full-cycle-admission-store.js";
 
 const directories: string[] = [];
@@ -181,6 +181,82 @@ it("releases through a write lock held past the SQLite busy wait (ADR-0576)", as
   const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
   expect(db.prepare("SELECT count(*) AS holders FROM holder").get()).toEqual({ holders: 0 });
   db.close();
+}, 30_000);
+
+it("wakes the holder for an upgrade that lock contention kept from seeing it at first (ADR-0574, ADR-0602)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal,
+    directory: admission,
+  });
+  let wakes = 0;
+  const unsubscribe = onHeldAdmissionSignal(() => {
+    wakes += 1;
+  });
+  try {
+    // The upgrade's first attempt meets another process's write lock, so it sees no holder.
+    const { released } = await holdAdmissionDatabase(admission, "BEGIN EXCLUSIVE");
+    const upgrade = acquireFullCycleAdmission({
+      repositoryRoot: "/repo/b",
+      signal,
+      directory: admission,
+      pollMilliseconds: 10,
+      priority: "upgrade",
+    });
+    await released;
+    // Its next attempt sees the holder and asks it to stop at its next stage boundary.
+    await vi.waitFor(() => expect(wakes).toBeGreaterThan(0), { timeout: 15_000 });
+    expect(await held.preempted()).toBe(true);
+    await held.release();
+    await (await upgrade).release();
+    expect(wakes).toBe(1);
+  } finally {
+    unsubscribe();
+  }
+}, 30_000);
+
+it("keeps its heartbeat fresh while an earlier release's waiter queues behind it (ADR-0602)", async () => {
+  const admission = await directory();
+  const signal = new AbortController().signal;
+  const held = await acquireFullCycleAdmission({
+    repositoryRoot: "/repo/a",
+    signal,
+    directory: admission,
+  });
+  const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
+  try {
+    // An earlier release removes waiters whose heartbeat is old, by age alone; it queued last.
+    db.prepare("INSERT INTO waiters VALUES(?,?,?,?,?)").run(
+      "earlier",
+      process.pid,
+      "sha256:earlier",
+      Date.now() + 60_000,
+      Date.now(),
+    );
+    const waiting = acquireFullCycleAdmission({
+      repositoryRoot: "/repo/b",
+      signal,
+      directory: admission,
+      pollMilliseconds: 10,
+    });
+    const ours = () =>
+      db
+        .prepare(
+          "SELECT heartbeat FROM waiters WHERE nonce IN (SELECT nonce FROM admission_presence)",
+        )
+        .get() as { heartbeat: number } | undefined;
+    await vi.waitFor(() => expect(ours()).toBeDefined());
+    const first = ours()!.heartbeat;
+    // Mixed versions only: this waiter retries, which rewrites its heartbeat, while that row lasts.
+    await vi.waitFor(() => expect(ours()!.heartbeat).toBeGreaterThan(first), { timeout: 5_000 });
+    db.prepare("DELETE FROM waiters WHERE nonce='earlier'").run();
+    await held.release();
+    await (await waiting).release();
+  } finally {
+    db.close();
+  }
 }, 30_000);
 
 it("answers the holder's queue checks while another process writes (ADR-0576)", async () => {
@@ -422,3 +498,76 @@ it("backs an admission waiter off without letting its heartbeat go stale (ADR-05
     20, 40, 80, 80, 80,
   ]);
 });
+
+it("admits a waiter the moment the holder releases, with no poll (ADR-0602)", async () => {
+  const path = await directory();
+  const signal = AbortSignal.timeout(30_000);
+  const holder = await acquireFullCycleAdmission({
+    repositoryRoot: "/one",
+    directory: path,
+    signal,
+  });
+  // A minute between retries: only the release's wake can admit the waiter in time.
+  const started = Date.now();
+  const waiting = acquireFullCycleAdmission({
+    repositoryRoot: "/two",
+    directory: path,
+    signal,
+    pollMilliseconds: 60_000,
+  });
+  await new Promise((settle) => setTimeout(settle, 300));
+  await holder.release();
+  const admitted = await waiting;
+  expect(Date.now() - started).toBeLessThan(5_000);
+  await admitted.release();
+});
+
+it(
+  "admits a waiter when the holder's process dies, with no poll (ADR-0602)",
+  { timeout: 60_000 },
+  async () => {
+    const path = await directory();
+    const hooks = resolve(
+      import.meta.dirname,
+      "../../event-store-sqlite/test/support/register-workspace-source.mjs",
+    );
+    const child = spawn(
+      process.execPath,
+      [
+        "--import",
+        hooks,
+        "--input-type=module",
+        "-e",
+        `const { acquireFullCycleAdmission } = await import("@lervo/repository-knowledge-runtime");
+       await acquireFullCycleAdmission({ repositoryRoot: "/held", directory: process.argv[1], signal: new AbortController().signal });
+       process.stdout.write("held\\n");
+       setInterval(() => {}, 1 << 30);`,
+        path,
+      ],
+      { stdio: ["ignore", "pipe", "inherit"] },
+    );
+    try {
+      await new Promise<void>((resolveHeld, reject) => {
+        child.stdout.on("data", (chunk: Buffer) => {
+          if (chunk.toString().includes("held")) resolveHeld();
+        });
+        child.once("exit", () => reject(new Error("The holder exited before holding.")));
+      });
+      const waiting = acquireFullCycleAdmission({
+        repositoryRoot: "/waiting",
+        directory: path,
+        signal: AbortSignal.timeout(30_000),
+        pollMilliseconds: 60_000,
+      });
+      await new Promise((settle) => setTimeout(settle, 300));
+      const killed = Date.now();
+      child.kill("SIGKILL");
+      const admitted = await waiting;
+      // The held connection closed with the process; the ten-minute lease never had to lapse.
+      expect(Date.now() - killed).toBeLessThan(5_000);
+      await admitted.release();
+    } finally {
+      child.kill("SIGKILL");
+    }
+  },
+);

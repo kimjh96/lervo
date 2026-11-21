@@ -2,19 +2,19 @@ import { homedir } from "node:os";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { setTimeout as sleep } from "node:timers/promises";
-import type { DatabaseSync } from "node:sqlite";
+import { holdProcessPresence } from "@lervo/project-storage";
 import { isSqliteLockContention } from "@lervo/sqlite-connection";
 
 import { sha256 } from "@lervo/repository-knowledge";
 
-import { KnowledgeConvergenceRuntimeError } from "./failure.js";
+import { othersWaiting, update, wakeWaiters } from "./full-cycle-admission-queue.js";
+import { identifiedFailure, POLL_MILLISECONDS } from "./full-cycle-admission-store.js";
+import { issueAttention } from "./repository-watch-state.js";
 import {
-  database,
-  identifiedFailure,
-  nextAdmissionPoll,
-  POLL_MILLISECONDS,
-} from "./full-cycle-admission-store.js";
-import { sqliteRow } from "./sqlite-row.js";
+  PRIORITY_ADVANCE_MILLISECONDS,
+  waitForAdmission,
+  wakeSequence,
+} from "./full-cycle-admission-wait.js";
 
 const LEASE_MILLISECONDS = 10 * 60_000;
 /** A holder renews this often, or ten times per lease when its lease is shorter. */
@@ -26,14 +26,6 @@ const RENEW_MILLISECONDS = 60_000;
  * not depend on a wall clock that can step back.
  */
 const CONFIRM_CONTENTION_WAIT_MILLISECONDS = 30_000;
-/** A waiter that has not polled for this long has gone and no longer holds its turn. */
-const WAITER_STALE_MILLISECONDS = 30_000;
-/**
- * ADR-0574: an upgrade registers its turn this far in the past. Every reader orders waiters by
- * `since`, including residents of earlier releases, so the upgrade is admitted before every
- * waiting resident without a schema change, and upgrades keep arrival order among themselves.
- */
-const PRIORITY_ADVANCE_MILLISECONDS = 365 * 24 * 60 * 60_000;
 
 /**
  * - `resident`: a background full cycle; it takes its turn in arrival order.
@@ -71,161 +63,21 @@ export interface FullCycleAdmission {
   confirm(): Promise<FullCycleAdmissionConfirmation>;
 }
 
-function alive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code !== "ESRCH";
-  }
-}
-
 /**
- * ADR-0576: a poll that meets lock contention is a poll that was not admitted. ADR-0598: one
- * connection serves every poll of an acquisition, so the pragmas and table checks run once; a
- * connection that could not open is opened again at the next poll.
+ * ADR-0602: listeners for a wake of a held admission's presence in this process, which an
+ * upgrade sends when it starts waiting; `abandonProviderCallOnUpgrade` checks then instead of
+ * polling. `admissionSignalsHeld` counts the held admissions that can be woken.
  */
-async function tryAcquireOrWait(
-  connection: { db: DatabaseSync | null },
-  input: Parameters<typeof tryAcquire>[1] & { directory: string },
-): Promise<boolean> {
-  try {
-    const db = (connection.db ??= await database(input.directory));
-    return tryAcquire(db, input);
-  } catch (error) {
-    if (isSqliteLockContention(error)) return false;
-    throw identifiedFailure(error);
-  }
+const admissionSignals = new Set<() => void>();
+let signalCapableHolders = 0;
+
+export function onHeldAdmissionSignal(listener: () => void): () => void {
+  admissionSignals.add(listener);
+  return () => admissionSignals.delete(listener);
 }
 
-function tryAcquire(
-  db: DatabaseSync,
-  input: {
-    repositoryHash: string;
-    nonce: string;
-    since: number;
-    now: number;
-    leaseMilliseconds: number;
-  },
-): boolean {
-  db.exec("BEGIN IMMEDIATE");
-  try {
-    const holder = sqliteRow(db.prepare("SELECT * FROM holder WHERE slot=1").get());
-    // ADR-0577: an expired lease frees the slot even while its process lives. Residents of
-    // earlier releases apply the same rule, so only the holder's own lease length protects it.
-    const held =
-      holder !== undefined &&
-      Number(holder.expires_at) > input.now &&
-      alive(Number(holder.owner_pid));
-    // ADR-0485: waiters take turns in arrival order; a gone waiter forfeits its place.
-    db.prepare("DELETE FROM waiters WHERE heartbeat<?").run(input.now - WAITER_STALE_MILLISECONDS);
-    db.prepare(
-      "INSERT INTO waiters VALUES(?,?,?,?,?) ON CONFLICT(nonce) DO UPDATE SET heartbeat=excluded.heartbeat",
-    ).run(input.nonce, process.pid, input.repositoryHash, input.since, input.now);
-    const first = sqliteRow(
-      db.prepare("SELECT nonce FROM waiters ORDER BY since, nonce LIMIT 1").get(),
-    );
-    const admitted = !held && first?.nonce === input.nonce;
-    if (admitted) {
-      db.prepare("INSERT OR REPLACE INTO holder VALUES(1,?,?,?,?,?)").run(
-        process.pid,
-        input.nonce,
-        input.repositoryHash,
-        input.now,
-        input.now + input.leaseMilliseconds,
-      );
-      db.prepare("DELETE FROM waiters WHERE nonce=?").run(input.nonce);
-    }
-    db.exec("COMMIT");
-    return admitted;
-  } catch (error) {
-    db.exec("ROLLBACK");
-    throw error;
-  }
-}
-
-/** `registeredBefore` limits the answer to upgrades, whose turn is registered a year back. */
-async function othersWaiting(
-  directory: string,
-  nonce: string,
-  now: number,
-  registeredBefore = Number.MAX_SAFE_INTEGER,
-): Promise<boolean> {
-  const db = await database(directory);
-  try {
-    return (
-      sqliteRow(
-        db
-          .prepare(
-            "SELECT 1 AS waiting FROM waiters WHERE nonce<>? AND heartbeat>=? AND since<? LIMIT 1",
-          )
-          .get(nonce, now - WAITER_STALE_MILLISECONDS, registeredBefore),
-      ) !== undefined
-    );
-  } finally {
-    db.close();
-  }
-}
-
-/** Returns the number of rows the statement changed. */
-async function update(
-  directory: string,
-  sql: string,
-  ...values: (string | number)[]
-): Promise<number> {
-  const db = await database(directory);
-  try {
-    return Number(db.prepare(sql).run(...values).changes);
-  } finally {
-    db.close();
-  }
-}
-
-function delay(milliseconds: number, signal: AbortSignal): Promise<void> {
-  return new Promise((resolveDelay) => {
-    const timer = setTimeout(done, milliseconds);
-    function done() {
-      clearTimeout(timer);
-      signal.removeEventListener("abort", done);
-      resolveDelay();
-    }
-    signal.addEventListener("abort", done, { once: true });
-  });
-}
-
-/**
- * Polls until this waiter is admitted and returns the admission time. ADR-0598: one connection
- * serves every poll, and the wait between polls backs off.
- */
-async function waitForAdmission(input: {
-  directory: string;
-  repositoryHash: string;
-  nonce: string;
-  since: number;
-  leaseMilliseconds: number;
-  signal: AbortSignal;
-  pollMilliseconds: number;
-  onWait?: () => void;
-}): Promise<number> {
-  const connection: { db: DatabaseSync | null } = { db: null };
-  let poll = input.pollMilliseconds;
-  try {
-    for (let waited = false; ; waited = true) {
-      if (input.signal.aborted) {
-        await update(input.directory, "DELETE FROM waiters WHERE nonce=?", input.nonce).catch(
-          () => undefined,
-        );
-        throw new KnowledgeConvergenceRuntimeError("knowledge_cancelled");
-      }
-      const now = Date.now();
-      if (await tryAcquireOrWait(connection, { ...input, now })) return now;
-      if (!waited) input.onWait?.();
-      await delay(poll * (0.75 + Math.random() / 2), input.signal);
-      poll = nextAdmissionPoll(poll, input.pollMilliseconds);
-    }
-  } finally {
-    connection.db?.close();
-  }
+export function admissionSignalsHeld(): boolean {
+  return signalCapableHolders > 0;
 }
 
 /**
@@ -261,16 +113,48 @@ export async function acquireFullCycleAdmission(input: {
   const nonce = randomUUID();
   const since = Date.now() - (input.priority === "upgrade" ? PRIORITY_ADVANCE_MILLISECONDS : 0);
   const leaseMilliseconds = input.leaseMilliseconds ?? LEASE_MILLISECONDS;
-  const admittedAt = await waitForAdmission({
-    directory,
-    repositoryHash,
-    nonce,
-    since,
-    leaseMilliseconds,
-    signal: input.signal,
-    pollMilliseconds: input.pollMilliseconds ?? POLL_MILLISECONDS,
-    ...(input.onWait === undefined ? {} : { onWait: input.onWait }),
+  // ADR-0602: this acquisition's presence: its liveness for every other process, and the channel
+  // a release, a departure or an upgrade wakes it through.
+  const wakes = wakeSequence();
+  let holding = false;
+  const presence = holdProcessPresence({
+    onWake: () => {
+      wakes.wake();
+      if (holding) for (const listener of [...admissionSignals]) listener();
+    },
   });
+  await presence.ready;
+  const presenceToken = presence.issue() === null ? presence.token : null;
+  // A holder or waiter ahead whose exit cannot be seen is attention while this waiter waits.
+  const exitWaitIssues = issueAttention(input.repositoryRoot, "process_exit_wait_unavailable");
+  let admittedAt: number;
+  try {
+    admittedAt = await waitForAdmission({
+      directory,
+      repositoryHash,
+      nonce,
+      since,
+      leaseMilliseconds,
+      signal: input.signal,
+      pollMilliseconds: input.pollMilliseconds ?? POLL_MILLISECONDS,
+      presence: presenceToken,
+      wakes: presenceToken === null ? null : wakes,
+      ...(input.onWait === undefined ? {} : { onWait: input.onWait }),
+      onIssue: exitWaitIssues.report,
+    });
+  } catch (error) {
+    presence.release();
+    throw error;
+  } finally {
+    await exitWaitIssues.clear();
+  }
+  holding = true;
+  if (presenceToken !== null) signalCapableHolders += 1;
+  let counted = presenceToken !== null;
+  const uncount = () => {
+    if (counted) signalCapableHolders -= 1;
+    counted = false;
+  };
   /** The latest expiry this holder wrote and saw applied; the row never holds an earlier one. */
   let expiresAt = admittedAt + leaseMilliseconds;
   let lost = false;
@@ -339,10 +223,24 @@ export async function acquireFullCycleAdmission(input: {
       for (;;) {
         try {
           await update(directory, "DELETE FROM holder WHERE slot=1 AND nonce=?", nonce);
+          holding = false;
+          uncount();
+          presence.release();
+          // ADR-0602: the next waiter learns of the release at once, not on a poll.
+          await wakeWaiters(directory, nonce).catch(() => undefined);
           return;
         } catch (error) {
-          if (!isSqliteLockContention(error)) throw identifiedFailure(error);
-          if (Date.now() >= giveUpAt) return;
+          if (!isSqliteLockContention(error)) {
+            uncount();
+            presence.release();
+            throw identifiedFailure(error);
+          }
+          if (Date.now() >= giveUpAt) {
+            // The lease lapses with the presence: the holder's exit is the waiters' signal.
+            uncount();
+            presence.release();
+            return;
+          }
         }
         await sleep(input.pollMilliseconds ?? POLL_MILLISECONDS);
       }

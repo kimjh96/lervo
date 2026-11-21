@@ -380,8 +380,18 @@ describe("cross-Node conversation discussion runtime", () => {
       replyToEventId: null,
       occurredAt: "2026-09-18T05:00:00.000Z",
     });
+    // ADR-0602: the deadline loop has no timer of its own to poll with; a committed write that
+    // sets a deadline wakes it.
+    let changes = 0;
+    const unsubscribe = runtime.subscribeChanges(() => {
+      changes += 1;
+    });
     const started = await runtime.start({ event: origin, topic: "기한 검증", language: "ko" });
     if (started.status !== "started") throw new Error("discussion did not start");
+    await new Promise((settle) => setImmediate(settle));
+    expect(changes).toBeGreaterThan(0);
+    expect(runtime.nextDeadlineAt()).not.toBeNull();
+    unsubscribe();
     const contribution = await event({
       artifacts,
       key: "deadline-contribution",

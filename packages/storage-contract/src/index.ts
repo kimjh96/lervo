@@ -143,6 +143,8 @@ export interface EventStore<TTransaction extends EventStoreTransaction = EventSt
    * Optional, so a store without a cheap path is read through `latestEventHash`.
    */
   latestHash?(): string | null;
+  /** ADR-0602: the head sequence with no row decode; optional, `latest()` serves without it. */
+  latestSeq?(): number | null;
   /**
    * The hash of the latest event whose type is not in `types`, read like `latestHash`. A resident
    * uses it to ignore the records it appends itself (ADR-0598). Optional: without it,

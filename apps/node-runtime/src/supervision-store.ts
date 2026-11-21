@@ -37,7 +37,6 @@ export class NodeSupervisionStore {
       storage.events,
       storage.paths.eventDatabase,
       storage.manifest.projectId,
-      () => Date.parse(now()),
     );
     this.tasks = new SupervisionTaskSource(storage, binding, now, this.authorityHistory);
   }
@@ -84,13 +83,6 @@ export class NodeSupervisionStore {
     };
     this.subscriptions.add(unsubscribe);
     return unsubscribe;
-  }
-
-  nextAuthorityAuditAt(): number | null {
-    const times = [this.authorityHistory.nextAuditAt(), this.tasks.nextAuditAt()].filter(
-      (time): time is number => time !== null,
-    );
-    return times.length === 0 ? null : Math.min(...times);
   }
 
   /**

@@ -54,6 +54,33 @@ describe("outbound sync worker", () => {
     store.close();
   });
 
+  it("sends nothing and reports local_history_invalid when a claimed event changed (ADR-0602)", async () => {
+    const store = await openStore();
+    appendEvents(store, 3, []);
+    const transport = new HubFixtureTransport();
+    // The stored row reads back different from the claimed one, as after a rewrite.
+    const changed = new Proxy(store, {
+      get(target, property, receiver) {
+        if (property === "get")
+          return (eventId: string) => {
+            const event = target.get(eventId);
+            return event === null ? null : { ...event, eventHash: `sha256:${"f".repeat(64)}` };
+          };
+        const value = Reflect.get(target, property, receiver);
+        return typeof value === "function" ? value.bind(target) : value;
+      },
+    });
+
+    const result = await runOutboundSyncCycle(workerOptions(changed, transport));
+
+    expect(result).toMatchObject({
+      status: "retry_scheduled",
+      failureCode: "local_history_invalid",
+    });
+    expect(transport.batches).toHaveLength(0);
+    store.close();
+  });
+
   it("backfills a long local chain in bounded contiguous cycles", async () => {
     const store = await openStore();
     appendEvents(store, 205, []);

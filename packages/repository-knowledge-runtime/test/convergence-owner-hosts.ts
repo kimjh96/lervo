@@ -14,6 +14,7 @@ import {
 } from "@lervo/sync-contract";
 
 import type { ConvergenceOwnerLeasePort } from "../src/convergence-owner.js";
+import type { KnowledgeHubChangeTransport } from "../src/hub-knowledge-changes.js";
 import { CONVERGENCE_OWNER_HOST_PATH } from "../src/convergence-owner-host.js";
 
 const execute = promisify(execFile);
@@ -26,7 +27,88 @@ export class FakeConvergenceOwnerHub {
   failure: { failureCode: string; httpStatus: number | null } | null = null;
   requests = 0;
 
-  constructor(private readonly clock: () => number) {}
+  /** ADR-0602 `knowledge` change waits: one cursor per waiting host, as the Hub keeps them. */
+  private readonly cursors = new Map<string, number>();
+  private readonly waiters = new Set<() => void>();
+  waits = 0;
+  /**
+   * ADR-0602, opt-in: presence as the Hub keeps it. A host holding a change wait is present; while
+   * the holder is, decisions report it and its lease stays live; its departure is pushed at once
+   * (the Hub's grace aside) as `presence` and `lease`, with the stored expiry kept.
+   */
+  private readonly present = new Map<string, number>();
+  private readonly kinds = new Map<string, Set<string>>();
+
+  constructor(
+    private readonly clock: () => number,
+    private readonly options: { presence?: boolean } = {},
+  ) {}
+
+  private notify(sourceHostHash: string, kinds: string[] = ["lease"]): void {
+    for (const host of this.cursors.keys())
+      if (host !== sourceHostHash) {
+        this.cursors.set(host, this.cursors.get(host)! + 1);
+        const pending = this.kinds.get(host) ?? new Set<string>();
+        for (const kind of kinds) pending.add(kind);
+        this.kinds.set(host, pending);
+      }
+    for (const wake of [...this.waiters]) wake();
+  }
+
+  private holderPresent(): boolean {
+    return (this.present.get(this.lease?.holderHostHash ?? "") ?? 0) > 0;
+  }
+
+  private arrive(host: string): () => void {
+    if (this.options.presence !== true || host === "") return () => undefined;
+    this.present.set(host, (this.present.get(host) ?? 0) + 1);
+    return () => {
+      const left = this.present.get(host)! - 1;
+      this.present.set(host, left);
+      if (left > 0) return;
+      const holder = this.lease?.holderHostHash === host && this.lease.releasedAt === null;
+      this.notify(host, holder ? ["lease", "presence"] : ["presence"]);
+    };
+  }
+
+  changes(): KnowledgeHubChangeTransport {
+    return async () => ({
+      wait: ({ cursor, hostHash, signal }) => {
+        this.waits++;
+        const host = hostHash ?? "";
+        if (!this.cursors.has(host)) this.cursors.set(host, 1);
+        const current = () =>
+          `00000000-0000-4000-8000-${String(this.cursors.get(host)).padStart(12, "0")}`;
+        const answer = () => {
+          const kinds = this.kinds.get(host);
+          this.kinds.delete(host);
+          return kinds === undefined || this.options.presence !== true
+            ? { cursor: current() }
+            : { cursor: current(), kinds: [...kinds].sort() };
+        };
+        if (cursor !== current()) return Promise.resolve(answer());
+        const leave = this.arrive(host);
+        return new Promise((resolveWait, rejectWait) => {
+          const wake = () => {
+            if (cursor === current()) return;
+            this.waiters.delete(wake);
+            leave();
+            resolveWait(answer());
+          };
+          this.waiters.add(wake);
+          signal.addEventListener(
+            "abort",
+            () => {
+              this.waiters.delete(wake);
+              leave();
+              rejectWait(signal.reason);
+            },
+            { once: true },
+          );
+        });
+      },
+    });
+  }
 
   port(): ConvergenceOwnerLeasePort {
     return {
@@ -34,13 +116,27 @@ export class FakeConvergenceOwnerHub {
         this.requests++;
         if (this.failure !== null) throw Object.assign(new Error("hub refused"), this.failure);
         if (!this.available) throw new Error("hub unavailable");
+        // A present holder's lease is live whatever its recorded expiry, as on the Hub.
+        const present = this.holderPresent();
+        if (present && this.lease !== null && this.lease.releasedAt === null)
+          this.lease = {
+            ...this.lease,
+            expiresAt: new Date(
+              Math.max(Date.parse(this.lease.expiresAt), this.clock() + 5_000),
+            ).toISOString(),
+          };
         const { next, decision } = decideKnowledgeConvergenceOwnerMutation({
           current: this.lease,
           mutation,
           acceptedAt: new Date(this.clock()).toISOString(),
         });
         this.lease = next;
-        return structuredClone(decision);
+        // ADR-0602: a new holder or a release wakes every other host's change wait.
+        if (decision.status === "granted" || decision.status === "released")
+          this.notify(mutation.request.hostHash);
+        return structuredClone(
+          this.options.presence === true ? { ...decision, holderPresent: present } : decision,
+        );
       },
       read: async () => {
         if (!this.available) throw new Error("hub unavailable");

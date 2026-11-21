@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 2,
+  "scope": [
+    "apps/node-runtime/src",
+    "packages/repository-knowledge-runtime/src",
+    "packages/project-storage/src",
+    "packages/event-store-sqlite/src",
+    "apps/cli/src/knowledge-host-residents.ts",
+    "apps/hub/src",
+    "apps/hub-runtime/src",
+    "apps/conversation/src",
+    "packages/hub-sync/src",
+    "packages/hub-sync-sqlite/src",
+    "packages/hub-command/src",
+    "packages/hub-control/src",
+    "packages/conversation-platform/src",
+    "packages/conversation-platform-sqlite/src",
+    "packages/conversation-control/src",
+    "packages/conversation-responder/src",
+    "packages/adapter-discord/src",
+    "packages/discord-gateway/src",
+    "packages/sync/src"
+  ],
+  "entries": [
+    {
+      "path": "apps/cli/src/knowledge-host-residents.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "One deadline re-armed after each scan: a held checkout's retry time, or on standby behind a holder of an earlier release, the lock retry; a standby otherwise waits on the holder's presence (ADR-0602). Watched inputs drive every other rescan."
+    },
+    {
+      "path": "apps/node-runtime/src/health.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Starting heartbeat while the runtime starts; it is cleared once the runtime settles, so a settled runtime arms no timer."
+    },
+    {
+      "path": "apps/node-runtime/src/knowledge-worker-admission.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "One retry of a failed writer-coordinate read, with exponential backoff; armed only after a failed read, never while the coordinate is readable (ADR-0602)."
+    },
+    {
+      "path": "apps/node-runtime/src/knowledge-worker-process.ts",
+      "kind": "rearm",
+      "count": 2,
+      "reason": "Restarts a crashed knowledge worker after 60 s; it is armed only after a failure, never while idle."
+    },
+    {
+      "path": "apps/node-runtime/src/node-requested-runtime-process.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Bounded readiness wait while a requested runtime starts; it ends at its deadline."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-knowledge-loop.ts",
+      "kind": "period",
+      "name": "intervalMs",
+      "reason": "Base of the one extra cycle a lapsed deadline gets and of the exponential failure backoff; the change loop never polls (ADR-0602)."
+    },
+    {
+      "path": "apps/node-runtime/src/repository-replica-watch.ts",
+      "kind": "period",
+      "name": "fallbackIntervalMs",
+      "reason": "Base of the exponential recovery and re-arm backoff used only while the local watch or a peer subscription is down; health shows it (ADR-0602)."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-accepted-results.ts",
+      "kind": "period",
+      "name": "fullReadIntervalMs",
+      "reason": "Age of the last full read, compared when a wake reads; it arms no timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-change-loop.ts",
+      "kind": "period",
+      "name": "intervalMs",
+      "reason": "Base of the one extra cycle a lapsed deadline gets and of the exponential failure backoff; the change loop never polls (ADR-0602)."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-managed-process.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Lease renewal while a managed process runs; it ends with the process."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-observation-gate.ts",
+      "kind": "period",
+      "name": "FULL_OBSERVATION_INTERVAL_MS",
+      "reason": "Age of the last full observation, compared when a wake observes; it arms no timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-reasoning-effects.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Authority revalidation while a reasoning effect runs; it ends with the effect."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-request-presence.ts",
+      "kind": "period",
+      "name": "presenceFullReadIntervalMs",
+      "reason": "Age of the last full read, compared when a wake reads; it arms no timer."
+    },
+    {
+      "path": "apps/node-runtime/src/supervision-result-branch.ts",
+      "kind": "period",
+      "name": "intervalMs",
+      "reason": "Base of the one extra cycle a lapsed deadline gets and of the exponential failure backoff; the change loop never polls (ADR-0602)."
+    },
+    {
+      "path": "packages/adapter-discord/src/rest-typing.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Discord typing indicator refresh while a reply is being written; Discord drops the indicator after 10 s, and the refresh ends with the reply."
+    },
+    {
+      "path": "packages/adapter-discord/src/rest-typing.ts",
+      "kind": "period",
+      "name": "DEFAULT_REFRESH_INTERVAL_MS",
+      "reason": "The typing indicator refresh above."
+    },
+    {
+      "path": "packages/conversation-control/src/deliberation-lease-worker.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Lease renewal while a deliberation runs; it ends with the deliberation."
+    },
+    {
+      "path": "packages/event-store-sqlite/src/process-presence.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "An exit wait whose connection failed for a reason that proves nothing (EMFILE, EAGAIN, a full backlog) retries from one second doubling to five minutes, reported as attention; a held connection otherwise waits with no timer (ADR-0602)."
+    },
+    {
+      "path": "packages/project-storage/src/coordination-initialization-lock.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Bounded 10 ms retry while another process initializes the coordination home; it ends when the lock is taken or its attempts run out."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/cas-retention-budget.ts",
+      "kind": "period",
+      "name": "PROBE_INTERVAL_MS",
+      "reason": "Rate limit for a retention probe inside one read; it is not a timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/convergence-assignment-lease.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Lease renewal while a convergence assignment runs; it ends with the assignment."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/convergence-assignment-lease.ts",
+      "kind": "period",
+      "name": "RENEWAL_INTERVAL_MS",
+      "reason": "The lease renewal above."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/convergence-owner-host-derivation.ts",
+      "kind": "period",
+      "name": "PUBLICATION_PROBE_INTERVAL_MS",
+      "reason": "Age bound for a cached publication probe, compared on read; it is not a timer."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-store.ts",
+      "kind": "period",
+      "name": "MAXIMUM_POLL_MILLISECONDS",
+      "reason": "Ceiling of that retry."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-store.ts",
+      "kind": "period",
+      "name": "POLL_MILLISECONDS",
+      "reason": "Admission retry base, used only while an earlier release's holder or waiter is in the way or under lock contention; a waiter otherwise waits on a wake, an exit or the lease's exact expiry (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission-wait.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "Each turn waits on one signal: its own wake, the holder's or ahead waiter's exit, the lease's exact expiry, or abort. A retry timer is armed only while an earlier release's holder or waiter is present or under lock contention (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Admission lease renewal while a full cycle holds the slot; it ends with the cycle."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/full-cycle-admission.ts",
+      "kind": "loop",
+      "count": 2,
+      "reason": "Release and confirmation retries under lock contention while a holder releases or confirms; bounded by the lease (ADR-0577). Waiting itself is signal-driven (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/hub-knowledge-changes.ts",
+      "kind": "loop",
+      "count": 3,
+      "reason": "Retry of a failed Hub knowledge change wait with exponential backoff (attention once it repeats); against a Hub older than ADR-0602 (hub_upgrade_required), a recheck from a minute doubling to ten minutes, with a full cycle at most hourly; and the one-shot startup bound on the first answer. Nothing is armed while a wait is held (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/knowledge-publication.ts",
+      "kind": "period",
+      "name": "KNOWLEDGE_PUBLICATION_CHECK_INTERVAL_MS",
+      "reason": "Recheck of remote publication checks (GitHub CI) only while they run; remote state has no local signal."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/knowledge-worker-wakeups.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "Restarts the repository watch with exponential backoff (1 to 15 minutes) after it failed; armed only after a failure, which is visible as repository_watch_unavailable."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/provider-call.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Source and authority check while a provider call runs; it ends with the call."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/provider-probe.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Validation while a provider probe runs; it ends with the probe."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/repository-change-watch.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "Debounce that re-arms once while a refresh is still running; it is armed only by a file change."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-admission.ts",
+      "kind": "rearm",
+      "count": 2,
+      "reason": "Retry of a failed held-resident record with exponential backoff, armed only after a failure; and, in mixed versions only, a one-minute rewrite while an earlier release's resident, which removes rows by heartbeat age, shares the table (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-cycle-trigger.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "The wake debounce, re-armed by a running cycle's pending wake; armed only by a change (moved from loop.ts)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-deadline-timer.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "The ADR-0602 deadline primitive: one timer for the earliest known deadline, re-armed only when a deadline is set or fires, never with none."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-file-watch.ts",
+      "kind": "loop",
+      "count": 1,
+      "reason": "One look after an ancestor watch is armed for a missing directory, once the macOS event stream is surely running; armed only while a watched directory is missing (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-health-writer.ts",
+      "kind": "rearm",
+      "count": 2,
+      "reason": "Retry of a failed health write with exponential backoff, armed only after a failure; and, in mixed versions only, a one-minute rewrite while an earlier release's resident, which removes rows by heartbeat age, shares the table (ADR-0602; moved from loop.ts)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/resident-projection-fence.ts",
+      "kind": "period",
+      "name": "RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS",
+      "reason": "Rate limit on event-only projection refreshes, compared when offered; the projection's one deadline (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/upgrade-preemption.ts",
+      "kind": "interval",
+      "count": 1,
+      "reason": "Upgrade-waiting check while a provider call runs, only when no admission in this process can be woken; otherwise an upgrade's wake triggers the check (ADR-0602)."
+    },
+    {
+      "path": "packages/repository-knowledge-runtime/src/upgrade-preemption.ts",
+      "kind": "period",
+      "name": "UPGRADE_PREEMPTION_POLL_MILLISECONDS",
+      "reason": "Upgrade-waiting check while a provider call runs, only when no admission in this process can be woken; otherwise an upgrade's wake triggers the check (ADR-0602)."
+    }
+  ]
+}

@@ -17,6 +17,7 @@ export function startDiscordConversationRepositorySignals(input: {
   artifacts: ArtifactStore;
   application: ConversationApplication;
   onFailure(): void;
+  onChangeSignal?(failure: unknown): void;
 }): ConversationRepositorySignalLoop | null {
   const configured = input.config.repositorySignals;
   if (configured === undefined) return null;
@@ -54,6 +55,7 @@ export function startDiscordConversationRepositorySignals(input: {
       return result;
     },
     onFailure: input.onFailure,
+    ...(input.onChangeSignal === undefined ? {} : { onChangeSignal: input.onChangeSignal }),
     intervalMs: configured.pollIntervalMs ?? 2_000,
   });
   loop.start();

@@ -31,7 +31,7 @@ async function settled(): Promise<void> {
 }
 
 describe("conversation interaction retry loop", () => {
-  it("runs immediately and waits one interval after each completed cycle", async () => {
+  it("runs immediately and, without a change source, looks again each minute", async () => {
     const schedule = new RetrySchedule();
     const runCycle = vi.fn(async () => undefined);
     const loop = new ConversationInteractionRetryLoop({
@@ -46,7 +46,8 @@ describe("conversation interaction retry loop", () => {
     schedule.runNext();
     await settled();
     expect(runCycle).toHaveBeenCalledOnce();
-    expect(schedule.pending[0]?.delayMs).toBe(500);
+    // ADR-0602: nothing can wake it, so it looks again each minute and raises attention.
+    expect(schedule.pending[0]?.delayMs).toBe(60_000);
     loop.stop();
     expect(schedule.pending).toEqual([]);
   });
@@ -68,10 +69,12 @@ describe("conversation interaction retry loop", () => {
     expect(onFailure).toHaveBeenCalledOnce();
     expect(schedule.pending[0]?.delayMs).toBe(2_000);
 
+    // ADR-0602: a failure that repeats backs off, doubling to a ceiling, rather than retrying
+    // storage that stays unavailable every two seconds; each failure is still reported.
     schedule.runNext();
     await settled();
     expect(onFailure).toHaveBeenCalledTimes(2);
-    expect(schedule.pending[0]?.delayMs).toBe(2_000);
+    expect(schedule.pending[0]?.delayMs).toBe(4_000);
     await loop.stop();
     expect(schedule.pending).toEqual([]);
   });

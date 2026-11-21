@@ -5,12 +5,6 @@ import { residentCycleFailure } from "./resident-cycle-failure.js";
 
 export const RESIDENT_RECONCILE_BASE_MILLISECONDS = 60_000;
 export const RESIDENT_RECONCILE_CEILING_MILLISECONDS = 900_000;
-/**
- * ADR-0595: an unchanged fingerprint skips the full cycle for up to an hour. Every time-based input
- * (practice window, skill day, earliest due delivery) is already in the fingerprint, so this is
- * only a backstop; observation still follows the 15-minute reconcile ceiling.
- */
-export const RESIDENT_FORCED_FULL_CYCLE_MILLISECONDS = 3_600_000;
 const SKIPPABLE = new Set<ResidentCycleResult>(["idle", "waiting", "attention", "held"]);
 const MINIMUM_DUE_DELAY_MILLISECONDS = 1_000;
 
@@ -77,23 +71,22 @@ export function classifyResidentCycle(result: WorkerResult, now: number): Reside
 }
 
 /**
- * A cycle may be skipped only after an idle-class full cycle observed the same fingerprint, no
- * delivery is due, and the last full cycle is younger than the ceiling.
+ * A cycle may be skipped only after an idle-class full cycle observed the same fingerprint and no
+ * delivery is due. ADR-0602: there is no age bound. Every input a full cycle acts on is in the
+ * fingerprint: local state by content or metadata, time-based stages by what is due, and Hub
+ * coordination state by the Hub's `knowledge` change token.
  */
 export function residentCycleSkippable(input: {
   previous: ResidentCycleState | null;
   observed: ConvergenceSourceFingerprint | null;
   now: number;
-  ceilingMilliseconds: number;
 }): boolean {
   const { previous, observed, now } = input;
   if (previous === null || observed === null || previous.fingerprint === null) return false;
   if (!SKIPPABLE.has(previous.lastResult) || previous.fingerprint !== observed.fingerprint)
     return false;
   if (observed.earliestAvailableAt !== null && observed.earliestAvailableAt <= now) return false;
-  if (previous.lastCycleAt === null) return false;
-  const elapsed = now - Date.parse(previous.lastCycleAt);
-  return elapsed >= 0 && elapsed < input.ceilingMilliseconds;
+  return previous.lastCycleAt !== null;
 }
 
 /**
@@ -133,14 +126,73 @@ export function residentReconcileDelay(input: {
 }
 
 /**
- * The validated reconcile cadence. The base and ceiling bound the backoff; the forced full cycle
- * bounds how long an unchanged fingerprint may skip and is never shorter than the ceiling.
+ * ADR-0602: when a resident with no change signal looks again: the moment a delivery or local
+ * time-based stage falls due, or never. There is no idle backoff and no forced cycle. A due time
+ * that passed while the cycle ran wakes it after a second. One that was already due when observed
+ * is deferred work the cycle could not take, so it waits for a change or the next due time
+ * instead of looping.
  */
+export function residentReconcileAt(input: {
+  now: number;
+  earliestAvailableAt: number | null;
+  observedAt: number;
+}): number {
+  const due = input.earliestAvailableAt;
+  if (due !== null && due > input.observedAt && due <= input.now)
+    return input.now + MINIMUM_DUE_DELAY_MILLISECONDS;
+  if (due !== null && due > input.now)
+    return Math.max(due, input.now + MINIMUM_DUE_DELAY_MILLISECONDS);
+  return Number.POSITIVE_INFINITY;
+}
+
+/**
+ * ADR-0602: the resident's next cycle after one that just ended: the reconcile deadline (a due
+ * time), a retry with a growing delay while a failed cycle or an ownership the Hub could not
+ * confirm stands, or a publication retry, whichever is first; Infinity when only a change can
+ * give it work.
+ */
+export function residentNextCycleAt(input: {
+  now: number;
+  cycle: {
+    state: Pick<ResidentCycleState, "lastCycleAt" | "lastResult" | "idleStreak">;
+    earliestAvailableAt: number | null;
+    observedAt: number;
+  };
+  unverifiable: boolean;
+  publicationRetryAfterMs: number | null;
+  baseMilliseconds: number;
+  ceilingMilliseconds: number;
+}): number {
+  const { now, cycle } = input;
+  const reconcileAt = residentReconcileAt({
+    now,
+    earliestAvailableAt: cycle.earliestAvailableAt,
+    // Publication and projection refresh run in between, so a due time can pass meanwhile.
+    observedAt: cycle.observedAt,
+  });
+  const retryAt =
+    cycle.state.lastResult === "failed" || input.unverifiable
+      ? now +
+        residentReconcileDelay({
+          idleStreak: cycle.state.idleStreak,
+          now,
+          earliestAvailableAt: null,
+          baseMilliseconds: input.baseMilliseconds,
+          ceilingMilliseconds: input.ceilingMilliseconds,
+        })
+      : Number.POSITIVE_INFINITY;
+  const publicationAt =
+    input.publicationRetryAfterMs === null
+      ? Number.POSITIVE_INFINITY
+      : now + input.publicationRetryAfterMs;
+  return Math.min(reconcileAt, retryAt, publicationAt);
+}
+
+/** The validated retry cadence: the base and ceiling bound the failure backoff. */
 export function residentCadence(input: {
   intervalMilliseconds?: number;
   reconcileCeilingMilliseconds?: number;
-  forcedFullCycleMilliseconds?: number;
-}): { base: number; ceiling: number; forcedFullCycle: number } {
+}): { base: number; ceiling: number } {
   const base = input.intervalMilliseconds ?? RESIDENT_RECONCILE_BASE_MILLISECONDS;
   if (!Number.isSafeInteger(base) || base < 100 || base > RESIDENT_RECONCILE_BASE_MILLISECONDS)
     throw new Error("Invalid convergence interval.");
@@ -151,11 +203,7 @@ export function residentCadence(input: {
     ceiling > RESIDENT_RECONCILE_CEILING_MILLISECONDS
   )
     throw new Error("Invalid convergence reconciliation ceiling.");
-  const forcedFullCycle =
-    input.forcedFullCycleMilliseconds ?? RESIDENT_FORCED_FULL_CYCLE_MILLISECONDS;
-  if (!Number.isSafeInteger(forcedFullCycle) || forcedFullCycle < ceiling)
-    throw new Error("Invalid forced full-cycle interval.");
-  return { base, ceiling, forcedFullCycle };
+  return { base, ceiling };
 }
 
 /**
@@ -171,7 +219,6 @@ export async function runResidentCycle(input: {
   repositoryRoot: string;
   previous: ResidentCycleState | null;
   now: () => number;
-  ceilingMilliseconds: number;
   observe: () => ConvergenceSourceFingerprint;
   runFull: () => Promise<WorkerResult>;
 }): Promise<{
@@ -195,7 +242,6 @@ export async function runResidentCycle(input: {
       previous: input.previous,
       observed,
       now: startedAt,
-      ceilingMilliseconds: input.ceilingMilliseconds,
     })
   )
     return {

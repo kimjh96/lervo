@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { HubSyncSQLiteStore } from "@lervo/hub-sync-sqlite";
 import { defaultProjectDataPolicy, type ProjectManifest } from "@lervo/schemas";
 import {
+  HubKnowledgeChangeClient,
   HubKnowledgeConvergenceHostClient,
   HubKnowledgeConvergenceOwnerClient,
   HubKnowledgeConvergenceOwnerUnavailableError,
@@ -75,6 +76,7 @@ async function hub() {
     server.listen(0, "127.0.0.1", resolveListen);
   });
   cleanups.push(async () => {
+    server.closeAllConnections();
     await new Promise<void>((resolveClose) => server.close(() => resolveClose()));
     await store.close();
   });
@@ -148,3 +150,52 @@ it("still refuses principals without sync.write or outside the project scope", a
     expect(failure).toMatchObject({ failureCode: "hub_forbidden", httpStatus: 403 });
   }
 });
+
+it(
+  "wakes peers only for a host record whose facts changed, and lists each host's presence (ADR-0602)",
+  { timeout: 30_000 },
+  async () => {
+    const baseUrl = await hub();
+    const hosts = new HubKnowledgeConvergenceHostClient(target(baseUrl, syncToken));
+    const changes = new HubKnowledgeChangeClient(target(baseUrl, syncToken));
+    const stop = new AbortController();
+    cleanups.push(async () => stop.abort());
+    const hold = (cursor: string | null) => {
+      const wait = changes.wait({ cursor, hostHash: wsl, signal: stop.signal });
+      wait.catch(() => undefined);
+      return wait;
+    };
+    const held = (wait: Promise<unknown>, milliseconds: number) =>
+      Promise.race([
+        wait.then(() => false),
+        new Promise<boolean>((resolveHeld) => setTimeout(() => resolveHeld(true), milliseconds)),
+      ]);
+    const first = await hold(null);
+    let waiting = hold(first.cursor);
+    expect(await hosts.publish(hostRecord(mac, "mac", "2026-10-06T01:00:00.000Z"))).toBe("created");
+    const created = await waiting;
+    // The same facts observed again later wake nobody.
+    waiting = hold(created.cursor);
+    expect(await hosts.publish(hostRecord(mac, "mac", "2026-10-06T02:00:00.000Z"))).toBe("updated");
+    expect(await held(waiting, 500)).toBe(true);
+    const changed = {
+      ...hostRecord(mac, "mac", "2026-10-06T03:00:00.000Z"),
+      findings: ["peer_unreported"],
+    };
+    expect(await hosts.publish(changed)).toBe("updated");
+    const woken = await waiting;
+    expect(woken.cursor).not.toBe(created.cursor);
+    waiting = hold(woken.cursor);
+    expect(await hosts.publish(hostRecord(wsl, "wsl", "2026-10-06T03:00:00.000Z"))).toBe("created");
+    // wsl holds a wait, mac does not; presence is the Hub's, never the record's.
+    const listed = await hosts.list();
+    expect(listed.find((item) => item.hostHash === wsl)?.presence).toMatchObject({
+      connected: true,
+    });
+    // mac never waited (as an earlier release, which names no host): no presence, so peers
+    // judge it by its record's age instead of reading it as gone.
+    expect(listed.find((item) => item.hostHash === mac)?.presence).toBeUndefined();
+    // wsl's own record never wakes wsl.
+    expect(await held(waiting, 300)).toBe(true);
+  },
+);

@@ -9,10 +9,26 @@ import {
   foreignEventsHead,
   RESIDENT_AUTHORED_EVENT_TYPES,
 } from "../src/resident-authored-events.js";
-import {
-  RESIDENT_EVENT_POLL_MILLISECONDS,
-  watchResidentEventChanges,
-} from "../src/resident-event-wakeup.js";
+import { notifyEventStoreChange } from "@lervo/event-store-sqlite";
+import { watchResidentEventChanges } from "../src/resident-event-wakeup.js";
+
+/** A channel the test pings by hand, as each event-store commit would (ADR-0602). */
+function manualChannel() {
+  let ping: () => void = () => undefined;
+  return {
+    options: {
+      channel: (_path: string, next: () => void) => {
+        ping = next;
+        return { close: () => undefined };
+      },
+    },
+    /** A commit: ping, then let the one-shot debounce run. */
+    commit: async () => {
+      ping();
+      await vi.advanceTimersByTimeAsync(100);
+    },
+  };
+}
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -84,28 +100,31 @@ it("falls back to the unfiltered head for a store without the typed read", () =>
 });
 
 it("wakes the resident for a foreign event or new work, never for its own outcome records", async () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const root = await mkdtemp(join(tmpdir(), "lervo-resident-authored-"));
   roots.push(root);
   const events = log();
   const notify = vi.fn();
+  const channel = manualChannel();
   const stop = watchResidentEventChanges(
     { paths: { eventDatabase: join(root, "events.sqlite") }, events } as never,
     notify,
+    undefined,
+    channel.options,
   );
   try {
     events.append("document.freshness.cycle.completed");
     events.append("repository.knowledge.stage.recorded");
     events.append("knowledge.instruction_capture.cycle.completed");
-    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    await channel.commit();
     expect(notify).not.toHaveBeenCalled();
     events.append("knowledge.instruction_candidate.exchanged");
-    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    await channel.commit();
     expect(notify).toHaveBeenCalledTimes(1);
     // A stage another command recorded with its successor job still wakes the resident.
     events.append("repository.knowledge.stage.recorded");
     events.enqueue();
-    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    await channel.commit();
     expect(notify).toHaveBeenCalledTimes(2);
   } finally {
     stop();
@@ -153,25 +172,49 @@ it("leaves the owner-drained backlog out of a non-owner's wake key (ADR-0601)", 
 });
 
 it("keeps a non-owner watch asleep through its backlog and wakes it for a foreign event", async () => {
-  vi.useFakeTimers();
+  vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
   const root = await mkdtemp(join(tmpdir(), "lervo-resident-non-owner-"));
   roots.push(root);
   const events = log();
   const notify = vi.fn();
+  const channel = manualChannel();
   const stop = watchResidentEventChanges(
     { paths: { eventDatabase: join(root, "events.sqlite") }, events } as never,
     notify,
     () => false,
+    channel.options,
   );
   try {
     events.enqueue();
     events.enqueue();
-    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    await channel.commit();
     expect(notify).not.toHaveBeenCalled();
     events.append("knowledge.instruction_candidate.exchanged");
-    await vi.advanceTimersByTimeAsync(RESIDENT_EVENT_POLL_MILLISECONDS);
+    await channel.commit();
     expect(notify).toHaveBeenCalledTimes(1);
   } finally {
     stop();
   }
 });
+
+it.skipIf(process.platform === "win32")(
+  "wakes through the real FIFO channel when a writer pings after a commit (ADR-0602)",
+  async () => {
+    const root = await mkdtemp(join(tmpdir(), "lervo-resident-fifo-"));
+    roots.push(root);
+    const path = join(root, ".lervo", "data", "events.sqlite");
+    const events = log();
+    const notify = vi.fn();
+    const stop = watchResidentEventChanges(
+      { paths: { eventDatabase: path }, events } as never,
+      notify,
+    );
+    try {
+      events.append("knowledge.instruction_candidate.exchanged");
+      notifyEventStoreChange(path);
+      await vi.waitFor(() => expect(notify).toHaveBeenCalledTimes(1));
+    } finally {
+      stop();
+    }
+  },
+);

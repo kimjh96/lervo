@@ -24,15 +24,18 @@ it(
       resolve(f.root, "src/runtime.ts"),
       "export const maximumBackgroundCalls = 2; // observed runtime limit\n",
     );
-    const repository = resolve(".");
+    const sources = resolve(
+      import.meta.dirname,
+      "../../event-store-sqlite/test/support/register-workspace-source.mjs",
+    );
     const child = resolve(f.directory, "crash-worker.mjs");
     await writeFile(
       child,
       `
-import { SQLiteEventStore } from ${JSON.stringify(resolve(repository, "packages/event-store-sqlite/dist/index.js"))};
-import { FileSystemCas } from ${JSON.stringify(resolve(repository, "packages/cas/dist/index.js"))};
-import { loadProjectManifest, resolveProjectPaths } from ${JSON.stringify(resolve(repository, "packages/project/dist/index.js"))};
-import { runAutonomousKnowledgeWorker } from ${JSON.stringify(resolve(repository, "packages/repository-knowledge-runtime/dist/index.js"))};
+import { SQLiteEventStore } from "@lervo/event-store-sqlite";
+import { FileSystemCas } from "@lervo/cas";
+import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
+import { runAutonomousKnowledgeWorker } from "@lervo/repository-knowledge-runtime";
 const root = ${JSON.stringify(f.root)};
 const manifest = await loadProjectManifest(root);
 const paths = resolveProjectPaths(root);
@@ -48,7 +51,8 @@ throw new Error("The intended crash boundary was not reached.");
 `,
     );
     await expect(
-      promisify(execFile)(process.execPath, [child], { timeout: 110_000 }),
+      // The child loads workspace sources the way the vitest aliases do, so no build is needed.
+      promisify(execFile)(process.execPath, ["--import", sources, child], { timeout: 110_000 }),
     ).rejects.toMatchObject({ signal: "SIGKILL" });
     expect(await readFile(resolve(f.root, "docs/specs/runtime.md"), "utf8")).toContain(
       "limited to two",

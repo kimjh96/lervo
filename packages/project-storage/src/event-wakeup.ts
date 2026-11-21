@@ -1,75 +1,87 @@
-import { watch, type FSWatcher } from "node:fs";
 import { basename, dirname } from "node:path";
+import {
+  listenEventStoreChanges,
+  type EventStoreChannelIssue,
+  type EventStoreChannelListener,
+} from "@lervo/event-store-sqlite";
 import type { EventEnvelope } from "@lervo/schemas";
 import { latestEventHash } from "@lervo/storage-contract";
 
-/**
- * Some local filesystems omit directory notifications for WAL commits, so the head is also
- * polled. ADR-0597: the poll reads only the head hash, and a caller that tolerates a slower
- * backup (the knowledge resident) may poll less often while the watch works; after a watch
- * failure the poll always returns to this interval.
- */
-export const EVENT_WAKEUP_POLL_MILLISECONDS = 1_000;
+import {
+  watchChangeToken,
+  type ChangeTokenChannel,
+  type ChangeTokenWatchHealth,
+} from "./change-token-watch.js";
 
-/** Directory notifications include WAL commits from other CLI processes. */
+/** Test seam: the channel a watch listens on, defaulting to the event store's FIFO channel. */
+export interface ProjectEventWatchOptions {
+  channel?: (
+    path: string,
+    ping: () => void,
+    unavailable: () => void,
+  ) => (ChangeTokenChannel & Partial<Pick<EventStoreChannelListener, "report" | "observe">>) | null;
+  /** Test seam: false leaves out the directory watch that detects writers without a ping. */
+  directoryWatch?: boolean;
+}
+
+function issues(health: ChangeTokenWatchHealth, path: string): EventStoreChannelIssue[] {
+  const found: EventStoreChannelIssue[] = [];
+  if (health.writerWithoutPing)
+    found.push({
+      code: "event_channel_writer_without_ping",
+      detail: `A process committed to ${path} without pinging this subscriber: an older Lervo binary, or a process of another user that cannot open its FIFO. Run lervo upgrade, stop older Lervo processes, and run Lervo as the database owner.`,
+    });
+  if (health.channelUnavailable)
+    found.push({
+      code: "event_channel_unavailable",
+      detail: `This subscriber has no working FIFO for ${path}; it is woken only by the directory watch until the channel is rebuilt.`,
+    });
+  if (health.detectorUnavailable)
+    found.push({
+      code: "event_channel_detector_unavailable",
+      detail: `The directory watch on ${dirname(path)} could not be armed, so writers that do not ping go unnoticed; raise the file watch limit.`,
+    });
+  return found;
+}
+
+/**
+ * ADR-0602: wakes on a change to the event head, never on a timer. Every event-store commit pings
+ * the database's FIFO channel synchronously, so the channel wakes the watch for every Lervo writer.
+ * The kernel directory watch only detects writers that do not ping (an older binary during an
+ * upgrade): such a commit still wakes the watch and is reported as visible state.
+ */
 export function watchProjectEventChanges(
-  store: { path: string; latest(): EventEnvelope | null; latestHash?(): string | null },
+  store: {
+    path: string;
+    latest(): EventEnvelope | null;
+    latestHash?(): string | null;
+    latestSeq?(): number | null;
+  },
   notify: () => void,
-  options: { watchedPollMilliseconds?: number } = {},
+  options: ProjectEventWatchOptions = {},
 ): () => void {
-  let watcher: FSWatcher | undefined;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  let fallback: ReturnType<typeof setInterval> | undefined;
-  let closed = false;
-  let head = latestEventHash(store);
-  const check = () => {
-    try {
-      const next = latestEventHash(store);
-      if (head !== next) {
-        head = next;
-        notify();
-      }
-    } catch {
-      notify();
-    }
-  };
-  const poll = (milliseconds: number) => {
-    if (fallback !== undefined) clearInterval(fallback);
-    fallback = setInterval(check, milliseconds);
-    fallback.unref();
-  };
-  const unwatched = () => {
-    watcher?.close();
-    watcher = undefined;
-    if (!closed) poll(EVENT_WAKEUP_POLL_MILLISECONDS);
-  };
   const filename = basename(store.path);
-  try {
-    watcher = watch(dirname(store.path), { persistent: false }, (_event, changed) => {
-      if (
-        changed !== null &&
-        ![filename, `${filename}-wal`, `${filename}-shm`].includes(changed.toString())
-      )
-        return;
-      if (timer !== undefined) return;
-      timer = setTimeout(() => {
-        timer = undefined;
-        check();
-      }, 50);
-    });
-    watcher.on("error", () => {
-      unwatched();
-      notify();
-    });
-    poll(options.watchedPollMilliseconds ?? EVENT_WAKEUP_POLL_MILLISECONDS);
-  } catch {
-    // Unsupported watchers keep the one-second head poll.
-    unwatched();
-  }
-  return () => {
-    closed = true;
-    if (fallback !== undefined) clearInterval(fallback);
-    if (timer !== undefined) clearTimeout(timer);
-    watcher?.close();
-  };
+  let listener: ReturnType<NonNullable<ProjectEventWatchOptions["channel"]>> = null;
+  return watchChangeToken(() => latestEventHash(store), notify, {
+    channel: (ping, unavailable) => {
+      listener = (options.channel ?? listenEventStoreChanges)(store.path, ping, unavailable);
+      return listener;
+    },
+    ...(options.directoryWatch === false
+      ? {}
+      : {
+          directory: dirname(store.path),
+          // The shared-memory file changes on reads too, so only the database and its WAL count.
+          entries: [filename, `${filename}-wal`],
+        }),
+    onHealth: (health) => listener?.report?.(issues(health, store.path)),
+    // ADR-0602: the head this subscriber has seen, so inspection can tell it stopped waking.
+    onChecked: () => {
+      try {
+        listener?.observe?.(store.latestSeq?.() ?? store.latest()?.seq ?? null);
+      } catch {
+        // An unreadable head leaves the last observation; the next wake records it.
+      }
+    },
+  });
 }

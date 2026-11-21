@@ -91,7 +91,6 @@ it("retains complete owned execution beyond a 32 MiB unrelated corpus and matche
     f.events,
     f.databasePath,
     projectId,
-    Date.now,
     "execution",
   );
   await expect(complete.read()).rejects.toThrow("projection exceeds its byte bound");
@@ -146,18 +145,14 @@ it("backfills a causal binding appended between metadata and execution observati
   expect(calls).toBeGreaterThan(2);
 });
 
-it.each([60_000, -1])(
-  "rejects corruption in unselected history on audit or clock rollback (%s)",
-  async (advance) => {
-    const f = await scopedHistoryFixture(roots);
-    f.append("context.selected", unrelatedRun, { documentId: "fixture" });
-    await f.reader.read();
-    f.rows[0]!.payload.documentId = "changed";
-    f.advance(advance);
-    // The audit rereads history from the first event, where the store rejects the changed row.
-    await expect(f.reader.read()).rejects.toThrow("hash does not match");
-  },
-);
+it("rejects corruption in unselected history when a reader next opens (ADR-0602)", async () => {
+  const f = await scopedHistoryFixture(roots);
+  f.append("context.selected", unrelatedRun, { documentId: "fixture" });
+  await f.reader.read();
+  f.rows[0]!.payload.documentId = "changed";
+  // A newly opened reader reads history from the first event, where the store rejects the row.
+  await expect(f.open().read()).rejects.toThrow("hash does not match");
+});
 
 it("retains explicitly linked historical runs and detects database replacement", async () => {
   const f = await scopedHistoryFixture(roots);
@@ -194,10 +189,9 @@ it("streams a chain beyond 100,000 events, retaining only its scope and verifyin
   expect(f.rows.at(-1)!.seq).toBe(100_052);
   expect(selected).toEqual(f.rows.filter((row) => row.runId === ownRun));
 
-  // The periodic audit re-streams the whole chain and still rejects a rewritten link.
+  // A newly opened reader re-streams the whole chain and rejects a rewritten link.
   const index = 60_000;
   const body = { ...eventWithoutHash(f.rows[index]!), previousHash: `sha256:${"9".repeat(64)}` };
   f.rows[index] = { ...body, eventHash: computeEventHash(body) };
-  f.advance(900_000);
-  await expect(f.reader.read()).rejects.toThrow("event chain is invalid");
+  await expect(f.open().read()).rejects.toThrow("event chain is invalid");
 }, 60_000);

@@ -180,7 +180,11 @@ export class DiscordConversationDeliberationRuntime {
     );
   }
 
-  attach(application: ConversationApplication, intervalMs: number): void {
+  attach(
+    application: ConversationApplication,
+    intervalMs: number,
+    onChangeSignal?: (failure: unknown) => void,
+  ): void {
     if (this.deliberations !== null || application.deliberations === null) {
       throw new Error("The conversation deliberation application cannot be attached.");
     }
@@ -207,6 +211,7 @@ export class DiscordConversationDeliberationRuntime {
         });
       },
       onFailure: this.onFailure,
+      ...(onChangeSignal === undefined ? {} : { onChangeSignal }),
       continueOnFailure: true,
       intervalMs,
     });

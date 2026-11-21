@@ -645,8 +645,9 @@ describe("SQLite append-only event store", () => {
       raw.close();
     }
     try {
-      expect(store.get("evt_12345678")?.seq).toBe(2);
+      // ADR-0602: a single read proves the row's links too, so the forged row is never served.
       for (const use of [
+        () => store.get("evt_12345678"),
         () => store.list(),
         () => store.append(draft({ eventId: "evt_23456789", runId: "run_23456789" })),
         () => store.verifyIntegrity(),

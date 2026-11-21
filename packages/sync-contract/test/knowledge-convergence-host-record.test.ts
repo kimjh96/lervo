@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   isKnowledgeConvergenceHostRecord,
+  knowledgeConvergenceHostRecordFacts,
   knowledgeConvergenceScopeHash,
   mergeKnowledgeConvergenceHostRecord,
   type KnowledgeConvergenceHostRecord,
@@ -70,6 +71,20 @@ describe("knowledge convergence host record", () => {
         }),
       ),
     ).toBe(false);
+  });
+
+  it("compares facts without observation times or the presence a Hub listing adds (ADR-0602)", () => {
+    const published = hostRecord();
+    const listed = {
+      ...hostRecord({ observedAt: "2026-10-06T00:05:00.000Z" }),
+      presence: { connected: true, since: "2026-10-06T00:00:00.000Z" },
+    };
+    expect(knowledgeConvergenceHostRecordFacts(listed)).toBe(
+      knowledgeConvergenceHostRecordFacts(published),
+    );
+    expect(
+      knowledgeConvergenceHostRecordFacts(hostRecord({ findings: ["resident_cycle_failed"] })),
+    ).not.toBe(knowledgeConvergenceHostRecordFacts(published));
   });
 
   it("keeps the newer observation of one host", () => {

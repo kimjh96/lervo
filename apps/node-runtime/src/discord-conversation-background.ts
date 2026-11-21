@@ -8,6 +8,7 @@ import {
 } from "./conversation-interaction-retry-loop.js";
 import { startDiscordConversationRepositorySignals } from "./discord-conversation-repository-signals.js";
 import { ConversationDiscussionDeadlineLoop } from "./conversation-discussion-deadline-loop.js";
+import { changeSignalAttention } from "./change-signal-attention.js";
 import type { ConversationDiscussionRuntime } from "./conversation-discussion-runtime.js";
 
 /** Owns activation and failed-start cleanup for conversation background work. */
@@ -36,6 +37,7 @@ export function startDiscordConversationBackground(input: {
     },
     // A durable retry failure must not disable fresh ingress or other bindings.
     onFailure: (error) => reportConversationInteractionRetryFailure(error, options.onError),
+    onChangeSignal: changeSignalAttention(options.repositoryRoot),
   });
   try {
     interactionRetryLoop.start();
@@ -43,6 +45,7 @@ export function startDiscordConversationBackground(input: {
       integrationId: config.integrationId,
       application,
       discussion: input.discussion,
+      onChangeSignal: changeSignalAttention(options.repositoryRoot),
       onFailure: (error) =>
         options.onError?.(
           error instanceof Error
@@ -51,7 +54,11 @@ export function startDiscordConversationBackground(input: {
         ),
     });
     discussionDeadlineLoop.start();
-    input.deliberation?.attach(application, config.deliberation!.pollIntervalMs ?? 2_000);
+    input.deliberation?.attach(
+      application,
+      config.deliberation!.pollIntervalMs ?? 2_000,
+      changeSignalAttention(options.repositoryRoot),
+    );
     const repositorySignalLoop =
       options.repositoryEvents === undefined
         ? null
@@ -62,6 +69,7 @@ export function startDiscordConversationBackground(input: {
             events: options.repositoryEvents,
             artifacts: input.artifacts,
             application,
+            onChangeSignal: changeSignalAttention(options.repositoryRoot),
             onFailure: () => input.fail("repository_signal_failed"),
           });
     return { interactionRetryLoop, repositorySignalLoop, discussionDeadlineLoop };

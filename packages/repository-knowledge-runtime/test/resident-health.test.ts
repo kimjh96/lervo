@@ -1,10 +1,11 @@
+import { spawn } from "node:child_process";
+import { DatabaseSync } from "node:sqlite";
 import { chmod, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { expect, it } from "vitest";
+import { holdProcessPresence } from "@lervo/project-storage";
 import {
-  RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS,
-  RESIDENT_HEALTH_STALE_MILLISECONDS,
   recordKnowledgeResidentHealth,
   inspectKnowledgeResidentHealth,
 } from "../src/resident-health.js";
@@ -61,8 +62,80 @@ it("reuses one write handle and reopens it only when the database file changes (
   }
 });
 
-it("leaves at least a 75-second blocked-loop margin under the stale bound", () => {
-  expect(
-    RESIDENT_HEALTH_STALE_MILLISECONDS - RESIDENT_HEALTH_HEARTBEAT_MILLISECONDS,
-  ).toBeGreaterThanOrEqual(75_000);
+it("proves a resident by its presence however old its record, and none once it is gone (ADR-0602)", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-health-"));
+  const presence = holdProcessPresence();
+  try {
+    await presence.ready;
+    const input = { repositoryRoot: root, workerId: "resident-presence", presence: presence.token };
+    await recordKnowledgeResidentHealth({ ...input, state: "idle" });
+    // A day without a write is still a running resident: nothing heartbeats.
+    expect(
+      await inspectKnowledgeResidentHealth(root, new Date(Date.now() + 86_400_000)),
+    ).toMatchObject({ status: "healthy", state: "idle" });
+    presence.release();
+    await new Promise((settle) => setTimeout(settle, 50));
+    expect(await inspectKnowledgeResidentHealth(root)).toMatchObject({ status: "not_running" });
+  } finally {
+    presence.release();
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  }
+});
+
+it("judges a presence this host cannot probe by its writer's pid, not as gone (ADR-0602)", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-health-"));
+  const presence = holdProcessPresence();
+  try {
+    await presence.ready;
+    // Another namespace's token: its socket cannot be reached from here.
+    const foreign = presence.token.replace(/[0-9a-f]{12}$/u, "000000000000");
+    await recordKnowledgeResidentHealth({
+      repositoryRoot: root,
+      workerId: "resident-elsewhere",
+      presence: foreign,
+      state: "idle",
+    });
+    // Its pid lives here (it is this process), so it is kept however old its record.
+    expect(
+      await inspectKnowledgeResidentHealth(root, new Date(Date.now() + 86_400_000)),
+    ).toMatchObject({ status: "healthy", state: "idle" });
+    // Its pid is gone here too (the row is moved to an exited process): only then is it not
+    // running.
+    const exited = spawn(process.execPath, ["-e", ""]);
+    await new Promise((settle) => exited.once("exit", settle));
+    const db = new DatabaseSync(resolve(root, ".lervo/state/knowledge/resident-health.sqlite"));
+    try {
+      db.prepare("UPDATE residents SET pid=?").run(exited.pid!);
+    } finally {
+      db.close();
+    }
+    expect(await inspectKnowledgeResidentHealth(root)).toMatchObject({ status: "not_running" });
+  } finally {
+    presence.release();
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  }
+});
+
+it("reports a live resident of an earlier release, which removes rows by heartbeat age", async () => {
+  const root = await mkdtemp(resolve(tmpdir(), "lervo-resident-health-"));
+  const presence = holdProcessPresence();
+  try {
+    await presence.ready;
+    const ours = { repositoryRoot: root, workerId: "resident-new", presence: presence.token };
+    await expect(recordKnowledgeResidentHealth({ ...ours, state: "idle" })).resolves.toEqual({
+      earlierWriters: false,
+    });
+    // An earlier release writes no presence and refreshes its heartbeat instead.
+    await recordKnowledgeResidentHealth({
+      repositoryRoot: root,
+      workerId: "resident-old",
+      state: "idle",
+    });
+    await expect(recordKnowledgeResidentHealth({ ...ours, state: "waiting" })).resolves.toEqual({
+      earlierWriters: true,
+    });
+  } finally {
+    presence.release();
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 50 });
+  }
 });

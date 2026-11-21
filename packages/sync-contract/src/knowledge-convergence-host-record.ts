@@ -54,6 +54,63 @@ export interface KnowledgeConvergenceHostRecord {
   providerAdmission?: ProviderCliAdmissionProjection;
 }
 
+/**
+ * ADR-0602: whether the host holds a `knowledge` change wait on the Hub right now, by the Hub's
+ * clock. It replaces record age as peer liveness, so no host republishes on a timer.
+ */
+export interface KnowledgeConvergenceHostPresence {
+  connected: boolean;
+  /** When the current state began; the Hub's start when it has not seen the host since then. */
+  since: string;
+}
+
+/** A host record as a client reads it; `presence` is absent from Hubs older than ADR-0602. */
+export type KnowledgeConvergenceHostListing = KnowledgeConvergenceHostRecord & {
+  presence?: KnowledgeConvergenceHostPresence;
+};
+
+/**
+ * ADR-0602: a record's facts without any observation time, at any depth (the record's own and its
+ * provider admission's), and without the presence a Hub listing adds. Two publications with equal
+ * facts say the same thing, so the Hub wakes no peer for the second and a host never republishes
+ * it.
+ */
+export function knowledgeConvergenceHostRecordFacts(
+  record: KnowledgeConvergenceHostRecord,
+): string {
+  const strip = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(strip)
+      : value !== null && typeof value === "object"
+        ? Object.fromEntries(
+            Object.entries(value as Record<string, unknown>)
+              .filter(([key]) => key !== "observedAt")
+              .map(([key, item]) => [key, strip(item)]),
+          )
+        : value;
+  // A listing's Hub presence is the Hub's, never part of what the host published.
+  const { presence: _presence, ...published } = record as KnowledgeConvergenceHostListing;
+  return canonicalJson(strip(published));
+}
+
+/** The list response's separate `presence` entries, one per listed host. */
+export interface KnowledgeConvergenceHostPresenceEntry extends KnowledgeConvergenceHostPresence {
+  hostHash: string;
+}
+
+export function isKnowledgeConvergenceHostPresenceEntry(
+  value: unknown,
+): value is KnowledgeConvergenceHostPresenceEntry {
+  return (
+    record(value) &&
+    exactKeys(value, ["hostHash", "connected", "since"]) &&
+    typeof value.hostHash === "string" &&
+    HASH.test(value.hostHash) &&
+    typeof value.connected === "boolean" &&
+    timestamp(value.since)
+  );
+}
+
 export type KnowledgeConvergenceHostPublishStatus = "created" | "updated" | "stale";
 
 function record(value: unknown): value is Record<string, unknown> {

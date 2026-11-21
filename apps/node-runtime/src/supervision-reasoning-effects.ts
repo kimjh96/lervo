@@ -154,7 +154,6 @@ export class SupervisionOwnerReasoningEffects {
         storage.events,
         storage.paths.eventDatabase,
         storage.manifest.projectId,
-        () => Date.parse(this.now()),
       );
       const authority = await observeNodeSupervisionAuthority(
         storage,

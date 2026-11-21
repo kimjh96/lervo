@@ -2,7 +2,7 @@ import { rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import type { ProcessCostMeasurement } from "@lervo/repository-knowledge";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 
 import { acquireFullCycleAdmission } from "../src/full-cycle-admission.js";
 import { appendFreshnessEvent } from "../src/freshness-events.js";
@@ -50,13 +50,17 @@ it(
       onCycle: (result) => cycles.push(result),
       onFailure: () => undefined,
       intervalMilliseconds: 100,
+      // Continuity names its own next due time; ADR-0602 offers it a turn exactly then.
       continuity: {
-        reconcile: async () => {
+        inputPaths: () => [],
+        turn: async () => {
           reconciliations += 1;
-          return null;
+          return {
+            status: "reconciled",
+            state: { nextReconcileAt: new Date(Date.now() + 50).toISOString() },
+          };
         },
       } as never,
-      continuityTickMilliseconds: 50,
     });
     try {
       await until(() => reconciliations >= 4);
@@ -69,7 +73,7 @@ it(
 );
 
 it(
-  "keeps backing off while only its own outcome records are appended (ADR-0598)",
+  "stays asleep while only its own outcome records are appended and wakes for an edit (ADR-0598, ADR-0602)",
   { timeout: 120_000 },
   async () => {
     const f = await fixture();
@@ -77,7 +81,7 @@ it(
     await clearOfFenceTimeWindowBoundary();
     const cycles: unknown[] = [];
     const failures: unknown[] = [];
-    // No `subscribe`: the resident's own event watch is the wakeup under test.
+    // No `subscribe`: the resident's own event and repository watches are the wakeups under test.
     const stop = startAutonomousKnowledgeWorker({
       storage: f.storage,
       workerId: "resident",
@@ -87,14 +91,34 @@ it(
       onCycle: (result) => cycles.push(result),
       onFailure: (error) => failures.push(error),
       intervalMilliseconds: 100,
-      reconcileCeilingMilliseconds: 2_000,
+      wakeDebounceMilliseconds: 200,
     });
-    const streak = async () => (await readResidentCycleState(f.root))?.idleStreak ?? 0;
+    const state = async () => JSON.stringify(await readResidentCycleState(f.root));
     try {
+      // The first cycle records the waiting obligation; the second confirms its own events settled.
       await until(() => cycles.length >= 2);
-      await until(async () => (await streak()) >= 4);
+      // Settled: nothing wakes the resident, so its recorded state stops changing.
+      let settledState = await state();
+      await until(async () => {
+        await new Promise((resolveDelay) => setTimeout(resolveDelay, 1_000));
+        const next = await state();
+        const same = next === settledState;
+        settledState = next;
+        return same;
+      });
       const settled = cycles.length;
-      const before = await streak();
+      // Asleep, the resident arms no timer at all: nothing is polled or re-armed.
+      const wait = setTimeout;
+      const timeouts = vi.spyOn(globalThis, "setTimeout");
+      const intervals = vi.spyOn(globalThis, "setInterval");
+      try {
+        await new Promise((resolveDelay) => wait(resolveDelay, 3_000));
+        expect(timeouts).not.toHaveBeenCalled();
+        expect(intervals).not.toHaveBeenCalled();
+      } finally {
+        timeouts.mockRestore();
+        intervals.mockRestore();
+      }
       // The records an idle owner appended every two minutes on 2026-11-20.
       for (let index = 0; index < 3; index++) {
         const at = new Date().toISOString();
@@ -117,13 +141,13 @@ it(
             occurredAt: at,
           },
         });
-        await new Promise((resolveDelay) => setTimeout(resolveDelay, 200));
       }
-      // Several reconcile ceilings later the fence still matches and the streak kept growing.
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, 6_000));
+      // Each append pinged the resident synchronously, and its debounce is 200 ms: had any of
+      // them woken it, the observation would have rewritten its cycle state by now.
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, 3_000));
       expect(cycles).toHaveLength(settled);
-      expect(await streak()).toBeGreaterThan(before);
-      // A foreign change still runs the resident in full.
+      expect(await state()).toBe(settledState);
+      // A foreign change runs the resident in full, through its own repository watch.
       await writeFile(resolve(f.root, "README.md"), "# Repository\n\nEdited.\n");
       await until(() => cycles.length > settled);
       expect(failures).toEqual([]);
@@ -144,26 +168,42 @@ it(
     const cycles: unknown[] = [];
     const costs: ProcessCostMeasurement[] = [];
     const failures: unknown[] = [];
+    let wake: () => void = () => undefined;
     const stop = startAutonomousKnowledgeWorker({
       storage: f.storage,
       workerId: "resident",
       provider: "claude",
       executable: f.executable,
       admissionDirectory: f.admissionDirectory,
-      subscribe: () => () => undefined,
+      // Wakeups arrive only when the test signals one, as a change hint would.
+      subscribe: (next) => {
+        wake = next;
+        return () => undefined;
+      },
       onCycle: (result, cost) => {
         cycles.push(result);
         costs.push(cost);
       },
       onFailure: (error) => failures.push(error),
       intervalMilliseconds: 100,
-      reconcileCeilingMilliseconds: 5_000,
+      wakeDebounceMilliseconds: 50,
     });
     try {
-      // The first cycle records the waiting obligation; the second confirms its own events settled.
+      // The first cycle records the waiting obligation. Its events change the fence, and the
+      // event watch this stub replaces would wake the resident for them: the test delivers it.
+      await until(() => cycles.length >= 1);
+      wake();
+      // The second full cycle confirms its own events settled.
       await until(() => cycles.length >= 2);
       const settled = cycles.length;
-      await until(async () => ((await readResidentCycleState(f.root))?.idleStreak ?? 0) >= 4);
+      // Hints that change nothing observe the fence and skip the full cycle every time.
+      const observedAt = async () => (await readResidentCycleState(f.root))?.lastObservedAt;
+      for (let hint = 0; hint < 4; hint += 1) {
+        const before = await observedAt();
+        wake();
+        await until(async () => (await observedAt()) !== before);
+        expect(await readResidentCycleState(f.root)).toMatchObject({ idleStreak: 1 });
+      }
       expect(cycles).toHaveLength(settled);
       expect(await readResidentCycleState(f.root)).toMatchObject({
         lastResult: "waiting",
@@ -174,6 +214,7 @@ it(
         reason: "knowledge_authority_unavailable",
       });
       await writeFile(resolve(f.root, "README.md"), "# Repository\n\nEdited.\n");
+      wake();
       await until(() => cycles.length > settled);
       expect(failures).toEqual([]);
       // Each completed cycle reports its own Git processes by scope, with no path or argument.

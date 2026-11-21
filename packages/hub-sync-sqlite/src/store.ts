@@ -1,5 +1,9 @@
 import { RuntimeChangeNotifications } from "./runtime-change-notifications.js";
-import { HubRuntimeChangeError, type HubRuntimeChangeSource } from "@lervo/hub-sync";
+import {
+  HubRuntimeChangeError,
+  type HubKnowledgeChangeKind,
+  type HubRuntimeChangeSource,
+} from "@lervo/hub-sync";
 
 import type { DatabaseSync } from "node:sqlite";
 import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
@@ -82,6 +86,7 @@ import {
 import {
   type KnowledgeInstructionCandidatePublishStatus,
   type KnowledgeConvergenceHostPublishStatus,
+  type KnowledgeConvergenceHostPresenceEntry,
   type KnowledgeConvergenceHostRecord,
   type KnowledgeConvergenceDefinition,
   type KnowledgeConvergenceDefinitionPublishStatus,
@@ -135,16 +140,51 @@ export class HubSyncSQLiteStore
     HubCommandArtifactLifecycleRepository,
     HubCommandArtifactCleanupScheduleStore
 {
-  private readonly runtimeChanges = new RuntimeChangeNotifications();
+  // ADR-0602: the owner lease follows its holder's presence on the `knowledge` topic.
+  private readonly runtimeChanges = new RuntimeChangeNotifications(
+    Date.now,
+    (scope, host, connected) => {
+      if (scope.topic !== "knowledge" || this.closed) return [];
+      try {
+        // The holder's arrival or departure changes what its peers read of the lease.
+        return this.transactionRunner.write(() =>
+          this.knowledgeConvergenceOwnerRepository.presence(
+            scope,
+            host,
+            connected,
+            new Date().toISOString(),
+          ),
+        )
+          ? ["lease"]
+          : [];
+      } catch {
+        // A failed write leaves the recorded expiry, which still ends the lease on time; peers
+        // look at the lease again all the same.
+        return ["lease"];
+      }
+    },
+  );
+
+  private holderPresent(coordinate: {
+    destinationId: string;
+    projectId: string;
+    repositoryIdentityHash: string;
+  }): (hostHash: string) => number | null {
+    return (hostHash) => {
+      const presence = this.runtimeChanges.hostPresence(coordinate, hostHash);
+      return presence?.connected === true ? Date.parse(presence.since) : null;
+    };
+  }
 
   async waitForRuntimeChange(input: Parameters<HubRuntimeChangeSource["waitForRuntimeChange"]>[0]) {
     this.assertOpen();
-    if (!this.registrationRepository.matchesIdentity(input))
-      throw new HubRuntimeChangeError("registration_required");
+    // Knowledge coordination needs no project registration, like its own routes.
+    const registered = () =>
+      input.topic === "knowledge" || this.registrationRepository.matchesIdentity(input);
+    if (!registered()) throw new HubRuntimeChangeError("registration_required");
     const result = await this.runtimeChanges.waitForRuntimeChange(input);
     this.assertOpen();
-    if (!this.registrationRepository.matchesIdentity(input))
-      throw new HubRuntimeChangeError("registration_required");
+    if (!registered()) throw new HubRuntimeChangeError("registration_required");
     return result;
   }
 
@@ -308,15 +348,47 @@ export class HubSyncSQLiteStore
     return this.transactionRunner.write(() => this.workspaceCoordinationRepository.release(input));
   }
 
+  /**
+   * ADR-0602: wakes the repository's other hosts waiting on the `knowledge` topic. The host that
+   * made the change is not woken, so its own writes never feed back into its own cycle.
+   */
+  private notifyKnowledge(
+    input: { destinationId: string; projectId: string; repositoryIdentityHash: string },
+    sourceHostHash: string,
+    kind: HubKnowledgeChangeKind,
+  ): void {
+    this.runtimeChanges.notify(
+      {
+        topic: "knowledge",
+        projectId: input.projectId,
+        repositoryIdentityHash: input.repositoryIdentityHash,
+        destinationId: input.destinationId,
+      },
+      sourceHostHash,
+      [kind],
+    );
+  }
+
   async mutateKnowledgeConvergenceOwner(input: {
     destinationId: string;
     mutation: KnowledgeConvergenceOwnerMutation;
     acceptedAt: string;
   }): Promise<KnowledgeConvergenceOwnerDecision> {
     this.assertOpen();
-    return this.transactionRunner.write(() =>
-      this.knowledgeConvergenceOwnerRepository.mutate(input),
+    const decision = this.transactionRunner.write(() =>
+      this.knowledgeConvergenceOwnerRepository.mutate(
+        input,
+        this.holderPresent({ destinationId: input.destinationId, ...input.mutation.request }),
+      ),
     );
+    // A new holder or a release changes who may own; a renewal changes nothing a peer acts on.
+    if (decision.status === "granted" || decision.status === "released")
+      this.notifyKnowledge(
+        { destinationId: input.destinationId, ...input.mutation.request },
+        input.mutation.request.hostHash,
+        "lease",
+      );
+    return decision;
   }
 
   async publishKnowledgeInstructionCandidate(input: {
@@ -328,9 +400,18 @@ export class HubSyncSQLiteStore
     record: KnowledgeInstructionCandidateRecord;
   }> {
     this.assertOpen();
-    return this.transactionRunner.write(() =>
+    const result = this.transactionRunner.write(() =>
       this.knowledgeInstructionCandidateRepository.publish(input),
     );
+    if (result.status !== "duplicate")
+      this.notifyKnowledge(
+        { destinationId: input.destinationId, ...input.record },
+        input.record.resolution === "open"
+          ? input.record.sourceHostHash
+          : (input.record.resolvedByHostHash ?? input.record.sourceHostHash),
+        "candidate",
+      );
+    return result;
   }
 
   async listKnowledgeInstructionCandidates(
@@ -351,9 +432,16 @@ export class HubSyncSQLiteStore
     record: KnowledgeConvergenceHostRecord;
   }> {
     this.assertOpen();
-    return this.transactionRunner.write(() =>
+    const result = this.transactionRunner.write(() =>
       this.knowledgeConvergenceHostRepository.publish(input),
     );
+    if (result.changed)
+      this.notifyKnowledge(
+        { destinationId: input.destinationId, ...input.record },
+        input.record.hostHash,
+        "host",
+      );
+    return { status: result.status, record: result.record };
   }
 
   async listKnowledgeConvergenceHosts(
@@ -363,15 +451,34 @@ export class HubSyncSQLiteStore
     return this.transactionRunner.read(() => this.knowledgeConvergenceHostRepository.list(input));
   }
 
+  /** ADR-0602: whether each host is waiting on the `knowledge` topic now, by the Hub's clock. */
+  async knowledgeConvergenceHostPresence(
+    input: HubKnowledgeConvergenceHostCoordinate & { hostHashes: readonly string[] },
+  ): Promise<KnowledgeConvergenceHostPresenceEntry[]> {
+    this.assertOpen();
+    // A host never seen waiting has no entry, so its peers judge it by its record's age.
+    return input.hostHashes.flatMap((hostHash) => {
+      const presence = this.runtimeChanges.hostPresence(input, hostHash);
+      return presence === null ? [] : [{ hostHash, ...presence }];
+    });
+  }
+
   async publishKnowledgeConvergenceDefinition(input: {
     destinationId: string;
     definition: KnowledgeConvergenceDefinition;
     acceptedAt: string;
   }): Promise<{ status: KnowledgeConvergenceDefinitionPublishStatus }> {
     this.assertOpen();
-    return this.transactionRunner.write(() =>
+    const result = this.transactionRunner.write(() =>
       this.knowledgeConvergenceDefinitionRepository.publish(input),
     );
+    if (result.status === "created")
+      this.notifyKnowledge(
+        { destinationId: input.destinationId, ...input.definition },
+        input.definition.sourceHostHash,
+        "definition",
+      );
+    return result;
   }
 
   async listKnowledgeConvergenceDefinitions(
@@ -396,7 +503,9 @@ export class HubSyncSQLiteStore
     input: HubKnowledgeConvergenceOwnerCoordinate & { acceptedAt: string },
   ): Promise<KnowledgeConvergenceOwnerReading> {
     this.assertOpen();
-    return this.transactionRunner.read(() => this.knowledgeConvergenceOwnerRepository.read(input));
+    return this.transactionRunner.read(() =>
+      this.knowledgeConvergenceOwnerRepository.read(input, this.holderPresent(input)),
+    );
   }
 
   async publishWorkspaceSummary(input: {

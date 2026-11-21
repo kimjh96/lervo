@@ -19,6 +19,11 @@ export interface LocalWorkstreamRevision {
 
 export interface WorkstreamReplicationLocalPort {
   readRevisionChain(): Promise<LocalWorkstreamRevision[]>;
+  /**
+   * ADR-0602: re-proves the exact revisions about to be published (their events, the anchor and
+   * the artifacts) and throws if any changed since they were read.
+   */
+  verifyForPublish(revisions: readonly LocalWorkstreamRevision[]): Promise<void>;
   importCurrent(input: LocalWorkstreamRevision): Promise<void>;
 }
 
@@ -128,6 +133,16 @@ export async function runWorkstreamReplicationCycle(input: {
   const initialRemote = await readHubWorkstream(input);
   let publishedCount = 0;
   const unpublished = unpublishedLocalRevisions(revisions, initialRemote);
+  if (unpublished.length > 0)
+    try {
+      await input.local.verifyForPublish(unpublished);
+    } catch (error) {
+      throw new WorkstreamReplicationCycleError(
+        "local_state_invalid",
+        "The local workstream history changed before publication.",
+        { cause: error },
+      );
+    }
   for (const revision of unpublished) {
     const request: WorkstreamReplicationPublishRequest = {
       schemaVersion: 1,

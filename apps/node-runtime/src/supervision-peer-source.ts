@@ -54,7 +54,6 @@ export class SupervisionPeerSource {
       storage.events,
       storage.paths.eventDatabase,
       storage.manifest.projectId,
-      () => Date.parse(now()),
     );
   }
 

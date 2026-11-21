@@ -1,6 +1,7 @@
 import { AuthenticatedHubHttpTransport } from "@lervo/sync";
 import type { ConversationOperationDrain } from "@lervo/conversation-app";
 import { RuntimeIdleWait } from "./runtime-idle-wait.js";
+import { runtimeHintAvailability } from "./runtime-hint-availability.js";
 import { resolve } from "node:path";
 
 import {
@@ -96,6 +97,8 @@ export async function openNodeRemoteControlRuntime(input: {
   operationDrain?: ConversationOperationDrain;
   ports: NodeRemoteCommandPorts;
   trust?: ReloadableNodeRuntimeTrust;
+  /** ADR-0602: where a failing hint wait is recorded as attention. */
+  repositoryRoot?: string;
 }): Promise<NodeRemoteControlRuntime> {
   const commands = input.config.remoteCommands;
   if (commands === undefined) {
@@ -214,6 +217,7 @@ export async function openNodeRemoteControlRuntime(input: {
       destinationId: input.config.hub.destinationId,
       expectedPeerIdentityHash: input.config.hub.hubIdentityHash,
       fallbackIntervalMs: commands.idlePollIntervalMs ?? 2_000,
+      ...optional("onAvailability", runtimeHintAvailability(input.repositoryRoot)),
     });
     const openedPolicyStore = policyStore;
     const openedReplayStore = replayStore;
@@ -312,4 +316,11 @@ export async function openNodeRemoteControlRuntime(input: {
       cause: error,
     });
   }
+}
+
+function optional<Key extends string, Value>(
+  key: Key,
+  value: Value | undefined,
+): { [K in Key]?: Value } {
+  return (value === undefined ? {} : { [key]: value }) as { [K in Key]?: Value };
 }

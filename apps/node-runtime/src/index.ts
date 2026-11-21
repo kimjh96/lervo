@@ -51,3 +51,9 @@ export {
 export { retireUnstartedSupervisionWorkspace } from "./supervision-workspace-retirement.js";
 
 export { createProcessObserver, type ProcessObservation } from "@lervo/node-work-admission";
+export {
+  readRepositoryWatchIssues,
+  REPOSITORY_WATCH_STATE_DIRECTORY,
+  repositoryWatchReporter,
+  type RepositoryWatchIssue,
+} from "@lervo/repository-knowledge-runtime";

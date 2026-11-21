@@ -20,6 +20,7 @@ import { readHealthWorkstream } from "./repository-health-workstream.js";
 import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapshot.js";
 import { readTerminalKnowledgeLifecycleCacheEntry } from "./terminal-knowledge-lifecycle-cache.js";
 import { readRepositoryHealth } from "./repository-health-reader.js";
+import { readWakeChannelAttention } from "./wake-channel-attention.js";
 
 export interface InspectOperatingAttentionInput {
   repositoryRoot: string;
@@ -48,6 +49,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       instructionCapture,
       convergence,
       heldEffects,
+      wakeChannel,
     ] = await Promise.all([
       input.cachedSourcesOnly
         ? readHealthWorkstream(storage)
@@ -87,6 +89,7 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
         () => null,
       ),
       readHeldEffectsWithRepositoryHold(input.repositoryRoot),
+      readWakeChannelAttention(input.repositoryRoot, storage.events),
     ]);
     const workstream = workstreamObservation.snapshot;
     const workstreamFreshness =
@@ -114,10 +117,18 @@ export const inspectOperatingAttention: InspectOperatingAttention = async (input
       workstreamCoverage: workstreamObservation.coverage,
       workstreamFreshness,
       canonicalization,
+      // ADR-0602: a service that cannot be woken by a change is attention, never silent.
       knowledgeLifecycle:
-        replica.status === "invalid" && lifecycle.coverage !== "unavailable"
-          ? { ...lifecycle, issues: [...lifecycle.issues, replica.issue] }
-          : lifecycle,
+        lifecycle.coverage === "unavailable"
+          ? lifecycle
+          : {
+              ...lifecycle,
+              issues: [
+                ...lifecycle.issues,
+                ...(replica.status === "invalid" ? [replica.issue] : []),
+                ...wakeChannel,
+              ],
+            },
       repositoryReplicaDivergence: replica.status === "observed" ? replica.divergence : null,
       documentFreshness,
       instructionCapture,

@@ -8,38 +8,57 @@ const systemSchedule: ConversationChangeSchedule = {
   cancel: (handle) => clearTimeout(handle as ReturnType<typeof setTimeout>),
 };
 
-/**
- * Growth of the wait after a cycle whose wake-up deadline had already passed. A deadline that lapsed
- * without the cycle changing anything would otherwise repeat `intervalMs` forever. The delay doubles
- * from `baseMs` to `ceilingMs` while `unchanged(result)` holds; a change notification, a changed
- * result, a future deadline, or no deadline restarts it at `baseMs`.
- */
-export interface ConversationIdleBackoff<TResult> {
-  baseMs: number;
-  ceilingMs: number;
-  unchanged(result: TResult): boolean;
-}
-
 export interface ConversationChangeLoopOptions<TResult = unknown> {
   runCycle(): Promise<TResult>;
   onFailure(error: unknown): void;
   intervalMs: number;
   continueOnFailure?: boolean;
-  failureRetryMs?(error: unknown): number;
+  /**
+   * The base retry delay after `error`, doubled per consecutive failure up to
+   * `failureRetryCeilingMs`; null when the failure is a settled state that only a change ends.
+   */
+  failureRetryMs?(error: unknown): number | null;
+  failureRetryCeilingMs?: number;
   schedule?: ConversationChangeSchedule;
   subscribe?(notify: () => void): () => void;
   nextWakeupAt?(): number | null;
-  idleBackoff?: ConversationIdleBackoff<TResult>;
+  /**
+   * ADR-0602: called with the reason when the loop has no change signal (no `subscribe`, or one
+   * that threw), and with null when it stops. Without it, the reason is written to stderr once.
+   */
+  onChangeSignal?(failure: unknown): void;
 }
 
-/** Serial change-driven work with deadline timers and bounded missed-hint recovery. */
+/**
+ * Serial change-driven work. ADR-0602: it runs on a change notification or at the next deadline,
+ * never on an interval. A deadline that has already passed when a cycle ends gets one more cycle;
+ * if it is still the same lapsed deadline after that, the loop waits for a change or a new
+ * deadline instead of polling it. `intervalMs` is the delay of that one cycle and the base retry
+ * after a failure without its own; consecutive failures back off exponentially to a ceiling, and
+ * every failure reaches `onFailure`, which reports it, until a cycle succeeds. A loop with no change
+ * signal never goes silent: it runs again at least every minute, and reports that it has none
+ * through `onChangeSignal`.
+ */
+export const CHANGE_LOOP_RETRY_CEILING_MILLISECONDS = 15 * 60_000;
+
+/**
+ * ADR-0602: how often a loop without a working change signal looks again. Its attention is already
+ * raised, so a faster look would only spend CPU.
+ */
+export const CHANGE_LOOP_UNWATCHED_MILLISECONDS = 60_000;
+
 export class ConversationChangeLoop<TResult = unknown> {
   private handle: unknown;
   private stopped = true;
   private inFlight: Promise<void> | null = null;
   private unsubscribe: (() => void) | undefined;
   private pending = false;
-  private idleStreak = 0;
+  /** The lapsed deadline that already got its one extra cycle. */
+  private lapsedHandled: number | null = null;
+  private failures = 0;
+  private deadlineFailures = 0;
+  /** Whether a change notification can wake the loop; without one it keeps its interval. */
+  private watched = false;
 
   constructor(private readonly options: ConversationChangeLoopOptions<TResult>) {
     if (
@@ -49,37 +68,46 @@ export class ConversationChangeLoop<TResult = unknown> {
     ) {
       throw new Error("The conversation interval is invalid.");
     }
-    const backoff = options.idleBackoff;
-    if (
-      backoff !== undefined &&
-      (!Number.isSafeInteger(backoff.baseMs) ||
-        !Number.isSafeInteger(backoff.ceilingMs) ||
-        backoff.baseMs < 100 ||
-        backoff.ceilingMs < backoff.baseMs ||
-        backoff.ceilingMs > 3_600_000)
-    ) {
-      throw new Error("The conversation idle backoff is invalid.");
-    }
   }
 
   start(): void {
     if (!this.stopped) return;
     this.stopped = false;
+    let failure: unknown = null;
     try {
       this.unsubscribe = this.options.subscribe?.(() => this.notify());
-    } catch {
+    } catch (error) {
       this.unsubscribe = undefined;
+      failure = error;
     }
+    this.watched = this.unsubscribe !== undefined;
+    if (!this.watched) this.reportUnwatched(failure);
     this.cancel();
     this.schedule(0);
   }
 
   stop(): Promise<void> {
+    const reported = !this.stopped && !this.watched;
     this.stopped = true;
     this.unsubscribe?.();
     this.unsubscribe = undefined;
+    if (reported) this.options.onChangeSignal?.(null);
     this.cancel();
     return this.inFlight ?? Promise.resolve();
+  }
+
+  private reportUnwatched(cause: unknown): void {
+    const failure = Object.assign(
+      new Error(
+        cause === null
+          ? "This loop has no change signal, so it runs on its interval."
+          : `This loop's change signal could not be armed (${cause instanceof Error ? cause.message : String(cause)}), so it runs on its interval.`,
+        { cause },
+      ),
+      { code: "conversation_change_signal_unavailable" },
+    );
+    if (this.options.onChangeSignal !== undefined) this.options.onChangeSignal(failure);
+    else process.stderr.write(`Lervo change loop: ${failure.message}\n`);
   }
 
   private cancel(): void {
@@ -90,7 +118,6 @@ export class ConversationChangeLoop<TResult = unknown> {
   private notify(): void {
     if (this.stopped) return;
     this.pending = true;
-    this.idleStreak = 0;
     if (this.inFlight === null) {
       this.cancel();
       this.schedule(0);
@@ -138,39 +165,72 @@ export class ConversationChangeLoop<TResult = unknown> {
       this.schedule(0);
       return;
     }
-    let delay =
-      failed && this.options.failureRetryMs !== undefined
+    if (failed) {
+      this.failures = Math.min(this.failures + 1, 64);
+      const chosen = this.options.failureRetryMs
         ? this.options.failureRetryMs(failure)
         : this.options.intervalMs;
-    if (!Number.isSafeInteger(delay) || delay < 100 || delay > 300_000) {
-      delay = this.options.intervalMs;
+      // A settled failure, such as an inactive workstream, waits for the change that ends it.
+      if (chosen === null) return;
+      const base =
+        Number.isSafeInteger(chosen) && chosen >= 100 && chosen <= 300_000
+          ? chosen
+          : this.options.intervalMs;
+      const ceiling = Math.max(
+        base,
+        this.options.failureRetryCeilingMs ?? CHANGE_LOOP_RETRY_CEILING_MILLISECONDS,
+      );
+      this.schedule(Math.min(ceiling, base * 2 ** Math.min(this.failures - 1, 30)));
+      return;
     }
-    if (this.unsubscribe !== undefined && !failed) {
-      try {
-        const deadline = this.options.nextWakeupAt?.() ?? null;
-        if (deadline === null) {
-          this.idleStreak = 0;
-          return;
-        }
-        if (deadline <= Date.now()) delay = this.lapsedDeadlineDelay(result as TResult);
-        else {
-          this.idleStreak = 0;
-          delay = deadline - Date.now();
-        }
-      } catch {
-        delay = this.options.intervalMs;
+    this.failures = 0;
+    let deadline: number | null;
+    try {
+      deadline = this.options.nextWakeupAt?.() ?? null;
+      this.deadlineFailures = 0;
+    } catch (error) {
+      // An unreadable deadline is a failure of its own: reported, and retried with its own
+      // backoff, since the cycle before it succeeded and reset the cycle's.
+      this.options.onFailure(error);
+      this.deadlineFailures = Math.min(this.deadlineFailures + 1, 64);
+      this.schedule(
+        Math.min(
+          Math.max(
+            this.options.intervalMs,
+            this.options.failureRetryCeilingMs ?? CHANGE_LOOP_RETRY_CEILING_MILLISECONDS,
+          ),
+          this.options.intervalMs * 2 ** Math.min(this.deadlineFailures - 1, 30),
+        ),
+      );
+      return;
+    }
+    // Without a change signal, nothing else would wake the loop: it looks again within a minute.
+    if (!this.watched) {
+      const unwatched = Math.max(this.options.intervalMs, CHANGE_LOOP_UNWATCHED_MILLISECONDS);
+      const due =
+        deadline === null || !Number.isFinite(deadline) ? Infinity : deadline - Date.now();
+      if (due > 0) {
+        this.lapsedHandled = null;
+        this.schedule(Math.min(due, unwatched));
+        return;
       }
+      // A lapsed deadline gets one more cycle after the interval, as it does with a signal; the
+      // same lapsed deadline again waits the minute, so it never spins.
+      const again = this.lapsedHandled === deadline;
+      this.lapsedHandled = deadline;
+      this.schedule(again ? unwatched : this.options.intervalMs);
+      return;
     }
-    this.schedule(delay);
-  }
-
-  private lapsedDeadlineDelay(result: TResult): number {
-    const backoff = this.options.idleBackoff;
-    if (backoff === undefined || !backoff.unchanged(result)) {
-      this.idleStreak = 0;
-      return this.options.intervalMs;
+    if (deadline === null || !Number.isFinite(deadline)) return;
+    if (deadline > Date.now()) {
+      this.lapsedHandled = null;
+      this.schedule(Math.min(deadline - Date.now(), 2_147_483_647));
+      return;
     }
-    this.idleStreak += 1;
-    return Math.min(backoff.ceilingMs, backoff.baseMs * 2 ** Math.min(this.idleStreak - 1, 30));
+    // A lapsed deadline gets one more cycle; the same lapsed deadline again waits for a change.
+    if (this.lapsedHandled === deadline) return;
+    this.lapsedHandled = deadline;
+    void result;
+    this.schedule(this.options.intervalMs);
   }
 }

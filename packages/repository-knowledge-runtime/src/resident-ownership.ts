@@ -37,6 +37,23 @@ export function ownershipFingerprint(
 }
 
 /**
+ * ADR-0602: folds the Hub's `knowledge` change token into the change fence. Hub coordination state
+ * (owner-rule candidates, host records, definitions, the lease holder) has no local signal, so a
+ * new token is what makes the next cycle run in full instead of skipping. Without a Hub, or while
+ * the wait is down, the fingerprint is unchanged; a reconnection yields a new token.
+ */
+export function hubTokenFingerprint(
+  observed: ConvergenceSourceFingerprint,
+  token: string | null,
+): ConvergenceSourceFingerprint {
+  if (token === null) return observed;
+  return {
+    ...observed,
+    fingerprint: sha256(canonicalJson({ source: observed.fingerprint, hub: token })),
+  };
+}
+
+/**
  * ADR-0485: folds the evaluation contract into the change fence, so a newly deployed runtime runs a
  * full cycle at once instead of skipping on a fingerprint the previous runtime recorded.
  */

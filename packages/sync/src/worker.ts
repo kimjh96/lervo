@@ -6,6 +6,7 @@ import {
 } from "@lervo/sync-contract";
 
 import { partitionContiguousDeliveries } from "./batching.js";
+import { verifyDeliveryRange } from "./delivery-verification.js";
 import { reconcileDestinationOutbox } from "./destination-reconciliation.js";
 import {
   acknowledgeDeliveries,
@@ -27,6 +28,16 @@ async function sendBatch(input: {
   registration: Awaited<ReturnType<typeof registerProject>>;
   deliveries: ReturnType<typeof partitionContiguousDeliveries>[number];
 }): Promise<EventSyncAcknowledgement> {
+  // ADR-0602: the exact range is re-proven against the store right before it leaves the host. A
+  // failure reschedules the batch and reports `local_history_invalid` in the Node sync health.
+  try {
+    verifyDeliveryRange(
+      input.options.store,
+      input.deliveries.map((delivery) => delivery.event),
+    );
+  } catch {
+    throw new RetryableSyncFailure("local_history_invalid");
+  }
   let batch;
   try {
     batch = createOutboundEventBatch({

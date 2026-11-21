@@ -142,6 +142,13 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
     });
     expect(code, stdout.join("") + stderr.join("")).toBe(0);
     expect(admittedDuringApply).toEqual([false]);
+    // The release removed the holder row itself, not only let its lease lapse.
+    const db = new DatabaseSync(resolve(directory, "full-cycle-admission.sqlite"));
+    try {
+      expect(db.prepare("SELECT COUNT(*) AS count FROM holder").get()).toEqual({ count: 0 });
+    } finally {
+      db.close();
+    }
     expect(await residentCycleAdmitted(directory, root)).toBe(true);
   }, 60_000);
 
@@ -290,7 +297,9 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
       directory,
       signal,
     });
-    let upgradeFinished = false;
+    // ADR-0602: a release wakes the next waiter at once, so the order is read from the upgrade's
+    // own effect on disk rather than from when the CLI call returned.
+    const presented = await planId(root);
     let residentAfterUpgrade: boolean | null = null;
     const resident = acquireFullCycleAdmission({
       repositoryRoot: resolve(root, "waiting-repository"),
@@ -298,7 +307,7 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
       pollMilliseconds: 10,
       signal,
     }).then(async (admission) => {
-      residentAfterUpgrade = upgradeFinished;
+      residentAfterUpgrade = (await planId(root)) !== presented;
       await admission.release();
     });
     await new Promise((resolveDelay) => setTimeout(resolveDelay, 100));
@@ -309,7 +318,6 @@ describe("lervo upgrade --apply and the background knowledge resident", () => {
       const code = await runCli(["upgrade", "--apply", "--json"], io(root, stdout, stderr), {
         knowledgeCycleAdmission: { directory, pollMilliseconds: 20 },
       });
-      upgradeFinished = true;
       expect(code, stdout.join("") + stderr.join("")).toBe(0);
       await resident;
     } finally {

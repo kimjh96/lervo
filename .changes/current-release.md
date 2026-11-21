@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.29.9" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.29.10" schema="1" -->
 
 ## What's changed
 
-- Read knowledge queues, health layout inputs, and retention roots only when they change
+- Idle hosts do no periodic work: commits, Hub changes and process exits wake what waits on them

@@ -10,10 +10,12 @@ import {
   createGitHubKnowledgePublicationForge,
   publishKnowledgeOutputs,
   type InstructionCandidateExchangeTransport,
+  type KnowledgeHubChangeTransport,
   type KnowledgePublicationOutcome,
   type KnowledgePublicationRepairEvents,
 } from "@lervo/repository-knowledge-runtime";
 import {
+  createHubKnowledgeChangeClient,
   createHubKnowledgeConvergenceHostClient,
   createHubKnowledgeConvergenceOwnerClient,
   createHubKnowledgeInstructionCandidateClient,
@@ -55,6 +57,10 @@ export function createKnowledgePublisher(
 /** ADR-0467: exchanges owner-rule candidates through the same Hub as the owner lease. */
 export const instructionCandidateTransport: InstructionCandidateExchangeTransport = (target) =>
   createHubKnowledgeInstructionCandidateClient(target);
+
+/** ADR-0602: waits on the same Hub for another host's knowledge coordination changes. */
+export const knowledgeHubChangeTransport: KnowledgeHubChangeTransport = (target) =>
+  createHubKnowledgeChangeClient(target);
 
 /**
  * ADR-0469 continuity for a Node-hosted resident: the Node's own Hub coordinates are the only

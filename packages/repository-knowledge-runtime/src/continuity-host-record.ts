@@ -1,6 +1,7 @@
 import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import {
   knowledgeConvergenceScopeHash,
+  type KnowledgeConvergenceHostListing,
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
 
@@ -90,12 +91,13 @@ export function continuityHostRecord(input: {
 }
 
 export function continuityPeerSummary(
-  record: KnowledgeConvergenceHostRecord,
+  record: KnowledgeConvergenceHostListing,
 ): ContinuityPeerSummary {
   return {
     ...(record.providerAdmission === undefined
       ? {}
       : { providerAdmission: record.providerAdmission }),
+    ...(record.presence === undefined ? {} : { presence: record.presence }),
     hostHash: record.hostHash,
     hostLabel: record.hostLabel,
     observedAt: record.observedAt,

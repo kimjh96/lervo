@@ -26,6 +26,9 @@ import {
   workspaceSealPlanContent,
 } from "./workspace-seal-contract.js";
 
+/** Paths Lervo itself writes while a workspace runs; a seal never counts them as changes. */
+export const WORKSPACE_RUNTIME_EXCLUDED_PATHS = [".lervo/state", ".lervo/data", ".lervo/run"];
+
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const ARTIFACT_ID = /^art_[A-Za-z0-9_-]{8,128}$/u;
 
@@ -179,7 +182,7 @@ export async function planWorkspaceSeal(input: {
     workspace: stored.workspace,
     inspection,
     expectedPaths: assignment.expectedPaths,
-    runtimeExcludedPaths: input.runtimeExcludedPaths ?? [".lervo/state"],
+    runtimeExcludedPaths: input.runtimeExcludedPaths ?? WORKSPACE_RUNTIME_EXCLUDED_PATHS,
   });
   const createdAt = (input.now ?? new Date()).toISOString();
   const noChange = inspection.headCommit === stored.workspace.baseCommit;

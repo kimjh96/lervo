@@ -17,17 +17,10 @@
       "disposition": "cohesive"
     },
     {
-      "path": "apps/cli/src/repository-health-projection.ts",
-      "contentHash": "sha256:aea68b660f70c3f23ee8e830a3a61a9315cdc5cc44e86f9f6c8e0762297998a1",
-      "responsibility": "Repository health projection from its recorded sources",
-      "rationale": "One source contract and one small projection per health measure (convergence, longest stop, deferred, find, broken links) feed one projection entrypoint; freshness and Lervo debt are delegated to their own modules, and nothing here reads files or evaluates knowledge.",
-      "disposition": "cohesive"
-    },
-    {
       "path": "apps/hub-runtime/src/deployment.ts",
-      "contentHash": "sha256:4d471e20b5ce112014c376aa6a93a45456e9fc2976672cc1de8254f8a65c9ad5",
+      "contentHash": "sha256:dadee63b441860f490c96b26bc6e86d1289897ef448e13bd7f5b4251727c5bc1",
       "responsibility": "Hub runtime deployment composition",
-      "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules.",
+      "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules; the ADR-0602 socket keepalive is one server option of that composition.",
       "disposition": "cohesive"
     },
     {
@@ -46,9 +39,9 @@
     },
     {
       "path": "apps/node-runtime/src/supervision-task-source.ts",
-      "contentHash": "sha256:b49aa6a6838199c0d91b6a027b7f41627b20de1597d09d95f1ee760322f1e97c",
+      "contentHash": "sha256:26c9ceab9b02f9fafb7447fc5b7c8e042e2f6fa844d1eeb5949f1b3b5ae26515",
       "responsibility": "Canonical supervised task observation",
-      "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots, and audits its history projection's tail for the wake schedule. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
+      "rationale": "The class observes one bound goal for task, admission, owner-control, and cycle snapshots, and checks its history projection's anchor and tail for the observation gate. It composes dedicated workforce, execution, authority, result, and handoff readers; effect execution, persistence, provider transport, domain policy, and runtime scheduling remain in separate modules. The two history projections share a canonical event chain but retain distinct task and authority scopes.",
       "disposition": "cohesive"
     },
     {
@@ -102,9 +95,9 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:4784963db3d4db566950b3ba80b7ae34a16ebb28fd64b72f479ea30659671eba",
+      "contentHash": "sha256:938c6861902b4b0a69e0a80192442a8b454b0c94803fd658cbc549550a13f254",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under the shared database, transaction, and schema lifecycle. Notification retention and waiting live in a separate adapter; this facade emits only committed scope coordinates and closes notifications with the store. Owner-lease, instruction-candidate, ADR-0469 host-record, ADR-0477 definition, and ADR-0561 exact workstream revision methods only open a transaction around their own repositories.",
+      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors, change kinds and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates with the kind of change, passes presence through, and lets the owner lease follow it. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories.",
       "disposition": "cohesive"
     },
     {

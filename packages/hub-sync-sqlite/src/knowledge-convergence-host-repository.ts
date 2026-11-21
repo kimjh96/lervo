@@ -3,6 +3,7 @@ import { type DatabaseSync } from "node:sqlite";
 import { type HubKnowledgeConvergenceHostCoordinate } from "@lervo/hub-sync";
 import {
   isKnowledgeConvergenceHostRecord,
+  knowledgeConvergenceHostRecordFacts,
   MAXIMUM_CONVERGENCE_HOST_RECORDS,
   mergeKnowledgeConvergenceHostRecord,
   type KnowledgeConvergenceHostPublishStatus,
@@ -39,7 +40,12 @@ export class HubKnowledgeConvergenceHostSQLiteRepository {
     destinationId: string;
     record: KnowledgeConvergenceHostRecord;
     acceptedAt: string;
-  }): { status: KnowledgeConvergenceHostPublishStatus; record: KnowledgeConvergenceHostRecord } {
+  }): {
+    status: KnowledgeConvergenceHostPublishStatus;
+    record: KnowledgeConvergenceHostRecord;
+    /** ADR-0602: whether anything but the observation time differs from the stored record. */
+    changed: boolean;
+  } {
     const { record } = input;
     const row = sqliteRow(
       this.database
@@ -52,7 +58,10 @@ export class HubKnowledgeConvergenceHostSQLiteRepository {
     );
     const current = row === undefined ? null : this.parse(row.record_json);
     const { next, status } = mergeKnowledgeConvergenceHostRecord({ current, incoming: record });
-    if (status === "stale") return { status, record: next };
+    if (status === "stale") return { status, record: next, changed: false };
+    const changed =
+      current === null ||
+      knowledgeConvergenceHostRecordFacts(current) !== knowledgeConvergenceHostRecordFacts(next);
     this.database
       .prepare(
         `INSERT INTO hub_knowledge_convergence_hosts
@@ -92,7 +101,7 @@ export class HubKnowledgeConvergenceHostSQLiteRepository {
         next.repositoryIdentityHash,
         MAXIMUM_CONVERGENCE_HOST_RECORDS,
       );
-    return { status, record: next };
+    return { status, record: next, changed };
   }
 
   list(input: HubKnowledgeConvergenceHostCoordinate): KnowledgeConvergenceHostRecord[] {

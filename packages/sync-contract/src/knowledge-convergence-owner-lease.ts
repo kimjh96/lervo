@@ -55,21 +55,34 @@ export interface KnowledgeConvergenceOwnerPredecessor {
   ended: "expired" | "released";
 }
 
-export type KnowledgeConvergenceOwnerDecision =
-  | {
-      status: "granted";
-      lease: KnowledgeConvergenceOwnerLease;
-      predecessor: KnowledgeConvergenceOwnerPredecessor | null;
-      hubTime: string;
-    }
-  | { status: "renewed" | "released"; lease: KnowledgeConvergenceOwnerLease; hubTime: string }
-  | { status: "held_elsewhere"; lease: KnowledgeConvergenceOwnerLease; hubTime: string }
-  | { status: "not_holder"; lease: KnowledgeConvergenceOwnerLease | null; hubTime: string };
+/**
+ * ADR-0602: whether the lease holder holds its Hub `knowledge` wait right now. While it does, the
+ * Hub keeps its lease live and pushes a change when the holder leaves, so a waiting host arms no
+ * expiry deadline; absent from Hubs older than ADR-0602, whose leases still expire by time.
+ */
+export interface KnowledgeConvergenceOwnerHolderPresence {
+  holderPresent?: boolean;
+}
+
+export type KnowledgeConvergenceOwnerDecision = KnowledgeConvergenceOwnerHolderPresence &
+  (
+    | {
+        status: "granted";
+        lease: KnowledgeConvergenceOwnerLease;
+        predecessor: KnowledgeConvergenceOwnerPredecessor | null;
+        hubTime: string;
+      }
+    | { status: "renewed" | "released"; lease: KnowledgeConvergenceOwnerLease; hubTime: string }
+    | { status: "held_elsewhere"; lease: KnowledgeConvergenceOwnerLease; hubTime: string }
+    | { status: "not_holder"; lease: KnowledgeConvergenceOwnerLease | null; hubTime: string }
+  );
 
 /** A read names no host, so it reports only whether a live lease exists. */
-export type KnowledgeConvergenceOwnerReading =
-  | { status: "held"; lease: KnowledgeConvergenceOwnerLease; hubTime: string }
-  | { status: "vacant"; lease: KnowledgeConvergenceOwnerLease | null; hubTime: string };
+export type KnowledgeConvergenceOwnerReading = KnowledgeConvergenceOwnerHolderPresence &
+  (
+    | { status: "held"; lease: KnowledgeConvergenceOwnerLease; hubTime: string }
+    | { status: "vacant"; lease: KnowledgeConvergenceOwnerLease | null; hubTime: string }
+  );
 
 function timestamp(value: unknown): value is string {
   return typeof value === "string" && Number.isFinite(Date.parse(value));

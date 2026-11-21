@@ -2,6 +2,8 @@ import { rm } from "node:fs/promises";
 
 import { afterEach, expect, it } from "vitest";
 
+import { CONVERGENCE_OWNER_LEASE_TTL_MS } from "../src/convergence-owner-verdict.js";
+
 import { ConvergenceOwnership } from "../src/convergence-owner.js";
 import { startAutonomousKnowledgeWorker } from "../src/loop.js";
 import { inspectKnowledgeResidentHealth } from "../src/resident-health.js";
@@ -25,7 +27,9 @@ it(
   "keeps a non-owner resident read-only with the holder label and takes over after release",
   { timeout: 180_000 },
   async () => {
-    const hub = new FakeConvergenceOwnerHub(Date.now);
+    // The Hub's clock can be moved, so the holder's lease nears its expiry without waiting.
+    let skew = 0;
+    const hub = new FakeConvergenceOwnerHub(() => Date.now() + skew);
     const f = await fixture(true);
     const peer = await peerHost({ sourceRoot: f.root, directory: f.directory });
     cleanups.push(async () => {
@@ -44,6 +48,9 @@ it(
       new ConvergenceOwnership({ storage, provider: "claude", transport: async () => hub.port() });
     const mac = ownership(peer.storage);
     expect(await mac.observe()).toMatchObject({ role: "owner" });
+    // ADR-0602: a waiting host has no timer but the holder's lease expiry, the Hub state it
+    // cannot otherwise observe; two seconds of lease remain when it first looks.
+    skew = CONVERGENCE_OWNER_LEASE_TTL_MS - 2_000;
 
     const cycles: { status: string }[] = [];
     const failures: unknown[] = [];
@@ -57,7 +64,6 @@ it(
       onCycle: (result) => cycles.push(result),
       onFailure: (error) => failures.push(error),
       intervalMilliseconds: 100,
-      reconcileCeilingMilliseconds: 1_000,
       ownership: ownership(f.storage),
     });
     try {

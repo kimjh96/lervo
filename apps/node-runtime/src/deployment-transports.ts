@@ -8,6 +8,7 @@ import type { HubWorkspaceSummaryTransport } from "@lervo/workspace-reservation-
 import type { NodeRuntimeConfig } from "./config-types.js";
 import type { NodeRuntimeOpenPorts } from "./open-ports.js";
 import { RuntimeIdleWait } from "./runtime-idle-wait.js";
+import { runtimeHintAvailability } from "./runtime-hint-availability.js";
 
 /** Keeps current-credential Hub transports and idle hints behind one deployment adapter boundary. */
 export function createNodeDeploymentTransports(input: {
@@ -15,6 +16,8 @@ export function createNodeDeploymentTransports(input: {
   target: SyncHttpTransportOptions["target"];
   bearerToken(): string;
   createTransport?: NodeRuntimeOpenPorts["createTransport"];
+  /** ADR-0602: where a failing hint wait is recorded as attention. */
+  repositoryRoot?: string;
 }) {
   const { config, target } = input;
   const transportOptions = (): SyncHttpTransportOptions => ({
@@ -53,6 +56,7 @@ export function createNodeDeploymentTransports(input: {
     destinationId: config.hub.destinationId,
     expectedPeerIdentityHash: config.hub.hubIdentityHash,
     fallbackIntervalMs: config.sync.idlePollIntervalMs ?? 2_000,
+    ...optional("onAvailability", runtimeHintAvailability(input.repositoryRoot)),
   });
   const transport: AuthenticatedHubTransport = {
     registerProject(request) {
@@ -110,4 +114,11 @@ export function createNodeDeploymentTransports(input: {
     workstreamTransport,
     workspaceTransport,
   };
+}
+
+function optional<Key extends string, Value>(
+  key: Key,
+  value: Value | undefined,
+): { [K in Key]?: Value } {
+  return (value === undefined ? {} : { [key]: value }) as { [K in Key]?: Value };
 }

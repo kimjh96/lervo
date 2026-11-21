@@ -36,13 +36,15 @@ export class NodeWorkstreamReplicationLocalPort implements WorkstreamReplication
     private readonly artifacts: ArtifactStore,
     private readonly now: () => Date = () => new Date(),
   ) {
-    this.reader = new WorkstreamRevisionReader(repositoryRoot, events, artifacts, () =>
-      now().getTime(),
-    );
+    this.reader = new WorkstreamRevisionReader(repositoryRoot, events, artifacts);
   }
 
   async readRevisionChain(): Promise<LocalWorkstreamRevision[]> {
     return this.reader.read();
+  }
+
+  async verifyForPublish(revisions: readonly LocalWorkstreamRevision[]): Promise<void> {
+    await this.reader.verifyForUse(revisions);
   }
 
   /** The replicated lineage's local head when branches carry their own workstreams. */

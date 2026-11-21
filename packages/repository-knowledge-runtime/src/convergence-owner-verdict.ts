@@ -128,7 +128,11 @@ export function verdictFromHubDecision(input: {
       reason: "convergence_owner_elsewhere",
       holder,
       validUntil: null,
-      wakeAt: iso(requestStartedAt + Math.max(0, remaining) + CONVERGENCE_OWNER_WAKE_GRACE_MS),
+      // ADR-0602: a present holder's lease does not expire by time; its departure is pushed.
+      wakeAt:
+        decision.holderPresent === true
+          ? null
+          : iso(requestStartedAt + Math.max(0, remaining) + CONVERGENCE_OWNER_WAKE_GRACE_MS),
       grantedAt: null,
     };
   return {

@@ -17,16 +17,9 @@ export class ScopedSupervisionExecutionHistory extends SupervisionAuthorityHisto
       databasePath: string;
       projectId: string;
       workstreamId: string;
-      now: () => number;
     },
   ) {
-    super(
-      input.events,
-      input.databasePath,
-      input.projectId,
-      input.now,
-      isSupervisionHistoryMetadata,
-    );
+    super(input.events, input.databasePath, input.projectId, isSupervisionHistoryMetadata);
   }
 
   override async read() {
@@ -39,7 +32,6 @@ export class ScopedSupervisionExecutionHistory extends SupervisionAuthorityHisto
           this.input.events,
           this.input.databasePath,
           this.input.projectId,
-          this.input.now,
           (event) => isSupervisionHistoryMetadata(event) || runs.has(event.runId),
         );
         this.selectionHash = selectionHash;
@@ -51,12 +43,5 @@ export class ScopedSupervisionExecutionHistory extends SupervisionAuthorityHisto
     throw Object.assign(new Error("The supervision history scope did not stabilize."), {
       code: "supervision_history_scope_unstable",
     });
-  }
-
-  override nextAuditAt(): number | null {
-    const deadlines = [super.nextAuditAt(), this.selected?.nextAuditAt() ?? null].filter(
-      (value): value is number => value !== null,
-    );
-    return deadlines.length === 0 ? null : Math.min(...deadlines);
   }
 }

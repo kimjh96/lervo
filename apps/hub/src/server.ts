@@ -51,6 +51,15 @@ export function createHubRequestListener(options: HubServerOptions): RequestList
               Partial<HubRuntimeChangeSource>,
           },
         }),
+    ...(options.sync === undefined
+      ? {}
+      : {
+          knowledge: {
+            ...options.sync,
+            store: options.sync.store as typeof options.sync.store &
+              Partial<HubRuntimeChangeSource>,
+          },
+        }),
     ...(options.commands === undefined
       ? {}
       : {
@@ -101,8 +110,17 @@ export function createHubRequestListener(options: HubServerOptions): RequestList
   };
 }
 
+/**
+ * ADR-0602: held change waits stay open with no timer on either side, so the kernel's TCP
+ * keepalive is what notices a peer that vanished; a dead socket closes its held request.
+ */
+export const HUB_SOCKET_KEEPALIVE_MILLISECONDS = 15_000;
+
 export function createHubServer(options: HubServerOptions): Server {
-  return createServer(createHubRequestListener(options));
+  return createServer(
+    { keepAlive: true, keepAliveInitialDelay: HUB_SOCKET_KEEPALIVE_MILLISECONDS },
+    createHubRequestListener(options),
+  );
 }
 
 export function createHubServerWithArtifactCleanup(

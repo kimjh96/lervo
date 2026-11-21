@@ -118,42 +118,53 @@ it("keeps evidence for a large file and rejects binary and symlink data", async 
   ).toBe(false);
 });
 
-it("settles no-change only after an independent schema-5 assessment and invalidates on a new change", async () => {
-  const f = await setup(5);
-  await history(f);
-  await f.plan({ "docs/specs/runtime.md": { operation: "no_change_needed" } });
-  await f.cycle();
-  expect((await listFreshnessCandidates(f.root))[0]!.state).toBe("generated");
-  expect(await readDocumentFreshnessAssessments(f.root)).toEqual([]);
-  await f.cycle();
-  const records = await readDocumentFreshnessAssessments(f.root);
-  expect(records).toHaveLength(1);
-  expect(records[0]!.assessment.assessedRevision).toMatch(/^[a-f0-9]{40}$/u);
-  expect((await f.providerCalls()).map((call) => call.task)).toEqual([
-    "document_freshness_candidate",
-    "document_freshness_assessment_review",
-  ]);
-  const current = await observeDocumentFreshnessFindings({
-    repositoryRoot: f.root,
-    now: new Date(),
-  });
-  expect(
-    current.status === "observed" &&
-      current.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
-  ).toBe(false);
-  await f.write("src/runtime.ts", "export const alive = false;\n");
-  const dirty = await observeDocumentFreshnessFindings({ repositoryRoot: f.root, now: new Date() });
-  expect(
-    dirty.status === "observed" &&
-      dirty.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
-  ).toBe(true);
-  await f.commit("change the documented behavior");
-  const stale = await observeDocumentFreshnessFindings({ repositoryRoot: f.root, now: new Date() });
-  expect(
-    stale.status === "observed" &&
-      stale.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
-  ).toBe(true);
-});
+// Four full worker runs take 4 to 5 seconds on an unloaded Mac, past the 5-second default.
+it(
+  "settles no-change only after an independent schema-5 assessment and invalidates on a new change",
+  { timeout: 60_000 },
+  async () => {
+    const f = await setup(5);
+    await history(f);
+    await f.plan({ "docs/specs/runtime.md": { operation: "no_change_needed" } });
+    await f.cycle();
+    expect((await listFreshnessCandidates(f.root))[0]!.state).toBe("generated");
+    expect(await readDocumentFreshnessAssessments(f.root)).toEqual([]);
+    await f.cycle();
+    const records = await readDocumentFreshnessAssessments(f.root);
+    expect(records).toHaveLength(1);
+    expect(records[0]!.assessment.assessedRevision).toMatch(/^[a-f0-9]{40}$/u);
+    expect((await f.providerCalls()).map((call) => call.task)).toEqual([
+      "document_freshness_candidate",
+      "document_freshness_assessment_review",
+    ]);
+    const current = await observeDocumentFreshnessFindings({
+      repositoryRoot: f.root,
+      now: new Date(),
+    });
+    expect(
+      current.status === "observed" &&
+        current.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
+    ).toBe(false);
+    await f.write("src/runtime.ts", "export const alive = false;\n");
+    const dirty = await observeDocumentFreshnessFindings({
+      repositoryRoot: f.root,
+      now: new Date(),
+    });
+    expect(
+      dirty.status === "observed" &&
+        dirty.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
+    ).toBe(true);
+    await f.commit("change the documented behavior");
+    const stale = await observeDocumentFreshnessFindings({
+      repositoryRoot: f.root,
+      now: new Date(),
+    });
+    expect(
+      stale.status === "observed" &&
+        stale.findings.some((item) => item.documentPath === "docs/specs/runtime.md"),
+    ).toBe(true);
+  },
+);
 
 it("keeps the stage closed while today's budget cannot pay for a pending no-change review", async () => {
   const f = await setup(5);

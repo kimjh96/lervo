@@ -168,11 +168,11 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
     );
     let pending = "";
     let stopped = false;
-    let watchdog: ReturnType<typeof setTimeout>;
+    // ADR-0602: no watchdog. A quiet stream is a healthy one; the SSH keepalives end a dead
+    // link, which closes stdout, and that EOF or a spawn error is the only failure signal.
     const stop = () => {
       if (stopped) return;
       stopped = true;
-      clearTimeout(watchdog);
       child.kill("SIGTERM");
     };
     const failure = () => {
@@ -181,7 +181,6 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
         failed();
       }
     };
-    watchdog = setTimeout(failure, 75_000);
     child.stdout.on("data", (chunk: Buffer) => {
       pending += chunk.toString("utf8");
       if (pending.length > 1_024) {
@@ -192,15 +191,13 @@ export class SshRepositoryReplicaPeer implements RepositoryReplicaPeerPort {
       while ((newline = pending.indexOf("\n")) >= 0) {
         const line = pending.slice(0, newline).trim();
         pending = pending.slice(newline + 1);
-        if (line !== '{"schemaVersion":1,"status":"changed"}') {
+        const changedLine = line === '{"schemaVersion":1,"status":"changed"}';
+        // A peer older than ADR-0602 still says `alive` each quiet minute; it means nothing.
+        if (!changedLine && line !== '{"schemaVersion":1,"status":"alive"}') {
           failure();
           return;
         }
-        if (!stopped) {
-          clearTimeout(watchdog);
-          watchdog = setTimeout(failure, 75_000);
-          changed();
-        }
+        if (!stopped && changedLine) changed();
       }
     });
     child.once("error", failure);

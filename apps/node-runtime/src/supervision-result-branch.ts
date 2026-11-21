@@ -8,6 +8,7 @@ import { listAssignments, listWorkspaces } from "@lervo/agent-workforce";
 import type { EventStore } from "@lervo/storage-contract";
 
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
+import { changeSignalAttention } from "./change-signal-attention.js";
 import { AcceptedSupervisionResults } from "./supervision-accepted-results.js";
 
 const run = promisify(execFile);
@@ -142,6 +143,7 @@ export function startSupervisionResultBranchLoop(input: {
     continueOnFailure: true,
     failureRetryMs: () => 60_000,
     subscribe: input.subscribe,
+    onChangeSignal: changeSignalAttention(input.repositoryRoot),
     onFailure: input.onFailure,
     runCycle: async () => {
       for (const result of await publishCompletedSupervisionResults({

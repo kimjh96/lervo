@@ -1,6 +1,5 @@
 import {
   applyStoredInstructionCandidates,
-  RESIDENT_EVENT_POLL_MILLISECONDS,
   startAutonomousKnowledgeWorker,
   createChangeReviewHost,
   admittedBackgroundContext,
@@ -15,6 +14,7 @@ import {
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { ConversationChangeLoop } from "./conversation-change-loop.js";
+import { changeSignalAttention } from "./change-signal-attention.js";
 import { watchLocalEventChanges } from "./local-event-wakeup.js";
 import { startKnowledgeWorkerProcess } from "./knowledge-worker-process.js";
 import type { KnowledgeHubCoordinates } from "./knowledge-hub-coordinates.js";
@@ -22,6 +22,7 @@ import {
   createKnowledgeConvergenceContinuity,
   createKnowledgeConvergenceOwnership,
   instructionCandidateTransport,
+  knowledgeHubChangeTransport,
   createKnowledgePublisher,
 } from "./knowledge-convergence-ownership.js";
 
@@ -69,6 +70,7 @@ export function startRepositoryKnowledgeLoop(input: {
       ownership: createKnowledgeConvergenceOwnership(input.storage!, input.provider),
       continuity: createKnowledgeConvergenceContinuity(input.storage!, input.hub ?? null),
       instructionCandidateTransport,
+      hubChanges: knowledgeHubChangeTransport,
       // ADR-0594: the owner applies stored owner rules here exactly as the CLI host does.
       applyOwnerStatedInstructions: () =>
         applyStoredInstructionCandidates({
@@ -77,20 +79,15 @@ export function startRepositoryKnowledgeLoop(input: {
         }),
       publish: createKnowledgePublisher(input.repositoryRoot),
       ...(input.signal === undefined ? {} : { signal: input.signal }),
-      subscribe: (notify) =>
-        watchLocalEventChanges(input.store, notify, {
-          watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS,
-        }),
+      subscribe: (notify) => watchLocalEventChanges(input.store, notify),
       onFailure: input.onFailure,
     });
   const loop = new ConversationChangeLoop({
     intervalMs: 60_000,
     continueOnFailure: true,
     failureRetryMs: () => 60_000,
-    subscribe: (notify) =>
-      watchLocalEventChanges(input.store, notify, {
-        watchedPollMilliseconds: RESIDENT_EVENT_POLL_MILLISECONDS,
-      }),
+    subscribe: (notify) => watchLocalEventChanges(input.store, notify),
+    onChangeSignal: changeSignalAttention(input.repositoryRoot),
     onFailure: input.onFailure,
     runCycle: async () => {
       if (input.host === undefined && input.storage === undefined)

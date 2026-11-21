@@ -8,7 +8,9 @@ import { SQLiteEventStore } from "@lervo/event-store-sqlite";
 import { loadProjectManifest, resolveProjectPaths } from "@lervo/project";
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
+  knowledgeConvergenceHostRecordFacts,
   mergeKnowledgeConvergenceHostRecord,
+  type ProviderCliAdmissionProjection,
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
 import { afterEach, describe, expect, it } from "vitest";
@@ -47,15 +49,27 @@ afterEach(async () => {
 
 class FakeHostRecordHub {
   records = new Map<string, KnowledgeConvergenceHostRecord>();
+  /** ADR-0602: the `knowledge` pushes each host has received and not yet handled. */
+  pushes = new Map<string, number>();
 
   port(): ConvergenceHostRecordPort {
     return {
       publish: async (record) => {
+        const current = this.records.get(record.hostHash) ?? null;
         const { next, status } = mergeKnowledgeConvergenceHostRecord({
-          current: this.records.get(record.hostHash) ?? null,
+          current,
           incoming: structuredClone(record),
         });
         this.records.set(record.hostHash, next);
+        // As the Hub does: changed facts wake every other host, never the writer.
+        if (
+          status !== "stale" &&
+          (current === null ||
+            knowledgeConvergenceHostRecordFacts(current) !==
+              knowledgeConvergenceHostRecordFacts(next))
+        )
+          for (const host of this.records.keys())
+            if (host !== record.hostHash) this.pushes.set(host, (this.pushes.get(host) ?? 0) + 1);
         return status;
       },
       list: async () => [...this.records.values()].map((record) => structuredClone(record)),
@@ -127,14 +141,18 @@ async function twoHosts(trackDelegation: boolean): Promise<{
   };
 }
 
-function fleet(policyPath: string, clock: { now: number }) {
+function fleet(
+  policyPath: string,
+  clock: { now: number },
+  providerAdmission: () => Promise<ProviderCliAdmissionProjection | null> = async () => null,
+) {
   const records = new FakeHostRecordHub();
   const lease = new FakeConvergenceOwnerHub(() => clock.now);
   return {
     records,
     continuity: (host: Host) =>
       new ConvergenceContinuity({
-        providerAdmission: async () => null,
+        providerAdmission,
         storage: host.storage,
         policyPath,
         hubCandidates: async () => [{ source: "node_runtime" as const, hub }],
@@ -161,6 +179,42 @@ const continued = (host: Host) =>
     .filter((event) => event.type === "knowledge.convergence.delegation.continued")
     .map((event) => event.payload as { action: string; source: string; sourceHostHash: unknown });
 
+describe("host records pushed through the Hub (ADR-0602)", () => {
+  it("stops two hosts from waking each other once their facts settle", async () => {
+    const { mac, wsl, policyPath } = await twoHosts(false);
+    const clock = { now: Date.now() };
+    // Every observation stamps a new time deep inside the record, as provider admission does.
+    const hosts = fleet(
+      policyPath,
+      clock,
+      async () =>
+        ({
+          observedAt: new Date((clock.now += 1_000)).toISOString(),
+          detectionFailure: null,
+          providers: [],
+          selected: null,
+          waiting: false,
+        }) as unknown as ProviderCliAdmissionProjection,
+    );
+    const byHash = new Map<string, Host>();
+    for (const host of [mac, wsl]) {
+      const state = await hosts.continuity(host).reconcile({ force: true });
+      byHash.set(state!.hostHash!, host);
+    }
+    // Each push forces the woken host's reconciliation, as its resident's Hub wait does.
+    let handled = 0;
+    while (handled < 20) {
+      const next = [...hosts.records.pushes.entries()].find(([, count]) => count > 0);
+      if (next === undefined) break;
+      hosts.records.pushes.set(next[0], 0);
+      await hosts.continuity(byHash.get(next[0])!).reconcile({ force: true });
+      handled += 1;
+    }
+    expect(handled).toBeLessThanOrEqual(2);
+    expect([...hosts.records.pushes.values()].every((count) => count === 0)).toBe(true);
+  });
+});
+
 describe("one writer per delegation renewal (ADR-0478)", () => {
   it("renews only on the owner and lets the follower adopt the identical bytes", async () => {
     const { mac, wsl, policyPath } = await twoHosts(false);
@@ -179,7 +233,10 @@ describe("one writer per delegation renewal (ADR-0478)", () => {
     const wslEarly = await hosts.continuity(wsl).reconcile({ force: true });
     expect(await bytes(wsl)).toBe(committed);
     expect(continued(wsl)).toEqual([]);
-    expect(Date.parse(wslEarly!.nextReconcileAt) - clock.now).toBeLessThanOrEqual(15 * 60_000);
+    // ADR-0602: the follower does not poll for the owner's renewal. Its takeover runs a forced
+    // turn, and the owner's changed host record reaches it as a Hub push (as below).
+    const followerDue = wslEarly!.nextReconcileAt;
+    expect(followerDue === null || Date.parse(followerDue) - clock.now > 15 * 60_000).toBe(true);
     clock.now += 12 * 60_000;
     const macState = await hosts.continuity(mac).reconcile({ force: true });
     expect(macState?.lastContinuation).toMatchObject({ action: "renewed", source: "renewal" });

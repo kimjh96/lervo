@@ -181,6 +181,29 @@ it("changes when the owner holds or releases a repository (ADR-0595)", async () 
   }
 });
 
+it("keys an unreadable practice state by its file, with no clock window to wake for (ADR-0602)", async () => {
+  const f = await fixture();
+  fixtures.push(f);
+  const start = Date.parse("2026-11-19T01:00:00.000Z");
+  vi.useFakeTimers({ toFake: ["Date"] });
+  try {
+    vi.setSystemTime(start);
+    const observe = () =>
+      convergenceSourceFingerprint({ repositoryRoot: f.root, events: f.events });
+    await mkdir(resolve(f.root, PRACTICE_ROOT), { recursive: true });
+    await writeFile(resolve(f.root, PRACTICE_ROOT, "state.json"), "{not json");
+    const broken = observe();
+    // Only the UTC day boundary remains; the unreadable file adds no wake of its own.
+    expect(broken.localWakeAt).toBe(Date.parse("2026-11-20T00:00:00.000Z"));
+    vi.setSystemTime(start + 3 * 60 * 60_000);
+    expect(observe().fingerprint).toBe(broken.fingerprint);
+    await writeFile(resolve(f.root, PRACTICE_ROOT, "state.json"), "{still not json, longer");
+    expect(observe().fingerprint).not.toBe(broken.fingerprint);
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 it("keeps an unchanged repository's fence across 30 minutes and wakes for due practice (ADR-0595)", async () => {
   const f = await fixture();
   fixtures.push(f);

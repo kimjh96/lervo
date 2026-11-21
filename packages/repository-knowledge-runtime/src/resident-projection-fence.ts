@@ -18,7 +18,7 @@ export const RESIDENT_PROJECTION_MAXIMUM_AGE_MILLISECONDS = 15 * 60_000;
  * Node, replica and attention lines stay bounded while the resident itself applies nothing.
  */
 export const RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS = 60 * 60_000;
-/** How often the resident checks the projection inputs: one stat pass, with no Git process. */
+/** The first retry after a failed refresh; later retries double (ADR-0597). */
 export const RESIDENT_PROJECTION_CHECK_MILLISECONDS = 60_000;
 /**
  * ADR-0599: an event-head change alone refreshes the projection at most this often. Every turn
@@ -89,6 +89,19 @@ export function residentProjectionKey(input: {
       resident: input.residentState,
     }),
   );
+}
+
+/**
+ * ADR-0602: the files whose change makes a refresh due, watched so that a change offers a refresh
+ * at once instead of on a minute check. The repository head and index enter through the
+ * repository watch; working-tree edits and the unwatched caches rely on the maximum age.
+ */
+export function residentProjectionInputPaths(repositoryRoot: string): string[] {
+  return [
+    ...PROJECTION_INPUTS.map((path) => resolve(repositoryRoot, path)),
+    resolve(repositoryRoot, CONVERGENCE_OWNER_FENCE_PATH),
+    defaultRepositoryHoldPath(),
+  ];
 }
 
 /** ADR-0599: the event head the projection last showed; its change alone is rate-limited. */
@@ -168,14 +181,20 @@ export function residentProjectionRefresher(input: {
   held: () => boolean;
   maximumAgeMilliseconds: number;
   now?: () => number;
-}): (options?: { ageOnly?: boolean }) => Promise<void> {
+}): ResidentProjectionRefresh {
   let last: ResidentProjectionRecord | null = null;
+  // Before the first refresh the age bound counts from the start, as a first check would.
+  const startedAt = (input.now ?? Date.now)();
   let failures = 0;
   let retryAt = 0;
-  return async (options = {}) => {
+  // The newest event head an offer saw; a refresh it did not run yet is due at the event interval.
+  let seenEventHead: string | null | undefined;
+  const offer = async (options: { ageOnly?: boolean } = {}) => {
     if (!input.enabled || input.signal.aborted) return;
     const now = (input.now ?? Date.now)();
     if (now < retryAt) return;
+    // ADR-0602: a retry that fell due refreshes, so its deadline never comes back in the past.
+    const retryDue = retryAt > 0;
     const held = input.held();
     const ageOnly = options.ageOnly === true;
     let key: string | null = null;
@@ -189,10 +208,12 @@ export function residentProjectionRefresher(input: {
           }),
           eventHead: residentProjectionEventHead(input.events),
         })));
+        seenEventHead = eventHead;
       } catch {
         key = null;
       }
     if (
+      !retryDue &&
       !residentProjectionDue({
         key,
         ...(eventHead === undefined ? {} : { eventHead }),
@@ -218,4 +239,33 @@ export function residentProjectionRefresher(input: {
     failures = Math.min(failures + 1, 64);
     retryAt = now + residentProjectionRetryDelay(failures);
   };
+  return Object.assign(offer, {
+    nextDueAt: (options: { ageOnly?: boolean } = {}): number | null => {
+      if (!input.enabled) return null;
+      if (retryAt > 0) return retryAt;
+      if (last === null) return startedAt + input.maximumAgeMilliseconds;
+      const held = input.held();
+      if (held)
+        return last.held ? last.at + RESIDENT_HELD_PROJECTION_MAXIMUM_AGE_MILLISECONDS : last.at;
+      const aged = last.at + input.maximumAgeMilliseconds;
+      // An age-only offer (during a cycle) ignores a moved head, so only the age bound is due.
+      if (options.ageOnly === true) return aged;
+      const eventMoved =
+        seenEventHead !== undefined &&
+        last.eventHead !== undefined &&
+        seenEventHead !== last.eventHead;
+      return eventMoved
+        ? Math.min(aged, last.at + RESIDENT_PROJECTION_EVENT_INTERVAL_MILLISECONDS)
+        : aged;
+    },
+  });
 }
+
+/**
+ * Offers a refresh; `nextDueAt` is the earliest moment an offer could refresh with no further
+ * change (ADR-0602), or null when the next offer depends on a change or the next cycle.
+ */
+export type ResidentProjectionRefresh = ((options?: { ageOnly?: boolean }) => Promise<void>) & {
+  /** With `ageOnly`, the moment the next age-only offer could refresh. */
+  nextDueAt(options?: { ageOnly?: boolean }): number | null;
+};

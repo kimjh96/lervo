@@ -108,6 +108,7 @@ export async function inspectConvergenceContinuity(input: {
       now,
       expected,
       stateObservedAt: state?.observedAt ?? null,
+      stateDueAt: state?.nextReconcileAt ?? null,
       residentRunning: resident === null ? null : resident.status !== "not_running",
       hookRuntime: input.hookRuntime ?? "unknown",
       replicaDiverged: input.replicaDiverged ?? false,

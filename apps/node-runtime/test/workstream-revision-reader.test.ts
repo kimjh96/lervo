@@ -105,25 +105,15 @@ async function fixture() {
     await writeFile(projection, content);
     return resolve(casRoot, "sha256", parent.slice(7, 9), parent.slice(9));
   };
-  let now = 0;
-  const reader = new NodeWorkstreamReplicationLocalPort(
-    paths.repositoryRoot,
-    nodeRuntimeProjectId,
-    events,
-    artifacts,
-    () => new Date(now),
-  );
-  return {
-    ...paths,
-    events,
-    artifacts,
-    projection,
-    append,
-    reader,
-    setTime: (value: number) => {
-      now = value;
-    },
-  };
+  const open = () =>
+    new NodeWorkstreamReplicationLocalPort(
+      paths.repositoryRoot,
+      nodeRuntimeProjectId,
+      events,
+      artifacts,
+      () => new Date(0),
+    );
+  return { ...paths, events, artifacts, projection, append, reader: open(), open };
 }
 
 describe("incremental workstream verification", () => {
@@ -286,7 +276,7 @@ describe("incremental workstream verification", () => {
   });
 
   it.each(["corrupt", "missing"])(
-    "detects an old %s object at the next audit and keeps failing closed",
+    "detects an old %s object when a reader next opens and keeps failing closed (ADR-0602)",
     async (failure) => {
       const f = await fixture();
       const old = await f.append();
@@ -295,14 +285,62 @@ describe("incremental workstream verification", () => {
       const original = await readFile(old);
       if (failure === "missing") await unlink(old);
       else await writeFile(old, "corrupt");
+      // The open reader already proved that object and does not re-read it.
       expect(await f.reader.readRevisionChain()).toHaveLength(2);
-      f.setTime(60_000);
-      await expect(f.reader.readRevisionChain()).rejects.toThrow();
-      await expect(f.reader.readRevisionChain()).rejects.toThrow();
+      const reopened = f.open();
+      await expect(reopened.readRevisionChain()).rejects.toThrow();
+      await expect(reopened.readRevisionChain()).rejects.toThrow();
       await writeFile(old, original);
-      expect(await f.reader.readRevisionChain()).toHaveLength(2);
+      expect(await reopened.readRevisionChain()).toHaveLength(2);
     },
   );
+
+  it("re-reads no history and no artifact across any number of idle reads (ADR-0602)", async () => {
+    const f = await fixture();
+    for (let i = 0; i < 5; i += 1) await f.append();
+    await f.reader.readRevisionChain();
+    const get = vi.spyOn(f.artifacts, "get");
+    const list = vi.spyOn(f.events, "list");
+    // An idle Node service may read the chain many times; a day of reads every ten minutes.
+    for (let read = 0; read < 144; read += 1)
+      expect(await f.reader.readRevisionChain()).toHaveLength(5);
+    expect(get).not.toHaveBeenCalled();
+    expect(list.mock.calls.every(([options]) => (options?.afterSeq ?? 0) > 0)).toBe(true);
+    // A newly opened reader still re-proves history from the first event.
+    expect(await f.open().readRevisionChain()).toHaveLength(5);
+    expect(list.mock.calls.some(([options]) => (options?.afterSeq ?? 0) === 0)).toBe(true);
+    expect(get).toHaveBeenCalledTimes(5);
+  });
+
+  it("re-proves the exact revisions before they are published (ADR-0602)", async () => {
+    const f = await fixture();
+    await f.append();
+    const last = await f.append();
+    const revisions = await f.reader.readRevisionChain();
+    await expect(f.reader.verifyForPublish(revisions)).resolves.toBeUndefined();
+    // A snapshot artifact removed after it was verified is caught before it would be sent.
+    const original = await readFile(last);
+    await unlink(last);
+    await expect(f.reader.verifyForPublish(revisions)).rejects.toThrow();
+    await writeFile(last, original);
+    // A recording event rewritten after it was verified is caught as well.
+    const revisionsAgain = await f.reader.readRevisionChain();
+    const db = new DatabaseSync(f.databasePath);
+    try {
+      for (const row of sqliteRows(
+        db
+          .prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'events'")
+          .all(),
+      ))
+        db.exec(`DROP TRIGGER "${String(row.name).replaceAll('"', '""')}"`);
+      db.prepare("UPDATE events SET event_hash = ? WHERE seq = (SELECT max(seq) FROM events)").run(
+        `sha256:${"e".repeat(64)}`,
+      );
+    } finally {
+      db.close();
+    }
+    await expect(f.reader.verifyForPublish(revisionsAgain)).rejects.toThrow();
+  });
 
   it("rejects a missing or altered current projection even with a cached head", async () => {
     const f = await fixture();
@@ -328,7 +366,7 @@ describe("incremental workstream verification", () => {
     await expect(f.reader.readRevisionChain()).rejects.toThrow("database was replaced");
   });
 
-  it("rejects an altered historical event during the scheduled audit", async () => {
+  it("rejects an altered historical event when a reader next opens (ADR-0602)", async () => {
     const f = await fixture();
     await f.append();
     await f.append();
@@ -348,8 +386,7 @@ describe("incremental workstream verification", () => {
     } finally {
       db.close();
     }
-    f.setTime(60_000);
-    // The store rejects the altered row when the audit reads it.
-    await expect(f.reader.readRevisionChain()).rejects.toMatchObject({ code: "integrity_failed" });
+    // The store rejects the altered row when a newly opened reader verifies from the first event.
+    await expect(f.open().readRevisionChain()).rejects.toMatchObject({ code: "integrity_failed" });
   });
 });

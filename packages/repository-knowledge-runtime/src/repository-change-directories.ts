@@ -20,6 +20,8 @@ export async function listRepositoryChangeDirectories(input: {
     ...input.gitRoots,
     resolve(commonDirectory, "refs"),
     resolve(commonDirectory, "refs/heads"),
+    // ADR-0602: `info/exclude` and `info/attributes` change which files count, like `.gitignore`.
+    resolve(commonDirectory, "info"),
   ]);
   for (const path of paths) {
     let parent = dirname(resolve(root, path));

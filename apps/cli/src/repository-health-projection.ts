@@ -166,8 +166,9 @@ function convergence(
     return unknownHealthMeasure("resident_observation_missing", source);
   const elsewhere = ownerElsewhereConvergence(input, source);
   if (elsewhere !== null) return elsewhere;
-  const heartbeatAge = now.getTime() - Date.parse(resident.heartbeatAt);
-  if (!Number.isFinite(heartbeatAge) || heartbeatAge > 120_000 || heartbeatAge < 0)
+  // ADR-0602: the resident's presence, probed when it was read, proves it runs; the age of its
+  // last state write says nothing, since it writes only on change.
+  if (resident.status === "not_running")
     return unknownHealthMeasure("resident_observation_stale", source);
   const status = maintenance.status;
   const stopped =
@@ -206,10 +207,6 @@ function convergence(
     stopped,
     now,
   );
-  if (measure.validUntil !== null)
-    measure.validUntil = new Date(
-      Math.min(Date.parse(measure.validUntil), Date.parse(resident.heartbeatAt) + 120_000),
-    ).toISOString();
   return measure;
 }
 

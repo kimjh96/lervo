@@ -30,7 +30,7 @@ export const defaultRepositorySnapshotPolicy: RepositorySnapshotPolicy = Object.
     "Pods",
     "vendor",
   ]),
-  excludedPaths: Object.freeze([".lervo/data", ".lervo/state"]),
+  excludedPaths: Object.freeze([".lervo/data", ".lervo/state", ".lervo/run"]),
   maxEntries: 20_000,
   maxBytes: 1024 * 1024 * 1024,
 });

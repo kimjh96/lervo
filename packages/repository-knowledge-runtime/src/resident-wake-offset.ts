@@ -5,7 +5,7 @@ export const RESIDENT_WAKE_OFFSET_MAXIMUM_MILLISECONDS = 15 * 60_000;
 
 /**
  * A stable per-project delay, from 0 to 15 minutes, for wake moments that every resident would
- * otherwise share: the UTC day boundary and the forced full cycle. Spreading them keeps a host's
+ * otherwise share: the UTC day boundary and the daily usage moments. Spreading them keeps a host's
  * residents from starting full cycles together and starving the event loop.
  */
 export function residentWakeOffset(projectId: string): number {

@@ -3,10 +3,6 @@ import type { EventEnvelope } from "@lervo/schemas";
 import type { EventStore } from "@lervo/storage-contract";
 
 const MAXIMUM_OBSERVATION_PASSES = 16;
-/** Wake-up for an anchor-and-tail check that observes appended authority events without a hint. */
-const TAIL_AUDIT_INTERVAL_MS = 60_000;
-/** Re-verification of every historical byte; also forced by clock rollback or anchor failure. */
-const FULL_AUDIT_INTERVAL_MS = 900_000;
 /** Bound on retained rows; the chain is streamed, so history length itself is never bounded. */
 const MAXIMUM_RETAINED_BYTES = 32 * 1024 * 1024;
 
@@ -22,23 +18,21 @@ export function isSupervisionAuthorityEvent(event: EventEnvelope): boolean {
 /**
  * Rebuildable authority projection; hints and cached rows never replace canonical events.
  *
- * Every read verifies each appended link from the anchor, and the full audit streams the whole
- * chain from the first event. Only rows the retention selects are kept, under a byte bound, so a
- * long history costs streaming time at most once per audit interval but never fails the read.
+ * ADR-0602: the first read streams and verifies the whole chain from the first event, and so does
+ * any read whose anchor no longer matches the store. Every other read verifies each appended link
+ * from the anchor. Nothing re-reads history on a timer; the event-store change channel wakes the
+ * owner for appended events. Only rows the retention selects are kept, under a byte bound.
  */
 export class SupervisionAuthorityHistory {
   private cursor: EventEnvelope | null = null;
   private retained: EventEnvelope[] = [];
   private bytes = 0;
-  private auditedAt: number | null = null;
-  private checkedAt: number | null = null;
   private databaseIdentity: string | null = null;
 
   constructor(
     private readonly events: EventStore,
     private readonly databasePath: string,
     private readonly projectId: string,
-    private readonly now: () => number = Date.now,
     private readonly retention:
       "authority" | "execution" | ((event: EventEnvelope) => boolean) = "authority",
   ) {}
@@ -52,16 +46,10 @@ export class SupervisionAuthorityHistory {
     }
   }
 
-  nextAuditAt(): number | null {
-    return this.checkedAt === null ? null : this.checkedAt + TAIL_AUDIT_INTERVAL_MS;
-  }
-
   private reset(): void {
     this.cursor = null;
     this.retained = [];
     this.bytes = 0;
-    this.auditedAt = null;
-    this.checkedAt = null;
   }
 
   private readThrough(head: EventEnvelope | null): void {
@@ -103,18 +91,9 @@ export class SupervisionAuthorityHistory {
     )
       throw new Error("The supervision event database was replaced; reopen the runtime.");
     this.databaseIdentity = identity;
-    const at = this.now();
-    if (!Number.isFinite(at)) throw new Error("The supervision authority clock is invalid.");
     // Appended events are always read and chain-verified from the anchor, so a revocation or any
-    // other authority change is never skipped; the full audit only re-proves bytes below it.
-    if (
-      this.auditedAt === null ||
-      at < this.auditedAt ||
-      (this.checkedAt !== null && at < this.checkedAt) ||
-      at - this.auditedAt >= FULL_AUDIT_INTERVAL_MS
-    )
-      this.reset();
-    else if (this.cursor !== null) {
+    // other authority change is never skipped.
+    if (this.cursor !== null) {
       const anchor = this.events.get(this.cursor.eventId);
       const tail = this.events.latest();
       if (
@@ -142,8 +121,6 @@ export class SupervisionAuthorityHistory {
       if (pass >= MAXIMUM_OBSERVATION_PASSES)
         throw new Error("The supervision authority history changed while being observed.");
     }
-    this.auditedAt ??= at;
-    this.checkedAt = at;
     return structuredClone(this.retained);
   }
 }
