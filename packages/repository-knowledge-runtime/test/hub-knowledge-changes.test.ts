@@ -59,9 +59,14 @@ function scriptedHub() {
       await vi.waitFor(() => expect(release).not.toBeNull());
       release!(outcome);
     },
-    /** For fake timers: waits on real turns only, never advancing the clock. */
+    /**
+     * For fake timers: waits on real turns only, never advancing the clock. The bound is wall
+     * time, not a turn count, because a wait is armed only after file reads that a slow runner
+     * may finish after any fixed number of turns.
+     */
     answerOnTurns: async (outcome: Answer | Error) => {
-      for (let turn = 0; turn < 500 && release === null; turn++)
+      const deadline = performance.now() + 5_000;
+      while (release === null && performance.now() < deadline)
         await new Promise((settle) => setImmediate(settle));
       if (release === null) throw new Error("No wait was held.");
       release(outcome);
