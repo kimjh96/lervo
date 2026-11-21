@@ -81,6 +81,44 @@ describe("Node runtime readiness snapshot", () => {
     publisher.close();
   });
 
+  it("resumes the starting heartbeat after a component was briefly unavailable", async () => {
+    const publisher = createNodeRuntimeHealthPublisher(
+      await stateDirectory(),
+      false,
+      false,
+      undefined,
+      false,
+      false,
+      { startingHeartbeatMs: 20 },
+    );
+    await publisher.initialize();
+    await publisher.observeWorkstreamReplicationFailure("local_state_invalid");
+    expect((await snapshot(publisher.path)).status).toBe("degraded");
+    // Replication recovers while synchronization is still pending: the Node is starting again.
+    await publisher.observeWorkstreamReplication(absentWorkstream);
+    const starting = await snapshot(publisher.path);
+    expect(starting.status).toBe("starting");
+    let heartbeat = starting;
+    for (
+      let attempt = 0;
+      attempt < 200 && heartbeat.updatedAt === starting.updatedAt;
+      attempt += 1
+    ) {
+      await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 10));
+      heartbeat = await snapshot(publisher.path);
+    }
+    expect(Date.parse(heartbeat.updatedAt)).toBeGreaterThan(Date.parse(starting.updatedAt));
+    publisher.close();
+    // A closed publisher never starts it again, even when a later change still reads `starting`.
+    await publisher.observeWorkstreamReplication(absentWorkstream);
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 1_100));
+    await publisher.observeWorkstreamReplication(absentWorkstream);
+    const closed = (await snapshot(publisher.path)).updatedAt;
+    // Longer than the one-second window in which identical bytes are not written again.
+    await new Promise<void>((resolvePromise) => setTimeout(resolvePromise, 1_300));
+    expect((await snapshot(publisher.path)).updatedAt).toBe(closed);
+  });
+
   it("does not replace identical health bytes in one burst but publishes changes immediately", async () => {
     const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), false);
     await publisher.initialize();

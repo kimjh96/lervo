@@ -133,6 +133,10 @@ describe("serialized causal owner decisions", () => {
     expect(runtime.nextCheckAt(f.state.supervisionId)).toBe(Date.parse(now) + 60_000);
     clock = new Date(Date.parse(now) + 59_999).toISOString();
     expect((await runtime.runCycle(f.state.supervisionId)).report).toBeNull();
+    // A grace that lapsed before anyone asked is still reported, so its cycle still runs.
+    clock = new Date(Date.parse(now) + 70_000).toISOString();
+    expect(runtime.nextCheckAt(f.state.supervisionId)).toBe(Date.parse(now) + 60_000);
+    clock = new Date(Date.parse(now) + 59_999).toISOString();
     expect(f.propose).not.toHaveBeenCalled();
     clock = new Date(Date.parse(now) + 60_000).toISOString();
     expect((await runtime.runCycle(f.state.supervisionId)).disposition).toBe("blocked");

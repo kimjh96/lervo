@@ -157,6 +157,61 @@ describe("Node fleet readiness observation", () => {
     expect(reads).toBe(402);
   });
 
+  it("counts the replacement's heartbeat even when the predecessor was still starting", async () => {
+    // The predecessor, itself never ready, keeps writing fresh `starting` heartbeats until it
+    // stops; the replacement then stays starting for 200 seconds while its heartbeat advances.
+    const { result, reads } = await observe((attempt) => {
+      if (attempt <= 20)
+        return snapshot(attempt, {
+          status: "starting",
+          processId: 100,
+          startedAt: "2026-10-05T23:00:00.000Z",
+          workstreamReplication: { status: "pending" },
+        });
+      const pending = attempt < 420;
+      return snapshot(pending ? Math.floor(attempt / 10) * 10 : attempt, {
+        status: pending ? "starting" : "ready",
+        startedAt: "2026-10-06T00:00:10.000Z",
+        workstreamReplication: pending ? { status: "pending" } : { status: "ready" },
+      });
+    }, undefined);
+    expect(result).toMatchObject({ status: "ready", processId: 200 });
+    expect(reads).toBe(422);
+    // With the predecessor known from the baseline, a clock that stepped back so the
+    // replacement seems to have started before the service operation changes nothing.
+    const stepped = await observe(
+      (attempt) => {
+        if (attempt <= 20)
+          return snapshot(attempt, {
+            status: "starting",
+            processId: 100,
+            startedAt: "2026-10-05T23:00:00.000Z",
+            workstreamReplication: { status: "pending" },
+          });
+        const pending = attempt < 420;
+        return snapshot(pending ? Math.floor(attempt / 10) * 10 : attempt, {
+          status: pending ? "starting" : "ready",
+          startedAt: "2026-10-05T23:59:50.000Z",
+          workstreamReplication: pending ? { status: "pending" } : { status: "ready" },
+        });
+      },
+      {
+        status: "observed",
+        processId: 100,
+        startedAt: "2026-10-05T23:00:00.000Z",
+        components: {
+          sync: { status: "ready" },
+          workstreamReplication: { status: "pending" },
+          workspaceCoordination: { status: "disabled" },
+          remoteControl: { status: "ready" },
+          conversation: { status: "disabled" },
+          supervision: { status: "disabled" },
+        },
+      },
+    );
+    expect(stepped.result).toMatchObject({ status: "ready", processId: 200 });
+  });
+
   it("stops counting liveness once the replacement restarts and caps a live startup", async () => {
     const pending = {
       status: "starting" as const,

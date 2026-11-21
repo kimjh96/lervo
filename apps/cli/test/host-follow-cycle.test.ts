@@ -37,13 +37,24 @@ const intent = (tag: string, activationId: string) => ({
   interruptions: 0,
 });
 
+const readinessFailure = {
+  readiness: {
+    baseline: "observed",
+    lastStatus: "starting",
+    lastProcessId: 4242,
+    observations: 288,
+    blockers: [{ component: "supervision", observed: "pending", baseline: "ready" }],
+  },
+  recovery: "restored" as const,
+};
+
 const readinessFailsOn =
   (version: string): RepositoryBehavior =>
   (args, activeVersion) => {
     if (activeVersion !== version || args[2] !== "/repositories/one")
       return upgradeResult("current");
     return args.includes("--apply")
-      ? { kind: "failed", code: "node_fleet_readiness_timeout" }
+      ? { kind: "failed", code: "node_fleet_readiness_timeout", failure: readinessFailure }
       : upgradeResult("ready", { planId: "plan_node" });
   };
 
@@ -145,6 +156,12 @@ describe("runFollowCycle", () => {
     expect(state.failedTags.map((entry) => [entry.tag, entry.activationId])).toEqual([
       ["v9.9.10", result.activationId],
     ]);
+    // The converging pass replaced lastPass; the failed tag still says which repository failed
+    // and why, so the next diagnosis needs no guessing.
+    expect(state.failedTags[0]?.failure).toEqual({
+      repositoryRoot: "/repositories/one",
+      ...readinessFailure,
+    });
     expect(state.lastPass).toMatchObject({ version: "9.9.9", outcome: "current" });
     expect(await runFollowCycle(harness.dependencies)).toMatchObject({
       outcome: "release_failed_on_host",

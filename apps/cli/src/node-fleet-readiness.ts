@@ -72,17 +72,32 @@ function readinessReceipt(
 }
 
 /**
- * ADR-0480: liveness of the first process seen `starting`. Its advancing `updatedAt` heartbeat is
- * startup progress. Another process later reporting `starting` means the replacement restarted,
- * so liveness stops counting for the rest of the observation.
+ * ADR-0480: liveness of the replacement, the first process seen `starting` that is not the
+ * predecessor. Its advancing `updatedAt` heartbeat is startup progress. A predecessor still
+ * writing `starting` before it stops never counts: it is known by the identity the baseline
+ * recorded, which no clock step can change. Without an observed baseline, a process that started
+ * before the service operation is taken for the predecessor. Another replacement later reporting
+ * `starting` means the replacement restarted, so liveness stops counting for the rest of the
+ * observation.
  */
 class StartingLiveness {
   private identity: string | null = null;
   private updatedAt = 0;
   private replaced = false;
 
+  constructor(
+    private readonly predecessor: string | null,
+    private readonly notBefore: number,
+  ) {}
+
   advanced(snapshot: NodeRuntimeHealthSnapshot, identity: string, updatedAt: number): boolean {
     if (snapshot.status !== "starting" || this.replaced) return false;
+    if (
+      this.predecessor !== null
+        ? identity === this.predecessor
+        : !(Date.parse(snapshot.startedAt) >= this.notBefore)
+    )
+      return false;
     if (this.identity === null) {
       this.identity = identity;
       this.updatedAt = updatedAt;
@@ -122,7 +137,10 @@ export async function observeNodeFleetReadiness(request: {
   let last: { snapshot: NodeRuntimeHealthSnapshot; evaluation: NodeReadinessEvaluation } | null =
     null;
   let progressMark = -1;
-  const liveness = new StartingLiveness();
+  const liveness = new StartingLiveness(
+    baseline.status === "observed" ? `${baseline.processId}\0${baseline.startedAt}` : null,
+    request.notBefore.getTime(),
+  );
   let deadline = idleObservationLimit;
   let attempt = 0;
   for (; attempt < Math.min(deadline, maximumObservationLimit); attempt += 1) {

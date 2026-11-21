@@ -31,7 +31,7 @@ describe("supervision event and deadline scheduling", () => {
     const loop = createSupervisionChangeLoop({
       runCycle: cycle,
       subscribe: () => () => {},
-      nextAuthorityCheckAt: () => deadline,
+      dutyDeadlines: () => [deadline],
       onFailure: vi.fn(),
     });
     loop.start();
@@ -39,6 +39,57 @@ describe("supervision event and deadline scheduling", () => {
     expect(cycle).toHaveBeenCalledOnce();
     await vi.advanceTimersByTimeAsync(1);
     expect(cycle).toHaveBeenCalledTimes(2);
+    await loop.stop();
+  });
+
+  it("still wakes a deferred owner whose first cycle outlasted the startup grace", async () => {
+    vi.useFakeTimers();
+    let deadline: number | null = null;
+    const cycle = vi.fn(async () => {
+      if (cycle.mock.calls.length === 1) {
+        deadline = Date.now() + 60_000;
+        // The first cycle's own work, such as opening a large history, runs past the grace.
+        await new Promise((done) => setTimeout(done, 65_000));
+      } else deadline = null;
+      return { disposition: "idle" as const, report: null };
+    });
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: () => () => {},
+      dutyDeadlines: () => [deadline],
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(65_000);
+    expect(cycle).toHaveBeenCalledOnce();
+    // The lapsed grace gets its one extra cycle, which evaluates the source.
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(cycle).toHaveBeenCalledTimes(2);
+    await loop.stop();
+  });
+
+  it("arms a later deadline while an earlier one stays lapsed", async () => {
+    vi.useFakeTimers();
+    const lapsed = Date.now() - 1_000;
+    const later = Date.now() + 30_000;
+    const cycle = vi.fn(async () => ({ disposition: "idle" as const, report: null }));
+    const loop = createSupervisionChangeLoop({
+      runCycle: cycle,
+      subscribe: () => () => {},
+      // An expired mandate stays reported; it must not hide the next check.
+      dutyDeadlines: () => [lapsed, later],
+      onFailure: vi.fn(),
+    });
+    loop.start();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(cycle).toHaveBeenCalledOnce();
+    // One extra cycle for the lapsed deadline, and no more.
+    await vi.advanceTimersByTimeAsync(5_000);
+    expect(cycle).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(24_999);
+    expect(cycle).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(1);
+    expect(cycle).toHaveBeenCalledTimes(3);
     await loop.stop();
   });
 
@@ -59,7 +110,7 @@ describe("supervision event and deadline scheduling", () => {
         notify = callback;
         return unsubscribe;
       },
-      nextAuthorityCheckAt: () => null,
+      dutyDeadlines: () => [null],
       onFailure: vi.fn(),
     });
     loop.start();
@@ -93,7 +144,7 @@ describe("supervision event and deadline scheduling", () => {
     const loop = createSupervisionChangeLoop({
       runCycle: cycle,
       subscribe: () => () => {},
-      nextAuthorityCheckAt: () => due,
+      dutyDeadlines: () => [due],
       onFailure: failure,
     });
     loop.start();
@@ -122,7 +173,7 @@ describe("supervision event and deadline scheduling", () => {
         notify = callback;
         return () => {};
       },
-      nextAuthorityCheckAt: () => null,
+      dutyDeadlines: () => [null],
       onFailure: vi.fn(),
     });
     loop.start();
@@ -150,7 +201,7 @@ describe("supervision event and deadline scheduling", () => {
         notify = callback;
         return () => {};
       },
-      nextAuthorityCheckAt: () => null,
+      dutyDeadlines: () => [null],
       onFailure: vi.fn(),
     });
     loop.start();
@@ -185,7 +236,7 @@ describe("supervision event and deadline scheduling", () => {
     const loop = createSupervisionChangeLoop({
       runCycle: cycle,
       subscribe: () => () => {},
-      nextAuthorityCheckAt: () => null,
+      dutyDeadlines: () => [null],
       onFailure: vi.fn(),
     });
     loop.start();
@@ -210,7 +261,7 @@ describe("supervision event and deadline scheduling", () => {
         notify = callback;
         return () => {};
       },
-      nextAuthorityCheckAt: () => null,
+      dutyDeadlines: () => [null],
       onFailure: vi.fn(),
     });
     loop.start();

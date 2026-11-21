@@ -36,10 +36,13 @@ export class OutcomeSupervisionRuntime {
     this.readinessHolds = new SupervisionReadinessHolds(ports);
   }
 
-  /** Schedules deferred startup evaluation even without another source notification. */
+  /**
+   * When the source must be evaluated again even without a notification, such as the end of the
+   * startup grace. A lapsed deadline is returned as it is: a cycle that outlasted it would
+   * otherwise never wake for it.
+   */
   nextCheckAt(supervisionId: string): number | null {
-    const deadline = this.cursors.nextCheckAt(supervisionId);
-    return deadline !== null && deadline > Date.parse(this.ports.now()) ? deadline : null;
+    return this.cursors.nextCheckAt(supervisionId);
   }
 
   async runCycle(supervisionId: string): Promise<OutcomeSupervisionCycleResult> {

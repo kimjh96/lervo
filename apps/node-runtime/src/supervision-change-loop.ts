@@ -8,7 +8,8 @@ type SettledSource = { digest: string; blocked: boolean };
 export function createSupervisionChangeLoop(input: {
   runCycle(): Promise<OutcomeSupervisionCycleResult>;
   subscribe(notify: () => void): () => void;
-  nextAuthorityCheckAt(): number | null;
+  /** Every duty deadline, lapsed ones included; the loop gives each lapsed one a single cycle. */
+  dutyDeadlines(): readonly (number | null)[];
   onFailure(error: unknown): void;
   onCycle?(result: OutcomeSupervisionCycleResult): void | Promise<void>;
   /** ADR-0602: attention for a loop whose change signal could not be armed. */
@@ -58,11 +59,6 @@ export function createSupervisionChangeLoop(input: {
       await input.onCycle?.(structuredClone(result));
       return unchanged;
     },
-    nextWakeupAt: () => {
-      const candidates = [deadline, input.nextAuthorityCheckAt()].filter(
-        (value): value is number => value !== null && Number.isFinite(value),
-      );
-      return candidates.length === 0 ? null : Math.min(...candidates);
-    },
+    nextWakeupAt: () => [deadline, ...input.dutyDeadlines()],
   });
 }

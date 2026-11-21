@@ -141,6 +141,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   private publishedContent: string | null = null;
   private publishedAt = 0;
   private heartbeat: ReturnType<typeof setInterval> | null = null;
+  private closed = false;
   private settled = false;
 
   private now(): Date {
@@ -183,7 +184,6 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     try {
       await assertStateDirectory(resolve(this.path, ".."));
       await this.publish(() => undefined);
-      this.startHeartbeat();
     } catch (error) {
       throw new NodeRuntimeError(
         "startup_failed",
@@ -261,15 +261,17 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   }
 
   close(): void {
+    this.closed = true;
     this.stopHeartbeat();
   }
 
   /**
    * A slow but live startup keeps `updatedAt` advancing, so readiness observers can tell it from
-   * a hung or crashed process. A blocked event loop delays the heartbeat, which is intended.
+   * a hung or crashed process. A blocked event loop delays the heartbeat, which is intended. It
+   * runs whenever the status is `starting`, also after a component was briefly unavailable.
    */
   private startHeartbeat(): void {
-    if (this.heartbeat !== null || this.snapshot.status !== "starting") return;
+    if (this.heartbeat !== null || this.snapshot.status !== "starting" || this.closed) return;
     this.heartbeat = setInterval(() => {
       this.publish(() => undefined).catch(() => this.stopHeartbeat());
     }, this.options.startingHeartbeatMs ?? NODE_RUNTIME_STARTING_HEARTBEAT_MS);
@@ -287,6 +289,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
       update();
       this.snapshot.status = aggregate(this.snapshot);
       if (this.snapshot.status !== "starting") this.stopHeartbeat();
+      else this.startHeartbeat();
       if (
         !this.settled &&
         (this.snapshot.status === "ready" || this.snapshot.status === "degraded")

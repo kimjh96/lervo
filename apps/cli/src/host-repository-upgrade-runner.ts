@@ -1,3 +1,7 @@
+import {
+  repositoryUpgradeFailureDetail,
+  type RepositoryUpgradeFailureDetail,
+} from "./host-follow-failure-detail.js";
 import { execFile } from "node:child_process";
 
 /**
@@ -22,7 +26,7 @@ export type RepositoryUpgradeInvocation =
       /** ADR-0561: a plan's stages Lervo holds as its own debt; absent for a receipt. */
       lervoDebtStages?: string[];
     }
-  | { kind: "failed"; code: string }
+  | { kind: "failed"; code: string; failure?: RepositoryUpgradeFailureDetail }
   | { kind: "unreadable" }
   | { kind: "timed_out" }
   | { kind: "interrupted" };
@@ -81,7 +85,12 @@ export function parseRepositoryUpgradeOutput(stdout: string): RepositoryUpgradeI
     const error = (
       record.error !== null && typeof record.error === "object" ? record.error : {}
     ) as Record<string, unknown>;
-    return { kind: "failed", code: typeof error.code === "string" ? error.code : "command_failed" };
+    const failure = repositoryUpgradeFailureDetail(error);
+    return {
+      kind: "failed",
+      code: typeof error.code === "string" ? error.code : "command_failed",
+      ...(failure === undefined ? {} : { failure }),
+    };
   }
   if (typeof record.status !== "string") return { kind: "unreadable" };
   const pending = Array.isArray(record.pending) ? record.pending : [];
