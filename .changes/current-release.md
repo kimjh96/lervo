@@ -1,6 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.30.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.30.1" schema="1" -->
 
 ## What's changed
 
-- Knowledge publication follows each repository's merge policy, reviews cannot be broken by a mistyped hash, and non-owner hosts no longer pile up knowledge jobs
-- Knowledge publication reads what is published from GitHub on every host, stops polling GitHub after a bounded wait, keeps closed pull requests closed, and adds lervo knowledge convergence owner acknowledge
+- A restarted Node whose first supervision cycle outlasts its startup grace now still evaluates its owner, readiness counts only the replacement's heartbeat, and a rolled-back release keeps why it failed
