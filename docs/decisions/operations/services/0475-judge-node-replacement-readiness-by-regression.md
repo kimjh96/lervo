@@ -19,14 +19,20 @@ Even after successful replacement, the upgrade planner would have classified the
 
 Before replacing an installed Node service, apply reads the predecessor's health snapshot. Rollback similarly reads the failed target's snapshot.
 
-| Baseline status | Meaning |
-| --- | --- |
-| `observed` | A valid snapshot no older than two minutes was read. |
-| `stale` | The snapshot is older than two minutes; nothing carries over. |
-| `unavailable` | No valid snapshot was readable; nothing carries over. |
-| `not_applicable` | No service existed (first install); complete readiness is required. |
+| Baseline status  | Meaning                                                                       |
+| ---------------- | ----------------------------------------------------------------------------- |
+| `observed`       | A valid snapshot that still describes the running predecessor was read.       |
+| `stale`          | The snapshot no longer describes a running predecessor; nothing carries over. |
+| `unavailable`    | No valid snapshot was readable; nothing carries over.                         |
+| `not_applicable` | No service existed (first install); complete readiness is required.           |
 
 A failed baseline read never blocks the operation; it removes only the carry-over allowance.
+
+A `starting` or `stopping` snapshot is refreshed by a live process, so it describes the predecessor while it is no older than two minutes. A settled Node, `ready` or `degraded`, writes its snapshot only when a component changes, so its age says nothing: it describes the predecessor as long as that snapshot's process still runs: its pid is alive and that process started no later than the snapshot's `startedAt`, at most ten minutes earlier. A reused pid belongs to a process started after the writer ended, and an unprovable start time does not count. Before this, every long-running degraded predecessor read as `stale`, so its own evaluated condition could never be carried.
+
+### A baseline without evidence
+
+A predecessor component that never evaluated (`pending`), or a predecessor that left no usable snapshot, gives no evidence about the condition a replacement then settles. Treating that first honest evaluation as a regression rolls back a release that is not at fault, and the restored predecessor reaches the same state. When a readiness timeout's every blocker is such a component, outside the delivery components, and was settled by the replacement, the Node stage judges it by the restored predecessor. It observes the predecessor with the readiness budget until those components settle in three consecutive settled (`ready` or `degraded`) snapshots of a process other than the replacement; a `starting` snapshot may still change. Only when the predecessor settles each of them exactly as the replacement did does the condition predate the release; the stage then replaces the predecessor once more, and readiness carries the condition from that observed baseline. The receipt lists it in `witnessedConditions`. Any other outcome keeps the original failure: a predecessor that settles differently, or not at all, proves a regression or proves nothing. A blocker with an evaluated baseline, a delivery component, an unsettled component, and an unrestored recovery are never witnessed.
 
 ### Component judgment
 
@@ -46,11 +52,11 @@ Readiness still requires three consecutive fresh, monotonic snapshots from one p
 
 The `readiness` block in `repository_node_onboarding` and `repository_node_rollback` receipts adds:
 
-| Field | Type | Meaning |
-| --- | --- | --- |
-| `conversation` | bounded component text | Accepted conversation state, such as `ready` or `disabled`. |
-| `supervision` | bounded component text | Accepted supervision state, such as `unavailable:<failureCode>`. |
-| `baseline` | `observed`, `stale`, `unavailable`, or `not_applicable` | Whether carry-over was possible. |
+| Field               | Type                                                       | Meaning                                                                      |
+| ------------------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| `conversation`      | bounded component text                                     | Accepted conversation state, such as `ready` or `disabled`.                  |
+| `supervision`       | bounded component text                                     | Accepted supervision state, such as `unavailable:<failureCode>`.             |
+| `baseline`          | `observed`, `stale`, `unavailable`, or `not_applicable`    | Whether carry-over was possible.                                             |
 | `carriedConditions` | list of `{ component, status, failureCode, reasonCodes? }` | Pre-existing, unchanged, non-delivery conditions accepted from the baseline. |
 
 `workspaceCoordination` and `remoteControl` may report `unavailable:<failureCode>` for carried conditions. `status` retains its meaning: `ready` means delivery components are ready; `offline_ready` means an allowed Hub outage. Carried conditions remain visible and do not prove that a component works.
@@ -61,12 +67,12 @@ Organization rollout and rollback consume the same receipt. First organization a
 
 `NodeFleetApplyError` carries bounded, secret-free `details`, included in the JSON command error envelope:
 
-| Field | Meaning |
-| --- | --- |
-| `readiness` | `{ baseline, blockers: [{ component, observed, baseline }], lastStatus, lastProcessId, observations }` from the last fresh observation before timeout. |
-| `failedCode` | Code of the failure that triggered compensation. |
-| `recovery` | `restored` if compensation succeeded; `failed` if it could not be proved. |
-| `recoveryFailureCode` | Typed compensation failure code, or `node_fleet_apply_failed` if none existed. |
+| Field                 | Meaning                                                                                                                                                |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `readiness`           | `{ baseline, blockers: [{ component, observed, baseline }], lastStatus, lastProcessId, observations }` from the last fresh observation before timeout. |
+| `failedCode`          | Code of the failure that triggered compensation.                                                                                                       |
+| `recovery`            | `restored` if compensation succeeded; `failed` if it could not be proved.                                                                              |
+| `recoveryFailureCode` | Typed compensation failure code, or `node_fleet_apply_failed` if none existed.                                                                         |
 
 The timeout message names every blocking component, its observed state, and its baseline state; for example, `supervision=unavailable:supervision_attention_required (baseline ready)`. Without a fresh snapshot, it names the elapsed window instead.
 
@@ -96,6 +102,8 @@ Focused CLI tests cover:
 - Timeout details naming the blocking component and baseline.
 - Recovery failure retaining original readiness blockers, and recovery success marked `restored`.
 - The upgrade-planning predicate for auxiliary-only conditions.
+- A settled predecessor that is hours old but running observed, one whose process is gone or whose pid was reused stale, and an old `starting` snapshot stale (`node-fleet-readiness.test.ts`).
+- Eligibility for a witness, the witness ignoring the failed replacement and states read while starting, a predecessor that never settles, a second replacement after an identical settlement, the original failure after a different one, and no witness for an evaluated baseline (`node-fleet-readiness-witness.test.ts`).
 
 Installed verification must show `lervo upgrade --apply` in `axli` completing `repository_node` while supervision still reports `preflight_repair_requires_review`, listed in `carriedConditions`.
 

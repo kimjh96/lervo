@@ -61,6 +61,7 @@ describe("Node fleet readiness observation", () => {
       {
         readHealth: async () =>
           snapshot(-10, { processId: 100, status: "degraded", supervision: supervisionAttention }),
+        processRunning: async () => true,
       },
       notBefore,
     );
@@ -96,7 +97,10 @@ describe("Node fleet readiness observation", () => {
   it("names the newly failing component, its baseline, and the observation count on timeout", async () => {
     const baseline = await captureNodeFleetReadinessBaseline(
       "/fixture/node-runtime-health.json",
-      { readHealth: async () => snapshot(-10, { processId: 100 }) },
+      {
+        readHealth: async () => snapshot(-10, { processId: 100 }),
+        processRunning: async () => true,
+      },
       notBefore,
     );
     const failure = await observe(
@@ -271,10 +275,54 @@ describe("Node fleet readiness observation", () => {
         notBefore,
       ),
     ).resolves.toEqual({ status: "unavailable" });
+    // A settled Node writes only on change: hours-old bytes still describe a running process.
+    const settled = snapshot(-7_200, {
+      processId: 100,
+      status: "degraded",
+      supervision: supervisionAttention,
+    });
     await expect(
       captureNodeFleetReadinessBaseline(
         "/fixture/node-runtime-health.json",
-        { readHealth: async () => snapshot(-241) },
+        { readHealth: async () => settled, processRunning: async (pid) => pid === 100 },
+        notBefore,
+      ),
+    ).resolves.toMatchObject({ status: "observed", processId: 100 });
+    // Its process is gone, so the snapshot describes nothing that runs.
+    await expect(
+      captureNodeFleetReadinessBaseline(
+        "/fixture/node-runtime-health.json",
+        { readHealth: async () => settled, processRunning: async () => false },
+        notBefore,
+      ),
+    ).resolves.toEqual({ status: "stale" });
+    // By default the writer must still run: this test process, with its real start time, does;
+    // the same pid claimed by a snapshot from before it started is a reused pid, and stale.
+    const started = Date.now() - process.uptime() * 1_000;
+    const own = (startedAt: number) => ({
+      ...settled,
+      processId: process.pid,
+      startedAt: new Date(startedAt).toISOString(),
+    });
+    const capture = (value: NodeRuntimeHealthSnapshot) =>
+      captureNodeFleetReadinessBaseline(
+        "/fixture/node-runtime-health.json",
+        { readHealth: async () => value },
+        notBefore,
+      );
+    await expect(capture(own(started + 500))).resolves.toMatchObject({ status: "observed" });
+    await expect(capture(own(started - 60 * 60_000))).resolves.toEqual({ status: "stale" });
+    await expect(capture({ ...own(started), processId: 2_147_483_000 })).resolves.toEqual({
+      status: "stale",
+    });
+    // A starting Node refreshes its heartbeat, so an old one is stale whatever runs.
+    await expect(
+      captureNodeFleetReadinessBaseline(
+        "/fixture/node-runtime-health.json",
+        {
+          readHealth: async () => snapshot(-241, { status: "starting" }),
+          processRunning: async () => true,
+        },
         notBefore,
       ),
     ).resolves.toEqual({ status: "stale" });

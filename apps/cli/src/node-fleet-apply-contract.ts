@@ -116,6 +116,8 @@ export interface NodeFleetApplyPorts {
   };
   wait?: (durationMs: number) => Promise<void>;
   readHealth?: (path: string) => Promise<NodeRuntimeHealthSnapshot>;
+  /** Whether the process that wrote a snapshot still runs on this host; replaced only in tests. */
+  processRunning?: (processId: number, startedAt: string) => Promise<boolean>;
 }
 
 export interface NodeFleetApplyReceipt {
@@ -138,6 +140,11 @@ export interface NodeFleetApplyReceipt {
     baseline: NodeReadinessBaseline["status"];
     /** Pre-existing non-delivery conditions the replacement kept unchanged; never hidden. */
     carriedConditions: NodeReadinessCarriedCondition[];
+    /**
+     * ADR-0475: conditions a first replacement settled where the predecessor had given no
+     * evidence, which the restored predecessor then settled identically before this replacement.
+     */
+    witnessedConditions?: Array<{ component: string; state: string }>;
   };
   registry: RegisterNodeFleetInstanceResult;
   /**

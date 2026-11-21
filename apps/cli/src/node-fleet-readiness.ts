@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import type { NodeRuntimeHealthSnapshot } from "@lervo/node-runtime";
 
 import {
@@ -24,16 +25,64 @@ const readyIntervalMs = 500;
 const idleObservationLimit = 120;
 /** Observations however long startup keeps progressing: 600 seconds. */
 const maximumObservationLimit = 1_200;
-/** A predecessor snapshot older than this no longer describes a running process. */
+/** A `starting` or `stopping` snapshot older than this no longer describes a running process. */
 const baselineFreshnessMs = 2 * 60_000;
+
+/** `ps` elapsed time, `[[dd-]hh:]mm:ss`, in milliseconds; null when it is not one. */
+function elapsedMs(text: string): number | null {
+  const match = /^(?:(?:(\d+)-)?(\d+):)?(\d+):(\d+)$/u.exec(text.trim());
+  if (match === null) return null;
+  const [, days, hours, minutes, seconds] = match;
+  return (
+    (((Number(days ?? 0) * 24 + Number(hours ?? 0)) * 60 + Number(minutes)) * 60 +
+      Number(seconds)) *
+    1_000
+  );
+}
+
+/** How much earlier than its snapshot's `startedAt` the Node process may have started. */
+const startupAllowanceMs = 10 * 60_000;
+
+/**
+ * Whether the process that wrote a snapshot still runs: its pid is alive and that process started
+ * no later than the snapshot's `startedAt`. A reused pid belongs to a process that started after
+ * the writer ended, so it never counts; an unprovable start time does not count either.
+ */
+async function snapshotProcessRunning(processId: number, startedAt: string): Promise<boolean> {
+  try {
+    process.kill(processId, 0);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EPERM") return false;
+  }
+  const output = await execFileText("ps", ["-o", "etime=", "-p", String(processId)]).catch(
+    () => null,
+  );
+  const elapsed = output === null ? null : elapsedMs(output);
+  if (elapsed === null) return false;
+  const started = Date.now() - elapsed;
+  const written = Date.parse(startedAt);
+  // `ps` reports whole seconds, so the start is known to within about two.
+  return started <= written + 2_000 && started >= written - startupAllowanceMs;
+}
+
+function execFileText(command: string, args: string[]): Promise<string> {
+  return new Promise((resolvePromise, reject) => {
+    execFile(command, args, { timeout: 5_000 }, (error, stdout) =>
+      error === null ? resolvePromise(stdout) : reject(error),
+    );
+  });
+}
 
 /**
  * Reads the predecessor's component states before a service operation replaces it. Failure to
- * read yields no baseline, which carries nothing over; it never blocks the operation.
+ * read yields no baseline, which carries nothing over; it never blocks the operation. A settled
+ * Node (`ready` or `degraded`) writes its snapshot only when a component changes, so its age says
+ * nothing: it describes the predecessor as long as the process that wrote it still runs. Only a `starting` or
+ * `stopping` snapshot, which a live process keeps refreshing, goes stale by age.
  */
 export async function captureNodeFleetReadinessBaseline(
   path: string,
-  ports: Pick<NodeFleetApplyPorts, "readHealth">,
+  ports: Pick<NodeFleetApplyPorts, "readHealth" | "processRunning">,
   now: Date,
 ): Promise<NodeReadinessBaseline> {
   const read = ports.readHealth ?? readNodeFleetHealthSnapshot;
@@ -43,9 +92,11 @@ export async function captureNodeFleetReadinessBaseline(
   } catch {
     return { status: "unavailable" };
   }
-  if (now.getTime() - Date.parse(snapshot.updatedAt) > baselineFreshnessMs)
-    return { status: "stale" };
-  return nodeReadinessBaselineFrom(snapshot);
+  const settled = snapshot.status === "ready" || snapshot.status === "degraded";
+  const current = settled
+    ? await (ports.processRunning ?? snapshotProcessRunning)(snapshot.processId, snapshot.startedAt)
+    : now.getTime() - Date.parse(snapshot.updatedAt) <= baselineFreshnessMs;
+  return current ? nodeReadinessBaselineFrom(snapshot) : { status: "stale" };
 }
 
 function readinessReceipt(
