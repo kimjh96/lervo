@@ -119,3 +119,37 @@ fn writes_the_token_file_owner_only() {
         0o600
     );
 }
+
+#[tokio::test]
+async fn keeps_frames_whole_when_a_read_is_cancelled() {
+    use std::time::Duration;
+
+    let directory = tempfile::tempdir().unwrap();
+    let socket = directory.path().join("host.sock");
+    let listener = bind(&socket).await.unwrap();
+    let sending = tokio::spawn(async move {
+        let (stream, _) = listener.accept().await.unwrap();
+        let (_, write) = stream.into_split();
+        let mut writer = FrameWriter::new(write);
+        for sequence in 1..=20_u64 {
+            tokio::time::sleep(Duration::from_millis(3)).await;
+            writer.terminal(1, sequence, &[7_u8; 1000]).await.unwrap();
+        }
+    });
+    let (read, _write) = UnixStream::connect(&socket).await.unwrap().into_split();
+    let mut reader = FrameReader::new(read);
+    let mut sequences = Vec::new();
+    while sequences.len() < 20 {
+        // A short timeout cancels many reads while frames are still on their way.
+        if let Ok(next) = tokio::time::timeout(Duration::from_micros(500), reader.next()).await
+            && let Some(lervo_session_transport::framed::Incoming::Terminal {
+                sequence, bytes, ..
+            }) = next.unwrap()
+        {
+            assert_eq!(bytes.len(), 1000);
+            sequences.push(sequence);
+        }
+    }
+    assert_eq!(sequences, (1..=20).collect::<Vec<_>>());
+    sending.await.unwrap();
+}

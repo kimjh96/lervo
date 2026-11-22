@@ -75,7 +75,25 @@ impl Core for FakeCore {
         LineDecoder::default()
     }
 
-    async fn open(&self, workspace_id: &str) -> Result<Launch, Failure> {
+    async fn open(
+        &self,
+        workspace_id: &str,
+        _mode: Option<ConversationMode>,
+    ) -> Result<Launch, Failure> {
+        if workspace_id == "wks_switch" {
+            let mode = _mode.unwrap_or(ConversationMode::Cli);
+            return Ok(Launch {
+                session_id: "ses_switch".to_owned(),
+                workspace_id: workspace_id.to_owned(),
+                mode,
+                program: "/bin/sh".to_owned(),
+                arguments: vec!["-c".to_owned(), "while read line; do :; done".to_owned()],
+                environment: Vec::new(),
+                working_directory: std::env::temp_dir(),
+                provider: "fake".to_owned(),
+                initial_input: None,
+            });
+        }
         let (session_id, mode, script) = match workspace_id {
             "wks_1" => (
                 "ses_1",
@@ -374,6 +392,89 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
         serde_json::to_value(failed.code).unwrap(),
         json!("range_invalid")
     );
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reports_every_session_status_to_a_watching_connection_without_output() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut watcher = Client::connect(&layout).await;
+    watcher.send(json!({"kind": "sessions.watch"})).await;
+
+    let mut opener = Client::connect(&layout).await;
+    opener
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_1"}))
+        .await;
+    assert!(matches!(
+        opener.next_message().await,
+        HostMessage::SessionOpenedMessage(_)
+    ));
+
+    let mut statuses = Vec::new();
+    while statuses.last() != Some(&SessionStatusMessageStatus::Ended) {
+        match watcher.next().await {
+            Incoming::Control(payload) => match watcher.codec.decode_host(&payload).unwrap() {
+                HostMessage::SessionStatusMessage(status) => {
+                    assert_eq!(status.session_id.as_str(), "ses_1");
+                    statuses.push(status.status);
+                }
+                other => panic!("unexpected {other:?}"),
+            },
+            Incoming::Terminal { .. } => panic!("a watching connection received output"),
+        }
+    }
+    assert_eq!(statuses.first(), Some(&SessionStatusMessageStatus::Idle));
+
+    let mut late = Client::connect(&layout).await;
+    late.send(json!({"kind": "sessions.watch"})).await;
+    let HostMessage::SessionStatusMessage(snapshot) = late.next_message().await else {
+        panic!("expected the current status")
+    };
+    assert_eq!(snapshot.status, SessionStatusMessageStatus::Ended);
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reuses_a_running_session_and_switches_its_mode_by_restarting_it() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    let open = |request: &str, mode: Option<&str>| {
+        let mut message =
+            json!({"kind": "session.open", "requestId": request, "workspaceId": "wks_switch"});
+        if let Some(mode) = mode {
+            message["conversationMode"] = json!(mode);
+        }
+        message
+    };
+    client.send(open("req_1", None)).await;
+    let HostMessage::SessionOpenedMessage(first) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    client.send(open("req_2", Some("cli"))).await;
+    let HostMessage::SessionOpenedMessage(again) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    assert_eq!(
+        (again.session_id.as_str(), again.channel),
+        (first.session_id.as_str(), first.channel)
+    );
+
+    client.send(open("req_3", Some("native"))).await;
+    let HostMessage::SessionOpenedMessage(switched) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    assert_eq!(
+        switched.conversation_mode,
+        lervo_session_protocol::ConversationMode::Native
+    );
+    assert_eq!(switched.session_id.as_str(), "ses_switch");
+    assert_ne!(switched.channel, first.channel);
 
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();

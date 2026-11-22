@@ -7,6 +7,7 @@ mod host;
 mod items;
 mod messages;
 mod native;
+mod registry;
 pub mod serve;
 mod session;
 mod subscriber;

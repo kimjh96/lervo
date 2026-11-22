@@ -59,22 +59,26 @@ The session host removes the socket and the token when it shuts down. Its sessio
 - A client records the last sequence it applied. After a reconnection, `session.attach` with `afterSequence` makes the session host send what the client missed, then the current status:
   - for the CLI conversation, the scrollback after that sequence that it still holds;
   - for the native conversation, the item that is still streaming, if any. The client loads the items it missed with `conversation.range` after its last item. Clients keep items by `itemId`, so an item that arrives twice replaces itself.
-- An ended session still answers `session.attach` and `conversation.range` for 10 minutes. After that, `session.open` starts the session again.
+- `session.open` returns the workspace's running session, with its terminal channel, when the session runs in the requested mode or no mode is named. When it runs in the other mode, the session host stops it, waits up to 5 seconds for the provider to exit, and asks the core for a launch in the requested mode. For a provider that resumes, that launch continues the same session. Only then does it ask the core, so one provider process serves each workspace.
+- `sessions.watch` makes the session host send the latest `session.status` of every session it holds, and then each status change, to that connection until it closes. The workspace list uses it, so it shows live status without receiving any session's output.
+- An ended session still answers `session.attach` and `conversation.range` for 10 minutes, keeping the last 256 KiB of its CLI output. At most 32 ended sessions are kept at once: opening a session releases the oldest beyond that. After either, `session.open` starts the session again.
+- Consecutive deltas of one item merge into one `conversation.delta` of at most 64 KiB, so a fast stream sends few messages.
 - The session host buffers at most 4 MiB per client and session. When a client falls further behind, the session host drops that client's terminal frames for the session and sends `session.resync_required`. The client then attaches again.
 
 ## Messages from the client
 
-| Message               | Purpose                                                                                         |
-| --------------------- | ----------------------------------------------------------------------------------------------- |
-| `hello`               | Opens the connection.                                                                           |
-| `application.command` | Forwards a Lervo application command, such as `workspace.start`, to the resident Lervo process. |
-| `session.open`        | Starts the agent session of an existing workspace.                                              |
-| `session.attach`      | Subscribes to a session from a sequence.                                                        |
-| `session.detach`      | Ends the subscription. The session keeps running.                                               |
-| `session.send`        | Sends the user's text to the native conversation.                                               |
-| `session.resize`      | Sets the CLI conversation's terminal size.                                                      |
-| `session.stop`        | Stops the agent session.                                                                        |
-| `conversation.range`  | Requests older or newer conversation items, at most 200 per request.                            |
+| Message               | Purpose                                                                                          |
+| --------------------- | ------------------------------------------------------------------------------------------------ |
+| `hello`               | Opens the connection.                                                                            |
+| `application.command` | Forwards a Lervo application command, such as `workspace.start`, to the resident Lervo process.  |
+| `session.open`        | Starts or returns the agent session of an existing workspace, optionally in a conversation mode. |
+| `session.attach`      | Subscribes to a session from a sequence.                                                         |
+| `session.detach`      | Ends the subscription. The session keeps running.                                                |
+| `sessions.watch`      | Subscribes to the status of every session, without output.                                       |
+| `session.send`        | Sends the user's text to the native conversation.                                                |
+| `session.resize`      | Sets the CLI conversation's terminal size.                                                       |
+| `session.stop`        | Stops the agent session.                                                                         |
+| `conversation.range`  | Requests older or newer conversation items, at most 200 per request.                             |
 
 The interface never names a path or a launch descriptor. `workspace.start` and `session.open` make the session host ask the Lervo core for a launch descriptor and run it, so the interface handles only opaque identifiers.
 

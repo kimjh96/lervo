@@ -1,0 +1,12 @@
+.conversation {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.error {
+  margin: var(--space-12) auto 0;
+  color: var(--color-status-failed);
+  font-size: var(--type-meta-size);
+}

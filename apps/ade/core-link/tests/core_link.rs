@@ -45,7 +45,7 @@ async fn runs_commands_and_maps_their_launches_and_failures() {
         .unwrap_err();
     assert_eq!(failure.code, FailureCode::WorkspaceStartFailed);
     assert_eq!(failure.stage.as_deref(), Some("workstream"));
-    let missing = core.open("wsp_2").await.unwrap_err();
+    let missing = core.open("wsp_2", None).await.unwrap_err();
     assert_eq!(missing.code, FailureCode::WorkspaceNotFound);
 }
 

@@ -131,13 +131,26 @@ export async function startWorkstreamIn(input: {
   }
 }
 
-/** The worktree that has `branch` checked out, from `git worktree list`. */
-export async function worktreeOfBranch(root: string, branch: string): Promise<string | null> {
-  const listing = await git(root, ["worktree", "list", "--porcelain"]);
-  let path: string | null = null;
-  for (const line of listing.split("\n")) {
-    if (line.startsWith("worktree ")) path = line.slice("worktree ".length);
-    if (line === `branch refs/heads/${branch}` && path !== null) return resolve(path);
+/** Each checked-out branch's worktree, from one `git worktree list`. */
+export async function worktreesByBranch(root: string): Promise<Map<string, string>> {
+  const worktrees = new Map<string, string>();
+  try {
+    const listing = await git(root, ["worktree", "list", "--porcelain"]);
+    let path: string | null = null;
+    for (const line of listing.split("\n")) {
+      if (line.startsWith("worktree ")) path = line.slice("worktree ".length);
+      const branch = line.startsWith("branch refs/heads/")
+        ? line.slice("branch refs/heads/".length)
+        : null;
+      if (branch !== null && path !== null) worktrees.set(branch, resolve(path));
+    }
+  } catch {
+    // A repository Git cannot read lists no worktrees.
   }
-  return null;
+  return worktrees;
+}
+
+/** The worktree that has `branch` checked out, or null. */
+export async function worktreeOfBranch(root: string, branch: string): Promise<string | null> {
+  return (await worktreesByBranch(root)).get(branch) ?? null;
 }

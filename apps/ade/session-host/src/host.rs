@@ -1,6 +1,5 @@
 //! The session registry and the handling of client messages.
 
-use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -9,35 +8,23 @@ use std::sync::{Arc, Mutex};
 use lervo_session_core::paging::Direction;
 use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_protocol::{
-    ClientMessage, ConversationRangeMessageDirection, HostMessage, Identifier,
-    RequestFailedMessageCode,
+    ClientMessage, ConversationMode as WireMode, ConversationRangeMessageDirection, HostMessage,
+    Identifier, RequestFailedMessageCode,
 };
 use lervo_session_transport::handshake::HostIdentity;
 use lervo_session_transport::token::Token;
 use tokio::sync::mpsc;
 
 use crate::messages;
-use crate::session::{Command, Range, Reply, SessionHandle};
+use crate::registry::{Registry, Watch, control};
+use crate::session::{Command, Range, Reply, SessionHandle, StatusSink};
 use crate::subscriber::{Outgoing, Subscriber};
 use crate::{native, terminal};
 use lervo_session_core::ports::{ConversationMode, Core, Launch};
 
-/// Sessions by identifier, and the session of each terminal channel.
-#[derive(Default)]
-struct Registry {
-    sessions: HashMap<Identifier, SessionHandle>,
-    channels: HashMap<u32, Identifier>,
-}
-
-impl Registry {
-    /// Forgets sessions whose actor exited, so the registry stays as large as the live sessions.
-    fn prune(&mut self) {
-        self.sessions.retain(|_, handle| !handle.is_gone());
-        let sessions = &self.sessions;
-        self.channels
-            .retain(|_, session| sessions.contains_key(session));
-    }
-}
+/// How long a mode switch waits for the previous provider process to end.
+const STOP_POLLS: u32 = 100;
+const STOP_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
 
 /// The running session host: its core port, identity, token, and sessions.
 pub struct Host<C> {
@@ -47,6 +34,8 @@ pub struct Host<C> {
     pub identity: HostIdentity,
     indexes: PathBuf,
     registry: Mutex<Registry>,
+    watch: Arc<Mutex<Watch>>,
+    watchers: StatusSink,
     next_channel: AtomicU32,
 }
 
@@ -58,6 +47,14 @@ impl<C: Core> Host<C> {
         identity: HostIdentity,
         indexes: PathBuf,
     ) -> Self {
+        let watch = Arc::new(Mutex::new(Watch::default()));
+        let (watchers, mut changes) = mpsc::unbounded_channel();
+        let recording = Arc::clone(&watch);
+        tokio::spawn(async move {
+            while let Some(message) = changes.recv().await {
+                lock(&recording).record(message);
+            }
+        });
         Self {
             core,
             codec,
@@ -65,6 +62,8 @@ impl<C: Core> Host<C> {
             identity,
             indexes,
             registry: Mutex::new(Registry::default()),
+            watch,
+            watchers,
             next_channel: AtomicU32::new(1),
         }
     }
@@ -102,11 +101,14 @@ impl<C: Core> Host<C> {
             ClientMessage::SessionOpenMessage(open) => {
                 let host = Arc::clone(self);
                 tokio::spawn(async move {
-                    let message = match host.core.open(open.workspace_id.as_str()).await {
-                        Ok(launch) => host.open(&open.request_id, &launch),
-                        Err(failure) => messages::core_failed(&open.request_id, &failure),
-                    };
-                    reply.send(message);
+                    let mode = open.conversation_mode.map(|mode| match mode {
+                        WireMode::Native => ConversationMode::Native,
+                        WireMode::Cli => ConversationMode::Cli,
+                    });
+                    reply.send(
+                        host.open_workspace(&open.request_id, &open.workspace_id, mode)
+                            .await,
+                    );
                 });
             }
             ClientMessage::SessionAttachMessage(attach) => {
@@ -116,6 +118,16 @@ impl<C: Core> Host<C> {
                 };
                 self.request(&attach.session_id, &attach.request_id, command, &reply)
                     .await;
+            }
+            ClientMessage::SessionsWatchMessage(_) => {
+                let mut watch = lock(&self.watch);
+                for message in watch.statuses.values() {
+                    let _ = outgoing.send(control(message.clone()));
+                }
+                watch
+                    .connections
+                    .retain(|(watcher, _)| *watcher != connection);
+                watch.connections.push((connection, outgoing.clone()));
             }
             ClientMessage::SessionDetachMessage(detach) => {
                 self.send(&detach.session_id, Command::Detach { connection })
@@ -167,6 +179,9 @@ impl<C: Core> Host<C> {
 
     /// Detaches `connection` from every session.
     pub async fn detach_all(&self, connection: u64) {
+        lock(&self.watch)
+            .connections
+            .retain(|(watcher, _)| *watcher != connection);
         let sessions: Vec<_> = self.lock().sessions.values().cloned().collect();
         for session in sessions {
             session.send(Command::Detach { connection }).await;
@@ -196,6 +211,42 @@ impl<C: Core> Host<C> {
         }
     }
 
+    /// The workspace's running session in `mode`, or a session the core prepares. A session that
+    /// runs in another mode stops first, so one provider process serves each workspace.
+    async fn open_workspace(
+        &self,
+        request: &Identifier,
+        workspace: &Identifier,
+        mode: Option<ConversationMode>,
+    ) -> HostMessage {
+        let running = {
+            let registry = self.lock();
+            registry
+                .workspaces
+                .get(workspace)
+                .and_then(|session| {
+                    Some((session.clone(), registry.sessions.get(session)?.clone()))
+                })
+                .filter(|(_, handle)| handle.is_running())
+        };
+        if let Some((session, handle)) = running {
+            if mode.is_none_or(|mode| mode == handle.mode) {
+                return opened(request, &session, workspace, &handle);
+            }
+            handle.send(Command::Stop).await;
+            for _ in 0..STOP_POLLS {
+                if !handle.is_running() {
+                    break;
+                }
+                tokio::time::sleep(STOP_POLL_INTERVAL).await;
+            }
+        }
+        match self.core.open(workspace.as_str(), mode).await {
+            Ok(launch) => self.open(request, &launch),
+            Err(failure) => messages::core_failed(request, &failure),
+        }
+    }
+
     /// Starts the session of `launch`, or confirms it when it already runs.
     fn open(&self, request: &Identifier, launch: &Launch) -> HostMessage {
         let (Some(session), Some(workspace)) = (
@@ -206,6 +257,10 @@ impl<C: Core> Host<C> {
         };
         let mut registry = self.lock();
         registry.prune();
+        registry.release_oldest_ended();
+        lock(&self.watch)
+            .statuses
+            .retain(|session, _| registry.sessions.contains_key(session));
         if let Some(running) = registry
             .sessions
             .get(&session)
@@ -215,8 +270,10 @@ impl<C: Core> Host<C> {
         }
         let channel = self.next_channel.fetch_add(1, Ordering::Relaxed);
         let started = match launch.mode {
-            ConversationMode::Cli => terminal::start(launch, session.clone(), channel)
-                .map_err(|_| RequestFailedMessageCode::ProviderCliUnavailable),
+            ConversationMode::Cli => {
+                terminal::start(launch, session.clone(), channel, self.watchers.clone())
+                    .map_err(|_| RequestFailedMessageCode::ProviderCliUnavailable)
+            }
             ConversationMode::Native => native::start(
                 launch,
                 session.clone(),
@@ -230,6 +287,7 @@ impl<C: Core> Host<C> {
                         .map(|id| id.as_str())
                         .collect::<Vec<_>>(),
                 },
+                self.watchers.clone(),
             )
             .map_err(|error| match error {
                 native::StartError::Process(_) => RequestFailedMessageCode::ProviderCliUnavailable,
@@ -242,6 +300,9 @@ impl<C: Core> Host<C> {
             Ok(handle) => {
                 let message = opened(request, &session, &workspace, &handle);
                 registry.channels.insert(channel, session.clone());
+                registry
+                    .workspaces
+                    .insert(workspace.clone(), session.clone());
                 registry.sessions.insert(session, handle);
                 message
             }
@@ -250,9 +311,7 @@ impl<C: Core> Host<C> {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Registry> {
-        self.registry
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        lock(&self.registry)
     }
 }
 
@@ -264,4 +323,10 @@ fn opened(
 ) -> HostMessage {
     let channel = NonZeroU64::new(u64::from(handle.channel)).unwrap_or(NonZeroU64::MIN);
     messages::opened(request, session, workspace, handle.mode, channel)
+}
+
+fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }

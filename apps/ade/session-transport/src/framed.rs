@@ -24,9 +24,13 @@ pub enum Incoming {
 }
 
 /// Reads frames. The buffer never grows beyond one maximum frame and one read chunk.
+///
+/// `next` is cancellation safe: bytes join the buffer only after a read completes, so a caller may
+/// race it against a timer or another future.
 pub struct FrameReader<R> {
     inner: R,
     buffer: Vec<u8>,
+    chunk: Box<[u8]>,
 }
 
 impl<R: AsyncRead + Unpin> FrameReader<R> {
@@ -34,6 +38,7 @@ impl<R: AsyncRead + Unpin> FrameReader<R> {
         Self {
             inner,
             buffer: Vec::new(),
+            chunk: vec![0_u8; READ_CHUNK_BYTES].into_boxed_slice(),
         }
     }
 
@@ -56,10 +61,8 @@ impl<R: AsyncRead + Unpin> FrameReader<R> {
                 self.buffer.drain(..used);
                 return Ok(Some(incoming));
             }
-            let start = self.buffer.len();
-            self.buffer.resize(start + READ_CHUNK_BYTES, 0);
-            let read = self.inner.read(&mut self.buffer[start..]).await?;
-            self.buffer.truncate(start + read);
+            let read = self.inner.read(&mut self.chunk).await?;
+            self.buffer.extend_from_slice(&self.chunk[..read]);
             if read == 0 {
                 return if self.buffer.is_empty() {
                     Ok(None)

@@ -14,6 +14,8 @@ export const sessionOpenMessageSchema = {
     kind: { type: "string", enum: ["session.open"] },
     requestId: identifierSchema,
     workspaceId: identifierSchema,
+    /** Reopens the session in this mode; a running session in another mode stops first. */
+    conversationMode: conversationModeSchema,
   },
 } as const;
 
@@ -38,6 +40,20 @@ export const sessionDetachMessageSchema = {
   properties: {
     kind: { type: "string", enum: ["session.detach"] },
     sessionId: identifierSchema,
+  },
+} as const;
+
+/**
+ * Subscribes the connection to the status of every session, without output. The session host
+ * answers with each live session's status and then sends each change.
+ */
+export const sessionsWatchMessageSchema = {
+  title: "SessionsWatchMessage",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind"],
+  properties: {
+    kind: { type: "string", enum: ["sessions.watch"] },
   },
 } as const;
 
@@ -130,3 +146,4 @@ export type SessionStopMessage = FromSchema<typeof sessionStopMessageSchema>;
 export type SessionOpenedMessage = FromSchema<typeof sessionOpenedMessageSchema>;
 export type SessionStatusMessage = FromSchema<typeof sessionStatusMessageSchema>;
 export type SessionResyncRequiredMessage = FromSchema<typeof sessionResyncRequiredMessageSchema>;
+export type SessionsWatchMessage = FromSchema<typeof sessionsWatchMessageSchema>;

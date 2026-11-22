@@ -15,7 +15,7 @@ use std::time::Duration;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use lervo_session_core::ports::{
-    CommandOutcome, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
+    CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
 };
 use lervo_session_core::transcript::{Content, Input};
 use lervo_session_protocol::codec::CodecError;
@@ -88,10 +88,20 @@ impl Core for CoreLink {
         }
     }
 
-    async fn open(&self, workspace_id: &str) -> Result<Launch, Failure> {
-        let outcome = self
-            .launch(json!({"kind": "core.open", "workspaceId": workspace_id}))
-            .await?;
+    async fn open(
+        &self,
+        workspace_id: &str,
+        mode: Option<ConversationMode>,
+    ) -> Result<Launch, Failure> {
+        let mut request = json!({"kind": "core.open", "workspaceId": workspace_id});
+        if let (Some(mode), Value::Object(object)) = (mode, &mut request) {
+            let mode = match mode {
+                ConversationMode::Native => "native",
+                ConversationMode::Cli => "cli",
+            };
+            object.insert("mode".to_owned(), Value::from(mode));
+        }
+        let outcome = self.launch(request).await?;
         outcome
             .launch
             .ok_or_else(|| Failure::new(FailureCode::ApplicationFailed))

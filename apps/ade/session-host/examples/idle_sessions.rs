@@ -48,7 +48,11 @@ impl Core for IdleCore {
         IdleDecoder
     }
 
-    async fn open(&self, workspace_id: &str) -> Result<Launch, Failure> {
+    async fn open(
+        &self,
+        workspace_id: &str,
+        _mode: Option<ConversationMode>,
+    ) -> Result<Launch, Failure> {
         let index: usize = workspace_id
             .trim_start_matches("wks_")
             .parse()

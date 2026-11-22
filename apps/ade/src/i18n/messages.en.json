@@ -3,13 +3,13 @@
     "defaultMessage": "Lervo",
     "description": "The product name, shown beside the logo."
   },
-  "connection.connecting": {
-    "defaultMessage": "Connecting to this computer",
-    "description": "The interface is reaching the session host."
-  },
   "connection.connected": {
     "defaultMessage": "Connected",
     "description": "The interface reached the session host."
+  },
+  "connection.connecting": {
+    "defaultMessage": "Connecting to this computer",
+    "description": "The interface is reaching the session host."
   },
   "connection.reconnecting": {
     "defaultMessage": "Reconnecting",
@@ -19,16 +19,168 @@
     "defaultMessage": "Lervo could not start its session host",
     "description": "The shell could not find or start the session host."
   },
+  "conversation.jumpToLatest": {
+    "defaultMessage": "Jump to latest",
+    "description": "Returns the conversation to its newest messages."
+  },
+  "conversation.reply.failed": {
+    "defaultMessage": "The reply did not reach the agent. It is back in the input.",
+    "description": "session.send failed."
+  },
+  "conversation.reply.label": {
+    "defaultMessage": "Reply",
+    "description": "The accessible label of the reply input."
+  },
+  "conversation.reply.placeholder": {
+    "defaultMessage": "Reply to the agent",
+    "description": "The reply input's placeholder."
+  },
+  "conversation.tool.failed": {
+    "defaultMessage": "{name} failed",
+    "description": "A tool call that failed."
+  },
+  "conversation.tool.running": {
+    "defaultMessage": "{name} is running",
+    "description": "A tool call that has not finished."
+  },
+  "conversation.tool.succeeded": {
+    "defaultMessage": "{name}{calls, plural, =1 {} other { · # calls}}",
+    "description": "A finished tool call; the count shows when the agent called the tool more than once."
+  },
+  "conversation.unavailable": {
+    "defaultMessage": "The conversation could not open ({code}).",
+    "description": "The session could not attach or start; the code names why."
+  },
+  "notice.conversation_item_invalid": {
+    "defaultMessage": "A message from the agent could not be shown.",
+    "description": "The adapter produced an item outside the protocol's limits."
+  },
+  "notice.core_decoding_failed": {
+    "defaultMessage": "Lervo could not read part of the agent's output.",
+    "description": "The provider adapter could not decode a chunk."
+  },
+  "notice.core_link_unavailable": {
+    "defaultMessage": "Lervo could not read the agent's output for a moment. The agent keeps working.",
+    "description": "The resident Lervo process was unreachable while decoding."
+  },
+  "notice.provider_turn_failed": {
+    "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
+    "description": "Claude Code's result did not succeed."
+  },
+  "notice.unknown": {
+    "defaultMessage": "Lervo notice: {code}",
+    "description": "A Lervo notice without a catalog message."
+  },
+  "notifications.finished": {
+    "defaultMessage": "Finished its turn",
+    "description": "A desktop notification: the agent finished its turn."
+  },
+  "notifications.needsYou": {
+    "defaultMessage": "Needs you",
+    "description": "A desktop notification: the agent asked the user something."
+  },
+  "start.error.application_unavailable": {
+    "defaultMessage": "Lervo is not reachable on this computer.",
+    "description": "The resident Lervo process is not running."
+  },
+  "start.error.conversation_mode_unsupported": {
+    "defaultMessage": "This agent runs only in the terminal. Choose Terminal.",
+    "description": "The provider offers only the CLI conversation."
+  },
+  "start.error.provider_cli_unavailable": {
+    "defaultMessage": "The agent's CLI was not found on this computer.",
+    "description": "The provider CLI is missing."
+  },
+  "start.error.session_host_unavailable": {
+    "defaultMessage": "Lervo is not connected to this computer.",
+    "description": "The interface is not connected to the session host."
+  },
+  "start.error.workspace_start_failed": {
+    "defaultMessage": "Lervo could not create the workspace. Nothing was left behind.",
+    "description": "workspace.start failed; its stages were rolled back."
+  },
+  "start.instruction.label": {
+    "defaultMessage": "Instruction",
+    "description": "The accessible label of the instruction input."
+  },
+  "start.instruction.placeholder": {
+    "defaultMessage": "Describe the change, the bug, or the question",
+    "description": "The instruction input's placeholder."
+  },
+  "start.mode.cli": {
+    "defaultMessage": "Terminal",
+    "description": "The CLI conversation in a terminal."
+  },
+  "start.mode.label": {
+    "defaultMessage": "Conversation",
+    "description": "The accessible label of the conversation mode choice."
+  },
+  "start.mode.native": {
+    "defaultMessage": "Conversation view",
+    "description": "The native conversation that the ADE renders."
+  },
+  "start.provider.claude": {
+    "defaultMessage": "Claude Code",
+    "description": "The Claude Code provider CLI."
+  },
+  "start.provider.codex": {
+    "defaultMessage": "Codex CLI",
+    "description": "The Codex provider CLI."
+  },
+  "start.provider.label": {
+    "defaultMessage": "Agent",
+    "description": "The accessible label of the provider choice."
+  },
   "start.question": {
     "defaultMessage": "What should we work on?",
     "description": "The start screen's question, above the instruction input."
   },
-  "workspaces.title": {
-    "defaultMessage": "Workspaces",
-    "description": "The heading of the workspace list."
+  "start.repository.label": {
+    "defaultMessage": "Repository",
+    "description": "The accessible label of the repository choice."
+  },
+  "start.repository.none": {
+    "defaultMessage": "Register a repository with lervo repository register to start work.",
+    "description": "Shown when the host has no registered repository."
+  },
+  "start.starting": {
+    "defaultMessage": "Starting",
+    "description": "Shown while Lervo creates the workspace."
+  },
+  "start.submit": {
+    "defaultMessage": "Start",
+    "description": "Starts the work."
+  },
+  "workspace.meta": {
+    "defaultMessage": "{repository} · {branch}",
+    "description": "The selected workspace's repository and branch."
+  },
+  "workspace.mode.cli": {
+    "defaultMessage": "Open in terminal",
+    "description": "Switches the workspace to the CLI conversation."
+  },
+  "workspace.mode.native": {
+    "defaultMessage": "Open conversation view",
+    "description": "Switches the workspace to the native conversation."
   },
   "workspaces.empty": {
     "defaultMessage": "No workspaces yet",
     "description": "The workspace list before any work has started."
+  },
+  "workspaces.new": {
+    "defaultMessage": "New",
+    "description": "Starts a new workspace from the start screen."
+  },
+  "workspaces.status.needsYou": {
+    "defaultMessage": "Needs you",
+    "description": "Status text for assistive technology: the workspace needs the user."
+  },
+  "workspaces.status.working": {
+    "defaultMessage": "Working",
+    "description": "Status text for assistive technology: the agent is working."
+  },
+  "workspaces.title": {
+    "defaultMessage": "Workspaces",
+    "description": "The heading of the workspace list."
   }
 }

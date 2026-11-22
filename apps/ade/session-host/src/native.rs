@@ -7,7 +7,7 @@ use std::time::Duration;
 use lervo_session_core::paging::{item_id, page};
 use lervo_session_core::retention::INDEX_CAP_BYTES;
 use lervo_session_core::status::{EndReason, SessionEvent};
-use lervo_session_core::transcript::{Change, Input, Item, Transcript};
+use lervo_session_core::transcript::{Change, Input, Item, Transcript, coalesce};
 use lervo_session_protocol::codec::{decode_record, encode};
 use lervo_session_protocol::{ConversationItem, Identifier, RequestFailedMessageCode};
 use lervo_session_store::{ConversationStore, StoreError, retention};
@@ -16,7 +16,7 @@ use tokio::sync::mpsc;
 
 use crate::items::to_wire;
 use crate::messages;
-use crate::session::{Command, Fanout, Range, SessionHandle, linger};
+use crate::session::{Command, Fanout, Range, SessionHandle, StatusSink, linger};
 use lervo_session_core::ports::{ConversationMode, Decoded, Launch, StreamDecoder};
 
 /// Bytes of sealed segments one session keeps in memory.
@@ -51,6 +51,7 @@ pub fn start<D: StreamDecoder>(
     channel: u32,
     decoder: D,
     indexes: &IndexPlace<'_>,
+    watchers: StatusSink,
 ) -> Result<SessionHandle, StartError> {
     let directory: PathBuf = indexes.root.join(session.as_str());
     retention::touch(&directory)?;
@@ -66,7 +67,7 @@ pub fn start<D: StreamDecoder>(
     })?;
     let (handle, commands) = SessionHandle::new(ConversationMode::Native, channel);
     let actor = Native {
-        fanout: Fanout::new(session, &handle),
+        fanout: Fanout::new(session, &handle, watchers),
         initial_input: launch.initial_input.clone(),
         transcript: Transcript::new(store.len()),
         store: Some(store),
@@ -167,20 +168,29 @@ impl<D: StreamDecoder> Native<D> {
                     RequestFailedMessageCode::SessionEnded,
                 ));
             }
-            Command::Input(_) | Command::Resize { .. } | Command::Stop => {}
+            Command::Input(_) | Command::Resize { .. } | Command::Stop | Command::Release => {}
         }
     }
 
+    /// Applies decoded events in order. Conversation changes between two status changes merge
+    /// their deltas, so text never moves past a status message.
     fn apply(&mut self, decoded: Vec<Decoded>) {
+        let mut pending = Vec::new();
         for decoded in decoded {
             match decoded {
-                Decoded::Status(event) => self.fanout.change(event),
-                Decoded::Conversation(input) => {
-                    for change in self.transcript.apply(input) {
-                        self.change(change);
-                    }
+                Decoded::Status(event) => {
+                    self.flush(&mut pending);
+                    self.fanout.change(event);
                 }
+                Decoded::Conversation(input) => pending.extend(self.transcript.apply(input)),
             }
+        }
+        self.flush(&mut pending);
+    }
+
+    fn flush(&mut self, pending: &mut Vec<Change>) {
+        for change in coalesce(std::mem::take(pending)) {
+            self.change(change);
         }
     }
 

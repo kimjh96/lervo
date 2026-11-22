@@ -99,6 +99,8 @@ These are the ADE's budgets, including S1's initial targets. Until S1 records a 
 | UI idle memory                                                        | 150 MB                             |
 | Session host idle memory                                              | 30 MB                              |
 | Installed size, excluding provider CLIs                               | 20 MB                              |
+| Interface JavaScript that the start screen loads, gzip                | 120 KB                             |
+| Any interface chunk that loads on first use, gzip                     | 160 KB                             |
 | UI CPU, idle with the window visible                                  | under 0.5% of one core             |
 | UI CPU, idle with the window hidden                                   | under 0.1% of one core             |
 | Session host CPU with twenty idle sessions                            | under 0.2% of one core             |

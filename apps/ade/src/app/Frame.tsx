@@ -1,13 +1,24 @@
+import { lazy, Suspense } from "react";
 import { FormattedMessage } from "react-intl";
 
 import { ConnectionStatus } from "../features/connection";
+import { WorkspaceConversation } from "../features/conversation";
 import { StartScreen } from "../features/start";
-import { WorkspaceList } from "../features/workspaces";
+import { WorkspaceHeader } from "../features/workspace-header";
+import { useWorkspaceStore, WorkspaceList } from "../features/workspaces";
 import styles from "./Frame.module.css";
 import { LogoMark } from "./LogoMark";
 
-/** The window's layout: the workspace list beside the conversation area. */
+// The terminal and its renderer load on first use, so the start screen stays light.
+const Terminal = lazy(() =>
+  import("../features/terminal").then((module) => ({ default: module.Terminal })),
+);
+
+/** The window's layout: the workspace list beside the start screen or the selected workspace. */
 export function Frame() {
+  const selected = useWorkspaceStore((store) =>
+    store.workspaces.find((workspace) => workspace.workspaceId === store.selected),
+  );
   return (
     <div className={styles.frame}>
       <nav className={styles.sidebar}>
@@ -23,7 +34,23 @@ export function Frame() {
         </div>
       </nav>
       <main className={styles.content}>
-        <StartScreen />
+        {selected === undefined ? (
+          <StartScreen />
+        ) : (
+          <>
+            <WorkspaceHeader workspaceId={selected.workspaceId} />
+            {selected.conversationMode === "native" ? (
+              <WorkspaceConversation
+                key={selected.workspaceId}
+                target={{ workspaceId: selected.workspaceId, sessionId: selected.sessionId }}
+              />
+            ) : (
+              <Suspense fallback={null}>
+                <Terminal key={selected.workspaceId} workspaceId={selected.workspaceId} />
+              </Suspense>
+            )}
+          </>
+        )}
       </main>
     </div>
   );

@@ -6,6 +6,8 @@ use std::collections::VecDeque;
 
 /// Default limit of retained terminal bytes per session.
 pub const DEFAULT_SCROLLBACK_BYTES: usize = 2 * 1024 * 1024;
+/// Bytes an ended session keeps: enough to show its final screen to a client that attaches late.
+pub const ENDED_SCROLLBACK_BYTES: usize = 256 * 1024;
 
 #[derive(Debug)]
 struct Chunk {
@@ -49,6 +51,18 @@ impl Scrollback {
                 None => break,
             }
         }
+    }
+
+    /// Lowers the limit to `limit` and drops the oldest chunks beyond it, returning their memory.
+    pub fn shrink_to(&mut self, limit: usize) {
+        self.limit = self.limit.min(limit);
+        while self.bytes > self.limit {
+            match self.chunks.pop_front() {
+                Some(chunk) => self.bytes -= chunk.bytes.len(),
+                None => break,
+            }
+        }
+        self.chunks.shrink_to_fit();
     }
 
     /// Retained chunks whose sequence comes after `after_sequence`, oldest first.
@@ -111,5 +125,24 @@ mod tests {
         let mut scrollback = Scrollback::new(4);
         scrollback.push(1, b"");
         assert!(scrollback.is_empty());
+    }
+
+    #[test]
+    fn shrinks_to_its_newest_bytes() {
+        let mut scrollback = Scrollback::new(100);
+        for sequence in 1..=10 {
+            scrollback.push(sequence, &[0; 10]);
+        }
+        scrollback.shrink_to(30);
+        assert_eq!(scrollback.len(), 30);
+        assert_eq!(
+            scrollback
+                .since(0)
+                .map(|(sequence, _)| sequence)
+                .collect::<Vec<_>>(),
+            [8, 9, 10]
+        );
+        scrollback.push(11, &[0; 10]);
+        assert_eq!(scrollback.len(), 30);
     }
 }

@@ -223,7 +223,9 @@
         "command": {
           "type": "string",
           "enum": [
-            "workspace.start"
+            "workspace.start",
+            "workspace.list",
+            "repository.list"
           ]
         },
         "arguments": {

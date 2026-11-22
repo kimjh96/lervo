@@ -71,6 +71,29 @@ Each adapter that declares `nativeConversation` provides a stream decoder, and t
 
 The native conversation's structured stream carries the same kinds of events that ADR-0010 reads. It still records hosted observations only. A native hosted session can claim an E3 receipt only after the provider adapter's common contract tests prove the same controlled-input coordinates that ADR-0010 requires.
 
+## Live status and notifications
+
+- The workspace list shows a workspace's status from `sessions.watch`. Only `working` and `needs_user` have a color, as the visual language defines; every dot has a text equivalent.
+- A desktop notification appears when a session turns to `needs_user`, or from `working` to `idle`, which means the agent finished its turn. Nothing notifies for the workspace the user is looking at in a focused window, or for a status the interface saw first after connecting.
+- A notification holds the workspace title and a catalog message, never conversation text.
+
+## The conversation in the interface
+
+- The interface keeps a window of at most 600 items for the open conversation and loads pages of 100 with `conversation.range`. Scrolling near the top loads the previous page, and the window trims the side away from what the user reads.
+- Only items near the viewport mount: the list is virtualized, and rows measure their own height.
+- Streamed text applies at most once per frame. A new item, or a repeat of a streaming item, flushes the pending text first, so the order never changes.
+- When the workspace's session does not run, the interface opens it with `session.open`, which resumes the provider's session through the core, and attaches again.
+- Each item kind has one renderer in a registry. Lervo notices render from the catalog by code. In S1.5c, messages render as plain text; S1.6 chooses Markdown and code rendering by measurement against the conversation budgets.
+
+## The CLI conversation in the interface
+
+- The interface shows the CLI conversation in xterm.js with the generated terminal theme for the current color scheme. It uses the WebGL renderer and falls back to the DOM renderer.
+- It opens the session with `session.open` in the CLI conversation, attaches from the last sequence it wrote, and skips frames it already wrote, so reconnecting never repeats output.
+- Keystrokes go out as terminal frames on the session's channel. Size changes go out as `session.resize`, once per change.
+- The header switches a workspace between the two modes through `session.open` with the other mode.
+- The terminal and its renderer load on first use, so the start screen does not pay for them.
+- When the session host cannot be reached, the interface's reconnection makes the shell start it again (session-host protocol, "Transport").
+
 ## Conversation index
 
 - The session host keeps one conversation index per session: segment files of 256 encoded items each, written as length-prefixed records.

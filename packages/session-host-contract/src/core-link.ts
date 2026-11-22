@@ -35,7 +35,7 @@ export const coreCommandRequestSchema = request(
   "CoreCommandRequest",
   "core.command",
   {
-    command: { type: "string", enum: ["workspace.start"] },
+    command: { type: "string", enum: ["workspace.start", "workspace.list", "repository.list"] },
     arguments: { type: "object", maxProperties: 16 },
   },
   ["command", "arguments"],
