@@ -1,0 +1,16 @@
+[package]
+name = "lervo-ade"
+version = "0.1.0"
+description = "The Lervo desktop shell."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+
+[lints]
+workspace = true

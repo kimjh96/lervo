@@ -3,11 +3,12 @@ import { lstat, readFile, readdir } from "node:fs/promises";
 import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
-const sourceExtensions = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs"]);
+const sourceExtensions = new Set([".ts", ".tsx", ".js", ".mjs", ".cjs", ".rs"]);
 const excludedSegments = new Set([
   "node_modules",
   "dist",
   "build",
+  "target",
   "coverage",
   "test",
   "tests",

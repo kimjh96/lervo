@@ -1,10 +1,13 @@
 import js from "@eslint/js";
 import { defineConfig, globalIgnores } from "eslint/config";
 import eslintConfigPrettier from "eslint-config-prettier/flat";
+import jsxA11y from "eslint-plugin-jsx-a11y";
+import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 
 import { errorCausePlugin } from "./scripts/quality/lib/eslint-error-cause-rule.mjs";
+import { jsxLiteralPlugin } from "./scripts/quality/lib/eslint-jsx-literal-rule.mjs";
 import { providerSchemaPlugin } from "./scripts/quality/lib/eslint-provider-schema-any-rule.mjs";
 
 export default defineConfig(
@@ -145,6 +148,52 @@ export default defineConfig(
     ],
     rules: {
       "prefer-const": "off",
+    },
+  },
+  {
+    // ADE convention: the React interface runs in a webview, keeps interface text in message
+    // catalogs, uses accessible native controls, and never imports Lervo packages directly.
+    name: "lervo/ade-interface",
+    files: ["apps/ade/**/*.{ts,tsx}"],
+    extends: [
+      js.configs.recommended,
+      ...tseslint.configs.recommended,
+      reactHooks.configs.flat.recommended,
+      jsxA11y.flatConfigs.recommended,
+    ],
+    languageOptions: {
+      globals: globals.browser,
+      parser: tseslint.parser,
+      parserOptions: {
+        ecmaFeatures: { jsx: true },
+        ecmaVersion: "latest",
+        sourceType: "module",
+      },
+    },
+    linterOptions: {
+      reportUnusedDisableDirectives: "error",
+    },
+    plugins: { "lervo-jsx": jsxLiteralPlugin },
+    rules: {
+      "lervo-jsx/no-jsx-literals": "error",
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@lervo/*"],
+              message: "The ADE interface reaches Lervo only through the session host protocol.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    name: "lervo/ade-build-config",
+    files: ["apps/ade/vite.config.ts"],
+    languageOptions: {
+      globals: globals.node,
     },
   },
   {

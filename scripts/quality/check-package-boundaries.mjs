@@ -76,6 +76,17 @@ for (const [name, dependencies] of forbidden) {
   }
 }
 
+// ADE convention (ADR-0613): the desktop interface reaches Lervo only through the session-host
+// protocol, so it depends on no other workspace package.
+const adeAllowedWorkspaceDependencies = new Set();
+for (const dependency of manifests.get("@lervo/ade")?.dependencies ?? []) {
+  if (manifests.has(dependency) && !adeAllowedWorkspaceDependencies.has(dependency)) {
+    failures.push(
+      `@lervo/ade must not depend on ${dependency}; it reaches Lervo through the session-host protocol`,
+    );
+  }
+}
+
 if (failures.length > 0) {
   console.error([...new Set(failures)].join("\n"));
   process.exitCode = 1;

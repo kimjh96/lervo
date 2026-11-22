@@ -113,9 +113,7 @@ The CLI conversation uses these colors. Every color except dark `black` reaches 
 
 ## Motion
 
-- `motion.fast` is 120 ms and `motion.base` is 200 ms, both with `cubic-bezier(0.2, 0, 0, 1)`.
-- The working dot breathes between 45% and 100% opacity over 2,400 ms.
-- Motion animates only `opacity` and `transform`. It stops when the window is hidden, when nothing is working, and when the user prefers reduced motion.
+[Lervo ADE motion](ade-motion.md) defines the motion principles, the motion tokens, and the catalog of every animated pattern. In short, motion explains a change and never decorates. It moves only opacity and transform, lasts at most 200 ms, and stops entirely when nothing is working or the user prefers reduced motion.
 
 ## Icons
 
