@@ -252,6 +252,9 @@
         },
         "workspaceId": {
           "$ref": "#/$defs/Identifier"
+        },
+        "conversationMode": {
+          "$ref": "#/$defs/ConversationMode"
         }
       }
     },

@@ -14,6 +14,8 @@ export const sessionOpenMessageSchema = {
     kind: { type: "string", enum: ["session.open"] },
     requestId: identifierSchema,
     workspaceId: identifierSchema,
+    /** Reopens the session in this mode; a running session in another mode stops first. */
+    conversationMode: conversationModeSchema,
   },
 } as const;
 
