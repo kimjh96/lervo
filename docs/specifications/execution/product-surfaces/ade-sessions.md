@@ -37,13 +37,22 @@ A hosted session reaches the user in one of two modes.
 
 The native conversation is the target experience. The CLI conversation is the fallback that every installation can always use.
 
-The native conversation runs the CLI the same way the Agent SDK does. Its use under a subscription login in a distributed product therefore needs Anthropic's confirmation. Until Anthropic confirms it, these defaults apply:
-
-- An installation that uses a subscription login defaults to the CLI conversation.
-- An installation that uses an API key defaults to the native conversation.
-- The user can switch a workspace between the two modes at any time.
+Both modes run the unmodified provider CLI under the user's own sign-in, so the native conversation is the default for every sign-in. The user can switch a workspace to the CLI conversation at any time.
 
 A managed session always renders as a native conversation.
+
+## Provider terms
+
+The ADE runs each provider CLI under that provider's terms. For Claude Code, Anthropic's [legal and compliance terms](https://code.claude.com/docs/en/legal-and-compliance) allow a product to run the binary under each user's own sign-in, with these conditions:
+
+- Lervo runs the Claude Code binary as Anthropic publishes it, and never removes or restricts its authentication methods.
+- Each user signs in through Claude Code's own flow, with their own subscription or API key. Lervo never collects, stores, or forwards Claude credentials or session tokens.
+- Lervo never pays for, resells, or intermediates Claude usage on a user's behalf.
+- The ADE may state in plain text that it runs Claude Code. It never uses the Claude Code or Anthropic names or logos in its own name or logo.
+- The publisher of a distributed build accepts Anthropic's Commercial Terms of Service.
+- Managed sessions use the Agent SDK and therefore use API keys only.
+
+The Codex CLI ships in a distributed build only after OpenAI's terms are checked against the same conditions. A provider adapter that cannot meet its provider's terms is not admitted (ADR-0536).
 
 ## Hosted observations
 

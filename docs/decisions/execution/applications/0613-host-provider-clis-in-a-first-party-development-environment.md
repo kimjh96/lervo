@@ -18,7 +18,7 @@ The owner uses Orca, a desktop workspace application, only to open Claude Code a
 
 Work in Orca's windows is direct provider work. ADR-0197 marks it `unmanaged` because Lervo does not start the provider, obtains no adapter delivery receipt, cannot gate every effect, and cannot observe model internals. The native-hook path prepares at most 8 KiB of context per prompt ([direct provider terminals](../../../architecture/system/managed-execution/direct-provider-terminals.md)). Lervo's managed Claude adapter (ADR-0010) observes sessions, turns, and tools and issues E3 receipts, but only background work uses it.
 
-The owner intends to distribute the environment. The [Agent SDK documentation](https://code.claude.com/docs/en/agent-sdk/overview) states that, unless previously approved, Anthropic does not allow third-party developers to offer claude.ai login or rate limits for their products, including agents built on the Agent SDK. Most developers pay for agent work through a provider subscription, and only the provider's own CLI uses that subscription.
+The owner intends to distribute the environment. Anthropic's [legal and compliance terms](https://code.claude.com/docs/en/legal-and-compliance) forbid third-party products to offer Claude.ai login or to route requests through subscription credentials, and they direct Agent SDK products to API keys. The same terms allow a product to run the unmodified Claude Code binary when each end user signs in with their own subscription or API key. Most developers pay for agent work through a subscription.
 
 ADR-0560 removed the packed product-host protocol because nothing invoked it. `lervo application attention` is the only remaining application query.
 
@@ -63,7 +63,7 @@ A hosted session reaches the user in one of two conversation modes:
 - The native conversation runs the CLI with structured streams, and the ADE renders it. It is the target experience.
 - The CLI conversation shows the provider's own terminal interface. It is the fallback that every installation can always use.
 
-The native conversation runs the CLI the same way the Agent SDK does, so its use under a subscription login in a distributed product needs Anthropic's confirmation. Until Anthropic confirms it, an installation with a subscription login defaults to the CLI conversation, and an installation with an API key defaults to the native conversation. The user can switch a workspace between the modes at any time.
+Both modes run the unmodified provider CLI under the user's own sign-in, which Anthropic's terms allow for Claude Code under the conditions that [Lervo ADE sessions](../../../specifications/execution/product-surfaces/ade-sessions.md#provider-terms) lists. The native conversation is therefore the default for every sign-in. The user can switch a workspace to the CLI conversation at any time.
 
 Hosted sessions record hosted observations: `launched`, `tool_observed`, `instructions_loaded`, and ADR-0197's `prepared` and `referenced`. Hosting removes one of ADR-0197's four reasons for `unmanaged`, because Lervo starts the provider; the other three still hold. Hosted observations are never E1–E4 and never satisfy a managed context or write gate (invariant 3).
 
@@ -113,9 +113,9 @@ The [Lervo ADE convention](../../../foundation/ade-convention.md) turns the owne
 
 ## Slices
 
-- **S1: instruction-first workspaces with the CLI conversation.** The start screen takes an instruction, a repository, and a host. `lervo workspace start` creates the worktree, branch, workstream, and launch descriptor. The session host owns PTYs, reattaches sessions, and keeps bounded scrollback. The workspace list shows live status and sends desktop notifications. Claude Code and Codex CLI sessions launch through their adapters. The UI reaches the core through the session host and the resident Lervo application process. The protocol, the `en` message catalog, the light and dark themes, and the logo ship. S1 covers macOS and Linux, including WSL.
-- **S2: the native conversation and hosted evidence.** The ADE renders the structured stream from the segment index. Lervo records the hosted observations and their events, and `lervo terminal coverage` reports hosted sessions separately. The Lervo MCP server ships. Managed sessions open when the user configures an API key.
-- **S3: distribution.** Installers are signed and update themselves. Onboarding checks the Lervo CLI, the provider CLI, and its login, and picks the default conversation mode. A provider registry replaces fixed provider values, so further provider CLIs can arrive through their adapters. `@lervo/workspace-host-orca` is removed.
+- **S1: instruction-first workspaces with the native conversation.** The start screen takes an instruction, a repository, and a host. `lervo workspace start` creates the worktree, branch, workstream, and launch descriptor. The session host owns structured-stream processes and PTYs and reattaches sessions. The ADE renders the native conversation from the segment index, and each workspace can switch to the CLI conversation. The workspace list shows live status and sends desktop notifications. Claude Code and Codex CLI sessions launch through their adapters. The UI reaches the core through the session host and the resident Lervo application process. The protocol, the `en` message catalog, the light and dark themes, and the logo ship. S1 covers macOS and Linux, including WSL.
+- **S2: hosted evidence and Lervo tools.** Lervo records the hosted observations and their events, and `lervo terminal coverage` reports hosted sessions separately. The Lervo MCP server ships. Managed sessions open when the user configures an API key.
+- **S3: distribution.** Installers are signed and update themselves. Onboarding checks the Lervo CLI, the provider CLI, and its sign-in. A provider registry replaces fixed provider values, so further provider CLIs can arrive through their adapters. `@lervo/workspace-host-orca` is removed.
 
 An editor, Git views, diff review, and a browser preview start only when a concrete need appears.
 
@@ -138,11 +138,11 @@ The [performance rules](../../../foundation/ade-convention/performance.md) hold 
 - Lervo adds Rust and a React front end. The code convention, commit convention, quality gates, and CI need language profiles before S1 code lands.
 - Desktop bundles for three platforms take long to build. They build at release, not on every pull request.
 - The ADE keeps its own branding and does not present itself as a provider's product.
-- Before public distribution, Anthropic must confirm whether the native conversation may run under a subscription login, and each provider must confirm that hosting its CLI under the user's own login is permitted.
+- Before public distribution, the publisher accepts Anthropic's Commercial Terms of Service, which running Claude Code in a product requires, and checks OpenAI's terms for the Codex CLI.
 
 ## Open questions
 
-- Anthropic's and OpenAI's answers on the native conversation under a subscription login.
+- OpenAI's terms for running the Codex CLI under a ChatGPT sign-in in a distributed product.
 - Component primitives.
 - The language profiles for Rust and the front end.
 - Whether the installer bundles the Lervo CLI or installs it through [ADR-0571](../../distribution/0571-install-the-verified-cli-on-each-host-and-roll-back-by-activation-id.md).
@@ -158,6 +158,7 @@ The [performance rules](../../../foundation/ade-convention/performance.md) hold 
   - A Codex CLI session starts the same way on a host with a Codex login. On a host without one, the ADE reports `provider_login_unavailable` and Claude Code sessions keep working.
   - Lint finds no string literal in JSX, and every interface string comes from the `en` catalog.
   - The same checks pass on the owner's Mac and in WSL.
+  - A native conversation renders the streamed messages and tool activity of a hosted session, and a seeded conversation of 100,000 items meets the conversation budgets of the ADE convention.
   - The budget measurements are recorded, and each meets its target or carries a reviewed revision.
-- **S2.** A native conversation renders the streamed messages and tool activity of a hosted session. A seeded conversation of 100,000 items meets the conversation budgets of the ADE convention. The session reports `tool_observed` and `instructions_loaded`. `lervo terminal coverage` lists it separately from unmanaged and managed sessions. No hosted observation appears as E3 or E4.
-- **S3.** On a clean machine without Orca, the ADE installs, passes onboarding, picks the default conversation mode for its login, and opens a hosted session.
+- **S2.** A hosted session reports `tool_observed` and `instructions_loaded`. `lervo terminal coverage` lists it separately from unmanaged and managed sessions. No hosted observation appears as E3 or E4.
+- **S3.** On a clean machine without Orca, the ADE installs, passes onboarding, and opens a hosted session in the native conversation.
