@@ -29,6 +29,12 @@
       "reason": "One deadline re-armed after each scan: a held checkout's retry time, or on standby behind a holder of an earlier release, the lock retry; a standby otherwise waits on the holder's presence (ADR-0602). Watched inputs drive every other rescan."
     },
     {
+      "path": "apps/hub/src/policy-renewal-lifecycle.ts",
+      "kind": "rearm",
+      "count": 1,
+      "reason": "One deadline re-armed after each renewal cycle: the earliest due policy head, at most 24 hours away, or a one-hour retry after a failed cycle (ADR-0609). Nothing polls between deadlines."
+    },
+    {
       "path": "apps/node-runtime/src/health.ts",
       "kind": "interval",
       "count": 1,

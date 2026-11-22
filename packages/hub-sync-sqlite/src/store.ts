@@ -23,6 +23,8 @@ import {
   type HubPolicyBundle,
   type HubPolicyCommandBinding,
   type HubPolicyPublishResult,
+  type HubPolicyRenewalHead,
+  type HubPolicyRenewalSource,
   type HubPolicySourceStore,
 } from "@lervo/hub-policy";
 import {
@@ -109,6 +111,7 @@ import { HubSyncStoreError } from "./errors.js";
 import { configureDatabase, migrateDatabase } from "./migrations.js";
 import { HubRegistrationSQLiteRepository } from "./registration-repository.js";
 import { HubPolicySQLiteRepository } from "./policy-repository.js";
+import { readPolicyRenewalHeads } from "./policy-renewal-reader.js";
 import { HubRemoteCommandSQLiteRepository } from "./remote-command-repository.js";
 import { HubTraceSQLiteRepository } from "./trace-repository.js";
 import { KnowledgeGraphIndexSQLiteWriter } from "./knowledge-graph-index-writer.js";
@@ -136,6 +139,7 @@ export class HubSyncSQLiteStore
     HubRemoteCommandQueueInspectionStore,
     HubTraceSource,
     HubPolicySourceStore,
+    HubPolicyRenewalSource,
     HubCommandAuthoringStore,
     HubCommandArtifactLifecycleRepository,
     HubCommandArtifactCleanupScheduleStore
@@ -702,6 +706,11 @@ export class HubSyncSQLiteStore
     return this.transactionRunner.read(() =>
       this.policyRepository.currentSnapshot(input.destinationId, input.target),
     );
+  }
+
+  async listPolicyRenewalHeads(at: string): Promise<HubPolicyRenewalHead[]> {
+    this.assertOpen();
+    return this.transactionRunner.read(() => readPolicyRenewalHeads(this.database, at));
   }
 
   async getPolicyCommand(input: {

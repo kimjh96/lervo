@@ -30,7 +30,9 @@ export async function runHubRuntimeCli(
 ): Promise<number> {
   try {
     const path = resolve(ports.cwd, configArgument(args));
-    const deployment = await openHubRuntime(await loadHubRuntimeConfig(path));
+    const deployment = await openHubRuntime(await loadHubRuntimeConfig(path), {
+      stderr: (message) => ports.stderr(message),
+    });
     const signals = attachHubRuntimeSignalHandlers(
       deployment,
       ports.signals ?? process,

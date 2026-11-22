@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-19
+- Amended by: [ADR-0609](../../coordination/remote-control/0609-renew-unchanged-policy-snapshots-on-the-hub.md) (the Hub re-signs an unchanged snapshot before it expires)
 
 ## Context
 
