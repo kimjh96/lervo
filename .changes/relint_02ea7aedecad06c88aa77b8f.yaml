@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_02ea7aedecad06c88aa77b8f"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "The Hub re-signs unchanged policy snapshots before they expire, and Lervo writes its own repository changes only on the base branch, always as their own commit, so nothing stays uncommitted in an owner's feature-branch checkout."
