@@ -13,3 +13,4 @@ eslint-suppressions.json
 apps/ade/target/
 apps/ade/src-tauri/gen/
 apps/ade/src-tauri/icons/
+packages/session-host-contract/generated/

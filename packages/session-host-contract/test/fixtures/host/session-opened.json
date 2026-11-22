@@ -1,0 +1,8 @@
+{
+  "kind": "session.opened",
+  "requestId": "req_2",
+  "sessionId": "ses_1",
+  "workspaceId": "wks_1",
+  "conversationMode": "native",
+  "channel": 1
+}

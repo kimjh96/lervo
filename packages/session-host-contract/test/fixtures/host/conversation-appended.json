@@ -1,0 +1,50 @@
+{
+  "kind": "conversation.appended",
+  "sessionId": "ses_1",
+  "sequence": 4,
+  "items": [
+    {
+      "kind": "user_message",
+      "itemId": "itm_1",
+      "createdAtMs": 1795356060000,
+      "state": "complete",
+      "text": "Lervo 기반 ADE ADR 초안 써줘."
+    },
+    {
+      "kind": "tool_activity",
+      "itemId": "itm_2",
+      "createdAtMs": 1795356061000,
+      "state": "complete",
+      "tool": {
+        "name": "Read",
+        "status": "succeeded",
+        "calls": 6
+      }
+    },
+    {
+      "kind": "agent_message",
+      "itemId": "itm_3",
+      "createdAtMs": 1795356062000,
+      "state": "streaming",
+      "text": "ADR-0613 초안을"
+    },
+    {
+      "kind": "question",
+      "itemId": "itm_4",
+      "createdAtMs": 1795356063000,
+      "state": "complete",
+      "text": "다음으로 hosted 세션 이벤트를 더 다듬을까요?"
+    },
+    {
+      "kind": "lervo_notice",
+      "itemId": "itm_5",
+      "createdAtMs": 1795356064000,
+      "state": "complete",
+      "code": "knowledge_lint_passed",
+      "parameters": {
+        "changedFiles": 1,
+        "committed": false
+      }
+    }
+  ]
+}

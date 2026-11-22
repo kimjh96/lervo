@@ -1,0 +1,15 @@
+{
+  "kind": "conversation.appended",
+  "sessionId": "ses_1",
+  "sequence": 4,
+  "items": [
+    {
+      "kind": "lervo_notice",
+      "itemId": "itm_5",
+      "createdAtMs": 1,
+      "state": "streaming",
+      "code": "knowledge_lint_passed",
+      "parameters": {}
+    }
+  ]
+}

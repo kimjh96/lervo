@@ -1,16 +1,18 @@
 name: ADE
 
 # The Lervo ADE's Rust and interface checks (ADR-0613). They run on Linux only and only when the
-# ADE changes; desktop bundles for macOS and Windows build at release.
+# ADE or its protocol contract changes; desktop bundles for macOS and Windows build at release.
 on:
   pull_request:
     paths:
       - "apps/ade/**"
+      - "packages/session-host-contract/**"
       - ".github/workflows/ade.yml"
   push:
     branches: [main]
     paths:
       - "apps/ade/**"
+      - "packages/session-host-contract/**"
       - ".github/workflows/ade.yml"
   workflow_dispatch:
 

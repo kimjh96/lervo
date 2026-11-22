@@ -1,0 +1,7 @@
+{
+  "kind": "conversation.delta",
+  "sessionId": "ses_1",
+  "sequence": 5,
+  "itemId": "itm_3",
+  "append": " proposed 상태로 썼습니다."
+}
