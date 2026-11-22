@@ -4,7 +4,11 @@ import { delimiter, isAbsolute, resolve } from "node:path";
 
 import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
-import type { HostedSessionAdapter } from "@lervo/adapter-contract";
+import {
+  hasStreamDecoder,
+  type HostedSessionAdapter,
+  type HostedStreamDecoder,
+} from "@lervo/adapter-contract";
 
 import { CommandFailure } from "./command-error-output.js";
 
@@ -68,4 +72,27 @@ export async function resolveHostedSessionAdapter(
       { provider },
     );
   return entry.create(executable);
+}
+
+/**
+ * A stream decoder for `provider`'s native conversation. Decoding needs no provider CLI, so this
+ * does not look for one.
+ */
+export function createHostedStreamDecoder(provider: string): HostedStreamDecoder {
+  const entry = hostedProviders.get(provider);
+  if (entry === undefined)
+    throw new CommandFailure(
+      "provider_unknown",
+      `No hosted-session adapter exists for ${provider}.`,
+      {
+        providers: hostedProviderNames(),
+      },
+    );
+  const adapter = entry.create(entry.executable);
+  if (!hasStreamDecoder(adapter))
+    throw new CommandFailure(
+      "conversation_mode_unsupported",
+      `The ${provider} adapter offers only the CLI conversation.`,
+    );
+  return adapter.createStreamDecoder();
 }

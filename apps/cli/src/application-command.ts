@@ -1,11 +1,13 @@
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
+import { serveCoreLinkOverStandardStreams } from "./application-serve-command.js";
 import { formatOperatingAttention } from "./operating-attention-format.js";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
 import type { CliIo, CliServices } from "./types.js";
 
-export const applicationUsage = "  lervo application attention [--root <path>] [--json]";
+export const applicationUsage = `  lervo application attention [--root <path>] [--json]
+  lervo application serve --stdio`;
 
 type ApplicationServices = Pick<CliServices, "inspectOperatingAttention">;
 
@@ -23,11 +25,16 @@ export async function runApplicationCommand(
         json: { type: "boolean" },
         help: { type: "boolean", short: "h" },
         root: { type: "string" },
+        stdio: { type: "boolean" },
       },
     });
     if (parsed.values.help) {
       io.stdout(`${applicationUsage}\n`);
       return 0;
+    }
+    if (parsed.positionals.length === 1 && parsed.positionals[0] === "serve") {
+      if (parsed.values.stdio !== true) throw new Error("lervo application serve needs --stdio.");
+      return await serveCoreLinkOverStandardStreams();
     }
     if (parsed.positionals.length !== 1 || parsed.positionals[0] !== "attention") {
       throw new Error("The application action is invalid.");
