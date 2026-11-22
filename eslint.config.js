@@ -21,6 +21,7 @@ export default defineConfig(
       ".lervo/knowledge/**",
       ".lervo/state/**",
       ".claude/worktrees/**",
+      "packages/session-host-contract/generated/**",
     ],
     "Lervo generated and dependency artifacts",
   ),
