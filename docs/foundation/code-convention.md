@@ -7,6 +7,8 @@ This convention governs implementation and review. Before editing and completion
 
 Production modules of at least 400 lines require exact-content review in `scripts/code-convention-reviews.json`. A new, changed, or no-longer-large module fails `pnpm code-convention:check` until reviewed again. The registry is not a debt allowlist: fix confirmed responsibility violations before recording a cohesive module, and never update a content hash without repeating the review.
 
+The [Lervo ADE convention](ade-convention.md) extends this convention for the ADE's Rust session host and React interface.
+
 ## Design priorities
 
 Apply these priorities in order:
