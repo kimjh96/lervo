@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_89ec73c21374b07ede2cc7a1"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Capture open work into the plan ledger from owner turns: the existing owner-turn assessment also returns the directives, stated plans and deferred findings an exchange leaves open, so plans survive sessions without the agent writing them down."
