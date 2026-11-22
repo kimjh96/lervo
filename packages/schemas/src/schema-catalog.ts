@@ -10,6 +10,14 @@ import {
   knowledgeSkillRetiredEventPayloadSchema,
 } from "./practice-event.js";
 import {
+  planItemCapturedEventPayloadSchema,
+  planItemClosedEventPayloadSchema,
+  planItemMissedEventPayloadSchema,
+  planItemUpdatedEventPayloadSchema,
+  planSummaryGapEventPayloadSchema,
+  planTurnBlockedEventPayloadSchema,
+} from "./plan-ledger-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -459,6 +467,12 @@ export const schemaCatalog = {
   knowledgeSkillCandidateResolvedEventPayload: knowledgeSkillCandidateResolvedEventPayloadSchema,
   knowledgeSkillUsageAssessedEventPayload: knowledgeSkillUsageAssessedEventPayloadSchema,
   knowledgeSkillRetiredEventPayload: knowledgeSkillRetiredEventPayloadSchema,
+  planItemCapturedEventPayload: planItemCapturedEventPayloadSchema,
+  planItemUpdatedEventPayload: planItemUpdatedEventPayloadSchema,
+  planItemClosedEventPayload: planItemClosedEventPayloadSchema,
+  planSummaryGapEventPayload: planSummaryGapEventPayloadSchema,
+  planTurnBlockedEventPayload: planTurnBlockedEventPayloadSchema,
+  planItemMissedEventPayload: planItemMissedEventPayloadSchema,
   terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
   terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,

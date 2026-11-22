@@ -25,7 +25,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6|7|8>] [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6|7|8|9>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 
@@ -91,32 +91,16 @@ export async function runEventContractCommand(
     if (parsed.positionals.length !== 1) throw new Error("Specify one event-contract action.");
     const action = parsed.positionals[0];
     const selectedVersion = parsed.values["schema-version"] ?? "2";
+    const activationVersions = ["2", "3", "4", "5", "6", "7", "8", "9"] as const;
     if (
-      (selectedVersion !== "2" &&
-        selectedVersion !== "3" &&
-        selectedVersion !== "4" &&
-        selectedVersion !== "5" &&
-        selectedVersion !== "6" &&
-        selectedVersion !== "7" &&
-        selectedVersion !== "8") ||
+      !(activationVersions as readonly string[]).includes(selectedVersion) ||
       (parsed.values["schema-version"] !== undefined && action !== "activate")
     ) {
-      throw new Error("--schema-version accepts 2, 3, 4, 5, 6, 7, or 8 for activation only.");
+      throw new Error(
+        `--schema-version accepts ${activationVersions.join(", ")} for activation only.`,
+      );
     }
-    const targetEventSchemaVersion =
-      selectedVersion === "8"
-        ? 8
-        : selectedVersion === "7"
-          ? 7
-          : selectedVersion === "6"
-            ? 6
-            : selectedVersion === "5"
-              ? 5
-              : selectedVersion === "4"
-                ? 4
-                : selectedVersion === "3"
-                  ? 3
-                  : 2;
+    const targetEventSchemaVersion = Number(selectedVersion) as 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     if (action === "status") {
       if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {

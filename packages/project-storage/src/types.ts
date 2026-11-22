@@ -32,7 +32,7 @@ export interface ProjectStorageBackends {
   openEventStore(options: {
     path: string;
     projectId: string;
-    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
     reportStorage?: "sqlite_v1";
   }): Promise<OutboxStore>;
   openArtifactStore(root: string): Promise<CloseableArtifactStore>;
@@ -43,7 +43,7 @@ export interface ProjectStorage {
   readonly reportStorageCoordinateHash?: string | null;
   readonly manifest: ProjectManifest;
   readonly paths: LervoProjectPaths;
-  readonly writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  readonly writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   readonly events: OutboxStore;
   readonly artifacts: CloseableArtifactStore;
   close(): Promise<void>;

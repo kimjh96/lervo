@@ -42,7 +42,7 @@ export function createEventWriterActivationPlan(input: {
   currentCoordinate: EventWriterCoordinate;
   currentContentHash: string | null;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 }): EventWriterActivationPlan {
   const target = input.targetEventSchemaVersion ?? 2;
   if (
@@ -52,7 +52,8 @@ export function createEventWriterActivationPlan(input: {
     target !== 5 &&
     target !== 6 &&
     target !== 7 &&
-    target !== 8
+    target !== 8 &&
+    target !== 9
   ) {
     failEventWriterActivation(
       "event_writer_evidence_invalid",
@@ -131,20 +132,8 @@ export function createEventWriterActivationPlan(input: {
     hubSyncEnabled: input.hubSyncEnabled,
   });
   const desiredCoordinate = readEventWriterCoordinate({
-    schemaVersion:
-      target === 8
-        ? 7
-        : target === 7
-          ? 6
-          : target === 6
-            ? 5
-            : target === 5
-              ? 4
-              : target === 4
-                ? 3
-                : target === 3
-                  ? 2
-                  : 1,
+    // Each coordinate schema selects the event schema one above its own number.
+    schemaVersion: target - 1,
     projectId: input.projectId,
     selectedEventSchemaVersion: target,
     activationEvidence: {

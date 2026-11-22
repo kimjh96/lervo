@@ -22,7 +22,7 @@ export async function inspectEventWriterCoordinate(repositoryRoot: string) {
 export async function planEventWriterActivation(input: {
   repositoryRoot: string;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 }): Promise<EventWriterActivationPlan> {
   const manifest = await loadProjectManifest(input.repositoryRoot);
   const paths = resolveProjectPaths(input.repositoryRoot);

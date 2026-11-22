@@ -70,7 +70,8 @@ export async function planReportStorageActivation(input: {
     writer.contentHash !== evidence.writerCoordinateHash ||
     (writer.coordinate.selectedEventSchemaVersion !== 6 &&
       writer.coordinate.selectedEventSchemaVersion !== 7 &&
-      writer.coordinate.selectedEventSchemaVersion !== 8)
+      writer.coordinate.selectedEventSchemaVersion !== 8 &&
+      writer.coordinate.selectedEventSchemaVersion !== 9)
   )
     throw new ReportStorageError(
       "report_storage_stale",
