@@ -10,6 +10,7 @@ import {
   type NodeFleetStatusReport,
 } from "./node-fleet-apply-contract.js";
 import { inspectRegisteredNodeExecutables } from "./node-config-executable-status.js";
+import { nodeHealthSnapshotCurrent } from "./node-health-liveness.js";
 import { nodeReadinessComponentText as componentStatus } from "./node-fleet-readiness-policy.js";
 
 // @ts-expect-error The repository service script intentionally remains plain ESM.
@@ -55,7 +56,7 @@ async function readReportedHealth(path: string): Promise<NodeRuntimeHealthSnapsh
 export async function inspectNodeFleetStatus(input: {
   registryPath: string;
   homeDirectory?: string;
-  ports?: Pick<NodeFleetApplyPorts, "serviceOptions">;
+  ports?: Pick<NodeFleetApplyPorts, "serviceOptions" | "processRunning">;
   now?: Date;
 }): Promise<NodeFleetStatusReport> {
   const registrations = await listNodeFleetInstances(input.registryPath);
@@ -90,7 +91,9 @@ export async function inspectNodeFleetStatus(input: {
         service.installed &&
         service.active &&
         service.enabled !== false;
-      const stale = health !== null && now.getTime() - Date.parse(health.updatedAt) > 2 * 60_000;
+      const stale =
+        health !== null &&
+        !(await nodeHealthSnapshotCurrent(health, now, input.ports?.processRunning));
       const runtimeStatus =
         health === null ? ("unavailable" as const) : stale ? ("stale" as const) : health.status;
       const ready = operational && runtimeStatus === "ready";
