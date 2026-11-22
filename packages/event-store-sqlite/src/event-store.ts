@@ -50,7 +50,7 @@ import { preparedStatement } from "./statement-cache.js";
 export interface OpenEventStoreOptions extends CheckpointOptions {
   path: string;
   projectId: ProjectManifest["projectId"];
-  writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   /** sqlite_v1 permits a transition; existing_sqlite_v1 selects only an already migrated store. */
   reportStorage?: "sqlite_v1" | "existing_sqlite_v1";
 }
@@ -79,7 +79,7 @@ export class SQLiteEventStore implements OutboxStore {
     path: string,
     projectId: string,
     private readonly database: DatabaseSync,
-    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8,
+    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
     private readonly readOnly = false,
     reportWriting = false,
   ) {
@@ -122,7 +122,7 @@ export class SQLiteEventStore implements OutboxStore {
   }
 
   static async open(options: OpenEventStoreOptions): Promise<SQLiteEventStore> {
-    if (![1, 2, 3, 4, 5, 6, 7, 8].includes(options.writableEventSchemaVersion ?? 1)) {
+    if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(options.writableEventSchemaVersion ?? 1)) {
       throw new EventStoreError(
         "event_schema_unsupported",
         "The writer activation version is unsupported.",

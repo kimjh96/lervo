@@ -81,9 +81,9 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:426253ce83f73a0c1e31b67483ebb8873a5529c0977880e40f857d6398d0f39a",
+      "contentHash": "sha256:b000f799b07760dd4a3b725afbe2b97db41cfb91f1cc2836ee9eed14d14e3929",
       "responsibility": "Canonical event payload privacy enforcement",
-      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission, turn-bound selection, native-skill, and practice registrations add only declarative entries; native-skill and practice fields live in dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, queue and marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
+      "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Provider admission, turn-bound selection, native-skill, practice, and plan-ledger registrations add only declarative entries; native-skill and practice fields live in dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, queue and marker persistence, query recording, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
     },
     {
@@ -235,9 +235,9 @@
     },
     {
       "path": "packages/schemas/src/schema-catalog.ts",
-      "contentHash": "sha256:1a416c20c91ded0fee241fca72e57c64b3c66e54af24e1fafff33b39352a61f8",
+      "contentHash": "sha256:aa492022bb6ffcaa45093247538968c179b48cd4e903dc5f590531d98f623e30",
       "responsibility": "Declarative schema registration catalog",
-      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, and practice payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
+      "rationale": "The module is the declarative schema-name catalog used by validation and generation. Provider admission, context-selected, native-skill, practice, and plan-ledger payloads are catalog entries with the same mapping lifecycle; native-skill and practice schemas are defined in their own contract modules. Parsing, redaction, provider behavior, query recording, and persistence remain outside the catalog.",
       "disposition": "cohesive"
     },
     {

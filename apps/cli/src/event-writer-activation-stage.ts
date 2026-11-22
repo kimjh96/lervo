@@ -6,7 +6,7 @@ import {
   type EventWriterActivationPlan,
   type EventWriterActivationReceipt,
 } from "@lervo/project";
-import { PRACTICE_EVENT_SCHEMA_VERSION } from "@lervo/repository-knowledge-runtime";
+import { PLAN_LEDGER_EVENT_SCHEMA_VERSION } from "@lervo/repository-knowledge-runtime";
 import type { EventWriterActivationEvidence } from "@lervo/schemas";
 
 import {
@@ -21,14 +21,14 @@ import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
 
 /** The writer version repository upgrades converge on: the one background knowledge needs. */
-export const TARGET_EVENT_SCHEMA_VERSION = PRACTICE_EVENT_SCHEMA_VERSION;
+export const TARGET_EVENT_SCHEMA_VERSION = PLAN_LEDGER_EVENT_SCHEMA_VERSION;
 
 export type EventReaderAuthority = "local" | "repository_node_absent" | "repository_node_fleet";
 
 export interface EventWriterStage {
   disposition: StageDisposition;
   reason: string;
-  currentSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  currentSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
   targetSchemaVersion: typeof TARGET_EVENT_SCHEMA_VERSION;
   /** Which reader inventory authority the evidence came from; null before evidence exists. */
   authority: EventReaderAuthority | null;

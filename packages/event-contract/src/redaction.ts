@@ -1,3 +1,4 @@
+import { planLedgerPayloadAllowlists, planLedgerPayloadSchemas } from "./plan-ledger-payload.js";
 import { practicePayloadAllowlists, practicePayloadSchemas } from "./practice-payload.js";
 import {
   contextQualityPayloadAllowlists,
@@ -57,6 +58,7 @@ export const eventPayloadAllowlists = {
   ...instructionCapturePayloadAllowlists,
   ...terminalSkillPayloadAllowlists,
   ...practicePayloadAllowlists,
+  ...planLedgerPayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1535,6 +1537,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   "terminal.turn.observed": "terminalTurnObservedEventPayload",
   ...terminalSkillPayloadSchemas,
   ...practicePayloadSchemas,
+  ...planLedgerPayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

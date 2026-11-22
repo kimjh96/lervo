@@ -42,6 +42,7 @@ import {
 import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
 import { hostUsage, runHostCommand } from "./host-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
+import { planUsage, runPlanCommand } from "./plan-command.js";
 import { runWorkstreamCommand, workstreamUsage } from "./workstream-command.js";
 import { runWorkspaceCommand, workspaceUsage } from "./workspace-command.js";
 import { runWorkforceCommand, workforceUsage } from "./workforce-command.js";
@@ -68,6 +69,7 @@ ${eventContractUsage}
 ${repositoryUsage}
 ${terminalUsage}
 ${workstreamUsage}
+${planUsage}
 ${workspaceUsage}
 ${workforceUsage}
 ${agentOrganizationUsage}
@@ -122,6 +124,7 @@ export async function runCli(
   if (command === "repository") return runRepositoryCommand(args.slice(1), io);
   if (command === "terminal") return runTerminalCommand(args.slice(1), io, services);
   if (command === "workstream") return runWorkstreamCommand(args.slice(1), io);
+  if (command === "plan") return runPlanCommand(args.slice(1), io);
   if (command === "workspace") return runWorkspaceCommand(args.slice(1), io);
   if (command === "agent" || command === "assignment")
     return runWorkforceCommand(command, args.slice(1), io);

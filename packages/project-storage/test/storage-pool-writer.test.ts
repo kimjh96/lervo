@@ -247,9 +247,9 @@ it("drains admitted work on close and keeps admission failures separate from ina
 });
 
 it("rejects an unsupported required writer without admitting work", () => {
-  expect(() => createProjectStoragePool(undefined, { requiredEventSchemaVersion: 9 as 6 })).toThrow(
-    TypeError,
-  );
+  expect(() =>
+    createProjectStoragePool(undefined, { requiredEventSchemaVersion: 10 as 6 }),
+  ).toThrow(TypeError);
 });
 
 it("preserves cleanup failure when discarding an inactive retained writer", async () => {

@@ -12,6 +12,7 @@ import {
 } from "./common.js";
 import { documentFreshnessEventTypes } from "./document-freshness-event.js";
 import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
+import { planLedgerEventTypes } from "./plan-ledger-event.js";
 
 export const eventTypesV1 = [
   "run.requested",
@@ -180,7 +181,9 @@ export const eventTypesV8 = [
   "knowledge.skill.usage_assessed",
   "knowledge.skill.retired",
 ] as const;
-export const eventTypes = eventTypesV8;
+/** ADR-0563: the plan ledger. */
+export const eventTypesV9 = [...eventTypesV8, ...planLedgerEventTypes] as const;
+export const eventTypes = eventTypesV9;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -324,6 +327,7 @@ export const eventEnvelopeSchema = {
     },
     { properties: { type: { enum: eventTypesV7 }, schemaVersion: { const: 7 } } },
     { properties: { type: { enum: eventTypesV8 }, schemaVersion: { const: 8 } } },
+    { properties: { type: { enum: eventTypesV9 }, schemaVersion: { const: 9 } } },
   ],
 } as const;
 
@@ -353,10 +357,14 @@ export type EventEnvelopeV8 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & 
   schemaVersion: 8;
   type: (typeof eventTypesV8)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV8, "schemaVersion"> & {
+export type EventEnvelopeV9 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 9;
+  type: (typeof eventTypesV9)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV9, "schemaVersion"> & {
   schemaVersion:
-    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6 | 7 | 8;
+    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV8)[number];
+export type EventType = (typeof eventTypesV9)[number];
