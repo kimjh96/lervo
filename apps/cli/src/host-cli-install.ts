@@ -328,7 +328,7 @@ export function createPnpmInstaller(registry: string = RELEASE_REGISTRY): HostCl
             // names the failure and the search path, or it would be empty.
             writeFile(
               logPath,
-              `${text}${text.endsWith("\n") || text === "" ? "" : "\n"}lervo: pnpm install failed: ${error.message}\nPATH=${env.PATH ?? ""}\n`,
+              `${text}${text.endsWith("\n") || text === "" ? "" : "\n"}lervo: pnpm install failed: ${error.message}\nPATH=${process.env.PATH ?? ""}\n`,
             ).then(
               () => reject(error),
               () => reject(error),
