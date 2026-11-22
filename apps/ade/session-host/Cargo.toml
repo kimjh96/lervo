@@ -7,7 +7,6 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-dirs = "7"
 fd-lock = "4"
 lervo-core-link = { path = "../core-link" }
 lervo-session-core = { path = "../session-core" }

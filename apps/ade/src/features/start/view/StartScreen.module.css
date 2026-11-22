@@ -1,0 +1,13 @@
+.start {
+  display: grid;
+  height: 100%;
+  place-items: center;
+}
+
+.question {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--type-display-size);
+  font-weight: var(--type-display-weight);
+  line-height: var(--type-display-line-height);
+}

@@ -1,0 +1,58 @@
+/* The sidebar sits on the window material; the content carries the glass tint so its text keeps
+   the contrast the visual language measured. */
+.frame {
+  display: grid;
+  grid-template-columns: var(--layout-sidebar-width) 1fr;
+  height: 100vh;
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-sidebar);
+}
+
+.brand {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  height: var(--layout-header-height);
+  padding: 0 var(--space-16);
+  /* The macOS title bar overlays this row; it doubles as the drag region. */
+  -webkit-app-region: drag;
+}
+
+:root[data-material="native"] .brand {
+  padding-left: 84px;
+}
+
+.name {
+  color: var(--color-text-primary);
+  font-size: var(--type-list-size);
+  font-weight: 600;
+}
+
+.footer {
+  margin-top: auto;
+}
+
+.content {
+  min-width: 0;
+  overflow: hidden;
+  background: color-mix(
+    in srgb,
+    var(--glass-tint-color) calc(var(--glass-tint-opacity) * 100%),
+    transparent
+  );
+}
+
+@media (width < 760px) {
+  .frame {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    display: none;
+  }
+}

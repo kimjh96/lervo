@@ -7,6 +7,7 @@ pub mod client;
 pub mod error;
 pub mod framed;
 pub mod handshake;
+pub mod paths;
 #[cfg(unix)]
 pub mod socket;
 pub mod token;

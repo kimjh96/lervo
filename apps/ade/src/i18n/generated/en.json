@@ -1,0 +1,50 @@
+{
+  "app.name": [
+    {
+      "type": 0,
+      "value": "Lervo"
+    }
+  ],
+  "connection.connected": [
+    {
+      "type": 0,
+      "value": "Connected"
+    }
+  ],
+  "connection.connecting": [
+    {
+      "type": 0,
+      "value": "Connecting to this computer"
+    }
+  ],
+  "connection.reconnecting": [
+    {
+      "type": 0,
+      "value": "Reconnecting"
+    }
+  ],
+  "connection.unavailable": [
+    {
+      "type": 0,
+      "value": "Lervo could not start its session host"
+    }
+  ],
+  "start.question": [
+    {
+      "type": 0,
+      "value": "What should we work on?"
+    }
+  ],
+  "workspaces.empty": [
+    {
+      "type": 0,
+      "value": "No workspaces yet"
+    }
+  ],
+  "workspaces.title": [
+    {
+      "type": 0,
+      "value": "Workspaces"
+    }
+  ]
+}

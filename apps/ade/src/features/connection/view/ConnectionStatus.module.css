@@ -1,0 +1,11 @@
+.status {
+  margin: 0;
+  padding: var(--space-8) var(--space-12);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.status[data-state="unavailable"] {
+  color: var(--color-status-failed);
+}

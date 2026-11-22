@@ -14,3 +14,5 @@ apps/ade/target/
 apps/ade/src-tauri/gen/
 apps/ade/src-tauri/icons/
 packages/session-host-contract/generated/
+apps/ade/src/design/generated/
+apps/ade/src/i18n/generated/

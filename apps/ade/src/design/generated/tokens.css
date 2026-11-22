@@ -1,0 +1,158 @@
+/* Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit. */
+:root {
+  --glass-tint-color: #FAFBFD;
+  --glass-tint-opacity: 0.88;
+  --glass-overlay-blur: 30px;
+  --glass-overlay-saturate: 1.6;
+  --color-surface-opaque: #F4F5F8;
+  --color-surface-sidebar: rgba(255,255,255,0.35);
+  --color-surface-input: rgba(255,255,255,0.80);
+  --color-surface-selected: rgba(255,255,255,0.85);
+  --color-surface-user-message: rgba(20,30,50,0.06);
+  --color-surface-terminal: #F7F8FA;
+  --color-border-subtle: rgba(20,30,50,0.07);
+  --color-border-default: rgba(20,30,50,0.10);
+  --color-border-window: rgba(255,255,255,0.75);
+  --color-text-primary: #161B26;
+  --color-text-secondary: #454D5C;
+  --color-text-tertiary: #555D6C;
+  --color-text-link: #2A4DB3;
+  --color-accent: #3A64D8;
+  --color-on-accent: #FFFFFF;
+  --color-status-working: #3A64D8;
+  --color-status-needs-you: #A86808;
+  --color-status-failed: #B42318;
+  --color-diff-added: #1A7F5A;
+  --color-diff-removed: #B42318;
+  --font-family-interface: Inter, system-ui, sans-serif;
+  --font-family-mono: "JetBrains Mono", ui-monospace, monospace;
+  --type-display-size: 28px;
+  --type-display-weight: 500;
+  --type-display-line-height: 1.25;
+  --type-title-size: 18px;
+  --type-title-weight: 600;
+  --type-title-line-height: 1.35;
+  --type-input-size: 15px;
+  --type-input-weight: 400;
+  --type-input-line-height: 1.55;
+  --type-body-size: 14.5px;
+  --type-body-weight: 400;
+  --type-body-line-height: 1.7;
+  --type-list-size: 13.5px;
+  --type-list-weight: 400;
+  --type-list-line-height: 1.4;
+  --type-meta-size: 12.5px;
+  --type-meta-weight: 400;
+  --type-meta-line-height: 1.4;
+  --type-caption-size: 11.5px;
+  --type-caption-weight: 400;
+  --type-caption-line-height: 1.4;
+  --type-mono-size: 13px;
+  --type-mono-weight: 400;
+  --type-mono-line-height: 1.75;
+  --space-2: 2px;
+  --space-4: 4px;
+  --space-6: 6px;
+  --space-8: 8px;
+  --space-10: 10px;
+  --space-12: 12px;
+  --space-14: 14px;
+  --space-16: 16px;
+  --space-20: 20px;
+  --space-24: 24px;
+  --space-28: 28px;
+  --space-32: 32px;
+  --space-36: 36px;
+  --space-48: 48px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+  --layout-sidebar-width: 232px;
+  --layout-header-height: 48px;
+  --layout-content-max-width: 720px;
+  --layout-collapse-below: 760px;
+  --shadow-window: 0 30px 70px rgba(40,52,80,0.18), 0 0 0 1px rgba(20,30,50,0.06);
+  --shadow-raised: 0 8px 24px rgba(40,52,80,0.08);
+  --motion-duration-change: 120ms;
+  --motion-duration-enter: 200ms;
+  --motion-duration-exit: 100ms;
+  --motion-duration-breathe: 2400ms;
+  --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
+  --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
+  --motion-breathe-min-opacity: 0.45;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --glass-tint-color: #14161D;
+    --glass-overlay-blur: 28px;
+    --glass-overlay-saturate: 1.5;
+    --color-surface-opaque: #1A1C23;
+    --color-surface-sidebar: rgba(255,255,255,0.03);
+    --color-surface-input: rgba(255,255,255,0.05);
+    --color-surface-selected: rgba(255,255,255,0.08);
+    --color-surface-user-message: rgba(255,255,255,0.08);
+    --color-surface-terminal: #0F1117;
+    --color-border-subtle: rgba(255,255,255,0.06);
+    --color-border-default: rgba(255,255,255,0.12);
+    --color-border-window: rgba(255,255,255,0.10);
+    --color-text-primary: #ECEEF3;
+    --color-text-secondary: #B4BAC7;
+    --color-text-tertiary: #9DA4B2;
+    --color-text-link: #A9C1FF;
+    --color-accent: #7AA2F7;
+    --color-on-accent: #0B1020;
+    --color-status-working: #7AA2F7;
+    --color-status-needs-you: #F2B661;
+    --color-status-failed: #F29A8E;
+    --color-diff-added: #8FD3B6;
+    --color-diff-removed: #F29A8E;
+    --shadow-window: 0 30px 80px rgba(0,0,0,0.45);
+    --shadow-raised: none;
+  }
+}
+
+:root[data-theme="dark"] {
+  --glass-tint-color: #14161D;
+  --glass-overlay-blur: 28px;
+  --glass-overlay-saturate: 1.5;
+  --color-surface-opaque: #1A1C23;
+  --color-surface-sidebar: rgba(255,255,255,0.03);
+  --color-surface-input: rgba(255,255,255,0.05);
+  --color-surface-selected: rgba(255,255,255,0.08);
+  --color-surface-user-message: rgba(255,255,255,0.08);
+  --color-surface-terminal: #0F1117;
+  --color-border-subtle: rgba(255,255,255,0.06);
+  --color-border-default: rgba(255,255,255,0.12);
+  --color-border-window: rgba(255,255,255,0.10);
+  --color-text-primary: #ECEEF3;
+  --color-text-secondary: #B4BAC7;
+  --color-text-tertiary: #9DA4B2;
+  --color-text-link: #A9C1FF;
+  --color-accent: #7AA2F7;
+  --color-on-accent: #0B1020;
+  --color-status-working: #7AA2F7;
+  --color-status-needs-you: #F2B661;
+  --color-status-failed: #F29A8E;
+  --color-diff-added: #8FD3B6;
+  --color-diff-removed: #F29A8E;
+  --shadow-window: 0 30px 80px rgba(0,0,0,0.45);
+  --shadow-raised: none;
+}
+
+/* Reduced motion means no movement; reduced transparency means opaque surfaces. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-change: 0ms;
+    --motion-duration-enter: 0ms;
+    --motion-duration-exit: 0ms;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root {
+    --glass-tint-opacity: 1;
+  }
+}

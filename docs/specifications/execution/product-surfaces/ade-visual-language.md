@@ -137,4 +137,6 @@ Icons are drawn on a 24 px grid with 2 px round-capped strokes and render at 12,
 
 ## Token file
 
-S1 turns these tables into one token file in the W3C Design Tokens Community Group format. A build step generates the CSS custom properties, the terminal theme, and any constants the session host needs. Components and themes read only the generated outputs. When the token file lands, it becomes the source of truth, and this document links to it instead of repeating its values.
+The token file is [`apps/ade/src/design/tokens.json`](../../../../apps/ade/src/design/tokens.json), in the W3C Design Tokens Community Group format. Each value is the dark mode, and the `dev.lervo.modes` extension holds both modes. `pnpm --filter @lervo/ade generate` writes the CSS custom properties and the xterm.js terminal themes to `apps/ade/src/design/generated/`. A test fails when those outputs are stale or when a color lacks a mode. Components and themes read only the generated outputs.
+
+The token file has been the source of truth since S1.5a. Where it and the tables above differ, the token file wins. The tables stay until S1.6 records the contrast measurements of the real windows, and are then replaced by links.

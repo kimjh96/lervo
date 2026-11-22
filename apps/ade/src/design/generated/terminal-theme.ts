@@ -1,0 +1,43 @@
+// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.
+export const terminalThemes = {
+  "light": {
+    "background": "#F7F8FA",
+    "foreground": "#1F2533",
+    "black": "#1F2533",
+    "red": "#B42318",
+    "green": "#1A7F5A",
+    "yellow": "#8A5A00",
+    "blue": "#2A4DB3",
+    "magenta": "#7A3FB8",
+    "cyan": "#0E7490",
+    "white": "#5F6777",
+    "brightBlack": "#6A7282",
+    "brightRed": "#A51F14",
+    "brightGreen": "#16704F",
+    "brightYellow": "#7A5000",
+    "brightBlue": "#2443A0",
+    "brightMagenta": "#6B35A3",
+    "brightCyan": "#0B6680",
+    "brightWhite": "#161B26"
+  },
+  "dark": {
+    "background": "#0F1117",
+    "foreground": "#D8DCE5",
+    "black": "#2A2F3A",
+    "red": "#F29A8E",
+    "green": "#8FD3B6",
+    "yellow": "#F2B661",
+    "blue": "#7AA2F7",
+    "magenta": "#C3A6F2",
+    "cyan": "#7DCFDB",
+    "white": "#C9CED8",
+    "brightBlack": "#7E8696",
+    "brightRed": "#F7B3A9",
+    "brightGreen": "#A8E0C8",
+    "brightYellow": "#F6CD92",
+    "brightBlue": "#A9C1FF",
+    "brightMagenta": "#D5C0F7",
+    "brightCyan": "#A0DDE6",
+    "brightWhite": "#ECEEF3"
+  }
+} as const;

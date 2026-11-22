@@ -5,15 +5,22 @@
   "type": "module",
   "scripts": {
     "build": "tsc --project tsconfig.json && vite build",
-    "check": "pnpm build && cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked && cargo deny check",
+    "check": "pnpm build && pnpm test && cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked && cargo deny check",
     "dev": "vite",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "generate": "node scripts/build-tokens.mjs && node scripts/build-catalog.mjs",
+    "test": "vitest run --root ../.. apps/ade"
   },
   "dependencies": {
+    "@tauri-apps/api": "2.12.5",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "react-intl": "12.2.0",
+    "zustand": "5.1.0"
   },
   "devDependencies": {
+    "@formatjs/cli": "6.20.0",
+    "@lervo/session-host-contract": "workspace:*",
     "@tauri-apps/cli": "2.12.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

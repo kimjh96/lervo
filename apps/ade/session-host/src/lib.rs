@@ -7,7 +7,6 @@ mod host;
 mod items;
 mod messages;
 mod native;
-pub mod paths;
 pub mod serve;
 mod session;
 mod subscriber;
@@ -15,3 +14,6 @@ mod terminal;
 
 /// The ports to the Lervo core, which the domain defines.
 pub use lervo_session_core::ports;
+
+/// Where the session host keeps its state, shared with its clients.
+pub use lervo_session_transport::paths;
