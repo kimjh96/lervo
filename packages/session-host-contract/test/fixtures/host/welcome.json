@@ -1,0 +1,9 @@
+{
+  "kind": "welcome",
+  "protocolVersion": 1,
+  "host": {
+    "hostId": "host_mac",
+    "name": "lervo-session-host",
+    "version": "0.1.0"
+  }
+}

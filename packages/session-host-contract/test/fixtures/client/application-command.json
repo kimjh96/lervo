@@ -1,0 +1,10 @@
+{
+  "kind": "application.command",
+  "requestId": "req_1",
+  "command": "workspace.start",
+  "arguments": {
+    "repository": "lervo",
+    "host": "this-mac",
+    "instruction": "Draft the ADE ADR."
+  }
+}

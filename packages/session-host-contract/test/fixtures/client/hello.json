@@ -1,0 +1,9 @@
+{
+  "kind": "hello",
+  "protocolVersions": [1],
+  "client": {
+    "name": "lervo-ade",
+    "version": "0.1.0"
+  },
+  "token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+}

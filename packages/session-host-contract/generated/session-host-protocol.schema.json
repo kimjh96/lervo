@@ -1,0 +1,997 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.lervo.dev/v1/session-host-protocol.schema.json",
+  "title": "SessionHostProtocolMessage",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ClientMessage"
+    },
+    {
+      "$ref": "#/$defs/HostMessage"
+    }
+  ],
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "Sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "EpochMilliseconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "Code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "Parameters": {
+      "type": "object",
+      "maxProperties": 16,
+      "propertyNames": {
+        "pattern": "^[a-z][A-Za-z0-9]{0,31}$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "maxLength": 256
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "ConversationMode": {
+      "enum": [
+        "native",
+        "cli"
+      ]
+    },
+    "ClientMessage": {
+      "title": "ClientMessage",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/HelloMessage"
+        },
+        {
+          "$ref": "#/$defs/ApplicationCommandMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionOpenMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionAttachMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionDetachMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionSendMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionResizeMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionStopMessage"
+        },
+        {
+          "$ref": "#/$defs/ConversationRangeMessage"
+        }
+      ]
+    },
+    "HostMessage": {
+      "title": "HostMessage",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/WelcomeMessage"
+        },
+        {
+          "$ref": "#/$defs/RejectedMessage"
+        },
+        {
+          "$ref": "#/$defs/ApplicationResultMessage"
+        },
+        {
+          "$ref": "#/$defs/RequestFailedMessage"
+        },
+        {
+          "$ref": "#/$defs/NoticeMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionOpenedMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionStatusMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionResyncRequiredMessage"
+        },
+        {
+          "$ref": "#/$defs/ConversationAppendedMessage"
+        },
+        {
+          "$ref": "#/$defs/ConversationDeltaMessage"
+        },
+        {
+          "$ref": "#/$defs/ConversationPageMessage"
+        }
+      ]
+    },
+    "ConversationItem": {
+      "title": "ConversationItem",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/UserMessageItem"
+        },
+        {
+          "$ref": "#/$defs/AgentMessageItem"
+        },
+        {
+          "$ref": "#/$defs/ToolActivityItem"
+        },
+        {
+          "$ref": "#/$defs/QuestionItem"
+        },
+        {
+          "$ref": "#/$defs/LervoNoticeItem"
+        }
+      ]
+    },
+    "HelloMessage": {
+      "title": "HelloMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "protocolVersions",
+        "client",
+        "token"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "hello"
+          ]
+        },
+        "protocolVersions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "uniqueItems": true,
+          "items": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "client": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "version"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          }
+        },
+        "token": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      }
+    },
+    "ApplicationCommandMessage": {
+      "title": "ApplicationCommandMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "command",
+        "arguments"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "application.command"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "command": {
+          "type": "string",
+          "pattern": "^[a-z]+(\\.[a-z_]+)+$",
+          "maxLength": 64
+        },
+        "arguments": {
+          "type": "object",
+          "maxProperties": 32
+        }
+      }
+    },
+    "SessionOpenMessage": {
+      "title": "SessionOpenMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "workspaceId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.open"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "SessionAttachMessage": {
+      "title": "SessionAttachMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId",
+        "afterSequence"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.attach"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "afterSequence": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "SessionDetachMessage": {
+      "title": "SessionDetachMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sessionId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.detach"
+          ]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "SessionSendMessage": {
+      "title": "SessionSendMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.send"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 262144
+        }
+      }
+    },
+    "SessionResizeMessage": {
+      "title": "SessionResizeMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sessionId",
+        "columns",
+        "rows"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.resize"
+          ]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        },
+        "rows": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      }
+    },
+    "SessionStopMessage": {
+      "title": "SessionStopMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.stop"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "ConversationRangeMessage": {
+      "title": "ConversationRangeMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId",
+        "direction",
+        "limit"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "conversation.range"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "direction": {
+          "enum": [
+            "before",
+            "after"
+          ]
+        },
+        "anchorItemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200
+        }
+      }
+    },
+    "WelcomeMessage": {
+      "title": "WelcomeMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "protocolVersion",
+        "host"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "welcome"
+          ]
+        },
+        "protocolVersion": {
+          "type": "integer",
+          "const": 1
+        },
+        "host": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "hostId",
+            "name",
+            "version"
+          ],
+          "properties": {
+            "hostId": {
+              "$ref": "#/$defs/Identifier"
+            },
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "version": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32
+            }
+          }
+        }
+      }
+    },
+    "RejectedMessage": {
+      "title": "RejectedMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "code"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "rejected"
+          ]
+        },
+        "code": {
+          "enum": [
+            "protocol_unsupported",
+            "token_invalid"
+          ]
+        }
+      }
+    },
+    "ApplicationResultMessage": {
+      "title": "ApplicationResultMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "result"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "application.result"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "result": {
+          "type": "object",
+          "maxProperties": 32
+        }
+      }
+    },
+    "RequestFailedMessage": {
+      "title": "RequestFailedMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "code",
+        "parameters"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "request.failed"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "code": {
+          "enum": [
+            "workspace_start_failed",
+            "session_not_found",
+            "session_ended",
+            "provider_cli_unavailable",
+            "provider_login_unavailable",
+            "range_invalid",
+            "application_unavailable"
+          ]
+        },
+        "parameters": {
+          "$ref": "#/$defs/Parameters"
+        }
+      }
+    },
+    "NoticeMessage": {
+      "title": "NoticeMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "code",
+        "parameters"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "notice"
+          ]
+        },
+        "code": {
+          "$ref": "#/$defs/Code"
+        },
+        "parameters": {
+          "$ref": "#/$defs/Parameters"
+        }
+      }
+    },
+    "SessionOpenedMessage": {
+      "title": "SessionOpenedMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId",
+        "workspaceId",
+        "conversationMode",
+        "channel"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.opened"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "conversationMode": {
+          "$ref": "#/$defs/ConversationMode"
+        },
+        "channel": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4294967295
+        }
+      }
+    },
+    "SessionStatusMessage": {
+      "title": "SessionStatusMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sessionId",
+        "sequence",
+        "status"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.status"
+          ]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Sequence"
+        },
+        "status": {
+          "enum": [
+            "starting",
+            "working",
+            "needs_user",
+            "idle",
+            "ended"
+          ]
+        },
+        "endReason": {
+          "enum": [
+            "completed",
+            "stopped",
+            "failed",
+            "provider_exited"
+          ]
+        }
+      }
+    },
+    "SessionResyncRequiredMessage": {
+      "title": "SessionResyncRequiredMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sessionId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.resync_required"
+          ]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "ConversationAppendedMessage": {
+      "title": "ConversationAppendedMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sessionId",
+        "sequence",
+        "items"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "conversation.appended"
+          ]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Sequence"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/ConversationItem"
+          }
+        }
+      }
+    },
+    "ConversationDeltaMessage": {
+      "title": "ConversationDeltaMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "sessionId",
+        "sequence",
+        "itemId",
+        "append"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "conversation.delta"
+          ]
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sequence": {
+          "$ref": "#/$defs/Sequence"
+        },
+        "itemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "append": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 65536
+        }
+      }
+    },
+    "ConversationPageMessage": {
+      "title": "ConversationPageMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId",
+        "items",
+        "hasEarlier",
+        "hasLater"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "conversation.page"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 200,
+          "items": {
+            "$ref": "#/$defs/ConversationItem"
+          }
+        },
+        "hasEarlier": {
+          "type": "boolean"
+        },
+        "hasLater": {
+          "type": "boolean"
+        }
+      }
+    },
+    "UserMessageItem": {
+      "title": "UserMessageItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "itemId",
+        "createdAtMs",
+        "state",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "user_message"
+          ]
+        },
+        "itemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        },
+        "state": {
+          "enum": [
+            "streaming",
+            "complete"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "AgentMessageItem": {
+      "title": "AgentMessageItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "itemId",
+        "createdAtMs",
+        "state",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "agent_message"
+          ]
+        },
+        "itemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        },
+        "state": {
+          "enum": [
+            "streaming",
+            "complete"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "ToolActivityItem": {
+      "title": "ToolActivityItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "itemId",
+        "createdAtMs",
+        "state",
+        "tool"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "tool_activity"
+          ]
+        },
+        "itemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        },
+        "state": {
+          "enum": [
+            "streaming",
+            "complete"
+          ]
+        },
+        "tool": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name",
+            "status",
+            "calls"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "status": {
+              "enum": [
+                "running",
+                "succeeded",
+                "failed"
+              ]
+            },
+            "calls": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "QuestionItem": {
+      "title": "QuestionItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "itemId",
+        "createdAtMs",
+        "state",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "question"
+          ]
+        },
+        "itemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        },
+        "state": {
+          "enum": [
+            "streaming",
+            "complete"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "LervoNoticeItem": {
+      "title": "LervoNoticeItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "itemId",
+        "createdAtMs",
+        "state",
+        "code",
+        "parameters"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "lervo_notice"
+          ]
+        },
+        "itemId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        },
+        "state": {
+          "type": "string",
+          "enum": [
+            "complete"
+          ]
+        },
+        "code": {
+          "$ref": "#/$defs/Code"
+        },
+        "parameters": {
+          "$ref": "#/$defs/Parameters"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "kind": "conversation.range",
+  "requestId": "req_6",
+  "sessionId": "ses_1",
+  "direction": "before",
+  "anchorItemId": "itm_40",
+  "limit": 201
+}

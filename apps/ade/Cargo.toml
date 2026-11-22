@@ -1,7 +1,7 @@
 # The ADE's Rust code: the Tauri shell and the session host (ADR-0613).
 [workspace]
 resolver = "3"
-members = ["src-tauri", "session-host"]
+members = ["src-tauri", "session-host", "session-protocol"]
 
 [workspace.package]
 edition = "2024"

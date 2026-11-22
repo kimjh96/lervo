@@ -181,8 +181,8 @@ export default defineConfig(
         {
           patterns: [
             {
-              group: ["@lervo/*"],
-              message: "The ADE interface reaches Lervo only through the session host protocol.",
+              group: ["@lervo/*", "!@lervo/session-host-contract"],
+              message: "The ADE interface reaches Lervo only through @lervo/session-host-contract.",
             },
           ],
         },

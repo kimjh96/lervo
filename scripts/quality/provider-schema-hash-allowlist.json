@@ -5,6 +5,10 @@
     {
       "path": "packages/schemas/src",
       "reason": "Event, record and report validation schemas that Lervo writes and validates itself; no provider answers with them. A cast to the brand, its key or a parsed schema is still refused here."
+    },
+    {
+      "path": "packages/session-host-contract/src",
+      "reason": "Session-host protocol messages between the ADE interface and its session host. Lervo's own processes write and validate them, and no provider answers with them."
     }
   ],
   "entries": [],

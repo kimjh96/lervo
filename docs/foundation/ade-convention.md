@@ -62,7 +62,7 @@ Each side has four layers. Dependencies point inward only.
 - **Rust.** `rustfmt`, `clippy` with `-D warnings`, `#![forbid(unsafe_code)]` unless a reviewed module needs unsafe code, and `cargo deny` for licenses and advisories. Code outside tests never calls `unwrap` or `expect`.
 - **TypeScript.** Strict mode, the repository ESLint configuration, import-boundary rules, and a rule against string literals in JSX (see Localization).
 - **Repository gates.** `pnpm quality:check` lints and formats the ADE's TypeScript with the rest of the repository, and its 400-line review covers `.rs` files. `pnpm ade:check` builds the interface and runs `rustfmt`, `clippy`, the Rust tests, and `cargo deny`. Run it for every change under `apps/ade/`; the ADE workflow runs it in CI when ADE paths change. `apps/ade/rust-toolchain.toml` pins one Rust toolchain for the Mac, WSL, and CI.
-- **Boundaries.** The package boundary checker and an ESLint import rule keep `@lervo/ade` free of Lervo workspace packages. The interface reaches Lervo only through the session-host protocol.
+- **Boundaries.** The package boundary checker and an ESLint import rule keep `@lervo/ade` free of Lervo workspace packages except `@lervo/session-host-contract`. The interface reaches Lervo only through the session-host protocol.
 - **Commits.** Changes under `apps/ade/`, Rust included, use the `ade` commit scope.
 
 ## Technology stack

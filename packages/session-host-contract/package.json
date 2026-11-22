@@ -1,0 +1,24 @@
+{
+  "name": "@lervo/session-host-contract",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc --project tsconfig.json && node scripts/write-protocol-document.mjs"
+  },
+  "dependencies": {
+    "json-schema-to-ts": "3.1.1"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0"
+  }
+}
