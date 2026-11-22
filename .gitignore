@@ -6,3 +6,5 @@ coverage/
 # lervo:begin rebuildable-knowledge schema=1
 docs/knowledge/
 # lervo:end rebuildable-knowledge
+apps/ade/target/
+apps/ade/src-tauri/gen/

@@ -1,0 +1,19 @@
+.firstStep {
+  fill: currentcolor;
+  fill-opacity: 0.38;
+}
+
+.secondStep {
+  fill: currentcolor;
+  fill-opacity: 0.68;
+}
+
+.lastStep {
+  fill: #3a64d8;
+}
+
+@media (prefers-color-scheme: dark) {
+  .lastStep {
+    fill: #7aa2f7;
+  }
+}
