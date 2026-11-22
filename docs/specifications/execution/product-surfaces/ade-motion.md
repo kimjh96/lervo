@@ -60,6 +60,10 @@ The ADE uses no springs, bounces, or overshoot.
 
 ## Verification
 
-- S1.5 adds a stylesheet check that rejects animated layout properties, `backdrop-filter` transitions, and durations or easings that do not come from the motion tokens.
+- `apps/ade/scripts/check-motion.mjs` checks every interface stylesheet, and the interface tests run it. It rejects:
+  - durations and easings that do not come from the motion tokens;
+  - transitions of anything but opacity, transform, and control colors;
+  - keyframes that animate anything but opacity and transform.
+- The working dot's breathing uses the `motion.easing.breathe` token, so no literal easing remains.
 - Interface tests cover reduced motion: under `prefers-reduced-motion: reduce`, no element in the catalog animates.
 - The performance harness covers each pattern in the catalog on the owner's Mac and in WSL.

@@ -19,6 +19,62 @@
     "defaultMessage": "Lervo could not start its session host",
     "description": "The shell could not find or start the session host."
   },
+  "conversation.cliPending": {
+    "defaultMessage": "This workspace runs in the terminal, which the next update shows here.",
+    "description": "The CLI conversation arrives in S1.5d."
+  },
+  "conversation.jumpToLatest": {
+    "defaultMessage": "Jump to latest",
+    "description": "Returns the conversation to its newest messages."
+  },
+  "conversation.reply.failed": {
+    "defaultMessage": "The reply did not reach the agent. It is back in the input.",
+    "description": "session.send failed."
+  },
+  "conversation.reply.label": {
+    "defaultMessage": "Reply",
+    "description": "The accessible label of the reply input."
+  },
+  "conversation.reply.placeholder": {
+    "defaultMessage": "Reply to the agent",
+    "description": "The reply input's placeholder."
+  },
+  "conversation.tool.failed": {
+    "defaultMessage": "{name} failed",
+    "description": "A tool call that failed."
+  },
+  "conversation.tool.running": {
+    "defaultMessage": "{name} is running",
+    "description": "A tool call that has not finished."
+  },
+  "conversation.tool.succeeded": {
+    "defaultMessage": "{name}{calls, plural, =1 {} other { · # calls}}",
+    "description": "A finished tool call; the count shows when the agent called the tool more than once."
+  },
+  "conversation.unavailable": {
+    "defaultMessage": "The conversation could not open ({code}).",
+    "description": "The session could not attach or start; the code names why."
+  },
+  "notice.conversation_item_invalid": {
+    "defaultMessage": "A message from the agent could not be shown.",
+    "description": "The adapter produced an item outside the protocol's limits."
+  },
+  "notice.core_decoding_failed": {
+    "defaultMessage": "Lervo could not read part of the agent's output.",
+    "description": "The provider adapter could not decode a chunk."
+  },
+  "notice.core_link_unavailable": {
+    "defaultMessage": "Lervo could not read the agent's output for a moment. The agent keeps working.",
+    "description": "The resident Lervo process was unreachable while decoding."
+  },
+  "notice.provider_turn_failed": {
+    "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
+    "description": "Claude Code's result did not succeed."
+  },
+  "notice.unknown": {
+    "defaultMessage": "Lervo notice: {code}",
+    "description": "A Lervo notice without a catalog message."
+  },
   "notifications.finished": {
     "defaultMessage": "Finished its turn",
     "description": "A desktop notification: the agent finished its turn."

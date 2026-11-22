@@ -77,6 +77,14 @@ The native conversation's structured stream carries the same kinds of events tha
 - A desktop notification appears when a session turns to `needs_user`, or from `working` to `idle`, which means the agent finished its turn. Nothing notifies for the workspace the user is looking at in a focused window, or for a status the interface saw first after connecting.
 - A notification holds the workspace title and a catalog message, never conversation text.
 
+## The conversation in the interface
+
+- The interface keeps a window of at most 600 items for the open conversation and loads pages of 100 with `conversation.range`. Scrolling near the top loads the previous page, and the window trims the side away from what the user reads.
+- Only items near the viewport mount: the list is virtualized, and rows measure their own height.
+- Streamed text applies at most once per frame. A new item, or a repeat of a streaming item, flushes the pending text first, so the order never changes.
+- When the workspace's session does not run, the interface opens it with `session.open`, which resumes the provider's session through the core, and attaches again.
+- Each item kind has one renderer in a registry. Lervo notices render from the catalog by code. In S1.5c, messages render as plain text; S1.6 chooses Markdown and code rendering by measurement against the conversation budgets.
+
 ## Conversation index
 
 - The session host keeps one conversation index per session: segment files of 256 encoded items each, written as length-prefixed records.

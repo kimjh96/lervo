@@ -1,0 +1,68 @@
+.frame {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.scroller {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.list {
+  position: relative;
+  width: min(var(--layout-content-max-width), calc(100% - var(--space-48)));
+  margin: 0 auto;
+}
+
+.row {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: grid;
+  width: 100%;
+  padding: var(--space-8) 0;
+}
+
+/* Only items that arrive while the user watches move (ADE motion, "A message arrives live"). */
+.row[data-arrived="true"] > * {
+  animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.jump {
+  position: absolute;
+  bottom: var(--space-12);
+  left: 50%;
+  padding: var(--space-6) var(--space-12);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-full);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--type-meta-size);
+  background: var(--color-surface-opaque);
+  box-shadow: var(--shadow-raised);
+  transform: translateX(-50%);
+  cursor: pointer;
+  animation: appear var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .row[data-arrived="true"] > *,
+  .jump {
+    animation: none;
+  }
+}

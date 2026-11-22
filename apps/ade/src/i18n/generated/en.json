@@ -29,6 +29,144 @@
       "value": "Lervo could not start its session host"
     }
   ],
+  "conversation.cliPending": [
+    {
+      "type": 0,
+      "value": "This workspace runs in the terminal, which the next update shows here."
+    }
+  ],
+  "conversation.jumpToLatest": [
+    {
+      "type": 0,
+      "value": "Jump to latest"
+    }
+  ],
+  "conversation.reply.failed": [
+    {
+      "type": 0,
+      "value": "The reply did not reach the agent. It is back in the input."
+    }
+  ],
+  "conversation.reply.label": [
+    {
+      "type": 0,
+      "value": "Reply"
+    }
+  ],
+  "conversation.reply.placeholder": [
+    {
+      "type": 0,
+      "value": "Reply to the agent"
+    }
+  ],
+  "conversation.tool.failed": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " failed"
+    }
+  ],
+  "conversation.tool.running": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " is running"
+    }
+  ],
+  "conversation.tool.succeeded": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 6,
+      "value": "calls",
+      "options": {
+        "=1": {
+          "value": []
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": " · "
+            },
+            {
+              "type": 7
+            },
+            {
+              "type": 0,
+              "value": " calls"
+            }
+          ]
+        }
+      },
+      "offset": 0,
+      "pluralType": "cardinal"
+    }
+  ],
+  "conversation.unavailable": [
+    {
+      "type": 0,
+      "value": "The conversation could not open ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "notice.conversation_item_invalid": [
+    {
+      "type": 0,
+      "value": "A message from the agent could not be shown."
+    }
+  ],
+  "notice.core_decoding_failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not read part of the agent's output."
+    }
+  ],
+  "notice.core_link_unavailable": [
+    {
+      "type": 0,
+      "value": "Lervo could not read the agent's output for a moment. The agent keeps working."
+    }
+  ],
+  "notice.provider_turn_failed": [
+    {
+      "type": 0,
+      "value": "The agent's turn ended without finishing ("
+    },
+    {
+      "type": 1,
+      "value": "subtype"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "notice.unknown": [
+    {
+      "type": 0,
+      "value": "Lervo notice: "
+    },
+    {
+      "type": 1,
+      "value": "code"
+    }
+  ],
   "notifications.finished": [
     {
       "type": 0,

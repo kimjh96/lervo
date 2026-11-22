@@ -8,7 +8,7 @@
 
 .dot[data-tone="working"] {
   background: var(--color-status-working);
-  animation: breathe var(--motion-duration-breathe) ease-in-out infinite alternate;
+  animation: breathe var(--motion-duration-breathe) var(--motion-easing-breathe) infinite alternate;
 }
 
 .dot[data-tone="attention"] {

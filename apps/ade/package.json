@@ -12,6 +12,7 @@
     "test": "vitest run --root ../.. apps/ade"
   },
   "dependencies": {
+    "@tanstack/react-virtual": "3.14.26",
     "@tauri-apps/api": "2.12.5",
     "@tauri-apps/plugin-notification": "2.8.1",
     "react": "19.3.1",
