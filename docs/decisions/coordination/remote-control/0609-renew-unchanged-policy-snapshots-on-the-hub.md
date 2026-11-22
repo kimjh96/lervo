@@ -16,11 +16,11 @@ Expiry guards against a missing or stale Hub. A running Hub that still holds the
 
 The Hub runtime runs one renewal cycle when its server starts listening. For each project's current snapshot, the cycle signs a successor with the same target and rules. The successor's validity equals the current snapshot's own `expiresAt - issuedAt`, so the owner's chosen term carries forward. The successor names the observed head as predecessor. Publication already rejects a successor whose predecessor is no longer the head, so an owner change made during the cycle wins, and the cycle skips that project.
 
-A head is due 72 hours before it expires. An already expired head is due at once, because a running Hub with unchanged rules is still the owner's policy.
+A head is due 72 hours before it expires, or at the midpoint of a validity shorter than 144 hours, so a short policy never re-signs itself the moment it is signed. An already expired head is due at once, because a running Hub with unchanged rules is still the owner's policy.
 
 ### A live approval delays renewal to its last hour
 
-An approval binds the exact snapshot and cannot outlive it. Re-signing would orphan an approval that is still unexpired and unrevoked. While such an approval binds the head, the head becomes due only 1 hour before expiry, so renewal cuts an approval short by at most that hour.
+An approval binds the exact snapshot and cannot outlive it. Re-signing would orphan an approval that is still unexpired and unrevoked. While such an approval binds the head, the head becomes due only 1 hour before expiry, or a quarter of a shorter validity, so renewal cuts an approval short by at most that.
 
 ### The cycle sleeps until the next due head
 

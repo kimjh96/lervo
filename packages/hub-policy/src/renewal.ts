@@ -32,12 +32,19 @@ export interface HubPolicyRenewalResult {
   nextDueAt: string | null;
 }
 
-/** When the head becomes due: the lead before expiry, or the grace while an approval is live. */
+/**
+ * When the head becomes due: the lead before expiry, or the grace while an approval is live. Each
+ * is capped at a fraction of the head's own validity, so a short policy still lives most of its
+ * term before it is renewed and its successor is never due the moment it is signed.
+ */
 export function policyRenewalDueAt(head: HubPolicyRenewalHead): number {
-  const expiresAt = Date.parse(head.envelope.snapshot.expiresAt);
+  const { issuedAt, expiresAt } = head.envelope.snapshot;
+  const validityMs = Date.parse(expiresAt) - Date.parse(issuedAt);
   return (
-    expiresAt -
-    (head.liveApprovalCount === 0 ? POLICY_RENEWAL_LEAD_MS : POLICY_RENEWAL_APPROVAL_GRACE_MS)
+    Date.parse(expiresAt) -
+    (head.liveApprovalCount === 0
+      ? Math.min(POLICY_RENEWAL_LEAD_MS, validityMs / 2)
+      : Math.min(POLICY_RENEWAL_APPROVAL_GRACE_MS, validityMs / 4))
   );
 }
 

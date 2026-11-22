@@ -207,3 +207,43 @@ describe("Hub policy renewal (ADR-0609)", () => {
     await store.close();
   });
 });
+
+describe("Hub policy renewal of a short policy (ADR-0609)", () => {
+  it("renews a one-hour policy at its midpoint, so its successor is not due at once", async () => {
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    const project = manifest("prj_hub_policy_renew_05");
+    await registerStore(store, project);
+    const target = {
+      projectId: project.projectId,
+      projectIdentityHash: calculateProjectIdentityHash(project),
+    };
+    const signer = new Ed25519PolicySigner(
+      "key_hub_policy_short",
+      generateKeyPairSync("ed25519").privateKey,
+    );
+    const shortExpiry = "2026-08-19T02:00:00.000Z";
+    await authorPolicySnapshot({
+      store,
+      signer,
+      request: {
+        destinationId,
+        target,
+        rules: [rule],
+        issuedAt,
+        expiresAt: shortExpiry,
+        publishedAt: issuedAt,
+      },
+    });
+    const midpoint = "2026-08-19T01:30:00.000Z";
+    const early = await renewDuePolicySnapshots({
+      store,
+      signer,
+      now: () => "2026-08-19T01:29:59.000Z",
+    });
+    expect(early).toEqual({ renewed: [], nextDueAt: midpoint });
+    const due = await renewDuePolicySnapshots({ store, signer, now: () => midpoint });
+    expect(due.renewed).toHaveLength(1);
+    expect(due.nextDueAt).toBe("2026-08-19T02:00:00.000Z");
+    await store.close();
+  });
+});
