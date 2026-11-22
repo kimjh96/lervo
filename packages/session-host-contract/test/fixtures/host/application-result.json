@@ -1,0 +1,8 @@
+{
+  "kind": "application.result",
+  "requestId": "req_1",
+  "result": {
+    "workspaceId": "wks_1",
+    "sessionId": "ses_1"
+  }
+}

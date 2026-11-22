@@ -1,0 +1,6 @@
+{
+  "kind": "session.send",
+  "requestId": "req_4",
+  "sessionId": "ses_1",
+  "text": "응, hosted 세션 이벤트 정의 다시 검토해줘"
+}

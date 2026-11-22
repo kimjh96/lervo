@@ -19,6 +19,7 @@ export default defineConfig({
       "@lervo/request-grounding": fromRoot("./packages/request-grounding/src/index.ts"),
       "@lervo/agent-workforce": fromRoot("./packages/agent-workforce/src/index.ts"),
       "@lervo/adapter-contract": fromRoot("./packages/adapter-contract/src/index.ts"),
+      "@lervo/session-host-contract": fromRoot("./packages/session-host-contract/src/index.ts"),
       "@lervo/adapter-claude": fromRoot("./packages/adapter-claude/src/index.ts"),
       "@lervo/adapter-codex": fromRoot("./packages/adapter-codex/src/index.ts"),
       "@lervo/adapter-discord": fromRoot("./packages/adapter-discord/src/index.ts"),

@@ -1,0 +1,8 @@
+{
+  "kind": "request.failed",
+  "requestId": "req_1",
+  "code": "workspace_start_failed",
+  "parameters": {
+    "stage": "workstream"
+  }
+}

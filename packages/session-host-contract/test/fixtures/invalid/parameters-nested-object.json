@@ -1,0 +1,9 @@
+{
+  "kind": "notice",
+  "code": "provider_login_unavailable",
+  "parameters": {
+    "provider": {
+      "name": "codex"
+    }
+  }
+}
