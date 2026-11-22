@@ -7,6 +7,7 @@ import { OwnerOnlyFileSystemCas } from "@lervo/cas";
 import {
   ReloadableBearerAuthenticator,
   attachHubArtifactCleanupLifecycle,
+  attachHubPolicyRenewalLifecycle,
   createHubRequestListener,
   createHubServerWithArtifactCleanup,
   HUB_SOCKET_KEEPALIVE_MILLISECONDS,
@@ -265,7 +266,10 @@ function clearTlsMaterial(material: LoadedTlsMaterial | undefined): void {
   material?.privateKey.fill(0);
 }
 
-export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRuntimeDeployment> {
+export async function openHubRuntime(
+  config: HubRuntimeConfig,
+  reporter: { stderr(message: string): void } = { stderr: () => undefined },
+): Promise<HubRuntimeDeployment> {
   try {
     if (
       (config.tls === undefined &&
@@ -385,6 +389,25 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
           onFailure: () => deployment.markArtifactCleanupFailure(),
         });
       }
+      // ADR-0609: unchanged policies are re-signed before expiry; close waits for a running cycle.
+      const policyRenewal = attachHubPolicyRenewalLifecycle({
+        server,
+        store,
+        signer: policySigner,
+        onRenewed: (result) =>
+          reporter.stderr(`Lervo Hub renewed ${result.renewed.length} policy snapshot(s).\n`),
+        onFailure: (error) =>
+          reporter.stderr(
+            `Lervo Hub policy renewal failed (${(error as { code?: string })?.code ?? "policy_renewal_failed"}); retrying in one hour.\n`,
+          ),
+      });
+      const lifecycles: typeof artifactCleanup = {
+        settled: artifactCleanup.settled,
+        stop: async () => {
+          await policyRenewal.stop();
+          return artifactCleanup.stop();
+        },
+      };
       const reloadMaterialSnapshot = async () => {
         const [credentials, candidateSigning, tls] = await Promise.all([
           loadHubRuntimeCredentials(config),
@@ -412,7 +435,7 @@ export async function openHubRuntime(config: HubRuntimeConfig): Promise<HubRunti
         { ...config.listen },
         store,
         server,
-        artifactCleanup,
+        lifecycles,
         config.tls === undefined ? "http" : "https",
         reloadCredentialSnapshot,
         reloadMaterialSnapshot,

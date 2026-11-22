@@ -12,6 +12,7 @@ import { lifecycleChangedPaths } from "@lervo/repository-knowledge-runtime";
 import { openProjectStorage } from "@lervo/project-storage";
 
 import { applyCrossCheckedEffect, crossCheckedEffectLines } from "./cross-checked-effect.js";
+import { applyGeneratedEffect } from "./generated-effect.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
 import {
   instructionBridgeKnowledgeLintCodes,
@@ -151,7 +152,22 @@ export async function runInstructionBridge(input: {
             },
             apply,
           })
-        : { receipt: await apply(), report: null };
+        : {
+            // ADR-0610: a generated-only bridge refresh lands as its own commit as well.
+            receipt: (
+              await applyGeneratedEffect({
+                repositoryRoot,
+                paths: lifecycleChangedPaths(plan),
+                notice: {
+                  effect: "instruction_bridge",
+                  planId: plan.planId,
+                  reason: "refreshed the Claude instruction bridge binding",
+                },
+                apply,
+              })
+            ).receipt,
+            report: null,
+          };
     io.stdout(
       input.json
         ? `${JSON.stringify(report === null ? receipt : { ...receipt, notice: report }, null, 2)}\n`

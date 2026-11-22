@@ -10,6 +10,11 @@ import {
   type TerminalIntegrationReceipt,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
+import {
+  commitKnowledgeEffect,
+  gitVisiblePaths,
+  type KnowledgeCommitResult,
+} from "@lervo/repository-knowledge-runtime";
 
 import { CommandFailure } from "./command-error-output.js";
 import {
@@ -75,6 +80,8 @@ export interface TerminalIntegrationApplication {
   receipt: TerminalIntegrationReceipt;
   /** The backup of the provider hook files, or null when only the generated runtime changed. */
   backupId: string | null;
+  /** ADR-0610: the `Lervo Knowledge` commit holding the launcher and hook files. */
+  commit: KnowledgeCommitResult;
 }
 
 /** Why the applied integration is not current, or null when it verifies. */
@@ -205,7 +212,26 @@ export async function applyTerminalIntegrationStage(input: {
       });
     }
     await rememberTerminalWorkerEntry(input.repositoryRoot, process.env.LERVO_CLI_ENTRY);
-    return { receipt, backupId: backup?.backupId ?? null };
+    // ADR-0610: the upgrade plan held this stage unless it could commit here, so the verified
+    // launcher and hook files land as one commit instead of staying in the owner's checkout.
+    const committed = await gitVisiblePaths(
+      input.repositoryRoot,
+      plan.operations.map((operation) => operation.path),
+    );
+    const commit: KnowledgeCommitResult =
+      committed.length === 0
+        ? { status: "not_committed", reason: "nothing_to_commit" }
+        : await commitKnowledgeEffect({
+            repositoryRoot: input.repositoryRoot,
+            paths: committed,
+            notice: {
+              effect: "terminal_integration",
+              planId: plan.planId,
+              reason: "refreshed the Lervo terminal hook launcher and provider hook files",
+              crossCheck: "post-apply verification passed",
+            },
+          });
+    return { receipt, backupId: backup?.backupId ?? null, commit };
   } finally {
     await storage.close();
   }

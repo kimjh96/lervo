@@ -18,6 +18,7 @@ import {
   type DurableInstructionPlan,
 } from "@lervo/repository-knowledge";
 
+import { checkoutOnBaseBranch, repositoryCommittable } from "./checkout-base-branch.js";
 import {
   appliedInstructionCandidateCommitted,
   commitAppliedInstructionCandidate,
@@ -39,6 +40,17 @@ function plainCandidate(candidate: DurableInstructionCandidateInspection) {
  * ADR-0467: on a Hub-coordinated host only the ADR-0466 convergence owner applies, because it is
  * the host that commits knowledge outputs. Another host keeps the candidate for the Hub exchange.
  */
+/** ADR-0610: the checkout is off its base branch, so the stored candidate waits for it. */
+export class InstructionApplyNotOnBaseError extends Error {
+  readonly code = "repository_not_on_base";
+  constructor() {
+    super(
+      "This checkout is not on its base branch, so the rule stays stored and Lervo applies it once the checkout is back on that branch.",
+    );
+    this.name = "InstructionApplyNotOnBaseError";
+  }
+}
+
 export class InstructionApplyOwnerElsewhereError extends Error {
   readonly code = "convergence_owner_elsewhere";
 
@@ -87,7 +99,13 @@ async function settleAppliedCandidate(input: {
   now: Date;
 }): Promise<string | null> {
   let commitHash: string | null = null;
-  if (input.authority.status === "owner") {
+  // ADR-0610: a single host commits the rule too, so it never stays an uncommitted change; outside
+  // Git, or before the first commit, there is nothing to commit and the file is the undo.
+  if (
+    input.authority.status === "owner" ||
+    (input.authority.status === "single_host" &&
+      (await repositoryCommittable(input.repositoryRoot)))
+  ) {
     commitHash = await commitAppliedInstructionCandidate({
       repositoryRoot: input.repositoryRoot,
       targetPath: input.candidate.targetPath,
@@ -203,6 +221,8 @@ export async function applyDurableInstructionCandidate(input: {
   const authority = await instructionCandidateApplyAuthority(input.repositoryRoot);
   if (authority.status === "owner_elsewhere")
     throw new InstructionApplyOwnerElsewhereError(authority.reason, authority.holderLabel);
+  if (!(await checkoutOnBaseBranch(input.repositoryRoot)).onBase)
+    throw new InstructionApplyNotOnBaseError();
   const storage = await openProjectStorage(input.repositoryRoot);
   try {
     if (storage.manifest.projectId !== candidate.projectId)

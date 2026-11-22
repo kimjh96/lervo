@@ -176,7 +176,7 @@ it("applies byte-preserving moves whose exact paths far exceed the 32-root deleg
   });
   const paths = calls.review.mock.calls[0]![4] as string[];
   expect(paths).toHaveLength(40);
-  expect(calls.preflight).toHaveBeenCalledWith("/fixture", paths);
+  expect(calls.preflight).toHaveBeenCalledWith("/fixture", paths, { generated: false });
   expect(calls.apply).toHaveBeenCalledOnce();
   expect(calls.commit).toHaveBeenCalledWith(
     expect.objectContaining({

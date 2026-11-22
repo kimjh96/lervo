@@ -11,6 +11,7 @@ export * from "./handler.js";
 export * from "./health-handler.js";
 export * from "./identifiers.js";
 export * from "./policy-handler.js";
+export * from "./policy-renewal-lifecycle.js";
 export * from "./policy-request.js";
 export * from "./request.js";
 export * from "./response.js";

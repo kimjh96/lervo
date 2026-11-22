@@ -1,5 +1,7 @@
 import { readRepositoryHold } from "@lervo/repository-registry";
 import { compactProjectConvergenceArtifacts } from "./cas-retention.js";
+import { checkoutOnBaseBranch } from "./checkout-base-branch.js";
+import { keepConvergenceDelegationHostLocal } from "./delegation-tracking.js";
 import { admittedBackgroundContext } from "./background-provider.js";
 import { runPracticeLearningCycle } from "./practice-stage.js";
 import { loadConvergenceDelegation } from "./delegation.js";
@@ -112,7 +114,11 @@ export async function runAutonomousKnowledgeWorker(input: {
   /** How convergence observes repository sources; absent, every observation is a full capture. */
   sourceObservation?: ConvergenceSourceObservation;
 }): Promise<
-  | { status: "busy"; reason?: "knowledge_cycle_yielded_to_upgrade" | "repository_owner_hold" }
+  | {
+      status: "busy";
+      reason?:
+        "knowledge_cycle_yielded_to_upgrade" | "repository_owner_hold" | "repository_not_on_base";
+    }
   | {
       status: "waiting_owner";
       owner: ConvergenceOwnerVerdict;
@@ -141,6 +147,13 @@ export async function runAutonomousKnowledgeWorker(input: {
       return runTerminalSkillObservationCycle({ storage: input.storage, now: new Date() });
     }),
   ).catch(() => {});
+  // ADR-0610: every later stage can write or commit in this checkout, so off the base branch the
+  // cycle stops here and the owner's feature-branch or detached work never receives Lervo bytes.
+  // Nothing is lost: pending stages and owner turns stay due until the checkout is back on base.
+  if (!(await checkoutOnBaseBranch(root)).onBase)
+    return { status: "busy", reason: "repository_not_on_base" };
+  // ADR-0610: an older repository still tracks its host-local delegation; untrack it once.
+  await keepConvergenceDelegationHostLocal(root).catch(() => undefined);
   const signal = input.signal ?? new AbortController().signal;
   const liveWorkPending =
     input.liveWorkPending ??

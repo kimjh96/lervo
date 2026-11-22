@@ -18,9 +18,9 @@
     },
     {
       "path": "apps/hub-runtime/src/deployment.ts",
-      "contentHash": "sha256:dadee63b441860f490c96b26bc6e86d1289897ef448e13bd7f5b4251727c5bc1",
+      "contentHash": "sha256:c24efdbd335b8f185aceae8c7d86e7256c79112062521e447411368504048990",
       "responsibility": "Hub runtime deployment composition",
-      "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules; the ADR-0602 socket keepalive is one server option of that composition.",
+      "rationale": "TLS material loading, dependency and server composition, reload, resource lifecycle orchestration, and health wiring are phases of one Hub deployment boundary; HTTP connection-drain mechanics and domain policy remain in linked modules; the ADR-0602 socket keepalive is one server option of that composition. It attaches the ADR-0609 policy renewal lifecycle, whose logic lives in @lervo/hub.",
       "disposition": "cohesive"
     },
     {
@@ -95,9 +95,9 @@
     },
     {
       "path": "packages/hub-sync-sqlite/src/store.ts",
-      "contentHash": "sha256:938c6861902b4b0a69e0a80192442a8b454b0c94803fd658cbc549550a13f254",
+      "contentHash": "sha256:4bd1935c5c58961c9d74fd9ea379f0eb1b009bbb91c712f63573b196ef8efc3b",
       "responsibility": "Hub synchronization SQLite store",
-      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors, change kinds and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates with the kind of change, passes presence through, and lets the owner lease follow it. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories.",
+      "rationale": "One SQLite adapter composes repositories under one database, transaction, and schema lifecycle. Notification waiting, per-host cursors, change kinds and presence (ADR-0602) live in a separate adapter; this facade emits committed scope coordinates with the kind of change, passes presence through, and lets the owner lease follow it. Lease, candidate, host-record, definition and workstream revision methods only wrap their own repositories. ADR-0609 renewal heads come from a separate reader.",
       "disposition": "cohesive"
     },
     {

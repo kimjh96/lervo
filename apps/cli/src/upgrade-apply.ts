@@ -1,3 +1,4 @@
+import { checkoutOnBaseBranch } from "@lervo/repository-knowledge-runtime";
 import { applyNodeRuntimeRetention } from "./node-runtime-retention.js";
 import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
@@ -135,18 +136,34 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("workforce");
 
-  if (approved.stages.terminalIntegration.disposition === "safe_apply") {
-    const terminal = await inspectTerminalIntegration(root);
-    if (terminal.stage.planId !== approved.stages.terminalIntegration.planId)
-      throw new Error("The terminal integration plan changed before apply.");
+  const terminalNow =
+    approved.stages.terminalIntegration.disposition === "safe_apply"
+      ? await inspectTerminalIntegration(root)
+      : null;
+  if (
+    terminalNow !== null &&
+    terminalNow.stage.planId !== approved.stages.terminalIntegration.planId
+  )
+    throw new Error("The terminal integration plan changed before apply.");
+  // ADR-0610: a checkout that left the base branch since planning holds the stage instead.
+  if (terminalNow !== null && terminalNow.stage.disposition !== "safe_apply")
+    skippedStages.push({ stage: "terminal_integration", reason: terminalNow.stage.reason });
+  else if (terminalNow !== null) {
+    const terminal = terminalNow;
     await confirmExclusion("terminal_integration");
     try {
-      const { backupId } = await applyTerminalIntegrationStage({
+      const { backupId, commit } = await applyTerminalIntegrationStage({
         repositoryRoot: root,
         prepared: terminal.prepared,
         now: new Date(),
       });
       appliedStages.push("terminal_integration");
+      if (commit.status === "not_committed" && commit.reason !== "nothing_to_commit")
+        notices.push({
+          stage: "terminal_integration",
+          summary: `The refreshed launcher and hook files verified current but were not committed (${commit.reason}); the next upgrade on the base branch commits them.`,
+          undo: "git restore -- .lervo/generated/terminal-hooks",
+        });
       await releaseHeldEffects(root, "upgrade_terminal_integration");
       if (backupId !== null)
         notices.push({
@@ -172,16 +189,25 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("terminal_integration");
 
+  // ADR-0610: off the base branch the knowledge stages wait; the plan already shows them as debt.
+  const offBase = !(await checkoutOnBaseBranch(root)).onBase;
   const knowledgeOutcome = held
     ? { appliedStages: [], skippedStages: [], notices: [], lastStage: null }
-    : await applyKnowledgeStages({
-        repositoryRoot: root,
-        maximumStages: approved.policy.maximumKnowledgeStages,
-        materialization,
-        services,
-        confirmExclusion: () => confirmExclusion("knowledge"),
-        lap: () => clock.lap("knowledge"),
-      });
+    : offBase
+      ? {
+          appliedStages: [],
+          skippedStages: [{ stage: "knowledge", reason: "not_on_base" }],
+          notices: [],
+          lastStage: null,
+        }
+      : await applyKnowledgeStages({
+          repositoryRoot: root,
+          maximumStages: approved.policy.maximumKnowledgeStages,
+          materialization,
+          services,
+          confirmExclusion: () => confirmExclusion("knowledge"),
+          lap: () => clock.lap("knowledge"),
+        });
   const knowledge = knowledgeOutcome.lastStage;
   appliedStages.push(...knowledgeOutcome.appliedStages);
   skippedStages.push(...knowledgeOutcome.skippedStages);

@@ -12,7 +12,7 @@ import {
   applyCommittedKnowledgeEffect,
   type KnowledgeEffectHold,
 } from "./knowledge-effect-guard.js";
-import { lifecycleEffectNotice } from "./lifecycle-effect-notice.js";
+import type { KnowledgeEffectNotice } from "./knowledge-effect-commit.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { parkLifecyclePlan, type LifecyclePlanKind } from "./lifecycle-plan-parking.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -114,29 +114,25 @@ export async function parkedForUserOwnedContent(input: {
 }
 
 /**
- * ADR-0561: applies a lifecycle plan. An unreviewed plan applies as before; a reviewed one lands
- * as its own commit, the undo point its notice names, and a commit that does not land restores
- * every changed path, so nothing stays applied without its undo.
+ * ADR-0561 and ADR-0610: applies a lifecycle plan as its own commit, the undo point its notice
+ * names. A reviewed plan's notice names its reviewer; an unreviewed one names why no cross-check
+ * was needed. A commit that does not land restores every changed path, so nothing stays applied
+ * as an uncommitted change in the owner's checkout.
  */
 export async function applyLifecycleEffect<T>(input: {
   repositoryRoot: string;
   paths: readonly string[];
-  /** The reviewed plan and its approval; null applies an unreviewed plan without a commit. */
-  reviewed: {
-    plan: Parameters<typeof lifecycleEffectNotice>[0];
-    approval: { reviewerAgentId: string };
-  } | null;
+  notice: KnowledgeEffectNotice;
+  /** An unreviewed plan, which applies as is where no commit can protect anything. */
+  generated: boolean;
   apply: () => Promise<T>;
   assertCurrent: () => Promise<void>;
 }): Promise<{ receipt: T; commit: { before: string; after: string } | null }> {
-  if (input.reviewed === null) return { receipt: await input.apply(), commit: null };
   const effect = await applyCommittedKnowledgeEffect({
     repositoryRoot: input.repositoryRoot,
     paths: input.paths,
-    notice: lifecycleEffectNotice(
-      input.reviewed.plan,
-      `lifecycle reviewer ${input.reviewed.approval.reviewerAgentId} approved`,
-    ),
+    notice: input.notice,
+    generated: input.generated,
     apply: async () => {
       const applied = await input.apply();
       await input.assertCurrent();

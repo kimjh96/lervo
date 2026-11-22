@@ -47,6 +47,11 @@ import {
   waitForLifecycleEffect,
 } from "./lifecycle-effect-hold.js";
 import { knowledgeEffectPreflight } from "./knowledge-effect-guard.js";
+import {
+  knowledgeMigrationNotice,
+  lifecycleCrossCheck,
+  lifecycleEffectNotice,
+} from "./lifecycle-effect-notice.js";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
@@ -164,8 +169,9 @@ export async function verifyConvergenceLifecycle(
           approval?.reviewerAgentId === authority.agent.agentId
         )
           throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-        // ADR-0561: a reviewed bridge applies only when it can be committed over clean user files.
-        const hold = reviewed && bridgePlan ? await knowledgeEffectPreflight(root, paths) : null;
+        // ADR-0561 and ADR-0610: every effect applies only when it can land as its own commit on
+        // the base branch over clean user files.
+        const hold = await knowledgeEffectPreflight(root, paths, { generated: approval === null });
         if (hold !== null)
           return waitForLifecycleEffect({ context, state, planId: plan.planId, hold });
         await authority.assertCurrent();
@@ -209,7 +215,10 @@ export async function verifyConvergenceLifecycle(
         const { receipt, commit } = await applyLifecycleEffect({
           repositoryRoot: root,
           paths,
-          reviewed: bridgePlan && approval !== null ? { plan, approval } : null,
+          notice: bridgePlan
+            ? lifecycleEffectNotice(plan, lifecycleCrossCheck(approval))
+            : knowledgeMigrationNotice(plan.planId),
+          generated: approval === null,
           apply,
           assertCurrent: () => authority.assertCurrent(),
         });

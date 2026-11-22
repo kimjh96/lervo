@@ -118,6 +118,18 @@ describe("repository layout migration CLI", () => {
 
     messages.length = 0;
     expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    // ADR-0610: the materialization landed as a commit, which moves HEAD, a knowledge source, so
+    // one generated refresh of ignored state follows; it commits nothing, so planning settles.
+    const refresh = JSON.parse(messages.join("")) as { planId: string; status: string };
+    if (refresh.status === "ready") {
+      messages.length = 0;
+      expect(
+        await runCli(["migrate", "knowledge", "--apply", refresh.planId, "--json"], io),
+        errors.join(""),
+      ).toBe(0);
+      messages.length = 0;
+      expect(await runCli(["migrate", "knowledge", "--json"], io)).toBe(0);
+    }
     const bridge = JSON.parse(messages.join("")) as {
       planId: string;
       operationId: string;
