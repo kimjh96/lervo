@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { runCli } from "../src/main.js";
 import { applyNodeFleetOnboarding, inspectNodeFleetStatus } from "../src/node-fleet-apply.js";
+import { holdProcessPresence } from "@lervo/project-storage";
 import { createNodeFleetOnboardingPlan, listNodeFleetInstances } from "@lervo/repository-registry";
 
 const roots: string[] = [];
@@ -139,6 +140,48 @@ describe("Node fleet status of an idle Node (ADR-0602)", () => {
       runtime: { status: "stale" },
       recoveryAction: "inspect_runtime_failure",
     });
+  });
+
+  it("trusts the recorded presence over the process id, which a clock step can mislead", async () => {
+    const node = await registeredNode();
+    // A short directory keeps the socket path within the local socket bound.
+    const presenceRoot = await mkdtemp("/tmp/lervo-fp-");
+    roots.push(presenceRoot);
+    const previous = process.env.LERVO_USER_STATE_DIRECTORY;
+    process.env.LERVO_USER_STATE_DIRECTORY = presenceRoot;
+    try {
+      const presence = holdProcessPresence();
+      await presence.ready;
+      expect(presence.issue()).toBeNull();
+      const snapshot = {
+        ...health("2026-11-22T08:00:00.000Z", "2026-11-22T08:00:05.000Z"),
+        presenceToken: presence.token,
+      };
+      await mkdir(resolve(node.healthPath, ".."), { recursive: true });
+      await writeFile(node.healthPath, `${JSON.stringify(snapshot)}\n`, { mode: 0o600 });
+      const inspect = (processRunning: () => Promise<boolean>) =>
+        inspectNodeFleetStatus({
+          registryPath: node.registry,
+          homeDirectory: node.home,
+          ports: { serviceOptions: node.serviceOptions, processRunning },
+          now: new Date("2026-11-22T10:30:00.000Z"),
+        });
+
+      // After a wall-clock step the start-time check fails; the live presence still answers.
+      expect((await inspect(async () => false)).instances[0]).toMatchObject({
+        runtime: { status: "ready" },
+        recoveryAction: "none",
+      });
+      presence.release();
+      await expect
+        .poll(async () => (await inspect(async () => true)).instances[0]?.runtime.status, {
+          timeout: 5_000,
+        })
+        .toBe("stale");
+    } finally {
+      if (previous === undefined) delete process.env.LERVO_USER_STATE_DIRECTORY;
+      else process.env.LERVO_USER_STATE_DIRECTORY = previous;
+    }
   });
 
   it("still judges a starting snapshot by its heartbeat age", async () => {

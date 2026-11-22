@@ -3,6 +3,7 @@ import { chmod, lstat, open, rename, unlink } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import { createEventReaderCapabilities } from "@lervo/event-contract";
+import { holdProcessPresence, type HeldProcessPresence } from "@lervo/project-storage";
 import type { SyncCycleResult, WorkstreamReplicationCycleResult } from "@lervo/sync";
 
 import type { RemoteControlCycleResult } from "./control-loop.js";
@@ -24,6 +25,8 @@ export interface NodeRuntimeHealthPublisherOptions {
   onSettled?(): void;
   /** The clock that stamps when a Lervo debt reason was first observed. */
   now?: () => Date;
+  /** Holds this process's presence (ADR-0602); null holds none. Replaced only in tests. */
+  holdPresence?: () => HeldProcessPresence | null;
 }
 
 export interface NodeRuntimeHealthPublisher {
@@ -143,6 +146,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   private heartbeat: ReturnType<typeof setInterval> | null = null;
   private closed = false;
   private settled = false;
+  private presence: HeldProcessPresence | null = null;
 
   private now(): Date {
     return this.options.now?.() ?? new Date();
@@ -183,6 +187,7 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   async initialize(): Promise<void> {
     try {
       await assertStateDirectory(resolve(this.path, ".."));
+      await this.holdPresence();
       await this.publish(() => undefined);
     } catch (error) {
       throw new NodeRuntimeError(
@@ -263,6 +268,24 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
   close(): void {
     this.closed = true;
     this.stopHeartbeat();
+    this.presence?.release();
+  }
+
+  /**
+   * ADR-0611: a settled Node writes nothing while idle, so readers judge it by this presence. The
+   * kernel closes the socket when the process exits. A presence that cannot be held records no
+   * token and readers fall back to the process id; it never fails startup.
+   */
+  private async holdPresence(): Promise<void> {
+    try {
+      const presence = (this.options.holdPresence ?? holdProcessPresence)();
+      if (presence === null) return;
+      this.presence = presence;
+      await presence.ready;
+      if (presence.issue() === null) this.snapshot.presenceToken = presence.token;
+    } catch {
+      // Readers keep the process-id rule for a snapshot without a token.
+    }
   }
 
   /**

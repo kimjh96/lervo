@@ -2,6 +2,7 @@ import { lstat, mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { probeProcessPresence } from "@lervo/project-storage";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
@@ -47,6 +48,44 @@ const absentWorkstream = {
 };
 
 describe("Node runtime readiness snapshot", () => {
+  it("records the presence it holds, which ends when the publisher closes (ADR-0611)", async () => {
+    // A short directory keeps the socket path within the local socket bound.
+    const presenceRoot = await mkdtemp("/tmp/lervo-np-");
+    roots.push(presenceRoot);
+    const previous = process.env.LERVO_USER_STATE_DIRECTORY;
+    process.env.LERVO_USER_STATE_DIRECTORY = presenceRoot;
+    try {
+      const publisher = createNodeRuntimeHealthPublisher(await stateDirectory(), false);
+      await publisher.initialize();
+      const token = (await snapshot(publisher.path)).presenceToken;
+      expect(token).toMatch(/^[a-z0-9-]+$/u);
+      expect(readNodeRuntimeHealthSnapshot(await snapshot(publisher.path)).presenceToken).toBe(
+        token,
+      );
+      await expect(probeProcessPresence(token!)).resolves.toBe("alive");
+      publisher.close();
+      await expect.poll(() => probeProcessPresence(token!), { timeout: 5_000 }).toBe("gone");
+    } finally {
+      if (previous === undefined) delete process.env.LERVO_USER_STATE_DIRECTORY;
+      else process.env.LERVO_USER_STATE_DIRECTORY = previous;
+    }
+  });
+
+  it("records no token when no presence is held, and still starts", async () => {
+    const publisher = createNodeRuntimeHealthPublisher(
+      await stateDirectory(),
+      false,
+      false,
+      undefined,
+      false,
+      false,
+      { holdPresence: () => null },
+    );
+    await publisher.initialize();
+    expect((await snapshot(publisher.path)).presenceToken).toBeUndefined();
+    publisher.close();
+  });
+
   it("advances updatedAt while starting and settles once when readiness is reached", async () => {
     let settled = 0;
     const publisher = createNodeRuntimeHealthPublisher(

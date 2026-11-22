@@ -1,9 +1,13 @@
 import { execFile } from "node:child_process";
 
 import type { NodeRuntimeHealthSnapshot } from "@lervo/node-runtime";
+import { probeProcessPresence, type ProcessPresenceProbe } from "@lervo/project-storage";
 
 /** Whether the process that wrote a snapshot, named by its pid and `startedAt`, still runs. */
 export type NodeHealthProcessRunning = (processId: number, startedAt: string) => Promise<boolean>;
+
+/** Probes the presence a Node recorded in its snapshot; replaced only in tests. */
+export type NodeHealthPresenceProbe = (token: string) => Promise<ProcessPresenceProbe>;
 
 /** A `starting` or `stopping` snapshot older than this no longer describes a running process. */
 export const NODE_HEALTH_HEARTBEAT_FRESHNESS_MS = 2 * 60_000;
@@ -57,18 +61,30 @@ export async function snapshotProcessRunning(
 }
 
 /**
- * Whether a Node health snapshot still describes a running process. A settled Node (`ready` or
- * `degraded`) writes its snapshot only when a component changes, and since ADR-0602 an idle Node
- * runs no cycle at all, so the snapshot's age says nothing: it is current while the process that
- * wrote it runs. Only a `starting` or `stopping` snapshot, which a live process keeps refreshing,
- * goes stale by age. Every reader that judges a Node by its snapshot uses this one rule.
+ * Whether a Node health snapshot still describes a running process (ADR-0611). A settled Node
+ * (`ready` or `degraded`) writes its snapshot only when a component changes, and since ADR-0602 an
+ * idle Node runs no cycle at all, so the snapshot's age says nothing: it is current while the
+ * process that wrote it runs. The presence the Node recorded proves that without a clock: a probe
+ * that reaches it is `alive`, one the kernel proves `gone` is not. A snapshot without a token, from
+ * an earlier release, or a presence this host cannot judge falls back to the process id and its
+ * start time, which a wall-clock step can mislead. Only a `starting` or `stopping` snapshot, which
+ * a live process keeps refreshing, goes stale by age. Every reader that judges a Node by its
+ * snapshot uses this one rule.
  */
 export async function nodeHealthSnapshotCurrent(
-  snapshot: Pick<NodeRuntimeHealthSnapshot, "status" | "processId" | "startedAt" | "updatedAt">,
+  snapshot: Pick<
+    NodeRuntimeHealthSnapshot,
+    "status" | "processId" | "startedAt" | "updatedAt" | "presenceToken"
+  >,
   now: Date,
   processRunning: NodeHealthProcessRunning = snapshotProcessRunning,
+  probePresence: NodeHealthPresenceProbe = probeProcessPresence,
 ): Promise<boolean> {
-  if (snapshot.status === "ready" || snapshot.status === "degraded")
-    return processRunning(snapshot.processId, snapshot.startedAt);
-  return now.getTime() - Date.parse(snapshot.updatedAt) <= NODE_HEALTH_HEARTBEAT_FRESHNESS_MS;
+  if (snapshot.status !== "ready" && snapshot.status !== "degraded")
+    return now.getTime() - Date.parse(snapshot.updatedAt) <= NODE_HEALTH_HEARTBEAT_FRESHNESS_MS;
+  if (snapshot.presenceToken !== undefined) {
+    const probe = await probePresence(snapshot.presenceToken).catch(() => "unknown" as const);
+    if (probe !== "unknown") return probe === "alive";
+  }
+  return processRunning(snapshot.processId, snapshot.startedAt);
 }
