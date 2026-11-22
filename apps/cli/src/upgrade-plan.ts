@@ -1,4 +1,3 @@
-import { checkoutOnBaseBranch } from "@lervo/repository-knowledge-runtime";
 import { planNodeRuntimeRetention, type RuntimeRetentionPlan } from "./node-runtime-retention.js";
 import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
@@ -23,6 +22,7 @@ import {
   type RepositoryReplicaServiceStage,
 } from "./repository-replica-service.js";
 import { upgradeHost, type UpgradeHost } from "./upgrade-host.js";
+import { knowledgeStageWaitReason } from "./upgrade-knowledge-gate.js";
 import { inspectRegisteredNodeUpgrade, type NodeUpgradeStage } from "./upgrade-node.js";
 import {
   inspectKnowledge,
@@ -175,7 +175,6 @@ export async function createRepositoryUpgradePlan(
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
   const hold = await readRepositoryHold(repositoryRoot);
-  const branch = await checkoutOnBaseBranch(repositoryRoot);
   const version = readCliPackageVersion();
   const capabilities = await createCapabilityMigrationPlan(repositoryRoot);
   const capabilityDisposition: StageDisposition =
@@ -229,15 +228,20 @@ export async function createRepositoryUpgradePlan(
     hold === null || (stage.disposition !== "safe_apply" && stage.disposition !== "deferred")
       ? stage
       : ({ ...stage, disposition: "lervo_debt", reason: "owner_hold" } as T);
+  // ADR-0610: knowledge stages commit to the base branch from the convergence owner, so anywhere
+  // else they wait as Lervo debt, with the reason the apply would skip them for.
+  const knowledgeWait =
+    held(knowledge).disposition === "safe_apply"
+      ? await knowledgeStageWaitReason(repositoryRoot, knowledge)
+      : null;
   const heldStages = {
     capabilities: held({ disposition: capabilityDisposition }).disposition,
     workforce: held(workforce),
     terminal: held(terminal.stage),
-    // ADR-0610: knowledge stages commit to the base branch, so elsewhere they wait as Lervo debt.
     knowledge:
-      branch.onBase || held(knowledge).disposition !== "safe_apply"
+      knowledgeWait === null
         ? held(knowledge)
-        : { ...knowledge, disposition: "lervo_debt" as const, reason: "not_on_base" },
+        : { ...knowledge, disposition: "lervo_debt" as const, reason: knowledgeWait },
     node: held(nodeStage),
     eventWriter: held(eventWriter),
   };

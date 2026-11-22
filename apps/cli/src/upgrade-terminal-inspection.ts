@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { gitVisiblePaths, knowledgeEffectPreflight } from "@lervo/repository-knowledge-runtime";
 
 import { heldTerminalIntegrationReason } from "./held-effect-debt.js";
+import { knowledgeEffectHoldReason } from "./upgrade-knowledge-gate.js";
 import {
   planTerminalIntegrationStage,
   type PreparedTerminalIntegration,
@@ -60,13 +61,7 @@ export async function inspectTerminalIntegration(root: string): Promise<{
     committed.length === 0
       ? null
       : await knowledgeEffectPreflight(root, committed, { generated: true });
-  const waiting =
-    held ??
-    (preflight === null
-      ? null
-      : preflight.reason === "commit_unavailable"
-        ? preflight.detail
-        : preflight.reason);
+  const waiting = held ?? (preflight === null ? null : knowledgeEffectHoldReason(preflight));
   const disposition: StageDisposition =
     waiting !== null
       ? "lervo_debt"

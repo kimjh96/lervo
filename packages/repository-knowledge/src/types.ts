@@ -366,7 +366,15 @@ export interface PreparedRepositoryKnowledgeQueryRanker {
   adapterBuildId: string;
   /** Optional rebuildable adapter projection. Never evidence or a replacement for current inputs. */
   preparationProjection?: unknown;
-  rank(input: { query: string; limit: number }): Array<{ conceptId: string; score: number }>;
+  /**
+   * At most `limit` results, never more than the engine allows. `exclude` names concepts the
+   * caller withholds; an adapter that honors it fills the page with the rest.
+   */
+  rank(input: {
+    query: string;
+    limit: number;
+    exclude?: ReadonlySet<string>;
+  }): Array<{ conceptId: string; score: number }>;
 }
 
 export interface RepositoryKnowledgeQueryRanker {

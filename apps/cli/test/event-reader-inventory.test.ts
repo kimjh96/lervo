@@ -109,6 +109,7 @@ function ports(root: string, healthValue: unknown = health()) {
       }),
     }),
     now: () => new Date(observedAt),
+    processRunning: async () => true,
   };
 }
 
@@ -152,14 +153,29 @@ describe("distributed event reader inventory", () => {
     expect(absent.readers).toHaveLength(1);
   });
 
-  it("fails closed on stale or identity-mismatched Node capability evidence", async () => {
+  it("judges a settled Node by its process, a starting one by its heartbeat age", async () => {
     const root = await repository();
+    // ADR-0602: an idle settled Node writes nothing for hours; its live process keeps it current.
+    const idle = health({ updatedAt: "2026-09-01T08:00:00.000Z" });
+    await expect(
+      collectEventReaderActivationEvidence({ repositoryRoot: root, ports: ports(root, idle) }),
+    ).resolves.toMatchObject({ schemaVersion: 2 });
     await expect(
       collectEventReaderActivationEvidence({
         repositoryRoot: root,
-        ports: ports(root, health({ updatedAt: "2026-09-01T08:00:00.000Z" })),
+        ports: { ...ports(root, idle), processRunning: async () => false },
       }),
     ).rejects.toMatchObject({ code: "reader_inventory_node_health_stale" });
+    await expect(
+      collectEventReaderActivationEvidence({
+        repositoryRoot: root,
+        ports: ports(root, health({ status: "starting", updatedAt: "2026-09-01T08:00:00.000Z" })),
+      }),
+    ).rejects.toMatchObject({ code: "reader_inventory_node_health_stale" });
+  });
+
+  it("fails closed on identity-mismatched Node capability evidence", async () => {
+    const root = await repository();
     await expect(
       collectEventReaderActivationEvidence({
         repositoryRoot: root,

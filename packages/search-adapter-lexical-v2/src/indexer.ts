@@ -298,7 +298,15 @@ export class LexicalV2SearchIndex implements SearchEvaluationIndexPort {
     }));
   }
 
-  search(query: string, limit = 10): SearchResponse {
+  /**
+   * `excludeSourceIds` drops sources before the limit applies, so a caller that withholds some
+   * sources, such as historical documents, still gets a full page of the rest.
+   */
+  search(
+    query: string,
+    limit = 10,
+    options: { excludeSourceIds?: ReadonlySet<string> } = {},
+  ): SearchResponse {
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > SEARCH_MAX_RESULTS) {
       throw new SearchError(
         "invalid_query",
@@ -328,7 +336,12 @@ export class LexicalV2SearchIndex implements SearchEvaluationIndexPort {
         fused.set(item.sourceIndex, (fused.get(item.sourceIndex) ?? 0) + contribution);
       });
     }
+    const excluded = options.excludeSourceIds;
     const scored = [...fused]
+      .filter(
+        ([sourceIndex]) =>
+          excluded === undefined || !excluded.has(this.sources[sourceIndex]!.input.sourceId),
+      )
       .map(([sourceIndex, score]) => ({ sourceIndex, score }))
       .sort(
         (left, right) =>

@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-06
 Amends: [ADR-0475](0475-judge-node-replacement-readiness-by-regression.md)
+Amended by: [ADR-0611](../diagnostics/0611-judge-a-settled-node-by-its-process-not-its-snapshot-age.md) (a settled snapshot is current while its process runs)
 
 ## Context
 

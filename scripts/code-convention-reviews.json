@@ -200,9 +200,9 @@
     },
     {
       "path": "packages/repository-knowledge/src/types.ts",
-      "contentHash": "sha256:ccd56d2053f1967c15af68dad84023290f2717ea10b5c1fd77a446eea5d20382",
+      "contentHash": "sha256:3cb09b15ae9fc8f758d51de34b5bea666db8d3a34a3b194f5e612d5bbd9d98f0",
       "responsibility": "Repository knowledge public contract types",
-      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects, including coverage and skipped summaries, the scan-incomplete reason, and the observed-only retention marker. ADR-0560 removed the refresh-review candidate contract. Evaluation, admission, storage, and rendering stay in their owning modules.",
+      "rationale": "Declarative repository knowledge contracts share scan, source, projection, query, lint, impact, and migration coordinates without runtime decisions or effects, including coverage and skipped summaries, the scan-incomplete reason, the observed-only retention marker, and the ranker's withheld-concept exclusion. ADR-0560 removed the refresh-review candidate contract. Evaluation, admission, storage, and rendering stay in their owning modules.",
       "disposition": "cohesive"
     },
     {

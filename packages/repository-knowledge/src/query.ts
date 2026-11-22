@@ -277,10 +277,15 @@ export class RepositoryKnowledgeQueryIndex {
     });
     if (this.data.ranker !== undefined) {
       const byConcept = new Map(this.data.entries.map((entry) => [entry.hit.conceptId, entry]));
-      const withheld = this.data.entries.filter((entry) => !eligible(entry)).length;
+      // Withheld documents are excluded inside the ranker, so the limit stays within the
+      // engine's bound however many historical documents the repository holds.
+      const withheld = new Set(
+        this.data.entries.filter((entry) => !eligible(entry)).map((entry) => entry.hit.conceptId),
+      );
       const ranked = this.data.ranker.rank({
         query: input.query,
-        limit: rankedLimit + withheld,
+        limit: rankedLimit,
+        ...(withheld.size === 0 ? {} : { exclude: withheld }),
       });
       const observed = new Set<string>();
       for (const item of ranked) {

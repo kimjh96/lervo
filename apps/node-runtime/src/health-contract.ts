@@ -43,6 +43,11 @@ export interface NodeRuntimeHealthSnapshot {
   processId: number;
   startedAt: string;
   updatedAt: string;
+  /**
+   * ADR-0611: the process presence the Node holds while it runs (ADR-0602), recorded only once
+   * its socket listens. Readers probe it to tell a live idle Node from a gone one without a clock.
+   */
+  presenceToken?: string;
   eventReader?: EventReaderCapabilities;
   eventReaderIdentity?: NodeRuntimeEventReaderIdentity;
   sync: NodeRuntimeComponentHealth;
@@ -151,6 +156,9 @@ export function readNodeRuntimeHealthSnapshot(value: unknown): NodeRuntimeHealth
       snapshot.processId < 1 ||
       !Number.isFinite(Date.parse(snapshot.startedAt)) ||
       !Number.isFinite(Date.parse(snapshot.updatedAt)) ||
+      (snapshot.presenceToken !== undefined &&
+        (typeof snapshot.presenceToken !== "string" ||
+          !/^[a-z0-9-]{1,160}$/u.test(snapshot.presenceToken))) ||
       !componentHealth(snapshot.sync) ||
       !componentHealth(snapshot.workstreamReplication) ||
       !componentHealth(snapshot.workspaceCoordination) ||

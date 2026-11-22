@@ -23,9 +23,12 @@ import {
   type AbsentRepositoryNodeObservation,
   type DistributedReaderInventorySource,
 } from "./event-reader-inventory-source.js";
+import {
+  nodeHealthSnapshotCurrent,
+  type NodeHealthProcessRunning,
+} from "./node-health-liveness.js";
 
 const maximumHealthBytes = 128 * 1024;
-const maximumHealthAgeMs = 2 * 60_000;
 const maximumClockLeadMs = 5_000;
 
 export type EventReaderInventoryErrorCode =
@@ -58,6 +61,8 @@ export interface EventReaderInventoryPorts {
   readHealth(path: string): Promise<unknown>;
   createHubTransport(source: DistributedReaderInventorySource): AuthenticatedHubCapabilityTransport;
   now(): Date;
+  /** Whether the process that wrote a settled snapshot still runs; replaced only in tests. */
+  processRunning?: NodeHealthProcessRunning;
 }
 
 function fail(code: EventReaderInventoryErrorCode, message: string, cause?: unknown): never {
@@ -90,11 +95,12 @@ const defaultPorts: EventReaderInventoryPorts = {
   now: () => new Date(),
 };
 
-function assertCurrentNodeHealth(
+async function assertCurrentNodeHealth(
   value: unknown,
   source: DistributedReaderInventorySource,
   now: Date,
-): NodeRuntimeHealthSnapshot {
+  processRunning: NodeHealthProcessRunning | undefined,
+): Promise<NodeRuntimeHealthSnapshot> {
   let health: NodeRuntimeHealthSnapshot;
   try {
     health = readNodeRuntimeHealthSnapshot(value);
@@ -105,9 +111,11 @@ function assertCurrentNodeHealth(
       error,
     );
   }
-  const observedAt = Date.parse(health.updatedAt);
-  const age = now.getTime() - observedAt;
-  if (age < -maximumClockLeadMs || age > maximumHealthAgeMs) {
+  // A snapshot written ahead of this clock is refused; past that, the shared liveness rule.
+  if (
+    Date.parse(health.updatedAt) - now.getTime() > maximumClockLeadMs ||
+    !(await nodeHealthSnapshotCurrent(health, now, processRunning))
+  ) {
     fail(
       "reader_inventory_node_health_stale",
       "The configured Node reader health snapshot is not current.",
@@ -209,7 +217,7 @@ export async function collectEventReaderActivationEvidence(input: {
       error,
     );
   }
-  const health = assertCurrentNodeHealth(healthValue, source, now);
+  const health = await assertCurrentNodeHealth(healthValue, source, now, ports.processRunning);
   let hub;
   try {
     hub = await observeVerifiedHubEventReaderCapabilities({

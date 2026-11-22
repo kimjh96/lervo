@@ -39,6 +39,7 @@ A missing or unreadable governing index prefers nothing; the ranked list is unch
 ## Events, states, privacy, and failure meaning
 
 - No event or schema changes. Hits keep their shape; a preferred document outside the ranked page carries score 1.
+- Historical documents are excluded inside the ranker (`exclude`), not by asking it for more results. Until 2026-11-22 the ranked depth grew by one for each withheld document. Once a repository held more than 30 historical documents, the depth passed the engine's 50-result bound, and every `lervo knowledge query` and terminal context selection failed with `invalid_query`.
 - The governing index stays the host-private `.lervo/state/governing-index.json` of ADR-0552.
 - The replay can overstate the gain slightly: today's governing index includes references written after a replayed commit. It measures the ranking an agent gets now, not the one it would have had then.
 

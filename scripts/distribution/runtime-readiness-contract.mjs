@@ -13,7 +13,15 @@ const baseKeys = [
   "updatedAt",
 ];
 const currentRequiredKeys = ["workstreamReplication", "workspaceCoordination"];
-const currentOptionalKeys = ["conversation", "eventReader", "eventReaderIdentity", "supervision"];
+const currentOptionalKeys = [
+  "conversation",
+  "eventReader",
+  "eventReaderIdentity",
+  "presenceToken",
+  "supervision",
+];
+/** ADR-0611: the process presence token a Node records once its socket listens. */
+const PRESENCE_TOKEN_PATTERN = /^[a-z0-9-]{1,160}$/u;
 
 function exactKeys(value, expected) {
   return (
@@ -168,7 +176,10 @@ export function validNodeRuntimeHealthSnapshot(value) {
         (value.supervision === undefined || supervisionComponent(value.supervision)) &&
         (value.eventReader === undefined || eventReader(value.eventReader)) &&
         (value.eventReaderIdentity === undefined ||
-          eventReaderIdentity(value.eventReaderIdentity)))) &&
+          eventReaderIdentity(value.eventReaderIdentity)) &&
+        (value.presenceToken === undefined ||
+          (typeof value.presenceToken === "string" &&
+            PRESENCE_TOKEN_PATTERN.test(value.presenceToken))))) &&
     readyComponentsAgree(value, current)
   );
 }
