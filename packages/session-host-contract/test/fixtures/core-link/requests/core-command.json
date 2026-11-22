@@ -1,0 +1,6 @@
+{
+  "kind": "core.command",
+  "id": 1,
+  "command": "workspace.start",
+  "arguments": { "instruction": "Fix the build.", "repository": "prj_0123456789abcdef" }
+}

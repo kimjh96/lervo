@@ -1,0 +1,24 @@
+{
+  "kind": "decoder.decoded",
+  "id": 5,
+  "events": [
+    { "kind": "start", "content": { "kind": "agent_message", "text": "" }, "createdAtMs": 2 },
+    { "kind": "delta", "text": "Done." },
+    { "kind": "finish" },
+    {
+      "kind": "item",
+      "content": { "kind": "tool_activity", "name": "Edit", "status": "succeeded", "calls": 1 },
+      "createdAtMs": 3
+    },
+    {
+      "kind": "item",
+      "content": {
+        "kind": "lervo_notice",
+        "code": "provider_turn_failed",
+        "parameters": { "subtype": "error_max_turns" }
+      },
+      "createdAtMs": 4
+    },
+    { "kind": "status", "event": "turn_finished" }
+  ]
+}

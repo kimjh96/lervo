@@ -1,0 +1,13 @@
+{
+  "kind": "decoder.decoded",
+  "id": 4,
+  "events": [
+    {
+      "kind": "item",
+      "content": { "kind": "user_message", "text": "Add a test." },
+      "createdAtMs": 1
+    },
+    { "kind": "status", "event": "turn_started" }
+  ],
+  "input": "eyJ0eXBlIjoidXNlciJ9Cg=="
+}

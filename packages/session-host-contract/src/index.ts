@@ -1,5 +1,6 @@
 export * from "./application.js";
 export * from "./conversation.js";
+export * from "./core-link.js";
 export * from "./handshake.js";
 export * from "./messages.js";
 export * from "./primitives.js";
