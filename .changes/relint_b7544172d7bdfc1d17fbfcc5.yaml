@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b7544172d7bdfc1d17fbfcc5"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Keep the plan of a piece of work in a ledger Lervo owns: lervo plan manages a tree of items that close only with observed evidence, every turn receives the open items, and the events need schema 9, which upgrade activates once every reader supports it."

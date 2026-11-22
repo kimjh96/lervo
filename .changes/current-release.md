@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.31.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.32.0" schema="1" -->
 
 ## What's changed
 
-- Fix three faults found after v0.31.1: knowledge queries failed in repositories with more than 30 historical documents, idle Nodes blocked the upgrade Node stage as stale, and the knowledge stage stayed ready on hosts that do not own convergence.
+- Keep the plan of a piece of work in a ledger Lervo owns: lervo plan manages a tree of items that close only with observed evidence, every turn receives the open items, and the events need schema 9, which upgrade activates once every reader supports it.
