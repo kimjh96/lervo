@@ -65,9 +65,9 @@ export async function snapshotProcessRunning(
  * (`ready` or `degraded`) writes its snapshot only when a component changes, and since ADR-0602 an
  * idle Node runs no cycle at all, so the snapshot's age says nothing: it is current while the
  * process that wrote it runs. The presence the Node recorded proves that without a clock: a probe
- * that reaches it is `alive`, one the kernel proves `gone` is not. A snapshot without a token, from
- * an earlier release, or a presence this host cannot judge falls back to the process id and its
- * start time, which a wall-clock step can mislead. Only a `starting` or `stopping` snapshot, which
+ * that reaches it is `alive`. Any other answer, a snapshot without a token from an earlier
+ * release, or a presence this host cannot judge falls back to the process id and its start time,
+ * which a wall-clock step on Linux can mislead but the presence then already answered. Only a `starting` or `stopping` snapshot, which
  * a live process keeps refreshing, goes stale by age. Every reader that judges a Node by its
  * snapshot uses this one rule.
  */
@@ -82,9 +82,12 @@ export async function nodeHealthSnapshotCurrent(
 ): Promise<boolean> {
   if (snapshot.status !== "ready" && snapshot.status !== "degraded")
     return now.getTime() - Date.parse(snapshot.updatedAt) <= NODE_HEALTH_HEARTBEAT_FRESHNESS_MS;
-  if (snapshot.presenceToken !== undefined) {
-    const probe = await probePresence(snapshot.presenceToken).catch(() => "unknown" as const);
-    if (probe !== "unknown") return probe === "alive";
-  }
+  // Only `alive` is trusted alone. A presence probe never calls a live process gone on Linux, but
+  // a macOS clock step changes the boot key it compares; the process id settles every other case.
+  if (
+    snapshot.presenceToken !== undefined &&
+    (await probePresence(snapshot.presenceToken).catch(() => "unknown" as const)) === "alive"
+  )
+    return true;
   return processRunning(snapshot.processId, snapshot.startedAt);
 }

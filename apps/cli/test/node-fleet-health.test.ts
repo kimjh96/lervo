@@ -173,11 +173,13 @@ describe("Node fleet status of an idle Node (ADR-0602)", () => {
         recoveryAction: "none",
       });
       presence.release();
+      // A presence that no longer answers is never trusted alone: the process id decides.
       await expect
-        .poll(async () => (await inspect(async () => true)).instances[0]?.runtime.status, {
+        .poll(async () => (await inspect(async () => false)).instances[0]?.runtime.status, {
           timeout: 5_000,
         })
         .toBe("stale");
+      expect((await inspect(async () => true)).instances[0]?.runtime.status).toBe("ready");
     } finally {
       if (previous === undefined) delete process.env.LERVO_USER_STATE_DIRECTORY;
       else process.env.LERVO_USER_STATE_DIRECTORY = previous;

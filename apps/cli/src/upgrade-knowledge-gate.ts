@@ -39,7 +39,8 @@ export async function knowledgeStageWaitReason(
 
 /**
  * The wait an apply skips the knowledge stage for, or null when it runs the stage. Only a stage
- * the plan would apply, or showed as debt for this same wait, is skipped. A stage the plan showed
+ * the plan would apply, now or once an earlier stage applied (`deferred`), or showed as debt for
+ * this same wait, is skipped. A stage the plan showed
  * current, or as debt for another reason, runs as before, so its inspection still settles held
  * records.
  */
@@ -47,9 +48,8 @@ export async function knowledgeStageSkipReason(
   repositoryRoot: string,
   planned: Pick<KnowledgeStage, "disposition" | "status" | "reason">,
 ): Promise<string | null> {
-  if (planned.disposition !== "safe_apply" && planned.disposition !== "lervo_debt") return null;
+  const applicable = planned.disposition === "safe_apply" || planned.disposition === "deferred";
+  if (!applicable && planned.disposition !== "lervo_debt") return null;
   const wait = await knowledgeStageWaitReason(repositoryRoot, planned);
-  return wait !== null && (planned.disposition === "safe_apply" || planned.reason === wait)
-    ? wait
-    : null;
+  return wait !== null && (applicable || planned.reason === wait) ? wait : null;
 }

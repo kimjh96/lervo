@@ -9,7 +9,10 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { holdEffect, readHeldEffects } from "../src/held-effect-debt.js";
 import { runCli as runUnisolatedCli } from "../src/main.js";
-import { knowledgeStageWaitReason } from "../src/upgrade-knowledge-gate.js";
+import {
+  knowledgeStageSkipReason,
+  knowledgeStageWaitReason,
+} from "../src/upgrade-knowledge-gate.js";
 import { commitRepository } from "./committed-repository.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
@@ -147,6 +150,14 @@ describe("upgrade knowledge stages on a host that does not own convergence (ADR-
       stage: "knowledge",
       reason: "convergence_owner_elsewhere",
     });
+    // A stage deferred behind another stage of the same apply waits the same way.
+    await expect(
+      knowledgeStageSkipReason(root, {
+        disposition: "deferred",
+        status: "ready",
+        reason: "capabilities_must_apply_first",
+      }),
+    ).resolves.toBe("convergence_owner_elsewhere");
     // The owning host writes the knowledge outputs; this host committed and wrote none.
     expect((await execute("git", ["-C", root, "rev-parse", "HEAD"])).stdout).toBe(head);
     await expect(access(resolve(root, "docs/knowledge/index.md"))).rejects.toThrow();

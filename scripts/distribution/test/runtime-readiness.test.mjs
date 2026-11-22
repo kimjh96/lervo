@@ -93,7 +93,12 @@ describe("runtime readiness preflight", () => {
         },
       },
     ]) {
-      const path = await ownerSnapshot(currentNodeSnapshot({ supervision }));
+      const path = await ownerSnapshot(
+        currentNodeSnapshot({
+          supervision,
+          presenceToken: "0123456789ab-b0123456789ab-4242-0123456789abcdef-0123456789ab",
+        }),
+      );
       assert.deepEqual(
         await checkRuntimeReadiness(["--runtime", "node", "--snapshot", path], {
           processProbe: () => undefined,
@@ -107,6 +112,7 @@ describe("runtime readiness preflight", () => {
     for (const value of [
       nodeSnapshot({ workstreamReplication: { status: "ready" } }),
       currentNodeSnapshot({ unexpected: true }),
+      currentNodeSnapshot({ presenceToken: "Not A Token" }),
       currentNodeSnapshot({ sync: { status: "unavailable", failureCode: "hub_unavailable" } }),
       currentNodeSnapshot({ supervision: { status: "dormant", reasonCode: "wrong_reason" } }),
       currentNodeSnapshot({

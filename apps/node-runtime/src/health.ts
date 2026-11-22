@@ -259,10 +259,18 @@ class FileNodeRuntimeHealthPublisher implements NodeRuntimeHealthPublisher {
     });
   }
 
-  stopping(): Promise<void> {
-    return this.publish(() => {
-      this.snapshot.status = "stopping";
-    });
+  /**
+   * A `stopping` snapshot is judged by its age, never by the presence, so the presence is released
+   * once it is published; the socket file goes with it, so restarts leave none behind.
+   */
+  async stopping(): Promise<void> {
+    try {
+      await this.publish(() => {
+        this.snapshot.status = "stopping";
+      });
+    } finally {
+      this.presence?.release();
+    }
   }
 
   close(): void {

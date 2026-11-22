@@ -63,6 +63,9 @@ describe("Node runtime readiness snapshot", () => {
         token,
       );
       await expect(probeProcessPresence(token!)).resolves.toBe("alive");
+      // A stopping snapshot is judged by age, so the presence ends with it.
+      await publisher.stopping();
+      await expect.poll(() => probeProcessPresence(token!), { timeout: 5_000 }).toBe("gone");
       publisher.close();
       await expect.poll(() => probeProcessPresence(token!), { timeout: 5_000 }).toBe("gone");
     } finally {
