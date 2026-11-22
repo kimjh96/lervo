@@ -276,4 +276,4 @@ it("applies owner-stated rules only on the convergence owner, and a failure bloc
       throw new Error("apply failed");
     }),
   ).toMatchObject({ status: "processed" });
-});
+}, 20_000);

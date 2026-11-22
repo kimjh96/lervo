@@ -42,7 +42,12 @@ export function classifyResidentCycle(result: WorkerResult, now: number): Reside
   // ADR-0595: a held repository did nothing, so it backs off like an idle one instead of
   // spinning at the base cadence; the hold is in the fingerprint, so a release wakes it.
   if (result.status === "busy")
-    return result.reason === "repository_owner_hold" ? "held" : "processed";
+    return result.reason === "repository_owner_hold"
+      ? "held"
+      : // ADR-0610: off the base branch it waits, so it backs off; a checkout switch wakes it.
+        result.reason === "repository_not_on_base"
+        ? "waiting"
+        : "processed";
   if (result.outcomes.length > 0) return "processed";
   if (
     result.freshness?.status === "completed" &&

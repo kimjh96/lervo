@@ -8,6 +8,10 @@ import { loadVerificationSuite, verificationSuiteHash } from "@lervo/verificatio
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { resolveConvergenceAssetDispositions } from "./asset-disposition-manifest.js";
 import {
+  mirrorConvergenceDelegation,
+  restoreMirroredConvergenceDelegation,
+} from "./delegation-tracking.js";
+import {
   CONVERGENCE_DELEGATION_PATH,
   parseConvergenceDelegation,
   type ConvergenceDelegation,
@@ -23,11 +27,14 @@ export async function loadConvergenceDelegation(
     bytes = await readRepositoryFile(root, CONVERGENCE_DELEGATION_PATH, 64 * 1024);
   } catch (error) {
     if (
-      ["ENOENT", "document_missing"].includes((error as NodeJS.ErrnoException).code ?? "") ||
-      (error as { cause?: NodeJS.ErrnoException }).cause?.code === "ENOENT"
+      !["ENOENT", "document_missing"].includes((error as NodeJS.ErrnoException).code ?? "") &&
+      (error as { cause?: NodeJS.ErrnoException }).cause?.code !== "ENOENT"
     )
-      return null;
-    throw error;
+      throw error;
+    // ADR-0610: pulling the commit that untracked the delegation deletes it; the mirror restores it.
+    const restored = await restoreMirroredConvergenceDelegation(root);
+    if (restored === null) return null;
+    bytes = restored;
   }
   let value: unknown;
   try {
@@ -35,7 +42,10 @@ export async function loadConvergenceDelegation(
   } catch {
     throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
   }
-  return { delegation: parseConvergenceDelegation(value), contentHash: sha256(bytes) };
+  const delegation = parseConvergenceDelegation(value);
+  const contentHash = sha256(bytes);
+  await mirrorConvergenceDelegation(root, bytes, contentHash).catch(() => undefined);
+  return { delegation, contentHash };
 }
 
 /** Revalidates ancestry, role pins, capability bindings, suites, project, expiry, and revocation. */

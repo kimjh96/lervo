@@ -15,6 +15,8 @@ import {
   serializableTerminalIntegrationPlan,
 } from "@lervo/repository-knowledge";
 import { openProjectStorage } from "@lervo/project-storage";
+import { lifecycleChangedPaths } from "@lervo/repository-knowledge-runtime";
+import { applyGeneratedEffect, assertKnowledgeEffectApplicable } from "./generated-effect.js";
 import { planKnowledgeMigrationRouting } from "./knowledge-migration-routing.js";
 import { migrationDeferralOutput } from "./knowledge-migration-deferrals.js";
 import { collectLocalKnowledgeSources } from "./knowledge-sources.js";
@@ -239,6 +241,11 @@ export async function runKnowledgeMigration(input: {
           throw new Error(
             "The requested plan ID does not match the current terminal integration plan.",
           );
+        await assertKnowledgeEffectApplicable(
+          repositoryRoot,
+          terminal.operations.map((operation) => operation.path),
+          terminal.planId,
+        );
         const { receipt, backupId } = await applyTerminalIntegrationStage({
           repositoryRoot,
           prepared,
@@ -342,24 +349,36 @@ export async function runKnowledgeMigration(input: {
     const storage = await openProjectStorage(plan.repositoryRoot);
     let receipt;
     try {
-      receipt = await applyKnowledgeMigrationPlan(
-        plan,
-        new Date(),
-        async (applied) => {
-          const observedValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
-            supplementalSources,
-          });
-          const validation = validateKnowledgeStage({
-            stage: "structural materialization",
-            before: baselineValidation,
-            after: observedValidation,
-            ownedErrorCodes: structuralKnowledgeLintCodes,
-            expectedTransitionCodes: expectedInstructionBridgeTransitions(plan.operations),
-          });
-          await recordStructuralMaterialization({ storage, plan, applied, validation });
+      // ADR-0610: generated knowledge outputs land as their own commit on the base branch; ignored
+      // projections leave nothing to commit.
+      ({ receipt } = await applyGeneratedEffect({
+        repositoryRoot: plan.repositoryRoot,
+        paths: lifecycleChangedPaths(plan),
+        notice: {
+          effect: "knowledge_migration",
+          planId: plan.planId,
+          reason: "refreshed the generated repository knowledge outputs",
         },
-        { supplementalSources },
-      );
+        apply: () =>
+          applyKnowledgeMigrationPlan(
+            plan,
+            new Date(),
+            async (applied) => {
+              const observedValidation = await lintRepositoryKnowledge(plan.repositoryRoot, {
+                supplementalSources,
+              });
+              const validation = validateKnowledgeStage({
+                stage: "structural materialization",
+                before: baselineValidation,
+                after: observedValidation,
+                ownedErrorCodes: structuralKnowledgeLintCodes,
+                expectedTransitionCodes: expectedInstructionBridgeTransitions(plan.operations),
+              });
+              await recordStructuralMaterialization({ storage, plan, applied, validation });
+            },
+            { supplementalSources },
+          ),
+      }));
     } finally {
       await storage.close();
     }

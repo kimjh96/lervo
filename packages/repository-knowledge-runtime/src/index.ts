@@ -121,6 +121,7 @@ export {
 } from "./instruction-candidate-exchange-state.js";
 export {
   applyDurableInstructionCandidate,
+  InstructionApplyNotOnBaseError,
   InstructionApplyOwnerElsewhereError,
   InstructionCommitPendingError,
   LERVO_INSTRUCTION_SETTLER,
@@ -240,8 +241,15 @@ export {
 export { readWorkerProviderSelection } from "./provider-cli-selection.js";
 export { lifecycleChangedPaths } from "./lifecycle-plan-scope.js";
 export {
+  checkoutOnBaseBranch,
+  gitVisiblePaths,
+  repositoryBaseBranch,
+  repositoryCommittable,
+} from "./checkout-base-branch.js";
+export {
   commitKnowledgeEffect,
   commitKnowledgePaths,
+  GENERATED_EFFECT_CROSS_CHECK,
   knowledgeEffectUndoCommand,
   KNOWLEDGE_EFFECT_KINDS,
   KNOWLEDGE_EFFECT_TRAILERS,

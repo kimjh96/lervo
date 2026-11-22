@@ -16,6 +16,7 @@ import { openProjectStorage } from "@lervo/project-storage";
 import type { ProjectStorage } from "@lervo/project-storage";
 
 import { applyCrossCheckedEffect, crossCheckedEffectLines } from "./cross-checked-effect.js";
+import { applyGeneratedEffect, generatedEffectLine } from "./generated-effect.js";
 import { migrationDeferralOutput } from "./knowledge-migration-deferrals.js";
 import { formatRepositoryLayoutMigrationPlan } from "./knowledge-migration-format.js";
 import {
@@ -179,7 +180,24 @@ export async function runRepositoryLayoutStage(input: {
         apply,
       });
       applied = { receipt, lines: crossCheckedEffectLines(report), notice: report };
-    } else applied = { receipt: await apply(), lines: [], notice: null };
+    } else {
+      // ADR-0610: a generated-only layout refresh commits too, so it never stays uncommitted.
+      const generated = await applyGeneratedEffect({
+        repositoryRoot: layout.repositoryRoot,
+        paths: lifecycleChangedPaths(layout),
+        notice: {
+          effect: "repository_layout",
+          planId: layout.planId,
+          reason: "refreshed the Lervo-managed layout, instruction routes and bridge bindings",
+        },
+        apply,
+      });
+      applied = {
+        receipt: generated.receipt,
+        lines: [generatedEffectLine(generated)],
+        notice: { commit: generated.commit, undo: generated.undo },
+      };
+    }
   } finally {
     await storage.close();
   }

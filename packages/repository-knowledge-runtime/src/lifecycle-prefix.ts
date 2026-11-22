@@ -4,6 +4,7 @@ import {
   userContentOutsideRoots,
 } from "./lifecycle-plan-scope.js";
 import { knowledgeEffectPreflight } from "./knowledge-effect-guard.js";
+import { lifecycleCrossCheck, lifecycleEffectNotice } from "./lifecycle-effect-notice.js";
 import { observeDocumentDeferrals } from "./document-deferral-health.js";
 import {
   applyLifecycleEffect,
@@ -167,9 +168,9 @@ export async function prepareConvergenceLifecycle(
         approval?.reviewerAgentId === authority.agent.agentId
       )
         throw new KnowledgeConvergenceRuntimeError("knowledge_authority_unavailable");
-      // ADR-0561: a reviewed effect applies only when it can land as its own commit and touches
-      // no uncommitted user edit; otherwise it waits as Lervo debt until the owner commits.
-      const hold = reviewed ? await knowledgeEffectPreflight(root, paths) : null;
+      // ADR-0561 and ADR-0610: every effect, reviewed or not, applies only when it can land as
+      // its own commit on the base branch over clean user files; otherwise it waits as Lervo debt.
+      const hold = await knowledgeEffectPreflight(root, paths, { generated: approval === null });
       if (hold !== null)
         return waitForLifecycleEffect({ context, state, planId: plan.planId, hold });
       const before = await lintRepositoryKnowledge(root);
@@ -222,7 +223,8 @@ export async function prepareConvergenceLifecycle(
       const { receipt, commit } = await applyLifecycleEffect({
         repositoryRoot: root,
         paths,
-        reviewed: approval === null ? null : { plan, approval },
+        notice: lifecycleEffectNotice(plan, lifecycleCrossCheck(approval)),
+        generated: approval === null,
         apply,
         assertCurrent: () => authority.assertCurrent(),
       });

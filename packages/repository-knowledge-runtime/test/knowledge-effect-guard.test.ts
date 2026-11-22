@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -102,15 +102,23 @@ describe("undoable knowledge effects (ADR-0561)", () => {
       "repository_layout",
     );
 
-    // A commit hook that refuses makes the commit fail; nothing may stay applied without it.
+    // A concurrent Git operation that appears after the apply makes the commit fail; nothing may
+    // stay applied without it. Owner commit hooks no longer can, since Lervo skips them.
     git(root, ["reset", "-q", "--hard", commit.before]);
-    const hooks = resolve(root, ".git", "hooks");
-    await mkdir(hooks, { recursive: true });
-    await writeFile(resolve(hooks, "pre-commit"), "#!/bin/sh\nexit 1\n");
-    await chmod(resolve(hooks, "pre-commit"), 0o755);
+    const lock = resolve(root, ".git", "index.lock");
     await expect(
-      applyCommittedKnowledgeEffect({ repositoryRoot: root, paths, notice, apply: move }),
+      applyCommittedKnowledgeEffect({
+        repositoryRoot: root,
+        paths,
+        notice,
+        apply: async () => {
+          const receipt = await move();
+          await writeFile(lock, "");
+          return receipt;
+        },
+      }),
     ).rejects.toMatchObject({ code: "knowledge_effect_commit_failed" });
+    await rm(lock);
     expect(await readFile(resolve(root, "NOTE.md"), "utf8")).toBe("# Note\n\nThe owner's words.\n");
     expect(await readFile(resolve(root, "README.md"), "utf8")).toBe("# Readme\n\nSee NOTE.md.\n");
     await expect(readFile(resolve(root, "docs/notes/NOTE.md"))).rejects.toMatchObject({

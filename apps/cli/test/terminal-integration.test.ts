@@ -1743,6 +1743,13 @@ describe("terminal integration CLI", () => {
       reason: "owner_restored",
     });
     expect(await runCli(["repository", "release", "--root", root], io), errors.join("")).toBe(0);
+    // ADR-0610: the merge landed as a commit, so the restored file is the owner's uncommitted
+    // change; Lervo waits over it and applies again once the owner commits it.
+    expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "paths_uncommitted",
+    });
+    commitRepository(root);
     expect((await inspectTerminalIntegration(root)).stage).toMatchObject({
       disposition: "safe_apply",
     });

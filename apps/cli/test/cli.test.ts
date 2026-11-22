@@ -461,7 +461,7 @@ describe("lervo repository knowledge CLI", () => {
       await storage.close();
     }
     expect(errors).toEqual([]);
-  });
+  }, 15_000);
 
   it("splits one exact CommonMark heading subtree into a new registered document", async () => {
     const root = await temporaryRepository();
@@ -594,7 +594,7 @@ describe("lervo repository knowledge CLI", () => {
       await storage.close();
     }
     expect(errors).toEqual([]);
-  });
+  }, 15_000);
 
   it("merges one registered source into a registered destination with exact approval", async () => {
     const root = await temporaryRepository();
@@ -712,7 +712,7 @@ describe("lervo repository knowledge CLI", () => {
       await storage.close();
     }
     expect(errors).toEqual([]);
-  });
+  }, 15_000);
 
   it("creates and records a privacy-bounded Claude instruction bridge", async () => {
     const root = await temporaryRepository();

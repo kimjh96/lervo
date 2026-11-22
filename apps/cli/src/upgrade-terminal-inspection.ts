@@ -1,5 +1,7 @@
 import { createHash } from "node:crypto";
 
+import { gitVisiblePaths, knowledgeEffectPreflight } from "@lervo/repository-knowledge-runtime";
+
 import { heldTerminalIntegrationReason } from "./held-effect-debt.js";
 import {
   planTerminalIntegrationStage,
@@ -45,8 +47,28 @@ export async function inspectTerminalIntegration(root: string): Promise<{
           (reason) => (reason === "owner_restored" && plan.approvalHash === null ? null : reason),
         )
       : null;
+  // ADR-0610: the launcher and hook files Git would carry land as one commit on the base branch
+  // over clean files; ignored host-local hook files need none. Otherwise the stage is Lervo debt.
+  const committed =
+    plan.status === "ready" && held === null
+      ? await gitVisiblePaths(
+          root,
+          plan.operations.map((operation) => operation.path),
+        )
+      : [];
+  const preflight =
+    committed.length === 0
+      ? null
+      : await knowledgeEffectPreflight(root, committed, { generated: true });
+  const waiting =
+    held ??
+    (preflight === null
+      ? null
+      : preflight.reason === "commit_unavailable"
+        ? preflight.detail
+        : preflight.reason);
   const disposition: StageDisposition =
-    held !== null
+    waiting !== null
       ? "lervo_debt"
       : plan.status === "ready"
         ? "safe_apply"
@@ -59,8 +81,8 @@ export async function inspectTerminalIntegration(root: string): Promise<{
       planId: plan.status === "current" ? null : plan.planId,
       status: plan.status,
       reason:
-        held !== null
-          ? held
+        waiting !== null
+          ? waiting
           : plan.status === "ready"
             ? plan.approvalHash === null
               ? "generated_runtime_only"

@@ -1,6 +1,5 @@
 import {
   applyCommittedKnowledgeEffect,
-  knowledgeEffectPreflight,
   knowledgeEffectUndoCommand,
   KnowledgeEffectOwnerHoldError,
   KnowledgeEffectUncommittedError,
@@ -9,6 +8,7 @@ import {
 } from "@lervo/repository-knowledge-runtime";
 
 import { CommandFailure } from "./command-error-output.js";
+import { assertKnowledgeEffectApplicable } from "./generated-effect.js";
 import type { CrossCheckPlan, PlanCrossCheckVerdict } from "./plan-cross-check.js";
 
 /** ADR-0561: the owner holds the repository; an owner command applies nothing either. */
@@ -47,23 +47,11 @@ export async function applyCrossCheckedEffect<T>(input: {
   apply(crossCheck: PlanCrossCheckVerdict): Promise<T>;
 }): Promise<{ receipt: T; report: CrossCheckedEffectReport }> {
   const preserved = new Set(input.preservedPaths ?? []);
-  const hold = await knowledgeEffectPreflight(
+  await assertKnowledgeEffectApplicable(
     input.repositoryRoot,
     input.paths.filter((path) => !preserved.has(path)),
+    input.notice.planId,
   );
-  if (hold?.reason === "owner_hold") throw ownerHoldFailure(input.notice.planId);
-  if (hold?.reason === "commit_unavailable")
-    throw new CommandFailure(
-      "knowledge_effect_commit_unavailable",
-      `Plan ${input.notice.planId} was not applied, because Lervo cannot commit it here (${hold.detail}) and an effect without its undo commit never applies.`,
-      { planId: input.notice.planId },
-    );
-  if (hold?.reason === "paths_uncommitted")
-    throw new CommandFailure(
-      "knowledge_effect_paths_uncommitted",
-      `Plan ${input.notice.planId} was not applied, because these paths hold uncommitted work that its commit and undo would capture: ${hold.paths.join(", ")}. Commit or stash them first.`,
-      { planId: input.notice.planId, paths: hold.paths },
-    );
   const crossCheck = await input.crossCheckPlan({
     repositoryRoot: input.repositoryRoot,
     ...(input.provider === undefined ? {} : { provider: input.provider }),

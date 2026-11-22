@@ -12,9 +12,9 @@ const execute = promisify(execFile);
 
 /**
  * Who may apply a stored owner-rule candidate (ADR-0467, ADR-0561). A host without Hub coordination
- * applies as a single host does: it writes the generated rule and leaves the commit to its owner.
- * A Hub-coordinated host applies only while its ADR-0466 fence grants ownership, and then commits
- * the rule as `Lervo Knowledge` so publication and the replica carry it to every host.
+ * applies as a single host does. A Hub-coordinated host applies only while its ADR-0466 fence
+ * grants ownership. Either commits the rule as `Lervo Knowledge` (ADR-0610), so publication and
+ * the replica carry it to every host and no rule stays uncommitted in the owner's checkout.
  */
 export type InstructionCandidateApplyAuthority =
   | { status: "single_host" }

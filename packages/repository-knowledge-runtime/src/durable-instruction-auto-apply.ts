@@ -1,5 +1,6 @@
 import { listDurableInstructionCandidates } from "@lervo/repository-knowledge";
 
+import { checkoutOnBaseBranch } from "./checkout-base-branch.js";
 import { applyDurableInstructionCandidate } from "./durable-instruction-apply.js";
 import { instructionCandidateApplyAuthority } from "./instruction-candidate-apply-authority.js";
 import {
@@ -31,6 +32,9 @@ export async function applyStoredInstructionCandidates(input: {
   const authority = await instructionCandidateApplyAuthority(input.repositoryRoot);
   if (authority.status === "owner_elsewhere") return result;
   const candidates = await listDurableInstructionCandidates(input.repositoryRoot);
+  // ADR-0610: off the base branch every candidate waits, so no rule lands in the owner's work.
+  if (!(await checkoutOnBaseBranch(input.repositoryRoot)).onBase)
+    return { applied: 0, deferred: candidates.length };
   const previous = await readInstructionApplyFailures(input.repositoryRoot);
   const failures = new Map<string, InstructionApplyFailure>();
   for (const candidate of candidates) {

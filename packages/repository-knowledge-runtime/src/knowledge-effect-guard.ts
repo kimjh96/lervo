@@ -5,6 +5,11 @@ import { promisify } from "node:util";
 
 import { readRepositoryHold } from "@lervo/repository-registry";
 
+import {
+  checkoutOnBaseBranch,
+  gitVisiblePaths,
+  repositoryCommittable,
+} from "./checkout-base-branch.js";
 import { knowledgeOutputCommitGrant } from "./convergence-owner-fence.js";
 import { commitKnowledgeEffect, type KnowledgeEffectNotice } from "./knowledge-effect-commit.js";
 import { knowledgeOutputCommitSafe } from "./knowledge-output-commit.js";
@@ -51,8 +56,14 @@ function statusPaths(output: string): string[] {
 export async function knowledgeEffectPreflight(
   repositoryRoot: string,
   paths: readonly string[],
+  /** ADR-0610: a generated-only effect in a directory with no commit to protect applies as is. */
+  options: { generated?: boolean } = {},
 ): Promise<KnowledgeEffectHold | null> {
   if ((await readRepositoryHold(repositoryRoot)) !== null) return { reason: "owner_hold" };
+  if (options.generated === true && !(await repositoryCommittable(repositoryRoot))) return null;
+  // ADR-0610: Lervo's effect never lands in the owner's feature-branch or detached work.
+  if (!(await checkoutOnBaseBranch(repositoryRoot)).onBase)
+    return { reason: "commit_unavailable", detail: "not_on_base" };
   if (!(await knowledgeOutputCommitSafe(repositoryRoot)))
     return { reason: "commit_unavailable", detail: "git_unavailable_or_busy" };
   const grant = await knowledgeOutputCommitGrant(repositoryRoot);
@@ -157,10 +168,26 @@ export async function applyCommittedKnowledgeEffect<T>(input: {
   paths: readonly string[];
   notice: KnowledgeEffectNotice;
   apply: () => Promise<T>;
+  /** ADR-0610: a generated-only effect outside Git or before the first commit applies as is. */
+  generated?: boolean;
 }): Promise<{ receipt: T; commit: CommittedKnowledgeEffect }> {
   if ((await readRepositoryHold(input.repositoryRoot)) !== null)
     throw new KnowledgeEffectOwnerHoldError();
-  const snapshot = await snapshotPaths(input.repositoryRoot, input.paths);
+  if (input.generated === true && !(await repositoryCommittable(input.repositoryRoot)))
+    return {
+      receipt: await input.apply(),
+      commit: { status: "not_committed", reason: "nothing_to_commit" },
+    };
+  // A generated effect's ignored paths, such as `.lervo/state` projections, leave nothing in Git,
+  // so only the paths a commit carries are snapshotted, committed, and restored.
+  const paths =
+    input.generated === true
+      ? await gitVisiblePaths(input.repositoryRoot, input.paths)
+      : input.paths;
+  // ADR-0610: off the base branch nothing is written, so there is nothing to restore either.
+  if (!(await checkoutOnBaseBranch(input.repositoryRoot)).onBase)
+    throw new KnowledgeEffectUncommittedError("not_on_base");
+  const snapshot = await snapshotPaths(input.repositoryRoot, paths);
   let receipt: T;
   try {
     receipt = await input.apply();
@@ -168,11 +195,14 @@ export async function applyCommittedKnowledgeEffect<T>(input: {
     await restorePaths(input.repositoryRoot, snapshot);
     throw error;
   }
-  const commit = await commitKnowledgeEffect({
-    repositoryRoot: input.repositoryRoot,
-    paths: input.paths,
-    notice: input.notice,
-  });
+  const commit =
+    paths.length === 0
+      ? ({ status: "not_committed", reason: "nothing_to_commit" } as const)
+      : await commitKnowledgeEffect({
+          repositoryRoot: input.repositoryRoot,
+          paths,
+          notice: input.notice,
+        });
   if (commit.status === "committed" || commit.reason === "nothing_to_commit")
     return {
       receipt,

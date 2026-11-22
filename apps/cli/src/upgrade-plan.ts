@@ -1,3 +1,4 @@
+import { checkoutOnBaseBranch } from "@lervo/repository-knowledge-runtime";
 import { planNodeRuntimeRetention, type RuntimeRetentionPlan } from "./node-runtime-retention.js";
 import { createHash } from "node:crypto";
 import { readFile, realpath } from "node:fs/promises";
@@ -174,6 +175,7 @@ export async function createRepositoryUpgradePlan(
   const repositoryRoot = await realpath(resolve(root));
   const project = await loadProjectManifest(repositoryRoot);
   const hold = await readRepositoryHold(repositoryRoot);
+  const branch = await checkoutOnBaseBranch(repositoryRoot);
   const version = readCliPackageVersion();
   const capabilities = await createCapabilityMigrationPlan(repositoryRoot);
   const capabilityDisposition: StageDisposition =
@@ -231,7 +233,11 @@ export async function createRepositoryUpgradePlan(
     capabilities: held({ disposition: capabilityDisposition }).disposition,
     workforce: held(workforce),
     terminal: held(terminal.stage),
-    knowledge: held(knowledge),
+    // ADR-0610: knowledge stages commit to the base branch, so elsewhere they wait as Lervo debt.
+    knowledge:
+      branch.onBase || held(knowledge).disposition !== "safe_apply"
+        ? held(knowledge)
+        : { ...knowledge, disposition: "lervo_debt" as const, reason: "not_on_base" },
     node: held(nodeStage),
     eventWriter: held(eventWriter),
   };
