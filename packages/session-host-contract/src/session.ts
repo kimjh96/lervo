@@ -41,6 +41,20 @@ export const sessionDetachMessageSchema = {
   },
 } as const;
 
+/**
+ * Subscribes the connection to the status of every session, without output. The session host
+ * answers with each live session's status and then sends each change.
+ */
+export const sessionsWatchMessageSchema = {
+  title: "SessionsWatchMessage",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind"],
+  properties: {
+    kind: { type: "string", enum: ["sessions.watch"] },
+  },
+} as const;
+
 /** The user's text for the native conversation. */
 export const sessionSendMessageSchema = {
   title: "SessionSendMessage",
@@ -130,3 +144,4 @@ export type SessionStopMessage = FromSchema<typeof sessionStopMessageSchema>;
 export type SessionOpenedMessage = FromSchema<typeof sessionOpenedMessageSchema>;
 export type SessionStatusMessage = FromSchema<typeof sessionStatusMessageSchema>;
 export type SessionResyncRequiredMessage = FromSchema<typeof sessionResyncRequiredMessageSchema>;
+export type SessionsWatchMessage = FromSchema<typeof sessionsWatchMessageSchema>;

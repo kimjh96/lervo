@@ -73,6 +73,9 @@
           "$ref": "#/$defs/SessionDetachMessage"
         },
         {
+          "$ref": "#/$defs/SessionsWatchMessage"
+        },
+        {
           "$ref": "#/$defs/SessionSendMessage"
         },
         {
@@ -298,6 +301,22 @@
         },
         "sessionId": {
           "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "SessionsWatchMessage": {
+      "title": "SessionsWatchMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "sessions.watch"
+          ]
         }
       }
     },

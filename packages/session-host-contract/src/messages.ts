@@ -23,6 +23,7 @@ import {
   sessionSendMessageSchema,
   sessionStatusMessageSchema,
   sessionStopMessageSchema,
+  sessionsWatchMessageSchema,
 } from "./session.js";
 
 /** Messages the interface sends to the session host. */
@@ -32,6 +33,7 @@ export const clientMessageSchemas = [
   sessionOpenMessageSchema,
   sessionAttachMessageSchema,
   sessionDetachMessageSchema,
+  sessionsWatchMessageSchema,
   sessionSendMessageSchema,
   sessionResizeMessageSchema,
   sessionStopMessageSchema,
