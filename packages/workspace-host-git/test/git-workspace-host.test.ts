@@ -74,6 +74,78 @@ describe("Git workspace host", () => {
     },
   );
 
+  it("provisions on a new branch and deletes that branch only while it has not moved", async () => {
+    const fixture = await repository();
+    const adapter = new GitWorkspaceHostAdapter();
+    const request = {
+      ...fixture,
+      marker,
+      idempotencyKey: "idk_branch_fixture_0001",
+      branch: "lervo/fix-the-build-1a2b3c",
+    };
+    expect(await adapter.provisionBranch(request)).toMatchObject({
+      status: "present",
+      headCommit: fixture.baseCommit,
+      markerMatched: true,
+    });
+    const { stdout: branch } = await execute("git", [
+      "-C",
+      fixture.workspacePath,
+      "branch",
+      "--show-current",
+    ]);
+    expect(branch.trim()).toBe(request.branch);
+    await expect(
+      adapter.provisionBranch({
+        ...request,
+        workspacePath: resolve(fixture.parent, "second"),
+        idempotencyKey: "idk_branch_fixture_0002",
+      }),
+    ).rejects.toMatchObject({ code: "host_effect_uncertain" });
+
+    await writeFile(resolve(fixture.workspacePath, "tracked.txt"), "moved\n");
+    await execute("git", ["-C", fixture.workspacePath, "commit", "-am", "moved"]);
+    const removal = {
+      repositoryRoot: fixture.repositoryRoot,
+      branch: request.branch,
+      expectedCommit: fixture.baseCommit,
+    };
+    await adapter.removeDiscardingChanges({ ...request, idempotencyKey: "idk_branch_remove_001" });
+    await expect(adapter.removeBranch(removal)).rejects.toMatchObject({
+      code: "host_effect_uncertain",
+    });
+    await execute("git", [
+      "-C",
+      fixture.repositoryRoot,
+      "branch",
+      "-f",
+      request.branch,
+      fixture.baseCommit,
+    ]);
+    await adapter.removeBranch(removal);
+    const { stdout: left } = await execute("git", [
+      "-C",
+      fixture.repositoryRoot,
+      "branch",
+      "--list",
+      request.branch,
+    ]);
+    expect(left.trim()).toBe("");
+    await adapter.removeBranch(removal);
+  });
+
+  it("rejects a branch name that Git would not accept", async () => {
+    const fixture = await repository();
+    await expect(
+      new GitWorkspaceHostAdapter().provisionBranch({
+        ...fixture,
+        marker,
+        idempotencyKey: "idk_branch_fixture_0003",
+        branch: "-bad",
+      }),
+    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
+  });
+
   it("provisions idempotently, inspects exact evidence, and removes without force", async () => {
     const fixture = await repository();
     const adapter = new GitWorkspaceHostAdapter();

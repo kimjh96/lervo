@@ -2,6 +2,8 @@ import { lstat } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import type {
+  WorkspaceBranchProvisionRequest,
+  WorkspaceBranchRemovalRequest,
   WorkspaceHostInspection,
   WorkspaceProvisionRequest,
   WorkspaceRemovalRequest,
@@ -18,6 +20,44 @@ export class GitWorktreeEffects {
 
   async provisionDetached(
     request: WorkspaceProvisionRequest,
+    beforeMutation?: () => Promise<void>,
+  ): Promise<WorkspaceHostInspection> {
+    return this.provision(request, ["--detach"], beforeMutation);
+  }
+
+  /** Creates the worktree on a new branch. An existing branch of that name is never reused. */
+  async provisionBranch(
+    request: WorkspaceBranchProvisionRequest,
+    beforeMutation?: () => Promise<void>,
+  ): Promise<WorkspaceHostInspection> {
+    await this.assertBranchName(request.repositoryRoot, request.branch);
+    return this.provision(request, ["-b", request.branch], async () => {
+      if (await this.branchCommit(request.repositoryRoot, request.branch))
+        fail("host_effect_uncertain", "The branch already exists.");
+      await beforeMutation?.();
+    });
+  }
+
+  /** Deletes the branch only while it still points at the expected commit (compare and delete). */
+  async removeBranch(request: WorkspaceBranchRemovalRequest): Promise<void> {
+    await this.assertBranchName(request.repositoryRoot, request.branch);
+    if (!COMMIT.test(request.expectedCommit))
+      fail("host_coordinate_invalid", "The expected branch commit is invalid.");
+    const current = await this.branchCommit(request.repositoryRoot, request.branch);
+    if (current === null) return;
+    if (current !== request.expectedCommit)
+      fail("host_effect_uncertain", "The branch moved since the workspace created it.");
+    await git(request.repositoryRoot, [
+      "update-ref",
+      "-d",
+      `refs/heads/${request.branch}`,
+      request.expectedCommit,
+    ]);
+  }
+
+  private async provision(
+    request: WorkspaceProvisionRequest,
+    placement: string[],
     beforeMutation?: () => Promise<void>,
   ): Promise<WorkspaceHostInspection> {
     this.evidence.validateRequest(request.repositoryRoot, request.workspacePath, request.marker);
@@ -38,7 +78,7 @@ export class GitWorktreeEffects {
     await git(request.repositoryRoot, [
       "worktree",
       "add",
-      "--detach",
+      ...placement,
       request.workspacePath,
       request.baseCommit,
     ]);
@@ -48,6 +88,21 @@ export class GitWorktreeEffects {
       fail("host_effect_uncertain", "The worktree exists without its ownership marker.", error);
     }
     return this.evidence.inspect(request);
+  }
+
+  private async assertBranchName(root: string, branch: string): Promise<void> {
+    if (!/^[A-Za-z0-9._/-]{1,200}$/u.test(branch) || branch.startsWith("-"))
+      fail("host_coordinate_invalid", "The branch name is invalid.");
+    await git(root, ["check-ref-format", "--branch", branch]);
+  }
+
+  private async branchCommit(root: string, branch: string): Promise<string | null> {
+    const output = await git(root, [
+      "for-each-ref",
+      "--format=%(objectname)",
+      `refs/heads/${branch}`,
+    ]);
+    return output.length === 0 ? null : output;
   }
 
   async removeNonForce(request: WorkspaceRemovalRequest): Promise<WorkspaceHostInspection> {
