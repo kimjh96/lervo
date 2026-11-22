@@ -36,7 +36,7 @@ Measured on the owner's Mac (Apple M5, 10 cores) on 2026-11-23:
 | `cargo deny check`                                  | 3 s   |
 | One-time `cargo-deny` installation                  | 58 s  |
 
-The WSL and CI times are recorded when those checks first run.
+The first ADE workflow run on Linux CI, without a Cargo cache, took 2 min 46 s on 2026-11-23: 25 s for the webview packages, 8 s for the toolchain, and 1 min 44 s for `pnpm ade:check`. The WSL time is recorded when that check first runs.
 
 ## S2 and S3
 
