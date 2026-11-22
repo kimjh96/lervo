@@ -1993,8 +1993,12 @@ checksum = "20870f649af7073d53e38067b2a84312175d56ea15217e1b15bc83506ec50afb"
 name = "lervo-ade"
 version = "0.1.0"
 dependencies = [
+ "lervo-session-protocol",
+ "lervo-session-transport",
+ "serde_json",
  "tauri",
  "tauri-build",
+ "tokio",
 ]
 
 [[package]]
@@ -2021,7 +2025,6 @@ dependencies = [
 name = "lervo-session-host"
 version = "0.1.0"
 dependencies = [
- "dirs",
  "fd-lock",
  "lervo-core-link",
  "lervo-session-core",
@@ -2082,6 +2085,7 @@ dependencies = [
 name = "lervo-session-transport"
 version = "0.1.0"
 dependencies = [
+ "dirs",
  "getrandom 0.4.3",
  "lervo-session-protocol",
  "serde",

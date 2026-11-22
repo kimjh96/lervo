@@ -12,8 +12,8 @@ use lervo_session_transport::token::{self, Token, create_private_directory};
 
 use crate::connection;
 use crate::host::Host;
-use crate::paths::Layout;
 use lervo_session_core::ports::Core;
+use lervo_session_transport::paths::Layout;
 
 /// Why the session host could not serve.
 #[derive(Debug, thiserror::Error)]

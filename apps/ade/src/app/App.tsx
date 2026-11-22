@@ -1,11 +1,27 @@
-import styles from "./App.module.css";
-import { LogoMark } from "./LogoMark";
+import { useEffect } from "react";
+import { IntlProvider } from "react-intl";
 
-/** The application root. S1.5 replaces this placeholder with the start screen and workspaces. */
-export function App() {
+import { bindConnection } from "../features/connection";
+import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
+import type { SessionHostClient } from "../platform/session-host";
+import { Frame } from "./Frame";
+import { SessionHostProvider } from "./session-host-context";
+
+const locale = chooseLocale(navigator.languages);
+
+/** The application root: the catalog, the session-host client, and the frame. */
+export function App(props: { client: SessionHostClient }) {
+  const { client } = props;
+  useEffect(() => {
+    const unbind = bindConnection(client);
+    client.start();
+    return unbind;
+  }, [client]);
   return (
-    <main className={styles.root}>
-      <LogoMark size={48} />
-    </main>
+    <IntlProvider locale={locale} defaultLocale={defaultLocale} messages={messagesFor(locale)}>
+      <SessionHostProvider client={client}>
+        <Frame />
+      </SessionHostProvider>
+    </IntlProvider>
   );
 }

@@ -131,7 +131,16 @@ async fn measure(state: PathBuf, idle: Duration) -> Option<Value> {
     while !(layout.socket.exists() && layout.token.exists()) {
         tokio::time::sleep(Duration::from_millis(10)).await;
     }
-    let (read, write) = UnixStream::connect(&layout.socket).await.ok()?.into_split();
+    // The socket file appears a moment before the listener accepts, so retry the connection.
+    let mut stream = None;
+    for _ in 0..100 {
+        if let Ok(connected) = UnixStream::connect(&layout.socket).await {
+            stream = Some(connected);
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let (read, write) = stream?.into_split();
     let (mut reader, mut writer) = (FrameReader::new(read), FrameWriter::new(write));
     let codec = MessageCodec::new().ok()?;
     let client = ClientIdentity {

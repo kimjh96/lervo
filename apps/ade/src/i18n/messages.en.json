@@ -1,0 +1,34 @@
+{
+  "app.name": {
+    "defaultMessage": "Lervo",
+    "description": "The product name, shown beside the logo."
+  },
+  "connection.connecting": {
+    "defaultMessage": "Connecting to this computer",
+    "description": "The interface is reaching the session host."
+  },
+  "connection.connected": {
+    "defaultMessage": "Connected",
+    "description": "The interface reached the session host."
+  },
+  "connection.reconnecting": {
+    "defaultMessage": "Reconnecting",
+    "description": "The connection to the session host ended, and the interface is reaching it again."
+  },
+  "connection.unavailable": {
+    "defaultMessage": "Lervo could not start its session host",
+    "description": "The shell could not find or start the session host."
+  },
+  "start.question": {
+    "defaultMessage": "What should we work on?",
+    "description": "The start screen's question, above the instruction input."
+  },
+  "workspaces.title": {
+    "defaultMessage": "Workspaces",
+    "description": "The heading of the workspace list."
+  },
+  "workspaces.empty": {
+    "defaultMessage": "No workspaces yet",
+    "description": "The workspace list before any work has started."
+  }
+}

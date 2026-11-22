@@ -1,0 +1,18 @@
+.list {
+  padding: var(--space-8) var(--space-12);
+}
+
+.title {
+  margin: 0 0 var(--space-8);
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  font-weight: 600;
+  line-height: var(--type-caption-line-height);
+}
+
+.empty {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-list-size);
+  line-height: var(--type-list-line-height);
+}

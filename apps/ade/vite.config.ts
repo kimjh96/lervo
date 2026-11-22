@@ -5,6 +5,15 @@ import { defineConfig } from "vite";
 export default defineConfig({
   plugins: [react()],
   clearScreen: false,
+  resolve: {
+    alias: [
+      // Catalogs are compiled to ASTs at build time, so the runtime parser stays out of the bundle.
+      {
+        find: /^@formatjs\/icu-messageformat-parser$/u,
+        replacement: "@formatjs/icu-messageformat-parser/no-parser.js",
+      },
+    ],
+  },
   server: {
     port: 1420,
     strictPort: true,
