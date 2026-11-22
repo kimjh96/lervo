@@ -9,6 +9,10 @@
     {
       "path": "packages/session-host-contract/src",
       "reason": "Session-host protocol messages between the ADE interface and its session host. Lervo's own processes write and validate them, and no provider answers with them."
+    },
+    {
+      "path": "packages/session-host-contract/generated",
+      "reason": "Schema documents and the standalone core-link request validator generated from packages/session-host-contract/src; Lervo's own processes validate their messages with them, and no provider answers with them."
     }
   ],
   "entries": [],

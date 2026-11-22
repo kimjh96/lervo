@@ -8,7 +8,11 @@ import {
   coreLinkProtocolDocument,
   coreLinkRequestSchemas,
   coreLinkResponseSchemas,
+  validateCoreLinkRequest,
 } from "@lervo/session-host-contract";
+
+// @ts-expect-error The build script has no type declarations.
+import { compileCoreLinkValidator } from "../scripts/compile-core-link-validator.mjs";
 
 const packageRoot = join(import.meta.dirname, "..");
 const fixtureRoot = join(import.meta.dirname, "fixtures", "core-link");
@@ -93,5 +97,17 @@ describe("core-link protocol contract", () => {
       committed,
       "Run `pnpm --filter @lervo/session-host-contract build` to regenerate the document.",
     ).toEqual(coreLinkProtocolDocument());
+  });
+
+  it("ships a standalone request validator that is current and agrees with the schema", async () => {
+    expect(
+      await readFile(join(packageRoot, "generated/core-link-request-validator.js"), "utf8"),
+      "Run `pnpm --filter @lervo/session-host-contract build` to regenerate the validator.",
+    ).toBe(await compileCoreLinkValidator(coreLinkProtocolDocument()));
+    for (const directory of ["requests", "responses", "invalid"])
+      for (const [name, value] of await fixtures(directory))
+        expect(validateCoreLinkRequest(value), `${directory}/${name}`).toBe(
+          validate.request(value),
+        );
   });
 });
