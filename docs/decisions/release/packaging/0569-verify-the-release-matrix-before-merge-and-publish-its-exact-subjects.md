@@ -59,7 +59,16 @@ The last check ties the tarball to the tagged tree without trusting the run that
 
 `publish-github-release.sh` then creates the release with all four files in one `gh release create`, which keeps the release a draft until the uploads finish. On replay, an existing asset must be byte-identical, and an asset outside the subject set is an error. The script uploads only missing assets and never replaces a published file. Only then does it update the notes and publish, so a draft left by an interrupted creation becomes public with every subject attached.
 
-Reuse applies only where `attested-cli` would be skipped: a private, personally owned repository, which is the current state. Where attestation applies, the tag run still builds, because that job signs its own build. `attested-cli` itself is unchanged, so its digests could differ from the published subjects. When it succeeds, `github-release` downloads its files and requires the tarball, manifest, and SBOM to be byte-identical to the verified subjects (`compare-attested-subjects.sh`). Because packing is not byte-stable, that comparison is expected to fail, so a repository where attestation applies publishes nothing until `attested-cli` signs the verified subjects instead of a rebuild. That change is follow-up work; a mismatch can never publish silently.
+Any tag run may reuse. `attested-cli` signs the verified subjects themselves, not a rebuild. Since 2026-11-23 the repository is public, so attestation applies. The job:
+
+1. downloads `lervo-cli-release-<tree>` from the same run that `github-release` uses;
+2. runs `cli-release-subjects.mjs verify` against the checked-out tag;
+3. copies the tarball, manifest and SBOM into its signing directory;
+4. attests those copies and verifies the bundles as a consumer.
+
+It builds only `@lervo/runtime-security`, which the manifest validation reads, and never repacks the CLI.
+
+The first public tag, v0.34.0, showed why: the earlier job signed its own rebuild, and because packing is not byte-stable the rebuild differed from the verified subjects. `compare-attested-subjects.sh` refused the release, and v0.34.0 has no GitHub Release. The comparison stays in `github-release`, so an attested digest that differs from the published subjects still never publishes.
 
 `github-release` runs under `!cancelled()`, not `always()`, so a cancelled tag run never publishes on the reuse path.
 

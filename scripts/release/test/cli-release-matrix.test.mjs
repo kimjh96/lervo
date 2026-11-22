@@ -153,25 +153,24 @@ describe("CLI release matrix workflow", () => {
     assert.equal(step.run, "node scripts/release/commands/plan-cli-release-matrix.mjs");
     assert.deepEqual(step.env, {
       EXPECTED_REVISION: "${{ inputs.expected_sha }}",
-      ATTESTATION_APPLICABLE:
-        "${{ github.event.repository.private != true || github.event.repository.owner.type != 'User' }}",
       GH_TOKEN: "${{ github.token }}",
     });
     assert.equal(workflow.jobs["native-runtime"].needs, "plan");
     assert.equal(workflow.jobs["native-runtime"].if, "needs.plan.outputs.reuse == ''");
   });
 
-  it("signs exact release subjects for an exact pushed or manually selected tag", async () => {
+  it("signs the verified release subjects, never a rebuild, for an exact tag", async () => {
     const workflow = await readWorkflow();
     const job = workflow.jobs["attested-cli"];
     assert.equal(
       job.if,
-      "github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User')",
+      "${{ !cancelled() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User') && needs.plan.result == 'success' && (needs.plan.outputs.reuse != '' || needs.packed-cli.result == 'success') }}",
     );
-    assert.deepEqual(job.needs, ["packed-cli", "native-runtime"]);
+    assert.deepEqual(job.needs, ["plan", "packed-cli"]);
     assert.equal(job["runs-on"], "ubuntu-latest");
     assert.deepEqual(job.permissions, {
       contents: "read",
+      actions: "read",
       "id-token": "write",
       attestations: "write",
       "artifact-metadata": "write",
@@ -185,11 +184,26 @@ describe("CLI release matrix workflow", () => {
       "actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d",
       "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a",
     ]);
-    const prepare = job.steps.find(({ name }) => name === "Prepare exact release subjects");
-    assert.equal(
-      prepare.run,
-      'pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release" --expected-tag "${GITHUB_REF_NAME}"',
+    const runs = job.steps.map(({ run }) => run ?? "").join("\n");
+    assert.doesNotMatch(runs, /pnpm build\b|release:attestation:prepare/u);
+    const download = job.steps.find(({ name }) => name === "Download verified release subjects");
+    assert.deepEqual(download.with, {
+      name: "lervo-cli-release-${{ needs.plan.outputs.tree }}",
+      path: "${{ runner.temp }}/lervo-release-subjects",
+      "run-id": "${{ needs.plan.outputs.reuse || github.run_id }}",
+      "github-token": "${{ github.token }}",
+    });
+    const verifySubjects = job.steps.find(
+      ({ name }) => name === "Verify subjects against the tagged tree",
     );
+    assert.equal(
+      verifySubjects.run,
+      'node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"',
+    );
+    const stage = job.steps.find(({ name }) => name === "Stage the verified subjects for signing");
+    assert.match(stage.run, /! -name release-subjects\.json/u);
+    assert.ok(job.steps.indexOf(download) < job.steps.indexOf(verifySubjects));
+    assert.ok(job.steps.indexOf(verifySubjects) < job.steps.indexOf(stage));
     const provenance = job.steps.find(({ id }) => id === "build-attestation");
     assert.deepEqual(provenance.with["subject-path"].trim().split("\n"), [
       "${{ runner.temp }}/lervo-release/*.tgz",

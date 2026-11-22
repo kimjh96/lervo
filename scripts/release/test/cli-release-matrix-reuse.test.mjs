@@ -88,30 +88,18 @@ describe("CLI release matrix reuse", () => {
     );
   });
 
-  it("reuses only on a tag where the attestation job would be skipped", () => {
+  it("reuses only on a tag", () => {
     const base = { expectedRevision: "", revision: head, tree, find: () => 41 };
-    assert.deepEqual(planReleaseMatrix({ ...base, refType: "tag", attestationApplicable: false }), {
+    assert.deepEqual(planReleaseMatrix({ ...base, refType: "tag" }), { tree, reuse: "41" });
+    assert.deepEqual(planReleaseMatrix({ ...base, refType: "branch" }), { tree, reuse: "" });
+    assert.deepEqual(planReleaseMatrix({ ...base, refType: "tag", find: () => null }), {
       tree,
-      reuse: "41",
+      reuse: "",
     });
-    for (const state of [
-      { refType: "branch", attestationApplicable: false },
-      { refType: "tag", attestationApplicable: true },
-    ])
-      assert.deepEqual(planReleaseMatrix({ ...base, ...state }), { tree, reuse: "" });
-    assert.deepEqual(
-      planReleaseMatrix({
-        ...base,
-        refType: "tag",
-        attestationApplicable: false,
-        find: () => null,
-      }),
-      { tree, reuse: "" },
-    );
   });
 
   it("rejects a dispatch whose branch moved away from the expected revision", () => {
-    const base = { refType: "branch", attestationApplicable: false, tree, find: () => null };
+    const base = { refType: "branch", tree, find: () => null };
     assert.deepEqual(planReleaseMatrix({ ...base, expectedRevision: head, revision: head }), {
       tree,
       reuse: "",
