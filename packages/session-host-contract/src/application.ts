@@ -44,6 +44,8 @@ export const requestFailedMessageSchema = {
         "provider_cli_unavailable",
         "provider_login_unavailable",
         "range_invalid",
+        "conversation_mode_unsupported",
+        "conversation_index_corrupt",
         "application_unavailable",
       ],
     },
