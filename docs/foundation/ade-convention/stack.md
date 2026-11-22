@@ -31,12 +31,14 @@ This part of the [Lervo ADE convention](../ade-convention.md) records the techno
 | Framing            | Length-prefixed binary frames carrying MessagePack                                                                        |
 | Conversation index | Append-only segment files with offset tables, without a database                                                          |
 | Host files         | `dirs` for the platform state directory, `fd-lock` for the single-instance lock, and `getrandom` for the connection token |
+| Core link          | The resident process as a child over standard streams, JSON lines, and `base64` for provider output                       |
 | Logs and errors    | `tracing` with a size limit and rotation, and `thiserror`                                                                 |
 
 ## Lervo core
 
 - `lervo workspace start` and the resident application endpoint live in the existing CLI and core packages.
 - Claude Code and Codex launch preparation and stream decoding extend `@lervo/adapter-claude` and `@lervo/adapter-codex`.
+- The core link's resident process is `lervo application serve --stdio` in `@lervo/cli`, which validates requests with `ajv` against the contract's core-link document.
 - The session-host protocol is one JSON Schema in `@lervo/session-host-contract`, a contract package with no runtime dependencies. TypeScript types come from it through `json-schema-to-ts`, and Rust types through `typify` at build time. Both sides validate every message against the same document, AJV in TypeScript and `jsonschema` in Rust.
 - The protocol stays out of `@lervo/schemas`: importing that package's index from the interface added 5.2 MB to the bundle in a measurement on 2026-11-23, because its compiled validators cannot be tree-shaken.
 

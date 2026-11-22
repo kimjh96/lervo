@@ -7,12 +7,12 @@
 use std::path::PathBuf;
 use std::time::Duration;
 
+use lervo_session_core::ports::{
+    CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
+};
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{Content, Input};
 use lervo_session_host::paths::Layout;
-use lervo_session_host::ports::{
-    CommandOutcome, ConversationMode, Core, Decoded, FailureCode, Launch, StreamDecoder,
-};
 use lervo_session_host::serve::{ServeError, run};
 use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_protocol::{
@@ -75,7 +75,7 @@ impl Core for FakeCore {
         LineDecoder::default()
     }
 
-    async fn open(&self, workspace_id: &str) -> Result<Launch, FailureCode> {
+    async fn open(&self, workspace_id: &str) -> Result<Launch, Failure> {
         let (session_id, mode, script) = match workspace_id {
             "wks_1" => (
                 "ses_1",
@@ -87,7 +87,7 @@ impl Core for FakeCore {
                 ConversationMode::Native,
                 "while read line; do printf 'reply:%s\\n' \"$line\"; done",
             ),
-            _ => return Err(FailureCode::WorkspaceStartFailed),
+            _ => return Err(Failure::new(FailureCode::WorkspaceStartFailed)),
         };
         Ok(Launch {
             session_id: session_id.to_owned(),
@@ -97,6 +97,8 @@ impl Core for FakeCore {
             arguments: vec!["-c".to_owned(), script.to_owned()],
             environment: Vec::new(),
             working_directory: std::env::temp_dir(),
+            provider: "fake".to_owned(),
+            initial_input: None,
         })
     }
 
@@ -104,8 +106,8 @@ impl Core for FakeCore {
         &self,
         _command: &str,
         _arguments: Map<String, Value>,
-    ) -> Result<CommandOutcome, FailureCode> {
-        Err(FailureCode::ApplicationUnavailable)
+    ) -> Result<CommandOutcome, Failure> {
+        Err(Failure::new(FailureCode::ApplicationUnavailable))
     }
 }
 

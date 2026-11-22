@@ -9,6 +9,7 @@ publish.workspace = true
 [dependencies]
 dirs = "7"
 fd-lock = "4"
+lervo-core-link = { path = "../core-link" }
 lervo-session-core = { path = "../session-core" }
 lervo-session-protocol = { path = "../session-protocol" }
 lervo-session-pty = { path = "../session-pty" }

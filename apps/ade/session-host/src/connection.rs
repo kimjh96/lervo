@@ -9,8 +9,8 @@ use tokio::io::{AsyncRead, AsyncWrite};
 use tokio::sync::mpsc;
 
 use crate::host::Host;
-use crate::ports::Core;
 use crate::subscriber::Outgoing;
+use lervo_session_core::ports::Core;
 
 /// Serves one connection until the client closes it or breaks the protocol.
 pub async fn serve<C, R, W>(

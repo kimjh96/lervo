@@ -16,8 +16,8 @@ use tokio::sync::mpsc;
 
 use crate::items::to_wire;
 use crate::messages;
-use crate::ports::{ConversationMode, Decoded, Launch, StreamDecoder};
 use crate::session::{Command, Fanout, Range, SessionHandle, linger};
+use lervo_session_core::ports::{ConversationMode, Decoded, Launch, StreamDecoder};
 
 /// Bytes of sealed segments one session keeps in memory.
 const SEGMENT_CACHE_BYTES: usize = 1024 * 1024;
@@ -67,6 +67,7 @@ pub fn start<D: StreamDecoder>(
     let (handle, commands) = SessionHandle::new(ConversationMode::Native, channel);
     let actor = Native {
         fanout: Fanout::new(session, &handle),
+        initial_input: launch.initial_input.clone(),
         transcript: Transcript::new(store.len()),
         store: Some(store),
         decoder,
@@ -77,6 +78,8 @@ pub fn start<D: StreamDecoder>(
 
 struct Native<D> {
     fanout: Fanout,
+    /// The first instruction, sent through the decoder once the provider runs.
+    initial_input: Option<String>,
     transcript: Transcript,
     /// `None` once the index failed; live items still flow, and ranges report the damage.
     store: Option<ConversationStore>,
@@ -86,6 +89,12 @@ struct Native<D> {
 impl<D: StreamDecoder> Native<D> {
     async fn run(mut self, mut process: StreamProcess, mut commands: mpsc::Receiver<Command>) {
         self.fanout.change(SessionEvent::Launched);
+        if let Some(text) = self.initial_input.take() {
+            let (bytes, decoded) = self.decoder.send(&text).await;
+            if process.input(&bytes).await.is_ok() {
+                self.apply(decoded);
+            }
+        }
         let mut stopped = false;
         loop {
             tokio::select! {

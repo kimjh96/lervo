@@ -10,10 +10,10 @@ use std::path::PathBuf;
 use std::process::ExitCode;
 use std::time::Duration;
 
-use lervo_session_host::paths::Layout;
-use lervo_session_host::ports::{
-    CommandOutcome, ConversationMode, Core, Decoded, FailureCode, Launch, StreamDecoder,
+use lervo_session_core::ports::{
+    CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
 };
+use lervo_session_host::paths::Layout;
 use lervo_session_host::serve::run;
 use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_protocol::{ClientMessage, HostMessage};
@@ -48,11 +48,11 @@ impl Core for IdleCore {
         IdleDecoder
     }
 
-    async fn open(&self, workspace_id: &str) -> Result<Launch, FailureCode> {
+    async fn open(&self, workspace_id: &str) -> Result<Launch, Failure> {
         let index: usize = workspace_id
             .trim_start_matches("wks_")
             .parse()
-            .map_err(|_| FailureCode::WorkspaceStartFailed)?;
+            .map_err(|_| Failure::new(FailureCode::WorkspaceStartFailed))?;
         Ok(Launch {
             session_id: format!("ses_{index}"),
             workspace_id: workspace_id.to_owned(),
@@ -65,6 +65,8 @@ impl Core for IdleCore {
             arguments: Vec::new(),
             environment: Vec::new(),
             working_directory: std::env::temp_dir(),
+            provider: "fake".to_owned(),
+            initial_input: None,
         })
     }
 
@@ -72,8 +74,8 @@ impl Core for IdleCore {
         &self,
         _command: &str,
         _arguments: Map<String, Value>,
-    ) -> Result<CommandOutcome, FailureCode> {
-        Err(FailureCode::ApplicationUnavailable)
+    ) -> Result<CommandOutcome, Failure> {
+        Err(Failure::new(FailureCode::ApplicationUnavailable))
     }
 }
 

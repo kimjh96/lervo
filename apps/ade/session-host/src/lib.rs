@@ -8,8 +8,10 @@ mod items;
 mod messages;
 mod native;
 pub mod paths;
-pub mod ports;
 pub mod serve;
 mod session;
 mod subscriber;
 mod terminal;
+
+/// The ports to the Lervo core, which the domain defines.
+pub use lervo_session_core::ports;
