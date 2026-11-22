@@ -8,7 +8,8 @@ This roadmap delivers [ADR-0613](../decisions/execution/applications/0613-host-p
 ## How increments land
 
 - Each increment lands as its own pull request and leaves `main` releasable.
-- An increment is done only when its completion check passes on the owner's Mac and in WSL. A check that ran on one host only leaves the increment open.
+- An increment is done when its completion check passes on the owner's Mac and in the ADE workflow on Linux CI. WSL shares the Linux build and runtime, so the Linux run stands for it.
+- An increment that changes WSL-specific behavior, such as the WSLg window or the transport between a Windows interface and a WSL session host, also passes its check in WSL, with the owner's permission for that run.
 - Continuous integration for the ADE runs on Linux only, filtered to the ADE paths and the protocol schema. Desktop bundles for macOS and Windows build at release.
 
 ## S1: instruction-first workspaces with the native conversation
@@ -36,7 +37,7 @@ Measured on the owner's Mac (Apple M5, 10 cores) on 2026-11-23:
 | `cargo deny check`                                  | 3 s   |
 | One-time `cargo-deny` installation                  | 58 s  |
 
-The first ADE workflow run on Linux CI, without a Cargo cache, took 2 min 46 s on 2026-11-23: 25 s for the webview packages, 8 s for the toolchain, and 1 min 44 s for `pnpm ade:check`. The WSL time is recorded when that check first runs.
+The first ADE workflow run on Linux CI, without a Cargo cache, took 2 min 46 s on 2026-11-23: 25 s for the webview packages, 8 s for the toolchain, and 1 min 44 s for `pnpm ade:check`. S1.1 is complete: its checks passed on the Mac and on Linux CI.
 
 ## S2 and S3
 
