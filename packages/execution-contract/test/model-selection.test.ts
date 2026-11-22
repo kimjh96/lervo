@@ -38,6 +38,10 @@ describe("model selection (ADR-0612)", () => {
     });
     expect(modelRouteFor(DEFAULT_MODEL_SELECTION, "reasoning", "claude")).toEqual({
       model: null,
+      reasoningEffort: "high",
+    });
+    expect(modelRouteFor(DEFAULT_MODEL_SELECTION, "routine", "claude")).toEqual({
+      model: null,
       reasoningEffort: null,
     });
     expect(
@@ -150,5 +154,38 @@ describe("model selection (ADR-0612)", () => {
       issue: "model_selection_invalid",
     });
     expect(await readFile(modelSelectionPath(state), "utf8")).toBe("{ not json");
+    // A damaged record is never silently replaced.
+    await expect(
+      writeModelSelectionRole({
+        stateDirectory: state,
+        role: "routine",
+        routes: [{ provider: "claude", model: null, reasoningEffort: null }],
+      }),
+    ).rejects.toMatchObject({ code: "model_selection_invalid" });
+    expect(await readFile(modelSelectionPath(state), "utf8")).toBe("{ not json");
+  });
+
+  it("keeps roles a newer Lervo wrote when it changes another one", async () => {
+    const state = await directory();
+    await writeModelSelectionRole({
+      stateDirectory: state,
+      role: "routine",
+      routes: [{ provider: "claude", model: null, reasoningEffort: null }],
+    });
+    const file = JSON.parse(await readFile(modelSelectionPath(state), "utf8"));
+    file.roles.planning = [{ provider: "claude", model: "future", reasoningEffort: "high" }];
+    await writeFile(modelSelectionPath(state), JSON.stringify(file), { mode: 0o600 });
+    const read = await readModelSelection(state);
+    expect(read.issue).toBeNull();
+    expect(read.selection.roles).not.toHaveProperty("planning");
+    await writeModelSelectionRole({
+      stateDirectory: state,
+      role: "background",
+      routes: [{ provider: "claude", model: null, reasoningEffort: "low" }],
+    });
+    const after = JSON.parse(await readFile(modelSelectionPath(state), "utf8"));
+    expect(after.revision).toBe(2);
+    expect(after.roles.planning).toEqual(file.roles.planning);
+    expect(after.roles.routine).toEqual(file.roles.routine);
   });
 });

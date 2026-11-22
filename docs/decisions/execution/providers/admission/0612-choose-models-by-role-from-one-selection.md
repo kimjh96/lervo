@@ -42,20 +42,31 @@ Every caller names a role and asks the selection which route to use. No configur
 
 `lervo model show` prints the selection. Each role starts from the provider CLI defaults:
 
-- `lervo model set <role> <provider>[/<model>] [--effort <effort>] [--then <provider>[/<model>]]...` replaces one role's routes;
+- `lervo model set <role> <provider>[/<model>][@<effort>]...` replaces one role's routes, in order;
 - `lervo model unset <role>` returns it to the default.
+
+A role without routes keeps today's behavior:
+
+- the provider CLI's default model;
+- effort `low` for background work;
+- effort `high` for reasoning and review, their quality floor;
+- the provider default for routine work.
 
 Callers read the selection when they make a provider call, not when their process starts. A Node or resident therefore needs no restart, no rebind and no re-review. The next call uses the new route. A Node keeps one parsed copy and re-reads the file only when its content changes, so an unchanged file costs one `stat`.
 
-### Unavailable providers fall through
+### Unavailable providers fall through, and only to listed ones
 
-A route whose provider CLI is not admitted on this host (ADR-0536), or that has no login or quota, is skipped for the next route in the list. Lervo records which route it used and why it skipped the others, as notice-only attention, never as a block. When no route of a role can run, the call reports `model_route_unavailable` with the skipped reasons, and only work that needs that role waits.
+A route whose provider CLI is not admitted on this host (ADR-0536), or that has no login or quota, is skipped for the next route the role lists.
+
+A provider the role does not list is never tried, probed or spent on, even when a delegation allows it. Setting a role to one provider therefore really removes the other.
+
+When no listed route can run, the call reports `provider_not_admitted`, as when no delegated provider is admitted today. Only work that needs that role waits.
 
 ### Authority stays separate from choice
 
 The delegation, the continuity policy and the mandate say _which providers may spend_ under their review hash. They no longer say _which provider to use_.
 
-- A route outside a caller's allowed providers is skipped like an unavailable one.
+- A route outside a caller's allowed providers is skipped like an unavailable one. When a role lists only providers the caller may not use, the caller waits (`provider_not_admitted`).
 - Removing a provider from the fleet is one `lervo model set` per affected role. The reviewed lists may keep naming it, because naming a provider allows it but never selects it.
 
 ### The deployment binding covers identity, not model choice
@@ -84,10 +95,14 @@ No document names a current model as a contract. Historical evidence keeps the m
 
 ## State, events, privacy, and failure meaning
 
-- **State.** The selection is `{schemaVersion: 1, revision, changedAt, roles: {<role>: [{provider, model, reasoningEffort}]}}`, written owner-only next to the other host state. A missing or unreadable file means the provider defaults, and an unreadable one is attention.
+- **State.** The selection is `{schemaVersion: 1, revision, changedAt, roles: {<role>: [{provider, model, reasoningEffort}]}}`, an owner-only regular file next to the other host state.
+  - A missing file means the provider defaults.
+  - A file that exists but cannot be read also means the defaults, and `lervo model set` refuses to overwrite it.
+  - Roles written by a newer Lervo are kept unchanged when an older one writes another role.
+  - A write is a compare-and-swap on the revision, and a concurrent change fails it with `model_selection_changed`.
 - **No event per call.** Choosing a route is not an event. The provider call records the requested model, as it does today (`requestedModel`).
-- **Change event.** A changed selection is recorded once, as an `application.model_selection.changed` notice with the revision and the roles changed. It holds no credentials and no prompt text.
-- **Failure meaning.** `model_route_unavailable` means no route of the role could run on this host now. It is not a provider failure and never rolls back an upgrade.
+- **Change notice (M3).** A changed selection is recorded once, as an `application.model_selection.changed` notice with the revision and the roles changed. An unusable file becomes attention. Neither carries credentials or prompt text.
+- **Failure meaning.** `provider_not_admitted` from a role means no listed route could run on this host now. It is not a provider failure and never rolls back an upgrade.
 
 ## Consequences
 
@@ -95,6 +110,7 @@ No document names a current model as a contract. Historical evidence keeps the m
 - Background work can use an explicit model and effort instead of whatever default the installed CLI ships. A role left at its defaults behaves exactly as today.
 - Reasoning and review may share one provider. Their quality floor, high effort or more, still applies to the routes of those roles.
 - Until M2 lands, Node configurations keep their own fields. M1 changes only background knowledge work, which picks a provider alone today.
+- In M1, admission probes a provider without the route's model. A mistyped or unavailable model id therefore fails each background call visibly rather than falling through. M2 probes the route's model at admission.
 - A role left unset behaves exactly as before ADR-0612: background calls keep effort `low` and the CLI default model.
 
 ## Verification

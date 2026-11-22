@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { chmod, lstat, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 /**
@@ -28,6 +28,11 @@ export interface ModelSelection {
   changedAt: string | null;
   /** The ordered routes of each role; a role without routes uses the provider defaults. */
   roles: Partial<Record<ModelRole, ModelRoute[]>>;
+  /**
+   * Roles a newer Lervo wrote that this one does not know, kept byte for byte so a write here never
+   * erases them. Readers ignore them.
+   */
+  unknownRoles?: Record<string, unknown>;
 }
 
 /** The selection of a host that never chose: every role on the provider defaults. */
@@ -40,12 +45,12 @@ export const DEFAULT_MODEL_SELECTION: ModelSelection = Object.freeze({
 
 /**
  * The effort a role uses when its route names none. Background knowledge calls stay at `low`,
- * as before ADR-0612, so an unset selection changes nothing; every other role keeps the provider
- * default.
+ * as before ADR-0612, so an unset selection changes nothing. Reasoning and review default to their
+ * quality floor, `high`; routine keeps the provider default.
  */
 export const DEFAULT_ROLE_REASONING_EFFORT: Readonly<
   Record<ModelRole, ModelReasoningEffort | null>
-> = Object.freeze({ routine: null, reasoning: null, review: null, background: "low" });
+> = Object.freeze({ routine: null, reasoning: "high", review: "high", background: "low" });
 
 /** Reasoning and review keep the execution-profile quality floor whichever route serves them. */
 const MINIMUM_EFFORT: Readonly<Partial<Record<ModelRole, ModelReasoningEffort>>> = Object.freeze({
@@ -60,7 +65,7 @@ const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:[\]/-]{0,127}$/u;
 
 export class ModelSelectionError extends Error {
   constructor(
-    readonly code: "model_selection_invalid" | "model_route_invalid",
+    readonly code: "model_selection_invalid" | "model_route_invalid" | "model_selection_changed",
     message: string,
   ) {
     super(message);
@@ -134,8 +139,13 @@ export function parseModelSelection(value: unknown): ModelSelection {
   if (roles === null || typeof roles !== "object" || Array.isArray(roles))
     invalid("The model selection roles are an object.");
   const parsed: ModelSelection["roles"] = {};
+  const unknownRoles: Record<string, unknown> = {};
   for (const [role, routes] of Object.entries(roles as Record<string, unknown>)) {
-    if (!(MODEL_ROLES as readonly string[]).includes(role)) invalid(`Unknown model role: ${role}.`);
+    if (!(MODEL_ROLES as readonly string[]).includes(role)) {
+      if (!/^[a-z][a-z0-9_]{0,31}$/u.test(role)) invalid(`Invalid model role name: ${role}.`);
+      unknownRoles[role] = routes;
+      continue;
+    }
     if (!Array.isArray(routes) || routes.length === 0 || routes.length > MAXIMUM_ROUTES)
       invalid(`The ${role} role has 1 to ${MAXIMUM_ROUTES} routes.`);
     const validated = routes.map((route) => validateModelRoute(role as ModelRole, route));
@@ -148,6 +158,17 @@ export function parseModelSelection(value: unknown): ModelSelection {
     revision: selection.revision as number,
     changedAt: selection.changedAt as string | null,
     roles: parsed,
+    ...(Object.keys(unknownRoles).length === 0 ? {} : { unknownRoles }),
+  };
+}
+
+/** The file form: known and preserved unknown roles together under `roles`. */
+function serialized(selection: ModelSelection): unknown {
+  return {
+    schemaVersion: 1,
+    revision: selection.revision,
+    changedAt: selection.changedAt,
+    roles: { ...(selection.unknownRoles ?? {}), ...selection.roles },
   };
 }
 
@@ -172,7 +193,8 @@ export async function readModelSelection(stateDirectory: string): Promise<ModelS
   const path = modelSelectionPath(stateDirectory);
   let metadata;
   try {
-    metadata = await stat(path);
+    // Never follow a link: the record must be this user's own regular file.
+    metadata = await lstat(path);
   } catch (error) {
     return (error as NodeJS.ErrnoException).code === "ENOENT"
       ? { selection: DEFAULT_MODEL_SELECTION, issue: null }
@@ -183,7 +205,12 @@ export async function readModelSelection(stateDirectory: string): Promise<ModelS
   if (cached !== undefined && cached.key === key) return cached.read;
   let read: ModelSelectionRead;
   try {
-    if (!metadata.isFile() || metadata.size > MAXIMUM_FILE_BYTES) invalid("Not a selection file.");
+    if (
+      !metadata.isFile() ||
+      metadata.size > MAXIMUM_FILE_BYTES ||
+      (typeof process.getuid === "function" && metadata.uid !== process.getuid())
+    )
+      invalid("Not a selection file of this user.");
     read = {
       selection: parseModelSelection(JSON.parse(await readFile(path, "utf8"))),
       issue: null,
@@ -195,7 +222,12 @@ export async function readModelSelection(stateDirectory: string): Promise<ModelS
   return read;
 }
 
-/** Writes one role's routes, or removes them with an empty list, as the next revision. */
+/**
+ * Writes one role's routes, or removes them with an empty list, as the next revision. A file that
+ * exists but cannot be read is never overwritten, so a damaged or foreign record is repaired by
+ * hand rather than silently replaced. The write is a compare-and-swap on the revision: a
+ * concurrent change made since this read fails it with `model_selection_changed`, never loses it.
+ */
 export async function writeModelSelectionRole(input: {
   stateDirectory: string;
   role: ModelRole;
@@ -203,23 +235,36 @@ export async function writeModelSelectionRole(input: {
   now?: Date;
 }): Promise<ModelSelection> {
   const current = await readModelSelection(input.stateDirectory);
+  if (current.issue !== null)
+    throw new ModelSelectionError(
+      "model_selection_invalid",
+      `${modelSelectionPath(input.stateDirectory)} exists but is not usable (${current.issue}); repair or remove it first.`,
+    );
   const roles = { ...current.selection.roles };
   if (input.routes.length === 0) delete roles[input.role];
   else roles[input.role] = input.routes.map((route) => validateModelRoute(input.role, route));
-  const next = parseModelSelection({
-    schemaVersion: 1,
-    revision: current.selection.revision + 1,
-    changedAt: (input.now ?? new Date()).toISOString(),
-    roles,
-  });
+  const next = parseModelSelection(
+    serialized({
+      ...current.selection,
+      revision: current.selection.revision + 1,
+      changedAt: (input.now ?? new Date()).toISOString(),
+      roles,
+    }),
+  );
   await mkdir(input.stateDirectory, { recursive: true, mode: 0o700 });
   const path = modelSelectionPath(input.stateDirectory);
-  const existing = await lstat(path).catch(() => null);
-  if (existing !== null && (!existing.isFile() || existing.isSymbolicLink()))
-    invalid(`${path} is not a regular file.`);
   const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, `${JSON.stringify(next, null, 2)}\n`, { mode: 0o600, flag: "wx" });
+    await writeFile(temporary, `${JSON.stringify(serialized(next), null, 2)}\n`, {
+      mode: 0o600,
+      flag: "wx",
+    });
+    const latest = await readModelSelection(input.stateDirectory);
+    if (latest.issue !== null || latest.selection.revision !== current.selection.revision)
+      throw new ModelSelectionError(
+        "model_selection_changed",
+        "The model selection changed while this change was prepared; run the command again.",
+      );
     await rename(temporary, path);
     await chmod(path, 0o600);
   } finally {

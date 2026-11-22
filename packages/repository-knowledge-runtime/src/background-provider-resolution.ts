@@ -35,18 +35,21 @@ export interface BackgroundProviderContext {
 }
 
 /**
- * The delegation's providers in the order the `background` role lists them, then the rest in the
- * delegation's own order, so a route that cannot run falls through to the role's next route. The
- * set is unchanged: the delegation alone decides which providers may run.
+ * The providers admission may try, in order. With routes, only the providers the `background`
+ * role lists and the delegation allows, in the role's order: naming a provider in a delegation
+ * allows it but never selects it, so a provider the role leaves out is never probed or spent on.
+ * Without routes, the delegation's own order, as before ADR-0612. Empty when the role lists only
+ * providers the delegation does not allow.
  */
-function selectionOrder(
+function admissionOrder(
   selection: ModelSelection,
   allowed: readonly BackgroundProvider[],
 ): BackgroundProvider[] {
-  const listed = (selection.roles.background ?? [])
+  const routes = selection.roles.background;
+  if (routes === undefined || routes.length === 0) return [...allowed];
+  return routes
     .map((route) => route.provider)
     .filter((provider): provider is BackgroundProvider => allowed.includes(provider));
-  return [...new Set([...listed, ...allowed])];
 }
 
 /** The delegation bounds fallback; a configured executable is still probed, never trusted. */
@@ -78,10 +81,14 @@ export async function admittedBackgroundContext<T extends BackgroundProviderCont
   // ADR-0612: the selection orders the providers the delegation allows; admission still decides
   // which of them can run here, so an unavailable one falls through to the next.
   const selection = context.modelSelection ?? (await readHostModelSelection()).selection;
+  const order = admissionOrder(selection, loaded.delegation.providers);
+  // The role names only providers the delegation does not allow: nothing may run, as when no
+  // delegated provider is admitted, and the stage waits for a change to either.
+  if (order.length === 0) throw new KnowledgeConvergenceRuntimeError("provider_not_admitted");
   const chosen = await resolveModelRoute({
     selection,
     role: "background",
-    allowed: loaded.delegation.providers,
+    allowed: order,
   });
   const { selected } = await resolveAdmittedProviderCli({
     providerPaused: async (provider) =>
@@ -118,7 +125,7 @@ export async function admittedBackgroundContext<T extends BackgroundProviderCont
       context.executable !== undefined
         ? context.provider
         : (chosen.route?.provider ?? context.provider),
-    allowed: selectionOrder(selection, loaded.delegation.providers),
+    allowed: order,
     ...(context.executable === undefined ? {} : { executable: context.executable }),
     ...(context.admissionDirectory === undefined
       ? {}
