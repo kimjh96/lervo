@@ -18,7 +18,6 @@ try {
   const repository = process.env.GITHUB_REPOSITORY ?? "";
   const plan = planReleaseMatrix({
     refType: process.env.GITHUB_REF_TYPE ?? "",
-    attestationApplicable: process.env.ATTESTATION_APPLICABLE !== "false",
     expectedRevision: process.env.EXPECTED_REVISION ?? "",
     revision: git("rev-parse", "HEAD"),
     tree: git("rev-parse", "HEAD^{tree}"),

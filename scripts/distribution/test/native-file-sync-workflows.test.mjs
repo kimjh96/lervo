@@ -39,15 +39,22 @@ it("uses the same native transfer for all packed platforms and attestation", asy
     darwinToolchainPin.runner,
     "windows-latest",
   ]);
-  for (const name of ["packed-cli", "attested-cli"]) {
-    const job = workflow.jobs[name];
-    expect([job.needs].flat()).toContain("native-runtime");
-    const restore = job.steps.findIndex((step) =>
-      step.run?.includes("native-runtime-transfer.mjs restore"),
-    );
-    expect(restore).toBeGreaterThan(0);
-    expect(restore).toBeLessThan(job.steps.findIndex((step) => step.run === "pnpm build"));
-  }
+  const packed = workflow.jobs["packed-cli"];
+  expect([packed.needs].flat()).toContain("native-runtime");
+  const restore = packed.steps.findIndex((step) =>
+    step.run?.includes("native-runtime-transfer.mjs restore"),
+  );
+  expect(restore).toBeGreaterThan(0);
+  expect(restore).toBeLessThan(packed.steps.findIndex((step) => step.run === "pnpm build"));
+  // Attestation signs the subjects packed-cli verified, so it never restores native files or builds.
+  const attested = workflow.jobs["attested-cli"];
+  expect([attested.needs].flat()).not.toContain("native-runtime");
+  expect(
+    attested.steps.some(
+      (step) =>
+        step.run?.includes("native-runtime-transfer.mjs") || /pnpm build\b/u.test(step.run ?? ""),
+    ),
+  ).toBe(false);
   expect(workflow.jobs["native-runtime"].if).toBe(workflow.jobs["packed-cli"].if);
   const preparation = await read("release-preparation.yml");
   // Pending intent builds darwin native files on macOS; a tag-only reconcile runs on Linux.

@@ -64,17 +64,10 @@ export function findVerifiedReleaseRun({ repository, tree, request }) {
 
 /**
  * Decides whether this run builds and verifies the release or publishes subjects an earlier run
- * verified. A dispatch for an exact revision rejects a moved branch. Only a tag run may reuse, and
- * only where the attestation job would be skipped, because that job signs its own build.
+ * verified. A dispatch for an exact revision rejects a moved branch. Only a tag run may reuse; the
+ * attestation job signs the reused subjects themselves, so reuse never changes what is signed.
  */
-export function planReleaseMatrix({
-  refType,
-  attestationApplicable,
-  expectedRevision,
-  revision,
-  tree,
-  find,
-}) {
+export function planReleaseMatrix({ refType, expectedRevision, revision, tree, find }) {
   if (expectedRevision !== "") {
     if (!objectIdPattern.test(expectedRevision))
       throw new ReleaseMatrixPlanError(
@@ -87,6 +80,6 @@ export function planReleaseMatrix({
         "The dispatched branch no longer points at the expected revision.",
       );
   }
-  const reuse = refType === "tag" && !attestationApplicable ? find(tree) : null;
+  const reuse = refType === "tag" ? find(tree) : null;
   return { tree, reuse: reuse === null ? "" : String(reuse) };
 }

@@ -45,7 +45,6 @@ jobs:
         id: plan
         env:
           EXPECTED_REVISION: ${{ inputs.expected_sha }}
-          ATTESTATION_APPLICABLE: ${{ github.event.repository.private != true || github.event.repository.owner.type != 'User' }}
           GH_TOKEN: ${{ github.token }}
         run: node scripts/release/commands/plan-cli-release-matrix.mjs
 
@@ -158,17 +157,20 @@ jobs:
 
   attested-cli:
     name: Attested CLI release
-    if: github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User')
-    needs: [packed-cli, native-runtime]
+    # Signs the subjects packed-cli verified, never a rebuild: pnpm pack output is not byte-stable (ADR-0614).
+    if: ${{ !cancelled() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User') && needs.plan.result == 'success' && (needs.plan.outputs.reuse != '' || needs.packed-cli.result == 'success') }}
+    needs: [plan, packed-cli]
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
       contents: read
+      # Downloads the verified release subjects, possibly from the pre-merge run that verified them.
+      actions: read
       id-token: write
       attestations: write
       artifact-metadata: write
     steps:
-      - name: Check out repository
+      - name: Check out exact tag
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           persist-credentials: false
@@ -181,21 +183,25 @@ jobs:
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Download exact native artifact
+      # The consumer check validates the manifest, which reads the runtime security contract.
+      - name: Build the runtime security contract
+        run: pnpm --filter @lervo/runtime-security build
+      - name: Download verified release subjects
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
         with:
-          name: native-runtime
-          path: ${{ runner.temp }}/native-runtime
-      - name: Validate native artifact before build
-        run: node scripts/distribution/native-runtime-transfer.mjs restore "${{ runner.temp }}/native-runtime"
-      - name: Build release artifact
-        run: pnpm build
-      - name: Verify release manifest
-        run: pnpm release:manifest:check
-      - name: Verify release SBOM
-        run: pnpm release:sbom:check
-      - name: Prepare exact release subjects
-        run: pnpm release:attestation:prepare "${RUNNER_TEMP}/lervo-release" --expected-tag "${GITHUB_REF_NAME}"
+          name: lervo-cli-release-${{ needs.plan.outputs.tree }}
+          path: ${{ runner.temp }}/lervo-release-subjects
+          run-id: ${{ needs.plan.outputs.reuse || github.run_id }}
+          github-token: ${{ github.token }}
+      - name: Verify subjects against the tagged tree
+        run: node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"
+      - name: Stage the verified subjects for signing
+        run: |
+          mkdir "${RUNNER_TEMP}/lervo-release"
+          cp "${RUNNER_TEMP}/lervo-release-subjects/release-artifact-manifest.json" \
+            "${RUNNER_TEMP}/lervo-release-subjects/release-sbom.cdx.json" \
+            "${RUNNER_TEMP}/lervo-release-subjects/"lervo-cli-*.tgz \
+            "${RUNNER_TEMP}/lervo-release/"
       - name: Attest build provenance
         id: build-attestation
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
@@ -264,8 +270,7 @@ jobs:
           github-token: ${{ github.token }}
       - name: Verify subjects against the tagged tree
         run: node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"
-      # attested-cli signs its own rebuild, and pnpm pack output is not byte-stable, so publishing
-      # verified subjects beside a different attested digest is refused rather than left silent.
+      # attested-cli signs the verified subjects; a different attested digest is still refused.
       - name: Download attested release files
         if: needs.attested-cli.result == 'success'
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5
