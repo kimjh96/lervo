@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1beb762d7f1406551b4ce982"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Choose models by role from one selection: lervo model set changes the provider, model and effort of a role in one command, and background knowledge work picks them up at its next call without restarts, rebinds or re-reviews."
