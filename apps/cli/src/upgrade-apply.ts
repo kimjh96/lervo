@@ -9,7 +9,7 @@ import { applyEventWriterStage } from "./event-writer-activation-stage.js";
 import { effectBackupUndoCommand } from "./effect-backup.js";
 import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
 import { applyKnowledgeStages } from "./upgrade-knowledge-apply.js";
-import { knowledgeStageWaitReason } from "./upgrade-knowledge-gate.js";
+import { knowledgeStageSkipReason } from "./upgrade-knowledge-gate.js";
 import { noticeEffect } from "./effect-notice.js";
 import { applyHostResidentService } from "./knowledge-host-service.js";
 import {
@@ -189,8 +189,18 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("terminal_integration");
 
-  // ADR-0610: where the knowledge stages wait, the plan already shows them as debt for this reason.
-  const knowledgeWait = held ? null : await knowledgeStageWaitReason(root);
+  // ADR-0610: where the knowledge stage waits, the plan already shows it as debt for this reason.
+  const knowledgeWait = held
+    ? null
+    : await knowledgeStageSkipReason(root, approved.stages.knowledge);
+  // A record held because no commit was possible is the same wait the plan now carries; leaving it
+  // would keep the plan held after the wait ends, while the stage skipped here never settles it.
+  if (knowledgeWait !== null)
+    await releaseHeldEffects(
+      root,
+      "upgrade_knowledge",
+      (item) => item.reasonCode !== "commit_unavailable",
+    );
   const knowledgeOutcome = held
     ? { appliedStages: [], skippedStages: [], notices: [], lastStage: null }
     : knowledgeWait !== null
@@ -198,7 +208,7 @@ export async function applyRepositoryUpgrade(
           appliedStages: [],
           skippedStages: [{ stage: "knowledge", reason: knowledgeWait }],
           notices: [],
-          lastStage: null,
+          lastStage: approved.stages.knowledge,
         }
       : await applyKnowledgeStages({
           repositoryRoot: root,

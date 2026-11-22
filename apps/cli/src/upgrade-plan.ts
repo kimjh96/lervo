@@ -232,7 +232,7 @@ export async function createRepositoryUpgradePlan(
   // else they wait as Lervo debt, with the reason the apply would skip them for.
   const knowledgeWait =
     held(knowledge).disposition === "safe_apply"
-      ? await knowledgeStageWaitReason(repositoryRoot)
+      ? await knowledgeStageWaitReason(repositoryRoot, knowledge)
       : null;
   const heldStages = {
     capabilities: held({ disposition: capabilityDisposition }).disposition,

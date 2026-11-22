@@ -7,7 +7,9 @@ import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it } from "vitest";
 
+import { holdEffect, readHeldEffects } from "../src/held-effect-debt.js";
 import { runCli as runUnisolatedCli } from "../src/main.js";
+import { knowledgeStageWaitReason } from "../src/upgrade-knowledge-gate.js";
 import { commitRepository } from "./committed-repository.js";
 import { withIsolatedUpgradeHost } from "./upgrade-host-isolation.js";
 
@@ -95,6 +97,15 @@ interface Plan {
   stages: { knowledge: { disposition: string; reason: string } };
 }
 
+async function apply(root: string): Promise<{
+  skippedStages: Array<{ stage: string; reason: string }>;
+}> {
+  const output: string[] = [];
+  const errors: string[] = [];
+  await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission);
+  return JSON.parse(output.join("")) as { skippedStages: Array<{ stage: string; reason: string }> };
+}
+
 async function plan(root: string): Promise<Plan> {
   const output: string[] = [];
   const errors: string[] = [];
@@ -115,13 +126,23 @@ describe("upgrade knowledge stages on a host that does not own convergence (ADR-
     });
     expect(waiting.applicableStages).not.toContain("knowledge");
 
+    // An earlier release held the plan because no commit was possible; that record is the same
+    // wait the plan now carries, so the skip releases it. A cross-check disagreement stays.
+    await holdEffect({
+      repositoryRoot: root,
+      effect: "upgrade_knowledge",
+      subject: "kmp_earlier",
+      reasonCode: "commit_unavailable",
+    });
+    await holdEffect({
+      repositoryRoot: root,
+      effect: "upgrade_knowledge",
+      subject: "kmp_disagreed",
+      reasonCode: "cross_check_disagreement_repeated",
+    });
     const head = (await execute("git", ["-C", root, "rev-parse", "HEAD"])).stdout;
-    const output: string[] = [];
-    const errors: string[] = [];
-    await runCli(["upgrade", "--apply", "--json"], io(root, output, errors), isolatedAdmission);
-    const receipt = JSON.parse(output.join("")) as {
-      skippedStages: Array<{ stage: string; reason: string }>;
-    };
+    const receipt = await apply(root);
+    expect((await readHeldEffects(root)).map((item) => item.subject)).toEqual(["kmp_disagreed"]);
     expect(receipt.skippedStages).toContainEqual({
       stage: "knowledge",
       reason: "convergence_owner_elsewhere",
@@ -132,6 +153,32 @@ describe("upgrade knowledge stages on a host that does not own convergence (ADR-
     // Converged, apart from what waits for the owner, so a follower reports Lervo debt.
     expect((await plan(root)).status).toBe("lervo_debt");
   }, 30_000);
+
+  it("leaves a stage held for another reason to the existing path, with no gate skip", async () => {
+    const root = await repository();
+    await apply(root);
+    // No provider can cross-check the next reviewed plan here, so it is held for that reason.
+    expect((await plan(root)).stages.knowledge).toMatchObject({
+      disposition: "lervo_debt",
+      reason: "cross_check_unavailable",
+    });
+    await ownedElsewhere(root);
+    expect((await plan(root)).stages.knowledge.reason).toBe("cross_check_unavailable");
+    const receipt = await apply(root);
+    expect(receipt.skippedStages).not.toContainEqual({
+      stage: "knowledge",
+      reason: "convergence_owner_elsewhere",
+    });
+  }, 30_000);
+
+  it("waits a reviewed plan outside Git, where it has no commit, and applies a generated one", async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "lervo-upgrade-owner-gate-plain-"));
+    roots.push(root);
+    await expect(knowledgeStageWaitReason(root, { status: "review_required" })).resolves.toBe(
+      "repository_not_committable",
+    );
+    await expect(knowledgeStageWaitReason(root, { status: "ready" })).resolves.toBeNull();
+  });
 
   it("plans them as Lervo debt off the base branch", async () => {
     const root = await repository();
