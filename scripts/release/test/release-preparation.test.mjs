@@ -180,6 +180,37 @@ describe("CLI release preparation", () => {
     expect(
       JSON.parse(await readFile(resolve(rollbackRoot, "apps/cli/package.json"), "utf8")).version,
     ).toBe("0.1.0");
+
+    // pnpm's own script echo on stderr is skipped for the cause the tool printed on stdout.
+    await expect(
+      applyReleasePreparation({
+        plan: rollbackPlan,
+        approval: rollbackPlan.planId,
+        runOwned: () => {
+          throw Object.assign(new Error("Command failed"), {
+            stderr: "$ tsc --build\n",
+            stdout: `\u001b[31msrc/a.ts(1,1): error TS2304: Cannot find name 'x'.\u001b[39m\n[ELIFECYCLE] Command failed.\n`,
+          });
+        },
+      }),
+    ).rejects.toThrowError(
+      expect.objectContaining({
+        message: expect.stringMatching(
+          /Cause: src\/a\.ts\(1,1\): error TS2304: Cannot find name 'x'\.$/u,
+        ),
+      }),
+    );
+    await expect(
+      applyReleasePreparation({
+        plan: rollbackPlan,
+        approval: rollbackPlan.planId,
+        runOwned: () => {
+          throw Object.assign(new Error("Command failed"), { stderr: `${"z".repeat(900)}\n` });
+        },
+      }),
+    ).rejects.toThrowError(
+      expect.objectContaining({ message: expect.stringMatching(/Cause: z{500}$/u) }),
+    );
     expect(
       await readFile(resolve(rollbackRoot, rollbackPlan.operations.at(-1).path), "utf8"),
     ).toContain("impact: minor");

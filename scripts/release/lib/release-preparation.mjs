@@ -199,17 +199,20 @@ async function validateGenerated(repositoryRoot, version) {
 
 /** The failing step's last output line, so a CI log names the cause without the full output. */
 function failureDetail(error) {
-  const output = [error?.stderr, error?.stdout, error?.message]
-    .map((value) => (typeof value === "string" ? value : value?.toString?.("utf8")))
-    .find((value) => typeof value === "string" && value.trim().length > 0);
-  if (output === undefined) return "";
-  const line = output
-    .trim()
-    .split("\n")
-    .map((value) => value.trim())
-    .filter((value) => value.length > 0 && !value.startsWith("[ELIFECYCLE]"))
-    .at(-1);
-  return line === undefined ? "" : ` Cause: ${line.slice(0, 500)}`;
+  // pnpm echoes `$ <script>` on stderr while tools such as tsc report on stdout, so a stream with
+  // only pnpm's own lines falls through to the next one.
+  for (const value of [error?.stderr, error?.stdout, error?.message]) {
+    const text = typeof value === "string" ? value : value?.toString?.("utf8");
+    if (typeof text !== "string") continue;
+    const line = text
+      .replaceAll(/\u001b\[[0-9;]*m/gu, "")
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0 && !/^(\[ELIFECYCLE\]|\$ |> \S+@\S+ )/u.test(entry))
+      .at(-1);
+    if (line !== undefined) return ` Cause: ${line.slice(0, 500)}`;
+  }
+  return "";
 }
 
 export async function applyReleasePreparation(input) {

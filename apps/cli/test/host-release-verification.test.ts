@@ -73,6 +73,20 @@ describe("verifyPublishedRelease", () => {
     );
   });
 
+  // Schema 11 adds LICENSE, which pnpm pack copies from the repository root. A host verifies the
+  // tarball against the manifest's own file list, so earlier CLIs install such a release.
+  it("accepts a release whose manifest lists the packed LICENSE", () => {
+    const license = Buffer.from("Apache License\nVersion 2.0, January 2004\n");
+    const verified = verifyPublishedRelease(
+      evidence(releaseFixture({ extraFiles: [["LICENSE", license]] })),
+    );
+    expect(verified.packageFiles).toContainEqual({
+      path: "LICENSE",
+      size: license.length,
+      sha256: sha256(license),
+    });
+  });
+
   it("rejects subjects bound to another tag or another tree", () => {
     const base = evidence(releaseFixture());
     expect(failureCode(() => verifyPublishedRelease({ ...base, tag: "v9.9.8" }))).toBe(
