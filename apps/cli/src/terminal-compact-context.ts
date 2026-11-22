@@ -153,11 +153,13 @@ export async function prepareCompactTerminalPromptContext(input: {
     maximumBytes: 4096,
     prompt: input.prompt,
     // ADR-0549: the learned notice is information, so it yields to owner rules and find pointers.
+    // ADR-0563: plan lines come last. The governance check and the learned notice are short and
+    // count as shown only once delivered; the plan is on every turn and one `lervo plan list` away.
     optionalLines: [
       ...anchors.pointers.map(formatTerminalFindPointer),
-      ...query.planLines,
       ...(governance === null ? [] : [governance.line]),
       ...(learned === null ? [] : [learned.line]),
+      ...query.planLines,
     ],
     sourceSnapshotId,
   });

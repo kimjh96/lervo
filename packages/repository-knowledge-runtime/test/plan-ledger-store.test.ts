@@ -201,6 +201,76 @@ describe("plan ledger store (ADR-0563)", () => {
     ).toBe("cancelled");
   });
 
+  it("makes work that comes back after closing a new item, and refuses a parent cycle", async () => {
+    const { root, storage } = await repository();
+    const parent = capturePlanItem(storage, {
+      parentId: null,
+      kind: "plan",
+      title: "Parent",
+      source: agentSource,
+    });
+    const child = capturePlanItem(storage, {
+      parentId: parent.itemId,
+      kind: "plan",
+      title: "Child",
+      source: agentSource,
+    });
+    expect(() =>
+      updatePlanItem(storage, { itemId: parent.itemId, parentId: child.itemId }),
+    ).toThrow(expect.objectContaining({ code: "plan_item_invalid" }));
+    await closePlanItem(storage, {
+      repositoryRoot: root,
+      itemId: child.itemId,
+      state: "cancelled",
+      reason: "Withdrawn",
+    });
+    const again = capturePlanItem(storage, {
+      parentId: parent.itemId,
+      kind: "plan",
+      title: "Child",
+      source: agentSource,
+    });
+    expect(again.itemId).not.toBe(child.itemId);
+    expect(again.state).toBe("open");
+  });
+
+  it("records commit evidence by its full id and never accepts a ledger event", async () => {
+    const { root, storage, head } = await repository();
+    const item = capturePlanItem(storage, {
+      parentId: null,
+      kind: "plan",
+      title: "Short id",
+      source: agentSource,
+    });
+    const captured = storage.events.list({ types: ["plan.item.captured"] }).at(-1)!;
+    await expect(
+      closePlanItem(storage, {
+        repositoryRoot: root,
+        itemId: item.itemId,
+        state: "done",
+        reason: "Self proof",
+        evidence: [{ kind: "event", ref: captured.eventId, branch: null }],
+      }),
+    ).rejects.toMatchObject({ code: "plan_item_evidence_unverified" });
+    await expect(
+      closePlanItem(storage, {
+        repositoryRoot: root,
+        itemId: item.itemId,
+        state: "done",
+        reason: "Bad branch",
+        evidence: [{ kind: "commit", ref: head, branch: "--all" }],
+      }),
+    ).rejects.toMatchObject({ code: "plan_item_evidence_unverified" });
+    const closed = await closePlanItem(storage, {
+      repositoryRoot: root,
+      itemId: item.itemId,
+      state: "done",
+      reason: "Landed",
+      evidence: [{ kind: "commit", ref: head.slice(0, 9), branch: "main" }],
+    });
+    expect(closed.closed?.evidence).toEqual([{ kind: "commit", ref: head, branch: "main" }]);
+  });
+
   it("refuses to write before the schema 9 writer is active", async () => {
     const { storage } = await repository(8);
     expect(() =>

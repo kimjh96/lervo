@@ -112,6 +112,12 @@ const eventLabels = {
   "knowledge.skill_candidate.resolved": "Skill candidate resolved",
   "knowledge.skill.usage_assessed": "Skill usage assessed",
   "knowledge.skill.retired": "Skill retired",
+  "plan.item.captured": "Plan item captured",
+  "plan.item.updated": "Plan item updated",
+  "plan.item.closed": "Plan item closed",
+  "plan.summary.gap": "Plan items missing from a compaction summary",
+  "plan.turn.blocked": "Turn sent back for skipped plan items",
+  "plan.item.missed": "Plan item the owner had to raise again",
   "conversation.repository_knowledge.resolved": "Repository knowledge job resolved",
   "work.supervision.mandate.installed": "Operating mandate installed",
   "managed.execution.reserved": "Managed execution reserved",
@@ -188,6 +194,13 @@ const fieldLabels = {
   changedPaths: "Changed paths",
   knowledgeDisposition: "Knowledge disposition",
   replicaDisposition: "Replica disposition",
+  itemId: "Plan item",
+  parentId: "Parent plan item",
+  supersededBy: "Superseding plan item",
+  source: "Source",
+  sessionDigest: "Provider session digest",
+  summaryDigest: "Compaction summary digest",
+  turnId: "Turn",
 };
 
 export function eventLabel(type) {

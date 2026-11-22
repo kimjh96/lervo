@@ -32,15 +32,16 @@ An item records `itemId`, `parentId`, `kind`, `title`, `state`, `source`, and, o
   A closed item never changes again.
 
 - **Parents:** a missing parent places the item at the root. A parent cycle is broken at the earlier item.
-- **Identity:** the id derives from the source, parent, kind and normalized title. Capturing the same item twice yields one item.
+- **Identity:** the id derives from the source, parent, kind and normalized title. Capturing an open item again returns it. Work that closed and comes back is a new item: the id chains from the closed one.
+- **Moves:** a move under the item itself or one of its descendants is refused (`plan_item_invalid`).
 
 ## Evidence
 
-An item closes as `done` only with evidence Lervo observes when the item closes:
+An item closes as `done` only with evidence Lervo observes when the item closes. Lervo records the evidence exactly:
 
-- `commit`: the commit exists and is reachable from the named branch, or from `HEAD` when no branch is named.
+- `commit`: the commit exists and is reachable from the named branch, or from `HEAD` when no branch is named. It is stored as its full id, so a short id cannot become ambiguous later. A branch name must be a plain ref name.
 - `release`: a tag of this repository.
-- `event`: an event in this repository's event store, such as a check or deployment record.
+- `event`: an event in this repository's event store, such as a check or deployment record. A plan ledger event is never evidence, so an item cannot prove itself.
 
 A statement in the conversation is never evidence.
 
@@ -88,4 +89,11 @@ ADR-0563 named five events. `plan.item.updated` was added so that a candidate ca
 Each terminal turn receives the open items as optional context lines: a count, then at most six items with in-progress items first.
 
 - Owner rules keep priority when the context budget is short.
+- The plan lines come after the find pointers, the governance check and the learned notice. Those lines are short, and each counts as shown only once it is delivered. The plan is on every turn and one `lervo plan list` away.
 - A ledger that cannot be read, such as before schema 9 is active, adds no lines and never fails a turn.
+
+## Known limits of S1
+
+- **Ledger read cost.** Every prompt folds all plan events again. The `events_type_seq` index keeps this cheap at today's sizes. A bounded snapshot of the fold is a follow-up before the ledger grows large.
+- **No delivery telemetry.** No record says whether the plan lines reached a turn. S3 needs that record.
+- **Rollback after activation.** A repository whose writer selected schema 9 cannot be opened by a CLI older than this release. A host rollback across the activation therefore needs the writer rolled back first (`lervo event-contract rollback`). This was already true when schema 8 was activated.
