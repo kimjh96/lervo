@@ -1,0 +1,32 @@
+# Lervo ADE delivery
+
+Status: `active`
+As of: 2026-11-23
+
+This roadmap delivers [ADR-0613](../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md), the Lervo ADE that the owner requested to replace Orca. The ADE serves the Surface outcome of the [core outcomes](../product/vision/core-outcomes.md), and its completion follows their completion rule. The [ADE convention](../foundation/ade-convention.md), the [sessions specification](../specifications/execution/product-surfaces/ade-sessions.md), and the [visual language](../specifications/execution/product-surfaces/ade-visual-language.md) govern every increment.
+
+## How increments land
+
+- Each increment lands as its own pull request and leaves `main` releasable.
+- An increment is done only when its completion check passes on the owner's Mac and in WSL. A check that ran on one host only leaves the increment open.
+- Continuous integration for the ADE runs on Linux only, filtered to the ADE paths and the protocol schema. Desktop bundles for macOS and Windows build at release.
+
+## S1: instruction-first workspaces with the native conversation
+
+| Increment                       | Scope                                                                                                                                                                                                                                                                                                                                                                | Done when                                                                                                                             |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| S1.1 Toolchain and gates        | `apps/ade/` holds the React interface (`@lervo/ade`, commit scope `ade`), the Tauri shell crate, and the session host's Cargo workspace. `rustfmt`, `clippy` with `-D warnings`, forbidden unsafe code, and `cargo deny` join `pnpm quality:check`. The package boundary checker covers `@lervo/ade`. One path-filtered Linux job runs the Rust checks with a cache. | Empty crates and an empty interface build and pass every gate on both hosts.                                                          |
+| S1.2 Protocol                   | The session-host protocol v1 is a JSON Schema in `@lervo/schemas`: the handshake with version negotiation and a token, sequenced deltas, session lifecycle, conversation items and ranges, terminal frames, and status. Rust and TypeScript types are generated from it.                                                                                             | Both sides decode and encode the same fixtures in contract tests.                                                                     |
+| S1.3 Session host core          | Session actors, the segment index with append-only segments, offset tables, and a bounded cache, the PTY adapter, the structured-stream process adapter, the owner-only local transport, and supervised restart.                                                                                                                                                     | Unit and contract tests pass, and the harness meets the idle-CPU and per-session memory budgets.                                      |
+| S1.4 Core commands and adapters | `lervo workspace start`, the resident application endpoint, hosted launch descriptors and capability declarations for Claude Code and the Codex CLI, the launch events, and decoding of structured streams into common conversation events.                                                                                                                          | Core tests cover every success and failure meaning, and a hosted Claude Code session starts from an instruction in a test repository. |
+| S1.5 Interface                  | The Tauri shell with the native window material, the token file with generated CSS and terminal theme, the `en` message catalog, the start screen, the workspace list, the native conversation with virtualization and frame-bound streaming, the CLI conversation fallback, and notifications.                                                                      | The S1 verification items of ADR-0613 pass.                                                                                           |
+| S1.6 Measurement                | The performance harness scenarios, the recorded baselines, and the soak run.                                                                                                                                                                                                                                                                                         | Each budget meets its target or carries a reviewed revision.                                                                          |
+
+## S2 and S3
+
+ADR-0613 defines S2 (hosted evidence and Lervo tools) and S3 (distribution). Their increments are defined when S1 completes, from what S1 measured.
+
+## Open items
+
+- Before public distribution, the publisher accepts Anthropic's Commercial Terms of Service and checks OpenAI's terms for the Codex CLI.
+- Component primitives are chosen in S1.5 against the convention's size and accessibility rules.
