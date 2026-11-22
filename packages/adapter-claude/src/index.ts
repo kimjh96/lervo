@@ -10,3 +10,4 @@ export * from "./types.js";
 export * from "./turn-result.js";
 
 export * from "./login-inspection.js";
+export * from "./hosted-session.js";
