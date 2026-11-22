@@ -273,7 +273,7 @@ it.each([6, 7, 8])(
   },
 );
 
-it.each([9, 10])(
+it.each([9, 10, 11])(
   "binds all graph members in schema %s even when outer digests are recomputed",
   async (schemaVersion) => {
     const { cliGraphPackageFiles, legacyCliGraphPackageFiles, cliNativeFiles } =
@@ -283,7 +283,7 @@ it.each([9, 10])(
     const manifest = fixture();
     manifest.schemaVersion = schemaVersion;
     manifest.artifact.files = [
-      ...(schemaVersion === 10 ? cliGraphPackageFiles : legacyCliGraphPackageFiles),
+      ...(schemaVersion >= 10 ? cliGraphPackageFiles : legacyCliGraphPackageFiles),
     ];
     const graph = [
       "repository-runtime-core.js",
@@ -295,8 +295,11 @@ it.each([9, 10])(
         "\n",
     );
     manifest.archive.files.push(
-      ...(schemaVersion === 10
+      ...(schemaVersion >= 10
         ? [{ path: "dist/terminal-hook-launcher.mjs", size: 128, sha256: sha256("launcher") }]
+        : []),
+      ...(schemaVersion === 11
+        ? [{ path: "LICENSE", size: 11358, sha256: sha256("license") }]
         : []),
       ...cliNativeFiles.map((path) => ({ path, size: 128, sha256: sha256(path) })),
       ...graph.map(({ name, ...entry }) => ({ path: `dist/${name}`, ...entry })),
@@ -310,6 +313,25 @@ it.each([9, 10])(
     };
     rebind(manifest);
     assert.equal(validateReleaseArtifactManifest(manifest), manifest);
+    // Schema 11 requires the repository LICENSE in the archive; earlier schemas refuse it.
+    const withoutLicense = structuredClone(manifest);
+    if (schemaVersion === 11)
+      withoutLicense.archive.files = withoutLicense.archive.files.filter(
+        (entry) => entry.path !== "LICENSE",
+      );
+    else withoutLicense.archive.files.push({ path: "LICENSE", size: 11358, sha256: sha256("l") });
+    rebind(withoutLicense);
+    assert.throws(() => validateReleaseArtifactManifest(withoutLicense), {
+      code: "release_artifact_archive_invalid",
+    });
+    if (schemaVersion === 11) {
+      const oversized = structuredClone(manifest);
+      oversized.archive.files.find((entry) => entry.path === "LICENSE").size = 64 * 1024 + 1;
+      rebind(oversized);
+      assert.throws(() => validateReleaseArtifactManifest(oversized), {
+        code: "release_artifact_archive_invalid",
+      });
+    }
     for (const member of graph) {
       for (const mutation of ["missing", "hash", "size"]) {
         const changed = structuredClone(manifest),

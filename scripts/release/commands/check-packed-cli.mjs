@@ -1,6 +1,10 @@
 import { verifyCliNativeArtifact } from "../../distribution/lib/cli-native-artifact.mjs";
 import { readRuntimeModuleArtifact } from "../../../packages/runtime-security/dist/index.js";
-import { cliGraphPackageFiles, cliReleaseFilesForSchema } from "../../shared/cli-release-files.mjs";
+import {
+  cliGraphPackageFiles,
+  cliReleaseFilesForSchema,
+  currentCliReleaseSchemaVersion,
+} from "../../shared/cli-release-files.mjs";
 import { verifyInstalledContextQuality } from "../../distribution/lib/installed-context-quality.mjs";
 import assert from "node:assert/strict";
 import { access, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
@@ -97,7 +101,7 @@ async function verifyInstalledPackage(consumerRoot, expectedManifest) {
   );
   const runtime = await readRuntimeModuleArtifact(resolve(packageRoot, "dist"));
   const cliReleaseFiles = cliReleaseFilesForSchema(
-    10,
+    currentCliReleaseSchemaVersion,
     [...runtime.files.keys()]
       .filter((name) => name !== "repository-runtime.json")
       .map((name) => `dist/${name}`),

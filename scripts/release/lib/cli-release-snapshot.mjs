@@ -2,7 +2,10 @@ import { readNativeRuntimeArtifact } from "../../shared/native-runtime-artifact.
 import { nativeCasSourceHash } from "../../shared/native-cas-artifact.mjs";
 import { repositoryRuntimeInventory } from "../../shared/repository-runtime-inventory.mjs";
 import { readRuntimeModuleArtifact } from "../../../packages/runtime-security/dist/index.js";
-import { cliReleaseFilesForSchema } from "../../shared/cli-release-files.mjs";
+import {
+  cliReleaseFilesForSchema,
+  currentCliReleaseSchemaVersion,
+} from "../../shared/cli-release-files.mjs";
 import { verifySchemaValidatorArtifact } from "../../shared/schema-validator-artifact.mjs";
 import { nativeFileSyncSourceHash } from "../../shared/native-file-sync-artifact.mjs";
 import { readFile } from "node:fs/promises";
@@ -43,10 +46,19 @@ async function readPackFileList() {
   return report.files.map(({ path }) => path).sort();
 }
 
+/** pnpm pack copies the workspace root LICENSE into a package that has none of its own. */
+async function readArchiveSource(path) {
+  if (path !== "LICENSE") return readFile(resolve(cliRoot, path));
+  return readFile(resolve(cliRoot, path)).catch((error) => {
+    if (error?.code !== "ENOENT") throw error;
+    return readFile(resolve(repositoryRoot, path));
+  });
+}
+
 async function createArchiveSnapshot(paths) {
   const runtime = await readRuntimeModuleArtifact(resolve(cliRoot, "dist"));
   const cliReleaseFiles = cliReleaseFilesForSchema(
-    10,
+    currentCliReleaseSchemaVersion,
     [...runtime.files.keys()]
       .filter((name) => name !== "repository-runtime.json")
       .map((name) => `dist/${name}`),
@@ -78,7 +90,7 @@ async function createArchiveSnapshot(paths) {
         "The release archive contains a disallowed file.",
       );
     }
-    const contents = await readFile(resolve(cliRoot, path));
+    const contents = await readArchiveSource(path);
     files.push({ path, size: contents.byteLength, sha256: sha256(contents) });
   }
   repositoryRuntimeInventory(files);
@@ -233,7 +245,7 @@ export async function createCliReleaseManifest(
     platformSpecificFamilies: classified.platformSpecificFamilies,
   };
   return {
-    schemaVersion: 10,
+    schemaVersion: currentCliReleaseSchemaVersion,
     artifact,
     directDependencies,
     bundle,

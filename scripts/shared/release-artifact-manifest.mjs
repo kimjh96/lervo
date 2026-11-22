@@ -84,7 +84,7 @@ export function validateReleaseArtifactManifest(manifest) {
   }
   const expectedFiles = cliReleaseFilesForSchema(manifest.schemaVersion, runtimeFiles);
   if (
-    ![5, 6, 7, 8, 9, 10].includes(manifest.schemaVersion) ||
+    ![5, 6, 7, 8, 9, 10, 11].includes(manifest.schemaVersion) ||
     artifact?.name !== "@lervo/cli" ||
     typeof artifact.version !== "string" ||
     !semanticVersionPattern.test(artifact.version) ||
@@ -105,7 +105,7 @@ export function validateReleaseArtifactManifest(manifest) {
     artifact.bin !== "dist/bin.js" ||
     canonicalJson(artifact.files) !==
       canonicalJson(
-        manifest.schemaVersion === 10
+        manifest.schemaVersion >= 10
           ? cliGraphPackageFiles
           : manifest.schemaVersion === 9
             ? legacyCliGraphPackageFiles
@@ -202,6 +202,7 @@ export function validateReleaseArtifactManifest(manifest) {
         entry.size >= 0 &&
         (entry.path !== "dist/terminal-hook-launcher.mjs" ||
           (entry.size > 0 && entry.size <= 16 * 1024)) &&
+        (entry.path !== "LICENSE" || (entry.size > 0 && entry.size <= 64 * 1024)) &&
         (entry.path !== "dist/terminal-hook.js" ||
           (entry.size > 0 && entry.size <= 8 * 1024 * 1024)) &&
         (entry.path !== repositoryRuntimePath ||
