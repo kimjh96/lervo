@@ -36,7 +36,8 @@ This part of the [Lervo ADE convention](../ade-convention.md) records the techno
 
 - `lervo workspace start` and the resident application endpoint live in the existing CLI and core packages.
 - Claude Code and Codex launch preparation and stream decoding extend `@lervo/adapter-claude` and `@lervo/adapter-codex`.
-- The session-host protocol is one JSON Schema in `@lervo/schemas`. Rust and TypeScript types are generated from it.
+- The session-host protocol is one JSON Schema in `@lervo/session-host-contract`, a contract package with no runtime dependencies. TypeScript types come from it through `json-schema-to-ts`, and Rust types through `typify` at build time. Both sides validate every message against the same document, AJV in TypeScript and `jsonschema` in Rust.
+- The protocol stays out of `@lervo/schemas`: importing that package's index from the interface added 5.2 MB to the bundle in a measurement on 2026-11-23, because its compiled validators cannot be tree-shaken.
 
 ## Quality tooling
 
