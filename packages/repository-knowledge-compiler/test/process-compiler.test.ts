@@ -248,6 +248,44 @@ describe("generate-only process semantic compilers", () => {
   });
 
   for (const provider of ["codex", "claude"] as const) {
+    it(`${provider} passes a role's model and effort to the provider CLI (ADR-0612)`, async () => {
+      const item = await fixture(provider);
+      const runner = await createNoCapabilityProviderJsonRunner({
+        provider,
+        executable: item.executable,
+        timeoutMs: 5_000,
+        model: "role-model",
+        reasoningEffort: "medium",
+      });
+      await runner.resolveObserved?.({
+        instruction: "return typed JSON",
+        responseContract: {
+          schemaVersion: 1,
+          schema: providerOutputSchema({
+            type: "object",
+            additionalProperties: false,
+            properties: {
+              schemaVersion: { const: 1 },
+              decision: { const: "typed" },
+              tags: { type: "array", items: { type: "string" } },
+            },
+            required: ["schemaVersion", "decision", "tags"],
+          }),
+        },
+      });
+      const { args } = JSON.parse(await readFile(item.log, "utf8")) as { args: string[] };
+      expect(args.slice(args.indexOf("--model"), args.indexOf("--model") + 2)).toEqual([
+        "--model",
+        "role-model",
+      ]);
+      if (provider === "claude")
+        expect(args.slice(args.indexOf("--effort"), args.indexOf("--effort") + 2)).toEqual([
+          "--effort",
+          "medium",
+        ]);
+      else expect(args).toContain('model_reasoning_effort="medium"');
+    });
+
     it(`${provider} runs provider-neutral JSON through the common no-capability contract`, async () => {
       const item = await fixture(provider);
       const runner = await createNoCapabilityProviderJsonRunner({

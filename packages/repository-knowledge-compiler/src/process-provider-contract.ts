@@ -22,6 +22,8 @@ export interface CreateProcessProviderOptions {
   beforeCall?: () => Promise<void>;
   onCall?: () => Promise<void>;
   model?: string;
+  /** ADR-0612: the role's effort; the JSON runner otherwise uses `low`, as before. */
+  reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max";
   systemPrompt?: string;
   timeoutMs?: number;
 }

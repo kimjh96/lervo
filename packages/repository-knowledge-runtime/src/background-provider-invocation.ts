@@ -12,11 +12,22 @@ export function backgroundProviderOptions(
   context: BackgroundProviderContext,
 ): Pick<
   CreateProcessProviderOptions,
-  "provider" | "executable" | "environment" | "identityHash" | "beforeCall" | "onCall"
+  | "provider"
+  | "executable"
+  | "environment"
+  | "identityHash"
+  | "beforeCall"
+  | "onCall"
+  | "model"
+  | "reasoningEffort"
 > {
   const identity = context.providerCliIdentity;
   if (identity === undefined) throw new KnowledgeConvergenceRuntimeError("provider_not_admitted");
+  // ADR-0612: the `background` route's model and effort; absent ones keep the provider defaults.
+  const route = context.modelRoute;
   return {
+    ...(route?.model == null ? {} : { model: route.model }),
+    ...(route?.reasoningEffort == null ? {} : { reasoningEffort: route.reasoningEffort }),
     provider: identity.provider,
     executable: identity.executable,
     environment: identity.environment,
