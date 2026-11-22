@@ -3,7 +3,9 @@
 
 use std::sync::Arc;
 
-use lervo_session_core::scrollback::{DEFAULT_SCROLLBACK_BYTES, Scrollback};
+use lervo_session_core::scrollback::{
+    DEFAULT_SCROLLBACK_BYTES, ENDED_SCROLLBACK_BYTES, Scrollback,
+};
 use lervo_session_core::status::{EndReason, SessionEvent};
 use lervo_session_protocol::{Identifier, RequestFailedMessageCode};
 use lervo_session_pty::{PtyCommand, PtyError, PtyProcess};
@@ -79,6 +81,7 @@ impl Terminal {
             stopped,
             exited_cleanly,
         )));
+        self.scrollback.shrink_to(ENDED_SCROLLBACK_BYTES);
         linger(&mut commands, |command| self.command(command, None)).await;
     }
 
@@ -119,7 +122,7 @@ impl Terminal {
                 false,
                 false,
             )),
-            Command::Stop => {}
+            Command::Stop | Command::Release => {}
         }
     }
 

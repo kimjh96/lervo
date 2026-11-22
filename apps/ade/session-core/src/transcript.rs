@@ -205,6 +205,29 @@ impl Transcript {
     }
 }
 
+/// Merges consecutive deltas of the same item into one, each at most `MAX_DELTA_BYTES`, so a fast
+/// stream sends fewer messages. Every other change keeps its place.
+pub fn coalesce(changes: Vec<Change>) -> Vec<Change> {
+    let mut merged: Vec<Change> = Vec::with_capacity(changes.len());
+    for change in changes {
+        if let (
+            Some(Change::Delta {
+                position: last_position,
+                text: last_text,
+            }),
+            Change::Delta { position, text },
+        ) = (merged.last_mut(), &change)
+            && last_position == position
+            && last_text.len() + text.len() <= MAX_DELTA_BYTES
+        {
+            last_text.push_str(text);
+            continue;
+        }
+        merged.push(change);
+    }
+    merged
+}
+
 /// The longest prefix of `text` within `bytes` that ends on a character boundary. It is empty
 /// only when `bytes` cannot hold the first character.
 fn prefix(text: &str, bytes: usize) -> &str {
@@ -217,7 +240,9 @@ fn prefix(text: &str, bytes: usize) -> &str {
 
 #[cfg(test)]
 mod tests {
-    use super::{Change, Content, Input, Item, MAX_DELTA_BYTES, MAX_ITEM_TEXT_BYTES, Transcript};
+    use super::{
+        Change, Content, Input, Item, MAX_DELTA_BYTES, MAX_ITEM_TEXT_BYTES, Transcript, coalesce,
+    };
 
     fn agent(text: &str) -> Input {
         Input::Start {
@@ -327,5 +352,27 @@ mod tests {
                 Change::Delta { position: 1, .. }
             ]
         ));
+    }
+
+    #[test]
+    fn merges_consecutive_deltas_of_one_item_within_the_limit() {
+        let delta = |position: u64, text: &str| Change::Delta {
+            position,
+            text: text.to_owned(),
+        };
+        let big = "x".repeat(MAX_DELTA_BYTES - 1);
+        let merged = coalesce(vec![
+            delta(1, "a"),
+            delta(1, "b"),
+            delta(2, "c"),
+            delta(2, &big),
+            delta(2, "d"),
+        ]);
+        assert_eq!(merged.len(), 3);
+        assert_eq!(merged[0], delta(1, "ab"));
+        assert!(
+            matches!(&merged[1], Change::Delta { position: 2, text } if text.len() == MAX_DELTA_BYTES)
+        );
+        assert_eq!(merged[2], delta(2, "d"));
     }
 }

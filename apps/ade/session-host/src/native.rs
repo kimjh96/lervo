@@ -7,7 +7,7 @@ use std::time::Duration;
 use lervo_session_core::paging::{item_id, page};
 use lervo_session_core::retention::INDEX_CAP_BYTES;
 use lervo_session_core::status::{EndReason, SessionEvent};
-use lervo_session_core::transcript::{Change, Input, Item, Transcript};
+use lervo_session_core::transcript::{Change, Input, Item, Transcript, coalesce};
 use lervo_session_protocol::codec::{decode_record, encode};
 use lervo_session_protocol::{ConversationItem, Identifier, RequestFailedMessageCode};
 use lervo_session_store::{ConversationStore, StoreError, retention};
@@ -168,20 +168,29 @@ impl<D: StreamDecoder> Native<D> {
                     RequestFailedMessageCode::SessionEnded,
                 ));
             }
-            Command::Input(_) | Command::Resize { .. } | Command::Stop => {}
+            Command::Input(_) | Command::Resize { .. } | Command::Stop | Command::Release => {}
         }
     }
 
+    /// Applies decoded events in order. Conversation changes between two status changes merge
+    /// their deltas, so text never moves past a status message.
     fn apply(&mut self, decoded: Vec<Decoded>) {
+        let mut pending = Vec::new();
         for decoded in decoded {
             match decoded {
-                Decoded::Status(event) => self.fanout.change(event),
-                Decoded::Conversation(input) => {
-                    for change in self.transcript.apply(input) {
-                        self.change(change);
-                    }
+                Decoded::Status(event) => {
+                    self.flush(&mut pending);
+                    self.fanout.change(event);
                 }
+                Decoded::Conversation(input) => pending.extend(self.transcript.apply(input)),
             }
+        }
+        self.flush(&mut pending);
+    }
+
+    fn flush(&mut self, pending: &mut Vec<Change>) {
+        for change in coalesce(std::mem::take(pending)) {
+            self.change(change);
         }
     }
 

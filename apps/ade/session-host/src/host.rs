@@ -1,6 +1,5 @@
 //! The session registry and the handling of client messages.
 
-use std::collections::HashMap;
 use std::num::NonZeroU64;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
@@ -17,6 +16,7 @@ use lervo_session_transport::token::Token;
 use tokio::sync::mpsc;
 
 use crate::messages;
+use crate::registry::{Registry, Watch, control};
 use crate::session::{Command, Range, Reply, SessionHandle, StatusSink};
 use crate::subscriber::{Outgoing, Subscriber};
 use crate::{native, terminal};
@@ -25,51 +25,6 @@ use lervo_session_core::ports::{ConversationMode, Core, Launch};
 /// How long a mode switch waits for the previous provider process to end.
 const STOP_POLLS: u32 = 100;
 const STOP_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
-
-/// Sessions by identifier, the session of each terminal channel, and each workspace's session.
-#[derive(Default)]
-struct Registry {
-    sessions: HashMap<Identifier, SessionHandle>,
-    channels: HashMap<u32, Identifier>,
-    /// The latest session of each workspace.
-    workspaces: HashMap<Identifier, Identifier>,
-}
-
-impl Registry {
-    /// Forgets sessions whose actor exited, so the registry stays as large as the live sessions.
-    fn prune(&mut self) {
-        self.sessions.retain(|_, handle| !handle.is_gone());
-        let sessions = &self.sessions;
-        self.channels
-            .retain(|_, session| sessions.contains_key(session));
-    }
-}
-
-/// The latest status of each session, and the connections that watch every session.
-#[derive(Default)]
-struct Watch {
-    statuses: HashMap<Identifier, HostMessage>,
-    connections: Vec<(u64, mpsc::UnboundedSender<Outgoing>)>,
-}
-
-impl Watch {
-    fn record(&mut self, message: HostMessage) {
-        let HostMessage::SessionStatusMessage(status) = &message else {
-            return;
-        };
-        self.statuses
-            .insert(status.session_id.clone(), message.clone());
-        self.connections
-            .retain(|(_, outgoing)| outgoing.send(control(message.clone())).is_ok());
-    }
-}
-
-fn control(message: HostMessage) -> Outgoing {
-    Outgoing::Control {
-        message,
-        budget: None,
-    }
-}
 
 /// The running session host: its core port, identity, token, and sessions.
 pub struct Host<C> {
@@ -302,6 +257,7 @@ impl<C: Core> Host<C> {
         };
         let mut registry = self.lock();
         registry.prune();
+        registry.release_oldest_ended();
         lock(&self.watch)
             .statuses
             .retain(|session, _| registry.sessions.contains_key(session));

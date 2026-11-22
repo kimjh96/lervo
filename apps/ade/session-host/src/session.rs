@@ -20,6 +20,8 @@ use lervo_session_core::ports::ConversationMode;
 /// How long an ended session still answers attaches and ranges before its actor exits. After
 /// that, `session.open` starts the session again.
 pub const ENDED_RETENTION: Duration = Duration::from_secs(10 * 60);
+/// Ended sessions retained at once; opening a session releases the oldest beyond this.
+pub const MAX_RETAINED_ENDED: usize = 32;
 const COMMAND_QUEUE: usize = 64;
 
 /// Where a session reports each status change for connections that watch every session.
@@ -71,6 +73,8 @@ pub enum Command {
     },
     Range(Range),
     Stop,
+    /// Ends an ended session's retention early, so its actor exits and its memory returns.
+    Release,
 }
 
 /// A handle that sends commands to a session's actor.
@@ -99,6 +103,12 @@ impl SessionHandle {
     /// Sends a command. Returns `false` once the actor is gone.
     pub async fn send(&self, command: Command) -> bool {
         self.commands.send(command).await.is_ok()
+    }
+
+    /// Ends an ended session's retention. A lingering actor reads its queue at once, so a full
+    /// queue only delays the release to the next `session.open`.
+    pub fn release(&self) {
+        let _ = self.commands.try_send(Command::Release);
     }
 
     /// Whether the provider process still runs.
@@ -207,8 +217,8 @@ pub async fn linger(commands: &mut mpsc::Receiver<Command>, mut serve: impl FnMu
     loop {
         tokio::select! {
             command = commands.recv() => match command {
+                Some(Command::Release) | None => return,
                 Some(command) => serve(command),
-                None => return,
             },
             () = &mut deadline => return,
         }
