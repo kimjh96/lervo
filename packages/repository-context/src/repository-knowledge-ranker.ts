@@ -41,10 +41,16 @@ export const productDefaultRepositoryKnowledgeRanker: RepositoryKnowledgeQueryRa
             },
           }),
       rank(input) {
-        return index.search(input.query, input.limit).hits.map((hit) => ({
-          conceptId: hit.source.sourceId,
-          score: hit.score,
-        }));
+        return index
+          .search(
+            input.query,
+            input.limit,
+            input.exclude === undefined ? {} : { excludeSourceIds: input.exclude },
+          )
+          .hits.map((hit) => ({
+            conceptId: hit.source.sourceId,
+            score: hit.score,
+          }));
       },
     };
   },
