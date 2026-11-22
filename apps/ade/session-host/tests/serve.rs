@@ -209,8 +209,10 @@ async fn started(
             .await
         })
     };
+    // The socket file appears at bind, a moment before the listener accepts, so readiness is a
+    // connection that succeeds.
     for _ in 0..200 {
-        if layout.socket.exists() && layout.token.exists() {
+        if layout.token.exists() && UnixStream::connect(&layout.socket).await.is_ok() {
             break;
         }
         tokio::time::sleep(Duration::from_millis(10)).await;
