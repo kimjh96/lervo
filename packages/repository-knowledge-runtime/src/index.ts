@@ -8,6 +8,7 @@ export {
   updatePlanItem,
   type PlanLedgerErrorCode,
 } from "./plan-ledger-store.js";
+export { hostModelSelectionDirectory, readHostModelSelection } from "./model-selection-host.js";
 export { TERMINAL_SKILL_EVENT_SCHEMA_VERSION } from "./terminal-skill-events.js";
 export { runAutonomousKnowledgeWorker } from "./worker.js";
 export { readTerminalSkillUsage } from "./terminal-skill-usage-state.js";

@@ -682,6 +682,49 @@ function ownerVerdict(
   } as ConvergenceOwnerVerdict;
 }
 
+describe("owner-turn capture off the base branch (ADR-0610)", () => {
+  it("still assesses queued owner turns while the checkout is on a feature branch", async () => {
+    const f = await captureFixture();
+    await f.plan([
+      {
+        ownerTurn: ENGLISH_RULE,
+        response: {
+          schemaVersion: 1,
+          captureClass: "durable_instruction",
+          durableInstruction: canonicalRule(
+            "Keep both hosts available",
+            "Resolve Mac and WSL conflicts without restricting work to one host.",
+          ),
+          decision: null,
+          reasonIds: [],
+        },
+      },
+    ]);
+    await f.enqueue({ ownerTurn: ENGLISH_RULE, precedingAgentTurn: PRECEDING_AGENT_TURN });
+    await execute("git", ["-C", f.root, "checkout", "-q", "-b", "owner-feature"]);
+    const head = (await execute("git", ["-C", f.root, "rev-parse", "HEAD"])).stdout;
+    const status = (await execute("git", ["-C", f.root, "status", "--porcelain"])).stdout;
+    const cycle = await runAutonomousKnowledgeWorker({
+      storage: f.storage,
+      workerId: "off-base-capture",
+      provider: "claude",
+      executable: f.executable,
+      admissionDirectory: f.admissionDirectory,
+      liveWorkPending: async () => false,
+    });
+    expect(cycle).toEqual({ status: "busy", reason: "repository_not_on_base" });
+    // The turn was assessed and its rule stored, so it is not lost while the owner stays off base.
+    expect(
+      (await f.calls()).filter((call) => call.task === "instruction_capture_assessment"),
+    ).toHaveLength(1);
+    expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
+    expect(await listDurableInstructionCandidates(f.root)).toHaveLength(1);
+    // Nothing reached the owner's branch.
+    expect((await execute("git", ["-C", f.root, "rev-parse", "HEAD"])).stdout).toBe(head);
+    expect((await execute("git", ["-C", f.root, "status", "--porcelain"])).stdout).toBe(status);
+  }, 60_000);
+});
+
 describe("owner-turn capture across hosts (ADR-0467)", () => {
   const rule = {
     schemaVersion: 1,

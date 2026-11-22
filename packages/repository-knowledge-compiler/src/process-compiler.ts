@@ -116,7 +116,7 @@ export async function createNoCapabilityProviderJsonRunner(
           ? [
               ...claudeNoCapabilityArguments(),
               "--effort",
-              "low",
+              options.reasoningEffort ?? "low",
               ...(options.systemPrompt === undefined
                 ? []
                 : ["--system-prompt", options.systemPrompt]),
@@ -127,7 +127,7 @@ export async function createNoCapabilityProviderJsonRunner(
           : [
               ...codexNoCapabilityArguments(),
               "-c",
-              'model_reasoning_effort="low"',
+              `model_reasoning_effort="${options.reasoningEffort ?? "low"}"`,
               ...(options.systemPrompt === undefined
                 ? []
                 : ["-c", `developer_instructions=${JSON.stringify(options.systemPrompt)}`]),

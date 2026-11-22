@@ -10,3 +10,4 @@ export * from "./types.js";
 export * from "./work-causality.js";
 export * from "./budget-tokens.js";
 export * from "./retry-policy.js";
+export * from "./model-selection.js";
