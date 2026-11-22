@@ -1,6 +1,7 @@
 import { CommandFailure } from "./command-error-output.js";
 import { type CoreLinkHandlers, CoreLinkServer } from "./core-link-server.js";
 import { createHostedStreamDecoder } from "./hosted-session-adapters.js";
+import { listRepositories, listWorkspaces } from "./workspace-list-service.js";
 import {
   openWorkspace,
   parseConversationMode,
@@ -32,6 +33,8 @@ function startArguments(arguments_: Record<string, unknown>) {
 
 export const coreLinkHandlers: CoreLinkHandlers = {
   startWorkspace: (arguments_) => startWorkspaceFromInstruction(startArguments(arguments_)),
+  listWorkspaces,
+  listRepositories,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
 };

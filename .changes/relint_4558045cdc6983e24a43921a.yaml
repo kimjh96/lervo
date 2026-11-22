@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4558045cdc6983e24a43921a"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add the workspace.list and repository.list commands to lervo application serve, which the Lervo ADE's start screen and workspace list read."

@@ -2,6 +2,7 @@ import type { HostedStreamDecoder } from "@lervo/adapter-contract";
 import { validateCoreLinkRequest } from "@lervo/session-host-contract";
 
 import { errorCode } from "./command-error-output.js";
+import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-service.js";
 import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
 
@@ -16,6 +17,8 @@ type Started = WorkspaceStartResult | WorkspaceOpenResult;
 /** What the core link asks of the Lervo core. Failures are thrown with a stable `code`. */
 export interface CoreLinkHandlers {
   startWorkspace(arguments_: Record<string, unknown>): Promise<WorkspaceStartResult>;
+  listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[] }>;
+  listRepositories(): Promise<{ repositories: RepositorySummary[] }>;
   openWorkspace(workspaceId: string, mode?: "native" | "cli"): Promise<WorkspaceOpenResult>;
   createDecoder(provider: string): HostedStreamDecoder;
 }
@@ -67,9 +70,7 @@ export class CoreLinkServer {
   private handle(request: Request): void {
     switch (request.kind) {
       case "core.command":
-        this.track(request.id, () =>
-          this.handlers.startWorkspace(request.arguments as Record<string, unknown>),
-        );
+        this.command(request);
         return;
       case "core.open":
         this.track(request.id, () =>
@@ -85,6 +86,31 @@ export class CoreLinkServer {
       default:
         this.decode(request);
     }
+  }
+
+  /** Commands that start work answer with a launch; list commands answer with their result. */
+  private command(request: Request): void {
+    switch (request.command) {
+      case "workspace.list":
+        this.respond(request.id, () => this.handlers.listWorkspaces());
+        return;
+      case "repository.list":
+        this.respond(request.id, () => this.handlers.listRepositories());
+        return;
+      default:
+        this.track(request.id, () =>
+          this.handlers.startWorkspace(request.arguments as Record<string, unknown>),
+        );
+    }
+  }
+
+  private respond(id: number, run: () => Promise<object>): void {
+    const task = run().then(
+      (result) => this.write(JSON.stringify({ kind: "core.result", id, result })),
+      (error: unknown) => this.fail(id, error),
+    );
+    this.pending.add(task);
+    void task.finally(() => this.pending.delete(task));
   }
 
   private track(id: number, run: () => Promise<Started>): void {

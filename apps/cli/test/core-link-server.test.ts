@@ -42,6 +42,8 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
     async openWorkspace() {
       throw new CommandFailure("workspace_not_found", "missing");
     },
+    listWorkspaces: async () => ({ workspaces: [] }),
+    listRepositories: async () => ({ repositories: [{ projectId: "prj_1", name: "app" }] }),
     createDecoder: createHostedStreamDecoder,
   };
 }
@@ -99,6 +101,21 @@ describe("the core-link server", () => {
       id: 3,
       code: "workspace_not_found",
     });
+  });
+
+  it("answers list commands with their result and no launch", async () => {
+    const { written } = await serve([
+      { kind: "core.command", id: 1, command: "repository.list", arguments: {} },
+      { kind: "core.command", id: 2, command: "workspace.list", arguments: {} },
+    ]);
+    expect(written).toEqual([
+      {
+        kind: "core.result",
+        id: 1,
+        result: { repositories: [{ projectId: "prj_1", name: "app" }] },
+      },
+      { kind: "core.result", id: 2, result: { workspaces: [] } },
+    ]);
   });
 
   it("answers decoder requests while a command still runs", async () => {

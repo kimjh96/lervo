@@ -7,6 +7,7 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli } from "../src/main.js";
+import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
 
 const execute = promisify(execFile);
 const roots: string[] = [];
@@ -125,6 +126,19 @@ describe("lervo workspace start and open", () => {
     expect(records).toContain(result.sessionId);
     expect(records).not.toContain("build version");
     expect(records).not.toContain(app.root);
+
+    expect((await listRepositories()).repositories).toEqual([
+      { projectId: app.projectId, name: "app" },
+    ]);
+    expect((await listWorkspaces()).workspaces).toEqual([
+      expect.objectContaining({
+        workspaceId: result.workspaceId,
+        repositoryName: "app",
+        branch: result.branch,
+        title: "Add a health check endpoint",
+        sessionId: result.sessionId,
+      }),
+    ]);
 
     const opened = io(app.root);
     expect(
