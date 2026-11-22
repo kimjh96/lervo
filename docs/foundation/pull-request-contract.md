@@ -2,6 +2,8 @@
 
 The [pull-request template](../../.github/PULL_REQUEST_TEMPLATE.md) defines the required structure. Apply `writing_en-human` to the title and body. GitHub renders the title separately, so start the body at H2 without repeating the title as an H1.
 
+The title uses the header format of the [commit convention](commit-convention.md): `<type>[optional scope][optional !]: <description>`, with a lowercase description and at most 100 characters. Check it with `printf '%s\n' '<title>' | pnpm commit:lint` before opening the pull request. The merge commit carries the title, so a title that breaks the convention cannot be corrected on `main` afterward.
+
 The [versioned English writing policy](../../packages/core/src/writing-contract.ts) applies to pull requests: lead with purpose or conclusion, use complete plain-English sentences and concrete verbs, explain internal terms at first use, distinguish checks run from checks not run, and support major claims with evidence. Publication requires deterministic and semantic policy checks to pass. Naming the policy does not prove a draft passed.
 
 Preserve every template section. Replace guidance with concrete evidence. For inapplicable sections, write `N/A: <reason>` instead of deleting them or leaving them blank.
