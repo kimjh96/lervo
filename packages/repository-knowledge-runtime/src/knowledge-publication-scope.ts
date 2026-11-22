@@ -7,6 +7,7 @@ import {
   DEFAULT_KNOWLEDGE_PUBLICATION_ROOTS,
   type KnowledgePublicationSettings,
 } from "./knowledge-publication-settings.js";
+import { KNOWLEDGE_EFFECT_KINDS, KNOWLEDGE_EFFECT_TRAILERS } from "./knowledge-effect-commit.js";
 import { convergenceManagedKnowledgePath } from "./managed-knowledge-scope.js";
 import {
   normalizationMayRewrite,
@@ -36,6 +37,20 @@ export interface KnowledgePublicationViolation {
   reason: KnowledgePublicationViolationReason;
   /** The unpublished commit whose change of the path decides the violation. */
   commit: string;
+}
+
+/**
+ * ADR-0610: an ADR-0561 effect commit, the `Lervo-Effect` trailer naming a known effect. Its plan
+ * was authorized before it applied and the commit is its own undo, so publication scope, which
+ * governs convergence outputs, neither repairs nor blocks it. Without this, the repair undid each
+ * generated refresh outside the scope and the next cycle or upgrade made it again, a loop.
+ */
+const EFFECT_TRAILER = new RegExp(
+  `^${KNOWLEDGE_EFFECT_TRAILERS.effect}: (${KNOWLEDGE_EFFECT_KINDS.join("|")})$`,
+  "mu",
+);
+export function isKnowledgeEffectCommit(commit: Pick<KnowledgePublicationCommit, "body">) {
+  return EFFECT_TRAILER.test(commit.body);
 }
 
 export function isKnowledgePublicationRepairCommit(
@@ -158,6 +173,7 @@ export async function knowledgePublicationViolations(input: {
       violations.push({ path, reason: "tool_generated", commit: commit.sha });
       continue;
     }
+    if (isKnowledgeEffectCommit(commit)) continue;
     // ADR-0594: a skill file publishes only from practice materialization, even inside the scope.
     if (
       knowledgePublicationPathInScope(input.scope, path) &&

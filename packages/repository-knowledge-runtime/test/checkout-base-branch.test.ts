@@ -13,6 +13,7 @@ import {
   restoreMirroredConvergenceDelegation,
 } from "../src/delegation-tracking.js";
 import { knowledgeEffectPreflight } from "../src/knowledge-effect-guard.js";
+import { planKnowledgePublicationRepair } from "../src/knowledge-publication-repair-plan.js";
 
 const roots: string[] = [];
 afterEach(() => {
@@ -102,6 +103,42 @@ describe("ADR-0610 host-local delegation", () => {
     expect(git(root, "ls-files", delegation)).toBe("");
     expect(git(root, "status", "--porcelain")).toBe("A  notes.md");
     expect(await keepConvergenceDelegationHostLocal(root)).toBe("current");
+  });
+
+  // The v0.31.0 loop: in a fixed-roots scope the repair undid this commit's ignore line, and the
+  // next resident cycle untracked the delegation again, 14 commits in flemo on 2026-11-22.
+  it("is never undone by the publication repair, even in a fixed-roots scope", async () => {
+    const root = repository({
+      ".lervo/.gitignore": "data/\nstate/\n",
+      [delegation]: '{"providers":["claude"]}\n',
+    });
+    const base = git(root, "rev-parse", "HEAD");
+    expect(await keepConvergenceDelegationHostLocal(root)).toBe("committed");
+    const unpublished = [
+      {
+        sha: git(root, "rev-parse", "HEAD"),
+        subject: git(root, "log", "-1", "--format=%s"),
+        body: git(root, "log", "-1", "--format=%b"),
+        paths: git(root, "show", "--name-only", "--format=", "HEAD").split("\n"),
+        committerDate: "0 +0000",
+      },
+    ];
+    const scope = { source: "roots" as const, roots: ["docs/"] };
+    const plan = await planKnowledgePublicationRepair({
+      repositoryRoot: root,
+      base,
+      unpublished,
+      scope,
+    });
+    expect(plan.targets).toEqual([]);
+    // Control: the same paths in a convergence-output commit are outside this scope.
+    const control = await planKnowledgePublicationRepair({
+      repositoryRoot: root,
+      base,
+      unpublished: [{ ...unpublished[0]!, body: "Lervo convergence kco_x settled." }],
+      scope,
+    });
+    expect(control.targets.map((target) => target.path)).toContain(".lervo/.gitignore");
   });
 
   it("restores the mirror once after a pull removed the untracked delegation", async () => {
