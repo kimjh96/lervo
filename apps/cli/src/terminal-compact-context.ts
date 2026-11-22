@@ -31,6 +31,7 @@ import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js
 import { observeWorkstreamFreshness } from "./workstream-repository-head.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 import { terminalKnowledgeSnapshotId } from "./terminal-knowledge-snapshot.js";
+import { terminalPlanContextLines } from "./terminal-plan-context.js";
 
 export {
   terminalKnowledgeSnapshotId,
@@ -98,6 +99,7 @@ export async function prepareCompactTerminalPromptContext(input: {
             queryProjection,
             currentWorkstream,
             workstreamFreshness,
+            planLines: terminalPlanContextLines(storage),
             projectId: storage.manifest.projectId,
           };
         } finally {
@@ -153,6 +155,7 @@ export async function prepareCompactTerminalPromptContext(input: {
     // ADR-0549: the learned notice is information, so it yields to owner rules and find pointers.
     optionalLines: [
       ...anchors.pointers.map(formatTerminalFindPointer),
+      ...query.planLines,
       ...(governance === null ? [] : [governance.line]),
       ...(learned === null ? [] : [learned.line]),
     ],

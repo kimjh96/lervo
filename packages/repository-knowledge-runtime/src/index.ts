@@ -1,4 +1,13 @@
 export { PRACTICE_EVENT_SCHEMA_VERSION } from "./practice-events.js";
+export {
+  capturePlanItem,
+  closePlanItem,
+  PLAN_LEDGER_EVENT_SCHEMA_VERSION,
+  PlanLedgerError,
+  readPlanLedger,
+  updatePlanItem,
+  type PlanLedgerErrorCode,
+} from "./plan-ledger-store.js";
 export { TERMINAL_SKILL_EVENT_SCHEMA_VERSION } from "./terminal-skill-events.js";
 export { runAutonomousKnowledgeWorker } from "./worker.js";
 export { readTerminalSkillUsage } from "./terminal-skill-usage-state.js";

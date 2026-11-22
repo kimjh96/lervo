@@ -31,6 +31,18 @@ Lervo, not the agent's memory, keeps the plan of a piece of work and checks it b
 
 - The plan ledger is durable state, not a projection, because provider transcripts can be rotated or deleted. Each item stores `{itemId, parentId, kind: directive|plan|finding, title, state: candidate|open|in_progress|done|cancelled|superseded, source: {provider, sessionId, transcriptOffset}, evidence?, closedReason?}`. The title is a short paraphrase. The ledger never stores prompt text or document bodies. New events are `plan.item.captured`, `plan.item.closed`, `plan.summary.gap` (an open item missing from a compaction summary), `plan.turn.blocked` (`{turnId, itemIds, attempt}`, emitted when the Stop hook blocks a turn), and `plan.item.missed` (`{itemId, cause: owner_asked|owner_corrected}`). A failed extraction records `plan_capture_failed` as Lervo debt and keeps the previous ledger; the next turn retries from the same transcript position.
 
+## Implementation
+
+The [plan ledger contract](../../specifications/knowledge/plan-ledger.md) holds the states, events, failure codes and the four slices. S1 is the ledger itself:
+
+- the item tree;
+- evidence-only close;
+- schema 9 events;
+- `lervo plan`;
+- open items in every turn's context.
+
+The ledger is the fold of its events in the repository event store, so it is durable and reaches the Hub through the existing outbound sync. S1 adds `plan.item.updated` to the events above so that a candidate can be confirmed and an item started or moved. It also adds the item kind `objective` for the root of a tree.
+
 ## Consequences
 
 - A plan survives compaction, a new session, and a change of host. Extraction can misread an item, so extracted items carry their source position, and an uncertain item stays a candidate until it is cross-checked.
