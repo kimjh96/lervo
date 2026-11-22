@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.35.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.36.0" schema="1" -->
 
 ## What's changed
 
-- License the CLI under Apache-2.0, the license of the now-public repository.
+- Add the workspace.list and repository.list commands to lervo application serve, which the Lervo ADE's start screen and workspace list read.
