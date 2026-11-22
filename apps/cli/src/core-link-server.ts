@@ -1,6 +1,5 @@
 import type { HostedStreamDecoder } from "@lervo/adapter-contract";
-import { coreLinkProtocolDocument } from "@lervo/session-host-contract";
-import { Ajv2020, type ValidateFunction } from "ajv/dist/2020.js";
+import { validateCoreLinkRequest } from "@lervo/session-host-contract";
 
 import { errorCode } from "./command-error-output.js";
 import type { WorkspaceStartResult } from "./workspace-start.js";
@@ -24,15 +23,6 @@ export interface CoreLinkHandlers {
 /** Why the core link ended. `message_invalid` means the session host sent a malformed line. */
 export type CoreLinkEnd = "input_closed" | "message_invalid";
 
-function requestValidator(): ValidateFunction {
-  const document = coreLinkProtocolDocument();
-  const ajv = new Ajv2020({ strict: true, allErrors: false });
-  ajv.addSchema(document);
-  const validator = ajv.getSchema(`${String(document.$id)}#/$defs/CoreLinkRequest`);
-  if (validator === undefined) throw new Error("The core-link document has no request schema.");
-  return validator;
-}
-
 /**
  * The resident Lervo process's side of the core link (core-link protocol). It reads one request
  * per line, validates it against the contract, and answers each by its `id`. Commands run
@@ -40,7 +30,6 @@ function requestValidator(): ValidateFunction {
  * the provider's stream exactly.
  */
 export class CoreLinkServer {
-  private readonly validate = requestValidator();
   private readonly decoders = new Map<string, HostedStreamDecoder>();
   private readonly pending = new Set<Promise<void>>();
 
@@ -69,7 +58,8 @@ export class CoreLinkServer {
     } catch {
       return false;
     }
-    if (!this.validate(request)) return false;
+    // The contract's standalone validator, compiled at build time from the core-link document.
+    if (!validateCoreLinkRequest(request)) return false;
     this.handle(request as Request);
     return true;
   }

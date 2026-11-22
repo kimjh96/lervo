@@ -1,6 +1,6 @@
 {
   "name": "@lervo/cli",
-  "version": "0.34.1",
+  "version": "0.35.0",
   "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
   "keywords": [
     "ai-agents",
@@ -42,7 +42,6 @@
     "@anthropic-ai/claude-agent-sdk": "0.3.226",
     "@anthropic-ai/sdk": "0.117.1",
     "@modelcontextprotocol/sdk": "1.30.0",
-    "ajv": "8.20.0",
     "zod": "4.4.3"
   },
   "devDependencies": {
@@ -83,10 +82,10 @@
     "@lervo/roles": "workspace:*",
     "@lervo/runtime-security": "workspace:*",
     "@lervo/schemas": "workspace:*",
-    "@lervo/session-host-contract": "workspace:*",
     "@lervo/search": "workspace:*",
     "@lervo/search-adapter-lexical-v2": "workspace:*",
     "@lervo/search-local": "workspace:*",
+    "@lervo/session-host-contract": "workspace:*",
     "@lervo/skills": "workspace:*",
     "@lervo/sqlite-connection": "workspace:*",
     "@lervo/storage-contract": "workspace:*",
@@ -99,6 +98,7 @@
     "@lervo/workspace-host-orca": "workspace:*",
     "@lervo/writing": "workspace:*",
     "@lervo/writing-contract": "workspace:*",
+    "ajv": "8.20.0",
     "esbuild": "0.28.2",
     "yaml": "2.9.0"
   }

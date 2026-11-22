@@ -2,7 +2,7 @@
   "schemaVersion": 10,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.34.1",
+    "version": "0.35.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -103,6 +103,7 @@
       "@lervo/search-adapter-lexical-v2@0.1.0",
       "@lervo/search-local@0.1.0",
       "@lervo/search@0.1.0",
+      "@lervo/session-host-contract@0.1.0",
       "@lervo/skills@0.1.0",
       "@lervo/sqlite-connection@0.1.0",
       "@lervo/storage-contract@0.1.0",
@@ -156,7 +157,7 @@
     "externalImports": [
       "@anthropic-ai/claude-agent-sdk"
     ],
-    "bundleDigest": "sha256:5693cce58f6f91e822f1b8d9578b5c7706a14d26225b2726234eb09d0cda3634"
+    "bundleDigest": "sha256:75eb1c72aa85ba2a401c941e435058849239e805aee274187fe9a7f1d87a7c11"
   },
   "archive": {
     "rootFiles": [
@@ -205,13 +206,13 @@
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12678342,
-        "sha256": "sha256:344eb18e7fb501082c9c52915c6792a3974a0dd87fb2877122faf226666ad8e4"
+        "size": 12776426,
+        "sha256": "sha256:eac2d47079f97d8e5190c747deebebe5ee625df81400ba0a08fb3a7d674b2ff6"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:fe24f1e9f54f1292dfaeb16bbc62ab907a8a226b70975d98a9aa125b5389cf76"
+        "sha256": "sha256:e652aa6c2fe8353f39ac3dca9cc254bc0b93f61e8ef5544dcb97c45278eb77a3"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -220,12 +221,12 @@
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 6828120,
-        "sha256": "sha256:35fdb13dd47fdfab2c4a8cc43f92487698e0371ab6943d5965e6689a4aa45cc8"
+        "size": 6829366,
+        "sha256": "sha256:b1a3358213c785b854f33c8ee175abbb6685b62afda43438d3b24a510ce8b08e"
       }
     ],
     "fileCount": 13,
-    "contentDigest": "sha256:ec2940f7df21ad05fcba37b696054b21ee8f4b7faa6b1f7e480cea222a518ab4"
+    "contentDigest": "sha256:2fa48e00689902cdee57d67c078febf89528acc3c5edd956c3311863ae03c90e"
   },
   "dependencies": {
     "portable": [
@@ -338,5 +339,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:93dd2f706ace46e6baf176de8b4e59f39a2c2925bba47d81a3189d40728052d7"
+  "artifactDigest": "sha256:18df0d2d67c5839799e3bbbcf68e5177810ff794c307703a96ce514eb5e6aac0"
 }

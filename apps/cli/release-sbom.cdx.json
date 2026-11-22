@@ -2,7 +2,7 @@
   "$schema": "https://cyclonedx.org/schema/bom-1.7.schema.json",
   "bomFormat": "CycloneDX",
   "specVersion": "1.7",
-  "serialNumber": "urn:uuid:8d2adefd-1fd3-5f3c-b743-1d3df0dfbbe1",
+  "serialNumber": "urn:uuid:a746b53e-6d68-5888-b23b-21551cc449ac",
   "version": 1,
   "metadata": {
     "lifecycles": [
@@ -21,11 +21,11 @@
     },
     "component": {
       "type": "application",
-      "bom-ref": "pkg:npm/%40lervo/cli@0.34.1",
+      "bom-ref": "pkg:npm/%40lervo/cli@0.35.0",
       "group": "@lervo",
       "name": "cli",
-      "version": "0.34.1",
-      "purl": "pkg:npm/%40lervo/cli@0.34.1",
+      "version": "0.35.0",
+      "purl": "pkg:npm/%40lervo/cli@0.35.0",
       "hashes": [
         {
           "alg": "SHA-256",
@@ -42,11 +42,11 @@
       "properties": [
         {
           "name": "lervo:release:artifact-digest",
-          "value": "sha256:93dd2f706ace46e6baf176de8b4e59f39a2c2925bba47d81a3189d40728052d7"
+          "value": "sha256:18df0d2d67c5839799e3bbbcf68e5177810ff794c307703a96ce514eb5e6aac0"
         },
         {
           "name": "lervo:release:bundle-digest",
-          "value": "sha256:5693cce58f6f91e822f1b8d9578b5c7706a14d26225b2726234eb09d0cda3634"
+          "value": "sha256:75eb1c72aa85ba2a401c941e435058849239e805aee274187fe9a7f1d87a7c11"
         },
         {
           "name": "lervo:release:portable-dependencies-digest",
@@ -80,7 +80,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "35fdb13dd47fdfab2c4a8cc43f92487698e0371ab6943d5965e6689a4aa45cc8"
+          "content": "b1a3358213c785b854f33c8ee175abbb6685b62afda43438d3b24a510ce8b08e"
         }
       ],
       "properties": [
@@ -141,7 +141,7 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "fe24f1e9f54f1292dfaeb16bbc62ab907a8a226b70975d98a9aa125b5389cf76"
+          "content": "e652aa6c2fe8353f39ac3dca9cc254bc0b93f61e8ef5544dcb97c45278eb77a3"
         }
       ]
     },
@@ -1299,6 +1299,21 @@
       "name": "search",
       "version": "0.1.0",
       "purl": "pkg:npm/%40lervo/search@0.1.0",
+      "scope": "required",
+      "properties": [
+        {
+          "name": "lervo:release:bundled",
+          "value": "true"
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40lervo/session-host-contract@0.1.0",
+      "group": "@lervo",
+      "name": "session-host-contract",
+      "version": "0.1.0",
+      "purl": "pkg:npm/%40lervo/session-host-contract@0.1.0",
       "scope": "required",
       "properties": [
         {
@@ -4264,7 +4279,7 @@
       ]
     },
     {
-      "ref": "pkg:npm/%40lervo/cli@0.34.1",
+      "ref": "pkg:npm/%40lervo/cli@0.35.0",
       "dependsOn": [
         "lervo:dist/terminal-hook-launcher.mjs",
         "lervo:dist/terminal-hook.js",
@@ -4335,6 +4350,7 @@
         "pkg:npm/%40lervo/search-adapter-lexical-v2@0.1.0",
         "pkg:npm/%40lervo/search-local@0.1.0",
         "pkg:npm/%40lervo/search@0.1.0",
+        "pkg:npm/%40lervo/session-host-contract@0.1.0",
         "pkg:npm/%40lervo/skills@0.1.0",
         "pkg:npm/%40lervo/sqlite-connection@0.1.0",
         "pkg:npm/%40lervo/storage-contract@0.1.0",
