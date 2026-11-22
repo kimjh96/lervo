@@ -4,7 +4,7 @@
 
 The aborted next-version attempt had neither terminal nor usage, and `lervo loop reconcile` refuses governed supervised runs. Workstream `wks_1377649abe1942f1b08674c8` became settled cancellation revision 2, without blockers/pending items. Start previously required settled completion, which would force a false outcome. Revision `6ff9fe59` admits an exact-hash successor after settled cancellation; its CLI started `wks_1b61ee8ff31421ef6487ca31`.
 
-Each successor received a distinct supervision ID and version-1 mandate mirroring approved version-3 bounds: five workers, two attempts, 100,000 tokens per attempt, 1,000,000 aggregate, read-only `docs/product/vision.md`, expiry 13:00 UTC. Plans were generated only after CLI time passed issue time; the user's “다음 진행” replies were treated as approval of displayed plans.
+Each successor received a distinct supervision ID and version-1 mandate mirroring approved version-3 bounds: five workers, two attempts, 100,000 tokens per attempt, 1,000,000 aggregate, read-only `docs/product/vision.md`, expiry 13:00 UTC. Plans were generated only after CLI time passed issue time; the user's replies to proceed with the next step were treated as approval of displayed plans.
 
 Three installed iterations used the same bound local request, denied the verification wrapper before dispatch, and repaired it after one recorded failure:
 

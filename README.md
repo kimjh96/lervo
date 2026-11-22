@@ -24,3 +24,7 @@ For an existing repository, use the [repository upgrade guide](docs/roadmap/onbo
 ## Repository guidance
 
 Agents should follow [AGENTS.md](AGENTS.md). The [v0 roadmap](docs/roadmap/v0.md) records delivered scope and links active follow-up work. Commit messages follow the [commit convention](docs/foundation/commit-convention.md), and source changes follow the [code convention](docs/foundation/code-convention.md).
+
+## License
+
+Lervo is licensed under the [Apache License 2.0](LICENSE).

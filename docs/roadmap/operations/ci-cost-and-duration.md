@@ -2,7 +2,7 @@
 
 Status: `active`
 As of: 2026-11-15
-Implementation authority: owner confirmed this design with “진행” on 2026-10-08.
+Implementation authority: the owner confirmed this design on 2026-10-08.
 Task base: `7a5cce30966063861b2927be85d20be31f7e4627`.
 
 ## Outcome and scope

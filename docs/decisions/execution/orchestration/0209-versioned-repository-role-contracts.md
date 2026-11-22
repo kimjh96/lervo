@@ -14,7 +14,7 @@ The initial workforce supported six validated, hard-coded role IDs but could not
 
 ### Role sources and resolution
 
-Keep developer, researcher, marketer, designer, writer, and ideation as built-in `1.0.0` templates, each with a deterministic contract hash over its complete definition. Researcher is canonical for English `researcher` and Korean `연구자` or `리서처` requests.
+Keep developer, researcher, marketer, designer, writer, and ideation as built-in `1.0.0` templates, each with a deterministic contract hash over its complete definition. Researcher is canonical for requests that name it in English (`researcher`) or with either common Korean word for researcher.
 
 A repository may add `.lervo/roles/<role-id>.json` only when authoring its first custom role; the directory remains absent until then. Tracked JSON sources contain schema version 1, kind `lervo_repository_role`, a repository-unique role ID, semantic version, exact `{ roleId, version }` ancestry references, a bounded profile patch, and evaluation checks. Custom IDs cannot replace built-ins. Read only physical files. Malformed JSON, unknown fields, unsafe names, oversized registries, duplicate IDs, cycles, ancestry deeper than eight levels, and stale base versions fail before workforce or provider execution.
 

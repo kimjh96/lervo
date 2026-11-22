@@ -7,7 +7,7 @@
     "local-first",
     "orchestration"
   ],
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "private": false,
   "type": "module",
   "engines": {

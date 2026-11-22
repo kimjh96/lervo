@@ -18,7 +18,7 @@ Version-3 candidate raised only aggregate budget to 1,000,000: approval `sha256:
 
 ## Version-3 continuation
 
-The user's “다음 진행하세요” directly answered the displayed version-3 plan; the operator treated it as contextual approval, as with “하라니깐”. Installation initially failed with `The supervision owner requires reconciliation before installation.` while the service held its owner lease. After stopping it, installation at 12735 recorded `evt_35f64e9f0cd4a82569cf13886ca8b065`, mandate `sha256:13651dd8d5c7e17db08fb60a17ec434fc1eac19b8c12677ad2a7cde626c4b04d`, review `sha256:52a9ac9d4bd1319f4e32b3b8b4d2c897a474c513989d8ad8143c158664371656`; both successor configurations were rebound.
+The user's reply to go ahead with the next step directly answered the displayed version-3 plan; the operator treated it as contextual approval, as with the earlier reply that insisted on proceeding. Installation initially failed with `The supervision owner requires reconciliation before installation.` while the service held its owner lease. After stopping it, installation at 12735 recorded `evt_35f64e9f0cd4a82569cf13886ca8b065`, mandate `sha256:13651dd8d5c7e17db08fb60a17ec434fc1eac19b8c12677ad2a7cde626c4b04d`, review `sha256:52a9ac9d4bd1319f4e32b3b8b4d2c897a474c513989d8ad8143c158664371656`; both successor configurations were rebound.
 
 On Node `8068e1123330722bc6a4d4a8e2c388a8284194aa80d266c95794843bbb4e33a5`, the owner reasoned, reclaimed, prepared, and admitted `osd_db075f6d9fecc3def08e502b` at 12773 with wrapper `000`. Exactly one failure at 12774 named `readiness_tools_failed`; two and a half minutes of blocked cycles produced no second record or supersession. This proved corrected single-decision blocking.
 

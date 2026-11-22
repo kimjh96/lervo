@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_8caaa598c14749d459f7d9e3"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "License the CLI under Apache-2.0, the license of the now-public repository."

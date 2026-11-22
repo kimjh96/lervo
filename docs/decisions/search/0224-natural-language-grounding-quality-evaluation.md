@@ -5,7 +5,7 @@ Decision date: 2026-08-27
 
 ## Context
 
-Requests such as “OO 작업 하자,” “진행,” “다음 작업 진행해줘,” and “예전에 왜 이런 작업을 했었지?” may require execution, inspection, an evidence-backed answer, clarification, or abstention. The correct response depends on the prior turn, current workstream, repository state, and approval binding.
+Korean requests such as “let's do the OO task,” “go ahead,” “continue with the next task,” and “why did we do this work before?” may require execution, inspection, an evidence-backed answer, clarification, or abstention. The correct response depends on the prior turn, current workstream, repository state, and approval binding.
 
 The existing benchmark measures deterministic query-to-ranked-source quality but cannot represent conversation history, deictic references, current workstreams, response disposition, authority, fail-closed behavior, or final-answer grounding. Adding these concerns to `SearchEvaluationCase` would couple deterministic search identity to conversational policy and provider behavior.
 
