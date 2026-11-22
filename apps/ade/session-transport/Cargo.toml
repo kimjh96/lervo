@@ -1,0 +1,21 @@
+[package]
+name = "lervo-session-transport"
+version = "0.1.0"
+description = "The ADE session host's local transport: owner-only socket, connection token, frames, and handshake."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+getrandom = "0.4"
+lervo-session-protocol = { path = "../session-protocol" }
+serde = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["io-util", "net"] }
+
+[dev-dependencies]
+tempfile = "3"
+tokio = { version = "1", features = ["io-util", "macros", "net", "rt"] }
+
+[lints]
+workspace = true

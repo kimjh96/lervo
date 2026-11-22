@@ -64,6 +64,12 @@ pub fn encode<T: Serialize>(message: &T) -> Result<Vec<u8>, CodecError> {
     rmp_serde::to_vec_named(message).map_err(|_| CodecError::Unencodable)
 }
 
+/// Decodes a record this side encoded earlier, such as a stored conversation item. Records come
+/// from owner-only files, not from the peer, so they are not validated against the schema.
+pub fn decode_record<T: serde::de::DeserializeOwned>(record: &[u8]) -> Result<T, CodecError> {
+    rmp_serde::from_slice(record).map_err(|_| CodecError::Undecodable)
+}
+
 fn validator_for(document: &Value, definition: &str) -> Result<jsonschema::Validator, CodecError> {
     let mut root = document.clone();
     let Value::Object(object) = &mut root else {

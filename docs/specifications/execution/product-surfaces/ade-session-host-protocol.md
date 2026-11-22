@@ -37,10 +37,25 @@ Terminal bytes travel as raw frames, so they are never base64-encoded or copied 
 
 The session host writes a new 256-bit token at each start to an owner-only file in its host state directory, and the interface reads it there. A remote transport later replaces where the token comes from, not the handshake.
 
+## Host state directory
+
+One session host runs per OS user. Its owner-only directory is `~/Library/Application Support/dev.lervo.ade` on macOS and `$XDG_STATE_HOME/lervo-ade` (or `~/.local/state/lervo-ade`) on Linux and WSL. It holds:
+
+- `session-host.lock`, an exclusive lock held while the session host serves. A second instance finds it held and exits successfully, so the client can start the session host without first checking for one;
+- `session-host.sock`, the socket, at mode 0600. A socket file left by a session host that no longer runs is replaced at start;
+- `connection-token`, the token, at mode 0600;
+- `conversations/`, one conversation index per native session.
+
+The session host removes the socket and the token when it shuts down. Its sessions end with it.
+
 ## Sequencing and resumption
 
 - Every session message that changes state carries a per-session `sequence`, a positive integer that only grows.
-- A client records the last sequence it applied. After a reconnection, `session.attach` with `afterSequence` makes the session host send what the client missed: the current status, conversation items appended after that sequence, and, for the CLI conversation, the scrollback it still holds.
+- One counter per session orders its status changes, conversation messages, and terminal frames.
+- A client records the last sequence it applied. After a reconnection, `session.attach` with `afterSequence` makes the session host send what the client missed, then the current status:
+  - for the CLI conversation, the scrollback after that sequence that it still holds;
+  - for the native conversation, the item that is still streaming, if any. The client loads the items it missed with `conversation.range` after its last item. Clients keep items by `itemId`, so an item that arrives twice replaces itself.
+- An ended session still answers `session.attach` and `conversation.range` for 10 minutes. After that, `session.open` starts the session again.
 - The session host buffers at most 4 MiB per client and session. When a client falls further behind, the session host drops that client's terminal frames for the session and sends `session.resync_required`. The client then attaches again.
 
 ## Messages from the client
@@ -68,7 +83,7 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 | `request.failed`          | Reports that a request failed, with a code and parameters.                     |
 | `session.opened`          | Confirms a session, its conversation mode, and its terminal channel.           |
 | `session.status`          | Reports `starting`, `working`, `needs_user`, `idle`, or `ended`.               |
-| `conversation.appended`   | Appends live conversation items.                                               |
+| `conversation.appended`   | Appends live conversation items, or replaces an item with the same `itemId`.   |
 | `conversation.delta`      | Appends streamed text to one conversation item.                                |
 | `conversation.page`       | Answers `conversation.range`.                                                  |
 | `session.resync_required` | Tells a client that fell behind to attach again.                               |
@@ -76,7 +91,7 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 
 ## Conversation items
 
-A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `state` of `streaming` or `complete`.
+A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `state` of `streaming` or `complete`. A streaming item becomes complete when `conversation.appended` repeats it with the state `complete`.
 
 | Kind            | Content                                                                  |
 | --------------- | ------------------------------------------------------------------------ |
@@ -98,4 +113,11 @@ A Lervo notice carries a code, never a sentence, and the interface renders it fr
 
 - Conversation text crosses only the owner-only local channel. Logs on either side record message kinds, identifiers, and sizes, never message bodies or terminal bytes.
 - A message that fails schema validation closes the connection with `message_invalid` on the receiving side. The sender learns of it from the closed connection and reconnects.
-- `request.failed` carries one of these codes: `workspace_start_failed`, `session_not_found`, `session_ended`, `provider_cli_unavailable`, `provider_login_unavailable`, `range_invalid`, and `application_unavailable`.
+- `request.failed` carries one of these codes:
+  - `workspace_start_failed`, `provider_cli_unavailable`, and `provider_login_unavailable`, as the sessions specification defines them;
+  - `session_not_found`: no session has that identifier, or its ended session is no longer retained;
+  - `session_ended`: the provider process exited, so `session.send` cannot reach it;
+  - `range_invalid`: the anchor is not in the conversation, or the limit is out of bounds;
+  - `conversation_mode_unsupported`: the request does not apply to the session's conversation mode, such as `session.send` to the CLI conversation;
+  - `conversation_index_corrupt`: the conversation index could not open, store, or read items. Live items keep flowing, and the index is rebuilt from the provider's transcript;
+  - `application_unavailable`: the resident Lervo process is not connected.

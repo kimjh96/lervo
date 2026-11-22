@@ -19,6 +19,14 @@ pub struct Overflow {
     pub limit: usize,
 }
 
+/// The outcome of `ClientBudget::admit`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Admission {
+    Queue,
+    Resync,
+    Drop,
+}
+
 impl ClientBudget {
     /// A budget with the given byte limit.
     pub fn new(limit: usize) -> Self {
@@ -41,6 +49,17 @@ impl ClientBudget {
         }
         self.queued = queued;
         Ok(())
+    }
+
+    /// Decides what happens to an item of `bytes` for this client: queue it, replace it with one
+    /// `session.resync_required`, or drop it because the client already must resynchronize.
+    pub fn admit(&mut self, bytes: usize) -> Admission {
+        let already = self.overflowed;
+        match self.reserve(bytes) {
+            Ok(()) => Admission::Queue,
+            Err(_) if already => Admission::Drop,
+            Err(_) => Admission::Resync,
+        }
     }
 
     /// Releases `bytes` after the transport wrote them.
@@ -68,7 +87,7 @@ impl Default for ClientBudget {
 
 #[cfg(test)]
 mod tests {
-    use super::{ClientBudget, Overflow};
+    use super::{Admission, ClientBudget, Overflow};
 
     #[test]
     fn reserves_and_releases_within_the_limit() {
@@ -93,5 +112,14 @@ mod tests {
         assert!(budget.reserve(1).is_err());
         budget.reset();
         assert_eq!(budget.reserve(1), Ok(()));
+    }
+
+    #[test]
+    fn asks_for_one_resync_and_then_drops() {
+        let mut budget = ClientBudget::new(10);
+        assert_eq!(budget.admit(10), Admission::Queue);
+        assert_eq!(budget.admit(1), Admission::Resync);
+        budget.release(10);
+        assert_eq!(budget.admit(1), Admission::Drop);
     }
 }

@@ -30,6 +30,7 @@ This part of the [Lervo ADE convention](../ade-convention.md) records the techno
 | Local transport    | Unix domain sockets, Windows named pipes through `interprocess`, and token-authenticated loopback between Windows and WSL |
 | Framing            | Length-prefixed binary frames carrying MessagePack                                                                        |
 | Conversation index | Append-only segment files with offset tables, without a database                                                          |
+| Host files         | `dirs` for the platform state directory, `fd-lock` for the single-instance lock, and `getrandom` for the connection token |
 | Logs and errors    | `tracing` with a size limit and rotation, and `thiserror`                                                                 |
 
 ## Lervo core
