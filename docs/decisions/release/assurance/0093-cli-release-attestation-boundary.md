@@ -1,7 +1,8 @@
 # ADR-0093: CLI release provenance-attestation boundary
 
 Status: `accepted`  
-Decision date: 2026-08-21
+Decision date: 2026-08-21  
+Amended by: [ADR-0614](../packaging/0614-sign-the-verified-release-subjects.md) (`attested-cli` signs the subjects the matrix verified, and on reuse it follows `plan` alone)
 
 ## Context
 

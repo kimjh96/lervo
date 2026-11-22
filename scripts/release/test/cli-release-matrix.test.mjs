@@ -201,7 +201,10 @@ describe("CLI release matrix workflow", () => {
       'node scripts/release/commands/cli-release-subjects.mjs verify "${RUNNER_TEMP}/lervo-release-subjects" --expected-tag "${GITHUB_REF_NAME}"',
     );
     const stage = job.steps.find(({ name }) => name === "Stage the verified subjects for signing");
-    assert.match(stage.run, /! -name release-subjects\.json/u);
+    assert.match(stage.run, /lervo-release-subjects\/release-artifact-manifest\.json/u);
+    assert.match(stage.run, /lervo-release-subjects\/release-sbom\.cdx\.json/u);
+    assert.match(stage.run, /lervo-release-subjects\/"lervo-cli-\*\.tgz/u);
+    assert.doesNotMatch(stage.run, /release-subjects\.json/u);
     assert.ok(job.steps.indexOf(download) < job.steps.indexOf(verifySubjects));
     assert.ok(job.steps.indexOf(verifySubjects) < job.steps.indexOf(stage));
     const provenance = job.steps.find(({ id }) => id === "build-attestation");

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_b4e98de09c4e510642a487bd"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Sign the verified CLI release subjects so public-repository releases publish."

@@ -157,7 +157,7 @@ jobs:
 
   attested-cli:
     name: Attested CLI release
-    # Signs the subjects packed-cli verified, never a rebuild: pnpm pack output is not byte-stable.
+    # Signs the subjects packed-cli verified, never a rebuild: pnpm pack output is not byte-stable (ADR-0614).
     if: ${{ !cancelled() && github.ref_type == 'tag' && startsWith(github.ref_name, 'v') && (github.event.repository.private != true || github.event.repository.owner.type != 'User') && needs.plan.result == 'success' && (needs.plan.outputs.reuse != '' || needs.packed-cli.result == 'success') }}
     needs: [plan, packed-cli]
     runs-on: ubuntu-latest
@@ -198,7 +198,10 @@ jobs:
       - name: Stage the verified subjects for signing
         run: |
           mkdir "${RUNNER_TEMP}/lervo-release"
-          find "${RUNNER_TEMP}/lervo-release-subjects" -maxdepth 1 -type f ! -name release-subjects.json -exec cp {} "${RUNNER_TEMP}/lervo-release/" \;
+          cp "${RUNNER_TEMP}/lervo-release-subjects/release-artifact-manifest.json" \
+            "${RUNNER_TEMP}/lervo-release-subjects/release-sbom.cdx.json" \
+            "${RUNNER_TEMP}/lervo-release-subjects/"lervo-cli-*.tgz \
+            "${RUNNER_TEMP}/lervo-release/"
       - name: Attest build provenance
         id: build-attestation
         uses: actions/attest@508db95dd578ae2727ebd6217d5ba78e4fbda05d # v4.2.1
