@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2e7f5fee0998da72f0ac52fe"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Fix three faults found after v0.31.1: knowledge queries failed in repositories with more than 30 historical documents, idle Nodes blocked the upgrade Node stage as stale, and the knowledge stage stayed ready on hosts that do not own convergence."
