@@ -105,7 +105,7 @@ describe("first-publication metadata preview command", () => {
     const preview = JSON.parse(result.stdout);
     assert.equal(preview.status, "changes_required");
     assert.equal(preview.activation, "not_implemented");
-    assert.equal(preview.packageManifestChanges.length, 4);
+    assert.equal(preview.packageManifestChanges.length, 3);
     assert.match(preview.metadataPreviewDigest, /^sha256:[a-f0-9]{64}$/u);
     const after = await Promise.all([readFile(packagePath), readFile(releasePath)]);
     assert.deepEqual(after, before);

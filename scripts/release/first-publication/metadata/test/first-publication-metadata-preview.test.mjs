@@ -88,7 +88,7 @@ describe("first-publication metadata decision and preview", () => {
     }
   });
 
-  it("calculates only the four package metadata changes for the current sources", async () => {
+  it("calculates only the three package metadata changes for the current sources", async () => {
     const preview = createFirstPublicationMetadataPreview({
       ...(await currentActivationSources()),
       decision: decision(),
@@ -101,7 +101,6 @@ describe("first-publication metadata decision and preview", () => {
       })),
       [
         { field: "repository", currentState: "missing" },
-        { field: "license", currentState: "missing" },
         { field: "publishConfig.registry", currentState: "missing" },
         { field: "publishConfig.provenance", currentState: "missing" },
       ],
