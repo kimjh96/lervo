@@ -29,13 +29,13 @@ Each benchmark used five paired build warmups, 30 recorded build pairs, five war
 
 Fresh report `spreport_26459fd63fcc0715869860bd` binds suite hash `sha256:f657d6ed400d9e4503358b84ee4056bd702e62f3cb9034ae0f5fe018a4dd29b9`.
 
-| Metric | `lexical-v1` | `local-hybrid-v1` | Difference or ratio |
-| --- | ---: | ---: | ---: |
-| Success@10 | 19/20 (95.00%) | 19/20 (95.00%) | 0 cases / 0.00 points |
-| Mean Recall@10 | 90.00% | 90.00% | 0.00 points |
-| MRR | 72.50% | 80.00% | +7.50 points |
-| Build p95 | 22.138 ms | 59.281 ms | 2.678x slower |
-| Warm-query p95 | 2.338 ms | 2.622 ms | 1.122x slower |
+| Metric         |   `lexical-v1` | `local-hybrid-v1` |   Difference or ratio |
+| -------------- | -------------: | ----------------: | --------------------: |
+| Success@10     | 19/20 (95.00%) |    19/20 (95.00%) | 0 cases / 0.00 points |
+| Mean Recall@10 |         90.00% |            90.00% |           0.00 points |
+| MRR            |         72.50% |            80.00% |          +7.50 points |
+| Build p95      |      22.138 ms |         59.281 ms |         2.678x slower |
+| Warm-query p95 |       2.338 ms |          2.622 ms |         1.122x slower |
 
 The candidate improved first relevant rank in four cases and regressed in none. Both engines failed the same user-owned managed-block boundary case. The candidate added no successes or recall gains, and all four task-type coverage gates failed. Observed cost passed; quality failed.
 
@@ -43,13 +43,13 @@ The candidate improved first relevant rank in four cases and regressed in none. 
 
 Fresh report `spreport_653c0ebdc73991267597ffbb` binds suite hash `sha256:9ca1bd8694696de1ca934bd0f6a7888fd4ddb4818a969e72366f60e91d74ce86`.
 
-| Metric | `lexical-v1` | `local-hybrid-v1` | Difference or ratio |
-| --- | ---: | ---: | ---: |
-| Success@10 | 17/20 (85.00%) | 18/20 (90.00%) | +1 case / +5.00 points |
-| Mean Recall@10 | 82.50% | 87.50% | +5.00 points |
-| MRR | 39.40% | 60.55% | +21.15 points |
-| Build p95 | 22.555 ms | 63.831 ms | 2.830x slower |
-| Warm-query p95 | 4.088 ms | 4.477 ms | 1.095x |
+| Metric         |   `lexical-v1` | `local-hybrid-v1` |    Difference or ratio |
+| -------------- | -------------: | ----------------: | ---------------------: |
+| Success@10     | 17/20 (85.00%) |    18/20 (90.00%) | +1 case / +5.00 points |
+| Mean Recall@10 |         82.50% |            87.50% |           +5.00 points |
+| MRR            |         39.40% |            60.55% |          +21.15 points |
+| Build p95      |      22.555 ms |         63.831 ms |          2.830x slower |
+| Warm-query p95 |       4.088 ms |          4.477 ms |                 1.095x |
 
 The candidate recovered the agent-workspace status case, improved first relevant rank in 12 other cases, and regressed the selected-skill evidence-boundary case from rank 5 to rank 10. Only the status, continuation, and impact coverage gate passed; the other three failed. Aggregate quality failed because the candidate added one rather than two successes and improved Success@10 by 5 rather than 10 percentage points. Observed cost passed.
 
@@ -57,17 +57,17 @@ The candidate recovered the agent-workspace status case, improved first relevant
 
 Korean-framed queries outscored English controls for both engines, but this does not demonstrate Korean understanding. Most Korean tokens have no corpus match, while common English framing can elevate competing documents; more matched natural-language framing can therefore weaken a precise repository anchor.
 
-Engine retrieval and conversational grounding are separate. This comparison does not test `OO 작업 하자` without an English anchor, prior-turn resolution, workstream continuation, approval authority, abstention, or answer correctness; those belong to the grounding suite.
+Engine retrieval and conversational grounding are separate. This comparison does not test a Korean request such as “let's do the OO task” without an English anchor, prior-turn resolution, workstream continuation, approval authority, abstention, or answer correctness; those belong to the grounding suite.
 
 ## Korean-only historical-rationale diagnosis
 
 Three public discovery probes removed every English repository anchor and targeted `docs/decisions/knowledge/repository/0199-structured-workstream-continuation-state.md`. Operational `lexical-v1` returned no hits for all three. A bounded replay through the inactive candidate used the same corpus and adapter build `sebuild_d6030922734befd7cc0ac85b`:
 
-| Probe | `lexical-v1` target rank | `local-hybrid-v1` target rank |
-| --- | ---: | ---: |
-| Why the prior work state continues into the next conversation | None | 15 |
-| Why current state is stored separately for continuation | None | Outside top 50 |
-| Why prior work can continue in a new conversation | None | Outside top 50 |
+| Probe                                                         | `lexical-v1` target rank | `local-hybrid-v1` target rank |
+| ------------------------------------------------------------- | -----------------------: | ----------------------------: |
+| Why the prior work state continues into the next conversation |                     None |                            15 |
+| Why current state is stored separately for continuation       |                     None |                Outside top 50 |
+| Why prior work can continue in a new conversation             |                     None |                Outside top 50 |
 
 The target ADR contains no Hangul. The candidate hashes words, adjacent pairs, and character trigrams but has no translation-equivalence input. Fusion-weight tuning cannot recover the two targets absent from both top-50 branches, while promoting collision-derived similarity would weaken determinism without establishing semantics.
 

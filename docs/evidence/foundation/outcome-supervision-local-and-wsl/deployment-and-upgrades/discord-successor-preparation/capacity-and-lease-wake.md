@@ -4,7 +4,7 @@
 
 Fourteenth goal `wks_da5314d48a7c4561c0a222ba` started 15649 under `supervision.discord.acceptance.next14`, installation 15650, mandate `sha256:736fffe79b878b46683f7f0d9515d32a5c19b7a025de22a4d4087080652d79b7`. Same request bound locally at 15651 while stopped. Service started at 2026-09-14 14:21:24 UTC on `4b536009`; `/goal` reached `#lervo` at 14:22:10 while the fence was free before first cycle.
 
-Within about 50 seconds both acknowledgement and reply showed `origin_conflict`: “현재 목표에는 이미 다른 요청이 연결되어 있어 이 요청을 연결하지 않았습니다. 새 요청은 별도 목표로 접수해야 합니다.” No untyped error or second `work.supervision.bound` appeared. Local allocation, claim 15686, workspace, and dispatch 15692 continued. Installed refusal observations now included old untyped expiry, `owner_busy`, `workstream_inactive`, and `origin_conflict`.
+Within about 50 seconds both acknowledgement and reply showed `origin_conflict`: the Korean refusal “Another request is already connected to the current goal, so this request was not connected. Submit the new request as a separate goal.” No untyped error or second `work.supervision.bound` appeared. Local allocation, claim 15686, workspace, and dispatch 15692 continued. Installed refusal observations now included old untyped expiry, `owner_busy`, `workstream_inactive`, and `origin_conflict`.
 
 An operator click first opened channel settings and typed into the topic field. It was cleared and the dialog closed without saving before sending from the message composer.
 

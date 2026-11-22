@@ -197,6 +197,24 @@ async function validateGenerated(repositoryRoot, version) {
     );
 }
 
+/** The failing step's last output line, so a CI log names the cause without the full output. */
+function failureDetail(error) {
+  // pnpm echoes `$ <script>` on stderr while tools such as tsc report on stdout, so a stream with
+  // only pnpm's own lines falls through to the next one.
+  for (const value of [error?.stderr, error?.stdout, error?.message]) {
+    const text = typeof value === "string" ? value : value?.toString?.("utf8");
+    if (typeof text !== "string") continue;
+    const line = text
+      .replaceAll(/\u001b\[[0-9;]*m/gu, "")
+      .split("\n")
+      .map((entry) => entry.trim())
+      .filter((entry) => entry.length > 0 && !/^(\[ELIFECYCLE\]|\$ |> \S+@\S+ )/u.test(entry))
+      .at(-1);
+    if (line !== undefined) return ` Cause: ${line.slice(0, 500)}`;
+  }
+  return "";
+}
+
 export async function applyReleasePreparation(input) {
   if (input.approval !== input.plan.planId)
     throw new ReleasePreparationError(
@@ -227,9 +245,14 @@ export async function applyReleasePreparation(input) {
         maxBuffer: 8 * 1024 * 1024,
       });
     });
+  let step = "file operations";
   try {
     await applyFileOperations(input.plan);
-    for (const [command, args] of input.plan.ownedCommands) await runOwned(command, args);
+    for (const [command, args] of input.plan.ownedCommands) {
+      step = [command, ...args].join(" ");
+      await runOwned(command, args);
+    }
+    step = "generated metadata validation";
     await validateGenerated(input.plan.repositoryRoot, input.plan.nextVersion);
     return {
       schemaVersion: 1,
@@ -264,7 +287,8 @@ export async function applyReleasePreparation(input) {
       ? error
       : new ReleasePreparationError(
           "release_preparation_failed",
-          "Release preparation failed and tracked inputs were restored.",
+          `Release preparation failed at \`${step}\` and tracked inputs were restored.` +
+            failureDetail(error),
         );
   }
 }

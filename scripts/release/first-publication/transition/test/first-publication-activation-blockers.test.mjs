@@ -25,7 +25,7 @@ describe("first-publication activation blocker report", () => {
       [
         { id: "package_identity", status: "ready" },
         { id: "repository_metadata", status: "blocked" },
-        { id: "license_metadata", status: "blocked" },
+        { id: "license_metadata", status: "ready" },
         { id: "publication_metadata", status: "blocked" },
       ],
     );

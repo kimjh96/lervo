@@ -2,7 +2,7 @@
 
 ## Observed turn
 
-At 01:23:25 UTC, the owner posted human-authored `테스트 전송` in Discord `#general`, channel `1546479355771883612`: message `1555027323827396720`.
+At 01:23:25 UTC, the owner posted a human-authored test message in the Discord `#general` channel.
 
 WSL inbox event `cve_29976cf07e7eef12c86641b9af37fd3ce3ee98a5675fec1f5e0fb65a6d9b2d58` identifies a human actor and completed once without a failure code. The central executive recorded `respond` with reason `owned_human_message`.
 

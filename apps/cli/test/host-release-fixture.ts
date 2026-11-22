@@ -60,6 +60,8 @@ export interface ReleaseFixtureOptions {
   portable?: string[];
   binSource?: string;
   nodeRuntimeSource?: string;
+  /** Extra package files the manifest lists, such as the LICENSE that schema 11 adds. */
+  extraFiles?: [string, Buffer][];
 }
 
 export function releaseFixture(options: ReleaseFixtureOptions = {}): ReleaseFixture {
@@ -84,6 +86,7 @@ export function releaseFixture(options: ReleaseFixtureOptions = {}): ReleaseFixt
   const packageFiles: [string, Buffer][] = [
     ["dist/bin.js", bin],
     ["dist/node-runtime.js", Buffer.from(options.nodeRuntimeSource ?? "export {};\n")],
+    ...(options.extraFiles ?? []),
   ];
   const tarball = ustarArchive([
     ["package/package.json", Buffer.from(`${JSON.stringify(packedPackage, null, 2)}\n`)],

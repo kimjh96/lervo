@@ -166,9 +166,9 @@ describe("trusted publisher readiness contract", () => {
     assert.equal(result.stderr, "");
     const report = JSON.parse(result.stdout);
     assert.equal(report.status, "blocked");
+    // The license is settled (Apache-2.0); repository and registry metadata remain open.
     assert.deepEqual(report.checks[0].reasons, [
       "package_repository_missing",
-      "package_license_unresolved",
       "package_registry_unpinned",
     ]);
     assert.equal(report.checks[1].status, "ready");
