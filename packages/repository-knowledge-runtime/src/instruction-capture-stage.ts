@@ -7,6 +7,7 @@ import {
   type DurableInstructionCatalogInspection,
 } from "@lervo/repository-knowledge";
 import { settleInstructionCapture } from "./instruction-capture-settlement.js";
+import { capturePlanItemsFromAssessment, openPlanItemsForCapture } from "./plan-ledger-capture.js";
 import { preparePracticeCapture, completePracticeCapture } from "./practice-capture.js";
 import { releaseUnattemptedPracticeBudget } from "./practice-budget.js";
 
@@ -126,6 +127,7 @@ export async function runInstructionCaptureCycle(
     catalog ??= inspectDurableInstructionCatalog(await scanConfiguredRepositoryKnowledge(root));
     attempted += 1;
     const practice = await preparePracticeCapture(context, capture).catch(() => null);
+    const openPlanItems = openPlanItemsForCapture(context.storage);
     const call = await assessInstructionCapture({
       context,
       captureId: capture.captureId,
@@ -138,6 +140,7 @@ export async function runInstructionCaptureCycle(
         ownerTurn: capture.ownerTurn,
         precedingAgentTurn: capture.precedingAgentTurn,
         priorCrossCheckDisagreement: capture.crossCheckDisagreement ?? null,
+        openPlanItems,
         semanticCatalog: {
           ...catalog.semanticCatalog,
           pendingOwnerRules: await pendingOwnerRules(root),
@@ -168,6 +171,14 @@ export async function runInstructionCaptureCycle(
                   JSON.stringify((call.value as { practice?: unknown } | null)?.practice ?? null),
                 ),
             );
+      // ADR-0563 S2: the plan items are written on their own; they never change rule capture.
+      capturePlanItemsFromAssessment({
+        storage: context.storage,
+        response: call.value,
+        provider: call.provider,
+        shown: openPlanItems,
+        now,
+      });
       const tokens = (call.usage?.totalTokens ?? 0) - addedPracticeTokens;
       state.budget.tokensToday += tokens;
       counts.usageObserved += tokens;

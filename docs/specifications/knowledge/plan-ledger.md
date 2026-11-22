@@ -4,12 +4,29 @@ This specification holds the item states, events, failure codes and privacy rule
 
 ## Slices
 
-| Slice | Scope                                                                                                                                                                              | State   |
-| ----- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
-| S1    | The ledger: item tree, evidence-only close, schema 9 events, `lervo plan`, and the open items in every turn's context.                                                             | landed  |
-| S2    | Capture: the resident extracts owner directives, stated plans and deferred findings from each new transcript range; uncertain ones stay candidates for an independent cross-check. | planned |
-| S3    | Stop check: the Stop hook blocks a turn that leaves an owner clause, a related item, a stated finding or a delivered health line without action or deferral.                       | planned |
-| S4    | Compaction comparison, missed-item escalation, drift lines, the workstream as a ledger view, and one ledger on every host through the Hub.                                         | planned |
+| Slice | Scope                                                                                                                                                        | State   |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
+| S1    | The ledger: item tree, evidence-only close, schema 9 events, `lervo plan`, and the open items in every turn's context.                                       | landed  |
+| S2    | Capture: the owner-turn assessment of ADR-0467 also returns the work an exchange leaves open, and the resident writes it to the ledger.                      | landed  |
+| S3    | Stop check: the Stop hook blocks a turn that leaves an owner clause, a related item, a stated finding or a delivered health line without action or deferral. | planned |
+| S4    | Compaction comparison, missed-item escalation, drift lines, the workstream as a ledger view, and one ledger on every host through the Hub.                   | planned |
+
+## Capture (S2)
+
+The owner-turn assessment that already reads each owner turn and the preceding agent turn (ADR-0467) also returns `planItems`, at most eight per turn. One call does both, so capture adds no provider call.
+
+- **What counts as an item.**
+  - A `directive` is work the owner asks for, including a task-scoped request that rule capture calls `none`.
+  - A `plan` is a next step the agent committed to.
+  - A `finding` is a defect or gap the agent stated as not fixed yet or deferred.
+  - Questions, status requests, acknowledgements and finished work are not items.
+- **Context.** The assessment sees at most 32 open items, in-progress first. It omits work they already cover and names a parent among them.
+- **States.** `high` confidence is `open`; anything less certain is a `candidate`, which S3 confirms with an independent cross-check. A parent the assessment names is kept only when it was one of the items it was shown.
+- **Source.** Items record origin `transcript` and the provider. The same title under the same parent from any turn is one open item.
+- **Isolation.**
+  - A missing or malformed `planItems` list never fails rule capture. The assessment then records `planItemsFailure: invalid`.
+  - Before schema 9 is active, nothing is written.
+  - A single item that cannot be written is skipped.
 
 ## Items and states
 
