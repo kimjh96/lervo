@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_643a2ccc1015a72028002281"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Lervo no longer loops between untracking the host-local delegation and restoring its ignore file in repositories with a fixed publication scope."

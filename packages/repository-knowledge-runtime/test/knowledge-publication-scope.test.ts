@@ -190,6 +190,21 @@ describe("knowledge publication scope", () => {
     }
   });
 
+  // ADR-0610: on 2026-11-22 the repair restored the ignore line that untracked the delegation,
+  // and the next cycle untracked it again, 14 commits in flemo; every scope admits both paths.
+  it("admits the delegation tracking commit's paths in every scope", () => {
+    for (const scope of [
+      { source: "roots", roots: ["docs/"] },
+      { source: "delegation", roots: [] },
+    ] as const) {
+      expect(knowledgePublicationPathInScope(scope, ".lervo/.gitignore")).toBe(true);
+      expect(
+        knowledgePublicationPathInScope(scope, ".lervo/knowledge/convergence-delegation.json"),
+      ).toBe(true);
+      expect(knowledgePublicationPathInScope(scope, ".gitignore")).toBe(false);
+    }
+  });
+
   // ADR-0594: a normalization rewrite of a skill blocked publication on 2026-11-14; inside the
   // delegation scope a skill still publishes only from practice materialization.
   it("publishes a skill file only from practice materialization", async () => {

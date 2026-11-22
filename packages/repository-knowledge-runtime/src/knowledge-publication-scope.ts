@@ -17,6 +17,15 @@ import {
 export const KNOWLEDGE_PUBLICATION_REPAIR_TRAILER = "Lervo-Publication-Repair";
 
 const MANAGED_KNOWLEDGE_ROOT = ".lervo/knowledge/";
+/**
+ * ADR-0610: the two paths of the commit that keeps the delegation host-local. Lervo writes both,
+ * so every scope admits them; otherwise the repair restores the ignore file and the next cycle
+ * untracks the delegation again, a commit loop.
+ */
+const HOST_LOCAL_TRACKING_PATHS: ReadonlySet<string> = new Set([
+  ".lervo/.gitignore",
+  ".lervo/knowledge/convergence-delegation.json",
+]);
 const FRESHNESS_TRAILER = /^Lervo-Freshness-(Candidate|Revert): (\S+)$/mu;
 const REPAIR_TRAILER = new RegExp(`^${KNOWLEDGE_PUBLICATION_REPAIR_TRAILER}: [0-9a-f]{40}$`, "mu");
 
@@ -58,6 +67,7 @@ export function knowledgePublicationPathInScope(
   scope: KnowledgePublicationScope,
   path: string,
 ): boolean {
+  if (HOST_LOCAL_TRACKING_PATHS.has(path)) return true;
   if (scope.source === "roots") return scope.roots.some((root) => path.startsWith(root));
   return (
     path.startsWith(MANAGED_KNOWLEDGE_ROOT) ||
