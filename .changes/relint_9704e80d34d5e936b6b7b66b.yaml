@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9704e80d34d5e936b6b7b66b"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Validate core-link requests in lervo application serve with a validator compiled at build time, so the CLI bundle carries no schema compiler and keeps only its reviewed dependencies."

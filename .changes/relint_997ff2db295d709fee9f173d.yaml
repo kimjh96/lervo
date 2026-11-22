@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_997ff2db295d709fee9f173d"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add lervo application serve --stdio, the resident Lervo process that the ADE session host starts, which runs workspace commands and decodes Claude Code's structured stream for the native conversation."
