@@ -191,18 +191,44 @@ describe("knowledge publication scope", () => {
   });
 
   // ADR-0610: on 2026-11-22 the repair restored the ignore line that untracked the delegation,
-  // and the next cycle untracked it again, 14 commits in flemo; every scope admits both paths.
-  it("admits the delegation tracking commit's paths in every scope", () => {
-    for (const scope of [
-      { source: "roots", roots: ["docs/"] },
-      { source: "delegation", roots: [] },
-    ] as const) {
-      expect(knowledgePublicationPathInScope(scope, ".lervo/.gitignore")).toBe(true);
+  // and the next cycle untracked it again, 14 commits in flemo. An effect commit is authorized by
+  // its own plan, so the scope neither repairs nor blocks it; a tool-owned path still fails.
+  it("neither repairs nor blocks an effect commit outside the scope", async () => {
+    const root = await checkout(delegation());
+    const scope = { source: "roots" as const, roots: ["docs/"] };
+    const paths = [
+      ".lervo/.gitignore",
+      ".lervo/knowledge/convergence-delegation.json",
+      ".lervo/generated/terminal-hooks/runtime-v2.mjs",
+      "AGENTS.md",
+    ];
+    for (const effect of ["knowledge_migration", "terminal_integration", "repository_layout"])
       expect(
-        knowledgePublicationPathInScope(scope, ".lervo/knowledge/convergence-delegation.json"),
-      ).toBe(true);
-      expect(knowledgePublicationPathInScope(scope, ".gitignore")).toBe(false);
-    }
+        await knowledgePublicationViolations({
+          repositoryRoot: root,
+          commits: [commit("c", paths, `Refresh.\n\nLervo-Effect: ${effect}`)],
+          scope,
+          toolGenerated: new Set(),
+        }),
+      ).toEqual([]);
+    const unknown = commit("d", ["AGENTS.md"], "Refresh.\n\nLervo-Effect: something_else");
+    expect(
+      await knowledgePublicationViolations({
+        repositoryRoot: root,
+        commits: [unknown],
+        scope,
+        toolGenerated: new Set(),
+      }),
+    ).toEqual([{ path: "AGENTS.md", reason: "outside_scope", commit: unknown.sha }]);
+    const tool = commit("f", ["src/tool.ts"], "Refresh.\n\nLervo-Effect: knowledge_migration");
+    expect(
+      await knowledgePublicationViolations({
+        repositoryRoot: root,
+        commits: [tool],
+        scope,
+        toolGenerated: new Set(["src/tool.ts"]),
+      }),
+    ).toEqual([{ path: "src/tool.ts", reason: "tool_generated", commit: tool.sha }]);
   });
 
   // ADR-0594: a normalization rewrite of a skill blocked publication on 2026-11-14; inside the
