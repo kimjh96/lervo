@@ -151,6 +151,22 @@ export function evaluateHostedSessionContract(
         `${where}: sessionIdBinding is declared, but the launch omits the session ID`,
       );
   }
+  if (adapter.capabilities.nativeConversation !== hasStreamDecoder(adapter))
+    violations.push(
+      `${adapter.provider}: nativeConversation and a stream decoder must come together`,
+    );
+  if (hasStreamDecoder(adapter)) {
+    const sent = adapter.createStreamDecoder().send(instruction);
+    if (sent.input.length === 0)
+      violations.push(`${adapter.provider}: the decoder sends no bytes for the user's text`);
+    const shown = sent.events.some(
+      (event) =>
+        event.kind === "item" &&
+        event.content.kind === "user_message" &&
+        event.content.text === instruction,
+    );
+    if (!shown) violations.push(`${adapter.provider}: the decoder does not show the user's text`);
+  }
   for (const [mode, unsupported] of [
     ["native", !adapter.capabilities.nativeConversation],
     ["resume", !adapter.capabilities.resume],
@@ -170,4 +186,56 @@ export function evaluateHostedSessionContract(
     }
   }
   return violations;
+}
+
+/** What a conversation item holds. Tool activity never holds tool inputs or outputs. */
+export type HostedDecodedContent =
+  | { readonly kind: "user_message" | "agent_message" | "question"; readonly text: string }
+  | {
+      readonly kind: "tool_activity";
+      readonly name: string;
+      readonly status: "running" | "succeeded" | "failed";
+      readonly calls: number;
+    }
+  | {
+      readonly kind: "lervo_notice";
+      readonly code: string;
+      readonly parameters: Readonly<Record<string, string | number | boolean>>;
+    };
+
+/** One decoded change, in the order the session host applies it (the core-link protocol). */
+export type HostedDecodedEvent =
+  | { readonly kind: "status"; readonly event: "turn_started" | "question_asked" | "turn_finished" }
+  | {
+      readonly kind: "item" | "start";
+      readonly content: HostedDecodedContent;
+      readonly createdAtMs: number;
+    }
+  | { readonly kind: "delta"; readonly text: string }
+  | { readonly kind: "finish" };
+
+/**
+ * Translates one native conversation between the provider's structured stream and common
+ * conversation events. It keeps its own state, such as a partial line, for one session.
+ */
+export interface HostedStreamDecoder {
+  /** The bytes for the provider's standard input, and what to show for the user's text. */
+  send(text: string): {
+    readonly input: Uint8Array;
+    readonly events: readonly HostedDecodedEvent[];
+  };
+  /** Decodes a chunk of standard output. A chunk may end anywhere, even inside a character. */
+  output(chunk: Uint8Array): readonly HostedDecodedEvent[];
+}
+
+/** A hosted-session adapter whose provider supports the native conversation. */
+export interface HostedStreamDecoding {
+  createStreamDecoder(): HostedStreamDecoder;
+}
+
+/** Whether `adapter` can decode the native conversation it declares. */
+export function hasStreamDecoder(
+  adapter: HostedSessionAdapter,
+): adapter is HostedSessionAdapter & HostedStreamDecoding {
+  return typeof (adapter as Partial<HostedStreamDecoding>).createStreamDecoder === "function";
 }
