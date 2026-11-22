@@ -691,4 +691,19 @@ describe("pnpmInstaller", () => {
     },
     120_000,
   );
+
+  it("names a pnpm that cannot start in the install log instead of leaving it empty", async () => {
+    const home = await temporaryHome();
+    const directory = resolve(home, "staging");
+    await mkdir(directory, { recursive: true });
+    const logPath = resolve(directory, "install.log");
+    vi.stubEnv("PATH", resolve(home, "no-tools"));
+    await expect(
+      createPnpmInstaller("http://127.0.0.1:9/")({ directory, logPath }),
+    ).rejects.toThrow();
+    const log = await readFile(logPath, "utf8");
+    expect(log).toContain("lervo: pnpm install failed:");
+    expect(log).toContain("ENOENT");
+    expect(log).toContain(`PATH=${resolve(home, "no-tools")}`);
+  });
 });

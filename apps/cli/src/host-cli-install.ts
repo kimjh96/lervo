@@ -324,7 +324,12 @@ export function createPnpmInstaller(registry: string = RELEASE_REGISTRY): HostCl
           const text = `${stdout}${stderr}`;
           if (error === null) resolvePromise(text);
           else
-            writeFile(logPath, text).then(
+            // A pnpm that could not start (`spawn pnpm ENOENT`) prints nothing, so the log also
+            // names the failure and the search path, or it would be empty.
+            writeFile(
+              logPath,
+              `${text}${text.endsWith("\n") || text === "" ? "" : "\n"}lervo: pnpm install failed: ${error.message}\nPATH=${env.PATH ?? ""}\n`,
+            ).then(
               () => reject(error),
               () => reject(error),
             );
