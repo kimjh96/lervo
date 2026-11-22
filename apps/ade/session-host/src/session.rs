@@ -22,6 +22,9 @@ use lervo_session_core::ports::ConversationMode;
 pub const ENDED_RETENTION: Duration = Duration::from_secs(10 * 60);
 const COMMAND_QUEUE: usize = 64;
 
+/// Where a session reports each status change for connections that watch every session.
+pub type StatusSink = mpsc::UnboundedSender<HostMessage>;
+
 /// Where a request's answer goes.
 pub struct Reply(mpsc::UnboundedSender<Outgoing>);
 
@@ -118,10 +121,11 @@ pub struct Fanout {
     sequences: SequenceCounter,
     subscribers: Vec<Subscriber>,
     ended: Arc<AtomicBool>,
+    watchers: StatusSink,
 }
 
 impl Fanout {
-    pub fn new(session: Identifier, handle: &SessionHandle) -> Self {
+    pub fn new(session: Identifier, handle: &SessionHandle, watchers: StatusSink) -> Self {
         Self {
             session,
             status: SessionStatus::Starting,
@@ -129,6 +133,7 @@ impl Fanout {
             sequences: SequenceCounter::new(),
             subscribers: Vec::new(),
             ended: Arc::clone(&handle.ended),
+            watchers,
         }
     }
 
@@ -156,7 +161,9 @@ impl Fanout {
         if next.is_ended() {
             self.ended.store(true, Ordering::Release);
         }
-        self.broadcast(self.status_message());
+        let message = self.status_message();
+        let _ = self.watchers.send(message.clone());
+        self.broadcast(message);
     }
 
     /// Sends `message` to every subscriber and drops those whose connection is gone.

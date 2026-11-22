@@ -21,6 +21,7 @@ fn main() -> ExitCode {
         outgoing: tokio::sync::Mutex::new(None),
     };
     let result = tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
         .manage(relay)
         .invoke_handler(tauri::generate_handler![
             commands::host_connect,

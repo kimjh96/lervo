@@ -16,7 +16,7 @@ use tokio::sync::mpsc;
 
 use crate::items::to_wire;
 use crate::messages;
-use crate::session::{Command, Fanout, Range, SessionHandle, linger};
+use crate::session::{Command, Fanout, Range, SessionHandle, StatusSink, linger};
 use lervo_session_core::ports::{ConversationMode, Decoded, Launch, StreamDecoder};
 
 /// Bytes of sealed segments one session keeps in memory.
@@ -51,6 +51,7 @@ pub fn start<D: StreamDecoder>(
     channel: u32,
     decoder: D,
     indexes: &IndexPlace<'_>,
+    watchers: StatusSink,
 ) -> Result<SessionHandle, StartError> {
     let directory: PathBuf = indexes.root.join(session.as_str());
     retention::touch(&directory)?;
@@ -66,7 +67,7 @@ pub fn start<D: StreamDecoder>(
     })?;
     let (handle, commands) = SessionHandle::new(ConversationMode::Native, channel);
     let actor = Native {
-        fanout: Fanout::new(session, &handle),
+        fanout: Fanout::new(session, &handle, watchers),
         initial_input: launch.initial_input.clone(),
         transcript: Transcript::new(store.len()),
         store: Some(store),

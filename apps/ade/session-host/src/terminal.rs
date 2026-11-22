@@ -10,7 +10,7 @@ use lervo_session_pty::{PtyCommand, PtyError, PtyProcess};
 use tokio::sync::mpsc;
 
 use crate::messages;
-use crate::session::{Command, Fanout, SessionHandle, linger};
+use crate::session::{Command, Fanout, SessionHandle, StatusSink, linger};
 use lervo_session_core::ports::{ConversationMode, Launch};
 
 const INITIAL_COLUMNS: u16 = 120;
@@ -21,6 +21,7 @@ pub fn start(
     launch: &Launch,
     session: Identifier,
     channel: u32,
+    watchers: StatusSink,
 ) -> Result<SessionHandle, PtyError> {
     let process = PtyProcess::spawn(&PtyCommand {
         program: launch.program.clone(),
@@ -32,7 +33,7 @@ pub fn start(
     })?;
     let (handle, commands) = SessionHandle::new(ConversationMode::Cli, channel);
     let actor = Terminal {
-        fanout: Fanout::new(session, &handle),
+        fanout: Fanout::new(session, &handle, watchers),
         channel,
         scrollback: Scrollback::new(DEFAULT_SCROLLBACK_BYTES),
     };

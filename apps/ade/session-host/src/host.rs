@@ -17,7 +17,7 @@ use lervo_session_transport::token::Token;
 use tokio::sync::mpsc;
 
 use crate::messages;
-use crate::session::{Command, Range, Reply, SessionHandle};
+use crate::session::{Command, Range, Reply, SessionHandle, StatusSink};
 use crate::subscriber::{Outgoing, Subscriber};
 use crate::{native, terminal};
 use lervo_session_core::ports::{ConversationMode, Core, Launch};
@@ -39,6 +39,32 @@ impl Registry {
     }
 }
 
+/// The latest status of each session, and the connections that watch every session.
+#[derive(Default)]
+struct Watch {
+    statuses: HashMap<Identifier, HostMessage>,
+    connections: Vec<(u64, mpsc::UnboundedSender<Outgoing>)>,
+}
+
+impl Watch {
+    fn record(&mut self, message: HostMessage) {
+        let HostMessage::SessionStatusMessage(status) = &message else {
+            return;
+        };
+        self.statuses
+            .insert(status.session_id.clone(), message.clone());
+        self.connections
+            .retain(|(_, outgoing)| outgoing.send(control(message.clone())).is_ok());
+    }
+}
+
+fn control(message: HostMessage) -> Outgoing {
+    Outgoing::Control {
+        message,
+        budget: None,
+    }
+}
+
 /// The running session host: its core port, identity, token, and sessions.
 pub struct Host<C> {
     pub core: C,
@@ -47,6 +73,8 @@ pub struct Host<C> {
     pub identity: HostIdentity,
     indexes: PathBuf,
     registry: Mutex<Registry>,
+    watch: Arc<Mutex<Watch>>,
+    watchers: StatusSink,
     next_channel: AtomicU32,
 }
 
@@ -58,6 +86,14 @@ impl<C: Core> Host<C> {
         identity: HostIdentity,
         indexes: PathBuf,
     ) -> Self {
+        let watch = Arc::new(Mutex::new(Watch::default()));
+        let (watchers, mut changes) = mpsc::unbounded_channel();
+        let recording = Arc::clone(&watch);
+        tokio::spawn(async move {
+            while let Some(message) = changes.recv().await {
+                lock(&recording).record(message);
+            }
+        });
         Self {
             core,
             codec,
@@ -65,6 +101,8 @@ impl<C: Core> Host<C> {
             identity,
             indexes,
             registry: Mutex::new(Registry::default()),
+            watch,
+            watchers,
             next_channel: AtomicU32::new(1),
         }
     }
@@ -117,6 +155,16 @@ impl<C: Core> Host<C> {
                 self.request(&attach.session_id, &attach.request_id, command, &reply)
                     .await;
             }
+            ClientMessage::SessionsWatchMessage(_) => {
+                let mut watch = lock(&self.watch);
+                for message in watch.statuses.values() {
+                    let _ = outgoing.send(control(message.clone()));
+                }
+                watch
+                    .connections
+                    .retain(|(watcher, _)| *watcher != connection);
+                watch.connections.push((connection, outgoing.clone()));
+            }
             ClientMessage::SessionDetachMessage(detach) => {
                 self.send(&detach.session_id, Command::Detach { connection })
                     .await;
@@ -167,6 +215,9 @@ impl<C: Core> Host<C> {
 
     /// Detaches `connection` from every session.
     pub async fn detach_all(&self, connection: u64) {
+        lock(&self.watch)
+            .connections
+            .retain(|(watcher, _)| *watcher != connection);
         let sessions: Vec<_> = self.lock().sessions.values().cloned().collect();
         for session in sessions {
             session.send(Command::Detach { connection }).await;
@@ -206,6 +257,9 @@ impl<C: Core> Host<C> {
         };
         let mut registry = self.lock();
         registry.prune();
+        lock(&self.watch)
+            .statuses
+            .retain(|session, _| registry.sessions.contains_key(session));
         if let Some(running) = registry
             .sessions
             .get(&session)
@@ -215,8 +269,10 @@ impl<C: Core> Host<C> {
         }
         let channel = self.next_channel.fetch_add(1, Ordering::Relaxed);
         let started = match launch.mode {
-            ConversationMode::Cli => terminal::start(launch, session.clone(), channel)
-                .map_err(|_| RequestFailedMessageCode::ProviderCliUnavailable),
+            ConversationMode::Cli => {
+                terminal::start(launch, session.clone(), channel, self.watchers.clone())
+                    .map_err(|_| RequestFailedMessageCode::ProviderCliUnavailable)
+            }
             ConversationMode::Native => native::start(
                 launch,
                 session.clone(),
@@ -230,6 +286,7 @@ impl<C: Core> Host<C> {
                         .map(|id| id.as_str())
                         .collect::<Vec<_>>(),
                 },
+                self.watchers.clone(),
             )
             .map_err(|error| match error {
                 native::StartError::Process(_) => RequestFailedMessageCode::ProviderCliUnavailable,
@@ -250,9 +307,7 @@ impl<C: Core> Host<C> {
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Registry> {
-        self.registry
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
+        lock(&self.registry)
     }
 }
 
@@ -264,4 +319,10 @@ fn opened(
 ) -> HostMessage {
     let channel = NonZeroU64::new(u64::from(handle.channel)).unwrap_or(NonZeroU64::MIN);
     messages::opened(request, session, workspace, handle.mode, channel)
+}
+
+fn lock<T>(mutex: &Mutex<T>) -> std::sync::MutexGuard<'_, T> {
+    mutex
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner)
 }

@@ -378,3 +378,45 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();
 }
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reports_every_session_status_to_a_watching_connection_without_output() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut watcher = Client::connect(&layout).await;
+    watcher.send(json!({"kind": "sessions.watch"})).await;
+
+    let mut opener = Client::connect(&layout).await;
+    opener
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_1"}))
+        .await;
+    assert!(matches!(
+        opener.next_message().await,
+        HostMessage::SessionOpenedMessage(_)
+    ));
+
+    let mut statuses = Vec::new();
+    while statuses.last() != Some(&SessionStatusMessageStatus::Ended) {
+        match watcher.next().await {
+            Incoming::Control(payload) => match watcher.codec.decode_host(&payload).unwrap() {
+                HostMessage::SessionStatusMessage(status) => {
+                    assert_eq!(status.session_id.as_str(), "ses_1");
+                    statuses.push(status.status);
+                }
+                other => panic!("unexpected {other:?}"),
+            },
+            Incoming::Terminal { .. } => panic!("a watching connection received output"),
+        }
+    }
+    assert_eq!(statuses.first(), Some(&SessionStatusMessageStatus::Idle));
+
+    let mut late = Client::connect(&layout).await;
+    late.send(json!({"kind": "sessions.watch"})).await;
+    let HostMessage::SessionStatusMessage(snapshot) = late.next_message().await else {
+        panic!("expected the current status")
+    };
+    assert_eq!(snapshot.status, SessionStatusMessageStatus::Ended);
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}

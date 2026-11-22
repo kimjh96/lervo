@@ -1,7 +1,11 @@
 .start {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-16);
+  justify-content: center;
+  width: min(var(--layout-content-max-width), calc(100% - var(--space-48)));
   height: 100%;
-  place-items: center;
+  margin: 0 auto;
 }
 
 .question {
@@ -10,4 +14,87 @@
   font-size: var(--type-display-size);
   font-weight: var(--type-display-weight);
   line-height: var(--type-display-line-height);
+}
+
+.instruction {
+  padding: var(--space-14) var(--space-16);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-size: var(--type-input-size);
+  line-height: var(--type-input-line-height);
+  background: var(--color-surface-input);
+  resize: none;
+}
+
+.instruction:focus-visible,
+.options select:focus-visible,
+.submit:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-8);
+  align-items: center;
+}
+
+.options select {
+  padding: var(--space-6) var(--space-10);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--type-meta-size);
+  background: var(--color-surface-input);
+}
+
+.submit {
+  margin-left: auto;
+  padding: var(--space-8) var(--space-16);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-on-accent);
+  font: inherit;
+  font-size: var(--type-list-size);
+  font-weight: 600;
+  background: var(--color-accent);
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.hint,
+.error {
+  margin: 0;
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+  animation: appear var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.hint {
+  color: var(--color-text-tertiary);
+}
+
+.error {
+  color: var(--color-status-failed);
+}
+
+@keyframes appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hint,
+  .error {
+    animation: none;
+  }
 }

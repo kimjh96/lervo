@@ -29,16 +29,162 @@
       "value": "Lervo could not start its session host"
     }
   ],
+  "notifications.finished": [
+    {
+      "type": 0,
+      "value": "Finished its turn"
+    }
+  ],
+  "notifications.needsYou": [
+    {
+      "type": 0,
+      "value": "Needs you"
+    }
+  ],
+  "start.error.application_unavailable": [
+    {
+      "type": 0,
+      "value": "Lervo is not reachable on this computer."
+    }
+  ],
+  "start.error.conversation_mode_unsupported": [
+    {
+      "type": 0,
+      "value": "This agent runs only in the terminal. Choose Terminal."
+    }
+  ],
+  "start.error.provider_cli_unavailable": [
+    {
+      "type": 0,
+      "value": "The agent's CLI was not found on this computer."
+    }
+  ],
+  "start.error.session_host_unavailable": [
+    {
+      "type": 0,
+      "value": "Lervo is not connected to this computer."
+    }
+  ],
+  "start.error.workspace_start_failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not create the workspace. Nothing was left behind."
+    }
+  ],
+  "start.instruction.label": [
+    {
+      "type": 0,
+      "value": "Instruction"
+    }
+  ],
+  "start.instruction.placeholder": [
+    {
+      "type": 0,
+      "value": "Describe the change, the bug, or the question"
+    }
+  ],
+  "start.mode.cli": [
+    {
+      "type": 0,
+      "value": "Terminal"
+    }
+  ],
+  "start.mode.label": [
+    {
+      "type": 0,
+      "value": "Conversation"
+    }
+  ],
+  "start.mode.native": [
+    {
+      "type": 0,
+      "value": "Conversation view"
+    }
+  ],
+  "start.provider.claude": [
+    {
+      "type": 0,
+      "value": "Claude Code"
+    }
+  ],
+  "start.provider.codex": [
+    {
+      "type": 0,
+      "value": "Codex CLI"
+    }
+  ],
+  "start.provider.label": [
+    {
+      "type": 0,
+      "value": "Agent"
+    }
+  ],
   "start.question": [
     {
       "type": 0,
       "value": "What should we work on?"
     }
   ],
+  "start.repository.label": [
+    {
+      "type": 0,
+      "value": "Repository"
+    }
+  ],
+  "start.repository.none": [
+    {
+      "type": 0,
+      "value": "Register a repository with lervo repository register to start work."
+    }
+  ],
+  "start.starting": [
+    {
+      "type": 0,
+      "value": "Starting"
+    }
+  ],
+  "start.submit": [
+    {
+      "type": 0,
+      "value": "Start"
+    }
+  ],
+  "workspace.meta": [
+    {
+      "type": 1,
+      "value": "repository"
+    },
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "branch"
+    }
+  ],
   "workspaces.empty": [
     {
       "type": 0,
       "value": "No workspaces yet"
+    }
+  ],
+  "workspaces.new": [
+    {
+      "type": 0,
+      "value": "New"
+    }
+  ],
+  "workspaces.status.needsYou": [
+    {
+      "type": 0,
+      "value": "Needs you"
+    }
+  ],
+  "workspaces.status.working": [
+    {
+      "type": 0,
+      "value": "Working"
     }
   ],
   "workspaces.title": [

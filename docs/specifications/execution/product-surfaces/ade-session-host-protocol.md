@@ -59,6 +59,7 @@ The session host removes the socket and the token when it shuts down. Its sessio
 - A client records the last sequence it applied. After a reconnection, `session.attach` with `afterSequence` makes the session host send what the client missed, then the current status:
   - for the CLI conversation, the scrollback after that sequence that it still holds;
   - for the native conversation, the item that is still streaming, if any. The client loads the items it missed with `conversation.range` after its last item. Clients keep items by `itemId`, so an item that arrives twice replaces itself.
+- `sessions.watch` makes the session host send the latest `session.status` of every session it holds, and then each status change, to that connection until it closes. The workspace list uses it, so it shows live status without receiving any session's output.
 - An ended session still answers `session.attach` and `conversation.range` for 10 minutes. After that, `session.open` starts the session again.
 - The session host buffers at most 4 MiB per client and session. When a client falls further behind, the session host drops that client's terminal frames for the session and sends `session.resync_required`. The client then attaches again.
 
@@ -71,6 +72,7 @@ The session host removes the socket and the token when it shuts down. Its sessio
 | `session.open`        | Starts the agent session of an existing workspace.                                              |
 | `session.attach`      | Subscribes to a session from a sequence.                                                        |
 | `session.detach`      | Ends the subscription. The session keeps running.                                               |
+| `sessions.watch`      | Subscribes to the status of every session, without output.                                      |
 | `session.send`        | Sends the user's text to the native conversation.                                               |
 | `session.resize`      | Sets the CLI conversation's terminal size.                                                      |
 | `session.stop`        | Stops the agent session.                                                                        |

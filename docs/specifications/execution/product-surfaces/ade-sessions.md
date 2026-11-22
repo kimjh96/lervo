@@ -71,6 +71,12 @@ Each adapter that declares `nativeConversation` provides a stream decoder, and t
 
 The native conversation's structured stream carries the same kinds of events that ADR-0010 reads. It still records hosted observations only. A native hosted session can claim an E3 receipt only after the provider adapter's common contract tests prove the same controlled-input coordinates that ADR-0010 requires.
 
+## Live status and notifications
+
+- The workspace list shows a workspace's status from `sessions.watch`. Only `working` and `needs_user` have a color, as the visual language defines; every dot has a text equivalent.
+- A desktop notification appears when a session turns to `needs_user`, or from `working` to `idle`, which means the agent finished its turn. Nothing notifies for the workspace the user is looking at in a focused window, or for a status the interface saw first after connecting.
+- A notification holds the workspace title and a catalog message, never conversation text.
+
 ## Conversation index
 
 - The session host keeps one conversation index per session: segment files of 256 encoded items each, written as length-prefixed records.

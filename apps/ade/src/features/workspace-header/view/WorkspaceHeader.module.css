@@ -1,0 +1,23 @@
+.header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: var(--layout-header-height);
+  padding: var(--space-8) var(--space-24);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.title {
+  margin: 0;
+  color: var(--color-text-primary);
+  font-size: var(--type-title-size);
+  font-weight: var(--type-title-weight);
+  line-height: var(--type-title-line-height);
+}
+
+.meta {
+  margin: 0;
+  color: var(--color-text-tertiary);
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}

@@ -1,16 +1,34 @@
 import { createContext, type ReactNode, useContext } from "react";
 
-import type { SessionHostClient } from "../platform/session-host";
+import type { ApplicationCommands, SessionHostClient } from "../platform/session-host";
 
-const SessionHostContext = createContext<SessionHostClient | null>(null);
+interface SessionHost {
+  readonly client: SessionHostClient;
+  readonly commands: ApplicationCommands;
+}
 
-export function SessionHostProvider(props: { client: SessionHostClient; children: ReactNode }) {
-  return <SessionHostContext value={props.client}>{props.children}</SessionHostContext>;
+const SessionHostContext = createContext<SessionHost | null>(null);
+
+export function SessionHostProvider(props: SessionHost & { children: ReactNode }) {
+  return (
+    <SessionHostContext value={{ client: props.client, commands: props.commands }}>
+      {props.children}
+    </SessionHostContext>
+  );
+}
+
+function useSessionHost(): SessionHost {
+  const host = useContext(SessionHostContext);
+  if (host === null) throw new Error("This component needs a SessionHostProvider.");
+  return host;
 }
 
 /** The interface's one session-host client. Features receive it, never create one. */
 export function useSessionHostClient(): SessionHostClient {
-  const client = useContext(SessionHostContext);
-  if (client === null) throw new Error("useSessionHostClient needs a SessionHostProvider.");
-  return client;
+  return useSessionHost().client;
+}
+
+/** Application commands through the session host and the Lervo core. */
+export function useApplicationCommands(): ApplicationCommands {
+  return useSessionHost().commands;
 }
