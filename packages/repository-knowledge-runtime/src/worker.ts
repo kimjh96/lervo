@@ -147,24 +147,10 @@ export async function runAutonomousKnowledgeWorker(input: {
       return runTerminalSkillObservationCycle({ storage: input.storage, now: new Date() });
     }),
   ).catch(() => {});
-  // ADR-0610: every later stage can write or commit in this checkout, so off the base branch the
-  // cycle stops here and the owner's feature-branch or detached work never receives Lervo bytes.
-  // Nothing is lost: pending stages and owner turns stay due until the checkout is back on base.
-  if (!(await checkoutOnBaseBranch(root)).onBase)
-    return { status: "busy", reason: "repository_not_on_base" };
-  // ADR-0610: an older repository still tracks its host-local delegation; untrack it once.
-  await keepConvergenceDelegationHostLocal(root).catch(() => undefined);
   const signal = input.signal ?? new AbortController().signal;
   const liveWorkPending =
     input.liveWorkPending ??
     (async () => hasCurrentForegroundLease(await listAssignments(root), Date.now()));
-  await withProcessCostScope("artifact_retention", () =>
-    compactProjectConvergenceArtifacts(
-      input.storage,
-      async () =>
-        signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
-    ),
-  ).catch(() => undefined);
   const providerQuantum = {
     remaining: input.maximumProviderCallsPerTurn ?? Number.MAX_SAFE_INTEGER,
   };
@@ -197,6 +183,24 @@ export async function runAutonomousKnowledgeWorker(input: {
           : { transport: input.instructionCandidateTransport }),
       }),
     );
+  // ADR-0610: every later stage can write or commit in this checkout, so off the base branch the
+  // cycle stops here and the owner's feature-branch or detached work never receives Lervo bytes.
+  // Owner-turn capture writes no repository bytes, only host state and events, so it still runs:
+  // its queue holds 32 turns for a day, and an owner who stays off base must not lose their rules
+  // or the plan items those turns carry. Every other stage stays due until the checkout is back.
+  if (!(await checkoutOnBaseBranch(root)).onBase) {
+    await ownerTurnWork().catch(() => undefined);
+    return { status: "busy", reason: "repository_not_on_base" };
+  }
+  // ADR-0610: an older repository still tracks its host-local delegation; untrack it once.
+  await keepConvergenceDelegationHostLocal(root).catch(() => undefined);
+  await withProcessCostScope("artifact_retention", () =>
+    compactProjectConvergenceArtifacts(
+      input.storage,
+      async () =>
+        signal.aborted || (await liveWorkPending()) || ((await input.shouldYield?.()) ?? false),
+    ),
+  ).catch(() => undefined);
   const upgradeWaiting = async () => (await input.yieldToUpgrade?.()) ?? false;
   const yieldedToUpgrade = {
     status: "busy",
