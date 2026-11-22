@@ -124,8 +124,13 @@ pub trait Core: Send + Sync + 'static {
     /// The decoder for the provider of `launch`.
     fn decoder(&self, launch: &Launch) -> Self::Decoder;
 
-    /// Prepares the agent session of an existing workspace (`session.open`).
-    fn open(&self, workspace_id: &str) -> impl Future<Output = Result<Launch, Failure>> + Send;
+    /// Prepares the agent session of an existing workspace (`session.open`), in `mode` when the
+    /// interface asks for one and otherwise in the workspace's last mode.
+    fn open(
+        &self,
+        workspace_id: &str,
+        mode: Option<ConversationMode>,
+    ) -> impl Future<Output = Result<Launch, Failure>> + Send;
 
     /// Runs an application command such as `workspace.start` (`application.command`).
     fn command(
@@ -146,7 +151,11 @@ impl Core for Disconnected {
         Self
     }
 
-    async fn open(&self, _workspace_id: &str) -> Result<Launch, Failure> {
+    async fn open(
+        &self,
+        _workspace_id: &str,
+        _mode: Option<ConversationMode>,
+    ) -> Result<Launch, Failure> {
         Err(Failure::new(FailureCode::ApplicationUnavailable))
     }
 

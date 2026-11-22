@@ -1,0 +1,65 @@
+import "@xterm/xterm/css/xterm.css";
+
+import { FitAddon } from "@xterm/addon-fit";
+import { WebglAddon } from "@xterm/addon-webgl";
+import { Terminal as XTerm } from "@xterm/xterm";
+import { useEffect, useRef } from "react";
+
+import { useSessionHostClient } from "../../../app/session-host-context";
+import { terminalThemes } from "../../../design/generated/terminal-theme";
+import { TerminalController } from "../model/controller";
+import styles from "./Terminal.module.css";
+
+const dark = window.matchMedia("(prefers-color-scheme: dark)");
+
+/** The CLI conversation: the provider's own terminal interface, in the terminal theme. */
+export function Terminal(props: { workspaceId: string }) {
+  const client = useSessionHostClient();
+  const container = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const element = container.current;
+    if (element === null) return;
+    const styles = getComputedStyle(document.documentElement);
+    const terminal = new XTerm({
+      fontFamily: styles.getPropertyValue("--font-family-mono"),
+      fontSize: Number.parseFloat(styles.getPropertyValue("--type-mono-size")) || 13,
+      lineHeight: Number.parseFloat(styles.getPropertyValue("--type-mono-line-height")) || 1.4,
+      theme: dark.matches ? terminalThemes.dark : terminalThemes.light,
+      scrollback: 5000,
+      allowProposedApi: false,
+    });
+    const fit = new FitAddon();
+    terminal.loadAddon(fit);
+    terminal.open(element);
+    try {
+      terminal.loadAddon(new WebglAddon());
+    } catch {
+      // Without WebGL, xterm.js keeps its DOM renderer.
+    }
+    const controller = new TerminalController(client, props.workspaceId, {
+      write: (bytes) => terminal.write(bytes),
+    });
+    const encoder = new TextEncoder();
+    const input = terminal.onData((data) => controller.input(encoder.encode(data)));
+    const size = terminal.onResize(({ cols, rows }) => controller.resize(cols, rows));
+    const observer = new ResizeObserver(() => fit.fit());
+    observer.observe(element);
+    const theme = () =>
+      (terminal.options.theme = dark.matches ? terminalThemes.dark : terminalThemes.light);
+    dark.addEventListener("change", theme);
+    fit.fit();
+    void controller.open().then(() => controller.resize(terminal.cols, terminal.rows));
+    terminal.focus();
+    return () => {
+      dark.removeEventListener("change", theme);
+      observer.disconnect();
+      input.dispose();
+      size.dispose();
+      controller.close();
+      terminal.dispose();
+    };
+  }, [client, props.workspaceId]);
+
+  return <div ref={container} className={styles.terminal} />;
+}

@@ -9,8 +9,8 @@ use std::sync::{Arc, Mutex};
 use lervo_session_core::paging::Direction;
 use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_protocol::{
-    ClientMessage, ConversationRangeMessageDirection, HostMessage, Identifier,
-    RequestFailedMessageCode,
+    ClientMessage, ConversationMode as WireMode, ConversationRangeMessageDirection, HostMessage,
+    Identifier, RequestFailedMessageCode,
 };
 use lervo_session_transport::handshake::HostIdentity;
 use lervo_session_transport::token::Token;
@@ -22,11 +22,17 @@ use crate::subscriber::{Outgoing, Subscriber};
 use crate::{native, terminal};
 use lervo_session_core::ports::{ConversationMode, Core, Launch};
 
-/// Sessions by identifier, and the session of each terminal channel.
+/// How long a mode switch waits for the previous provider process to end.
+const STOP_POLLS: u32 = 100;
+const STOP_POLL_INTERVAL: std::time::Duration = std::time::Duration::from_millis(50);
+
+/// Sessions by identifier, the session of each terminal channel, and each workspace's session.
 #[derive(Default)]
 struct Registry {
     sessions: HashMap<Identifier, SessionHandle>,
     channels: HashMap<u32, Identifier>,
+    /// The latest session of each workspace.
+    workspaces: HashMap<Identifier, Identifier>,
 }
 
 impl Registry {
@@ -140,11 +146,14 @@ impl<C: Core> Host<C> {
             ClientMessage::SessionOpenMessage(open) => {
                 let host = Arc::clone(self);
                 tokio::spawn(async move {
-                    let message = match host.core.open(open.workspace_id.as_str()).await {
-                        Ok(launch) => host.open(&open.request_id, &launch),
-                        Err(failure) => messages::core_failed(&open.request_id, &failure),
-                    };
-                    reply.send(message);
+                    let mode = open.conversation_mode.map(|mode| match mode {
+                        WireMode::Native => ConversationMode::Native,
+                        WireMode::Cli => ConversationMode::Cli,
+                    });
+                    reply.send(
+                        host.open_workspace(&open.request_id, &open.workspace_id, mode)
+                            .await,
+                    );
                 });
             }
             ClientMessage::SessionAttachMessage(attach) => {
@@ -247,6 +256,42 @@ impl<C: Core> Host<C> {
         }
     }
 
+    /// The workspace's running session in `mode`, or a session the core prepares. A session that
+    /// runs in another mode stops first, so one provider process serves each workspace.
+    async fn open_workspace(
+        &self,
+        request: &Identifier,
+        workspace: &Identifier,
+        mode: Option<ConversationMode>,
+    ) -> HostMessage {
+        let running = {
+            let registry = self.lock();
+            registry
+                .workspaces
+                .get(workspace)
+                .and_then(|session| {
+                    Some((session.clone(), registry.sessions.get(session)?.clone()))
+                })
+                .filter(|(_, handle)| handle.is_running())
+        };
+        if let Some((session, handle)) = running {
+            if mode.is_none_or(|mode| mode == handle.mode) {
+                return opened(request, &session, workspace, &handle);
+            }
+            handle.send(Command::Stop).await;
+            for _ in 0..STOP_POLLS {
+                if !handle.is_running() {
+                    break;
+                }
+                tokio::time::sleep(STOP_POLL_INTERVAL).await;
+            }
+        }
+        match self.core.open(workspace.as_str(), mode).await {
+            Ok(launch) => self.open(request, &launch),
+            Err(failure) => messages::core_failed(request, &failure),
+        }
+    }
+
     /// Starts the session of `launch`, or confirms it when it already runs.
     fn open(&self, request: &Identifier, launch: &Launch) -> HostMessage {
         let (Some(session), Some(workspace)) = (
@@ -299,6 +344,9 @@ impl<C: Core> Host<C> {
             Ok(handle) => {
                 let message = opened(request, &session, &workspace, &handle);
                 registry.channels.insert(channel, session.clone());
+                registry
+                    .workspaces
+                    .insert(workspace.clone(), session.clone());
                 registry.sessions.insert(session, handle);
                 message
             }

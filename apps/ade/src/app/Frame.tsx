@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { FormattedMessage } from "react-intl";
 
 import { ConnectionStatus } from "../features/connection";
@@ -7,6 +8,11 @@ import { WorkspaceHeader } from "../features/workspace-header";
 import { useWorkspaceStore, WorkspaceList } from "../features/workspaces";
 import styles from "./Frame.module.css";
 import { LogoMark } from "./LogoMark";
+
+// The terminal and its renderer load on first use, so the start screen stays light.
+const Terminal = lazy(() =>
+  import("../features/terminal").then((module) => ({ default: module.Terminal })),
+);
 
 /** The window's layout: the workspace list beside the start screen or the selected workspace. */
 export function Frame() {
@@ -39,9 +45,9 @@ export function Frame() {
                 target={{ workspaceId: selected.workspaceId, sessionId: selected.sessionId }}
               />
             ) : (
-              <p className={styles.pending}>
-                <FormattedMessage id="conversation.cliPending" />
-              </p>
+              <Suspense fallback={null}>
+                <Terminal key={selected.workspaceId} workspaceId={selected.workspaceId} />
+              </Suspense>
             )}
           </>
         )}

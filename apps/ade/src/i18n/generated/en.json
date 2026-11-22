@@ -29,12 +29,6 @@
       "value": "Lervo could not start its session host"
     }
   ],
-  "conversation.cliPending": [
-    {
-      "type": 0,
-      "value": "This workspace runs in the terminal, which the next update shows here."
-    }
-  ],
   "conversation.jumpToLatest": [
     {
       "type": 0,
@@ -299,6 +293,18 @@
     {
       "type": 1,
       "value": "branch"
+    }
+  ],
+  "workspace.mode.cli": [
+    {
+      "type": 0,
+      "value": "Open in terminal"
+    }
+  ],
+  "workspace.mode.native": [
+    {
+      "type": 0,
+      "value": "Open conversation view"
     }
   ],
   "workspaces.empty": [

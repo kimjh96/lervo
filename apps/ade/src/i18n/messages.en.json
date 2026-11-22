@@ -19,10 +19,6 @@
     "defaultMessage": "Lervo could not start its session host",
     "description": "The shell could not find or start the session host."
   },
-  "conversation.cliPending": {
-    "defaultMessage": "This workspace runs in the terminal, which the next update shows here.",
-    "description": "The CLI conversation arrives in S1.5d."
-  },
   "conversation.jumpToLatest": {
     "defaultMessage": "Jump to latest",
     "description": "Returns the conversation to its newest messages."
@@ -158,6 +154,14 @@
   "workspace.meta": {
     "defaultMessage": "{repository} · {branch}",
     "description": "The selected workspace's repository and branch."
+  },
+  "workspace.mode.cli": {
+    "defaultMessage": "Open in terminal",
+    "description": "Switches the workspace to the CLI conversation."
+  },
+  "workspace.mode.native": {
+    "defaultMessage": "Open conversation view",
+    "description": "Switches the workspace to the native conversation."
   },
   "workspaces.empty": {
     "defaultMessage": "No workspaces yet",

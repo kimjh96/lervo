@@ -58,9 +58,3 @@
     display: none;
   }
 }
-
-.pending {
-  margin: var(--space-24);
-  color: var(--color-text-tertiary);
-  font-size: var(--type-meta-size);
-}
