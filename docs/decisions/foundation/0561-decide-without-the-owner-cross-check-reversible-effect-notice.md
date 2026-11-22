@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-02
 Amends: [ADR-0452 open collaboration](0452-open-collaboration-by-default-with-authority-at-consequential-effects.md) (authority at consequential effects), [ADR-0463 document freshness](../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md) (owner authority), [ADR-0557 Tier 0 cross-check](../knowledge/documents/freshness/0557-cross-check-freshness-candidates-in-an-independent-no-capability-session.md), [ADR-0559 layout decision](../knowledge/documents/routing/0559-ask-one-owner-decision-for-a-reviewed-layout-plan.md)
-Amended by: [ADR-0591](../distribution/0591-accept-the-previous-followers-upgrade-arguments.md), [ADR-0610](../knowledge/maintenance/0610-write-lervo-effects-only-on-the-base-branch-as-commits.md) (generated-only effects commit too, only on the base branch)
+Amended by: [ADR-0591](../distribution/0591-accept-the-previous-followers-upgrade-arguments.md)
 Related: [ADR-0453 principal mandate](../coordination/conversations/agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0560 core hardening](0560-remove-unused-subsystems-to-harden-the-core.md)
 
 ## Context
