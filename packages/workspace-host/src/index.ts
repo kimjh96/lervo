@@ -68,6 +68,24 @@ export interface WorkspaceHostAdapter {
   remove(request: WorkspaceRemovalRequest): Promise<WorkspaceHostInspection>;
 }
 
+/** A worktree on a new branch, created at `baseCommit`. */
+export interface WorkspaceBranchProvisionRequest extends WorkspaceProvisionRequest {
+  branch: string;
+}
+
+/** Deletes `branch` only while it still points at `expectedCommit`. */
+export interface WorkspaceBranchRemovalRequest {
+  repositoryRoot: string;
+  branch: string;
+  expectedCommit: string;
+}
+
+/** A host that creates a worktree on a new branch and can delete that branch again. */
+export interface WorkspaceBranchHostAdapter {
+  provisionBranch(request: WorkspaceBranchProvisionRequest): Promise<WorkspaceHostInspection>;
+  removeBranch(request: WorkspaceBranchRemovalRequest): Promise<void>;
+}
+
 export type WorkspaceHostErrorCode =
   | "host_coordinate_invalid"
   | "host_effect_uncertain"

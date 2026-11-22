@@ -22,8 +22,10 @@ import { OrcaWorkspaceHostAdapter } from "@lervo/workspace-host-orca";
 
 import type { CliIo } from "./types.js";
 import { retireRepositoryUnstartedWorkspaces } from "./workspace-retirement.js";
+import { runWorkspaceLaunchCommand, workspaceStartUsage } from "./workspace-start-command.js";
 
-export const workspaceUsage = `  lervo workspace inspect [--root <path>] [--json]
+export const workspaceUsage = `${workspaceStartUsage}
+  lervo workspace inspect [--root <path>] [--json]
   lervo workspace cleanup --workspace <workspace-id> --workspace-path <path> --target-ref <ref> [--root <path>] [--stdin --apply <plan-id>] [--json]
   lervo workspace recover --journal <journal-id> --workspace-path <path> --target-ref <ref> [--root <path>] [--json]
   lervo workspace retire-unstarted --supervision <id> --workstream <id> [--workspace <workspace-id>] --write [--root <path>] [--json]`;
@@ -285,6 +287,8 @@ async function runRecover(args: string[], io: CliIo): Promise<number> {
 export async function runWorkspaceCommand(args: string[], io: CliIo): Promise<number> {
   try {
     const [action, ...rest] = args;
+    if (action === "start" || action === "open")
+      return await runWorkspaceLaunchCommand(action, rest, io);
     if (action === "inspect") return await runInspect(rest, io);
     if (action === "cleanup") return await runCleanup(rest, io);
     if (action === "recover") return await runRecover(rest, io);

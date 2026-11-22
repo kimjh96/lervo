@@ -1,4 +1,7 @@
 import {
+  type WorkspaceBranchHostAdapter,
+  type WorkspaceBranchProvisionRequest,
+  type WorkspaceBranchRemovalRequest,
   type WorkspaceCleanupHostAdapter,
   type WorkspaceHostAdapter,
   type WorkspaceProvisionRequest,
@@ -10,7 +13,9 @@ import { GitWorktreeEffects } from "./worktree-effects.js";
 
 const VERSION = "1.0.0";
 
-export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter, WorkspaceCleanupHostAdapter {
+export class GitWorkspaceHostAdapter
+  implements WorkspaceHostAdapter, WorkspaceCleanupHostAdapter, WorkspaceBranchHostAdapter
+{
   readonly kind = "git" as const;
   readonly version = VERSION;
   readonly capabilities = {
@@ -27,6 +32,14 @@ export class GitWorkspaceHostAdapter implements WorkspaceHostAdapter, WorkspaceC
 
   provision(request: WorkspaceProvisionRequest) {
     return this.effects.provisionDetached(request, this.beforeProvision);
+  }
+
+  provisionBranch(request: WorkspaceBranchProvisionRequest) {
+    return this.effects.provisionBranch(request, this.beforeProvision);
+  }
+
+  removeBranch(request: WorkspaceBranchRemovalRequest) {
+    return this.effects.removeBranch(request);
   }
 
   inspect = this.evidence.inspect.bind(this.evidence);

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a4c04f0769ed6e82c76decee"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add lervo workspace start and lervo workspace open, which create a workspace from an instruction and prepare hosted Claude Code and Codex CLI launches for the Lervo ADE."
