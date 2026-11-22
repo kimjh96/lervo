@@ -297,3 +297,4 @@ export {
   type WakeSourceIssueCode,
 } from "./repository-watch-state.js";
 export { watchFiles } from "./resident-file-watch.js";
+export { readPrivateJsonFile, writePrivateJsonFile } from "./private-state-file.js";
