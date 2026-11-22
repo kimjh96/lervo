@@ -164,10 +164,19 @@ describe("CLI release preparation", () => {
         plan: rollbackPlan,
         approval: rollbackPlan.planId,
         runOwned: () => {
-          throw new Error("generator failed");
+          throw Object.assign(new Error("Command failed"), {
+            stderr:
+              "release_artifact_file_set_invalid: The CLI archive file set is unexpected.\n[ELIFECYCLE] Command failed with exit code 1.\n",
+          });
         },
       }),
-    ).rejects.toThrowError(expect.objectContaining({ code: "release_preparation_failed" }));
+    ).rejects.toThrowError(
+      expect.objectContaining({
+        code: "release_preparation_failed",
+        message:
+          "Release preparation failed at `pnpm install --lockfile-only --frozen-lockfile` and tracked inputs were restored. Cause: release_artifact_file_set_invalid: The CLI archive file set is unexpected.",
+      }),
+    );
     expect(
       JSON.parse(await readFile(resolve(rollbackRoot, "apps/cli/package.json"), "utf8")).version,
     ).toBe("0.1.0");

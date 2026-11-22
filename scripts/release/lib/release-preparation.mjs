@@ -197,6 +197,21 @@ async function validateGenerated(repositoryRoot, version) {
     );
 }
 
+/** The failing step's last output line, so a CI log names the cause without the full output. */
+function failureDetail(error) {
+  const output = [error?.stderr, error?.stdout, error?.message]
+    .map((value) => (typeof value === "string" ? value : value?.toString?.("utf8")))
+    .find((value) => typeof value === "string" && value.trim().length > 0);
+  if (output === undefined) return "";
+  const line = output
+    .trim()
+    .split("\n")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0 && !value.startsWith("[ELIFECYCLE]"))
+    .at(-1);
+  return line === undefined ? "" : ` Cause: ${line.slice(0, 500)}`;
+}
+
 export async function applyReleasePreparation(input) {
   if (input.approval !== input.plan.planId)
     throw new ReleasePreparationError(
@@ -227,9 +242,14 @@ export async function applyReleasePreparation(input) {
         maxBuffer: 8 * 1024 * 1024,
       });
     });
+  let step = "file operations";
   try {
     await applyFileOperations(input.plan);
-    for (const [command, args] of input.plan.ownedCommands) await runOwned(command, args);
+    for (const [command, args] of input.plan.ownedCommands) {
+      step = [command, ...args].join(" ");
+      await runOwned(command, args);
+    }
+    step = "generated metadata validation";
     await validateGenerated(input.plan.repositoryRoot, input.plan.nextVersion);
     return {
       schemaVersion: 1,
@@ -264,7 +284,8 @@ export async function applyReleasePreparation(input) {
       ? error
       : new ReleasePreparationError(
           "release_preparation_failed",
-          "Release preparation failed and tracked inputs were restored.",
+          `Release preparation failed at \`${step}\` and tracked inputs were restored.` +
+            failureDetail(error),
         );
   }
 }
