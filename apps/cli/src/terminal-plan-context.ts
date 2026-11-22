@@ -19,14 +19,16 @@ function bounded(value: string): string {
 /**
  * ADR-0563: the open plan items every turn receives, so a plan survives compaction and new
  * sessions without the agent's memory. In-progress items come first, then the rest in tree order.
+ * Unconfirmed candidates stay out until a cross-check confirms them.
  * The lines are optional context: owner rules keep priority when the budget is short. A ledger
  * that cannot be read yet (schema 9 inactive or unreadable) gives no lines and never fails a turn.
  */
 export function terminalPlanContextLines(storage: ProjectStorage): string[] {
   let lines;
   try {
-    lines = planLedgerLines(readPlanLedger(storage), { open: true }).filter(({ item }) =>
-      planItemOpen(item),
+    // Candidates are unconfirmed (ADR-0563 S2); only confirmed open work reaches a turn.
+    lines = planLedgerLines(readPlanLedger(storage), { open: true }).filter(
+      ({ item }) => planItemOpen(item) && item.state !== "candidate",
     );
   } catch {
     return [];

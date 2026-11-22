@@ -13,20 +13,29 @@ This specification holds the item states, events, failure codes and privacy rule
 
 ## Capture (S2)
 
-The owner-turn assessment that already reads each owner turn and the preceding agent turn (ADR-0467) also returns `planItems`, at most eight per turn. One call does both, so capture adds no provider call.
+The owner-turn assessment that already reads each owner turn and the preceding agent turn (ADR-0467) also returns `planItems`. One call does both, so capture adds no provider call.
 
-- **What counts as an item.**
+- **What counts.**
   - A `directive` is work the owner asks for, including a task-scoped request that rule capture calls `none`.
   - A `plan` is a next step the agent committed to.
   - A `finding` is a defect or gap the agent stated as not fixed yet or deferred.
   - Questions, status requests, acknowledgements and finished work are not items.
-- **Context.** The assessment sees at most 32 open items, in-progress first. It omits work they already cover and names a parent among them.
-- **States.** `high` confidence is `open`; anything less certain is a `candidate`, which S3 confirms with an independent cross-check. A parent the assessment names is kept only when it was one of the items it was shown.
-- **Source.** Items record origin `transcript` and the provider. The same title under the same parent from any turn is one open item.
+- **What the assessment sees.**
+  - At most 32 open items: in-progress first, then the most recently changed.
+  - Each item appears as a short reference `p1` to `p32`, never as a ledger id (ADR-0604, ADR-0608).
+  - It omits work these items already cover, and cites a parent by reference.
+- **Once per turn.** Items are written from the attempt that settles the turn. A regenerated, retried or deferred attempt writes none, so repeated attempts never add paraphrases of the same work.
+- **Confidence.** `high` confidence is `open`. Anything less certain is a `candidate`, which S3 confirms with an independent cross-check. At most 64 candidates stay open, and candidates never reach a turn's context.
+- **Same work.**
+  - An open item with the same parent and normalized title, from any source or of any kind, is the same work, and nothing new is written.
+  - An explicit restatement confirms a candidate as `open`.
+- **Privacy.**
+  - A title the practice sanitizer would change, because it holds a secret, a credential or a home path, is dropped.
+  - Plan context and plan items count outside the owner-rule capture budget, as practice does.
 - **Isolation.**
-  - A missing or malformed `planItems` list never fails rule capture. The assessment then records `planItemsFailure: invalid`.
+  - The wire schema states only the shape. The parser drops an out-of-bounds item alone and keeps at most eight.
+  - A value that is not a list records `planItemsFailure: invalid` and never fails rule capture.
   - Before schema 9 is active, nothing is written.
-  - A single item that cannot be written is skipped.
 
 ## Items and states
 
@@ -103,7 +112,7 @@ ADR-0563 named five events. `plan.item.updated` was added so that a candidate ca
 
 ## Delivery
 
-Each terminal turn receives the open items as optional context lines: a count, then at most six items with in-progress items first.
+Each terminal turn receives the confirmed open items as optional context lines: a count, then at most six items with in-progress items first. Candidates stay out until S3 confirms them.
 
 - Owner rules keep priority when the context budget is short.
 - The plan lines come after the find pointers, the governance check and the learned notice. Those lines are short, and each counts as shown only once it is delivered. The plan is on every turn and one `lervo plan list` away.

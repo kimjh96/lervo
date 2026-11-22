@@ -170,11 +170,19 @@ describe("instruction capture assessment contract (ADR-0467)", () => {
         parent: null,
       },
     ]);
-    const malformed = parseInstructionCaptureAssessment({
-      ...valid,
-      planItems: [{ kind: "chore", title: "x", confidence: "high", parent: null }],
-    });
-    expect(malformed).toMatchObject({
+    // A malformed item is dropped alone; only a value that is not a list is a failure.
+    expect(
+      parseInstructionCaptureAssessment({
+        ...valid,
+        planItems: [
+          { kind: "chore", title: "x", confidence: "high", parent: null },
+          { kind: "plan", title: "x".repeat(241), confidence: "high", parent: null },
+          { kind: "plan", title: "Keep this", confidence: "high", parent: "p33" },
+          { kind: "plan", title: "Keep this", confidence: "low", parent: "p2" },
+        ],
+      }).planItems,
+    ).toEqual([{ kind: "plan", title: "Keep this", confidence: "low", parent: "p2" }]);
+    expect(parseInstructionCaptureAssessment({ ...valid, planItems: "everything" })).toMatchObject({
       captureClass: "none",
       planItems: [],
       planItemsFailure: "invalid",

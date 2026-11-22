@@ -23,20 +23,23 @@ export interface OpenPlanItemContext {
 
 export const MAXIMUM_CAPTURED_PLAN_ITEMS = 8;
 export const MAXIMUM_OPEN_PLAN_ITEMS_IN_CAPTURE = 32;
-const PARENT_REFERENCE_PATTERN = "^p(?:[1-9]|[12][0-9]|3[0-2])$";
-const PARENT_REFERENCE = new RegExp(PARENT_REFERENCE_PATTERN, "u");
+const PARENT_REFERENCE = /^p(?:[1-9]|[12][0-9]|3[0-2])$/u;
 
+/**
+ * The wire schema states the shape only. Bounds live in the parser, which drops an out-of-bounds
+ * item alone: a provider that enforces structured output strictly then never fails or retries the
+ * whole call, and with it rule capture, over one plan item.
+ */
 export const planItemsResponseSchema = providerOutputSchema({
   type: "array",
-  maxItems: MAXIMUM_CAPTURED_PLAN_ITEMS,
   items: {
     type: "object",
     additionalProperties: false,
     properties: {
       kind: { type: "string", enum: ["directive", "plan", "finding"] },
-      title: { type: "string", minLength: 1, maxLength: 240 },
+      title: { type: "string" },
       confidence: { type: "string", enum: ["high", "medium", "low"] },
-      parent: { anyOf: [{ type: "null" }, { type: "string", pattern: PARENT_REFERENCE_PATTERN }] },
+      parent: { type: ["string", "null"] },
     },
     required: ["kind", "title", "confidence", "parent"],
   },
@@ -60,40 +63,31 @@ export function resolvePlanItemReference(
   return items.slice(0, MAXIMUM_OPEN_PLAN_ITEMS_IN_CAPTURE)[Number(reference.slice(1)) - 1] ?? null;
 }
 
-function text(value: unknown, maximum: number): string {
-  if (typeof value !== "string" || value.trim() === "" || value.length > maximum)
-    throw new TypeError("The capture assessment planItems.title is invalid.");
-  return value.replace(/\s+/gu, " ").trim();
+/** One item, or null when it is out of bounds or not well-formed. */
+function planItem(entry: unknown): CapturedPlanItem | null {
+  if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return null;
+  const item = entry as Record<string, unknown>;
+  if (Object.keys(item).sort().join(",") !== "confidence,kind,parent,title") return null;
+  const { kind, title, confidence, parent } = item;
+  if (kind !== "directive" && kind !== "plan" && kind !== "finding") return null;
+  if (confidence !== "high" && confidence !== "medium" && confidence !== "low") return null;
+  if (typeof title !== "string") return null;
+  const normalized = title.replace(/\s+/gu, " ").trim();
+  if (normalized === "" || normalized.length > 240) return null;
+  if (parent !== null && (typeof parent !== "string" || !PARENT_REFERENCE.test(parent)))
+    return null;
+  return { kind, title: normalized, confidence, parent: parent as string | null };
 }
 
-function oneOf<T extends string>(value: unknown, allowed: readonly T[], field: string): T {
-  if (typeof value !== "string" || !(allowed as readonly string[]).includes(value))
-    throw new TypeError(`The capture assessment ${field} is invalid.`);
-  return value as T;
-}
-
-/** The plan items of a response; a response without the field states none. */
+/**
+ * The plan items of a response: at most eight well-formed ones, in order. A response without the
+ * field states none; a malformed item is dropped alone; only a value that is not a list fails.
+ */
 export function parseCapturedPlanItems(value: unknown): CapturedPlanItem[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value) || value.length > MAXIMUM_CAPTURED_PLAN_ITEMS)
-    throw new TypeError("The capture assessment planItems is invalid.");
-  return value.map((entry) => {
-    if (typeof entry !== "object" || entry === null || Array.isArray(entry))
-      throw new TypeError("The capture assessment planItems entry is invalid.");
-    const item = entry as Record<string, unknown>;
-    const keys = Object.keys(item).sort().join(",");
-    if (keys !== "confidence,kind,parent,title")
-      throw new TypeError("The capture assessment planItems entry has unsupported fields.");
-    if (
-      item.parent !== null &&
-      (typeof item.parent !== "string" || !PARENT_REFERENCE.test(item.parent))
-    )
-      throw new TypeError("The capture assessment planItems.parent is invalid.");
-    return {
-      kind: oneOf(item.kind, ["directive", "plan", "finding"], "planItems.kind"),
-      title: text(item.title, 240),
-      confidence: oneOf(item.confidence, ["high", "medium", "low"], "planItems.confidence"),
-      parent: item.parent as string | null,
-    };
-  });
+  if (!Array.isArray(value)) throw new TypeError("The capture assessment planItems is invalid.");
+  return value
+    .map(planItem)
+    .filter((item): item is CapturedPlanItem => item !== null)
+    .slice(0, MAXIMUM_CAPTURED_PLAN_ITEMS);
 }

@@ -171,15 +171,19 @@ export async function runInstructionCaptureCycle(
                   JSON.stringify((call.value as { practice?: unknown } | null)?.practice ?? null),
                 ),
             );
-      // ADR-0563 S2: the plan items are written on their own; they never change rule capture.
-      capturePlanItemsFromAssessment({
-        storage: context.storage,
-        response: call.value,
-        provider: call.provider,
-        shown: openPlanItems,
-        now,
-      });
-      const tokens = (call.usage?.totalTokens ?? 0) - addedPracticeTokens;
+      // ADR-0563 S2: plan context and items, like practice, are not owner-rule assessment work, so
+      // their bytes are kept out of the rule-capture budget.
+      const returnedPlanItems = (call.value as { planItems?: unknown } | null)?.planItems;
+      const planBytes =
+        (openPlanItems.length === 0 ? 0 : Buffer.byteLength(JSON.stringify(openPlanItems))) +
+        (Array.isArray(returnedPlanItems) && returnedPlanItems.length > 0
+          ? Buffer.byteLength(JSON.stringify(returnedPlanItems))
+          : 0);
+      const addedPlanTokens =
+        call.usage === null
+          ? 0
+          : Math.min(Math.max(0, call.usage.totalTokens - addedPracticeTokens), planBytes);
+      const tokens = (call.usage?.totalTokens ?? 0) - addedPracticeTokens - addedPlanTokens;
       state.budget.tokensToday += tokens;
       counts.usageObserved += tokens;
       try {
@@ -204,6 +208,22 @@ export async function runInstructionCaptureCycle(
       deferred = outcome.deferred;
       break;
     }
+    // ADR-0563 S2: a turn's plan items are written once, from the attempt that settled it. A
+    // regenerated, retried, or deferred attempt writes none, so repeats never add paraphrases.
+    if (
+      call.status === "assessed" &&
+      outcome !== null &&
+      typeof outcome !== "object" &&
+      outcome !== "regenerate" &&
+      outcome !== "retry"
+    )
+      capturePlanItemsFromAssessment({
+        storage: context.storage,
+        response: call.value,
+        provider: call.provider,
+        shown: openPlanItems,
+        now,
+      });
     // ADR-0561: the first cross-check disagreement regenerates the turn in a later cycle.
     if (outcome === "regenerate") continue;
     if (outcome === null || outcome === "retry") {
