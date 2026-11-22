@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc --project tsconfig.json && vite build",
-    "check": "pnpm build && pnpm test && cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked && cargo deny check",
+    "check": "pnpm build && node scripts/check-bundle-size.mjs && pnpm test && cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked && cargo deny check",
     "dev": "vite",
     "tauri": "tauri",
     "generate": "node scripts/build-tokens.mjs && node scripts/build-catalog.mjs",

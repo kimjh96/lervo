@@ -90,6 +90,10 @@ The measurements found three problems, fixed in S1.6a:
 
 At the `yes` maximum, around 13 MB/s, a client falls behind, and the session host drops its frames and asks it to resynchronize, as designed. An echo that falls in the dropped range is not shown until the client attaches again, so the flood budget is measured at a build-log rate.
 
+### S1.6b progress
+
+`apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, the start screen loads 94 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the terminal, is 115 KB against 160 KB. The webview scenarios of S1.6b remain: cold start, idle CPU, the 100,000-item conversation, streamed deltas to screen, and keystroke echo.
+
 ### Order after S1.4b
 
 S1.4c follows S1.5. Its events need a new event schema version, and a writer may select a version only after the Hub and Node readers support it, which takes a release and a deployment first. The interface does not depend on those events.
