@@ -13,6 +13,19 @@ pub enum EndReason {
     ProviderExited,
 }
 
+impl EndReason {
+    /// Why a session ended, from whether the user stopped it and how its process exited:
+    /// `Some(true)` for a clean exit, `Some(false)` for a failed one, `None` when unknown.
+    pub fn of_exit(stopped: bool, exited_cleanly: Option<bool>) -> Self {
+        match (stopped, exited_cleanly) {
+            (true, _) => Self::Stopped,
+            (false, Some(true)) => Self::Completed,
+            (false, Some(false)) => Self::ProviderExited,
+            (false, None) => Self::Failed,
+        }
+    }
+}
+
 /// The status a session reports to clients.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SessionStatus {
@@ -128,5 +141,16 @@ mod tests {
         ] {
             assert_eq!(status.apply(event), Err(OutOfOrder { status, event }));
         }
+    }
+
+    #[test]
+    fn names_why_a_session_ended() {
+        assert_eq!(EndReason::of_exit(true, Some(true)), EndReason::Stopped);
+        assert_eq!(EndReason::of_exit(false, Some(true)), EndReason::Completed);
+        assert_eq!(
+            EndReason::of_exit(false, Some(false)),
+            EndReason::ProviderExited
+        );
+        assert_eq!(EndReason::of_exit(false, None), EndReason::Failed);
     }
 }

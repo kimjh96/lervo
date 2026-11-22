@@ -5,6 +5,8 @@
 //! and a torn final record is truncated when the index opens. Sealed segments are cached in a
 //! byte-bounded cache; the open segment is read from the file.
 
+pub mod retention;
+
 use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::ops::Range;

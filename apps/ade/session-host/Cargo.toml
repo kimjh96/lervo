@@ -6,5 +6,21 @@ edition.workspace = true
 rust-version.workspace = true
 publish.workspace = true
 
+[dependencies]
+dirs = "7"
+fd-lock = "4"
+lervo-session-core = { path = "../session-core" }
+lervo-session-protocol = { path = "../session-protocol" }
+lervo-session-pty = { path = "../session-pty" }
+lervo-session-store = { path = "../session-store" }
+lervo-session-stream = { path = "../session-stream" }
+lervo-session-transport = { path = "../session-transport" }
+serde_json = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["macros", "net", "rt-multi-thread", "signal", "sync", "time"] }
+
+[dev-dependencies]
+tempfile = "3"
+
 [lints]
 workspace = true

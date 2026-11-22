@@ -73,7 +73,10 @@ The native conversation's structured stream carries the same kinds of events tha
 - The index is a rebuildable projection of the provider's transcript (invariant 4). Appends skip `fsync`. When the index opens, it truncates a torn final record; a missing or damaged sealed segment reports `conversation_index_corrupt`, and the host rebuilds the index from the transcript.
 - An item's identifier encodes its position, so the host finds any item without a lookup table that grows with the conversation.
 - Sealed segments are cached in a byte-bounded cache. The open segment is read from its file.
-- Retention: an index is removed with its workspace. The session host also caps all indexes on a host and removes the least recently opened ones first; S1.3b sets that cap.
+- One item streams at a time and stays in memory until it completes; then the index stores it at the position it received when it started. Text beyond 256 KiB continues in a new item of the same kind, and one delta carries at most 64 KiB.
+- An item that the provider adapter produced outside the protocol's limits is stored as the Lervo notice `conversation_item_invalid`, with no parameters, so every position stays filled.
+- Each session keeps at most 1 MiB of sealed segments in memory.
+- Retention: an index is removed with its workspace. All indexes on a host share a cap of 1 GiB. Each index directory holds an `opened` marker that the session host touches when the index opens; at that moment, the least recently opened indexes are removed until the rest fit. The index opening and the indexes of sessions the host still holds are never removed.
 
 ## State, events, privacy, and failure meaning
 

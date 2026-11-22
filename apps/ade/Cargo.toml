@@ -1,7 +1,7 @@
 # The ADE's Rust code: the Tauri shell and the session host (ADR-0613).
 [workspace]
 resolver = "3"
-members = ["src-tauri", "session-host", "session-protocol", "session-core", "session-store"]
+members = ["src-tauri", "session-host", "session-protocol", "session-core", "session-store", "session-transport", "session-pty", "session-stream"]
 
 [workspace.package]
 edition = "2024"
@@ -14,3 +14,10 @@ unsafe_code = "forbid"
 [workspace.lints.clippy]
 unwrap_used = "deny"
 expect_used = "deny"
+
+# Release builds trade build time for size: the installed-size budget covers the session host.
+# Panics keep unwinding, so one failed task cannot end every session.
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true
