@@ -67,6 +67,14 @@ A session whose `SessionStart` never matches a prepared ID stays `launch_unconfi
 
 The native conversation's structured stream carries the same kinds of events that ADR-0010 reads. It still records hosted observations only. A native hosted session can claim an E3 receipt only after the provider adapter's common contract tests prove the same controlled-input coordinates that ADR-0010 requires.
 
+## Conversation index
+
+- The session host keeps one conversation index per session: segment files of 256 encoded items each, written as length-prefixed records.
+- The index is a rebuildable projection of the provider's transcript (invariant 4). Appends skip `fsync`. When the index opens, it truncates a torn final record; a missing or damaged sealed segment reports `conversation_index_corrupt`, and the host rebuilds the index from the transcript.
+- An item's identifier encodes its position, so the host finds any item without a lookup table that grows with the conversation.
+- Sealed segments are cached in a byte-bounded cache. The open segment is read from its file.
+- Retention: an index is removed with its workspace. The session host also caps all indexes on a host and removes the least recently opened ones first; S1.3b sets that cap.
+
 ## State, events, privacy, and failure meaning
 
 - **`lervo workspace start`.** The command reads the instruction from stdin and takes `--repository` and `--host`. It creates the worktree and branch, starts the workstream, prepares the launch descriptor, and returns their identifiers as JSON. If a later stage fails, it removes what the earlier stages created and reports the failed stage.

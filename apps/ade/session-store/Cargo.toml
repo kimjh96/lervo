@@ -1,0 +1,17 @@
+[package]
+name = "lervo-session-store"
+version = "0.1.0"
+description = "The ADE conversation index: append-only segment files of encoded conversation items."
+edition.workspace = true
+rust-version.workspace = true
+publish.workspace = true
+
+[dependencies]
+lervo-session-core = { path = "../session-core" }
+thiserror = "2"
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
