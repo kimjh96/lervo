@@ -1,4 +1,3 @@
-import { checkoutOnBaseBranch } from "@lervo/repository-knowledge-runtime";
 import { applyNodeRuntimeRetention } from "./node-runtime-retention.js";
 import { rememberTerminalWorkerEntry } from "./terminal-worker-entry.js";
 import { applyCapabilityMigration, createCapabilityMigrationPlan } from "@lervo/capabilities";
@@ -10,6 +9,7 @@ import { applyEventWriterStage } from "./event-writer-activation-stage.js";
 import { effectBackupUndoCommand } from "./effect-backup.js";
 import { holdEffect, releaseHeldEffects } from "./held-effect-debt.js";
 import { applyKnowledgeStages } from "./upgrade-knowledge-apply.js";
+import { knowledgeStageWaitReason } from "./upgrade-knowledge-gate.js";
 import { noticeEffect } from "./effect-notice.js";
 import { applyHostResidentService } from "./knowledge-host-service.js";
 import {
@@ -189,14 +189,14 @@ export async function applyRepositoryUpgrade(
   }
   clock.lap("terminal_integration");
 
-  // ADR-0610: off the base branch the knowledge stages wait; the plan already shows them as debt.
-  const offBase = !(await checkoutOnBaseBranch(root)).onBase;
+  // ADR-0610: where the knowledge stages wait, the plan already shows them as debt for this reason.
+  const knowledgeWait = held ? null : await knowledgeStageWaitReason(root);
   const knowledgeOutcome = held
     ? { appliedStages: [], skippedStages: [], notices: [], lastStage: null }
-    : offBase
+    : knowledgeWait !== null
       ? {
           appliedStages: [],
-          skippedStages: [{ stage: "knowledge", reason: "not_on_base" }],
+          skippedStages: [{ stage: "knowledge", reason: knowledgeWait }],
           notices: [],
           lastStage: null,
         }
