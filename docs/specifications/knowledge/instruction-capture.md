@@ -9,6 +9,8 @@ This contract implements [ADR-0467](../../decisions/knowledge/documents/0467-cap
 
 Terminal `UserPromptSubmit` and managed conversation turns enter a transient queue without a provider call. Resident assessment produces a rule, a held decision, or nothing for none, personal preference, and covered outcomes. Under [ADR-0561](../../decisions/foundation/0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), a rule is stored only after an independent cross-check agrees with it. A first disagreement regenerates the turn once, with the cross-check's reasons as `priorCrossCheckDisagreement`; a second disagreement holds the rule as Lervo debt. An owner decision enters canon through the same cross-checked rule path, and only a decision that cannot be grounded as a rule is held. After capture and Hub candidate exchange, the convergence owner applies every stored candidate to `docs/instructions/generated/`. A single host without Hub coordination applies locally. Nothing in this pipeline waits for the owner.
 
+The same assessment also returns `planItems`: the work the exchange leaves open, written to the plan ledger and never part of rule capture. See [the plan ledger](plan-ledger.md#capture-s2).
+
 ## Cross-check before storage
 
 The assessment call writes a normalized rule. When its statement and exceptions are not the owner's own words, a second governed no-capability call checks it in a fresh session (`durable_instruction_cross_check`, usage stage `instruction_cross_check`). The check sees the owner turn, the preceding agent turn, and the proposed rule, never repository files. For a rule the owner stated (`authority: explicit_user`), it checks fidelity. For an inferred rule, it also checks that the turn establishes the rule for future work.

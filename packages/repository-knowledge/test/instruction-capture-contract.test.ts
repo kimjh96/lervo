@@ -127,6 +127,84 @@ describe("instruction capture assessment contract (ADR-0467)", () => {
     ).toThrow(TypeError);
   });
 
+  it("reads plan items on their own, so a missing or malformed list never fails rule capture (ADR-0563)", () => {
+    const valid = {
+      schemaVersion: 1,
+      captureClass: "none",
+      durableInstruction: none,
+      decision: null,
+      reasonIds: [],
+      practice: null,
+    };
+    expect(parseInstructionCaptureAssessment(valid).planItems).toEqual([]);
+    const parent = "p1";
+    expect(
+      parseInstructionCaptureAssessment({
+        ...valid,
+        planItems: [
+          {
+            kind: "directive",
+            title: "Fix  the idle Node health",
+            confidence: "high",
+            parent,
+          },
+          {
+            kind: "finding",
+            title: "pnpm is missing on the follower PATH",
+            confidence: "low",
+            parent: null,
+          },
+        ],
+      }).planItems,
+    ).toEqual([
+      {
+        kind: "directive",
+        title: "Fix the idle Node health",
+        confidence: "high",
+        parent,
+      },
+      {
+        kind: "finding",
+        title: "pnpm is missing on the follower PATH",
+        confidence: "low",
+        parent: null,
+      },
+    ]);
+    // A malformed item is dropped alone; only a value that is not a list is a failure.
+    expect(
+      parseInstructionCaptureAssessment({
+        ...valid,
+        planItems: [
+          { kind: "chore", title: "x", confidence: "high", parent: null },
+          { kind: "plan", title: "x".repeat(241), confidence: "high", parent: null },
+          { kind: "plan", title: "Keep this", confidence: "high", parent: "p33" },
+          { kind: "plan", title: "Keep this", confidence: "low", parent: "p2" },
+        ],
+      }).planItems,
+    ).toEqual([{ kind: "plan", title: "Keep this", confidence: "low", parent: "p2" }]);
+    expect(parseInstructionCaptureAssessment({ ...valid, planItems: "everything" })).toMatchObject({
+      captureClass: "none",
+      planItems: [],
+      planItemsFailure: "invalid",
+    });
+    const request = instructionCaptureRequest({
+      surface: "terminal_prompt",
+      ownerTurn: "고쳐",
+      precedingAgentTurn: "Two follow-ups remain.",
+      semanticCatalog: { schemaVersion: 1 },
+      openPlanItems: Array.from({ length: 40 }, (_, index) => ({
+        itemId: `pli_${String(index).padStart(24, "0")}`,
+        kind: "plan",
+        title: `Item ${index}`,
+      })),
+    });
+    expect(request.openPlanItems).toHaveLength(32);
+    // The provider sees references, never ledger ids.
+    expect(request.openPlanItems[0]).toEqual({ reference: "p1", kind: "plan", title: "Item 0" });
+    expect(JSON.stringify(request.openPlanItems)).not.toContain("pli_");
+    expect(instructionCaptureAssessmentInstruction).toContain("planItems");
+  });
+
   it("passes turn text only as untrusted provider input and forbids lexical classification", () => {
     const request = instructionCaptureRequest({
       surface: "conversation",

@@ -7,6 +7,14 @@ import {
 } from "./practice-contract.js";
 import { providerOutputSchema } from "@lervo/schemas";
 
+import {
+  parseCapturedPlanItems,
+  planItemCaptureContext,
+  planItemsResponseSchema,
+  type CapturedPlanItem,
+  type OpenPlanItemContext,
+} from "./plan-item-capture-contract.js";
+
 /**
  * ADR-0467 owner-turn capture assessment. One no-capability provider call classifies one owner
  * turn semantically, with the immediately preceding agent turn as bounded context, and normalizes
@@ -43,6 +51,9 @@ export interface InstructionCaptureAssessment {
   reasonIds: string[];
   practice?: ReusablePractice | null;
   practiceFailure?: "source_incomplete";
+  /** ADR-0563 S2: work this exchange leaves open, for the plan ledger. */
+  planItems?: CapturedPlanItem[];
+  planItemsFailure?: "invalid";
 }
 
 const identifierPattern = "^[a-z][a-z0-9]*(?:[._/-][a-z0-9]+)*$";
@@ -120,6 +131,7 @@ export const instructionCaptureResponseSchema = providerOutputSchema({
   additionalProperties: false,
   properties: {
     practice: { anyOf: [{ type: "null" }, reusablePracticeSchema] },
+    planItems: planItemsResponseSchema,
     schemaVersion: { const: 1 },
     captureClass: { type: "string", enum: instructionCaptureClasses },
     durableInstruction: groundedDurableInstructionSchema,
@@ -157,6 +169,7 @@ export const instructionCaptureResponseSchema = providerOutputSchema({
     "decision",
     "reasonIds",
     "practice",
+    "planItems",
   ],
 } as const);
 
@@ -174,6 +187,7 @@ export const instructionCaptureAssessmentInstruction = [
   "When priorCrossCheckDisagreement is present, an independent check rejected your previous normalization of this turn for its reasonIds. Normalize again so the rule or decision states only what the owner said.",
   "Write title, statement, exceptions, and decision text in semanticCatalog.retrievalLanguage as complete sentences. Normalize meaning; never copy conversation prose verbatim and never include names, secrets, credentials, or text unrelated to the rule.",
   "After deciding captureClass, assess untrustedPrecedingWork independently for a reusable procedure, even if the owner only says implement it or continue in any language. Return practice separately from captureClass. Task-specific one-off work returns null. Only observed successful outcomes support verified steps; distinguish assumptions. Owner acceptance or correction changes confidence, never eligibility. Do not copy secrets or host-specific values. Practice never grants tools or permissions.",
+  "Independently of captureClass and practice, list in planItems the work this exchange leaves open, so the plan survives the session. A directive is work the owner asks for in untrustedOwnerTurn, including a task-scoped request that captureClass calls none. A plan is a next step untrustedPrecedingAgentTurn committed to. A finding is a defect or gap untrustedPrecedingAgentTurn stated as not fixed yet or deferred. Questions, status requests, acknowledgements, and work the exchange shows as already finished are not items. Omit an item that an entry of openPlanItems already covers in any wording, and set parent to the reference of the openPlanItems entry an item belongs under, or null. Write each title in semanticCatalog.retrievalLanguage as one short phrase that paraphrases the meaning; never copy conversation prose verbatim and never include names, secrets, or credentials. Use confidence high only when the work is stated explicitly. Return an empty list when nothing is left open.",
   "Return exactly one raw JSON object that matches the response contract, with no Markdown or commentary.",
 ].join("\n");
 
@@ -188,6 +202,8 @@ export interface InstructionCaptureRequestInput {
    * Present only when the turn regenerates once after that disagreement.
    */
   priorCrossCheckDisagreement?: { reasonIds: string[] } | null;
+  /** ADR-0563 S2: the open ledger items, at most 32, so the assessment omits covered work. */
+  openPlanItems?: readonly OpenPlanItemContext[];
 }
 
 /** The exact provider input; turn text passes transiently through the provider process stdin. */
@@ -202,6 +218,7 @@ export function instructionCaptureRequest(input: InstructionCaptureRequestInput)
     untrustedPrecedingAgentTurn: input.precedingAgentTurn,
     untrustedPrecedingWork: input.precedingWork ?? null,
     practiceWritingContract: input.precedingWork === undefined ? null : practiceWritingContract,
+    openPlanItems: planItemCaptureContext(input.openPlanItems ?? []),
     ...(input.priorCrossCheckDisagreement == null
       ? {}
       : { priorCrossCheckDisagreement: input.priorCrossCheckDisagreement }),
@@ -314,12 +331,14 @@ function decision(value: unknown): CapturedDecision | null {
 /** Validates one provider response; any deviation is a typed `TypeError`, never a guess. */
 export function parseInstructionCaptureAssessment(value: unknown): InstructionCaptureAssessment {
   const body = record(value, "response");
-  const { practice: _practice, ...rule } = body;
-  // The strict schema requires `practice`, but rule fields are validated without it so a missing
-  // or malformed practice can never fail rule capture.
+  const { practice: _practice, planItems: _planItems, ...rule } = body;
+  // The strict schema requires `practice` and `planItems`, but rule fields are validated without
+  // them, so a missing or malformed practice or plan list can never fail rule capture.
   exactKeys(
     rule,
-    instructionCaptureResponseSchema.required.filter((key) => key !== "practice"),
+    instructionCaptureResponseSchema.required.filter(
+      (key) => key !== "practice" && key !== "planItems",
+    ),
     "response",
   );
   if (body.schemaVersion !== 1)
@@ -337,6 +356,12 @@ export function parseInstructionCaptureAssessment(value: unknown): InstructionCa
   } catch {
     assessment.practice = null;
     assessment.practiceFailure = "source_incomplete";
+  }
+  try {
+    assessment.planItems = parseCapturedPlanItems(body.planItems);
+  } catch {
+    assessment.planItems = [];
+    assessment.planItemsFailure = "invalid";
   }
   if ((captureClass === "decision") !== (assessment.decision !== null))
     throw new TypeError("The capture assessment decision must be present exactly for decisions.");

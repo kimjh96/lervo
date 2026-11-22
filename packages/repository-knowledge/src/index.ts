@@ -245,6 +245,7 @@ export {
 } from "./terminal-runtime-store-health.js";
 export * from "./practice-contract.js";
 export * from "./plan-ledger.js";
+export * from "./plan-item-capture-contract.js";
 export * from "./practice-privacy.js";
 export * from "./document-governing-index.js";
 export * from "./relation-web-model.js";

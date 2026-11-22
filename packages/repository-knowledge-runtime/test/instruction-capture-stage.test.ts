@@ -29,6 +29,7 @@ import {
   type InstructionCandidateExchangeTransport,
 } from "../src/instruction-candidate-exchange.js";
 import { recordInstructionCandidateResolution } from "../src/instruction-candidate-exchange-state.js";
+import { readPlanLedger } from "../src/plan-ledger-store.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
 
@@ -81,8 +82,8 @@ afterEach(async () => {
   }
 });
 
-async function captureFixture(authorized = true) {
-  const base = await fixture(authorized);
+async function captureFixture(authorized = true, writableEventSchemaVersion: 4 | 9 = 4) {
+  const base = await fixture(authorized, false, false, 0, writableEventSchemaVersion);
   const providerDirectory = resolve(base.directory, "capture-provider");
   await mkdir(providerDirectory, { recursive: true });
   const executable = resolve(providerDirectory, "claude");
@@ -438,6 +439,64 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       expect.objectContaining({ kind: "cross_check_disagreement", title: "Allow a single writer" }),
     ]);
     expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
+  });
+
+  it("writes a settled turn's plan items once, never from a regenerated attempt (ADR-0563)", async () => {
+    const f = await captureFixture(true, 9);
+    const ownerTurn = "Maybe we should only let one host write? Also fix the follower PATH.";
+    const planItems = (title: string) => [
+      { kind: "directive", title, confidence: "high", parent: null },
+      {
+        kind: "finding",
+        title: "The token sk-live-1234567890abcdef leaked",
+        confidence: "high",
+        parent: null,
+      },
+    ];
+    await f.plan([
+      {
+        ownerTurn,
+        crossCheck: "disagree",
+        response: {
+          schemaVersion: 1,
+          captureClass: "durable_instruction",
+          durableInstruction: canonicalRule("Allow a single writer", "Only one host writes."),
+          decision: null,
+          reasonIds: [],
+          practice: null,
+          planItems: planItems("Fix the follower PATH"),
+        },
+      },
+    ]);
+    await f.enqueue({ ownerTurn });
+    // The first attempt is regenerated, so it writes no plan item.
+    await f.cycle();
+    expect(readPlanLedger(f.storage).items.size).toBe(0);
+    await f.plan([
+      {
+        ownerTurn,
+        crossCheck: "disagree",
+        response: {
+          schemaVersion: 1,
+          captureClass: "durable_instruction",
+          durableInstruction: canonicalRule("Allow a single writer", "Only one host writes."),
+          decision: null,
+          reasonIds: [],
+          practice: null,
+          planItems: planItems("Repair the follower service PATH"),
+        },
+      },
+    ]);
+    // The settling attempt writes its items once; the secret-bearing title is dropped.
+    expect(await f.cycle()).toMatchObject({ assessedCount: 1 });
+    expect(
+      [...readPlanLedger(f.storage).items.values()].map(({ title, state }) => ({ title, state })),
+    ).toEqual([{ title: "Repair the follower service PATH", state: "open" }]);
+    // Rule capture is unchanged by plan items.
+    expect((await readInstructionCaptureState(f.root)).held).toEqual([
+      expect.objectContaining({ kind: "cross_check_disagreement", title: "Allow a single writer" }),
+    ]);
+    expect(JSON.stringify(f.eventsOf("plan.item.captured"))).not.toContain(ownerTurn);
   });
 
   it("stores a rule in the owner's own words without a model cross-check", async () => {

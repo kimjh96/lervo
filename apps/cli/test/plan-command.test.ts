@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 
 import { applyInitPlan, createInitPlan } from "@lervo/project";
 import { openProjectStorage } from "@lervo/project-storage";
+import { capturePlanItem } from "@lervo/repository-knowledge-runtime";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { runEventContractCommand } from "../src/event-contract-command.js";
@@ -91,6 +92,19 @@ describe("lervo plan (ADR-0563)", () => {
 
     const storage = await openProjectStorage(root);
     try {
+      // An unconfirmed candidate never reaches a turn.
+      capturePlanItem(storage, {
+        parentId: null,
+        kind: "plan",
+        title: "Unconfirmed candidate",
+        state: "candidate",
+        source: {
+          origin: "transcript",
+          provider: "claude",
+          sessionDigest: null,
+          transcriptOffset: null,
+        },
+      });
       expect(terminalPlanContextLines(storage)).toEqual([
         expect.stringMatching(/^Lervo plan: 2 open items;/u),
         `- [in_progress] Plan ledger slice 1 (${step.value.item.itemId})`,
@@ -117,11 +131,13 @@ describe("lervo plan (ADR-0563)", () => {
       "main",
     );
     expect(done.value.item).toMatchObject({ state: "done", closed: { evidence: [{ ref: head }] } });
+    // The list shows every open item, the unconfirmed candidate included; the turn did not.
     const listed = await plan(root, "list");
-    expect(listed.value.items.map((item: { itemId: string }) => item.itemId)).toEqual([
-      objective.value.item.itemId,
+    expect(listed.value.items.map((item: { title: string }) => item.title)).toEqual([
+      "Core loop",
+      "Unconfirmed candidate",
     ]);
-    expect((await plan(root, "list", "--all")).value.items).toHaveLength(2);
+    expect((await plan(root, "list", "--all")).value.items).toHaveLength(3);
   });
 
   it("refuses to write before schema 9 is active and gives a turn no plan lines", async () => {

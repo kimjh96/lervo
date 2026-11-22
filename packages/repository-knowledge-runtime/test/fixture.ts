@@ -26,7 +26,7 @@ export async function fixture(
   canonical = false,
   multipleSuites = false,
   invalidAssessmentCalls = 0,
-  writableEventSchemaVersion: 4 | 5 | 8 = 4,
+  writableEventSchemaVersion: 4 | 5 | 8 | 9 = 4,
 ) {
   const directory = await mkdtemp(resolve(tmpdir(), "lervo-autonomous-knowledge-"));
   // A failing fixture executable must never fall back to a provider CLI installed on this machine.
