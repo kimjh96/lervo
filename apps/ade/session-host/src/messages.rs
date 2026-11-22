@@ -8,14 +8,15 @@ use lervo_session_protocol::{
     ConversationAppendedMessageKind, ConversationDeltaMessage, ConversationDeltaMessageAppend,
     ConversationDeltaMessageKind, ConversationItem, ConversationMode as WireMode,
     ConversationPageMessage, ConversationPageMessageKind, HostMessage, Identifier, Parameters,
-    RequestFailedMessage, RequestFailedMessageCode, RequestFailedMessageKind, Sequence,
-    SessionOpenedMessage, SessionOpenedMessageKind, SessionResyncRequiredMessage,
-    SessionResyncRequiredMessageKind, SessionStatusMessage, SessionStatusMessageEndReason,
-    SessionStatusMessageKind, SessionStatusMessageStatus,
+    ParametersKey, ParametersValue, ParametersValueString, RequestFailedMessage,
+    RequestFailedMessageCode, RequestFailedMessageKind, Sequence, SessionOpenedMessage,
+    SessionOpenedMessageKind, SessionResyncRequiredMessage, SessionResyncRequiredMessageKind,
+    SessionStatusMessage, SessionStatusMessageEndReason, SessionStatusMessageKind,
+    SessionStatusMessageStatus,
 };
 use serde_json::{Map, Value};
 
-use crate::ports::{ConversationMode, FailureCode};
+use lervo_session_core::ports::{ConversationMode, Failure, FailureCode};
 
 /// An identifier from a string the host or the core produced, or `None` if it breaks the format.
 pub fn identifier(value: &str) -> Option<Identifier> {
@@ -76,18 +77,35 @@ pub fn failed(request: &Identifier, code: RequestFailedMessageCode) -> HostMessa
     })
 }
 
-pub fn core_failed(request: &Identifier, code: FailureCode) -> HostMessage {
-    failed(
-        request,
-        match code {
-            FailureCode::WorkspaceStartFailed => RequestFailedMessageCode::WorkspaceStartFailed,
-            FailureCode::ProviderCliUnavailable => RequestFailedMessageCode::ProviderCliUnavailable,
-            FailureCode::ProviderLoginUnavailable => {
-                RequestFailedMessageCode::ProviderLoginUnavailable
-            }
-            FailureCode::ApplicationUnavailable => RequestFailedMessageCode::ApplicationUnavailable,
-        },
-    )
+/// The `request.failed` for a failure the core reported, with its code and stage as parameters.
+pub fn core_failed(request: &Identifier, failure: &Failure) -> HostMessage {
+    let code = match failure.code {
+        FailureCode::WorkspaceStartFailed => RequestFailedMessageCode::WorkspaceStartFailed,
+        FailureCode::WorkspaceNotFound => RequestFailedMessageCode::WorkspaceNotFound,
+        FailureCode::LaunchIntentInvalid => RequestFailedMessageCode::LaunchIntentInvalid,
+        FailureCode::ProviderCliUnavailable => RequestFailedMessageCode::ProviderCliUnavailable,
+        FailureCode::ProviderLoginUnavailable => RequestFailedMessageCode::ProviderLoginUnavailable,
+        FailureCode::ConversationModeUnsupported => {
+            RequestFailedMessageCode::ConversationModeUnsupported
+        }
+        FailureCode::ApplicationFailed => RequestFailedMessageCode::ApplicationFailed,
+        FailureCode::ApplicationUnavailable => RequestFailedMessageCode::ApplicationUnavailable,
+    };
+    let mut parameters = std::collections::HashMap::new();
+    for (name, value) in [("coreCode", &failure.core_code), ("stage", &failure.stage)] {
+        let parameter = value
+            .as_deref()
+            .and_then(|value| ParametersValueString::try_from(value).ok());
+        if let (Ok(name), Some(value)) = (ParametersKey::try_from(name), parameter) {
+            parameters.insert(name, ParametersValue::String(value));
+        }
+    }
+    HostMessage::from(RequestFailedMessage {
+        code,
+        kind: RequestFailedMessageKind::RequestFailed,
+        parameters: Parameters(parameters),
+        request_id: request.clone(),
+    })
 }
 
 pub fn application_result(request: &Identifier, result: Map<String, Value>) -> HostMessage {

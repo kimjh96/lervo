@@ -17,10 +17,10 @@ use lervo_session_transport::token::Token;
 use tokio::sync::mpsc;
 
 use crate::messages;
-use crate::ports::{ConversationMode, Core, Launch};
 use crate::session::{Command, Range, Reply, SessionHandle};
 use crate::subscriber::{Outgoing, Subscriber};
 use crate::{native, terminal};
+use lervo_session_core::ports::{ConversationMode, Core, Launch};
 
 /// Sessions by identifier, and the session of each terminal channel.
 #[derive(Default)]
@@ -89,7 +89,7 @@ impl<C: Core> Host<C> {
                         .command(command.command.as_str(), command.arguments)
                         .await
                     {
-                        Err(code) => reply.send(messages::core_failed(&request, code)),
+                        Err(failure) => reply.send(messages::core_failed(&request, &failure)),
                         Ok(outcome) => {
                             reply.send(messages::application_result(&request, outcome.result));
                             if let Some(launch) = outcome.launch {
@@ -104,7 +104,7 @@ impl<C: Core> Host<C> {
                 tokio::spawn(async move {
                     let message = match host.core.open(open.workspace_id.as_str()).await {
                         Ok(launch) => host.open(&open.request_id, &launch),
-                        Err(code) => messages::core_failed(&open.request_id, code),
+                        Err(failure) => messages::core_failed(&open.request_id, &failure),
                     };
                     reply.send(message);
                 });

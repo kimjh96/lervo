@@ -10,8 +10,8 @@ use lervo_session_pty::{PtyCommand, PtyError, PtyProcess};
 use tokio::sync::mpsc;
 
 use crate::messages;
-use crate::ports::{ConversationMode, Launch};
 use crate::session::{Command, Fanout, SessionHandle, linger};
+use lervo_session_core::ports::{ConversationMode, Launch};
 
 const INITIAL_COLUMNS: u16 = 120;
 const INITIAL_ROWS: u16 = 40;

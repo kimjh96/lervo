@@ -1,0 +1,707 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.lervo.dev/v1/core-link-protocol.schema.json",
+  "title": "CoreLinkMessage",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/CoreLinkRequest"
+    },
+    {
+      "$ref": "#/$defs/CoreLinkResponse"
+    }
+  ],
+  "$defs": {
+    "Identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "Sequence": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "EpochMilliseconds": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "Code": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,63}$"
+    },
+    "Parameters": {
+      "type": "object",
+      "maxProperties": 16,
+      "propertyNames": {
+        "pattern": "^[a-z][A-Za-z0-9]{0,31}$"
+      },
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "maxLength": 256
+          },
+          {
+            "type": "integer"
+          },
+          {
+            "type": "boolean"
+          }
+        ]
+      }
+    },
+    "ConversationMode": {
+      "enum": [
+        "native",
+        "cli"
+      ]
+    },
+    "CoreLinkRequest": {
+      "title": "CoreLinkRequest",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CoreCommandRequest"
+        },
+        {
+          "$ref": "#/$defs/CoreOpenRequest"
+        },
+        {
+          "$ref": "#/$defs/DecoderOpenRequest"
+        },
+        {
+          "$ref": "#/$defs/DecoderSendRequest"
+        },
+        {
+          "$ref": "#/$defs/DecoderOutputRequest"
+        },
+        {
+          "$ref": "#/$defs/DecoderCloseRequest"
+        }
+      ]
+    },
+    "CoreLinkResponse": {
+      "title": "CoreLinkResponse",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/CoreResultResponse"
+        },
+        {
+          "$ref": "#/$defs/CoreFailedResponse"
+        },
+        {
+          "$ref": "#/$defs/DecoderDecodedResponse"
+        }
+      ]
+    },
+    "CoreLaunch": {
+      "title": "CoreLaunch",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sessionId",
+        "workspaceId",
+        "conversationMode",
+        "provider",
+        "program",
+        "arguments",
+        "environment",
+        "workingDirectory",
+        "initialInput"
+      ],
+      "properties": {
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "conversationMode": {
+          "$ref": "#/$defs/ConversationMode"
+        },
+        "provider": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "program": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "arguments": {
+          "type": "array",
+          "maxItems": 256,
+          "items": {
+            "type": "string",
+            "maxLength": 262144
+          }
+        },
+        "environment": {
+          "type": "object",
+          "maxProperties": 64,
+          "additionalProperties": {
+            "type": "string",
+            "maxLength": 32768
+          }
+        },
+        "workingDirectory": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "initialInput": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 262144
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      }
+    },
+    "DecodedEvent": {
+      "title": "DecodedEvent",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DecodedStatus"
+        },
+        {
+          "$ref": "#/$defs/DecodedItem"
+        },
+        {
+          "$ref": "#/$defs/DecodedStart"
+        },
+        {
+          "$ref": "#/$defs/DecodedDelta"
+        },
+        {
+          "$ref": "#/$defs/DecodedFinish"
+        }
+      ]
+    },
+    "DecodedContent": {
+      "title": "DecodedContent",
+      "oneOf": [
+        {
+          "$ref": "#/$defs/UserMessageContent"
+        },
+        {
+          "$ref": "#/$defs/AgentMessageContent"
+        },
+        {
+          "$ref": "#/$defs/QuestionContent"
+        },
+        {
+          "$ref": "#/$defs/ToolActivityContent"
+        },
+        {
+          "$ref": "#/$defs/LervoNoticeContent"
+        }
+      ]
+    },
+    "CoreCommandRequest": {
+      "title": "CoreCommandRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "command",
+        "arguments"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "core.command"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "command": {
+          "type": "string",
+          "enum": [
+            "workspace.start"
+          ]
+        },
+        "arguments": {
+          "type": "object",
+          "maxProperties": 16
+        }
+      }
+    },
+    "CoreOpenRequest": {
+      "title": "CoreOpenRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "workspaceId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "core.open"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "mode": {
+          "$ref": "#/$defs/ConversationMode"
+        }
+      }
+    },
+    "DecoderOpenRequest": {
+      "title": "DecoderOpenRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId",
+        "provider"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.open"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "provider": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        }
+      }
+    },
+    "DecoderSendRequest": {
+      "title": "DecoderSendRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.send"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "DecoderOutputRequest": {
+      "title": "DecoderOutputRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId",
+        "data"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.output"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "data": {
+          "type": "string",
+          "maxLength": 1398104
+        }
+      }
+    },
+    "DecoderCloseRequest": {
+      "title": "DecoderCloseRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "decoderId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.close"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "decoderId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "CoreResultResponse": {
+      "title": "CoreResultResponse",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "result"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "core.result"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "result": {
+          "type": "object",
+          "maxProperties": 32
+        },
+        "launch": {
+          "$ref": "#/$defs/CoreLaunch"
+        }
+      }
+    },
+    "CoreFailedResponse": {
+      "title": "CoreFailedResponse",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "code"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "core.failed"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "code": {
+          "$ref": "#/$defs/Code"
+        },
+        "stage": {
+          "type": "string",
+          "enum": [
+            "workspace",
+            "workstream",
+            "launch"
+          ]
+        }
+      }
+    },
+    "DecoderDecodedResponse": {
+      "title": "DecoderDecodedResponse",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "events"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "decoder.decoded"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "events": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/DecodedEvent"
+          }
+        },
+        "input": {
+          "type": "string",
+          "maxLength": 1398104
+        }
+      }
+    },
+    "DecodedStatus": {
+      "title": "DecodedStatus",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "event"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "status"
+          ]
+        },
+        "event": {
+          "type": "string",
+          "enum": [
+            "turn_started",
+            "question_asked",
+            "turn_finished"
+          ]
+        }
+      }
+    },
+    "DecodedItem": {
+      "title": "DecodedItem",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "content",
+        "createdAtMs"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "item"
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/DecodedContent"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        }
+      }
+    },
+    "DecodedStart": {
+      "title": "DecodedStart",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "content",
+        "createdAtMs"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "start"
+          ]
+        },
+        "content": {
+          "$ref": "#/$defs/DecodedContent"
+        },
+        "createdAtMs": {
+          "$ref": "#/$defs/EpochMilliseconds"
+        }
+      }
+    },
+    "DecodedDelta": {
+      "title": "DecodedDelta",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "delta"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "DecodedFinish": {
+      "title": "DecodedFinish",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "finish"
+          ]
+        }
+      }
+    },
+    "UserMessageContent": {
+      "title": "UserMessageContent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "user_message"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "AgentMessageContent": {
+      "title": "AgentMessageContent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "agent_message"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "QuestionContent": {
+      "title": "QuestionContent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "text"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "question"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 262144
+        }
+      }
+    },
+    "ToolActivityContent": {
+      "title": "ToolActivityContent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "name",
+        "status",
+        "calls"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "tool_activity"
+          ]
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "running",
+            "succeeded",
+            "failed"
+          ]
+        },
+        "calls": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "LervoNoticeContent": {
+      "title": "LervoNoticeContent",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "code",
+        "parameters"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "lervo_notice"
+          ]
+        },
+        "code": {
+          "$ref": "#/$defs/Code"
+        },
+        "parameters": {
+          "$ref": "#/$defs/Parameters"
+        }
+      }
+    }
+  }
+}

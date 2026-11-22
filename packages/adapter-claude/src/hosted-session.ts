@@ -1,10 +1,13 @@
 import {
   assertHostedLaunchIntent,
+  type HostedStreamDecoding,
   type HostedLaunch,
   type HostedLaunchIntent,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
 } from "@lervo/adapter-contract";
+
+import { ClaudeHostedStreamDecoder } from "./hosted-stream.js";
 
 /**
  * Claude Code's hosted sessions, through its documented CLI options. The native conversation runs
@@ -25,8 +28,11 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
   resume: true,
 };
 
-export function createClaudeHostedSessionAdapter(executable = "claude"): HostedSessionAdapter {
+export function createClaudeHostedSessionAdapter(
+  executable = "claude",
+): HostedSessionAdapter & HostedStreamDecoding {
   return {
+    createStreamDecoder: () => new ClaudeHostedStreamDecoder(),
     provider: "claude",
     capabilities: claudeHostedCapabilities,
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {

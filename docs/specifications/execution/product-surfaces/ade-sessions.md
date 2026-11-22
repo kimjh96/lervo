@@ -67,6 +67,8 @@ Hosted sessions record their own observations. They are never E1–E4 and never 
 
 A session whose `SessionStart` never matches a prepared ID stays `launch_unconfirmed`. Its observations fall back to the ADR-0197 unmanaged ladder.
 
+Each adapter that declares `nativeConversation` provides a stream decoder, and the common hosted-session checks hold the two together. The decoder runs in the resident Lervo process behind the [core link](ade-core-link.md). Claude Code's decoder reads `stream-json` with partial messages. A text block becomes a streamed agent message. A tool call becomes one tool-activity item, succeeded or failed, when its result arrives. `result` ends the turn and adds the `provider_turn_failed` notice when the turn did not succeed. Subagent messages, thinking, hooks, and system lines stay out of the conversation, and tool inputs and outputs never leave the decoder. A tool that is still running shows only as the session's working status until its result arrives.
+
 The native conversation's structured stream carries the same kinds of events that ADR-0010 reads. It still records hosted observations only. A native hosted session can claim an E3 receipt only after the provider adapter's common contract tests prove the same controlled-input coordinates that ADR-0010 requires.
 
 ## Conversation index

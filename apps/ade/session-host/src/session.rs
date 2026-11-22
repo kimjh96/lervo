@@ -14,8 +14,8 @@ use lervo_session_protocol::{HostMessage, Identifier};
 use tokio::sync::mpsc;
 
 use crate::messages;
-use crate::ports::ConversationMode;
 use crate::subscriber::{Outgoing, Subscriber};
+use lervo_session_core::ports::ConversationMode;
 
 /// How long an ended session still answers attaches and ranges before its actor exits. After
 /// that, `session.open` starts the session again.

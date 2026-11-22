@@ -551,6 +551,9 @@
             "range_invalid",
             "conversation_mode_unsupported",
             "conversation_index_corrupt",
+            "workspace_not_found",
+            "launch_intent_invalid",
+            "application_failed",
             "application_unavailable"
           ]
         },

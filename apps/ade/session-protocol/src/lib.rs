@@ -9,6 +9,7 @@ mod generated {
 }
 
 pub mod codec;
+pub mod core_link;
 pub mod frame;
 
 pub use generated::*;
