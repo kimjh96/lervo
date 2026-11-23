@@ -125,6 +125,19 @@ export const sessionStatusMessageSchema = {
   },
 } as const;
 
+/** The provider received the text of a `session.send`; failures answer with `request.failed`. */
+export const sessionSentMessageSchema = {
+  title: "SessionSentMessage",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "requestId", "sessionId"],
+  properties: {
+    kind: { type: "string", enum: ["session.sent"] },
+    requestId: identifierSchema,
+    sessionId: identifierSchema,
+  },
+} as const;
+
 export const sessionResyncRequiredMessageSchema = {
   title: "SessionResyncRequiredMessage",
   type: "object",
@@ -146,4 +159,5 @@ export type SessionStopMessage = FromSchema<typeof sessionStopMessageSchema>;
 export type SessionOpenedMessage = FromSchema<typeof sessionOpenedMessageSchema>;
 export type SessionStatusMessage = FromSchema<typeof sessionStatusMessageSchema>;
 export type SessionResyncRequiredMessage = FromSchema<typeof sessionResyncRequiredMessageSchema>;
+export type SessionSentMessage = FromSchema<typeof sessionSentMessageSchema>;
 export type SessionsWatchMessage = FromSchema<typeof sessionsWatchMessageSchema>;

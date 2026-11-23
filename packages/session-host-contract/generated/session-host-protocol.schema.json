@@ -114,6 +114,9 @@
           "$ref": "#/$defs/SessionStatusMessage"
         },
         {
+          "$ref": "#/$defs/SessionSentMessage"
+        },
+        {
           "$ref": "#/$defs/SessionResyncRequiredMessage"
         },
         {
@@ -685,6 +688,30 @@
             "failed",
             "provider_exited"
           ]
+        }
+      }
+    },
+    "SessionSentMessage": {
+      "title": "SessionSentMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.sent"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
         }
       }
     },
