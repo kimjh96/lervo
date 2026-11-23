@@ -5,6 +5,7 @@
  */
 import type { FromSchema } from "json-schema-to-ts";
 
+import { applicationCommandNames, providerIdSchema } from "./application-results.js";
 import {
   codeSchema,
   epochMillisecondsSchema,
@@ -35,7 +36,7 @@ export const coreCommandRequestSchema = request(
   "CoreCommandRequest",
   "core.command",
   {
-    command: { type: "string", enum: ["workspace.start", "workspace.list", "repository.list"] },
+    command: { type: "string", enum: applicationCommandNames },
     arguments: { type: "object", maxProperties: 16 },
   },
   ["command", "arguments"],
@@ -51,7 +52,7 @@ export const coreOpenRequestSchema = request(
 export const decoderOpenRequestSchema = request(
   "DecoderOpenRequest",
   "decoder.open",
-  { decoderId: identifierSchema, provider: { type: "string", pattern: "^[a-z][a-z0-9-]{0,31}$" } },
+  { decoderId: identifierSchema, provider: providerIdSchema },
   ["decoderId", "provider"],
 );
 
@@ -128,7 +129,7 @@ export const coreLaunchSchema = {
     sessionId: identifierSchema,
     workspaceId: identifierSchema,
     conversationMode: conversationModeSchema,
-    provider: { type: "string", pattern: "^[a-z][a-z0-9-]{0,31}$" },
+    provider: providerIdSchema,
     program: { type: "string", minLength: 1, maxLength: 4096 },
     arguments: { type: "array", maxItems: 256, items: { type: "string", maxLength: 262144 } },
     environment: {

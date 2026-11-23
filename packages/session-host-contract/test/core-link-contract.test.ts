@@ -5,6 +5,10 @@ import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
 import {
+  applicationCommandNames,
+  applicationResultSchemas,
+  baseApplicationCommandNames,
+  coreCommandRequestSchema,
   coreLinkProtocolDocument,
   coreLinkRequestSchemas,
   coreLinkResponseSchemas,
@@ -44,6 +48,8 @@ function validators() {
     any: find(id),
     request: find(`${id}#/$defs/CoreLinkRequest`),
     response: find(`${id}#/$defs/CoreLinkResponse`),
+    result: (command: keyof typeof applicationResultSchemas) =>
+      find(`${id}#/$defs/${applicationResultSchemas[command].title}`),
   };
 }
 
@@ -87,6 +93,48 @@ describe("core-link protocol contract", () => {
       ].toSorted();
     expect(await seen("requests")).toEqual(kinds(coreLinkRequestSchemas));
     expect(await seen("responses")).toEqual(kinds(coreLinkResponseSchemas));
+  });
+
+  it("names one result schema for every application command", () => {
+    expect(coreCommandRequestSchema.properties.command.enum).toEqual(applicationCommandNames);
+    expect(Object.keys(applicationResultSchemas).toSorted()).toEqual(
+      [...applicationCommandNames].toSorted(),
+    );
+    for (const base of baseApplicationCommandNames) expect(applicationCommandNames).toContain(base);
+  });
+
+  it("accepts every result fixture, with or without the fields an older core omits", async () => {
+    const names = new Map<string, keyof typeof applicationResultSchemas>([
+      ["provider-list", "provider.list"],
+      ["repository-list", "repository.list"],
+      ["workspace-list", "workspace.list"],
+      ["workspace-list-older-core", "workspace.list"],
+      ["workspace-start", "workspace.start"],
+    ]);
+    const results = await fixtures("results");
+    expect(results.map(([name]) => name.replace(/\.json$/u, "")).toSorted()).toEqual(
+      [...names.keys()].toSorted(),
+    );
+    for (const [name, value] of results) {
+      const validator = validate.result(names.get(name.replace(/\.json$/u, ""))!);
+      expect(validator(value), `${name}: ${JSON.stringify(validator.errors)}`).toBe(true);
+    }
+  });
+
+  it("lets a newer core add result properties", async () => {
+    const [, list] = (await fixtures("results")).find(([name]) => name === "workspace-list.json")!;
+    const extended = { ...(list as object), pinned: [] };
+    expect(validate.result("workspace.list")(extended)).toBe(true);
+  });
+
+  it("rejects every invalid result fixture", async () => {
+    for (const [name, value] of await fixtures("invalid-results")) {
+      const { command, result } = value as {
+        command: keyof typeof applicationResultSchemas;
+        result: unknown;
+      };
+      expect(validate.result(command)(result), name).toBe(false);
+    }
   });
 
   it("keeps the generated document for the Rust session host current", async () => {

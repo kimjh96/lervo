@@ -1,3 +1,13 @@
+import {
+  providerCapabilitiesSchema,
+  providerListResultSchema,
+  providerSummarySchema,
+  repositoryListResultSchema,
+  repositorySummarySchema,
+  workspaceListResultSchema,
+  workspaceStartResultSchema,
+  workspaceSummarySchema,
+} from "./application-results.js";
 import { conversationItemSchema, conversationItemSchemas } from "./conversation.js";
 import {
   coreLaunchSchema,
@@ -56,6 +66,16 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
   ["CoreLaunch", coreLaunchSchema],
   ["DecodedEvent", decodedEventSchema],
   ["DecodedContent", decodedContentSchema],
+  ...[
+    workspaceSummarySchema,
+    workspaceListResultSchema,
+    repositorySummarySchema,
+    repositoryListResultSchema,
+    workspaceStartResultSchema,
+    providerCapabilitiesSchema,
+    providerSummarySchema,
+    providerListResultSchema,
+  ].map((schema) => [schema.title, schema] as const),
   ...[
     ...coreLinkRequestSchemas,
     ...coreLinkResponseSchemas,

@@ -1,0 +1,4 @@
+{
+  "command": "workspace.start",
+  "result": { "workspaceId": "wsp_0123456789abcdef01234567", "provider": "claude" }
+}

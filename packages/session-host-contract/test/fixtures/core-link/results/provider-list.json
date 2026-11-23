@@ -1,0 +1,35 @@
+{
+  "providers": [
+    {
+      "provider": "claude",
+      "displayName": "Claude Code",
+      "capabilities": {
+        "nativeConversation": true,
+        "sessionIdBinding": true,
+        "hooks": false,
+        "mcp": false,
+        "systemPromptFile": false,
+        "resume": true
+      },
+      "conversationModes": ["native", "cli"],
+      "preferredMode": "native",
+      "installed": true
+    },
+    {
+      "provider": "codex",
+      "displayName": "Codex",
+      "capabilities": {
+        "nativeConversation": false,
+        "sessionIdBinding": false,
+        "hooks": false,
+        "mcp": false,
+        "systemPromptFile": false,
+        "resume": false
+      },
+      "conversationModes": ["cli"],
+      "preferredMode": "cli",
+      "installed": false
+    }
+  ],
+  "defaultProvider": "claude"
+}
