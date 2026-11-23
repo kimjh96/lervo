@@ -113,18 +113,18 @@ The CLI conversation uses these colors over the `color.surface.terminal` glass, 
 
 ## Sizes, states, and focus
 
-| Token                                         | Value           | Use                                                       |
-| --------------------------------------------- | --------------- | --------------------------------------------------------- |
-| `size.control.sm` / `md` / `lg`               | 24 / 28 / 34 px | Segments, chips, and icon buttons in input cards          |
-| `size.dot.default` / `attention`              | 6 / 7 px        | Status and working dots; the needs-you dot                |
-| `size.icon.sm` / `md` / `lg`                  | 12 / 14 / 16 px | Icons beside captions, in rows, and in buttons            |
-| `size.logo.launch`                            | 48 px           | The mark in the launch view, one pixel per grid unit      |
-| `opacity.disabled`                            | 0.45            | A control that cannot act now                             |
-| `focus.ring.width` / `offset` / `inset`       | 2 / 2 / −2 px   | Focus rings outside a control, or inside a row or segment |
-| `border.width.strong`                         | 2 px            | The question bar                                          |
-| `font.weight.regular` / `medium` / `semibold` | 400 / 500 / 600 | The only weights                                          |
-| `layout.startMaxWidth`                        | 640 px          | The start screen column                                   |
-| `layout.bubbleMaxWidth`                       | 80%             | The user's message bubbles                                |
+| Token                                         | Value           | Use                                                                                           |
+| --------------------------------------------- | --------------- | --------------------------------------------------------------------------------------------- |
+| `size.control.sm` / `md` / `lg`               | 24 / 28 / 34 px | Segments, chips, and icon buttons in input cards                                              |
+| `size.dot.default` / `attention`              | 6 / 7 px        | Status and working dots; the needs-you dot                                                    |
+| `size.icon.sm` / `md` / `lg`                  | 12 / 14 / 16 px | Icons beside captions, in rows, and in buttons                                                |
+| `size.logo.launch`                            | 96 px           | The mark in the launch view, two pixels per grid unit, so its edges stay sharp at every scale |
+| `opacity.disabled`                            | 0.45            | A control that cannot act now                                                                 |
+| `focus.ring.width` / `offset` / `inset`       | 2 / 2 / −2 px   | Focus rings outside a control, or inside a row or segment                                     |
+| `border.width.strong`                         | 2 px            | The question bar                                                                              |
+| `font.weight.regular` / `medium` / `semibold` | 400 / 500 / 600 | The only weights                                                                              |
+| `layout.startMaxWidth`                        | 640 px          | The start screen column                                                                       |
+| `layout.bubbleMaxWidth`                       | 80%             | The user's message bubbles                                                                    |
 
 The palette (`palette.*`) holds the solid colors that the semantic color tokens alias. It is a primitive tier: components never read it, and the stylesheet does not expose it.
 
