@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_31f9eba4cf668db077601c60"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Each host publishes its model selection in its Hub host records and republishes it when it changes, so the Mac and WSL share one selection."
