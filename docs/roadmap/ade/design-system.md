@@ -145,6 +145,15 @@ Step 1 wrote the design language and the foundations in the [ADE design system s
 - **Unused or unclear roles** (step 2): `type.title` has no consumer yet. `type.note` also sets the user bubble's line height, which the specification records.
 - **Content** (step 4): there is no glossary yet, and empty states have no pattern; the workspace list shows nothing when there are no workspaces.
 
+## Progress
+
+- **Step 4**, on 2026-11-23, did the following:
+  - wrote the [patterns and content chapter](../../specifications/execution/product-surfaces/ade-design-patterns.md);
+  - checked accessibility in headless WebKit;
+  - closed three gaps: increased contrast, window zoom, and a workspace list that hid in narrow windows.
+
+  The evidence and undo patterns wait for the features that need them, and step 5 decides on automated accessibility checks.
+
 ## Completion
 
 The design system is complete when:

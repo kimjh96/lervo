@@ -109,7 +109,7 @@ The CLI conversation uses these colors over the `color.surface.terminal` glass, 
 
 - **Space.** The scale uses 2 px steps up to 16 and 4 px steps above: 2, 4, 6, 8, 10, 12, 14, 16, 20, 24, 28, 32, 36, 48.
 - **Radius.** `radius.sm` 8 px for rows, `radius.md` 10 px for buttons, `radius.lg` 14 px for the window and messages, `radius.xl` 16 px for inputs, and `radius.full` for dots.
-- **Layout.** The workspace list is 232 px wide. Headers are 48 px tall. The conversation and its input are at most 720 px wide. The window's minimum size is 960 × 600 px. Below 760 px of width, the workspace list collapses into a menu.
+- **Layout.** The workspace list is 232 px wide. Headers are 48 px tall. The conversation and its input are at most 720 px wide. The window's minimum size is 960 × 600 px. Below 760 px of width, which a zoomed window reaches, the workspace list narrows to 160 px (`layout.sidebarMinWidth`) and stays.
 
 ## Sizes, states, and focus
 
@@ -142,6 +142,18 @@ The palette (`palette.*`) holds the solid colors that the semantic color tokens 
 ## Icons
 
 Icons are drawn on a 24 px grid with 2 px round-capped strokes and render at 12, 14, or 16 px in the current text color. The interface uses no emoji.
+
+## Increased contrast
+
+When the platform asks for more contrast, these tokens change, and every other token keeps its value.
+
+| Token                  | Dark                     | Light                   |
+| ---------------------- | ------------------------ | ----------------------- |
+| `glass.tint.opacity`   | `1`                      | `1`                     |
+| `color.text.secondary` | `{palette.neutral.100}`  | `{palette.neutral.925}` |
+| `color.text.tertiary`  | `{palette.neutral.300}`  | `{palette.neutral.650}` |
+| `color.border.subtle`  | `rgba(255,255,255,0.16)` | `rgba(20,30,50,0.20)`   |
+| `color.border.default` | `rgba(255,255,255,0.30)` | `rgba(20,30,50,0.32)`   |
 
 ## Logo
 
