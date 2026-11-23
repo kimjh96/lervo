@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0bbeb26f314f18bfa8adda9c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "A repository Node upgrade whose service needed no restart accepts the running Node's own readiness snapshot instead of timing out, so a release with identical Node runtime bytes installs."

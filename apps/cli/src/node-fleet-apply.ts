@@ -315,9 +315,12 @@ export async function applyNodeFleetOnboarding(input: {
     )
       fail("node_fleet_service_unavailable", "The repository service did not remain active.");
     const readinessStartedAt = performance.now();
+    // An unchanged service was not restarted, and an idle Node writes its health only on change
+    // (ADR-0602), so no snapshot newer than this apply will come: the running process's own
+    // snapshot is the evidence. A release whose Node runtime bytes are identical lands here.
     const readiness = await observeNodeFleetReadiness({
       path: current.desired.healthPath,
-      notBefore: appliedAt,
+      notBefore: service.change === "unchanged" ? new Date(0) : appliedAt,
       ports,
       allowHubUnavailable: input.allowHubUnavailableReadiness === true,
       baseline,

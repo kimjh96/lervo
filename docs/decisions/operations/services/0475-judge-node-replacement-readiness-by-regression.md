@@ -46,7 +46,7 @@ Readiness judges `sync`, `workstreamReplication`, `workspaceCoordination`, `remo
 
 ### Observation budget
 
-Readiness still requires three consecutive fresh, monotonic snapshots from one process identity, observed 500 milliseconds apart. The fixed 60-second window becomes progress-based: the first fresh snapshot, or an accepted-component count higher than any previous fresh snapshot, extends the deadline to 60 seconds after that observation. The high-water mark spans process identities, so a restart loop cannot extend the window without new progress. The total remains bounded at 600 seconds (1,200 observations).
+Readiness still requires three consecutive fresh, monotonic snapshots from one process identity, observed 500 milliseconds apart. A snapshot is fresh when it was written after the apply began, except when the service definition was unchanged and the manager did not restart the Node: then the running process's own snapshot counts, since a settled Node writes only on change and no newer snapshot would come. A release whose Node runtime bytes are identical to the running ones, such as v0.45.2, otherwise timed out on every apply and was rolled back. The fixed 60-second window becomes progress-based: the first fresh snapshot, or an accepted-component count higher than any previous fresh snapshot, extends the deadline to 60 seconds after that observation. The high-water mark spans process identities, so a restart loop cannot extend the window without new progress. The total remains bounded at 600 seconds (1,200 observations).
 
 ### Receipt
 
