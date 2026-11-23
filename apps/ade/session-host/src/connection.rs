@@ -36,7 +36,7 @@ where
     .await?;
 
     let (sender, mut queue) = mpsc::unbounded_channel::<Outgoing>();
-    let output = Output::new(connection, sender);
+    let output = Output::new(connection, sender).with_diagnostics(host.diagnostics.clone());
     let watching = output.clone();
     let writing = tokio::spawn(async move {
         while let Some(item) = queue.recv().await {
