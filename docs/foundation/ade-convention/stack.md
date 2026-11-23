@@ -10,7 +10,7 @@ This part of the [Lervo ADE convention](../ade-convention.md) records the techno
 | Area                  | Choice                                                               | Reason                                                                        |
 | --------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | Shell                 | Tauri 2 (Rust)                                                       | Small binaries and memory; native window material, notifications, and updates |
-| Shell relay           | `@tauri-apps/api` commands and channels                              | The webview cannot open sockets; binary channels carry terminal bytes as-is   |
+| Shell relay           | `@tauri-apps/api` commands and channels                              | The webview cannot open sockets; a channel carries validated control messages |
 | Webview               | The platform's own: WKWebView, WebView2, and WebKitGTK               | No bundled browser engine                                                     |
 | Interface             | React 19, TypeScript in strict mode, Vite                            | The owner's choice; Vite builds the interface in under a second               |
 | State                 | Zustand, one store per feature                                       | Fine-grained selectors re-render only what changed                            |
@@ -18,7 +18,6 @@ This part of the [Lervo ADE convention](../ade-convention.md) records the techno
 | Accessible primitives | Radix UI primitives, wrapped in `ui/`                                | Keyboard and screen-reader behavior without reimplementing it                 |
 | Long lists            | TanStack Virtual                                                     | Variable-height virtualization for unbounded conversations                    |
 | Localization          | FormatJS (`react-intl`) with catalogs compiled to ASTs               | ICU messages without a runtime parser; Vite aliases the parser to its stub    |
-| CLI conversation      | xterm.js with its WebGL renderer                                     | A proven terminal renderer                                                    |
 | Markdown              | `marked`'s lexer, rendered to React elements without HTML strings    | Chosen in S1.6c by measurement: the smallest bundle and the fastest parse     |
 | Code highlighting     | None yet; code shows in the mono face                                | Added by measurement when a scenario needs it                                 |
 

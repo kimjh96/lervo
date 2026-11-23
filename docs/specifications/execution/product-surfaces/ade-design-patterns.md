@@ -46,7 +46,7 @@ This specification is the patterns and content chapter of the [design system](ad
 - **What stays, stays still.** The workspace list, the header, and the reply card keep their places through every change, as the motion principles require.
 - **New work.** "New work" and its shortcut open the start screen with the instruction focused.
 - **Narrow and zoomed windows.** Below the breakpoint, the workspace list narrows to `layout.sidebarMinWidth` instead of hiding, so no navigation disappears. The macOS window controls keep the list's strip. Titles truncate before controls do.
-- **Modes.** The header switches between the conversation modes the workspace's provider offers, and hides the switch when there is only one.
+- **One conversation.** The ADE shows the native conversation only, so the header holds no mode switch ([ADR-0617](../../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)). A workspace last opened in the terminal opens in the native conversation.
 
 ### Keyboard
 
@@ -99,7 +99,6 @@ The interface and the documentation use these words with these meanings, and no 
 | Agent        | The provider CLI that does the work in a workspace, named by its product name, such as "Claude Code" | Model, bot, assistant      |
 | Session      | One run of an agent in a workspace, which the session host keeps alive                               | Chat, thread               |
 | Conversation | A session shown as messages, the native conversation                                                 | Chat                       |
-| Terminal     | A session shown as the agent's own terminal interface, the CLI conversation                          | Console, shell (in copy)   |
 | Instruction  | What the person asks a workspace's agent to do                                                       | Prompt, query              |
 | Evidence     | What Lervo recorded about what happened, with its source                                             | Logs, proof                |
 | Verification | A check Lervo ran and its result                                                                     | Test (unless it is a test) |

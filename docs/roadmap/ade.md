@@ -161,6 +161,21 @@ The convention check found that the session host kept no log: its standard error
   - a unit test fills the log past its bound and finds the oldest entries gone;
   - a test against a served host finds a broken handshake and a failed request recorded by code only.
 
+### The terminal leaves the ADE
+
+On 2026-11-23 the owner used the CLI conversation on the Mac:
+
+- Hangul typed through the input method lost its first syllable.
+- Hangul left gaps in its cells.
+- The transparent background turned inverse and dim text black, and then dim text nearly invisible.
+
+The owner asked why the ADE needs a terminal, and decided to remove it for now and to support only Claude Code until other providers offer the native conversation ([ADR-0617](../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)).
+
+- **What left.** The interface's terminal, the mode switch, xterm.js, the terminal palette, and the shell's terminal relay are gone.
+- **What stays.** The core keeps its CLI launches. The session host keeps its CLI mode, which its tests and load examples exercise, so the terminal can return by restoring the interface.
+
+The terminal quality follow-up below is superseded until the terminal returns, and ADR-0617 lists what it must fix then.
+
 ### Transcript sync and the CLI conversation's quality
 
 On 2026-11-23 the owner tried the app built from `main` and found two problems.

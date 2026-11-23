@@ -36,8 +36,6 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 
 - Window glass comes from the platform's native window material, as the [visual language](../../specifications/execution/product-surfaces/ade-visual-language.md) requires. A CSS `backdrop-filter` is costly on the GPU, so it appears only on short-lived overlays and on the reply card and "Jump to latest" that float over the conversation, and never over a terminal. The interface harness measures scrolling with the floating controls.
 - When the OS asks for reduced transparency, or the device is in a low-power mode, glass becomes an opaque surface.
-- The CLI conversation uses one WebGL terminal renderer per visible terminal. Hidden terminals keep their buffer but release their renderer.
-- Terminal output is written to the renderer at most once per frame, with a per-frame byte limit, so a flood of output never freezes input.
 
 ## Disk
 
@@ -74,7 +72,6 @@ A conversation can grow without limit. No layer may hold or render all of it.
 - **Immutable history.** A completed message never renders again. Only the streaming tail updates.
 - **Frame-bound streaming.** Streamed deltas are coalesced to at most one UI update per animation frame.
 - **Deferred heavy content.** Large tool output starts collapsed and loads on demand. Markdown is parsed only for visible items, once per complete item, and once per frame for the streaming one. S1.6c measured the parser below a frame's budget even for a 163 KB message (4.5 ms), so it runs on the main thread; syntax highlighting, when it arrives, is measured the same way before it may join it. The Markdown renderer is its own chunk, loaded right after the interface starts.
-- **Bounded scrollback.** The CLI conversation keeps a bounded in-memory ring and moves older lines to segments.
 
 ## Measurement
 
@@ -84,7 +81,6 @@ A performance harness runs fixed scenarios on the owner's Mac and in WSL:
 - twenty idle workspaces;
 - a conversation with 100,000 items, opened and scrolled;
 - streaming at the provider's fastest rate;
-- a terminal flood, such as a build that prints continuously;
 - a soak run of repeated workspace opening and closing.
 
 It records CPU, resident memory, JavaScript heap, frame times, long tasks, input latency, and disk writes. Cheap checks, such as bundle and binary size, run on every pull request. The full harness runs before each release, so continuous integration stays inexpensive.
@@ -110,7 +106,6 @@ These are the ADE's budgets, including S1's initial targets. Until S1 records a 
 | Scrolling that conversation                                           | 60 fps; no task longer than 50 ms |
 | UI memory with that conversation open                                 | at most 50 MB above idle          |
 | Streamed delta to screen, p95                                         | 33 ms                             |
-| Input latency during a terminal flood, p95                            | 50 ms                             |
 
 The launch view counts toward the cold-start budget. It waits for the first lists so the start screen does not fill in after it appears, but it leaves no later than 500 ms after the window's navigation start, whether the lists have loaded or not.
 | Memory after the soak run | within 5% of the starting baseline |
