@@ -16,6 +16,10 @@ import {
 
 import { collectEventReaderActivationEvidence } from "./event-reader-inventory.js";
 import type { CliIo } from "./types.js";
+import {
+  readableEventSchemaVersions,
+  type ActivatableEventSchemaVersion,
+} from "@lervo/event-contract";
 
 const maximumEvidenceBytes = 64 * 1024;
 
@@ -25,7 +29,7 @@ export interface EventContractCommandPorts {
 
 export const eventContractUsage = `  lervo event-contract status [--root <path>] [--json]
   lervo event-contract evidence [--root <path>] [--json]
-  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6|7|8|9>] [--apply <plan-id>] [--root <path>] [--json]
+  lervo event-contract activate (--from <path> | --stdin) [--schema-version <2-10>] [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
   lervo event-contract recover [--root <path>] [--json]`;
 
@@ -91,16 +95,18 @@ export async function runEventContractCommand(
     if (parsed.positionals.length !== 1) throw new Error("Specify one event-contract action.");
     const action = parsed.positionals[0];
     const selectedVersion = parsed.values["schema-version"] ?? "2";
-    const activationVersions = ["2", "3", "4", "5", "6", "7", "8", "9"] as const;
+    const activationVersions = readableEventSchemaVersions
+      .filter((version) => version > 1)
+      .map(String);
     if (
-      !(activationVersions as readonly string[]).includes(selectedVersion) ||
+      !activationVersions.includes(selectedVersion) ||
       (parsed.values["schema-version"] !== undefined && action !== "activate")
     ) {
       throw new Error(
         `--schema-version accepts ${activationVersions.join(", ")} for activation only.`,
       );
     }
-    const targetEventSchemaVersion = Number(selectedVersion) as 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+    const targetEventSchemaVersion = Number(selectedVersion) as ActivatableEventSchemaVersion;
     const repositoryRoot = resolve(io.cwd, parsed.values.root ?? ".");
     if (action === "status") {
       if (parsed.values.from || parsed.values.stdin || parsed.values.apply) {

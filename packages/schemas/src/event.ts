@@ -12,6 +12,7 @@ import {
 } from "./common.js";
 import { documentFreshnessEventTypes } from "./document-freshness-event.js";
 import { instructionCaptureEventTypes } from "./instruction-capture-event.js";
+import { hostedSessionEventTypes } from "./hosted-session-event.js";
 import { planLedgerEventTypes } from "./plan-ledger-event.js";
 
 export const eventTypesV1 = [
@@ -183,7 +184,9 @@ export const eventTypesV8 = [
 ] as const;
 /** ADR-0563: the plan ledger. */
 export const eventTypesV9 = [...eventTypesV8, ...planLedgerEventTypes] as const;
-export const eventTypes = eventTypesV9;
+/** ADR-0613: the ADE's hosted sessions. */
+export const eventTypesV10 = [...eventTypesV9, ...hostedSessionEventTypes] as const;
+export const eventTypes = eventTypesV10;
 
 const eventEnvelopeProperties = {
   eventId: eventIdSchema,
@@ -328,6 +331,7 @@ export const eventEnvelopeSchema = {
     { properties: { type: { enum: eventTypesV7 }, schemaVersion: { const: 7 } } },
     { properties: { type: { enum: eventTypesV8 }, schemaVersion: { const: 8 } } },
     { properties: { type: { enum: eventTypesV9 }, schemaVersion: { const: 9 } } },
+    { properties: { type: { enum: eventTypesV10 }, schemaVersion: { const: 10 } } },
   ],
 } as const;
 
@@ -361,10 +365,31 @@ export type EventEnvelopeV9 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & 
   schemaVersion: 9;
   type: (typeof eventTypesV9)[number];
 };
-export type EventEnvelope = Omit<EventEnvelopeV9, "schemaVersion"> & {
+export type EventEnvelopeV10 = Omit<EventEnvelopeV2, "schemaVersion" | "type"> & {
+  schemaVersion: 10;
+  type: (typeof eventTypesV10)[number];
+};
+export type EventEnvelope = Omit<EventEnvelopeV10, "schemaVersion"> & {
   schemaVersion:
-    EventEnvelopeV1["schemaVersion"] | EventEnvelopeV2["schemaVersion"] | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+    | EventEnvelopeV1["schemaVersion"]
+    | EventEnvelopeV2["schemaVersion"]
+    | 3
+    | 4
+    | 5
+    | 6
+    | 7
+    | 8
+    | 9
+    | 10;
+};
+/**
+ * `T` with its `events` typed as non-empty `EventEnvelope`s, keeping every other property and any
+ * index signature. Reports use it because the envelope schema, with one branch per event schema
+ * version, is too deep for `FromSchema`.
+ */
+export type WithEnvelopeEvents<T> = {
+  [K in keyof T]: K extends "events" ? [EventEnvelope, ...EventEnvelope[]] : T[K];
 };
 export type EventTypeV1 = (typeof eventTypesV1)[number];
 export type EventTypeV2 = (typeof eventTypesV2)[number];
-export type EventType = (typeof eventTypesV9)[number];
+export type EventType = (typeof eventTypesV10)[number];

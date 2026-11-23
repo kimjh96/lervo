@@ -7,6 +7,7 @@ import {
 } from "./event-writer-activation-plan.js";
 import { assertNoEventWriterActivationTransaction } from "./event-writer-activation-transaction-io.js";
 import { resolveProjectPaths } from "./layout.js";
+import type { ActivatableEventSchemaVersion } from "@lervo/event-contract";
 
 export async function inspectEventWriterCoordinate(repositoryRoot: string) {
   const manifest = await loadProjectManifest(repositoryRoot);
@@ -22,7 +23,7 @@ export async function inspectEventWriterCoordinate(repositoryRoot: string) {
 export async function planEventWriterActivation(input: {
   repositoryRoot: string;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  targetEventSchemaVersion?: ActivatableEventSchemaVersion;
 }): Promise<EventWriterActivationPlan> {
   const manifest = await loadProjectManifest(input.repositoryRoot);
   const paths = resolveProjectPaths(input.repositoryRoot);

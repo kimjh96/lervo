@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { readableEventSchemaVersions } from "@lervo/event-contract";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openPooledProjectStorage } from "./bootstrap.js";
 import { createStorageBindingBatch } from "./storage-binding-batch.js";
@@ -41,7 +42,7 @@ export function createProjectStoragePool(
   const minimumEventSchemaVersion = options.minimumEventSchemaVersion;
   if (
     minimumEventSchemaVersion !== undefined &&
-    ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(minimumEventSchemaVersion)
+    !(readableEventSchemaVersions as readonly number[]).includes(minimumEventSchemaVersion)
   )
     throw new TypeError("The minimum event writer version is unsupported.");
   const entries = new Map<string, Entry>();

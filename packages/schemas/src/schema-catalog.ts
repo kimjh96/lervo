@@ -18,6 +18,12 @@ import {
   planTurnBlockedEventPayloadSchema,
 } from "./plan-ledger-event.js";
 import {
+  applicationWorkspaceStartedEventPayloadSchema,
+  terminalSessionEndedEventPayloadSchema,
+  terminalSessionLaunchedEventPayloadSchema,
+  terminalSessionLaunchPreparedEventPayloadSchema,
+} from "./hosted-session-event.js";
+import {
   contextQualityPreparedEventPayloadSchema,
   contextQualityVerifiedEventPayloadSchema,
 } from "./context-quality-event.js";
@@ -473,6 +479,10 @@ export const schemaCatalog = {
   planSummaryGapEventPayload: planSummaryGapEventPayloadSchema,
   planTurnBlockedEventPayload: planTurnBlockedEventPayloadSchema,
   planItemMissedEventPayload: planItemMissedEventPayloadSchema,
+  applicationWorkspaceStartedEventPayload: applicationWorkspaceStartedEventPayloadSchema,
+  terminalSessionLaunchPreparedEventPayload: terminalSessionLaunchPreparedEventPayloadSchema,
+  terminalSessionLaunchedEventPayload: terminalSessionLaunchedEventPayloadSchema,
+  terminalSessionEndedEventPayload: terminalSessionEndedEventPayloadSchema,
   terminalSkillObservedEventPayload: terminalSkillObservedEventPayloadSchema,
   terminalSkillTurnAssessedEventPayload: terminalSkillTurnAssessedEventPayloadSchema,
   workstreamSnapshot: workstreamSnapshotSchema,

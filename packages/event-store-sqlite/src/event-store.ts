@@ -1,7 +1,11 @@
 import type { DatabaseSync } from "node:sqlite";
 import { openSqliteDatabase, SQLITE_BUSY_TIMEOUT_MS } from "@lervo/sqlite-connection";
 
-import { type EventDraft } from "@lervo/event-contract";
+import {
+  readableEventSchemaVersions,
+  type EventDraft,
+  type EventSchemaVersion,
+} from "@lervo/event-contract";
 import { type ProjectManifest } from "@lervo/schemas";
 import {
   type AcknowledgeOutboxRequest,
@@ -50,7 +54,7 @@ import { preparedStatement } from "./statement-cache.js";
 export interface OpenEventStoreOptions extends CheckpointOptions {
   path: string;
   projectId: ProjectManifest["projectId"];
-  writableEventSchemaVersion?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  writableEventSchemaVersion?: EventSchemaVersion;
   /** sqlite_v1 permits a transition; existing_sqlite_v1 selects only an already migrated store. */
   reportStorage?: "sqlite_v1" | "existing_sqlite_v1";
 }
@@ -79,7 +83,7 @@ export class SQLiteEventStore implements OutboxStore {
     path: string,
     projectId: string,
     private readonly database: DatabaseSync,
-    writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+    writableEventSchemaVersion: EventSchemaVersion,
     private readonly readOnly = false,
     reportWriting = false,
   ) {
@@ -122,7 +126,11 @@ export class SQLiteEventStore implements OutboxStore {
   }
 
   static async open(options: OpenEventStoreOptions): Promise<SQLiteEventStore> {
-    if (![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(options.writableEventSchemaVersion ?? 1)) {
+    if (
+      !(readableEventSchemaVersions as readonly number[]).includes(
+        options.writableEventSchemaVersion ?? 1,
+      )
+    ) {
       throw new EventStoreError(
         "event_schema_unsupported",
         "The writer activation version is unsupported.",

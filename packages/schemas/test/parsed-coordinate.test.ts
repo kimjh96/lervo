@@ -21,7 +21,7 @@ function coordinate(version: number) {
                 capabilities: {
                   schemaVersion: 1,
                   capability: "event_reader",
-                  readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+                  readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
                 },
               },
             ],
@@ -53,7 +53,7 @@ function mutations(value: unknown): unknown[] {
 }
 
 describe("owned coordinate JSON parsing", () => {
-  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9])(
+  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])(
     "preserves version %i and malformed nested data verdicts",
     (version) => {
       const value = coordinate(version);
@@ -65,7 +65,7 @@ describe("owned coordinate JSON parsing", () => {
 
   it("retains JSON syntax failure and rejects unknown discriminators", () => {
     expect(() => parseEventWriterCoordinateJson("{")).toThrow(SyntaxError);
-    for (const version of [-1, 0, 10, 255, 1.5, "6", null])
+    for (const version of [-1, 0, 11, 255, 1.5, "6", null])
       compare({ ...coordinate(6), selectedEventSchemaVersion: version });
     compare({ ...coordinate(6), unexpected: true });
   });

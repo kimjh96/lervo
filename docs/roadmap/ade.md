@@ -215,6 +215,18 @@ On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's.
 - CLI preparation ignores ADE intents;
 - one ADE preparation has written `0.2.0` to every ADE manifest with its release notes and tagged `ade-v0.2.0`.
 
+### S1.4c progress
+
+S1.4c lands in two pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.
+
+1. **Readers and the target.** The CLI, the Node, and the Hub read schema 10, and `lervo upgrade` targets it. The release goes to the Hub first, which the WSL host installs by hand, and then to each host. `lervo upgrade --apply` then activates schema 10 in each registered repository once every configured reader reports it.
+2. **Hooks and writers.**
+   - The Claude adapter adds a session-scoped settings file with Lervo's `SessionStart` and `SessionEnd` handlers.
+   - `lervo workspace start` and `lervo workspace open` record `application.workspace.started` and `terminal.session.launch_prepared` in the registered repository's store, the hook handlers record `launched` and `ended`, and the session host reports an exit without `SessionEnd`.
+   - Writers check the selected writer version, never the CLI version, and record nothing below schema 10.
+
+`terminal.tool.observed` and `terminal.instructions.loaded` wait for S2, which defines their fields with the hosted evidence.
+
 ### Order after S1.4b
 
 S1.4c follows S1.5. Its events need a new event schema version, and a writer may select a version only after the Hub and Node readers support it, which takes a release and a deployment first. The interface does not depend on those events.

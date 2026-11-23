@@ -11,16 +11,16 @@ lervo event-contract --help
 lervo event-contract -h
 lervo event-contract status [--root <path>] [--json]
 lervo event-contract evidence [--root <path>] [--json]
-lervo event-contract activate (--from <path> | --stdin) [--schema-version <2|3|4|5|6>] [--apply <plan-id>] [--root <path>] [--json]
+lervo event-contract activate (--from <path> | --stdin) [--schema-version <2-10>] [--apply <plan-id>] [--root <path>] [--json]
 lervo event-contract rollback [--apply <plan-id>] [--root <path>] [--json]
 lervo event-contract recover [--root <path>] [--json]
 ```
 
 Argument parsing is strict. After successful parsing, `--help` or `-h` prints the five action usage lines above to stdout, followed by a newline, and returns 0. Help runs before positional-count, action-validity, schema-version-applicability, and action-specific-option checks, so it requires no action. Parser errors can still fail before help is handled.
 
-Without help, exactly one positional action is required. `--schema-version` accepts only 2, 3, 4, 5, or 6, applies only to activation, and defaults to 2. `--root` resolves relative to the CLI working directory and defaults to `.`.
+Without help, exactly one positional action is required. `--schema-version` accepts 2 through 10, every version this release reads except 1, applies only to activation, and defaults to 2. `--root` resolves relative to the CLI working directory and defaults to `.`.
 
-Version 5 enables the evidence-recovery and independently reviewed freshness-assessment receipt events. Version 6 adds the `context.quality.prepared` and `context.quality.verified` recording events. Install every configured reader through the target schema before activation. Default writer selection remains version 1. The [outcome-and-event rollout contract](../specifications/execution/context-quality/outcome-and-event-rollout.md) specifies automatic maintenance activation targeting version 5 and explicit version-6 activation through fresh reader-inventory evidence and the exact apply-plan contract. The supplied evidence does not establish a separate automatic repository-upgrade path targeting version 4.
+Version 5 enables the evidence-recovery and independently reviewed freshness-assessment receipt events. Version 6 adds the `context.quality.prepared` and `context.quality.verified` recording events. Versions 7 through 10 add native skill observation, practice learning, the plan ledger, and the ADE's hosted session events; [event envelope compatibility](../specifications/execution/events-and-privacy/event-envelope-compatibility.md) lists each. Install every configured reader through the target schema before activation. Default writer selection remains version 1. `lervo upgrade --apply` activates version 10 once every configured reader reads it. The [outcome-and-event rollout contract](../specifications/execution/context-quality/outcome-and-event-rollout.md) specifies explicit version-6 activation through fresh reader-inventory evidence and the exact apply-plan contract.
 
 ## Inspection and evidence
 

@@ -68,14 +68,12 @@ export async function planReportStorageActivation(input: {
   if (
     writer.projectId !== evidence.projectId ||
     writer.contentHash !== evidence.writerCoordinateHash ||
-    (writer.coordinate.selectedEventSchemaVersion !== 6 &&
-      writer.coordinate.selectedEventSchemaVersion !== 7 &&
-      writer.coordinate.selectedEventSchemaVersion !== 8 &&
-      writer.coordinate.selectedEventSchemaVersion !== 9)
+    writer.coordinate.selectedEventSchemaVersion < 6 ||
+    writer.coordinate.activationEvidence === null
   )
     throw new ReportStorageError(
       "report_storage_stale",
-      "Report activation requires the current version-6 writer coordinate.",
+      "Report activation requires the current writer coordinate at version 6 or later.",
     );
   const expected = writer.coordinate.activationEvidence.readers.map(
     ({ readerId, peerIdentityHash }) => ({ readerId, peerIdentityHash }),

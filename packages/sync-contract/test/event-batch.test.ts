@@ -68,12 +68,12 @@ describe("outbound event batch contract", () => {
       createOutboundEventBatch({ registration: registration(project), events: [version6] }).events,
     ).toEqual([version6]);
     expect(() =>
-      assertSyncableEvent({ ...events[1]!, schemaVersion: 10 } as unknown as EventEnvelope),
+      assertSyncableEvent({ ...events[1]!, schemaVersion: 11 } as unknown as EventEnvelope),
     ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
     expect(() =>
       assertOutboundEventBatch({
         ...batch,
-        events: [events[0]!, { ...events[1]!, schemaVersion: 10 } as unknown as EventEnvelope],
+        events: [events[0]!, { ...events[1]!, schemaVersion: 11 } as unknown as EventEnvelope],
       }),
     ).toThrowError(expect.objectContaining({ code: "event_schema_unsupported" }));
   });
