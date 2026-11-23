@@ -73,7 +73,7 @@ A conversation can grow without limit. No layer may hold or render all of it.
 - **Virtualized rendering.** The conversation list renders only visible items and a small overscan. Item heights are measured once and cached by item and width.
 - **Immutable history.** A completed message never renders again. Only the streaming tail updates.
 - **Frame-bound streaming.** Streamed deltas are coalesced to at most one UI update per animation frame.
-- **Deferred heavy content.** Large tool output starts collapsed and loads on demand. Markdown parsing and syntax highlighting of history run off the main thread and only for visible items.
+- **Deferred heavy content.** Large tool output starts collapsed and loads on demand. Markdown is parsed only for visible items, once per complete item, and once per frame for the streaming one. S1.6c measured the parser below a frame's budget even for a 163 KB message (4.5 ms), so it runs on the main thread; syntax highlighting, when it arrives, is measured the same way before it may join it. The Markdown renderer is its own chunk, loaded right after the interface starts.
 - **Bounded scrollback.** The CLI conversation keeps a bounded in-memory ring and moves older lines to segments.
 
 ## Measurement
