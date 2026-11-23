@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fe4dd5a8effead2a14fbf85d"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "The resident core link reads provider transcripts page by page with transcript.read, so the ADE's native conversation shows turns from the CLI conversation, and hosted launches name the variables the session host must not inherit."

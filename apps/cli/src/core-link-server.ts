@@ -1,4 +1,4 @@
-import type { HostedStreamDecoder } from "@lervo/adapter-contract";
+import type { HostedStreamDecoder, HostedTranscriptItem } from "@lervo/adapter-contract";
 import { validateCoreLinkRequest } from "@lervo/session-host-contract";
 
 import { errorCode } from "./command-error-output.js";
@@ -21,6 +21,11 @@ export interface CoreLinkHandlers {
   listRepositories(): Promise<{ repositories: RepositorySummary[] }>;
   openWorkspace(workspaceId: string, mode?: "native" | "cli"): Promise<WorkspaceOpenResult>;
   createDecoder(provider: string): HostedStreamDecoder;
+  readTranscript(
+    workspaceId: string,
+    offset: number,
+    limit: number,
+  ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
 }
 
 /** Why the core link ended. `message_invalid` means the session host sent a malformed line. */
@@ -83,6 +88,9 @@ export class CoreLinkServer {
       case "decoder.open":
         this.openDecoder(request);
         return;
+      case "transcript.read":
+        this.page(request);
+        return;
       default:
         this.decode(request);
     }
@@ -102,6 +110,21 @@ export class CoreLinkServer {
           this.handlers.startWorkspace(request.arguments as Record<string, unknown>),
         );
     }
+  }
+
+  private page(request: Request): void {
+    const task = this.handlers
+      .readTranscript(
+        request.workspaceId as string,
+        request.offset as number,
+        request.limit as number,
+      )
+      .then(
+        (page) => this.write(JSON.stringify({ kind: "transcript.page", id: request.id, ...page })),
+        (error: unknown) => this.fail(request.id, error),
+      );
+    this.pending.add(task);
+    void task.finally(() => this.pending.delete(task));
   }
 
   private respond(id: number, run: () => Promise<object>): void {
@@ -139,6 +162,8 @@ export class CoreLinkServer {
           environment: launch.environment,
           workingDirectory: launch.workingDirectory,
           initialInput: launch.initialInput,
+          environmentRemove: launch.environmentRemove,
+          ...("transcript" in started ? { transcript: started.transcript } : {}),
         },
       }),
     );

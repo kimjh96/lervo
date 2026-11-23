@@ -2,8 +2,10 @@
 import { randomBytes, randomUUID } from "node:crypto";
 
 import {
+  hasTranscriptReader,
   type HostedConversationMode,
   type HostedLaunch,
+  type HostedSessionAdapter,
   preferredConversationMode,
 } from "@lervo/adapter-contract";
 import {
@@ -84,7 +86,23 @@ export interface WorkspaceOpenResult {
   sessionId: string;
   provider: string;
   resumed: boolean;
+  /** Whether the provider's transcript of this session can be read for the native conversation. */
+  transcript: boolean;
   launch: HostedLaunch;
+}
+
+/** A workspace's latest hosted launch, its worktree, and its provider's adapter. */
+export async function locateWorkspaceSession(workspaceId: string) {
+  const path = hostedLaunchRecordsPath();
+  const previous = await latestHostedLaunch(path, workspaceId);
+  if (previous === null)
+    throw new CommandFailure("workspace_not_found", "No hosted launch exists for the workspace.");
+  const repository = await registeredRepository(previous.projectId);
+  const workingDirectory = await worktreeOfBranch(repository.repositoryRoot, previous.branch);
+  if (workingDirectory === null)
+    throw new CommandFailure("workspace_not_found", "The workspace's worktree no longer exists.");
+  const adapter: HostedSessionAdapter = await resolveHostedSessionAdapter(previous.provider);
+  return { path, previous, workingDirectory, adapter };
 }
 
 /**
@@ -95,15 +113,7 @@ export async function openWorkspace(
   workspaceId: string,
   requestedMode?: HostedConversationMode,
 ): Promise<WorkspaceOpenResult> {
-  const path = hostedLaunchRecordsPath();
-  const previous = await latestHostedLaunch(path, workspaceId);
-  if (previous === null)
-    throw new CommandFailure("workspace_not_found", "No hosted launch exists for the workspace.");
-  const repository = await registeredRepository(previous.projectId);
-  const workingDirectory = await worktreeOfBranch(repository.repositoryRoot, previous.branch);
-  if (workingDirectory === null)
-    throw new CommandFailure("workspace_not_found", "The workspace's worktree no longer exists.");
-  const adapter = await resolveHostedSessionAdapter(previous.provider);
+  const { path, previous, workingDirectory, adapter } = await locateWorkspaceSession(workspaceId);
   const mode = requestedMode ?? previous.conversationMode;
   const resume = adapter.capabilities.resume;
   const sessionId = resume ? previous.sessionId : randomUUID();
@@ -127,6 +137,7 @@ export async function openWorkspace(
     sessionId,
     provider: adapter.provider,
     resumed: resume,
+    transcript: resume && hasTranscriptReader(adapter),
     launch,
   };
 }
