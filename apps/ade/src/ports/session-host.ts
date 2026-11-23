@@ -1,4 +1,9 @@
-import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
+import type {
+  ApplicationCommandName,
+  ApplicationResults,
+  ClientMessage,
+  HostMessage,
+} from "@lervo/session-host-contract";
 
 /** The connection to the session host, as the interface shows it. */
 export type ConnectionState = "connecting" | "connected" | "reconnecting" | "unavailable";
@@ -45,7 +50,13 @@ export interface SessionHost {
   onState(listener: (state: ConnectionState) => void): () => void;
 }
 
-/** Lervo application commands, which the session host forwards to the resident Lervo process. */
+/**
+ * Lervo application commands, which the session host forwards to the resident Lervo process. The
+ * session host checks each result against its command's schema, so results arrive typed.
+ */
 export interface ApplicationCommands {
-  run(command: string, arguments_?: Record<string, unknown>): Promise<Record<string, unknown>>;
+  run<C extends ApplicationCommandName>(
+    command: C,
+    arguments_?: Record<string, unknown>,
+  ): Promise<ApplicationResults[C]>;
 }

@@ -330,6 +330,12 @@
       "value": " there. You follow and steer it in the conversation."
     }
   ],
+  "start.explain.default": [
+    {
+      "type": 0,
+      "value": "Lervo opens a workspace and its workstream for this, then starts the agent there. You follow and steer it in the conversation."
+    }
+  ],
   "start.instruction.label": [
     {
       "type": 0,
@@ -342,10 +348,26 @@
       "value": "Describe the work, as you would to a colleague"
     }
   ],
-  "start.provider.claude": [
+  "start.provider.label": [
     {
       "type": 0,
-      "value": "Claude Code"
+      "value": "Agent"
+    }
+  ],
+  "start.provider.missing": [
+    {
+      "type": 1,
+      "value": "name"
+    },
+    {
+      "type": 0,
+      "value": " (not installed)"
+    }
+  ],
+  "start.provider.older": [
+    {
+      "type": 0,
+      "value": "The installed Lervo starts its default agent. Update Lervo to choose the agent here."
     }
   ],
   "start.question": [

@@ -9,6 +9,7 @@ import { useStartStore } from "./store";
 export interface StartDraft {
   readonly instruction: string;
   readonly repository: string;
+  /** The provider the user chose last, or empty; the core's default applies when it is unknown. */
   readonly provider: string;
 }
 
@@ -44,9 +45,9 @@ export async function startWork(
     const result = await commands.run("workspace.start", {
       instruction,
       repository: draft.repository,
-      provider: draft.provider,
+      ...(draft.provider === "" ? {} : { provider: draft.provider }),
     });
-    const workspaceId = typeof result.workspaceId === "string" ? result.workspaceId : null;
+    const { workspaceId } = result;
     if (current())
       useStartStore.setState((store) => ({
         pending: store.pending === null ? null : { ...store.pending, workspaceId },
