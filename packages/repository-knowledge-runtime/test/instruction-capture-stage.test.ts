@@ -21,7 +21,11 @@ import {
   INSTRUCTION_CAPTURE_QUEUE_ROOT,
 } from "../src/instruction-capture-queue.js";
 import { runInstructionCaptureCycle } from "../src/instruction-capture-stage.js";
-import { readInstructionCaptureState } from "../src/instruction-capture-state.js";
+import {
+  MAXIMUM_CAPTURE_TOKENS_PER_DAY,
+  readInstructionCaptureState,
+  writeInstructionCaptureState,
+} from "../src/instruction-capture-state.js";
 import { writeConvergenceOwnerFence } from "../src/convergence-owner-fence.js";
 import { CONVERGENCE_OWNER_HOST_PATH } from "../src/convergence-owner-host.js";
 import {
@@ -598,6 +602,36 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       assessedCount: 0,
     });
     expect(await listQueuedInstructionCaptures(f.root)).toEqual([]);
+  });
+
+  it("never lets a turn the budget skipped expire, and assesses it once budget returns", async () => {
+    const f = await captureFixture();
+    await f.plan([]);
+    await f.enqueue({ ownerTurn: ENGLISH_RULE });
+    const state = await readInstructionCaptureState(f.root);
+    const today = new Date();
+    await writeInstructionCaptureState(
+      f.root,
+      {
+        ...state,
+        budget: {
+          day: today.toISOString().slice(0, 10),
+          hour: today.toISOString().slice(0, 13),
+          assessmentsToday: 0,
+          assessmentsThisHour: 0,
+          tokensToday: MAXIMUM_CAPTURE_TOKENS_PER_DAY,
+        },
+      },
+      today,
+    );
+    // The day's tokens are spent, so the turn waits; it is kept past the original 24 hours and a
+    // full day beyond the next budget reset, so no cycle has to run in between.
+    expect(await f.cycle(today)).toMatchObject({ assessedCount: 0 });
+    const [waiting] = await listQueuedInstructionCaptures(f.root);
+    const reset = Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() + 1);
+    expect(Date.parse(waiting!.expiresAt)).toBe(reset + 24 * 3_600_000);
+    // On the new budget day the turn is assessed instead of being lost.
+    expect(await f.cycle(new Date(reset + 60_000))).toMatchObject({ assessedCount: 1 });
   });
 
   it("stops assessing at the per-cycle bound and leaves the rest queued", async () => {

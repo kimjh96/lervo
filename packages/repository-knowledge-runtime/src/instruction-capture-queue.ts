@@ -259,6 +259,30 @@ export async function recordInstructionCaptureDisagreement(
   return next;
 }
 
+/**
+ * Keeps a turn a cycle could not assess because its budget was spent until a full retention
+ * period past the next daily budget reset, so a budget limit only delays an owner turn and never
+ * loses it. The text still rests
+ * only in the private queue and is deleted as soon as the turn is assessed.
+ */
+export async function renewQueuedInstructionCapture(
+  repositoryRoot: string,
+  capture: QueuedInstructionCapture,
+  now: Date,
+): Promise<void> {
+  // The daily budget resets at the next UTC day, so the turn is kept a full retention period past
+  // that reset, whether or not another cycle runs before it.
+  const nextBudgetDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  const expiresAt = new Date(
+    Math.max(now.getTime(), nextBudgetDay) + CAPTURE_RETENTION_MILLISECONDS,
+  ).toISOString();
+  if (capture.retained === true || capture.expiresAt >= expiresAt) return;
+  await writePrivate(repositoryRoot, INSTRUCTION_CAPTURE_QUEUE_ROOT, `${capture.captureId}.json`, {
+    ...capture,
+    expiresAt,
+  });
+}
+
 /** Removes expired records and reports how many expired unassessed. */
 export async function pruneInstructionCaptureQueue(
   repositoryRoot: string,
