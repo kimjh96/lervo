@@ -51,6 +51,7 @@ const MATERIALIZATION_BUSY = Symbol("materialization_busy");
 const YIELDED_TO_UPGRADE = Symbol("yielded_to_upgrade");
 import { compactConvergenceWorkforce } from "./workforce-retention.js";
 import { compactConvergenceWorkspaces } from "./workspace-retention.js";
+import { withVerificationFailureStatus } from "./verification-failure-status.js";
 
 async function changeReviewDeferred(context: ConvergenceRuntimeContext): Promise<boolean> {
   if (await context.liveWorkPending()) return true;
@@ -369,10 +370,14 @@ export async function runAutonomousKnowledgeWorker(input: {
   });
   if (result.status === "busy" || result.result === MATERIALIZATION_BUSY) return { status: "busy" };
   if (result.result === YIELDED_TO_UPGRADE) return yieldedToUpgrade;
+  // ADR-0562 section 3: the recorded stop names the failed verification command.
+  const convergence = result.result.convergence;
   await recordMaintenanceObservation({
     root,
     projectId: input.storage.manifest.projectId,
-    status: result.result.convergence,
+    status: await withVerificationFailureStatus(input.storage, convergence).catch(
+      () => convergence,
+    ),
     owner,
     source: "worker",
   });

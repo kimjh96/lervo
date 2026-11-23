@@ -128,7 +128,8 @@ export async function withVerificationSourceChanges<T>(
   }
 }
 
-async function readArtifact(
+/** A private JSON evidence artifact by its content hash, or null when absent or altered. */
+export async function readEvidenceArtifact(
   artifacts: ArtifactStore,
   hash: unknown,
 ): Promise<Record<string, unknown> | null> {
@@ -155,9 +156,12 @@ export async function withVerificationChangesStatus(
 ): Promise<KnowledgeConvergenceStatus> {
   if (status.reason !== VERIFICATION_MODIFIED_SOURCES) return status;
   const active = replayKnowledgeConvergence(storage.events).find((row) => row.outcome === null);
-  let evidence = await readArtifact(storage.artifacts, active?.latest?.payload.dependencyHash);
+  let evidence = await readEvidenceArtifact(
+    storage.artifacts,
+    active?.latest?.payload.dependencyHash,
+  );
   for (let depth = 0; depth < 2 && evidence?.kind !== "verification_source_changes"; depth++)
-    evidence = await readArtifact(storage.artifacts, evidence?.evidenceHash);
+    evidence = await readEvidenceArtifact(storage.artifacts, evidence?.evidenceHash);
   if (
     evidence?.kind !== "verification_source_changes" ||
     typeof evidence.changedPathCount !== "number" ||

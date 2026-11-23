@@ -43,7 +43,10 @@ export async function verifyConvergenceEffect(
           { environment },
         ),
     );
-    assertConvergenceVerificationPassed(verification.result.status);
+    assertConvergenceVerificationPassed(
+      verification.result.status,
+      verification.resultArtifact.contentHash,
+    );
     receipts.push(verification.resultArtifact.contentHash);
   }
   await authority.assertCurrent();

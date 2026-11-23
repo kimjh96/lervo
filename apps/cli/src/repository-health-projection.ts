@@ -19,6 +19,7 @@ import { projectHealthLervoDebt, type HealthNodeDebt } from "./repository-health
 import { unknownHealthMeasure } from "./repository-health-measure.js";
 import type { HealthAppearanceState } from "./repository-health-appearance.js";
 import type { LinkWebSummary } from "./link-web-projection.js";
+import { convergenceRecovery } from "./repository-health-recovery.js";
 
 const DAY = 86_400_000;
 const MAINTENANCE = ".lervo/state/knowledge/maintenance-observation.json";
@@ -186,12 +187,7 @@ function convergence(
     (input.continuity?.continuationFailure?.code === status.reason
       ? input.continuity.continuationFailure.firstObservedAt
       : null);
-  const recovery = status.retry?.nextAttemptAt
-    ? `retry at ${status.retry.nextAttemptAt}`
-    : status.recoveryCommand
-      ? `inspect ${status.recoveryCommand}`
-      : // No retry or recovery is recorded; say so instead of implying one will happen.
-        "none recorded (lervo knowledge convergence status)";
+  const recovery = convergenceRecovery(status);
   const measure = observed(
     {
       state: status.state,

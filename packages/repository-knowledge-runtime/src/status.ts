@@ -11,6 +11,7 @@ import { convergenceRecoveryStatus } from "./recovery-status.js";
 import { withNormalizationScopeGap } from "./normalization-scope-gap.js";
 import { withParkedSourcesStatus } from "./convergence-parking.js";
 import { withVerificationChangesStatus } from "./verification-source-changes.js";
+import { withVerificationFailureStatus } from "./verification-failure-status.js";
 import { readMaintenanceObservation } from "./maintenance-observation.js";
 
 /**
@@ -33,17 +34,20 @@ export async function inspectConvergenceDebt(
     storage.events,
     storage.artifacts,
   );
-  const status = await withVerificationChangesStatus(
+  const status = await withVerificationFailureStatus(
     storage,
-    await withParkedSourcesStatus(
+    await withVerificationChangesStatus(
       storage,
-      await withNormalizationScopeGap(
+      await withParkedSourcesStatus(
         storage,
-        inspectKnowledgeConvergenceStatus({
-          events: storage.events,
-          baseline,
-          writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
-        }),
+        await withNormalizationScopeGap(
+          storage,
+          inspectKnowledgeConvergenceStatus({
+            events: storage.events,
+            baseline,
+            writableEventSchemaVersion: storage.writableEventSchemaVersion ?? 1,
+          }),
+        ),
       ),
     ),
   );

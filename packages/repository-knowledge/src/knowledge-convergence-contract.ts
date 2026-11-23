@@ -126,6 +126,17 @@ export interface KnowledgeConvergenceStatus {
    * paths a pinned verification suite changed while it ran, read from private evidence.
    */
   verificationChanges?: { changedPathCount: number; paths: string[] };
+  /**
+   * Present only for `knowledge_verification_failed` (ADR-0562 section 3): the first command of the
+   * failed suite that did not pass, read from the suite's private result.
+   */
+  verificationFailure?: {
+    suiteId: string;
+    commandId: string;
+    status: string;
+    exitCode: number | null;
+    durationMs: number | null;
+  };
   parked?: {
     count: number;
     sources: {
