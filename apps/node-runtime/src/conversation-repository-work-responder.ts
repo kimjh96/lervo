@@ -59,6 +59,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       parentAgentId: string;
       workerSelection?: "configured_agent" | "conversation_delegate";
       executors: Partial<Record<"codex" | "claude", RepositoryWorkTurnExecutor>>;
+      /** The executables the executors run, which decide whether a selected provider can start. */
+      executables?: Partial<Record<"codex" | "claude", string>>;
       models?: Partial<Record<"codex" | "claude", string>>;
       reasoningEfforts?: Partial<
         Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">

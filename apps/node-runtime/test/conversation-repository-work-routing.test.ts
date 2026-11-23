@@ -189,3 +189,26 @@ it("fails new work visibly when the set role lists no provider the bound agent m
     }),
   ).toThrow(expect.objectContaining({ code: "provider_not_admitted" }));
 });
+
+it("passes over a listed provider whose CLI this host cannot start", () => {
+  expect(
+    selectConversationRepositoryWorkRoute({
+      sessionProvider: null,
+      boundProvider: "any",
+      defaultProvider: "codex",
+      executionProfile: null,
+      executors: { codex: {}, claude: {} },
+      startable: (provider) => provider === "claude",
+      readSelection: () => ({
+        ...DEFAULT_MODEL_SELECTION,
+        revision: 1,
+        roles: {
+          routine: [
+            { provider: "codex", model: "gpt-x", reasoningEffort: null },
+            { provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: null },
+          ],
+        },
+      }),
+    }),
+  ).toMatchObject({ provider: "claude", model: "claude-sonnet-5-5" });
+});

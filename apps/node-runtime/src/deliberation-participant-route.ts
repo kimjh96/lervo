@@ -4,6 +4,8 @@ import {
   type DeliberationParticipantBinding,
 } from "@lervo/agent-organization";
 
+import { DEFAULT_ROLE_REASONING_EFFORT } from "@lervo/execution-contract";
+
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { readHostNodeModelSelection, type ReadNodeModelSelection } from "./node-model-route.js";
 
@@ -67,7 +69,10 @@ export function deliberationParticipantRoute(input: {
   return {
     provider,
     model: listed?.model ?? model,
-    reasoningEffort: listed === undefined ? reasoningEffort : (listed.reasoningEffort ?? "high"),
+    reasoningEffort:
+      listed === undefined
+        ? reasoningEffort
+        : (listed.reasoningEffort ?? DEFAULT_ROLE_REASONING_EFFORT.reasoning),
     executionRouteHash: markerHash,
   };
 }

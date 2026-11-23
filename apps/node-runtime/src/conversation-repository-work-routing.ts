@@ -9,6 +9,7 @@ import type {
 } from "./config-types.js";
 import {
   allowedRoute,
+  cliStartable,
   nodeRoleRoute,
   nodeRouteForProvider,
   optionalRouteFields,
@@ -37,8 +38,10 @@ export function configuredWorkRoutes(options: {
   models?: Partial<Record<RepositoryWorkProvider, string>>;
   reasoningEfforts?: Partial<Record<RepositoryWorkProvider, RepositoryWorkReasoningEffort>>;
   executors: Partial<Record<RepositoryWorkProvider, unknown>>;
+  executables?: Partial<Record<RepositoryWorkProvider, string>>;
 }) {
   return {
+    ...(options.executables === undefined ? {} : { executables: options.executables }),
     ...(options.executionProfiles === undefined
       ? {}
       : { executionProfiles: options.executionProfiles }),
@@ -125,9 +128,8 @@ export function selectConversationRepositoryWorkRoute(input: {
       ...workAllowed(input.boundProvider, input.executors),
       ...(input.executables === undefined ? {} : { executables: input.executables }),
       ...selection,
-      // A configured executor resolves its own executable, so having one is what makes a
-      // provider available here; a PATH lookup would miss an absolute configured executable.
-      startable: input.startable ?? (() => true),
+      // The executors spawn their CLI by name or at its configured path, as the JSON runner does.
+      startable: input.startable ?? cliStartable,
     });
     if (chosen.source === "selection")
       return {
