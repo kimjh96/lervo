@@ -2,6 +2,8 @@
 
 Lervo uses reviewed release-intent files to prepare `@lervo/cli` versions. Preparation may change repository bytes and create the exact release tag, but cannot stage or publish an npm package.
 
+The Lervo ADE keeps a separate version line with `ade-v` tags, and its intents name `target: ade` ([ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md)). Until the release tooling supports that target, ADE changes carry no intent.
+
 ## Contributor intent
 
 Add one intent when a pull request changes:

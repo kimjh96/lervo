@@ -184,6 +184,14 @@ On 2026-11-23 three parsers were measured: each one's parse entry bundled and mi
 
 `marked` won on size and speed. The core's `mdast-util-from-markdown` was too slow for the streaming path. The ADE renders `marked`'s tokens as React elements, so no HTML string reaches the page. The renderer is a lazy chunk of 16.1 KB gzip, loaded right after start; the start screen still loads 99.8 KB of its 120 KB budget.
 
+### ADE versions
+
+On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's. [ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md) gives the ADE its own version line, with `ade-v` tags and intents that name `target: ade`, prepared apart from the CLI and with no GitHub Release before S3. The work is complete when:
+
+- the release tooling accepts ADE intents and every test under `scripts/release` passes, intents without a target included;
+- CLI preparation ignores ADE intents;
+- one ADE preparation has written `0.2.0` to every ADE manifest with its release notes and tagged `ade-v0.2.0`.
+
 ### Order after S1.4b
 
 S1.4c follows S1.5. Its events need a new event schema version, and a writer may select a version only after the Hub and Node readers support it, which takes a release and a deployment first. The interface does not depend on those events.
