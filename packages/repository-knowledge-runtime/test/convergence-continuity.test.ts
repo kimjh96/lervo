@@ -24,6 +24,8 @@ import { CONVERGENCE_DELEGATION_PATH, loadConvergenceDelegation } from "../src/d
 import { convergenceDelegationScopeHash } from "../src/delegation-scope.js";
 import { FakeConvergenceOwnerHub, peerHost } from "./convergence-owner-hosts.js";
 import { fixture } from "./fixture.js";
+import { modelSelectionPath, writeModelSelectionRole } from "@lervo/execution-contract";
+import { hostModelSelectionDirectory } from "../src/model-selection-host.js";
 
 const DAY = 24 * 60 * 60_000;
 const hub = {
@@ -397,6 +399,33 @@ describe("two hosts of one repository", () => {
     ];
     expect(verdicts.map((verdict) => verdict.role).sort()).toEqual(["owner", "waiting_owner"]);
     expect(verdicts.find((verdict) => verdict.role === "waiting_owner")?.holder?.label).toBe("mac");
+  });
+
+  it("publishes this host's model selection in its host record, and again when it changes (ADR-0612 M3)", async () => {
+    const mac = await tracked(true);
+    const path = await policyFile(mac, templatePolicy());
+    const hosts = new FakeHostRecordHub();
+    const stateDirectory = hostModelSelectionDirectory();
+    await writeModelSelectionRole({
+      stateDirectory,
+      role: "review",
+      routes: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: null }],
+    });
+    await continuity({ f: mac, policyPath: path, hosts, label: "mac" }).reconcile();
+    const first = [...hosts.records.values()][0]!;
+    expect(first.modelSelection).toMatchObject({
+      revision: 1,
+      roles: { review: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: null }] },
+    });
+    await writeModelSelectionRole({
+      stateDirectory,
+      role: "review",
+      routes: [{ provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: null }],
+    });
+    // A changed selection is a changed input, so the next cycle republishes without being forced.
+    await continuity({ f: mac, policyPath: path, hosts, label: "mac" }).reconcile();
+    expect([...hosts.records.values()][0]!.modelSelection).toMatchObject({ revision: 2 });
+    await rm(modelSelectionPath(stateDirectory), { force: true });
   });
 
   it("keeps a refused host read-only in Hub mode and reports the cause (ADR-0470)", async () => {

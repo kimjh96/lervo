@@ -55,6 +55,10 @@ After publication, check `--follow --status` on every host and report it like a 
 3. Build the Hub for each Hub host platform: `pnpm hub:distribution:build -- --output <release-dir>/lervo-hub-<version>-<platform>.tar.gz --platform <platform> --write`. Record the printed SHA-256.
 4. Copy the release directory to every other host and compare SHA-256 values before use.
 
+## Readers before writers
+
+When a release starts writing a field that older readers reject, such as the model selection in Hub host records (ADR-0612 M3), ship the reader release first. Deploy the writer only after the Hub and every host run the reader release, and never roll the Hub back below it afterwards.
+
 ## Order across hosts
 
 Readers update before writers, because `lervo upgrade` activates new event schema versions only after every configured reader supports them.

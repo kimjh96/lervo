@@ -44,3 +44,43 @@ it("adopts a newer model selection a peer host publishes when it lists host reco
     roles: { review: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: null }] },
   });
 });
+
+it("publishes again without the selection when a Hub older than ADR-0612 M3 rejects it", async () => {
+  const published: Array<Record<string, unknown>> = [];
+  const { port } = await continuityHostPort(
+    {
+      hostHash: `sha256:${"1".repeat(64)}`,
+      config: { coordination: { mode: "hub", hub: {} } },
+    } as never,
+    async () =>
+      ({
+        publish: async (record: Record<string, unknown>) => {
+          published.push(record);
+          if (record.modelSelection !== undefined)
+            throw Object.assign(new Error("invalid"), { httpStatus: 400 });
+          return "updated";
+        },
+        list: async () => [],
+      }) as never,
+    { manifest } as never,
+  );
+  const record = { hostHash: "h", modelSelection: { revision: 1 } } as never;
+  await expect(port!.publish(record)).resolves.toBe("updated");
+  expect(published.map((item) => "modelSelection" in item)).toEqual([true, false]);
+  // This process now withholds the selection from that Hub: one request per publish.
+  await port!.publish(record);
+  expect(published.map((item) => "modelSelection" in item)).toEqual([true, false, false]);
+  // Any other failure is reported as before.
+  const failing = await continuityHostPort(
+    { hostHash: "h", config: { coordination: { mode: "hub", hub: {} } } } as never,
+    async () =>
+      ({
+        publish: async () => {
+          throw Object.assign(new Error("down"), { httpStatus: 503 });
+        },
+        list: async () => [],
+      }) as never,
+    { manifest } as never,
+  );
+  await expect(failing.port!.publish(record)).rejects.toThrow("down");
+});
