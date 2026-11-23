@@ -266,7 +266,9 @@ S1.4c lands in three pull requests, because its events need event schema 10, and
    - `lervo workspace start` and `lervo workspace open` record `application.workspace.started` and `terminal.session.launch_prepared` in the registered repository's store.
    - `lervo workspace hook` records `launched` and `ended`.
    - Writers check the selected writer version, never the CLI version, and record nothing below schema 10.
-3. **The session host's exit report.** When a provider process exits without `SessionEnd`, for example after a crash or SIGKILL, the session host reports the exit through the core link. The core then records `terminal.session.ended` with `process_exited` and the exit code. This needs a guarded core-link command and an ADE intent, so it follows step 2.
+3. **The session host's exit report.** When a provider process exits without `SessionEnd`, for example after a crash or SIGKILL, the session host reports the exit through the core link. The core then records `terminal.session.ended` with `process_exited` and the exit code.
+   - **3a, the core.** It answers `session.exited`, advertises it in `workspace.list`, and records the end unless the hook already did.
+   - **3b, the session host.** It ends a provider process with SIGTERM before SIGKILL, so the provider runs its `SessionEnd` hook. It then reports the exit to a core that advertises `session.exited`. This is the first change under the ADE's own version line.
 
 `terminal.tool.observed` and `terminal.instructions.loaded` wait for S2, which defines their fields with the hosted evidence.
 

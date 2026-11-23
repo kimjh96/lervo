@@ -1,5 +1,9 @@
 import type { HostedStreamDecoder, HostedTranscriptItem } from "@lervo/adapter-contract";
-import { applicationCommandNames, validateCoreLinkRequest } from "@lervo/session-host-contract";
+import {
+  advertisedCoreRequestNames,
+  applicationCommandNames,
+  validateCoreLinkRequest,
+} from "@lervo/session-host-contract";
 
 import { errorCode } from "./command-error-output.js";
 import type { HostedProviderSummary } from "./hosted-session-adapters.js";
@@ -28,6 +32,8 @@ export interface CoreLinkHandlers {
     offset: number,
     limit: number,
   ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
+  /** Records a hosted session's process exit unless its own hook recorded the end. */
+  recordSessionExit(sessionId: string, exitCode: number | null): Promise<{ status: string }>;
 }
 
 /** Why the core link ended. `message_invalid` means the session host sent a malformed line. */
@@ -93,6 +99,14 @@ export class CoreLinkServer {
       case "transcript.read":
         this.page(request);
         return;
+      case "session.exited":
+        this.respond(request.id, () =>
+          this.handlers.recordSessionExit(
+            request.sessionId as string,
+            request.exitCode as number | null,
+          ),
+        );
+        return;
       default:
         this.decode(request);
     }
@@ -106,7 +120,7 @@ export class CoreLinkServer {
         // command only to a core that knows it.
         this.respond(request.id, async () => ({
           ...(await this.handlers.listWorkspaces()),
-          commands: [...applicationCommandNames],
+          commands: [...applicationCommandNames, ...advertisedCoreRequestNames],
         }));
         return;
       case "repository.list":
