@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_07ccb4eba00c3f8f4553e540"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Hosts accept a model selection in the Hub host records of a repository and adopt a newer one a peer host publishes."
