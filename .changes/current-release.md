@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.41.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.42.0" schema="1" -->
 
 ## What's changed
 
-- Each host publishes its model selection in its Hub host records and republishes it when it changes, so the Mac and WSL share one selection.
+- The resident core link reads provider transcripts page by page with transcript.read, so the ADE's native conversation shows turns from the CLI conversation, and hosted launches name the variables the session host must not inherit.
