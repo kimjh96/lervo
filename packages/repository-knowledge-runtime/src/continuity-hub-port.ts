@@ -14,14 +14,17 @@ import { adoptPeerModelSelection } from "./model-selection-host.js";
 /**
  * ADR-0612 M3: every listing of this repository's host records also adopts a newer model
  * selection another host published, so the hosts converge on one selection. Adoption never fails
- * the listing; this host's own record is never newer than its own file.
+ * the listing, and this host's own record is skipped.
  */
-function withModelSelectionAdoption(port: ConvergenceHostRecordPort): ConvergenceHostRecordPort {
+function withModelSelectionAdoption(
+  port: ConvergenceHostRecordPort,
+  hostHash: string,
+): ConvergenceHostRecordPort {
   return {
     ...port,
     list: async (signal) => {
       const listed = await port.list(signal);
-      await adoptPeerModelSelection(listed).catch(() => undefined);
+      await adoptPeerModelSelection(listed, hostHash).catch(() => undefined);
       return listed;
     },
   };
@@ -41,7 +44,7 @@ export async function continuityHostPort(
       projectId: storage.manifest.projectId,
       repositoryIdentityHash: calculateProjectIdentityHash(storage.manifest),
     });
-    return { port: withModelSelectionAdoption(port), failureCode: null };
+    return { port: withModelSelectionAdoption(port, host.hostHash), failureCode: null };
   } catch (error) {
     return { port: null, failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode };
   }

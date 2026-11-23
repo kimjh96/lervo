@@ -65,7 +65,11 @@ describe("model selection exchange (ADR-0612 M3)", () => {
       },
     };
     await expect(
-      adoptModelSelection({ stateDirectory: directory, candidate: peer }),
+      adoptModelSelection({
+        stateDirectory: directory,
+        candidate: peer,
+        now: new Date("2026-11-23T04:00:00.000Z"),
+      }),
     ).resolves.toMatchObject({
       status: "adopted",
     });
@@ -75,7 +79,11 @@ describe("model selection exchange (ADR-0612 M3)", () => {
     // A role a newer Lervo defines travels on unchanged.
     expect(transportedModelSelection(adopted)?.roles.future_role).toEqual(peer.roles.future_role);
     await expect(
-      adoptModelSelection({ stateDirectory: directory, candidate: peer }),
+      adoptModelSelection({
+        stateDirectory: directory,
+        candidate: peer,
+        now: new Date("2026-11-23T04:00:00.000Z"),
+      }),
     ).resolves.toEqual({
       status: "current",
     });
@@ -90,17 +98,71 @@ describe("model selection exchange (ADR-0612 M3)", () => {
     });
     const older = transportedModelSelection(selection(9, "2026-11-23T04:00:00.000Z", "peer"));
     await expect(
-      adoptModelSelection({ stateDirectory: directory, candidate: older }),
+      adoptModelSelection({
+        stateDirectory: directory,
+        candidate: older,
+        now: new Date("2026-11-23T05:00:00.000Z"),
+      }),
     ).resolves.toEqual({
       status: "current",
     });
     await writeFile(modelSelectionPath(directory), "{ broken", { mode: 0o600 });
     const newer = transportedModelSelection(selection(9, "2026-11-23T09:00:00.000Z", "peer"));
     await expect(
-      adoptModelSelection({ stateDirectory: directory, candidate: newer }),
+      adoptModelSelection({
+        stateDirectory: directory,
+        candidate: newer,
+        now: new Date("2026-11-23T09:00:00.000Z"),
+      }),
     ).resolves.toEqual({
       status: "rejected",
     });
     expect(await readFile(modelSelectionPath(directory), "utf8")).toBe("{ broken");
+  });
+});
+
+describe("model selection exchange safety (ADR-0612 M3)", () => {
+  it("refuses a peer change stamped far ahead of this host's clock", async () => {
+    const now = new Date("2026-11-23T05:00:00.000Z");
+    const ahead = transportedModelSelection(selection(2, "2026-11-23T06:00:00.000Z", "peer"));
+    await expect(
+      adoptModelSelection({ stateDirectory: directory, candidate: ahead, now }),
+    ).resolves.toEqual({ status: "rejected" });
+    const close = transportedModelSelection(selection(2, "2026-11-23T05:05:00.000Z", "peer"));
+    await expect(
+      adoptModelSelection({ stateDirectory: directory, candidate: close, now }),
+    ).resolves.toMatchObject({ status: "adopted" });
+  });
+
+  it("stamps a local change after the selection it replaces, even behind a peer's clock", async () => {
+    await adoptModelSelection({
+      stateDirectory: directory,
+      candidate: transportedModelSelection(selection(5, "2026-11-23T05:05:00.000Z", "peer")),
+      now: new Date("2026-11-23T05:00:00.000Z"),
+    });
+    const next = await writeModelSelectionRole({
+      stateDirectory: directory,
+      role: "routine",
+      routes: [{ provider: "claude", model: "local", reasoningEffort: null }],
+      now: new Date("2026-11-23T05:01:00.000Z"),
+    });
+    expect(next.changedAt).toBe("2026-11-23T05:05:00.001Z");
+  });
+
+  it("refuses a lenient timestamp and a deep or oversized role a newer Lervo might send", () => {
+    const base = { schemaVersion: 1, revision: 1, roles: {} };
+    expect(() =>
+      parseModelSelection({ ...base, changedAt: "+275760-09-13T00:00:00.000Z" }),
+    ).toThrow();
+    expect(() => parseModelSelection({ ...base, changedAt: "2026-11-23" })).toThrow();
+    let deep: unknown = "x";
+    for (let index = 0; index < 50; index += 1) deep = { nested: deep };
+    expect(() =>
+      parseModelSelection({
+        ...base,
+        changedAt: "2026-11-23T05:00:00.000Z",
+        roles: { future_role: [{ provider: "claude", model: deep, reasoningEffort: null }] },
+      }),
+    ).toThrow();
   });
 });

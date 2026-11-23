@@ -68,6 +68,7 @@ export interface KnowledgeConvergenceHostModelSelection {
 }
 
 const MAXIMUM_TRANSPORTED_ROLES = 16;
+const STRICT_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 const MAXIMUM_TRANSPORTED_ROUTES = 4;
 
 /**
@@ -85,7 +86,9 @@ export function isKnowledgeConvergenceHostModelSelection(
     value.schemaVersion === 1 &&
     Number.isSafeInteger(value.revision) &&
     (value.revision as number) > 0 &&
-    timestamp(value.changedAt) &&
+    typeof value.changedAt === "string" &&
+    STRICT_TIMESTAMP.test(value.changedAt) &&
+    new Date(value.changedAt).toISOString() === value.changedAt &&
     record(roles) &&
     Object.keys(roles).length <= MAXIMUM_TRANSPORTED_ROLES &&
     Object.entries(roles).every(
@@ -94,7 +97,15 @@ export function isKnowledgeConvergenceHostModelSelection(
         Array.isArray(routes) &&
         routes.length > 0 &&
         routes.length <= MAXIMUM_TRANSPORTED_ROUTES &&
-        routes.every(record),
+        routes.every(
+          (route) =>
+            record(route) &&
+            exactKeys(route, ["provider", "model", "reasoningEffort"]) &&
+            typeof route.provider === "string" &&
+            Object.values(route).every(
+              (item) => item === null || (typeof item === "string" && item.length <= 128),
+            ),
+        ),
     )
   );
 }

@@ -96,6 +96,8 @@ No document names a current model as a contract. Historical evidence keeps the m
 - **M3.** Hosts share one selection, in two releases so readers come before writers.
   - The checked-in fleet policy and its reconcile script are removed, and configuration documents stop naming models.
   - Readers: every host record a host publishes for a repository through the Hub may carry its selection. Hub, host and peer validators accept the field, and listing a repository's host records adopts the newest peer selection. An adopted selection keeps its revision and change time, so hosts never adopt each other's copy back. The later change wins, then the higher revision, then the content.
+  - Clock safety: a local change is stamped after the selection it replaces, and a peer change stamped more than ten minutes ahead of this host's clock is refused. Change times are strict UTC, and a role a newer Lervo defines travels only in the flat route shape.
+  - The whole selection is the unit: two hosts that change different roles before either sees the other keep the later change only. `lervo model show` names the last adoption.
   - Writers: once every host and the Hub run the reader release, each host publishes its selection in its host records and republishes when it changes. A record the Hub rejects is published again without it.
 
 ## State, events, privacy, and failure meaning

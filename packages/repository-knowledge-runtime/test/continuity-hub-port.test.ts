@@ -15,9 +15,14 @@ it("adopts a newer model selection a peer host publishes when it lists host reco
     modelSelection: {
       schemaVersion: 1,
       revision: 4,
-      changedAt: "2026-11-23T06:00:00.000Z",
+      changedAt: "2026-01-02T06:00:00.000Z",
       roles: { review: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: null }] },
     },
+  };
+  // This host's own stale copy is newer than the peer's, but it is never adopted back.
+  const ownStale = {
+    hostHash: `sha256:${"1".repeat(64)}`,
+    modelSelection: { ...peer.modelSelection, revision: 9, changedAt: "2026-01-02T06:30:00.000Z" },
   };
   const { port, failureCode } = await continuityHostPort(
     {
@@ -27,15 +32,15 @@ it("adopts a newer model selection a peer host publishes when it lists host reco
     async () =>
       ({
         publish: async () => "created",
-        list: async () => [peer],
+        list: async () => [ownStale, peer],
       }) as never,
     { manifest } as never,
   );
   expect(failureCode).toBeNull();
-  expect(await port!.list()).toEqual([peer]);
+  expect(await port!.list()).toEqual([ownStale, peer]);
   expect((await readHostModelSelection()).selection).toMatchObject({
     revision: 4,
-    changedAt: "2026-11-23T06:00:00.000Z",
+    changedAt: "2026-01-02T06:00:00.000Z",
     roles: { review: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: null }] },
   });
 });

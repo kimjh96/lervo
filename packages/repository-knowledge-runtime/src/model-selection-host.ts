@@ -33,12 +33,14 @@ export function readHostModelSelection(
  * it serves, so any shared repository carries a change to the other host.
  */
 export async function adoptPeerModelSelection(
-  peers: readonly Pick<KnowledgeConvergenceHostRecord, "modelSelection">[],
+  records: readonly Pick<KnowledgeConvergenceHostRecord, "hostHash" | "modelSelection">[],
+  ownHostHash: string,
   environment: NodeJS.ProcessEnv = process.env,
 ): Promise<ModelSelection | null> {
   let newest: ModelSelection | null = null;
-  for (const peer of peers) {
-    if (peer.modelSelection === undefined) continue;
+  for (const peer of records) {
+    // This host's own published copy is never adopted back, so deleting the file resets it.
+    if (peer.hostHash === ownHostHash || peer.modelSelection === undefined) continue;
     let candidate: ModelSelection;
     try {
       candidate = parseModelSelection(peer.modelSelection);

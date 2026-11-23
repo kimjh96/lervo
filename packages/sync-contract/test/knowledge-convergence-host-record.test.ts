@@ -177,6 +177,12 @@ describe("the transported model selection (ADR-0612 M3)", () => {
       { ...modelSelection, roles: { routine: [] } },
       { ...modelSelection, roles: { routine: Array.from({ length: 5 }, () => ({})) } },
       { ...modelSelection, extra: true },
+      { ...modelSelection, changedAt: "+275760-09-13T00:00:00.000Z" },
+      {
+        ...modelSelection,
+        roles: { routine: [{ provider: "claude", model: { deep: 1 }, reasoningEffort: null }] },
+      },
+      { ...modelSelection, roles: { routine: [{ provider: "claude" }] } },
     ])
       expect(isKnowledgeConvergenceHostRecord(hostRecord({ modelSelection: bad as never }))).toBe(
         false,

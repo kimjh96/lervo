@@ -3,6 +3,12 @@ import { lstatSync, readFileSync, type Stats } from "node:fs";
 import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
+import {
+  isOpaqueRouteList,
+  isSelectionTimestamp,
+  nextChangeTime,
+} from "./model-selection-shape.js";
+
 /**
  * ADR-0612: which provider, model, and reasoning effort each role uses, in one record. Callers
  * name a role and resolve it when they make a call, so a change takes effect at the next call,
@@ -61,6 +67,7 @@ const MINIMUM_EFFORT: Readonly<Partial<Record<ModelRole, ModelReasoningEffort>>>
 
 export const MODEL_SELECTION_FILE = "model-selection.json";
 const MAXIMUM_ROUTES = 4;
+const MAXIMUM_ROLES = 16;
 const MAXIMUM_FILE_BYTES = 64 * 1024;
 const MODEL_NAME = /^[A-Za-z0-9][A-Za-z0-9._:[\]/-]{0,127}$/u;
 
@@ -131,19 +138,21 @@ export function parseModelSelection(value: unknown): ModelSelection {
   if (selection.schemaVersion !== 1) invalid("The model selection schema version is unsupported.");
   if (!Number.isSafeInteger(selection.revision) || (selection.revision as number) < 0)
     invalid("The model selection revision is invalid.");
-  if (
-    selection.changedAt !== null &&
-    (typeof selection.changedAt !== "string" || !Number.isFinite(Date.parse(selection.changedAt)))
-  )
+  if (selection.changedAt !== null && !isSelectionTimestamp(selection.changedAt))
     invalid("The model selection change time is invalid.");
   const roles = selection.roles;
   if (roles === null || typeof roles !== "object" || Array.isArray(roles))
     invalid("The model selection roles are an object.");
   const parsed: ModelSelection["roles"] = {};
   const unknownRoles: Record<string, unknown> = {};
+  if (Object.keys(roles as Record<string, unknown>).length > MAXIMUM_ROLES)
+    invalid(`The model selection has at most ${MAXIMUM_ROLES} roles.`);
   for (const [role, routes] of Object.entries(roles as Record<string, unknown>)) {
     if (!(MODEL_ROLES as readonly string[]).includes(role)) {
       if (!/^[a-z][a-z0-9_]{0,31}$/u.test(role)) invalid(`Invalid model role name: ${role}.`);
+      // A role a newer Lervo defines is kept, but only in the flat route shape, so a peer can
+      // never make this file deep or large.
+      if (!isOpaqueRouteList(routes)) invalid(`The ${role} role has malformed routes.`);
       unknownRoles[role] = routes;
       continue;
     }
@@ -292,30 +301,37 @@ export async function writeModelSelectionRole(input: {
     serializedModelSelection({
       ...current.selection,
       revision: current.selection.revision + 1,
-      changedAt: (input.now ?? new Date()).toISOString(),
+      changedAt: nextChangeTime(current.selection, input.now ?? new Date()),
       roles,
     }),
   );
-  await replaceModelSelection(input.stateDirectory, current.selection.revision, next);
+  await replaceModelSelection(input.stateDirectory, current.selection, next);
   return next;
 }
 
-/** Writes `next` atomically, failing when the file no longer holds `expectedRevision`. */
+/**
+ * Writes `next` atomically. It fails when the file no longer holds exactly `expected`, compared by
+ * content rather than revision, because an adopted selection can repeat a revision.
+ */
 export async function replaceModelSelection(
   stateDirectory: string,
-  expectedRevision: number,
+  expected: ModelSelection,
   next: ModelSelection,
 ): Promise<void> {
+  const bytes = `${JSON.stringify(serializedModelSelection(next), null, 2)}\n`;
+  if (Buffer.byteLength(bytes) > MAXIMUM_FILE_BYTES)
+    throw new ModelSelectionError("model_selection_invalid", "The model selection is too large.");
   await mkdir(stateDirectory, { recursive: true, mode: 0o700 });
   const path = modelSelectionPath(stateDirectory);
   const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, `${JSON.stringify(serializedModelSelection(next), null, 2)}\n`, {
-      mode: 0o600,
-      flag: "wx",
-    });
+    await writeFile(temporary, bytes, { mode: 0o600, flag: "wx" });
     const latest = await readModelSelection(stateDirectory);
-    if (latest.issue !== null || latest.selection.revision !== expectedRevision)
+    if (
+      latest.issue !== null ||
+      JSON.stringify(serializedModelSelection(latest.selection)) !==
+        JSON.stringify(serializedModelSelection(expected))
+    )
       throw new ModelSelectionError(
         "model_selection_changed",
         "The model selection changed while this change was prepared; run the command again.",
