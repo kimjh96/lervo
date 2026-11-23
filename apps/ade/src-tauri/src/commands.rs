@@ -6,10 +6,11 @@ use lervo_session_transport::client::ClientIdentity;
 use lervo_session_transport::paths::Layout;
 use serde_json::{Value, json};
 use tauri::State;
-use tauri::ipc::{Channel, Response};
+use tauri::ipc::{Channel, InvokeBody, Request, Response};
 use tokio::sync::Mutex;
 
-use crate::host_link::{self, Event, HostProgram, Outgoing};
+use crate::host_link::{self, Event, Outgoing};
+use crate::host_program::HostProgram;
 
 /// The relay's state: how to reach the session host, and the queue of the live connection.
 pub struct Relay {
@@ -47,7 +48,6 @@ pub async fn host_connect(
             Event::Terminal(frame) => {
                 let _ = terminal.send(Response::new(frame));
             }
-            Event::Disconnected => {}
         };
         // The reason names a transport or validation rule, never a message body.
         if let Err(error) = host_link::run(program, layout, identity, receiver, events).await {
@@ -66,13 +66,24 @@ pub async fn host_send(relay: State<'_, Relay>, message: Value) -> Result<(), St
     send(&relay, Outgoing::Control(message)).await
 }
 
-/// Sends keystrokes or pasted bytes to a CLI conversation's terminal channel.
+/// The header that names the terminal channel of `host_input`'s bytes.
+const CHANNEL_HEADER: &str = "lervo-channel";
+
+/// Sends keystrokes or pasted bytes to a CLI conversation's terminal channel. The bytes arrive
+/// as the raw request body and the channel in the `lervo-channel` header, so input is never
+/// encoded as JSON.
 #[tauri::command]
-pub async fn host_input(
-    relay: State<'_, Relay>,
-    channel: u32,
-    bytes: Vec<u8>,
-) -> Result<(), String> {
+pub async fn host_input(relay: State<'_, Relay>, request: Request<'_>) -> Result<(), String> {
+    let InvokeBody::Raw(bytes) = request.body() else {
+        return Err("message_invalid".to_owned());
+    };
+    let channel = request
+        .headers()
+        .get(CHANNEL_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u32>().ok())
+        .ok_or_else(|| "message_invalid".to_owned())?;
+    let bytes = bytes.clone();
     send(&relay, Outgoing::Terminal { channel, bytes }).await
 }
 

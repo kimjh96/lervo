@@ -6,6 +6,7 @@
 //! request, so the session host keeps serving its sessions whatever the core does.
 
 mod events;
+mod failures;
 mod link;
 
 use std::sync::Arc;
@@ -55,7 +56,7 @@ impl CoreLink {
         self.link
             .request(request, deadline)
             .await
-            .map_err(|_| Failure::new(FailureCode::ApplicationUnavailable))
+            .map_err(|error| failures::from_link(&error))
     }
 
     async fn launch(&self, request: Value) -> Result<CommandOutcome, Failure> {
@@ -64,7 +65,7 @@ impl CoreLink {
                 result: response.result,
                 launch: response.launch.map(events::launch),
             }),
-            CoreLinkResponse::CoreFailedResponse(response) => Err(Failure::from_core(
+            CoreLinkResponse::CoreFailedResponse(response) => Err(failures::from_core(
                 &response.code,
                 response.stage.map(|stage| stage.to_string()),
             )),
@@ -95,11 +96,7 @@ impl Core for CoreLink {
     ) -> Result<Launch, Failure> {
         let mut request = json!({"kind": "core.open", "workspaceId": workspace_id});
         if let (Some(mode), Value::Object(object)) = (mode, &mut request) {
-            let mode = match mode {
-                ConversationMode::Native => "native",
-                ConversationMode::Cli => "cli",
-            };
-            object.insert("mode".to_owned(), Value::from(mode));
+            object.insert("mode".to_owned(), Value::from(mode.code()));
         }
         let outcome = self.launch(request).await?;
         outcome
@@ -140,7 +137,7 @@ impl LinkDecoder {
                 match self.core.ask(opened, DECODE_DEADLINE).await? {
                     CoreLinkResponse::DecoderDecodedResponse(_) => self.open = true,
                     CoreLinkResponse::CoreFailedResponse(response) => {
-                        return Err(Failure::from_core(&response.code, None));
+                        return Err(failures::from_core(&response.code, None));
                     }
                     CoreLinkResponse::CoreResultResponse(_) => {
                         return Err(Failure::new(FailureCode::ApplicationFailed));
@@ -158,7 +155,7 @@ impl LinkDecoder {
                     self.open = false;
                 }
                 CoreLinkResponse::CoreFailedResponse(response) => {
-                    return Err(Failure::from_core(&response.code, None));
+                    return Err(failures::from_core(&response.code, None));
                 }
                 CoreLinkResponse::CoreResultResponse(_) => {
                     return Err(Failure::new(FailureCode::ApplicationFailed));

@@ -94,6 +94,19 @@ impl Core for FakeCore {
                 initial_input: None,
             });
         }
+        if workspace_id == "wks_missing" {
+            return Ok(Launch {
+                session_id: "ses_missing_cli".to_owned(),
+                workspace_id: workspace_id.to_owned(),
+                mode: ConversationMode::Cli,
+                program: "lervo-no-such-program".to_owned(),
+                arguments: Vec::new(),
+                environment: Vec::new(),
+                working_directory: std::env::temp_dir(),
+                provider: "fake".to_owned(),
+                initial_input: None,
+            });
+        }
         let (session_id, mode, script) = match workspace_id {
             "wks_1" => (
                 "ses_1",
@@ -303,6 +316,17 @@ async fn reports_failures_with_protocol_codes() {
     assert_eq!(
         serde_json::to_value(failed.code).unwrap(),
         json!("session_not_found")
+    );
+
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_4", "workspaceId": "wks_missing"}))
+        .await;
+    let HostMessage::RequestFailedMessage(failed) = client.next_message().await else {
+        panic!("expected request.failed")
+    };
+    assert_eq!(
+        serde_json::to_value(failed.code).unwrap(),
+        json!("provider_cli_unavailable")
     );
 
     stop.send(()).unwrap();

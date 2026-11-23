@@ -19,6 +19,7 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 - File and repository changes arrive through OS notifications, never through polling. Watchers cover only the paths a feature needs.
 - Remaining timers are coalesced and stop when the window is hidden. One timer is exempt: the session-host client's reconnect timer, which runs only while the connection is down, at most every 10 seconds. A hidden window still needs the connection, because the session watch behind desktop notifications runs over it.
 - The UI main thread does only input, state transitions, and rendering. Parsing, highlighting, and diffing run in workers or in the session host.
+- The session host's async workers never block. Each conversation index reads and writes on its own thread, each PTY writes input on its own thread, and starting a session opens its index and spawns its process off the workers. No lock is held across such work, so one slow start or paste never stalls another connection.
 - Input-driven work, such as search and resize, is debounced or throttled.
 - React renders follow the data they read. Stores expose fine-grained selectors with stable references, and no context change re-renders a whole feature.
 - Animations use compositor-only properties (`transform` and `opacity`). They stop when the window is hidden, when the user prefers reduced motion, and when nothing is working. `platform/visibility` marks a hidden, minimized, or occluded window, and `ui/motion.css` pauses every animation while the mark is set.
@@ -27,7 +28,7 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 
 - Caches are least-recently-used by bytes, with a fixed limit per cache.
 - Closing a workspace releases its UI state, its decoded segments, and its renderer resources.
-- The session host keeps large text as shared byte buffers and offsets, not as copies. Terminal output passes from the PTY to the protocol frame without re-encoding.
+- The session host keeps large text as shared byte buffers and offsets, not as copies. Terminal output passes from the PTY to the protocol frame without re-encoding, and the fan-out, the scrollback, and every replay share one buffer per chunk. A broadcast encodes its message once for all subscribers.
 - Listeners, subscriptions, and workers are released with their owner.
 - A soak test opens and closes workspaces and streams conversations for a fixed number of cycles. Memory must return to its baseline within the budget.
 
@@ -55,7 +56,7 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 - Each host runs one session host and one resident Lervo application process. No action starts a new process, apart from the provider CLIs themselves.
 - The protocol uses length-prefixed binary frames. Small messages are batched, and large payloads are compressed only on remote transports.
 - The session host sends sequenced deltas, never full state. Each client tracks the last sequence it applied and resumes from it.
-- A slow client receives backpressure. The session host never buffers without bound for a client.
+- A slow client receives backpressure. The session host never buffers without bound for a client: each subscription has 4 MiB for its session's updates, after which the client resynchronizes, and each connection has 16 MiB for replies and watched statuses, after which it closes and the client reconnects. Every queued message counts its exact encoded size.
 - The start screen renders from cached workspace state and refreshes after first paint. Features and their code load on first use.
 
 ## Size

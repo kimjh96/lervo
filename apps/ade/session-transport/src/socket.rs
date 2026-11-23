@@ -1,4 +1,6 @@
-//! The owner-only Unix domain socket (session-host protocol, "Transport").
+//! The owner-only Unix domain socket (session-host protocol, "Transport"). Clients and the session
+//! host reach it only through this module, so another platform's transport, such as a Windows
+//! named pipe, replaces this module and nothing else.
 
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
@@ -8,6 +10,14 @@ use tokio::net::{UnixListener, UnixStream};
 
 use crate::TransportError;
 use crate::token::create_private_directory;
+
+/// A connected stream to the session host.
+pub type Stream = UnixStream;
+
+/// Connects to the session host's socket at `path`.
+pub async fn connect(path: &Path) -> Result<Stream, TransportError> {
+    Ok(UnixStream::connect(path).await?)
+}
 
 /// Binds the socket at `path` inside an owner-only directory. A leftover socket file from a host
 /// that is no longer running is replaced; a live host makes this fail with `AlreadyServing`.

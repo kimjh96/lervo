@@ -5,6 +5,7 @@
 
 mod commands;
 mod host_link;
+mod host_program;
 mod login_path;
 
 use std::process::ExitCode;
@@ -16,7 +17,7 @@ use crate::commands::Relay;
 fn main() -> ExitCode {
     let path = login_path::LoginPath::resolve();
     let relay = Relay {
-        program: host_link::HostProgram::locate(path),
+        program: host_program::HostProgram::locate(path),
         layout: Layout::for_user(),
         outgoing: tokio::sync::Mutex::new(None),
     };

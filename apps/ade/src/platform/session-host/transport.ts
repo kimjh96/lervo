@@ -26,6 +26,8 @@ export async function tauriTransport(): Promise<HostTransport> {
       await invoke("host_connect", { control, terminal });
     },
     send: (message) => invoke("host_send", { message }),
-    input: (channel, bytes) => invoke("host_input", { channel, bytes: [...bytes] }),
+    // The bytes travel as the raw request body; only the channel is a header.
+    input: (channel, bytes) =>
+      invoke("host_input", bytes, { headers: { "lervo-channel": String(channel) } }),
   };
 }
