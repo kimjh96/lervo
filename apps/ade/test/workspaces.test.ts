@@ -2,9 +2,11 @@ import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  arrivals,
   bindWorkspaces,
   groupByRepository,
   notificationFor,
+  switchConversationMode,
   useWorkspaceStore,
   visibleStatus,
   type Workspace,
@@ -41,6 +43,20 @@ async function connected(answers: Record<string, Record<string, unknown>>) {
     },
     async send(message) {
       sent.push(message);
+      if (message.kind === "session.open") {
+        const { requestId, workspaceId, conversationMode = "native" } = message;
+        queueMicrotask(() =>
+          emit({
+            kind: "session.opened",
+            requestId,
+            sessionId: `session-${workspaceId}`,
+            workspaceId,
+            conversationMode,
+            channel: 1,
+          }),
+        );
+        return;
+      }
       if (message.kind !== "application.command") return;
       const result = answers[message.command];
       queueMicrotask(() =>
@@ -90,6 +106,14 @@ describe("workspace decisions", () => {
       ["api", ["b"]],
       ["web", ["c", "a"]],
     ]);
+  });
+
+  it("treats only workspaces new since an earlier list as arrivals", () => {
+    const first = [workspace("a", "web", "2026-11-23T01:00:00Z")];
+    const next = [...first, workspace("b", "web", "2026-11-23T02:00:00Z")];
+    expect([...arrivals(null, next)]).toEqual([]);
+    expect([...arrivals(first, next)]).toEqual(["b"]);
+    expect([...arrivals(next, next)]).toEqual([]);
   });
 
   it("colors only working and needs-you, and notifies only for what the user does not watch", () => {
@@ -148,5 +172,25 @@ describe("the workspace binding", () => {
     status("idle", 4);
     expect(notified).toHaveLength(1);
     expect(useWorkspaceStore.getState().statuses).toEqual({ "session-a": "idle" });
+  });
+});
+
+describe("switching the conversation mode", () => {
+  it("shows the mode the session host confirms even when the list cannot reload", async () => {
+    const host = await connected({});
+    useWorkspaceStore.setState({ workspaces: [workspace("a", "web", "2026-11-23T01:00:00Z")] });
+    await expect(
+      switchConversationMode({
+        client: host.client,
+        commands: host.commands,
+        workspaceId: "a",
+        mode: "cli",
+      }),
+    ).rejects.toEqual(new RequestFailure("application_failed"));
+    expect(host.sent.find((message) => message.kind === "session.open")).toMatchObject({
+      workspaceId: "a",
+      conversationMode: "cli",
+    });
+    expect(useWorkspaceStore.getState().workspaces[0]?.conversationMode).toBe("cli");
   });
 });

@@ -6,6 +6,7 @@ import {
   HostedLaunchError,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
+  preferredConversationMode,
 } from "../src/index.js";
 
 const capabilities: HostedSessionCapabilities = {
@@ -26,6 +27,13 @@ function codeOf(run: () => void): string | undefined {
     return error instanceof HostedLaunchError ? error.code : "uncoded";
   }
 }
+
+describe("the preferred conversation", () => {
+  it("is native when the provider offers it and the CLI otherwise", () => {
+    expect(preferredConversationMode(capabilities)).toBe("native");
+    expect(preferredConversationMode({ ...capabilities, nativeConversation: false })).toBe("cli");
+  });
+});
 
 describe("hosted launch intents", () => {
   const base = {

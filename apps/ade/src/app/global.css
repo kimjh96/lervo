@@ -27,3 +27,43 @@ body {
     background: var(--color-surface-opaque);
   }
 }
+
+/* View transitions (ADE motion, "Changing views"): the leaving view fades out over `exit`, and the
+   arriving view fades in and rises 4 px over `enter`, starting halfway through the exit. Nothing
+   morphs, so no two versions of an element ever overlap. The workspace list keeps its place. */
+::view-transition-old(root) {
+  animation: view-leave var(--motion-duration-exit) var(--motion-easing-exit) both;
+}
+
+::view-transition-new(root) {
+  animation: view-arrive var(--motion-duration-enter) var(--motion-easing-standard) both;
+  animation-delay: calc(var(--motion-duration-exit) / 2);
+}
+
+::view-transition-old(lervo-sidebar) {
+  display: none;
+}
+
+::view-transition-new(lervo-sidebar) {
+  animation: none;
+}
+
+@keyframes view-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}

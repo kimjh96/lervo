@@ -2,9 +2,11 @@ import { useEffect, useMemo } from "react";
 import { createIntl, IntlProvider } from "react-intl";
 
 import { bindConnection } from "../features/connection";
-import { bindWorkspaces } from "../features/workspaces";
+import { bindWorkspaces, useWorkspaceStore } from "../features/workspaces";
 import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
+import { isCommandKey } from "../platform/keyboard";
 import type { Notifier } from "../platform/notifications";
+import { transition } from "../platform/transition";
 import { ApplicationCommands, type SessionHostClient } from "../platform/session-host";
 import { Frame } from "./Frame";
 import { SessionHostProvider } from "./session-host-context";
@@ -29,8 +31,16 @@ export function App(props: { client: SessionHostClient; notifier: Notifier }) {
         body: intl.formatMessage({ id: `notifications.${kind}` }),
       }),
     });
+    // ⌘N (Ctrl+N elsewhere) opens the start screen, as the "New work" row shows.
+    const shortcut = (event: KeyboardEvent) => {
+      if (!isCommandKey(event, "n")) return;
+      event.preventDefault();
+      transition(() => useWorkspaceStore.getState().newWork());
+    };
+    window.addEventListener("keydown", shortcut);
     client.start();
     return () => {
+      window.removeEventListener("keydown", shortcut);
       unbindConnection();
       unbindWorkspaces();
     };

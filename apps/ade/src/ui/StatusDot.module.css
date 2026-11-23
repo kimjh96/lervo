@@ -1,17 +1,19 @@
 .dot {
   display: inline-block;
   flex: none;
-  width: 7px;
-  height: 7px;
   border-radius: var(--radius-full);
 }
 
 .dot[data-tone="working"] {
+  width: 6px;
+  height: 6px;
   background: var(--color-status-working);
   animation: breathe var(--motion-duration-breathe) var(--motion-easing-breathe) infinite alternate;
 }
 
 .dot[data-tone="attention"] {
+  width: 7px;
+  height: 7px;
   background: var(--color-status-needs-you);
   animation: enter var(--motion-duration-enter) var(--motion-easing-standard);
 }

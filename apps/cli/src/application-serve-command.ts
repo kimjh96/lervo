@@ -22,10 +22,11 @@ function startArguments(arguments_: Record<string, unknown>) {
       "launch_intent_invalid",
       "workspace.start takes instruction and repository, and optionally provider, mode, and model.",
     );
+  const requested = parseConversationMode(mode);
   return {
     instruction,
     repository,
-    mode: parseConversationMode(mode),
+    ...(requested === undefined ? {} : { mode: requested }),
     ...(typeof provider === "string" ? { provider } : {}),
     ...(typeof model === "string" ? { model } : {}),
   };

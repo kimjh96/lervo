@@ -96,6 +96,8 @@ describe("the terminal controller", () => {
     ]);
 
     controller.close();
+    // Sends reach the shell in order, one after another.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(fake.sent.at(-1)).toEqual({ kind: "session.detach", sessionId: "ses_1" });
   });
 });

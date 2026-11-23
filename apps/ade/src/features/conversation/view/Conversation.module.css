@@ -1,19 +1,56 @@
+/* The conversation column (approved mockup "2a"): at most 720 px wide, turns 28 px apart, and a
+   tool line 12 px above the reply it belongs to. */
 .frame {
   position: relative;
   flex: 1;
   min-height: 0;
 }
 
+/* The conversation runs under the dock and fades out at the bottom edge of the window. */
 .scroller {
   height: 100%;
+  padding: var(--space-24) 0 calc(var(--dock-height) + var(--space-12));
   overflow-y: auto;
   overscroll-behavior: contain;
+  box-sizing: border-box;
+  mask-image: linear-gradient(to top, transparent 0, #000 var(--space-24));
+}
+
+.scroller:focus {
+  outline: none;
+}
+
+/* Following the live end scrolls the view itself, which would flash macOS's overlay scroll bar
+   on every frame; the scroll bar shows once the user scrolls away. */
+.scroller[data-live="true"] {
+  scrollbar-width: none;
+}
+
+.scroller[data-live="true"]::-webkit-scrollbar {
+  display: none;
 }
 
 .list {
   position: relative;
-  width: min(var(--layout-content-max-width), calc(100% - var(--space-48)));
+  width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
   margin: 0 auto;
+}
+
+.list:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* The conversation arrives with its view once placed; the reply card stays where it is (ADE
+   motion, "Switching workspaces"). */
+.list[data-placed="arrive"] {
+  animation: view-arrive var(--motion-duration-enter) var(--motion-easing-standard);
+}
+
+@keyframes view-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 .row {
@@ -22,7 +59,16 @@
   left: 0;
   display: grid;
   width: 100%;
-  padding: var(--space-8) 0;
+  padding: 14px 0;
+  box-sizing: border-box;
+}
+
+.row[data-kind="tool_activity"] {
+  padding-bottom: var(--space-6);
+}
+
+.row[data-kind="agent_message"] {
+  padding-top: var(--space-6);
 }
 
 /* Only items that arrive while the user watches move (ADE motion, "A message arrives live"). */
@@ -37,21 +83,46 @@
   }
 }
 
+/* The reply card and "Jump to latest" float over the conversation on glass (visual language,
+   "Floating controls"). Only the controls take pointer input; the gaps scroll the conversation. */
+.dock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
 .jump {
   position: absolute;
-  bottom: var(--space-12);
+  bottom: calc(100% + var(--space-8));
   left: 50%;
-  padding: var(--space-6) var(--space-12);
+  padding: var(--space-6) var(--space-14);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   font: inherit;
   font-size: var(--type-meta-size);
-  background: var(--color-surface-opaque);
+  background: var(--color-surface-floating);
   box-shadow: var(--shadow-raised);
   transform: translateX(-50%);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
   cursor: pointer;
   animation: appear var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .jump {
+    background: var(--color-surface-opaque);
+    backdrop-filter: none;
+  }
 }
 
 @keyframes appear {
@@ -62,6 +133,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .row[data-arrived="true"] > *,
+  .list[data-placed="arrive"],
   .jump {
     animation: none;
   }

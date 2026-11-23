@@ -12,6 +12,14 @@ import styles from "./Terminal.module.css";
 
 const dark = window.matchMedia("(prefers-color-scheme: dark)");
 
+/** The terminal palette of the current mode, over a transparent background. */
+function themed() {
+  return {
+    ...(dark.matches ? terminalThemes.dark : terminalThemes.light),
+    background: "rgba(0, 0, 0, 0)",
+  };
+}
+
 /** The CLI conversation: the provider's own terminal interface, in the terminal theme. */
 export function Terminal(props: { workspaceId: string }) {
   const client = useSessionHostClient();
@@ -25,7 +33,10 @@ export function Terminal(props: { workspaceId: string }) {
       fontFamily: styles.getPropertyValue("--font-family-mono"),
       fontSize: Number.parseFloat(styles.getPropertyValue("--type-mono-size")) || 13,
       lineHeight: Number.parseFloat(styles.getPropertyValue("--type-mono-line-height")) || 1.4,
-      theme: dark.matches ? terminalThemes.dark : terminalThemes.light,
+      theme: themed(),
+      // The terminal sits on the window glass (approved mockup "2b"), so its own background is
+      // transparent and the surface token behind it draws the tint.
+      allowTransparency: true,
       scrollback: 5000,
       allowProposedApi: false,
     });
@@ -45,8 +56,7 @@ export function Terminal(props: { workspaceId: string }) {
     const size = terminal.onResize(({ cols, rows }) => controller.resize(cols, rows));
     const observer = new ResizeObserver(() => fit.fit());
     observer.observe(element);
-    const theme = () =>
-      (terminal.options.theme = dark.matches ? terminalThemes.dark : terminalThemes.light);
+    const theme = () => (terminal.options.theme = themed());
     dark.addEventListener("change", theme);
     fit.fit();
     void controller.open().then(() => controller.resize(terminal.cols, terminal.rows));

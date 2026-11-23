@@ -1,7 +1,7 @@
 /* Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit. */
 :root {
   --glass-tint-color: #FAFBFD;
-  --glass-tint-opacity: 0.88;
+  --glass-tint-opacity: 0.6;
   --glass-overlay-blur: 30px;
   --glass-overlay-saturate: 1.6;
   --color-surface-opaque: #F4F5F8;
@@ -9,18 +9,20 @@
   --color-surface-input: rgba(255,255,255,0.80);
   --color-surface-selected: rgba(255,255,255,0.85);
   --color-surface-user-message: rgba(20,30,50,0.06);
-  --color-surface-terminal: #F7F8FA;
+  --color-surface-terminal: rgba(247,248,250,0.72);
+  --color-surface-workspace: rgba(255,255,255,0.35);
+  --color-surface-floating: rgba(255,255,255,0.62);
   --color-border-subtle: rgba(20,30,50,0.07);
   --color-border-default: rgba(20,30,50,0.10);
   --color-border-window: rgba(255,255,255,0.75);
   --color-text-primary: #161B26;
   --color-text-secondary: #454D5C;
-  --color-text-tertiary: #555D6C;
-  --color-text-link: #2A4DB3;
+  --color-text-tertiary: #4C5361;
+  --color-text-link: #2848AA;
   --color-accent: #3A64D8;
   --color-on-accent: #FFFFFF;
   --color-status-working: #3A64D8;
-  --color-status-needs-you: #A86808;
+  --color-status-needs-you: #975C06;
   --color-status-failed: #B42318;
   --color-diff-added: #1A7F5A;
   --color-diff-removed: #B42318;
@@ -75,19 +77,24 @@
   --layout-collapse-below: 760px;
   --shadow-window: 0 30px 70px rgba(40,52,80,0.18), 0 0 0 1px rgba(20,30,50,0.06);
   --shadow-raised: 0 8px 24px rgba(40,52,80,0.08);
+  --shadow-selected: 0 1px 2px rgba(20,30,50,0.08);
   --motion-duration-change: 120ms;
   --motion-duration-enter: 200ms;
   --motion-duration-exit: 100ms;
   --motion-duration-breathe: 2400ms;
+  --motion-duration-shimmer: 1800ms;
+  --motion-duration-pace: 120ms;
   --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-easing-breathe: cubic-bezier(0.42, 0, 0.58, 1);
+  --motion-easing-shimmer: cubic-bezier(0.45, 0, 0.55, 1);
   --motion-breathe-min-opacity: 0.45;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --glass-tint-color: #14161D;
+    --glass-tint-opacity: 0.75;
     --glass-overlay-blur: 28px;
     --glass-overlay-saturate: 1.5;
     --color-surface-opaque: #1A1C23;
@@ -95,13 +102,15 @@
     --color-surface-input: rgba(255,255,255,0.05);
     --color-surface-selected: rgba(255,255,255,0.08);
     --color-surface-user-message: rgba(255,255,255,0.08);
-    --color-surface-terminal: #0F1117;
+    --color-surface-terminal: rgba(6,7,11,0.45);
+    --color-surface-workspace: rgba(255,255,255,0);
+    --color-surface-floating: rgba(30,32,40,0.62);
     --color-border-subtle: rgba(255,255,255,0.06);
     --color-border-default: rgba(255,255,255,0.12);
     --color-border-window: rgba(255,255,255,0.10);
     --color-text-primary: #ECEEF3;
     --color-text-secondary: #B4BAC7;
-    --color-text-tertiary: #9DA4B2;
+    --color-text-tertiary: #A3AAB7;
     --color-text-link: #A9C1FF;
     --color-accent: #7AA2F7;
     --color-on-accent: #0B1020;
@@ -112,11 +121,13 @@
     --color-diff-removed: #F29A8E;
     --shadow-window: 0 30px 80px rgba(0,0,0,0.45);
     --shadow-raised: none;
+    --shadow-selected: none;
   }
 }
 
 :root[data-theme="dark"] {
   --glass-tint-color: #14161D;
+  --glass-tint-opacity: 0.75;
   --glass-overlay-blur: 28px;
   --glass-overlay-saturate: 1.5;
   --color-surface-opaque: #1A1C23;
@@ -124,13 +135,15 @@
   --color-surface-input: rgba(255,255,255,0.05);
   --color-surface-selected: rgba(255,255,255,0.08);
   --color-surface-user-message: rgba(255,255,255,0.08);
-  --color-surface-terminal: #0F1117;
+  --color-surface-terminal: rgba(6,7,11,0.45);
+  --color-surface-workspace: rgba(255,255,255,0);
+  --color-surface-floating: rgba(30,32,40,0.62);
   --color-border-subtle: rgba(255,255,255,0.06);
   --color-border-default: rgba(255,255,255,0.12);
   --color-border-window: rgba(255,255,255,0.10);
   --color-text-primary: #ECEEF3;
   --color-text-secondary: #B4BAC7;
-  --color-text-tertiary: #9DA4B2;
+  --color-text-tertiary: #A3AAB7;
   --color-text-link: #A9C1FF;
   --color-accent: #7AA2F7;
   --color-on-accent: #0B1020;
@@ -141,6 +154,7 @@
   --color-diff-removed: #F29A8E;
   --shadow-window: 0 30px 80px rgba(0,0,0,0.45);
   --shadow-raised: none;
+  --shadow-selected: none;
 }
 
 /* Reduced motion means no movement; reduced transparency means opaque surfaces. */

@@ -10,3 +10,10 @@
   color: var(--color-status-failed);
   font-size: var(--type-meta-size);
 }
+
+/* The agent's work in progress, at the end of the conversation above the reply card. */
+.working {
+  box-sizing: border-box;
+  width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
+  padding: 0 0 var(--space-12);
+}

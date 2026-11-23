@@ -2,7 +2,7 @@ import type { HostMessage } from "@lervo/session-host-contract";
 
 import type { Notifier } from "../../../platform/notifications";
 import type { ApplicationCommands, SessionHostClient } from "../../../platform/session-host";
-import { type NotificationKind, notificationFor } from "./decisions";
+import { arrivals, type NotificationKind, notificationFor } from "./decisions";
 import { useWorkspaceStore } from "./store";
 import type { Repository, SessionStatus, Workspace } from "./types";
 
@@ -18,9 +18,14 @@ export async function reloadWorkspaces(commands: ApplicationCommands): Promise<v
     commands.run("workspace.list"),
     commands.run("repository.list"),
   ]);
+  const store = useWorkspaceStore.getState();
+  const next = (workspaces.workspaces as Workspace[] | undefined) ?? [];
+  const arrived = arrivals(store.loaded ? store.workspaces : null, next);
   useWorkspaceStore.setState({
-    workspaces: (workspaces.workspaces as Workspace[] | undefined) ?? [],
+    workspaces: next,
     repositories: (repositories.repositories as Repository[] | undefined) ?? [],
+    loaded: true,
+    arrived: new Set([...store.arrived, ...arrived]),
   });
 }
 

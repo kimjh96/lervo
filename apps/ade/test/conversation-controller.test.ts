@@ -123,6 +123,8 @@ describe("the conversation controller", () => {
     expect([...state.arrived]).toEqual(["i3"]);
 
     controller.close();
+    // Sends reach the shell in order, one after another.
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(host.sent.at(-1)).toEqual({ kind: "session.detach", sessionId: "ses_new" });
   });
 });

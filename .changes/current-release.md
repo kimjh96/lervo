@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.38.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.38.1" schema="1" -->
 
 ## What's changed
 
-- Node conversations, intent resolution, result and writing evaluation, and remote commands use the model selection roles at each call; deployment binding no longer covers the response model.
+- When workspace.start names no conversation mode, start the provider's preferred one: the native conversation when the adapter offers it, otherwise the CLI.

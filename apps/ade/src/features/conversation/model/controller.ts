@@ -8,12 +8,38 @@ import {
 } from "../../../platform/session-host";
 import { DeltaBuffer } from "./deltas";
 import { useConversationStore } from "./store";
-import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";
+import {
+  applyAppended,
+  applyDelta,
+  applyPage,
+  type ConversationWindow,
+  emptyWindow,
+  PAGE_ITEMS,
+} from "./window";
 
 /** The workspace a conversation belongs to. */
 export interface ConversationTarget {
   readonly workspaceId: string;
   readonly sessionId: string;
+  /** The instruction that started the work, shown until the session's own copy arrives. */
+  readonly firstMessage?: string;
+}
+
+/** The item that stands in for the first message until the session reports it. */
+const FIRST_MESSAGE_ID = "first-message";
+
+/** Conversations whose window is kept after they close, so reopening one shows it at once. */
+const RECENT_WINDOWS = 4;
+const recent = new Map<string, ConversationWindow>();
+
+function remember(sessionId: string, window: ConversationWindow): void {
+  if (window.items.length === 0) return;
+  recent.delete(sessionId);
+  recent.set(sessionId, window);
+  for (const oldest of recent.keys()) {
+    if (recent.size <= RECENT_WINDOWS) break;
+    recent.delete(oldest);
+  }
 }
 
 /**
@@ -39,10 +65,32 @@ export class ConversationController {
     }, nextFrame);
   }
 
+  /**
+   * Shows the conversation and attaches to its session. A conversation seen recently shows its
+   * last window at once, and the newest page replaces it when it arrives.
+   */
   async open(): Promise<void> {
+    const first = this.target.firstMessage;
     useConversationStore.setState({
       sessionId: null,
-      window: emptyWindow,
+      window:
+        first === undefined
+          ? (recent.get(this.target.sessionId) ?? emptyWindow)
+          : {
+              items: [
+                {
+                  kind: "user_message",
+                  itemId: FIRST_MESSAGE_ID,
+                  createdAtMs: Date.now(),
+                  state: "complete",
+                  text: first,
+                },
+              ],
+              hasEarlier: false,
+              hasLater: false,
+            },
+      loadingEarlier: false,
+      loadingLater: false,
       arrived: new Set(),
       error: null,
     });
@@ -57,6 +105,8 @@ export class ConversationController {
 
   close(): void {
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
+    const state = useConversationStore.getState();
+    if (state.sessionId === this.sessionId) remember(this.target.sessionId, state.window);
     void this.client
       .send({ kind: "session.detach", sessionId: this.sessionId })
       .catch(() => undefined);
@@ -86,6 +136,29 @@ export class ConversationController {
     } finally {
       useConversationStore.setState({ loadingEarlier: false });
     }
+  }
+
+  /** Loads the page after the window's last item, when the window does not reach the live end. */
+  async loadLater(): Promise<void> {
+    const state = useConversationStore.getState();
+    const last = state.window.items.at(-1);
+    if (!state.window.hasLater || state.loadingLater || last === undefined) return;
+    useConversationStore.setState({ loadingLater: true });
+    try {
+      const page = await this.range("after", last.itemId);
+      useConversationStore.setState({
+        window: applyPage(useConversationStore.getState().window, page, "after"),
+      });
+    } finally {
+      useConversationStore.setState({ loadingLater: false });
+    }
+  }
+
+  /** Replaces the window with the newest page, for "Jump to latest" after reading history. */
+  async showLatest(): Promise<void> {
+    if (!useConversationStore.getState().window.hasLater) return;
+    const page = await this.range("latest");
+    useConversationStore.setState({ window: applyPage(emptyWindow, page, "latest") });
   }
 
   /** Attaches and loads the newest page, opening the session first when it does not run. */
@@ -123,20 +196,23 @@ export class ConversationController {
       afterSequence: 0,
     });
     const page = await this.range("latest");
+    const current = useConversationStore.getState().window;
+    // Until the session reports the first message, the stand-in stays.
+    const waiting = page.items.length === 0 && current.items[0]?.itemId === FIRST_MESSAGE_ID;
     useConversationStore.setState({
       sessionId: this.sessionId,
-      window: applyPage(emptyWindow, page, "latest"),
+      window: waiting ? current : applyPage(emptyWindow, page, "latest"),
       error: null,
     });
   }
 
-  private async range(side: "latest" | "before", anchor?: string) {
+  private async range(side: "latest" | "before" | "after", anchor?: string) {
     const answer = await ask(this.client, {
       kind: "conversation.range",
       requestId: requestId(),
       sessionId: this.sessionId,
       // The newest page and each earlier page both read toward the start.
-      direction: "before",
+      direction: side === "after" ? "after" : "before",
       limit: PAGE_ITEMS,
       ...(anchor === undefined ? {} : { anchorItemId: anchor }),
     });
@@ -153,9 +229,22 @@ export class ConversationController {
     if (message.kind !== "conversation.appended") return;
     this.deltas.release();
     const state = useConversationStore.getState();
-    const known = new Set(state.window.items.map((item: ConversationItem) => item.itemId));
+    // The session's copy of the first message replaces the stand-in in place, without arriving.
+    const standIn = state.window.items.find((item) => item.itemId === FIRST_MESSAGE_ID);
+    const replacing =
+      standIn !== undefined &&
+      "text" in standIn &&
+      message.items.find((item) => item.kind === "user_message" && item.text === standIn.text);
+    const window = replacing
+      ? {
+          ...state.window,
+          items: state.window.items.filter((item) => item.itemId !== FIRST_MESSAGE_ID),
+        }
+      : state.window;
+    const known = new Set(window.items.map((item: ConversationItem) => item.itemId));
     const arrived = new Set(state.arrived);
-    for (const item of message.items) if (!known.has(item.itemId)) arrived.add(item.itemId);
-    useConversationStore.setState({ window: applyAppended(state.window, message.items), arrived });
+    for (const item of message.items)
+      if (!known.has(item.itemId) && item !== replacing) arrived.add(item.itemId);
+    useConversationStore.setState({ window: applyAppended(window, message.items), arrived });
   }
 }

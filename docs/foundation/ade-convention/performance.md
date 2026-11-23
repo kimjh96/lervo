@@ -1,7 +1,7 @@
 # Lervo ADE performance and resource use
 
 Status: `proposed`
-As of: 2026-11-22
+As of: 2026-11-23
 
 This part of the [Lervo ADE convention](../ade-convention.md) defines how the ADE uses each resource and how it proves it.
 
@@ -33,7 +33,7 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 
 ## GPU and rendering
 
-- Window glass comes from the platform's native window material, as the [visual language](../../specifications/execution/product-surfaces/ade-visual-language.md) requires. A CSS `backdrop-filter` is costly on the GPU and appears only on short-lived overlays, never over the scrolling conversation or a terminal.
+- Window glass comes from the platform's native window material, as the [visual language](../../specifications/execution/product-surfaces/ade-visual-language.md) requires. A CSS `backdrop-filter` is costly on the GPU, so it appears only on short-lived overlays and on the reply card and "Jump to latest" that float over the conversation, and never over a terminal. The interface harness measures scrolling with the floating controls.
 - When the OS asks for reduced transparency, or the device is in a low-power mode, glass becomes an opaque surface.
 - The CLI conversation uses one WebGL terminal renderer per visible terminal. Hidden terminals keep their buffer but release their renderer.
 - Terminal output is written to the renderer at most once per frame, with a per-frame byte limit, so a flood of output never freezes input.
