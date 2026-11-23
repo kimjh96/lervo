@@ -8,9 +8,11 @@ import {
 } from "./conversation-intent-resolver.js";
 import {
   allowedRoute,
+  NodeModelRouteError,
   nodeRoleRoute,
   optionalRouteFields,
   type NodeProviderRoute,
+  type ProviderStartable,
   type ReadNodeModelSelection,
 } from "./node-model-route.js";
 
@@ -29,6 +31,7 @@ export async function createProviderConversationIntentResolver(input: {
   /** ADR-0612: the hired agent's provider policy, which bounds the routes it may use. */
   providerPolicy?: "codex" | "claude" | "any" | null;
   readModelSelection?: ReadNodeModelSelection;
+  startable?: ProviderStartable;
 }): Promise<ConversationIntentResolver> {
   const runners = new Map<string, Promise<ConversationIntentProviderPort>>();
   const open = (route: NodeProviderRoute): Promise<ConversationIntentProviderPort> => {
@@ -63,17 +66,23 @@ export async function createProviderConversationIntentResolver(input: {
     ...(input.model === undefined ? {} : { model: input.model }),
   };
   // The configured route opens now, as before, so a Node that cannot start it fails at startup.
-  await open(configured);
-  return createConversationIntentResolver(() =>
-    open(
-      nodeRoleRoute({
-        role: "routine",
-        configured,
-        ...allowedRoute(input.providerPolicy),
-        ...(input.readModelSelection === undefined
-          ? {}
-          : { readSelection: input.readModelSelection }),
-      }),
-    ),
-  );
+  const current = () =>
+    nodeRoleRoute({
+      role: "routine",
+      configured,
+      ...allowedRoute(input.providerPolicy),
+      ...(input.executables === undefined ? {} : { executables: input.executables }),
+      ...(input.readModelSelection === undefined
+        ? {}
+        : { readSelection: input.readModelSelection }),
+      ...(input.startable === undefined ? {} : { startable: input.startable }),
+    });
+  // The route current at startup opens now, as the configured one did, so a Node that cannot
+  // start it fails at startup. A role that admits nothing here waits per turn instead.
+  try {
+    await open(current());
+  } catch (error) {
+    if (!(error instanceof NodeModelRouteError)) throw error;
+  }
+  return createConversationIntentResolver(() => open(current()));
 }

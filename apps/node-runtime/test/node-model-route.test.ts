@@ -13,12 +13,19 @@ import { hostModelSelectionDirectory } from "@lervo/repository-knowledge-runtime
 
 import {
   conversationResponseRoute,
+  NodeModelRouteError,
   nodeRoleRoute,
   nodeRouteForProvider,
   readHostNodeModelSelection,
 } from "../src/node-model-route.js";
 
 const configured = { provider: "codex" as const, model: "configured-model" };
+// No provider CLI is installed where tests run; each case states which providers can start.
+const startable =
+  (...providers: string[]) =>
+  (provider: string) =>
+    providers.includes(provider);
+const both = startable("codex", "claude");
 const selection =
   (roles: ModelSelection["roles"]): (() => ModelSelection) =>
   () => ({ ...DEFAULT_MODEL_SELECTION, revision: 1, roles });
@@ -38,14 +45,20 @@ describe("nodeRoleRoute", () => {
         { provider: "claude", model: "claude-opus-5-5", reasoningEffort: null },
       ],
     });
-    expect(nodeRoleRoute({ role: "review", configured, readSelection })).toEqual({
+    expect(nodeRoleRoute({ role: "review", configured, readSelection, startable: both })).toEqual({
       provider: "codex",
       model: "gpt-x",
       reasoningEffort: "max",
       source: "selection",
     });
     expect(
-      nodeRoleRoute({ role: "review", configured, allowed: ["claude"], readSelection }),
+      nodeRoleRoute({
+        role: "review",
+        configured,
+        allowed: ["claude"],
+        readSelection,
+        startable: both,
+      }),
     ).toEqual({
       provider: "claude",
       model: "claude-opus-5-5",
@@ -54,17 +67,33 @@ describe("nodeRoleRoute", () => {
     });
   });
 
-  it("keeps the configured route when the role lists only providers the caller may not use", () => {
-    expect(
+  it("waits when the set role lists no provider the caller may use (ADR-0612)", () => {
+    expect(() =>
       nodeRoleRoute({
         role: "routine",
         configured,
         allowed: ["codex"],
+        startable: both,
         readSelection: selection({
           routine: [{ provider: "claude", model: null, reasoningEffort: null }],
         }),
       }),
-    ).toEqual({ ...configured, source: "configuration" });
+    ).toThrow(NodeModelRouteError);
+  });
+
+  it("passes over a listed provider this host cannot start", () => {
+    const readSelection = selection({
+      routine: [
+        { provider: "codex", model: "gpt-x", reasoningEffort: null },
+        { provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: null },
+      ],
+    });
+    expect(
+      nodeRoleRoute({ role: "routine", configured, readSelection, startable: startable("claude") }),
+    ).toMatchObject({ provider: "claude", model: "claude-sonnet-5-5" });
+    expect(() =>
+      nodeRoleRoute({ role: "routine", configured, readSelection, startable: startable() }),
+    ).toThrow(NodeModelRouteError);
   });
 });
 
@@ -108,13 +137,15 @@ describe("the host selection read at each call", () => {
   });
 
   it("changes the next call's route in the same process, with no restart", async () => {
-    expect(nodeRoleRoute({ role: "routine", configured }).source).toBe("configuration");
+    expect(nodeRoleRoute({ role: "routine", configured, startable: both }).source).toBe(
+      "configuration",
+    );
     await writeModelSelectionRole({
       stateDirectory: hostModelSelectionDirectory(),
       role: "routine",
       routes: [{ provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: null }],
     });
-    expect(nodeRoleRoute({ role: "routine", configured })).toEqual({
+    expect(nodeRoleRoute({ role: "routine", configured, startable: both })).toEqual({
       provider: "claude",
       model: "claude-sonnet-5-5",
       source: "selection",
@@ -124,7 +155,7 @@ describe("the host selection read at each call", () => {
       role: "routine",
       routes: [{ provider: "codex", model: "gpt-y", reasoningEffort: "low" }],
     });
-    expect(nodeRoleRoute({ role: "routine", configured })).toMatchObject({
+    expect(nodeRoleRoute({ role: "routine", configured, startable: both })).toMatchObject({
       provider: "codex",
       model: "gpt-y",
     });
@@ -179,6 +210,7 @@ describe("conversationResponseRoute", () => {
         profiles,
         providerPolicy: "claude",
         readSelection,
+        startable: both,
       }),
     ).toEqual({
       provider: "claude",
@@ -188,10 +220,29 @@ describe("conversationResponseRoute", () => {
       source: "selection",
     });
     // A plain reply is the routine role, which is unset here.
-    expect(conversationResponseRoute({ response, readSelection })).toMatchObject({
+    expect(conversationResponseRoute({ response, readSelection, startable: both })).toMatchObject({
       provider: "codex",
       model: "reply-model",
       timeoutMs: 90_000,
     });
   });
+});
+
+it("keeps the profile's timeout for a selected provider the profile does not configure", () => {
+  expect(
+    conversationResponseRoute({
+      response: { provider: "codex", timeoutMs: 60_000 },
+      executionProfile: "reasoning",
+      profiles: {
+        reasoning: {
+          preferredProvider: "codex",
+          providers: { codex: { reasoningEffort: "xhigh", timeoutMs: 600_000 } },
+        },
+      },
+      readSelection: selection({
+        reasoning: [{ provider: "claude", model: null, reasoningEffort: null }],
+      }),
+      startable: both,
+    }),
+  ).toMatchObject({ provider: "claude", reasoningEffort: "high", timeoutMs: 600_000 });
 });

@@ -109,12 +109,26 @@ async function waitForTerminal(
   }
 }
 
+export type WritingEvaluatorReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+/** The route one evaluation uses: an absent model or effort keeps the provider default. */
+export interface WritingEvaluatorRoute {
+  provider: "codex" | "claude";
+  model?: string;
+  reasoningEffort?: WritingEvaluatorReasoningEffort;
+}
+
 export interface LocalProviderWritingEvaluatorOptions {
-  /** The provider, or how to choose it at each evaluation (ADR-0612: the `review` role). */
-  provider: "codex" | "claude" | (() => "codex" | "claude");
+  /**
+   * The provider, or how to choose the route at each evaluation (ADR-0612: the `review` role).
+   * A chosen route is resolved once per evaluation and passed whole to `createAdapter`.
+   */
+  provider: "codex" | "claude" | (() => WritingEvaluatorRoute);
   projectId: string;
   createAdapter(input: {
     provider: "codex" | "claude";
+    model?: string;
+    reasoningEffort?: WritingEvaluatorReasoningEffort;
     repositoryRoot: string;
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
     structuredOutputSchema: ProviderOutputSchema;
@@ -128,14 +142,16 @@ export function createLocalProviderWritingEvaluator(
 ): WritingSemanticEvaluator {
   return {
     evaluate: async (request) => {
-      const provider = typeof input.provider === "function" ? input.provider() : input.provider;
+      const route: WritingEvaluatorRoute =
+        typeof input.provider === "function" ? input.provider() : { provider: input.provider };
+      const { provider } = route;
       const evaluatorRoot = await mkdtemp(resolve(tmpdir(), "lervo-writing-evaluator-"));
       const runId = input.createId("run");
       const sessionId = input.createId("ses");
       const targetTurnId = input.createId("turn");
       const instructions = evaluationInstructions(request);
       const adapter = input.createAdapter({
-        provider,
+        ...route,
         repositoryRoot: evaluatorRoot,
         resolveArtifact: async () => {
           throw new Error("The writing evaluator does not accept CAS context documents.");

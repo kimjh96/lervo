@@ -189,9 +189,10 @@ export function bindDiscordAgentDeployment(input: {
 }): void {
   const { membership, role, replacedDeploymentId } = synchronizeMembership(input);
   const conversations = conversationIdentity(input.config);
-  // ADR-0612: binding writes the hash without the response model; a deployment that still
-  // carries the earlier hash of this configuration is replaced by one with the new hash.
-  const { deploymentConfigHash } = discordDeploymentConfigHashes({
+  // ADR-0612: a new deployment carries the hash without the response model. A deployment bound
+  // earlier with the pre-ADR-0612 hash of this same configuration is kept as it is, so binding an
+  // unchanged configuration never replaces its deployment or channel memberships.
+  const { deploymentConfigHash, legacyDeploymentConfigHashes } = discordDeploymentConfigHashes({
     config: input.config,
     agent: input.agent,
     conversations,
@@ -228,11 +229,13 @@ export function bindDiscordAgentDeployment(input: {
   ) {
     throw new Error("The Discord participant is already bound to another active agent.");
   }
+  const currentHash = (hash: string) =>
+    hash === deploymentConfigHash || legacyDeploymentConfigHashes.includes(hash);
   const activeDeployment = principalDeployment ?? participantDeployment;
   if (
     activeDeployment !== undefined &&
     (activeDeployment.externalPrincipalHash !== externalPrincipalHash ||
-      activeDeployment.deploymentConfigHash !== deploymentConfigHash)
+      !currentHash(activeDeployment.deploymentConfigHash))
   ) {
     retireDeployment({
       storage: input.storage,
@@ -245,7 +248,7 @@ export function bindDiscordAgentDeployment(input: {
     (item) =>
       item.retiredAt === null &&
       item.externalPrincipalHash === externalPrincipalHash &&
-      item.deploymentConfigHash === deploymentConfigHash,
+      currentHash(item.deploymentConfigHash),
   );
   const deploymentId =
     exactActiveDeployment?.deploymentId ??

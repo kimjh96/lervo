@@ -43,6 +43,7 @@ it("resolves each turn on the routine route current at that turn (ADR-0612)", as
     model: "configured-model",
     executables: { claude: "/opt/claude" },
     readModelSelection: () => ({ ...DEFAULT_MODEL_SELECTION, revision: 1, roles }),
+    startable: () => true,
   });
   await expect(resolver.resolve(turn)).resolves.toMatchObject({
     provider: { providerId: "codex", model: "configured-model" },
@@ -62,4 +63,23 @@ it("resolves each turn on the routine route current at that turn (ADR-0612)", as
       reasoningEffort: "low",
     }),
   ]);
+});
+
+it("starts a Node whose configured intent provider the routine role removed", async () => {
+  opened.length = 0;
+  const resolver = await createProviderConversationIntentResolver({
+    provider: "codex",
+    model: "configured-model",
+    readModelSelection: () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: { routine: [{ provider: "claude", model: null, reasoningEffort: null }] },
+    }),
+    startable: (provider) => provider === "claude",
+  });
+  // Only the route the role chooses opens; the removed provider is never started.
+  expect(opened).toEqual([expect.objectContaining({ provider: "claude" })]);
+  await expect(resolver.resolve(turn)).resolves.toMatchObject({
+    provider: { providerId: "claude", model: null },
+  });
 });

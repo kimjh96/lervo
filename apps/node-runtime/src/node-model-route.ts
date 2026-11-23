@@ -7,6 +7,9 @@ import {
   type ModelRole,
   type ModelSelection,
 } from "@lervo/execution-contract";
+import { accessSync, constants, statSync } from "node:fs";
+import { delimiter, isAbsolute, resolve } from "node:path";
+
 import { hostModelSelectionDirectory } from "@lervo/repository-knowledge-runtime";
 
 /** One provider call's route: an absent model or effort keeps the provider default. */
@@ -32,24 +35,67 @@ export const readHostNodeModelSelection: ReadNodeModelSelection = () => {
   }
 };
 
+/** A set role lists no provider this caller may use and can start here (ADR-0612). */
+export class NodeModelRouteError extends Error {
+  readonly code = "provider_not_admitted";
+  constructor(role: ModelRole) {
+    super(
+      `The ${role} model role lists no provider this agent may use and this host can start, so the call waits for a change to either.`,
+    );
+    this.name = "NodeModelRouteError";
+  }
+}
+
+/** Whether this host can start a provider's CLI: its configured executable or one on PATH. */
+export type ProviderStartable = (provider: ModelProvider, executable?: string) => boolean;
+
+function executableFile(path: string): boolean {
+  try {
+    if (!statSync(path).isFile()) return false;
+    accessSync(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export const providerStartable: ProviderStartable = (provider, executable) => {
+  if (executable !== undefined && isAbsolute(executable)) return executableFile(executable);
+  const name = executable ?? provider;
+  return (process.env.PATH ?? "")
+    .split(delimiter)
+    .filter((directory) => directory.length > 0)
+    .some((directory) => executableFile(resolve(directory, name)));
+};
+
 /**
- * The route a Node call in `role` uses. When the role has routes, the first one whose provider
- * the caller may use wins, with its model and effort; the Node configuration's own provider and
- * model then no longer decide. When the role is unset, or lists only providers the caller may not
- * use, the configured route stands unchanged, as before ADR-0612.
+ * The route a Node call in `role` uses.
+ *
+ * - A role without routes keeps the configured route unchanged, as before ADR-0612.
+ * - A role with routes decides: the first route whose provider the caller may use and this host
+ *   can start wins, with its model and effort. A provider the role leaves out is never used, so
+ *   setting a role to one provider really removes the other.
+ * - When no listed route qualifies, the call waits with `provider_not_admitted`.
  */
 export function nodeRoleRoute(input: {
   role: ModelRole;
   configured: NodeProviderRoute;
   /** The providers the caller's authority allows, such as the hired agent's provider policy. */
   allowed?: readonly ModelProvider[];
+  /** Configured executables by provider, checked before a route is chosen. */
+  executables?: Partial<Record<ModelProvider, string>>;
   readSelection?: ReadNodeModelSelection;
+  startable?: ProviderStartable;
 }): NodeProviderRoute & { source: "selection" | "configuration" } {
   const routes = (input.readSelection ?? readHostNodeModelSelection)().roles[input.role] ?? [];
+  if (routes.length === 0) return { ...input.configured, source: "configuration" };
+  const startable = input.startable ?? providerStartable;
   const route = routes.find(
-    (candidate) => input.allowed === undefined || input.allowed.includes(candidate.provider),
+    (candidate) =>
+      (input.allowed === undefined || input.allowed.includes(candidate.provider)) &&
+      startable(candidate.provider, input.executables?.[candidate.provider]),
   );
-  if (route === undefined) return { ...input.configured, source: "configuration" };
+  if (route === undefined) throw new NodeModelRouteError(input.role);
   const reasoningEffort = route.reasoningEffort ?? DEFAULT_ROLE_REASONING_EFFORT[input.role];
   return {
     provider: route.provider,
@@ -134,7 +180,9 @@ export function conversationResponseRoute(input: {
     >
   >;
   providerPolicy?: "codex" | "claude" | "any" | null | undefined;
+  executables?: Partial<Record<ModelProvider, string>>;
   readSelection?: ReadNodeModelSelection;
+  startable?: ProviderStartable;
 }): NodeProviderRoute & { source: "selection" | "configuration"; timeoutMs: number } {
   const profile =
     input.executionProfile === undefined ? undefined : input.profiles?.[input.executionProfile];
@@ -150,10 +198,18 @@ export function conversationResponseRoute(input: {
       }),
     },
     ...allowedRoute(input.providerPolicy),
+    ...(input.executables === undefined ? {} : { executables: input.executables }),
     ...(input.readSelection === undefined ? {} : { readSelection: input.readSelection }),
+    ...(input.startable === undefined ? {} : { startable: input.startable }),
   });
+  // A provider the profile does not configure keeps the profile's own timeout, so a long
+  // reasoning turn is not cut to the short reply bound.
   return {
     ...route,
-    timeoutMs: profile?.providers[route.provider]?.timeoutMs ?? input.response.timeoutMs ?? 60_000,
+    timeoutMs:
+      profile?.providers[route.provider]?.timeoutMs ??
+      configured?.timeoutMs ??
+      input.response.timeoutMs ??
+      60_000,
   };
 }

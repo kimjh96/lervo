@@ -238,7 +238,7 @@ function missingOrUnreadable(error: unknown): ModelSelectionRead {
 }
 
 function cacheKey(metadata: Stats): string {
-  return `${metadata.ino}:${metadata.size}:${metadata.mtimeMs}`;
+  return `${metadata.ino}:${metadata.size}:${metadata.mtimeMs}:${metadata.ctimeMs}`;
 }
 
 function cachedRead(path: string, metadata: Stats): ModelSelectionRead | undefined {

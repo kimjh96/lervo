@@ -23,13 +23,8 @@ import {
   loadDocumentRegistry,
   resolveProjectPaths,
 } from "@lervo/project";
-import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
-import {
-  conversationResponseRoute,
-  nodeRoleRoute,
-  optionalRouteFields,
-  type ReadNodeModelSelection,
-} from "./node-model-route.js";
+import { createConversationReviewEvaluator } from "./conversation-review-evaluator.js";
+import { conversationResponseRoute, type ReadNodeModelSelection } from "./node-model-route.js";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   createCachedRepositorySnapshotCapture,
@@ -178,17 +173,21 @@ export async function openManagedConversationReadResponder(input: {
           ? {}
           : { profiles: input.providerExecutionProfiles }),
         providerPolicy: input.providerPolicy,
+        ...(input.providerExecutables === undefined
+          ? {}
+          : { executables: input.providerExecutables }),
         ...(input.readModelSelection === undefined
           ? {}
           : { readSelection: input.readModelSelection }),
       });
+    // The route is resolved once per reply, so the evidence names the route the adapter uses.
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
       structuredOutputSchema?: ProviderOutputSchema;
-      executionProfile?: NodeRepositoryWorkExecutionProfile;
+      route: ReturnType<typeof responseRoute>;
     }) => {
-      const route = responseRoute(adapterInput.executionProfile);
+      const { route } = adapterInput;
       return createNodeProviderAdapter({
         provider: route.provider,
         repositoryRoot: adapterInput.repositoryRoot,
@@ -216,33 +215,20 @@ export async function openManagedConversationReadResponder(input: {
       }),
     );
     const evaluation = input.config.routing.evaluation;
-    const evaluationRoute = () =>
-      nodeRoleRoute({
-        role: "review",
-        configured: { provider: evaluation!.provider, ...optionalRouteFields(evaluation!) },
-        ...(input.readModelSelection === undefined
-          ? {}
-          : { readSelection: input.readModelSelection }),
-      });
     const semanticEvaluator =
       evaluation === undefined
         ? undefined
-        : createLocalProviderWritingEvaluator({
-            // ADR-0612: writing evaluation is the `review` role, chosen at each evaluation.
-            provider: () => evaluationRoute().provider,
+        : createConversationReviewEvaluator({
+            configured: evaluation,
             projectId: input.projectId,
-            createAdapter: (adapterInput) => {
-              const route = evaluationRoute();
-              return createNodeProviderAdapter({
-                ...adapterInput,
-                ...(input.providerExecutables?.[adapterInput.provider] === undefined
-                  ? {}
-                  : { executable: input.providerExecutables[adapterInput.provider] }),
-                ...(route.provider !== adapterInput.provider ? {} : optionalRouteFields(route)),
-              });
-            },
+            providerPolicy: input.providerPolicy,
+            ...(input.providerExecutables === undefined
+              ? {}
+              : { providerExecutables: input.providerExecutables }),
+            ...(input.readModelSelection === undefined
+              ? {}
+              : { readModelSelection: input.readModelSelection }),
             createId: (prefix) => id(prefix),
-            now: () => new Date(),
           });
     const resolvePlan = async (
       request: {
@@ -296,7 +282,7 @@ export async function openManagedConversationReadResponder(input: {
           repositoryRoot: input.repositoryRoot,
           resolveArtifact: (uri) => input.artifactStore.get(uri),
           ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
-          ...(executionProfile === undefined ? {} : { executionProfile }),
+          route,
         }),
         executionIdentity: {
           agentId: input.agentId,
