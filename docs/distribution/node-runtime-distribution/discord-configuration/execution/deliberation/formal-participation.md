@@ -1,6 +1,6 @@
 # Formal participation
 
-Optional `deliberationParticipation.routes` allows this exact hired-agent deployment to accept selected formal policy seats. Every route requires `policyId` and `policyRoleId` and may override provider, model, and reasoning effort.
+Optional `deliberationParticipation.routes` allows this exact hired-agent deployment to accept selected formal policy seats. Every route requires `policyId` and `policyRoleId` and may set the seat's provider. The `reasoning` role of the model selection (ADR-0612) chooses the model and effort for that provider; a route's own `model` and `reasoningEffort` apply only while the role does not list the provider.
 
 Configuration requires `agentId`, the exact `organization` binding, `policy.mode: proactive`, `system` in `respondTo`, and `deliberation.artifact.recorded` in `signalCodes`. Matching never uses display name, workforce role name, provider, or conversation presence.
 
@@ -11,16 +11,14 @@ Configuration requires `agentId`, the exact `organization` binding, `policy.mode
       {
         "policyId": "deliberation_architecture-review",
         "policyRoleId": "product-owner",
-        "provider": "codex",
-        "model": "gpt-6-astra",
-        "reasoningEffort": "high"
+        "provider": "claude"
       }
     ]
   }
 }
 ```
 
-At start, the Node resolves the route to one current organization membership, external deployment, and channel membership, then records a deterministic assignment and route hash. Before provider work, the assigned worker recomputes those coordinates and resolves the exact versioned role contract. Resume requires the identical accepted route.
+At start, the Node resolves the route to one current organization membership, external deployment, and channel membership, then records a deterministic assignment and route hash. Before provider work, the assigned worker recomputes those coordinates and resolves the exact versioned role contract. Resume requires the identical accepted route hash. A seat the selection routes binds only its provider, so a model change between start and resume uses the new model.
 
 The policy seat remains the deliberation responsibility. The verified workforce role supplies the participant's name, description, required inputs, context policy, and default skills.
 
