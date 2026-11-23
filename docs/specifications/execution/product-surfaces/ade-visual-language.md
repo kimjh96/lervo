@@ -15,7 +15,7 @@ Values here supersede the mockup values where they differ. The glass follows the
 - **The shell names the material.** Before the page's first paint, the shell sets `data-material` on the document: `native` on macOS, where it draws the material, and `opaque` elsewhere. The first frame therefore already shows the right surface.
 - **Platforms without a material.** Linux and WSL draw the opaque surface tokens. The layout, behavior, and contrast stay the same; only the translucency differs.
 - **Floating controls.** The reply card and "Jump to latest" float over the conversation on `color.surface.floating` with the overlay blur, and the conversation runs beneath them to the bottom of the window, where it fades out. The owner asked for this on 2026-11-23, because a reply card that kept its own band looked rigid. S1.6b measures scrolling with them.
-- **In-app overlays.** Short-lived overlays, such as the command palette and menus, may use the same CSS `backdrop-filter` over app content. Nothing uses it over a terminal.
+- **In-app overlays.** Short-lived overlays, such as the command palette and menus, may use the same CSS `backdrop-filter` over app content.
 - **Fallbacks.** When the OS asks for reduced transparency or increased contrast, or when the device is in a low-power mode, every glass surface switches to its opaque token.
 
 | Token                | Dark                  | Light                 |
@@ -38,7 +38,6 @@ Each token is semantic. Components use tokens, never raw values.
 | `color.surface.workspace`   | `rgba(255,255,255,0)`    | `rgba(255,255,255,0.35)` | The selected workspace's conversation over the window glass |
 | `color.surface.code`        | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.05)`    | Code blocks and inline code in agent messages               |
 | `color.surface.userMessage` | `rgba(255,255,255,0.08)` | `rgba(20,30,50,0.06)`    | The user's messages in the conversation                     |
-| `color.surface.terminal`    | `rgba(6,7,11,0.45)`      | `rgba(247,248,250,0.72)` | The CLI conversation over the window glass                  |
 | `color.border.subtle`       | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.07)`    | Dividers                                                    |
 | `color.border.default`      | `rgba(255,255,255,0.12)` | `rgba(20,30,50,0.10)`    | Inputs and controls                                         |
 | `color.border.window`       | `rgba(255,255,255,0.10)` | `rgba(255,255,255,0.75)` | The window edge                                             |
@@ -72,25 +71,9 @@ Ratios use the WCAG 2 relative-luminance formula. On 2026-11-23 the shell ran on
 
 The worst backgrounds are the black backdrop in light mode and the white backdrop in dark mode. Three light colors and the dark tertiary text are slightly darker or lighter than S1.5a's values so that they pass there; the dark tint is stronger than the light one for the same reason. S1.5a's tint of `0.88` had passed a blended estimate but hid the glass that the owner approved.
 
-## Terminal palette
-
-The CLI conversation uses these colors over the `color.surface.terminal` glass, with a transparent terminal background. Measured on the real window over the five backdrops, every color except dark `black` reaches 4.5; dark `black` serves as a background color. The cursor uses the foreground color, and selections use the accent at 30% (dark) and 20% (light).
-
-| Slot       | Dark      | Light     | Slot           | Dark      | Light     |
-| ---------- | --------- | --------- | -------------- | --------- | --------- |
-| background | `#0F1117` | `#F7F8FA` | foreground     | `#D8DCE5` | `#1F2533` |
-| black      | `#2A2F3A` | `#1F2533` | bright black   | `#858D9D` | `#5A6271` |
-| red        | `#F29A8E` | `#B42318` | bright red     | `#F7B3A9` | `#A51F14` |
-| green      | `#8FD3B6` | `#18774F` | bright green   | `#A8E0C8` | `#126544` |
-| yellow     | `#F2B661` | `#8A5A00` | bright yellow  | `#F6CD92` | `#7A5000` |
-| blue       | `#7AA2F7` | `#2A4DB3` | bright blue    | `#A9C1FF` | `#2443A0` |
-| magenta    | `#C3A6F2` | `#7A3FB8` | bright magenta | `#D5C0F7` | `#6B35A3` |
-| cyan       | `#7DCFDB` | `#0D7089` | bright cyan    | `#A0DDE6` | `#0B6680` |
-| white      | `#C9CED8` | `#5F6777` | bright white   | `#ECEEF3` | `#161B26` |
-
 ## Typography
 
-- **Families.** The interface uses Inter. Terminals and code use JetBrains Mono. Both ship under the SIL Open Font License and are subset to the scripts of the shipped catalogs.
+- **Families.** The interface uses Inter. Code uses JetBrains Mono. Both ship under the SIL Open Font License and are subset to the scripts of the shipped catalogs.
 - **Other scripts.** Conversation text in other scripts, such as Korean, falls back to the system fonts: Apple SD Gothic Neo on macOS, Malgun Gothic on Windows, and Noto Sans CJK on Linux. The ADE does not bundle CJK fonts, which would exceed the size budget.
 
 | Token          | Size    | Weight | Line height | Use                              |
@@ -103,7 +86,7 @@ The CLI conversation uses these colors over the `color.surface.terminal` glass, 
 | `type.note`    | 13 px   | 400    | 1.6         | Explanations and inline errors   |
 | `type.meta`    | 12.5 px | 400    | 1.4         | Activity lines and Lervo notices |
 | `type.caption` | 11.5 px | 400    | 1.4         | Repository labels and hints      |
-| `type.mono`    | 13 px   | 400    | 1.75        | The CLI conversation             |
+| `type.mono`    | 13 px   | 400    | 1.75        | Code and identifiers             |
 
 ## Space, radius, and layout
 
@@ -175,4 +158,4 @@ When the platform asks for more contrast, these tokens change, and every other t
 
 ## Token file
 
-`apps/ade/src/design/tokens.json` holds these tokens in the W3C Design Tokens Community Group format. `pnpm --filter @lervo/ade generate` writes the CSS custom properties and the terminal themes from it, and components and themes read only the generated outputs. When a value here and the token file differ, the token file wins.
+`apps/ade/src/design/tokens.json` holds these tokens in the W3C Design Tokens Community Group format. `pnpm --filter @lervo/ade generate` writes the CSS custom properties from it, and components and themes read only the generated outputs. When a value here and the token file differ, the token file wins.

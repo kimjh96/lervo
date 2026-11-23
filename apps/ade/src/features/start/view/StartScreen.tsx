@@ -13,8 +13,6 @@ import { canStart, type StartDraft, startWork } from "../model/start";
 import { useStartStore } from "../model/store";
 import styles from "./StartScreen.module.css";
 
-const PROVIDERS = ["claude", "codex"] as const;
-
 /** The text of each start failure the interface explains; other codes show with their code. */
 const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   application_unavailable: { id: "start.error.application_unavailable" },
@@ -24,7 +22,10 @@ const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_start_failed: { id: "start.error.workspace_start_failed" },
 };
 
-/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
+/**
+ * The start screen: one instruction and the repository; Lervo does the rest. The ADE starts
+ * Claude Code only for now (ADR-0617), so the screen offers no agent choice.
+ */
 export function StartScreen() {
   const intl = useIntl();
   const commands = useApplicationCommands();
@@ -73,15 +74,6 @@ export function StartScreen() {
                 onChange={(value) => setDraft({ ...draft, repository: value })}
               />
             )}
-            <Select
-              label={intl.formatMessage({ id: "start.provider.label" })}
-              value={draft.provider}
-              options={PROVIDERS.map((value) => ({
-                value,
-                text: intl.formatMessage({ id: `start.provider.${value}` }),
-              }))}
-              onChange={(value) => setDraft({ ...draft, provider: value })}
-            />
             <IconButton
               type="submit"
               className={styles.submit}

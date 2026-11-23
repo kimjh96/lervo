@@ -14,5 +14,4 @@ export {
   type Request,
   RequestFailure,
   type SessionHost,
-  type TerminalFrame,
 } from "./session-host";

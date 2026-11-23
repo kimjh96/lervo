@@ -2,7 +2,6 @@ import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
 import { ConversationController } from "../src/features/conversation/model/controller";
-import { TerminalController } from "../src/features/terminal/model/controller";
 import {
   type HostTransport,
   SessionHostClient,
@@ -25,7 +24,6 @@ async function host(answer: Answer) {
       const reply = "requestId" in message ? answer(message) : undefined;
       if (reply !== undefined) queueMicrotask(() => emit(reply));
     },
-    async input() {},
   };
   const client = new SessionHostClient(
     transport,
@@ -77,6 +75,34 @@ describe("replies and resynchronization", () => {
     controller.close();
   });
 
+  it("reopens a session that last ran in the terminal in the native conversation first", async () => {
+    const session = await host((message) => {
+      if (message.kind === "conversation.range") return page(message.requestId);
+      if (message.kind !== "session.open") return undefined;
+      return {
+        kind: "session.opened",
+        requestId: message.requestId,
+        sessionId: "ses_1",
+        workspaceId: "wks_1",
+        conversationMode: "native",
+        channel: 2,
+      };
+    });
+    const controller = new ConversationController(
+      session.client,
+      { workspaceId: "wks_1", sessionId: "ses_old", reopenNatively: true },
+      (run) => run(),
+    );
+    await controller.open();
+    expect(session.sent.map((message) => message.kind).slice(0, 2)).toEqual([
+      "session.open",
+      "session.attach",
+    ]);
+    expect(session.sent[0]).toMatchObject({ workspaceId: "wks_1", conversationMode: "native" });
+    expect(session.sent[1]).toMatchObject({ sessionId: "ses_1" });
+    controller.close();
+  });
+
   it("attaches and loads again when the session host says the conversation fell behind", async () => {
     const session = await host((message) =>
       message.kind === "conversation.range" ? page(message.requestId) : undefined,
@@ -93,41 +119,6 @@ describe("replies and resynchronization", () => {
     session.emit({ kind: "session.resync_required", sessionId: "ses_1" });
     await flush();
     expect(attaches()).toBe(2);
-    controller.close();
-  });
-
-  it("reopens the terminal after a resync and reports failures to its view", async () => {
-    let failing = false;
-    const session = await host((message) => {
-      if (message.kind !== "session.open") return undefined;
-      return failing
-        ? {
-            kind: "request.failed",
-            requestId: message.requestId,
-            code: "provider_cli_unavailable",
-            parameters: {},
-          }
-        : {
-            kind: "session.opened",
-            requestId: message.requestId,
-            sessionId: "ses_1",
-            workspaceId: "wks_1",
-            conversationMode: "cli",
-            channel: 1,
-          };
-    });
-    const failures: string[] = [];
-    const controller = new TerminalController(session.client, "wks_1", {
-      write: () => undefined,
-      failed: (code) => failures.push(code),
-    });
-    await controller.open();
-    failing = true;
-    session.emit({ kind: "session.resync_required", sessionId: "ses_1" });
-    await flush();
-    await flush();
-    expect(session.sent.filter((message) => message.kind === "session.open")).toHaveLength(2);
-    expect(failures).toEqual(["provider_cli_unavailable"]);
     controller.close();
   });
 });

@@ -31,12 +31,10 @@ function host() {
     },
     async post() {},
     async send() {},
-    async input() {},
     onMessage(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);
     },
-    onTerminal: () => () => undefined,
     onState: () => () => undefined,
   };
   return {

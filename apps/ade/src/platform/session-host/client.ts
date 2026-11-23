@@ -1,27 +1,11 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 
-import type {
-  ConnectionState,
-  Request,
-  SessionHost,
-  TerminalFrame,
-} from "../../ports/session-host";
+import type { ConnectionState, Request, SessionHost } from "../../ports/session-host";
 import { Requests } from "./requests";
 import type { HostTransport, ShellMessage } from "./transport";
 
 const FIRST_RETRY_MS = 500;
 const LAST_RETRY_MS = 10_000;
-
-/** Splits the shell's `[channel: u32][sequence: u64][bytes]` frame. */
-export function parseTerminalFrame(frame: ArrayBuffer): TerminalFrame | null {
-  if (frame.byteLength < 12) return null;
-  const view = new DataView(frame);
-  return {
-    channel: view.getUint32(0),
-    sequence: view.getBigUint64(4),
-    bytes: new Uint8Array(frame, 12),
-  };
-}
 
 type Listener<T> = (value: T) => void;
 
@@ -38,12 +22,11 @@ export class SessionHostClient implements SessionHost {
   private state: ConnectionState = "connecting";
   private started = false;
   private generation = 0;
-  /** The last message or input handed to the shell; each waits for the one before it. */
+  /** The last message handed to the shell; each waits for the one before it. */
   private outgoing: Promise<unknown> = Promise.resolve();
   private retryMs = FIRST_RETRY_MS;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private readonly messageListeners = new Set<Listener<HostMessage>>();
-  private readonly terminalListeners = new Set<Listener<TerminalFrame>>();
   private readonly stateListeners = new Set<Listener<ConnectionState>>();
   private readonly requests: Requests;
 
@@ -96,15 +79,10 @@ export class SessionHostClient implements SessionHost {
     return this.send({ ...message, requestId: this.requests.nextId() } as ClientMessage);
   }
 
-  input(channel: number, bytes: Uint8Array): Promise<void> {
-    if (this.state !== "connected") return Promise.reject(new Error("session_host_unavailable"));
-    return this.inOrder(() => this.transport.input(channel, bytes));
-  }
-
   /**
    * Runs `step` after every earlier send has reached the shell. The shell handles each call as
-   * its own task, so calls in flight together could arrive out of order: typed characters would
-   * swap, and a resize could overtake the attach it follows.
+   * its own task, so calls in flight together could arrive out of order: a message could overtake
+   * the attach it follows.
    */
   private inOrder<T>(step: () => Promise<T>): Promise<T> {
     const next = this.outgoing.then(step, step);
@@ -114,10 +92,6 @@ export class SessionHostClient implements SessionHost {
 
   onMessage(listener: Listener<HostMessage>): () => void {
     return this.subscribe(this.messageListeners, listener);
-  }
-
-  onTerminal(listener: Listener<TerminalFrame>): () => void {
-    return this.subscribe(this.terminalListeners, listener);
   }
 
   onState(listener: Listener<ConnectionState>): () => void {
@@ -135,16 +109,9 @@ export class SessionHostClient implements SessionHost {
     const generation = this.generation;
     const current = () => generation === this.generation;
     try {
-      await this.transport.connect(
-        (message) => {
-          if (current()) this.control(message);
-        },
-        (frame) => {
-          if (!current()) return;
-          const parsed = parseTerminalFrame(frame);
-          if (parsed !== null) for (const listener of this.terminalListeners) listener(parsed);
-        },
-      );
+      await this.transport.connect((message) => {
+        if (current()) this.control(message);
+      });
       if (!current()) return;
       this.retryMs = FIRST_RETRY_MS;
       this.change("connected");

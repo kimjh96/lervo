@@ -39,7 +39,7 @@ The owner named the core, structure, performance, cloud readiness, localization,
 
 - The protocol negotiates its version during the handshake. A UI and a session host one minor version apart still work together.
 - Settings and on-disk indexes carry schema versions and migrate forward. A failed migration keeps the old data and rebuilds the projection.
-- The adapter detects the provider CLI version at launch and maps it to capabilities. An unknown version falls back to the CLI conversation.
+- The adapter detects the provider CLI version at launch and maps it to capabilities. An unknown version runs without the native conversation, which the ADE then does not offer ([ADR-0617](../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)).
 - The ADE follows Lervo's install and rollback rules for the Lervo CLI it depends on.
 
 ## Cross-host parity

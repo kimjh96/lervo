@@ -54,7 +54,7 @@ Each component has a purpose, when to use it and when not to, anatomy, variants,
   - the pane header, status dot, and working line;
   - the conversation list and the reply card;
   - the instruction card and the workspace list rows;
-  - the floating "Jump to latest" control and the terminal surface.
+  - the floating "Jump to latest" control.
 - **Components features now style on their own**, which become shared:
   - buttons (primary, secondary, quiet, icon) and the segmented control;
   - the select chip, the text input card, and the keyboard shortcut label;

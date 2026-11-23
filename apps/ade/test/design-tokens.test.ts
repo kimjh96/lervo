@@ -4,25 +4,16 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 // @ts-expect-error The token renderer is a plain build script without type declarations.
-import {
-  renderMotion,
-  renderSizes,
-  renderTerminalThemes,
-  renderTokenCss,
-  resolve,
-} from "../scripts/design-tokens.mjs";
+import { renderMotion, renderSizes, renderTokenCss, resolve } from "../scripts/design-tokens.mjs";
 
 const root = join(import.meta.dirname, "..");
 const read = (path: string) => readFile(join(root, path), "utf8");
 
 describe("design tokens", () => {
-  it("keeps the generated stylesheet, terminal themes, and motion durations current", async () => {
+  it("keeps the generated stylesheet, motion durations, and sizes current", async () => {
     const tokens = JSON.parse(await read("src/design/tokens.json")) as unknown;
     const hint = "Run `pnpm --filter @lervo/ade generate` to regenerate the design outputs.";
     expect(await read("src/design/generated/tokens.css"), hint).toBe(renderTokenCss(tokens));
-    expect(await read("src/design/generated/terminal-theme.ts"), hint).toBe(
-      renderTerminalThemes(tokens),
-    );
     expect(await read("src/design/generated/motion.ts"), hint).toBe(renderMotion(tokens));
     expect(await read("src/design/generated/sizes.ts"), hint).toBe(renderSizes(tokens));
   });

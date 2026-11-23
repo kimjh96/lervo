@@ -1,35 +1,9 @@
-import type { ConversationMode } from "@lervo/session-host-contract";
-import { type ComponentType, lazy, Suspense } from "react";
-
 import { ConnectionStatus } from "../features/connection";
 import { WorkspaceConversation } from "../features/conversation";
 import { PendingWorkspace, StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
 import { WorkspaceList } from "../features/workspaces";
 import styles from "./Frame.module.css";
-
-// The terminal and its renderer load on first use, so the start screen stays light.
-const Terminal = lazy(() =>
-  import("../features/terminal").then((module) => ({ default: module.Terminal })),
-);
-
-type WorkspaceSurface = Extract<Surface, { kind: "workspace" }>;
-
-/** The view of each conversation mode. */
-const conversationViews: Record<ConversationMode, ComponentType<{ surface: WorkspaceSurface }>> = {
-  native: ({ surface }) => (
-    <WorkspaceConversation
-      workspaceId={surface.workspace.workspaceId}
-      sessionId={surface.workspace.sessionId}
-      firstMessage={surface.continuing?.instruction}
-    />
-  ),
-  cli: ({ surface }) => (
-    <Suspense fallback={null}>
-      <Terminal workspaceId={surface.workspace.workspaceId} />
-    </Suspense>
-  ),
-};
 
 function Main(props: { surface: Surface }) {
   const { surface } = props;
@@ -41,14 +15,20 @@ function Main(props: { surface: Surface }) {
       </>
     );
   if (surface.kind === "pending") return <PendingWorkspace pending={surface.pending} />;
-  const Conversation = conversationViews[surface.workspace.conversationMode];
   return (
     <>
       <WorkspaceHeader
         workspaceId={surface.workspace.workspaceId}
         continues={surface.continuing !== null}
       />
-      <Conversation surface={surface} />
+      {/* The ADE shows the native conversation only (ADR-0617). A workspace last opened in the
+          provider's terminal reopens its session in the native conversation. */}
+      <WorkspaceConversation
+        workspaceId={surface.workspace.workspaceId}
+        sessionId={surface.workspace.sessionId}
+        firstMessage={surface.continuing?.instruction}
+        reopenNatively={surface.workspace.conversationMode !== "native"}
+      />
     </>
   );
 }

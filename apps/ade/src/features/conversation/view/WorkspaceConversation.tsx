@@ -16,18 +16,21 @@ export function WorkspaceConversation(props: {
   sessionId: string;
   /** The instruction that started the work, when the view continues the starting workspace. */
   firstMessage?: string | undefined;
+  /** Whether the session last ran in another mode and must reopen in the native conversation. */
+  reopenNatively?: boolean;
 }) {
   const intl = useIntl();
   const host = useSessionHost();
-  const { workspaceId, sessionId, firstMessage } = props;
+  const { workspaceId, sessionId, firstMessage, reopenNatively = false } = props;
   const controller = useMemo(
     () =>
       new ConversationController(host, {
         workspaceId,
         sessionId,
+        reopenNatively,
         ...(firstMessage === undefined ? {} : { firstMessage }),
       }),
-    [host, workspaceId, sessionId, firstMessage],
+    [host, workspaceId, sessionId, firstMessage, reopenNatively],
   );
   const working = useWorkspaceStore(
     (store) => visibleStatus(store.statuses[sessionId]) === "working",

@@ -186,7 +186,7 @@ export const entries: readonly Entry[] = [
     module: "SegmentedControl",
     name: "Segmented control",
     purpose: "A choice between a few views of the same thing.",
-    use: ["Switching how one object is shown, such as conversation or terminal"],
+    use: ["Switching how one object is shown, such as a list or a grid of the same items"],
     avoid: ["Navigation between different objects", "More than three options"],
     variants: [
       { name: "Default", render: () => <SegmentedDemo /> },

@@ -14,6 +14,8 @@ export interface SessionTarget {
   readonly sessionId: string;
   /** The instruction that started the work, shown until the session's own copy arrives. */
   readonly firstMessage?: string;
+  /** Whether the session last ran in another mode, so it opens in the native conversation first. */
+  readonly reopenNatively?: boolean;
 }
 
 /** The windows of conversations closed recently, shared by every controller. */
@@ -125,6 +127,7 @@ export class ConversationController implements ConversationSource {
   /** Attaches and loads the newest page, opening the session first when it does not run. */
   private async load(): Promise<void> {
     try {
+      if (this.target.reopenNatively === true) await this.openNatively();
       await this.attachAndLoad();
     } catch (failure) {
       if (!(failure instanceof RequestFailure) || failure.code !== "session_not_found") {
@@ -146,6 +149,16 @@ export class ConversationController implements ConversationSource {
         });
       }
     }
+  }
+
+  /** Opens the workspace's session in the native conversation; the core resumes the same one. */
+  private async openNatively(): Promise<void> {
+    const opened = await this.client.request({
+      kind: "session.open",
+      workspaceId: this.target.workspaceId,
+      conversationMode: "native",
+    });
+    if (opened.kind === "session.opened") this.sessionId = opened.sessionId;
   }
 
   private async attachAndLoad(): Promise<void> {

@@ -30,7 +30,7 @@ A managed session is available when the user configures an API key. It follows A
 
 ## Conversation modes
 
-A hosted session reaches the user in one of two modes.
+A hosted session reaches the user in one of two modes. Since [ADR-0617](../../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md), the ADE shows the native conversation only and offers only providers that support it. The core still prepares CLI launches for `lervo workspace` commands, so the CLI conversation below describes those launches.
 
 | Mode                | How the CLI runs                                                                                 | What the user sees                                         | What Lervo observes                               |
 | ------------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------- |
@@ -88,6 +88,8 @@ The native conversation's structured stream carries the same kinds of events tha
 - Each item kind has one renderer in a registry. Lervo notices render from the catalog by code. In S1.5c, messages render as plain text; S1.6 chooses Markdown and code rendering by measurement against the conversation budgets.
 
 ## The CLI conversation in the interface
+
+The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md)). This section records how it worked, for when it returns.
 
 - The interface shows the CLI conversation in xterm.js with the generated terminal theme for the current color scheme. It uses the WebGL renderer and falls back to the DOM renderer.
 - It opens the session with `session.open` in the CLI conversation, attaches from the last sequence it wrote, and skips frames it already wrote, so reconnecting never repeats output.

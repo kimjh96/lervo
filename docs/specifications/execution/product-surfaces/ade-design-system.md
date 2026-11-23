@@ -65,7 +65,7 @@ The interface is Lervo's, whichever agent runs.
 
 ### Sources and outputs
 
-The DTCG token file is the one source. `scripts/build-tokens.mjs` resolves its aliases and generates the CSS custom properties, the terminal theme and typography, the motion durations, and the sizes script needs, such as icon sizes. The site will read another generated output from the same file. Components read only generated outputs, and a test fails when a committed output is stale.
+The DTCG token file is the one source. `scripts/build-tokens.mjs` resolves its aliases and generates the CSS custom properties, the motion durations, and the sizes script needs, such as icon sizes. The site will read another generated output from the same file. Components read only generated outputs, and a test fails when a committed output is stale.
 
 ### Tiers
 
@@ -115,7 +115,7 @@ Each role has one purpose. The [visual language](ade-visual-language.md) lists t
 
 ## Typography
 
-Inter sets the interface and JetBrains Mono sets code, terminals, and identifiers. Each role is a token with size, weight, and line height.
+Inter sets the interface and JetBrains Mono sets code and identifiers. Each role is a token with size, weight, and line height.
 
 | Role           | Use it for                                                                                     | Do not use it for                   |
 | -------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------- |
@@ -127,7 +127,7 @@ Inter sets the interface and JetBrains Mono sets code, terminals, and identifier
 | `type.note`    | Explanations and inline errors on the start screen; its line height sets the user's bubbles    | Labels or metadata                  |
 | `type.meta`    | Activity lines, tool lines, Lervo notices, inline failures, and detail beside a title          | Content the person must read to act |
 | `type.caption` | Repository labels, hints, shortcut labels, and segmented controls                              | Body text                           |
-| `type.mono`    | Terminals, code, branch names, paths, and identifiers                                          | Prose                               |
+| `type.mono`    | Code, branch names, paths, and identifiers                                                     | Prose                               |
 
 - **Weights.** 400 for text, 500 for the display question and pane titles, and 600 for `type.title` and the Lervo source label. No other weights.
 - **Line length.** Conversation text stays within `layout.contentMaxWidth`, about 75 characters at `type.body`.
@@ -160,15 +160,15 @@ Inter sets the interface and JetBrains Mono sets code, terminals, and identifier
 
 ## Elevation and material
 
-| Layer        | Material                                              | Shadow            |
-| ------------ | ----------------------------------------------------- | ----------------- |
-| Window       | The platform's material under `glass.tint`            | `shadow.window`   |
-| Sidebar      | `color.surface.sidebar` over the window               | none              |
-| Content      | `color.surface.workspace` or `color.surface.terminal` | none              |
-| Floating     | `color.surface.floating` with the overlay blur        | `shadow.raised`   |
-| Selected row | `color.surface.selected`                              | `shadow.selected` |
+| Layer        | Material                                       | Shadow            |
+| ------------ | ---------------------------------------------- | ----------------- |
+| Window       | The platform's material under `glass.tint`     | `shadow.window`   |
+| Sidebar      | `color.surface.sidebar` over the window        | none              |
+| Content      | `color.surface.workspace`                      | none              |
+| Floating     | `color.surface.floating` with the overlay blur | `shadow.raised`   |
+| Selected row | `color.surface.selected`                       | `shadow.selected` |
 
-- A CSS `backdrop-filter` appears only on floating controls and overlays over app content, never over a terminal.
+- A CSS `backdrop-filter` appears only on floating controls and overlays over app content.
 - Reduced transparency replaces every glass layer with `color.surface.opaque`.
 - Dark mode separates layers with borders, not shadows.
 

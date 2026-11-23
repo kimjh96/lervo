@@ -3,8 +3,8 @@
 //! the interface (ADR-0613, "The session host owns processes, and the UI only presents").
 //!
 //! Control messages reach the interface as JSON after the protocol codec validated them, so the
-//! interface never parses MessagePack and never sees an unvalidated message. Terminal bytes reach
-//! it unchanged, as `[channel: u32][sequence: u64][bytes]`.
+//! interface never parses MessagePack and never sees an unvalidated message. The ADE offers no
+//! terminal (ADR-0617), so a terminal frame ends the connection.
 
 use std::time::Duration;
 
@@ -27,14 +27,12 @@ const OUTGOING_QUEUE: usize = 256;
 /// What the interface sends.
 pub enum Outgoing {
     Control(ClientMessage),
-    Terminal { channel: u32, bytes: Vec<u8> },
 }
 
 /// What the interface receives. When `run` returns, the connection ended, and the interface
 /// reconnects, which starts the session host again.
 pub enum Event {
     Control(HostMessage),
-    Terminal(Vec<u8>),
 }
 
 /// Connects to the session host, starting it if needed, and relays until the connection ends.
@@ -56,7 +54,6 @@ pub async fn run(
         while let Some(item) = outgoing.recv().await {
             let written = match item {
                 Outgoing::Control(message) => writer.control(&message).await,
-                Outgoing::Terminal { channel, bytes } => writer.terminal(channel, 0, &bytes).await,
             };
             if written.is_err() {
                 break;
@@ -69,17 +66,7 @@ pub async fn run(
                 Ok(message) => events(Event::Control(message)),
                 Err(error) => break Err(TransportError::from(error)),
             },
-            Ok(Some(Incoming::Terminal {
-                channel,
-                sequence,
-                bytes,
-            })) => {
-                let mut frame = Vec::with_capacity(12 + bytes.len());
-                frame.extend_from_slice(&channel.to_be_bytes());
-                frame.extend_from_slice(&sequence.to_be_bytes());
-                frame.extend_from_slice(&bytes);
-                events(Event::Terminal(frame));
-            }
+            Ok(Some(Incoming::Terminal { .. })) => break Err(TransportError::UnexpectedMessage),
             Ok(None) => break Ok(()),
             Err(error) => break Err(error),
         }
