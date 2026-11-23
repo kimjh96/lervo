@@ -13,7 +13,7 @@ import {
   type ManagedProjectVerification,
 } from "@lervo/orchestrator";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
-import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
+import { loadVerificationSuite } from "@lervo/verification";
 import { canonicalJson, sha256, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { KnowledgeConvergenceRuntimeError } from "./failure.js";
 import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
@@ -27,7 +27,10 @@ import {
   withVerificationSourceChanges,
 } from "./verification-source-changes.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
-import { verificationEnvironment } from "./verification-environment.js";
+import {
+  runConvergenceVerificationSuite,
+  verificationEnvironment,
+} from "./verification-environment.js";
 
 const execute = promisify(execFile);
 export async function convergenceGit(root: string, args: string[]): Promise<string> {
@@ -152,7 +155,7 @@ export async function verifyCanonicalWorkspace(
       context.storage.artifacts,
       observedRepositorySnapshot,
       (captureRepositoryRevision) =>
-        runVerificationSuite(
+        runConvergenceVerificationSuite(
           {
             suite,
             repositoryRoot: root,
@@ -161,7 +164,7 @@ export async function verifyCanonicalWorkspace(
             artifactStore: context.storage.artifacts,
             signal: context.signal,
           },
-          { environment },
+          environment,
         ),
     );
     assertConvergenceVerificationPassed(observed.result.status);

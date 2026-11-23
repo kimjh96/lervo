@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_ffb41fa7a0f44d1a23617820"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Accept released knowledge integration attempts and the released source's return to its integration queue, without writing either yet, so the Hub and every host can read them before a writer ships."
