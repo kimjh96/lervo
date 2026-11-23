@@ -10,6 +10,7 @@ export { reopenAssignment } from "./assignment-recovery.js";
 export * from "./limits.js";
 export * from "./integration-queue-store.js";
 export * from "./integration-attempt-store.js";
+export * from "./integration-attempt-release.js";
 export * from "./integration-attempt-contract.js";
 export * from "./integration-attempt-types.js";
 export * from "./role-binding-migration.js";

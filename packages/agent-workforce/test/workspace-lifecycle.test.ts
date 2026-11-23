@@ -7,6 +7,7 @@ import {
   transitionWorkspace,
   type AgentWorkspace,
   type WorkspaceCleanupObservation,
+  type WorkspaceTransitionEvidence,
 } from "../src/index.js";
 
 const hash = `sha256:${"a".repeat(64)}`;
@@ -94,6 +95,38 @@ describe("agent workspace lifecycle", () => {
     ).toEqual({
       eligible: false,
       reasons: ["checkout_dirty", "terminal_live_or_uncertain"],
+    });
+  });
+
+  it("returns an integrating source to its own queue entry only on release evidence", () => {
+    const queueEntryId = "inq_0123456789abcdef01234567";
+    const current = { ...workspace("integrating"), integrationQueueEntryId: queueEntryId };
+    const release = (
+      evidence: WorkspaceTransitionEvidence,
+      integrationQueueEntryId = queueEntryId,
+    ) =>
+      transitionWorkspace({
+        current,
+        expectedRevision: 1,
+        expectedGeneration: 1,
+        nextState: "integration_pending",
+        occurredAt: "2026-08-26T00:01:00Z",
+        evidence,
+        integrationQueueEntryId,
+      });
+    expect(() => release({ queueEntryCommitted: true })).toThrowError(
+      expect.objectContaining({ code: "workspace_transition_conflict" }),
+    );
+    expect(() =>
+      release(
+        { queueEntryCommitted: true, integrationReleased: true },
+        "inq_76543210fedcba9876543210",
+      ),
+    ).toThrowError(expect.objectContaining({ code: "workspace_transition_conflict" }));
+    expect(release({ queueEntryCommitted: true, integrationReleased: true })).toMatchObject({
+      state: "integration_pending",
+      integrationQueueEntryId: queueEntryId,
+      revision: 2,
     });
   });
 

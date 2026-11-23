@@ -10,7 +10,7 @@ These events follow the shared [workspace privacy and failure contract](../agent
 
 `integrating` returns to `integration_pending` with reason code `integration_attempt_released` only after the attempt that started it is `released`. No unreleased attempt may name the same source generation, and the source keeps its queue entry and sealed head. The source can then join a new plan. A refused or interrupted return leaves the source `integrating`. The next release pass, or the owner before it plans a generation, retries it. This proves only that the source is queued again, not that any target moved.
 
-The Hub must be deployed before any Node writes this transition, because readers must accept it before writers emit it. An older Hub rejects the summary as `workspace_coordination_stale_generation`. Summary reconciliation for that repository then stops, so the source summary stays unsynced until the Hub is upgraded. Local lifecycle state is never lost. The current release accepts this transition and `released` attempts but writes neither; the writer follows in a later release.
+The Hub must be deployed before any Node writes this transition, because readers must accept it before writers emit it. An older Hub rejects the summary as `workspace_coordination_stale_generation`. Summary reconciliation for that repository then stops, so the source summary stays unsynced until the Hub is upgraded. Local lifecycle state is never lost.
 
 `agent.workspace.sealed` retains workspace, assignment and generation, base/head/tree hashes, changed-path-set digest and count, result artifact and verification coordinates, no-change flag, and time. It proves an immutable integration candidate, not acceptance or incorporation.
 

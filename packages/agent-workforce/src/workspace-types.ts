@@ -96,6 +96,7 @@ export interface WorkspaceTransitionEvidence {
   queueEntryCommitted?: boolean;
   integrationLeaseHeld?: boolean;
   integrationVerified?: boolean;
+  integrationReleased?: boolean;
   conflictAborted?: boolean;
   cleanupEligible?: boolean;
   cleanupPlanBound?: boolean;

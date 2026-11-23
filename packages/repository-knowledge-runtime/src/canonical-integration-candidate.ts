@@ -20,6 +20,27 @@ import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import { closeIntegratedConvergenceWorkspace } from "./integrator-workspace-closure.js";
 import { nextConvergenceIntegrationGeneration } from "./integration-target-generation.js";
+import { releaseConvergenceIntegrationAttempt } from "./integration-attempt-release.js";
+
+/**
+ * A candidate that failed verification never moves the target, so its lease releases the attempt
+ * before the failure propagates; otherwise the attempt would block every later target generation.
+ * A refused release leaves the attempt blocking, and the original failure still propagates.
+ */
+async function releaseFailedCandidate(
+  root: string,
+  plan: { targetRef: string; attempt: { targetLeaseId: string } },
+  authority: ConvergenceAssignmentAuthority,
+  error: unknown,
+): Promise<never> {
+  await releaseConvergenceIntegrationAttempt({
+    root,
+    ref: plan.targetRef,
+    targetLeaseId: plan.attempt.targetLeaseId,
+    holderLeaseId: authority.assignment.lease!.leaseId,
+  }).catch(() => false);
+  throw error;
+}
 
 export async function prepareCanonicalGitIntegration(
   context: ConvergenceRuntimeContext,
@@ -52,6 +73,7 @@ export async function prepareCanonicalGitIntegration(
         targetGeneration: await nextConvergenceIntegrationGeneration(
           root,
           authority.delegation.integrationTarget.ref,
+          authority.assignment.lease!.leaseId,
         ),
         verificationSuites: suites,
         selectedWorkspaceIds: [sealedWorkspaceId],
@@ -113,7 +135,7 @@ export async function prepareCanonicalGitIntegration(
         },
         signal: context.signal,
       }),
-  });
+  }).catch((error: unknown) => releaseFailedCandidate(root, plan, authority, error));
   await authority.assertCurrent();
   context.assertSourceExact(state);
   const integration = await convergenceEffectCheckpoint({
