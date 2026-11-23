@@ -50,7 +50,13 @@
   "conversation.reply.placeholder": [
     {
       "type": 0,
-      "value": "Reply to the agent"
+      "value": "Reply or give a new instruction"
+    }
+  ],
+  "conversation.reply.send": [
+    {
+      "type": 0,
+      "value": "Send"
     }
   ],
   "conversation.tool.failed": [
@@ -182,7 +188,7 @@
   "start.error.conversation_mode_unsupported": [
     {
       "type": 0,
-      "value": "This agent runs only in the terminal. Choose Terminal."
+      "value": "This agent cannot run here yet."
     }
   ],
   "start.error.provider_cli_unavailable": [
@@ -203,6 +209,20 @@
       "value": "Lervo could not create the workspace. Nothing was left behind."
     }
   ],
+  "start.explain": [
+    {
+      "type": 0,
+      "value": "Lervo opens a workspace and its workstream for this, then starts "
+    },
+    {
+      "type": 1,
+      "value": "provider"
+    },
+    {
+      "type": 0,
+      "value": " there. You follow and steer it in the conversation."
+    }
+  ],
   "start.instruction.label": [
     {
       "type": 0,
@@ -212,25 +232,7 @@
   "start.instruction.placeholder": [
     {
       "type": 0,
-      "value": "Describe the change, the bug, or the question"
-    }
-  ],
-  "start.mode.cli": [
-    {
-      "type": 0,
-      "value": "Terminal"
-    }
-  ],
-  "start.mode.label": [
-    {
-      "type": 0,
-      "value": "Conversation"
-    }
-  ],
-  "start.mode.native": [
-    {
-      "type": 0,
-      "value": "Conversation view"
+      "value": "Describe the work, as you would to a colleague"
     }
   ],
   "start.provider.claude": [
@@ -242,7 +244,7 @@
   "start.provider.codex": [
     {
       "type": 0,
-      "value": "Codex CLI"
+      "value": "Codex"
     }
   ],
   "start.provider.label": [
@@ -254,7 +256,7 @@
   "start.question": [
     {
       "type": 0,
-      "value": "What should we work on?"
+      "value": "What should Lervo do?"
     }
   ],
   "start.repository.label": [
@@ -269,54 +271,40 @@
       "value": "Register a repository with lervo repository register to start work."
     }
   ],
-  "start.starting": [
-    {
-      "type": 0,
-      "value": "Starting"
-    }
-  ],
   "start.submit": [
     {
       "type": 0,
       "value": "Start"
     }
   ],
-  "workspace.meta": [
-    {
-      "type": 1,
-      "value": "repository"
-    },
-    {
-      "type": 0,
-      "value": " · "
-    },
-    {
-      "type": 1,
-      "value": "branch"
-    }
-  ],
   "workspace.mode.cli": [
     {
       "type": 0,
-      "value": "Open in terminal"
+      "value": "Terminal"
+    }
+  ],
+  "workspace.mode.label": [
+    {
+      "type": 0,
+      "value": "Show as"
     }
   ],
   "workspace.mode.native": [
     {
       "type": 0,
-      "value": "Open conversation view"
+      "value": "Conversation"
     }
   ],
-  "workspaces.empty": [
+  "workspaces.label": [
     {
       "type": 0,
-      "value": "No workspaces yet"
+      "value": "Workspaces"
     }
   ],
   "workspaces.new": [
     {
       "type": 0,
-      "value": "New"
+      "value": "New work"
     }
   ],
   "workspaces.status.needsYou": [
@@ -329,12 +317,6 @@
     {
       "type": 0,
       "value": "Working"
-    }
-  ],
-  "workspaces.title": [
-    {
-      "type": 0,
-      "value": "Workspaces"
     }
   ]
 }

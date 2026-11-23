@@ -1,6 +1,8 @@
+/* Conversation items (approved mockup "2a"): the user's messages in a bubble on the right, the
+   agent's replies as plain paragraphs, and tool lines and Lervo notices as quiet meta text. */
 .user,
-.agent,
-.question,
+.agent p,
+.question p,
 .tool,
 .notice {
   margin: 0;
@@ -10,14 +12,20 @@
 
 .user {
   justify-self: end;
-  max-width: 85%;
+  max-width: 80%;
   padding: var(--space-10) var(--space-14);
   border-radius: var(--radius-lg);
   color: var(--color-text-primary);
+  font-size: var(--type-body-size);
+  line-height: 1.6;
   background: var(--color-surface-user-message);
 }
 
-.agent {
+.agent,
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-12);
   color: var(--color-text-primary);
   font-size: var(--type-body-size);
   line-height: var(--type-body-line-height);
@@ -26,7 +34,6 @@
 .question {
   padding-left: var(--space-12);
   border-left: 2px solid var(--color-status-needs-you);
-  color: var(--color-text-primary);
 }
 
 .tool,
@@ -38,4 +45,15 @@
 
 .tool[data-status="failed"] {
   color: var(--color-status-failed);
+}
+
+.notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-10);
+}
+
+.source {
+  color: var(--color-text-secondary);
+  font-weight: 600;
 }

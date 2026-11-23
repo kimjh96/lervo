@@ -1,36 +1,27 @@
-/* The sidebar sits on the window material; the content carries the glass tint so its text keeps
-   the contrast the visual language measured. */
+/* The whole window carries the glass tint over the native material, as in the approved mockups;
+   the sidebar and the workspace add their lighter surfaces on top. */
 .frame {
   display: grid;
   grid-template-columns: var(--layout-sidebar-width) 1fr;
   height: 100vh;
+  background: color-mix(
+    in srgb,
+    var(--glass-tint-color) calc(var(--glass-tint-opacity) * 100%),
+    transparent
+  );
 }
 
 .sidebar {
   display: flex;
   flex-direction: column;
+  min-height: 0;
   border-right: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sidebar);
 }
 
-.brand {
-  display: flex;
-  gap: var(--space-8);
-  align-items: center;
+.titlebar {
+  flex: none;
   height: var(--layout-header-height);
-  padding: 0 var(--space-16);
-  /* The macOS title bar overlays this row; it doubles as the drag region. */
-  -webkit-app-region: drag;
-}
-
-:root[data-material="native"] .brand {
-  padding-left: 84px;
-}
-
-.name {
-  color: var(--color-text-primary);
-  font-size: var(--type-list-size);
-  font-weight: 600;
 }
 
 .footer {
@@ -41,12 +32,29 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   overflow: hidden;
-  background: color-mix(
-    in srgb,
-    var(--glass-tint-color) calc(var(--glass-tint-opacity) * 100%),
-    transparent
-  );
+  animation: fade var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.content[data-view="native"] {
+  background: var(--color-surface-workspace);
+}
+
+.content[data-view="cli"] {
+  background: var(--color-surface-terminal);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .content {
+    animation: none;
+  }
 }
 
 @media (width < 760px) {

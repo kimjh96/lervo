@@ -5,20 +5,23 @@ export const terminalThemes = {
     "foreground": "#1F2533",
     "black": "#1F2533",
     "red": "#B42318",
-    "green": "#1A7F5A",
+    "green": "#18774F",
     "yellow": "#8A5A00",
     "blue": "#2A4DB3",
     "magenta": "#7A3FB8",
-    "cyan": "#0E7490",
+    "cyan": "#0D7089",
     "white": "#5F6777",
-    "brightBlack": "#6A7282",
+    "brightBlack": "#5A6271",
     "brightRed": "#A51F14",
-    "brightGreen": "#16704F",
+    "brightGreen": "#126544",
     "brightYellow": "#7A5000",
     "brightBlue": "#2443A0",
     "brightMagenta": "#6B35A3",
     "brightCyan": "#0B6680",
-    "brightWhite": "#161B26"
+    "brightWhite": "#161B26",
+    "cursor": "#1F2533",
+    "cursorAccent": "#F7F8FA",
+    "selectionBackground": "rgba(58,100,216,0.20)"
   },
   "dark": {
     "background": "#0F1117",
@@ -31,13 +34,16 @@ export const terminalThemes = {
     "magenta": "#C3A6F2",
     "cyan": "#7DCFDB",
     "white": "#C9CED8",
-    "brightBlack": "#7E8696",
+    "brightBlack": "#858D9D",
     "brightRed": "#F7B3A9",
     "brightGreen": "#A8E0C8",
     "brightYellow": "#F6CD92",
     "brightBlue": "#A9C1FF",
     "brightMagenta": "#D5C0F7",
     "brightCyan": "#A0DDE6",
-    "brightWhite": "#ECEEF3"
+    "brightWhite": "#ECEEF3",
+    "cursor": "#D8DCE5",
+    "cursorAccent": "#0F1117",
+    "selectionBackground": "rgba(122,162,247,0.30)"
   }
 } as const;

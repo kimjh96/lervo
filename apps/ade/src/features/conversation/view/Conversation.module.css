@@ -1,3 +1,5 @@
+/* The conversation column (approved mockup "2a"): at most 720 px wide, turns 28 px apart, and a
+   tool line 12 px above the reply it belongs to. */
 .frame {
   position: relative;
   flex: 1;
@@ -6,13 +8,19 @@
 
 .scroller {
   height: 100%;
+  padding: var(--space-24) 0 var(--space-12);
   overflow-y: auto;
   overscroll-behavior: contain;
+  box-sizing: border-box;
+}
+
+.scroller:focus {
+  outline: none;
 }
 
 .list {
   position: relative;
-  width: min(var(--layout-content-max-width), calc(100% - var(--space-48)));
+  width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
   margin: 0 auto;
 }
 
@@ -22,7 +30,16 @@
   left: 0;
   display: grid;
   width: 100%;
-  padding: var(--space-8) 0;
+  padding: 14px 0;
+  box-sizing: border-box;
+}
+
+.row[data-kind="tool_activity"] {
+  padding-bottom: var(--space-6);
+}
+
+.row[data-kind="agent_message"] {
+  padding-top: var(--space-6);
 }
 
 /* Only items that arrive while the user watches move (ADE motion, "A message arrives live"). */

@@ -32,8 +32,12 @@
     "description": "The accessible label of the reply input."
   },
   "conversation.reply.placeholder": {
-    "defaultMessage": "Reply to the agent",
-    "description": "The reply input's placeholder."
+    "defaultMessage": "Reply or give a new instruction",
+    "description": "Placeholder of the reply input."
+  },
+  "conversation.reply.send": {
+    "defaultMessage": "Send",
+    "description": "Accessible name of the button that sends a reply."
   },
   "conversation.tool.failed": {
     "defaultMessage": "{name} failed",
@@ -84,8 +88,8 @@
     "description": "The resident Lervo process is not running."
   },
   "start.error.conversation_mode_unsupported": {
-    "defaultMessage": "This agent runs only in the terminal. Choose Terminal.",
-    "description": "The provider offers only the CLI conversation."
+    "defaultMessage": "This agent cannot run here yet.",
+    "description": "The core refused the conversation mode for the chosen agent."
   },
   "start.error.provider_cli_unavailable": {
     "defaultMessage": "The agent's CLI was not found on this computer.",
@@ -99,41 +103,33 @@
     "defaultMessage": "Lervo could not create the workspace. Nothing was left behind.",
     "description": "workspace.start failed; its stages were rolled back."
   },
+  "start.explain": {
+    "defaultMessage": "Lervo opens a workspace and its workstream for this, then starts {provider} there. You follow and steer it in the conversation.",
+    "description": "What starting work does, under the instruction input. {provider} is the chosen agent."
+  },
   "start.instruction.label": {
     "defaultMessage": "Instruction",
     "description": "The accessible label of the instruction input."
   },
   "start.instruction.placeholder": {
-    "defaultMessage": "Describe the change, the bug, or the question",
-    "description": "The instruction input's placeholder."
-  },
-  "start.mode.cli": {
-    "defaultMessage": "Terminal",
-    "description": "The CLI conversation in a terminal."
-  },
-  "start.mode.label": {
-    "defaultMessage": "Conversation",
-    "description": "The accessible label of the conversation mode choice."
-  },
-  "start.mode.native": {
-    "defaultMessage": "Conversation view",
-    "description": "The native conversation that the ADE renders."
+    "defaultMessage": "Describe the work, as you would to a colleague",
+    "description": "Placeholder of the instruction input on the start screen."
   },
   "start.provider.claude": {
     "defaultMessage": "Claude Code",
     "description": "The Claude Code provider CLI."
   },
   "start.provider.codex": {
-    "defaultMessage": "Codex CLI",
-    "description": "The Codex provider CLI."
+    "defaultMessage": "Codex",
+    "description": "The Codex agent in the agent chooser."
   },
   "start.provider.label": {
     "defaultMessage": "Agent",
     "description": "The accessible label of the provider choice."
   },
   "start.question": {
-    "defaultMessage": "What should we work on?",
-    "description": "The start screen's question, above the instruction input."
+    "defaultMessage": "What should Lervo do?",
+    "description": "The start screen heading."
   },
   "start.repository.label": {
     "defaultMessage": "Repository",
@@ -143,33 +139,29 @@
     "defaultMessage": "Register a repository with lervo repository register to start work.",
     "description": "Shown when the host has no registered repository."
   },
-  "start.starting": {
-    "defaultMessage": "Starting",
-    "description": "Shown while Lervo creates the workspace."
-  },
   "start.submit": {
     "defaultMessage": "Start",
-    "description": "Starts the work."
-  },
-  "workspace.meta": {
-    "defaultMessage": "{repository} · {branch}",
-    "description": "The selected workspace's repository and branch."
+    "description": "Accessible name of the button that starts work."
   },
   "workspace.mode.cli": {
-    "defaultMessage": "Open in terminal",
+    "defaultMessage": "Terminal",
     "description": "Switches the workspace to the CLI conversation."
   },
+  "workspace.mode.label": {
+    "defaultMessage": "Show as",
+    "description": "Accessible name of the conversation mode switch."
+  },
   "workspace.mode.native": {
-    "defaultMessage": "Open conversation view",
+    "defaultMessage": "Conversation",
     "description": "Switches the workspace to the native conversation."
   },
-  "workspaces.empty": {
-    "defaultMessage": "No workspaces yet",
-    "description": "The workspace list before any work has started."
+  "workspaces.label": {
+    "defaultMessage": "Workspaces",
+    "description": "Accessible name of the workspace list."
   },
   "workspaces.new": {
-    "defaultMessage": "New",
-    "description": "Starts a new workspace from the start screen."
+    "defaultMessage": "New work",
+    "description": "The row that opens the start screen."
   },
   "workspaces.status.needsYou": {
     "defaultMessage": "Needs you",
@@ -178,9 +170,5 @@
   "workspaces.status.working": {
     "defaultMessage": "Working",
     "description": "Status text for assistive technology: the agent is working."
-  },
-  "workspaces.title": {
-    "defaultMessage": "Workspaces",
-    "description": "The heading of the workspace list."
   }
 }

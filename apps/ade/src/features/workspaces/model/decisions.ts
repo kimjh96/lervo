@@ -18,6 +18,21 @@ export function groupByRepository(
     }));
 }
 
+/**
+ * The workspaces that arrived with a reload: those absent from the previous list. The first load
+ * brings history, not arrivals, so nothing arrives then (ADE motion, "Live changes move").
+ */
+export function arrivals(
+  previous: readonly Workspace[] | null,
+  next: readonly Workspace[],
+): ReadonlySet<string> {
+  if (previous === null) return new Set();
+  const known = new Set(previous.map((workspace) => workspace.workspaceId));
+  return new Set(
+    next.map((workspace) => workspace.workspaceId).filter((workspaceId) => !known.has(workspaceId)),
+  );
+}
+
 /** The status a workspace shows: only working and needs-you have a color (visual language). */
 export function visibleStatus(status: SessionStatus | undefined): "working" | "needsYou" | null {
   if (status === "working" || status === "starting") return "working";

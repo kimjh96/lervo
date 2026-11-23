@@ -2,6 +2,7 @@ import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  arrivals,
   bindWorkspaces,
   groupByRepository,
   notificationFor,
@@ -90,6 +91,14 @@ describe("workspace decisions", () => {
       ["api", ["b"]],
       ["web", ["c", "a"]],
     ]);
+  });
+
+  it("treats only workspaces new since an earlier list as arrivals", () => {
+    const first = [workspace("a", "web", "2026-11-23T01:00:00Z")];
+    const next = [...first, workspace("b", "web", "2026-11-23T02:00:00Z")];
+    expect([...arrivals(null, next)]).toEqual([]);
+    expect([...arrivals(first, next)]).toEqual(["b"]);
+    expect([...arrivals(next, next)]).toEqual([]);
   });
 
   it("colors only working and needs-you, and notifies only for what the user does not watch", () => {

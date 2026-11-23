@@ -1,12 +1,14 @@
 import type { ApplicationCommands } from "../../../platform/session-host";
 import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
 
-/** What the start screen collects. */
+/**
+ * What the start screen collects. The conversation mode is not chosen here: the core uses the
+ * provider's preferred conversation, and the workspace header switches it later.
+ */
 export interface StartDraft {
   readonly instruction: string;
   readonly repository: string;
   readonly provider: string;
-  readonly mode: "native" | "cli";
 }
 
 /** A draft the core can run: an instruction and a repository. */
@@ -23,7 +25,6 @@ export async function startWork(commands: ApplicationCommands, draft: StartDraft
     instruction: draft.instruction.trim(),
     repository: draft.repository,
     provider: draft.provider,
-    mode: draft.mode,
   });
   await reloadWorkspaces(commands);
   if (typeof result.workspaceId === "string")

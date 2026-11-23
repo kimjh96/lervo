@@ -8,16 +8,29 @@ type Renderer<Kind extends ConversationItem["kind"]> = ComponentType<{
   item: Extract<ConversationItem, { kind: Kind }>;
 }>;
 
+/** Text split at blank lines, one paragraph each. Markdown rendering comes with S1.6c. */
+function Paragraphs(props: { text: string; className: string | undefined }) {
+  const paragraphs = props.text.split(/\n{2,}/u);
+  return (
+    <div className={props.className}>
+      {paragraphs.map((paragraph, index) => (
+        // Paragraphs have no identity beyond their order within one immutable message.
+        <p key={index}>{paragraph}</p>
+      ))}
+    </div>
+  );
+}
+
 function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_message" }> }) {
   return <p className={styles.user}>{item.text}</p>;
 }
 
 function AgentMessage({ item }: { item: Extract<ConversationItem, { kind: "agent_message" }> }) {
-  return <p className={styles.agent}>{item.text}</p>;
+  return <Paragraphs text={item.text} className={styles.agent} />;
 }
 
 function Question({ item }: { item: Extract<ConversationItem, { kind: "question" }> }) {
-  return <p className={styles.question}>{item.text}</p>;
+  return <Paragraphs text={item.text} className={styles.question} />;
 }
 
 function ToolActivity({ item }: { item: Extract<ConversationItem, { kind: "tool_activity" }> }) {
@@ -37,6 +50,9 @@ function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_
   const known = id in intl.messages;
   return (
     <p className={styles.notice}>
+      <span className={styles.source}>
+        <FormattedMessage id="app.name" />
+      </span>
       <FormattedMessage
         id={known ? id : "notice.unknown"}
         values={{ ...item.parameters, code: item.code }}

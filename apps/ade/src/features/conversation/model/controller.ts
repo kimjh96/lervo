@@ -43,6 +43,8 @@ export class ConversationController {
     useConversationStore.setState({
       sessionId: null,
       window: emptyWindow,
+      loadingEarlier: false,
+      loadingLater: false,
       arrived: new Set(),
       error: null,
     });
@@ -88,6 +90,29 @@ export class ConversationController {
     }
   }
 
+  /** Loads the page after the window's last item, when the window does not reach the live end. */
+  async loadLater(): Promise<void> {
+    const state = useConversationStore.getState();
+    const last = state.window.items.at(-1);
+    if (!state.window.hasLater || state.loadingLater || last === undefined) return;
+    useConversationStore.setState({ loadingLater: true });
+    try {
+      const page = await this.range("after", last.itemId);
+      useConversationStore.setState({
+        window: applyPage(useConversationStore.getState().window, page, "after"),
+      });
+    } finally {
+      useConversationStore.setState({ loadingLater: false });
+    }
+  }
+
+  /** Replaces the window with the newest page, for "Jump to latest" after reading history. */
+  async showLatest(): Promise<void> {
+    if (!useConversationStore.getState().window.hasLater) return;
+    const page = await this.range("latest");
+    useConversationStore.setState({ window: applyPage(emptyWindow, page, "latest") });
+  }
+
   /** Attaches and loads the newest page, opening the session first when it does not run. */
   private async load(): Promise<void> {
     try {
@@ -130,13 +155,13 @@ export class ConversationController {
     });
   }
 
-  private async range(side: "latest" | "before", anchor?: string) {
+  private async range(side: "latest" | "before" | "after", anchor?: string) {
     const answer = await ask(this.client, {
       kind: "conversation.range",
       requestId: requestId(),
       sessionId: this.sessionId,
       // The newest page and each earlier page both read toward the start.
-      direction: "before",
+      direction: side === "after" ? "after" : "before",
       limit: PAGE_ITEMS,
       ...(anchor === undefined ? {} : { anchorItemId: anchor }),
     });

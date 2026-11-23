@@ -1,8 +1,9 @@
-import { type FormEvent, type KeyboardEvent, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useApplicationCommands } from "../../../app/session-host-context";
 import { RequestFailure } from "../../../platform/session-host";
+import { ArrowUpIcon, ChevronDownIcon } from "../../../ui/icons";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
 import styles from "./StartScreen.module.css";
@@ -16,21 +17,51 @@ const KNOWN_ERRORS = new Set([
   "session_host_unavailable",
 ]);
 
-/** The start screen: an instruction, a repository, and how the agent should run. */
+/** A compact chooser inside the instruction card: a native select drawn as a chip. */
+function Chip(props: {
+  label: string;
+  value: string;
+  options: readonly { value: string; text: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <span className={styles.chip}>
+      <select
+        aria-label={props.label}
+        value={props.value}
+        onChange={(event) => props.onChange(event.target.value)}
+      >
+        {props.options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.text}
+          </option>
+        ))}
+      </select>
+      <ChevronDownIcon size={12} />
+    </span>
+  );
+}
+
+/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
 export function StartScreen() {
   const intl = useIntl();
   const commands = useApplicationCommands();
   const repositories = useWorkspaceStore((store) => store.repositories);
+  const newWork = useWorkspaceStore((store) => store.newWorkRequests);
+  const input = useRef<HTMLTextAreaElement>(null);
   const [draft, setDraft] = useState<StartDraft>({
     instruction: "",
     repository: "",
     provider: "claude",
-    mode: "native",
   });
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const repository = draft.repository || repositories[0]?.projectId || "";
   const ready = canStart({ ...draft, repository }) && !starting;
+  const provider = intl.formatMessage({ id: `start.provider.${draft.provider}` });
+
+  // The input takes focus when the screen opens and on each "New work".
+  useEffect(() => input.current?.focus(), [newWork]);
 
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
@@ -46,70 +77,69 @@ export function StartScreen() {
       .finally(() => setStarting(false));
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) submit();
+    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
+    event.preventDefault();
+    submit();
   };
 
   return (
-    <form className={styles.start} onSubmit={submit}>
-      <h1 className={styles.question}>
-        <FormattedMessage id="start.question" />
-      </h1>
-      <textarea
-        className={styles.instruction}
-        aria-label={intl.formatMessage({ id: "start.instruction.label" })}
-        placeholder={intl.formatMessage({ id: "start.instruction.placeholder" })}
-        value={draft.instruction}
-        rows={3}
-        onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
-        onKeyDown={keyDown}
-      />
-      <div className={styles.options}>
-        <select
-          aria-label={intl.formatMessage({ id: "start.repository.label" })}
-          value={repository}
-          onChange={(event) => setDraft({ ...draft, repository: event.target.value })}
-        >
-          {repositories.map((item) => (
-            <option key={item.projectId} value={item.projectId}>
-              {item.name}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label={intl.formatMessage({ id: "start.provider.label" })}
-          value={draft.provider}
-          onChange={(event) => setDraft({ ...draft, provider: event.target.value })}
-        >
-          {PROVIDERS.map((provider) => (
-            <option key={provider} value={provider}>
-              {intl.formatMessage({ id: `start.provider.${provider}` })}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label={intl.formatMessage({ id: "start.mode.label" })}
-          value={draft.mode}
-          onChange={(event) =>
-            setDraft({ ...draft, mode: event.target.value as StartDraft["mode"] })
-          }
-        >
-          <option value="native">{intl.formatMessage({ id: "start.mode.native" })}</option>
-          <option value="cli">{intl.formatMessage({ id: "start.mode.cli" })}</option>
-        </select>
-        <button type="submit" className={styles.submit} disabled={!ready}>
-          <FormattedMessage id={starting ? "start.starting" : "start.submit"} />
-        </button>
+    <div className={styles.start}>
+      <div className={styles.column}>
+        <h1 className={styles.question}>
+          <FormattedMessage id="start.question" />
+        </h1>
+        <form className={styles.card} onSubmit={submit} aria-busy={starting}>
+          <textarea
+            ref={input}
+            className={styles.instruction}
+            aria-label={intl.formatMessage({ id: "start.instruction.label" })}
+            placeholder={intl.formatMessage({ id: "start.instruction.placeholder" })}
+            value={draft.instruction}
+            rows={3}
+            onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
+            onKeyDown={keyDown}
+          />
+          <div className={styles.bar}>
+            {repositories.length === 0 ? null : (
+              <Chip
+                label={intl.formatMessage({ id: "start.repository.label" })}
+                value={repository}
+                options={repositories.map((item) => ({ value: item.projectId, text: item.name }))}
+                onChange={(value) => setDraft({ ...draft, repository: value })}
+              />
+            )}
+            <Chip
+              label={intl.formatMessage({ id: "start.provider.label" })}
+              value={draft.provider}
+              options={PROVIDERS.map((value) => ({
+                value,
+                text: intl.formatMessage({ id: `start.provider.${value}` }),
+              }))}
+              onChange={(value) => setDraft({ ...draft, provider: value })}
+            />
+            <button
+              type="submit"
+              className={styles.submit}
+              disabled={!ready}
+              aria-label={intl.formatMessage({ id: "start.submit" })}
+            >
+              <ArrowUpIcon size={16} />
+            </button>
+          </div>
+        </form>
+        <p className={styles.explain}>
+          {repositories.length === 0 ? (
+            <FormattedMessage id="start.repository.none" />
+          ) : (
+            <FormattedMessage id="start.explain" values={{ provider }} />
+          )}
+        </p>
+        {error === null ? null : (
+          <p className={styles.error} role="alert">
+            <FormattedMessage id={`start.error.${error}`} />
+          </p>
+        )}
       </div>
-      {repositories.length === 0 ? (
-        <p className={styles.hint}>
-          <FormattedMessage id="start.repository.none" />
-        </p>
-      ) : null}
-      {error === null ? null : (
-        <p className={styles.error} role="alert">
-          <FormattedMessage id={`start.error.${error}`} />
-        </p>
-      )}
-    </form>
+    </div>
   );
 }
