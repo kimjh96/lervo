@@ -362,10 +362,12 @@ describe.runIf(UNIX)("event store change channel on Unix (ADR-0602)", () => {
     await Promise.all([line(first, "ready"), line(second, "ready")]);
     writeFileSync(barrier, "");
     expect(await Promise.all([exited(first), exited(second)])).toEqual([0, 0]);
-    // The commits did interleave: the writer changes many times along the sequence.
+    // The commits did interleave. The property below needs some racing commits, not a count a
+    // busy CI runner may not reach: on 2026-11-23 a shard saw 7 writer switches, failing a > 10
+    // precondition while the ring itself was contiguous.
     const order = readAll(path).map((event) => event.eventId.slice(4, 8));
     const switches = order.filter((name, index) => index > 0 && name !== order[index - 1]).length;
-    expect(switches).toBeGreaterThan(10);
+    expect(switches).toBeGreaterThan(1);
     // Under that interleaving the ring is still contiguous over its last 64 commits. With the entry
     // written after COMMIT, outside the lock, this assertion failed on every run (2026-11-20).
     const ring = readCommitTimes(commitTimesPath(eventStoreChannelLocation(path).records));
