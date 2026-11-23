@@ -49,6 +49,8 @@ export function Conversation(props: {
   handlers.current = props;
   const [following, setFollowing] = useState(true);
   const live = following && !window.hasLater;
+  const liveNow = useRef(live);
+  liveNow.current = live;
   // The interface does not use the React Compiler, so the virtualizer's unmemoizable functions
   // need no compiler support.
   // eslint-disable-next-line react-hooks/incompatible-library
@@ -63,6 +65,7 @@ export function Conversation(props: {
   const lastLength = last !== undefined && "text" in last ? last.text.length : 0;
   const totalSize = virtualizer.getTotalSize();
   const firstItemId = window.items[0]?.itemId;
+  const firstShown = useRef(firstItemId);
 
   // The list keeps room below its last item for the dock, whose height follows the reply's text.
   useLayoutEffect(() => {
@@ -79,15 +82,19 @@ export function Conversation(props: {
     if (live && element !== null) element.scrollTop = element.scrollHeight;
   }, [live, window.items.length, lastLength, totalSize, dockHeight]);
 
-  // When items are added or dropped above the reader, the item they read stays where it was.
+  // When items are added or dropped above the reader, the item they read stays where it was. Only
+  // a change of the first item moves items; leaving the live end must not move the view.
   useLayoutEffect(() => {
+    const previous = firstShown.current;
+    firstShown.current = firstItemId;
     const element = scroller.current;
     const reading = anchor.current;
-    if (live || element === null || reading === null) return;
+    if (previous === firstItemId || liveNow.current || element === null || reading === null)
+      return;
     const index = items.current.findIndex((item) => item.itemId === reading.itemId);
     const start = virtualizer.measurementsCache[index]?.start;
-    if (start !== undefined) element.scrollTop = start - reading.offset;
-  }, [firstItemId, live, virtualizer]);
+    if (start !== undefined) element.scrollTop = start + reading.offset;
+  }, [firstItemId, virtualizer]);
 
   useEffect(() => {
     const element = scroller.current;
