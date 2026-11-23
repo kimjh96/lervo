@@ -3,7 +3,7 @@
 Status: `active`
 As of: 2026-11-23
 
-This specification defines how the Lervo ADE moves. The owner approved these principles on 2026-11-23 after trying interactive demos of each pattern. They extend the [visual language](ade-visual-language.md) and the [performance rules](../../../foundation/ade-convention/performance.md).
+This specification defines how the Lervo ADE moves. It is the motion chapter of the [design system](ade-design-system.md). The owner approved these principles on 2026-11-23 after trying interactive demos of each pattern. They extend the [visual language](ade-visual-language.md) and the [performance rules](../../../foundation/ade-convention/performance.md).
 
 The same day, the owner used the real app and found it choppy: views swapped without motion, sending work left the start screen still for seconds, replies appeared in bursts, and "Working" did not read as alive. View transitions joined the catalog, and starting work, a streaming reply, and the working status changed. The principles below include them.
 
