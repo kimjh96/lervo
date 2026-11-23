@@ -205,6 +205,63 @@ describe("instruction capture assessment contract (ADR-0467)", () => {
     expect(instructionCaptureAssessmentInstruction).toContain("planItems");
   });
 
+  it("reads plan closes on their own and never closes done without named evidence (ADR-0563)", () => {
+    const valid = {
+      schemaVersion: 1,
+      captureClass: "none",
+      durableInstruction: none,
+      decision: null,
+      reasonIds: [],
+      practice: null,
+      planItems: [],
+    };
+    expect(parseInstructionCaptureAssessment(valid).closedPlanItems).toEqual([]);
+    const close = (fields: Record<string, unknown>) => ({
+      reference: "p1",
+      state: "done",
+      pullRequest: null,
+      release: null,
+      supersededBy: null,
+      ...fields,
+    });
+    expect(
+      parseInstructionCaptureAssessment({
+        ...valid,
+        closedPlanItems: [
+          close({ pullRequest: 351 }),
+          close({ reference: "p2", release: "v0.43.1" }),
+          close({ reference: "p3" }),
+          close({ reference: "p4", pullRequest: 0 }),
+          close({ reference: "p5", release: "../v1" }),
+          close({ reference: "p6", state: "superseded", supersededBy: "p2" }),
+          close({ reference: "p7", state: "superseded", supersededBy: "p7" }),
+          close({ reference: "p33", pullRequest: 1 }),
+          close({ pullRequest: 352 }),
+          { ...close({ reference: "p8", pullRequest: 1 }), commit: "abc" },
+          close({ reference: "p9", pullRequest: 2, release: "v1.0.0" }),
+        ],
+      }).closedPlanItems,
+    ).toEqual([
+      { reference: "p1", state: "done", pullRequest: 351, release: null, supersededBy: null },
+      { reference: "p2", state: "done", pullRequest: null, release: "v0.43.1", supersededBy: null },
+      {
+        reference: "p6",
+        state: "superseded",
+        pullRequest: null,
+        release: null,
+        supersededBy: "p2",
+      },
+    ]);
+    expect(
+      parseInstructionCaptureAssessment({ ...valid, closedPlanItems: { all: true } }),
+    ).toMatchObject({
+      captureClass: "none",
+      closedPlanItems: [],
+      closedPlanItemsFailure: "invalid",
+    });
+    expect(instructionCaptureAssessmentInstruction).toContain("closedPlanItems");
+  });
+
   it("passes turn text only as untrusted provider input and forbids lexical classification", () => {
     const request = instructionCaptureRequest({
       surface: "conversation",
