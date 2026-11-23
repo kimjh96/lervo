@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7ab3958354c1850b5b09685a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Every ADR number names one decision: ten duplicated decision numbers moved to ADR-0620 to ADR-0629, CLI comments cite the right decisions, and docs:check rejects a duplicate number."
