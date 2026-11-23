@@ -20,6 +20,8 @@ use lervo_session_transport::token;
 use tokio::net::UnixStream;
 use tokio::sync::mpsc;
 
+use crate::login_path::LoginPath;
+
 const CONNECT_ATTEMPTS: u32 = 50;
 const CONNECT_INTERVAL: Duration = Duration::from_millis(100);
 const OUTGOING_QUEUE: usize = 256;
@@ -42,12 +44,12 @@ pub enum Event {
 #[derive(Clone)]
 pub struct HostProgram {
     pub executable: PathBuf,
-    pub path: Option<String>,
+    pub path: LoginPath,
 }
 
 impl HostProgram {
     /// `LERVO_SESSION_HOST`, or `lervo-session-host` beside the shell's own executable.
-    pub fn locate(path: Option<String>) -> Option<Self> {
+    pub fn locate(path: LoginPath) -> Option<Self> {
         let executable = std::env::var_os("LERVO_SESSION_HOST")
             .map(PathBuf::from)
             .or_else(|| {
@@ -59,14 +61,19 @@ impl HostProgram {
 
     /// Starts the session host detached from the shell, so it outlives the window. A second
     /// session host finds the lock held and exits at once, so starting one is always safe.
-    fn start(&self) -> Result<(), TransportError> {
+    async fn start(&self) -> Result<(), TransportError> {
+        let login = self.path.clone();
+        let path = tauri::async_runtime::spawn_blocking(move || login.wait())
+            .await
+            .ok()
+            .flatten();
         let mut command = std::process::Command::new(&self.executable);
         command
             .arg("serve")
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null());
-        if let Some(path) = &self.path {
+        if let Some(path) = path {
             command.env("PATH", path);
         }
         command.spawn().map(drop).map_err(TransportError::Io)
@@ -130,7 +137,7 @@ async fn connect(program: &HostProgram, layout: &Layout) -> Result<UnixStream, T
     if let Ok(stream) = UnixStream::connect(&layout.socket).await {
         return Ok(stream);
     }
-    program.start()?;
+    program.start().await?;
     for _ in 0..CONNECT_ATTEMPTS {
         tokio::time::sleep(CONNECT_INTERVAL).await;
         if layout.token.exists()
