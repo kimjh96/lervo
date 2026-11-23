@@ -4,6 +4,7 @@ import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { withVerificationSourceChanges } from "./verification-source-changes.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
+import { verificationEnvironment } from "./verification-environment.js";
 
 export async function verifyConvergenceEffect(
   context: ConvergenceRuntimeContext,
@@ -21,6 +22,7 @@ export async function verifyConvergenceEffect(
     };
   };
   const receipts: string[] = [];
+  const environment = await verificationEnvironment();
   for (const binding of authority.delegation.verification) {
     await authority.assertCurrent();
     const suite = await loadVerificationSuite(root, binding.suiteId);
@@ -29,14 +31,17 @@ export async function verifyConvergenceEffect(
       context.storage.artifacts,
       observe,
       (captureRepositoryRevision) =>
-        runVerificationSuite({
-          suite,
-          repositoryRoot: root,
-          repositoryRevision,
-          captureRepositoryRevision,
-          artifactStore: context.storage.artifacts,
-          signal: context.signal,
-        }),
+        runVerificationSuite(
+          {
+            suite,
+            repositoryRoot: root,
+            repositoryRevision,
+            captureRepositoryRevision,
+            artifactStore: context.storage.artifacts,
+            signal: context.signal,
+          },
+          { environment },
+        ),
     );
     assertConvergenceVerificationPassed(verification.result.status);
     receipts.push(verification.resultArtifact.contentHash);
