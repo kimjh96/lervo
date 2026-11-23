@@ -94,10 +94,34 @@ export const transcriptReadRequestSchema = request(
   ["workspaceId", "offset", "limit"],
 );
 
+/**
+ * The session host's report that a hosted session's process ended. It sends it only to a core
+ * whose `workspace.list` advertises `session.exited`, so an older core never receives it. The
+ * core records `terminal.session.ended` unless the provider's own `SessionEnd` hook already did.
+ */
+export const sessionExitedRequestSchema = request(
+  "SessionExitedRequest",
+  "session.exited",
+  {
+    sessionId: identifierSchema,
+    /** The process exit code, or null after a signal. */
+    exitCode: { oneOf: [{ type: "integer", minimum: 0, maximum: 255 }, { type: "null" }] },
+  },
+  ["sessionId", "exitCode"],
+);
+
+/**
+ * Core-link requests beyond the base ones that a core advertises in `workspace.list`'s
+ * `commands`, beside its application commands, so a session host sends them only to a core that
+ * answers them.
+ */
+export const advertisedCoreRequestNames = ["session.exited"] as const;
+
 export const coreLinkRequestSchemas = [
   coreCommandRequestSchema,
   coreOpenRequestSchema,
   transcriptReadRequestSchema,
+  sessionExitedRequestSchema,
   decoderOpenRequestSchema,
   decoderSendRequestSchema,
   decoderOutputRequestSchema,

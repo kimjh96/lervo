@@ -67,6 +67,9 @@
           "$ref": "#/$defs/TranscriptReadRequest"
         },
         {
+          "$ref": "#/$defs/SessionExitedRequest"
+        },
+        {
           "$ref": "#/$defs/DecoderOpenRequest"
         },
         {
@@ -568,6 +571,44 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 500
+        }
+      }
+    },
+    "SessionExitedRequest": {
+      "title": "SessionExitedRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "sessionId",
+        "exitCode"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.exited"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "exitCode": {
+          "oneOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 255
+            },
+            {
+              "type": "null"
+            }
+          ]
         }
       }
     },
