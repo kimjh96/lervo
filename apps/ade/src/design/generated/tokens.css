@@ -12,6 +12,7 @@
   --color-surface-terminal: rgba(247,248,250,0.72);
   --color-surface-workspace: rgba(255,255,255,0.35);
   --color-surface-floating: rgba(255,255,255,0.62);
+  --color-surface-hover: rgba(255,255,255,0.51);
   --color-border-subtle: rgba(20,30,50,0.07);
   --color-border-default: rgba(20,30,50,0.10);
   --color-border-window: rgba(255,255,255,0.75);
@@ -28,9 +29,13 @@
   --color-diff-removed: #B42318;
   --font-family-interface: Inter, system-ui, sans-serif;
   --font-family-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
   --type-display-size: 28px;
   --type-display-weight: 500;
   --type-display-line-height: 1.25;
+  --type-display-letter-spacing: -0.01em;
   --type-title-size: 18px;
   --type-title-weight: 600;
   --type-title-line-height: 1.35;
@@ -74,10 +79,25 @@
   --radius-lg: 14px;
   --radius-xl: 16px;
   --radius-full: 9999px;
+  --border-width-strong: 2px;
+  --size-control-sm: 24px;
+  --size-control-md: 28px;
+  --size-control-lg: 34px;
+  --size-dot-default: 6px;
+  --size-dot-attention: 7px;
+  --size-icon-sm: 12px;
+  --size-icon-md: 14px;
+  --size-icon-lg: 16px;
+  --opacity-disabled: 0.45;
+  --focus-ring-width: 2px;
+  --focus-ring-offset: 2px;
+  --focus-ring-inset: -2px;
   --layout-sidebar-width: 232px;
   --layout-header-height: 48px;
   --layout-content-max-width: 720px;
   --layout-collapse-below: 760px;
+  --layout-start-max-width: 640px;
+  --layout-bubble-max-width: 80%;
   --shadow-window: 0 30px 70px rgba(40,52,80,0.18), 0 0 0 1px rgba(20,30,50,0.06);
   --shadow-raised: 0 8px 24px rgba(40,52,80,0.08);
   --shadow-selected: 0 1px 2px rgba(20,30,50,0.08);
@@ -92,6 +112,7 @@
   --motion-easing-breathe: cubic-bezier(0.42, 0, 0.58, 1);
   --motion-easing-shimmer: cubic-bezier(0.45, 0, 0.55, 1);
   --motion-breathe-min-opacity: 0.45;
+  --motion-rise: 4px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -108,6 +129,7 @@
     --color-surface-terminal: rgba(6,7,11,0.45);
     --color-surface-workspace: rgba(255,255,255,0);
     --color-surface-floating: rgba(30,32,40,0.62);
+    --color-surface-hover: rgba(255,255,255,0.048);
     --color-border-subtle: rgba(255,255,255,0.06);
     --color-border-default: rgba(255,255,255,0.12);
     --color-border-window: rgba(255,255,255,0.10);
@@ -141,6 +163,7 @@
   --color-surface-terminal: rgba(6,7,11,0.45);
   --color-surface-workspace: rgba(255,255,255,0);
   --color-surface-floating: rgba(30,32,40,0.62);
+  --color-surface-hover: rgba(255,255,255,0.048);
   --color-border-subtle: rgba(255,255,255,0.06);
   --color-border-default: rgba(255,255,255,0.12);
   --color-border-window: rgba(255,255,255,0.10);

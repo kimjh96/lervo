@@ -5,12 +5,15 @@
 
 import type { ReactNode } from "react";
 
+import { sizes } from "../design/generated/sizes";
+
 interface IconProps {
-  readonly size?: 12 | 14 | 16;
+  /** The icon size token for its context: `sm` beside caption text, `md` in rows, `lg` in buttons. */
+  readonly size?: keyof typeof sizes.icon;
 }
 
 function Icon(props: IconProps & { readonly children: ReactNode; strokeWidth?: number }) {
-  const size = props.size ?? 14;
+  const size = sizes.icon[props.size ?? "md"];
   return (
     <svg
       aria-hidden="true"

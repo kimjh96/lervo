@@ -14,7 +14,7 @@
   margin-inline: var(--space-10);
   color: var(--color-text-tertiary);
   font-size: var(--type-caption-size);
-  font-weight: 400;
+  font-weight: var(--font-weight-regular);
   line-height: var(--type-caption-line-height);
 }
 
@@ -59,7 +59,7 @@
 }
 
 .row:hover {
-  background: color-mix(in srgb, var(--color-surface-selected) 60%, transparent);
+  background: var(--color-surface-hover);
 }
 
 .row[aria-current="page"] {
@@ -68,8 +68,8 @@
 }
 
 .row:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: -2px;
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-inset);
 }
 
 .name {

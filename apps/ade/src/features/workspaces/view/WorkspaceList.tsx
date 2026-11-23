@@ -33,7 +33,7 @@ export function WorkspaceList() {
         aria-current={selected === null ? "page" : undefined}
         onClick={() => transition(newWork)}
       >
-        <PlusIcon size={14} />
+        <PlusIcon size="md" />
         <span className={styles.name}>
           <FormattedMessage id="workspaces.new" />
         </span>

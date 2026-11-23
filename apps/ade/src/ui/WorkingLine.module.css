@@ -9,8 +9,8 @@
 
 .dot {
   flex: none;
-  width: 6px;
-  height: 6px;
+  width: var(--size-dot-default);
+  height: var(--size-dot-default);
   border-radius: var(--radius-full);
   background: var(--color-status-working);
 }

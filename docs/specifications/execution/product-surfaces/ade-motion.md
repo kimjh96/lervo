@@ -22,16 +22,17 @@ The same day, the owner used the real app and found it choppy: views swapped wit
 
 ## Tokens
 
-| Token                     | Value                                      | Use                                            |
-| ------------------------- | ------------------------------------------ | ---------------------------------------------- |
-| `motion.duration.change`  | 120 ms                                     | Crossfades, reveals, and control color changes |
-| `motion.duration.enter`   | 200 ms                                     | Elements entering the screen                   |
-| `motion.duration.exit`    | 100 ms                                     | Elements leaving the screen                    |
-| `motion.easing.standard`  | `cubic-bezier(0.2, 0, 0, 1)`               | Entries and changes                            |
-| `motion.easing.exit`      | `cubic-bezier(0.4, 0, 1, 1)`               | Exits                                          |
-| `motion.breathe`          | 2,400 ms, opacity 45% to 100%, ease-in-out | The working dot in the workspace list          |
-| `motion.duration.shimmer` | 1,800 ms, with `motion.easing.shimmer`     | One sweep of the working line's highlight      |
-| `motion.duration.pace`    | 120 ms                                     | The most that streamed text trails its arrival |
+| Token                     | Value                                      | Use                                                             |
+| ------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `motion.duration.change`  | 120 ms                                     | Crossfades, reveals, and control color changes                  |
+| `motion.duration.enter`   | 200 ms                                     | Elements entering the screen                                    |
+| `motion.duration.exit`    | 100 ms                                     | Elements leaving the screen                                     |
+| `motion.easing.standard`  | `cubic-bezier(0.2, 0, 0, 1)`               | Entries and changes                                             |
+| `motion.rise`             | 4 px                                       | How far an arriving element rises; no translation moves farther |
+| `motion.easing.exit`      | `cubic-bezier(0.4, 0, 1, 1)`               | Exits                                                           |
+| `motion.breathe`          | 2,400 ms, opacity 45% to 100%, ease-in-out | The working dot in the workspace list                           |
+| `motion.duration.shimmer` | 1,800 ms, with `motion.easing.shimmer`     | One sweep of the working line's highlight                       |
+| `motion.duration.pace`    | 120 ms                                     | The most that streamed text trails its arrival                  |
 
 The ADE uses no springs, bounces, or overshoot.
 

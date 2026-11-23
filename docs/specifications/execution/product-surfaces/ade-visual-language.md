@@ -109,6 +109,22 @@ The CLI conversation uses these colors over the `color.surface.terminal` glass, 
 - **Radius.** `radius.sm` 8 px for rows, `radius.md` 10 px for buttons, `radius.lg` 14 px for the window and messages, `radius.xl` 16 px for inputs, and `radius.full` for dots.
 - **Layout.** The workspace list is 232 px wide. Headers are 48 px tall. The conversation and its input are at most 720 px wide. The window's minimum size is 960 × 600 px. Below 760 px of width, the workspace list collapses into a menu.
 
+## Sizes, states, and focus
+
+| Token                                         | Value           | Use                                                       |
+| --------------------------------------------- | --------------- | --------------------------------------------------------- |
+| `size.control.sm` / `md` / `lg`               | 24 / 28 / 34 px | Segments, chips, and icon buttons in input cards          |
+| `size.dot.default` / `attention`              | 6 / 7 px        | Status and working dots; the needs-you dot                |
+| `size.icon.sm` / `md` / `lg`                  | 12 / 14 / 16 px | Icons beside captions, in rows, and in buttons            |
+| `opacity.disabled`                            | 0.45            | A control that cannot act now                             |
+| `focus.ring.width` / `offset` / `inset`       | 2 / 2 / −2 px   | Focus rings outside a control, or inside a row or segment |
+| `border.width.strong`                         | 2 px            | The question bar                                          |
+| `font.weight.regular` / `medium` / `semibold` | 400 / 500 / 600 | The only weights                                          |
+| `layout.startMaxWidth`                        | 640 px          | The start screen column                                   |
+| `layout.bubbleMaxWidth`                       | 80%             | The user's message bubbles                                |
+
+The palette (`palette.*`) holds the solid colors that the semantic color tokens alias. It is a primitive tier: components never read it, and the stylesheet does not expose it.
+
 ## Elevation
 
 | Token           | Dark                           | Light                                                                     |

@@ -31,7 +31,7 @@ function Chip(props: {
           </option>
         ))}
       </select>
-      <ChevronDownIcon size={12} />
+      <ChevronDownIcon size="sm" />
     </span>
   );
 }
@@ -115,7 +115,7 @@ export function StartScreen() {
               disabled={!ready}
               aria-label={intl.formatMessage({ id: "start.submit" })}
             >
-              <ArrowUpIcon size={16} />
+              <ArrowUpIcon size="lg" />
             </button>
           </div>
         </form>
