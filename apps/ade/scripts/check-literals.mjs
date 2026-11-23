@@ -66,16 +66,18 @@ async function* files(directory, extension) {
   }
 }
 
-/** Every violation in the interface's stylesheets and components. */
+/** Every violation in the interface's and the catalog's stylesheets and components. */
 export async function checkLiterals(root) {
   const tokens = JSON.parse(await readFile(join(root, "src/design/tokens.json"), "utf8"));
   const breakpoints = new Set([tokens.layout.collapseBelow.$value]);
   const violations = [];
-  for await (const path of files(join(root, "src"), /\.css$/u))
-    violations.push(
-      ...stylesheetViolations(await readFile(path, "utf8"), relative(root, path), breakpoints),
-    );
-  for await (const path of files(join(root, "src"), /\.tsx$/u))
-    violations.push(...componentViolations(await readFile(path, "utf8"), relative(root, path)));
+  for (const directory of ["src", "catalog"]) {
+    for await (const path of files(join(root, directory), /\.css$/u))
+      violations.push(
+        ...stylesheetViolations(await readFile(path, "utf8"), relative(root, path), breakpoints),
+      );
+    for await (const path of files(join(root, directory), /\.tsx$/u))
+      violations.push(...componentViolations(await readFile(path, "utf8"), relative(root, path)));
+  }
   return violations;
 }

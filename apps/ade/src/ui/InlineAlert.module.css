@@ -1,0 +1,31 @@
+/* An inline failure: the failed color, at the size of its surroundings. */
+/* No specificity, so the parent's placement, such as a margin, always wins. */
+:where(.alert) {
+  margin: 0;
+}
+
+.alert {
+  color: var(--color-status-failed);
+  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.alert[data-size="note"] {
+  font-size: var(--type-note-size);
+  line-height: var(--type-note-line-height);
+}
+
+.alert[data-size="meta"] {
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.alert[data-size="caption"] {
+  font-size: var(--type-caption-size);
+  line-height: var(--type-caption-line-height);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alert {
+    animation: none;
+  }
+}

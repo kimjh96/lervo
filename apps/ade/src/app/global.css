@@ -1,19 +1,10 @@
-@import "../design/generated/tokens.css";
-
+/* The app window: full height, the native material, and view transitions. `ui/base.css` holds
+   the tokens and the default text. */
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
-}
-
-body {
-  color: var(--color-text-primary);
-  font-family: var(--font-family-interface);
-  font-size: var(--type-body-size);
-  line-height: var(--type-body-line-height);
-  background: var(--color-surface-opaque);
-  -webkit-font-smoothing: antialiased;
 }
 
 /* With the native window material, the window shows through and surfaces tint it. */

@@ -3,6 +3,8 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { commandModifier } from "../../../platform/keyboard";
 import { transition } from "../../../platform/transition";
 import { PlusIcon } from "../../../ui/icons";
+import { InlineAlert } from "../../../ui/InlineAlert";
+import { Kbd } from "../../../ui/Kbd";
 import { StatusDot } from "../../../ui/StatusDot";
 import { groupByRepository, visibleStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
@@ -37,20 +39,17 @@ export function WorkspaceList() {
         <span className={styles.name}>
           <FormattedMessage id="workspaces.new" />
         </span>
-        <kbd className={styles.shortcut}>
-          <FormattedMessage
-            id="keyboard.command"
-            values={{
-              modifier: commandModifier,
-              key: intl.formatMessage({ id: "workspaces.new.key" }),
-            }}
-          />
-        </kbd>
+        <Kbd>
+          {intl.formatMessage(
+            { id: "keyboard.command" },
+            { modifier: commandModifier, key: intl.formatMessage({ id: "workspaces.new.key" }) },
+          )}
+        </Kbd>
       </button>
       {listFailure === null ? null : (
-        <p className={styles.failure} role="alert">
+        <InlineAlert size="caption" className={styles.failure}>
           <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
-        </p>
+        </InlineAlert>
       )}
       {groups.map((group) => (
         <div key={group.repositoryName}>

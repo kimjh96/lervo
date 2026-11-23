@@ -1,0 +1,12 @@
+/* The design system's base: the tokens and the default text of every surface that uses them,
+   the app and the catalog alike. */
+@import "../design/generated/tokens.css";
+
+body {
+  color: var(--color-text-primary);
+  font-family: var(--font-family-interface);
+  font-size: var(--type-body-size);
+  line-height: var(--type-body-line-height);
+  background: var(--color-surface-opaque);
+  -webkit-font-smoothing: antialiased;
+}

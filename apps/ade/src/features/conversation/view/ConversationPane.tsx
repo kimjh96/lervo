@@ -1,6 +1,7 @@
 import { useLayoutEffect } from "react";
 import { FormattedMessage } from "react-intl";
 
+import { InlineAlert } from "../../../ui/InlineAlert";
 import { WorkingLine } from "../../../ui/WorkingLine";
 import type { ConversationSource } from "../model/source";
 import { useConversationStore } from "../model/store";
@@ -34,9 +35,9 @@ export function ConversationPane(props: {
   return (
     <div className={styles.pane}>
       {error === null ? null : (
-        <p className={styles.error} role="alert">
+        <InlineAlert size="meta" className={styles.error}>
           <FormattedMessage id="conversation.unavailable" values={{ code: error }} />
-        </p>
+        </InlineAlert>
       )}
       <Conversation
         onLoadEarlier={() => void source.loadEarlier()}

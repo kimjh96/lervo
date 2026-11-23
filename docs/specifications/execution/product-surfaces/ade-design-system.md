@@ -211,7 +211,23 @@ The app uses no illustration or photography. Empty states use text and, at most,
 
 ## Components
 
-Each component is specified by its purpose, when to use and not to use it, anatomy, variants, sizes, states, keyboard and screen-reader behavior, motion, content rules, the tokens it reads, and examples. The component catalog renders each one in every variant, state, and mode. Shared components live in `apps/ade/src/ui/` and know nothing about Lervo concepts. The [design system plan](../../../roadmap/ade/design-system.md) lists the inventory and the order.
+Each component is specified by its purpose, when to use and not to use it, anatomy, variants, sizes, states, keyboard and screen-reader behavior, motion, content rules, the tokens it reads, and examples. Shared components live in `apps/ade/src/ui/` and know nothing about Lervo concepts; features compose them and add only placement. The [design system plan](../../../roadmap/ade/design-system.md) lists the inventory and the order.
+
+- **The catalog.** `apps/ade/catalog/` renders the foundations from the generated tokens and every shared component in every variant and state, in both modes, with its purpose and when to use it and when not. `pnpm --filter @lervo/ade catalog` serves it. It is outside the app's bundle, it is the owner's review surface, and the site will reuse its entries as live examples.
+- **Coverage.** A test fails when a module in `src/ui/` has no catalog entry, when an entry lacks its use or its limits, or when a variant does not render.
+- **The base.** `src/ui/base.css` holds the tokens and the default text, so the app and the catalog start from the same styles.
+
+| Component          | Use it for                                               | Not for                                                |
+| ------------------ | -------------------------------------------------------- | ------------------------------------------------------ |
+| `IconButton`       | The one primary action of an input card, such as send    | A second primary action, or an action that needs words |
+| `Select`           | A short choice inside a card's action bar                | A form field that needs a visible label                |
+| `SegmentedControl` | Switching how one object is shown                        | Navigation between objects, or more than three options |
+| `Kbd`              | The shortcut of the action beside it                     | Prose about shortcuts                                  |
+| `InlineAlert`      | A failure where it happened, with its code               | Warnings without action, or success                    |
+| `StatusDot`        | Working and needs-you, with an accessible name           | Decoration, or finished work                           |
+| `WorkingLine`      | What the open conversation's agent is doing now          | Workspaces that are not open, or known progress        |
+| `PaneHeader`       | The main area's title bar                                | Section titles inside a pane                           |
+| Icons              | Size `sm` beside captions, `md` in rows, `lg` in buttons | Emoji, or an icon-only control without a name          |
 
 ## Accessibility
 

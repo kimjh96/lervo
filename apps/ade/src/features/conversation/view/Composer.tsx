@@ -2,7 +2,9 @@ import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { failureCode } from "../../../ports";
+import { IconButton } from "../../../ui/IconButton";
 import { ArrowUpIcon } from "../../../ui/icons";
+import { InlineAlert } from "../../../ui/InlineAlert";
 import styles from "./Composer.module.css";
 import { useDraft } from "./draft";
 
@@ -68,19 +70,17 @@ export function Composer(props: {
           onChange={(event) => setText(event.target.value)}
           onKeyDown={keyDown}
         />
-        <button
+        <IconButton
           type="submit"
-          className={styles.send}
           disabled={text.trim().length === 0}
-          aria-label={intl.formatMessage({ id: "conversation.reply.send" })}
-        >
-          <ArrowUpIcon size="lg" />
-        </button>
+          label={intl.formatMessage({ id: "conversation.reply.send" })}
+          icon={<ArrowUpIcon size="lg" />}
+        />
       </form>
       {failure === null ? null : (
-        <p className={styles.error} role="alert">
+        <InlineAlert size="meta" className={styles.error}>
           <FormattedMessage id="conversation.reply.failed" values={{ code: failure }} />
-        </p>
+        </InlineAlert>
       )}
     </div>
   );

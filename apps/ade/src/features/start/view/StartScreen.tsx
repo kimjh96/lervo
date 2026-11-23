@@ -3,7 +3,10 @@ import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { transition } from "../../../platform/transition";
 import { useApplicationCommands } from "../../../ports";
-import { ArrowUpIcon, ChevronDownIcon } from "../../../ui/icons";
+import { IconButton } from "../../../ui/IconButton";
+import { ArrowUpIcon } from "../../../ui/icons";
+import { InlineAlert } from "../../../ui/InlineAlert";
+import { Select } from "../../../ui/Select";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
 import { useStartStore } from "../model/store";
@@ -11,32 +14,6 @@ import styles from "./StartScreen.module.css";
 
 const PROVIDERS = ["claude", "codex"] as const;
 
-/** A compact chooser inside the instruction card: a native select drawn as a chip. */
-function Chip(props: {
-  label: string;
-  value: string;
-  options: readonly { value: string; text: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <span className={styles.chip}>
-      <select
-        aria-label={props.label}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-      >
-        {props.options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.text}
-          </option>
-        ))}
-      </select>
-      <ChevronDownIcon size="sm" />
-    </span>
-  );
-}
-
-/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
 /** The text of each start failure the interface explains; other codes show with their code. */
 const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   application_unavailable: { id: "start.error.application_unavailable" },
@@ -46,6 +23,7 @@ const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_start_failed: { id: "start.error.workspace_start_failed" },
 };
 
+/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
 export function StartScreen() {
   const intl = useIntl();
   const commands = useApplicationCommands();
@@ -93,14 +71,14 @@ export function StartScreen() {
           />
           <div className={styles.bar}>
             {repositories.length === 0 ? null : (
-              <Chip
+              <Select
                 label={intl.formatMessage({ id: "start.repository.label" })}
                 value={repository}
                 options={repositories.map((item) => ({ value: item.projectId, text: item.name }))}
                 onChange={(value) => setDraft({ ...draft, repository: value })}
               />
             )}
-            <Chip
+            <Select
               label={intl.formatMessage({ id: "start.provider.label" })}
               value={draft.provider}
               options={PROVIDERS.map((value) => ({
@@ -109,14 +87,13 @@ export function StartScreen() {
               }))}
               onChange={(value) => setDraft({ ...draft, provider: value })}
             />
-            <button
+            <IconButton
               type="submit"
               className={styles.submit}
               disabled={!ready}
-              aria-label={intl.formatMessage({ id: "start.submit" })}
-            >
-              <ArrowUpIcon size="lg" />
-            </button>
+              label={intl.formatMessage({ id: "start.submit" })}
+              icon={<ArrowUpIcon size="lg" />}
+            />
           </div>
         </form>
         <p className={styles.explain}>
@@ -127,14 +104,14 @@ export function StartScreen() {
           )}
         </p>
         {error === null ? null : (
-          <p className={styles.error} role="alert">
+          <InlineAlert size="note" className={styles.error}>
             <FormattedMessage
               {...(Object.hasOwn(errorMessages, error.code)
                 ? errorMessages[error.code]
                 : { id: "start.error.other" })}
               values={{ code: error.code, stage: error.stage ?? "none" }}
             />
-          </p>
+          </InlineAlert>
         )}
       </div>
     </div>
