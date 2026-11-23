@@ -2,7 +2,7 @@
 
 Status: accepted
 Date: 2026-08-26
-Amended by: [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (the release pull request becomes the fallback), [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the GitHub Release carries the verified files)
+Amended by: [ADR-0564](../../operations/services/0564-prepare-the-release-inside-the-feature-pull-request.md) (the release pull request becomes the fallback), [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the GitHub Release carries the verified files), [ADR-0615](0615-version-the-ade-apart-from-the-cli.md) (release intents name a target, and the ADE has its own version line)
 
 ## Context
 

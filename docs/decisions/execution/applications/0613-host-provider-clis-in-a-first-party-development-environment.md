@@ -9,6 +9,7 @@ lervo:
 
 Status: `proposed`
 Decision date: 2026-11-22
+Amended by: [ADR-0615](../../release/packaging/0615-version-the-ade-apart-from-the-cli.md) (the ADE keeps versions and release notes before S3 distributes it)
 Amends: [ADR-0197](../providers/0197-unmanaged-terminal-context-observation.md) (adds hosted observations beside the unmanaged ladder), [ADR-0417](0417-own-discord-visible-reference-product.md) (the future first-party surface)
 Related: [ADR-0010](../providers/0010-claude-agent-sdk-managed-adapter.md), [ADR-0196](../providers/0196-fail-closed-provider-terminal-integration.md), [ADR-0501](../grounding/0501-share-context-quality-contracts-across-product-surfaces.md), [ADR-0536](../providers/admission/0536-admit-provider-clis-by-contract.md), [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md)
 
