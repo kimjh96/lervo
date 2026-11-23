@@ -1,13 +1,11 @@
-//! The shell's link to the session host: it starts the session host when none answers, runs the
-//! handshake, and relays frames between the socket and the interface (ADR-0613, "The session host
-//! owns processes, and the UI only presents").
+//! The shell's link to the session host: it connects, starting the session host through
+//! `host_program` when none answers, runs the handshake, and relays frames between the socket and
+//! the interface (ADR-0613, "The session host owns processes, and the UI only presents").
 //!
 //! Control messages reach the interface as JSON after the protocol codec validated them, so the
 //! interface never parses MessagePack and never sees an unvalidated message. Terminal bytes reach
 //! it unchanged, as `[channel: u32][sequence: u64][bytes]`.
 
-use std::path::PathBuf;
-use std::process::Stdio;
 use std::time::Duration;
 
 use lervo_session_protocol::codec::MessageCodec;
@@ -16,11 +14,11 @@ use lervo_session_transport::TransportError;
 use lervo_session_transport::client::{ClientIdentity, hello};
 use lervo_session_transport::framed::{FrameReader, FrameWriter, Incoming};
 use lervo_session_transport::paths::Layout;
+use lervo_session_transport::socket::{self, Stream};
 use lervo_session_transport::token;
-use tokio::net::UnixStream;
 use tokio::sync::mpsc;
 
-use crate::login_path::LoginPath;
+use crate::host_program::HostProgram;
 
 const CONNECT_ATTEMPTS: u32 = 50;
 const CONNECT_INTERVAL: Duration = Duration::from_millis(100);
@@ -32,52 +30,11 @@ pub enum Outgoing {
     Terminal { channel: u32, bytes: Vec<u8> },
 }
 
-/// What the interface receives.
+/// What the interface receives. When `run` returns, the connection ended, and the interface
+/// reconnects, which starts the session host again.
 pub enum Event {
     Control(HostMessage),
     Terminal(Vec<u8>),
-    /// The connection ended. The interface reconnects, which starts the session host again.
-    Disconnected,
-}
-
-/// How to start the session host.
-#[derive(Clone)]
-pub struct HostProgram {
-    pub executable: PathBuf,
-    pub path: LoginPath,
-}
-
-impl HostProgram {
-    /// `LERVO_SESSION_HOST`, or `lervo-session-host` beside the shell's own executable.
-    pub fn locate(path: LoginPath) -> Option<Self> {
-        let executable = std::env::var_os("LERVO_SESSION_HOST")
-            .map(PathBuf::from)
-            .or_else(|| {
-                let shell = std::env::current_exe().ok()?;
-                Some(shell.parent()?.join("lervo-session-host"))
-            })?;
-        Some(Self { executable, path })
-    }
-
-    /// Starts the session host detached from the shell, so it outlives the window. A second
-    /// session host finds the lock held and exits at once, so starting one is always safe.
-    async fn start(&self) -> Result<(), TransportError> {
-        let login = self.path.clone();
-        let path = tauri::async_runtime::spawn_blocking(move || login.wait())
-            .await
-            .ok()
-            .flatten();
-        let mut command = std::process::Command::new(&self.executable);
-        command
-            .arg("serve")
-            .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null());
-        if let Some(path) = path {
-            command.env("PATH", path);
-        }
-        command.spawn().map(drop).map_err(TransportError::Io)
-    }
 }
 
 /// Connects to the session host, starting it if needed, and relays until the connection ends.
@@ -128,20 +85,19 @@ pub async fn run(
         }
     };
     writing.abort();
-    events(Event::Disconnected);
     result
 }
 
 /// The connected socket, after starting the session host when nothing answers.
-async fn connect(program: &HostProgram, layout: &Layout) -> Result<UnixStream, TransportError> {
-    if let Ok(stream) = UnixStream::connect(&layout.socket).await {
+async fn connect(program: &HostProgram, layout: &Layout) -> Result<Stream, TransportError> {
+    if let Ok(stream) = socket::connect(&layout.socket).await {
         return Ok(stream);
     }
     program.start().await?;
     for _ in 0..CONNECT_ATTEMPTS {
         tokio::time::sleep(CONNECT_INTERVAL).await;
         if layout.token.exists()
-            && let Ok(stream) = UnixStream::connect(&layout.socket).await
+            && let Ok(stream) = socket::connect(&layout.socket).await
         {
             return Ok(stream);
         }
