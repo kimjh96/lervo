@@ -3,6 +3,7 @@
 use std::fs::{self, OpenOptions};
 use std::future::Future;
 use std::sync::Arc;
+use std::time::Duration;
 
 use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_transport::TransportError;
@@ -14,6 +15,11 @@ use crate::connection;
 use crate::host::Host;
 use lervo_session_core::ports::Core;
 use lervo_session_transport::paths::Layout;
+
+/// The first wait after a failed accept, such as one refused for too many open files. Each
+/// further failure doubles it up to `LAST_ACCEPT_RETRY`, so the loop never spins.
+const FIRST_ACCEPT_RETRY: Duration = Duration::from_millis(10);
+const LAST_ACCEPT_RETRY: Duration = Duration::from_secs(1);
 
 /// Why the session host could not serve.
 #[derive(Debug, thiserror::Error)]
@@ -59,14 +65,23 @@ pub async fn run<C: Core>(
 
     tokio::pin!(shutdown);
     let mut next_connection = 0_u64;
+    let mut retry = FIRST_ACCEPT_RETRY;
     loop {
         tokio::select! {
             accepted = listener.accept() => {
-                let Ok((stream, _)) = accepted else { continue };
+                let Ok((stream, _)) = accepted else {
+                    tokio::time::sleep(retry).await;
+                    retry = (retry * 2).min(LAST_ACCEPT_RETRY);
+                    continue;
+                };
+                retry = FIRST_ACCEPT_RETRY;
                 next_connection += 1;
                 let (read, write) = stream.into_split();
                 let host = Arc::clone(&host);
                 let connection = next_connection;
+                // A connection's end, clean or not, is its client's to observe: the client sees the
+                // closed socket and reconnects. The session host keeps no log yet (ADE roadmap,
+                // "Session host diagnostics").
                 tokio::spawn(async move {
                     let _ = connection::serve(host, connection, read, write).await;
                 });

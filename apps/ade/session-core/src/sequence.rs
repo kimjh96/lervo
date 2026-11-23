@@ -14,8 +14,9 @@ impl SequenceCounter {
         Self { last: 0 }
     }
 
-    /// A counter that continues after `last`, for a session restored from its index.
-    pub fn after(last: u64) -> Self {
+    /// A counter that continues after `last`.
+    #[cfg(test)]
+    fn after(last: u64) -> Self {
         Self { last }
     }
 

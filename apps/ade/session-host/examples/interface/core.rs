@@ -180,10 +180,7 @@ fn listed(workspace: &Workspace, mode: ConversationMode) -> Value {
         "branch": workspace.branch,
         "title": workspace.title,
         "provider": "claude",
-        "conversationMode": match mode {
-            ConversationMode::Native => "native",
-            ConversationMode::Cli => "cli",
-        },
+        "conversationMode": mode.code(),
         "sessionId": workspace.session,
         "preparedAt": "2026-11-23T00:00:00.000Z",
     })

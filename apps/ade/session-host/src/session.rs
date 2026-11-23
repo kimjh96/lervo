@@ -4,47 +4,45 @@
 
 use std::num::NonZeroU64;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
 use lervo_session_core::paging::Direction;
 use lervo_session_core::sequence::SequenceCounter;
 use lervo_session_core::status::{SessionEvent, SessionStatus};
 use lervo_session_protocol::{HostMessage, Identifier};
-use tokio::sync::mpsc;
+use tokio::sync::{mpsc, watch};
 
 use crate::messages;
-use crate::subscriber::{Outgoing, Subscriber};
+use crate::subscriber::{Output, Subscriber, encoded};
 use lervo_session_core::ports::ConversationMode;
 
 /// How long an ended session still answers attaches and ranges before its actor exits. After
 /// that, `session.open` starts the session again.
-pub const ENDED_RETENTION: Duration = Duration::from_secs(10 * 60);
+pub(crate) const ENDED_RETENTION: Duration = Duration::from_secs(10 * 60);
 /// Ended sessions retained at once; opening a session releases the oldest beyond this.
-pub const MAX_RETAINED_ENDED: usize = 32;
+pub(crate) const MAX_RETAINED_ENDED: usize = 32;
 const COMMAND_QUEUE: usize = 64;
 
 /// Where a session reports each status change for connections that watch every session.
-pub type StatusSink = mpsc::UnboundedSender<HostMessage>;
+pub(crate) type StatusSink = crate::watch::WatchSender;
 
-/// Where a request's answer goes.
-pub struct Reply(mpsc::UnboundedSender<Outgoing>);
+/// Where a request's answer goes: the requesting connection, within its reply budget.
+pub(crate) struct Reply(Output);
 
 impl Reply {
-    pub fn new(outgoing: &mpsc::UnboundedSender<Outgoing>) -> Self {
-        Self(outgoing.clone())
+    pub(crate) fn new(output: &Output) -> Self {
+        Self(output.clone())
     }
 
-    pub fn send(&self, message: HostMessage) {
-        let _ = self.0.send(Outgoing::Control {
-            message,
-            budget: None,
-        });
+    /// Queues the answer. A connection that is gone or too far behind has closed, and its client
+    /// fails the request when it reconnects.
+    pub(crate) fn send(&self, message: HostMessage) {
+        let _ = self.0.send(&message);
     }
 }
 
 /// A request for a page of conversation items.
-pub struct Range {
+pub(crate) struct Range {
     pub request: Identifier,
     pub anchor: Option<String>,
     pub direction: Direction,
@@ -53,7 +51,7 @@ pub struct Range {
 }
 
 /// Commands a session accepts. Each actor answers the commands its conversation mode supports.
-pub enum Command {
+pub(crate) enum Command {
     Attach {
         after_sequence: u64,
         subscriber: Subscriber,
@@ -79,129 +77,150 @@ pub enum Command {
 
 /// A handle that sends commands to a session's actor.
 #[derive(Clone)]
-pub struct SessionHandle {
-    pub mode: ConversationMode,
+pub(crate) struct SessionHandle {
+    pub(crate) mode: ConversationMode,
     /// The terminal channel `session.opened` assigned. Native sessions do not use it.
-    pub channel: u32,
+    pub(crate) channel: u32,
     commands: mpsc::Sender<Command>,
-    ended: Arc<AtomicBool>,
+    /// Becomes `true` when the provider process ended; the actor alone writes it.
+    ended: watch::Receiver<bool>,
 }
 
 impl SessionHandle {
-    /// A handle and the receiving end its actor reads.
-    pub fn new(mode: ConversationMode, channel: u32) -> (Self, mpsc::Receiver<Command>) {
+    /// A handle, the receiving end its actor reads, and the sender that reports the end.
+    pub(crate) fn new(
+        mode: ConversationMode,
+        channel: u32,
+    ) -> (Self, mpsc::Receiver<Command>, watch::Sender<bool>) {
         let (commands, receiver) = mpsc::channel(COMMAND_QUEUE);
+        let (ended_sender, ended) = watch::channel(false);
         let handle = Self {
             mode,
             channel,
             commands,
-            ended: Arc::new(AtomicBool::new(false)),
+            ended,
         };
-        (handle, receiver)
+        (handle, receiver, ended_sender)
     }
 
     /// Sends a command. Returns `false` once the actor is gone.
-    pub async fn send(&self, command: Command) -> bool {
+    pub(crate) async fn send(&self, command: Command) -> bool {
         self.commands.send(command).await.is_ok()
     }
 
     /// Ends an ended session's retention. A lingering actor reads its queue at once, so a full
     /// queue only delays the release to the next `session.open`.
-    pub fn release(&self) {
+    pub(crate) fn release(&self) {
         let _ = self.commands.try_send(Command::Release);
     }
 
     /// Whether the provider process still runs.
-    pub fn is_running(&self) -> bool {
-        !self.ended.load(Ordering::Acquire) && !self.commands.is_closed()
+    pub(crate) fn is_running(&self) -> bool {
+        !*self.ended.borrow() && !self.commands.is_closed()
     }
 
     /// Whether the actor exited.
-    pub fn is_gone(&self) -> bool {
+    pub(crate) fn is_gone(&self) -> bool {
         self.commands.is_closed()
+    }
+
+    /// Waits until the provider process ended, at most `deadline`. Returns whether it ended.
+    pub(crate) async fn ended_within(&self, deadline: Duration) -> bool {
+        let mut ended = self.ended.clone();
+        let wait = ended.wait_for(|ended| *ended);
+        // A dropped sender means the actor exited, so the process ended too.
+        tokio::time::timeout(deadline, wait).await.is_ok()
     }
 }
 
 /// A session's status, its one sequence counter, and its subscribers.
-pub struct Fanout {
+pub(crate) struct Fanout {
     session: Identifier,
     status: SessionStatus,
     /// The sequence at which the status last changed.
     status_at: u64,
     sequences: SequenceCounter,
     subscribers: Vec<Subscriber>,
-    ended: Arc<AtomicBool>,
+    ended: watch::Sender<bool>,
     watchers: StatusSink,
 }
 
 impl Fanout {
-    pub fn new(session: Identifier, handle: &SessionHandle, watchers: StatusSink) -> Self {
+    pub(crate) fn new(
+        session: Identifier,
+        ended: watch::Sender<bool>,
+        watchers: StatusSink,
+    ) -> Self {
         Self {
             session,
             status: SessionStatus::Starting,
             status_at: 0,
             sequences: SequenceCounter::new(),
             subscribers: Vec::new(),
-            ended: Arc::clone(&handle.ended),
+            ended,
             watchers,
         }
     }
 
-    pub fn session(&self) -> &Identifier {
+    pub(crate) fn session(&self) -> &Identifier {
         &self.session
     }
 
     /// The next sequence for a message that changes state.
-    pub fn next_sequence(&mut self) -> NonZeroU64 {
+    pub(crate) fn next_sequence(&mut self) -> NonZeroU64 {
         self.sequences.advance()
     }
 
     /// The last sequence sent, for messages that repeat state to one subscriber.
-    pub fn last_sequence(&self) -> NonZeroU64 {
+    pub(crate) fn last_sequence(&self) -> NonZeroU64 {
         NonZeroU64::new(self.sequences.last()).unwrap_or(NonZeroU64::MIN)
     }
 
     /// Applies `event` and reports the new status. An out-of-order event keeps the status.
-    pub fn change(&mut self, event: SessionEvent) {
+    pub(crate) fn change(&mut self, event: SessionEvent) {
         let Ok(next) = self.status.apply(event) else {
             return;
         };
         self.status = next;
         self.status_at = self.sequences.advance().get();
         if next.is_ended() {
-            self.ended.store(true, Ordering::Release);
+            self.ended.send_replace(true);
         }
         let message = self.status_message();
-        let _ = self.watchers.send(message.clone());
-        self.broadcast(message);
+        self.watchers.status(message.clone());
+        self.broadcast(&message);
     }
 
-    /// Sends `message` to every subscriber and drops those whose connection is gone.
-    pub fn broadcast(&mut self, message: HostMessage) {
+    /// Sends `message` to every subscriber, encoded once, and drops those whose connection is
+    /// gone.
+    pub(crate) fn broadcast(&mut self, message: &HostMessage) {
+        let Some(payload) = encoded(message) else {
+            return;
+        };
         let session = &self.session;
         self.subscribers
-            .retain_mut(|subscriber| subscriber.control(session, message.clone()));
+            .retain_mut(|subscriber| subscriber.control_payload(session, &payload));
     }
 
     /// Sends terminal bytes to every subscriber.
-    pub fn terminal(&mut self, channel: u32, sequence: u64, bytes: &Arc<Vec<u8>>) {
+    pub(crate) fn terminal(&mut self, channel: u32, sequence: u64, bytes: &Arc<[u8]>) {
         let session = &self.session;
         self.subscribers
             .retain_mut(|subscriber| subscriber.terminal(session, channel, sequence, bytes));
     }
 
     /// Adds `subscriber` after its replay, ending the catch-up with the current status.
-    pub fn subscribe(&mut self, mut subscriber: Subscriber, replayed: bool) {
-        self.detach(subscriber.connection);
-        let alive = replayed && subscriber.control(&self.session, self.status_message());
+    pub(crate) fn subscribe(&mut self, mut subscriber: Subscriber, replayed: bool) {
+        self.detach(subscriber.connection());
+        let alive = replayed && subscriber.control(&self.session, &self.status_message());
         if alive {
             self.subscribers.push(subscriber);
         }
     }
 
-    pub fn detach(&mut self, connection: u64) {
+    pub(crate) fn detach(&mut self, connection: u64) {
         self.subscribers
-            .retain(|subscriber| subscriber.connection != connection);
+            .retain(|subscriber| subscriber.connection() != connection);
     }
 
     fn status_message(&self) -> HostMessage {
@@ -211,7 +230,7 @@ impl Fanout {
 }
 
 /// Serves commands after the session ended, until `ENDED_RETENTION` passes or every handle drops.
-pub async fn linger(commands: &mut mpsc::Receiver<Command>, mut serve: impl FnMut(Command)) {
+pub(crate) async fn linger(commands: &mut mpsc::Receiver<Command>, mut serve: impl FnMut(Command)) {
     let deadline = tokio::time::sleep(ENDED_RETENTION);
     tokio::pin!(deadline);
     loop {
@@ -222,5 +241,31 @@ pub async fn linger(commands: &mut mpsc::Receiver<Command>, mut serve: impl FnMu
             },
             () = &mut deadline => return,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::time::Duration;
+
+    use super::SessionHandle;
+    use lervo_session_core::ports::ConversationMode;
+
+    #[tokio::test]
+    async fn waits_for_the_end_of_the_process_within_a_deadline() {
+        let (handle, _commands, ended) = SessionHandle::new(ConversationMode::Cli, 1);
+        assert!(!handle.ended_within(Duration::from_millis(20)).await);
+        assert!(handle.is_running());
+        ended.send_replace(true);
+        assert!(handle.ended_within(Duration::from_millis(20)).await);
+        assert!(!handle.is_running());
+    }
+
+    #[tokio::test]
+    async fn counts_an_actor_that_exited_as_ended() {
+        let (handle, commands, ended) = SessionHandle::new(ConversationMode::Cli, 1);
+        drop((commands, ended));
+        assert!(handle.ended_within(Duration::from_millis(20)).await);
+        assert!(handle.is_gone());
     }
 }

@@ -1,19 +1,20 @@
 //! The native conversation's actor: the provider's structured stream, decoded by the core's
 //! adapter into conversation items that the index stores and subscribers receive.
 
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::time::Duration;
 
 use lervo_session_core::paging::{item_id, page};
 use lervo_session_core::retention::INDEX_CAP_BYTES;
 use lervo_session_core::status::{EndReason, SessionEvent};
-use lervo_session_core::transcript::{Change, Input, Item, Transcript, coalesce};
+use lervo_session_core::transcript::{Change, Input, Transcript, coalesce};
 use lervo_session_protocol::codec::{decode_record, encode};
 use lervo_session_protocol::{ConversationItem, Identifier, RequestFailedMessageCode};
 use lervo_session_store::{ConversationStore, StoreError, retention};
 use lervo_session_stream::{StreamCommand, StreamError, StreamProcess};
 use tokio::sync::mpsc;
 
+use crate::index::Index;
 use crate::items::to_wire;
 use crate::messages;
 use crate::session::{Command, Fanout, Range, SessionHandle, StatusSink, linger};
@@ -26,7 +27,7 @@ const EXIT_GRACE: Duration = Duration::from_secs(5);
 
 /// Why a native session did not start.
 #[derive(Debug, thiserror::Error)]
-pub enum StartError {
+pub(crate) enum StartError {
     #[error(transparent)]
     Process(#[from] StreamError),
     #[error(transparent)]
@@ -36,45 +37,73 @@ pub enum StartError {
 }
 
 /// Where a native session keeps its index.
-pub struct IndexPlace<'a> {
+pub(crate) struct IndexPlace {
     /// The directory of all conversation indexes.
-    pub root: &'a Path,
+    pub(crate) root: PathBuf,
     /// Sessions whose indexes are in use and must survive the cap.
-    pub in_use: &'a [&'a str],
+    pub(crate) in_use: Vec<String>,
 }
 
-/// Starts `launch` with piped streams. The index lives in `<root>/<session>`; opening it applies
-/// the cap on all indexes.
-pub fn start<D: StreamDecoder>(
+/// A native session whose index is open and whose provider process runs, before its actor does.
+pub(crate) struct Prepared<D> {
+    session: Identifier,
+    channel: u32,
+    initial_input: Option<String>,
+    stored: u64,
+    index: Index,
+    process: StreamProcess,
+    decoder: D,
+}
+
+/// Opens the index in `<root>/<session>`, applying the cap on all indexes, and starts `launch`
+/// with piped streams. This is blocking file and process work: the lifecycle runs it off the
+/// async workers and outside the registry's lock.
+pub(crate) fn prepare<D: StreamDecoder>(
     launch: &Launch,
     session: Identifier,
     channel: u32,
     decoder: D,
-    indexes: &IndexPlace<'_>,
-    watchers: StatusSink,
-) -> Result<SessionHandle, StartError> {
+    indexes: &IndexPlace,
+) -> Result<Prepared<D>, StartError> {
     let directory: PathBuf = indexes.root.join(session.as_str());
     retention::touch(&directory)?;
-    let mut keep = indexes.in_use.to_vec();
+    let mut keep: Vec<&str> = indexes.in_use.iter().map(String::as_str).collect();
     keep.push(session.as_str());
-    retention::enforce(indexes.root, INDEX_CAP_BYTES, &keep)?;
+    retention::enforce(&indexes.root, INDEX_CAP_BYTES, &keep)?;
     let store = ConversationStore::open(&directory, SEGMENT_CACHE_BYTES)?;
+    let stored = store.len();
+    let index = Index::spawn(store)?;
     let process = StreamProcess::spawn(&StreamCommand {
         program: launch.program.clone(),
         arguments: launch.arguments.clone(),
         environment: launch.environment.clone(),
         working_directory: launch.working_directory.clone(),
     })?;
-    let (handle, commands) = SessionHandle::new(ConversationMode::Native, channel);
-    let actor = Native {
-        fanout: Fanout::new(session, &handle, watchers),
+    Ok(Prepared {
+        session,
+        channel,
         initial_input: launch.initial_input.clone(),
-        transcript: Transcript::new(store.len()),
-        store: Some(store),
+        stored,
+        index,
+        process,
         decoder,
-    };
-    tokio::spawn(actor.run(process, commands));
-    Ok(handle)
+    })
+}
+
+impl<D: StreamDecoder> Prepared<D> {
+    /// Starts the session's actor and returns its handle.
+    pub(crate) fn start(self, watchers: StatusSink) -> SessionHandle {
+        let (handle, commands, ended) = SessionHandle::new(ConversationMode::Native, self.channel);
+        let actor = Native {
+            fanout: Fanout::new(self.session, ended, watchers),
+            initial_input: self.initial_input,
+            transcript: Transcript::new(self.stored),
+            index: self.index,
+            decoder: self.decoder,
+        };
+        tokio::spawn(actor.run(self.process, commands));
+        handle
+    }
 }
 
 struct Native<D> {
@@ -82,8 +111,8 @@ struct Native<D> {
     /// The first instruction, sent through the decoder once the provider runs.
     initial_input: Option<String>,
     transcript: Transcript,
-    /// `None` once the index failed; live items still flow, and ranges report the damage.
-    store: Option<ConversationStore>,
+    /// Damaged once storing failed; live items still flow, and ranges report the damage.
+    index: Index,
     decoder: D,
 }
 
@@ -157,7 +186,7 @@ impl<D: StreamDecoder> Native<D> {
                         self.fanout.last_sequence(),
                         vec![item],
                     );
-                    replayed = subscriber.control(self.fanout.session(), message);
+                    replayed = subscriber.control(self.fanout.session(), &message);
                 }
                 self.fanout.subscribe(subscriber, replayed);
             }
@@ -198,13 +227,16 @@ impl<D: StreamDecoder> Native<D> {
     fn change(&mut self, change: Change) {
         let message = match change {
             Change::Appended(item) | Change::Completed(item) => {
-                if !item.streaming {
-                    self.store(&item);
-                }
                 let Some(wire) = to_wire(&item) else {
-                    self.store = None;
+                    self.index.damage();
                     return;
                 };
+                if !item.streaming {
+                    match encode(&wire) {
+                        Ok(record) => self.index.append(item.position, record),
+                        Err(_) => self.index.damage(),
+                    }
+                }
                 let sequence = self.fanout.next_sequence();
                 messages::appended(self.fanout.session(), sequence, vec![wire])
             }
@@ -218,71 +250,65 @@ impl<D: StreamDecoder> Native<D> {
                 message
             }
         };
-        self.fanout.broadcast(message);
+        self.fanout.broadcast(&message);
     }
 
-    /// Stores a complete item at its position. Any failure marks the index damaged.
-    fn store(&mut self, item: &Item) {
-        let Some(store) = self.store.as_mut() else {
-            return;
-        };
-        let stored = store.len() == item.position
-            && to_wire(item)
-                .and_then(|wire| encode(&wire).ok())
-                .is_some_and(|record| store.append(&record).is_ok());
-        if !stored {
-            self.store = None;
-        }
-    }
-
+    /// Answers a range: stored items come from the index thread and the open item from memory.
+    /// The answer waits on its own task, so the actor keeps serving the stream meanwhile.
     fn range(&mut self, range: Range) {
         let session = self.fanout.session().clone();
-        let page = match page(
+        let Ok(page) = page(
             self.transcript.len(),
             range.anchor.as_deref(),
             range.direction,
             range.limit,
-        ) {
-            Ok(page) => page,
-            Err(_) => {
-                range.reply.send(messages::failed(
-                    &range.request,
-                    RequestFailedMessageCode::RangeInvalid,
-                ));
-                return;
-            }
-        };
-        let Some(items) = self.items(page.start, page.end) else {
+        ) else {
             range.reply.send(messages::failed(
                 &range.request,
-                RequestFailedMessageCode::ConversationIndexCorrupt,
+                RequestFailedMessageCode::RangeInvalid,
             ));
             return;
         };
-        range.reply.send(messages::page(
-            &range.request,
-            &session,
-            items,
-            page.has_earlier,
-            page.has_later,
-        ));
-    }
-
-    /// Items `[start, end)`: stored ones from the index and the open one from memory.
-    fn items(&mut self, start: u64, end: u64) -> Option<Vec<ConversationItem>> {
-        let store = self.store.as_mut()?;
-        let stored_end = end.min(store.len());
-        let mut items = Vec::new();
-        if start < stored_end {
-            for record in store.read(start, stored_end).ok()? {
-                items.push(decode_record(&record).ok()?);
-            }
-        }
-        if let Some(open) = self.transcript.open()
-            && (start..end).contains(&open.position)
+        let open = match self
+            .transcript
+            .open()
+            .filter(|open| (page.start..page.end).contains(&open.position))
         {
-            items.push(to_wire(open)?);
-        }
-        Some(items)
+            Some(open) => match to_wire(open) {
+                Some(item) => Some(item),
+                None => {
+                    range.reply.send(messages::failed(
+                        &range.request,
+                        RequestFailedMessageCode::ConversationIndexCorrupt,
+                    ));
+                    return;
+                }
+            },
+            None => None,
+        };
+        let records = self.index.read(page.start, page.end);
+        tokio::spawn(async move {
+            let items = records.await.ok().flatten().and_then(|records| {
+                let mut items = records
+                    .iter()
+                    .map(|record| decode_record::<ConversationItem>(record).ok())
+                    .collect::<Option<Vec<_>>>()?;
+                items.extend(open);
+                Some(items)
+            });
+            range.reply.send(match items {
+                Some(items) => messages::page(
+                    &range.request,
+                    &session,
+                    items,
+                    page.has_earlier,
+                    page.has_later,
+                ),
+                None => messages::failed(
+                    &range.request,
+                    RequestFailedMessageCode::ConversationIndexCorrupt,
+                ),
+            });
+        });
     }
 }

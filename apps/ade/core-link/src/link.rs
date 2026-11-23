@@ -88,7 +88,14 @@ impl Link {
         match tokio::time::timeout(deadline, answer).await {
             Ok(Ok(response)) => Ok(response),
             Ok(Err(_)) => Err(LinkError::Unavailable),
-            Err(_) => Err(LinkError::Timeout),
+            Err(_) => {
+                // A late answer finds no entry and is dropped, so the table stays as large as the
+                // requests in flight.
+                if let Some(connection) = self.connection.lock().await.as_ref() {
+                    lock(&connection.pending).remove(&id);
+                }
+                Err(LinkError::Timeout)
+            }
         }
     }
 

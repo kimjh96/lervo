@@ -48,6 +48,22 @@ pub fn status(session: &Identifier, sequence: NonZeroU64, status: SessionStatus)
     })
 }
 
+/// The protocol's conversation mode for the domain's; the only place the session host maps it.
+pub fn wire_mode(mode: ConversationMode) -> WireMode {
+    match mode {
+        ConversationMode::Native => WireMode::Native,
+        ConversationMode::Cli => WireMode::Cli,
+    }
+}
+
+/// The domain's conversation mode for the protocol's.
+pub fn domain_mode(mode: WireMode) -> ConversationMode {
+    match mode {
+        WireMode::Native => ConversationMode::Native,
+        WireMode::Cli => ConversationMode::Cli,
+    }
+}
+
 pub fn opened(
     request: &Identifier,
     session: &Identifier,
@@ -57,10 +73,7 @@ pub fn opened(
 ) -> HostMessage {
     HostMessage::from(SessionOpenedMessage {
         channel,
-        conversation_mode: match mode {
-            ConversationMode::Native => WireMode::Native,
-            ConversationMode::Cli => WireMode::Cli,
-        },
+        conversation_mode: wire_mode(mode),
         kind: SessionOpenedMessageKind::SessionOpened,
         request_id: request.clone(),
         session_id: session.clone(),
@@ -69,10 +82,27 @@ pub fn opened(
 }
 
 pub fn failed(request: &Identifier, code: RequestFailedMessageCode) -> HostMessage {
+    failed_with(request, code, &[])
+}
+
+/// A `request.failed` with string parameters; a parameter that breaks the protocol's limits is
+/// left out.
+pub fn failed_with(
+    request: &Identifier,
+    code: RequestFailedMessageCode,
+    parameters: &[(&str, Option<&str>)],
+) -> HostMessage {
+    let mut values = std::collections::HashMap::new();
+    for (name, value) in parameters {
+        let value = value.and_then(|value| ParametersValueString::try_from(value).ok());
+        if let (Ok(name), Some(value)) = (ParametersKey::try_from(*name), value) {
+            values.insert(name, ParametersValue::String(value));
+        }
+    }
     HostMessage::from(RequestFailedMessage {
         code,
         kind: RequestFailedMessageKind::RequestFailed,
-        parameters: Parameters(Default::default()),
+        parameters: Parameters(values),
         request_id: request.clone(),
     })
 }
@@ -99,22 +129,16 @@ pub fn core_failed(request: &Identifier, failure: &Failure) -> HostMessage {
         }
         FailureCode::ApplicationFailed => RequestFailedMessageCode::ApplicationFailed,
         FailureCode::ApplicationUnavailable => RequestFailedMessageCode::ApplicationUnavailable,
+        FailureCode::ApplicationTimeout => RequestFailedMessageCode::ApplicationTimeout,
     };
-    let mut parameters = std::collections::HashMap::new();
-    for (name, value) in [("coreCode", &failure.core_code), ("stage", &failure.stage)] {
-        let parameter = value
-            .as_deref()
-            .and_then(|value| ParametersValueString::try_from(value).ok());
-        if let (Ok(name), Some(value)) = (ParametersKey::try_from(name), parameter) {
-            parameters.insert(name, ParametersValue::String(value));
-        }
-    }
-    HostMessage::from(RequestFailedMessage {
+    failed_with(
+        request,
         code,
-        kind: RequestFailedMessageKind::RequestFailed,
-        parameters: Parameters(parameters),
-        request_id: request.clone(),
-    })
+        &[
+            ("coreCode", failure.core_code.as_deref()),
+            ("stage", failure.stage.as_deref()),
+        ],
+    )
 }
 
 pub fn application_result(request: &Identifier, result: Map<String, Value>) -> HostMessage {
