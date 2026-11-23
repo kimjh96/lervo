@@ -41,6 +41,8 @@ The native conversation is the target experience. The CLI conversation is the fa
 
 Both modes run the unmodified provider CLI under the user's own sign-in, so the native conversation is the default for every sign-in. The user can switch a workspace to the CLI conversation at any time.
 
+The start screen does not ask for a mode. When `workspace.start` names no mode, the core uses the provider's preferred conversation: the native conversation when its adapter declares `nativeConversation`, otherwise the CLI conversation. The workspace header switches between the two.
+
 A managed session always renders as a native conversation.
 
 ## Provider terms

@@ -1,24 +1,25 @@
 # Lervo ADE visual language
 
 Status: `proposed`
-As of: 2026-11-22
+As of: 2026-11-23
 
-This document defines the design tokens and visual rules of the Lervo ADE that [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) proposes. The owner chose the direction from mockups: restrained glass, light and dark modes, essentials only, two status colors, and the stepped-bar logo. This document is the source of truth until S1 creates the token file described at the end; after that, the token file is canonical and this document describes it.
+This document defines the design tokens and visual rules of the Lervo ADE that [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) proposes. The owner chose the direction from mockups: restrained glass, light and dark modes, essentials only, two status colors, and the stepped-bar logo. Since S1.5a the token file described at the end is canonical, and this document describes it.
 
-Values here supersede the mockup values where they differ. The mockups used lighter glass than these tokens allow, because the contrast check below requires a stronger tint.
+Values here supersede the mockup values where they differ. The glass follows the mockups: the window shows the desktop through the native material and a tint at the mockups' opacity, as measured on the real window below.
 
 ## Glass
 
-- **Native window material.** The window and the workspace list use the platform's own window material: vibrancy on macOS, and Mica or Acrylic on Windows. A CSS `backdrop-filter` inside the webview cannot see the desktop behind the window, so it never produces window glass.
+- **Native window material.** The window uses the platform's own window material: `fullScreenUI` vibrancy on macOS, and Mica or Acrylic on Windows. A CSS `backdrop-filter` inside the webview cannot see the desktop behind the window, so it never produces window glass. On 2026-11-23 the macOS `sidebar` material, which S1.5a used, showed almost no desktop color under any tint; `fullScreenUI` came closest to the approved mockups over their own backdrop.
+- **The material stays on.** The window keeps its material when it is not the active window, so the glass does not turn into a flat panel when the user works in another app.
+- **One tint for the window.** The whole window carries the `glass.tint` layer over the material, as in the mockups. The workspace list and the selected workspace add their lighter surfaces on top.
 - **Platforms without a material.** Linux and WSL draw the opaque surface tokens. The layout, behavior, and contrast stay the same; only the translucency differs.
-- **Tint over the material.** Every surface that carries text adds a tint layer at the `glass.tint.opacity` token or higher. The tint makes text readable over any desktop backdrop (see Contrast evidence).
 - **In-app overlays.** A CSS `backdrop-filter` is allowed only for short-lived overlays, such as the command palette and menus, over app content. It never sits over the scrolling conversation or a terminal.
 - **Fallbacks.** When the OS asks for reduced transparency or increased contrast, or when the device is in a low-power mode, every glass surface switches to its opaque token.
 
 | Token                | Dark                  | Light                 |
 | -------------------- | --------------------- | --------------------- |
 | `glass.tint.color`   | `#14161D`             | `#FAFBFD`             |
-| `glass.tint.opacity` | `0.88` (minimum)      | `0.88` (minimum)      |
+| `glass.tint.opacity` | `0.75`                | `0.60`                |
 | `glass.overlay.blur` | `28px`, saturate 150% | `30px`, saturate 160% |
 
 ## Color
@@ -31,19 +32,20 @@ Each token is semantic. Components use tokens, never raw values.
 | `color.surface.sidebar`     | `rgba(255,255,255,0.03)` | `rgba(255,255,255,0.35)` | The workspace list over the window surface                  |
 | `color.surface.input`       | `rgba(255,255,255,0.05)` | `rgba(255,255,255,0.80)` | Instruction and reply inputs                                |
 | `color.surface.selected`    | `rgba(255,255,255,0.08)` | `rgba(255,255,255,0.85)` | The selected workspace                                      |
+| `color.surface.workspace`   | `rgba(255,255,255,0)`    | `rgba(255,255,255,0.35)` | The selected workspace's conversation over the window glass |
 | `color.surface.userMessage` | `rgba(255,255,255,0.08)` | `rgba(20,30,50,0.06)`    | The user's messages in the conversation                     |
-| `color.surface.terminal`    | `#0F1117`                | `#F7F8FA`                | The CLI conversation                                        |
+| `color.surface.terminal`    | `rgba(6,7,11,0.45)`      | `rgba(247,248,250,0.72)` | The CLI conversation over the window glass                  |
 | `color.border.subtle`       | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.07)`    | Dividers                                                    |
 | `color.border.default`      | `rgba(255,255,255,0.12)` | `rgba(20,30,50,0.10)`    | Inputs and controls                                         |
 | `color.border.window`       | `rgba(255,255,255,0.10)` | `rgba(255,255,255,0.75)` | The window edge                                             |
 | `color.text.primary`        | `#ECEEF3`                | `#161B26`                | Body text and titles                                        |
 | `color.text.secondary`      | `#B4BAC7`                | `#454D5C`                | Supporting text                                             |
-| `color.text.tertiary`       | `#9DA4B2`                | `#555D6C`                | Labels, hints, and timestamps                               |
-| `color.text.link`           | `#A9C1FF`                | `#2A4DB3`                | Inline actions such as "View diff"                          |
+| `color.text.tertiary`       | `#A3AAB7`                | `#4C5361`                | Labels, hints, and timestamps                               |
+| `color.text.link`           | `#A9C1FF`                | `#2848AA`                | Inline actions such as "View diff"                          |
 | `color.accent`              | `#7AA2F7`                | `#3A64D8`                | The brand blue: primary buttons, focus, the logo's last bar |
 | `color.onAccent`            | `#0B1020`                | `#FFFFFF`                | Text and icons on the accent                                |
 | `color.status.working`      | `#7AA2F7`                | `#3A64D8`                | The agent is working                                        |
-| `color.status.needsYou`     | `#F2B661`                | `#A86808`                | The workspace needs the user                                |
+| `color.status.needsYou`     | `#F2B661`                | `#975C06`                | The workspace needs the user                                |
 | `color.status.failed`       | `#F29A8E`                | `#B42318`                | A stage or session failed                                   |
 | `color.diff.added`          | `#8FD3B6`                | `#1A7F5A`                | Added lines                                                 |
 | `color.diff.removed`        | `#F29A8E`                | `#B42318`                | Removed lines                                               |
@@ -52,34 +54,34 @@ Finished work has no status color. A status dot always has a text equivalent for
 
 ## Contrast evidence
 
-Ratios use the WCAG 2 relative-luminance formula. Each text token was tested on the glass tint at `0.88` blended linearly in sRGB over five desktop backdrops: white, black, mid gray (`#808080`), saturated yellow (`#FFD666`), and saturated blue (`#285AC8`). The table lists the worst ratio across those backdrops. The blend approximates the native material, so S1 measures the real windows on each platform and records the results.
+Ratios use the WCAG 2 relative-luminance formula. On 2026-11-23 the shell ran on the owner's Mac in each mode over five full-screen backdrops behind the window: white, black, mid gray (`#808080`), saturated yellow (`#FFD666`), and saturated blue (`#285AC8`). Screen captures of the window gave the background behind the workspace list, the start screen, and the terminal, and each text token was compared with the worst of them. Text pixels are the opaque token colors, so the ratio is exact for each sampled background.
 
 | Token                              | Dark worst ratio | Light worst ratio | Threshold     |
 | ---------------------------------- | ---------------- | ----------------- | ------------- |
-| `color.text.primary`               | 11.04            | 12.68             | 4.5 (text)    |
-| `color.text.secondary`             | 6.58             | 6.26              | 4.5 (text)    |
-| `color.text.tertiary`              | 5.12             | 4.88              | 4.5 (text)    |
-| `color.text.link`                  | 7.17             | 5.50              | 4.5 (text)    |
-| `color.status.working`             | 5.09             | 3.87              | 3.0 (graphic) |
-| `color.status.needsYou`            | 7.10             | 3.32              | 3.0 (graphic) |
+| `color.text.primary`               | 9.48             | 10.18             | 4.5 (text)    |
+| `color.text.secondary`             | 5.65             | 5.03              | 4.5 (text)    |
+| `color.text.tertiary`              | 4.71             | 4.57              | 4.5 (text)    |
+| `color.text.link`                  | 6.16             | 4.78              | 4.5 (text)    |
+| `color.status.working`             | 4.37             | 3.11              | 3.0 (graphic) |
+| `color.status.needsYou`            | 6.10             | 3.22              | 3.0 (graphic) |
 | `color.onAccent` on `color.accent` | 7.52             | 5.26              | 4.5 (text)    |
 
-At the mockups' tint opacity of `0.60`, tertiary text fell to 1.61 on a white backdrop in dark mode and to 1.94 on a black backdrop in light mode. That is why the tint minimum is `0.88`.
+The worst backgrounds are the black backdrop in light mode and the white backdrop in dark mode. Three light colors and the dark tertiary text are slightly darker or lighter than S1.5a's values so that they pass there; the dark tint is stronger than the light one for the same reason. S1.5a's tint of `0.88` had passed a blended estimate but hid the glass that the owner approved.
 
 ## Terminal palette
 
-The CLI conversation uses these colors. Every color except dark `black` reaches 4.5 against its terminal background; dark `black` serves as a background color.
+The CLI conversation uses these colors over the `color.surface.terminal` glass, with a transparent terminal background. Measured on the real window over the five backdrops, every color except dark `black` reaches 4.5; dark `black` serves as a background color. The cursor uses the foreground color, and selections use the accent at 30% (dark) and 20% (light).
 
 | Slot       | Dark      | Light     | Slot           | Dark      | Light     |
 | ---------- | --------- | --------- | -------------- | --------- | --------- |
 | background | `#0F1117` | `#F7F8FA` | foreground     | `#D8DCE5` | `#1F2533` |
-| black      | `#2A2F3A` | `#1F2533` | bright black   | `#7E8696` | `#6A7282` |
+| black      | `#2A2F3A` | `#1F2533` | bright black   | `#858D9D` | `#5A6271` |
 | red        | `#F29A8E` | `#B42318` | bright red     | `#F7B3A9` | `#A51F14` |
-| green      | `#8FD3B6` | `#1A7F5A` | bright green   | `#A8E0C8` | `#16704F` |
+| green      | `#8FD3B6` | `#18774F` | bright green   | `#A8E0C8` | `#126544` |
 | yellow     | `#F2B661` | `#8A5A00` | bright yellow  | `#F6CD92` | `#7A5000` |
 | blue       | `#7AA2F7` | `#2A4DB3` | bright blue    | `#A9C1FF` | `#2443A0` |
 | magenta    | `#C3A6F2` | `#7A3FB8` | bright magenta | `#D5C0F7` | `#6B35A3` |
-| cyan       | `#7DCFDB` | `#0E7490` | bright cyan    | `#A0DDE6` | `#0B6680` |
+| cyan       | `#7DCFDB` | `#0D7089` | bright cyan    | `#A0DDE6` | `#0B6680` |
 | white      | `#C9CED8` | `#5F6777` | bright white   | `#ECEEF3` | `#161B26` |
 
 ## Typography
@@ -130,6 +132,7 @@ Icons are drawn on a 24 px grid with 2 px round-capped strokes and render at 12,
 
 ## Interface copy
 
+- The application is called Lervo wherever a user sees it: the window, the menu bar, the Dock, and notifications. "ADE" names the desktop application only inside the project.
 - All text comes from the message catalogs. English is the only shipped catalog.
 - Copy follows the `writing_en-human` policy. It uses sentence case and concrete verbs.
 - Status words are "Working", "Needs you", and "Done".
@@ -137,6 +140,4 @@ Icons are drawn on a 24 px grid with 2 px round-capped strokes and render at 12,
 
 ## Token file
 
-The token file is [`apps/ade/src/design/tokens.json`](../../../../apps/ade/src/design/tokens.json), in the W3C Design Tokens Community Group format. Each value is the dark mode, and the `dev.lervo.modes` extension holds both modes. `pnpm --filter @lervo/ade generate` writes the CSS custom properties and the xterm.js terminal themes to `apps/ade/src/design/generated/`. A test fails when those outputs are stale or when a color lacks a mode. Components and themes read only the generated outputs.
-
-The token file has been the source of truth since S1.5a. Where it and the tables above differ, the token file wins. The tables stay until S1.6 records the contrast measurements of the real windows, and are then replaced by links.
+`apps/ade/src/design/tokens.json` holds these tokens in the W3C Design Tokens Community Group format. `pnpm --filter @lervo/ade generate` writes the CSS custom properties and the terminal themes from it, and components and themes read only the generated outputs. When a value here and the token file differ, the token file wins.

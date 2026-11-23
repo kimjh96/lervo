@@ -43,7 +43,7 @@ The session host writes a new 256-bit token at each start to an owner-only file 
 
 ## Host state directory
 
-One session host runs per OS user. Its owner-only directory is `~/Library/Application Support/dev.lervo.ade` on macOS and `$XDG_STATE_HOME/lervo-ade` (or `~/.local/state/lervo-ade`) on Linux and WSL. It holds:
+One session host runs per OS user. Its owner-only directory is `~/Library/Application Support/dev.lervo.ade` on macOS and `$XDG_STATE_HOME/lervo-ade` (or `~/.local/state/lervo-ade`) on Linux and WSL. `LERVO_SESSION_HOST_DIR` names another directory, so an isolated session host can serve beside the user's own, as tests and the interface harness do. The shell and the session host both read it, so a shell started with it reaches, and when needed starts, that session host. It holds:
 
 - `session-host.lock`, an exclusive lock held while the session host serves. A second instance finds it held and exits successfully, so the client can start the session host without first checking for one;
 - `session-host.sock`, the socket, at mode 0600. A socket file left by a session host that no longer runs is replaced at start;
