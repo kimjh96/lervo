@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.46.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.46.2" schema="1" -->
 
 ## What's changed
 
-- Canonical integration's integrator verification runs with the login-shell PATH like every other convergence suite, so it no longer fails on spawnSync pnpm ENOENT under a service manager.
+- Accept released knowledge integration attempts and the released source's return to its integration queue, without writing either yet, so the Hub and every host can read them before a writer ships.
