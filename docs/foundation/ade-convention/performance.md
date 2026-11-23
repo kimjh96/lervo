@@ -83,7 +83,7 @@ A performance harness runs fixed scenarios on the owner's Mac and in WSL:
 - streaming at the provider's fastest rate;
 - a soak run of repeated workspace opening and closing.
 
-It records CPU, resident memory, JavaScript heap, frame times, long tasks, input latency, and disk writes. Cheap checks, such as bundle and binary size, run on every pull request. The full harness runs before each release, so continuous integration stays inexpensive.
+It records CPU, resident memory, JavaScript heap, frame times, long tasks, input latency, and disk writes. The interface's scenarios run in the release shell's webview through `apps/ade/scripts/measure-webview.mjs`, which the S1.6b section of the ADE roadmap describes. WebKit reports no JavaScript heap or long tasks, so the harness reports resident memory and frames over 50 ms instead. Cheap checks, such as bundle and binary size, run on every pull request. The full harness runs before each release, so continuous integration stays inexpensive.
 
 ## Budgets
 
