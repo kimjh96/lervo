@@ -1,7 +1,6 @@
 import { flushSync } from "react-dom";
 
-const reducedMotion =
-  typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
+import { prefersReducedMotion } from "../environment";
 
 /**
  * Changes the view between the start screen and a workspace with a view transition (ADE motion,
@@ -13,7 +12,7 @@ export function transition(update: () => void): void {
   if (
     typeof document === "undefined" ||
     !("startViewTransition" in document) ||
-    reducedMotion?.matches === true
+    prefersReducedMotion()
   ) {
     update();
     return;

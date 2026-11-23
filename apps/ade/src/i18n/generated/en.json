@@ -29,6 +29,12 @@
       "value": "Lervo could not start its session host"
     }
   ],
+  "conversation.activity.starting": [
+    {
+      "type": 0,
+      "value": "Creating the workspace"
+    }
+  ],
   "conversation.activity.thinking": [
     {
       "type": 0,
@@ -77,6 +83,12 @@
     {
       "type": 0,
       "value": "Send"
+    }
+  ],
+  "conversation.reply.starting": [
+    {
+      "type": 0,
+      "value": "The agent starts in a moment"
     }
   ],
   "conversation.tool.failed": [
@@ -143,6 +155,38 @@
     {
       "type": 0,
       "value": ")."
+    }
+  ],
+  "keyboard.command": [
+    {
+      "type": 5,
+      "value": "modifier",
+      "options": {
+        "command": {
+          "value": [
+            {
+              "type": 0,
+              "value": "⌘"
+            },
+            {
+              "type": 1,
+              "value": "key"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Ctrl+"
+            },
+            {
+              "type": 1,
+              "value": "key"
+            }
+          ]
+        }
+      }
     }
   ],
   "notice.conversation_item_invalid": [
@@ -298,18 +342,6 @@
       "value": "Describe the work, as you would to a colleague"
     }
   ],
-  "start.pending": [
-    {
-      "type": 0,
-      "value": "Creating the workspace"
-    }
-  ],
-  "start.pending.reply": [
-    {
-      "type": 0,
-      "value": "The agent starts in a moment"
-    }
-  ],
   "start.provider.claude": [
     {
       "type": 0,
@@ -408,6 +440,12 @@
     {
       "type": 0,
       "value": "New work"
+    }
+  ],
+  "workspaces.new.key": [
+    {
+      "type": 0,
+      "value": "N"
     }
   ],
   "workspaces.status.needsYou": [

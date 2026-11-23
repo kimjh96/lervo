@@ -30,6 +30,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   statuses: {},
   selected: null,
   newWorkRequests: 0,
-  select: (selected) => set({ selected }),
+  // Selecting what is already selected changes nothing, so nothing re-renders or moves.
+  select: (selected) => set((store) => (store.selected === selected ? store : { selected })),
   newWork: () => set((store) => ({ selected: null, newWorkRequests: store.newWorkRequests + 1 })),
 }));

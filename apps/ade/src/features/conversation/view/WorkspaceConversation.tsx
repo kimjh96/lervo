@@ -1,66 +1,48 @@
-import { useLayoutEffect, useMemo } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useMemo } from "react";
+import { useIntl } from "react-intl";
+import { useShallow } from "zustand/react/shallow";
 
-import { useSessionHostClient } from "../../../app/session-host-context";
-import { WorkingLine } from "../../../ui/WorkingLine";
+import { useSessionHost } from "../../../ports";
 import { useWorkspaceStore, visibleStatus } from "../../workspaces";
 import { activityOf } from "../model/activity";
-import { ConversationController, type ConversationTarget } from "../model/controller";
+import { ConversationController } from "../model/controller";
 import { useConversationStore } from "../model/store";
-import { Composer } from "./Composer";
-import { Conversation } from "./Conversation";
-import styles from "./WorkspaceConversation.module.css";
+import { ConversationPane } from "./ConversationPane";
+import { activityMessages } from "./messages";
 
-/** One workspace's native conversation: the controller's lifetime follows the selection. */
-export function WorkspaceConversation(props: { target: ConversationTarget }) {
+/** One workspace's native conversation: the controller's lifetime follows the session. */
+export function WorkspaceConversation(props: {
+  workspaceId: string;
+  sessionId: string;
+  /** The instruction that started the work, when the view continues the starting workspace. */
+  firstMessage?: string | undefined;
+}) {
   const intl = useIntl();
-  const client = useSessionHostClient();
-  const { workspaceId, sessionId, firstMessage } = props.target;
+  const host = useSessionHost();
+  const { workspaceId, sessionId, firstMessage } = props;
   const controller = useMemo(
     () =>
-      new ConversationController(client, {
+      new ConversationController(host, {
         workspaceId,
         sessionId,
         ...(firstMessage === undefined ? {} : { firstMessage }),
       }),
-    [client, workspaceId, sessionId, firstMessage],
+    [host, workspaceId, sessionId, firstMessage],
   );
-  const error = useConversationStore((store) => store.error);
   const working = useWorkspaceStore(
     (store) => visibleStatus(store.statuses[sessionId]) === "working",
   );
-  // The selector returns a string, so the store's snapshot stays stable between changes.
-  const activity = useConversationStore((store) => {
-    const current = activityOf(store.window);
-    return current.kind === "tool" ? `tool:${current.name}` : current.kind;
-  });
-  const label = activity.startsWith("tool:")
-    ? intl.formatMessage({ id: "conversation.tool.running" }, { name: activity.slice(5) })
-    : intl.formatMessage({ id: `conversation.activity.${activity}` });
-  // Opening before paint replaces the previous workspace's window before it can show.
-  useLayoutEffect(() => {
-    void controller.open();
-    return () => controller.close();
-  }, [controller]);
+  const activity = useConversationStore(useShallow((store) => activityOf(store.window)));
+  const label = intl.formatMessage(
+    activityMessages[activity.kind],
+    activity.kind === "tool" ? { name: activity.name } : {},
+  );
   return (
-    <div className={styles.conversation}>
-      {error === null ? null : (
-        <p className={styles.error} role="alert">
-          <FormattedMessage id="conversation.unavailable" values={{ code: error }} />
-        </p>
-      )}
-      <Conversation
-        onLoadEarlier={() => void controller.loadEarlier()}
-        onLoadLater={() => void controller.loadLater()}
-        onJumpToLatest={() => void controller.showLatest()}
-        continues={firstMessage !== undefined}
-        dock={
-          <>
-            {working ? <WorkingLine className={styles.working} label={label} /> : null}
-            <Composer onSend={(text) => controller.send(text)} />
-          </>
-        }
-      />
-    </div>
+    <ConversationPane
+      source={controller}
+      working={working ? label : null}
+      draftKey={`reply:${workspaceId}`}
+      continues={firstMessage !== undefined}
+    />
   );
 }

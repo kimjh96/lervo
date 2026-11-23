@@ -1,16 +1,13 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 
-import { type Request, Requests } from "./requests";
+import type {
+  ConnectionState,
+  Request,
+  SessionHost,
+  TerminalFrame,
+} from "../../ports/session-host";
+import { Requests } from "./requests";
 import type { HostTransport, ShellMessage } from "./transport";
-
-export type ConnectionState = "connecting" | "connected" | "reconnecting" | "unavailable";
-
-/** Terminal bytes for a channel, as the session host sequenced them. */
-export interface TerminalFrame {
-  readonly channel: number;
-  readonly sequence: bigint;
-  readonly bytes: Uint8Array;
-}
 
 const FIRST_RETRY_MS = 500;
 const LAST_RETRY_MS = 10_000;
@@ -37,7 +34,7 @@ type Listener<T> = (value: T) => void;
  * `host.disconnected`, are ignored; otherwise the end of a replaced connection would start
  * another, which would replace the current one, without end.
  */
-export class SessionHostClient {
+export class SessionHostClient implements SessionHost {
   private state: ConnectionState = "connecting";
   private started = false;
   private generation = 0;

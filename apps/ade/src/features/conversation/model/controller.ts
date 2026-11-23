@@ -1,56 +1,39 @@
 import type { ConversationItem, HostMessage } from "@lervo/session-host-contract";
 
-import { RequestFailure, type SessionHostClient } from "../../../platform/session-host";
+import { RequestFailure, type SessionHost } from "../../../ports";
 import { DeltaBuffer } from "./deltas";
+import { RecentWindows } from "./recent";
+import type { ConversationSource } from "./source";
+import { FIRST_MESSAGE_ID, standInWindow } from "./stand-in";
 import { useConversationStore } from "./store";
-import {
-  applyAppended,
-  applyDelta,
-  applyPage,
-  type ConversationWindow,
-  emptyWindow,
-  PAGE_ITEMS,
-} from "./window";
+import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";
 
-/** The workspace a conversation belongs to. */
-export interface ConversationTarget {
+/** A workspace's session, whose conversation the controller shows. */
+export interface SessionTarget {
   readonly workspaceId: string;
   readonly sessionId: string;
   /** The instruction that started the work, shown until the session's own copy arrives. */
   readonly firstMessage?: string;
 }
 
-/** The item that stands in for the first message until the session reports it. */
-const FIRST_MESSAGE_ID = "first-message";
-
-/** Conversations whose window is kept after they close, so reopening one shows it at once. */
-const RECENT_WINDOWS = 4;
-const recent = new Map<string, ConversationWindow>();
-
-function remember(sessionId: string, window: ConversationWindow): void {
-  if (window.items.length === 0) return;
-  recent.delete(sessionId);
-  recent.set(sessionId, window);
-  for (const oldest of recent.keys()) {
-    if (recent.size <= RECENT_WINDOWS) break;
-    recent.delete(oldest);
-  }
-}
+/** The windows of conversations closed recently, shared by every controller. */
+const recentWindows = new RecentWindows();
 
 /**
  * Shows one workspace's native conversation. It attaches to the session, loads the newest page,
  * and applies live items and frame-bound deltas. When the session is not running, it opens it
  * through the core, which resumes the provider's session.
  */
-export class ConversationController {
+export class ConversationController implements ConversationSource {
   private sessionId: string;
   private readonly unsubscribe: (() => void)[] = [];
   private readonly deltas: DeltaBuffer;
 
   constructor(
-    private readonly client: SessionHostClient,
-    private readonly target: ConversationTarget,
+    private readonly client: SessionHost,
+    private readonly target: SessionTarget,
     nextFrame: (run: () => void) => void = (run) => requestAnimationFrame(run),
+    private readonly recent: RecentWindows = recentWindows,
   ) {
     this.sessionId = target.sessionId;
     this.deltas = new DeltaBuffer((deltas) => {
@@ -70,20 +53,8 @@ export class ConversationController {
       sessionId: null,
       window:
         first === undefined
-          ? (recent.get(this.target.sessionId) ?? emptyWindow)
-          : {
-              items: [
-                {
-                  kind: "user_message",
-                  itemId: FIRST_MESSAGE_ID,
-                  createdAtMs: Date.now(),
-                  state: "complete",
-                  text: first,
-                },
-              ],
-              hasEarlier: false,
-              hasLater: false,
-            },
+          ? (this.recent.get(this.target.sessionId) ?? emptyWindow)
+          : standInWindow(first, Date.now()),
       loadingEarlier: false,
       loadingLater: false,
       arrived: new Set(),
@@ -101,7 +72,8 @@ export class ConversationController {
   close(): void {
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
     const state = useConversationStore.getState();
-    if (state.sessionId === this.sessionId) remember(this.target.sessionId, state.window);
+    if (state.sessionId === this.sessionId)
+      this.recent.remember(this.target.sessionId, state.window);
     void this.client
       .send({ kind: "session.detach", sessionId: this.sessionId })
       .catch(() => undefined);
@@ -229,9 +201,13 @@ export class ConversationController {
         }
       : state.window;
     const known = new Set(window.items.map((item: ConversationItem) => item.itemId));
-    const arrived = new Set(state.arrived);
+    const next = applyAppended(window, message.items);
+    // Only items still in the window can animate, so the set stays within the window's bound.
+    const kept = new Set(next.items.map((item) => item.itemId));
+    const arrived = new Set([...state.arrived].filter((itemId) => kept.has(itemId)));
     for (const item of message.items)
-      if (!known.has(item.itemId) && item !== replacing) arrived.add(item.itemId);
-    useConversationStore.setState({ window: applyAppended(window, message.items), arrived });
+      if (!known.has(item.itemId) && item !== replacing && kept.has(item.itemId))
+        arrived.add(item.itemId);
+    useConversationStore.setState({ window: next, arrived });
   }
 }

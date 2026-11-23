@@ -81,7 +81,7 @@ ${declarations(tokens, "dark")}
 `;
 }
 
-/** The terminal themes for xterm.js, one per mode. */
+/** The terminal themes for xterm.js, one per mode, and the terminal's typography. */
 export function renderTerminalThemes(tokens) {
   const theme = (mode) =>
     Object.fromEntries(
@@ -95,7 +95,17 @@ export function renderTerminalThemes(tokens) {
     null,
     2,
   );
-  return `// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.\nexport const terminalThemes = ${body} as const;\n`;
+  const mono = tokens.type.mono.$value;
+  const font = JSON.stringify(
+    {
+      fontFamily: cssValue(tokens.font.family.mono, tokens.font.family.mono.$value),
+      fontSize: Number.parseFloat(mono.fontSize),
+      lineHeight: mono.lineHeight,
+    },
+    null,
+    2,
+  );
+  return `// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.\nexport const terminalThemes = ${body} as const;\n\n/** The CLI conversation's face, size in pixels, and line height, from \`type.mono\`. */\nexport const terminalFont = ${font} as const;\n`;
 }
 
 /** The motion durations in milliseconds, for motion that script drives, such as streamed text. */

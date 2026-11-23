@@ -19,6 +19,10 @@
     "defaultMessage": "Lervo could not start its session host",
     "description": "The shell could not find or start the session host."
   },
+  "conversation.activity.starting": {
+    "defaultMessage": "Creating the workspace",
+    "description": "The working line while the core creates the workspace for work just sent."
+  },
   "conversation.activity.thinking": {
     "defaultMessage": "Thinking",
     "description": "The working line while the agent works between replies and tools."
@@ -47,6 +51,10 @@
     "defaultMessage": "Send",
     "description": "Accessible name of the button that sends a reply."
   },
+  "conversation.reply.starting": {
+    "defaultMessage": "The agent starts in a moment",
+    "description": "The reply card placeholder while the agent of work just sent has not started."
+  },
   "conversation.tool.failed": {
     "defaultMessage": "{name} failed",
     "description": "A tool call that failed."
@@ -62,6 +70,10 @@
   "conversation.unavailable": {
     "defaultMessage": "The conversation could not open ({code}).",
     "description": "The session could not attach or start; the code names why."
+  },
+  "keyboard.command": {
+    "defaultMessage": "{modifier, select, command {⌘{key}} other {Ctrl+{key}}}",
+    "description": "A shortcut with the command modifier: Command on macOS, Control elsewhere. {key} is the key."
   },
   "notice.conversation_item_invalid": {
     "defaultMessage": "A message from the agent could not be shown.",
@@ -127,14 +139,6 @@
     "defaultMessage": "Describe the work, as you would to a colleague",
     "description": "Placeholder of the instruction input on the start screen."
   },
-  "start.pending": {
-    "defaultMessage": "Creating the workspace",
-    "description": "The working line while Lervo creates the workspace for new work."
-  },
-  "start.pending.reply": {
-    "defaultMessage": "The agent starts in a moment",
-    "description": "Placeholder of the reply input while the workspace is created."
-  },
   "start.provider.claude": {
     "defaultMessage": "Claude Code",
     "description": "The Claude Code provider CLI."
@@ -190,6 +194,10 @@
   "workspaces.new": {
     "defaultMessage": "New work",
     "description": "The row that opens the start screen."
+  },
+  "workspaces.new.key": {
+    "defaultMessage": "N",
+    "description": "The key that, with the command modifier, opens the start screen."
   },
   "workspaces.status.needsYou": {
     "defaultMessage": "Needs you",

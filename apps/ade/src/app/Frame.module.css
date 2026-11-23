@@ -11,13 +11,13 @@
   );
 }
 
-/* The sidebar keeps its place in continuity transitions; its changes show at once. */
+/* The sidebar keeps its place in view transitions; its changes show at once. */
 .sidebar {
   view-transition-name: lervo-sidebar;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--color-border-subtle);
+  border-inline-end: 1px solid var(--color-border-subtle);
   background: var(--color-surface-sidebar);
 }
 
@@ -27,7 +27,7 @@
 }
 
 .footer {
-  margin-top: auto;
+  margin-block-start: auto;
 }
 
 .content {
@@ -38,11 +38,11 @@
   overflow: hidden;
 }
 
-.content[data-view="native"] {
+.content[data-background="native"] {
   background: var(--color-surface-workspace);
 }
 
-.content[data-view="cli"] {
+.content[data-background="cli"] {
   background: var(--color-surface-terminal);
 }
 

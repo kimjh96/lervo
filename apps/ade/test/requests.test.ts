@@ -3,10 +3,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   type HostTransport,
-  RequestFailure,
   SessionHostClient,
   type ShellMessage,
 } from "../src/platform/session-host";
+import { RequestFailure } from "../src/ports";
 
 /** A client over a transport that records sends and lets the test answer them. */
 async function connected(options: { refuse?: string } = {}) {

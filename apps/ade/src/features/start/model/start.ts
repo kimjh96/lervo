@@ -1,4 +1,4 @@
-import { type ApplicationCommands, RequestFailure } from "../../../platform/session-host";
+import { type ApplicationCommands, RequestFailure } from "../../../ports";
 import { reloadWorkspaces, useWorkspaceStore } from "../../workspaces";
 import { useStartStore } from "./store";
 

@@ -10,6 +10,129 @@ import { errorCausePlugin } from "./scripts/quality/lib/eslint-error-cause-rule.
 import { jsxLiteralPlugin } from "./scripts/quality/lib/eslint-jsx-literal-rule.mjs";
 import { providerSchemaPlugin } from "./scripts/quality/lib/eslint-provider-schema-any-rule.mjs";
 
+/** Only `@lervo/session-host-contract` among the Lervo packages reaches the ADE interface. */
+const adeLervoImports = {
+  group: ["@lervo/*", "!@lervo/session-host-contract"],
+  message: "The ADE interface reaches Lervo only through @lervo/session-host-contract.",
+};
+
+/**
+ * ADE convention, "Layers": dependencies point inward. Models depend on ports and the contract,
+ * views reach other features through their `index.ts`, only the composition root builds I/O
+ * adapters, and `ui/`, `ports/`, and `platform/` know no feature. Tests import the module they
+ * test, so these rules cover `src/` only.
+ */
+function adeLayerRules() {
+  const layer = (name, files, groups) => ({
+    name: `lervo/ade-layer-${name}`,
+    files,
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        { patterns: [adeLervoImports, ...groups.map(([group, message]) => ({ group, message }))] },
+      ],
+    },
+  });
+  const otherFeatureInternals = [
+    ["../../*/model", "../../*/model/**", "../../*/view", "../../*/view/**"],
+    "Import another feature through its index.ts.",
+  ];
+  const composition = [["**/app", "**/app/**"], "Only main.tsx depends on the composition root."];
+  const ioAdapters = [
+    [
+      "**/platform/session-host",
+      "**/platform/session-host/**",
+      "**/platform/notifications",
+      "**/platform/storage",
+      "**/platform/visibility",
+    ],
+    "Features reach I/O through ports; main.tsx builds the adapters.",
+  ];
+  return [
+    layer(
+      "features",
+      ["apps/ade/src/features/**/*.{ts,tsx}"],
+      [otherFeatureInternals, composition, ioAdapters],
+    ),
+    layer(
+      "models",
+      ["apps/ade/src/features/*/model/**/*.{ts,tsx}"],
+      [
+        otherFeatureInternals,
+        composition,
+        [
+          ["**/platform", "**/platform/**", "**/ui", "**/ui/**", "**/view", "**/view/**"],
+          "Models perform no I/O and render nothing; effects enter through ports.",
+        ],
+        [["react-intl", "react-dom", "@tauri-apps/*"], "Models perform no I/O and render nothing."],
+      ],
+    ),
+    layer(
+      "app",
+      ["apps/ade/src/app/**/*.{ts,tsx}"],
+      [
+        [
+          [
+            "**/features/*/model",
+            "**/features/*/model/**",
+            "**/features/*/view",
+            "**/features/*/view/**",
+          ],
+          "Import a feature through its index.ts.",
+        ],
+      ],
+    ),
+    layer(
+      "ports",
+      ["apps/ade/src/ports/**/*.{ts,tsx}"],
+      [
+        [
+          [
+            "**/features",
+            "**/features/**",
+            "**/app",
+            "**/app/**",
+            "**/platform",
+            "**/platform/**",
+            "**/ui",
+            "**/ui/**",
+          ],
+          "Ports depend only on the contract.",
+        ],
+      ],
+    ),
+    layer(
+      "platform",
+      ["apps/ade/src/platform/**/*.{ts,tsx}"],
+      [
+        [
+          ["**/features", "**/features/**", "**/app", "**/app/**", "**/ui", "**/ui/**"],
+          "Adapters implement ports and know no feature.",
+        ],
+      ],
+    ),
+    layer(
+      "ui",
+      ["apps/ade/src/ui/**/*.{ts,tsx}"],
+      [
+        [
+          [
+            "**/features",
+            "**/features/**",
+            "**/app",
+            "**/app/**",
+            "**/platform",
+            "**/platform/**",
+            "**/ports",
+            "**/ports/**",
+          ],
+          "Shared primitives know nothing about Lervo concepts.",
+        ],
+      ],
+    ),
+  ];
+}
+
 export default defineConfig(
   globalIgnores(
     [
@@ -181,16 +304,12 @@ export default defineConfig(
       "no-restricted-imports": [
         "error",
         {
-          patterns: [
-            {
-              group: ["@lervo/*", "!@lervo/session-host-contract"],
-              message: "The ADE interface reaches Lervo only through @lervo/session-host-contract.",
-            },
-          ],
+          patterns: [adeLervoImports],
         },
       ],
     },
   },
+  ...adeLayerRules(),
   {
     name: "lervo/ade-build-config",
     files: ["apps/ade/vite.config.ts"],

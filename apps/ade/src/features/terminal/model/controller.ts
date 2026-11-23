@@ -1,4 +1,4 @@
-import { RequestFailure, type SessionHostClient } from "../../../platform/session-host";
+import { failureCode, RequestFailure, type SessionHost } from "../../../ports";
 
 /** Where terminal output goes, and where failures are shown: the view, behind an interface. */
 export interface TerminalSink {
@@ -6,9 +6,6 @@ export interface TerminalSink {
   /** A request for the terminal failed with this protocol code. */
   failed(code: string): void;
 }
-
-const codeOf = (failure: unknown) =>
-  failure instanceof RequestFailure ? failure.code : "session_host_unavailable";
 
 /**
  * Connects one workspace's CLI conversation to a terminal. It opens the session in the CLI
@@ -25,7 +22,7 @@ export class TerminalController {
   private readonly unsubscribe: (() => void)[] = [];
 
   constructor(
-    private readonly client: SessionHostClient,
+    private readonly client: SessionHost,
     private readonly workspaceId: string,
     private readonly sink: TerminalSink,
   ) {}
@@ -61,7 +58,7 @@ export class TerminalController {
   input(bytes: Uint8Array): void {
     if (this.channel === null) return;
     this.client.input(this.channel, bytes).catch((failure: unknown) => {
-      this.sink.failed(codeOf(failure));
+      this.sink.failed(failureCode(failure));
     });
   }
 
@@ -73,7 +70,7 @@ export class TerminalController {
     if (this.sessionId === null) return;
     this.client
       .send({ kind: "session.resize", sessionId: this.sessionId, columns, rows })
-      .catch((failure: unknown) => this.sink.failed(codeOf(failure)));
+      .catch((failure: unknown) => this.sink.failed(failureCode(failure)));
   }
 
   private async connect(): Promise<void> {
@@ -95,7 +92,7 @@ export class TerminalController {
       this.columns = 0;
       this.resize(columns, rows);
     } catch (failure) {
-      this.sink.failed(codeOf(failure));
+      this.sink.failed(failureCode(failure));
     }
   }
 }

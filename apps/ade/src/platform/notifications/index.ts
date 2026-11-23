@@ -1,7 +1,4 @@
-/** Desktop notifications, behind an interface so features and tests need no Tauri. */
-export interface Notifier {
-  notify(title: string, body: string): void;
-}
+import type { Notifier } from "../../ports/notifier";
 
 /** Notifications through the shell's notification plugin, asking permission once. */
 export async function tauriNotifier(): Promise<Notifier> {

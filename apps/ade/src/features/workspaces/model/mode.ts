@@ -1,4 +1,4 @@
-import type { ApplicationCommands, SessionHostClient } from "../../../platform/session-host";
+import type { ApplicationCommands, SessionHost } from "../../../ports";
 import { reloadWorkspaces } from "./controller";
 import { useWorkspaceStore } from "./store";
 
@@ -9,7 +9,7 @@ import { useWorkspaceStore } from "./store";
  * session that runs the other; the reloaded list then confirms it from the core.
  */
 export async function switchConversationMode(input: {
-  client: SessionHostClient;
+  client: SessionHost;
   commands: ApplicationCommands;
   workspaceId: string;
   mode: "native" | "cli";

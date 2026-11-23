@@ -1,13 +1,10 @@
-/** The platform's command modifier: Command on macOS, Control elsewhere. */
-const mac = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac OS");
+import { isMac } from "../environment";
 
-/** How a shortcut with the command modifier reads, such as "⌘N" or "Ctrl+N". */
-export function shortcutLabel(key: string): string {
-  return mac ? `⌘${key}` : `Ctrl+${key}`;
-}
+/** Whether the command modifier is Command, for the catalog's shortcut labels. */
+export const commandModifier: "command" | "control" = isMac ? "command" : "control";
 
 /** Whether `event` is the command modifier with `key` and no other modifier. */
 export function isCommandKey(event: KeyboardEvent, key: string): boolean {
-  const command = mac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
+  const command = isMac ? event.metaKey && !event.ctrlKey : event.ctrlKey && !event.metaKey;
   return command && !event.altKey && !event.shiftKey && event.key.toLowerCase() === key;
 }

@@ -1,14 +1,14 @@
 import type { HostMessage } from "@lervo/session-host-contract";
 
-import type { Notifier } from "../../../platform/notifications";
 import {
   type ApplicationCommands,
-  RequestFailure,
-  type SessionHostClient,
-} from "../../../platform/session-host";
+  failureCode,
+  type Notifier,
+  type SessionHost,
+} from "../../../ports";
 import { arrivals, type NotificationKind, notificationFor } from "./decisions";
 import { useWorkspaceStore } from "./store";
-import type { Repository, SessionStatus, Workspace } from "./types";
+import type { Repository, Workspace } from "./types";
 
 /** Formats a notification from the catalog. */
 export type NotificationText = (
@@ -30,7 +30,7 @@ export async function reloadWorkspaces(commands: ApplicationCommands): Promise<v
     ]);
   } catch (failure) {
     useWorkspaceStore.setState({
-      listFailure: failure instanceof RequestFailure ? failure.code : "session_host_unavailable",
+      listFailure: failureCode(failure),
     });
     throw failure;
   }
@@ -42,7 +42,12 @@ export async function reloadWorkspaces(commands: ApplicationCommands): Promise<v
     repositories: (repositories.repositories as Repository[] | undefined) ?? [],
     loaded: true,
     listFailure: null,
-    arrived: new Set([...store.arrived, ...arrived]),
+    // Only listed workspaces can animate, so the set stays within the list's size.
+    arrived: new Set(
+      [...store.arrived, ...arrived].filter((workspaceId) =>
+        next.some((workspace) => workspace.workspaceId === workspaceId),
+      ),
+    ),
   });
 }
 
@@ -52,7 +57,7 @@ export async function reloadWorkspaces(commands: ApplicationCommands): Promise<v
  * or finishes. Returns the unsubscribe function.
  */
 export function bindWorkspaces(input: {
-  client: SessionHostClient;
+  client: SessionHost;
   commands: ApplicationCommands;
   notifier: Notifier;
   text: NotificationText;
@@ -82,7 +87,7 @@ function status(
 ): void {
   if (message.kind !== "session.status") return;
   const store = useWorkspaceStore.getState();
-  const next = message.status as SessionStatus;
+  const next = message.status;
   const previous = store.statuses[message.sessionId];
   useWorkspaceStore.setState({ statuses: { ...store.statuses, [message.sessionId]: next } });
   const workspace = store.workspaces.find((item) => item.sessionId === message.sessionId);

@@ -33,8 +33,11 @@ export function arrivals(
   );
 }
 
-/** The status a workspace shows: only working and needs-you have a color (visual language). */
-export function visibleStatus(status: SessionStatus | undefined): "working" | "needsYou" | null {
+/** A status that shows on a workspace: only working and needs-you have a color. */
+export type VisibleStatus = "working" | "needsYou";
+
+/** The status a workspace shows (visual language, "Color"), if any. */
+export function visibleStatus(status: SessionStatus | undefined): VisibleStatus | null {
   if (status === "working" || status === "starting") return "working";
   if (status === "needs_user") return "needsYou";
   return null;

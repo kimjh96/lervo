@@ -1,14 +1,15 @@
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
+import type { ConnectionState } from "../../../ports";
 import { useConnectionStore } from "../model/store";
 import styles from "./ConnectionStatus.module.css";
 
-const messageIds = {
-  connecting: "connection.connecting",
-  connected: "connection.connected",
-  reconnecting: "connection.reconnecting",
-  unavailable: "connection.unavailable",
-} as const;
+const stateMessages: Readonly<Record<ConnectionState, MessageDescriptor>> = {
+  connecting: { id: "connection.connecting" },
+  connected: { id: "connection.connected" },
+  reconnecting: { id: "connection.reconnecting" },
+  unavailable: { id: "connection.unavailable" },
+};
 
 /** The connection to this computer's session host, shown only while it is not connected. */
 export function ConnectionStatus() {
@@ -16,7 +17,7 @@ export function ConnectionStatus() {
   if (state === "connected") return null;
   return (
     <p className={styles.status} role="status" data-state={state}>
-      <FormattedMessage id={messageIds[state]} />
+      <FormattedMessage {...stateMessages[state]} />
     </p>
   );
 }
