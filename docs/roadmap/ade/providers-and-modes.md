@@ -53,13 +53,14 @@ A workspace from an older core has no `conversationModes`, so the header offers 
 
 ### The session host reads registries
 
-- **One dispatch point.** Each conversation mode has one starter: the native starter opens the index and the stream process, and the CLI starter opens the PTY. The lifecycle picks the starter for the launch's mode in one place, the mode registry, so it holds no other branch on a mode.
-- **One translation.** The protocol's mode and the domain's mode convert in `messages.rs` alone.
+- **One dispatch point.** Each conversation mode has one starter: the native starter opens the index and the stream process, and the CLI starter opens the PTY. The lifecycle picks the starter for the launch's mode in one exhaustive `match`, and nothing else in the session host branches on a mode.
+- **Modes are a closed set.** On 2026-11-23 the review for step 2 found that the protocol defines the modes, and a new provider adds none, because each provider offers some of the same two. A registry for two fixed entries would add indirection without extension, so the exhaustive `match` stays: the compiler reports every place a new protocol mode would need. Providers stay open, and the core's registry holds them.
+- **One translation per protocol.** The session-host protocol's mode and the domain's mode convert in `messages.rs`, and the core link's mode converts in `core-link/src/events.rs`.
 
 ## Order
 
 1. **Core and contract.** `displayName`, `provider.list`, `conversationModes` and `commands` in `workspace.list`, and the result schemas. This lands with a minor release intent, so it ships before the interface depends on it.
-2. **Session host.** Result validation and the mode registry.
+2. **Session host.** The command guard and result validation.
 3. **Interface.** The `providers` feature, the start screen, and the header.
 
 ## Completion
