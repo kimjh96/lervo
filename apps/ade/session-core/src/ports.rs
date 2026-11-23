@@ -176,6 +176,17 @@ pub trait Core: Send + Sync + 'static {
     ) -> impl Future<Output = Result<TranscriptPage, Failure>> + Send {
         async { Ok(TranscriptPage::empty()) }
     }
+
+    /// Reports that a hosted session's process ended (`session.exited`), with its exit code or
+    /// none after a signal, so the core can record an end the provider's own hook did not. A core
+    /// that does not take the report ignores it.
+    fn session_exited(
+        &self,
+        _session_id: &str,
+        _exit_code: Option<u8>,
+    ) -> impl Future<Output = ()> + Send {
+        async {}
+    }
 }
 
 /// The core is not connected.

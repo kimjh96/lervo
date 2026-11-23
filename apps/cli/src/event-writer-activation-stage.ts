@@ -18,13 +18,10 @@ import { inspectTerminalIntegration } from "@lervo/repository-knowledge";
 import { hostTerminalHookReaderCurrent } from "./terminal-runtime.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
-import { hostedSessionEventSchemaVersion, type EventSchemaVersion } from "@lervo/event-contract";
+import type { EventSchemaVersion } from "@lervo/event-contract";
+import { TARGET_EVENT_SCHEMA_VERSION } from "./event-writer-target.js";
 
-/**
- * The writer version repository upgrades converge on: the newest one a Lervo writer needs, the
- * ADE's hosted session events, which also carries the plan ledger's.
- */
-export const TARGET_EVENT_SCHEMA_VERSION = hostedSessionEventSchemaVersion;
+export { TARGET_EVENT_SCHEMA_VERSION };
 
 export type EventReaderAuthority = "local" | "repository_node_absent" | "repository_node_fleet";
 
@@ -112,7 +109,7 @@ async function observeEventWriterStage(
     current = await inspectEventWriterCoordinate(repositoryRoot);
   } catch (error) {
     return blocked({ currentSchemaVersion: 1, currentCoordinateHash: null }, [
-      eventWriterBlocker(error),
+      eventWriterBlocker(error, TARGET_EVENT_SCHEMA_VERSION),
     ]);
   }
   const base = {
@@ -133,12 +130,14 @@ async function observeEventWriterStage(
       plan: null,
     };
   if ((await ports.hookReader(repositoryRoot)) === "stale")
-    return blocked(base, [eventWriterBlocker({ code: "terminal_hook_reader_stale" })]);
+    return blocked(base, [
+      eventWriterBlocker({ code: "terminal_hook_reader_stale" }, TARGET_EVENT_SCHEMA_VERSION),
+    ]);
   let evidence: EventWriterActivationEvidence;
   try {
     evidence = await ports.collectEvidence({ repositoryRoot });
   } catch (error) {
-    return blocked(base, [eventWriterBlocker(error)]);
+    return blocked(base, [eventWriterBlocker(error, TARGET_EVENT_SCHEMA_VERSION)]);
   }
   const authority = authorityOf(evidence);
   let plan: EventWriterActivationPlan;
@@ -149,12 +148,12 @@ async function observeEventWriterStage(
       targetEventSchemaVersion: TARGET_EVENT_SCHEMA_VERSION,
     });
   } catch (error) {
-    return blocked(base, [eventWriterBlocker(error)], authority);
+    return blocked(base, [eventWriterBlocker(error, TARGET_EVENT_SCHEMA_VERSION)], authority);
   }
   if (plan.status === "blocked")
     return blocked(
       base,
-      plan.blockers.map((item) => eventWriterBlocker(item)),
+      plan.blockers.map((item) => eventWriterBlocker(item, TARGET_EVENT_SCHEMA_VERSION)),
       authority,
     );
   return {
@@ -253,6 +252,6 @@ export async function activateLocalEventWriter(
     if (outcome.status === "current") return { status: "current" };
     return { status: "held", code: outcome.stage.blockers[0]?.code ?? outcome.stage.reason };
   } catch (error) {
-    return { status: "held", code: eventWriterBlocker(error).code };
+    return { status: "held", code: eventWriterBlocker(error, TARGET_EVENT_SCHEMA_VERSION).code };
   }
 }

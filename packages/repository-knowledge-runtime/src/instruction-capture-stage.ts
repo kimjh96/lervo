@@ -8,6 +8,7 @@ import {
 } from "@lervo/repository-knowledge";
 import { settleInstructionCapture } from "./instruction-capture-settlement.js";
 import { capturePlanItemsFromAssessment, openPlanItemsForCapture } from "./plan-ledger-capture.js";
+import { closePlanItemsFromAssessment } from "./plan-ledger-closure.js";
 import { preparePracticeCapture, completePracticeCapture } from "./practice-capture.js";
 import { releaseUnattemptedPracticeBudget } from "./practice-budget.js";
 
@@ -176,12 +177,13 @@ export async function runInstructionCaptureCycle(
             );
       // ADR-0563 S2: plan context and items, like practice, are not owner-rule assessment work, so
       // their bytes are kept out of the rule-capture budget.
-      const returnedPlanItems = (call.value as { planItems?: unknown } | null)?.planItems;
+      const returned = call.value as { planItems?: unknown; closedPlanItems?: unknown } | null;
+      const listBytes = (value: unknown) =>
+        Array.isArray(value) && value.length > 0 ? Buffer.byteLength(JSON.stringify(value)) : 0;
       const planBytes =
         (openPlanItems.length === 0 ? 0 : Buffer.byteLength(JSON.stringify(openPlanItems))) +
-        (Array.isArray(returnedPlanItems) && returnedPlanItems.length > 0
-          ? Buffer.byteLength(JSON.stringify(returnedPlanItems))
-          : 0);
+        listBytes(returned?.planItems) +
+        listBytes(returned?.closedPlanItems);
       const addedPlanTokens =
         call.usage === null
           ? 0
@@ -219,7 +221,7 @@ export async function runInstructionCaptureCycle(
       typeof outcome !== "object" &&
       outcome !== "regenerate" &&
       outcome !== "retry"
-    )
+    ) {
       capturePlanItemsFromAssessment({
         storage: context.storage,
         response: call.value,
@@ -227,6 +229,15 @@ export async function runInstructionCaptureCycle(
         shown: openPlanItems,
         now,
       });
+      await closePlanItemsFromAssessment({
+        storage: context.storage,
+        repositoryRoot: root,
+        response: call.value,
+        shown: openPlanItems,
+        exchange: [capture.ownerTurn, capture.precedingAgentTurn],
+        now,
+      }).catch(() => undefined);
+    }
     // ADR-0561: the first cross-check disagreement regenerates the turn in a later cycle.
     if (outcome === "regenerate") continue;
     if (outcome === null || outcome === "retry") {

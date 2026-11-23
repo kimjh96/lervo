@@ -4,7 +4,7 @@
 
 use std::path::PathBuf;
 use std::sync::atomic::AtomicU32;
-use std::sync::{Mutex, MutexGuard, PoisonError};
+use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 
 use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_transport::handshake::HostIdentity;
@@ -16,7 +16,8 @@ use crate::watch::{self, WatchSender};
 use lervo_session_core::ports::Core;
 
 pub(crate) struct Host<C> {
-    pub(crate) core: C,
+    /// Shared, so an ended session can report its exit after the request that started it.
+    pub(crate) core: Arc<C>,
     pub(crate) codec: MessageCodec,
     pub(crate) token: Token,
     pub(crate) identity: HostIdentity,
@@ -40,7 +41,7 @@ impl<C: Core> Host<C> {
         diagnostics: Diagnostics,
     ) -> Self {
         Self {
-            core,
+            core: Arc::new(core),
             codec,
             token,
             identity,

@@ -193,7 +193,46 @@ On 2026-11-23 the owner tried the app built from `main` and found two problems.
 
 ### S1.6b progress
 
-`apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, after the terminal left and the start screen read the provider registry, the start screen loads 99.1 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the Markdown renderer, is 16 KB against 160 KB. The webview scenarios of S1.6b remain: cold start, idle CPU, the 100,000-item conversation, streamed deltas to screen, and keystroke echo in the input card.
+`apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, after the terminal left and the start screen read the provider registry, the start screen loads 99.5 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the Markdown renderer, is 16 KB against 160 KB.
+
+**The harness.** `apps/ade/scripts/measure-webview.mjs` runs the webview scenarios against the release shell and the scripted core of `session-host/examples/interface`, one window per scenario. Its header lists the builds it needs.
+
+- **The shell's part.** Only with `LERVO_ADE_MEASURE=<scenario>` and `LERVO_ADE_MEASURE_OUT=<path>` does the shell tell the page its scenario and accept its report.
+- **The page's part.** It loads the measurement module, `src/platform/measure/`, lazily. The module drives the app through the DOM, as a person would.
+- **CPU and memory.** The driver samples them for the shell and the WebKit processes that started with it.
+- **Keystrokes.** They come from the page, so the keystroke figure is the interface's share of the echo, without the system's input path.
+
+**First measurements.** On 2026-11-23, on the owner's Apple Silicon Mac, with the app built from `981b6179b`:
+
+| Measure                                                                             | Measured                         | Budget                     |
+| ----------------------------------------------------------------------------------- | -------------------------------- | -------------------------- |
+| Cold start to the start screen (warm; the first launch after a build took 2,897 ms) | 576–679 ms                       | 500 ms                     |
+| UI CPU, idle, window visible                                                        | 1.6% of one core                 | 0.5%                       |
+| UI CPU, idle, window hidden                                                         | 0.2%                             | 0.1%                       |
+| First paint of the 100,000-item conversation                                        | 165 ms                           | 100 ms                     |
+| Scrolling it: p95 and longest frame                                                 | 18 ms and 35 ms, none over 50 ms | 60 fps, no task over 50 ms |
+| Streamed delta to screen, p95                                                       | 385 ms                           | 33 ms                      |
+| Keystroke to echo, p95                                                              | 36 ms                            | 16 ms                      |
+
+That run timed each page figure at the second frame after the change, so first paint, streaming, and keystroke read about one frame (17 ms) high. The harness now times them at the next frame.
+
+**What the figures show.**
+
+- **Cold start.** The page reaches the start screen 250–330 ms after navigation. The shell takes 240–420 ms before navigation starts. Both parts need work.
+- **Idle CPU.** Something keeps drawing or polling while nothing should move (motion principle 4).
+- **Streamed delta to screen.**
+  - The pacer resets its 120 ms deadline whenever the text grows. Under the fastest steady stream, text that arrived first trails by up to 136 ms, one frame more than `motion.duration.pace` allows. That accounts for little of the measured figure, so most of the delay lies between the provider and the store, and the next run needs per-layer timestamps.
+  - The budget of 33 ms also conflicts with the 120 ms pace the motion principles allow. One of the two needs a reviewed revision.
+- **First paint and keystroke echo.** Both stay over budget after the one-frame correction, by about 50 ms and one frame.
+
+**Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. The order is:
+
+1. the pacer's deadline, and per-layer timestamps for the stream;
+2. idle CPU;
+3. the conversation's first paint;
+4. cold start;
+5. a second run of the harness;
+6. reviewed revisions for whatever still misses, such as reconciling the streaming budget with the pace.
 
 ### S1.6c measurements
 
@@ -217,13 +256,17 @@ On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's.
 
 ### S1.4c progress
 
-S1.4c lands in two pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.
+S1.4c lands in three pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.
 
-1. **Readers and the target.** The CLI, the Node, and the Hub read schema 10, and `lervo upgrade` targets it. The release goes to the Hub first, which the WSL host installs by hand, and then to each host. `lervo upgrade --apply` then activates schema 10 in each registered repository once every configured reader reports it.
+1. **Readers and the target (#354, v0.44.0).** The CLI, the Node, and the Hub read schema 10, and `lervo upgrade` targets it.
+   - On 2026-11-23 the WSL Hub was deployed by hand from v0.44.0 and reported schema versions 1 to 10.
+   - A registered repository on the WSL host then activated schema 10.
 2. **Hooks and writers.**
-   - The Claude adapter adds a session-scoped settings file with Lervo's `SessionStart` and `SessionEnd` handlers.
-   - `lervo workspace start` and `lervo workspace open` record `application.workspace.started` and `terminal.session.launch_prepared` in the registered repository's store, the hook handlers record `launched` and `ended`, and the session host reports an exit without `SessionEnd`.
+   - The Claude adapter declares `hooks` and passes a session-scoped settings file with Lervo's `SessionStart` and `SessionEnd` handlers.
+   - `lervo workspace start` and `lervo workspace open` record `application.workspace.started` and `terminal.session.launch_prepared` in the registered repository's store.
+   - `lervo workspace hook` records `launched` and `ended`.
    - Writers check the selected writer version, never the CLI version, and record nothing below schema 10.
+3. **The session host's exit report.** When a provider process exits without `SessionEnd`, for example after a crash or SIGKILL, the session host reports the exit through the core link. The core then records `terminal.session.ended` with `process_exited` and the exit code. This needs a guarded core-link command and an ADE intent, so it follows step 2.
 
 `terminal.tool.observed` and `terminal.instructions.loaded` wait for S2, which defines their fields with the hosted evidence.
 

@@ -101,6 +101,23 @@ impl StreamProcess {
         self.stdin = None;
     }
 
+    /// Asks the process to end, with SIGTERM on Unix, so it can run its own shutdown, such as a
+    /// provider's session-end hook. Elsewhere, or once it has exited, it ends the process at once.
+    pub fn terminate(&mut self) -> Result<(), StreamError> {
+        #[cfg(unix)]
+        if let Some(id) = self.child.id() {
+            let pid = i32::try_from(id)
+                .map_err(|_| StreamError::Io(std::io::Error::other("process id out of range")))?;
+            return nix::sys::signal::kill(
+                nix::unistd::Pid::from_raw(pid),
+                nix::sys::signal::Signal::SIGTERM,
+            )
+            .map_err(|errno| StreamError::Io(std::io::Error::from(errno)));
+        }
+        self.child.start_kill()?;
+        Ok(())
+    }
+
     /// Stops the process.
     pub async fn kill(&mut self) -> Result<(), StreamError> {
         self.child.kill().await?;
