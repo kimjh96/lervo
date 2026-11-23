@@ -4,7 +4,12 @@ import { describe, expect, it } from "vitest";
 import { ConversationController } from "../src/features/conversation/model/controller";
 import { useConversationStore } from "../src/features/conversation/model/store";
 import { activityOf } from "../src/features/conversation/model/activity";
-import { nextShown } from "../src/features/conversation/model/pacing";
+import {
+  type Arrival,
+  nextShown,
+  paceDeadline,
+  recordArrival,
+} from "../src/features/conversation/model/pacing";
 import {
   type HostTransport,
   SessionHostClient,
@@ -26,6 +31,32 @@ describe("streamed text pacing", () => {
     expect(frames[0]).toBe(56);
     expect(frames.length).toBeLessThanOrEqual(8);
     expect(nextShown(text, 400, frame, 120)).toBe(400);
+  });
+
+  it("keeps a steady stream within the pace of each character's arrival", () => {
+    // The fastest provider: 30 characters every 2 ms for 2 seconds, shown at 60 frames a second.
+    const frame = 1000 / 60;
+    let arrivals: Arrival[] = [];
+    let text = "";
+    let shown = 0;
+    let worst = 0;
+    const arrivedAt: number[] = [];
+    let next = 0;
+    for (let now = 0; now < 2400; now += frame) {
+      for (; next <= now && next < 2000; next += 2) {
+        text += "x".repeat(30);
+        for (let index = 0; index < 30; index += 1) arrivedAt.push(next);
+        arrivals = recordArrival(arrivals, shown, text.length, next);
+      }
+      const deadline = paceDeadline(arrivals, shown) ?? now;
+      const before = shown;
+      shown = nextShown(text, shown, frame, deadline - now + frame);
+      for (let index = before; index < shown; index += 1)
+        worst = Math.max(worst, now - (arrivedAt[index] ?? now));
+    }
+    expect(shown).toBe(text.length);
+    // A deadline restarted at each growth let the first characters trail by 136 ms here.
+    expect(worst).toBeLessThanOrEqual(121);
   });
 
   it("moves at least one character a frame and never splits a surrogate pair", () => {

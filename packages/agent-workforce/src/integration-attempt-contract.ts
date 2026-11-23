@@ -65,7 +65,9 @@ export function isWorkspaceIntegrationAttempt(value: WorkspaceIntegrationAttempt
         ["fast_forward", "cherry_pick", "merge"].includes(source.strategy),
     ) &&
     new Set(value.sources.map((source) => source.workspaceId)).size === value.sources.length &&
-    ["leased", "candidate", "advancing", "integrated", "conflict"].includes(value.state) &&
+    ["leased", "candidate", "advancing", "integrated", "conflict", "released"].includes(
+      value.state,
+    ) &&
     (value.candidateCommit === null || COMMIT.test(value.candidateCommit)) &&
     (value.candidateTreeHash === null || COMMIT.test(value.candidateTreeHash)) &&
     (value.verificationReceiptHash === null || HASH.test(value.verificationReceiptHash)) &&
@@ -105,7 +107,15 @@ export function isWorkspaceIntegrationAttempt(value: WorkspaceIntegrationAttempt
         value.verificationResults.length === 0 &&
         value.targetAfterCommit === null &&
         value.conflictWorkspaceId !== null &&
-        value.conflictReason === "git_conflict")) &&
+        value.conflictReason === "git_conflict") ||
+      // A released attempt keeps the candidate or conflict coordinates it ended with.
+      (value.state === "released" &&
+        (value.candidateCommit === null) === (value.candidateTreeHash === null) &&
+        (value.conflictWorkspaceId === null) === (value.conflictReason === null) &&
+        (value.candidateCommit === null || value.conflictWorkspaceId === null) &&
+        value.verificationReceiptHash === null &&
+        value.verificationResults.length === 0 &&
+        value.targetAfterCommit === null)) &&
     Number.isSafeInteger(value.revision) &&
     value.revision >= 1 &&
     validWorkspaceIntegrationTime(value.createdAt) &&

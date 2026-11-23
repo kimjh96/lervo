@@ -38,6 +38,43 @@ describe("Claude Code hosted sessions", () => {
     expect(launch.initialInput).toBe("Fix the build.");
   });
 
+  it("adds Lervo's start and end handlers through a session-scoped settings file", () => {
+    const hooks = {
+      settingsPath: "/state/hosted-settings/session.json",
+      command: "lervo workspace hook --provider claude",
+    };
+    for (const mode of ["native", "cli"] as const) {
+      const launch = adapter.prepareLaunch({
+        sessionId,
+        mode,
+        workingDirectory: "/work/repo",
+        start: { kind: "resume" },
+        hooks,
+      });
+      const at = launch.arguments.indexOf("--settings");
+      expect(launch.arguments[at + 1]).toBe(hooks.settingsPath);
+      expect(launch.settingsFile?.path).toBe(hooks.settingsPath);
+      const settings = JSON.parse(launch.settingsFile?.content ?? "{}") as {
+        hooks: Record<string, { hooks: { type: string; command: string; timeout: number }[] }[]>;
+      };
+      expect(Object.keys(settings.hooks)).toEqual(["SessionStart", "SessionEnd"]);
+      for (const entries of Object.values(settings.hooks))
+        expect(entries).toEqual([
+          { hooks: [{ type: "command", command: hooks.command, timeout: 10 }] },
+        ]);
+      // Nothing else in the user's settings is touched: no other keys, no disableAllHooks.
+      expect(Object.keys(settings)).toEqual(["hooks"]);
+    }
+    const plain = adapter.prepareLaunch({
+      sessionId,
+      mode: "native",
+      workingDirectory: "/work/repo",
+      start: { kind: "resume" },
+    });
+    expect(plain.settingsFile).toBeNull();
+    expect(plain.arguments).not.toContain("--settings");
+  });
+
   it("resumes the CLI conversation without permission overrides", () => {
     const launch = adapter.prepareLaunch({
       sessionId,

@@ -33,7 +33,7 @@ import {
   type InstructionCandidateExchangeTransport,
 } from "../src/instruction-candidate-exchange.js";
 import { recordInstructionCandidateResolution } from "../src/instruction-candidate-exchange-state.js";
-import { readPlanLedger } from "../src/plan-ledger-store.js";
+import { capturePlanItem, readPlanLedger } from "../src/plan-ledger-store.js";
 import { runAutonomousKnowledgeWorker } from "../src/worker.js";
 import { fixture } from "./fixture.js";
 
@@ -501,6 +501,70 @@ describe("owner-turn instruction capture stage (ADR-0467)", () => {
       expect.objectContaining({ kind: "cross_check_disagreement", title: "Allow a single writer" }),
     ]);
     expect(JSON.stringify(f.eventsOf("plan.item.captured"))).not.toContain(ownerTurn);
+  });
+
+  it("closes a shown item the settled turn finished, only with evidence it observes (ADR-0563)", async () => {
+    const f = await captureFixture(true, 9);
+    const source = {
+      origin: "agent_command" as const,
+      provider: null,
+      sessionDigest: null,
+      transcriptOffset: null,
+    };
+    const released = capturePlanItem(f.storage, {
+      parentId: null,
+      kind: "plan",
+      title: "Release the fix",
+      source,
+    });
+    const claimed = capturePlanItem(f.storage, {
+      parentId: null,
+      kind: "plan",
+      title: "Ship the docs",
+      source,
+    });
+    await execute("git", ["-C", f.root, "tag", "v9.9.9"]);
+    const ownerTurn = "Good: v9.9.9 is out and #4242 merged. What is left?";
+    await f.plan([
+      {
+        ownerTurn,
+        response: {
+          schemaVersion: 1,
+          captureClass: "none",
+          durableInstruction: none,
+          decision: null,
+          reasonIds: [],
+          practice: null,
+          planItems: [],
+          closedPlanItems: [
+            // The shown order is most recently changed first.
+            {
+              reference: "p2",
+              state: "done",
+              pullRequest: null,
+              release: "v9.9.9",
+              supersededBy: null,
+            },
+            {
+              reference: "p1",
+              state: "done",
+              pullRequest: 4242,
+              release: null,
+              supersededBy: null,
+            },
+          ],
+        },
+      },
+    ]);
+    await f.enqueue({ ownerTurn });
+    expect(await f.cycle()).toMatchObject({ assessedCount: 1 });
+    const ledger = readPlanLedger(f.storage);
+    expect(ledger.items.get(released.itemId)).toMatchObject({
+      state: "done",
+      closed: { evidence: [{ kind: "release", ref: "v9.9.9" }] },
+    });
+    // No merge commit for #4242 exists, so the claimed item stays open.
+    expect(ledger.items.get(claimed.itemId)?.state).toBe("open");
   });
 
   it("stores a rule in the owner's own words without a model cross-check", async () => {

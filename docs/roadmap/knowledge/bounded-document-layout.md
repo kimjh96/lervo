@@ -6,7 +6,7 @@ As of: 2026-08-26
 
 ## Objective
 
-Implement [ADR-0222](../../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md) so every repository document writer shares one projected-capacity, scoped-role, and rewrite-owner contract without assuming a universal root layout or specific formatting product.
+Implement [ADR-0620](../../decisions/knowledge/repository/0620-bounded-role-based-document-layout.md) so every repository document writer shares one projected-capacity, scoped-role, and rewrite-owner contract without assuming a universal root layout or specific formatting product.
 
 ## Delivery order
 

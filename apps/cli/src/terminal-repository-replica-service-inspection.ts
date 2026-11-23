@@ -110,7 +110,7 @@ const reported = (issues: LifecycleIssue[]): ReplicaServiceInspection => ({
 });
 
 /**
- * ADR-0415 and ADR-0573: an installed coordinator definition must be owner-only, stay loaded,
+ * ADR-0628 and ADR-0573: an installed coordinator definition must be owner-only, stay loaded,
  * and run a process bound to the runtime `current` names. launchd and systemd hosts report the
  * same codes. A user manager this shell cannot reach is an advisory: the coordinator may run
  * fine, and this turn simply cannot see it.

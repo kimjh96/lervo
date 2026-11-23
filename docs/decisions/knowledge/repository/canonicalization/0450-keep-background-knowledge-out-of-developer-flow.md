@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-03
-Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0449](0449-synchronize-integration-target-with-working-branch.md), and [ADR-0357](../../../execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md)
+Amends: [ADR-0434](0434-converge-background-canonicalization-normalization-and-knowledge.md), [ADR-0449](0449-synchronize-integration-target-with-working-branch.md), and [ADR-0625](../../../execution/verification/0625-prepare-isolated-candidate-verification-workspaces.md)
 
 ## Context
 

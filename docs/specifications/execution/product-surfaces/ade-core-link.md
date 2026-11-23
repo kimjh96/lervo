@@ -32,6 +32,7 @@ Every request carries a positive integer `id`, and the resident process answers 
 | `decoder.output`  | Decodes a chunk of the provider's standard output, as Base64.              | `decoder.decoded` with the events                                    |
 | `decoder.close`   | Forgets the decoder.                                                       | `decoder.decoded` with no events                                     |
 | `transcript.read` | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`        |
+| `session.exited`  | Reports that a hosted session's process ended, with its exit code.         | `core.result` with `status`, or `core.failed`                        |
 
 - `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, newest first and at most 100. Each holds:
   - `workspaceId`, `projectId`, `repositoryName`, `branch`, and `title` (the workstream title, or null);
@@ -39,7 +40,7 @@ Every request carries a positive integer `id`, and the resident process answers 
   - `conversationModes`, the modes its provider offers, or only the last mode when no adapter admits the provider;
   - `sessionId` and `preparedAt`.
 
-  It reads one worktree listing per repository. `commands` names every application command the resident process answers.
+  It reads one worktree listing per repository. `commands` names every application command the resident process answers, and the core-link requests it advertises, such as `session.exited`.
 
 - `workspace.start`, `workspace.list`, and `repository.list` are the base commands, which every release answers. The session host sends any other command only to a resident process whose last `workspace.list` named it, because a process from an older release ends the core link on a request it cannot validate.
 - `provider.list` answers `{providers, defaultProvider}`, every admitted hosted provider in registry order. Each holds:
@@ -57,6 +58,11 @@ Every request carries a positive integer `id`, and the resident process answers 
 - A launch holds the session and workspace identifiers, the conversation mode, the provider, the absolute program path, the arguments, the added environment, the working directory, and `initialInput`. The session host sends `initialInput` through the decoder once the provider runs.
 - A launch may also hold `environmentRemove`, the names of variables the session host must not pass on from its own environment. The provider's adapter lists them, such as the markers an enclosing Claude Code session sets for its children, which would otherwise turn off the hosted session's transcript and expose the enclosing session's messaging channel.
 - A launch from `core.open` holds `transcript: true` when the provider's adapter can read its own transcript of the session. Only then does the session host send `transcript.read`, so a resident process from an older release never receives a request it does not know.
+- `session.exited` takes the launch's `sessionId` and `exitCode`, an integer from 0 to 255 or null after a signal. The session host sends it only to a resident process whose last `workspace.list` named `session.exited`. The resident process finds the session's newest launch record. Unless an end of that launch is already recorded, it records `terminal.session.ended` with `endReason: process_exited`. An end is already recorded when the provider's `SessionEnd` hook recorded one at or after the launch's `preparedAt`. `status` is one of these:
+  - `recorded`;
+  - `skipped`, when the hook already recorded the end;
+  - `inactive`, below event schema 10;
+  - `unknown_session`, for a session that no launch record names.
 - `transcript.read` takes `workspaceId`, `offset` (items to skip), and `limit` (at most 500). `transcript.page` answers with complete items, oldest first, as `item` events carry them, and `complete` when the transcript ended. A page holds at most 4 MiB of text. A request that continues the previous page resumes the same reader, so a transcript read page by page is read once. A provider that kept no transcript answers an empty, complete page.
 - Decoded events are, in order of application: `status` (`turn_started`, `question_asked`, or `turn_finished`), `item` and `start` with conversation content and a creation time, `delta` with text for the streaming item, and `finish`. Content is a user message, an agent message, a question, tool activity (name, status, and call count), or a Lervo notice (a code and parameters).
 

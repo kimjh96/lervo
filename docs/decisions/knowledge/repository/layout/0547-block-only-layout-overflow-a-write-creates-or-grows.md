@@ -3,11 +3,11 @@
 Status: `accepted`
 Decision date: 2026-11-01
 Amended by: [ADR-0583](0583-hold-moves-that-overfill-a-directory-and-report-existing-overflow.md). Untouched overflow moves from `blockers` to `advisories` and lint reports it as a warning; a move or create into an over-limit directory blocks at an equal count. [ADR-0589](../../../distribution/0589-shorten-the-follower-path-from-publication-to-the-last-repository.md): an upgrade apply that applied no stage before lint, and whose knowledge stage is current with no background debt, skips lint.
-Amends: [ADR-0222](../0222-bounded-role-based-document-layout.md) (layout permits), [ADR-0214](../../../operations/services/0214-bounded-repository-upgrade-orchestration.md) (stage dependencies)
+Amends: [ADR-0620](../0620-bounded-role-based-document-layout.md) (layout permits), [ADR-0214](../../../operations/services/0214-bounded-repository-upgrade-orchestration.md) (stage dependencies)
 
 ## Context
 
-[ADR-0222](../0222-bounded-role-based-document-layout.md) evaluates the projected document layout before every document write. The evaluator reported a capacity blocker whenever a projected count exceeded its limit. The count did not have to grow. A permit required no blockers at all.
+[ADR-0620](../0620-bounded-role-based-document-layout.md) evaluates the projected document layout before every document write. The evaluator reported a capacity blocker whenever a projected count exceeded its limit. The count did not have to grow. A permit required no blockers at all.
 
 The `argo` repository has 86 notes in one directory, against a limit of 32. These notes existed before enforcement. As a result, every Lervo document write in `argo` was refused, even generated knowledge files in other directories. `lervo upgrade` reported the knowledge stage `blocked` with `document_directory_file_capacity_exceeded`.
 

@@ -91,3 +91,93 @@ export function parseCapturedPlanItems(value: unknown): CapturedPlanItem[] {
     .filter((item): item is CapturedPlanItem => item !== null)
     .slice(0, MAXIMUM_CAPTURED_PLAN_ITEMS);
 }
+
+/**
+ * ADR-0563: a shown open item the exchange finished or replaced. The assessment only proposes the
+ * close, naming evidence by a pull request number or a release tag, never a hash (ADR-0608). The
+ * runtime closes `done` only with evidence it observes itself, and `superseded` only for another
+ * shown item.
+ */
+export interface ClosedPlanItem {
+  reference: string;
+  state: "done" | "superseded";
+  /** For `done`: the merged pull request that finished the work, or null. */
+  pullRequest: number | null;
+  /** For `done`: the release tag that finished the work, or null. */
+  release: string | null;
+  /** For `superseded`: the `p<n>` reference of the shown item that replaces it. */
+  supersededBy: string | null;
+}
+
+export const MAXIMUM_CLOSED_PLAN_ITEMS = 8;
+const RELEASE_TAG = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,127}$/u;
+const MAXIMUM_PULL_REQUEST = 999_999_999;
+
+export const closedPlanItemsResponseSchema = providerOutputSchema({
+  type: "array",
+  items: {
+    type: "object",
+    additionalProperties: false,
+    properties: {
+      reference: { type: "string" },
+      state: { type: "string", enum: ["done", "superseded"] },
+      pullRequest: { type: ["integer", "null"] },
+      release: { type: ["string", "null"] },
+      supersededBy: { type: ["string", "null"] },
+    },
+    required: ["reference", "state", "pullRequest", "release", "supersededBy"],
+  },
+} as const);
+
+/** One close, or null when it is malformed or could never be honored. */
+function closedPlanItem(entry: unknown): ClosedPlanItem | null {
+  if (typeof entry !== "object" || entry === null || Array.isArray(entry)) return null;
+  const item = entry as Record<string, unknown>;
+  if (Object.keys(item).sort().join(",") !== "pullRequest,reference,release,state,supersededBy")
+    return null;
+  const { reference, state, pullRequest, release, supersededBy } = item;
+  if (typeof reference !== "string" || !PARENT_REFERENCE.test(reference)) return null;
+  if (state === "done") {
+    const number =
+      Number.isSafeInteger(pullRequest) &&
+      (pullRequest as number) >= 1 &&
+      (pullRequest as number) <= MAXIMUM_PULL_REQUEST
+        ? (pullRequest as number)
+        : null;
+    const tag = typeof release === "string" && RELEASE_TAG.test(release) ? release : null;
+    if (pullRequest !== null && number === null) return null;
+    if (release !== null && tag === null) return null;
+    // Exactly one piece of evidence: a close naming both is ambiguous about what finished it.
+    if ((number === null) === (tag === null)) return null;
+    return { reference, state, pullRequest: number, release: tag, supersededBy: null };
+  }
+  if (
+    state === "superseded" &&
+    typeof supersededBy === "string" &&
+    PARENT_REFERENCE.test(supersededBy) &&
+    supersededBy !== reference
+  )
+    return { reference, state, pullRequest: null, release: null, supersededBy };
+  return null;
+}
+
+/**
+ * The closes of a response: at most eight well-formed ones, one per reference, in order. A
+ * response without the field closes nothing; a malformed close is dropped alone; only a value that
+ * is not a list fails.
+ */
+export function parseClosedPlanItems(value: unknown): ClosedPlanItem[] {
+  if (value === undefined) return [];
+  if (!Array.isArray(value))
+    throw new TypeError("The capture assessment closedPlanItems is invalid.");
+  const seen = new Set<string>();
+  const closes: ClosedPlanItem[] = [];
+  for (const entry of value) {
+    const close = closedPlanItem(entry);
+    if (close === null || seen.has(close.reference)) continue;
+    seen.add(close.reference);
+    closes.push(close);
+    if (closes.length === MAXIMUM_CLOSED_PLAN_ITEMS) break;
+  }
+  return closes;
+}

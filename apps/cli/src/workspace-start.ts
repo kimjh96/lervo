@@ -5,10 +5,18 @@ import {
   type HostedConversationMode,
   type HostedLaunch,
   type HostedSessionAdapter,
+  type HostedSessionHooks,
 } from "@lervo/adapter-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
 import { type HostedLaunchRecord, launchArgumentDigest } from "./hosted-launch-records.js";
+import {
+  launchPreparedEvent,
+  workspaceStartedEvent,
+  type HostedSessionEvent,
+  type HostedSessionEventOutcome,
+} from "./hosted-session-events.js";
+import { settingsFileDigest } from "./hosted-session-settings.js";
 
 const TITLE_CHARACTERS = 80;
 const OBJECTIVE_CHARACTERS = 8192;
@@ -36,6 +44,15 @@ export interface WorkspaceStartPorts {
   /** Starts the workstream in the new worktree and returns its ID. */
   startWorkstream(input: { root: string; title: string; objective: string }): Promise<string>;
   recordLaunch(record: HostedLaunchRecord): Promise<void>;
+  /** Writes the launch's session-scoped settings file. */
+  writeSettings(file: { readonly path: string; readonly content: string }): Promise<void>;
+  /**
+   * Records hosted session events in the registered repository. It never throws: a store that
+   * cannot take them reports `unavailable`, and the launch goes on.
+   */
+  recordEvents(
+    events: readonly HostedSessionEvent[],
+  ): Promise<HostedSessionEventOutcome | "unavailable">;
   now(): Date;
 }
 
@@ -50,6 +67,8 @@ export interface WorkspaceStartRequest {
   /** A short random suffix that keeps branch names unique. */
   readonly suffix: string;
   readonly model?: string;
+  /** Lervo's hook handler, when the provider's adapter declares `hooks`. */
+  readonly hooks?: HostedSessionHooks;
 }
 
 export interface WorkspaceStartResult {
@@ -62,6 +81,8 @@ export interface WorkspaceStartResult {
   sessionId: string;
   provider: string;
   launch: HostedLaunch;
+  /** Whether the repository took the hosted session events (`hosted_events_inactive` otherwise). */
+  hostedEvents: HostedSessionEventOutcome | "unavailable";
 }
 
 /** The workstream title: the instruction's first line, shortened at a word. */
@@ -145,6 +166,7 @@ export async function startWorkspace(
     workingDirectory: placement.workspacePath,
     start: { kind: "new" as const, instruction: request.instruction },
     ...(request.model === undefined ? {} : { model: request.model }),
+    ...(request.hooks === undefined ? {} : { hooks: request.hooks }),
   };
   // Refuse an intent the provider cannot run before anything changes.
   try {
@@ -168,7 +190,8 @@ export async function startWorkspace(
     });
     stage = "launch";
     const launch = ports.adapter.prepareLaunch(intent);
-    await ports.recordLaunch({
+    if (launch.settingsFile !== null) await ports.writeSettings(launch.settingsFile);
+    const record: HostedLaunchRecord = {
       schemaVersion: 1,
       workspaceId: placement.workspaceId,
       sessionId: request.sessionId,
@@ -177,10 +200,15 @@ export async function startWorkspace(
       branch,
       conversationMode: request.mode,
       argumentDigest: launchArgumentDigest(launch),
-      settingsDigest: null,
+      settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
-    });
+    };
+    await ports.recordLaunch(record);
+    const hostedEvents = await ports.recordEvents([
+      workspaceStartedEvent({ record, workstreamId, instruction: request.instruction }),
+      launchPreparedEvent(record),
+    ]);
     return {
       schemaVersion: 1,
       status: "started",
@@ -191,6 +219,7 @@ export async function startWorkspace(
       sessionId: request.sessionId,
       provider: ports.adapter.provider,
       launch,
+      hostedEvents,
     };
   } catch (error) {
     throw stageFailure(stage, error, await undo(ports, placement));

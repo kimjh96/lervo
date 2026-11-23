@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { CommandFailure } from "../src/command-error-output.js";
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
+import type { HostedSessionEvent } from "../src/hosted-session-events.js";
 import {
   branchFor,
   objectiveFor,
@@ -22,11 +23,17 @@ const request = {
   workspaceId: "wsp_0123456789abcdef01234567",
   sessionId: "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c",
   suffix: "1a2b3c",
+  hooks: {
+    settingsPath: "/state/hosted-settings/0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c.json",
+    command: "lervo workspace hook --provider claude",
+  },
 };
 
 function ports(fail?: "workspace" | "workstream" | "record" | "undo") {
   const effects: string[] = [];
   const records: HostedLaunchRecord[] = [];
+  const settings: { path: string; content: string }[] = [];
+  const events: HostedSessionEvent[] = [];
   const value: WorkspaceStartPorts = {
     adapter: createClaudeHostedSessionAdapter("/opt/claude"),
     async provisionWorkspace(placement) {
@@ -47,9 +54,16 @@ function ports(fail?: "workspace" | "workstream" | "record" | "undo") {
       if (fail === "record") throw new Error("disk full");
       records.push(record);
     },
+    async writeSettings(file) {
+      settings.push(file);
+    },
+    async recordEvents(recorded) {
+      events.push(...recorded);
+      return "recorded";
+    },
     now: () => new Date("2026-11-23T00:00:00.000Z"),
   };
-  return { value, effects, records };
+  return { value, effects, records, settings, events };
 }
 
 async function failure(run: Promise<unknown>): Promise<CommandFailure> {
@@ -94,6 +108,33 @@ describe("workspace start", () => {
     // The record names the branch, which Git already shows, but never holds the instruction.
     expect(JSON.stringify(fake.records)).not.toContain("once a day");
     expect(fake.records[0]?.argumentDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+  });
+
+  it("writes the session's settings file, digests it, and records two events", async () => {
+    const fake = ports();
+    const result = await startWorkspace(request, fake.value);
+    expect(fake.settings.map((file) => file.path)).toEqual([request.hooks.settingsPath]);
+    expect(result.launch.arguments).toContain(request.hooks.settingsPath);
+    expect(fake.records[0]?.settingsDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
+    expect(fake.events.map((event) => event.type)).toEqual([
+      "application.workspace.started",
+      "terminal.session.launch_prepared",
+    ]);
+    const payloads = JSON.stringify(fake.events);
+    expect(payloads).not.toContain(request.sessionId);
+    expect(payloads).not.toContain("once a day");
+    expect(fake.events[1]?.payload).toMatchObject({
+      provider: "claude",
+      conversationMode: "native",
+      workspaceId: request.workspaceId,
+    });
+    expect(result.hostedEvents).toBe("recorded");
+  });
+
+  it("records no events before the launch exists", async () => {
+    const fake = ports("record");
+    await failure(startWorkspace(request, fake.value));
+    expect(fake.events).toEqual([]);
   });
 
   it.each([

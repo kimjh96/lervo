@@ -918,4 +918,85 @@ describe("workspace integration candidate orchestration", () => {
       "integrated",
     );
   }, 20_000);
+
+  it("refuses to resume or complete an attempt that a newer writer released", async () => {
+    const current = await fixture();
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current);
+    await writeReleasedAttempt(current.root, integrationPlan.attempt.targetLeaseId);
+    // Even a clean worktree back at target-before yields no candidate receipt.
+    await git(current.integrationPath, "reset", "--hard", current.targetBeforeCommit);
+    await expect(
+      applyWorkspaceIntegrationCandidate({
+        plan: integrationPlan,
+        integrationHost: current.integrationHost,
+        now: new Date("2026-08-26T00:00:21Z"),
+      }),
+    ).rejects.toMatchObject({ code: "host_effect_uncertain" });
+    await expect(
+      completeWorkspaceIntegration({
+        plan: integrationPlan,
+        verificationReceipt: verification,
+        integrationHost: current.integrationHost,
+        now: new Date("2026-08-26T00:00:21Z"),
+      }),
+    ).rejects.toMatchObject({ code: "host_coordinate_invalid" });
+    expect(await git(current.root, "rev-parse", targetRef)).toBe(current.targetBeforeCommit);
+  }, 20_000);
+
+  it("treats a released attempt naming the same source as terminal for cleanup", async () => {
+    const current = await fixture({ targetAdvance: true });
+    const strategies = { [current.worker.workspaceId]: "fast_forward" as const };
+    const { integrationPlan, verification } = await prepareVerifiedCandidate(current, strategies);
+    await completeWorkspaceIntegration({
+      plan: integrationPlan,
+      verificationReceipt: verification,
+      integrationHost: current.integrationHost,
+      now: new Date("2026-08-26T00:00:21Z"),
+    });
+    const integrated = await readWorkspaceIntegrationAttempt(
+      current.root,
+      integrationPlan.attempt.targetLeaseId,
+    );
+    const records = await RepositoryCoordinationRecords.open(current.root);
+    const released = {
+      ...integrated!.attempt,
+      attemptId: `int_${"f".repeat(24)}`,
+      targetLeaseId: `itl_${"f".repeat(24)}`,
+      targetGeneration: 2,
+      state: "released" as const,
+      verificationReceiptHash: null,
+      verificationResults: [],
+      targetAfterCommit: null,
+    };
+    await records.write({
+      collection: "integrationAttempts",
+      recordId: released.targetLeaseId,
+      value: released,
+      expectedContentHash: null,
+    });
+    await expect(
+      planWorkspaceCleanup({
+        coordinates: {
+          repositoryRoot: current.root,
+          workspacePath: current.workerPath,
+          integrationTargetRef: current.targetRef,
+        },
+        workspaceId: current.worker.workspaceId,
+        host: new GitWorkspaceHostAdapter(),
+        now: new Date("2026-08-26T00:00:22Z"),
+      }),
+    ).resolves.toMatchObject({ status: "ready", blockedReasons: [] });
+  }, 20_000);
 });
+
+/** The record a newer Lervo leaves when it releases this attempt; this version never writes it. */
+async function writeReleasedAttempt(root: string, targetLeaseId: string) {
+  const stored = await readWorkspaceIntegrationAttempt(root, targetLeaseId);
+  const records = await RepositoryCoordinationRecords.open(root);
+  await records.write({
+    collection: "integrationAttempts",
+    recordId: targetLeaseId,
+    value: { ...stored!.attempt, state: "released", revision: stored!.attempt.revision + 1 },
+    expectedContentHash: stored!.contentHash,
+  });
+}

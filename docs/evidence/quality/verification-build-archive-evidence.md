@@ -1,6 +1,6 @@
 # Verification build archive implementation evidence
 
-This document records the supplied implementation of `scripts/distribution/lib/verification-build-cache.mjs`, its preparation runner, and test fixtures. It qualifies the shared-build decision in [ADR-0450](../../decisions/knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md) and supplements [ADR-0357](../../decisions/execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md). Source inspection establishes behavior and fixture scope; these sources include no test execution or installed acceptance receipt.
+This document records the supplied implementation of `scripts/distribution/lib/verification-build-cache.mjs`, its preparation runner, and test fixtures. It qualifies the shared-build decision in [ADR-0450](../../decisions/knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md) and supplements [ADR-0625](../../decisions/execution/verification/0625-prepare-isolated-candidate-verification-workspaces.md). Source inspection establishes behavior and fixture scope; these sources include no test execution or installed acceptance receipt.
 
 ## Input and local reuse boundary
 

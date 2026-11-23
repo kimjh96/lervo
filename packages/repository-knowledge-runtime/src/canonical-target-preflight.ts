@@ -12,6 +12,7 @@ import type { CanonicalDraft } from "./canonical-assessment-contract.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
 import { synchronizeIntegrationTarget } from "./integration-target-sync.js";
+import { releaseOrphanedConvergenceIntegrationAttempts } from "./integration-attempt-release.js";
 import { committedBlobHashes } from "./committed-blob-hashes.js";
 import { recordIntegrationTargetAbsorbed } from "./integration-target-absorption-event.js";
 import { canonicalDraftKey, integratedCanonicalDrafts } from "./canonical-disposition-ledger.js";
@@ -40,6 +41,8 @@ export async function preflightCanonicalTargets(
     context.storage.events,
     context.storage.artifacts,
   );
+  // No integrator lease is held yet, so only attempts whose lease ended are released here.
+  await releaseOrphanedConvergenceIntegrationAttempts(root, targetRef);
   // Synchronization can move the integration ref; no other await separates it from this fence.
   context.assertSourceExact(state);
   await synchronizeIntegrationTarget({

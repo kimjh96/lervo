@@ -1,4 +1,4 @@
-# ADR-0355: Use fork-backed runtime verification shards
+# ADR-0623: Use fork-backed runtime verification shards
 
 - Status: `accepted`
 - Decision date: 2026-09-28
@@ -27,5 +27,5 @@ The version-seven plan owns only the pure pool and shard argument adjustment. It
 
 ## References
 
-- [ADR-0354](0354-shard-full-runtime-verification-on-busy-hosts.md)
+- [ADR-0622](0622-shard-full-runtime-verification-on-busy-hosts.md)
 - [Autonomous background knowledge convergence roadmap](../../../roadmap/knowledge/autonomous-background-convergence.md)

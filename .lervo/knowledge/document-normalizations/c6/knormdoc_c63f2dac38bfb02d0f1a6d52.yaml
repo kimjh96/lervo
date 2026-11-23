@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 3457
     contentHash: sha256:3e1ce2eac6eb00eef3ea5594537cf7f43ad3a224252d9d9692f2bf301043e03c
-    path: docs/decisions/execution/verification/0353-bound-full-runtime-verification-on-busy-hosts.md
+    path: docs/decisions/execution/verification/0621-bound-full-runtime-verification-on-busy-hosts.md
     userRegionHash: sha256:3e1ce2eac6eb00eef3ea5594537cf7f43ad3a224252d9d9692f2bf301043e03c
 profile: decision_record
 recordId: knormdoc_c63f2dac38bfb02d0f1a6d52
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:526e261cb77c0d43dbb779a3e57a61b7032cc097223b6c07e4e8de275530dcb0
-sourcePath: docs/decisions/execution/verification/0353-bound-full-runtime-verification-on-busy-hosts.md
+sourcePath: docs/decisions/execution/verification/0621-bound-full-runtime-verification-on-busy-hosts.md
 sourceUnitVersionIds:
   - uv_5cdda25c8b6d076f3a949a6c
   - uv_76c152f73870d7c1befa947a

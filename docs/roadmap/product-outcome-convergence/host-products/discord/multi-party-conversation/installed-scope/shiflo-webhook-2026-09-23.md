@@ -8,7 +8,7 @@ An exact-content-hash poll of the observed channel window found no matching publ
 
 ## Correction and validation
 
-Commit `fe023951ee` applies ADR-0425, linked from the [scope entrypoint](../installed-scope.md):
+Commit `fe023951ee` applies ADR-0629, linked from the [scope entrypoint](../installed-scope.md):
 
 - Unaddressed webhook ingress is observation-only.
 - Safe unaddressed webhook status and co-resident task-result text may publish without pretending the webhook carries task control.

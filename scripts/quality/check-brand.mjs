@@ -62,14 +62,18 @@ if (rootPackage.scripts?.lervo !== "node apps/cli/dist/bin.js") {
   failures.push("The root package lervo CLI script differs from the expected path.");
 }
 
+// The CLI and the ADE each keep their own version line (ADR-0615); every other package follows
+// the root version.
+const ownVersionLines = new Set(["@lervo/cli", "@lervo/ade"]);
+
 for (const path of packagePaths) {
   const manifest = JSON.parse(readFileSync(resolve(repositoryRoot, path), "utf8"));
   if (typeof manifest.name !== "string" || !manifest.name.startsWith("@lervo/")) {
     failures.push(`${path}: the package name is outside the @lervo scope.`);
   }
-  if (manifest.name === "@lervo/cli" && !/^\d+\.\d+\.\d+$/.test(manifest.version ?? "")) {
-    failures.push(`${path}: the public CLI version must be a valid semantic version.`);
-  } else if (manifest.name !== "@lervo/cli" && manifest.version !== rootPackage.version) {
+  if (ownVersionLines.has(manifest.name) && !/^\d+\.\d+\.\d+$/.test(manifest.version ?? "")) {
+    failures.push(`${path}: the ${manifest.name} version must be a valid semantic version.`);
+  } else if (!ownVersionLines.has(manifest.name) && manifest.version !== rootPackage.version) {
     failures.push(`${path}: the package version differs from root ${rootPackage.version}.`);
   }
 }

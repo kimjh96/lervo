@@ -1,4 +1,4 @@
-# ADR-0415: Bound replica transport and preserve the installed coordinator
+# ADR-0628: Bound replica transport and preserve the installed coordinator
 
 - Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-16

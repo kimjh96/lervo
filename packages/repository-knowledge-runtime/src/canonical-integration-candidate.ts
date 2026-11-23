@@ -6,7 +6,7 @@ import {
   completeWorkspaceIntegration,
 } from "@lervo/orchestrator";
 import { GitWorkspaceIntegrationAdapter } from "@lervo/workspace-host-git";
-import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
+import { loadVerificationSuite } from "@lervo/verification";
 import { canonicalJson, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { provisionCanonicalWorkspace } from "./canonical-workspace.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
@@ -20,6 +20,31 @@ import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import { closeIntegratedConvergenceWorkspace } from "./integrator-workspace-closure.js";
 import { nextConvergenceIntegrationGeneration } from "./integration-target-generation.js";
+import { releaseConvergenceIntegrationAttempt } from "./integration-attempt-release.js";
+import {
+  runConvergenceVerificationSuite,
+  verificationEnvironment,
+} from "./verification-environment.js";
+
+/**
+ * A candidate that failed verification never moves the target, so its lease releases the attempt
+ * before the failure propagates; otherwise the attempt would block every later target generation.
+ * A refused release leaves the attempt blocking, and the original failure still propagates.
+ */
+async function releaseFailedCandidate(
+  root: string,
+  plan: { targetRef: string; attempt: { targetLeaseId: string } },
+  authority: ConvergenceAssignmentAuthority,
+  error: unknown,
+): Promise<never> {
+  await releaseConvergenceIntegrationAttempt({
+    root,
+    ref: plan.targetRef,
+    targetLeaseId: plan.attempt.targetLeaseId,
+    holderLeaseId: authority.assignment.lease!.leaseId,
+  }).catch(() => false);
+  throw error;
+}
 
 export async function prepareCanonicalGitIntegration(
   context: ConvergenceRuntimeContext,
@@ -52,6 +77,7 @@ export async function prepareCanonicalGitIntegration(
         targetGeneration: await nextConvergenceIntegrationGeneration(
           root,
           authority.delegation.integrationTarget.ref,
+          authority.assignment.lease!.leaseId,
         ),
         verificationSuites: suites,
         selectedWorkspaceIds: [sealedWorkspaceId],
@@ -68,6 +94,9 @@ export async function prepareCanonicalGitIntegration(
     prepare: () => applyWorkspaceIntegrationCandidate({ plan, integrationHost }),
   });
   context.sourceObservation?.noteChange();
+  // The integrator's suite runs with the same login-shell PATH as every other convergence suite
+  // (ADR-0536): under a service manager's minimal PATH, `pnpm` is missing.
+  const environment = await verificationEnvironment();
   const verificationReceipt = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -85,14 +114,17 @@ export async function prepareCanonicalGitIntegration(
               context.storage.artifacts,
               observedRepositorySnapshot,
               (captureRepositoryRevision) =>
-                runVerificationSuite({
-                  suite: input.suite,
-                  repositoryRoot: input.repositoryRoot,
-                  repositoryRevision: input.repositoryRevision,
-                  captureRepositoryRevision,
-                  artifactStore: context.storage.artifacts,
-                  ...(input.signal === undefined ? {} : { signal: input.signal }),
-                }),
+                runConvergenceVerificationSuite(
+                  {
+                    suite: input.suite,
+                    repositoryRoot: input.repositoryRoot,
+                    repositoryRevision: input.repositoryRevision,
+                    captureRepositoryRevision,
+                    artifactStore: context.storage.artifacts,
+                    ...(input.signal === undefined ? {} : { signal: input.signal }),
+                  },
+                  environment,
+                ),
             ),
         },
         append: (specs) => {
@@ -113,7 +145,7 @@ export async function prepareCanonicalGitIntegration(
         },
         signal: context.signal,
       }),
-  });
+  }).catch((error: unknown) => releaseFailedCandidate(root, plan, authority, error));
   await authority.assertCurrent();
   context.assertSourceExact(state);
   const integration = await convergenceEffectCheckpoint({

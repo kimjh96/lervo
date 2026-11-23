@@ -11,9 +11,7 @@ commands:
     environmentVariableNames: []
   - commandId: repository-lint
     executable: node
-    arguments:
-      - --run
-      - lint
+    arguments: [scripts/distribution/run-changed-static-verification.mjs, lint]
     cwd: .
     timeoutMs: 1800000
     maxOutputBytes: 1048576
@@ -29,9 +27,7 @@ commands:
     environmentVariableNames: []
   - commandId: repository-typecheck
     executable: node
-    arguments:
-      - --run
-      - typecheck
+    arguments: [scripts/distribution/run-changed-static-verification.mjs, typecheck]
     cwd: .
     timeoutMs: 900000
     maxOutputBytes: 1048576

@@ -1,4 +1,4 @@
-# ADR-0354: Shard full runtime verification on busy hosts
+# ADR-0622: Shard full runtime verification on busy hosts
 
 - Status: `accepted`
 - Decision date: 2026-09-28
@@ -30,5 +30,5 @@ These short modules add no provider-specific or canonical-knowledge policy.
 ## References
 
 - [ADR-0352](0352-escalate-opaque-runtime-changes.md)
-- [ADR-0353](0353-bound-full-runtime-verification-on-busy-hosts.md)
+- [ADR-0621](0621-bound-full-runtime-verification-on-busy-hosts.md)
 - [Autonomous background knowledge convergence roadmap](../../../roadmap/knowledge/autonomous-background-convergence.md)

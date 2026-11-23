@@ -101,7 +101,7 @@
       "provenance": "verification_authored",
       "query": "bounded role-based document layout 구조로 결정한 이유가 뭐였지?",
       "expectedPaths": [
-        "docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md"
+        "docs/decisions/knowledge/repository/0620-bounded-role-based-document-layout.md"
       ],
       "maximumRank": 10
     },

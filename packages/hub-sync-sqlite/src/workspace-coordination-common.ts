@@ -18,7 +18,7 @@ export const workspaceSummaryTransitions: Readonly<
   sealing: ["sealed", "recovery_required"],
   sealed: ["integration_pending", "recovery_required"],
   integration_pending: ["integrating", "integration_conflict", "recovery_required"],
-  integrating: ["integrated", "integration_conflict", "recovery_required"],
+  integrating: ["integrated", "integration_conflict", "integration_pending", "recovery_required"],
   integrated: ["cleanup_eligible", "recovery_required"],
   integration_conflict: ["integration_pending", "recovery_required"],
   cleanup_eligible: ["removing", "recovery_required"],

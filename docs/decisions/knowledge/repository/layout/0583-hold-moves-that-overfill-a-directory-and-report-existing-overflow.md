@@ -2,11 +2,11 @@
 
 Status: `accepted`
 Decision date: 2026-11-18
-Amends: [ADR-0222](../0222-bounded-role-based-document-layout.md) (capacity evaluation), [ADR-0547](0547-block-only-layout-overflow-a-write-creates-or-grows.md) (existing overflow)
+Amends: [ADR-0620](../0620-bounded-role-based-document-layout.md) (capacity evaluation), [ADR-0547](0547-block-only-layout-overflow-a-write-creates-or-grows.md) (existing overflow)
 
 ## Context
 
-[ADR-0222](../0222-bounded-role-based-document-layout.md) limits how many documents a directory holds and how many document-bearing child directories it has. The default limit is 32 for each. [ADR-0547](0547-block-only-layout-overflow-a-write-creates-or-grows.md) stopped existing overflow from blocking writes elsewhere. A capacity blocker now blocks only when the operations make the count larger.
+[ADR-0620](../0620-bounded-role-based-document-layout.md) limits how many documents a directory holds and how many document-bearing child directories it has. The default limit is 32 for each. [ADR-0547](0547-block-only-layout-overflow-a-write-creates-or-grows.md) stopped existing overflow from blocking writes elsewhere. A capacity blocker now blocks only when the operations make the count larger.
 
 The `argo` repository still stayed `blocked` with `document_directory_file_capacity_exceeded` on every release. Its user note folders exceed the limit: `v8/notes` holds 184 documents, `v6/notes` 88, `collector/notes` 44, and `v7/notes` 37. The report named no directory, so these folders looked like the cause.
 

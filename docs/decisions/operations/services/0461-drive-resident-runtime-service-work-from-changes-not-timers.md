@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-05
-Amends: [ADR-0433](../../knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md), [ADR-0399](../../coordination/sync/0399-change-driven-repository-and-conversation-work.md), [ADR-0415](../../coordination/sync/0415-bounded-replica-transport-and-service-completion.md), [ADR-0458](../../execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md)
+Amends: [ADR-0433](../../knowledge/repository/canonicalization/0433-own-background-knowledge-for-every-repository-change.md), [ADR-0399](../../coordination/sync/0399-change-driven-repository-and-conversation-work.md), [ADR-0628](../../coordination/sync/0628-bounded-replica-transport-and-service-completion.md), [ADR-0458](../../execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md)
 Related: [ADR-0164](0164-user-runtime-service-management-boundary.md), [ADR-0165](0165-runtime-readiness-and-preflight-boundary.md), [ADR-0450](../../knowledge/repository/canonicalization/0450-keep-background-knowledge-out-of-developer-flow.md)
 Evidence: [Hub host load measurement, 2026-10-05](../../../evidence/operations/hub-host-load-2026-10-05.md)
 

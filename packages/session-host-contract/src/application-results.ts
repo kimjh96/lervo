@@ -77,8 +77,8 @@ export const workspaceListResultSchema = {
   properties: {
     workspaces: { type: "array", maxItems: 1000, items: workspaceSummarySchema },
     /**
-     * The application commands this core answers. An older core omits it and answers only the
-     * base commands.
+     * The application commands this core answers, and the core-link requests it advertises, such
+     * as `session.exited`. An older core omits it and answers only the base commands.
      */
     commands: {
       type: "array",

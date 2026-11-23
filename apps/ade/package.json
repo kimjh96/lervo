@@ -1,6 +1,6 @@
 {
   "name": "@lervo/ade",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "engines": {
     "lervo": ">=0.43.0"
   },

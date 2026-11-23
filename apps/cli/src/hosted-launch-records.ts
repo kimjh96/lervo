@@ -64,6 +64,32 @@ export async function recordHostedLaunch(path: string, record: HostedLaunchRecor
   await writePrivateJsonFile(path, { schemaVersion: 1, records });
 }
 
+/** The newest record of a provider's session, or null when Lervo did not prepare it. */
+export async function hostedLaunchOfSession(
+  path: string,
+  provider: string,
+  sessionId: string,
+): Promise<HostedLaunchRecord | null> {
+  const records = await readRecords(path);
+  return (
+    records.findLast((record) => record.provider === provider && record.sessionId === sessionId) ??
+    null
+  );
+}
+
+/** The newest record of a session, whatever its provider, or null. */
+export async function latestHostedLaunchOfSession(
+  path: string,
+  sessionId: string,
+): Promise<HostedLaunchRecord | null> {
+  return (await readRecords(path)).findLast((record) => record.sessionId === sessionId) ?? null;
+}
+
+/** The sessions of every kept record. */
+export async function hostedLaunchSessions(path: string): Promise<Set<string>> {
+  return new Set((await readRecords(path)).map((record) => record.sessionId));
+}
+
 /** The newest record of `workspaceId`, or null. */
 export async function latestHostedLaunch(
   path: string,

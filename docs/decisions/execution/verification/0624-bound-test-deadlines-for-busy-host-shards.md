@@ -1,4 +1,4 @@
-# ADR-0356: Bound test deadlines for busy-host shards
+# ADR-0624: Bound test deadlines for busy-host shards
 
 - Status: `accepted`
 - Decision date: 2026-09-28
@@ -38,5 +38,5 @@ The version-eight plan owns only the pure deadline change. Its short runner owns
 
 ## References
 
-- [ADR-0355](0355-use-fork-backed-runtime-shards.md)
+- [ADR-0623](0623-use-fork-backed-runtime-shards.md)
 - [Autonomous background knowledge convergence roadmap](../../../roadmap/knowledge/autonomous-background-convergence.md)

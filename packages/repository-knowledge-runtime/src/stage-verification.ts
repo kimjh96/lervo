@@ -1,10 +1,13 @@
-import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
+import { loadVerificationSuite } from "@lervo/verification";
 import { convergenceSourceObservation } from "./source-observation.js";
 import { assertConvergenceVerificationPassed } from "./verification-outcome.js";
 import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import { withVerificationSourceChanges } from "./verification-source-changes.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
-import { verificationEnvironment } from "./verification-environment.js";
+import {
+  runConvergenceVerificationSuite,
+  verificationEnvironment,
+} from "./verification-environment.js";
 
 export async function verifyConvergenceEffect(
   context: ConvergenceRuntimeContext,
@@ -31,7 +34,7 @@ export async function verifyConvergenceEffect(
       context.storage.artifacts,
       observe,
       (captureRepositoryRevision) =>
-        runVerificationSuite(
+        runConvergenceVerificationSuite(
           {
             suite,
             repositoryRoot: root,
@@ -40,7 +43,7 @@ export async function verifyConvergenceEffect(
             artifactStore: context.storage.artifacts,
             signal: context.signal,
           },
-          { environment },
+          environment,
         ),
     );
     assertConvergenceVerificationPassed(

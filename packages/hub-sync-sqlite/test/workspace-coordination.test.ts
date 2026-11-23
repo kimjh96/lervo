@@ -337,4 +337,42 @@ describe("Hub workspace coordination SQLite", () => {
     ).resolves.toEqual([]);
     await store.close();
   });
+
+  it("accepts a released integration source returning to its queue and no other new transition", async () => {
+    const project = manifest("prj_workspace_hub_04");
+    const identity = registration(project).projectIdentityHash;
+    const store = await HubSyncSQLiteStore.open({ path: await databasePath() });
+    await registerStore(store, project);
+    const publish = (state: HubWorkspaceSummary["state"], minute: number) => {
+      const next = summary({
+        projectId: project.projectId,
+        repositoryIdentityHash: identity,
+        state,
+        updatedAt: `2026-08-26T00:${String(minute).padStart(2, "0")}:00.000Z`,
+      });
+      return store.publishWorkspaceSummary({
+        destinationId,
+        summary: next,
+        acceptedAt: next.updatedAt,
+      });
+    };
+    const states: HubWorkspaceSummary["state"][] = [
+      "provisioning",
+      "ready",
+      "active",
+      "sealing",
+      "sealed",
+      "integration_pending",
+      "integrating",
+      "integration_pending",
+      "integrating",
+    ];
+    for (const [minute, state] of states.entries())
+      await expect(publish(state, minute)).resolves.toMatchObject({ summary: { state } });
+    // Only the release edge was added; an integrating source still cannot return to `sealed`.
+    await expect(publish("sealed", states.length)).rejects.toMatchObject({
+      code: "workspace_coordination_stale_generation",
+    });
+    await store.close();
+  });
 });
