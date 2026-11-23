@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.43.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.43.2" schema="1" -->
 
 ## What's changed
 
-- Knowledge convergence verification runs with the owner's login-shell PATH, so canonical integration finds pnpm under a service manager and no longer fails on spawnSync pnpm ENOENT.
+- Context quality recording works on repositories whose event writer is past schema version 6; it had reported writer_not_active on every repository at version 7 or later.
