@@ -38,6 +38,9 @@ const OUTPUT_CHUNK_BYTES: usize = 1024 * 1024;
 /// (the contract's `baseApplicationCommandNames`). Any other command goes only to a process that
 /// advertised it, because an older one ends the link on a request it cannot validate.
 const BASE_COMMANDS: [&str; 3] = ["workspace.start", "workspace.list", "repository.list"];
+/// The session host's exit report, a core-link request that a resident process advertises in
+/// `workspace.list` beside its application commands.
+const SESSION_EXITED: &str = "session.exited";
 
 /// The commands a resident process named in its last workspace list.
 struct Advertised {
@@ -210,6 +213,19 @@ impl Core for CoreLink {
             self.record_advertised(answered_by, &outcome.result);
         }
         Ok(outcome)
+    }
+
+    /// Sends the report only to the resident process that advertised `session.exited`; an older
+    /// one ends the link on a request it cannot validate. The answer only says what was recorded.
+    async fn session_exited(&self, session_id: &str, exit_code: Option<u8>) {
+        let Some(generation) = self.advertiser_of(SESSION_EXITED) else {
+            return;
+        };
+        let request =
+            json!({"kind": SESSION_EXITED, "sessionId": session_id, "exitCode": exit_code});
+        let _ = self
+            .ask_on(request, COMMAND_DEADLINE, Some(generation))
+            .await;
     }
 
     async fn transcript(

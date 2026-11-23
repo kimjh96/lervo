@@ -106,6 +106,7 @@ The ADE no longer shows the CLI conversation ([ADR-0617](../../../decisions/exec
 - It opens the session with `session.open` in the CLI conversation, attaches from the last sequence it wrote, and skips frames it already wrote, so reconnecting never repeats output.
 - Keystrokes go out as terminal frames on the session's channel. Size changes go out as `session.resize`, once per change.
 - The header switches a workspace between the two modes through `session.open` with the other mode. The session host stops the running provider process and waits up to 10 seconds for it to end before the core prepares the other mode, so one provider process serves each workspace. If the process does not end in time, the switch fails with `session_stop_timeout` and the session keeps running in its current mode.
+- The session host ends a native session's provider with SIGTERM, so Claude Code runs its own shutdown and its `SessionEnd` hook. It kills the provider 8 seconds later if it still runs, which stays below the 10 seconds a mode switch waits. When the process has ended, the session host reports its exit code, or none after a signal, with `session.exited` to a core that advertises it ([core link](ade-core-link.md)).
 - The terminal and its renderer load on first use, so the start screen does not pay for them.
 - When the session host cannot be reached, the interface's reconnection makes the shell start it again (session-host protocol, "Transport").
 
