@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2b3bc02408a913ccbdb1ccdd"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "When workspace.start names no conversation mode, start the provider's preferred one: the native conversation when the adapter offers it, otherwise the CLI."
