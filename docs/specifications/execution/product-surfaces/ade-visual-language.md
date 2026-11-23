@@ -13,7 +13,8 @@ Values here supersede the mockup values where they differ. The glass follows the
 - **The material stays on.** The window keeps its material when it is not the active window, so the glass does not turn into a flat panel when the user works in another app.
 - **One tint for the window.** The whole window carries the `glass.tint` layer over the material, as in the mockups. The workspace list and the selected workspace add their lighter surfaces on top.
 - **Platforms without a material.** Linux and WSL draw the opaque surface tokens. The layout, behavior, and contrast stay the same; only the translucency differs.
-- **In-app overlays.** A CSS `backdrop-filter` is allowed only for short-lived overlays, such as the command palette and menus, over app content. It never sits over the scrolling conversation or a terminal.
+- **Floating controls.** The reply card and "Jump to latest" float over the conversation on `color.surface.floating` with the overlay blur, and the conversation runs beneath them to the bottom of the window, where it fades out. The owner asked for this on 2026-11-23, because a reply card that kept its own band looked rigid. S1.6b measures scrolling with them.
+- **In-app overlays.** Short-lived overlays, such as the command palette and menus, may use the same CSS `backdrop-filter` over app content. Nothing uses it over a terminal.
 - **Fallbacks.** When the OS asks for reduced transparency or increased contrast, or when the device is in a low-power mode, every glass surface switches to its opaque token.
 
 | Token                | Dark                  | Light                 |
@@ -31,6 +32,7 @@ Each token is semantic. Components use tokens, never raw values.
 | `color.surface.opaque`      | `#1A1C23`                | `#F4F5F8`                | The window when glass is off                                |
 | `color.surface.sidebar`     | `rgba(255,255,255,0.03)` | `rgba(255,255,255,0.35)` | The workspace list over the window surface                  |
 | `color.surface.input`       | `rgba(255,255,255,0.05)` | `rgba(255,255,255,0.80)` | Instruction and reply inputs                                |
+| `color.surface.floating`    | `rgba(30,32,40,0.62)`    | `rgba(255,255,255,0.62)` | The reply card and controls over the conversation           |
 | `color.surface.selected`    | `rgba(255,255,255,0.08)` | `rgba(255,255,255,0.85)` | The selected workspace                                      |
 | `color.surface.workspace`   | `rgba(255,255,255,0)`    | `rgba(255,255,255,0.35)` | The selected workspace's conversation over the window glass |
 | `color.surface.userMessage` | `rgba(255,255,255,0.08)` | `rgba(20,30,50,0.06)`    | The user's messages in the conversation                     |
