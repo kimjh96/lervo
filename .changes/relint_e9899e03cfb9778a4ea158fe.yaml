@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e9899e03cfb9778a4ea158fe"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "The session-host protocol adds session.sent, which answers a session.send whose text reached the provider; the CLI's core link is unchanged."
