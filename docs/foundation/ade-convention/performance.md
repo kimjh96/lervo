@@ -17,11 +17,11 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 ## CPU
 
 - File and repository changes arrive through OS notifications, never through polling. Watchers cover only the paths a feature needs.
-- Remaining timers are coalesced and stop when the window is hidden.
+- Remaining timers are coalesced and stop when the window is hidden. One timer is exempt: the session-host client's reconnect timer, which runs only while the connection is down, at most every 10 seconds. A hidden window still needs the connection, because the session watch behind desktop notifications runs over it.
 - The UI main thread does only input, state transitions, and rendering. Parsing, highlighting, and diffing run in workers or in the session host.
 - Input-driven work, such as search and resize, is debounced or throttled.
 - React renders follow the data they read. Stores expose fine-grained selectors with stable references, and no context change re-renders a whole feature.
-- Animations use compositor-only properties (`transform` and `opacity`). They stop when the window is hidden, when the user prefers reduced motion, and when nothing is working.
+- Animations use compositor-only properties (`transform` and `opacity`). They stop when the window is hidden, when the user prefers reduced motion, and when nothing is working. `platform/visibility` marks a hidden, minimized, or occluded window, and `ui/motion.css` pauses every animation while the mark is set.
 
 ## Memory
 

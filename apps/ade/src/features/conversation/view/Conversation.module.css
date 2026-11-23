@@ -9,15 +9,22 @@
 /* The conversation runs under the dock and fades out at the bottom edge of the window. */
 .scroller {
   height: 100%;
-  padding: var(--space-24) 0 calc(var(--dock-height) + var(--space-12));
+  padding-block: var(--space-24) calc(var(--dock-height) + var(--space-12));
   overflow-y: auto;
   overscroll-behavior: contain;
   box-sizing: border-box;
   mask-image: linear-gradient(to top, transparent 0, #000 var(--space-24));
 }
 
+/* The log takes keyboard focus for scrolling; the frame draws its ring, which the scroller's
+   fade would otherwise hide at the bottom. */
 .scroller:focus {
   outline: none;
+}
+
+.frame:has(> .scroller:focus-visible) {
+  outline: 2px solid var(--color-accent);
+  outline-offset: -2px;
 }
 
 /* Following the live end scrolls the view itself, which would flash macOS's overlay scroll bar
@@ -33,7 +40,7 @@
 .list {
   position: relative;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
-  margin: 0 auto;
+  margin-inline: auto;
 }
 
 .list:not([data-placed]) {
@@ -43,53 +50,38 @@
 /* The conversation arrives with its view once placed; the reply card stays where it is (ADE
    motion, "Switching workspaces"). */
 .list[data-placed="arrive"] {
-  animation: view-arrive var(--motion-duration-enter) var(--motion-easing-standard);
-}
-
-@keyframes view-arrive {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 .row {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset-block-start: 0;
+  inset-inline-start: 0;
   display: grid;
   width: 100%;
-  padding: 14px 0;
+  padding-block: var(--space-14);
   box-sizing: border-box;
 }
 
 .row[data-kind="tool_activity"] {
-  padding-bottom: var(--space-6);
+  padding-block-end: var(--space-6);
 }
 
 .row[data-kind="agent_message"] {
-  padding-top: var(--space-6);
+  padding-block-start: var(--space-6);
 }
 
 /* Only items that arrive while the user watches move (ADE motion, "A message arrives live"). */
 .row[data-arrived="true"] > * {
-  animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
-}
-
-@keyframes arrive {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 /* The reply card and "Jump to latest" float over the conversation on glass (visual language,
    "Floating controls"). Only the controls take pointer input; the gaps scroll the conversation. */
 .dock {
   position: absolute;
-  right: 0;
-  bottom: 0;
-  left: 0;
+  inset-block-end: 0;
+  inset-inline: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -102,9 +94,12 @@
 
 .jump {
   position: absolute;
-  bottom: calc(100% + var(--space-8));
-  left: 50%;
-  padding: var(--space-6) var(--space-14);
+  inset-block-end: calc(100% + var(--space-8));
+  inset-inline: 0;
+  width: max-content;
+  margin-inline: auto;
+  padding-block: var(--space-6);
+  padding-inline: var(--space-14);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
@@ -112,22 +107,15 @@
   font-size: var(--type-meta-size);
   background: var(--color-surface-floating);
   box-shadow: var(--shadow-raised);
-  transform: translateX(-50%);
   backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
   cursor: pointer;
-  animation: appear var(--motion-duration-change) var(--motion-easing-standard);
+  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .jump {
     background: var(--color-surface-opaque);
     backdrop-filter: none;
-  }
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
   }
 }
 

@@ -1,5 +1,6 @@
-/* Conversation items (approved mockup "2a"): the user's messages in a bubble on the right, the
-   agent's replies as plain paragraphs, and tool lines and Lervo notices as quiet meta text. */
+/* Conversation items (approved mockup "2a"): the user's messages in a bubble at the end of the
+   line, the agent's replies as plain paragraphs, and tool lines and Lervo notices as quiet meta
+   text. */
 .user,
 .agent p,
 .question p,
@@ -13,11 +14,12 @@
 .user {
   justify-self: end;
   max-width: 80%;
-  padding: var(--space-10) var(--space-14);
+  padding-block: var(--space-10);
+  padding-inline: var(--space-14);
   border-radius: var(--radius-lg);
   color: var(--color-text-primary);
   font-size: var(--type-body-size);
-  line-height: 1.6;
+  line-height: var(--type-note-line-height);
   background: var(--color-surface-user-message);
 }
 
@@ -32,8 +34,8 @@
 }
 
 .question {
-  padding-left: var(--space-12);
-  border-left: 2px solid var(--color-status-needs-you);
+  padding-inline-start: var(--space-12);
+  border-inline-start: 2px solid var(--color-status-needs-you);
 }
 
 .tool,
