@@ -1,8 +1,8 @@
 // What the interface needs to know about the platform it runs on, read in one place.
 
 /**
- * Whether the interface runs on macOS, where the command modifier is Command and the shell
- * draws the native window material (`tauri.macos.conf.json`) behind the webview.
+ * Whether the interface runs on macOS, where the command modifier is Command. The shell reports
+ * the window material itself, as `data-material` on the document element (`src-tauri/src/material.rs`).
  */
 export const isMac = typeof navigator !== "undefined" && navigator.userAgent.includes("Mac OS");
 

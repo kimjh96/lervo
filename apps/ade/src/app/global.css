@@ -7,15 +7,31 @@ body,
   margin: 0;
 }
 
-/* With the native window material, the window shows through and surfaces tint it. */
+/* The window's surface, as in the approved mockups: the glass tint over the opaque surface, or
+   over the native material where the shell draws one (`data-material`, set by the shell before the
+   first paint). The launch view and the frame both sit on it, so the window keeps its color while
+   the first screen replaces the launch view. */
+:root {
+  --window-tint: color-mix(
+    in srgb,
+    var(--glass-tint-color) calc(var(--glass-tint-opacity) * 100%),
+    transparent
+  );
+}
+
+body {
+  background: linear-gradient(var(--window-tint), var(--window-tint)), var(--color-surface-opaque);
+}
+
 :root[data-material="native"] body {
-  background: transparent;
+  background: var(--window-tint);
 }
 
 /* Reduced transparency means opaque surfaces. */
 @media (prefers-reduced-transparency: reduce) {
   :root[data-material="native"] body {
-    background: var(--color-surface-opaque);
+    background:
+      linear-gradient(var(--window-tint), var(--window-tint)), var(--color-surface-opaque);
   }
 }
 

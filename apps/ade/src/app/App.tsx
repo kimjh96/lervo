@@ -9,13 +9,18 @@ import { isCommandKey } from "../platform/keyboard";
 import { transition } from "../platform/transition";
 import { type Adapters, AdaptersProvider, type Notifier } from "../ports";
 import { Frame } from "./Frame";
+import { useLaunched } from "./launch";
 
 const locale = chooseLocale(navigator.languages);
 const intl = createIntl({ locale, defaultLocale, messages: messagesFor(locale) });
 
-/** The application root: it binds the models to the adapters and renders the frame. */
+/**
+ * The application root: it binds the models to the adapters and renders the frame once the
+ * launch view leaves.
+ */
 export function App(props: { adapters: Adapters; notifier: Notifier }) {
   const { adapters, notifier } = props;
+  const launched = useLaunched();
   useEffect(() => {
     const { host, commands, drafts } = adapters;
     const unbind = [
@@ -44,9 +49,7 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
   }, [adapters, notifier]);
   return (
     <RawIntlProvider value={intl}>
-      <AdaptersProvider adapters={adapters}>
-        <Frame />
-      </AdaptersProvider>
+      <AdaptersProvider adapters={adapters}>{launched ? <Frame /> : null}</AdaptersProvider>
     </RawIntlProvider>
   );
 }
