@@ -27,3 +27,45 @@ body {
     background: var(--color-surface-opaque);
   }
 }
+
+/* Continuity transitions (ADE motion, "Continuity"): an element named in both views moves and
+   resizes to its new place, and the rest of the window crossfades. */
+::view-transition-group(*) {
+  animation-duration: var(--motion-duration-continuity);
+  animation-timing-function: var(--motion-easing-standard);
+}
+
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-duration: var(--motion-duration-continuity);
+  animation-timing-function: var(--motion-easing-standard);
+}
+
+/* What leaves goes quickly and what comes arrives quickly, so the two views never linger on top
+   of each other while the continuing elements move. */
+::view-transition-old(root),
+::view-transition-old(lervo-reply-card),
+::view-transition-old(lervo-first-message) {
+  animation-duration: var(--motion-duration-exit);
+}
+
+::view-transition-new(root) {
+  animation-duration: var(--motion-duration-change);
+}
+
+/* The sidebar does not crossfade with itself, which would dim the glass midway. */
+::view-transition-old(lervo-sidebar) {
+  display: none;
+}
+
+::view-transition-new(lervo-sidebar) {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}

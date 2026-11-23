@@ -168,9 +168,16 @@ export function Conversation(props: {
 
   return (
     <div className={styles.frame} style={{ "--dock-height": `${dockHeight}px` } as CSSProperties}>
-      {/* The log scrolls, so it takes keyboard focus for the arrow and page keys. */}
-      {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
-      <div ref={scroller} className={styles.scroller} role="log" aria-live="polite" tabIndex={0}>
+      <div
+        ref={scroller}
+        className={styles.scroller}
+        data-live={live ? "true" : undefined}
+        role="log"
+        aria-live="polite"
+        // The log scrolls, so it takes keyboard focus for the arrow and page keys.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+      >
         <div className={styles.list} style={{ height: totalSize }}>
           {virtualizer.getVirtualItems().map((row) => {
             const item = window.items[row.index];

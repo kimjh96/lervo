@@ -8,6 +8,7 @@
 
 /* The card floats over the conversation, which shows through it blurred. */
 .card {
+  view-transition-name: lervo-reply-card;
   display: flex;
   gap: var(--space-8);
   align-items: flex-end;

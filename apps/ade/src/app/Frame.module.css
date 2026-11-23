@@ -11,7 +11,9 @@
   );
 }
 
+/* The sidebar keeps its place in continuity transitions; its changes show at once. */
 .sidebar {
+  view-transition-name: lervo-sidebar;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -34,7 +36,6 @@
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  animation: fade var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 .content[data-view="native"] {
@@ -43,18 +44,6 @@
 
 .content[data-view="cli"] {
   background: var(--color-surface-terminal);
-}
-
-@keyframes fade {
-  from {
-    opacity: 0;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .content {
-    animation: none;
-  }
 }
 
 @media (width < 760px) {

@@ -14,9 +14,9 @@ const Terminal = lazy(() =>
 
 /**
  * The window (approved mockups "1" and "2a/2b"): the workspace list beside the start screen or
- * the selected workspace. Changing the view fades the new one in over `change`; nothing slides
- * (ADE motion, "Switching workspaces"). Work just sent shows its pending workspace at once, and
- * the created workspace continues it in the same view, without a second fade.
+ * the selected workspace. Views change in continuity transitions, which the actions that change
+ * them start (ADE motion, "Continuity between views"). Work just sent shows its pending workspace
+ * at once, and the created workspace continues it in the same view.
  */
 export function Frame() {
   const selected = useWorkspaceStore((store) =>

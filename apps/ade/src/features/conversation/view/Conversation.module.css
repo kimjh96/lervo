@@ -20,6 +20,16 @@
   outline: none;
 }
 
+/* Following the live end scrolls the view itself, which would flash macOS's overlay scroll bar
+   on every frame; the scroll bar shows once the user scrolls away. */
+.scroller[data-live="true"] {
+  scrollbar-width: none;
+}
+
+.scroller[data-live="true"]::-webkit-scrollbar {
+  display: none;
+}
+
 .list {
   position: relative;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));

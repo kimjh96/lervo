@@ -1,11 +1,12 @@
 /* The pending workspace keeps the workspace's geometry: the header, the first message where the
    conversation puts it, and the reply card in the dock. */
+/* The frame already draws the workspace surface, so this view adds none of its own and the glass
+   looks the same before and after the workspace exists. */
 .workspace {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
-  background: var(--color-surface-workspace);
 }
 
 .header {
@@ -42,14 +43,21 @@
   padding-top: var(--space-24);
 }
 
-/* The instruction lands as the first message with the arrival motion. */
+/* The instruction becomes the first message: it moves there from the start card, or, where view
+   transitions are missing, arrives with the arrival motion. */
 .first {
   display: grid;
   box-sizing: border-box;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
   margin: 0 auto;
   padding: 14px 0;
-  animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
+  view-transition-name: lervo-first-message;
+}
+
+@supports not (view-transition-name: none) {
+  .first {
+    animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
+  }
 }
 
 @keyframes arrive {

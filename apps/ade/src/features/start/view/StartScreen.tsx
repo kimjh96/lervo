@@ -2,6 +2,7 @@ import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useApplicationCommands } from "../../../app/session-host-context";
+import { transition } from "../../../platform/transition";
 import { ArrowUpIcon, ChevronDownIcon } from "../../../ui/icons";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
@@ -56,7 +57,7 @@ export function StartScreen() {
     event?.preventDefault();
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
-    void startWork(commands, { ...draft, repository }, name);
+    transition(() => void startWork(commands, { ...draft, repository }, name));
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;

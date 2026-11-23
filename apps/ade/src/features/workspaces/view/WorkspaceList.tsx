@@ -1,6 +1,7 @@
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { shortcutLabel } from "../../../platform/keyboard";
+import { transition } from "../../../platform/transition";
 import { PlusIcon } from "../../../ui/icons";
 import { StatusDot } from "../../../ui/StatusDot";
 import { groupByRepository, visibleStatus } from "../model/decisions";
@@ -28,7 +29,7 @@ export function WorkspaceList() {
         type="button"
         className={styles.row}
         aria-current={selected === null ? "page" : undefined}
-        onClick={newWork}
+        onClick={() => transition(newWork)}
       >
         <PlusIcon size={14} />
         <span className={styles.name}>
@@ -53,7 +54,7 @@ export function WorkspaceList() {
                     className={styles.row}
                     data-quiet={status === null && !current ? "true" : undefined}
                     aria-current={current ? "page" : undefined}
-                    onClick={() => select(workspace.workspaceId)}
+                    onClick={() => transition(() => select(workspace.workspaceId))}
                   >
                     <span className={styles.name}>{workspace.title ?? workspace.branch}</span>
                     {status === null ? null : (
