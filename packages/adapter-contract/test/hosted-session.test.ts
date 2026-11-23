@@ -76,6 +76,7 @@ describe("the common hosted-session checks", () => {
         workingDirectory: "/elsewhere",
         mode: "cli",
         initialInput: null,
+        environmentRemove: [],
       }),
     };
     const violations = evaluateHostedSessionContract(broken, "/work/repo");

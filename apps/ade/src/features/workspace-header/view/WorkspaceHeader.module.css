@@ -1,44 +1,4 @@
-/* The workspace header's controls (approved mockup "2a"): a failed switch and the mode switch. */
+/* The workspace header's controls (approved mockup "2a"): a failed switch, then the mode switch. */
 .failure {
   flex: none;
-  color: var(--color-status-failed);
-  font-size: var(--type-caption-size);
-}
-
-.modes {
-  display: flex;
-  flex: none;
-  gap: var(--space-2);
-  padding: var(--space-2);
-  border-radius: var(--radius-sm);
-  background: var(--color-border-subtle);
-}
-
-.modes button {
-  height: var(--size-control-sm);
-  padding-inline: var(--space-8);
-  border: 0;
-  /* Concentric with the group's corners. */
-  border-radius: calc(var(--radius-sm) - var(--space-2));
-  color: var(--color-text-tertiary);
-  font: inherit;
-  font-size: var(--type-caption-size);
-  background: transparent;
-  cursor: pointer;
-  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-.modes button[aria-pressed="true"] {
-  color: var(--color-text-primary);
-  background: var(--color-surface-selected);
-  box-shadow: var(--shadow-selected);
-}
-
-.modes button:disabled {
-  cursor: default;
-}
-
-.modes button:focus-visible {
-  outline: var(--focus-ring-width) solid var(--color-accent);
-  outline-offset: var(--focus-ring-inset);
 }

@@ -28,123 +28,25 @@
   letter-spacing: var(--type-display-letter-spacing);
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  padding-block: var(--space-14) var(--space-10);
-  padding-inline: var(--space-16) var(--space-14);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface-input);
-  box-shadow: var(--shadow-raised);
-}
-
-.instruction {
-  padding: 0;
-  border: 0;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--type-input-size);
-  line-height: var(--type-input-line-height);
-  background: transparent;
-  resize: none;
-}
-
-/* The card shows the focus of its input, which draws no ring of its own. */
-.instruction:focus {
-  outline: none;
-}
-
-.card:has(.instruction:focus-visible) {
-  border-color: var(--color-accent);
-}
-
-.instruction::placeholder {
-  color: var(--color-text-tertiary);
-}
-
 .bar {
   display: flex;
   gap: var(--space-4);
   align-items: center;
 }
 
-.chip {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  color: var(--color-text-secondary);
-}
-
-.chip select {
-  height: var(--size-control-md);
-  padding-inline: var(--space-8) var(--space-20);
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: inherit;
-  font: inherit;
-  font-size: var(--type-meta-size);
-  background: transparent;
-  appearance: none;
-  cursor: pointer;
-  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-.chip select:hover {
-  background: var(--color-surface-selected);
-}
-
-.chip svg {
-  position: absolute;
-  inset-inline-end: var(--space-6);
-  pointer-events: none;
-}
-
+/* The submit button sits at the end of the bar. */
 .submit {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--size-control-lg);
-  height: var(--size-control-lg);
   margin-inline-start: auto;
-  border: 0;
-  border-radius: var(--radius-md);
-  color: var(--color-on-accent);
-  background: var(--color-accent);
-  cursor: pointer;
 }
 
-.submit:disabled {
-  opacity: var(--opacity-disabled);
-  cursor: default;
-}
-
-.chip select:focus-visible,
-.submit:focus-visible {
-  outline: var(--focus-ring-width) solid var(--color-accent);
-  outline-offset: var(--focus-ring-offset);
-}
-
-.explain,
-.error {
+.explain {
   margin: 0;
   padding-inline: var(--space-4);
+  color: var(--color-text-secondary);
   font-size: var(--type-note-size);
   line-height: var(--type-note-line-height);
 }
 
-.explain {
-  color: var(--color-text-secondary);
-}
-
 .error {
-  color: var(--color-status-failed);
-  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .error {
-    animation: none;
-  }
+  padding-inline: var(--space-4);
 }

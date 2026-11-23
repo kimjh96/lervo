@@ -42,6 +42,30 @@ pub struct Launch {
     pub working_directory: PathBuf,
     /// Text to send through the stream decoder once the process runs, such as the instruction.
     pub initial_input: Option<String>,
+    /// Variables of the session host's own environment the process must not inherit, such as an
+    /// enclosing agent session's markers.
+    pub environment_remove: Vec<String>,
+    /// Whether the core can read this session's provider transcript (`Core::transcript`).
+    pub transcript: bool,
+}
+
+/// A page of a provider's own transcript: complete items, oldest first.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TranscriptPage {
+    /// Each a complete `Input::Item`.
+    pub items: Vec<Input>,
+    /// Whether the transcript ended with this page.
+    pub complete: bool,
+}
+
+impl TranscriptPage {
+    /// The page of a transcript that holds nothing.
+    pub fn empty() -> Self {
+        Self {
+            items: Vec::new(),
+            complete: true,
+        }
+    }
 }
 
 /// What went wrong, in the session host's terms.
@@ -130,6 +154,17 @@ pub trait Core: Send + Sync + 'static {
         command: &str,
         arguments: Map<String, Value>,
     ) -> impl Future<Output = Result<CommandOutcome, Failure>> + Send;
+
+    /// A page of the provider's own transcript of the workspace's session, for a launch the core
+    /// marked `transcript`. A core that reads no transcripts answers an empty, complete page.
+    fn transcript(
+        &self,
+        _workspace_id: &str,
+        _offset: u64,
+        _limit: u64,
+    ) -> impl Future<Output = Result<TranscriptPage, Failure>> + Send {
+        async { Ok(TranscriptPage::empty()) }
+    }
 }
 
 /// The core is not connected.

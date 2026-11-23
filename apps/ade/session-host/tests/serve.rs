@@ -9,6 +9,7 @@ use std::time::Duration;
 
 use lervo_session_core::ports::{
     CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
+    TranscriptPage,
 };
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{Content, Input};
@@ -92,6 +93,23 @@ impl Core for FakeCore {
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
                 initial_input: None,
+                environment_remove: Vec::new(),
+                transcript: false,
+            });
+        }
+        if workspace_id == "wks_sync" {
+            return Ok(Launch {
+                session_id: "ses_sync".to_owned(),
+                workspace_id: workspace_id.to_owned(),
+                mode: ConversationMode::Native,
+                program: "/bin/sh".to_owned(),
+                arguments: vec!["-c".to_owned(), "while read line; do :; done".to_owned()],
+                environment: Vec::new(),
+                working_directory: std::env::temp_dir(),
+                provider: "fake".to_owned(),
+                initial_input: None,
+                environment_remove: Vec::new(),
+                transcript: true,
             });
         }
         if workspace_id == "wks_missing" {
@@ -105,6 +123,8 @@ impl Core for FakeCore {
                 working_directory: std::env::temp_dir(),
                 provider: "fake".to_owned(),
                 initial_input: None,
+                environment_remove: Vec::new(),
+                transcript: false,
             });
         }
         let (session_id, mode, script) = match workspace_id {
@@ -130,6 +150,8 @@ impl Core for FakeCore {
             working_directory: std::env::temp_dir(),
             provider: "fake".to_owned(),
             initial_input: None,
+            environment_remove: Vec::new(),
+            transcript: false,
         })
     }
 
@@ -139,6 +161,34 @@ impl Core for FakeCore {
         _arguments: Map<String, Value>,
     ) -> Result<CommandOutcome, Failure> {
         Err(Failure::new(FailureCode::ApplicationUnavailable))
+    }
+
+    /// The transcript of `wks_sync`: turns from the CLI conversation, served one item per page.
+    async fn transcript(
+        &self,
+        workspace_id: &str,
+        offset: u64,
+        _limit: u64,
+    ) -> Result<TranscriptPage, Failure> {
+        if workspace_id != "wks_sync" {
+            return Ok(TranscriptPage::empty());
+        }
+        let items = [
+            Content::UserMessage("from the terminal".to_owned()),
+            Content::AgentMessage("answered there".to_owned()),
+        ];
+        let at = usize::try_from(offset).unwrap();
+        Ok(TranscriptPage {
+            items: items
+                .get(at)
+                .map(|content| Input::Item {
+                    content: content.clone(),
+                    created_at_ms: 1 + offset,
+                })
+                .into_iter()
+                .collect(),
+            complete: at + 1 >= items.len(),
+        })
     }
 }
 
@@ -505,6 +555,38 @@ async fn reuses_a_running_session_and_switches_its_mode_by_restarting_it() {
     );
     assert_eq!(switched.session_id.as_str(), "ses_switch");
     assert_ne!(switched.channel, first.channel);
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn shows_turns_from_the_provider_transcript_in_the_native_conversation() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_sync"}))
+        .await;
+    assert!(matches!(
+        client.next_message().await,
+        HostMessage::SessionOpenedMessage(_)
+    ));
+    client.send(json!({"kind": "conversation.range", "requestId": "req_2", "sessionId": "ses_sync", "direction": "before", "limit": 50})).await;
+    let HostMessage::ConversationPageMessage(page) = client.next_message().await else {
+        panic!("expected conversation.page")
+    };
+    let texts: Vec<String> = page
+        .items
+        .iter()
+        .map(|item| {
+            serde_json::to_value(item).unwrap()["text"]
+                .as_str()
+                .unwrap_or_default()
+                .to_owned()
+        })
+        .collect();
+    assert_eq!(texts, ["from the terminal", "answered there"]);
 
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();

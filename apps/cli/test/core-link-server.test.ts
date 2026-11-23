@@ -28,6 +28,7 @@ const started: WorkspaceStartResult = {
     workingDirectory: "/work/app-wt/fix-the-build-1a2b3c",
     mode: "native",
     initialInput: "Fix the build.",
+    environmentRemove: ["CLAUDECODE"],
   },
 };
 
@@ -45,6 +46,16 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
     listWorkspaces: async () => ({ workspaces: [] }),
     listRepositories: async () => ({ repositories: [{ projectId: "prj_1", name: "app" }] }),
     createDecoder: createHostedStreamDecoder,
+    async readTranscript(workspaceId, offset) {
+      if (workspaceId !== started.workspaceId)
+        throw new CommandFailure("workspace_not_found", "missing");
+      return {
+        items: [
+          { content: { kind: "user_message", text: "Fix the build." }, createdAtMs: 1000 + offset },
+        ],
+        complete: true,
+      };
+    },
   };
 }
 
@@ -88,6 +99,7 @@ describe("the core-link server", () => {
         conversationMode: "native",
         provider: "claude",
         initialInput: "Fix the build.",
+        environmentRemove: ["CLAUDECODE"],
       },
     });
     expect(written.find((response) => response.id === 2)).toEqual({
@@ -167,5 +179,23 @@ describe("the core-link server", () => {
     expect(end).toBe("message_invalid");
     expect(written.map((response) => response.id)).toEqual([1]);
     expect((await serve(["not json"])).end).toBe("message_invalid");
+  });
+
+  it("answers transcript pages and their failures by request", async () => {
+    const { written, end } = await serve([
+      { kind: "transcript.read", id: 1, workspaceId: started.workspaceId, offset: 0, limit: 500 },
+      { kind: "transcript.read", id: 2, workspaceId: "wsp_missing", offset: 0, limit: 500 },
+    ]);
+    expect(end).toBe("input_closed");
+    expect(written.find((response) => response.id === 1)).toEqual({
+      kind: "transcript.page",
+      id: 1,
+      items: [{ content: { kind: "user_message", text: "Fix the build." }, createdAtMs: 1000 }],
+      complete: true,
+    });
+    expect(written.find((response) => response.id === 2)).toMatchObject({
+      kind: "core.failed",
+      code: "workspace_not_found",
+    });
   });
 });

@@ -112,6 +112,25 @@ function adeLayerRules() {
       ],
     ),
     layer(
+      "catalog",
+      ["apps/ade/catalog/**/*.{ts,tsx}"],
+      [
+        [
+          [
+            "**/src/features",
+            "**/src/features/**",
+            "**/src/app",
+            "**/src/app/**",
+            "**/src/platform",
+            "**/src/platform/**",
+            "**/src/ports",
+            "**/src/ports/**",
+          ],
+          "The catalog shows shared components and tokens only.",
+        ],
+      ],
+    ),
+    layer(
       "ui",
       ["apps/ade/src/ui/**/*.{ts,tsx}"],
       [
@@ -311,8 +330,14 @@ export default defineConfig(
   },
   ...adeLayerRules(),
   {
+    // The catalog documents components with example text; it is not shipped interface copy.
+    name: "lervo/ade-catalog",
+    files: ["apps/ade/catalog/**/*.tsx"],
+    rules: { "lervo-jsx/no-jsx-literals": "off" },
+  },
+  {
     name: "lervo/ade-build-config",
-    files: ["apps/ade/vite.config.ts"],
+    files: ["apps/ade/vite.config.ts", "apps/ade/vite.catalog.config.ts"],
     languageOptions: {
       globals: globals.node,
     },

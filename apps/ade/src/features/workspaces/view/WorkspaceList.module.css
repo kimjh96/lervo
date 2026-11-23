@@ -21,9 +21,6 @@
 .failure {
   margin-block: var(--space-12) 0;
   margin-inline: var(--space-10);
-  color: var(--color-status-failed);
-  font-size: var(--type-caption-size);
-  line-height: var(--type-caption-line-height);
 }
 
 .rows {
@@ -33,57 +30,6 @@
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.row {
-  display: flex;
-  gap: var(--space-10);
-  align-items: center;
-  width: 100%;
-  padding-block: var(--space-8);
-  padding-inline: var(--space-10);
-  border: 0;
-  border-radius: var(--radius-sm);
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--type-list-size);
-  line-height: var(--type-list-line-height);
-  text-align: start;
-  background: transparent;
-  cursor: pointer;
-  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-.row[data-quiet="true"] {
-  color: var(--color-text-secondary);
-}
-
-.row:hover {
-  background: var(--color-surface-hover);
-}
-
-.row[aria-current="page"] {
-  background: var(--color-surface-selected);
-  box-shadow: var(--shadow-selected);
-}
-
-.row:focus-visible {
-  outline: var(--focus-ring-width) solid var(--color-accent);
-  outline-offset: var(--focus-ring-inset);
-}
-
-.name {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.shortcut {
-  color: var(--color-text-tertiary);
-  font: inherit;
-  font-size: var(--type-caption-size);
 }
 
 /* A workspace that starts while the user watches enters like a live message (ADE motion,

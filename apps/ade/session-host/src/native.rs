@@ -10,13 +10,14 @@ use lervo_session_core::status::{EndReason, SessionEvent};
 use lervo_session_core::transcript::{Change, Input, Transcript, coalesce};
 use lervo_session_protocol::codec::{decode_record, encode};
 use lervo_session_protocol::{ConversationItem, Identifier, RequestFailedMessageCode};
-use lervo_session_store::{ConversationStore, StoreError, retention};
+use lervo_session_store::{StoreError, retention};
 use lervo_session_stream::{StreamCommand, StreamError, StreamProcess};
 use tokio::sync::mpsc;
 
 use crate::index::Index;
 use crate::items::to_wire;
 use crate::messages;
+use crate::rebuild;
 use crate::session::{Command, Fanout, Range, SessionHandle, StatusSink, linger};
 use lervo_session_core::ports::{ConversationMode, Decoded, Launch, StreamDecoder};
 
@@ -58,25 +59,34 @@ pub(crate) struct Prepared<D> {
 /// Opens the index in `<root>/<session>`, applying the cap on all indexes, and starts `launch`
 /// with piped streams. This is blocking file and process work: the lifecycle runs it off the
 /// async workers and outside the registry's lock.
+///
+/// With the provider's `transcript`, the index is rebuilt from it first when it holds a different
+/// number of items, so turns from the CLI conversation appear here too.
 pub(crate) fn prepare<D: StreamDecoder>(
     launch: &Launch,
     session: Identifier,
     channel: u32,
     decoder: D,
     indexes: &IndexPlace,
+    transcript: Option<Vec<Input>>,
 ) -> Result<Prepared<D>, StartError> {
     let directory: PathBuf = indexes.root.join(session.as_str());
     retention::touch(&directory)?;
     let mut keep: Vec<&str> = indexes.in_use.iter().map(String::as_str).collect();
     keep.push(session.as_str());
     retention::enforce(&indexes.root, INDEX_CAP_BYTES, &keep)?;
-    let store = ConversationStore::open(&directory, SEGMENT_CACHE_BYTES)?;
+    let store = rebuild::open_synced(
+        &directory,
+        SEGMENT_CACHE_BYTES,
+        transcript.map(rebuild::projected),
+    )?;
     let stored = store.len();
     let index = Index::spawn(store)?;
     let process = StreamProcess::spawn(&StreamCommand {
         program: launch.program.clone(),
         arguments: launch.arguments.clone(),
         environment: launch.environment.clone(),
+        environment_remove: launch.environment_remove.clone(),
         working_directory: launch.working_directory.clone(),
     })?;
     Ok(Prepared {

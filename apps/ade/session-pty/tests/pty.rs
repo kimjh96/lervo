@@ -13,6 +13,7 @@ fn shell(script: &str) -> PtyCommand {
         program: "/bin/sh".to_owned(),
         arguments: vec!["-c".to_owned(), script.to_owned()],
         environment: vec![("LERVO_PTY_TEST".to_owned(), "set".to_owned())],
+        environment_remove: Vec::new(),
         working_directory: std::env::temp_dir(),
         columns: 80,
         rows: 24,
@@ -62,4 +63,12 @@ async fn names_a_program_that_does_not_exist() {
         PtyProcess::spawn(&command),
         Err(PtyError::Missing(program)) if program == "lervo-no-such-program"
     ));
+}
+
+#[tokio::test]
+async fn keeps_named_variables_of_its_own_environment_from_the_child() {
+    let mut command = shell("printf \"home:${HOME:-unset}\"");
+    command.environment_remove = vec!["HOME".to_owned()];
+    let mut process = PtyProcess::spawn(&command).unwrap();
+    assert!(all_output(&mut process).await.contains("home:unset"));
 }

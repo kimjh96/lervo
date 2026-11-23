@@ -3,6 +3,9 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { commandModifier } from "../../../platform/keyboard";
 import { transition } from "../../../platform/transition";
 import { PlusIcon } from "../../../ui/icons";
+import { InlineAlert } from "../../../ui/InlineAlert";
+import { Kbd } from "../../../ui/Kbd";
+import { ListRow } from "../../../ui/ListRow";
 import { StatusDot } from "../../../ui/StatusDot";
 import { groupByRepository, visibleStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
@@ -27,30 +30,24 @@ export function WorkspaceList() {
 
   return (
     <section className={styles.list} aria-label={intl.formatMessage({ id: "workspaces.label" })}>
-      <button
-        type="button"
-        className={styles.row}
-        aria-current={selected === null ? "page" : undefined}
+      <ListRow
+        current={selected === null}
         onClick={() => transition(newWork)}
-      >
-        <PlusIcon size="md" />
-        <span className={styles.name}>
-          <FormattedMessage id="workspaces.new" />
-        </span>
-        <kbd className={styles.shortcut}>
-          <FormattedMessage
-            id="keyboard.command"
-            values={{
-              modifier: commandModifier,
-              key: intl.formatMessage({ id: "workspaces.new.key" }),
-            }}
-          />
-        </kbd>
-      </button>
+        leading={<PlusIcon size="md" />}
+        label={<FormattedMessage id="workspaces.new" />}
+        trailing={
+          <Kbd>
+            {intl.formatMessage(
+              { id: "keyboard.command" },
+              { modifier: commandModifier, key: intl.formatMessage({ id: "workspaces.new.key" }) },
+            )}
+          </Kbd>
+        }
+      />
       {listFailure === null ? null : (
-        <p className={styles.failure} role="alert">
+        <InlineAlert size="caption" className={styles.failure}>
           <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
-        </p>
+        </InlineAlert>
       )}
       {groups.map((group) => (
         <div key={group.repositoryName}>
@@ -64,21 +61,20 @@ export function WorkspaceList() {
                   key={workspace.workspaceId}
                   data-arrived={arrived.has(workspace.workspaceId) ? "true" : undefined}
                 >
-                  <button
-                    type="button"
-                    className={styles.row}
-                    data-quiet={status === null && !current ? "true" : undefined}
-                    aria-current={current ? "page" : undefined}
+                  <ListRow
+                    current={current}
+                    quiet={status === null && !current}
                     onClick={() => select(workspace.workspaceId)}
-                  >
-                    <span className={styles.name}>{workspace.title ?? workspace.branch}</span>
-                    {status === null ? null : (
-                      <StatusDot
-                        tone={status === "working" ? "working" : "attention"}
-                        label={intl.formatMessage(statusMessages[status])}
-                      />
-                    )}
-                  </button>
+                    label={workspace.title ?? workspace.branch}
+                    trailing={
+                      status === null ? null : (
+                        <StatusDot
+                          tone={status === "working" ? "working" : "attention"}
+                          label={intl.formatMessage(statusMessages[status])}
+                        />
+                      )
+                    }
+                  />
                 </li>
               );
             })}

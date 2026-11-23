@@ -1,0 +1,75 @@
+/* Input cards (approved mockups "1" and "2a"): a field and its actions on one raised card. */
+.card {
+  display: flex;
+  gap: var(--space-8);
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-raised);
+}
+
+.card[data-surface="input"] {
+  background: var(--color-surface-input);
+}
+
+/* A floating card lets the content under it show through, blurred. */
+.card[data-surface="floating"] {
+  background: var(--color-surface-floating);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card[data-surface="floating"] {
+    background: var(--color-surface-opaque);
+    backdrop-filter: none;
+  }
+}
+
+.card[data-layout="stacked"] {
+  flex-direction: column;
+  padding-block: var(--space-14) var(--space-10);
+  padding-inline: var(--space-16) var(--space-14);
+}
+
+.card[data-layout="inline"] {
+  align-items: flex-end;
+  padding-block: var(--space-10);
+  padding-inline: var(--space-16) var(--space-10);
+}
+
+/* The card shows the focus of its field, which draws no ring of its own. */
+.card:has(.field:focus-visible) {
+  border-color: var(--color-accent);
+}
+
+.field {
+  border: 0;
+  color: var(--color-text-primary);
+  font: inherit;
+  background: transparent;
+  resize: none;
+}
+
+.field:focus {
+  outline: none;
+}
+
+.field::placeholder {
+  color: var(--color-text-tertiary);
+}
+
+.field[data-size="input"] {
+  padding: 0;
+  font-size: var(--type-input-size);
+  line-height: var(--type-input-line-height);
+}
+
+.field[data-size="body"] {
+  padding-block: var(--space-6);
+  padding-inline: 0;
+  font-size: var(--type-body-size);
+  line-height: var(--type-input-line-height);
+}
+
+.card[data-layout="inline"] > .field {
+  flex: 1;
+}

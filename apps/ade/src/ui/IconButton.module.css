@@ -1,0 +1,24 @@
+/* The primary icon button of an input card (approved mockups "1" and "2a"). */
+.button {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: var(--size-control-lg);
+  height: var(--size-control-lg);
+  border: 0;
+  border-radius: var(--radius-md);
+  color: var(--color-on-accent);
+  background: var(--color-accent);
+  cursor: pointer;
+}
+
+.button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}

@@ -5,9 +5,31 @@ import {
   type HostedLaunchIntent,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
+  type HostedTranscriptReading,
 } from "@lervo/adapter-contract";
 
 import { ClaudeHostedStreamDecoder } from "./hosted-stream.js";
+import { readClaudeTranscript } from "./hosted-transcript.js";
+
+/**
+ * Variables an enclosing Claude Code session sets for its children. A hosted session that
+ * inherited them would take itself for that session's child: it stops saving its transcript and
+ * reaches for the parent's messaging channel. User settings such as `CLAUDE_CODE_USE_BEDROCK` are
+ * not markers and pass through.
+ */
+export const CLAUDE_SESSION_MARKERS = [
+  "CLAUDECODE",
+  "CLAUDE_CODE_ENTRYPOINT",
+  "CLAUDE_CODE_SESSION_ID",
+  "CLAUDE_CODE_CHILD_SESSION",
+  "CLAUDE_CODE_CHILD_NOTES_DIR",
+  "CLAUDE_CODE_SESSION_ATTENDED",
+  "CLAUDE_CODE_MESSAGING_SOCKET",
+  "CLAUDE_CODE_MESSAGING_TOKEN",
+  "CLAUDE_CODE_EXECPATH",
+  "CLAUDE_PID",
+  "CLAUDE_EFFORT",
+] as const;
 
 /**
  * Claude Code's hosted sessions, through its documented CLI options. The native conversation runs
@@ -30,9 +52,10 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
 
 export function createClaudeHostedSessionAdapter(
   executable = "claude",
-): HostedSessionAdapter & HostedStreamDecoding {
+): HostedSessionAdapter & HostedStreamDecoding & HostedTranscriptReading {
   return {
     createStreamDecoder: () => new ClaudeHostedStreamDecoder(),
+    readTranscript: (session) => readClaudeTranscript(session),
     provider: "claude",
     capabilities: claudeHostedCapabilities,
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {
@@ -65,6 +88,7 @@ export function createClaudeHostedSessionAdapter(
         workingDirectory: intent.workingDirectory,
         mode: intent.mode,
         initialInput: native ? instruction : null,
+        environmentRemove: CLAUDE_SESSION_MARKERS,
       };
     },
   };

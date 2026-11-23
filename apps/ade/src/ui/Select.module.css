@@ -1,0 +1,36 @@
+/* A select drawn as a chip (approved mockup "1"): quiet until hovered. */
+.chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  color: var(--color-text-secondary);
+}
+
+.chip select {
+  height: var(--size-control-md);
+  padding-inline: var(--space-8) var(--space-20);
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  font: inherit;
+  font-size: var(--type-meta-size);
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+  transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.chip select:hover {
+  background: var(--color-surface-selected);
+}
+
+.chip select:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.chip svg {
+  position: absolute;
+  inset-inline-end: var(--space-6);
+  pointer-events: none;
+}

@@ -9,7 +9,8 @@
     "dev": "vite",
     "tauri": "tauri",
     "generate": "node scripts/build-tokens.mjs && node scripts/build-catalog.mjs",
-    "test": "vitest run --root ../.. apps/ade"
+    "test": "vitest run --root ../.. apps/ade",
+    "catalog": "vite --config vite.catalog.config.ts"
   },
   "dependencies": {
     "@tanstack/react-virtual": "3.14.26",
