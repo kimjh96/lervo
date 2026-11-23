@@ -28,32 +28,18 @@ body {
   }
 }
 
-/* Continuity transitions (ADE motion, "Continuity"): an element named in both views moves and
-   resizes to its new place, and the rest of the window crossfades. */
-::view-transition-group(*) {
-  animation-duration: var(--motion-duration-continuity);
-  animation-timing-function: var(--motion-easing-standard);
-}
-
-::view-transition-old(*),
-::view-transition-new(*) {
-  animation-duration: var(--motion-duration-continuity);
-  animation-timing-function: var(--motion-easing-standard);
-}
-
-/* What leaves goes quickly and what comes arrives quickly, so the two views never linger on top
-   of each other while the continuing elements move. */
-::view-transition-old(root),
-::view-transition-old(lervo-reply-card),
-::view-transition-old(lervo-first-message) {
-  animation-duration: var(--motion-duration-exit);
+/* View transitions (ADE motion, "Changing views"): the leaving view fades out over `exit`, and the
+   arriving view fades in and rises 4 px over `enter`, starting halfway through the exit. Nothing
+   morphs, so no two versions of an element ever overlap. The workspace list keeps its place. */
+::view-transition-old(root) {
+  animation: view-leave var(--motion-duration-exit) var(--motion-easing-exit) both;
 }
 
 ::view-transition-new(root) {
-  animation-duration: var(--motion-duration-change);
+  animation: view-arrive var(--motion-duration-enter) var(--motion-easing-standard) both;
+  animation-delay: calc(var(--motion-duration-exit) / 2);
 }
 
-/* The sidebar does not crossfade with itself, which would dim the glass midway. */
 ::view-transition-old(lervo-sidebar) {
   display: none;
 }
@@ -62,10 +48,22 @@ body {
   animation: none;
 }
 
+@keyframes view-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes view-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
     animation: none;
   }
 }

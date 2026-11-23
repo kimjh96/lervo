@@ -60,7 +60,7 @@ export function Frame() {
       >
         {selected !== undefined ? (
           <>
-            <WorkspaceHeader workspaceId={selected.workspaceId} />
+            <WorkspaceHeader workspaceId={selected.workspaceId} continues={continuing} />
             {selected.conversationMode === "native" ? (
               <WorkspaceConversation
                 target={{

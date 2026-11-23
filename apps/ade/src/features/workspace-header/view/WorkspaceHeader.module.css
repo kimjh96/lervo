@@ -32,15 +32,6 @@
   align-self: stretch;
 }
 
-.status {
-  display: flex;
-  flex: none;
-  gap: var(--space-8);
-  align-items: center;
-  color: var(--color-text-secondary);
-  font-size: var(--type-meta-size);
-}
-
 .modes {
   display: flex;
   flex: none;
@@ -76,4 +67,22 @@
 .modes button:focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 1px;
+}
+
+/* The header arrives with its workspace (ADE motion, "Switching workspaces"). */
+.header[data-arrive="true"] {
+  animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header[data-arrive="true"] {
+    animation: none;
+  }
 }

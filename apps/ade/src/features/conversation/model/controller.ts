@@ -8,7 +8,14 @@ import {
 } from "../../../platform/session-host";
 import { DeltaBuffer } from "./deltas";
 import { useConversationStore } from "./store";
-import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from "./window";
+import {
+  applyAppended,
+  applyDelta,
+  applyPage,
+  type ConversationWindow,
+  emptyWindow,
+  PAGE_ITEMS,
+} from "./window";
 
 /** The workspace a conversation belongs to. */
 export interface ConversationTarget {
@@ -20,6 +27,20 @@ export interface ConversationTarget {
 
 /** The item that stands in for the first message until the session reports it. */
 const FIRST_MESSAGE_ID = "first-message";
+
+/** Conversations whose window is kept after they close, so reopening one shows it at once. */
+const RECENT_WINDOWS = 4;
+const recent = new Map<string, ConversationWindow>();
+
+function remember(sessionId: string, window: ConversationWindow): void {
+  if (window.items.length === 0) return;
+  recent.delete(sessionId);
+  recent.set(sessionId, window);
+  for (const oldest of recent.keys()) {
+    if (recent.size <= RECENT_WINDOWS) break;
+    recent.delete(oldest);
+  }
+}
 
 /**
  * Shows one workspace's native conversation. It attaches to the session, loads the newest page,
@@ -44,13 +65,17 @@ export class ConversationController {
     }, nextFrame);
   }
 
+  /**
+   * Shows the conversation and attaches to its session. A conversation seen recently shows its
+   * last window at once, and the newest page replaces it when it arrives.
+   */
   async open(): Promise<void> {
     const first = this.target.firstMessage;
     useConversationStore.setState({
       sessionId: null,
       window:
         first === undefined
-          ? emptyWindow
+          ? (recent.get(this.target.sessionId) ?? emptyWindow)
           : {
               items: [
                 {
@@ -80,6 +105,8 @@ export class ConversationController {
 
   close(): void {
     for (const unsubscribe of this.unsubscribe.splice(0)) unsubscribe();
+    const state = useConversationStore.getState();
+    if (state.sessionId === this.sessionId) remember(this.target.sessionId, state.window);
     void this.client
       .send({ kind: "session.detach", sessionId: this.sessionId })
       .catch(() => undefined);

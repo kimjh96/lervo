@@ -43,15 +43,14 @@
   padding-top: var(--space-24);
 }
 
-/* The instruction becomes the first message: it moves there from the start card, or, where view
-   transitions are missing, arrives with the arrival motion. */
+/* The instruction lands as the first message; where view transitions are missing, it arrives with
+   the arrival motion. */
 .first {
   display: grid;
   box-sizing: border-box;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
   margin: 0 auto;
   padding: 14px 0;
-  view-transition-name: lervo-first-message;
 }
 
 @supports not (view-transition-name: none) {

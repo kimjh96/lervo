@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useLayoutEffect, useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useSessionHostClient } from "../../../app/session-host-context";
@@ -37,7 +37,8 @@ export function WorkspaceConversation(props: { target: ConversationTarget }) {
   const label = activity.startsWith("tool:")
     ? intl.formatMessage({ id: "conversation.tool.running" }, { name: activity.slice(5) })
     : intl.formatMessage({ id: `conversation.activity.${activity}` });
-  useEffect(() => {
+  // Opening before paint replaces the previous workspace's window before it can show.
+  useLayoutEffect(() => {
     void controller.open();
     return () => controller.close();
   }, [controller]);
@@ -52,6 +53,7 @@ export function WorkspaceConversation(props: { target: ConversationTarget }) {
         onLoadEarlier={() => void controller.loadEarlier()}
         onLoadLater={() => void controller.loadLater()}
         onJumpToLatest={() => void controller.showLatest()}
+        continues={firstMessage !== undefined}
         dock={
           <>
             {working ? <WorkingLine className={styles.working} label={label} /> : null}

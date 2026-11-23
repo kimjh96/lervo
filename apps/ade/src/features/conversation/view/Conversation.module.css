@@ -36,6 +36,23 @@
   margin: 0 auto;
 }
 
+.list:not([data-placed]) {
+  visibility: hidden;
+}
+
+/* The conversation arrives with its view once placed; the reply card stays where it is (ADE
+   motion, "Switching workspaces"). */
+.list[data-placed="arrive"] {
+  animation: view-arrive var(--motion-duration-enter) var(--motion-easing-standard);
+}
+
+@keyframes view-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 .row {
   position: absolute;
   top: 0;
@@ -116,6 +133,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .row[data-arrived="true"] > *,
+  .list[data-placed="arrive"],
   .jump {
     animation: none;
   }

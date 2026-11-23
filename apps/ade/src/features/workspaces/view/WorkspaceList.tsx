@@ -54,7 +54,7 @@ export function WorkspaceList() {
                     className={styles.row}
                     data-quiet={status === null && !current ? "true" : undefined}
                     aria-current={current ? "page" : undefined}
-                    onClick={() => transition(() => select(workspace.workspaceId))}
+                    onClick={() => select(workspace.workspaceId)}
                   >
                     <span className={styles.name}>{workspace.title ?? workspace.branch}</span>
                     {status === null ? null : (

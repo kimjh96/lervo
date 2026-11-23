@@ -14,6 +14,8 @@ import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
 
 const NEAR_EDGE_PX = 48;
+/** The most frames a list stays hidden while its measured height settles. */
+const PLACE_FRAMES = 12;
 /** How close to the bottom counts as the live end, so a bounce at the bottom stays there. */
 const LIVE_END_PX = 4;
 /** How long after a wheel, key, or drag a scroll counts as the user's. */
@@ -40,6 +42,8 @@ export function Conversation(props: {
   onLoadLater: () => void;
   onJumpToLatest: () => void;
   dock: ReactNode;
+  /** Shows the first items at once, when the view continues one already on screen. */
+  continues?: boolean | undefined;
 }) {
   const window = useConversationStore((store) => store.window);
   const arrived = useConversationStore((store) => store.arrived);
@@ -54,6 +58,12 @@ export function Conversation(props: {
   const handlers = useRef(props);
   handlers.current = props;
   const [following, setFollowing] = useState(true);
+  // The list shows once its items are measured and it rests at its end, so the estimated first
+  // layout and the scroll to the end never show; it then arrives with the view. A list that
+  // continues one already on screen, such as new work's first message, shows at once.
+  const [placed, setPlaced] = useState<"now" | "arrive" | null>(null);
+  const hasItems = window.items.length > 0;
+  const continues = props.continues === true;
   const live = following && !window.hasLater;
   const liveNow = useRef(live);
   liveNow.current = live;
@@ -89,6 +99,32 @@ export function Conversation(props: {
     element.scrollTop = element.scrollHeight;
     selfScrolled.current = element.scrollTop;
   }, [live, window.items.length, lastLength, totalSize, dockHeight]);
+
+  useLayoutEffect(() => {
+    if (placed !== null || !hasItems) return;
+    if (continues) {
+      setPlaced("now");
+      return;
+    }
+    // Each frame follows the end until the measured height stops changing.
+    let frames = 0;
+    let previous = -1;
+    let frame = 0;
+    const settle = () => {
+      const element = scroller.current;
+      if (element === null) return;
+      if (liveNow.current) {
+        element.scrollTop = element.scrollHeight;
+        selfScrolled.current = element.scrollTop;
+      }
+      frames += 1;
+      if (element.scrollHeight === previous || frames >= PLACE_FRAMES) setPlaced("arrive");
+      else frame = requestAnimationFrame(settle);
+      previous = element.scrollHeight;
+    };
+    frame = requestAnimationFrame(settle);
+    return () => cancelAnimationFrame(frame);
+  }, [placed, hasItems, continues]);
 
   // When items are added or dropped above the reader, the item they read stays where it was. Only
   // a change of the first item moves items; leaving the live end must not move the view.
@@ -178,7 +214,11 @@ export function Conversation(props: {
         // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
         tabIndex={0}
       >
-        <div className={styles.list} style={{ height: totalSize }}>
+        <div
+          className={styles.list}
+          data-placed={placed ?? undefined}
+          style={{ height: totalSize }}
+        >
           {virtualizer.getVirtualItems().map((row) => {
             const item = window.items[row.index];
             if (item === undefined) return null;

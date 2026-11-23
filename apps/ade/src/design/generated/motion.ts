@@ -5,6 +5,5 @@ export const motion = {
   "exitMs": 100,
   "breatheMs": 2400,
   "shimmerMs": 1800,
-  "paceMs": 120,
-  "continuityMs": 320
+  "paceMs": 120
 } as const;
