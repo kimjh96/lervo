@@ -27,7 +27,7 @@ fn main() -> ExitCode {
 }
 
 fn serve(state_dir: Option<std::path::PathBuf>, lervo: Option<String>) -> ExitCode {
-    let Some(layout) = state_dir.map(Layout::at).or_else(Layout::default_for_user) else {
+    let Some(layout) = state_dir.map(Layout::at).or_else(Layout::for_user) else {
         eprintln!("lervo-session-host: no state directory for this user");
         return ExitCode::FAILURE;
     };

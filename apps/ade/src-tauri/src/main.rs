@@ -17,7 +17,7 @@ fn main() -> ExitCode {
     let path = login_path::login_path();
     let relay = Relay {
         program: host_link::HostProgram::locate(path),
-        layout: Layout::default_for_user(),
+        layout: Layout::for_user(),
         outgoing: tokio::sync::Mutex::new(None),
     };
     let result = tauri::Builder::default()

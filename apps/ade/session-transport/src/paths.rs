@@ -2,6 +2,10 @@
 
 use std::path::{Path, PathBuf};
 
+/// Names a state directory that replaces the platform default, so an isolated session host can
+/// serve beside the user's own: tests, the interface harness, and a second profile.
+pub const DIRECTORY_VARIABLE: &str = "LERVO_SESSION_HOST_DIR";
+
 /// The session host's files inside one owner-only state directory.
 #[derive(Clone, Debug)]
 pub struct Layout {
@@ -23,6 +27,16 @@ impl Layout {
             lock: root.join("session-host.lock"),
             indexes: root.join("conversations"),
             root,
+        }
+    }
+
+    /// The directory `LERVO_SESSION_HOST_DIR` names when it is set and not empty, otherwise the
+    /// platform default. The shell and the session host both resolve it this way, so a shell
+    /// started with the variable reaches, and when needed starts, the session host it names.
+    pub fn for_user() -> Option<Self> {
+        match std::env::var_os(DIRECTORY_VARIABLE) {
+            Some(directory) if !directory.is_empty() => Some(Self::at(directory)),
+            _ => Self::default_for_user(),
         }
     }
 
