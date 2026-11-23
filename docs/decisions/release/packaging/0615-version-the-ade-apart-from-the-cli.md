@@ -46,7 +46,9 @@ The ADE and the core are separate processes, often from different releases. The 
   - it writes the next version to every ADE manifest;
   - it replaces `.changes/ade-current-release.md` with the release notes.
 - **Release notes.** They state the minimum Lervo CLI version the release needs, and they follow `writing_en-human`.
+- **The preparation commit.** ADE preparation commits with its own subject, `chore(ade): prepare release`. The release wait and the rule against pushing on top of a preparation commit recognize it as they recognize the CLI's.
 - **Tags.** After the merge, an exact plan tags the prepared revision `ade-v<major>.<minor>.<patch>`. Nothing that keys on the `v` prefix matches it, so no CLI workflow starts.
+- **Merges after a CLI release.** On 2026-11-23 an ADE-only merge landed a minute after a prepared CLI merge. It cancelled the CLI merge's main CI, and the CLI tag plan ran as skipped. Until the CLI tag plan tolerates a later merge, nothing merges to `main` between a prepared CLI merge and its `v` tag. ADE preparation must not repeat the problem: a CLI tag plan must never be skipped because an ADE merge followed it.
 
 ### No GitHub Release before S3
 
@@ -55,7 +57,7 @@ The ADE and the core are separate processes, often from different releases. The 
   - every ADE release is created without the "Latest" mark, so the CLI release stays the repository's latest;
   - the host follower selects releases by tag pattern, which it already does;
   - the follower's release listing cannot lose the newest CLI release behind ADE releases, for example by listing CLI tags explicitly instead of the newest 30 releases;
-  - a test proves the selection with ADE releases among the newest entries.
+  - tests prove the selection with ADE releases among the newest entries for `lervo host upgrade --follow`, `--from-release`, and every other release lookup of `lervo host upgrade`.
 
 ### Compatibility at run time
 
@@ -81,4 +83,5 @@ The ADE never assumes a core version:
   - the `ade-v` tag plan.
 - A contract check fails when the ADE manifests disagree on the version.
 - Every test under `scripts/release` runs locally before a release-script change is pushed, because a failed preparation costs a full CI cycle.
-- Before S3 publishes an ADE release, a host-follow test lists ADE releases among the newest entries and still selects the newest CLI release.
+- Before S3 publishes an ADE release, tests list ADE releases among the newest entries and still select the newest CLI release for following, `--from-release`, and every other release lookup of `lervo host upgrade`.
+- A test merges an ADE-only commit right after a prepared CLI commit and still gets the CLI tag.
