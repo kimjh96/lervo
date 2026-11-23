@@ -27,3 +27,10 @@ createRoot(container).render(
     <App adapters={adapters} notifier={notifier} />
   </StrictMode>,
 );
+
+// The interface harness, only when the shell was started to measure (ADE performance).
+const measurement = (globalThis as { __LERVO_MEASURE__?: { scenario: string } }).__LERVO_MEASURE__;
+if (measurement !== undefined)
+  void import("./platform/measure").then(({ runMeasurement }) =>
+    runMeasurement(measurement.scenario),
+  );
