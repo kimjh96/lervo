@@ -1,0 +1,25 @@
+/* The launch view (ADE motion, "Launch"): the Lervo mark on the window material from the window's
+   first frame until the first screen is ready. `index.html` links this stylesheet, so it applies
+   before any script runs. */
+.launch {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+/* `ui/motion.css` defines the keyframes; the interface loads it before the view leaves. */
+.launch[data-leaving] {
+  animation: lervo-leave var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+}
+
+.launch-mark {
+  width: var(--size-logo-launch);
+  height: var(--size-logo-launch);
+  fill: var(--color-text-primary);
+}
+
+.launch-mark .launch-accent {
+  fill: var(--color-accent);
+}

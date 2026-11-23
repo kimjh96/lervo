@@ -93,22 +93,24 @@ It records CPU, resident memory, JavaScript heap, frame times, long tasks, input
 
 These are the ADE's budgets, including S1's initial targets. Until S1 records a measured baseline, they are targets.
 
-| Measure                                                               | Target                             |
-| --------------------------------------------------------------------- | ---------------------------------- |
-| Cold start to the start screen                                        | 500 ms                             |
-| Keystroke to echo, p95                                                | 16 ms                              |
-| UI idle memory                                                        | 150 MB                             |
-| Session host idle memory                                              | 30 MB                              |
-| Installed size, excluding provider CLIs                               | 20 MB                              |
-| Interface JavaScript that the start screen loads, gzip                | 120 KB                             |
-| Any interface chunk that loads on first use, gzip                     | 160 KB                             |
-| UI CPU, idle with the window visible                                  | under 0.5% of one core             |
-| UI CPU, idle with the window hidden                                   | under 0.1% of one core             |
-| Session host CPU with twenty idle sessions                            | under 0.2% of one core             |
-| Session host memory per idle session                                  | at most 5 MB                       |
-| First paint after opening a workspace with 100,000 conversation items | 100 ms                             |
-| Scrolling that conversation                                           | 60 fps; no task longer than 50 ms  |
-| UI memory with that conversation open                                 | at most 50 MB above idle           |
-| Streamed delta to screen, p95                                         | 33 ms                              |
-| Input latency during a terminal flood, p95                            | 50 ms                              |
-| Memory after the soak run                                             | within 5% of the starting baseline |
+| Measure                                                               | Target                            |
+| --------------------------------------------------------------------- | --------------------------------- |
+| Cold start to the start screen                                        | 500 ms                            |
+| Keystroke to echo, p95                                                | 16 ms                             |
+| UI idle memory                                                        | 150 MB                            |
+| Session host idle memory                                              | 30 MB                             |
+| Installed size, excluding provider CLIs                               | 20 MB                             |
+| Interface JavaScript that the start screen loads, gzip                | 120 KB                            |
+| Any interface chunk that loads on first use, gzip                     | 160 KB                            |
+| UI CPU, idle with the window visible                                  | under 0.5% of one core            |
+| UI CPU, idle with the window hidden                                   | under 0.1% of one core            |
+| Session host CPU with twenty idle sessions                            | under 0.2% of one core            |
+| Session host memory per idle session                                  | at most 5 MB                      |
+| First paint after opening a workspace with 100,000 conversation items | 100 ms                            |
+| Scrolling that conversation                                           | 60 fps; no task longer than 50 ms |
+| UI memory with that conversation open                                 | at most 50 MB above idle          |
+| Streamed delta to screen, p95                                         | 33 ms                             |
+| Input latency during a terminal flood, p95                            | 50 ms                             |
+
+The launch view counts toward the cold-start budget. It waits for the first lists so the start screen does not fill in after it appears, but it leaves no later than 500 ms after the window's navigation start, whether the lists have loaded or not.
+| Memory after the soak run | within 5% of the starting baseline |

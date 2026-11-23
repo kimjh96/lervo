@@ -131,6 +131,7 @@ The second pull request resolves the interface structure and one motion problem 
   - Every message has a static ID that a test checks against the catalog, and inputs show their focus.
   - Import-boundary lint rules enforce the layers.
 - **What stays, stays still.** A conversation mode switch faded the whole view, title included, because the view's key held the mode. The key now names only the workspace, a header decides its arrival when it mounts, and selecting the selected workspace changes nothing. The ADE motion principles record the rule.
+- **Launch view.** On 2026-11-23 the owner noticed that Lervo opened on an empty window. The window now opens hidden and shows once its page can paint, with the Lervo mark, which stays until the first lists load, within the cold-start budget. In headless WebKit the mark paints 22 ms after navigation once the stylesheets are cached, so the empty window the owner saw first came from the webview starting, not from the page. The shell sets the window material before the first paint, and the window's tint moved from the frame to the document. The first screen therefore replaces the mark without the window changing color, and in WebKit the start screen still matches its earlier rendering byte for byte.
 
 Three findings move to later groups. The provider names on the start screen and the result schemas of application commands go with the provider registry (group 5). The terminal input encoding and the duplicated mode translation in Rust go with the session-host internals (group 3).
 
@@ -161,6 +162,7 @@ On 2026-11-23 the owner tried the app built from `main` and found two problems.
 - **Messages did not carry over between the modes.** Messages sent in the CLI conversation did not appear in the native conversation. The native index held only what its own stream decoded, though the sessions specification makes the provider's transcript the canonical conversation.
   - The fix reads the transcript through the new `transcript.read` request whenever a native session opens. It rebuilds the index when the transcript holds a different number of items. The same path heals a damaged index.
   - The test also showed the app's provider inheriting an enclosing Claude Code session's markers: it stopped saving its transcript and could reach that session's messaging channel. Launches now name the variables the session host must not pass on, and the Claude adapter lists the markers.
+  - The fix shipped in v0.42.0. On 2026-11-23 the owner ran the app against it on the Mac and confirmed that turns from the CLI conversation appear in the native conversation.
 - **The CLI conversation was hard to use in Korean.** The owner asked to improve it later, as one bounded follow-up:
   - Hangul renders with gaps, because JetBrains Mono has no Hangul glyphs and the fallback is narrower than two cells;
   - Hangul input through the IME is unreliable in xterm.js on WKWebView;

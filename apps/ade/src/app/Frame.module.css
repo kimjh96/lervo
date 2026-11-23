@@ -1,14 +1,13 @@
-/* The whole window carries the glass tint over the native material, as in the approved mockups;
-   the sidebar and the workspace add their lighter surfaces on top. */
+/* The frame sits on the window's tinted surface (`global.css`); the sidebar and the workspace add
+   their lighter surfaces on top. It fades in once, as the launch view leaves (ADE motion,
+   "Launch"). */
 .frame {
   display: grid;
   grid-template-columns: var(--layout-sidebar-width) 1fr;
   height: 100vh;
-  background: color-mix(
-    in srgb,
-    var(--glass-tint-color) calc(var(--glass-tint-opacity) * 100%),
-    transparent
-  );
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard)
+    backwards;
+  animation-delay: calc(var(--motion-duration-exit) / 2);
 }
 
 /* The sidebar keeps its place in view transitions; its changes show at once. */
