@@ -17,22 +17,41 @@ This specification defines the core link: the protocol between the ADE session h
 - The schemas live in `packages/session-host-contract/src/core-link.ts`. The build writes them to `packages/session-host-contract/generated/core-link-protocol.schema.json`, and a contract test fails when the committed document is stale.
 - The resident process validates every request with AJV. The session host validates every response with `jsonschema` and generates its types from the same document with `typify`.
 - `packages/session-host-contract/test/fixtures/core-link/` holds valid requests, valid responses, and invalid messages that both sides must treat alike.
+- `packages/session-host-contract/src/application-results.ts` holds each application command's result schema, which the same document carries. Results accept properties they do not name, so a newer core can add one without breaking an older session host. The `results` and `invalid-results` fixtures cover them.
 
 ## Requests and responses
 
 Every request carries a positive integer `id`, and the resident process answers each request exactly once with that `id`.
 
-| Request           | Purpose                                                                    | Answer                                                         |
-| ----------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `core.command`    | Runs an application command. S1 defines `workspace.start`.                 | `core.result` with `launch`, or `core.failed`                  |
-| `core.open`       | Prepares the launch that continues a workspace, as `lervo workspace open`. | `core.result` with `launch`, or `core.failed`                  |
-| `decoder.open`    | Creates a stream decoder for a provider under a session-host `decoderId`.  | `decoder.decoded` with no events, or `core.failed`             |
-| `decoder.send`    | Encodes the user's text for the provider's standard input.                 | `decoder.decoded` with `input` (Base64) and the events to show |
-| `decoder.output`  | Decodes a chunk of the provider's standard output, as Base64.              | `decoder.decoded` with the events                              |
-| `decoder.close`   | Forgets the decoder.                                                       | `decoder.decoded` with no events                               |
-| `transcript.read` | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`  |
+| Request           | Purpose                                                                    | Answer                                                               |
+| ----------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `core.command`    | Runs an application command, such as `workspace.start` or `provider.list`. | `core.result`, with `launch` for `workspace.start`, or `core.failed` |
+| `core.open`       | Prepares the launch that continues a workspace, as `lervo workspace open`. | `core.result` with `launch`, or `core.failed`                        |
+| `decoder.open`    | Creates a stream decoder for a provider under a session-host `decoderId`.  | `decoder.decoded` with no events, or `core.failed`                   |
+| `decoder.send`    | Encodes the user's text for the provider's standard input.                 | `decoder.decoded` with `input` (Base64) and the events to show       |
+| `decoder.output`  | Decodes a chunk of the provider's standard output, as Base64.              | `decoder.decoded` with the events                                    |
+| `decoder.close`   | Forgets the decoder.                                                       | `decoder.decoded` with no events                                     |
+| `transcript.read` | Reads a page of the provider's own transcript of a workspace's session.    | `transcript.page` with items and `complete`, or `core.failed`        |
 
-- `workspace.list` answers `{workspaces}`, the host's workspaces with a hosted launch whose worktree still exists, newest first and at most 100. Each holds `workspaceId`, `projectId`, `repositoryName`, `branch`, `title` (the workstream title, or null), `provider`, `conversationMode`, `sessionId`, and `preparedAt`. It reads one worktree listing per repository.
+- `workspace.list` answers `{workspaces, commands}`. `workspaces` are the host's workspaces with a hosted launch whose worktree still exists, newest first and at most 100. Each holds:
+  - `workspaceId`, `projectId`, `repositoryName`, `branch`, and `title` (the workstream title, or null);
+  - `provider` and `conversationMode`, the last mode;
+  - `conversationModes`, the modes its provider offers, or only the last mode when no adapter admits the provider;
+  - `sessionId` and `preparedAt`.
+
+  It reads one worktree listing per repository. `commands` names every application command the resident process answers.
+
+- `workspace.start`, `workspace.list`, and `repository.list` are the base commands, which every release answers. The session host sends any other command only to a resident process whose last `workspace.list` named it, because a process from an older release ends the core link on a request it cannot validate.
+- `provider.list` answers `{providers, defaultProvider}`, every admitted hosted provider in registry order. Each holds:
+  - `provider`, its identifier;
+  - `displayName`, its product name, such as "Claude Code", which interfaces show untranslated;
+  - `capabilities`, as the adapter contract declares them;
+  - `conversationModes`, the native conversation first when the provider offers it;
+  - `preferredMode`;
+  - `installed`, whether its CLI is on the resident process's `PATH`.
+
+  `defaultProvider` is the provider a workspace starts with when `workspace.start` names none.
+
 - `repository.list` answers `{repositories}`, each with `projectId` and `name`, sorted by name. It names no paths.
 - `workspace.start` takes `instruction` and `repository` (a project ID from the host's registry), and optionally `provider`, `mode`, and `model`. The result is the JSON of `lervo workspace start` without its `launch` field, which the response carries separately.
 - A launch holds the session and workspace identifiers, the conversation mode, the provider, the absolute program path, the arguments, the added environment, the working directory, and `initialInput`. The session host sends `initialInput` through the decoder once the provider runs.
