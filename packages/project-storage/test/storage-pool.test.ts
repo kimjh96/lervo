@@ -382,7 +382,7 @@ it("bounds opening hints and drains accepted opens before close even on failure"
 it("checks required writer activation before an opening hint reaches a backend", async () => {
   const { root } = await fixture();
   const open = vi.fn(openProjectStorage);
-  const pool = createProjectStoragePool(open, { requiredEventSchemaVersion: 6 });
+  const pool = createProjectStoragePool(open, { minimumEventSchemaVersion: 6 });
   pools.push(pool);
   await expect(pool.startOpening(root)).rejects.toMatchObject({
     code: "storage_writer_not_active",

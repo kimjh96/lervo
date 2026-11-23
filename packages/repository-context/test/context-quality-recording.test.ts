@@ -32,7 +32,10 @@ afterEach(async () => {
   vi.restoreAllMocks();
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
-async function fixture(sqlReports: boolean | "persistent" = false) {
+async function fixture(
+  sqlReports: boolean | "persistent" = false,
+  targetEventSchemaVersion: 6 | 9 = 6,
+) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-quality-record-"));
   roots.push(root);
   await applyInitPlan(await createInitPlan({ root, projectId: "prj_qualityrecord" }));
@@ -53,7 +56,7 @@ async function fixture(sqlReports: boolean | "persistent" = false) {
     const plan = await planEventWriterActivation({
       repositoryRoot: root,
       evidence,
-      targetEventSchemaVersion: 6,
+      targetEventSchemaVersion,
     });
     await applyEventWriterActivationPlan({
       plan,
@@ -112,6 +115,18 @@ async function fixture(sqlReports: boolean | "persistent" = false) {
   };
   return { root, input, activate };
 }
+it("records quality evidence when the writer is at a later event schema version", async () => {
+  const { input, root, activate } = await fixture(false, 9);
+  await activate();
+  expect(await recordContextQualityPreparation(input)).toMatchObject({ status: "recorded" });
+  const storage = await openProjectStorage(root);
+  try {
+    expect(storage.events.list({ types: ["context.quality.prepared"] })).toHaveLength(1);
+  } finally {
+    await storage.close();
+  }
+});
+
 it("records no quality event until the writer is explicitly activated", async () => {
   const { input, root } = await fixture();
   const open = vi.spyOn(FileSystemCas, "open");
@@ -363,27 +378,30 @@ it("drains concurrent SQL recordings and suppresses writes after writer rollback
   }
 });
 
-it("initializes SQL reports inside the first recording after persistent format selection", async () => {
-  const { root, input, activate } = await fixture("persistent");
-  await activate();
-  const path = resolve(root, ".lervo/data/events.sqlite");
-  await expect(access(path)).rejects.toMatchObject({ code: "ENOENT" });
-  const put = vi.spyOn(FileSystemCas.prototype, "put");
-  expect((await recordContextQualityPreparation(input)).status).toBe("recorded");
-  expect(put).not.toHaveBeenCalled();
-  const db = new DatabaseSync(path);
-  try {
-    expect(db.prepare("PRAGMA user_version").get()).toMatchObject({ user_version: 4 });
-    expect(db.prepare("SELECT count(*) AS n FROM quality_reports").get()).toMatchObject({ n: 1 });
-  } finally {
-    db.close();
-  }
-});
+it.each([6, 9] as const)(
+  "initializes SQL reports inside the first recording after persistent format selection at writer %s",
+  async (version) => {
+    const { root, input, activate } = await fixture("persistent", version);
+    await activate();
+    const path = resolve(root, ".lervo/data/events.sqlite");
+    await expect(access(path)).rejects.toMatchObject({ code: "ENOENT" });
+    const put = vi.spyOn(FileSystemCas.prototype, "put");
+    expect((await recordContextQualityPreparation(input)).status).toBe("recorded");
+    expect(put).not.toHaveBeenCalled();
+    const db = new DatabaseSync(path);
+    try {
+      expect(db.prepare("PRAGMA user_version").get()).toMatchObject({ user_version: 4 });
+      expect(db.prepare("SELECT count(*) AS n FROM quality_reports").get()).toMatchObject({ n: 1 });
+    } finally {
+      db.close();
+    }
+  },
+);
 
 it("rejects a retained lease when persistent format selection disappears before commit", async () => {
   const { root, activate } = await fixture("persistent");
   await activate();
-  const pool = createProjectStoragePool(undefined, { requiredEventSchemaVersion: 6 });
+  const pool = createProjectStoragePool(undefined, { minimumEventSchemaVersion: 6 });
   try {
     await expect(
       pool.run(root, async (_storage, assertCurrent) => {

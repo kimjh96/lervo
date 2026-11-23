@@ -14,7 +14,7 @@ import {
 } from "@lervo/schemas";
 import type { ContextQualityPreparationResult } from "./context-quality-preparation.js";
 
-const recordingStorage = createProjectStoragePool(undefined, { requiredEventSchemaVersion: 6 });
+const recordingStorage = createProjectStoragePool(undefined, { minimumEventSchemaVersion: 6 });
 const commitQualityEvent = createContextQualityCommitQueue();
 const recordingScopes = createQualityRecordingScopes();
 const recordingAdmission = createQualityRecordingAdmission((root, work) =>
@@ -95,7 +95,7 @@ async function record(input: QualityRecordInput): Promise<ContextQualityRecordin
       async (storage, assertCurrent): Promise<ContextQualityRecording> => {
         if (input.projectId !== undefined && input.projectId !== storage.manifest.projectId)
           return { status: "unavailable" };
-        if (storage.writableEventSchemaVersion !== 6) return { status: "writer_not_active" };
+        if ((storage.writableEventSchemaVersion ?? 0) < 6) return { status: "writer_not_active" };
         let eventId!: string;
         const report = storage.events.reportWriter
           ? {

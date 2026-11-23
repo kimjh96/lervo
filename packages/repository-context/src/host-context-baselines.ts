@@ -12,8 +12,8 @@ export async function captureHostOutcomeBaselines(
   if (!required) {
     try {
       if (
-        (await inspectEventWriterCoordinate(repositoryRoot)).coordinate
-          .selectedEventSchemaVersion !== 6
+        (await inspectEventWriterCoordinate(repositoryRoot)).coordinate.selectedEventSchemaVersion <
+        6
       )
         return baselines;
     } catch {

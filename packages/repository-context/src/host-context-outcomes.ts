@@ -49,7 +49,7 @@ export async function observeHostContextOutcomes(
     if (
       !input.policy &&
       (await inspectEventWriterCoordinate(input.repositoryRoot)).coordinate
-        .selectedEventSchemaVersion !== 6
+        .selectedEventSchemaVersion < 6
     )
       return { ...report, status: "writer_not_active", reason: "writer_not_active" };
     const language = (await loadRepositoryKnowledgePolicy(input.repositoryRoot)).publication

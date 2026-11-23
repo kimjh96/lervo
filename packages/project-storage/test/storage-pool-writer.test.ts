@@ -22,7 +22,7 @@ afterEach(async () => {
   vi.useRealTimers();
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
-async function fixture() {
+async function fixture(targetEventSchemaVersion: 6 | 9 = 6) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-pool-writer-"));
   roots.push(root);
   await applyInitPlan(await createInitPlan({ root, projectId: "prj_poolwriter" }));
@@ -43,7 +43,7 @@ async function fixture() {
     const plan = await planEventWriterActivation({
       repositoryRoot: root,
       evidence,
-      targetEventSchemaVersion: 6,
+      targetEventSchemaVersion,
     });
     await applyEventWriterActivationPlan({
       plan,
@@ -65,7 +65,7 @@ async function fixture() {
     };
     return storage;
   });
-  const options: { requiredEventSchemaVersion: 1 | 6 } = { requiredEventSchemaVersion: 6 };
+  const options: { minimumEventSchemaVersion: 1 | 6 } = { minimumEventSchemaVersion: 6 };
   const pool = createProjectStoragePool(open, options);
   pools.push(pool);
   return { root, pool, open, closes, activate, rollback, options };
@@ -73,7 +73,7 @@ async function fixture() {
 
 it("rejects an inactive writer before opening any storage and snapshots its requirement", async () => {
   const { root, pool, open, activate, options } = await fixture();
-  options.requiredEventSchemaVersion = 1;
+  options.minimumEventSchemaVersion = 1;
   const work = vi.fn(async () => undefined);
   await expect(pool.run(root, work)).rejects.toMatchObject({ code: "storage_writer_not_active" });
   expect(open).not.toHaveBeenCalled();
@@ -84,6 +84,14 @@ it("rejects an inactive writer before opening any storage and snapshots its requ
   await activate();
   await pool.run(root, async (_storage, current) => current());
   expect(open).toHaveBeenCalledTimes(1);
+});
+
+it("admits a writer above the minimum version, since later versions only add event types", async () => {
+  const { root, pool, activate } = await fixture(9);
+  await activate();
+  const work = vi.fn(async (_storage: unknown, current: () => Promise<void>) => current());
+  await pool.run(root, work);
+  expect(work).toHaveBeenCalledTimes(1);
 });
 
 it("observes rollback on a retained handle before work and recovers after reactivation", async () => {
@@ -247,9 +255,9 @@ it("drains admitted work on close and keeps admission failures separate from ina
 });
 
 it("rejects an unsupported required writer without admitting work", () => {
-  expect(() =>
-    createProjectStoragePool(undefined, { requiredEventSchemaVersion: 10 as 6 }),
-  ).toThrow(TypeError);
+  expect(() => createProjectStoragePool(undefined, { minimumEventSchemaVersion: 10 as 6 })).toThrow(
+    TypeError,
+  );
 });
 
 it("preserves cleanup failure when discarding an inactive retained writer", async () => {

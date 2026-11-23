@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6da8553d6a40f1116ce50f12"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Context quality recording works on repositories whose event writer is past schema version 6; it had reported writer_not_active on every repository at version 7 or later."
