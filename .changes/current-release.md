@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.43.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.44.0" schema="1" -->
 
 ## What's changed
 
-- Context quality recording works on repositories whose event writer is past schema version 6; it had reported writer_not_active on every repository at version 7 or later.
+- Read event schema 10, which carries the ADE's hosted session events, in the CLI, the Node, and the Hub, and have lervo upgrade activate it once every configured reader reads it.

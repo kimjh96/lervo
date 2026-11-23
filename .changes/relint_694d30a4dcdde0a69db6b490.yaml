@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_694d30a4dcdde0a69db6b490"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Read event schema 10, which carries the ADE's hosted session events, in the CLI, the Node, and the Hub, and have lervo upgrade activate it once every configured reader reads it."
