@@ -47,7 +47,7 @@ export function createQualityRecordingAdmission(borrow: Borrow) {
     else if (queue.pending.length) schedule(root, queue);
   }
   function publish(storage: ProjectStorage, batch: PendingReport[]): Receipt[] {
-    if (storage.writableEventSchemaVersion !== 6)
+    if ((storage.writableEventSchemaVersion ?? 0) < 6)
       throw new ProjectStorageError("storage_writer_not_active", "The report writer is inactive.");
     const writer = storage.events.reportWriter;
     if (!writer) throw new Error("The selected report writer is unavailable.");

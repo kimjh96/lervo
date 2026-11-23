@@ -3,11 +3,15 @@ import { resolve } from "node:path";
 import { inspectProjectStorageCoordinates } from "@lervo/project";
 import { ProjectStorageError, type ProjectStorage } from "./types.js";
 
-export function assertRequiredWriterVersion(
+/**
+ * A pooled writer needs at least `minimum`: event schema versions only add event types, so a
+ * writer at a later version still writes everything an earlier one could.
+ */
+export function assertMinimumWriterVersion(
   selected: ProjectStorage["writableEventSchemaVersion"],
-  required: ProjectStorage["writableEventSchemaVersion"],
+  minimum: ProjectStorage["writableEventSchemaVersion"],
 ): void {
-  if (required !== undefined && selected !== required)
+  if (minimum !== undefined && (selected === undefined || selected < minimum))
     throw new ProjectStorageError(
       "storage_writer_not_active",
       "The required event writer is not active.",
@@ -17,7 +21,7 @@ export function assertRequiredWriterVersion(
 /** Fresh managed-path identities prevent a retained handle from writing to a replaced store. */
 export async function observeStorageBinding(
   storage: ProjectStorage,
-  requiredEventSchemaVersion?: ProjectStorage["writableEventSchemaVersion"],
+  minimumEventSchemaVersion?: ProjectStorage["writableEventSchemaVersion"],
 ): Promise<string> {
   const paths = storage.paths;
   const [{ writer, reports }, identities] = await Promise.all([
@@ -44,9 +48,9 @@ export async function observeStorageBinding(
       }),
     ),
   ]);
-  assertRequiredWriterVersion(
+  assertMinimumWriterVersion(
     writer.coordinate.selectedEventSchemaVersion,
-    requiredEventSchemaVersion,
+    minimumEventSchemaVersion,
   );
   if (
     reports.projectId !== storage.manifest.projectId ||

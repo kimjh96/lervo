@@ -25,7 +25,7 @@ afterEach(async () => {
   vi.restoreAllMocks();
   for (const root of roots.splice(0)) await rm(root, { recursive: true, force: true });
 });
-async function fixture(active = true) {
+async function fixture(active = true, targetEventSchemaVersion: 6 | 9 = 6) {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-host-outcome-"));
   roots.push(root);
   await applyInitPlan(await createInitPlan({ root, projectId: "prj_hostquality" }));
@@ -46,7 +46,7 @@ async function fixture(active = true) {
     const plan = await planEventWriterActivation({
       repositoryRoot: root,
       evidence,
-      targetEventSchemaVersion: 6,
+      targetEventSchemaVersion,
     });
     await applyEventWriterActivationPlan({
       plan,
@@ -88,6 +88,21 @@ async function fixture(active = true) {
   };
   return { root, input, contract };
 }
+it("observes outcomes when the writer is at a later event schema version", async () => {
+  const { root, input } = await fixture(true, 9);
+  expect(await observeHostContextOutcomes(input)).toMatchObject({
+    status: "observed",
+    observedCount: 1,
+  });
+  const storage = await openProjectStorage(root);
+  try {
+    expect(
+      storage.events.list({ types: ["context.quality.prepared", "context.quality.verified"] }),
+    ).toHaveLength(2);
+  } finally {
+    await storage.close();
+  }
+});
 it("adds no artifact reads or quality events before explicit writer activation", async () => {
   const { root, input } = await fixture(false);
   const readBytes = vi.fn(async () => Buffer.from("good"));

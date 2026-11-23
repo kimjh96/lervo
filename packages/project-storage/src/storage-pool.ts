@@ -2,7 +2,7 @@ import { resolve } from "node:path";
 import { inspectEventWriterCoordinate } from "@lervo/project";
 import { openPooledProjectStorage } from "./bootstrap.js";
 import { createStorageBindingBatch } from "./storage-binding-batch.js";
-import { assertRequiredWriterVersion, observeStorageBinding } from "./storage-pool-binding.js";
+import { assertMinimumWriterVersion, observeStorageBinding } from "./storage-pool-binding.js";
 import { ProjectStorageError, type ProjectStorage } from "./types.js";
 
 interface Lease {
@@ -35,15 +35,15 @@ const maximumLifetimeMs = 1000,
 export function createProjectStoragePool(
   open: (root: string) => Promise<ProjectStorage> = openPooledProjectStorage,
   options: {
-    requiredEventSchemaVersion?: NonNullable<ProjectStorage["writableEventSchemaVersion"]>;
+    minimumEventSchemaVersion?: NonNullable<ProjectStorage["writableEventSchemaVersion"]>;
   } = {},
 ) {
-  const requiredEventSchemaVersion = options.requiredEventSchemaVersion;
+  const minimumEventSchemaVersion = options.minimumEventSchemaVersion;
   if (
-    requiredEventSchemaVersion !== undefined &&
-    ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(requiredEventSchemaVersion)
+    minimumEventSchemaVersion !== undefined &&
+    ![1, 2, 3, 4, 5, 6, 7, 8, 9].includes(minimumEventSchemaVersion)
   )
-    throw new TypeError("The required event writer version is unsupported.");
+    throw new TypeError("The minimum event writer version is unsupported.");
   const entries = new Map<string, Entry>();
   const observeTogether = createStorageBindingBatch((storage, required) =>
     observeStorageBinding(storage, required),
@@ -83,11 +83,11 @@ export function createProjectStoragePool(
       }
       if (!entry.lease) {
         entry.transition = (async () => {
-          if (requiredEventSchemaVersion !== undefined) {
+          if (minimumEventSchemaVersion !== undefined) {
             const writer = await inspectEventWriterCoordinate(root);
-            assertRequiredWriterVersion(
+            assertMinimumWriterVersion(
               writer.coordinate.selectedEventSchemaVersion,
-              requiredEventSchemaVersion,
+              minimumEventSchemaVersion,
             );
           }
           const storage = await open(root);
@@ -196,10 +196,10 @@ export function createProjectStoragePool(
             );
           // A new handle must match the live writer before its activation requirement is checked.
           if (initial)
-            assertRequiredWriterVersion(borrowed.storage.writableEventSchemaVersion, required);
+            assertMinimumWriterVersion(borrowed.storage.writableEventSchemaVersion, required);
           borrowed.bindingConfirmed = true;
         };
-        await checkCurrent(requiredEventSchemaVersion);
+        await checkCurrent(minimumEventSchemaVersion);
         return await work(borrowed.storage, () => checkCurrent());
       } catch (error) {
         if (lease) {
