@@ -3,6 +3,7 @@
 //! the next one. Blocking work, such as opening an index or spawning a process, runs off the async
 //! workers and outside the registry's lock.
 
+use crate::diagnostics::Field;
 use std::num::NonZeroU64;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
@@ -122,6 +123,14 @@ impl<C: Core> Host<C> {
         };
         match started {
             Ok(handle) => {
+                self.diagnostics.record(
+                    "session.started",
+                    &[
+                        ("session", Field::Code(session.as_str())),
+                        ("mode", Field::Code(launch.mode.code())),
+                        ("channel", Field::Number(u64::from(channel))),
+                    ],
+                );
                 let message = opened(request, &session, &workspace, &handle);
                 self.registry().insert(workspace, session, handle);
                 message

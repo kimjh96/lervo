@@ -10,6 +10,7 @@ use lervo_session_protocol::codec::MessageCodec;
 use lervo_session_transport::handshake::HostIdentity;
 use lervo_session_transport::token::Token;
 
+use crate::diagnostics::Diagnostics;
 use crate::registry::Registry;
 use crate::watch::{self, WatchSender};
 use lervo_session_core::ports::Core;
@@ -20,6 +21,7 @@ pub(crate) struct Host<C> {
     pub(crate) token: Token,
     pub(crate) identity: HostIdentity,
     pub(crate) indexes: PathBuf,
+    pub(crate) diagnostics: Diagnostics,
     registry: Mutex<Registry>,
     pub(crate) watch: WatchSender,
     /// Serializes session starts and mode switches, which wait on I/O; the registry's lock is
@@ -35,6 +37,7 @@ impl<C: Core> Host<C> {
         token: Token,
         identity: HostIdentity,
         indexes: PathBuf,
+        diagnostics: Diagnostics,
     ) -> Self {
         Self {
             core,
@@ -42,6 +45,7 @@ impl<C: Core> Host<C> {
             token,
             identity,
             indexes,
+            diagnostics,
             registry: Mutex::new(Registry::default()),
             watch: watch::spawn(),
             lifecycle: tokio::sync::Mutex::new(()),

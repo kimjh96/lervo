@@ -45,12 +45,10 @@
   background: var(--color-surface-terminal);
 }
 
+/* A narrow or zoomed window narrows the workspace list instead of hiding it, so navigation never
+   disappears and the window controls keep the list's strip. */
 @media (width < 760px) {
   .frame {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    display: none;
+    grid-template-columns: var(--layout-sidebar-min-width) 1fr;
   }
 }

@@ -95,6 +95,7 @@
   --focus-ring-offset: 2px;
   --focus-ring-inset: -2px;
   --layout-sidebar-width: 232px;
+  --layout-sidebar-min-width: 160px;
   --layout-header-height: 48px;
   --layout-content-max-width: 720px;
   --layout-collapse-below: 760px;
@@ -199,5 +200,36 @@
 @media (prefers-reduced-transparency: reduce) {
   :root {
     --glass-tint-opacity: 1;
+  }
+}
+
+/* Increased contrast: opaque surfaces, secondary text a step darker or lighter, stronger borders. */
+@media (prefers-contrast: more) {
+  :root {
+    --glass-tint-opacity: 1;
+    --color-border-subtle: rgba(20,30,50,0.20);
+    --color-border-default: rgba(20,30,50,0.32);
+    --color-text-secondary: #161B26;
+    --color-text-tertiary: #454D5C;
+  }
+}
+
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+    --glass-tint-opacity: 1;
+    --color-border-subtle: rgba(255,255,255,0.16);
+    --color-border-default: rgba(255,255,255,0.30);
+    --color-text-secondary: #ECEEF3;
+    --color-text-tertiary: #B4BAC7;
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root[data-theme="dark"] {
+    --glass-tint-opacity: 1;
+    --color-border-subtle: rgba(255,255,255,0.16);
+    --color-border-default: rgba(255,255,255,0.30);
+    --color-text-secondary: #ECEEF3;
+    --color-text-tertiary: #B4BAC7;
   }
 }

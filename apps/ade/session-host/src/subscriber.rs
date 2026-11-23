@@ -2,6 +2,7 @@
 //! "Everything is bounded"). Control messages are encoded when they are queued, so each counts
 //! its exact size.
 
+use crate::diagnostics::{Diagnostics, Field};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
@@ -53,6 +54,7 @@ pub(crate) struct Output {
     sender: mpsc::UnboundedSender<Outgoing>,
     budget: Budget,
     overflowed: Arc<AtomicBool>,
+    diagnostics: Diagnostics,
 }
 
 impl Output {
@@ -62,12 +64,29 @@ impl Output {
             sender,
             budget: Arc::new(Mutex::new(ClientBudget::new(REPLY_BUFFER_LIMIT))),
             overflowed: Arc::new(AtomicBool::new(false)),
+            diagnostics: Diagnostics::disabled(),
         }
+    }
+
+    /// The same output, recording each failed request it carries in `diagnostics`.
+    pub(crate) fn with_diagnostics(mut self, diagnostics: Diagnostics) -> Self {
+        self.diagnostics = diagnostics;
+        self
     }
 
     /// Queues a reply or a watched status. Returns `false` when the connection is gone or fell
     /// so far behind that it must close.
     pub(crate) fn send(&self, message: &HostMessage) -> bool {
+        if let HostMessage::RequestFailedMessage(failed) = message {
+            let code = serde_json::to_value(failed.code).unwrap_or_default();
+            self.diagnostics.record(
+                "request.failed",
+                &[
+                    ("connection", Field::Number(self.connection)),
+                    ("code", Field::Code(code.as_str().unwrap_or("unknown"))),
+                ],
+            );
+        }
         let Some(payload) = encoded(message) else {
             return !self.sender.is_closed();
         };

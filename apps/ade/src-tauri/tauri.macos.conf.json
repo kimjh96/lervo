@@ -15,7 +15,8 @@
         "windowEffects": {
           "effects": ["fullScreenUI"],
           "state": "active"
-        }
+        },
+        "zoomHotkeysEnabled": true
       }
     ]
   }

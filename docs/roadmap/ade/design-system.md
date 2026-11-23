@@ -145,6 +145,22 @@ Step 1 wrote the design language and the foundations in the [ADE design system s
 - **Unused or unclear roles** (step 2): `type.title` has no consumer yet. `type.note` also sets the user bubble's line height, which the specification records.
 - **Content** (step 4): there is no glossary yet, and empty states have no pattern; the workspace list shows nothing when there are no workspaces.
 
+## Progress
+
+- **Step 4**, on 2026-11-23, did the following:
+  - wrote the [patterns and content chapter](../../specifications/execution/product-surfaces/ade-design-patterns.md);
+  - checked accessibility in headless WebKit;
+  - closed three gaps: increased contrast, window zoom, and a workspace list that hid in narrow windows.
+
+  The evidence and undo patterns wait for the features that need them.
+
+- **Step 5**, on 2026-11-23, did the following:
+  - [ADR-0616](../../decisions/execution/applications/0616-keep-the-design-system-in-the-ade-until-the-site-reads-it.md) keeps the design system in the ADE until the site reads it;
+  - it names what the site's first pull request extracts: the token file and its generators into `@lervo/design-tokens`, with a site output, and components only if the site renders them;
+  - accessibility checks and catalog comparisons run locally on every design change and join CI only after a miss.
+
+  What remains of this plan is the owner's review of the catalog, and the evidence and undo patterns with their features.
+
 ## Completion
 
 The design system is complete when:
