@@ -1,6 +1,7 @@
 import {
   deliberationExecutionRouteHash,
   deliberationParticipationAssignmentId,
+  selectionRoutedDeliberationRouteHash,
   workforceProviderForPolicyHash,
 } from "@lervo/agent-organization";
 import { deliberationPolicyHash } from "@lervo/deliberation";
@@ -130,8 +131,8 @@ function verifyAssignment(input: {
       candidate.conversationId === assignment.conversationId &&
       candidate.integrationId === deployment?.integrationId,
   );
-  // ADR-0612 M2c: a seat the model selection routes binds only its provider, so its hash covers
-  // no model or effort and the assignment carries the role's current model and effort.
+  // ADR-0612 M2c: a seat the model selection routes binds only its provider, with the selection
+  // marker in place of a model, and the assignment carries the role's current model and effort.
   const routeHashes =
     deployment === undefined
       ? []
@@ -143,12 +144,10 @@ function verifyAssignment(input: {
             model: assignment.model,
             reasoningEffort: assignment.reasoningEffort,
           }),
-          deliberationExecutionRouteHash({
+          selectionRoutedDeliberationRouteHash({
             participantId: assignment.participantId,
             integrationId: deployment.integrationId,
             provider: assignment.provider,
-            model: null,
-            reasoningEffort: null,
           }),
         ];
   const participationAssignmentId = deliberationParticipationAssignmentId({

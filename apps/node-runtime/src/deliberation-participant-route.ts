@@ -1,17 +1,11 @@
 import {
   deliberationExecutionRouteHash,
-  workforceProviderForPolicyHash,
+  selectionRoutedDeliberationRouteHash,
   type DeliberationParticipantBinding,
 } from "@lervo/agent-organization";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
-import {
-  allowedRoute,
-  nodeRoleRoute,
-  nodeRouteForProvider,
-  optionalRouteFields,
-  type ReadNodeModelSelection,
-} from "./node-model-route.js";
+import { readHostNodeModelSelection, type ReadNodeModelSelection } from "./node-model-route.js";
 
 type Provider = "codex" | "claude";
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
@@ -24,74 +18,56 @@ export interface DeliberationParticipantExecutionRoute {
 }
 
 /**
- * ADR-0612 M2c: a deliberation seat's route. Participants reason, so the `reasoning` role of the
- * model selection decides inside the hired agent's provider policy.
+ * ADR-0612 M2c: a deliberation seat's route. The seat's provider is the configured one, because
+ * the reviewed deliberation policy fixes a provider per seat. Participants reason, so the
+ * `reasoning` role chooses the model and effort for that provider.
  *
- * - A seat the selection routes binds only its provider: its route hash covers the provider with
- *   no model or effort, and each start or resume takes the role's current model and effort for
- *   that provider. A selection change during a deliberation therefore never breaks its resume.
- * - A seat the Node configuration routes keeps today's hash over provider, model, and effort, so
- *   a deliberation accepted before this release resumes unchanged.
+ * - When the role lists the seat's provider at acceptance, the seat binds only its provider, with
+ *   the selection marker in its route hash. Each start or resume then takes the role's current
+ *   model and effort for it, so a model change never breaks a resume.
+ * - Otherwise the seat keeps today's hash over the configured provider, model, and effort, so a
+ *   seat accepted before this release, or while the role is unset, resumes unchanged.
  */
 export function deliberationParticipantRoute(input: {
   route: NonNullable<NodeDiscordConversationConfig["deliberationParticipation"]>["routes"][number];
   endpoint: NodeDiscordConversationConfig;
-  existing:
-    Pick<DeliberationParticipantBinding, "executionRouteHash" | "executionProvider"> | undefined;
-  providerPolicyHash: string;
+  existing: Pick<DeliberationParticipantBinding, "executionRouteHash"> | undefined;
   readSelection?: ReadNodeModelSelection;
 }): DeliberationParticipantExecutionRoute {
   const response = input.endpoint.routing?.response;
-  const configured = {
-    provider: input.route.provider ?? response?.provider ?? input.endpoint.command.provider,
-    model: input.route.model ?? response?.model,
-    reasoningEffort: input.route.reasoningEffort ?? response?.reasoningEffort,
+  const provider = input.route.provider ?? response?.provider ?? input.endpoint.command.provider;
+  const model = input.route.model ?? response?.model ?? null;
+  const reasoningEffort = input.route.reasoningEffort ?? response?.reasoningEffort ?? null;
+  const coordinates = {
+    participantId: input.endpoint.agentParticipantId,
+    integrationId: input.endpoint.integrationId,
+    provider,
   };
-  const hash = (provider: Provider, model: string | null, reasoningEffort: Effort | null) =>
-    deliberationExecutionRouteHash({
-      participantId: input.endpoint.agentParticipantId,
-      integrationId: input.endpoint.integrationId,
+  const markerHash = selectionRoutedDeliberationRouteHash(coordinates);
+  const listed = (input.readSelection ?? readHostNodeModelSelection)().roles.reasoning?.find(
+    (candidate) => candidate.provider === provider,
+  );
+  const selectionRouted =
+    input.existing === undefined
+      ? listed !== undefined
+      : input.existing.executionRouteHash === markerHash;
+  if (!selectionRouted)
+    return {
       provider,
       model,
       reasoningEffort,
-    });
-  const selection = input.readSelection === undefined ? {} : { readSelection: input.readSelection };
-  const providerBound = (provider: Provider) => {
-    const routed = nodeRouteForProvider({
-      role: "reasoning",
-      provider,
-      configured: provider === configured.provider ? configured : {},
-      ...selection,
-    });
-    return {
-      provider,
-      model: routed.model ?? null,
-      reasoningEffort: routed.reasoningEffort ?? null,
-      executionRouteHash: hash(provider, null, null),
+      executionRouteHash: deliberationExecutionRouteHash({
+        ...coordinates,
+        model,
+        reasoningEffort,
+      }),
     };
-  };
-  const existingProvider = input.existing?.executionProvider;
-  if (
-    existingProvider !== undefined &&
-    input.existing!.executionRouteHash === hash(existingProvider, null, null)
-  )
-    return providerBound(existingProvider);
-  if (input.existing === undefined) {
-    const policy = workforceProviderForPolicyHash(input.providerPolicyHash);
-    const chosen = nodeRoleRoute({
-      role: "reasoning",
-      configured: { provider: configured.provider, ...optionalRouteFields(configured) },
-      ...allowedRoute(policy),
-      ...selection,
-    });
-    if (chosen.source === "selection") return providerBound(chosen.provider);
-  }
-  const model = configured.model ?? null;
-  const reasoningEffort = configured.reasoningEffort ?? null;
+  // A route without a model keeps the seat's configured model, which the deliberation runner
+  // would otherwise fall back to, so the assignment names the model that runs.
   return {
-    provider: configured.provider,
-    model,
-    reasoningEffort,
-    executionRouteHash: hash(configured.provider, model, reasoningEffort),
+    provider,
+    model: listed?.model ?? model,
+    reasoningEffort: listed === undefined ? reasoningEffort : (listed.reasoningEffort ?? "high"),
+    executionRouteHash: markerHash,
   };
 }

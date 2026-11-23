@@ -118,9 +118,8 @@ export class SupervisionOwnerReasoningEffects {
       const context = this.readiness.providerLoginContexts?.[provider];
       if (
         provider !== this.configuration.provider ||
-        // ADR-0612 M2c: the planned model is the configured one or the current reasoning route.
-        (basis.effect.requestedModel !== (this.configuration.model ?? null) &&
-          basis.effect.requestedModel !== ownerReasoningRoute(this.configuration).model) ||
+        // ADR-0612 M2c: the model is not authority; the planned effect keeps the model the
+        // reasoning route chose when it was planned, so a later selection change never voids it.
         basis.effect.reservedTokens !==
           Math.max(
             this.configuration.reservedTokens,

@@ -115,9 +115,9 @@ export function selectConversationRepositoryWorkRoute(input: {
       configuredRoute?.reasoningEffort ??
       (profilePolicy === undefined ? input.reasoningEfforts?.[provider] : undefined),
   };
-  const selection = {
-    ...(input.readSelection === undefined ? {} : { readSelection: input.readSelection }),
-  };
+  // One read of the selection decides the whole route.
+  const snapshot = (input.readSelection ?? readHostNodeModelSelection)();
+  const selection = { readSelection: () => snapshot };
   if (allocationReason === "profile_preference" || allocationReason === "configured_default") {
     const chosen = nodeRoleRoute({
       role,
@@ -125,7 +125,9 @@ export function selectConversationRepositoryWorkRoute(input: {
       ...workAllowed(input.boundProvider, input.executors),
       ...(input.executables === undefined ? {} : { executables: input.executables }),
       ...selection,
-      ...(input.startable === undefined ? {} : { startable: input.startable }),
+      // A configured executor resolves its own executable, so having one is what makes a
+      // provider available here; a PATH lookup would miss an absolute configured executable.
+      startable: input.startable ?? (() => true),
     });
     if (chosen.source === "selection")
       return {
@@ -137,7 +139,7 @@ export function selectConversationRepositoryWorkRoute(input: {
       };
   } else {
     const routed = nodeRouteForProvider({ role, provider, configured, ...selection });
-    const listed = (input.readSelection ?? readHostNodeModelSelection)().roles[role] ?? [];
+    const listed = snapshot.roles[role] ?? [];
     if (listed.some((candidate) => candidate.provider === provider))
       return {
         provider,

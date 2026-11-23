@@ -1,5 +1,6 @@
 import {
   deliberationExecutionRouteHash,
+  selectionRoutedDeliberationRouteHash,
   deliberationParticipationAssignmentId,
   organizationIdentityHash,
   projectAgentOrganizationFromEventSource,
@@ -168,6 +169,35 @@ describe("assigned deliberation participant binding", () => {
         ],
       }),
     ).rejects.toThrowError("The explicit deliberation participant assignment is not executable.");
+    // ADR-0612 M2c: only the selection marker frees the model; a configured seat's hash with no
+    // model or effort still pins both, so it never runs a model it was not accepted with.
+    const unpinned = deliberationExecutionRouteHash({
+      participantId,
+      integrationId: "itg_discord_ruen01",
+      provider: "codex",
+      model: null,
+      reasoningEffort: null,
+    });
+    await expect(
+      bindAssignedDeliberationParticipants({
+        storage,
+        deliberationId: "dlb_queue0001",
+        plan,
+        assignments: [
+          {
+            ...assignment,
+            executionRouteHash: unpinned,
+            participationAssignmentId: deliberationParticipationAssignmentId({
+              deliberationId: "dlb_queue0001",
+              policyId: plan.policy.policyId,
+              policyRoleId: proposer.role.roleId,
+              agentId,
+              executionRouteHash: unpinned,
+            }),
+          },
+        ],
+      }),
+    ).rejects.toThrowError("The explicit deliberation participant assignment is not executable.");
     const executions = await bindAssignedDeliberationParticipants({
       storage,
       deliberationId: "dlb_queue0001",
@@ -244,6 +274,40 @@ describe("assigned deliberation participant binding", () => {
       releasedAt: "2026-09-18T00:00:06.000Z",
       outcomeId: outcome.outcomeId,
       outcomeStatus: "failed",
+    });
+    // A seat the selection routes binds its provider with the marker and runs the model the
+    // assignment carries.
+    const marker = selectionRoutedDeliberationRouteHash({
+      participantId,
+      integrationId: "itg_discord_ruen01",
+      provider: "codex",
+    });
+    const routed = await bindAssignedDeliberationParticipants({
+      storage,
+      deliberationId: "dlb_queue0002",
+      plan,
+      assignments: [
+        {
+          ...assignment,
+          deliberationId: "dlb_queue0002",
+          model: "gpt-7-selected",
+          reasoningEffort: "max",
+          executionRouteHash: marker,
+          participationAssignmentId: deliberationParticipationAssignmentId({
+            deliberationId: "dlb_queue0002",
+            policyId: plan.policy.policyId,
+            policyRoleId: proposer.role.roleId,
+            agentId,
+            executionRouteHash: marker,
+          }),
+        },
+      ],
+    });
+    expect(routed.get(proposer.role.roleId)).toMatchObject({
+      provider: "codex",
+      model: "gpt-7-selected",
+      reasoningEffort: "max",
+      executionRouteHash: marker,
     });
     await storage.close();
   });

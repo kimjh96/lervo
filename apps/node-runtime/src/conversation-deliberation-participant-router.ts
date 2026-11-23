@@ -273,7 +273,6 @@ export class CoResidentConversationDeliberationParticipants implements Conversat
             route,
             endpoint: endpoint.config,
             existing,
-            providerPolicyHash: membership.providerPolicyHash,
             ...(this.options.readModelSelection === undefined
               ? {}
               : { readSelection: this.options.readModelSelection }),

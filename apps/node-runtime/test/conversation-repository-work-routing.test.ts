@@ -172,3 +172,20 @@ describe("conversation repository work routing by model role (ADR-0612)", () => 
     ).toMatchObject({ provider: "claude", model: "claude-review", reasoningEffort: "high" });
   });
 });
+
+it("fails new work visibly when the set role lists no provider the bound agent may use", () => {
+  expect(() =>
+    selectConversationRepositoryWorkRoute({
+      sessionProvider: null,
+      boundProvider: null,
+      defaultProvider: "codex",
+      executionProfile: null,
+      executors: { codex: {} },
+      readSelection: () => ({
+        ...DEFAULT_MODEL_SELECTION,
+        revision: 1,
+        roles: { routine: [{ provider: "claude", model: null, reasoningEffort: null }] },
+      }),
+    }),
+  ).toThrow(expect.objectContaining({ code: "provider_not_admitted" }));
+});

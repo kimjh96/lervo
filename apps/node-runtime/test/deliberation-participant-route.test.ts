@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   deliberationExecutionRouteHash,
-  workforceProviderPolicyHash,
+  selectionRoutedDeliberationRouteHash,
 } from "@lervo/agent-organization";
 import { DEFAULT_MODEL_SELECTION, type ModelSelection } from "@lervo/execution-contract";
 
@@ -14,88 +14,107 @@ const endpoint = {
   integrationId: "itg_discord01",
   routing: {
     readOnlyRoleId: "researcher",
-    response: { provider: "codex", model: "gpt-response", reasoningEffort: "high" },
+    response: { provider: "claude", model: "claude-response", reasoningEffort: "high" },
   },
-  command: { provider: "codex" },
+  command: { provider: "claude" },
 } as unknown as NodeDiscordConversationConfig;
-const route = { policyId: "dpol_1", policyRoleId: "reviewer" };
-const any = workforceProviderPolicyHash("any");
+const coordinates = { participantId: "ptc_agent01", integrationId: "itg_discord01" };
 const selection =
   (roles: ModelSelection["roles"]): (() => ModelSelection) =>
   () => ({ ...DEFAULT_MODEL_SELECTION, revision: 1, roles });
-const hash = (provider: "codex" | "claude", model: string | null, effort: string | null) =>
-  deliberationExecutionRouteHash({
-    participantId: "ptc_agent01",
-    integrationId: "itg_discord01",
-    provider,
-    model,
-    reasoningEffort: effort as never,
-  });
-const claudeOnly = selection({
+const claudeRoute = selection({
   reasoning: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: null }],
 });
 
 describe("deliberation participant routes (ADR-0612 M2c)", () => {
-  it("keeps the configured route and its full hash while the role is unset", () => {
-    expect(
-      deliberationParticipantRoute({
-        route,
-        endpoint,
-        existing: undefined,
-        providerPolicyHash: any,
-        readSelection: selection({}),
-      }),
-    ).toEqual({
-      provider: "codex",
-      model: "gpt-response",
-      reasoningEffort: "high",
-      executionRouteHash: hash("codex", "gpt-response", "high"),
-    });
+  it("keeps the configured route and its full hash while the role does not list the seat's provider", () => {
+    for (const readSelection of [selection({}), claudeRoute]) {
+      const codexSeat = {
+        policyId: "dpol_1",
+        policyRoleId: "verifier",
+        provider: "codex" as const,
+      };
+      expect(
+        deliberationParticipantRoute({
+          route: codexSeat,
+          endpoint,
+          existing: undefined,
+          readSelection,
+        }),
+      ).toEqual({
+        provider: "codex",
+        model: "claude-response",
+        reasoningEffort: "high",
+        executionRouteHash: deliberationExecutionRouteHash({
+          ...coordinates,
+          provider: "codex",
+          model: "claude-response",
+          reasoningEffort: "high",
+        }),
+      });
+    }
   });
 
-  it("binds only the provider of a seat the selection routes", () => {
+  it("keeps the seat's provider and takes the role's model, binding only the provider", () => {
+    const route = { policyId: "dpol_1", policyRoleId: "reviewer" };
     const accepted = deliberationParticipantRoute({
       route,
       endpoint,
       existing: undefined,
-      providerPolicyHash: any,
-      readSelection: claudeOnly,
+      readSelection: claudeRoute,
     });
+    const marker = selectionRoutedDeliberationRouteHash({ ...coordinates, provider: "claude" });
     expect(accepted).toEqual({
       provider: "claude",
       model: "claude-opus-5-5",
       reasoningEffort: "high",
-      executionRouteHash: hash("claude", null, null),
+      executionRouteHash: marker,
     });
-    // A later model change resumes the same seat with the new model and the same hash.
+    // A later model change resumes the same seat on the new model with the same hash.
     expect(
       deliberationParticipantRoute({
         route,
         endpoint,
-        existing: { executionRouteHash: accepted.executionRouteHash, executionProvider: "claude" },
-        providerPolicyHash: any,
+        existing: { executionRouteHash: marker },
         readSelection: selection({
-          reasoning: [{ provider: "codex", model: "gpt-x", reasoningEffort: "max" }],
+          reasoning: [{ provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: "max" }],
         }),
+      }),
+    ).toEqual({
+      provider: "claude",
+      model: "claude-sonnet-5-5",
+      reasoningEffort: "max",
+      executionRouteHash: marker,
+    });
+  });
+
+  it("resumes a configured seat unchanged, even one with no model or effort", () => {
+    const bare = {
+      ...endpoint,
+      routing: { readOnlyRoleId: "researcher", response: { provider: "claude" } },
+    } as unknown as NodeDiscordConversationConfig;
+    const route = { policyId: "dpol_1", policyRoleId: "reviewer" };
+    const configured = deliberationExecutionRouteHash({
+      ...coordinates,
+      provider: "claude",
+      model: null,
+      reasoningEffort: null,
+    });
+    expect(configured).not.toBe(
+      selectionRoutedDeliberationRouteHash({ ...coordinates, provider: "claude" }),
+    );
+    expect(
+      deliberationParticipantRoute({
+        route,
+        endpoint: bare,
+        existing: { executionRouteHash: configured },
+        readSelection: claudeRoute,
       }),
     ).toEqual({
       provider: "claude",
       model: null,
       reasoningEffort: null,
-      executionRouteHash: accepted.executionRouteHash,
+      executionRouteHash: configured,
     });
-  });
-
-  it("resumes a seat accepted before this release on its configured route", () => {
-    const legacy = hash("codex", "gpt-response", "high");
-    expect(
-      deliberationParticipantRoute({
-        route,
-        endpoint,
-        existing: { executionRouteHash: legacy, executionProvider: "codex" },
-        providerPolicyHash: any,
-        readSelection: claudeOnly,
-      }).executionRouteHash,
-    ).toBe(legacy);
   });
 });
