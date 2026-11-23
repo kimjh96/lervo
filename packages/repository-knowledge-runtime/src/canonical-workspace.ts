@@ -167,7 +167,10 @@ export async function verifyCanonicalWorkspace(
           environment,
         ),
     );
-    assertConvergenceVerificationPassed(observed.result.status);
+    assertConvergenceVerificationPassed(
+      observed.result.status,
+      observed.resultArtifact.contentHash,
+    );
     receipts.push(observed);
   }
   return receipts;
