@@ -85,7 +85,6 @@ describe("the first message of new work", () => {
             }),
           );
       },
-      async input() {},
     };
     const client = new SessionHostClient(
       transport,

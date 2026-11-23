@@ -6,7 +6,6 @@ import {
   SessionHostClient,
   type ShellMessage,
 } from "../src/platform/session-host";
-import { parseTerminalFrame } from "../src/platform/session-host/client";
 import type { ConnectionState } from "../src/ports";
 
 function fakeTransport(failures: number) {
@@ -24,7 +23,6 @@ function fakeTransport(failures: number) {
     async send(message) {
       sent.push(message);
     },
-    async input() {},
   };
   return {
     transport,
@@ -103,7 +101,7 @@ describe("the session-host client", () => {
     expect(scheduler.delays).toEqual([500]);
   });
 
-  it("hands sends and input to the shell one at a time, in order", async () => {
+  it("hands sends to the shell one at a time, in order", async () => {
     const started: string[] = [];
     const finish: (() => void)[] = [];
     const transport: HostTransport = {
@@ -113,38 +111,19 @@ describe("the session-host client", () => {
           started.push(message.kind);
           finish.push(resolve);
         }),
-      input: (_channel, bytes) =>
-        new Promise<void>((resolve) => {
-          started.push(new TextDecoder().decode(bytes));
-          finish.push(resolve);
-        }),
     };
     const client = new SessionHostClient(transport, manualScheduler().schedule);
     client.start();
     await flush();
-    const encode = (text: string) => new TextEncoder().encode(text);
-    void client.input(1, encode("h"));
-    void client.input(1, encode("i"));
+    void client.send({ kind: "sessions.watch" });
+    void client.send({ kind: "session.attach", sessionId: "ses_1", afterSequence: 0 } as never);
     void client.send({ kind: "session.detach", sessionId: "ses_1" });
     await flush();
-    expect(started).toEqual(["h"]);
+    expect(started).toEqual(["sessions.watch"]);
     finish.shift()?.();
     await flush();
     finish.shift()?.();
     await flush();
-    expect(started).toEqual(["h", "i", "session.detach"]);
-  });
-
-  it("splits terminal frames into channel, sequence, and bytes", () => {
-    const frame = new ArrayBuffer(15);
-    const view = new DataView(frame);
-    view.setUint32(0, 7);
-    view.setBigUint64(4, 42n);
-    new Uint8Array(frame, 12).set([104, 105, 33]);
-    const parsed = parseTerminalFrame(frame);
-    expect(parsed?.channel).toBe(7);
-    expect(parsed?.sequence).toBe(42n);
-    expect(new TextDecoder().decode(parsed?.bytes)).toBe("hi!");
-    expect(parseTerminalFrame(new ArrayBuffer(4))).toBeNull();
+    expect(started).toEqual(["sessions.watch", "session.attach", "session.detach"]);
   });
 });

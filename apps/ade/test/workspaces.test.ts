@@ -8,7 +8,6 @@ import {
   notificationFor,
   visibleStatus,
 } from "../src/features/workspaces/model/decisions";
-import { switchConversationMode } from "../src/features/workspaces/model/mode";
 import { useWorkspaceStore } from "../src/features/workspaces/model/store";
 import type { Workspace } from "../src/features/workspaces/model/types";
 import {
@@ -185,26 +184,6 @@ describe("reloading the lists", () => {
     );
     expect(useWorkspaceStore.getState().workspaces).toEqual(kept);
     expect(useWorkspaceStore.getState().listFailure).toBe("application_failed");
-  });
-});
-
-describe("switching the conversation mode", () => {
-  it("shows the mode the session host confirms even when the list cannot reload", async () => {
-    const host = await connected({});
-    useWorkspaceStore.setState({ workspaces: [workspace("a", "web", "2026-11-23T01:00:00Z")] });
-    await expect(
-      switchConversationMode({
-        client: host.client,
-        commands: host.commands,
-        workspaceId: "a",
-        mode: "cli",
-      }),
-    ).rejects.toEqual(new RequestFailure("application_failed"));
-    expect(host.sent.find((message) => message.kind === "session.open")).toMatchObject({
-      workspaceId: "a",
-      conversationMode: "cli",
-    });
-    expect(useWorkspaceStore.getState().workspaces[0]?.conversationMode).toBe("cli");
   });
 });
 

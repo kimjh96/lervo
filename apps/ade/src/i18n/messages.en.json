@@ -143,14 +143,6 @@
     "defaultMessage": "Claude Code",
     "description": "The Claude Code provider CLI."
   },
-  "start.provider.codex": {
-    "defaultMessage": "Codex",
-    "description": "The Codex agent in the agent chooser."
-  },
-  "start.provider.label": {
-    "defaultMessage": "Agent",
-    "description": "The accessible label of the provider choice."
-  },
   "start.question": {
     "defaultMessage": "What should Lervo do?",
     "description": "The start screen heading."
@@ -166,26 +158,6 @@
   "start.submit": {
     "defaultMessage": "Start",
     "description": "Accessible name of the button that starts work."
-  },
-  "terminal.failed": {
-    "defaultMessage": "The terminal lost its session ({code}).",
-    "description": "A terminal request failed; {code} is the protocol code."
-  },
-  "workspace.mode.cli": {
-    "defaultMessage": "Terminal",
-    "description": "Switches the workspace to the CLI conversation."
-  },
-  "workspace.mode.failed": {
-    "defaultMessage": "The switch did not happen ({code}).",
-    "description": "Switching the conversation mode failed; {code} is the protocol code."
-  },
-  "workspace.mode.label": {
-    "defaultMessage": "Show as",
-    "description": "Accessible name of the conversation mode switch."
-  },
-  "workspace.mode.native": {
-    "defaultMessage": "Conversation",
-    "description": "Switches the workspace to the native conversation."
   },
   "workspaces.label": {
     "defaultMessage": "Workspaces",

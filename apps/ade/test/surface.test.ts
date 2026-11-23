@@ -44,10 +44,10 @@ describe("the main surface", () => {
     expect(surfaceOf(workspace, pending("wks_2"))).toMatchObject({ key: "wks_1" });
   });
 
-  it("keeps a workspace's key when its conversation mode changes", () => {
+  it("shows a workspace last opened in the terminal as its native conversation", () => {
     const cli = { ...workspace, conversationMode: "cli" as const };
     expect(surfaceOf(cli, null).key).toBe(surfaceOf(workspace, null).key);
-    expect(surfaceOf(cli, null).background).toBe("cli");
+    expect(surfaceOf(cli, null).background).toBe("native");
   });
 });
 

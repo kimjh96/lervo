@@ -65,7 +65,6 @@ async function scriptedHost() {
           channel: 1,
         });
     },
-    async input() {},
   };
   const client = new SessionHostClient(
     transport,

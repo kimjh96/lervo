@@ -3,13 +3,6 @@ import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 /** The connection to the session host, as the interface shows it. */
 export type ConnectionState = "connecting" | "connected" | "reconnecting" | "unavailable";
 
-/** Terminal bytes for a channel, as the session host sequenced them. */
-export interface TerminalFrame {
-  readonly channel: number;
-  readonly sequence: bigint;
-  readonly bytes: Uint8Array;
-}
-
 type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
 /** A client message that carries a request ID, without it: the session host port assigns one. */
@@ -48,9 +41,7 @@ export interface SessionHost {
   post(message: Request): Promise<void>;
   /** Sends a message that is not a request, such as `session.detach`. */
   send(message: ClientMessage): Promise<void>;
-  input(channel: number, bytes: Uint8Array): Promise<void>;
   onMessage(listener: (message: HostMessage) => void): () => void;
-  onTerminal(listener: (frame: TerminalFrame) => void): () => void;
   onState(listener: (state: ConnectionState) => void): () => void;
 }
 

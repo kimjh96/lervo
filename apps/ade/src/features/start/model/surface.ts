@@ -1,14 +1,11 @@
-import type { ConversationMode } from "@lervo/session-host-contract";
-
 import { useWorkspaceStore, type Workspace } from "../../workspaces";
 import { settleStart } from "./start";
 import { type PendingStart, useStartStore } from "./store";
 
 /**
  * What the main area shows: the start screen, the pending workspace of work just sent, or a
- * workspace. `key` changes only when the view becomes another one: switching a workspace's
- * conversation mode keeps its key, so its header stays (ADE motion, "What stays, stays still"),
- * and a workspace that continues the pending one keeps the pending key, so it replaces it in
+ * workspace. `key` changes only when the view becomes another one: a workspace that continues
+ * the pending one keeps the pending key, so it replaces it in
  * place (ADE motion, "Starting work").
  */
 export type Surface =
@@ -16,13 +13,13 @@ export type Surface =
   | {
       readonly kind: "pending";
       readonly key: string;
-      readonly background: ConversationMode;
+      readonly background: "native";
       readonly pending: PendingStart;
     }
   | {
       readonly kind: "workspace";
       readonly key: string;
-      readonly background: ConversationMode;
+      readonly background: "native";
       readonly workspace: Workspace;
       /** The pending start this workspace continues, if it was just created from it. */
       readonly continuing: PendingStart | null;
@@ -39,7 +36,7 @@ export function surfaceOf(selected: Workspace | undefined, pending: PendingStart
   return {
     kind: "workspace",
     key: continuing === null ? selected.workspaceId : `start-${continuing.id}`,
-    background: selected.conversationMode,
+    background: "native",
     workspace: selected,
     continuing,
   };

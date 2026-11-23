@@ -348,18 +348,6 @@
       "value": "Claude Code"
     }
   ],
-  "start.provider.codex": [
-    {
-      "type": 0,
-      "value": "Codex"
-    }
-  ],
-  "start.provider.label": [
-    {
-      "type": 0,
-      "value": "Agent"
-    }
-  ],
   "start.question": [
     {
       "type": 0,
@@ -382,52 +370,6 @@
     {
       "type": 0,
       "value": "Start"
-    }
-  ],
-  "terminal.failed": [
-    {
-      "type": 0,
-      "value": "The terminal lost its session ("
-    },
-    {
-      "type": 1,
-      "value": "code"
-    },
-    {
-      "type": 0,
-      "value": ")."
-    }
-  ],
-  "workspace.mode.cli": [
-    {
-      "type": 0,
-      "value": "Terminal"
-    }
-  ],
-  "workspace.mode.failed": [
-    {
-      "type": 0,
-      "value": "The switch did not happen ("
-    },
-    {
-      "type": 1,
-      "value": "code"
-    },
-    {
-      "type": 0,
-      "value": ")."
-    }
-  ],
-  "workspace.mode.label": [
-    {
-      "type": 0,
-      "value": "Show as"
-    }
-  ],
-  "workspace.mode.native": [
-    {
-      "type": 0,
-      "value": "Conversation"
     }
   ],
   "workspaces.label": [

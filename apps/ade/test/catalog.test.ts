@@ -46,7 +46,7 @@ describe("the message catalog", () => {
     );
     // S4 replaces the provider names with the core's provider registry.
     const built = [...text.matchAll(/\bid(?:=\{|: )`([^`]*)`/gu)].map((match) => match[1]);
-    expect(built).toEqual(["start.provider.${draft.provider}", "start.provider.${value}"]);
+    expect(built).toEqual(["start.provider.${draft.provider}"]);
     const providers = catalog.filter(
       (id) => id.startsWith("start.provider.") && id !== "start.provider.label",
     );
