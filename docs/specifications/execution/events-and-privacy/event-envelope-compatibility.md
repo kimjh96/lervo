@@ -2,7 +2,7 @@
 
 ## Readers and writers
 
-The shared reader accepts envelope schema versions 1 through 9. It preserves valid mixed hash chains without rewriting bytes or meaning. Version 1 remains the default writer; activated managed execution writes version 2. Version 3 adds bounded [supervision payloads](../outcome-supervision/contracts.md); versions 1 and 2 cannot carry these event types.
+The shared reader accepts envelope schema versions 1 through 10. It preserves valid mixed hash chains without rewriting bytes or meaning. Version 1 remains the default writer; activated managed execution writes version 2. Version 3 adds bounded [supervision payloads](../outcome-supervision/contracts.md); versions 1 and 2 cannot carry these event types.
 
 The SQLite adapter supports explicitly selected version 3 writes and rejects new events above the selected writer version. Reader capability advertisement alone does not activate writing.
 
@@ -22,9 +22,11 @@ Schema 7 adds `terminal.skill.observed` and `terminal.skill.turn_assessed`. Sche
 
 ## Repository activation
 
-Schema 8 adds the practice-learning observation, candidate, usage and retirement events. Schemas 1 through 7 reject these types. Automatic activation requires support from every configured reader and now targets schema 9. An older configured reader keeps the writer at its current version. The resident retains bounded local practice state while activation waits. See [practice learning](../../knowledge/practice-learning.md) for payloads and privacy.
+Schema 8 adds the practice-learning observation, candidate, usage and retirement events. Schemas 1 through 7 reject these types. Automatic activation requires support from every configured reader. An older configured reader keeps the writer at its current version. The resident retains bounded local practice state while activation waits. See [practice learning](../../knowledge/practice-learning.md) for payloads and privacy.
 
-Schema 9 adds the plan ledger events of [ADR-0563](../../../decisions/foundation/0563-keep-the-plan-in-a-ledger-lervo-owns-and-check-it-at-every-stop.md): `plan.item.captured`, `plan.item.updated`, `plan.item.closed`, `plan.summary.gap`, `plan.turn.blocked` and `plan.item.missed`. Schemas 1 through 8 reject these types. Automatic activation targets schema 9 under the same reader rule. The ledger is the fold of its events, so until the writer selects schema 9 a ledger write fails with `plan_ledger_inactive` and nothing is kept elsewhere. See [the plan ledger](../../knowledge/plan-ledger.md) for payloads and privacy.
+Schema 9 adds the plan ledger events of [ADR-0563](../../../decisions/foundation/0563-keep-the-plan-in-a-ledger-lervo-owns-and-check-it-at-every-stop.md): `plan.item.captured`, `plan.item.updated`, `plan.item.closed`, `plan.summary.gap`, `plan.turn.blocked` and `plan.item.missed`. Schemas 1 through 8 reject these types. The ledger is the fold of its events, so until the writer selects schema 9 a ledger write fails with `plan_ledger_inactive` and nothing is kept elsewhere. See [the plan ledger](../../knowledge/plan-ledger.md) for payloads and privacy.
+
+Schema 10 adds the hosted session events of [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md): `application.workspace.started`, `terminal.session.launch_prepared`, `terminal.session.launched`, and `terminal.session.ended`. Schemas 1 through 9 reject these types. A session appears only as `providerSessionDigest`, the SHA-256 digest of the provider session UUID that Lervo prepared. No payload carries instruction text, launch arguments, environment values, or paths. Automatic activation targets schema 10 under the same reader rule. Writers record these events only while the writer selects schema 10. See [ADE sessions](../product-surfaces/ade-sessions.md) for payloads and privacy.
 
 Repository activation supports explicit `--schema-version 3` with fresh authoritative evidence that all required readers support versions 1, 2, and 3. Its coordinate uses schema version 2. Existing version 1 coordinates and version 2 activation identifiers retain their meaning.
 
