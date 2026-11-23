@@ -12,13 +12,13 @@ Before opening a feature pull request:
 4. Run `pnpm release:metadata:check` and all seven distribution smokes. The metadata check runs the manifest, SBOM, and release statement checks while the CLI version is unreleased and explains its skip otherwise. The smokes are `smoke:built-cli`, `smoke:built-hub`, `smoke:hub-distribution`, `smoke:built-node`, `smoke:node-distribution`, `smoke:packed-cli`, and `smoke:registry-publish`.
 5. Obtain an adversarial review and assess each finding before applying fixes.
 
-Follow [CLI version and release management](cli-version-management.md) for release intent and authority boundaries. Prepare a feature pull request carrying intent by adding the `release` label or dispatching `release-pull-request.yml` with `pull_request=<number>`. Create the label once if absent. Keep the intent and preparation commits separate; do not squash them.
+Follow [CLI version and release management](cli-version-management.md) for release intent and authority boundaries. Prepare a feature pull request carrying intent by adding the `release` label or dispatching `release-pull-request.yml` with `pull_request=<number>`. Create the label once if absent. Keep the intent and preparation commits separate; do not squash them. Code quality starts the CLI release matrix for the prepared commit only after it passes (ADR-0593). Preparation runs on Linux when a verified darwin build of the same native inputs exists; dispatch with `force_macos=true` to compile on macOS instead.
 
 ## Wait for exact release evidence
 
 Use `scripts/wait-release.sh` in the background and inspect its exit status: 0 means success, 1 failure, 2 timeout, and 3 a stale pull request head. Repeated `gh` or `git` failures appear on stderr as `gh_unavailable` or `git_unavailable`, and a timeout names the last one. Do not replace it with an ad hoc polling loop.
 
-- `scripts/wait-release.sh pr <number>` waits for preparation and judges the observed head. A prepared head requires its newest exact-SHA dispatched Code quality run and CLI release matrix run; the Code quality run posts `CI verification (lervo-ci-v1)` as a commit status. A prepared head with no matrix dispatch keeps waiting until preparation is rerun. Other heads use pull request checks and, once passed, wait for the `v<version>` tag of `main`'s CLI version. Moving heads are judged again.
+- `scripts/wait-release.sh pr <number>` waits for preparation and judges the observed head. A prepared head requires its newest exact-SHA dispatched Code quality run and CLI release matrix run; the Code quality run posts `CI verification (lervo-ci-v1)` as a commit status. A prepared head with no matrix dispatch keeps waiting until preparation is rerun. Other heads use pull request checks and, once passed, wait for the `v<version>` tag of `main`'s CLI version. An unprepared head that still carries release intent is never admitted, because its checks skipped the tests (ADR-0592); prepare it first. Moving heads are judged again.
 - On exit 3, update a pull request without intent using `gh pr update-branch <number>`, or rerun preparation for a prepared pull request, then wait again.
 - Merge using `gh pr merge <number> --merge --match-head-commit <sha>`, binding the merge to the head printed by the script.
 - `scripts/wait-release.sh tag <version>` waits for the tag, its CLI release matrix on any event, and the published GitHub Release with the tarball, manifest, SBOM, and `release-subjects.json` attached. If the tag's matrix run fails, re-run all of its jobs (`gh run rerun <run-id>`), not only the failed ones, so its reuse plan is decided again.
@@ -46,6 +46,8 @@ Resolve hosts from `.lervo/environment-targets/` and refresh each with `lervo en
 
 ## Deploy readers before writers
 
+When a release starts writing a field that older readers reject, ship the reader release first. Deploy the writer only after the Hub and every host run the reader release, and never roll the Hub back below it afterwards.
+
 ### Hub
 
 On the Hub host, run `python3 -I scripts/hub-backup.py <version>-<date>`. Its online SQLite backup must pass the integrity check with `ok`.
@@ -68,7 +70,7 @@ Atomically relink `lervo` and `lervo-node` to the new `dist/bin.js` and `dist/no
 
 Read each host's current `repositories.json` from its Lervo state directory. Run `scripts/upgrade-all.sh <release-dir>/<host>-upgrade-receipts` on each host.
 
-For each repository, obtain `lervo upgrade --json`, apply its exact plan with `--apply --approval <planId>`, and repeat until `current` or a concrete blocker requires resolution. If a background cycle causes `upgrade_plan_changed`, use `lervo upgrade --apply --safe`. Retain receipts under the host's release receipt directory.
+For each repository, the script runs `lervo upgrade --json`, then `lervo upgrade --apply --json`, for at most five rounds, until the status is `current` or `lervo_debt`. `--apply` plans again inside the exclusive window, so no plan ID or approval is passed (ADR-0561). `lervo_debt` means Lervo holds a stage itself; report it with its reason, not as owner work. The script exits 1 when any repository ends in another status. Each receipt's `notices` name what changed and the command that undoes it. Retain receipts under the host's release receipt directory.
 
 Never commit generated outputs into the owner's working branch. Report repositories with uncommitted generated changes. A blocked content stage does not justify skipping other repositories or hosts.
 
@@ -78,4 +80,4 @@ Confirm that each knowledge host service runs the new CLI without excessive CPU 
 
 ## Report the observed result
 
-Report every host and repository with its final status, retained receipts, remaining blockers, and the actor responsible for resolving each blocker. Distinguish completed operations from pending verification. Tag creation and GitHub Release availability do not establish npm publication authority or publication success.
+Report every host and repository with its final status, retained receipts, every receipt notice with its undo command, remaining blockers, any Lervo debt with its reason, and the actor responsible for resolving each blocker. Distinguish completed operations from pending verification. Tag creation and GitHub Release availability do not establish npm publication authority or publication success.
