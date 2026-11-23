@@ -20,6 +20,7 @@ import {
   NodeModelRouteError,
   nodeRoleRoute,
   nodeRouteForProvider,
+  ownerReasoningRoute,
   readHostNodeModelSelection,
 } from "../src/node-model-route.js";
 
@@ -279,5 +280,25 @@ describe("provider startability", () => {
     process.env.PATH = directory;
     expect(adapterStartable("claude")).toBe(bundledClaudeExecutable() !== null);
     expect(adapterStartable("codex")).toBe(false);
+  });
+});
+
+describe("ownerReasoningRoute", () => {
+  it("keeps the configured provider and takes the reasoning route's model and effort for it", () => {
+    const readSelection = selection({
+      reasoning: [{ provider: "claude", model: "claude-opus-5-5", reasoningEffort: "max" }],
+    });
+    expect(ownerReasoningRoute({ provider: "claude", model: "old", readSelection })).toEqual({
+      model: "claude-opus-5-5",
+      reasoningEffort: "max",
+    });
+    // A provider the role does not list keeps the configured model, so the mandate's provider
+    // and the planned effect stay as before.
+    expect(ownerReasoningRoute({ provider: "codex", model: "old", readSelection })).toEqual({
+      model: "old",
+    });
+    expect(ownerReasoningRoute({ provider: "claude", readSelection: selection({}) })).toEqual({
+      model: null,
+    });
   });
 });

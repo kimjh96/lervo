@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { DEFAULT_MODEL_SELECTION, type ModelSelection } from "@lervo/execution-contract";
+
 import { selectConversationRepositoryWorkRoute } from "../src/conversation-repository-work-routing.js";
 
 const executionProfiles = {
@@ -110,5 +112,63 @@ describe("conversation repository work routing", () => {
         },
       }),
     ).toThrow("has no route for the retained claude provider");
+  });
+});
+
+describe("conversation repository work routing by model role (ADR-0612)", () => {
+  const selection =
+    (roles: ModelSelection["roles"]): (() => ModelSelection) =>
+    () => ({ ...DEFAULT_MODEL_SELECTION, revision: 1, roles });
+  const base = {
+    sessionProvider: null,
+    boundProvider: "any" as const,
+    defaultProvider: "codex" as const,
+    executionProfiles,
+    startable: () => true,
+  };
+
+  it("lets a set role choose new work's provider among this Node's executors", () => {
+    expect(
+      selectConversationRepositoryWorkRoute({
+        ...base,
+        executionProfile: "reasoning",
+        executors: { claude: {} },
+        readSelection: selection({
+          reasoning: [
+            { provider: "codex", model: "gpt-x", reasoningEffort: "max" },
+            { provider: "claude", model: "claude-opus-5-5", reasoningEffort: null },
+          ],
+        }),
+      }),
+    ).toEqual({
+      provider: "claude",
+      model: "claude-opus-5-5",
+      reasoningEffort: "high",
+      executionProfile: "reasoning",
+      allocationReason: "profile_preference",
+    });
+  });
+
+  it("keeps a continued session's provider and takes the role's route for it", () => {
+    expect(
+      selectConversationRepositoryWorkRoute({
+        ...base,
+        sessionProvider: "codex",
+        executionProfile: null,
+        readSelection: selection({
+          routine: [{ provider: "codex", model: "gpt-fast", reasoningEffort: "low" }],
+        }),
+      }),
+    ).toMatchObject({ provider: "codex", model: "gpt-fast", reasoningEffort: "low" });
+  });
+
+  it("keeps the configured profile route while the role is unset", () => {
+    expect(
+      selectConversationRepositoryWorkRoute({
+        ...base,
+        executionProfile: "review",
+        readSelection: selection({}),
+      }),
+    ).toMatchObject({ provider: "claude", model: "claude-review", reasoningEffort: "high" });
   });
 });

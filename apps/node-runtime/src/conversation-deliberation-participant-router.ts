@@ -1,5 +1,4 @@
 import {
-  deliberationExecutionRouteHash,
   deliberationParticipationAssignmentId,
   projectAgentOrganizationFromEventSource,
   workforceProviderForPolicyHash,
@@ -14,6 +13,8 @@ import {
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import type { DiscordAgentParticipation } from "./discord-agent-participation.js";
+import { deliberationParticipantRoute } from "./deliberation-participant-route.js";
+import type { ReadNodeModelSelection } from "./node-model-route.js";
 
 export interface ConversationDeliberationParticipantAssignmentPort {
   preflight(input: { policyId: string; projectId: string; conversationId: string }): {
@@ -69,6 +70,8 @@ export class CoResidentConversationDeliberationParticipants implements Conversat
   constructor(
     private readonly options: {
       events: Pick<EventStore, "latest" | "list">;
+      /** Replaced only in tests. */
+      readModelSelection?: ReadNodeModelSelection;
     },
   ) {}
 
@@ -265,23 +268,19 @@ export class CoResidentConversationDeliberationParticipants implements Conversat
         ) {
           throw new Error("The accepted deliberation participant has no exact active deployment.");
         }
-        const provider =
-          route.provider ??
-          endpoint.config.routing?.response.provider ??
-          endpoint.config.command.provider;
+        const { provider, model, reasoningEffort, executionRouteHash } =
+          deliberationParticipantRoute({
+            route,
+            endpoint: endpoint.config,
+            existing,
+            providerPolicyHash: membership.providerPolicyHash,
+            ...(this.options.readModelSelection === undefined
+              ? {}
+              : { readSelection: this.options.readModelSelection }),
+          });
         if (!acceptedProvider(membership.providerPolicyHash, provider)) {
           throw new Error("The deliberation execution provider exceeds the hired-agent policy.");
         }
-        const model = route.model ?? endpoint.config.routing?.response.model ?? null;
-        const reasoningEffort =
-          route.reasoningEffort ?? endpoint.config.routing?.response.reasoningEffort ?? null;
-        const executionRouteHash = deliberationExecutionRouteHash({
-          participantId: endpoint.config.agentParticipantId,
-          integrationId: endpoint.config.integrationId,
-          provider,
-          model,
-          reasoningEffort,
-        });
         const participationAssignmentId = deliberationParticipationAssignmentId({
           deliberationId: input.deliberationId,
           policyId: route.policyId,

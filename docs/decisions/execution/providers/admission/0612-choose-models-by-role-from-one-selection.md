@@ -89,7 +89,10 @@ No document names a current model as a contract. Historical evidence keeps the m
 - **M1.** The selection record and resolver (`@lervo/execution-contract`), and `lervo model show|set|unset`. Background knowledge work resolves the `background` role at each admission: the role orders the providers the delegation allows, and the admitted provider's route sets the model and the effort. That covers assessment, normalization, freshness, instruction capture, practice and change review. The JSON runner's fixed `low` effort becomes the role's default. The normalizer passes the model only, because it has no effort flag.
 - **M2a.** `lervo run` uses the `routine` route for the provider it names. The ADR-0561 cross-checks (plan, owner rule fidelity, and capability install) use the `review` role. A provider the caller names stands, with its route. Otherwise the role's providers are tried in order, and a provider whose CLI cannot start falls through to the next. The capability install's second session takes the next provider the role lists, or the other provider when the role is unset; a second session that gives no verdict is replaced by one of the first provider, as before. A disagreement is never taken to another session. Queries answer only on a provider the `background` role lists, and they keep the provider default model and effort `low`, because the product default search plan is qualified for that projector (ADR-0353); a query model needs requalification first.
 - **M2b.** The Node runtime resolves by role at each provider call. Replies and execution profiles use their role, intent resolution uses `routine`, writing and result evaluation use `review`, and a signed remote command keeps its provider and takes the `routine` route for it. A hired agent's provider policy bounds the routes, and a listed provider whose CLI this host cannot start is passed over. Node configuration model fields remain the route of an unset role; nothing rewrites them. The deployment binding stops covering the response model.
-- **M2c.** Deliberation participants and supervision owner reasoning resolve by role. Both bind their route at acceptance, so their records must first store the chosen route. Until then they keep the Node configuration route.
+- **M2c.** Repository work from a conversation, deliberation participants, and supervision owner reasoning resolve by role.
+  - Repository work uses its profile's role, or `routine`. A replayed event, a continued session or a bound agent keeps its provider and takes the role's route for it. Otherwise a set role picks among the providers this Node has an executor for.
+  - A deliberation seat uses `reasoning` inside the agent's provider policy. A seat the selection routes binds only its provider: its route hash covers no model or effort, and each start or resume takes the role's current model and effort, so a model change never breaks a resume. A seat accepted from the Node configuration keeps its full hash and resumes unchanged.
+  - Owner reasoning keeps its configured provider, which the supervision mandate reviews, and takes the `reasoning` route's model and effort for it. A planned effect stays valid for the configured model or the route's model.
 - **M3.** Hub publication and adoption of the selection with a two-host parity check. The checked-in fleet policy and its reconcile script are removed. Configuration documents stop naming models.
 
 ## State, events, privacy, and failure meaning
@@ -108,7 +111,7 @@ No document names a current model as a contract. Historical evidence keeps the m
 - A model or provider change takes one command and no restart, rebind or re-review.
 - Background work can use an explicit model and effort instead of whatever default the installed CLI ships. A role left at its defaults behaves exactly as today.
 - Reasoning and review may share one provider. Their quality floor, high effort or more, still applies to the routes of those roles.
-- Node configuration model fields remain the route of a role left unset. Deliberation participants and owner reasoning keep them until M2c.
+- Node configuration model fields remain the route of a role left unset.
 - A Node checks only that a provider's CLI can start before choosing its route; a provider without a login or quota still fails the call visibly.
 - In M1, admission probes a provider without the route's model. A mistyped or unavailable model id therefore fails each background call visibly rather than falling through. M2 probes the route's model at admission.
 - A role left unset behaves exactly as before ADR-0612: background calls keep effort `low` and the CLI default model.
@@ -120,6 +123,7 @@ No document names a current model as a contract. Historical evidence keeps the m
   - `lervo model set` changes the route used at the next admission of a running resident without a restart;
   - a role left unset passes no model and effort `low`, as today.
 - **M2a.** Set the `review` role to a provider whose CLI cannot start, then a second one; a cross-check runs once on the second with its model and effort. Set `background` to one provider; a query on the other falls back without a provider call. A role left unset keeps the provider the caller names or the resident last admitted, with no model and the effort used before.
+- **M2c.** Set `reasoning` during a deliberation, then resume it: the seat keeps its provider and route hash and uses the new model.
 - **M2b.** Change the `routine` route while a Node runs, then confirm:
   - the next conversation reply uses it;
   - the Node keeps its process id;
