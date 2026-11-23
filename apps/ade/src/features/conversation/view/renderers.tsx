@@ -1,5 +1,5 @@
 import type { ConversationItem } from "@lervo/session-host-contract";
-import type { ComponentType } from "react";
+import { type ComponentType, lazy, Suspense } from "react";
 import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
 import { toolMessages } from "./messages";
@@ -10,7 +10,12 @@ type Renderer<Kind extends ConversationItem["kind"]> = ComponentType<{
   item: Extract<ConversationItem, { kind: Kind }>;
 }>;
 
-/** Text split at blank lines, one paragraph each. Markdown rendering comes with S1.6c. */
+// The Markdown renderer loads as its own chunk as soon as the interface starts, so the start
+// screen's JavaScript stays within its budget and a conversation rarely waits for it.
+const loading = import("./markdown/Markdown");
+const Markdown = lazy(() => loading);
+
+/** Text split at blank lines, one paragraph each, while the Markdown renderer loads. */
 function Paragraphs(props: { text: string; className: string | undefined }) {
   const paragraphs = props.text.split(/\n{2,}/u);
   return (
@@ -27,13 +32,24 @@ function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_m
   return <p className={styles.user}>{item.text}</p>;
 }
 
+/** An agent's text as Markdown, as plain paragraphs until the renderer has loaded. */
+function AgentText(props: { text: string; className: string | undefined }) {
+  return (
+    <div className={props.className}>
+      <Suspense fallback={<Paragraphs text={props.text} className={undefined} />}>
+        <Markdown text={props.text} />
+      </Suspense>
+    </div>
+  );
+}
+
 function AgentMessage({ item }: { item: Extract<ConversationItem, { kind: "agent_message" }> }) {
   const text = usePacedText(item.text);
-  return <Paragraphs text={text} className={styles.agent} />;
+  return <AgentText text={text} className={styles.agent} />;
 }
 
 function Question({ item }: { item: Extract<ConversationItem, { kind: "question" }> }) {
-  return <Paragraphs text={item.text} className={styles.question} />;
+  return <AgentText text={item.text} className={styles.question} />;
 }
 
 function ToolActivity({ item }: { item: Extract<ConversationItem, { kind: "tool_activity" }> }) {

@@ -133,7 +133,7 @@ Inter sets the interface and JetBrains Mono sets code, terminals, and identifier
 - **Numerals.** Counts, times, and durations use tabular numerals, so values do not shift as they change.
 - **Truncation.** Titles and labels truncate at the end with an ellipsis. Paths and identifiers truncate in the middle. Text from the person or the agent never truncates.
 - **Other scripts.** Text in other scripts falls back to the platform's fonts, as the visual language lists. Line heights hold for them.
-- **Markdown.** Rendered Markdown (S1.6c) maps headings to `type.body` at weights 600 and 500, code to `type.mono`, and quotes to `color.text.secondary`. It adds no sizes of its own.
+- **Markdown.** Agent messages and questions render Markdown (S1.6c): headings in `type.body` at `font.weight.semibold` for the first level and `font.weight.medium` below, code blocks in `type.mono` and inline code in the mono face at `type.meta` on `color.surface.code`, quotes in `color.text.secondary` behind a `border.width.strong` bar, and tables at `type.meta`. It adds no sizes of its own. Raw HTML shows as text, and links show in `color.text.link` without navigating the window. The person's own messages stay as they typed them.
 
 ## Space and layout
 

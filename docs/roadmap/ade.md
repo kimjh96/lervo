@@ -30,6 +30,7 @@ This roadmap delivers [ADR-0613](../decisions/execution/applications/0613-host-p
 | S1.5e Approved mockups         | The interface as the approved mockups show it: the window glass on the native material at the mockups' tint, the sidebar with "New work", the start card, the workspace header, the conversation and the terminal on the glass, the missing motion patterns, and Lervo as the only visible name.                                                                                                                                                                                                                    | Screenshots of the real window match the mockups in both modes, and the measured contrast meets the visual language.                                                       |
 | S1.6a Session host harness     | Load scenarios for the session host: a 100,000-item conversation index, streaming at the fastest rate, input during a terminal flood, and a soak of repeated sessions, with the fixes the measurements require.                                                                                                                                                                                                                                                                                                     | Each session host budget meets its target or carries a reviewed revision.                                                                                                  |
 | S1.6b Interface harness        | The interface scenarios in the shell's webview: cold start, idle CPU, a 100,000-item conversation opened and scrolled, streamed deltas to screen, keystroke echo, and the bundle-size check on every pull request.                                                                                                                                                                                                                                                                                                  | Each interface budget meets its target or carries a reviewed revision.                                                                                                     |
+| S1.6c Markdown                 | Agent messages render Markdown with the design system's typography, from a parser chosen by bundle size and parse time, without HTML strings, and within the start screen's budget.                                                                                                                                                                                                                                                                                                                                 | The choice is measured and recorded, the renderer passes its tests in both modes, and the start screen's bundle stays within its budget.                                   |
 
 ### S1.1 measurements
 
@@ -170,6 +171,18 @@ On 2026-11-23 the owner tried the app built from `main` and found two problems.
 ### S1.6b progress
 
 `apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, the start screen loads 94 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the terminal, is 115 KB against 160 KB. The webview scenarios of S1.6b remain: cold start, idle CPU, the 100,000-item conversation, streamed deltas to screen, and keystroke echo.
+
+### S1.6c measurements
+
+On 2026-11-23 three parsers were measured: each one's parse entry bundled and minified for the browser, then timed in Node 26 on an Apple Silicon Mac. The inputs were a 1.3 KB reply with a heading, lists, a code block, a table, a quote, and a link; that reply repeated to 76 KB and to 163 KB; and 200 re-parses of the growing reply, as streaming does.
+
+| Parser                                | Bundle, gzip | 1.3 KB  | 76 KB  | 163 KB | 200 streaming re-parses |
+| ------------------------------------- | ------------ | ------- | ------ | ------ | ----------------------- |
+| `marked` 18.2.1, lexer only           | 15.4 KB      | 0.04 ms | 3.7 ms | 4.5 ms | 3.3 ms                  |
+| `markdown-it` 15.0.3                  | 41.0 KB      | 0.06 ms | 3.0 ms | 9.1 ms | 6.4 ms                  |
+| `mdast-util-from-markdown` 2.0.3, GFM | 23.6 KB      | 0.55 ms | 48 ms  | 157 ms | 63 ms                   |
+
+`marked` won on size and speed. The core's `mdast-util-from-markdown` was too slow for the streaming path. The ADE renders `marked`'s tokens as React elements, so no HTML string reaches the page. The renderer is a lazy chunk of 16.1 KB gzip, loaded right after start; the start screen still loads 99.8 KB of its 120 KB budget.
 
 ### Order after S1.4b
 

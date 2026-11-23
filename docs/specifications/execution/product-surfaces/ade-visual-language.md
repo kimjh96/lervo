@@ -35,6 +35,7 @@ Each token is semantic. Components use tokens, never raw values.
 | `color.surface.floating`    | `rgba(30,32,40,0.62)`    | `rgba(255,255,255,0.62)` | The reply card and controls over the conversation           |
 | `color.surface.selected`    | `rgba(255,255,255,0.08)` | `rgba(255,255,255,0.85)` | The selected workspace                                      |
 | `color.surface.workspace`   | `rgba(255,255,255,0)`    | `rgba(255,255,255,0.35)` | The selected workspace's conversation over the window glass |
+| `color.surface.code`        | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.05)`    | Code blocks and inline code in agent messages               |
 | `color.surface.userMessage` | `rgba(255,255,255,0.08)` | `rgba(20,30,50,0.06)`    | The user's messages in the conversation                     |
 | `color.surface.terminal`    | `rgba(6,7,11,0.45)`      | `rgba(247,248,250,0.72)` | The CLI conversation over the window glass                  |
 | `color.border.subtle`       | `rgba(255,255,255,0.06)` | `rgba(20,30,50,0.07)`    | Dividers                                                    |

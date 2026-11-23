@@ -19,7 +19,8 @@ This part of the [Lervo ADE convention](../ade-convention.md) records the techno
 | Long lists            | TanStack Virtual                                                     | Variable-height virtualization for unbounded conversations                    |
 | Localization          | FormatJS (`react-intl`) with catalogs compiled to ASTs               | ICU messages without a runtime parser; Vite aliases the parser to its stub    |
 | CLI conversation      | xterm.js with its WebGL renderer                                     | A proven terminal renderer                                                    |
-| Markdown and code     | Chosen in S1.5 by measurement against the performance budgets        | The heaviest rendering path, so the choice needs evidence                     |
+| Markdown              | `marked`'s lexer, rendered to React elements without HTML strings    | Chosen in S1.6c by measurement: the smallest bundle and the fastest parse     |
+| Code highlighting     | None yet; code shows in the mono face                                | Added by measurement when a scenario needs it                                 |
 
 ## Session host
 
