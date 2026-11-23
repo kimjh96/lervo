@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.36.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.37.0" schema="1" -->
 
 ## What's changed
 
-- Add the workspace.list and repository.list commands to lervo application serve, which the Lervo ADE's start screen and workspace list read.
+- lervo run, the cross-checks, and repository queries use the routine, review, and background routes of the model selection.
