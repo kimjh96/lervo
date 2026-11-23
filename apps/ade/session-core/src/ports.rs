@@ -18,6 +18,16 @@ pub enum ConversationMode {
     Cli,
 }
 
+impl ConversationMode {
+    /// The mode's name across Lervo: the core's launch descriptors use it.
+    pub fn code(self) -> &'static str {
+        match self {
+            Self::Native => "native",
+            Self::Cli => "cli",
+        }
+    }
+}
+
 /// A provider process the core prepared for a session.
 #[derive(Clone, Debug)]
 pub struct Launch {
@@ -47,6 +57,8 @@ pub enum FailureCode {
     ApplicationFailed,
     /// The resident process is not running or not reachable.
     ApplicationUnavailable,
+    /// The resident process did not answer in time.
+    ApplicationTimeout,
 }
 
 /// A failure that the session host reports with `request.failed`.
@@ -65,26 +77,6 @@ impl Failure {
             code,
             core_code: None,
             stage: None,
-        }
-    }
-
-    /// The failure for a code the core reported.
-    pub fn from_core(core_code: &str, stage: Option<String>) -> Self {
-        let code = match core_code {
-            "workspace_start_failed" => FailureCode::WorkspaceStartFailed,
-            "workspace_not_found" => FailureCode::WorkspaceNotFound,
-            "launch_intent_invalid" | "resume_unsupported" | "provider_unknown" => {
-                FailureCode::LaunchIntentInvalid
-            }
-            "provider_cli_unavailable" => FailureCode::ProviderCliUnavailable,
-            "provider_login_unavailable" => FailureCode::ProviderLoginUnavailable,
-            "conversation_mode_unsupported" => FailureCode::ConversationModeUnsupported,
-            _ => FailureCode::ApplicationFailed,
-        };
-        Self {
-            code,
-            core_code: Some(core_code.to_owned()),
-            stage,
         }
     }
 }
@@ -175,24 +167,5 @@ impl StreamDecoder for Disconnected {
 
     async fn output(&mut self, _bytes: &[u8]) -> Vec<Decoded> {
         Vec::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{Failure, FailureCode};
-
-    #[test]
-    fn names_the_core_codes_and_keeps_them() {
-        let failure = Failure::from_core("workspace_start_failed", Some("workstream".to_owned()));
-        assert_eq!(failure.code, FailureCode::WorkspaceStartFailed);
-        assert_eq!(failure.stage.as_deref(), Some("workstream"));
-        assert_eq!(
-            Failure::from_core("resume_unsupported", None).code,
-            FailureCode::LaunchIntentInvalid
-        );
-        let unknown = Failure::from_core("disk_full", None);
-        assert_eq!(unknown.code, FailureCode::ApplicationFailed);
-        assert_eq!(unknown.core_code.as_deref(), Some("disk_full"));
     }
 }

@@ -6,7 +6,7 @@
 
 use std::time::Duration;
 
-use lervo_session_pty::{PtyCommand, PtyProcess};
+use lervo_session_pty::{PtyCommand, PtyError, PtyProcess};
 
 fn shell(script: &str) -> PtyCommand {
     PtyCommand {
@@ -25,7 +25,7 @@ async fn all_output(process: &mut PtyProcess) -> String {
         .await
         .unwrap()
     {
-        output.extend(chunk);
+        output.extend_from_slice(&chunk);
     }
     String::from_utf8_lossy(&output).into_owned()
 }
@@ -42,7 +42,7 @@ async fn runs_a_command_with_its_environment_and_reports_its_exit() {
 async fn forwards_input_and_resizes() {
     let mut process = PtyProcess::spawn(&shell("read line; printf \"got:$line\"")).unwrap();
     process.resize(120, 40).unwrap();
-    process.input(b"hello\n").unwrap();
+    process.input().send(b"hello\n".to_vec()).await.unwrap();
     assert!(all_output(&mut process).await.contains("got:hello"));
     assert!(process.wait().unwrap().success);
 }
@@ -52,4 +52,14 @@ async fn stops_a_running_process() {
     let mut process = PtyProcess::spawn(&shell("sleep 30")).unwrap();
     process.kill().unwrap();
     assert!(!process.wait().unwrap().success);
+}
+
+#[tokio::test]
+async fn names_a_program_that_does_not_exist() {
+    let mut command = shell("");
+    command.program = "lervo-no-such-program".to_owned();
+    assert!(matches!(
+        PtyProcess::spawn(&command),
+        Err(PtyError::Missing(program)) if program == "lervo-no-such-program"
+    ));
 }

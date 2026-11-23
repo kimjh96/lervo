@@ -12,11 +12,10 @@ pub struct ClientBudget {
 }
 
 /// The client fell behind. The host drops its terminal frames and sends `session.resync_required`.
-#[derive(Debug, PartialEq, Eq, thiserror::Error)]
-#[error("client_buffer_full: {queued} of {limit} bytes queued")]
-pub struct Overflow {
-    pub queued: usize,
-    pub limit: usize,
+#[derive(Debug, PartialEq, Eq)]
+struct Overflow {
+    queued: usize,
+    limit: usize,
 }
 
 /// The outcome of `ClientBudget::admit`.
@@ -38,7 +37,7 @@ impl ClientBudget {
     }
 
     /// Reserves room for `bytes`. After an overflow, every reservation fails until `reset`.
-    pub fn reserve(&mut self, bytes: usize) -> Result<(), Overflow> {
+    fn reserve(&mut self, bytes: usize) -> Result<(), Overflow> {
         let queued = self.queued.saturating_add(bytes);
         if self.overflowed || queued > self.limit {
             self.overflowed = true;
@@ -72,11 +71,6 @@ impl ClientBudget {
         self.queued = 0;
         self.overflowed = false;
     }
-
-    /// Bytes currently queued.
-    pub fn queued(&self) -> usize {
-        self.queued
-    }
 }
 
 impl Default for ClientBudget {
@@ -95,7 +89,7 @@ mod tests {
         assert_eq!(budget.reserve(6), Ok(()));
         budget.release(4);
         assert_eq!(budget.reserve(8), Ok(()));
-        assert_eq!(budget.queued(), 10);
+        assert_eq!(budget.queued, 10);
     }
 
     #[test]

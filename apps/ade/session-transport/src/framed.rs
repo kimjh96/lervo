@@ -97,6 +97,15 @@ impl<W: AsyncWrite + Unpin> FrameWriter<W> {
         Ok(())
     }
 
+    /// Writes one control message that the caller already encoded, for example to count its exact
+    /// size against a budget before it was queued.
+    pub async fn control_payload(&mut self, payload: &[u8]) -> Result<(), TransportError> {
+        self.buffer.clear();
+        frame::encode_control(payload, &mut self.buffer)?;
+        self.inner.write_all(&self.buffer).await?;
+        Ok(())
+    }
+
     /// Writes terminal bytes for `channel` at `sequence`. The bytes are framed, not re-encoded.
     pub async fn terminal(
         &mut self,

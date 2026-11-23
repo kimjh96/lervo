@@ -1,27 +1,25 @@
-//! What the session host knows about its sessions: the registry of handles, and the latest status
-//! of each session for the connections that watch them all.
+//! The registry of session handles: sessions by identifier, the session of each terminal channel,
+//! and each workspace's latest session. Only the lifecycle changes it, and it holds the registry's
+//! lock only for these quick lookups and inserts, never across I/O.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 
-use lervo_session_protocol::{HostMessage, Identifier};
-use tokio::sync::mpsc;
+use lervo_session_protocol::Identifier;
 
 use crate::session::{MAX_RETAINED_ENDED, SessionHandle};
-use crate::subscriber::Outgoing;
 
-/// Sessions by identifier, the session of each terminal channel, and each workspace's session.
 #[derive(Default)]
-pub struct Registry {
-    pub sessions: HashMap<Identifier, SessionHandle>,
-    pub channels: HashMap<u32, Identifier>,
+pub(crate) struct Registry {
+    pub(crate) sessions: HashMap<Identifier, SessionHandle>,
+    pub(crate) channels: HashMap<u32, Identifier>,
     /// The latest session of each workspace.
-    pub workspaces: HashMap<Identifier, Identifier>,
+    pub(crate) workspaces: HashMap<Identifier, Identifier>,
 }
 
 impl Registry {
     /// Releases the oldest ended sessions beyond `MAX_RETAINED_ENDED`. Channels only grow, so the
     /// lowest channels belong to the oldest sessions.
-    pub fn release_oldest_ended(&self) {
+    pub(crate) fn release_oldest_ended(&self) {
         let mut ended: Vec<&SessionHandle> = self
             .sessions
             .values()
@@ -37,36 +35,37 @@ impl Registry {
     }
 
     /// Forgets sessions whose actor exited, so the registry stays as large as the live sessions.
-    pub fn prune(&mut self) {
+    pub(crate) fn prune(&mut self) {
         self.sessions.retain(|_, handle| !handle.is_gone());
         let sessions = &self.sessions;
         self.channels
             .retain(|_, session| sessions.contains_key(session));
+        self.workspaces
+            .retain(|_, session| sessions.contains_key(session));
     }
-}
 
-/// The latest status of each session, and the connections that watch every session.
-#[derive(Default)]
-pub struct Watch {
-    pub statuses: HashMap<Identifier, HostMessage>,
-    pub connections: Vec<(u64, mpsc::UnboundedSender<Outgoing>)>,
-}
-
-impl Watch {
-    pub fn record(&mut self, message: HostMessage) {
-        let HostMessage::SessionStatusMessage(status) = &message else {
-            return;
-        };
-        self.statuses
-            .insert(status.session_id.clone(), message.clone());
-        self.connections
-            .retain(|(_, outgoing)| outgoing.send(control(message.clone())).is_ok());
+    /// The sessions that still exist.
+    pub(crate) fn live(&self) -> HashSet<Identifier> {
+        self.sessions.keys().cloned().collect()
     }
-}
 
-pub fn control(message: HostMessage) -> Outgoing {
-    Outgoing::Control {
-        message,
-        budget: None,
+    /// The workspace's session while its provider process runs.
+    pub(crate) fn running(&self, workspace: &Identifier) -> Option<(Identifier, SessionHandle)> {
+        let session = self.workspaces.get(workspace)?;
+        let handle = self.sessions.get(session)?;
+        handle
+            .is_running()
+            .then(|| (session.clone(), handle.clone()))
+    }
+
+    pub(crate) fn insert(
+        &mut self,
+        workspace: Identifier,
+        session: Identifier,
+        handle: SessionHandle,
+    ) {
+        self.channels.insert(handle.channel, session.clone());
+        self.workspaces.insert(workspace, session.clone());
+        self.sessions.insert(session, handle);
     }
 }
