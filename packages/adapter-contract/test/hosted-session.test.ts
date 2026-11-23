@@ -63,6 +63,20 @@ describe("hosted launch intents", () => {
         "conversation_mode_unsupported",
         { ...capabilities, nativeConversation: false },
       ],
+      [
+        { ...base, hooks: { settingsPath: "/s.json", command: "lervo hook" } },
+        "launch_intent_invalid",
+      ],
+      [
+        { ...base, hooks: { settingsPath: "s.json", command: "lervo hook" } },
+        "launch_intent_invalid",
+        { ...capabilities, hooks: true },
+      ],
+      [
+        { ...base, hooks: { settingsPath: "/s.json", command: "lervo hook\nrm -rf /" } },
+        "launch_intent_invalid",
+        { ...capabilities, hooks: true },
+      ],
     ] as const;
     for (const [intent, code, declared] of cases)
       expect(codeOf(() => assertHostedLaunchIntent(intent, declared ?? capabilities))).toBe(code);
@@ -83,6 +97,7 @@ describe("the common hosted-session checks", () => {
         mode: "cli",
         initialInput: null,
         environmentRemove: [],
+        settingsFile: null,
       }),
     };
     const violations = evaluateHostedSessionContract(broken, "/work/repo");
@@ -94,10 +109,36 @@ describe("the common hosted-session checks", () => {
       "omits the session ID",
       "an undeclared resume launch did not fail",
       "the display name must be 1 to 64 characters",
+      "undeclared hooks did not fail",
     ])
       expect(
         violations.some((violation) => violation.includes(expected)),
         expected,
       ).toBe(true);
+  });
+
+  it("report an adapter that declares hooks but writes no settings file", () => {
+    const silent: HostedSessionAdapter = {
+      provider: "silent",
+      displayName: "Silent",
+      capabilities: { ...capabilities, hooks: true },
+      prepareLaunch: (intent) => ({
+        program: "silent",
+        arguments: ["--session-id", intent.sessionId],
+        environment: {},
+        workingDirectory: intent.workingDirectory,
+        mode: intent.mode,
+        initialInput: intent.start.kind === "new" ? intent.start.instruction : null,
+        environmentRemove: [],
+        settingsFile: null,
+      }),
+    };
+    const violations = evaluateHostedSessionContract(silent, "/work/repo");
+    expect(violations.some((violation) => violation.includes("writes no settings file"))).toBe(
+      true,
+    );
+    expect(
+      violations.some((violation) => violation.includes("does not pass the settings file")),
+    ).toBe(true);
   });
 });
