@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6f80dc442bc7b5ee97202223"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Knowledge convergence verification runs with the owner's login-shell PATH, so canonical integration finds pnpm under a service manager and no longer fails on spawnSync pnpm ENOENT."

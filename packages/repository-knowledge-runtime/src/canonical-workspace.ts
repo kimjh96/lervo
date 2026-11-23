@@ -27,6 +27,7 @@ import {
   withVerificationSourceChanges,
 } from "./verification-source-changes.js";
 import { hasCanonicalNormalizationLineage } from "./canonical-normalization-lineage.js";
+import { verificationEnvironment } from "./verification-environment.js";
 
 const execute = promisify(execFile);
 export async function convergenceGit(root: string, args: string[]): Promise<string> {
@@ -139,6 +140,7 @@ export async function verifyCanonicalWorkspace(
   root: string,
 ): Promise<ManagedProjectVerification[]> {
   const receipts: ManagedProjectVerification[] = [];
+  const environment = await verificationEnvironment();
   for (const required of authority.delegation.verification) {
     await authority.assertCurrent();
     const suite = await loadVerificationSuite(
@@ -150,14 +152,17 @@ export async function verifyCanonicalWorkspace(
       context.storage.artifacts,
       observedRepositorySnapshot,
       (captureRepositoryRevision) =>
-        runVerificationSuite({
-          suite,
-          repositoryRoot: root,
-          repositoryRevision: revision,
-          captureRepositoryRevision,
-          artifactStore: context.storage.artifacts,
-          signal: context.signal,
-        }),
+        runVerificationSuite(
+          {
+            suite,
+            repositoryRoot: root,
+            repositoryRevision: revision,
+            captureRepositoryRevision,
+            artifactStore: context.storage.artifacts,
+            signal: context.signal,
+          },
+          { environment },
+        ),
     );
     assertConvergenceVerificationPassed(observed.result.status);
     receipts.push(observed);
