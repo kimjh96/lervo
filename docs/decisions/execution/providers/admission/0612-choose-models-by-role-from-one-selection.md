@@ -93,7 +93,10 @@ No document names a current model as a contract. Historical evidence keeps the m
   - Repository work uses its profile's role, or `routine`. A replayed event, a continued session or a bound agent keeps its provider and takes the role's route for it. Otherwise a set role picks among the providers this Node has an executor for, and new work fails visibly with `provider_not_admitted` when none qualifies.
   - A deliberation seat keeps the provider its reviewed policy fixes and takes the `reasoning` route's model and effort for it. When the role lists that provider at acceptance, the seat's route hash binds the provider with a selection marker instead of a model, so each start or resume uses the current route and a model change never breaks a resume. Any other seat keeps its full hash and resumes unchanged.
   - Owner reasoning keeps its configured provider, which the supervision mandate reviews. Its planned effect records the `reasoning` route's model, and a later selection change never voids it.
-- **M3.** Hub publication and adoption of the selection with a two-host parity check. The checked-in fleet policy and its reconcile script are removed. Configuration documents stop naming models.
+- **M3.** Hosts share one selection, in two releases so readers come before writers.
+  - The checked-in fleet policy and its reconcile script are removed, and configuration documents stop naming models.
+  - Readers: every host record a host publishes for a repository through the Hub may carry its selection. Hub, host and peer validators accept the field, and listing a repository's host records adopts the newest peer selection. An adopted selection keeps its revision and change time, so hosts never adopt each other's copy back. The later change wins, then the higher revision, then the content.
+  - Writers: once every host and the Hub run the reader release, each host publishes its selection in its host records and republishes when it changes. A record the Hub rejects is published again without it.
 
 ## State, events, privacy, and failure meaning
 

@@ -164,7 +164,7 @@ export function parseModelSelection(value: unknown): ModelSelection {
 }
 
 /** The file form: known and preserved unknown roles together under `roles`. */
-function serialized(selection: ModelSelection): unknown {
+export function serializedModelSelection(selection: ModelSelection): unknown {
   return {
     schemaVersion: 1,
     revision: selection.revision,
@@ -289,23 +289,33 @@ export async function writeModelSelectionRole(input: {
   if (input.routes.length === 0) delete roles[input.role];
   else roles[input.role] = input.routes.map((route) => validateModelRoute(input.role, route));
   const next = parseModelSelection(
-    serialized({
+    serializedModelSelection({
       ...current.selection,
       revision: current.selection.revision + 1,
       changedAt: (input.now ?? new Date()).toISOString(),
       roles,
     }),
   );
-  await mkdir(input.stateDirectory, { recursive: true, mode: 0o700 });
-  const path = modelSelectionPath(input.stateDirectory);
+  await replaceModelSelection(input.stateDirectory, current.selection.revision, next);
+  return next;
+}
+
+/** Writes `next` atomically, failing when the file no longer holds `expectedRevision`. */
+export async function replaceModelSelection(
+  stateDirectory: string,
+  expectedRevision: number,
+  next: ModelSelection,
+): Promise<void> {
+  await mkdir(stateDirectory, { recursive: true, mode: 0o700 });
+  const path = modelSelectionPath(stateDirectory);
   const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
   try {
-    await writeFile(temporary, `${JSON.stringify(serialized(next), null, 2)}\n`, {
+    await writeFile(temporary, `${JSON.stringify(serializedModelSelection(next), null, 2)}\n`, {
       mode: 0o600,
       flag: "wx",
     });
-    const latest = await readModelSelection(input.stateDirectory);
-    if (latest.issue !== null || latest.selection.revision !== current.selection.revision)
+    const latest = await readModelSelection(stateDirectory);
+    if (latest.issue !== null || latest.selection.revision !== expectedRevision)
       throw new ModelSelectionError(
         "model_selection_changed",
         "The model selection changed while this change was prepared; run the command again.",
@@ -315,7 +325,6 @@ export async function writeModelSelectionRole(input: {
   } finally {
     await rm(temporary, { force: true });
   }
-  return next;
 }
 
 /** Why a route was passed over for the next one. */
