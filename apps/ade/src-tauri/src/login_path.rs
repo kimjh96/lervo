@@ -2,13 +2,36 @@
 //! minimal `PATH`, so the session host would not find `lervo` or the provider CLIs without it.
 
 use std::process::{Command, Stdio};
+use std::sync::{Arc, OnceLock};
 use std::time::{Duration, Instant};
 
 const DEADLINE: Duration = Duration::from_secs(3);
 const MARKER: &str = "__LERVO_PATH__";
 
+/// The login shell's `PATH`, resolved on its own thread from startup, so the window never waits
+/// for the shell. Only starting the session host needs it, and only then does anything wait.
+#[derive(Clone)]
+pub struct LoginPath(Arc<OnceLock<Option<String>>>);
+
+impl LoginPath {
+    /// Starts resolving the `PATH` in the background.
+    pub fn resolve() -> Self {
+        let cell = Arc::new(OnceLock::new());
+        let filled = Arc::clone(&cell);
+        std::thread::spawn(move || {
+            let _ = filled.set(login_path());
+        });
+        Self(cell)
+    }
+
+    /// The `PATH`, waiting for the shell at most until its deadline.
+    pub fn wait(&self) -> Option<String> {
+        self.0.wait().clone()
+    }
+}
+
 /// The `PATH` of a login shell, or `None` when the shell does not answer in time.
-pub fn login_path() -> Option<String> {
+fn login_path() -> Option<String> {
     let shell = std::env::var("SHELL")
         .ok()
         .filter(|shell| shell.starts_with('/'))?;

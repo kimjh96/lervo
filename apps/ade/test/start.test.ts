@@ -54,9 +54,17 @@ describe("starting work", () => {
     await started;
     expect(useStartStore.getState()).toMatchObject({
       pending: null,
-      error: "provider_cli_unavailable",
+      error: { code: "provider_cli_unavailable", stage: null },
       draft: { instruction: "Fix the build" },
     });
+  });
+
+  it("keeps a code it has no message for and the core's stage", async () => {
+    const host = commands();
+    const started = startWork(host.fake, draft, "web");
+    host.finish()?.reject(new RequestFailure("worktree_locked", { stage: "worktree" }));
+    await started;
+    expect(useStartStore.getState().error).toEqual({ code: "worktree_locked", stage: "worktree" });
   });
 
   it("selects nothing when the user moved on before the workspace existed", async () => {

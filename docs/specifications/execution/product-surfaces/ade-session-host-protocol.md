@@ -63,7 +63,7 @@ The session host removes the socket and the token when it shuts down. Its sessio
 - `sessions.watch` makes the session host send the latest `session.status` of every session it holds, and then each status change, to that connection until it closes. The workspace list uses it, so it shows live status without receiving any session's output.
 - An ended session still answers `session.attach` and `conversation.range` for 10 minutes, keeping the last 256 KiB of its CLI output. At most 32 ended sessions are kept at once: opening a session releases the oldest beyond that. After either, `session.open` starts the session again.
 - Consecutive deltas of one item merge into one `conversation.delta` of at most 64 KiB, so a fast stream sends few messages.
-- The session host buffers at most 4 MiB per client and session. When a client falls further behind, the session host drops that client's terminal frames for the session and sends `session.resync_required`. The client then attaches again.
+- The session host buffers at most 4 MiB per client and session. When a client falls further behind, the session host drops that client's terminal frames for the session and sends `session.resync_required`. The client then attaches again: the native conversation reloads its newest page, and the CLI conversation attaches after the last sequence it wrote.
 
 ## Messages from the client
 
@@ -75,7 +75,7 @@ The session host removes the socket and the token when it shuts down. Its sessio
 | `session.attach`      | Subscribes to a session from a sequence.                                                         |
 | `session.detach`      | Ends the subscription. The session keeps running.                                                |
 | `sessions.watch`      | Subscribes to the status of every session, without output.                                       |
-| `session.send`        | Sends the user's text to the native conversation.                                                |
+| `session.send`        | Sends the user's text to the native conversation; `session.sent` or `request.failed` answers it. |
 | `session.resize`      | Sets the CLI conversation's terminal size.                                                       |
 | `session.stop`        | Stops the agent session.                                                                         |
 | `conversation.range`  | Requests older or newer conversation items, at most 200 per request.                             |
@@ -90,6 +90,7 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 | `application.result`      | Returns the result of an application command.                                  |
 | `request.failed`          | Reports that a request failed, with a code and parameters.                     |
 | `session.opened`          | Confirms a session, its conversation mode, and its terminal channel.           |
+| `session.sent`            | Confirms that the text of a `session.send` reached the provider.               |
 | `session.status`          | Reports `starting`, `working`, `needs_user`, `idle`, or `ended`.               |
 | `conversation.appended`   | Appends live conversation items, or replaces an item with the same `itemId`.   |
 | `conversation.delta`      | Appends streamed text to one conversation item.                                |

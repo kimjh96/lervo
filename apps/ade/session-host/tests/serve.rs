@@ -354,8 +354,10 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
         .await;
 
     let (mut deltas, mut completed, mut statuses) = (String::new(), Vec::new(), Vec::new());
+    let mut sent = None;
     while completed.len() < 2 || statuses.last() != Some(&SessionStatusMessageStatus::Idle) {
         match client.next_message().await {
+            HostMessage::SessionSentMessage(acknowledged) => sent = Some(acknowledged),
             HostMessage::ConversationDeltaMessage(delta) => deltas.push_str(&delta.append),
             HostMessage::ConversationAppendedMessage(appended) => completed.extend(
                 appended
@@ -367,6 +369,10 @@ async fn runs_a_native_session_and_pages_its_stored_conversation() {
             other => panic!("unexpected {other:?}"),
         }
     }
+    // The text reached the provider, so the request is answered rather than left to time out.
+    let sent = sent.expect("session.sent answers session.send");
+    assert_eq!(sent.request_id.as_str(), "req_3");
+    assert_eq!(sent.session_id.as_str(), "ses_native");
     assert_eq!(deltas, "hi");
     assert_eq!(texts(&completed), ["user:hi", "agent:hi"]);
     assert!(statuses.contains(&SessionStatusMessageStatus::Working));

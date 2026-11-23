@@ -1,6 +1,4 @@
-import type { HostMessage } from "@lervo/session-host-contract";
-
-import type { SessionHostClient } from "./client";
+import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 
 /** A request the session host or the core refused, with the protocol's code and parameters. */
 export class RequestFailure extends Error {
@@ -13,58 +11,93 @@ export class RequestFailure extends Error {
   }
 }
 
-const DEADLINE_MS = 130_000;
-let counter = 0;
+type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
 
-/** A fresh request identifier within the protocol's format. */
-export function requestId(): string {
-  counter += 1;
-  return `req_${Date.now().toString(36)}_${counter.toString(36)}`;
+/** A client message that carries a request ID, without it: the requester assigns one. */
+export type Request = DistributiveOmit<Extract<ClientMessage, { requestId: string }>, "requestId">;
+
+/** How long a request waits for its answer by default. */
+const DEADLINE_MS = 30_000;
+/** A failure code from the shell, such as `message_invalid`, rather than an arbitrary error. */
+const CODE = /^[a-z][a-z_]{0,63}$/u;
+
+interface Pending {
+  readonly resolve: (answer: HostMessage) => void;
+  readonly reject: (failure: RequestFailure) => void;
+  readonly timer: ReturnType<typeof setTimeout>;
 }
 
-type Waiting = {
-  resolve: (result: Record<string, unknown>) => void;
-  reject: (error: RequestFailure) => void;
-  timer: ReturnType<typeof setTimeout>;
-};
+/** The failure for a send the shell refused, keeping the shell's code when it gave one. */
+export function sendFailure(error: unknown): RequestFailure {
+  const code = error instanceof Error ? error.message : String(error);
+  return new RequestFailure(CODE.test(code) ? code : "session_host_unavailable");
+}
 
 /**
- * Runs application commands and answers them by request ID. One timer runs per waiting command
- * and stops when the answer arrives.
+ * Assigns request IDs and matches answers to them, with one deadline per request. The first
+ * message that names a request answers it: `request.failed` rejects, anything else resolves.
  */
-export class ApplicationCommands {
-  private readonly waiting = new Map<string, Waiting>();
+export class Requests {
+  private readonly pending = new Map<string, Pending>();
+  private issued = 0;
 
-  constructor(private readonly client: SessionHostClient) {
-    client.onMessage((message) => this.receive(message));
+  constructor(
+    private readonly options: {
+      readonly send: (message: ClientMessage) => Promise<void>;
+      readonly schedule: (run: () => void, ms: number) => ReturnType<typeof setTimeout>;
+      readonly cancel: (timer: ReturnType<typeof setTimeout>) => void;
+      /** Keeps IDs from one client run apart from another's. */
+      readonly prefix: string;
+    },
+  ) {}
+
+  /** A fresh request ID within the protocol's identifier format. */
+  nextId(): string {
+    this.issued += 1;
+    return `req_${this.options.prefix}_${this.issued.toString(36)}`;
   }
 
-  run(command: string, arguments_: Record<string, unknown> = {}): Promise<Record<string, unknown>> {
-    const id = requestId();
+  /** Sends `message` and resolves with its answer, or rejects with the failure that ends it. */
+  request(message: Request, deadlineMs = DEADLINE_MS): Promise<HostMessage> {
+    const requestId = this.nextId();
     return new Promise((resolve, reject) => {
-      const timer = setTimeout(
-        () => this.settle(id, new RequestFailure("request_timeout")),
-        DEADLINE_MS,
+      // The scheduler runs as a plain function: WebKit's `setTimeout` refuses any other receiver.
+      const { schedule } = this.options;
+      const timer = schedule(
+        () => this.settle(requestId, new RequestFailure("request_timeout")),
+        deadlineMs,
       );
-      this.waiting.set(id, { resolve, reject, timer });
-      this.client
-        .send({ kind: "application.command", requestId: id, command, arguments: arguments_ })
-        .catch(() => this.settle(id, new RequestFailure("session_host_unavailable")));
+      this.pending.set(requestId, { resolve, reject, timer });
+      this.options
+        .send({ ...message, requestId } as ClientMessage)
+        .catch((error: unknown) => this.settle(requestId, sendFailure(error)));
     });
   }
 
-  private receive(message: HostMessage): void {
-    if (message.kind === "application.result") this.settle(message.requestId, message.result);
-    if (message.kind === "request.failed")
-      this.settle(message.requestId, new RequestFailure(message.code, message.parameters));
+  /** Settles the request that `message` answers, if any. */
+  receive(message: HostMessage): void {
+    if (!("requestId" in message)) return;
+    this.settle(
+      message.requestId,
+      message.kind === "request.failed"
+        ? new RequestFailure(message.code, message.parameters)
+        : message,
+    );
   }
 
-  private settle(id: string, outcome: Record<string, unknown> | RequestFailure): void {
-    const waiting = this.waiting.get(id);
-    if (waiting === undefined) return;
-    this.waiting.delete(id);
-    clearTimeout(waiting.timer);
-    if (outcome instanceof RequestFailure) waiting.reject(outcome);
-    else waiting.resolve(outcome);
+  /** Fails every request in flight: the connection that would answer them ended. */
+  abandon(): void {
+    for (const requestId of [...this.pending.keys()])
+      this.settle(requestId, new RequestFailure("session_host_unavailable"));
+  }
+
+  private settle(requestId: string, outcome: HostMessage | RequestFailure): void {
+    const pending = this.pending.get(requestId);
+    if (pending === undefined) return;
+    this.pending.delete(requestId);
+    const { cancel } = this.options;
+    cancel(pending.timer);
+    if (outcome instanceof RequestFailure) pending.reject(outcome);
+    else pending.resolve(outcome);
   }
 }

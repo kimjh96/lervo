@@ -1,5 +1,6 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 
+import { type Request, Requests } from "./requests";
 import type { HostTransport, ShellMessage } from "./transport";
 
 export type ConnectionState = "connecting" | "connected" | "reconnecting" | "unavailable";
@@ -47,14 +48,26 @@ export class SessionHostClient {
   private readonly messageListeners = new Set<Listener<HostMessage>>();
   private readonly terminalListeners = new Set<Listener<TerminalFrame>>();
   private readonly stateListeners = new Set<Listener<ConnectionState>>();
+  private readonly requests: Requests;
 
   constructor(
     private readonly transport: HostTransport,
-    private readonly schedule: (
-      run: () => void,
-      ms: number,
-    ) => ReturnType<typeof setTimeout> = setTimeout,
-  ) {}
+    private readonly schedule: (run: () => void, ms: number) => ReturnType<typeof setTimeout> = (
+      run,
+      ms,
+    ) => setTimeout(run, ms),
+    options: {
+      readonly cancel?: (timer: ReturnType<typeof setTimeout>) => void;
+      readonly requestPrefix?: string;
+    } = {},
+  ) {
+    this.requests = new Requests({
+      send: (message) => this.send(message),
+      schedule,
+      cancel: options.cancel ?? ((timer) => clearTimeout(timer)),
+      prefix: options.requestPrefix ?? Date.now().toString(36),
+    });
+  }
 
   get connection(): ConnectionState {
     return this.state;
@@ -70,6 +83,20 @@ export class SessionHostClient {
   send(message: ClientMessage): Promise<void> {
     if (this.state !== "connected") return Promise.reject(new Error("session_host_unavailable"));
     return this.inOrder(() => this.transport.send(message));
+  }
+
+  /**
+   * Sends a request and resolves with its answer, or rejects with a `RequestFailure`: the
+   * session host's refusal, the shell's code for a send it refused, `request_timeout`, or
+   * `session_host_unavailable` when the connection ends first.
+   */
+  request(message: Request, deadlineMs?: number): Promise<HostMessage> {
+    return this.requests.request(message, deadlineMs);
+  }
+
+  /** Sends a request whose success has no answer, such as `session.attach`. */
+  post(message: Request): Promise<void> {
+    return this.send({ ...message, requestId: this.requests.nextId() } as ClientMessage);
   }
 
   input(channel: number, bytes: Uint8Array): Promise<void> {
@@ -133,10 +160,12 @@ export class SessionHostClient {
 
   private control(message: ShellMessage): void {
     if (message.kind === "host.disconnected") {
+      this.requests.abandon();
       this.change("reconnecting");
       this.retry();
       return;
     }
+    this.requests.receive(message);
     for (const listener of this.messageListeners) listener(message);
   }
 

@@ -14,7 +14,7 @@ use lervo_session_transport::paths::Layout;
 use crate::commands::Relay;
 
 fn main() -> ExitCode {
-    let path = login_path::login_path();
+    let path = login_path::LoginPath::resolve();
     let relay = Relay {
         program: host_link::HostProgram::locate(path),
         layout: Layout::for_user(),

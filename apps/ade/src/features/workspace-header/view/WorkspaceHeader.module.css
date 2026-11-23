@@ -32,6 +32,12 @@
   align-self: stretch;
 }
 
+.failure {
+  flex: none;
+  color: var(--color-status-failed);
+  font-size: var(--type-caption-size);
+}
+
 .modes {
   display: flex;
   flex: none;

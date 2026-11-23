@@ -17,6 +17,7 @@ export function WorkspaceList() {
   const intl = useIntl();
   const workspaces = useWorkspaceStore((store) => store.workspaces);
   const arrived = useWorkspaceStore((store) => store.arrived);
+  const listFailure = useWorkspaceStore((store) => store.listFailure);
   const statuses = useWorkspaceStore((store) => store.statuses);
   const selected = useWorkspaceStore((store) => store.selected);
   const select = useWorkspaceStore((store) => store.select);
@@ -37,6 +38,11 @@ export function WorkspaceList() {
         </span>
         <kbd className={styles.shortcut}>{shortcutLabel("N")}</kbd>
       </button>
+      {listFailure === null ? null : (
+        <p className={styles.failure} role="alert">
+          <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
+        </p>
+      )}
       {groups.map((group) => (
         <div key={group.repositoryName}>
           <h3 className={styles.repository}>{group.repositoryName}</h3>

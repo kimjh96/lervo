@@ -1,7 +1,7 @@
 # Lervo ADE convention
 
 Status: `proposed`
-As of: 2026-11-22
+As of: 2026-11-23
 
 This profile extends the [code convention](code-convention.md) for the Lervo ADE that [ADR-0613](../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) proposes: the Rust session host and the React user interface. The code convention stays authoritative. This profile adds the rules the owner set for the ADE: it runs on the Lervo core, keeps a strict structure, performs at its best at all times, is ready for cloud hosting and for more languages, and accepts new providers without rework.
 
@@ -16,6 +16,8 @@ The ADE is a surface and a process host over the Lervo core. It never becomes a 
 - **Core contract tests cover ADE paths.** Each application command the ADE uses has core tests for its success and failure meanings before the ADE depends on it.
 
 ## Structure
+
+The owner's design principles, separation of concerns, no bloat, encapsulation, modularity, and extensibility, apply to every change from its first line, not only when a check runs. The rules below are examples of those principles, not their limit: a change that obeys every listed rule but couples concerns, widens a surface, or hard-codes a variation still violates the convention.
 
 ### Layers
 
@@ -42,7 +44,7 @@ Each side has four layers. Dependencies point inward only.
 ### Size and cohesion
 
 - The 400-line exact-content review in `scripts/code-convention-reviews.json` applies to `.rs`, `.ts`, and `.tsx` files.
-- A component file exports one component. A component over 150 lines, or one that mixes layout with state logic, is a split signal.
+- A component file exports one component. A component that mixes layout with state logic, or that serves more than one purpose, is a split signal. Its length alone is not: the owner removed a 150-line limit on 2026-11-23 as too tight.
 - A Rust module that owns more than one state machine, or that mixes parsing with decisions, is a split signal.
 
 ### Encapsulation

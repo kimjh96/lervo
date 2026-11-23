@@ -2,6 +2,12 @@ import { create } from "zustand";
 
 import type { StartDraft } from "./start";
 
+/** Why a start failed, as the session host or the core reported it. */
+export interface StartFailure {
+  readonly code: string;
+  readonly stage: string | null;
+}
+
 /** Work that was sent and whose workspace the core is still creating, or has just created. */
 export interface PendingStart {
   /** Tells this start apart from a later one. */
@@ -15,8 +21,8 @@ export interface PendingStart {
 interface StartStore {
   readonly draft: StartDraft;
   readonly pending: PendingStart | null;
-  /** The failure of the last start, as a catalog code. */
-  readonly error: string | null;
+  /** The failure of the last start: the protocol code and, when the core named it, the stage. */
+  readonly error: StartFailure | null;
 }
 
 /**

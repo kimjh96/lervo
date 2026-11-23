@@ -3,11 +3,13 @@ import "@xterm/xterm/css/xterm.css";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { FormattedMessage } from "react-intl";
 
 import { useSessionHostClient } from "../../../app/session-host-context";
 import { terminalThemes } from "../../../design/generated/terminal-theme";
 import { TerminalController } from "../model/controller";
+import { FrameBoundWriter } from "../model/frames";
 import styles from "./Terminal.module.css";
 
 const dark = window.matchMedia("(prefers-color-scheme: dark)");
@@ -24,6 +26,7 @@ function themed() {
 export function Terminal(props: { workspaceId: string }) {
   const client = useSessionHostClient();
   const container = useRef<HTMLDivElement>(null);
+  const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     const element = container.current;
@@ -48,8 +51,16 @@ export function Terminal(props: { workspaceId: string }) {
     } catch {
       // Without WebGL, xterm.js keeps its DOM renderer.
     }
+    const output = new FrameBoundWriter(
+      (bytes) => terminal.write(bytes),
+      (run) => requestAnimationFrame(run),
+    );
     const controller = new TerminalController(client, props.workspaceId, {
-      write: (bytes) => terminal.write(bytes),
+      write: (bytes) => {
+        setFailure(null);
+        output.add(bytes);
+      },
+      failed: setFailure,
     });
     const encoder = new TextEncoder();
     const input = terminal.onData((data) => controller.input(encoder.encode(data)));
@@ -71,5 +82,14 @@ export function Terminal(props: { workspaceId: string }) {
     };
   }, [client, props.workspaceId]);
 
-  return <div ref={container} className={styles.terminal} />;
+  return (
+    <div className={styles.frame}>
+      {failure === null ? null : (
+        <p className={styles.failure} role="alert">
+          <FormattedMessage id="terminal.failed" values={{ code: failure }} />
+        </p>
+      )}
+      <div ref={container} className={styles.terminal} />
+    </div>
+  );
 }

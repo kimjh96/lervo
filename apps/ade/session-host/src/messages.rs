@@ -11,8 +11,8 @@ use lervo_session_protocol::{
     ParametersKey, ParametersValue, ParametersValueString, RequestFailedMessage,
     RequestFailedMessageCode, RequestFailedMessageKind, Sequence, SessionOpenedMessage,
     SessionOpenedMessageKind, SessionResyncRequiredMessage, SessionResyncRequiredMessageKind,
-    SessionStatusMessage, SessionStatusMessageEndReason, SessionStatusMessageKind,
-    SessionStatusMessageStatus,
+    SessionSentMessage, SessionSentMessageKind, SessionStatusMessage,
+    SessionStatusMessageEndReason, SessionStatusMessageKind, SessionStatusMessageStatus,
 };
 use serde_json::{Map, Value};
 
@@ -74,6 +74,15 @@ pub fn failed(request: &Identifier, code: RequestFailedMessageCode) -> HostMessa
         kind: RequestFailedMessageKind::RequestFailed,
         parameters: Parameters(Default::default()),
         request_id: request.clone(),
+    })
+}
+
+/// The answer to a `session.send` whose text reached the provider.
+pub fn sent(request: &Identifier, session: &Identifier) -> HostMessage {
+    HostMessage::from(SessionSentMessage {
+        kind: SessionSentMessageKind::SessionSent,
+        request_id: request.clone(),
+        session_id: session.clone(),
     })
 }
 

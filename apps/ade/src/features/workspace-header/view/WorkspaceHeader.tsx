@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useApplicationCommands, useSessionHostClient } from "../../../app/session-host-context";
+import { RequestFailure } from "../../../platform/session-host";
 import { switchConversationMode, useWorkspaceStore } from "../../workspaces";
 import styles from "./WorkspaceHeader.module.css";
 
@@ -19,6 +20,7 @@ export function WorkspaceHeader(props: {
   const client = useSessionHostClient();
   const commands = useApplicationCommands();
   const [switching, setSwitching] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   const workspace = useWorkspaceStore((store) =>
     store.workspaces.find((item) => item.workspaceId === props.workspaceId),
   );
@@ -26,8 +28,11 @@ export function WorkspaceHeader(props: {
   const toggle = (mode: "native" | "cli") => {
     if (mode === workspace.conversationMode) return;
     setSwitching(true);
+    setFailure(null);
     void switchConversationMode({ client, commands, workspaceId: workspace.workspaceId, mode })
-      .catch(() => undefined)
+      .catch((error: unknown) =>
+        setFailure(error instanceof RequestFailure ? error.code : "session_host_unavailable"),
+      )
       .finally(() => setSwitching(false));
   };
   return (
@@ -43,6 +48,11 @@ export function WorkspaceHeader(props: {
         {workspace.branch}
       </span>
       <span className={styles.spacer} data-tauri-drag-region />
+      {failure === null ? null : (
+        <span className={styles.failure} role="alert">
+          <FormattedMessage id="workspace.mode.failed" values={{ code: failure }} />
+        </span>
+      )}
       <div
         className={styles.modes}
         role="group"

@@ -115,6 +115,7 @@ impl<D: StreamDecoder> Native<D> {
                         let (bytes, decoded) = self.decoder.send(&text).await;
                         if process.input(&bytes).await.is_ok() {
                             self.apply(decoded);
+                            reply.send(messages::sent(&request, self.fanout.session()));
                         } else {
                             reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
                         }

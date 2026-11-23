@@ -17,21 +17,14 @@ export function canStart(draft: StartDraft): boolean {
   return draft.instruction.trim().length > 0 && draft.repository.length > 0;
 }
 
-const KNOWN_ERRORS = new Set([
-  "workspace_start_failed",
-  "provider_cli_unavailable",
-  "conversation_mode_unsupported",
-  "application_unavailable",
-  "session_host_unavailable",
-]);
-
 let starts = 0;
 
 /**
  * Starts work: Lervo creates the worktree, branch, and workstream, and the session host launches
  * the agent with the instruction. The pending workspace shows at once, while the core works, and
  * the new workspace takes its place when it exists. A failure returns to the start screen with
- * the instruction and the failure's code. Nothing is selected if the user moved on meanwhile.
+ * the instruction and the failure's code and stage, unchanged. Nothing is selected if the user
+ * moved on meanwhile.
  */
 export async function startWork(
   commands: ApplicationCommands,
@@ -61,12 +54,15 @@ export async function startWork(
     await reloadWorkspaces(commands);
     if (workspaceId !== null && current()) useWorkspaceStore.getState().select(workspaceId);
   } catch (failure) {
-    const code = failure instanceof RequestFailure ? failure.code : "workspace_start_failed";
+    const stage = failure instanceof RequestFailure ? failure.parameters.stage : undefined;
     if (current())
       useStartStore.setState((store) => ({
         pending: null,
         draft: { ...store.draft, instruction },
-        error: KNOWN_ERRORS.has(code) ? code : "workspace_start_failed",
+        error: {
+          code: failure instanceof RequestFailure ? failure.code : "workspace_start_failed",
+          stage: typeof stage === "string" ? stage : null,
+        },
       }));
   }
 }
