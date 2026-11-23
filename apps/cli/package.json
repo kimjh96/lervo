@@ -1,6 +1,6 @@
 {
   "name": "@lervo/cli",
-  "version": "0.37.0",
+  "version": "0.38.0",
   "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
   "keywords": [
     "ai-agents",
