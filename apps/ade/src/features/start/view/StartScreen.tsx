@@ -1,4 +1,4 @@
-import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { transition } from "../../../platform/transition";
@@ -6,6 +6,7 @@ import { useApplicationCommands } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
 import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
+import { InputCard, InputField } from "../../../ui/InputCard";
 import { Select } from "../../../ui/Select";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
@@ -40,16 +41,10 @@ export function StartScreen() {
   // The input takes focus when the screen opens and on each "New work".
   useEffect(() => input.current?.focus(), [newWork]);
 
-  const submit = (event?: FormEvent) => {
-    event?.preventDefault();
+  const submit = () => {
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
     transition(() => void startWork(commands, { ...draft, repository }, name));
-  };
-  const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    submit();
   };
 
   return (
@@ -58,16 +53,16 @@ export function StartScreen() {
         <h1 className={styles.question}>
           <FormattedMessage id="start.question" />
         </h1>
-        <form className={styles.card} onSubmit={submit}>
-          <textarea
+        <InputCard surface="input" layout="stacked" onSubmit={submit}>
+          <InputField
             ref={input}
-            className={styles.instruction}
-            aria-label={intl.formatMessage({ id: "start.instruction.label" })}
+            size="input"
+            rows={3}
+            label={intl.formatMessage({ id: "start.instruction.label" })}
             placeholder={intl.formatMessage({ id: "start.instruction.placeholder" })}
             value={draft.instruction}
-            rows={3}
-            onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
-            onKeyDown={keyDown}
+            onChange={(instruction) => setDraft({ ...draft, instruction })}
+            onSubmit={submit}
           />
           <div className={styles.bar}>
             {repositories.length === 0 ? null : (
@@ -95,7 +90,7 @@ export function StartScreen() {
               icon={<ArrowUpIcon size="lg" />}
             />
           </div>
-        </form>
+        </InputCard>
         <p className={styles.explain}>
           {repositories.length === 0 ? (
             <FormattedMessage id="start.repository.none" />

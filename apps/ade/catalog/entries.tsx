@@ -4,10 +4,13 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { FloatingButton } from "../src/ui/FloatingButton";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon, ChevronDownIcon, PlusIcon } from "../src/ui/icons";
 import { InlineAlert } from "../src/ui/InlineAlert";
+import { InputCard, InputField } from "../src/ui/InputCard";
 import { Kbd } from "../src/ui/Kbd";
+import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
 import { SegmentedControl } from "../src/ui/SegmentedControl";
 import { Select } from "../src/ui/Select";
@@ -45,6 +48,37 @@ function SegmentedDemo(props: { disabled?: boolean }) {
   );
 }
 
+function CardDemo(props: { surface: "input" | "floating"; layout: "stacked" | "inline" }) {
+  const [text, setText] = useState("");
+  const stacked = props.layout === "stacked";
+  return (
+    <div style={{ width: "var(--layout-start-max-width)" }}>
+      <InputCard surface={props.surface} layout={props.layout} onSubmit={() => setText("")}>
+        <InputField
+          size={stacked ? "input" : "body"}
+          rows={stacked ? 3 : 1}
+          maxLines={stacked ? undefined : 8}
+          label="Instruction"
+          placeholder={
+            stacked
+              ? "Describe the work, as you would to a colleague"
+              : "Reply or give a new instruction"
+          }
+          value={text}
+          onChange={setText}
+          onSubmit={() => setText("")}
+        />
+        <IconButton
+          type="submit"
+          label="Send"
+          icon={<ArrowUpIcon size="lg" />}
+          disabled={text.length === 0}
+        />
+      </InputCard>
+    </div>
+  );
+}
+
 function SelectDemo() {
   const [value, setValue] = useState("claude");
   return (
@@ -61,6 +95,65 @@ function SelectDemo() {
 }
 
 export const entries: readonly Entry[] = [
+  {
+    module: "InputCard",
+    name: "Input card",
+    purpose:
+      "A text field and its actions on one raised card; Enter submits, Shift+Enter breaks a line.",
+    use: [
+      "The instruction of new work (input, stacked)",
+      "A reply over a conversation (floating, inline)",
+    ],
+    avoid: ["Short single-value fields", "Forms with several fields"],
+    variants: [
+      { name: "Input, stacked", render: () => <CardDemo surface="input" layout="stacked" /> },
+      { name: "Floating, inline", render: () => <CardDemo surface="floating" layout="inline" /> },
+    ],
+  },
+  {
+    module: "ListRow",
+    name: "List row",
+    purpose:
+      "A row of a navigation list, with an optional icon before and a status or shortcut after.",
+    use: ["Workspaces and other places the person moves between"],
+    avoid: ["Actions that change data", "Rows that need more than one line"],
+    variants: [
+      {
+        name: "States",
+        render: () => (
+          <div style={{ width: "var(--layout-sidebar-width)" }}>
+            <ListRow
+              current
+              label="New work"
+              leading={<PlusIcon size="md" />}
+              trailing={<Kbd>⌘N</Kbd>}
+              onClick={() => undefined}
+            />
+            <ListRow
+              current={false}
+              label="Fix the flaky test"
+              trailing={<StatusDot tone="working" label="Working" />}
+              onClick={() => undefined}
+            />
+            <ListRow current={false} quiet label="Tidy the docs" onClick={() => undefined} />
+          </div>
+        ),
+      },
+    ],
+  },
+  {
+    module: "FloatingButton",
+    name: "Floating button",
+    purpose: "A small pill that floats over content on glass and fades in when it appears.",
+    use: ["A way back to where the content continues, such as Jump to latest"],
+    avoid: ["Primary actions", "Anything that must stay on screen"],
+    variants: [
+      {
+        name: "Default",
+        render: () => <FloatingButton onClick={() => undefined}>Jump to latest</FloatingButton>,
+      },
+    ],
+  },
   {
     module: "IconButton",
     name: "Icon button",

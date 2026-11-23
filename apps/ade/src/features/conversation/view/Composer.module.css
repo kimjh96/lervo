@@ -6,52 +6,6 @@
   padding-block-end: var(--space-24);
 }
 
-/* The card floats over the conversation, which shows through it blurred. */
-.card {
-  display: flex;
-  gap: var(--space-8);
-  align-items: flex-end;
-  padding-block: var(--space-10);
-  padding-inline: var(--space-16) var(--space-10);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface-floating);
-  box-shadow: var(--shadow-raised);
-  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
-}
-
-@media (prefers-reduced-transparency: reduce) {
-  .card {
-    background: var(--color-surface-opaque);
-    backdrop-filter: none;
-  }
-}
-
-.input {
-  flex: 1;
-  padding: var(--space-6) 0;
-  border: 0;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--type-body-size);
-  line-height: var(--type-input-line-height);
-  background: transparent;
-  resize: none;
-}
-
-/* The card shows the focus of its input, which draws no ring of its own. */
-.input:focus {
-  outline: none;
-}
-
-.card:has(.input:focus-visible) {
-  border-color: var(--color-accent);
-}
-
-.input::placeholder {
-  color: var(--color-text-tertiary);
-}
-
 .error {
   margin-block-start: var(--space-6);
   padding-inline: var(--space-4);

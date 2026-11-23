@@ -1,10 +1,11 @@
-import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { failureCode } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
 import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
+import { InputCard, InputField } from "../../../ui/InputCard";
 import styles from "./Composer.module.css";
 import { useDraft } from "./draft";
 
@@ -23,16 +24,8 @@ export function Composer(props: {
   waiting?: string | undefined;
 }) {
   const intl = useIntl();
-  const input = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useDraft(props.draftKey);
   const [failure, setFailure] = useState<string | null>(null);
-  useLayoutEffect(() => {
-    const element = input.current;
-    if (element === null) return;
-    element.style.height = "auto";
-    const lineHeight = Number.parseFloat(getComputedStyle(element).lineHeight) || 22;
-    element.style.height = `${Math.min(element.scrollHeight, lineHeight * MAX_LINES)}px`;
-  }, [text]);
   const send = () => {
     const value = text.trim();
     if (value.length === 0) return;
@@ -43,32 +36,21 @@ export function Composer(props: {
       setFailure(failureCode(error));
     });
   };
-  const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    send();
-  };
   return (
     <div className={styles.composer}>
-      <form
-        className={styles.card}
-        onSubmit={(event) => {
-          event.preventDefault();
-          send();
-        }}
-      >
-        <textarea
-          ref={input}
-          className={styles.input}
-          aria-label={intl.formatMessage({ id: "conversation.reply.label" })}
+      <InputCard surface="floating" layout="inline" onSubmit={send}>
+        <InputField
+          size="body"
+          rows={1}
+          maxLines={MAX_LINES}
+          label={intl.formatMessage({ id: "conversation.reply.label" })}
           placeholder={
             props.waiting ?? intl.formatMessage({ id: "conversation.reply.placeholder" })
           }
           disabled={props.waiting !== undefined}
-          rows={1}
           value={text}
-          onChange={(event) => setText(event.target.value)}
-          onKeyDown={keyDown}
+          onChange={setText}
+          onSubmit={send}
         />
         <IconButton
           type="submit"
@@ -76,7 +58,7 @@ export function Composer(props: {
           label={intl.formatMessage({ id: "conversation.reply.send" })}
           icon={<ArrowUpIcon size="lg" />}
         />
-      </form>
+      </InputCard>
       {failure === null ? null : (
         <InlineAlert size="meta" className={styles.error}>
           <FormattedMessage id="conversation.reply.failed" values={{ code: failure }} />

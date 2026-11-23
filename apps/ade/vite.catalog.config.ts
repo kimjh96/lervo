@@ -5,6 +5,8 @@ import { defineConfig } from "vite";
 // examples. `pnpm catalog` serves it; the app's build never includes it.
 export default defineConfig({
   root: "catalog",
+  // Its own dependency cache, so the catalog and the app's dev server can run side by side.
+  cacheDir: "../node_modules/.vite-catalog",
   plugins: [react()],
   clearScreen: false,
   resolve: {

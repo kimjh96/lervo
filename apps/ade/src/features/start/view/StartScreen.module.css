@@ -28,42 +28,6 @@
   letter-spacing: var(--type-display-letter-spacing);
 }
 
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-8);
-  padding-block: var(--space-14) var(--space-10);
-  padding-inline: var(--space-16) var(--space-14);
-  border: 1px solid var(--color-border-default);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface-input);
-  box-shadow: var(--shadow-raised);
-}
-
-.instruction {
-  padding: 0;
-  border: 0;
-  color: var(--color-text-primary);
-  font: inherit;
-  font-size: var(--type-input-size);
-  line-height: var(--type-input-line-height);
-  background: transparent;
-  resize: none;
-}
-
-/* The card shows the focus of its input, which draws no ring of its own. */
-.instruction:focus {
-  outline: none;
-}
-
-.card:has(.instruction:focus-visible) {
-  border-color: var(--color-accent);
-}
-
-.instruction::placeholder {
-  color: var(--color-text-tertiary);
-}
-
 .bar {
   display: flex;
   gap: var(--space-4);
