@@ -47,6 +47,17 @@ export function hostedConversationModes(
   return capabilities.nativeConversation ? ["native", "cli"] : ["cli"];
 }
 
+/**
+ * Lervo's hook handler for a hosted session. Lervo passes it only to an adapter that declares
+ * `hooks`, and writes the adapter's settings file before the launch returns.
+ */
+export interface HostedSessionHooks {
+  /** Where Lervo writes the session-scoped settings file: an absolute path. */
+  readonly settingsPath: string;
+  /** The command line the provider runs at each session event, such as the session's start. */
+  readonly command: string;
+}
+
 /** What Lervo asks for. The session ID is a lowercase UUID that Lervo generated. */
 export interface HostedLaunchIntent {
   readonly sessionId: string;
@@ -56,6 +67,8 @@ export interface HostedLaunchIntent {
     { readonly kind: "new"; readonly instruction: string } | { readonly kind: "resume" };
   /** The model that Lervo's model selection chose for the role, when it chose one. */
   readonly model?: string;
+  /** Lervo's hook handler, for an adapter that declares `hooks`. */
+  readonly hooks?: HostedSessionHooks;
 }
 
 /** The process the session host runs. It never carries credentials. */
@@ -77,6 +90,12 @@ export interface HostedLaunch {
    * first instruction of a native conversation. `null` when the arguments already carry it.
    */
   readonly initialInput: string | null;
+  /**
+   * The session-scoped settings file at the intent's `settingsPath`, which Lervo writes before
+   * the launch returns, or null without hooks. It adds to the user's settings and never replaces
+   * a file the user owns.
+   */
+  readonly settingsFile: { readonly path: string; readonly content: string } | null;
 }
 
 /** One provider's hosted sessions. */
@@ -108,6 +127,7 @@ export class HostedLaunchError extends Error {
 
 const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const MAX_INSTRUCTION_CHARACTERS = 65_536;
+const MAX_HOOK_COMMAND_CHARACTERS = 1024;
 
 /** Rejects an intent no adapter may run. Adapters call it before they build a launch. */
 export function assertHostedLaunchIntent(
@@ -140,6 +160,28 @@ export function assertHostedLaunchIntent(
     );
   if (intent.start.kind === "resume" && !capabilities.resume)
     throw new HostedLaunchError("resume_unsupported", "This provider cannot resume a session.");
+  if (intent.hooks !== undefined) {
+    if (!capabilities.hooks)
+      throw new HostedLaunchError(
+        "launch_intent_invalid",
+        "This provider cannot add Lervo's hook handlers.",
+      );
+    if (!isAbsolute(intent.hooks.settingsPath))
+      throw new HostedLaunchError(
+        "launch_intent_invalid",
+        "The settings file must be an absolute path.",
+      );
+    const command = intent.hooks.command;
+    if (
+      command.trim().length === 0 ||
+      command.length > MAX_HOOK_COMMAND_CHARACTERS ||
+      /[\r\n]/u.test(command)
+    )
+      throw new HostedLaunchError(
+        "launch_intent_invalid",
+        "The hook command must be one line of 1 to 1,024 characters.",
+      );
+  }
 }
 
 /** Environment names that carry credentials. A hosted launch never adds them (provider terms). */
@@ -186,6 +228,7 @@ export function evaluateHostedSessionContract(
         `${where}: sessionIdBinding is declared, but the launch omits the session ID`,
       );
   }
+  violations.push(...hookViolations(adapter, workingDirectory, sessionId, instruction));
   if (adapter.capabilities.nativeConversation !== hasStreamDecoder(adapter))
     violations.push(
       `${adapter.provider}: nativeConversation and a stream decoder must come together`,
@@ -219,6 +262,59 @@ export function evaluateHostedSessionContract(
       if (!(error instanceof HostedLaunchError))
         violations.push(`${adapter.provider}: an undeclared ${mode} launch failed without a code`);
     }
+  }
+  return violations;
+}
+
+/**
+ * A launch carries a settings file only for an adapter that declares `hooks`, at the path Lervo
+ * chose, with the hook command in it; an undeclared adapter refuses hooks with a code.
+ */
+function hookViolations(
+  adapter: HostedSessionAdapter,
+  workingDirectory: string,
+  sessionId: string,
+  instruction: string,
+): string[] {
+  const violations: string[] = [];
+  const hooks = {
+    settingsPath: `${workingDirectory}/.hosted-settings.json`,
+    command: "lervo hook",
+  };
+  const plain = adapter.prepareLaunch({
+    sessionId,
+    mode: preferredConversationMode(adapter.capabilities),
+    workingDirectory,
+    start: { kind: "new", instruction },
+  });
+  if (plain.settingsFile !== null)
+    violations.push(`${adapter.provider}: a launch without hooks carries a settings file`);
+  const intent = {
+    sessionId,
+    mode: preferredConversationMode(adapter.capabilities),
+    workingDirectory,
+    start: { kind: "new" as const, instruction },
+    hooks,
+  };
+  if (!adapter.capabilities.hooks) {
+    try {
+      adapter.prepareLaunch(intent);
+      violations.push(`${adapter.provider}: undeclared hooks did not fail`);
+    } catch (error) {
+      if (!(error instanceof HostedLaunchError))
+        violations.push(`${adapter.provider}: undeclared hooks failed without a code`);
+    }
+    return violations;
+  }
+  for (const mode of hostedConversationModes(adapter.capabilities)) {
+    const launch = adapter.prepareLaunch({ ...intent, mode });
+    const where = `${adapter.provider} ${mode}`;
+    if (launch.settingsFile?.path !== hooks.settingsPath)
+      violations.push(`${where}: hooks are declared, but the launch writes no settings file there`);
+    else if (!launch.settingsFile.content.includes(JSON.stringify(hooks.command)))
+      violations.push(`${where}: the settings file does not run the hook command`);
+    if (!launch.arguments.includes(hooks.settingsPath))
+      violations.push(`${where}: the launch does not pass the settings file`);
   }
   return violations;
 }

@@ -16,10 +16,25 @@ import {
 import { CommandFailure } from "./command-error-output.js";
 import {
   hostedLaunchRecordsPath,
+  hostedLaunchSessions,
   latestHostedLaunch,
   launchArgumentDigest,
   recordHostedLaunch,
+  type HostedLaunchRecord,
 } from "./hosted-launch-records.js";
+import {
+  launchPreparedEvent,
+  recordHostedSessionEvents,
+  type HostedSessionEvent,
+  type HostedSessionEventOutcome,
+} from "./hosted-session-events.js";
+import {
+  hostedSessionHooks,
+  hostedSessionSettingsDirectory,
+  pruneHostedSessionSettings,
+  settingsFileDigest,
+  writeHostedSessionSettings,
+} from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
@@ -43,6 +58,28 @@ async function registeredRepository(projectId: string) {
   return resolveRegisteredRepository({ registryPath: defaultRepositoryRegistryPath(), projectId });
 }
 
+/** Records the launch and drops the settings files of sessions that no record keeps. */
+async function recordLaunch(record: HostedLaunchRecord): Promise<void> {
+  const path = hostedLaunchRecordsPath();
+  await recordHostedLaunch(path, record);
+  await pruneHostedSessionSettings(
+    hostedSessionSettingsDirectory(),
+    await hostedLaunchSessions(path),
+  );
+}
+
+/** Records hosted session events in the registered repository; a failure never stops a launch. */
+async function recordEvents(
+  repositoryRoot: string,
+  events: readonly HostedSessionEvent[],
+): Promise<HostedSessionEventOutcome | "unavailable"> {
+  try {
+    return await recordHostedSessionEvents(repositoryRoot, events);
+  } catch {
+    return "unavailable";
+  }
+}
+
 export interface WorkspaceStartOptions {
   readonly instruction: string;
   readonly repository: string;
@@ -57,6 +94,8 @@ export async function startWorkspaceFromInstruction(
 ): Promise<WorkspaceStartResult> {
   const repository = await registeredRepository(options.repository);
   const adapter = await resolveHostedSessionAdapter(options.provider ?? defaultHostedProvider);
+  const sessionId = randomUUID();
+  const hooks = hostedSessionHooks(adapter, sessionId);
   return startWorkspace(
     {
       instruction: options.instruction,
@@ -65,15 +104,18 @@ export async function startWorkspaceFromInstruction(
       projectId: repository.projectId,
       baseCommit: await defaultBranchCommit(repository.repositoryRoot),
       workspaceId: `wsp_${hex(12)}`,
-      sessionId: randomUUID(),
+      sessionId,
       suffix: hex(3),
       ...(options.model === undefined ? {} : { model: options.model }),
+      ...(hooks === undefined ? {} : { hooks }),
     },
     {
       adapter,
       ...gitWorkspaceEffects(),
       startWorkstream: startWorkstreamIn,
-      recordLaunch: (record) => recordHostedLaunch(hostedLaunchRecordsPath(), record),
+      recordLaunch,
+      writeSettings: writeHostedSessionSettings,
+      recordEvents: (events) => recordEvents(repository.repositoryRoot, events),
       now: () => new Date(),
     },
   );
@@ -89,6 +131,8 @@ export interface WorkspaceOpenResult {
   /** Whether the provider's transcript of this session can be read for the native conversation. */
   transcript: boolean;
   launch: HostedLaunch;
+  /** Whether the repository took the `launch_prepared` event (`hosted_events_inactive` otherwise). */
+  hostedEvents: HostedSessionEventOutcome | "unavailable";
 }
 
 /** A workspace's latest hosted launch, its worktree, and its provider's adapter. */
@@ -102,7 +146,7 @@ export async function locateWorkspaceSession(workspaceId: string) {
   if (workingDirectory === null)
     throw new CommandFailure("workspace_not_found", "The workspace's worktree no longer exists.");
   const adapter: HostedSessionAdapter = await resolveHostedSessionAdapter(previous.provider);
-  return { path, previous, workingDirectory, adapter };
+  return { path, previous, workingDirectory, adapter, repositoryRoot: repository.repositoryRoot };
 }
 
 /**
@@ -113,23 +157,30 @@ export async function openWorkspace(
   workspaceId: string,
   requestedMode?: HostedConversationMode,
 ): Promise<WorkspaceOpenResult> {
-  const { path, previous, workingDirectory, adapter } = await locateWorkspaceSession(workspaceId);
+  const { previous, workingDirectory, adapter, repositoryRoot } =
+    await locateWorkspaceSession(workspaceId);
   const mode = requestedMode ?? previous.conversationMode;
   const resume = adapter.capabilities.resume;
   const sessionId = resume ? previous.sessionId : randomUUID();
+  const hooks = hostedSessionHooks(adapter, sessionId);
   const launch = adapter.prepareLaunch({
     sessionId,
     mode,
     workingDirectory,
     start: resume ? { kind: "resume" } : { kind: "new", instruction: "Continue." },
+    ...(hooks === undefined ? {} : { hooks }),
   });
-  await recordHostedLaunch(path, {
+  if (launch.settingsFile !== null) await writeHostedSessionSettings(launch.settingsFile);
+  const record: HostedLaunchRecord = {
     ...previous,
     sessionId,
     conversationMode: mode,
     argumentDigest: launchArgumentDigest(launch),
+    settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
     preparedAt: new Date().toISOString(),
-  });
+  };
+  await recordLaunch(record);
+  const hostedEvents = await recordEvents(repositoryRoot, [launchPreparedEvent(record)]);
   return {
     schemaVersion: 1,
     status: "opened",
@@ -139,5 +190,6 @@ export async function openWorkspace(
     resumed: resume,
     transcript: resume && hasTranscriptReader(adapter),
     launch,
+    hostedEvents,
   };
 }

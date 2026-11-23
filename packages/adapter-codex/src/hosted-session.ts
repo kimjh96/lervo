@@ -37,6 +37,7 @@ export function createCodexHostedSessionAdapter(executable = "codex"): HostedSes
         workingDirectory: intent.workingDirectory,
         mode: intent.mode,
         initialInput: null,
+        settingsFile: null,
         // No Codex session marker is known to change a child's behavior.
         environmentRemove: [],
       };

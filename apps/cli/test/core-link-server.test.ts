@@ -35,7 +35,9 @@ const started: WorkspaceStartResult = {
     mode: "native",
     initialInput: "Fix the build.",
     environmentRemove: ["CLAUDECODE"],
+    settingsFile: { path: "/state/hosted-settings/session.json", content: "{}\n" },
   },
+  hostedEvents: "recorded",
 };
 
 function handlers(release?: Promise<void>): CoreLinkHandlers {
@@ -109,6 +111,8 @@ describe("the core-link server", () => {
         environmentRemove: ["CLAUDECODE"],
       },
     });
+    // The core writes the settings file itself; the session host never receives it.
+    expect(JSON.stringify(written)).not.toContain("hosted-settings");
     expect(written.find((response) => response.id === 2)).toEqual({
       kind: "core.failed",
       id: 2,

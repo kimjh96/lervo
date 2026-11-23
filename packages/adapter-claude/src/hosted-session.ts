@@ -38,17 +38,33 @@ export const CLAUDE_SESSION_MARKERS = [
  * permissions, so it uses Claude Code's `auto` permission mode, as repository work does. The CLI
  * conversation keeps the user's own permission settings.
  *
- * Session-scoped hooks, the Lervo MCP server, and role instructions arrive with S1.4c and S2,
- * so their capabilities stay false until the launch passes them.
+ * Lervo's hook handlers ride in a session-scoped `--settings` file, which Claude Code merges
+ * with the user's settings without changing them. The Lervo MCP server and role instructions
+ * arrive with S2, so their capabilities stay false until the launch passes them.
  */
 export const claudeHostedCapabilities: HostedSessionCapabilities = {
   nativeConversation: true,
   sessionIdBinding: true,
-  hooks: false,
+  hooks: true,
   mcp: false,
   systemPromptFile: false,
   resume: true,
 };
+
+/**
+ * Seconds each hook may take. Claude Code gives `SessionEnd` 1.5 seconds unless a hook names a
+ * timeout, and a Lervo handler that starts the CLI and opens the store needs more.
+ */
+const HOOK_TIMEOUT_SECONDS = 10;
+
+/**
+ * The session-scoped settings: Lervo's handler for the session's start and end. Claude Code adds
+ * a `SessionStart` handler's output to the model's context, so the handler prints nothing.
+ */
+export function claudeSessionSettings(command: string): string {
+  const handler = [{ hooks: [{ type: "command", command, timeout: HOOK_TIMEOUT_SECONDS }] }];
+  return `${JSON.stringify({ hooks: { SessionStart: handler, SessionEnd: handler } }, null, 2)}\n`;
+}
 
 export function createClaudeHostedSessionAdapter(
   executable = "claude",
@@ -68,6 +84,7 @@ export function createClaudeHostedSessionAdapter(
       const model = intent.model === undefined ? [] : ["--model", intent.model];
       const instruction = intent.start.kind === "new" ? intent.start.instruction : null;
       const native = intent.mode === "native";
+      const settings = intent.hooks === undefined ? [] : ["--settings", intent.hooks.settingsPath];
       return {
         program: executable,
         arguments: native
@@ -83,13 +100,21 @@ export function createClaudeHostedSessionAdapter(
               "auto",
               ...session,
               ...model,
+              ...settings,
             ]
-          : [...session, ...model, ...(instruction === null ? [] : [instruction])],
+          : [...session, ...model, ...settings, ...(instruction === null ? [] : [instruction])],
         environment: {},
         workingDirectory: intent.workingDirectory,
         mode: intent.mode,
         initialInput: native ? instruction : null,
         environmentRemove: CLAUDE_SESSION_MARKERS,
+        settingsFile:
+          intent.hooks === undefined
+            ? null
+            : {
+                path: intent.hooks.settingsPath,
+                content: claudeSessionSettings(intent.hooks.command),
+              },
       };
     },
   };

@@ -17,15 +17,17 @@ export async function ensurePrivateDirectory(directory: string): Promise<void> {
 }
 
 export async function writePrivateJsonFile(path: string, value: unknown): Promise<void> {
+  await writePrivateTextFile(path, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+/** Writes `content` as an owner-only file, atomically, like `writePrivateJsonFile`. */
+export async function writePrivateTextFile(path: string, content: string): Promise<void> {
   const target = resolve(path);
   const directory = dirname(target);
   await ensurePrivateDirectory(directory);
   const temporary = resolve(directory, `.${randomUUID()}.tmp`);
   try {
-    await writeFile(temporary, `${JSON.stringify(value, null, 2)}\n`, {
-      mode: 0o600,
-      flag: "wx",
-    });
+    await writeFile(temporary, content, { mode: 0o600, flag: "wx" });
     await chmod(temporary, 0o600);
     await rename(temporary, target);
   } catch (error) {
