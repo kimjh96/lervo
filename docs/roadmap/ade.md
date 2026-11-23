@@ -133,6 +133,26 @@ The second pull request resolves the interface structure and one motion problem 
 
 Three findings move to later groups. The provider names on the start screen and the result schemas of application commands go with the provider registry (group 5). The terminal input encoding and the duplicated mode translation in Rust go with the session-host internals (group 3).
 
+The third pull request resolves the session-host internals:
+
+- **Nothing blocks a worker or holds a lock across I/O.** Starts open their index and spawn their process off the async workers, outside the registry's lock, serialized by a lifecycle lock. Each conversation index reads and writes on its own thread, and each PTY writes input on its own thread, fed through a queue the actor drains without waiting.
+- **One owner each.** `host.rs` became the host's state, `dispatch.rs` the client messages, and `lifecycle.rs` starts and mode switches. The session watch is one task. A mode switch waits for the end signal of the running process instead of polling, and fails with `session_stop_timeout` instead of opening a second process.
+- **Failures keep their meaning.**
+  - A missing CLI reports `provider_cli_unavailable`, and a PTY or process the system refused reports `session_start_failed` with its reason.
+  - A core that did not answer reports `application_timeout`, and timed-out requests leave the core link's table.
+  - A PTY that refuses input or a resize ends its session as failed.
+  - A failed accept backs off instead of spinning.
+  - The domain no longer parses the core's codes.
+- **Bounded and shared.**
+  - Replies and watched statuses count their exact encoded size against a 16 MiB connection budget.
+  - Terminal chunks are shared from the PTY reader through the scrollback to every replay.
+  - A broadcast encodes once.
+- **Adapters.** The shell connects through the transport crate and sends terminal input as a raw body, and the mode translation lives in one place.
+
+### Session host diagnostics
+
+A bounded follow-up from the convention check: the session host keeps no log. Its standard error goes nowhere, so a connection that ends with an error, or an accept that fails, leaves no trace on the host. The follow-up adds a diagnostics log in the host state directory, bounded in bytes with rotation, recording message kinds, identifiers, sizes, and error codes, never bodies or terminal bytes (session-host protocol, "Privacy and failure"). It is verified by a test that fills the log past its bound and finds the oldest entries gone.
+
 ### S1.6b progress
 
 `apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, the start screen loads 94 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the terminal, is 115 KB against 160 KB. The webview scenarios of S1.6b remain: cold start, idle CPU, the 100,000-item conversation, streamed deltas to screen, and keystroke echo.

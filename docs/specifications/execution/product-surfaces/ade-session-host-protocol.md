@@ -132,5 +132,8 @@ A Lervo notice carries a code, never a sentence, and the interface renders it fr
   - `workspace_not_found`: `session.open` named a workspace that the core has no launch record or worktree for;
   - `launch_intent_invalid`: the provider's adapter refused the launch, for example a resume it cannot perform;
   - `application_failed`: the resident Lervo process reported a failure that the session host has no name for;
-  - `application_unavailable`: the resident Lervo process is not running or not reachable.
+  - `application_unavailable`: the resident Lervo process is not running or not reachable;
+  - `application_timeout`: the resident Lervo process did not answer within the request's deadline;
+  - `session_start_failed`: the provider's CLI exists, but its process could not start, for example because the system refused a PTY or a process. The `reason` parameter names the error kind;
+  - `session_stop_timeout`: a conversation mode switch could not stop the running provider process in time. The session keeps running in its current mode.
 - A failure that the core reported carries the core's own code in the `coreCode` parameter and, for `workspace.start`, the failed stage in the `stage` parameter. The [core link](ade-core-link.md) defines how the session host reaches the core.
