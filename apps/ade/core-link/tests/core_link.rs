@@ -20,6 +20,16 @@ fn release(program: &str, release: &str) -> CoreLink {
     CoreLink::new(path, vec![release.to_owned()]).unwrap()
 }
 
+/// The stand-in of `release` that collects the `session.exited` reports it receives in `reports`.
+fn reporting(release: &str, reports: &std::path::Path) -> CoreLink {
+    let path = format!("{}/tests/fake-resident.sh", env!("CARGO_MANIFEST_DIR"));
+    CoreLink::new(
+        path,
+        vec![release.to_owned(), reports.display().to_string()],
+    )
+    .unwrap()
+}
+
 fn none() -> Map<String, Value> {
     Map::new()
 }
@@ -190,4 +200,31 @@ async fn rejects_a_result_that_breaks_its_schema() {
     let rejected = core.command("provider.list", none()).await.unwrap_err();
     assert_eq!(rejected.code, FailureCode::ApplicationFailed);
     assert_eq!(rejected.reason, Some("result_invalid"));
+}
+
+#[tokio::test]
+async fn reports_an_exit_only_to_a_process_that_advertised_it() {
+    for (release, expected) in [("current", 1), ("older", 0)] {
+        let reports = std::env::temp_dir().join(format!(
+            "lervo-exit-reports-{release}-{}.log",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_file(&reports);
+        let core = reporting(release, &reports);
+        // Nothing is advertised before the first workspace list, so nothing is sent.
+        core.session_exited("0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c", Some(137))
+            .await;
+        core.command("workspace.list", none()).await.unwrap();
+        core.session_exited("0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c", Some(137))
+            .await;
+        let received = std::fs::read_to_string(&reports).unwrap_or_default();
+        let lines: Vec<&str> = received.lines().collect();
+        assert_eq!(lines.len(), expected, "{release}: {received}");
+        if let Some(line) = lines.first() {
+            let report: Value = serde_json::from_str(line).unwrap();
+            assert_eq!(report["kind"], "session.exited");
+            assert_eq!(report["exitCode"], 137);
+        }
+        let _ = std::fs::remove_file(&reports);
+    }
 }
