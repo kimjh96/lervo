@@ -31,7 +31,6 @@ fn main() -> ExitCode {
         .invoke_handler(tauri::generate_handler![
             commands::host_connect,
             commands::host_send,
-            commands::host_input,
             window::window_ready
         ])
         .run(tauri::generate_context!());
