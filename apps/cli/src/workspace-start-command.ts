@@ -31,10 +31,11 @@ async function runStart(args: string[], io: CliIo): Promise<number> {
       throw new CommandFailure("launch_intent_invalid", "--repository is required.");
     if (io.stdin === undefined)
       throw new CommandFailure("launch_intent_invalid", "The instruction must arrive on stdin.");
+    const mode = parseConversationMode(values.mode);
     const result = await startWorkspaceFromInstruction({
       instruction: await io.stdin(MAX_INSTRUCTION_BYTES),
       repository: values.repository,
-      mode: parseConversationMode(values.mode),
+      ...(mode === undefined ? {} : { mode }),
       ...(values.provider === undefined ? {} : { provider: values.provider }),
       ...(values.model === undefined ? {} : { model: values.model }),
     });
@@ -60,10 +61,7 @@ async function runOpen(args: string[], io: CliIo): Promise<number> {
   try {
     if (values.workspace === undefined)
       throw new CommandFailure("launch_intent_invalid", "--workspace is required.");
-    const result = await openWorkspace(
-      values.workspace,
-      values.mode === undefined ? undefined : parseConversationMode(values.mode),
-    );
+    const result = await openWorkspace(values.workspace, parseConversationMode(values.mode));
     io.stdout(
       json
         ? `${JSON.stringify(result, null, 2)}\n`

@@ -1,7 +1,11 @@
 // `lervo workspace start` and `open` as services, for the CLI and the resident process alike.
 import { randomBytes, randomUUID } from "node:crypto";
 
-import type { HostedConversationMode, HostedLaunch } from "@lervo/adapter-contract";
+import {
+  type HostedConversationMode,
+  type HostedLaunch,
+  preferredConversationMode,
+} from "@lervo/adapter-contract";
 import {
   defaultRepositoryRegistryPath,
   resolveRegisteredRepository,
@@ -27,8 +31,9 @@ function hex(bytes: number): string {
   return randomBytes(bytes).toString("hex");
 }
 
-export function parseConversationMode(value: unknown): HostedConversationMode {
-  if (value === undefined || value === "native" || value === "cli") return value ?? "native";
+/** The requested mode, or `undefined` when none was requested and the provider's preference applies. */
+export function parseConversationMode(value: unknown): HostedConversationMode | undefined {
+  if (value === undefined || value === "native" || value === "cli") return value;
   throw new CommandFailure("launch_intent_invalid", "The mode must be native or cli.");
 }
 
@@ -53,7 +58,7 @@ export async function startWorkspaceFromInstruction(
   return startWorkspace(
     {
       instruction: options.instruction,
-      mode: options.mode ?? "native",
+      mode: options.mode ?? preferredConversationMode(adapter.capabilities),
       repositoryRoot: repository.repositoryRoot,
       projectId: repository.projectId,
       baseCommit: await defaultBranchCommit(repository.repositoryRoot),
