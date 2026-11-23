@@ -12,19 +12,27 @@ import {
 function fakeTransport(failures: number) {
   let attempts = 0;
   let control: ((message: ShellMessage) => void) | undefined;
+  const controls: ((message: ShellMessage) => void)[] = [];
   const sent: ClientMessage[] = [];
   const transport: HostTransport = {
     async connect(onControl) {
       attempts += 1;
       if (attempts <= failures) throw new Error("session_host_unavailable");
       control = onControl;
+      controls.push(onControl);
     },
     async send(message) {
       sent.push(message);
     },
     async input() {},
   };
-  return { transport, sent, emit: (message: ShellMessage) => control?.(message) };
+  return {
+    transport,
+    sent,
+    controls,
+    attempts: () => attempts,
+    emit: (message: ShellMessage) => control?.(message),
+  };
 }
 
 function manualScheduler() {
@@ -73,6 +81,58 @@ describe("the session-host client", () => {
     fake.emit({ kind: "session.resync_required", sessionId: "ses_1" });
     expect(fake.sent).toEqual([message]);
     expect(received).toEqual(["session.resync_required"]);
+  });
+
+  it("connects once however often it starts, and ignores a replaced connection's end", async () => {
+    const fake = fakeTransport(0);
+    const scheduler = manualScheduler();
+    const client = new SessionHostClient(fake.transport, scheduler.schedule);
+    client.start();
+    client.start();
+    await flush();
+    expect(fake.attempts()).toBe(1);
+    // The current connection ends, and the client connects again.
+    fake.emit({ kind: "host.disconnected" });
+    scheduler.fire();
+    await flush();
+    expect(fake.attempts()).toBe(2);
+    expect(client.connection).toBe("connected");
+    // The shell ended the first connection when the second started; its late end changes nothing.
+    fake.controls[0]?.({ kind: "host.disconnected" });
+    expect(client.connection).toBe("connected");
+    expect(scheduler.delays).toEqual([500]);
+  });
+
+  it("hands sends and input to the shell one at a time, in order", async () => {
+    const started: string[] = [];
+    const finish: (() => void)[] = [];
+    const transport: HostTransport = {
+      async connect() {},
+      send: (message) =>
+        new Promise<void>((resolve) => {
+          started.push(message.kind);
+          finish.push(resolve);
+        }),
+      input: (_channel, bytes) =>
+        new Promise<void>((resolve) => {
+          started.push(new TextDecoder().decode(bytes));
+          finish.push(resolve);
+        }),
+    };
+    const client = new SessionHostClient(transport, manualScheduler().schedule);
+    client.start();
+    await flush();
+    const encode = (text: string) => new TextEncoder().encode(text);
+    void client.input(1, encode("h"));
+    void client.input(1, encode("i"));
+    void client.send({ kind: "session.detach", sessionId: "ses_1" });
+    await flush();
+    expect(started).toEqual(["h"]);
+    finish.shift()?.();
+    await flush();
+    finish.shift()?.();
+    await flush();
+    expect(started).toEqual(["h", "i", "session.detach"]);
   });
 
   it("splits terminal frames into channel, sequence, and bytes", () => {

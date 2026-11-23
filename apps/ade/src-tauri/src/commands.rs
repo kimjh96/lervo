@@ -49,7 +49,10 @@ pub async fn host_connect(
             }
             Event::Disconnected => {}
         };
-        let _ = host_link::run(program, layout, identity, receiver, events).await;
+        // The reason names a transport or validation rule, never a message body.
+        if let Err(error) = host_link::run(program, layout, identity, receiver, events).await {
+            eprintln!("lervo: the session host connection ended: {error}");
+        }
         let _ = disconnected.send(json!({ "kind": "host.disconnected" }));
     });
     Ok(())
