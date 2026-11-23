@@ -48,42 +48,46 @@ describe.each(["codex", "claude"] as const)("%s direct query runner", (provider)
   });
 });
 
-describe.each(["codex", "claude"] as const)("%s query runner model route", (provider) => {
-  const runner = { provider, resolve: vi.fn(), resolveObserved: vi.fn() };
-  const dependencies = (roles: ModelSelection["roles"]): ProviderQueryRunnerDependencies => ({
-    createCodexRunner: vi.fn(async () => ({
-      runner: { ...runner, provider: "codex" as const },
-      runtimeContract: "codex.persistent_isolated_thread.v1" as const,
-      close: vi.fn(async () => undefined),
-    })),
-    createSerializedRunner: vi.fn(async () => runner),
-    readSelection: async () => ({ ...DEFAULT_MODEL_SELECTION, revision: 1, roles }),
-  });
-  const created = (used: ProviderQueryRunnerDependencies) =>
-    provider === "codex"
-      ? vi.mocked(used.createCodexRunner).mock.calls[0]![0]
-      : vi.mocked(used.createSerializedRunner).mock.calls[0]![0];
-
-  it("uses the background route's model and effort (ADR-0612)", async () => {
-    const used = dependencies({
-      background: [{ provider, model: "small-model", reasoningEffort: "medium" }],
+describe.each(["codex", "claude"] as const)(
+  "%s query runner and the background role",
+  (provider) => {
+    const runner = { provider, resolve: vi.fn(), resolveObserved: vi.fn() };
+    const dependencies = (roles: ModelSelection["roles"]): ProviderQueryRunnerDependencies => ({
+      createCodexRunner: vi.fn(async () => ({
+        runner: { ...runner, provider: "codex" as const },
+        runtimeContract: "codex.persistent_isolated_thread.v1" as const,
+        close: vi.fn(async () => undefined),
+      })),
+      createSerializedRunner: vi.fn(async () => runner),
+      readSelection: async () => ({ ...DEFAULT_MODEL_SELECTION, revision: 1, roles }),
     });
-    await prepareDirectProviderQueryRunner(
-      provider,
-      { systemPrompt: "Return JSON only.", timeoutMs: 20_000 },
-      used,
-    );
-    expect(created(used)).toMatchObject({ model: "small-model", reasoningEffort: "medium" });
-  });
+    const options = { systemPrompt: "Return JSON only.", timeoutMs: 20_000 };
+    const other = provider === "codex" ? "claude" : "codex";
 
-  it("keeps the provider default model and effort low when the role is unset", async () => {
-    const used = dependencies({});
-    await prepareDirectProviderQueryRunner(
-      provider,
-      { systemPrompt: "Return JSON only.", timeoutMs: 20_000 },
-      used,
-    );
-    expect(created(used)).not.toHaveProperty("model");
-    expect(created(used)).toMatchObject({ reasoningEffort: "low" });
-  });
-});
+    it("answers no query when the role lists only another provider (ADR-0612)", async () => {
+      const used = dependencies({
+        background: [{ provider: other, model: null, reasoningEffort: null }],
+      });
+      await expect(prepareDirectProviderQueryRunner(provider, options, used)).rejects.toMatchObject(
+        {
+          code: "provider_not_admitted",
+        },
+      );
+      expect(used.createCodexRunner).not.toHaveBeenCalled();
+      expect(used.createSerializedRunner).not.toHaveBeenCalled();
+    });
+
+    it("keeps the qualified projector's default model when the role lists the provider", async () => {
+      const used = dependencies({
+        background: [{ provider, model: "small-model", reasoningEffort: "medium" }],
+      });
+      await prepareDirectProviderQueryRunner(provider, options, used);
+      const created =
+        provider === "codex"
+          ? vi.mocked(used.createCodexRunner).mock.calls[0]![0]
+          : vi.mocked(used.createSerializedRunner).mock.calls[0]![0];
+      expect(created).not.toHaveProperty("model");
+      expect(created).not.toHaveProperty("reasoningEffort");
+    });
+  },
+);

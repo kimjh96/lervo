@@ -5,7 +5,12 @@ import {
 } from "@lervo/repository-knowledge-runtime";
 
 import { CommandFailure } from "./command-error-output.js";
-import { openFirstRoute, reviewCallRoutes, type ReadModelSelection } from "./model-role-routes.js";
+import {
+  openFirstRoute,
+  readHostSelection,
+  reviewCallRoutes,
+  type ReadModelSelection,
+} from "./model-role-routes.js";
 
 /** A foreground command runs outside any hook; the check gets the same bound as grounding. */
 const CROSS_CHECK_TIMEOUT_MS = 120_000;
@@ -40,7 +45,7 @@ export async function crossCheckPlan(input: PlanCrossCheckInput): Promise<PlanCr
   const routes = await reviewCallRoutes({
     repositoryRoot: input.repositoryRoot,
     ...(input.provider === undefined ? {} : { provider: input.provider }),
-    ...(input.readSelection === undefined ? {} : { readSelection: input.readSelection }),
+    selection: await (input.readSelection ?? readHostSelection)(),
   });
   if (routes.length === 0)
     throw new CommandFailure(
@@ -57,7 +62,12 @@ export async function crossCheckPlan(input: PlanCrossCheckInput): Promise<PlanCr
       systemPrompt: prepared.systemPrompt,
       timeoutMs: CROSS_CHECK_TIMEOUT_MS,
     }),
-  );
+  ).catch(() => {
+    throw new CommandFailure(
+      "knowledge_cross_check_unavailable",
+      `No provider the review role allows could start an independent cross-check (${routes.map((route) => route.provider).join(", ")}), so nothing was applied.`,
+    );
+  });
   const answer = await runner.resolve(prepared.request);
   let verdict: ReturnType<typeof lifecyclePlanReviewVerdict>;
   try {

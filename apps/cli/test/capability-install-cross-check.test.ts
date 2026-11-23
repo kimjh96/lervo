@@ -7,6 +7,7 @@ import {
   crossCheckCapability,
   strongerCapabilityCrossCheck,
 } from "../src/capability-install-cross-check.js";
+import { ProviderRouteStartError } from "../src/model-role-routes.js";
 
 const mocks = vi.hoisted(() => ({ resolve: vi.fn(), requests: [] as unknown[] }));
 vi.mock("@lervo/repository-knowledge-compiler", () => ({
@@ -86,6 +87,57 @@ it("takes both sessions from the review role and never tries a provider it leave
       roles: { review: [{ provider: "claude", model: null, reasoningEffort: "high" }] },
     }),
   });
+  expect(result.agreed).toBe(true);
+  expect(sessions).toEqual(["claude", "claude"]);
+});
+
+it("keeps a different second provider from the role when the caller names the first", async () => {
+  const sessions: Array<"codex" | "claude"> = [];
+  await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    provider: "codex",
+    crossCheck: async (input) => {
+      sessions.push(input.provider);
+      return { verdict: "agree", rationale, reviewer: "fixture", provider: input.provider };
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: {
+        review: [
+          { provider: "codex", model: null, reasoningEffort: "high" },
+          { provider: "claude", model: null, reasoningEffort: "high" },
+        ],
+      },
+    }),
+  });
+  expect(sessions).toEqual(["codex", "claude"]);
+});
+
+it("passes over a listed provider whose CLI cannot start", async () => {
+  const sessions: Array<"codex" | "claude"> = [];
+  const result = await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    crossCheck: async (input) => {
+      if (input.provider === "codex")
+        throw new ProviderRouteStartError("codex", { cause: new Error("not installed") });
+      sessions.push(input.provider);
+      return { verdict: "agree", rationale, reviewer: "fixture", provider: input.provider };
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: {
+        review: [
+          { provider: "codex", model: null, reasoningEffort: "high" },
+          { provider: "claude", model: null, reasoningEffort: "high" },
+        ],
+      },
+    }),
+  });
+  // The second session would be codex, which cannot start, so claude stands in again.
   expect(result.agreed).toBe(true);
   expect(sessions).toEqual(["claude", "claude"]);
 });

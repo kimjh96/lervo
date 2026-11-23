@@ -7,7 +7,6 @@ import {
 } from "@lervo/repository-knowledge-compiler";
 
 import type { RunProvider } from "./managed-run.js";
-import { modelRouteFor } from "@lervo/execution-contract";
 import { readHostSelection, type ReadModelSelection } from "./model-role-routes.js";
 import { createCodexPersistentQueryRunner } from "./provider-query-runner-codex.js";
 import { providerOutputSchema } from "@lervo/schemas";
@@ -86,6 +85,15 @@ interface OpenedProviderQueryRunner {
   close(): Promise<void>;
 }
 
+/** The `background` role lists other providers only, so this provider may not answer queries. */
+export class ProviderQueryRouteError extends Error {
+  readonly code = "provider_not_admitted";
+  constructor(provider: RunProvider) {
+    super(`The background model role does not list ${provider}, so it answers no queries.`);
+    this.name = "ProviderQueryRouteError";
+  }
+}
+
 async function openProviderQueryRunner(
   provider: RunProvider,
   options: {
@@ -95,30 +103,21 @@ async function openProviderQueryRunner(
   },
   dependencies: ProviderQueryRunnerDependencies,
 ): Promise<OpenedProviderQueryRunner> {
-  // ADR-0612: queries are background work, so the `background` route for this provider sets the
-  // model and effort; an unset role keeps the provider default model and effort `low`, as before.
-  const route = modelRouteFor(
-    await (dependencies.readSelection ?? readHostSelection)(),
-    "background",
-    provider,
-  );
-  const model = options.model ?? route.model ?? undefined;
-  const routed = {
-    ...(model === undefined ? {} : { model }),
-    ...(route.reasoningEffort === null ? {} : { reasoningEffort: route.reasoningEffort }),
-  };
+  // ADR-0612: queries are background work, so a `background` role that lists only other providers
+  // removes this one, and the query falls back as when its runner cannot start. The model and
+  // effort stay those of the qualified projector (ADR-0353): the product default search plan is
+  // qualified for the provider default model, so a route's model would no longer match it.
+  const listed = (await (dependencies.readSelection ?? readHostSelection)()).roles.background ?? [];
+  if (listed.length > 0 && !listed.some((route) => route.provider === provider))
+    throw new ProviderQueryRouteError(provider);
   if (provider === "codex") {
-    const prepared = await dependencies.createCodexRunner({
-      ...routed,
-      systemPrompt: options.systemPrompt,
-      timeoutMs: options.timeoutMs,
-    });
+    const prepared = await dependencies.createCodexRunner(options);
     return { runner: prepared.runner, close: prepared.close };
   }
   return {
     runner: await dependencies.createSerializedRunner({
       provider,
-      ...routed,
+      ...(options.model === undefined ? {} : { model: options.model }),
       systemPrompt: options.systemPrompt,
       timeoutMs: options.timeoutMs,
     }),

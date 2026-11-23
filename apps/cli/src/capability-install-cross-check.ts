@@ -4,10 +4,14 @@ import {
   type ProviderJsonRequest,
 } from "@lervo/repository-knowledge-compiler";
 import { CommandFailure } from "./command-error-output.js";
+import type { ModelSelection } from "@lervo/execution-contract";
+
 import {
   modelCallOptions,
+  ProviderRouteStartError,
   readHostSelection,
   reviewCallRoutes,
+  startRoute,
   type ReadModelSelection,
 } from "./model-role-routes.js";
 import { providerOutputSchema } from "@lervo/schemas";
@@ -76,7 +80,8 @@ export type CrossCheckCapability = (input: {
   provider: "codex" | "claude";
   /** A configured provider executable; it binds both sessions to its provider. */
   executable?: string;
-  readSelection?: ReadModelSelection;
+  /** The selection the whole install reads once; the host's when absent. */
+  selection?: ModelSelection;
 }) => Promise<CapabilityCrossCheckVerdict>;
 
 /** One fresh no-capability session judges the exact package bytes. */
@@ -98,14 +103,19 @@ export const crossCheckCapability: CrossCheckCapability = async (input) => {
       reviewer: `no-capability ${input.provider} session`,
       provider: input.provider,
     };
-  const selection = await (input.readSelection ?? readHostSelection)();
-  const runner = await createNoCapabilityProviderJsonRunner({
+  const selection = input.selection ?? (await readHostSelection());
+  const route = {
     provider: input.provider,
     ...modelCallOptions(selection, "review", input.provider),
-    ...(input.executable === undefined ? {} : { executable: input.executable }),
-    systemPrompt: CAPABILITY_REVIEW_PROMPT,
-    timeoutMs: CROSS_CHECK_TIMEOUT_MS,
-  });
+  };
+  const runner = await startRoute(route, (started) =>
+    createNoCapabilityProviderJsonRunner({
+      ...started,
+      ...(input.executable === undefined ? {} : { executable: input.executable }),
+      systemPrompt: CAPABILITY_REVIEW_PROMPT,
+      timeoutMs: CROSS_CHECK_TIMEOUT_MS,
+    }),
+  );
   return {
     ...parseCapabilityReview(await runner.resolve(request)),
     reviewer: `no-capability ${input.provider} session`,
@@ -117,11 +127,17 @@ const otherProvider = { codex: "claude", claude: "codex" } as const;
 
 /**
  * ADR-0561 stronger check for a capability install. Every package grants an agent new capability,
- * so the install needs two agreeing checks from separate fresh sessions. The second uses the next
- * provider the `review` role lists (ADR-0612), or the other provider when the role is unset, and
- * falls back to another session of the first; a provider the role leaves out is never tried. A
- * configured executable binds both sessions to its provider. The first disagreement ends the
- * check, so a rejected package is never shopped to further sessions.
+ * so the install needs two agreeing checks from separate fresh sessions.
+ *
+ * - The first session uses the first `review` route (ADR-0612) whose provider CLI starts, or the
+ *   provider the caller named.
+ * - The second uses the next provider the role lists, or the other provider when the role is
+ *   unset. A provider the role leaves out is never tried. A second session that gives no verdict
+ *   is replaced by another session of the first provider.
+ * - A configured executable binds both sessions to its provider.
+ *
+ * The first disagreement ends the check, so a rejected package is never shopped to further
+ * sessions.
  */
 export async function strongerCapabilityCrossCheck(input: {
   repositoryRoot: string;
@@ -131,45 +147,52 @@ export async function strongerCapabilityCrossCheck(input: {
   crossCheck: CrossCheckCapability;
   readSelection?: ReadModelSelection;
 }): Promise<{ agreed: boolean; verdicts: CapabilityCrossCheckVerdict[] }> {
-  const readSelection = input.readSelection ?? readHostSelection;
+  const selection = await (input.readSelection ?? readHostSelection)();
   const routes = await reviewCallRoutes({
     repositoryRoot: input.repositoryRoot,
     ...(input.provider === undefined ? {} : { provider: input.provider }),
-    readSelection,
+    selection,
   });
-  const first = routes[0]?.provider;
-  if (first === undefined)
+  if (routes.length === 0)
     throw new CommandFailure(
       "capability_cross_check_unavailable",
       "No provider is admitted for the independent cross-check, so nothing was installed. Pass --provider codex or --provider claude.",
     );
-  const roleRouted = ((await readSelection()).roles.review ?? []).length > 0;
-  const second =
-    input.executable !== undefined
-      ? first
-      : roleRouted
-        ? (routes[1]?.provider ?? first)
-        : otherProvider[first];
-  const verdicts: CapabilityCrossCheckVerdict[] = [];
   const session = (provider: "codex" | "claude") =>
     input.crossCheck({
       repositoryRoot: input.repositoryRoot,
       package: input.package,
       provider,
       ...(input.executable === undefined ? {} : { executable: input.executable }),
-      readSelection,
+      selection,
     });
-  for (const provider of [first, second] as const) {
-    let verdict: CapabilityCrossCheckVerdict;
+  let first: { provider: "codex" | "claude"; verdict: CapabilityCrossCheckVerdict } | undefined;
+  for (const [index, route] of routes.entries()) {
     try {
-      verdict = await session(provider);
+      first = { provider: route.provider, verdict: await session(route.provider) };
+      break;
     } catch (error) {
-      // The other provider is optional: a second session of the first provider stands in.
-      if (provider === first) throw error;
-      verdict = await session(first);
+      // Only a provider that could not start gives way to the next listed one.
+      if (!(error instanceof ProviderRouteStartError) || index === routes.length - 1) throw error;
     }
-    verdicts.push(verdict);
-    if (verdict.verdict !== "agree") return { agreed: false, verdicts };
   }
-  return { agreed: true, verdicts };
+  const verdicts = [first!.verdict];
+  if (first!.verdict.verdict !== "agree") return { agreed: false, verdicts };
+  const listed = [...new Set((selection.roles.review ?? []).map((route) => route.provider))];
+  const second =
+    input.executable !== undefined
+      ? first!.provider
+      : listed.length > 0
+        ? (listed.find((provider) => provider !== first!.provider) ?? first!.provider)
+        : otherProvider[first!.provider];
+  let verdict: CapabilityCrossCheckVerdict;
+  try {
+    verdict = await session(second);
+  } catch (error) {
+    // The other provider is optional: a second session of the first provider stands in.
+    if (second === first!.provider) throw error;
+    verdict = await session(first!.provider);
+  }
+  verdicts.push(verdict);
+  return { agreed: verdict.verdict === "agree", verdicts };
 }

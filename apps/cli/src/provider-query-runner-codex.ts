@@ -1,4 +1,3 @@
-import type { ModelReasoningEffort } from "@lervo/execution-contract";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
@@ -75,7 +74,6 @@ async function observedTurn(input: {
   cwd: string;
   systemPrompt: string;
   model?: string;
-  reasoningEffort: ModelReasoningEffort;
   timeoutMs: number;
   value: unknown;
   signal?: AbortSignal;
@@ -111,7 +109,7 @@ async function observedTurn(input: {
   try {
     const turn = await input.client.startTurn(thread.threadId, canonicalJson(request), {
       outputSchema: schema,
-      reasoningEffort: input.reasoningEffort,
+      reasoningEffort: "low",
     });
     providerTurnId = turn.turnId;
     let content: string | null = null;
@@ -163,8 +161,6 @@ async function observedTurn(input: {
 export async function createCodexPersistentQueryRunner(
   input: {
     model?: string;
-    /** ADR-0612: the `background` role's effort; `low` as before when absent. */
-    reasoningEffort?: ModelReasoningEffort;
     systemPrompt: string;
     timeoutMs: number;
   },
@@ -201,7 +197,6 @@ export async function createCodexPersistentQueryRunner(
         cwd: directory,
         systemPrompt: input.systemPrompt,
         ...(input.model === undefined ? {} : { model: input.model }),
-        reasoningEffort: input.reasoningEffort ?? "low",
         timeoutMs: input.timeoutMs,
         value,
         ...(signal === undefined ? {} : { signal }),
