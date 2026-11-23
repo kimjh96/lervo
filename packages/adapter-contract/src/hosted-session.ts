@@ -54,6 +54,12 @@ export interface HostedLaunch {
   readonly arguments: readonly string[];
   /** Variables added to the session host's environment. Their values are never persisted. */
   readonly environment: Readonly<Record<string, string>>;
+  /**
+   * Variables the session host must not pass on from its own environment, such as the markers
+   * of an agent session that started Lervo. Without this, a provider started from inside its own
+   * agent's session would take itself for that session's child.
+   */
+  readonly environmentRemove: readonly string[];
   readonly workingDirectory: string;
   readonly mode: HostedConversationMode;
   /**
@@ -242,6 +248,32 @@ export interface HostedStreamDecoder {
 /** A hosted-session adapter whose provider supports the native conversation. */
 export interface HostedStreamDecoding {
   createStreamDecoder(): HostedStreamDecoder;
+}
+
+/** One complete item of a provider's own transcript, as the native conversation shows it. */
+export interface HostedTranscriptItem {
+  readonly content: HostedDecodedContent;
+  readonly createdAtMs: number;
+}
+
+/**
+ * A hosted-session adapter that reads its provider's own transcript of a session: the canonical
+ * conversation, which includes turns from either conversation mode (invariant 4). The session
+ * host rebuilds the native conversation's index from it.
+ */
+export interface HostedTranscriptReading {
+  /** The session's items, oldest first; none when the provider kept no transcript. */
+  readTranscript(session: {
+    readonly sessionId: string;
+    readonly workingDirectory: string;
+  }): AsyncIterable<HostedTranscriptItem>;
+}
+
+/** Whether `adapter` can read its provider's transcript. */
+export function hasTranscriptReader(
+  adapter: HostedSessionAdapter,
+): adapter is HostedSessionAdapter & HostedTranscriptReading {
+  return typeof (adapter as Partial<HostedTranscriptReading>).readTranscript === "function";
 }
 
 /** Whether `adapter` can decode the native conversation it declares. */
