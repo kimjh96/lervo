@@ -217,13 +217,17 @@ On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's.
 
 ### S1.4c progress
 
-S1.4c lands in two pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.
+S1.4c lands in three pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.
 
-1. **Readers and the target.** The CLI, the Node, and the Hub read schema 10, and `lervo upgrade` targets it. The release goes to the Hub first, which the WSL host installs by hand, and then to each host. `lervo upgrade --apply` then activates schema 10 in each registered repository once every configured reader reports it.
+1. **Readers and the target (#354, v0.44.0).** The CLI, the Node, and the Hub read schema 10, and `lervo upgrade` targets it.
+   - On 2026-11-23 the WSL Hub was deployed by hand from v0.44.0 and reported schema versions 1 to 10.
+   - A registered repository on the WSL host then activated schema 10.
 2. **Hooks and writers.**
-   - The Claude adapter adds a session-scoped settings file with Lervo's `SessionStart` and `SessionEnd` handlers.
-   - `lervo workspace start` and `lervo workspace open` record `application.workspace.started` and `terminal.session.launch_prepared` in the registered repository's store, the hook handlers record `launched` and `ended`, and the session host reports an exit without `SessionEnd`.
+   - The Claude adapter declares `hooks` and passes a session-scoped settings file with Lervo's `SessionStart` and `SessionEnd` handlers.
+   - `lervo workspace start` and `lervo workspace open` record `application.workspace.started` and `terminal.session.launch_prepared` in the registered repository's store.
+   - `lervo workspace hook` records `launched` and `ended`.
    - Writers check the selected writer version, never the CLI version, and record nothing below schema 10.
+3. **The session host's exit report.** When a provider process exits without `SessionEnd`, for example after a crash or SIGKILL, the session host reports the exit through the core link. The core then records `terminal.session.ended` with `process_exited` and the exit code. This needs a guarded core-link command and an ADE intent, so it follows step 2.
 
 `terminal.tool.observed` and `terminal.instructions.loaded` wait for S2, which defines their fields with the hosted evidence.
 
