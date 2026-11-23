@@ -113,6 +113,37 @@ function health(startedAt: string, updatedAt: string, status = "ready") {
   };
 }
 
+describe("Node fleet apply of an unchanged service (ADR-0602)", () => {
+  it("accepts the running Node's own snapshot when the service needed no restart", async () => {
+    const node = await registeredNode();
+    const repository = resolve(node.registry, "../../repository");
+    const config = resolve(node.registry, "../../node-runtime.json");
+    const executable = resolve(node.registry, "../../lervo-node");
+    // The running process wrote this once, long before the new release.
+    const idle = health("2026-11-22T08:00:00.000Z", "2026-11-22T08:00:05.000Z");
+    const result = await applyNodeFleetOnboarding({
+      plan: await createNodeFleetOnboardingPlan({
+        registryPath: node.registry,
+        repositoryRoot: repository,
+        nodeId: "node_fixture_device_01",
+        destinationId: "hub:fixture",
+        runtimeVersion: "0.1.1",
+        serviceManager: "launchd",
+        homeDirectory: node.home,
+      }),
+      configPath: config,
+      homeDirectory: node.home,
+      ports: {
+        executablePath: executable,
+        serviceOptions: node.serviceOptions,
+        wait: async () => undefined,
+        readHealth: async () => idle,
+      },
+    });
+    expect(result).toMatchObject({ readiness: { status: "ready" } });
+  });
+});
+
 describe("Node fleet status of an idle Node (ADR-0602)", () => {
   it("keeps an idle settled Node ready while its process runs, however old its snapshot", async () => {
     const node = await registeredNode();
