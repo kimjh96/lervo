@@ -11,7 +11,7 @@
     },
     {
       "path": "apps/cli/src/managed-run.ts",
-      "contentHash": "sha256:1e387b55498895936d9470278c5adcd8d337f3d63087fd1fa4779e240b7371e3",
+      "contentHash": "sha256:9df0ccb7693624a2ce4d25ea30ba9eafeb5e59f3db07d0826ffde03a1ff3caee",
       "responsibility": "Managed provider run command orchestration",
       "rationale": "The module sequences one admitted run through context, execution, outcome checks, writing publication, finalization, and cleanup. Public command contracts, provider construction, grounded capability selection and package ceilings, and outcome verification are separate modules. Existing research, role, skill, workspace and project-verification owners retain their boundaries; the remaining lifecycle shares one ordered failure and storage-cleanup contract.",
       "disposition": "cohesive"

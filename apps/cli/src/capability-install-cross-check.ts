@@ -3,9 +3,13 @@ import {
   createNoCapabilityProviderJsonRunner,
   type ProviderJsonRequest,
 } from "@lervo/repository-knowledge-compiler";
-import { readWorkerProviderSelection } from "@lervo/repository-knowledge-runtime";
-
 import { CommandFailure } from "./command-error-output.js";
+import {
+  modelCallOptions,
+  readHostSelection,
+  reviewCallRoutes,
+  type ReadModelSelection,
+} from "./model-role-routes.js";
 import { providerOutputSchema } from "@lervo/schemas";
 
 /** A foreground command runs outside any hook; the check gets the same bound as grounding. */
@@ -72,6 +76,7 @@ export type CrossCheckCapability = (input: {
   provider: "codex" | "claude";
   /** A configured provider executable; it binds both sessions to its provider. */
   executable?: string;
+  readSelection?: ReadModelSelection;
 }) => Promise<CapabilityCrossCheckVerdict>;
 
 /** One fresh no-capability session judges the exact package bytes. */
@@ -93,8 +98,10 @@ export const crossCheckCapability: CrossCheckCapability = async (input) => {
       reviewer: `no-capability ${input.provider} session`,
       provider: input.provider,
     };
+  const selection = await (input.readSelection ?? readHostSelection)();
   const runner = await createNoCapabilityProviderJsonRunner({
     provider: input.provider,
+    ...modelCallOptions(selection, "review", input.provider),
     ...(input.executable === undefined ? {} : { executable: input.executable }),
     systemPrompt: CAPABILITY_REVIEW_PROMPT,
     timeoutMs: CROSS_CHECK_TIMEOUT_MS,
@@ -110,10 +117,11 @@ const otherProvider = { codex: "claude", claude: "codex" } as const;
 
 /**
  * ADR-0561 stronger check for a capability install. Every package grants an agent new capability,
- * so the install needs two agreeing checks from separate fresh sessions; the second prefers the
- * other provider and falls back to another session of the first. A configured executable binds
- * both sessions to its provider. The first disagreement ends the check, so a rejected package is
- * never shopped to further sessions.
+ * so the install needs two agreeing checks from separate fresh sessions. The second uses the next
+ * provider the `review` role lists (ADR-0612), or the other provider when the role is unset, and
+ * falls back to another session of the first; a provider the role leaves out is never tried. A
+ * configured executable binds both sessions to its provider. The first disagreement ends the
+ * check, so a rejected package is never shopped to further sessions.
  */
 export async function strongerCapabilityCrossCheck(input: {
   repositoryRoot: string;
@@ -121,14 +129,27 @@ export async function strongerCapabilityCrossCheck(input: {
   provider?: "codex" | "claude";
   executable?: string;
   crossCheck: CrossCheckCapability;
+  readSelection?: ReadModelSelection;
 }): Promise<{ agreed: boolean; verdicts: CapabilityCrossCheckVerdict[] }> {
-  const first =
-    input.provider ?? (await readWorkerProviderSelection(input.repositoryRoot))?.provider;
+  const readSelection = input.readSelection ?? readHostSelection;
+  const routes = await reviewCallRoutes({
+    repositoryRoot: input.repositoryRoot,
+    ...(input.provider === undefined ? {} : { provider: input.provider }),
+    readSelection,
+  });
+  const first = routes[0]?.provider;
   if (first === undefined)
     throw new CommandFailure(
       "capability_cross_check_unavailable",
       "No provider is admitted for the independent cross-check, so nothing was installed. Pass --provider codex or --provider claude.",
     );
+  const roleRouted = ((await readSelection()).roles.review ?? []).length > 0;
+  const second =
+    input.executable !== undefined
+      ? first
+      : roleRouted
+        ? (routes[1]?.provider ?? first)
+        : otherProvider[first];
   const verdicts: CapabilityCrossCheckVerdict[] = [];
   const session = (provider: "codex" | "claude") =>
     input.crossCheck({
@@ -136,8 +157,8 @@ export async function strongerCapabilityCrossCheck(input: {
       package: input.package,
       provider,
       ...(input.executable === undefined ? {} : { executable: input.executable }),
+      readSelection,
     });
-  const second = input.executable === undefined ? otherProvider[first] : first;
   for (const provider of [first, second] as const) {
     let verdict: CapabilityCrossCheckVerdict;
     try {

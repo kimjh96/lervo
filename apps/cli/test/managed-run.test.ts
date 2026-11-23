@@ -2,6 +2,8 @@ import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promise
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
+import { DEFAULT_MODEL_SELECTION } from "@lervo/execution-contract";
+
 import {
   ClaudeAdapter,
   type ClaudeAgentClient,
@@ -949,12 +951,25 @@ describe("lervo run vertical slice", () => {
     const codex = new ManagedCodexClient(root, false, 'export const continuedBy = "codex";\n');
     const claude = new ManagedClaudeClient(root, 'export const continuedBy = "claude";\n');
     const adapterCreations: RunProvider[] = [];
+    const routedOptions: Array<{ model?: string; reasoningEffort?: string }> = [];
     const executeManagedRun = createManagedRunExecutor({
       openStorage: openProjectStorage,
       createId: identifierFactory(),
       semanticEvaluator: passingSemanticEvaluator,
-      createAdapter: ({ provider, repositoryRoot, resolveArtifact }) => {
+      // ADR-0612: the routine role routes Claude only; the Codex run keeps its defaults.
+      readModelSelection: async () => ({
+        ...DEFAULT_MODEL_SELECTION,
+        revision: 1,
+        roles: {
+          routine: [{ provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: "medium" }],
+        },
+      }),
+      createAdapter: ({ provider, repositoryRoot, resolveArtifact, model, reasoningEffort }) => {
         adapterCreations.push(provider);
+        routedOptions.push({
+          ...(model === undefined ? {} : { model }),
+          ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+        });
         return provider === "codex"
           ? new CodexAdapter({
               repositoryRoot,
@@ -1037,6 +1052,7 @@ describe("lervo run vertical slice", () => {
     expect(initial.runId).not.toBe(resumed.runId);
     expect(initial.sessionId).not.toBe(resumed.sessionId);
     expect(adapterCreations).toEqual(["codex", "claude"]);
+    expect(routedOptions).toEqual([{}, { model: "claude-sonnet-5-5", reasoningEffort: "medium" }]);
     expect(codex.closed).toBe(true);
     expect(claude.closed).toBe(true);
     expect(await readFile(resolve(root, "src/result.ts"), "utf8")).toBe(

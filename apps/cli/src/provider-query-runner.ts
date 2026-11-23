@@ -7,6 +7,8 @@ import {
 } from "@lervo/repository-knowledge-compiler";
 
 import type { RunProvider } from "./managed-run.js";
+import { modelRouteFor } from "@lervo/execution-contract";
+import { readHostSelection, type ReadModelSelection } from "./model-role-routes.js";
 import { createCodexPersistentQueryRunner } from "./provider-query-runner-codex.js";
 import { providerOutputSchema } from "@lervo/schemas";
 
@@ -71,6 +73,7 @@ export interface PreparedDirectProviderQueryRunner {
 export interface ProviderQueryRunnerDependencies {
   createCodexRunner: typeof createCodexPersistentQueryRunner;
   createSerializedRunner: typeof createNoCapabilityProviderJsonRunner;
+  readSelection?: ReadModelSelection;
 }
 
 const defaultDependencies: ProviderQueryRunnerDependencies = {
@@ -92,14 +95,30 @@ async function openProviderQueryRunner(
   },
   dependencies: ProviderQueryRunnerDependencies,
 ): Promise<OpenedProviderQueryRunner> {
+  // ADR-0612: queries are background work, so the `background` route for this provider sets the
+  // model and effort; an unset role keeps the provider default model and effort `low`, as before.
+  const route = modelRouteFor(
+    await (dependencies.readSelection ?? readHostSelection)(),
+    "background",
+    provider,
+  );
+  const model = options.model ?? route.model ?? undefined;
+  const routed = {
+    ...(model === undefined ? {} : { model }),
+    ...(route.reasoningEffort === null ? {} : { reasoningEffort: route.reasoningEffort }),
+  };
   if (provider === "codex") {
-    const prepared = await dependencies.createCodexRunner(options);
+    const prepared = await dependencies.createCodexRunner({
+      ...routed,
+      systemPrompt: options.systemPrompt,
+      timeoutMs: options.timeoutMs,
+    });
     return { runner: prepared.runner, close: prepared.close };
   }
   return {
     runner: await dependencies.createSerializedRunner({
       provider,
-      ...(options.model === undefined ? {} : { model: options.model }),
+      ...routed,
       systemPrompt: options.systemPrompt,
       timeoutMs: options.timeoutMs,
     }),

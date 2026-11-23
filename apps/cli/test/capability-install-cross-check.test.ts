@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 import type { VerifiedCapabilityPackage } from "@lervo/capabilities";
+import { DEFAULT_MODEL_SELECTION } from "@lervo/execution-contract";
 
 import {
   crossCheckCapability,
@@ -68,4 +69,23 @@ it("reports a malformed answer as unavailable, never as a disagreement", async (
       crossCheck: crossCheckCapability,
     }),
   ).rejects.toMatchObject({ code: "capability_cross_check_unavailable" });
+});
+
+it("takes both sessions from the review role and never tries a provider it leaves out (ADR-0612)", async () => {
+  const sessions: Array<"codex" | "claude"> = [];
+  const result = await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    crossCheck: async (input) => {
+      sessions.push(input.provider);
+      return { verdict: "agree", rationale, reviewer: "fixture", provider: input.provider };
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: { review: [{ provider: "claude", model: null, reasoningEffort: "high" }] },
+    }),
+  });
+  expect(result.agreed).toBe(true);
+  expect(sessions).toEqual(["claude", "claude"]);
 });

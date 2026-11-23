@@ -14,20 +14,19 @@ export const defaultDependencies: ManagedRunDependencies = {
     resolveArtifact,
     structuredOutputSchema,
     executable,
-  }) =>
-    provider === "codex"
-      ? new CodexAdapter({
-          ...(executable === undefined ? {} : { executable }),
-          repositoryRoot,
-          resolveArtifact,
-          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
-        })
-      : new ClaudeAdapter({
-          ...(executable === undefined ? {} : { executable }),
-          repositoryRoot,
-          resolveArtifact,
-          ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
-        }),
+    model,
+    reasoningEffort,
+  }) => {
+    const options = {
+      ...(executable === undefined ? {} : { executable }),
+      repositoryRoot,
+      resolveArtifact,
+      ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
+      ...(model === undefined ? {} : { model }),
+      ...(reasoningEffort === undefined ? {} : { reasoningEffort }),
+    };
+    return provider === "codex" ? new CodexAdapter(options) : new ClaudeAdapter(options);
+  },
   createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
   now: () => new Date(),
   createSemanticEvaluator: createLocalProviderWritingEvaluator,
