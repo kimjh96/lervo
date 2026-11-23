@@ -1,6 +1,6 @@
 [package]
 name = "lervo-session-pty"
-version = "0.1.0"
+version.workspace = true
 description = "The ADE session host's PTY adapter for the CLI conversation."
 edition.workspace = true
 rust-version.workspace = true

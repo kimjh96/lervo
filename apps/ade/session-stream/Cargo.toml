@@ -1,6 +1,6 @@
 [package]
 name = "lervo-session-stream"
-version = "0.1.0"
+version.workspace = true
 description = "The ADE session host's adapter for provider processes that speak a structured stream."
 edition.workspace = true
 rust-version.workspace = true
