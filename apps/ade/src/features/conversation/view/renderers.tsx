@@ -2,6 +2,7 @@ import type { ConversationItem } from "@lervo/session-host-contract";
 import type { ComponentType } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
 
 type Renderer<Kind extends ConversationItem["kind"]> = ComponentType<{
@@ -26,7 +27,8 @@ function UserMessage({ item }: { item: Extract<ConversationItem, { kind: "user_m
 }
 
 function AgentMessage({ item }: { item: Extract<ConversationItem, { kind: "agent_message" }> }) {
-  return <Paragraphs text={item.text} className={styles.agent} />;
+  const text = usePacedText(item.text);
+  return <Paragraphs text={text} className={styles.agent} />;
 }
 
 function Question({ item }: { item: Extract<ConversationItem, { kind: "question" }> }) {

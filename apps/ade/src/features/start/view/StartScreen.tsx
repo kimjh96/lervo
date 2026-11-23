@@ -1,21 +1,14 @@
-import { type FormEvent, type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useApplicationCommands } from "../../../app/session-host-context";
-import { RequestFailure } from "../../../platform/session-host";
 import { ArrowUpIcon, ChevronDownIcon } from "../../../ui/icons";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
+import { useStartStore } from "../model/store";
 import styles from "./StartScreen.module.css";
 
 const PROVIDERS = ["claude", "codex"] as const;
-const KNOWN_ERRORS = new Set([
-  "workspace_start_failed",
-  "provider_cli_unavailable",
-  "conversation_mode_unsupported",
-  "application_unavailable",
-  "session_host_unavailable",
-]);
 
 /** A compact chooser inside the instruction card: a native select drawn as a chip. */
 function Chip(props: {
@@ -49,15 +42,11 @@ export function StartScreen() {
   const repositories = useWorkspaceStore((store) => store.repositories);
   const newWork = useWorkspaceStore((store) => store.newWorkRequests);
   const input = useRef<HTMLTextAreaElement>(null);
-  const [draft, setDraft] = useState<StartDraft>({
-    instruction: "",
-    repository: "",
-    provider: "claude",
-  });
-  const [starting, setStarting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const draft = useStartStore((store) => store.draft);
+  const error = useStartStore((store) => store.error);
+  const setDraft = (next: StartDraft) => useStartStore.setState({ draft: next, error: null });
   const repository = draft.repository || repositories[0]?.projectId || "";
-  const ready = canStart({ ...draft, repository }) && !starting;
+  const ready = canStart({ ...draft, repository });
   const provider = intl.formatMessage({ id: `start.provider.${draft.provider}` });
 
   // The input takes focus when the screen opens and on each "New work".
@@ -66,15 +55,8 @@ export function StartScreen() {
   const submit = (event?: FormEvent) => {
     event?.preventDefault();
     if (!ready) return;
-    setStarting(true);
-    setError(null);
-    startWork(commands, { ...draft, repository })
-      .then(() => setDraft((current) => ({ ...current, instruction: "" })))
-      .catch((failure: unknown) => {
-        const code = failure instanceof RequestFailure ? failure.code : "workspace_start_failed";
-        setError(KNOWN_ERRORS.has(code) ? code : "workspace_start_failed");
-      })
-      .finally(() => setStarting(false));
+    const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
+    void startWork(commands, { ...draft, repository }, name);
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
@@ -88,7 +70,7 @@ export function StartScreen() {
         <h1 className={styles.question}>
           <FormattedMessage id="start.question" />
         </h1>
-        <form className={styles.card} onSubmit={submit} aria-busy={starting}>
+        <form className={styles.card} onSubmit={submit}>
           <textarea
             ref={input}
             className={styles.instruction}

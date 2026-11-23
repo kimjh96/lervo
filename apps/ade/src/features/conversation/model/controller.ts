@@ -14,7 +14,12 @@ import { applyAppended, applyDelta, applyPage, emptyWindow, PAGE_ITEMS } from ".
 export interface ConversationTarget {
   readonly workspaceId: string;
   readonly sessionId: string;
+  /** The instruction that started the work, shown until the session's own copy arrives. */
+  readonly firstMessage?: string;
 }
+
+/** The item that stands in for the first message until the session reports it. */
+const FIRST_MESSAGE_ID = "first-message";
 
 /**
  * Shows one workspace's native conversation. It attaches to the session, loads the newest page,
@@ -40,9 +45,25 @@ export class ConversationController {
   }
 
   async open(): Promise<void> {
+    const first = this.target.firstMessage;
     useConversationStore.setState({
       sessionId: null,
-      window: emptyWindow,
+      window:
+        first === undefined
+          ? emptyWindow
+          : {
+              items: [
+                {
+                  kind: "user_message",
+                  itemId: FIRST_MESSAGE_ID,
+                  createdAtMs: Date.now(),
+                  state: "complete",
+                  text: first,
+                },
+              ],
+              hasEarlier: false,
+              hasLater: false,
+            },
       loadingEarlier: false,
       loadingLater: false,
       arrived: new Set(),
@@ -148,9 +169,12 @@ export class ConversationController {
       afterSequence: 0,
     });
     const page = await this.range("latest");
+    const current = useConversationStore.getState().window;
+    // Until the session reports the first message, the stand-in stays.
+    const waiting = page.items.length === 0 && current.items[0]?.itemId === FIRST_MESSAGE_ID;
     useConversationStore.setState({
       sessionId: this.sessionId,
-      window: applyPage(emptyWindow, page, "latest"),
+      window: waiting ? current : applyPage(emptyWindow, page, "latest"),
       error: null,
     });
   }
@@ -178,9 +202,22 @@ export class ConversationController {
     if (message.kind !== "conversation.appended") return;
     this.deltas.release();
     const state = useConversationStore.getState();
-    const known = new Set(state.window.items.map((item: ConversationItem) => item.itemId));
+    // The session's copy of the first message replaces the stand-in in place, without arriving.
+    const standIn = state.window.items.find((item) => item.itemId === FIRST_MESSAGE_ID);
+    const replacing =
+      standIn !== undefined &&
+      "text" in standIn &&
+      message.items.find((item) => item.kind === "user_message" && item.text === standIn.text);
+    const window = replacing
+      ? {
+          ...state.window,
+          items: state.window.items.filter((item) => item.itemId !== FIRST_MESSAGE_ID),
+        }
+      : state.window;
+    const known = new Set(window.items.map((item: ConversationItem) => item.itemId));
     const arrived = new Set(state.arrived);
-    for (const item of message.items) if (!known.has(item.itemId)) arrived.add(item.itemId);
-    useConversationStore.setState({ window: applyAppended(state.window, message.items), arrived });
+    for (const item of message.items)
+      if (!known.has(item.itemId) && item !== replacing) arrived.add(item.itemId);
+    useConversationStore.setState({ window: applyAppended(window, message.items), arrived });
   }
 }

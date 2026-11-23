@@ -97,3 +97,15 @@ export function renderTerminalThemes(tokens) {
   );
   return `// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.\nexport const terminalThemes = ${body} as const;\n`;
 }
+
+/** The motion durations in milliseconds, for motion that script drives, such as streamed text. */
+export function renderMotion(tokens) {
+  const durations = Object.fromEntries(
+    Object.entries(tokens.motion.duration).map(([name, token]) => [
+      `${name}Ms`,
+      Number.parseFloat(token.$value),
+    ]),
+  );
+  const body = JSON.stringify(durations, null, 2);
+  return `// Generated from src/design/tokens.json by scripts/build-tokens.mjs. Do not edit.\nexport const motion = ${body} as const;\n`;
+}

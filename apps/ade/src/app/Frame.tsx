@@ -1,8 +1,8 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { ConnectionStatus } from "../features/connection";
 import { WorkspaceConversation } from "../features/conversation";
-import { StartScreen } from "../features/start";
+import { PendingWorkspace, settleStart, StartScreen, useStartStore } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
 import { useWorkspaceStore, WorkspaceList } from "../features/workspaces";
 import styles from "./Frame.module.css";
@@ -15,12 +15,34 @@ const Terminal = lazy(() =>
 /**
  * The window (approved mockups "1" and "2a/2b"): the workspace list beside the start screen or
  * the selected workspace. Changing the view fades the new one in over `change`; nothing slides
- * (ADE motion, "Switching workspaces").
+ * (ADE motion, "Switching workspaces"). Work just sent shows its pending workspace at once, and
+ * the created workspace continues it in the same view, without a second fade.
  */
 export function Frame() {
   const selected = useWorkspaceStore((store) =>
     store.workspaces.find((workspace) => workspace.workspaceId === store.selected),
   );
+  const newWorkRequests = useWorkspaceStore((store) => store.newWorkRequests);
+  const pending = useStartStore((store) => store.pending);
+  const continuing =
+    pending !== null &&
+    pending.workspaceId !== null &&
+    selected?.workspaceId === pending.workspaceId;
+
+  // Turning to another workspace, or to new work, settles the pending start.
+  useEffect(() => {
+    if (pending !== null && selected !== undefined && selected.workspaceId !== pending.workspaceId)
+      settleStart();
+  }, [pending, selected]);
+  useEffect(() => settleStart(), [newWorkRequests]);
+
+  const view =
+    pending !== null && (selected === undefined || continuing)
+      ? `start-${pending.id}`
+      : selected === undefined
+        ? "start"
+        : `${selected.workspaceId}:${selected.conversationMode}`;
+
   return (
     <div className={styles.frame}>
       <nav className={styles.sidebar}>
@@ -32,29 +54,33 @@ export function Frame() {
         </div>
       </nav>
       <main
-        key={
-          selected === undefined ? "start" : `${selected.workspaceId}:${selected.conversationMode}`
-        }
+        key={view}
         className={styles.content}
-        data-view={selected === undefined ? "start" : selected.conversationMode}
+        data-view={selected?.conversationMode ?? (pending === null ? "start" : "native")}
       >
-        {selected === undefined ? (
-          <>
-            <div className={styles.titlebar} data-tauri-drag-region />
-            <StartScreen />
-          </>
-        ) : (
+        {selected !== undefined ? (
           <>
             <WorkspaceHeader workspaceId={selected.workspaceId} />
             {selected.conversationMode === "native" ? (
               <WorkspaceConversation
-                target={{ workspaceId: selected.workspaceId, sessionId: selected.sessionId }}
+                target={{
+                  workspaceId: selected.workspaceId,
+                  sessionId: selected.sessionId,
+                  ...(continuing ? { firstMessage: pending.instruction } : {}),
+                }}
               />
             ) : (
               <Suspense fallback={null}>
                 <Terminal workspaceId={selected.workspaceId} />
               </Suspense>
             )}
+          </>
+        ) : pending !== null ? (
+          <PendingWorkspace pending={pending} />
+        ) : (
+          <>
+            <div className={styles.titlebar} data-tauri-drag-region />
+            <StartScreen />
           </>
         )}
       </main>

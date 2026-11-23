@@ -1,0 +1,50 @@
+.line {
+  display: flex;
+  gap: var(--space-8);
+  align-items: center;
+  margin: 0;
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.dot {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  background: var(--color-status-working);
+}
+
+/* The words stay in the tertiary color, and a band of the primary color sweeps across them. */
+.label {
+  color: transparent;
+  background: linear-gradient(
+      90deg,
+      var(--color-text-tertiary) 0%,
+      var(--color-text-tertiary) 40%,
+      var(--color-text-primary) 50%,
+      var(--color-text-tertiary) 60%,
+      var(--color-text-tertiary) 100%
+    )
+    0 0 / 300% 100%;
+  background-clip: text;
+  animation: sweep var(--motion-duration-shimmer) var(--motion-easing-shimmer) infinite;
+}
+
+@keyframes sweep {
+  from {
+    background-position: 100% 0;
+  }
+
+  to {
+    background-position: 0% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .label {
+    color: var(--color-text-tertiary);
+    background: none;
+    animation: none;
+  }
+}

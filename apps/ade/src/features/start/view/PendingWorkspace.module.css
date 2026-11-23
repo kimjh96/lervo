@@ -1,0 +1,79 @@
+/* The pending workspace keeps the workspace's geometry: the header, the first message where the
+   conversation puts it, and the reply card in the dock. */
+.workspace {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-surface-workspace);
+}
+
+.header {
+  display: flex;
+  flex: none;
+  gap: var(--space-12);
+  align-items: center;
+  height: var(--layout-header-height);
+  padding: 0 var(--space-16) 0 var(--space-24);
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.title {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--color-text-primary);
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.repository {
+  flex: none;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-family-mono);
+  font-size: 12px;
+}
+
+.conversation {
+  flex: 1;
+  min-height: 0;
+  padding-top: var(--space-24);
+}
+
+/* The instruction lands as the first message with the arrival motion. */
+.first {
+  display: grid;
+  box-sizing: border-box;
+  width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
+  margin: 0 auto;
+  padding: 14px 0;
+  animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.dock {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+}
+
+.working {
+  box-sizing: border-box;
+  width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
+  padding: 0 0 var(--space-12);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .first {
+    animation: none;
+  }
+}

@@ -19,6 +19,14 @@
     "defaultMessage": "Lervo could not start its session host",
     "description": "The shell could not find or start the session host."
   },
+  "conversation.activity.thinking": {
+    "defaultMessage": "Thinking",
+    "description": "The working line while the agent works between replies and tools."
+  },
+  "conversation.activity.writing": {
+    "defaultMessage": "Writing a reply",
+    "description": "The working line while the agent streams a reply."
+  },
   "conversation.jumpToLatest": {
     "defaultMessage": "Jump to latest",
     "description": "Returns the conversation to its newest messages."
@@ -114,6 +122,14 @@
   "start.instruction.placeholder": {
     "defaultMessage": "Describe the work, as you would to a colleague",
     "description": "Placeholder of the instruction input on the start screen."
+  },
+  "start.pending": {
+    "defaultMessage": "Creating the workspace",
+    "description": "The working line while Lervo creates the workspace for new work."
+  },
+  "start.pending.reply": {
+    "defaultMessage": "The agent starts in a moment",
+    "description": "Placeholder of the reply input while the workspace is created."
   },
   "start.provider.claude": {
     "defaultMessage": "Claude Code",

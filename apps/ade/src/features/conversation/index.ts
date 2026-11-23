@@ -9,4 +9,6 @@ export {
   emptyWindow,
   MAX_WINDOW_ITEMS,
 } from "./model/window";
+export { Composer } from "./view/Composer";
+export { ConversationItemView } from "./view/renderers";
 export { WorkspaceConversation } from "./view/WorkspaceConversation";

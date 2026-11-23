@@ -11,7 +11,11 @@ const MAX_LINES = 8;
  * The reply card (approved mockup "2a"). Enter sends; Shift+Enter starts a new line; composition
  * is respected. The input grows with its text, and a failed send puts the text back.
  */
-export function Composer(props: { onSend: (text: string) => Promise<void> }) {
+export function Composer(props: {
+  onSend: (text: string) => Promise<void>;
+  /** Shown in place of the placeholder while replies cannot be sent yet. */
+  waiting?: string;
+}) {
   const intl = useIntl();
   const input = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
@@ -51,7 +55,10 @@ export function Composer(props: { onSend: (text: string) => Promise<void> }) {
           ref={input}
           className={styles.input}
           aria-label={intl.formatMessage({ id: "conversation.reply.label" })}
-          placeholder={intl.formatMessage({ id: "conversation.reply.placeholder" })}
+          placeholder={
+            props.waiting ?? intl.formatMessage({ id: "conversation.reply.placeholder" })
+          }
+          disabled={props.waiting !== undefined}
           rows={1}
           value={text}
           onChange={(event) => setText(event.target.value)}
