@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_773f4a5b413321eef941790f"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "List hosted providers with names, capabilities, and modes, and advertise the application commands the core answers."
