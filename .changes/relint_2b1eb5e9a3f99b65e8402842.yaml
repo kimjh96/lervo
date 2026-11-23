@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2b1eb5e9a3f99b65e8402842"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Repository work from conversations, deliberation participants, and supervision owner reasoning use the model selection roles; a selection-routed deliberation seat binds only its provider."
