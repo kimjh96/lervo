@@ -36,6 +36,7 @@ import { resolveIntegrationTarget } from "./integration-target-sync.js";
 import { inspectIntegrationTargetAbsorption } from "./integration-target-absorption.js";
 import { regenerateStaleReview, staleReviewContext } from "./review-context-regeneration.js";
 import { inspectRetainedCanonicalIntegration } from "./canonical-integration-recovery.js";
+import { releasedIntegrationStall } from "./integration-stall-release.js";
 import { readConvergenceAssignmentResult } from "./convergence-stage-artifact.js";
 import type { CanonicalBatch } from "./canonical-review.js";
 import { materializationTransactionState } from "./materialization-transaction.js";
@@ -249,6 +250,8 @@ export function createConvergenceRuntimeHost(
         const proof = (read.state === "available" ? (read.value ?? {}) : {}) as {
           kind?: string;
           input?: KnowledgeConvergenceInput;
+          assignmentId?: unknown;
+          returnedAt?: unknown;
         };
         const batch = proof.input?.stageData.canonicalBatch as CanonicalBatch | undefined;
         if (
@@ -256,6 +259,12 @@ export function createConvergenceRuntimeHost(
           proof.input &&
           batch?.assessment.drafts.length &&
           (await inspectRetainedCanonicalIntegration(context, proof.input, batch.assessment.drafts))
+        )
+          return false;
+        // An earlier lease's unfinished attempt on the target blocks every new generation.
+        if (
+          proof.kind === "convergence_assignment_failure" &&
+          (await releasedIntegrationStall(root, proof))
         )
           return false;
       }

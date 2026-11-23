@@ -218,3 +218,48 @@ it("keeps an ended attempt blocking while it is advancing", { timeout: 60_000 },
     (await workforce.readWorkspaceIntegrationAttempt(f.root, first.targetLeaseId))!.attempt.state,
   ).toBe("advancing");
 });
+
+it(
+  "requeues a stage an earlier version stalled on an orphaned attempt, then integrates the next generation",
+  { timeout: 90_000 },
+  async () => {
+    const { f, cycle, converge, planned, first } = await failFirstVerification({ orphan: true });
+    // The earlier version could not release, so lease 2 stopped at the generation fence.
+    const refusal = vi
+      .spyOn(workforce, "releaseWorkspaceIntegrationAttempt")
+      .mockRejectedValue(
+        new workforce.AgentWorkforceError("workspace_transition_conflict", "Earlier version."),
+      );
+    expect(await retry(converge)).toMatchObject({
+      state: "recovery_required",
+      reason: "knowledge_effect_uncertain",
+    });
+    expect(planned).toEqual([1]);
+    const stalled = f.events
+      .list({ limit: 1000 })
+      .findLast((event) => event.type === "repository.knowledge.stage.recorded")!;
+    expect(stalled.payload).toMatchObject({
+      stage: "canonical_integration",
+      state: "recovery_required",
+    });
+    expect(
+      (await workforce.readWorkspaceIntegrationAttempt(f.root, first.targetLeaseId))!.attempt.state,
+    ).toBe("candidate");
+
+    // The fixed version's owner inspects the stall: it releases the orphan and requeues the stage.
+    refusal.mockRestore();
+    vi.setSystemTime(Date.now() + 5 * 60_000);
+    await cycle();
+    expect(
+      (await workforce.readWorkspaceIntegrationAttempt(f.root, first.targetLeaseId))!.attempt.state,
+    ).toBe("released");
+    expect(
+      f.events
+        .list({ afterSeq: stalled.seq, limit: 1000 })
+        .find((event) => event.type === "repository.knowledge.stage.recorded")!.payload,
+    ).toMatchObject({ stage: "canonical_integration", state: "queued" });
+    const status = await converge();
+    expect(planned).toEqual([1, 2]);
+    await expectCompletedRetry(f, first, status);
+  },
+);
