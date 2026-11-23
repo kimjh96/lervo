@@ -1,4 +1,8 @@
-import { canonicalJson } from "@lervo/event-contract";
+import {
+  canonicalJson,
+  readableEventSchemaVersions,
+  type ActivatableEventSchemaVersion,
+} from "@lervo/event-contract";
 import type { EventWriterCoordinate } from "@lervo/schemas";
 import type { EventWriterActivationEvidence } from "@lervo/schemas";
 
@@ -42,19 +46,10 @@ export function createEventWriterActivationPlan(input: {
   currentCoordinate: EventWriterCoordinate;
   currentContentHash: string | null;
   evidence: unknown;
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  targetEventSchemaVersion?: ActivatableEventSchemaVersion;
 }): EventWriterActivationPlan {
   const target = input.targetEventSchemaVersion ?? 2;
-  if (
-    target !== 2 &&
-    target !== 3 &&
-    target !== 4 &&
-    target !== 5 &&
-    target !== 6 &&
-    target !== 7 &&
-    target !== 8 &&
-    target !== 9
-  ) {
+  if (target < 2 || !(readableEventSchemaVersions as readonly number[]).includes(target)) {
     failEventWriterActivation(
       "event_writer_evidence_invalid",
       "The requested writer version is unsupported.",

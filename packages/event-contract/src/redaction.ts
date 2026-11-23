@@ -1,3 +1,7 @@
+import {
+  hostedSessionPayloadAllowlists,
+  hostedSessionPayloadSchemas,
+} from "./hosted-session-payload.js";
 import { planLedgerPayloadAllowlists, planLedgerPayloadSchemas } from "./plan-ledger-payload.js";
 import { practicePayloadAllowlists, practicePayloadSchemas } from "./practice-payload.js";
 import {
@@ -59,6 +63,7 @@ export const eventPayloadAllowlists = {
   ...terminalSkillPayloadAllowlists,
   ...practicePayloadAllowlists,
   ...planLedgerPayloadAllowlists,
+  ...hostedSessionPayloadAllowlists,
   "managed.execution.reserved": ["executionKey", "requestHash"],
   "role.input.bound": roleInputPayloadFields,
   ...supervisionPayloadAllowlists,
@@ -1538,6 +1543,7 @@ const eventPayloadSchemas: Partial<Record<EventType, SchemaName>> = {
   ...terminalSkillPayloadSchemas,
   ...practicePayloadSchemas,
   ...planLedgerPayloadSchemas,
+  ...hostedSessionPayloadSchemas,
   "workstream.snapshot.recorded": "workstreamSnapshotRecordedEventPayload",
   "work.causality.recorded": "workCausalityRecordedEventPayload",
   "resource.usage.recorded": "resourceUsageRecordedEventPayload",

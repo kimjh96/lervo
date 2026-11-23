@@ -189,10 +189,11 @@ export type ProjectRegistrationRequest = FromSchema<
   { references: [typeof projectManifestSchema] }
 >;
 export type ProjectRegistrationResponse = FromSchema<typeof projectRegistrationResponseSchema>;
-type OutboundEventBatchSchema = FromSchema<
-  typeof outboundEventBatchSchema,
-  { references: [typeof eventEnvelopeSchema] }
->;
+type OutboundEventBatchSchema = FromSchema<typeof outboundEventBatchSchema>;
+/**
+ * The events are typed as `EventEnvelope` rather than expanded from the envelope schema, whose
+ * one branch per event schema version is too deep for `FromSchema`.
+ */
 export type OutboundEventBatch = Omit<OutboundEventBatchSchema, "events"> & {
   events: EventEnvelope[];
 };

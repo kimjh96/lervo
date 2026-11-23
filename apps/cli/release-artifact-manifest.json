@@ -2,7 +2,7 @@
   "schemaVersion": 11,
   "artifact": {
     "name": "@lervo/cli",
-    "version": "0.43.2",
+    "version": "0.44.0",
     "description": "Lervo CLI for managing AI agent execution and evidence in local repositories",
     "keywords": [
       "ai-agents",
@@ -206,18 +206,18 @@
       },
       {
         "path": "dist/repository-runtime-validators.cjs",
-        "size": 7213943,
-        "sha256": "sha256:9c2cc6bb7952c9839a51774565937b1e44d281fdc0cb70a85dab87ef83508cf6"
+        "size": 7275150,
+        "sha256": "sha256:6e71f3674035ec6d1428eaf57b0e09b29e88a0a608f57acc73f49982534b4883"
       },
       {
         "path": "dist/repository-runtime.js",
-        "size": 12854836,
-        "sha256": "sha256:f933b52d3a74c5bbe9b0685569705809201da468e087f5785201ec886dbfe19d"
+        "size": 12918216,
+        "sha256": "sha256:0fe036664a69b1aa927ead7ab65720fd09193aaba0411e556d7ec176c812c863"
       },
       {
         "path": "dist/repository-runtime.json",
         "size": 421,
-        "sha256": "sha256:35b587a3b5fd2a64845c3eb7abd3926bf616e9c1aebc5db2cb339cb714427a0a"
+        "sha256": "sha256:f744e873fcb3492a63624595f8601b73d0ee66febbd2380a4cf9739931e54f98"
       },
       {
         "path": "dist/terminal-hook-launcher.mjs",
@@ -226,12 +226,12 @@
       },
       {
         "path": "dist/terminal-hook.js",
-        "size": 6839029,
-        "sha256": "sha256:c0eb7fbc7fc317749b03d514f11bca60d06d0f67b1821a910c7e2ca0c3a4a317"
+        "size": 6882495,
+        "sha256": "sha256:8bad1614c53df8c323ab833a5ff06b53cc793643ad61ec7a85a592f66f068ca5"
       }
     ],
     "fileCount": 14,
-    "contentDigest": "sha256:ae270dba24df9660d25ce85a1eed882dbb54a0a24c1957c51ff8f236066eaaad"
+    "contentDigest": "sha256:e1ca5a63157696fcebdf4f1dba2f3d82c1c698e7020bd2d57a936026c90db30b"
   },
   "dependencies": {
     "portable": [
@@ -344,5 +344,5 @@
       }
     ]
   },
-  "artifactDigest": "sha256:888c747e2597e650bb5ce8d3a78255fbf16801ce55a567aad96cea1edc6b319e"
+  "artifactDigest": "sha256:a6571a34174b2da72d1920b6902c0abb7b37b3a6b0e2bbcd23a38b903c388650"
 }

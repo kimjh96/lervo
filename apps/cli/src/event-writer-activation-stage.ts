@@ -6,7 +6,6 @@ import {
   type EventWriterActivationPlan,
   type EventWriterActivationReceipt,
 } from "@lervo/project";
-import { PLAN_LEDGER_EVENT_SCHEMA_VERSION } from "@lervo/repository-knowledge-runtime";
 import type { EventWriterActivationEvidence } from "@lervo/schemas";
 
 import {
@@ -19,16 +18,20 @@ import { inspectTerminalIntegration } from "@lervo/repository-knowledge";
 import { hostTerminalHookReaderCurrent } from "./terminal-runtime.js";
 import type { UpgradeStageBlocker } from "./upgrade-stage-inspection.js";
 import type { StageDisposition } from "./upgrade-stage-policy.js";
+import { hostedSessionEventSchemaVersion, type EventSchemaVersion } from "@lervo/event-contract";
 
-/** The writer version repository upgrades converge on: the one background knowledge needs. */
-export const TARGET_EVENT_SCHEMA_VERSION = PLAN_LEDGER_EVENT_SCHEMA_VERSION;
+/**
+ * The writer version repository upgrades converge on: the newest one a Lervo writer needs, the
+ * ADE's hosted session events, which also carries the plan ledger's.
+ */
+export const TARGET_EVENT_SCHEMA_VERSION = hostedSessionEventSchemaVersion;
 
 export type EventReaderAuthority = "local" | "repository_node_absent" | "repository_node_fleet";
 
 export interface EventWriterStage {
   disposition: StageDisposition;
   reason: string;
-  currentSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  currentSchemaVersion: EventSchemaVersion;
   targetSchemaVersion: typeof TARGET_EVENT_SCHEMA_VERSION;
   /** Which reader inventory authority the evidence came from; null before evidence exists. */
   authority: EventReaderAuthority | null;

@@ -1,7 +1,7 @@
 import type { FromSchema } from "json-schema-to-ts";
 
 import { projectIdSchema, runIdSchema, sha256Schema } from "./common.js";
-import { eventEnvelopeSchema } from "./event.js";
+import { eventEnvelopeSchema, type WithEnvelopeEvents } from "./event.js";
 import { eventTypes } from "./event.js";
 
 export const tracePageReportSchema = {
@@ -65,7 +65,5 @@ export const tracePageReportSchema = {
   additionalProperties: true,
 } as const;
 
-export type TracePageReport = FromSchema<
-  typeof tracePageReportSchema,
-  { references: [typeof eventEnvelopeSchema] }
->;
+type TracePageReportShape = FromSchema<typeof tracePageReportSchema>;
+export type TracePageReport = WithEnvelopeEvents<TracePageReportShape>;

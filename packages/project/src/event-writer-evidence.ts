@@ -1,6 +1,10 @@
 import { createHash } from "node:crypto";
 
-import { canonicalJson, readEventReaderCapabilities } from "@lervo/event-contract";
+import {
+  canonicalJson,
+  readEventReaderCapabilities,
+  type ActivatableEventSchemaVersion,
+} from "@lervo/event-contract";
 import {
   validateSchema,
   type EventReaderActivationEvidence,
@@ -15,7 +19,7 @@ export function eventWriterSha256(value: string): string {
 
 export function assertEventReaderEvidence(
   readers: readonly EventReaderActivationEvidence[],
-  targetEventSchemaVersion: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 = 2,
+  targetEventSchemaVersion: ActivatableEventSchemaVersion = 2,
 ): void {
   const ids = new Set<string>();
   let previousId: string | undefined;
@@ -94,7 +98,7 @@ export function createEventWriterActivationId(input: {
   observedAt: string;
   configurationHash: string;
   readers: readonly EventReaderActivationEvidence[];
-  targetEventSchemaVersion?: 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  targetEventSchemaVersion?: ActivatableEventSchemaVersion;
 }): string {
   const { targetEventSchemaVersion, ...evidence } = input;
   return `evact_${eventWriterSha256(

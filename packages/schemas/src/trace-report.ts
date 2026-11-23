@@ -7,7 +7,7 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import { eventEnvelopeSchema } from "./event.js";
+import { eventEnvelopeSchema, type WithEnvelopeEvents } from "./event.js";
 import { managedContextCoverageReportSchema } from "./managed-context-coverage-report.js";
 
 export const traceReportSchema = {
@@ -64,7 +64,8 @@ export const traceReportSchema = {
   additionalProperties: true,
 } as const;
 
-export type TraceReport = FromSchema<
+type TraceReportShape = FromSchema<
   typeof traceReportSchema,
-  { references: [typeof eventEnvelopeSchema, typeof managedContextCoverageReportSchema] }
+  { references: [typeof managedContextCoverageReportSchema] }
 >;
+export type TraceReport = WithEnvelopeEvents<TraceReportShape>;

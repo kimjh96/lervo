@@ -7,6 +7,7 @@ import {
   sanitizeEventPayload,
   type EventDraft,
   type EventHashInput,
+  type EventSchemaVersion,
 } from "@lervo/event-contract";
 import { type EventEnvelope, validateSchema } from "@lervo/schemas";
 import {
@@ -43,7 +44,7 @@ export class SQLiteEventRepository {
   constructor(
     private readonly database: DatabaseSync,
     private readonly projectId: string,
-    private readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+    private readonly writableEventSchemaVersion: EventSchemaVersion,
   ) {
     this.chainVerifier = new SQLiteEventChainVerifier(database, projectId);
   }

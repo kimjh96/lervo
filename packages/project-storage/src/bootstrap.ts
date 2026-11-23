@@ -1,3 +1,4 @@
+import type { EventSchemaVersion } from "@lervo/event-contract";
 import { FileSystemCas } from "@lervo/cas";
 import { mkdir } from "node:fs/promises";
 import { SQLiteEventStore } from "@lervo/event-store-sqlite";
@@ -55,7 +56,7 @@ class OpenedProjectStorage implements ProjectStorage {
   constructor(
     readonly manifest: ProjectStorage["manifest"],
     readonly paths: ProjectStorage["paths"],
-    readonly writableEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9,
+    readonly writableEventSchemaVersion: EventSchemaVersion,
     readonly events: OutboxStore,
     readonly artifacts: CloseableArtifactStore,
     readonly readOnly = false,
