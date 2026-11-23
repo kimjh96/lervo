@@ -153,7 +153,13 @@ The third pull request resolves the session-host internals:
 
 ### Session host diagnostics
 
-A bounded follow-up from the convention check: the session host keeps no log. Its standard error goes nowhere, so a connection that ends with an error, or an accept that fails, leaves no trace on the host. The follow-up adds a diagnostics log in the host state directory, bounded in bytes with rotation, recording message kinds, identifiers, sizes, and error codes, never bodies or terminal bytes (session-host protocol, "Privacy and failure"). It is verified by a test that fills the log past its bound and finds the oldest entries gone.
+The convention check found that the session host kept no log: its standard error went nowhere, so a connection that ended with an error, or an accept that failed, left no trace. On 2026-11-23 the session host gained a diagnostics log in its state directory, as the session-host protocol's "Privacy and failure" section defines:
+
+- **What it records:** event names, counts, identifiers, and codes, and never bodies or terminal bytes.
+- **Its bounds:** 512 KiB with one rotated file.
+- **Its tests:**
+  - a unit test fills the log past its bound and finds the oldest entries gone;
+  - a test against a served host finds a broken handshake and a failed request recorded by code only.
 
 ### Transcript sync and the CLI conversation's quality
 

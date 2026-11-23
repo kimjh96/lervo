@@ -12,6 +12,7 @@ use lervo_session_transport::socket::bind;
 use lervo_session_transport::token::{self, Token, create_private_directory};
 
 use crate::connection;
+use crate::diagnostics::{Diagnostics, Field, LOG_FILE_BYTES};
 use crate::host::Host;
 use lervo_session_core::ports::Core;
 use lervo_session_transport::paths::Layout;
@@ -55,12 +56,18 @@ pub async fn run<C: Core>(
     let listener = bind(&layout.socket).await?;
     let codec = MessageCodec::new().map_err(TransportError::from)?;
     std::fs::create_dir_all(&layout.indexes)?;
+    let diagnostics = Diagnostics::open(layout.diagnostics.clone(), LOG_FILE_BYTES);
+    diagnostics.record(
+        "host.started",
+        &[("pid", Field::Number(u64::from(std::process::id())))],
+    );
     let host = Arc::new(Host::new(
         core,
         codec,
         connection_token,
         identity,
         layout.indexes.clone(),
+        diagnostics.clone(),
     ));
 
     tokio::pin!(shutdown);
@@ -69,21 +76,32 @@ pub async fn run<C: Core>(
     loop {
         tokio::select! {
             accepted = listener.accept() => {
-                let Ok((stream, _)) = accepted else {
-                    tokio::time::sleep(retry).await;
-                    retry = (retry * 2).min(LAST_ACCEPT_RETRY);
-                    continue;
+                let (stream, _) = match accepted {
+                    Ok(accepted) => accepted,
+                    Err(error) => {
+                        let code = format!("{:?}", error.kind());
+                        diagnostics.record("accept.failed", &[("code", Field::Code(&code))]);
+                        tokio::time::sleep(retry).await;
+                        retry = (retry * 2).min(LAST_ACCEPT_RETRY);
+                        continue;
+                    }
                 };
                 retry = FIRST_ACCEPT_RETRY;
                 next_connection += 1;
                 let (read, write) = stream.into_split();
                 let host = Arc::clone(&host);
                 let connection = next_connection;
-                // A connection's end, clean or not, is its client's to observe: the client sees the
-                // closed socket and reconnects. The session host keeps no log yet (ADE roadmap,
-                // "Session host diagnostics").
+                // A connection's end is its client's to observe: the client sees the closed socket
+                // and reconnects. The diagnostics log keeps why it ended.
+                let diagnostics = diagnostics.clone();
+                diagnostics.record("connection.opened", &[("connection", Field::Number(connection))]);
                 tokio::spawn(async move {
-                    let _ = connection::serve(host, connection, read, write).await;
+                    let ended = connection::serve(host, connection, read, write).await;
+                    let code = ended.map_or_else(|error| transport_code(&error), |()| "closed".to_owned());
+                    diagnostics.record(
+                        "connection.ended",
+                        &[("connection", Field::Number(connection)), ("code", Field::Code(&code))],
+                    );
                 });
             }
             () = &mut shutdown => break,
@@ -92,4 +110,15 @@ pub async fn run<C: Core>(
     let _ = fs::remove_file(&layout.socket);
     let _ = fs::remove_file(&layout.token);
     Ok(())
+}
+
+/// A stable code for why a connection ended, without the error's text.
+fn transport_code(error: &TransportError) -> String {
+    match error {
+        TransportError::Io(error) => format!("transport_io:{:?}", error.kind()),
+        TransportError::Frame(_) => "frame_invalid".to_owned(),
+        TransportError::Codec(_) => "message_invalid".to_owned(),
+        TransportError::Rejected(code) => format!("handshake_rejected:{code}"),
+        other => other.to_string(),
+    }
 }

@@ -78,6 +78,7 @@ The DTCG token file is the one source. `scripts/build-tokens.mjs` resolves its a
 - A component never reads a primitive. A feature never reads another component's tokens.
 - A component token exists only when a semantic role does not describe the value. Most components need none.
 - Modes, such as light and dark, live in the semantic tier through `dev.lervo.modes`. Primitives have one value.
+- Increased contrast lives beside them through `dev.lervo.contrast`, a dark and a light value for the few tokens that change: the glass tint becomes opaque, secondary and tertiary text move a step toward primary, and borders strengthen. The build emits them under `prefers-contrast: more`.
 - Semantic colors alias the palette with DTCG references, such as `{palette.blue.600}`. A translucent layer, such as `color.surface.sidebar`, keeps its own value, because it is a composite over glass that no solid primitive describes. Primitives never reach the stylesheet, so a component cannot read one.
 - The semantic tier also names sizes and states that recur: `size.control.*`, `size.dot.*`, `size.icon.*`, `opacity.disabled`, `focus.ring.*`, `border.width.strong`, `font.weight.*`, and `motion.rise`.
 
@@ -146,7 +147,7 @@ Inter sets the interface and JetBrains Mono sets code, terminals, and identifier
 
 - **Columns.** The workspace list is `layout.sidebarWidth`; the content column is at most `layout.contentMaxWidth` and keeps `space.32` from the window's edges.
 - **Header.** Every pane header is `layout.headerHeight`, and the macOS window controls sit in the sidebar's header strip.
-- **Breakpoint.** Below `layout.collapseBelow`, the workspace list collapses.
+- **Narrow windows.** Below the 760 px breakpoint, which a zoomed window reaches, the workspace list narrows to `layout.sidebarMinWidth` instead of hiding, so navigation never disappears.
 - **Density.** One density. List rows use `space.8` vertical padding and sit 1 px apart.
 - **Layers.** From back to front: the window, the sidebar and the content, the dock of floating controls, overlays (menus and the command palette), and notices. Each layer gets a stacking token when a second overlay arrives.
 
@@ -201,13 +202,14 @@ The app uses no illustration or photography. Empty states use text and, at most,
 - **Diffs and code** use `type.mono` and `color.diff.*`.
 - **Charts** for evidence and telemetry use a tokenized categorical palette, defined with the first chart, and label their units.
 
-## Content
+## Patterns and content
 
-- **Voice.** Plain, concrete, and calm. Lervo states what happened and what it verified, in the person's terms, without celebration or alarm.
-- **Tone by situation.** Success states the result and its limit. Waiting names the activity, such as "Writing a reply". Failure states what failed, its code, and the next step. A notice states the condition and what continues.
-- **Terminology.** One glossary serves the interface and the documentation. Workspace, workstream, session, evidence, and verification mean the same everywhere.
-- **Status words.** "Working", "Needs you", and "Done".
-- **Rules.** Sentence case and concrete verbs. Every string comes from the message catalog with a static ID, and the `writing_en-human` policy applies. The visual language's "Interface copy" section has the details.
+The [patterns and content chapter](ade-design-patterns.md) defines the recurring situations and the writing:
+
+- **Patterns:** status, failures, waiting, navigation and selection, keyboard, input, and notifications.
+- **Content:** voice and tone, the glossary the interface and the documentation share, copy rules, localization, and accessible names.
+
+Status words are "Working", "Needs you", and "Done".
 
 ## Components
 
@@ -238,7 +240,23 @@ Each component is specified by its purpose, when to use and not to use it, anato
 - Every control is reachable and operable by keyboard, and focus is always visible.
 - Targets are at least 24 × 24 px.
 - Roles, names, and live regions describe the interface to screen readers.
-- Reduced motion, reduced transparency, increased contrast, and text scaling are honored.
+- Reduced motion, reduced transparency, increased contrast, and text scaling are honored. `⌘+` and `⌘−` zoom the window, and every layout holds at 200% of the smallest window.
+
+### The 2026-11-23 pass
+
+Design system step 4 checked the start screen, a conversation, and the catalog in headless WebKit:
+
+- **Automated.** axe-core 4 found no WCAG 2.2 A or AA violation on the opaque material in either mode.
+- **Contrast.**
+  - Rendered pixels on the opaque material gave every text at least 4.5:1 in both modes.
+  - Under increased contrast, every text reached 7:1 except a shortcut label at 5.65:1.
+  - The native material's ratios come from the real-window measurement in the visual language.
+- **Keyboard.** Every control took focus in visual order with a visible ring. Containers draw the ring for their fields.
+- **Gaps closed.**
+  - Increased contrast had no effect, so the tokens gained `dev.lervo.contrast`.
+  - The window could not zoom, so zoom keys were enabled.
+  - A zoomed window would hide the workspace list, so the list now narrows instead.
+- **Open.** On the native material, the tertiary text on a selected row over a white backdrop in dark mode was not measured on a real window. S1.6b's real-window run measures it.
 
 ## Platforms
 
@@ -250,4 +268,6 @@ Each component is specified by its purpose, when to use and not to use it, anato
 
 - A new token, component, variant, or pattern starts with its usage in this specification and joins the catalog with a demo before it ships.
 - Breaking a token's or component's contract follows a deprecation: the old name stays until no consumer reads it.
-- The design system's checks run with `pnpm ade:check`: generated outputs, the motion check, and, as they land, the literal-value check, accessibility checks, and catalog snapshots.
+- The design system's checks run with `pnpm ade:check`: generated outputs, the motion check, the literal-value check, and the catalog's coverage.
+- A pull request that changes `src/ui/`, the tokens, or a screen's layout reruns the accessibility pass and compares the catalog with `main` in headless WebKit, and records both results. The accessibility pass is axe-core, rendered contrast on the opaque material in both modes, a keyboard walk, and the smallest window at 200% zoom. CI takes these checks when one of them misses a regression that reaches `main` ([ADR-0616](../../../decisions/execution/applications/0616-keep-the-design-system-in-the-ade-until-the-site-reads-it.md)).
+- **Packaging.** The design system stays in `apps/ade` until the site's first page needs it. That pull request moves the token file and its generators into `@lervo/design-tokens` with an output the site reads. Components move only if the site renders them (ADR-0616).

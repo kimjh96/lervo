@@ -48,7 +48,8 @@ One session host runs per OS user. Its owner-only directory is `~/Library/Applic
 - `session-host.lock`, an exclusive lock held while the session host serves. A second instance finds it held and exits successfully, so the client can start the session host without first checking for one;
 - `session-host.sock`, the socket, at mode 0600. A socket file left by a session host that no longer runs is replaced at start;
 - `connection-token`, the token, at mode 0600;
-- `conversations/`, one conversation index per native session.
+- `conversations/`, one conversation index per native session;
+- `diagnostics.log` and `diagnostics.log.1`, the diagnostics log at mode 0600 (see "Privacy and failure").
 
 The session host removes the socket and the token when it shuts down. Its sessions end with it.
 
@@ -121,6 +122,11 @@ A Lervo notice carries a code, never a sentence, and the interface renders it fr
 ## Privacy and failure
 
 - Conversation text crosses only the owner-only local channel. Logs on either side record message kinds, identifiers, and sizes, never message bodies or terminal bytes.
+- **The diagnostics log.** The session host writes `diagnostics.log` in its state directory, one JSON line per event.
+  - Events: `host.started`, `accept.failed`, `connection.opened`, `connection.ended` with the code it ended with, `request.failed` with its code, and `session.started` with the session, its mode, and its channel.
+  - Values: numbers, and strings that look like codes or identifiers. Anything else is written as `redacted`, so no message body, file path, or terminal byte can reach the log.
+  - Bounds: the file rotates to `diagnostics.log.1` at 512 KiB, so the log holds at most 1 MiB.
+  - Writing: a writer thread owns the file, and an entry that finds its queue full is dropped, so the log never delays the host.
 - A message that fails schema validation closes the connection with `message_invalid` on the receiving side. The sender learns of it from the closed connection and reconnects.
 - `request.failed` carries one of these codes:
   - `workspace_start_failed`, `provider_cli_unavailable`, and `provider_login_unavailable`, as the sessions specification defines them;

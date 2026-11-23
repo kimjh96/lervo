@@ -15,6 +15,8 @@ pub struct Layout {
     pub lock: PathBuf,
     /// One conversation index per native session.
     pub indexes: PathBuf,
+    /// The diagnostics log, with one rotated file beside it.
+    pub diagnostics: PathBuf,
 }
 
 impl Layout {
@@ -26,6 +28,7 @@ impl Layout {
             token: root.join("connection-token"),
             lock: root.join("session-host.lock"),
             indexes: root.join("conversations"),
+            diagnostics: root.join("diagnostics.log"),
             root,
         }
     }

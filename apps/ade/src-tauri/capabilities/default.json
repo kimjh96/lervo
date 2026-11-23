@@ -3,5 +3,10 @@
   "identifier": "default",
   "description": "Permissions of the main window. Each feature adds only the permissions it needs.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-start-dragging", "notification:default"]
+  "permissions": [
+    "core:default",
+    "core:window:allow-start-dragging",
+    "notification:default",
+    "core:webview:allow-set-webview-zoom"
+  ]
 }

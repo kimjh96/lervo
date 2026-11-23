@@ -3,6 +3,7 @@
 
 pub mod arguments;
 mod connection;
+mod diagnostics;
 mod dispatch;
 mod host;
 mod index;

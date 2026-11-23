@@ -24,6 +24,7 @@ use lervo_session_transport::framed::{FrameReader, FrameWriter, Incoming};
 use lervo_session_transport::handshake::HostIdentity;
 use lervo_session_transport::token;
 use serde_json::{Map, Value, json};
+use tokio::io::AsyncWriteExt;
 use tokio::net::UnixStream;
 use tokio::net::unix::{OwnedReadHalf, OwnedWriteHalf};
 use tokio::sync::oneshot;
@@ -587,6 +588,56 @@ async fn shows_turns_from_the_provider_transcript_in_the_native_conversation() {
         })
         .collect();
     assert_eq!(texts, ["from the terminal", "answered there"]);
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn keeps_a_diagnostics_log_of_codes_without_bodies() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+
+    // A connection that breaks the handshake, and a request that fails.
+    let mut broken = UnixStream::connect(&layout.socket).await.unwrap();
+    broken.write_all(b"not a frame\n").await.unwrap();
+    drop(broken);
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.attach", "requestId": "req_1", "sessionId": "ses_secret_text", "afterSequence": 0}))
+        .await;
+    let HostMessage::RequestFailedMessage(_) = client.next_message().await else {
+        panic!("expected request.failed")
+    };
+    drop(client);
+
+    let mut log = String::new();
+    for _ in 0..200 {
+        log = std::fs::read_to_string(&layout.diagnostics).unwrap_or_default();
+        if log.matches("connection.ended").count() >= 2 {
+            break;
+        }
+        tokio::time::sleep(Duration::from_millis(10)).await;
+    }
+    let entries: Vec<Value> = log
+        .lines()
+        .map(|line| serde_json::from_str(line).unwrap())
+        .collect();
+    let events: Vec<&str> = entries
+        .iter()
+        .map(|entry| entry["event"].as_str().unwrap())
+        .collect();
+    assert_eq!(events.first(), Some(&"host.started"));
+    assert!(entries.iter().any(|entry| entry["event"] == "request.failed"
+        && entry["code"] == "session_not_found"));
+    let ended: Vec<&Value> = entries
+        .iter()
+        .filter(|entry| entry["event"] == "connection.ended")
+        .collect();
+    assert_eq!(ended.len(), 2);
+    assert!(ended.iter().any(|entry| entry["code"] != "closed"));
+    // Requests' contents never reach the log.
+    assert!(!log.contains("ses_secret_text") && !log.contains("not a frame"));
 
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();
