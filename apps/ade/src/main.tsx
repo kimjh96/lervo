@@ -32,5 +32,5 @@ createRoot(container).render(
 const measurement = (globalThis as { __LERVO_MEASURE__?: { scenario: string } }).__LERVO_MEASURE__;
 if (measurement !== undefined)
   void import("./platform/measure").then(({ runMeasurement }) =>
-    runMeasurement(measurement.scenario),
+    runMeasurement(measurement.scenario, host),
   );

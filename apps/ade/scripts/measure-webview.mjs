@@ -73,6 +73,14 @@ function windowProcesses(shellPid, webkitBefore) {
   );
 }
 
+/** Which part of the window a process is: the shell, or one of WebKit's processes. */
+function processRole(process, shellPid) {
+  if (process.pid === shellPid) return "shell";
+  for (const role of ["WebContent", "GPU", "Networking"])
+    if (process.command.includes(role)) return role;
+  return "other";
+}
+
 function environment(extra) {
   // An enclosing agent session's markers would reach the scripted core's providers.
   const kept = Object.entries(process.env).filter(
@@ -124,12 +132,19 @@ async function measure(scenario) {
         const before = windowProcesses(window.pid, webkitBefore);
         await sleep(IDLE_SAMPLE_MS);
         const after = windowProcesses(window.pid, webkitBefore);
-        const spent = after.reduce(
-          (total, process) =>
-            total + process.cpu - (before.find((old) => old.pid === process.pid)?.cpu ?? 0),
-          0,
+        const percent = (seconds) => Math.round((seconds / (IDLE_SAMPLE_MS / 1000)) * 10000) / 100;
+        const byRole = {};
+        for (const process of after) {
+          const spent = process.cpu - (before.find((old) => old.pid === process.pid)?.cpu ?? 0);
+          const role = processRole(process, window.pid);
+          byRole[role] = (byRole[role] ?? 0) + spent;
+        }
+        result.cpuPercent = percent(
+          Object.values(byRole).reduce((total, spent) => total + spent, 0),
         );
-        result.cpuPercent = Math.round((spent / (IDLE_SAMPLE_MS / 1000)) * 10000) / 100;
+        result.cpuPercentByProcess = Object.fromEntries(
+          Object.entries(byRole).map(([role, spent]) => [role, percent(spent)]),
+        );
       }
       result.residentMb =
         Math.round(
