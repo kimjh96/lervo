@@ -6,6 +6,7 @@ import {
   HostedLaunchError,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
+  hostedConversationModes,
   preferredConversationMode,
 } from "../src/index.js";
 
@@ -32,6 +33,10 @@ describe("the preferred conversation", () => {
   it("is native when the provider offers it and the CLI otherwise", () => {
     expect(preferredConversationMode(capabilities)).toBe("native");
     expect(preferredConversationMode({ ...capabilities, nativeConversation: false })).toBe("cli");
+    expect(hostedConversationModes(capabilities)).toEqual(["native", "cli"]);
+    expect(hostedConversationModes({ ...capabilities, nativeConversation: false })).toEqual([
+      "cli",
+    ]);
   });
 });
 
@@ -68,6 +73,7 @@ describe("the common hosted-session checks", () => {
   it("report an adapter that breaks its claims", () => {
     const broken: HostedSessionAdapter = {
       provider: "broken",
+      displayName: " Broken ",
       capabilities,
       prepareLaunch: () => ({
         program: "broken",
@@ -87,6 +93,7 @@ describe("the common hosted-session checks", () => {
       "does not deliver the instruction",
       "omits the session ID",
       "an undeclared resume launch did not fail",
+      "the display name must be 1 to 64 characters",
     ])
       expect(
         violations.some((violation) => violation.includes(expected)),

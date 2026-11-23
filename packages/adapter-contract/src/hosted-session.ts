@@ -37,6 +37,16 @@ export function preferredConversationMode(
   return capabilities.nativeConversation ? "native" : "cli";
 }
 
+/**
+ * The conversation modes a provider offers, the preferred one first: the native conversation
+ * only with `nativeConversation`, and the provider's own terminal interface always.
+ */
+export function hostedConversationModes(
+  capabilities: HostedSessionCapabilities,
+): HostedConversationMode[] {
+  return capabilities.nativeConversation ? ["native", "cli"] : ["cli"];
+}
+
 /** What Lervo asks for. The session ID is a lowercase UUID that Lervo generated. */
 export interface HostedLaunchIntent {
   readonly sessionId: string;
@@ -72,6 +82,11 @@ export interface HostedLaunch {
 /** One provider's hosted sessions. */
 export interface HostedSessionAdapter {
   readonly provider: string;
+  /**
+   * The provider's product name, such as "Claude Code": a proper noun that interfaces show as
+   * given, without translation.
+   */
+  readonly displayName: string;
   readonly capabilities: HostedSessionCapabilities;
   /** Throws `HostedLaunchError` for an intent the provider cannot run. */
   prepareLaunch(intent: HostedLaunchIntent): HostedLaunch;
@@ -141,9 +156,12 @@ export function evaluateHostedSessionContract(
   const violations: string[] = [];
   const sessionId = "0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c";
   const instruction = "Fix the failing test and explain the cause.";
-  const modes: HostedConversationMode[] = adapter.capabilities.nativeConversation
-    ? ["native", "cli"]
-    : ["cli"];
+  const name = adapter.displayName;
+  if (name.length === 0 || name.length > 64 || name.trim() !== name)
+    violations.push(
+      `${adapter.provider}: the display name must be 1 to 64 characters without outer spaces`,
+    );
+  const modes = hostedConversationModes(adapter.capabilities);
   for (const mode of modes) {
     const launch = adapter.prepareLaunch({
       sessionId,
