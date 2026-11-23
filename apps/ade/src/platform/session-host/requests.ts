@@ -61,7 +61,9 @@ export class Requests {
   request(message: Request, deadlineMs = DEADLINE_MS): Promise<HostMessage> {
     const requestId = this.nextId();
     return new Promise((resolve, reject) => {
-      const timer = this.options.schedule(
+      // The scheduler runs as a plain function: WebKit's `setTimeout` refuses any other receiver.
+      const { schedule } = this.options;
+      const timer = schedule(
         () => this.settle(requestId, new RequestFailure("request_timeout")),
         deadlineMs,
       );
@@ -93,7 +95,8 @@ export class Requests {
     const pending = this.pending.get(requestId);
     if (pending === undefined) return;
     this.pending.delete(requestId);
-    this.options.cancel(pending.timer);
+    const { cancel } = this.options;
+    cancel(pending.timer);
     if (outcome instanceof RequestFailure) pending.reject(outcome);
     else pending.resolve(outcome);
   }

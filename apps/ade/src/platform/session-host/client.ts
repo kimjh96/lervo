@@ -52,10 +52,10 @@ export class SessionHostClient {
 
   constructor(
     private readonly transport: HostTransport,
-    private readonly schedule: (
-      run: () => void,
-      ms: number,
-    ) => ReturnType<typeof setTimeout> = setTimeout,
+    private readonly schedule: (run: () => void, ms: number) => ReturnType<typeof setTimeout> = (
+      run,
+      ms,
+    ) => setTimeout(run, ms),
     options: {
       readonly cancel?: (timer: ReturnType<typeof setTimeout>) => void;
       readonly requestPrefix?: string;
@@ -64,7 +64,7 @@ export class SessionHostClient {
     this.requests = new Requests({
       send: (message) => this.send(message),
       schedule,
-      cancel: options.cancel ?? clearTimeout,
+      cancel: options.cancel ?? ((timer) => clearTimeout(timer)),
       prefix: options.requestPrefix ?? Date.now().toString(36),
     });
   }

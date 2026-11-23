@@ -77,3 +77,48 @@ describe("requests through the session-host client", () => {
     ).rejects.toEqual(new RequestFailure("message_invalid"));
   });
 });
+
+describe("timers in the request broker", () => {
+  it("calls the scheduler and the canceler without a receiver, as WebKit's timers require", async () => {
+    let emit: (message: ShellMessage) => void = () => undefined;
+    const sent: ClientMessage[] = [];
+    // Like WebKit's `setTimeout`, these refuse to run as a method of another object.
+    function schedule(this: unknown, run: () => void) {
+      if (this !== undefined)
+        throw new TypeError("Can only call setTimeout on instances of Window");
+      void run;
+      return 1 as unknown as ReturnType<typeof setTimeout>;
+    }
+    function cancel(this: unknown) {
+      if (this !== undefined)
+        throw new TypeError("Can only call clearTimeout on instances of Window");
+    }
+    const client = new SessionHostClient(
+      {
+        async connect(onControl) {
+          emit = onControl;
+        },
+        async send(message) {
+          sent.push(message);
+        },
+        async input() {},
+      },
+      schedule,
+      { cancel, requestPrefix: "t" },
+    );
+    client.start();
+    await flush();
+    const answer = client.request({ kind: "session.open", workspaceId: "wks_1" });
+    await flush();
+    emit({
+      kind: "session.opened",
+      requestId: "req_t_1",
+      sessionId: "ses_1",
+      workspaceId: "wks_1",
+      conversationMode: "native",
+      channel: 1,
+    });
+    await expect(answer).resolves.toMatchObject({ kind: "session.opened" });
+    expect(sent).toHaveLength(1);
+  });
+});
