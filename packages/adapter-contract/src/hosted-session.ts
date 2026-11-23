@@ -26,6 +26,17 @@ export interface HostedSessionCapabilities {
   readonly resume: boolean;
 }
 
+/**
+ * The conversation a hosted session uses when the user asks for none: the native conversation
+ * when the provider offers it, otherwise the provider's own terminal interface (Lervo ADE
+ * sessions, "Conversation modes").
+ */
+export function preferredConversationMode(
+  capabilities: HostedSessionCapabilities,
+): HostedConversationMode {
+  return capabilities.nativeConversation ? "native" : "cli";
+}
+
 /** What Lervo asks for. The session ID is a lowercase UUID that Lervo generated. */
 export interface HostedLaunchIntent {
   readonly sessionId: string;
