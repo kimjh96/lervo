@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cd1b44169b7c8d379dcd9dd1"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "A knowledge convergence stop on failed verification names the failed command, its status, exit code, and duration in the status and the health line, instead of only knowledge_verification_failed."
