@@ -14,7 +14,9 @@ Lervo provides a Discord-visible reference product now and a first-party surface
 - [Surface observability](product-surfaces/observability.md): existing document coverage and evidence, resource, token, cache, stage, result, completeness, and comparison meanings across hosts.
 - [Lervo ADE session-host protocol](product-surfaces/ade-session-host-protocol.md): proposed frames, handshake, sequencing, messages, and limits between the ADE interface and its session host.
 - [Lervo ADE core link](product-surfaces/ade-core-link.md): proposed requests, decoded events, concurrency, and failure meaning between the session host and the resident Lervo process.
+- [Lervo ADE design system](product-surfaces/ade-design-system.md): proposed design language, token tiers, and the usage of each foundation, the entry to the visual language and the motion principles.
 - [Lervo ADE visual language](product-surfaces/ade-visual-language.md): proposed glass, color, contrast, terminal, type, motion, and logo tokens for the first-party desktop surface of ADR-0613.
+- [Lervo ADE motion](product-surfaces/ade-motion.md): active motion principles, tokens, and pattern catalog of the ADE.
 - [Context quality](context-quality.md): shared policy, retrieval, section preparation and outcome contracts for terminals, Discord and a future host. Source implementation retains capability limits; real-provider quality, resource qualification and installed parity remain open.
 
 ## Product boundary

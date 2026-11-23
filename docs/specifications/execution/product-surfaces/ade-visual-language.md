@@ -3,7 +3,7 @@
 Status: `proposed`
 As of: 2026-11-23
 
-This document defines the design tokens and visual rules of the Lervo ADE that [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) proposes. The owner chose the direction from mockups: restrained glass, light and dark modes, essentials only, two status colors, and the stepped-bar logo. Since S1.5a the token file described at the end is canonical, and this document describes it.
+The [design system](ade-design-system.md) is the entry to the ADE's design language, foundations, and usage rules; this document is its chapter on glass, color, type, space, elevation, icons, the logo, and copy. This document defines the design tokens and visual rules of the Lervo ADE that [ADR-0613](../../../decisions/execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) proposes. The owner chose the direction from mockups: restrained glass, light and dark modes, essentials only, two status colors, and the stepped-bar logo. Since S1.5a the token file described at the end is canonical, and this document describes it.
 
 Values here supersede the mockup values where they differ. The glass follows the mockups: the window shows the desktop through the native material and a tint at the mockups' opacity, as measured on the real window below.
 
