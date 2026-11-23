@@ -42,6 +42,7 @@ provisioning -> ready -> active -> sealing -> sealed -> integration_pending
 any pre-removal state -> recovery_required
 integration_pending | integrating -> integration_conflict
 integration_conflict -> integration_pending
+integrating -> integration_pending   (its attempt was released)
 ```
 
 - `provisioning` binds an exact creation plan before invoking the host adapter.
@@ -56,6 +57,7 @@ integration_conflict -> integration_pending
 - `removing` owns a journal from the last exact recheck through host-adapter removal.
 - `removed` proves the checkout is absent and Git worktree metadata no longer names it.
 - `integration_conflict` preserves the sealed workspace for explicit rework or a new generation.
+- `integrating` returns to `integration_pending` only after the attempt that started it is `released` and no unreleased attempt names the same generation. The source keeps its queue entry and sealed head.
 - `recovery_required` preserves all reachable bytes and blocks integration and cleanup until bounded recovery restores the prior state or completes the proven transition.
 
 Only state-machine transitions may mutate lifecycle state. Process exit, terminal completion, lease expiry, branch deletion, Hub timeout, or a missing directory never implies a later state.
@@ -69,6 +71,8 @@ The plan binds the target before commit, ordered sealed generations, exact sourc
 A conflict records `integration_conflict`, aborts the Git operation, preserves the worker ref and sealed evidence, and advances neither target nor global workstream. After candidate verification, target movement uses a separate adapter capability: Git rejects refs checked out in any registered worktree, rechecks the candidate tree and target-before ancestry, and performs an old-value-bound ref compare-and-swap. Retry accepts only the exact advanced candidate; rollback uses the inverse compare-and-swap and never overwrites concurrent movement.
 
 Before movement, the attempt records `advancing` with the exact receipt hash, verification-result coordinates, and desired target-after commit. The `integrated` transition and single `assignment.integration.recorded` event form one atomic local coordination write and the authoritative success commit. If that write fails, the orchestrator rolls back only the exact candidate ref and returns the attempt to `candidate`. If execution stops after success commits, retry verifies the event and target before completing missing source-workspace projections. Orca is optional and must implement the same host port.
+
+A `leased`, `candidate`, or `conflict` attempt may instead become `released`, a terminal state. Release requires that a recorded candidate is neither the target ref nor an ancestor of it, and that the creating lease has ended or is releasing its own attempt. `advancing` and `integrated` attempts are never released. A released attempt keeps its target generation, so the generation is never reused. Readers accept `released` and the source requeue before any writer emits them, so the writer ships in a later release than the readers, after the Hub and every host have upgraded.
 
 Worker completion advances assignment and workspace state, not the repository-wide current workstream. Only the integration assignment advances canonical repository knowledge and the global workstream after the integrated checkout completes all lifecycle checks. Unrelated worker checkpoints therefore do not block one another at `Stop`.
 

@@ -1,5 +1,6 @@
+/** `released` is terminal: the attempt's effect never reached its target (ADR-0222). */
 export type WorkspaceIntegrationAttemptState =
-  "leased" | "candidate" | "advancing" | "integrated" | "conflict";
+  "leased" | "candidate" | "advancing" | "integrated" | "conflict" | "released";
 
 export interface WorkspaceIntegrationVerificationCoordinate {
   suiteId: string;

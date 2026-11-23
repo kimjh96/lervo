@@ -16,7 +16,7 @@ V1 reservations inherit local workforce bounds: at most 128 normalized scopes an
 
 ## State and reconciliation
 
-Hub current state is `pending`, `granted`, `released`, or `expired`; only `granted` is claimable. Every committed state change has one append-only audit transition. Workspace summaries accept only monotonic generations and lifecycle transitions and remain observational. Out-of-order, unknown-parent, or invalid transitions fail closed.
+Hub current state is `pending`, `granted`, `released`, or `expired`; only `granted` is claimable. Every committed state change has one append-only audit transition. Workspace summaries accept only monotonic generations and lifecycle transitions and remain observational. Out-of-order, unknown-parent, or invalid transitions fail closed. The Hub accepts `integrating` back to `integration_pending` for a released integration source, so the Hub must be upgraded before the Nodes that write it ([workspace lifecycle events](../../execution/events-and-privacy/agent-workspace-events/workspace-lifecycle.md)).
 
 Assignment evaluation distinguishes `disabled`, `ready`, `unavailable`, `conflicted`, and `stale_generation`. Node runtime reconciliation independently reports `disabled`, `pending`, `ready`, or `unavailable` with a bounded failure code.
 

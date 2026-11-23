@@ -34,7 +34,7 @@ function targetRequest(plan: WorkspaceIntegrationPlan) {
 }
 
 function receipt(attempt: WorkspaceIntegrationAttempt): WorkspaceIntegrationCandidateReceipt {
-  if (attempt.state === "leased")
+  if (attempt.state === "leased" || attempt.state === "released")
     throw new WorkspaceHostError(
       "host_effect_uncertain",
       "The integration attempt has no terminal candidate preparation result.",
