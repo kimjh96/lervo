@@ -67,7 +67,7 @@ fn serve(root: PathBuf) -> ExitCode {
         name: "lervo-session-host".to_owned(),
         version: env!("CARGO_PKG_VERSION").to_owned(),
     };
-    match runtime.block_on(run(&layout, InterfaceCore, identity, shutdown())) {
+    match runtime.block_on(run(&layout, InterfaceCore::default(), identity, shutdown())) {
         Ok(()) => ExitCode::SUCCESS,
         Err(error) => {
             eprintln!("interface: {error}");

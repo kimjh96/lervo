@@ -1,7 +1,9 @@
 //! The scripted core: four workspaces, their launches, and a decoder for the scripted providers.
 
+use std::collections::HashMap;
 use std::io::{BufRead, Write};
 use std::process::ExitCode;
+use std::sync::Mutex;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use lervo_session_core::ports::{
@@ -68,7 +70,22 @@ const WORKSPACES: [Workspace; 4] = [
     },
 ];
 
-pub struct InterfaceCore;
+/// The scripted core. Like the Lervo core, it remembers the mode each workspace last opened in,
+/// and `workspace.list` reports it, so the interface's mode switch round-trips.
+#[derive(Default)]
+pub struct InterfaceCore {
+    modes: Mutex<HashMap<&'static str, ConversationMode>>,
+}
+
+impl InterfaceCore {
+    fn mode(&self, workspace: &Workspace) -> ConversationMode {
+        self.modes
+            .lock()
+            .ok()
+            .and_then(|modes| modes.get(workspace.id).copied())
+            .unwrap_or(workspace.mode)
+    }
+}
 
 impl Core for InterfaceCore {
     type Decoder = ScriptDecoder;
@@ -86,7 +103,15 @@ impl Core for InterfaceCore {
             .iter()
             .find(|workspace| workspace.id == workspace_id)
             .ok_or(Failure::new(FailureCode::WorkspaceNotFound))?;
-        let mode = mode.unwrap_or(workspace.mode);
+        let mode = match mode {
+            Some(mode) => {
+                if let Ok(mut modes) = self.modes.lock() {
+                    modes.insert(workspace.id, mode);
+                }
+                mode
+            }
+            None => self.mode(workspace),
+        };
         let (program, arguments) = match (workspace.id, mode) {
             (_, ConversationMode::Cli) => ("/bin/cat".to_owned(), Vec::new()),
             ("wks_stream", ConversationMode::Native) => (
@@ -125,7 +150,11 @@ impl Core for InterfaceCore {
     ) -> Result<CommandOutcome, Failure> {
         let result = match command {
             "workspace.list" => {
-                json!({ "workspaces": WORKSPACES.iter().map(listed).collect::<Vec<_>>() })
+                let workspaces: Vec<Value> = WORKSPACES
+                    .iter()
+                    .map(|workspace| listed(workspace, self.mode(workspace)))
+                    .collect();
+                json!({ "workspaces": workspaces })
             }
             "repository.list" => json!({ "repositories": [
                 { "projectId": "prj_interface_lervo", "name": "lervo" },
@@ -143,7 +172,7 @@ impl Core for InterfaceCore {
     }
 }
 
-fn listed(workspace: &Workspace) -> Value {
+fn listed(workspace: &Workspace, mode: ConversationMode) -> Value {
     json!({
         "workspaceId": workspace.id,
         "projectId": workspace.project,
@@ -151,7 +180,7 @@ fn listed(workspace: &Workspace) -> Value {
         "branch": workspace.branch,
         "title": workspace.title,
         "provider": "claude",
-        "conversationMode": match workspace.mode {
+        "conversationMode": match mode {
             ConversationMode::Native => "native",
             ConversationMode::Cli => "cli",
         },
