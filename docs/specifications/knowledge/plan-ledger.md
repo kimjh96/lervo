@@ -8,6 +8,7 @@ This specification holds the item states, events, failure codes and privacy rule
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------- |
 | S1    | The ledger: item tree, evidence-only close, schema 9 events, `lervo plan`, and the open items in every turn's context.                                       | landed  |
 | S2    | Capture: the owner-turn assessment of ADR-0467 also returns the work an exchange leaves open, and the resident writes it to the ledger.                      | landed  |
+| S2b   | Close: the same assessment also reports shown items the exchange finished or replaced, and the resident closes them only with evidence it observes.          | landed  |
 | S3    | Stop check: the Stop hook blocks a turn that leaves an owner clause, a related item, a stated finding or a delivered health line without action or deferral. | planned |
 | S4    | Compaction comparison, missed-item escalation, drift lines, the workstream as a ledger view, and one ledger on every host through the Hub.                   | planned |
 
@@ -20,6 +21,7 @@ The owner-turn assessment that already reads each owner turn and the preceding a
   - A `plan` is a next step the agent committed to.
   - A `finding` is a defect or gap the agent stated as not fixed yet or deferred.
   - Questions, status requests, acknowledgements and finished work are not items.
+  - A step that only carries out an item, such as waiting for checks, merging after they pass, or telling a coordinating session, belongs to that item.
 - **What the assessment sees.**
   - At most 32 open items: in-progress first, then the most recently changed.
   - Each item appears as a short reference `p1` to `p32`, never as a ledger id (ADR-0604, ADR-0608).
@@ -36,6 +38,22 @@ The owner-turn assessment that already reads each owner turn and the preceding a
   - The wire schema states only the shape. The parser drops an out-of-bounds item alone and keeps at most eight.
   - A value that is not a list records `planItemsFailure: invalid` and never fails rule capture.
   - Before schema 9 is active, nothing is written.
+
+## Close (S2b)
+
+By 2026-11-23 the Lervo ledger held 59 open items, many of them finished: merges and releases from earlier sessions. Nothing closed an item except `lervo plan close`, so every turn's plan lines showed stale work, and a Stop check over them would block every turn. The owner-turn assessment therefore also returns `closedPlanItems`, in the same call.
+
+- **What it reports.** A shown item the exchange finished (`done`) or replaced with another shown item (`superseded`), by its `p<n>` reference.
+- **Evidence by name.** A `done` close names the merged pull request number or the release tag that finished the work. The assessment never writes a commit hash (ADR-0608).
+- **Grounded in the exchange.** A close is permanent, so the evidence must appear in the owner turn or the preceding agent turn itself: a pull request as `#N`, `PR N` or `/pull/N`, a release as its exact tag. A number or tag the provider supplies on its own never closes an item.
+- **Lervo verifies.**
+  - A pull request number resolves to its merge commit on the integration branch (`origin/HEAD`, else `origin/main` or `origin/master`), by the subject alone that GitHub writes for a merge or a squash merge, in the latest 2,000 first-parent commits. That commit is recorded as `commit` evidence. Without an integration branch, no pull request resolves.
+  - A release must be a tag of this repository.
+  - Evidence may predate its item by at most a day, the time a named turn can wait in the queue. Older evidence belongs to other work.
+- **Supersede.** The replacement must be another shown item that stays open after the response, so two items never replace each other and the work never disappears.
+  - Anything Lervo cannot observe leaves the item open. A statement in the conversation never closes an item.
+- **Bounds.** At most eight closes per turn, one per reference, and one item per pull request or tag. A malformed close, or one naming both a pull request and a tag, is dropped alone. A value that is not a list marks the parsed assessment `closedPlanItemsFailure: invalid`, closes nothing, and never fails rule capture.
+- **Once per turn.** Closes come from the settling attempt only, like captured items.
 
 ## Items and states
 

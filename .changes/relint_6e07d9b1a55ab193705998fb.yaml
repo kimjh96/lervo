@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_6e07d9b1a55ab193705998fb"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The plan ledger closes items an owner turn shows as finished, only with a merged pull request or release tag Lervo verifies, so each turn's plan lines stop showing finished work."
