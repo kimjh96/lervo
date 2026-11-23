@@ -4,6 +4,9 @@ resolver = "3"
 members = ["src-tauri", "session-host", "session-protocol", "session-core", "session-store", "session-transport", "session-pty", "session-stream", "core-link"]
 
 [workspace.package]
+# The ADE's one version (ADR-0615): ADE release preparation writes it here, to package.json, and to
+# tauri.conf.json.
+version = "0.2.1"
 edition = "2024"
 rust-version = "1.99"
 publish = false

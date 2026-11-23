@@ -31,6 +31,14 @@ use tokio::sync::oneshot;
 
 struct FakeCore;
 
+/// The exits that sessions reported to the fake core, by session.
+static EXITS: std::sync::Mutex<Vec<(String, Option<u8>)>> = std::sync::Mutex::new(Vec::new());
+
+/// Where the provider of `wks_term` notes that it received SIGTERM.
+fn term_marker() -> PathBuf {
+    std::env::temp_dir().join(format!("lervo-term-marker-{}", std::process::id()))
+}
+
 /// Answers each line `X` the fake provider prints as `reply:X` with one streamed agent turn.
 #[derive(Default)]
 struct LineDecoder {
@@ -113,6 +121,26 @@ impl Core for FakeCore {
                 transcript: true,
             });
         }
+        if workspace_id == "wks_term" {
+            // A provider that runs its own shutdown on SIGTERM, as Claude Code runs SessionEnd.
+            let script = format!(
+                "trap 'echo term > {}; exit 3' TERM; while :; do sleep 0.1; done",
+                term_marker().display()
+            );
+            return Ok(Launch {
+                session_id: "ses_term".to_owned(),
+                workspace_id: workspace_id.to_owned(),
+                mode: ConversationMode::Native,
+                program: "/bin/sh".to_owned(),
+                arguments: vec!["-c".to_owned(), script],
+                environment: Vec::new(),
+                working_directory: std::env::temp_dir(),
+                provider: "fake".to_owned(),
+                initial_input: None,
+                environment_remove: Vec::new(),
+                transcript: false,
+            });
+        }
         if workspace_id == "wks_missing" {
             return Ok(Launch {
                 session_id: "ses_missing_cli".to_owned(),
@@ -162,6 +190,13 @@ impl Core for FakeCore {
         _arguments: Map<String, Value>,
     ) -> Result<CommandOutcome, Failure> {
         Err(Failure::new(FailureCode::ApplicationUnavailable))
+    }
+
+    async fn session_exited(&self, session_id: &str, exit_code: Option<u8>) {
+        EXITS
+            .lock()
+            .unwrap()
+            .push((session_id.to_owned(), exit_code));
     }
 
     /// The transcript of `wks_sync`: turns from the CLI conversation, served one item per page.
@@ -638,6 +673,52 @@ async fn keeps_a_diagnostics_log_of_codes_without_bodies() {
     assert!(ended.iter().any(|entry| entry["code"] != "closed"));
     // Requests' contents never reach the log.
     assert!(!log.contains("ses_secret_text") && !log.contains("not a frame"));
+
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn stops_a_provider_with_sigterm_and_reports_its_exit() {
+    let _ = std::fs::remove_file(term_marker());
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_term"}))
+        .await;
+    assert!(matches!(
+        client.next_message().await,
+        HostMessage::SessionOpenedMessage(_)
+    ));
+    // Let the shell install its trap before it is asked to end.
+    tokio::time::sleep(Duration::from_millis(300)).await;
+    client
+        .send(json!({"kind": "session.stop", "requestId": "req_2", "sessionId": "ses_term"}))
+        .await;
+    let reported = tokio::time::timeout(Duration::from_secs(10), async {
+        loop {
+            let found = EXITS
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|(session, _)| session == "ses_term")
+                .cloned();
+            if let Some(found) = found {
+                return found;
+            }
+            tokio::time::sleep(Duration::from_millis(50)).await;
+        }
+    })
+    .await
+    .expect("the session reports its exit");
+    // SIGTERM reached the provider, which ran its shutdown and chose its exit code.
+    assert_eq!(reported, ("ses_term".to_owned(), Some(3)));
+    assert_eq!(
+        std::fs::read_to_string(term_marker()).unwrap().trim(),
+        "term"
+    );
+    let _ = std::fs::remove_file(term_marker());
 
     stop.send(()).unwrap();
     serving.await.unwrap().unwrap();

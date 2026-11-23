@@ -11,12 +11,15 @@ try {
       impact: { type: "string" },
       summary: { type: "string" },
       root: { type: "string" },
+      // `ade` writes an ADE intent to `.changes/ade/` (ADR-0615); the default is the CLI.
+      target: { type: "string" },
       json: { type: "boolean" },
     },
   });
   const result = await createReleaseIntent(resolve(parsed.values.root ?? "."), {
     impact: parsed.values.impact,
     summary: parsed.values.summary,
+    ...(parsed.values.target === undefined ? {} : { target: parsed.values.target }),
   });
   process.stdout.write(
     parsed.values.json

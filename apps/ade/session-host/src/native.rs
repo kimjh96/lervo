@@ -2,6 +2,7 @@
 //! adapter into conversation items that the index stores and subscribers receive.
 
 use std::path::PathBuf;
+use std::pin::Pin;
 use std::time::Duration;
 
 use lervo_session_core::paging::{item_id, page};
@@ -13,6 +14,7 @@ use lervo_session_protocol::{ConversationItem, Identifier, RequestFailedMessageC
 use lervo_session_store::{StoreError, retention};
 use lervo_session_stream::{StreamCommand, StreamError, StreamProcess};
 use tokio::sync::mpsc;
+use tokio::time::Sleep;
 
 use crate::index::Index;
 use crate::items::to_wire;
@@ -25,6 +27,14 @@ use lervo_session_core::ports::{ConversationMode, Decoded, Launch, StreamDecoder
 const SEGMENT_CACHE_BYTES: usize = 1024 * 1024;
 /// How long a provider may run after closing its output before the session host stops it.
 const EXIT_GRACE: Duration = Duration::from_secs(5);
+/// How long a provider asked to end with SIGTERM may take to run its own shutdown, such as its
+/// session-end hook, before the session host kills it. It stays below the lifecycle's 10-second
+/// stop deadline, so a mode switch never times out on a slow hook; a hook cut short leaves the
+/// end to the exit report.
+const STOP_GRACE: Duration = Duration::from_secs(8);
+
+/// Called once with the provider's exit code, or none after a signal, when its process ended.
+pub(crate) type ExitReport = Box<dyn FnOnce(Option<u8>) + Send>;
 
 /// Why a native session did not start.
 #[derive(Debug, thiserror::Error)]
@@ -102,7 +112,7 @@ pub(crate) fn prepare<D: StreamDecoder>(
 
 impl<D: StreamDecoder> Prepared<D> {
     /// Starts the session's actor and returns its handle.
-    pub(crate) fn start(self, watchers: StatusSink) -> SessionHandle {
+    pub(crate) fn start(self, watchers: StatusSink, on_exit: ExitReport) -> SessionHandle {
         let (handle, commands, ended) = SessionHandle::new(ConversationMode::Native, self.channel);
         let actor = Native {
             fanout: Fanout::new(self.session, ended, watchers),
@@ -110,6 +120,7 @@ impl<D: StreamDecoder> Prepared<D> {
             transcript: Transcript::new(self.stored),
             index: self.index,
             decoder: self.decoder,
+            on_exit: Some(on_exit),
         };
         tokio::spawn(actor.run(self.process, commands));
         handle
@@ -124,6 +135,7 @@ struct Native<D> {
     /// Damaged once storing failed; live items still flow, and ranges report the damage.
     index: Index,
     decoder: D,
+    on_exit: Option<ExitReport>,
 }
 
 impl<D: StreamDecoder> Native<D> {
@@ -136,6 +148,11 @@ impl<D: StreamDecoder> Native<D> {
             }
         }
         let mut stopped = false;
+        let mut listening = true;
+        // Armed once the provider is asked to end; a provider still running then is killed.
+        let kill = tokio::time::sleep(Duration::ZERO);
+        tokio::pin!(kill);
+        let mut kill_armed = false;
         loop {
             tokio::select! {
                 output = process.output() => match output {
@@ -145,10 +162,10 @@ impl<D: StreamDecoder> Native<D> {
                     }
                     Ok(None) | Err(_) => break,
                 },
-                command = commands.recv() => match command {
+                command = commands.recv(), if listening => match command {
                     Some(Command::Stop) => {
                         stopped = true;
-                        let _ = process.kill().await;
+                        ask_to_end(&mut process, kill.as_mut(), &mut kill_armed).await;
                     }
                     Some(Command::Send { request, text, reply }) => {
                         let (bytes, decoded) = self.decoder.send(&text).await;
@@ -161,10 +178,14 @@ impl<D: StreamDecoder> Native<D> {
                     }
                     Some(command) => self.command(command),
                     None => {
-                        let _ = process.kill().await;
-                        break;
+                        listening = false;
+                        ask_to_end(&mut process, kill.as_mut(), &mut kill_armed).await;
                     }
                 },
+                () = &mut kill, if kill_armed => {
+                    kill_armed = false;
+                    let _ = process.kill().await;
+                }
             }
         }
         self.apply(vec![Decoded::Conversation(Input::Finish)]);
@@ -176,6 +197,14 @@ impl<D: StreamDecoder> Native<D> {
                 process.wait().await
             }
         };
+        let code = exit
+            .as_ref()
+            .ok()
+            .and_then(|exit| exit.code)
+            .and_then(|code| u8::try_from(code).ok());
+        if let Some(report) = self.on_exit.take() {
+            report(code);
+        }
         let exited_cleanly = exit.ok().map(|exit| exit.success);
         self.fanout.change(SessionEvent::Exited(EndReason::of_exit(
             stopped,
@@ -320,5 +349,20 @@ impl<D: StreamDecoder> Native<D> {
                 ),
             });
         });
+    }
+}
+
+/// Asks the provider to end with SIGTERM, so it runs its own shutdown, such as a session-end
+/// hook, and arms the kill that follows `STOP_GRACE` later. A provider that cannot be signalled
+/// is killed at once.
+async fn ask_to_end(process: &mut StreamProcess, kill: Pin<&mut Sleep>, armed: &mut bool) {
+    if *armed {
+        return;
+    }
+    if process.terminate().is_ok() {
+        kill.reset(tokio::time::Instant::now() + STOP_GRACE);
+        *armed = true;
+    } else {
+        let _ = process.kill().await;
     }
 }

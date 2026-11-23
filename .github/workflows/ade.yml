@@ -6,12 +6,14 @@ on:
   pull_request:
     paths:
       - "apps/ade/**"
+      - ".changes/ade/**"
       - "packages/session-host-contract/**"
       - ".github/workflows/ade.yml"
   push:
     branches: [main]
     paths:
       - "apps/ade/**"
+      - ".changes/ade/**"
       - "packages/session-host-contract/**"
       - ".github/workflows/ade.yml"
   workflow_dispatch:
@@ -47,6 +49,8 @@ jobs:
         uses: pnpm/action-setup@d15e628ca66d93ee5f352c71671a7bc6a97af5c9 # v6.0.8
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Check the ADE release files
+        run: node scripts/release/commands/check-ade-release.mjs
       - name: Install the pinned Rust toolchain
         working-directory: apps/ade
         run: rustup toolchain install

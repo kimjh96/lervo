@@ -5,6 +5,7 @@
 
 use crate::diagnostics::Field;
 use std::num::NonZeroU64;
+use std::sync::Arc;
 use std::sync::atomic::Ordering;
 use std::time::Duration;
 
@@ -14,7 +15,7 @@ use lervo_session_stream::StreamError;
 
 use crate::host::Host;
 use crate::messages;
-use crate::native::{self, IndexPlace, StartError};
+use crate::native::{self, ExitReport, IndexPlace, StartError};
 use crate::session::{Command, SessionHandle};
 use crate::terminal;
 use lervo_session_core::ports::{ConversationMode, Core, Launch};
@@ -26,8 +27,8 @@ const TRANSCRIPT_PAGE: u64 = 500;
 const MAX_TRANSCRIPT_ITEMS: usize = 100_000;
 const MAX_TRANSCRIPT_TEXT_BYTES: usize = 64 * 1024 * 1024;
 
-/// How long a mode switch waits for the running provider process to end. Native sessions give a
-/// provider 5 seconds to exit after its input closes, so this leaves room for that.
+/// How long a mode switch waits for the running provider process to end. A native session kills
+/// its provider 8 seconds after asking it to end, so this leaves room for that.
 const STOP_DEADLINE: Duration = Duration::from_secs(10);
 
 impl<C: Core> Host<C> {
@@ -55,6 +56,16 @@ impl<C: Core> Host<C> {
             Ok(launch) => self.start_serially(request, &launch).await,
             Err(failure) => messages::core_failed(request, &failure),
         }
+    }
+
+    /// Reports the session's exit to the core once its process ends, after the request that
+    /// started it has long been answered.
+    fn exit_report(&self, session: &Identifier) -> ExitReport {
+        let core = Arc::clone(&self.core);
+        let session = session.as_str().to_owned();
+        Box::new(move |exit_code| {
+            tokio::spawn(async move { core.session_exited(&session, exit_code).await });
+        })
     }
 
     /// Starts the session of a launch the core returned with an application command, such as
@@ -106,6 +117,7 @@ impl<C: Core> Host<C> {
                 } else {
                     None
                 };
+                let on_exit = self.exit_report(&session);
                 let (launch, session) = (launch.clone(), session.clone());
                 let decoder = self.core.decoder(&launch);
                 let place = IndexPlace {
@@ -118,7 +130,7 @@ impl<C: Core> Host<C> {
                 .await
                 .map_err(|_| start_failed(request, "task_failed"))
                 .and_then(|prepared| prepared.map_err(|error| native_failed(request, &error)))
-                .map(|prepared| prepared.start(self.watch.clone()))
+                .map(|prepared| prepared.start(self.watch.clone(), on_exit))
             }
         };
         match started {

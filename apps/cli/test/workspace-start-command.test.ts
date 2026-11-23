@@ -1,10 +1,12 @@
 import { execFile } from "node:child_process";
-import { mkdir, mkdtemp, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { delimiter, resolve } from "node:path";
 import { promisify } from "node:util";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
+
+import { openProjectStorage } from "@lervo/project-storage";
 
 import { runCli } from "../src/main.js";
 import { listRepositories, listWorkspaces } from "../src/workspace-list-service.js";
@@ -81,6 +83,39 @@ async function fixture(options: { uncommitted?: boolean } = {}) {
   };
 }
 
+/** Selects event schema 10 in a local-only repository, as `lervo upgrade` would. */
+async function activateSchema10(cwd: string, repository: string): Promise<void> {
+  const observed = io(cwd);
+  expect(await runCli(["event-contract", "evidence", "--root", repository], observed.io)).toBe(0);
+  const evidence = observed.stdout.join("");
+  const activate = [
+    "event-contract",
+    "activate",
+    "--stdin",
+    "--schema-version",
+    "10",
+    "--root",
+    repository,
+  ];
+  const planned = io(cwd, evidence);
+  expect(await runCli([...activate, "--json"], planned.io), planned.stderr.join("")).toBe(0);
+  const { planId } = JSON.parse(planned.stdout.join("")) as { planId: string };
+  const applied = io(cwd, evidence);
+  expect(
+    await runCli([...activate, "--apply", planId, "--json"], applied.io),
+    applied.stderr.join(""),
+  ).toBe(0);
+}
+
+async function eventTypes(repository: string): Promise<string[]> {
+  const storage = await openProjectStorage(repository);
+  try {
+    return storage.events.list().map((event) => event.type);
+  } finally {
+    await storage.close();
+  }
+}
+
 afterEach(async () => {
   vi.unstubAllEnvs();
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
@@ -155,7 +190,12 @@ describe("lervo workspace start and open", () => {
     expect(reopened).toMatchObject({
       resumed: true,
       launch: {
-        arguments: ["--resume", result.sessionId],
+        arguments: [
+          "--resume",
+          result.sessionId,
+          "--settings",
+          resolve(app.state, "hosted-settings", `${result.sessionId}.json`),
+        ],
         workingDirectory: worktree,
         mode: "cli",
       },
@@ -191,5 +231,67 @@ describe("lervo workspace start and open", () => {
       error: { code: "provider_cli_unavailable" },
     });
     vi.stubEnv("PATH", process.env.PATH ?? "");
+  });
+
+  it("adds Lervo's session hooks without recording events below schema 10", async () => {
+    const app = await fixture();
+    const started = io(app.root, instruction);
+    expect(
+      await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+    ).toBe(0);
+    const result = JSON.parse(started.stdout.join("")) as {
+      sessionId: string;
+      hostedEvents: string;
+      launch: { arguments: string[] };
+    };
+    const settings = resolve(app.state, "hosted-settings", `${result.sessionId}.json`);
+    expect(result.launch.arguments).toEqual(expect.arrayContaining(["--settings", settings]));
+    expect((await stat(settings)).mode & 0o777).toBe(0o600);
+    const hooks = JSON.parse(await readFile(settings, "utf8")) as {
+      hooks: Record<string, { hooks: { command: string }[] }[]>;
+    };
+    expect(Object.keys(hooks.hooks)).toEqual(["SessionStart", "SessionEnd"]);
+    expect(hooks.hooks.SessionStart?.[0]?.hooks[0]?.command).toBe(
+      "lervo workspace hook --provider claude",
+    );
+    expect(result.hostedEvents).toBe("inactive");
+    expect(await eventTypes(app.repository)).not.toContain("terminal.session.launch_prepared");
+  });
+
+  it("records a hosted session's launch, start, and end at schema 10", async () => {
+    const app = await fixture();
+    await activateSchema10(app.root, app.repository);
+    const started = io(app.root, instruction);
+    expect(
+      await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+      started.stderr.join(""),
+    ).toBe(0);
+    const result = JSON.parse(started.stdout.join("")) as {
+      sessionId: string;
+      hostedEvents: string;
+    };
+    expect(result.hostedEvents).toBe("recorded");
+    for (const input of [
+      { session_id: result.sessionId, hook_event_name: "SessionStart", source: "startup" },
+      { session_id: result.sessionId, hook_event_name: "SessionEnd", reason: "other" },
+      { session_id: "11111111-2222-4333-8444-555555555555", hook_event_name: "SessionStart" },
+      { hook_event_name: "SessionEnd" },
+    ]) {
+      const hook = io(app.root, JSON.stringify(input));
+      expect(await runCli(["workspace", "hook", "--provider", "claude"], hook.io)).toBe(0);
+      // A SessionStart handler's output would reach the model's context.
+      expect(hook.stdout).toEqual([]);
+    }
+    const types = await eventTypes(app.repository);
+    expect(
+      types.filter(
+        (type) => type.startsWith("terminal.session.") || type.startsWith("application."),
+      ),
+    ).toEqual([
+      "application.workspace.started",
+      "terminal.session.launch_prepared",
+      "terminal.session.launched",
+      "terminal.session.ended",
+    ]);
   });
 });

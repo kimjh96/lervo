@@ -28,7 +28,7 @@ The ADE and the core are separate processes, often from different releases. The 
 
 - **One version for three parts.** The interface, the shell, and the session host share one version.
   - `apps/ade/package.json` holds it.
-  - Preparation writes it to `apps/ade/src-tauri/tauri.conf.json` and to every Cargo manifest under `apps/ade`.
+  - Preparation writes it to `apps/ade/src-tauri/tauri.conf.json`, to the Cargo workspace's `[workspace.package]` version, which every ADE crate inherits, and to those crates' entries in `apps/ade/Cargo.lock`.
   - A check fails when any of them differ.
 - **The version policy is the CLI's.** Before 1.0, `patch` increments the patch number, and `minor` and `major` increment the minor number.
 
@@ -47,7 +47,7 @@ The ADE and the core are separate processes, often from different releases. The 
   - it consumes the ADE intents;
   - it writes the next version to every ADE manifest;
   - it replaces `.changes/ade/current-release.md` with the release notes.
-- **Release notes.** They state the minimum Lervo CLI version the release needs, and they follow `writing_en-human`.
+- **Release notes.** They state the minimum Lervo CLI version the release needs, which `engines.lervo` in `apps/ade/package.json` names as `>=<version>`, and they follow `writing_en-human`. A change that starts to rely on a newer core feature raises it.
 - **The preparation commit.** ADE preparation commits with its own subject, `chore(ade): prepare release`. The release wait and the rule against pushing on top of a preparation commit recognize it as they recognize the CLI's.
 - **Tags.** After the merge, an exact plan tags the prepared revision `ade-v<major>.<minor>.<patch>`. Nothing that keys on the `v` prefix matches it, so no CLI workflow starts.
 - **Merges after a CLI release.** On 2026-11-23 an ADE-only merge landed a minute after a prepared CLI merge. It cancelled the CLI merge's main CI, and the CLI tag plan ran as skipped. Until the CLI tag plan tolerates a later merge, nothing merges to `main` between a prepared CLI merge and its `v` tag. ADE preparation must not repeat the problem: a CLI tag plan must never be skipped because an ADE merge followed it.

@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.44.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.45.0" schema="1" -->
 
 ## What's changed
 
-- Read event schema 10, which carries the ADE's hosted session events, in the CLI, the Node, and the Hub, and have lervo upgrade activate it once every configured reader reads it.
+- Add Lervo's session hooks to the ADE's Claude Code sessions through a session-scoped settings file, record the hosted session events in the registered repository once it selects event schema 10, and name the activation target in event writer upgrade blockers.
