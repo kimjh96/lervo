@@ -6,11 +6,27 @@ import {
 
 import { DEFAULT_ROLE_REASONING_EFFORT } from "@lervo/execution-contract";
 
-import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { readHostNodeModelSelection, type ReadNodeModelSelection } from "./node-model-route.js";
 
 type Provider = "codex" | "claude";
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
+
+/** The configured route of one deliberation seat, as a conversation endpoint carries it. */
+export interface DeliberationSeatRoute {
+  policyId: string;
+  policyRoleId: string;
+  provider?: Provider;
+  model?: string;
+  reasoningEffort?: Effort;
+}
+
+/** The conversation endpoint a deliberation seat runs on. */
+export interface DeliberationSeatEndpoint {
+  agentParticipantId: string;
+  integrationId: string;
+  routing?: { response: { provider: Provider; model?: string; reasoningEffort?: Effort } };
+  command: { provider: Provider };
+}
 
 export interface DeliberationParticipantExecutionRoute {
   provider: Provider;
@@ -31,8 +47,8 @@ export interface DeliberationParticipantExecutionRoute {
  *   seat accepted before this release, or while the role is unset, resumes unchanged.
  */
 export function deliberationParticipantRoute(input: {
-  route: NonNullable<NodeDiscordConversationConfig["deliberationParticipation"]>["routes"][number];
-  endpoint: NodeDiscordConversationConfig;
+  route: DeliberationSeatRoute;
+  endpoint: DeliberationSeatEndpoint;
   existing: Pick<DeliberationParticipantBinding, "executionRouteHash"> | undefined;
   readSelection?: ReadNodeModelSelection;
 }): DeliberationParticipantExecutionRoute {

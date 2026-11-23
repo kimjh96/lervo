@@ -6,8 +6,10 @@ import {
 } from "@lervo/agent-organization";
 import { DEFAULT_MODEL_SELECTION, type ModelSelection } from "@lervo/execution-contract";
 
-import type { NodeDiscordConversationConfig } from "../src/config-types.js";
-import { deliberationParticipantRoute } from "../src/deliberation-participant-route.js";
+import {
+  deliberationParticipantRoute,
+  type DeliberationSeatEndpoint,
+} from "../src/deliberation-participant-route.js";
 
 const endpoint = {
   agentParticipantId: "ptc_agent01",
@@ -17,7 +19,7 @@ const endpoint = {
     response: { provider: "claude", model: "claude-response", reasoningEffort: "high" },
   },
   command: { provider: "claude" },
-} as unknown as NodeDiscordConversationConfig;
+} as unknown as DeliberationSeatEndpoint;
 const coordinates = { participantId: "ptc_agent01", integrationId: "itg_discord01" };
 const selection =
   (roles: ModelSelection["roles"]): (() => ModelSelection) =>
@@ -92,7 +94,7 @@ describe("deliberation participant routes (ADR-0612 M2c)", () => {
     const bare = {
       ...endpoint,
       routing: { readOnlyRoleId: "researcher", response: { provider: "claude" } },
-    } as unknown as NodeDiscordConversationConfig;
+    } as unknown as DeliberationSeatEndpoint;
     const route = { policyId: "dpol_1", policyRoleId: "reviewer" };
     const configured = deliberationExecutionRouteHash({
       ...coordinates,
