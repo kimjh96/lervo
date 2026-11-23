@@ -44,14 +44,11 @@ describe("the message catalog", () => {
     const used = new Set(
       [...text.matchAll(/\bid(?:=|: )"([a-z][\w.]*)"/gu)].map((match) => match[1] as string),
     );
-    // S4 replaces the provider names with the core's provider registry.
+    // Provider names come from the core's registry, so no message ID is built at run time.
     const built = [...text.matchAll(/\bid(?:=\{|: )`([^`]*)`/gu)].map((match) => match[1]);
-    expect(built).toEqual(["start.provider.${draft.provider}"]);
-    const providers = catalog.filter(
-      (id) => id.startsWith("start.provider.") && id !== "start.provider.label",
-    );
+    expect(built).toEqual([]);
     expect([...used].filter((id) => !catalog.includes(id))).toEqual([]);
-    expect(catalog.filter((id) => !used.has(id) && !providers.includes(id))).toEqual([]);
+    expect(catalog.filter((id) => !used.has(id))).toEqual([]);
   });
 
   it("falls back to English for a locale without a catalog", () => {

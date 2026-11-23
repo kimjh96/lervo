@@ -11,8 +11,17 @@ use lervo_session_core::transcript::{Content, Input};
 use serde_json::{Map, Value, json};
 
 fn core(program: &str) -> CoreLink {
+    release(program, "current")
+}
+
+/// The stand-in resident process of one release: "current", "older", or "invalid".
+fn release(program: &str, release: &str) -> CoreLink {
     let path = format!("{}/tests/{program}", env!("CARGO_MANIFEST_DIR"));
-    CoreLink::new(path, Vec::new()).unwrap()
+    CoreLink::new(path, vec![release.to_owned()]).unwrap()
+}
+
+fn none() -> Map<String, Value> {
+    Map::new()
 }
 
 fn arguments(instruction: &str) -> Map<String, Value> {
@@ -129,4 +138,56 @@ async fn reports_a_missing_resident_process_without_failing_the_session() {
     assert!(
         matches!(&shown[..], [Decoded::Conversation(Input::Item { content: Content::LervoNotice { code, .. }, .. })] if code == "core_link_unavailable")
     );
+}
+
+#[tokio::test]
+async fn sends_a_newer_command_only_to_a_process_that_advertised_it() {
+    let core = core("fake-resident.sh");
+    let early = core.command("provider.list", none()).await.unwrap_err();
+    assert_eq!(early.code, FailureCode::ApplicationUnavailable);
+    assert_eq!(early.reason, Some("command_unsupported"));
+
+    core.command("workspace.list", none()).await.unwrap();
+    let providers = core.command("provider.list", none()).await.unwrap();
+    assert_eq!(
+        providers.result.get("defaultProvider"),
+        Some(&json!("claude"))
+    );
+
+    let unknown = core.command("workspace.delete", none()).await.unwrap_err();
+    assert_eq!(unknown.reason, Some("command_unsupported"));
+}
+
+#[tokio::test]
+async fn keeps_newer_commands_from_an_older_process() {
+    let core = release("fake-resident.sh", "older");
+    core.command("workspace.list", none()).await.unwrap();
+    let refused = core.command("provider.list", none()).await.unwrap_err();
+    assert_eq!(refused.reason, Some("command_unsupported"));
+    // The process never received the command, so it still answers.
+    assert!(core.command("workspace.list", none()).await.is_ok());
+}
+
+#[tokio::test]
+async fn forgets_the_advertisement_when_the_process_ends() {
+    let core = core("fake-resident.sh");
+    core.command("workspace.list", none()).await.unwrap();
+    let crashed = core
+        .command("workspace.start", arguments("crash"))
+        .await
+        .unwrap_err();
+    assert_eq!(crashed.code, FailureCode::ApplicationUnavailable);
+    let refused = core.command("provider.list", none()).await.unwrap_err();
+    assert_eq!(refused.reason, Some("command_unsupported"));
+    core.command("workspace.list", none()).await.unwrap();
+    assert!(core.command("provider.list", none()).await.is_ok());
+}
+
+#[tokio::test]
+async fn rejects_a_result_that_breaks_its_schema() {
+    let core = release("fake-resident.sh", "invalid");
+    core.command("workspace.list", none()).await.unwrap();
+    let rejected = core.command("provider.list", none()).await.unwrap_err();
+    assert_eq!(rejected.code, FailureCode::ApplicationFailed);
+    assert_eq!(rejected.reason, Some("result_invalid"));
 }

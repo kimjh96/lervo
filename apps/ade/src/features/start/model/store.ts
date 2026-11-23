@@ -30,7 +30,8 @@ interface StartStore {
  * soon as work is sent and returns, with the instruction, if the start fails.
  */
 export const useStartStore = create<StartStore>(() => ({
-  draft: { instruction: "", repository: "", provider: "claude" },
+  // No provider until the user chooses one; the start screen offers the core's default.
+  draft: { instruction: "", repository: "", provider: "" },
   pending: null,
   error: null,
 }));

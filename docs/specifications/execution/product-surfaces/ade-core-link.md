@@ -74,6 +74,8 @@ Every request carries a positive integer `id`, and the resident process answers 
 - A decoder that the restarted process no longer knows fails with `decoder_not_found`. The session host opens it again and retries once, so a restart loses at most a partial line of the provider's output.
 - When decoding fails, the session host shows the Lervo notice `core_link_unavailable` or `core_decoding_failed` in the conversation instead of the lost events. The provider process keeps running.
 - A malformed request makes the resident process print `core_link_message_invalid` on standard error and exit with status 1.
+- The session host refuses a command the contract does not define, or one the running process did not advertise, with `application_unavailable` and the parameter `reason: command_unsupported`. It never sends it, so the process keeps running. A process started after the one that advertised the command has advertised nothing until its first `workspace.list`.
+- A command result that does not match its schema fails with `application_failed` and `reason: result_invalid`, and the interface never receives it.
 
 ## Privacy
 

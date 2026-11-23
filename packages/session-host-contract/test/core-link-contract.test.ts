@@ -103,6 +103,17 @@ describe("core-link protocol contract", () => {
     for (const base of baseApplicationCommandNames) expect(applicationCommandNames).toContain(base);
   });
 
+  it("names each result schema after its command, as the session host looks it up", () => {
+    // `provider.list` has `ProviderListResult` (apps/ade/session-protocol/src/core_link.rs).
+    const title = (command: string) =>
+      `${command
+        .split(/[._]/u)
+        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+        .join("")}Result`;
+    for (const command of applicationCommandNames)
+      expect(applicationResultSchemas[command].title).toBe(title(command));
+  });
+
   it("accepts every result fixture, with or without the fields an older core omits", async () => {
     const names = new Map<string, keyof typeof applicationResultSchemas>([
       ["provider-list", "provider.list"],

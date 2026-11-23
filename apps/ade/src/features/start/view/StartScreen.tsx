@@ -8,6 +8,7 @@ import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
 import { Select } from "../../../ui/Select";
+import { chooseProvider, useProviderStore } from "../../providers";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
 import { useStartStore } from "../model/store";
@@ -22,22 +23,22 @@ const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_start_failed: { id: "start.error.workspace_start_failed" },
 };
 
-/**
- * The start screen: one instruction and the repository; Lervo does the rest. The ADE starts
- * Claude Code only for now (ADR-0617), so the screen offers no agent choice.
- */
+/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
 export function StartScreen() {
   const intl = useIntl();
   const commands = useApplicationCommands();
   const repositories = useWorkspaceStore((store) => store.repositories);
   const newWork = useWorkspaceStore((store) => store.newWorkRequests);
   const input = useRef<HTMLTextAreaElement>(null);
+  const registry = useProviderStore((store) => store.registry);
   const draft = useStartStore((store) => store.draft);
   const error = useStartStore((store) => store.error);
   const setDraft = (next: StartDraft) => useStartStore.setState({ draft: next, error: null });
   const repository = draft.repository || repositories[0]?.projectId || "";
+  const provider = chooseProvider(registry, draft.provider);
+  // The registry holds only providers with the native conversation; one needs no choice.
+  const offered = registry.status === "loaded" ? registry.providers : [];
   const ready = canStart({ ...draft, repository });
-  const provider = intl.formatMessage({ id: `start.provider.${draft.provider}` });
 
   // The input takes focus when the screen opens and on each "New work".
   useEffect(() => input.current?.focus(), [newWork]);
@@ -45,7 +46,8 @@ export function StartScreen() {
   const submit = () => {
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
-    transition(() => void startWork(commands, { ...draft, repository }, name));
+    const chosen = { ...draft, repository, provider: provider?.provider ?? "" };
+    transition(() => void startWork(commands, chosen, name));
   };
 
   return (
@@ -74,6 +76,23 @@ export function StartScreen() {
                 onChange={(value) => setDraft({ ...draft, repository: value })}
               />
             )}
+            {offered.length < 2 || provider === null ? null : (
+              <Select
+                label={intl.formatMessage({ id: "start.provider.label" })}
+                value={provider.provider}
+                options={offered.map((item) => ({
+                  value: item.provider,
+                  text: item.installed
+                    ? item.displayName
+                    : intl.formatMessage(
+                        { id: "start.provider.missing" },
+                        { name: item.displayName },
+                      ),
+                  disabled: !item.installed,
+                }))}
+                onChange={(value) => setDraft({ ...draft, provider: value })}
+              />
+            )}
             <IconButton
               type="submit"
               className={styles.submit}
@@ -86,10 +105,17 @@ export function StartScreen() {
         <p className={styles.explain}>
           {repositories.length === 0 ? (
             <FormattedMessage id="start.repository.none" />
+          ) : provider === null ? (
+            <FormattedMessage id="start.explain.default" />
           ) : (
-            <FormattedMessage id="start.explain" values={{ provider }} />
+            <FormattedMessage id="start.explain" values={{ provider: provider.displayName }} />
           )}
         </p>
+        {registry.status === "older" ? (
+          <p className={styles.explain}>
+            <FormattedMessage id="start.provider.older" />
+          </p>
+        ) : null}
         {error === null ? null : (
           <InlineAlert size="note" className={styles.error}>
             <FormattedMessage

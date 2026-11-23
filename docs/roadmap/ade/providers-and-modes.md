@@ -1,6 +1,6 @@
 # Lervo ADE providers and modes from registries
 
-Status: `planned`
+Status: `active`
 As of: 2026-11-23
 
 ## Purpose
@@ -48,26 +48,38 @@ A workspace from an older core has no `conversationModes`, so the header offers 
   - offers installed providers by display name, and shows a missing CLI as unavailable;
   - remembers the last provider started;
   - takes the explanation's provider name from the registry, replacing the `start.provider.*` messages.
-- **The workspace header** offers only the workspace's `conversationModes`, and hides the switch when there is one.
+- **The workspace header** had a mode switch, which [ADR-0617](../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md) removed with the terminal.
 - **The frame** keeps its table from mode to view, so no other code branches on a mode.
 
 ### The session host reads registries
 
-- **One dispatch point.** Each conversation mode has one starter: the native starter opens the index and the stream process, and the CLI starter opens the PTY. The lifecycle picks the starter for the launch's mode in one place, the mode registry, so it holds no other branch on a mode.
-- **One translation.** The protocol's mode and the domain's mode convert in `messages.rs` alone.
+- **One dispatch point.** Each conversation mode has one starter: the native starter opens the index and the stream process, and the CLI starter opens the PTY. The lifecycle picks the starter for the launch's mode in one exhaustive `match`, and nothing else in the session host branches on a mode.
+- **Modes are a closed set.** On 2026-11-23 the review for step 2 found that the protocol defines the modes, and a new provider adds none, because each provider offers some of the same two. A registry for two fixed entries would add indirection without extension, so the exhaustive `match` stays: the compiler reports every place a new protocol mode would need. Providers stay open, and the core's registry holds them.
+- **One translation per protocol.** The session-host protocol's mode and the domain's mode convert in `messages.rs`, and the core link's mode converts in `core-link/src/events.rs`.
 
 ## Order
 
 1. **Core and contract.** `displayName`, `provider.list`, `conversationModes` and `commands` in `workspace.list`, and the result schemas. This lands with a minor release intent, so it ships before the interface depends on it.
-2. **Session host.** Result validation and the mode registry.
+2. **Session host.** The command guard and result validation.
 3. **Interface.** The `providers` feature, the start screen, and the header.
+
+## Progress
+
+- **Step 1, core and contract**, shipped in v0.43.0 (pull request #346).
+- **Step 2, session host**, adds the command guard and result validation.
+- **Step 3, interface**, follows step 2 and [ADR-0617](../../decisions/execution/applications/0617-offer-only-claudes-native-conversation-in-the-ade-for-now.md), which removed the terminal and the mode switch:
+  - The workspace list records the commands the core advertised, and a `providers` feature loads `provider.list` once per connection, only from a core that advertised it.
+  - The feature keeps only the providers that offer the native conversation. Today that is Claude Code alone, so the start screen offers no chooser.
+  - With two or more such providers, the start screen lists them by display name, keeps one without its CLI visible but disabled, and remembers the last choice.
+  - An older core gets no choice and a note to update Lervo.
+  - Application results arrive typed, and the message catalog no longer names providers.
 
 ## Completion
 
 The group is complete when:
 
 - no interface or session-host code names a provider;
-- the interface offers only the modes and providers the core reports;
-- a stand-in third provider, added to a test registry with only the CLI conversation, appears on the start screen and in a workspace header without code changes;
+- the interface offers only the providers the core reports with the native conversation;
+- a stand-in provider with the native conversation, added to a test registry, joins the start screen without code changes, and a provider without it never appears;
 - an older core keeps the app working without a provider choice;
 - the contract tests cover every result schema.

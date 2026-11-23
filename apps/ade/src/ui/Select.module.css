@@ -16,6 +16,8 @@
   font-size: var(--type-meta-size);
   background: transparent;
   appearance: none;
+  /* The chip is as wide as the chosen option, not the longest one. */
+  field-sizing: content;
   cursor: pointer;
   transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
 }

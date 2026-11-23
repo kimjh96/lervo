@@ -87,7 +87,7 @@ function SelectDemo() {
       value={value}
       options={[
         { value: "claude", text: "Claude Code" },
-        { value: "codex", text: "Codex" },
+        { value: "codex", text: "Codex (not installed)", disabled: true },
       ]}
       onChange={setValue}
     />
@@ -178,7 +178,10 @@ export const entries: readonly Entry[] = [
     module: "Select",
     name: "Select chip",
     purpose: "A compact native chooser inside a card's action bar.",
-    use: ["Choosing among a few known options without leaving the card"],
+    use: [
+      "Choosing among a few known options without leaving the card",
+      "Showing an option that exists but cannot be chosen now, disabled, with the reason in its text",
+    ],
     avoid: ["A form field that needs a visible label", "More than a short list of options"],
     variants: [{ name: "Default", render: () => <SelectDemo /> }],
   },

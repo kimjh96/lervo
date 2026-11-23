@@ -93,6 +93,9 @@ pub struct Failure {
     pub core_code: Option<String>,
     /// The failed stage of `workspace.start`.
     pub stage: Option<String>,
+    /// Why the session host itself refused or rejected the request, such as
+    /// `command_unsupported` or `result_invalid`.
+    pub reason: Option<&'static str>,
 }
 
 impl Failure {
@@ -101,7 +104,15 @@ impl Failure {
             code,
             core_code: None,
             stage: None,
+            reason: None,
         }
+    }
+
+    /// The same failure, with the session host's reason for it.
+    #[must_use]
+    pub fn because(mut self, reason: &'static str) -> Self {
+        self.reason = Some(reason);
+        self
     }
 }
 

@@ -11,6 +11,11 @@ interface WorkspaceStore {
   readonly arrived: ReadonlySet<string>;
   /** The code of the last failed reload, until a reload succeeds. */
   readonly listFailure: string | null;
+  /**
+   * The application commands the core named in its last workspace list: empty for an older core
+   * that names none, and null before the first list.
+   */
+  readonly advertisedCommands: readonly string[] | null;
   /** Live status by session ID, from the session host's watch. */
   readonly statuses: Readonly<Record<string, SessionStatus>>;
   readonly selected: string | null;
@@ -27,6 +32,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   loaded: false,
   arrived: new Set(),
   listFailure: null,
+  advertisedCommands: null,
   statuses: {},
   selected: null,
   newWorkRequests: 0,

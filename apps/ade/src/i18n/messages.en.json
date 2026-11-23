@@ -131,6 +131,10 @@
     "defaultMessage": "Lervo opens a workspace and its workstream for this, then starts {provider} there. You follow and steer it in the conversation.",
     "description": "What starting work does, under the instruction input. {provider} is the chosen agent."
   },
+  "start.explain.default": {
+    "defaultMessage": "Lervo opens a workspace and its workstream for this, then starts the agent there. You follow and steer it in the conversation.",
+    "description": "What starting work does, when the core chooses the agent."
+  },
   "start.instruction.label": {
     "defaultMessage": "Instruction",
     "description": "The accessible label of the instruction input."
@@ -139,9 +143,17 @@
     "defaultMessage": "Describe the work, as you would to a colleague",
     "description": "Placeholder of the instruction input on the start screen."
   },
-  "start.provider.claude": {
-    "defaultMessage": "Claude Code",
-    "description": "The Claude Code provider CLI."
+  "start.provider.label": {
+    "defaultMessage": "Agent",
+    "description": "The accessible label of the provider choice."
+  },
+  "start.provider.missing": {
+    "defaultMessage": "{name} (not installed)",
+    "description": "An agent in the agent chooser whose CLI is not installed. {name} is the agent's product name."
+  },
+  "start.provider.older": {
+    "defaultMessage": "The installed Lervo starts its default agent. Update Lervo to choose the agent here.",
+    "description": "Under the start screen, when the installed Lervo is older than the app and offers no agent list."
   },
   "start.question": {
     "defaultMessage": "What should Lervo do?",

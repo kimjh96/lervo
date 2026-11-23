@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { createIntl, RawIntlProvider } from "react-intl";
 
 import { bindConnection } from "../features/connection";
+import { bindProviders } from "../features/providers";
 import { bindStart, bindStartDraft } from "../features/start";
 import { bindWorkspaces, notificationMessages, useWorkspaceStore } from "../features/workspaces";
 import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
@@ -32,6 +33,7 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
         isFocused: () => document.hasFocus(),
         text: (kind, title) => ({ title, body: intl.formatMessage(notificationMessages[kind]) }),
       }),
+      bindProviders({ client: host, commands }),
       bindStart(),
       bindStartDraft(drafts),
     ];

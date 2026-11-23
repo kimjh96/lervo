@@ -1,4 +1,8 @@
-import type { HostMessage } from "@lervo/session-host-contract";
+import type {
+  HostMessage,
+  RepositoryListResult,
+  WorkspaceListResult,
+} from "@lervo/session-host-contract";
 
 import {
   type ApplicationCommands,
@@ -8,7 +12,6 @@ import {
 } from "../../../ports";
 import { arrivals, type NotificationKind, notificationFor } from "./decisions";
 import { useWorkspaceStore } from "./store";
-import type { Repository, Workspace } from "./types";
 
 /** Formats a notification from the catalog. */
 export type NotificationText = (
@@ -21,8 +24,8 @@ export type NotificationText = (
  * records its code, so an unreachable core never looks like an empty one.
  */
 export async function reloadWorkspaces(commands: ApplicationCommands): Promise<void> {
-  let workspaces: Record<string, unknown>;
-  let repositories: Record<string, unknown>;
+  let workspaces: WorkspaceListResult;
+  let repositories: RepositoryListResult;
   try {
     [workspaces, repositories] = await Promise.all([
       commands.run("workspace.list"),
@@ -35,13 +38,14 @@ export async function reloadWorkspaces(commands: ApplicationCommands): Promise<v
     throw failure;
   }
   const store = useWorkspaceStore.getState();
-  const next = (workspaces.workspaces as Workspace[] | undefined) ?? [];
+  const next = workspaces.workspaces;
   const arrived = arrivals(store.loaded ? store.workspaces : null, next);
   useWorkspaceStore.setState({
     workspaces: next,
-    repositories: (repositories.repositories as Repository[] | undefined) ?? [],
+    repositories: repositories.repositories,
     loaded: true,
     listFailure: null,
+    advertisedCommands: workspaces.commands ?? [],
     // Only listed workspaces can animate, so the set stays within the list's size.
     arrived: new Set(
       [...store.arrived, ...arrived].filter((workspaceId) =>

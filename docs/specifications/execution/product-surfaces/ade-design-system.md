@@ -219,20 +219,20 @@ Each component is specified by its purpose, when to use and not to use it, anato
 - **Coverage.** A test fails when a module in `src/ui/` has no catalog entry, when an entry lacks its use or its limits, or when a variant does not render.
 - **The base.** `src/ui/base.css` holds the tokens and the default text, so the app and the catalog start from the same styles.
 
-| Component          | Use it for                                                                                   | Not for                                                |
-| ------------------ | -------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| `InputCard`        | A text field and its actions: the instruction (input, stacked) or a reply (floating, inline) | Short single values, or forms with several fields      |
-| `ListRow`          | A row of a navigation list, such as a workspace                                              | Actions that change data, or rows that need two lines  |
-| `FloatingButton`   | A way back to where content continues, such as "Jump to latest"                              | Primary actions, or anything that must stay on screen  |
-| `IconButton`       | The one primary action of an input card, such as send                                        | A second primary action, or an action that needs words |
-| `Select`           | A short choice inside a card's action bar                                                    | A form field that needs a visible label                |
-| `SegmentedControl` | Switching how one object is shown                                                            | Navigation between objects, or more than three options |
-| `Kbd`              | The shortcut of the action beside it                                                         | Prose about shortcuts                                  |
-| `InlineAlert`      | A failure where it happened, with its code                                                   | Warnings without action, or success                    |
-| `StatusDot`        | Working and needs-you, with an accessible name                                               | Decoration, or finished work                           |
-| `WorkingLine`      | What the open conversation's agent is doing now                                              | Workspaces that are not open, or known progress        |
-| `PaneHeader`       | The main area's title bar                                                                    | Section titles inside a pane                           |
-| Icons              | Size `sm` beside captions, `md` in rows, `lg` in buttons                                     | Emoji, or an icon-only control without a name          |
+| Component          | Use it for                                                                                                                          | Not for                                                |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| `InputCard`        | A text field and its actions: the instruction (input, stacked) or a reply (floating, inline)                                        | Short single values, or forms with several fields      |
+| `ListRow`          | A row of a navigation list, such as a workspace                                                                                     | Actions that change data, or rows that need two lines  |
+| `FloatingButton`   | A way back to where content continues, such as "Jump to latest"                                                                     | Primary actions, or anything that must stay on screen  |
+| `IconButton`       | The one primary action of an input card, such as send                                                                               | A second primary action, or an action that needs words |
+| `Select`           | A short choice inside a card's action bar; an option that cannot be chosen now stays visible, disabled, with the reason in its text | A form field that needs a visible label                |
+| `SegmentedControl` | Switching how one object is shown                                                                                                   | Navigation between objects, or more than three options |
+| `Kbd`              | The shortcut of the action beside it                                                                                                | Prose about shortcuts                                  |
+| `InlineAlert`      | A failure where it happened, with its code                                                                                          | Warnings without action, or success                    |
+| `StatusDot`        | Working and needs-you, with an accessible name                                                                                      | Decoration, or finished work                           |
+| `WorkingLine`      | What the open conversation's agent is doing now                                                                                     | Workspaces that are not open, or known progress        |
+| `PaneHeader`       | The main area's title bar                                                                                                           | Section titles inside a pane                           |
+| Icons              | Size `sm` beside captions, `md` in rows, `lg` in buttons                                                                            | Emoji, or an icon-only control without a name          |
 
 ## Accessibility
 

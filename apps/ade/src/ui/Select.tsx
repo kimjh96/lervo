@@ -9,7 +9,8 @@ import styles from "./Select.module.css";
 export function Select(props: {
   label: string;
   value: string;
-  options: readonly { value: string; text: string }[];
+  /** A disabled option stays visible, so the user sees what exists but cannot be chosen. */
+  options: readonly { value: string; text: string; disabled?: boolean }[];
   onChange: (value: string) => void;
 }) {
   return (
@@ -20,7 +21,7 @@ export function Select(props: {
         onChange={(event) => props.onChange(event.target.value)}
       >
         {props.options.map((option) => (
-          <option key={option.value} value={option.value}>
+          <option key={option.value} value={option.value} disabled={option.disabled}>
             {option.text}
           </option>
         ))}

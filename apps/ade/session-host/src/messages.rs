@@ -137,6 +137,7 @@ pub fn core_failed(request: &Identifier, failure: &Failure) -> HostMessage {
         &[
             ("coreCode", failure.core_code.as_deref()),
             ("stage", failure.stage.as_deref()),
+            ("reason", failure.reason),
         ],
     )
 }
