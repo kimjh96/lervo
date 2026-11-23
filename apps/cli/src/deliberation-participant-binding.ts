@@ -1,6 +1,7 @@
 import {
   deliberationExecutionRouteHash,
   deliberationParticipationAssignmentId,
+  selectionRoutedDeliberationRouteHash,
   workforceProviderForPolicyHash,
 } from "@lervo/agent-organization";
 import { deliberationPolicyHash } from "@lervo/deliberation";
@@ -130,16 +131,25 @@ function verifyAssignment(input: {
       candidate.conversationId === assignment.conversationId &&
       candidate.integrationId === deployment?.integrationId,
   );
-  const executionRouteHash =
+  // ADR-0612 M2c: a seat the model selection routes binds only its provider, with the selection
+  // marker in place of a model, and the assignment carries the role's current model and effort.
+  const routeHashes =
     deployment === undefined
-      ? null
-      : deliberationExecutionRouteHash({
-          participantId: assignment.participantId,
-          integrationId: deployment.integrationId,
-          provider: assignment.provider,
-          model: assignment.model,
-          reasoningEffort: assignment.reasoningEffort,
-        });
+      ? []
+      : [
+          deliberationExecutionRouteHash({
+            participantId: assignment.participantId,
+            integrationId: deployment.integrationId,
+            provider: assignment.provider,
+            model: assignment.model,
+            reasoningEffort: assignment.reasoningEffort,
+          }),
+          selectionRoutedDeliberationRouteHash({
+            participantId: assignment.participantId,
+            integrationId: deployment.integrationId,
+            provider: assignment.provider,
+          }),
+        ];
   const participationAssignmentId = deliberationParticipationAssignmentId({
     deliberationId: assignment.deliberationId,
     policyId: assignment.policyId,
@@ -157,7 +167,7 @@ function verifyAssignment(input: {
     membership === undefined ||
     deployment === undefined ||
     channel === undefined ||
-    executionRouteHash !== assignment.executionRouteHash ||
+    !routeHashes.includes(assignment.executionRouteHash) ||
     participationAssignmentId !== assignment.participationAssignmentId ||
     !providerAllowed(assignment, participant.provider)
   ) {

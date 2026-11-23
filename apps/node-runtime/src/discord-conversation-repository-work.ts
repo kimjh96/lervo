@@ -70,6 +70,9 @@ export function openDiscordConversationRepositoryWork(input: {
           ? "conversation_delegate"
           : "configured_agent",
       executors,
+      ...(input.providerExecutables === undefined
+        ? {}
+        : { executables: input.providerExecutables }),
       ...(input.providerModels === undefined ? {} : { models: input.providerModels }),
       ...(input.providerReasoningEfforts === undefined
         ? {}

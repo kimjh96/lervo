@@ -253,7 +253,7 @@ export class NativeSupervisionOwner {
         roleVersion: owner.roleVersion,
         roleContractHash: owner.roleContractHash,
         provider: this.configuration.provider,
-        requestedModel: this.configuration.model ?? null,
+        requestedModel: ownerReasoningRoute(this.configuration).model,
         reservedTokens,
         attemptNumber: previous.history.length + 1,
         deadline: base.deadline,
@@ -336,6 +336,7 @@ export class NativeSupervisionOwner {
   }
 }
 import { supervisionClaimDuration } from "./supervision-claim-duration.js";
+import { ownerReasoningRoute } from "./node-model-route.js";
 
 /** The owner reasoning invocation window from plan to the end of the provider turn. */
 export const OWNER_REASONING_WINDOW_MS = 300_000;

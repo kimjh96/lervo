@@ -236,3 +236,25 @@ export function conversationResponseRoute(input: {
       60_000,
   };
 }
+
+/**
+ * ADR-0612 M2c: the model and effort of supervision owner reasoning. Its provider stays the
+ * configured one, because the supervision mandate reviews it; the `reasoning` route for that
+ * provider sets the model and effort, and the configured model stands while the role lists none.
+ */
+export function ownerReasoningRoute(input: {
+  provider: ModelProvider;
+  model?: string | undefined;
+  readSelection?: ReadNodeModelSelection;
+}): { model: string | null; reasoningEffort?: ModelReasoningEffort } {
+  const routed = nodeRouteForProvider({
+    role: "reasoning",
+    provider: input.provider,
+    configured: { model: input.model },
+    ...(input.readSelection === undefined ? {} : { readSelection: input.readSelection }),
+  });
+  return {
+    model: routed.model ?? null,
+    ...(routed.reasoningEffort === undefined ? {} : { reasoningEffort: routed.reasoningEffort }),
+  };
+}

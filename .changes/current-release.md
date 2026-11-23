@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.38.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.39.0" schema="1" -->
 
 ## What's changed
 
-- When workspace.start names no conversation mode, start the provider's preferred one: the native conversation when the adapter offers it, otherwise the CLI.
+- Repository work from conversations, deliberation participants, and supervision owner reasoning use the model selection roles; a selection-routed deliberation seat binds only its provider.

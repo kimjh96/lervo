@@ -15,7 +15,10 @@ import type { ConversationResponder } from "@lervo/interaction";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import { SQLiteConversationRepositoryWorkStore } from "./conversation-repository-work-store.js";
-import { selectConversationRepositoryWorkRoute } from "./conversation-repository-work-routing.js";
+import {
+  configuredWorkRoutes,
+  selectConversationRepositoryWorkRoute,
+} from "./conversation-repository-work-routing.js";
 import type {
   NodeRepositoryWorkExecutionProfile,
   NodeRepositoryWorkExecutionProfilePolicy,
@@ -56,6 +59,8 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       parentAgentId: string;
       workerSelection?: "configured_agent" | "conversation_delegate";
       executors: Partial<Record<"codex" | "claude", RepositoryWorkTurnExecutor>>;
+      /** The executables the executors run, which decide whether a selected provider can start. */
+      executables?: Partial<Record<"codex" | "claude", string>>;
       models?: Partial<Record<"codex" | "claude", string>>;
       reasoningEfforts?: Partial<
         Record<"codex" | "claude", "low" | "medium" | "high" | "xhigh" | "max">
@@ -148,13 +153,7 @@ export class ConversationRepositoryWorkResponder implements ConversationResponde
       boundProvider: delegate?.provider ?? null,
       defaultProvider: this.options.defaultProvider,
       executionProfile: input.context?.executionProfile ?? null,
-      ...(this.options.executionProfiles === undefined
-        ? {}
-        : { executionProfiles: this.options.executionProfiles }),
-      ...(this.options.models === undefined ? {} : { models: this.options.models }),
-      ...(this.options.reasoningEfforts === undefined
-        ? {}
-        : { reasoningEfforts: this.options.reasoningEfforts }),
+      ...configuredWorkRoutes(this.options),
     });
     const provider = route.provider;
     const executor = this.options.executors[provider];

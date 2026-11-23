@@ -29,11 +29,23 @@ import { readOwnerSpendAdmission } from "./supervision-owner-spend-source.js";
 import { NodeSupervisionError } from "./supervision-authority.js";
 import { OWNER_REASONING_WINDOW_MS } from "./supervision-native-owner.js";
 import { readInvalidReasoningResult } from "./supervision-invalid-reasoning-result.js";
+import { ownerReasoningRoute } from "./node-model-route.js";
 
 export interface NodeOwnerReasoningConfiguration {
   provider: "codex" | "claude";
   model?: string;
   reservedTokens: number;
+}
+
+/** The reasoning route's effort, only when the planned model is that route's model. */
+function ownerReasoningEffort(
+  configuration: NodeOwnerReasoningConfiguration,
+  requestedModel: string | null,
+): { reasoningEffort?: "low" | "medium" | "high" | "xhigh" | "max" } {
+  const route = ownerReasoningRoute(configuration);
+  return route.model === requestedModel && route.reasoningEffort !== undefined
+    ? { reasoningEffort: route.reasoningEffort }
+    : {};
 }
 
 /** Owns one native model invocation and its cancellation, isolated profile and durable replay boundary. */
@@ -106,7 +118,8 @@ export class SupervisionOwnerReasoningEffects {
       const context = this.readiness.providerLoginContexts?.[provider];
       if (
         provider !== this.configuration.provider ||
-        basis.effect.requestedModel !== (this.configuration.model ?? null) ||
+        // ADR-0612 M2c: the model is not authority; the planned effect keeps the model the
+        // reasoning route chose when it was planned, so a later selection change never voids it.
         basis.effect.reservedTokens !==
           Math.max(
             this.configuration.reservedTokens,
@@ -251,6 +264,7 @@ export class SupervisionOwnerReasoningEffects {
         ...(ready.basis.effect.requestedModel === null
           ? {}
           : { model: ready.basis.effect.requestedModel }),
+        ...ownerReasoningEffort(this.configuration, ready.basis.effect.requestedModel),
         requestTimeoutMs: remaining,
         structuredOutputSchema: supervisionReasoningDecisionSchema(ready.basis.context),
       });
