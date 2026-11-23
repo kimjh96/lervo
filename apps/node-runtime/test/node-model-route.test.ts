@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 
@@ -11,7 +11,11 @@ import {
 } from "@lervo/execution-contract";
 import { hostModelSelectionDirectory } from "@lervo/repository-knowledge-runtime";
 
+import { bundledClaudeExecutable } from "@lervo/adapter-claude";
+
 import {
+  adapterStartable,
+  cliStartable,
   conversationResponseRoute,
   NodeModelRouteError,
   nodeRoleRoute,
@@ -245,4 +249,35 @@ it("keeps the profile's timeout for a selected provider the profile does not con
       startable: both,
     }),
   ).toMatchObject({ provider: "claude", reasoningEffort: "high", timeoutMs: 600_000 });
+});
+
+describe("provider startability", () => {
+  let directory: string;
+  let previousPath: string | undefined;
+
+  beforeEach(async () => {
+    previousPath = process.env.PATH;
+    directory = await mkdtemp(resolve(tmpdir(), "lervo-node-startable-"));
+  });
+
+  afterEach(async () => {
+    process.env.PATH = previousPath;
+    await rm(directory, { recursive: true, force: true });
+  });
+
+  it("finds a CLI on PATH or at its configured path, and only when it is executable", async () => {
+    await writeFile(resolve(directory, "codex"), "#!/bin/sh\n", { mode: 0o755 });
+    await writeFile(resolve(directory, "claude"), "not executable\n", { mode: 0o644 });
+    process.env.PATH = directory;
+    expect(cliStartable("codex")).toBe(true);
+    expect(cliStartable("claude")).toBe(process.platform === "win32");
+    expect(cliStartable("claude", resolve(directory, "codex"))).toBe(true);
+    expect(cliStartable("codex", resolve(directory, "missing"))).toBe(false);
+  });
+
+  it("lets an adapter start Claude on the SDK's bundled CLI without one on PATH", () => {
+    process.env.PATH = directory;
+    expect(adapterStartable("claude")).toBe(bundledClaudeExecutable() !== null);
+    expect(adapterStartable("codex")).toBe(false);
+  });
 });

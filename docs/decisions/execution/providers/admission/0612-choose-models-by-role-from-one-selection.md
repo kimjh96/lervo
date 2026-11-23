@@ -70,7 +70,7 @@ The delegation, the continuity policy and the mandate say _which providers may s
 
 The organization deployment hash keeps covering the agent's identity, role, command provider and authority. It no longer covers `routing.response.provider` or `routing.response.model`, because those are now a role reference resolved at call time. A model change can therefore never orphan a deployment.
 
-The new hash is schema version 2. A deployment bound earlier keeps its version 1 hash. A Node accepts it while its configuration is unchanged, and binding the same configuration again keeps it rather than replacing it, so an upgrade needs no rebind. Only a new deployment carries version 2. An older CLI cannot validate version 2, so a rollback past this release needs a rebind of agents hired since.
+The new hash is schema version 2. A deployment bound earlier keeps its version 1 hash. A Node accepts it while its configuration is unchanged, and binding the same configuration again keeps it rather than replacing it, so an upgrade needs no rebind. A version 1 hash still covers the configured response provider and model, so editing those fields needs one `lervo organization bind-runtime`; changing the selection never does. A later step that removes those fields from configurations rebinds afterwards. Only a new deployment carries version 2. An older CLI cannot validate version 2, so a rollback past this release needs a rebind of agents hired since.
 
 ### Same selection on every host
 

@@ -25,7 +25,8 @@ function nativePackageName(): string | null {
   return null;
 }
 
-function bundledClaudeExecutable(): string | null {
+/** The Claude CLI the Agent SDK runs when no executable is configured, or null. */
+export function bundledClaudeExecutable(): string | null {
   const packageName = nativePackageName();
   if (packageName === null) return null;
   try {

@@ -19,6 +19,8 @@ export function createDiscordConversationResultRuntime(input: {
   store: SQLiteConversationResultStore;
   artifacts: ArtifactStore;
   adapter: DiscordConversationAdapter;
+  /** ADR-0612: the hired agent's provider policy, which bounds the review routes. */
+  providerPolicy?: "codex" | "claude" | "any" | null;
   /** Replaced only in tests. */
   readModelSelection?: ReadNodeModelSelection;
 }): ConversationResultRuntime {
@@ -32,6 +34,7 @@ export function createDiscordConversationResultRuntime(input: {
     semanticEvaluator: createConversationReviewEvaluator({
       configured: evaluation,
       projectId: input.projectId,
+      providerPolicy: input.providerPolicy,
       ...(input.providerExecutables === undefined
         ? {}
         : { providerExecutables: input.providerExecutables }),

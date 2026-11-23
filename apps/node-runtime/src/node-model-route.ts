@@ -10,6 +10,7 @@ import {
 import { accessSync, constants, statSync } from "node:fs";
 import { delimiter, isAbsolute, resolve } from "node:path";
 
+import { bundledClaudeExecutable } from "@lervo/adapter-claude";
 import { hostModelSelectionDirectory } from "@lervo/repository-knowledge-runtime";
 
 /** One provider call's route: an absent model or effort keeps the provider default. */
@@ -46,7 +47,7 @@ export class NodeModelRouteError extends Error {
   }
 }
 
-/** Whether this host can start a provider's CLI: its configured executable or one on PATH. */
+/** Whether this host can start a provider for a call: its configured executable or a default. */
 export type ProviderStartable = (provider: ModelProvider, executable?: string) => boolean;
 
 function executableFile(path: string): boolean {
@@ -59,13 +60,35 @@ function executableFile(path: string): boolean {
   }
 }
 
-export const providerStartable: ProviderStartable = (provider, executable) => {
-  if (executable !== undefined && isAbsolute(executable)) return executableFile(executable);
-  const name = executable ?? provider;
+function onPath(name: string): boolean {
+  const extensions =
+    process.platform === "win32"
+      ? ["", ...(process.env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";").filter(Boolean)]
+      : [""];
   return (process.env.PATH ?? "")
     .split(delimiter)
     .filter((directory) => directory.length > 0)
-    .some((directory) => executableFile(resolve(directory, name)));
+    .some((directory) =>
+      extensions.some((extension) => executableFile(resolve(directory, `${name}${extension}`))),
+    );
+}
+
+/** A provider CLI spawned by name, as the no-capability JSON runner does. */
+export const cliStartable: ProviderStartable = (provider, executable) =>
+  executable !== undefined && isAbsolute(executable)
+    ? executableFile(executable)
+    : onPath(executable ?? provider);
+
+/**
+ * A provider adapter: Claude without a configured executable runs the CLI bundled with the Agent
+ * SDK, so it can start even when no `claude` is on PATH.
+ */
+export const adapterStartable: ProviderStartable = (provider, executable) => {
+  if (provider === "claude" && executable === undefined) {
+    const bundled = bundledClaudeExecutable();
+    if (bundled !== null && executableFile(bundled)) return true;
+  }
+  return cliStartable(provider, executable);
 };
 
 /**
@@ -89,7 +112,7 @@ export function nodeRoleRoute(input: {
 }): NodeProviderRoute & { source: "selection" | "configuration" } {
   const routes = (input.readSelection ?? readHostNodeModelSelection)().roles[input.role] ?? [];
   if (routes.length === 0) return { ...input.configured, source: "configuration" };
-  const startable = input.startable ?? providerStartable;
+  const startable = input.startable ?? adapterStartable;
   const route = routes.find(
     (candidate) =>
       (input.allowed === undefined || input.allowed.includes(candidate.provider)) &&

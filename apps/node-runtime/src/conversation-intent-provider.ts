@@ -8,6 +8,7 @@ import {
 } from "./conversation-intent-resolver.js";
 import {
   allowedRoute,
+  cliStartable,
   NodeModelRouteError,
   nodeRoleRoute,
   optionalRouteFields,
@@ -75,7 +76,8 @@ export async function createProviderConversationIntentResolver(input: {
       ...(input.readModelSelection === undefined
         ? {}
         : { readSelection: input.readModelSelection }),
-      ...(input.startable === undefined ? {} : { startable: input.startable }),
+      // The intent runner spawns the provider CLI by name, so the bundled SDK binary does not count.
+      startable: input.startable ?? cliStartable,
     });
   // The route current at startup opens now, as the configured one did, so a Node that cannot
   // start it fails at startup. A role that admits nothing here waits per turn instead.
