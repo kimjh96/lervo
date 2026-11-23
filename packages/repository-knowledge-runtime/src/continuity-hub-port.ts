@@ -2,6 +2,7 @@ import type { ProjectStorage } from "@lervo/project-storage";
 import {
   calculateProjectIdentityHash,
   knowledgeConvergenceOwnerFailureOf,
+  type KnowledgeConvergenceHostListing,
 } from "@lervo/sync-contract";
 
 import type {
@@ -10,6 +11,11 @@ import type {
 } from "./convergence-continuity.js";
 import type { ConvergenceOwnerHost } from "./convergence-owner-host.js";
 import { adoptPeerModelSelection } from "./model-selection-host.js";
+
+function httpStatusOf(error: unknown): number | null {
+  const status = (error as { httpStatus?: unknown } | null)?.httpStatus;
+  return typeof status === "number" ? status : null;
+}
 
 /**
  * ADR-0612 M3: every listing of this repository's host records also adopts a newer model
@@ -22,6 +28,17 @@ function withModelSelectionAdoption(
 ): ConvergenceHostRecordPort {
   return {
     ...port,
+    // A Hub older than ADR-0612 M3 rejects a record that carries the selection as invalid; the
+    // record is published again without it, so continuity never waits on a Hub upgrade.
+    publish: async (record, signal) => {
+      try {
+        return await port.publish(record, signal);
+      } catch (error) {
+        if (record.modelSelection === undefined || httpStatusOf(error) !== 400) throw error;
+        const { modelSelection: _withheld, ...withoutSelection } = record;
+        return port.publish(withoutSelection, signal);
+      }
+    },
     list: async (signal) => {
       const listed = await port.list(signal);
       await adoptPeerModelSelection(listed, hostHash).catch(() => undefined);
@@ -47,5 +64,39 @@ export async function continuityHostPort(
     return { port: withModelSelectionAdoption(port, host.hostHash), failureCode: null };
   } catch (error) {
     return { port: null, failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode };
+  }
+}
+
+/**
+ * This repository's host records split into peers and this host's own record as the Hub holds it,
+ * so an identical record is never published again. A Hub that reports presence judges peers by
+ * it; an earlier one judges them by record age.
+ */
+export async function listContinuityHosts(
+  port: ConvergenceHostRecordPort | null,
+  hostHash: string | null,
+  signal?: AbortSignal,
+): Promise<{
+  peers: KnowledgeConvergenceHostListing[];
+  ownListed: KnowledgeConvergenceHostListing | null;
+  presenceHub: boolean;
+  failureCode: string | null;
+}> {
+  if (port === null) return { peers: [], ownListed: null, presenceHub: false, failureCode: null };
+  try {
+    const listed = await port.list(signal);
+    return {
+      peers: listed.filter((record) => record.hostHash !== hostHash),
+      ownListed: listed.find((record) => record.hostHash === hostHash) ?? null,
+      presenceHub: listed.some((record) => record.presence !== undefined),
+      failureCode: null,
+    };
+  } catch (error) {
+    return {
+      peers: [],
+      ownListed: null,
+      presenceHub: false,
+      failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode,
+    };
   }
 }

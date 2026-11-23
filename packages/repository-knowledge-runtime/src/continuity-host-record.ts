@@ -2,6 +2,7 @@ import type { ProviderCliAdmissionProjection } from "@lervo/sync-contract";
 import {
   knowledgeConvergenceScopeHash,
   type KnowledgeConvergenceHostListing,
+  type KnowledgeConvergenceHostModelSelection,
   type KnowledgeConvergenceHostRecord,
 } from "@lervo/sync-contract";
 
@@ -35,6 +36,8 @@ export function continuityHostRecord(input: {
   health: KnowledgeResidentHealth | null;
   findings: readonly ContinuityFinding[];
   providerAdmission?: ProviderCliAdmissionProjection | null;
+  /** ADR-0612 M3: this host's selection, or null when it never chose. */
+  modelSelection?: KnowledgeConvergenceHostModelSelection | null;
 }): KnowledgeConvergenceHostRecord {
   const observation = input.continuity.delegation;
   const scope =
@@ -50,6 +53,7 @@ export function continuityHostRecord(input: {
       : null;
   return {
     ...(input.providerAdmission == null ? {} : { providerAdmission: input.providerAdmission }),
+    ...(input.modelSelection == null ? {} : { modelSelection: input.modelSelection }),
     schemaVersion: 1,
     projectId: input.projectId,
     repositoryIdentityHash: input.repositoryIdentityHash,

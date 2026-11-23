@@ -17,7 +17,14 @@ import {
   type ModelSelection,
   type ModelSelectionAdoptionNotice,
 } from "@lervo/execution-contract";
-import { hostModelSelectionDirectory } from "@lervo/repository-knowledge-runtime";
+import {
+  hostModelSelectionDirectory,
+  requestKnowledgeResidentCycle,
+} from "@lervo/repository-knowledge-runtime";
+import {
+  defaultRepositoryRegistryPath,
+  listRegisteredRepositories,
+} from "@lervo/repository-registry";
 
 import { writeCommandError } from "./command-error-output.js";
 import type { CliIo } from "./types.js";
@@ -92,6 +99,20 @@ async function readAdoptionNotice(
 }
 
 /**
+ * ADR-0612 M3: asks each registered repository's resident to publish the changed selection in its
+ * host record now, so the other host adopts it without waiting for unrelated work. A repository
+ * that cannot be asked keeps the change for its next cycle.
+ */
+async function announceSelectionChange(environment: NodeJS.ProcessEnv): Promise<void> {
+  const repositories = await listRegisteredRepositories(
+    defaultRepositoryRegistryPath(environment),
+  ).catch(() => []);
+  await Promise.all(
+    repositories.map((repository) => requestKnowledgeResidentCycle(repository.repositoryRoot)),
+  );
+}
+
+/**
  * ADR-0612: the one place a model is chosen. A role names an ordered list of routes; every caller
  * of that role resolves it at its next provider call, so no configuration, restart, rebind, or
  * re-review follows a change.
@@ -146,6 +167,7 @@ export async function runModelCommand(
       role: role as ModelRole,
       routes: routes.map((text) => parseModelRoute(role as ModelRole, text)),
     });
+    await announceSelectionChange(environment);
     io.stdout(
       json
         ? `${JSON.stringify({ schemaVersion: 1, selection: next }, null, 2)}\n`

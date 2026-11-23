@@ -59,6 +59,9 @@ export {
   CONTINUITY_RETRY_MILLISECONDS,
   type ContinuityTurnOutcome,
 } from "./continuity-turn-outcome.js";
+import { listContinuityHosts } from "./continuity-hub-port.js";
+import { readHostModelSelection } from "./model-selection-host.js";
+import { transportedModelSelection } from "@lervo/execution-contract";
 
 /** The Hub operations continuity needs; `@lervo/sync` provides the HTTP adapter. */
 export interface ConvergenceHostRecordPort {
@@ -208,21 +211,9 @@ export class ConvergenceContinuity {
       this.input.transport,
       this.input.storage,
     );
-    let hubFailure = portFailure;
-    let peers: KnowledgeConvergenceHostRecord[] = [];
-    // This host's own record as the Hub holds it, so an identical one is never published again.
-    let ownListed: KnowledgeConvergenceHostRecord | null = null;
-    // A Hub that reports presence judges peers by it; an earlier one judges them by record age.
-    let presenceHub = false;
-    if (port !== null)
-      try {
-        const listed = await port.list(signal);
-        peers = listed.filter((record) => record.hostHash !== host?.hostHash);
-        ownListed = listed.find((record) => record.hostHash === host?.hostHash) ?? null;
-        presenceHub = listed.some((record) => record.presence !== undefined);
-      } catch (error) {
-        hubFailure = knowledgeConvergenceOwnerFailureOf(error).failureCode;
-      }
+    const listing = await listContinuityHosts(port, host?.hostHash ?? null, signal);
+    const { peers, ownListed, presenceHub } = listing;
+    let hubFailure = portFailure ?? listing.failureCode;
     const exchange: DefinitionExchangeObservation = { failureCode: null };
     const definitionPort = hubFailure === null ? (port?.definitions ?? null) : null;
     const writer = await observeDelegationWriter(this.root, startedAt.getTime());
@@ -312,6 +303,8 @@ export class ConvergenceContinuity {
             health,
             findings,
             providerAdmission,
+            // ADR-0612 M3: peers adopt a newer selection from this record.
+            modelSelection: transportedModelSelection((await readHostModelSelection()).selection),
           });
     // ADR-0602: a record whose facts the Hub already holds is not published again, so two hosts
     // never wake each other with records that differ only in when they were observed. A Hub older

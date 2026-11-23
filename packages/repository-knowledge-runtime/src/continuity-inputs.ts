@@ -11,6 +11,8 @@ import { readKnowledgeProviderPauseStates } from "./provider-admission-inspectio
 import { readProviderCliProjection } from "./provider-cli-projection.js";
 import { repositoryHeadIdentity } from "./repository-head-identity.js";
 import { inspectKnowledgeResidentHealth } from "./resident-health.js";
+import { modelSelectionPath } from "@lervo/execution-contract";
+import { hostModelSelectionDirectory } from "./model-selection-host.js";
 
 async function contentHash(path: string | null): Promise<string | null> {
   if (path === null) return null;
@@ -44,45 +46,57 @@ export async function continuityInputFingerprint(input: {
   now: Date;
 }): Promise<string> {
   const { root } = input;
-  const [ownerHost, policy, delegation, head, fence, publication, resident, pauses, provider] =
-    await Promise.all([
-      contentHash(resolve(root, CONVERGENCE_OWNER_HOST_PATH)),
-      contentHash(input.policyPath),
-      settled(async () => (await loadConvergenceDelegation(root))?.contentHash ?? null),
-      settled(() => repositoryHeadIdentity(root)),
-      settled(async () => {
-        const verdict = (await readConvergenceOwnerFence(root))?.verdict ?? null;
-        return verdict === null
-          ? null
-          : {
-              role: verdict.role,
-              holder: verdict.holder?.hostHash ?? null,
-              generation: verdict.holder?.generation ?? null,
-              failureCode: verdict.failureCode ?? null,
-            };
-      }),
-      settled(async () => (await readKnowledgePublicationState(root))?.status ?? null),
-      settled(async () => {
-        const health = await inspectKnowledgeResidentHealth(root, input.now);
-        return { status: health.status, state: health.state, reason: health.reason };
-      }),
-      settled(async () =>
-        (await readKnowledgeProviderPauseStates({ now: input.now })).map((state) => ({
-          provider: state.provider,
-          paused: state.paused,
-          reason: state.reason,
-          observationHash: state.observationHash,
-          resetAt: state.resetAt,
-          nextReprobeAt: state.nextReprobeAt,
-        })),
-      ),
-      settled(async () => {
-        const projection = await readProviderCliProjection(root);
-        if (projection === null) return null;
-        const { observedAt: _observedAt, ...facts } = projection;
-        return facts;
-      }),
-    ]);
+  const [
+    ownerHost,
+    policy,
+    delegation,
+    head,
+    fence,
+    publication,
+    resident,
+    pauses,
+    provider,
+    modelSelection,
+  ] = await Promise.all([
+    contentHash(resolve(root, CONVERGENCE_OWNER_HOST_PATH)),
+    contentHash(input.policyPath),
+    settled(async () => (await loadConvergenceDelegation(root))?.contentHash ?? null),
+    settled(() => repositoryHeadIdentity(root)),
+    settled(async () => {
+      const verdict = (await readConvergenceOwnerFence(root))?.verdict ?? null;
+      return verdict === null
+        ? null
+        : {
+            role: verdict.role,
+            holder: verdict.holder?.hostHash ?? null,
+            generation: verdict.holder?.generation ?? null,
+            failureCode: verdict.failureCode ?? null,
+          };
+    }),
+    settled(async () => (await readKnowledgePublicationState(root))?.status ?? null),
+    settled(async () => {
+      const health = await inspectKnowledgeResidentHealth(root, input.now);
+      return { status: health.status, state: health.state, reason: health.reason };
+    }),
+    settled(async () =>
+      (await readKnowledgeProviderPauseStates({ now: input.now })).map((state) => ({
+        provider: state.provider,
+        paused: state.paused,
+        reason: state.reason,
+        observationHash: state.observationHash,
+        resetAt: state.resetAt,
+        nextReprobeAt: state.nextReprobeAt,
+      })),
+    ),
+    settled(async () => {
+      const projection = await readProviderCliProjection(root);
+      if (projection === null) return null;
+      const { observedAt: _observedAt, ...facts } = projection;
+      return facts;
+    }),
+    // ADR-0612 M3: a changed model selection is republished in this host's record.
+    settled(() => contentHash(modelSelectionPath(hostModelSelectionDirectory()))),
+  ]);
   return sha256(
     canonicalJson({
       ownerHost,
@@ -94,6 +108,7 @@ export async function continuityInputFingerprint(input: {
       resident,
       pauses,
       provider,
+      modelSelection,
       hubCandidates: input.hubCandidates,
     }),
   );
