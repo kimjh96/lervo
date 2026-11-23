@@ -75,7 +75,7 @@ Each component has a purpose, when to use it and when not to, anatomy, variants,
 - **Evidence and verification**: states that are never promoted, sources and hashes, and unknown shown as unknown.
 - **Failures**: inline or global placement, codes with explanations, and recovery actions.
 - **Undo and after-the-fact notices** for consequential effects.
-- **Waiting**: empty, loading, streaming, reconnecting, and session host unavailable.
+- **Waiting**: launching, empty, loading, streaming, reconnecting, and session host unavailable.
 - **Navigation and selection**: the workspace list, the start screen, switching, and what stays still.
 - **Keyboard**: a shortcut registry, focus order, and the command palette.
 - **Input**: drafts, validation, and sending.

@@ -11,7 +11,8 @@ Values here supersede the mockup values where they differ. The glass follows the
 
 - **Native window material.** The window uses the platform's own window material: `fullScreenUI` vibrancy on macOS, and Mica or Acrylic on Windows. A CSS `backdrop-filter` inside the webview cannot see the desktop behind the window, so it never produces window glass. On 2026-11-23 the macOS `sidebar` material, which S1.5a used, showed almost no desktop color under any tint; `fullScreenUI` came closest to the approved mockups over their own backdrop.
 - **The material stays on.** The window keeps its material when it is not the active window, so the glass does not turn into a flat panel when the user works in another app.
-- **One tint for the window.** The whole window carries the `glass.tint` layer over the material, as in the mockups. The workspace list and the selected workspace add their lighter surfaces on top.
+- **One tint for the window.** The whole window carries the `glass.tint` layer over the material, as in the mockups. The document draws it, so the launch view and the frame sit on the same surface. The workspace list and the selected workspace add their lighter surfaces on top.
+- **The shell names the material.** Before the page's first paint, the shell sets `data-material` on the document: `native` on macOS, where it draws the material, and `opaque` elsewhere. The first frame therefore already shows the right surface.
 - **Platforms without a material.** Linux and WSL draw the opaque surface tokens. The layout, behavior, and contrast stay the same; only the translucency differs.
 - **Floating controls.** The reply card and "Jump to latest" float over the conversation on `color.surface.floating` with the overlay blur, and the conversation runs beneath them to the bottom of the window, where it fades out. The owner asked for this on 2026-11-23, because a reply card that kept its own band looked rigid. S1.6b measures scrolling with them.
 - **In-app overlays.** Short-lived overlays, such as the command palette and menus, may use the same CSS `backdrop-filter` over app content. Nothing uses it over a terminal.
@@ -117,6 +118,7 @@ The CLI conversation uses these colors over the `color.surface.terminal` glass, 
 | `size.control.sm` / `md` / `lg`               | 24 / 28 / 34 px | Segments, chips, and icon buttons in input cards          |
 | `size.dot.default` / `attention`              | 6 / 7 px        | Status and working dots; the needs-you dot                |
 | `size.icon.sm` / `md` / `lg`                  | 12 / 14 / 16 px | Icons beside captions, in rows, and in buttons            |
+| `size.logo.launch`                            | 48 px           | The mark in the launch view, one pixel per grid unit      |
 | `opacity.disabled`                            | 0.45            | A control that cannot act now                             |
 | `focus.ring.width` / `offset` / `inset`       | 2 / 2 / −2 px   | Focus rings outside a control, or inside a row or segment |
 | `border.width.strong`                         | 2 px            | The question bar                                          |
@@ -148,6 +150,7 @@ Icons are drawn on a 24 px grid with 2 px round-capped strokes and render at 12,
 - **Monochrome.** Where a platform requires one color, such as the macOS menu bar, all three bars use that color with the same opacity steps.
 - **App icon.** The mark fills 55% of a rounded-square tile with a `#2C3754` to `#151A27` gradient.
 - **Clear space and size.** Keep at least one bar height (9 units) clear on every side. The minimum size is 16 px.
+- **Launch view.** From the window's first frame until the first screen is ready, the full-color mark shows at `size.logo.launch` in the center of the window's surface. It has no text and no progress indicator. The motion principles' "Launch" pattern times its exit.
 - **Misuse.** Do not recolor the first two bars, reorder the opacity steps, rotate the mark, or add glass, blur, or shadow to it.
 
 ## Interface copy

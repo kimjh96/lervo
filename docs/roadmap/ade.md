@@ -131,6 +131,7 @@ The second pull request resolves the interface structure and one motion problem 
   - Every message has a static ID that a test checks against the catalog, and inputs show their focus.
   - Import-boundary lint rules enforce the layers.
 - **What stays, stays still.** A conversation mode switch faded the whole view, title included, because the view's key held the mode. The key now names only the workspace, a header decides its arrival when it mounts, and selecting the selected workspace changes nothing. The ADE motion principles record the rule.
+- **Launch view.** On 2026-11-23 the owner noticed that Lervo opened on an empty window. The window now shows the Lervo mark from its first frame until the first lists load, within the cold-start budget. The shell sets the window material before the first paint, and the window's tint moved from the frame to the document. The first screen therefore replaces the mark without the window changing color, and in WebKit the start screen still matches its earlier rendering byte for byte.
 
 Three findings move to later groups. The provider names on the start screen and the result schemas of application commands go with the provider registry (group 5). The terminal input encoding and the duplicated mode translation in Rust go with the session-host internals (group 3).
 

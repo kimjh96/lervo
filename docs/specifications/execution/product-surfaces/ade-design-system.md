@@ -184,7 +184,7 @@ The [motion principles](ade-motion.md) are this chapter. In short, motion explai
 
 ## Brand
 
-- The stepped-bar logo and its rules are in the visual language.
+- The stepped-bar logo and its rules are in the visual language. The launch view is the only place the interface shows the mark on its own.
 - The product's name is "Lervo" in text, without "the" and without a suffix. The app's name is "Lervo".
 - A wordmark for the site follows the logo's geometry. It is defined before the site uses it.
 
