@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.43.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.43.1" schema="1" -->
 
 ## What's changed
 
-- List hosted providers with names, capabilities, and modes, and advertise the application commands the core answers.
+- Knowledge convergence verification runs with the owner's login-shell PATH, so canonical integration finds pnpm under a service manager and no longer fails on spawnSync pnpm ENOENT.
