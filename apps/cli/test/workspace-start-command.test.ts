@@ -136,6 +136,7 @@ describe("lervo workspace start and open", () => {
         repositoryName: "app",
         branch: result.branch,
         title: "Add a health check endpoint",
+        conversationModes: ["native", "cli"],
         sessionId: result.sessionId,
       }),
     ]);

@@ -6,8 +6,12 @@ import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
 import {
   hasStreamDecoder,
+  type HostedConversationMode,
+  hostedConversationModes,
   type HostedSessionAdapter,
+  type HostedSessionCapabilities,
   type HostedStreamDecoder,
+  preferredConversationMode,
 } from "@lervo/adapter-contract";
 
 import { CommandFailure } from "./command-error-output.js";
@@ -27,8 +31,53 @@ const hostedProviders: ReadonlyMap<string, HostedProvider> = new Map([
   ["codex", { executable: "codex", create: createCodexHostedSessionAdapter }],
 ]);
 
+/** The provider a workspace starts with when the request names none. */
+export const defaultHostedProvider = "claude";
+
 export function hostedProviderNames(): string[] {
   return [...hostedProviders.keys()];
+}
+
+/** One admitted provider as `provider.list` reports it. */
+export interface HostedProviderSummary {
+  provider: string;
+  displayName: string;
+  capabilities: HostedSessionCapabilities;
+  conversationModes: HostedConversationMode[];
+  preferredMode: HostedConversationMode;
+  /** Whether the provider's CLI is on `PATH`, where a launch looks for it. */
+  installed: boolean;
+}
+
+/**
+ * Every admitted hosted provider, in registry order, and the default one. Reading capabilities
+ * needs no provider CLI; `installed` looks for each CLI on `PATH`.
+ */
+export async function listHostedProviders(
+  environment: NodeJS.ProcessEnv = process.env,
+): Promise<{ providers: HostedProviderSummary[]; defaultProvider: string }> {
+  const providers = await Promise.all(
+    [...hostedProviders.entries()].map(async ([provider, entry]) => {
+      const adapter = entry.create(entry.executable);
+      return {
+        provider,
+        displayName: adapter.displayName,
+        capabilities: { ...adapter.capabilities },
+        conversationModes: hostedConversationModes(adapter.capabilities),
+        preferredMode: preferredConversationMode(adapter.capabilities),
+        installed: (await findOnPath(entry.executable, environment)) !== null,
+      };
+    }),
+  );
+  return { providers, defaultProvider: defaultHostedProvider };
+}
+
+/** The conversation modes `provider` offers, or null for a provider no adapter admits. */
+export function hostedProviderModes(provider: string): HostedConversationMode[] | null {
+  const entry = hostedProviders.get(provider);
+  return entry === undefined
+    ? null
+    : hostedConversationModes(entry.create(entry.executable).capabilities);
 }
 
 /** The first executable file named `name` on `PATH`, or null. */
