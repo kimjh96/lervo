@@ -2,7 +2,11 @@
 
 Lervo uses reviewed release-intent files to prepare `@lervo/cli` versions. Preparation may change repository bytes and create the exact release tag, but cannot stage or publish an npm package.
 
-The Lervo ADE keeps a separate version line with `ade-v` tags, and its intents live in `.changes/ade/` ([ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md)). A pull request that changes the ADE's behavior adds one with `pnpm release:intent:create --target ade --impact <impact> --summary "<summary>"`. No CLI workflow or script reads `.changes/ade/`, and ADE preparation, which will consume these intents, is still to come.
+The Lervo ADE keeps a separate version line with `ade-v` tags, and its intents live in `.changes/ade/` ([ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md)). No CLI workflow or script reads that directory.
+
+- **Intents.** A pull request that changes the ADE's behavior adds one with `pnpm release:intent:create --target ade --impact <impact> --summary "<summary>"`.
+- **Preparation.** Before merging, `pnpm release:ade:prepare` consumes the ADE intents, writes the next version to every ADE manifest, and replaces `.changes/ade/current-release.md`. Commit the result as `chore(ade): prepare release`.
+- **Checks and tags.** ADE CI runs `pnpm release:ade:check`. After the merge, the ADE release workflow tags the revision `ade-v<version>`.
 
 ## Contributor intent
 
