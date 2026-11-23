@@ -73,6 +73,22 @@ async fn decodes_through_the_resident_process() {
 }
 
 #[tokio::test]
+async fn reads_transcript_pages_through_the_resident_process() {
+    let core = core("fake-resident.sh");
+    let first = core.transcript("wsp_1", 0, 500).await.unwrap();
+    assert!(!first.complete);
+    assert_eq!(
+        first.items,
+        [Input::Item {
+            content: Content::UserMessage("from the terminal".to_owned()),
+            created_at_ms: 5,
+        }]
+    );
+    let last = core.transcript("wsp_1", 1, 500).await.unwrap();
+    assert!(last.complete && last.items.is_empty());
+}
+
+#[tokio::test]
 async fn starts_the_resident_process_again_after_it_exits() {
     let core = core("fake-resident.sh");
     let crashed = core
@@ -105,6 +121,8 @@ async fn reports_a_missing_resident_process_without_failing_the_session() {
         environment: Vec::new(),
         working_directory: std::env::temp_dir(),
         initial_input: None,
+        environment_remove: Vec::new(),
+        transcript: false,
     };
     let (input, shown) = core.decoder(&launch).send("hi").await;
     assert!(input.is_empty());

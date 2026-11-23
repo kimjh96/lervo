@@ -17,6 +17,13 @@ use crate::native::{self, IndexPlace, StartError};
 use crate::session::{Command, SessionHandle};
 use crate::terminal;
 use lervo_session_core::ports::{ConversationMode, Core, Launch};
+use lervo_session_core::transcript::{Content, Input};
+
+/// Transcript items in one `transcript.read` page.
+const TRANSCRIPT_PAGE: u64 = 500;
+/// A transcript larger than this is not read whole, and the index stays as it is.
+const MAX_TRANSCRIPT_ITEMS: usize = 100_000;
+const MAX_TRANSCRIPT_TEXT_BYTES: usize = 64 * 1024 * 1024;
 
 /// How long a mode switch waits for the running provider process to end. Native sessions give a
 /// provider 5 seconds to exit after its input closes, so this leaves room for that.
@@ -93,6 +100,11 @@ impl<C: Core> Host<C> {
                     .map(|prepared| prepared.start(self.watch.clone()))
             }
             ConversationMode::Native => {
+                let transcript = if launch.transcript {
+                    self.transcript(&launch.workspace_id).await
+                } else {
+                    None
+                };
                 let (launch, session) = (launch.clone(), session.clone());
                 let decoder = self.core.decoder(&launch);
                 let place = IndexPlace {
@@ -100,7 +112,7 @@ impl<C: Core> Host<C> {
                     in_use,
                 };
                 tokio::task::spawn_blocking(move || {
-                    native::prepare(&launch, session, channel, decoder, &place)
+                    native::prepare(&launch, session, channel, decoder, &place, transcript)
                 })
                 .await
                 .map_err(|_| start_failed(request, "task_failed"))
@@ -116,6 +128,44 @@ impl<C: Core> Host<C> {
             }
             Err(failure) => failure,
         }
+    }
+}
+
+impl<C: Core> Host<C> {
+    /// The provider transcript of the workspace's session, read page by page, or `None` when it
+    /// cannot be read whole within its bounds; the index then stays as it is.
+    async fn transcript(&self, workspace: &str) -> Option<Vec<Input>> {
+        let mut items = Vec::new();
+        let mut bytes = 0;
+        loop {
+            let page = self
+                .core
+                .transcript(workspace, items.len() as u64, TRANSCRIPT_PAGE)
+                .await
+                .ok()?;
+            let ended = page.complete || page.items.is_empty();
+            for item in page.items {
+                bytes += text_bytes(&item);
+                items.push(item);
+            }
+            if items.len() > MAX_TRANSCRIPT_ITEMS || bytes > MAX_TRANSCRIPT_TEXT_BYTES {
+                return None;
+            }
+            if ended {
+                return Some(items);
+            }
+        }
+    }
+}
+
+fn text_bytes(input: &Input) -> usize {
+    match input {
+        Input::Item {
+            content:
+                Content::UserMessage(text) | Content::AgentMessage(text) | Content::Question(text),
+            ..
+        } => text.len(),
+        _ => 0,
     }
 }
 

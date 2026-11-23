@@ -64,6 +64,9 @@
           "$ref": "#/$defs/CoreOpenRequest"
         },
         {
+          "$ref": "#/$defs/TranscriptReadRequest"
+        },
+        {
           "$ref": "#/$defs/DecoderOpenRequest"
         },
         {
@@ -88,6 +91,9 @@
         },
         {
           "$ref": "#/$defs/DecoderDecodedResponse"
+        },
+        {
+          "$ref": "#/$defs/TranscriptPageResponse"
         }
       ]
     },
@@ -156,6 +162,17 @@
               "type": "null"
             }
           ]
+        },
+        "environmentRemove": {
+          "type": "array",
+          "maxItems": 64,
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+          }
+        },
+        "transcript": {
+          "type": "boolean"
         }
       }
     },
@@ -259,6 +276,42 @@
         },
         "mode": {
           "$ref": "#/$defs/ConversationMode"
+        }
+      }
+    },
+    "TranscriptReadRequest": {
+      "title": "TranscriptReadRequest",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "workspaceId",
+        "offset",
+        "limit"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "transcript.read"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500
         }
       }
     },
@@ -469,6 +522,52 @@
         "input": {
           "type": "string",
           "maxLength": 1398104
+        }
+      }
+    },
+    "TranscriptPageResponse": {
+      "title": "TranscriptPageResponse",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "id",
+        "items",
+        "complete"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "transcript.page"
+          ]
+        },
+        "id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "items": {
+          "type": "array",
+          "maxItems": 500,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "content",
+              "createdAtMs"
+            ],
+            "properties": {
+              "content": {
+                "$ref": "#/$defs/DecodedContent"
+              },
+              "createdAtMs": {
+                "$ref": "#/$defs/EpochMilliseconds"
+              }
+            }
+          }
+        },
+        "complete": {
+          "type": "boolean"
         }
       }
     },

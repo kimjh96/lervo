@@ -1,0 +1,15 @@
+{
+  "kind": "transcript.page",
+  "id": 7,
+  "items": [
+    {
+      "content": { "kind": "user_message", "text": "Fix the build." },
+      "createdAtMs": 1763875162000
+    },
+    {
+      "content": { "kind": "tool_activity", "name": "Bash", "status": "succeeded", "calls": 1 },
+      "createdAtMs": 1763875164000
+    }
+  ],
+  "complete": true
+}

@@ -18,6 +18,8 @@ pub struct StreamCommand {
     pub program: String,
     pub arguments: Vec<String>,
     pub environment: Vec<(String, String)>,
+    /// Variables of this process's environment the child must not inherit.
+    pub environment_remove: Vec<String>,
     pub working_directory: PathBuf,
 }
 
@@ -51,7 +53,11 @@ impl StreamProcess {
     /// Starts `command` with piped standard input and output. Standard error is discarded, so a
     /// provider that writes much there never blocks. The process is killed if this value drops.
     pub fn spawn(command: &StreamCommand) -> Result<Self, StreamError> {
-        let mut child = Command::new(&command.program)
+        let mut builder = Command::new(&command.program);
+        for name in &command.environment_remove {
+            builder.env_remove(name);
+        }
+        let mut child = builder
             .args(&command.arguments)
             .envs(
                 command

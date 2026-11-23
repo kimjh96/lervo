@@ -23,6 +23,8 @@ pub struct PtyCommand {
     pub program: String,
     pub arguments: Vec<String>,
     pub environment: Vec<(String, String)>,
+    /// Variables of this process's environment the child must not inherit.
+    pub environment_remove: Vec<String>,
     pub working_directory: PathBuf,
     pub columns: u16,
     pub rows: u16,
@@ -66,6 +68,9 @@ impl PtyProcess {
         let mut builder = CommandBuilder::new(&command.program);
         builder.args(&command.arguments);
         builder.cwd(&command.working_directory);
+        for name in &command.environment_remove {
+            builder.env_remove(name);
+        }
         for (name, value) in &command.environment {
             builder.env(name, value);
         }

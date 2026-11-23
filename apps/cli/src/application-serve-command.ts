@@ -7,6 +7,9 @@ import {
   parseConversationMode,
   startWorkspaceFromInstruction,
 } from "./workspace-launch-service.js";
+import { WorkspaceTranscripts } from "./workspace-transcript-service.js";
+
+const transcripts = new WorkspaceTranscripts();
 
 /** The `workspace.start` arguments the core link accepts. */
 function startArguments(arguments_: Record<string, unknown>) {
@@ -38,6 +41,7 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   listRepositories,
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
+  readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),
 };
 
 /**

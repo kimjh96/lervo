@@ -153,6 +153,20 @@ The third pull request resolves the session-host internals:
 
 A bounded follow-up from the convention check: the session host keeps no log. Its standard error goes nowhere, so a connection that ends with an error, or an accept that fails, leaves no trace on the host. The follow-up adds a diagnostics log in the host state directory, bounded in bytes with rotation, recording message kinds, identifiers, sizes, and error codes, never bodies or terminal bytes (session-host protocol, "Privacy and failure"). It is verified by a test that fills the log past its bound and finds the oldest entries gone.
 
+### Transcript sync and the CLI conversation's quality
+
+On 2026-11-23 the owner tried the app built from `main` and found two problems.
+
+- **Messages did not carry over between the modes.** Messages sent in the CLI conversation did not appear in the native conversation. The native index held only what its own stream decoded, though the sessions specification makes the provider's transcript the canonical conversation.
+  - The fix reads the transcript through the new `transcript.read` request whenever a native session opens. It rebuilds the index when the transcript holds a different number of items. The same path heals a damaged index.
+  - The test also showed the app's provider inheriting an enclosing Claude Code session's markers: it stopped saving its transcript and could reach that session's messaging channel. Launches now name the variables the session host must not pass on, and the Claude adapter lists the markers.
+- **The CLI conversation was hard to use in Korean.** The owner asked to improve it later, as one bounded follow-up:
+  - Hangul renders with gaps, because JetBrains Mono has no Hangul glyphs and the fallback is narrower than two cells;
+  - Hangul input through the IME is unreliable in xterm.js on WKWebView;
+  - in light mode, the provider's own colors, a black status bar and a dark prompt bar, assume a dark terminal.
+
+  The follow-up enables xterm.js's Unicode 11 widths with a CJK-capable monospace fallback, makes IME composition reliable, tells the provider the terminal is light, and tunes the palette. Real-window screenshots in both modes, and typing Korean in the terminal, verify it.
+
 ### S1.6b progress
 
 `apps/ade/scripts/check-bundle-size.mjs` runs in `pnpm ade:check` on every pull request. On 2026-11-23, the start screen loads 94 KB of gzip JavaScript against a 120 KB budget. The largest lazy chunk, the terminal, is 115 KB against 160 KB. The webview scenarios of S1.6b remain: cold start, idle CPU, the 100,000-item conversation, streamed deltas to screen, and keystroke echo.

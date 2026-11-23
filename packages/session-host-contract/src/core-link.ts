@@ -77,9 +77,26 @@ export const decoderCloseRequestSchema = request(
   ["decoderId"],
 );
 
+/**
+ * A page of the provider's own transcript of a workspace's session, which the session host
+ * rebuilds the native conversation's index from. The session host sends it only for a launch the
+ * core marked with `transcript`, so an older core never receives it.
+ */
+export const transcriptReadRequestSchema = request(
+  "TranscriptReadRequest",
+  "transcript.read",
+  {
+    workspaceId: identifierSchema,
+    offset: { type: "integer", minimum: 0 },
+    limit: { type: "integer", minimum: 1, maximum: 500 },
+  },
+  ["workspaceId", "offset", "limit"],
+);
+
 export const coreLinkRequestSchemas = [
   coreCommandRequestSchema,
   coreOpenRequestSchema,
+  transcriptReadRequestSchema,
   decoderOpenRequestSchema,
   decoderSendRequestSchema,
   decoderOutputRequestSchema,
@@ -121,6 +138,14 @@ export const coreLaunchSchema = {
     },
     workingDirectory: { type: "string", minLength: 1, maxLength: 4096 },
     initialInput: { oneOf: [textSchema, { type: "null" }] },
+    /** Variables the session host must not pass on from its own environment. */
+    environmentRemove: {
+      type: "array",
+      maxItems: 64,
+      items: { type: "string", pattern: "^[A-Za-z_][A-Za-z0-9_]{0,127}$" },
+    },
+    /** Whether `transcript.read` can read this session's provider transcript. */
+    transcript: { type: "boolean" },
   },
 } as const;
 
@@ -259,10 +284,34 @@ export const decoderDecodedResponseSchema = {
   },
 } as const;
 
+/** Answers `transcript.read`: complete items, oldest first, and whether the transcript ended. */
+export const transcriptPageResponseSchema = {
+  title: "TranscriptPageResponse",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "id", "items", "complete"],
+  properties: {
+    kind: { type: "string", enum: ["transcript.page"] },
+    id: requestIdSchema,
+    items: {
+      type: "array",
+      maxItems: 500,
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["content", "createdAtMs"],
+        properties: { content: decodedContentSchema, createdAtMs: epochMillisecondsSchema },
+      },
+    },
+    complete: { type: "boolean" },
+  },
+} as const;
+
 export const coreLinkResponseSchemas = [
   coreResultResponseSchema,
   coreFailedResponseSchema,
   decoderDecodedResponseSchema,
+  transcriptPageResponseSchema,
 ] as const;
 
 export const coreLinkResponseSchema = {

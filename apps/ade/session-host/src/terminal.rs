@@ -40,6 +40,7 @@ pub(crate) fn prepare(
         program: launch.program.clone(),
         arguments: launch.arguments.clone(),
         environment: launch.environment.clone(),
+        environment_remove: launch.environment_remove.clone(),
         working_directory: launch.working_directory.clone(),
         columns: INITIAL_COLUMNS,
         rows: INITIAL_ROWS,

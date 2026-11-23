@@ -71,6 +71,8 @@ impl Core for IdleCore {
             working_directory: std::env::temp_dir(),
             provider: "fake".to_owned(),
             initial_input: None,
+            environment_remove: Vec::new(),
+            transcript: false,
         })
     }
 

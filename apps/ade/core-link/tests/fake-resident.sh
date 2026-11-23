@@ -13,6 +13,11 @@ while IFS= read -r line; do
         *) printf '{"kind":"core.result","id":%s,"result":{"workspaceId":"wsp_1"},"launch":%s}\n' "$id" "$launch" ;;
       esac ;;
     core.open) printf '{"kind":"core.failed","id":%s,"code":"workspace_not_found"}\n' "$id" ;;
+    transcript.read)
+      case "$line" in
+        *'"offset":0'*) printf '{"kind":"transcript.page","id":%s,"items":[{"content":{"kind":"user_message","text":"from the terminal"},"createdAtMs":5}],"complete":false}\n' "$id" ;;
+        *) printf '{"kind":"transcript.page","id":%s,"items":[],"complete":true}\n' "$id" ;;
+      esac ;;
     decoder.send) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"hi"},"createdAtMs":1},{"kind":"status","event":"turn_started"}],"input":"aGkK"}\n' "$id" ;;
     decoder.output) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"start","content":{"kind":"agent_message","text":""},"createdAtMs":2},{"kind":"delta","text":"ok"},{"kind":"finish"}]}\n' "$id" ;;
     *) printf '{"kind":"decoder.decoded","id":%s,"events":[]}\n' "$id" ;;
