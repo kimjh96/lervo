@@ -6,6 +6,16 @@
 /** What one scenario measured: milliseconds unless the name says otherwise. */
 type Report = Record<string, number | boolean | string>;
 
+/** The session host's messages, as the composition root's client delivers them. */
+interface HostMessages {
+  onMessage(listener: (message: { kind: string } & Record<string, unknown>) => void): () => void;
+}
+
+/** The provider's wall-clock stamps, in milliseconds, in a streamed text. */
+function stamps(text: string): number[] {
+  return [...text.matchAll(/t(\d{16}) streamed/gu)].map((match) => Number(match[1]) / 1000);
+}
+
 const LOG = '[role="log"]';
 const SAMPLE_LIMIT = 2000;
 
@@ -110,7 +120,14 @@ async function conversation(): Promise<Report> {
  * delta on screen took from the provider's clock to the paint. The provider stamps each delta
  * with the wall clock in microseconds.
  */
-async function streaming(): Promise<Report> {
+async function streaming(host: HostMessages): Promise<Report> {
+  // When each delta reached the page, before the store, the render, and the pacer.
+  const received: number[] = [];
+  const stop = host.onMessage((message) => {
+    if (message.kind !== "conversation.delta" || typeof message.append !== "string") return;
+    const now = performance.timeOrigin + performance.now();
+    for (const stamp of stamps(message.append)) received.push(now - stamp);
+  });
   await startScreen();
   await openWorkspace("Stream a long reply");
   const field = await waitFor(() => document.querySelector<HTMLTextAreaElement>("main textarea"));
@@ -123,10 +140,8 @@ async function streaming(): Promise<Report> {
   const deadline = performance.now() + 20_000;
   while (performance.now() < deadline && samples.length < SAMPLE_LIMIT) {
     const painted = await nextPaint();
-    const stamps = [...(log.textContent ?? "").matchAll(/t(\d{16}) streamed/gu)];
-    const last = stamps.at(-1)?.[1];
-    if (last === undefined) continue;
-    const stamp = Number(last) / 1000;
+    const stamp = stamps(log.textContent ?? "").at(-1);
+    if (stamp === undefined) continue;
     if (stamp <= newest) {
       if (newest > 0 && performance.now() - painted > 1000) break;
       continue;
@@ -134,7 +149,11 @@ async function streaming(): Promise<Report> {
     newest = stamp;
     samples.push(performance.timeOrigin + painted - stamp);
   }
+  stop();
   return {
+    deltasReceived: received.length,
+    deltaToPageP50Ms: rounded(quantile(received, 0.5)),
+    deltaToPageP95Ms: rounded(quantile(received, 0.95)),
     deltasSampled: samples.length,
     deltaToScreenP50Ms: rounded(quantile(samples, 0.5)),
     deltaToScreenP95Ms: rounded(quantile(samples, 0.95)),
@@ -166,7 +185,7 @@ async function keystroke(): Promise<Report> {
   };
 }
 
-const scenarios: Record<string, () => Promise<Report>> = {
+const scenarios: Record<string, (host: HostMessages) => Promise<Report>> = {
   "cold-start": coldStart,
   "idle-visible": () => idle(false),
   "idle-hidden": () => idle(true),
@@ -176,12 +195,12 @@ const scenarios: Record<string, () => Promise<Report>> = {
 };
 
 /** Runs `scenario` and hands its report to the shell, which writes it where the harness reads. */
-export async function runMeasurement(scenario: string): Promise<void> {
+export async function runMeasurement(scenario: string, host: HostMessages): Promise<void> {
   const { invoke } = await import("@tauri-apps/api/core");
   const run = scenarios[scenario];
   let report: Report;
   try {
-    report = run === undefined ? { error: "scenario_unknown" } : await run();
+    report = run === undefined ? { error: "scenario_unknown" } : await run(host);
   } catch (error) {
     report = { error: error instanceof Error ? error.message : "measure_failed" };
   }
