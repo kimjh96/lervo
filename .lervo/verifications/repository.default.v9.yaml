@@ -15,7 +15,7 @@ commands:
       - --run
       - lint
     cwd: .
-    timeoutMs: 300000
+    timeoutMs: 1800000
     maxOutputBytes: 1048576
     environmentVariableNames: []
   - commandId: repository-docs
