@@ -18,7 +18,13 @@ import {
 } from "@lervo/sync-contract";
 
 import { continuityNextDeadline } from "./continuity-deadline.js";
-import { continuityHostPort } from "./continuity-hub-port.js";
+import { continuityHostPort, listContinuityHosts } from "./continuity-hub-port.js";
+import {
+  hostModelSelectionDirectory,
+  publishedModelSelection,
+  readHostModelSelection,
+} from "./model-selection-host.js";
+import { modelSelectionPath } from "@lervo/execution-contract";
 import type { ContinuityTurnOutcome } from "./continuity-turn-outcome.js";
 import { continuityInputFingerprint } from "./continuity-inputs.js";
 
@@ -59,9 +65,6 @@ export {
   CONTINUITY_RETRY_MILLISECONDS,
   type ContinuityTurnOutcome,
 } from "./continuity-turn-outcome.js";
-import { listContinuityHosts } from "./continuity-hub-port.js";
-import { readHostModelSelection } from "./model-selection-host.js";
-import { transportedModelSelection } from "@lervo/execution-contract";
 
 /** The Hub operations continuity needs; `@lervo/sync` provides the HTTP adapter. */
 export interface ConvergenceHostRecordPort {
@@ -109,8 +112,8 @@ export class ConvergenceContinuity {
 
   /**
    * ADR-0602: the host-local files a reconciliation reads that no repository or event watch
-   * covers: the host policy, the owner-host coordinates and the provider pause store. Their
-   * change makes the next turn reconcile.
+   * covers: the host policy, the owner-host coordinates, the provider pause store, and the model
+   * selection (ADR-0612 M3). Their change makes the next turn reconcile.
    */
   inputPaths(): string[] {
     const pauses = resolve(homedir(), ".lervo", "state", "knowledge-provider-admission");
@@ -119,6 +122,7 @@ export class ConvergenceContinuity {
       resolve(this.root, CONVERGENCE_OWNER_HOST_PATH),
       resolve(pauses, "admission.sqlite"),
       resolve(pauses, "admission.sqlite-wal"),
+      modelSelectionPath(hostModelSelectionDirectory()),
     ];
   }
 
@@ -304,7 +308,7 @@ export class ConvergenceContinuity {
             findings,
             providerAdmission,
             // ADR-0612 M3: peers adopt a newer selection from this record.
-            modelSelection: transportedModelSelection((await readHostModelSelection()).selection),
+            modelSelection: publishedModelSelection((await readHostModelSelection()).selection),
           });
     // ADR-0602: a record whose facts the Hub already holds is not published again, so two hosts
     // never wake each other with records that differ only in when they were observed. A Hub older

@@ -24,7 +24,7 @@ import { CONVERGENCE_DELEGATION_PATH, loadConvergenceDelegation } from "../src/d
 import { convergenceDelegationScopeHash } from "../src/delegation-scope.js";
 import { FakeConvergenceOwnerHub, peerHost } from "./convergence-owner-hosts.js";
 import { fixture } from "./fixture.js";
-import { writeModelSelectionRole } from "@lervo/execution-contract";
+import { modelSelectionPath, writeModelSelectionRole } from "@lervo/execution-contract";
 import { hostModelSelectionDirectory } from "../src/model-selection-host.js";
 
 const DAY = 24 * 60 * 60_000;
@@ -425,7 +425,7 @@ describe("two hosts of one repository", () => {
     // A changed selection is a changed input, so the next cycle republishes without being forced.
     await continuity({ f: mac, policyPath: path, hosts, label: "mac" }).reconcile();
     expect([...hosts.records.values()][0]!.modelSelection).toMatchObject({ revision: 2 });
-    await writeModelSelectionRole({ stateDirectory, role: "review", routes: [] });
+    await rm(modelSelectionPath(stateDirectory), { force: true });
   });
 
   it("keeps a refused host read-only in Hub mode and reports the cause (ADR-0470)", async () => {

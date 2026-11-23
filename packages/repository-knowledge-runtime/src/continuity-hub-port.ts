@@ -22,21 +22,30 @@ function httpStatusOf(error: unknown): number | null {
  * selection another host published, so the hosts converge on one selection. Adoption never fails
  * the listing, and this host's own record is skipped.
  */
-function withModelSelectionAdoption(
+/** Hub and repository coordinates that rejected a record carrying the selection, per process. */
+const withholding = new Set<string>();
+
+function withModelSelectionExchange(
   port: ConvergenceHostRecordPort,
   hostHash: string,
+  key: string,
 ): ConvergenceHostRecordPort {
   return {
     ...port,
     // A Hub older than ADR-0612 M3 rejects a record that carries the selection as invalid; the
-    // record is published again without it, so continuity never waits on a Hub upgrade.
+    // record is published again without it, so continuity never waits on a Hub upgrade. This
+    // process then withholds the selection from that Hub, so each later publish is one request.
     publish: async (record, signal) => {
+      const { modelSelection: _withheld, ...withoutSelection } = record;
+      if (record.modelSelection === undefined || withholding.has(key))
+        return port.publish(withoutSelection, signal);
       try {
         return await port.publish(record, signal);
       } catch (error) {
-        if (record.modelSelection === undefined || httpStatusOf(error) !== 400) throw error;
-        const { modelSelection: _withheld, ...withoutSelection } = record;
-        return port.publish(withoutSelection, signal);
+        if (httpStatusOf(error) !== 400) throw error;
+        const status = await port.publish(withoutSelection, signal);
+        withholding.add(key);
+        return status;
       }
     },
     list: async (signal) => {
@@ -61,7 +70,12 @@ export async function continuityHostPort(
       projectId: storage.manifest.projectId,
       repositoryIdentityHash: calculateProjectIdentityHash(storage.manifest),
     });
-    return { port: withModelSelectionAdoption(port, host.hostHash), failureCode: null };
+    const key = JSON.stringify([
+      host.config.coordination.hub.baseUrl,
+      host.config.coordination.hub.destinationId,
+      storage.manifest.projectId,
+    ]);
+    return { port: withModelSelectionExchange(port, host.hostHash, key), failureCode: null };
   } catch (error) {
     return { port: null, failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode };
   }

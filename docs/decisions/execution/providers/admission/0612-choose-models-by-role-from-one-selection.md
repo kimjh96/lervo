@@ -99,7 +99,7 @@ No document names a current model as a contract. Historical evidence keeps the m
   - Clock safety: a local change is stamped after the selection it replaces, and a peer change stamped more than ten minutes ahead of this host's clock is refused. Change times are strict UTC, and a role a newer Lervo defines travels only in the flat route shape.
   - Host clocks still order changes inside the allowed lead, so two changes less than ten minutes apart on hosts whose clocks disagree may order the wrong way. Ordering by the Hub's accept time is the writer release's choice to make.
   - The whole selection is the unit: two hosts that change different roles before either sees the other keep the later change only. `lervo model show` names the last adoption.
-  - Writers: once every host and the Hub run the reader release, each host publishes its selection in its host records. The selection file is a continuity input, and `lervo model set` asks every registered repository's resident to look, so a change is republished at once. A record a Hub rejects with 400 is published again without the selection; until that Hub is upgraded, each cycle publishes once more.
+  - Writers: once every host and the Hub run the reader release, each host publishes its selection, up to 4 KiB, in its host records. The resident watches the selection file as a continuity input, so a change is republished at its next turn. A Hub that rejects the record with 400 gets it again without the selection, and the process withholds the selection from that Hub afterwards. The Hub cannot be rolled back below the reader release once it stores selections, and one Hub serves one owner, whose hosts all adopt from each other.
 
 ## State, events, privacy, and failure meaning
 

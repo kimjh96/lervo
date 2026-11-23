@@ -39,7 +39,7 @@ export async function adoptPeerModelSelection(
 ): Promise<ModelSelection | null> {
   let newest: ModelSelection | null = null;
   for (const peer of records) {
-    // This host's own published copy is never adopted back, so deleting the file resets it.
+    // This host's own published copy is never adopted back; `lervo model unset` resets a role.
     if (peer.hostHash === ownHostHash || peer.modelSelection === undefined) continue;
     let candidate: ModelSelection;
     try {
@@ -55,4 +55,21 @@ export async function adoptPeerModelSelection(
     candidate: transportedModelSelection(newest),
   });
   return adopted.status === "adopted" ? adopted.selection : null;
+}
+
+/**
+ * The bound on the selection a host record carries, well inside the record's own 16 KiB bound,
+ * so a selection never crowds out the continuity facts the record exists for.
+ */
+export const MAXIMUM_PUBLISHED_MODEL_SELECTION_BYTES = 4 * 1024;
+
+/** ADR-0612 M3: the selection this host publishes, or null when it never chose or is too large. */
+export function publishedModelSelection(
+  selection: ModelSelection,
+): ReturnType<typeof transportedModelSelection> {
+  const transported = transportedModelSelection(selection);
+  return transported !== null &&
+    Buffer.byteLength(JSON.stringify(transported)) <= MAXIMUM_PUBLISHED_MODEL_SELECTION_BYTES
+    ? transported
+    : null;
 }

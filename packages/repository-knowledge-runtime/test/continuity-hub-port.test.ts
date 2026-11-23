@@ -67,6 +67,9 @@ it("publishes again without the selection when a Hub older than ADR-0612 M3 reje
   const record = { hostHash: "h", modelSelection: { revision: 1 } } as never;
   await expect(port!.publish(record)).resolves.toBe("updated");
   expect(published.map((item) => "modelSelection" in item)).toEqual([true, false]);
+  // This process now withholds the selection from that Hub: one request per publish.
+  await port!.publish(record);
+  expect(published.map((item) => "modelSelection" in item)).toEqual([true, false, false]);
   // Any other failure is reported as before.
   const failing = await continuityHostPort(
     { hostHash: "h", config: { coordination: { mode: "hub", hub: {} } } } as never,
