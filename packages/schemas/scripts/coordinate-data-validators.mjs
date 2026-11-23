@@ -14,7 +14,9 @@ export function coordinateDataValidatorIds(ajv, schema) {
         branch.properties?.selectedEventSchemaVersion?.type !== "integer",
     ) ||
     JSON.stringify(
-      branches.map((branch) => branch.properties.selectedEventSchemaVersion.const).sort(),
+      branches
+        .map((branch) => branch.properties.selectedEventSchemaVersion.const)
+        .sort((left, right) => left - right),
     ) !== JSON.stringify(coordinateDataVersions)
   )
     throw new Error("schema_coordinate_discriminator_invalid");

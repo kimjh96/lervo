@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@lervo/cas": "workspace:*",
+    "@lervo/event-contract": "workspace:*",
     "@lervo/event-store-sqlite": "workspace:*",
     "@lervo/project": "workspace:*",
     "@lervo/schemas": "workspace:*",

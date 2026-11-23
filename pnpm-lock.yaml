@@ -1431,6 +1431,9 @@ importers:
       '@lervo/cas':
         specifier: workspace:*
         version: link:../cas
+      '@lervo/event-contract':
+        specifier: workspace:*
+        version: link:../event-contract
       '@lervo/event-store-sqlite':
         specifier: workspace:*
         version: link:../event-store-sqlite

@@ -1,7 +1,7 @@
 import { chmod, lstat, mkdtemp, rename, rm } from "node:fs/promises";
 import { resolve } from "node:path";
 
-import { canonicalJson } from "@lervo/event-contract";
+import { canonicalJson, type EventSchemaVersion } from "@lervo/event-contract";
 
 import type { EventWriterActivationPlan } from "./event-writer-activation-plan.js";
 import {
@@ -31,7 +31,7 @@ export interface EventWriterActivationReceipt {
   receiptKind: "event_writer_activation_applied" | "event_writer_rollback_applied";
   planId: string;
   projectId: string;
-  selectedEventSchemaVersion: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+  selectedEventSchemaVersion: EventSchemaVersion;
   coordinateHash: string;
   activationId: string | null;
 }
