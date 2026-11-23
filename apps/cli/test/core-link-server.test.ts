@@ -1,16 +1,22 @@
-import { coreLinkProtocolDocument } from "@lervo/session-host-contract";
+import {
+  applicationCommandNames,
+  applicationResultSchemas,
+  coreLinkProtocolDocument,
+} from "@lervo/session-host-contract";
 import { Ajv2020 } from "ajv/dist/2020.js";
 import { describe, expect, it } from "vitest";
 
 import { CommandFailure } from "../src/command-error-output.js";
 import { type CoreLinkHandlers, CoreLinkServer } from "../src/core-link-server.js";
-import { createHostedStreamDecoder } from "../src/hosted-session-adapters.js";
+import { createHostedStreamDecoder, listHostedProviders } from "../src/hosted-session-adapters.js";
 import type { WorkspaceStartResult } from "../src/workspace-start.js";
 
 const document = coreLinkProtocolDocument();
 const ajv = new Ajv2020({ strict: true });
 ajv.addSchema(document);
 const validResponse = ajv.getSchema(`${String(document.$id)}#/$defs/CoreLinkResponse`)!;
+const validResult = (command: keyof typeof applicationResultSchemas) =>
+  ajv.getSchema(`${String(document.$id)}#/$defs/${applicationResultSchemas[command].title}`)!;
 
 const started: WorkspaceStartResult = {
   schemaVersion: 1,
@@ -45,6 +51,7 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
     },
     listWorkspaces: async () => ({ workspaces: [] }),
     listRepositories: async () => ({ repositories: [{ projectId: "prj_1", name: "app" }] }),
+    listProviders: () => listHostedProviders({ PATH: "" }),
     createDecoder: createHostedStreamDecoder,
     async readTranscript(workspaceId, offset) {
       if (workspaceId !== started.workspaceId)
@@ -119,15 +126,27 @@ describe("the core-link server", () => {
     const { written } = await serve([
       { kind: "core.command", id: 1, command: "repository.list", arguments: {} },
       { kind: "core.command", id: 2, command: "workspace.list", arguments: {} },
+      { kind: "core.command", id: 3, command: "provider.list", arguments: {} },
     ]);
-    expect(written).toEqual([
+    expect(written.slice(0, 2)).toEqual([
       {
         kind: "core.result",
         id: 1,
         result: { repositories: [{ projectId: "prj_1", name: "app" }] },
       },
-      { kind: "core.result", id: 2, result: { workspaces: [] } },
+      // The workspace list names every command this core answers.
+      { kind: "core.result", id: 2, result: { workspaces: [], commands: applicationCommandNames } },
     ]);
+    const providers = written[2]?.result as { providers: { provider: string }[] };
+    expect(providers.providers.map((entry) => entry.provider)).toEqual(["claude", "codex"]);
+    for (const [command, response] of [
+      ["repository.list", written[0]],
+      ["workspace.list", written[1]],
+      ["provider.list", written[2]],
+    ] as const) {
+      const valid = validResult(command);
+      expect(valid(response?.result), JSON.stringify(valid.errors)).toBe(true);
+    }
   });
 
   it("answers decoder requests while a command still runs", async () => {

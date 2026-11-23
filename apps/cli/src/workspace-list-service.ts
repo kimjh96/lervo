@@ -9,6 +9,7 @@ import {
 import { readPrivateJsonFile } from "@lervo/repository-knowledge-runtime";
 
 import { type HostedLaunchRecord, hostedLaunchRecordsPath } from "./hosted-launch-records.js";
+import { hostedProviderModes } from "./hosted-session-adapters.js";
 import { worktreesByBranch } from "./workspace-start-effects.js";
 
 /** Workspaces in one answer, newest first. */
@@ -29,6 +30,8 @@ export interface WorkspaceSummary {
   title: string | null;
   provider: string;
   conversationMode: "native" | "cli";
+  /** The modes the workspace's provider offers; only its last mode when no adapter admits it. */
+  conversationModes: ("native" | "cli")[];
   sessionId: string;
   preparedAt: string;
 }
@@ -96,6 +99,7 @@ export async function listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[]
       title: await workstreamTitle(worktree),
       provider: record.provider,
       conversationMode: record.conversationMode,
+      conversationModes: hostedProviderModes(record.provider) ?? [record.conversationMode],
       sessionId: record.sessionId,
       preparedAt: record.preparedAt,
     });

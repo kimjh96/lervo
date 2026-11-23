@@ -57,6 +57,7 @@ export function createClaudeHostedSessionAdapter(
     createStreamDecoder: () => new ClaudeHostedStreamDecoder(),
     readTranscript: (session) => readClaudeTranscript(session),
     provider: "claude",
+    displayName: "Claude Code",
     capabilities: claudeHostedCapabilities,
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {
       assertHostedLaunchIntent(intent, claudeHostedCapabilities);

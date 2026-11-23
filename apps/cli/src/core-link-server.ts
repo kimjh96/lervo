@@ -1,7 +1,8 @@
 import type { HostedStreamDecoder, HostedTranscriptItem } from "@lervo/adapter-contract";
-import { validateCoreLinkRequest } from "@lervo/session-host-contract";
+import { applicationCommandNames, validateCoreLinkRequest } from "@lervo/session-host-contract";
 
 import { errorCode } from "./command-error-output.js";
+import type { HostedProviderSummary } from "./hosted-session-adapters.js";
 import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-service.js";
 import type { WorkspaceStartResult } from "./workspace-start.js";
 import type { WorkspaceOpenResult } from "./workspace-launch-service.js";
@@ -19,6 +20,7 @@ export interface CoreLinkHandlers {
   startWorkspace(arguments_: Record<string, unknown>): Promise<WorkspaceStartResult>;
   listWorkspaces(): Promise<{ workspaces: WorkspaceSummary[] }>;
   listRepositories(): Promise<{ repositories: RepositorySummary[] }>;
+  listProviders(): Promise<{ providers: HostedProviderSummary[]; defaultProvider: string }>;
   openWorkspace(workspaceId: string, mode?: "native" | "cli"): Promise<WorkspaceOpenResult>;
   createDecoder(provider: string): HostedStreamDecoder;
   readTranscript(
@@ -100,10 +102,18 @@ export class CoreLinkServer {
   private command(request: Request): void {
     switch (request.command) {
       case "workspace.list":
-        this.respond(request.id, () => this.handlers.listWorkspaces());
+        // The list names every command this core answers, so the session host sends a newer
+        // command only to a core that knows it.
+        this.respond(request.id, async () => ({
+          ...(await this.handlers.listWorkspaces()),
+          commands: [...applicationCommandNames],
+        }));
         return;
       case "repository.list":
         this.respond(request.id, () => this.handlers.listRepositories());
+        return;
+      case "provider.list":
+        this.respond(request.id, () => this.handlers.listProviders());
         return;
       default:
         this.track(request.id, () =>

@@ -20,7 +20,7 @@ import {
   launchArgumentDigest,
   recordHostedLaunch,
 } from "./hosted-launch-records.js";
-import { resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
+import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
   defaultBranchCommit,
@@ -56,7 +56,7 @@ export async function startWorkspaceFromInstruction(
   options: WorkspaceStartOptions,
 ): Promise<WorkspaceStartResult> {
   const repository = await registeredRepository(options.repository);
-  const adapter = await resolveHostedSessionAdapter(options.provider ?? "claude");
+  const adapter = await resolveHostedSessionAdapter(options.provider ?? defaultHostedProvider);
   return startWorkspace(
     {
       instruction: options.instruction,

@@ -216,6 +216,261 @@
         }
       ]
     },
+    "WorkspaceSummary": {
+      "title": "WorkspaceSummary",
+      "type": "object",
+      "required": [
+        "workspaceId",
+        "projectId",
+        "repositoryName",
+        "branch",
+        "title",
+        "provider",
+        "conversationMode",
+        "sessionId",
+        "preparedAt"
+      ],
+      "properties": {
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "repositoryName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "title": {
+          "oneOf": [
+            {
+              "type": "string",
+              "maxLength": 1024
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "conversationMode": {
+          "$ref": "#/$defs/ConversationMode"
+        },
+        "conversationModes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ConversationMode"
+          }
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "preparedAt": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      }
+    },
+    "WorkspaceListResult": {
+      "title": "WorkspaceListResult",
+      "type": "object",
+      "required": [
+        "workspaces"
+      ],
+      "properties": {
+        "workspaces": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/WorkspaceSummary"
+          }
+        },
+        "commands": {
+          "type": "array",
+          "maxItems": 64,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z]+(\\.[a-z_]+)+$",
+            "maxLength": 64
+          }
+        }
+      }
+    },
+    "RepositorySummary": {
+      "title": "RepositorySummary",
+      "type": "object",
+      "required": [
+        "projectId",
+        "name"
+      ],
+      "properties": {
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        }
+      }
+    },
+    "RepositoryListResult": {
+      "title": "RepositoryListResult",
+      "type": "object",
+      "required": [
+        "repositories"
+      ],
+      "properties": {
+        "repositories": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "$ref": "#/$defs/RepositorySummary"
+          }
+        }
+      }
+    },
+    "WorkspaceStartResult": {
+      "title": "WorkspaceStartResult",
+      "type": "object",
+      "required": [
+        "workspaceId",
+        "sessionId",
+        "provider"
+      ],
+      "properties": {
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "workstreamId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "projectId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "branch": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "provider": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        }
+      }
+    },
+    "ProviderCapabilities": {
+      "title": "ProviderCapabilities",
+      "type": "object",
+      "required": [
+        "nativeConversation",
+        "sessionIdBinding",
+        "hooks",
+        "mcp",
+        "systemPromptFile",
+        "resume"
+      ],
+      "properties": {
+        "nativeConversation": {
+          "type": "boolean"
+        },
+        "sessionIdBinding": {
+          "type": "boolean"
+        },
+        "hooks": {
+          "type": "boolean"
+        },
+        "mcp": {
+          "type": "boolean"
+        },
+        "systemPromptFile": {
+          "type": "boolean"
+        },
+        "resume": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ProviderSummary": {
+      "title": "ProviderSummary",
+      "type": "object",
+      "required": [
+        "provider",
+        "displayName",
+        "capabilities",
+        "conversationModes",
+        "preferredMode",
+        "installed"
+      ],
+      "properties": {
+        "provider": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "capabilities": {
+          "$ref": "#/$defs/ProviderCapabilities"
+        },
+        "conversationModes": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ConversationMode"
+          }
+        },
+        "preferredMode": {
+          "$ref": "#/$defs/ConversationMode"
+        },
+        "installed": {
+          "type": "boolean"
+        }
+      }
+    },
+    "ProviderListResult": {
+      "title": "ProviderListResult",
+      "type": "object",
+      "required": [
+        "providers",
+        "defaultProvider"
+      ],
+      "properties": {
+        "providers": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/ProviderSummary"
+          }
+        },
+        "defaultProvider": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        }
+      }
+    },
     "CoreCommandRequest": {
       "title": "CoreCommandRequest",
       "type": "object",
@@ -242,7 +497,8 @@
           "enum": [
             "workspace.start",
             "workspace.list",
-            "repository.list"
+            "repository.list",
+            "provider.list"
           ]
         },
         "arguments": {

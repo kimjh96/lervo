@@ -24,6 +24,7 @@ export const codexHostedCapabilities: HostedSessionCapabilities = {
 export function createCodexHostedSessionAdapter(executable = "codex"): HostedSessionAdapter {
   return {
     provider: "codex",
+    displayName: "Codex",
     capabilities: codexHostedCapabilities,
     prepareLaunch(intent: HostedLaunchIntent): HostedLaunch {
       assertHostedLaunchIntent(intent, codexHostedCapabilities);

@@ -1,0 +1,23 @@
+{
+  "command": "provider.list",
+  "result": {
+    "providers": [
+      {
+        "provider": "claude",
+        "displayName": "Claude Code",
+        "capabilities": {
+          "nativeConversation": true,
+          "sessionIdBinding": true,
+          "hooks": false,
+          "mcp": false,
+          "systemPromptFile": false,
+          "resume": true
+        },
+        "conversationModes": ["native", "web"],
+        "preferredMode": "native",
+        "installed": true
+      }
+    ],
+    "defaultProvider": "claude"
+  }
+}
