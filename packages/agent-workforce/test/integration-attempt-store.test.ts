@@ -8,6 +8,8 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   acquireWorkspaceIntegrationTargetLease,
+  isWorkspaceIntegrationAttempt,
+  listWorkspaceIntegrationAttempts,
   readWorkspaceIntegrationAttempt,
   updateWorkspaceIntegrationAttempt,
   type WorkspaceIntegrationAttempt,
@@ -126,5 +128,30 @@ describe("workspace integration target leases", () => {
     expect(serialized).toContain("assignment.integration.state.changed");
     expect(serialized).not.toContain(repositoryRoot);
     expect(serialized).not.toContain("refs/heads/");
+  });
+
+  it("reads a released attempt a newer writer left and rejects a released shape with success", async () => {
+    const repositoryRoot = await fixture();
+    const records = await RepositoryCoordinationRecords.open(repositoryRoot);
+    const released = attempt({
+      state: "released",
+      candidateCommit: "e".repeat(40),
+      candidateTreeHash: "f".repeat(40),
+      revision: 3,
+    });
+    await records.write({
+      collection: "integrationAttempts",
+      recordId: released.targetLeaseId,
+      value: released,
+      expectedContentHash: null,
+    });
+    await expect(
+      readWorkspaceIntegrationAttempt(repositoryRoot, released.targetLeaseId),
+    ).resolves.toMatchObject({ attempt: { state: "released" } });
+    expect(await listWorkspaceIntegrationAttempts(repositoryRoot)).toEqual([released]);
+    expect(isWorkspaceIntegrationAttempt({ ...released, targetAfterCommit: "e".repeat(40) })).toBe(
+      false,
+    );
+    expect(isWorkspaceIntegrationAttempt({ ...released, candidateTreeHash: null })).toBe(false);
   });
 });

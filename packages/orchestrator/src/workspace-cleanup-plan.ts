@@ -153,7 +153,7 @@ export async function planWorkspaceCleanup(input: {
             source.workspaceId === workspace.workspaceId &&
             source.generation === workspace.generation,
         ) &&
-        !["integrated", "conflict"].includes(attempt.state),
+        !["integrated", "conflict", "released"].includes(attempt.state),
     );
   const rawInspection = await input.host.inspectCleanup({
     repositoryRoot: input.coordinates.repositoryRoot,
