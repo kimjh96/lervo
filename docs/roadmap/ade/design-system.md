@@ -1,6 +1,6 @@
 # Lervo ADE design system
 
-Status: `planned`
+Status: `active`
 As of: 2026-11-23
 
 ## Purpose
@@ -119,6 +119,27 @@ Each step lands as its own pull request:
 3. Shared components and the catalog, with features moved onto them.
 4. Patterns, content, and the accessibility pass.
 5. Governance, the packaging ADR, and the outputs the site needs.
+
+## Audit on 2026-11-23
+
+Step 1 wrote the design language and the foundations in the [ADE design system specification](../../specifications/execution/product-surfaces/ade-design-system.md) and measured the interface against them. Each divergence names the step that resolves it.
+
+- **Literal values** (step 2):
+  - two 34 px send buttons and a 28 px select chip;
+  - a 24 px segment height, 6 and 7 px status dots, and a 6 px working dot;
+  - a disabled opacity of 0.45 in two places;
+  - focus-ring offsets of 2, 1, and −2 px;
+  - the start column's 640 px width, the user bubble's 80% width, and the display question's −0.01 em letter spacing;
+  - font weights written as numbers;
+  - icon sizes passed as numbers.
+- **Missing tiers** (step 2): the token file has semantic tokens only. The palette, the size scale, opacity, weights, focus rings, icon sizes, and stacking layers have no tokens yet.
+- **Copies instead of components** (step 3):
+  - the start screen's submit button and the reply card's send button share one style in two stylesheets;
+  - the instruction card and the reply card are two input cards;
+  - the mode switch is the only segmented control and styles itself;
+  - the workspace list row, the select chip, the shortcut label, and the inline failures of four features have no shared component.
+- **Unused or unclear roles** (step 2): `type.title` has no consumer yet. `type.note` also sets the user bubble's line height, which the specification records.
+- **Content** (step 4): there is no glossary yet, and empty states have no pattern; the workspace list shows nothing when there are no workspaces.
 
 ## Completion
 
