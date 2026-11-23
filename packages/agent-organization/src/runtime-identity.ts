@@ -43,25 +43,58 @@ export function externalConversationKeyHash(input: {
   return organizationIdentityHash({ schemaVersion: 1, ...input });
 }
 
-export function externalAgentDeploymentConfigHash(input: {
+interface ExternalAgentDeploymentConfig {
   platform: string;
   integrationId: string;
   agentId: string;
   participantId: string;
-  response: { provider: string; model: string | null };
   command: { provider: string; roleId: string };
   conversations: readonly {
     tenantKeyHash: string;
     conversationKeyHash: string;
     conversationId: string;
   }[];
-}): string {
+}
+
+function sortedConversations(input: ExternalAgentDeploymentConfig) {
+  return [...input.conversations].sort((left, right) =>
+    left.conversationId.localeCompare(right.conversationId),
+  );
+}
+
+/**
+ * ADR-0612: the deployment covers the agent's identity, command provider, and conversations, not
+ * the response model, which the model selection chooses at each call. A model change therefore
+ * never orphans a deployment.
+ */
+export function externalAgentDeploymentConfigHash(input: ExternalAgentDeploymentConfig): string {
+  return organizationIdentityHash({
+    schemaVersion: 2,
+    platform: input.platform,
+    integrationId: input.integrationId,
+    agentId: input.agentId,
+    participantId: input.participantId,
+    command: input.command,
+    conversations: sortedConversations(input),
+  });
+}
+
+/**
+ * The hash a deployment bound before ADR-0612 carries, which also covered the configured response
+ * provider and model. A running Node still matches it until the deployment is next bound.
+ */
+export function legacyExternalAgentDeploymentConfigHash(
+  input: ExternalAgentDeploymentConfig & { response: { provider: string; model: string | null } },
+): string {
   return organizationIdentityHash({
     schemaVersion: 1,
-    ...input,
-    conversations: [...input.conversations].sort((left, right) =>
-      left.conversationId.localeCompare(right.conversationId),
-    ),
+    platform: input.platform,
+    integrationId: input.integrationId,
+    agentId: input.agentId,
+    participantId: input.participantId,
+    response: input.response,
+    command: input.command,
+    conversations: sortedConversations(input),
   });
 }
 
@@ -81,6 +114,8 @@ export interface OrganizationRuntimeIdentity {
   integrationId: string;
   externalPrincipalHash: string;
   deploymentConfigHash: string;
+  /** Earlier hashes of the same configuration a deployment may still carry (ADR-0612). */
+  legacyDeploymentConfigHashes?: readonly string[];
   conversations: readonly {
     tenantKeyHash: string;
     conversationKeyHash: string;
@@ -129,7 +164,8 @@ export function assertOrganizationRuntimeIdentity(
       item.platform === identity.platform &&
       item.integrationId === identity.integrationId &&
       item.externalPrincipalHash === identity.externalPrincipalHash &&
-      item.deploymentConfigHash === identity.deploymentConfigHash,
+      (item.deploymentConfigHash === identity.deploymentConfigHash ||
+        (identity.legacyDeploymentConfigHashes ?? []).includes(item.deploymentConfigHash)),
   );
   if (deployment === undefined) {
     throw new AgentOrganizationError(

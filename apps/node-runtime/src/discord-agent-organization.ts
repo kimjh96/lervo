@@ -3,6 +3,7 @@ import {
   externalAgentDeploymentConfigHash,
   externalAgentPrincipalHash,
   externalConversationKeyHash,
+  legacyExternalAgentDeploymentConfigHash,
   projectAgentOrganizationFromEventSource,
   workforceProviderPolicyHash,
 } from "@lervo/agent-organization";
@@ -13,6 +14,44 @@ import { calculateProjectIdentityHash } from "@lervo/sync-contract";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
 import { discordSpeakerPrincipalId } from "./discord-conversation-speaker.js";
 import { NodeRuntimeError } from "./errors.js";
+
+/**
+ * ADR-0612: the deployment hash this Discord runtime binds, and the pre-ADR-0612 hash of the same
+ * configuration, which a deployment bound earlier still carries until it is bound again.
+ */
+export function discordDeploymentConfigHashes(input: {
+  config: NodeDiscordConversationConfig;
+  agent: { agentId: string };
+  conversations: readonly {
+    tenantKeyHash: string;
+    conversationKeyHash: string;
+    conversationId: string;
+  }[];
+}): { deploymentConfigHash: string; legacyDeploymentConfigHashes: string[] } {
+  const deployment = {
+    platform: "discord",
+    integrationId: input.config.integrationId,
+    agentId: input.agent.agentId,
+    participantId: input.config.agentParticipantId,
+    command: {
+      provider: input.config.command.provider,
+      roleId: input.config.command.roleId,
+    },
+    conversations: input.conversations,
+  };
+  return {
+    deploymentConfigHash: externalAgentDeploymentConfigHash(deployment),
+    legacyDeploymentConfigHashes: [
+      legacyExternalAgentDeploymentConfigHash({
+        ...deployment,
+        response: {
+          provider: input.config.routing?.response.provider ?? input.config.command.provider,
+          model: input.config.routing?.response.model ?? null,
+        },
+      }),
+    ],
+  };
+}
 
 export async function validateDiscordAgentOrganization(input: {
   repositoryRoot: string;
@@ -56,21 +95,7 @@ export async function validateDiscordAgentOrganization(input: {
         "discord",
         discordSpeakerPrincipalId(input.config),
       ),
-      deploymentConfigHash: externalAgentDeploymentConfigHash({
-        platform: "discord",
-        integrationId: input.config.integrationId,
-        agentId: input.agent.agentId,
-        participantId: input.config.agentParticipantId,
-        response: {
-          provider: input.config.routing?.response.provider ?? input.config.command.provider,
-          model: input.config.routing?.response.model ?? null,
-        },
-        command: {
-          provider: input.config.command.provider,
-          roleId: input.config.command.roleId,
-        },
-        conversations,
-      }),
+      ...discordDeploymentConfigHashes({ config: input.config, agent: input.agent, conversations }),
       conversations,
     });
   } catch (error) {

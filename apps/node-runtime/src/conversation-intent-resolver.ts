@@ -1,6 +1,5 @@
 import { createHash } from "node:crypto";
 
-import { createNoCapabilityProviderJsonRunner } from "@lervo/repository-knowledge-compiler";
 import type { ConversationContextTurn } from "@lervo/conversation-responder";
 import { providerOutputSchema, type ProviderJsonRequest } from "@lervo/schemas";
 
@@ -312,30 +311,13 @@ function parseResolution(
   };
 }
 
-export async function createProviderConversationIntentResolver(input: {
-  provider: "codex" | "claude";
-  executable?: string;
-  model?: string;
-  timeoutMs?: number;
-}): Promise<ConversationIntentResolver> {
-  const runner = await createNoCapabilityProviderJsonRunner({
-    provider: input.provider,
-    ...(input.executable === undefined ? {} : { executable: input.executable }),
-    ...(input.model === undefined ? {} : { model: input.model }),
-    ...(input.timeoutMs === undefined ? {} : { timeoutMs: input.timeoutMs }),
-  });
-  return createConversationIntentResolver({
-    providerId: input.provider,
-    model: input.model ?? null,
-    resolve: (value) => runner.resolve(value),
-  });
-}
-
 export function createConversationIntentResolver(
-  provider: ConversationIntentProviderPort,
+  /** The provider, or how to choose it for each turn (ADR-0612: the `routine` role). */
+  select: ConversationIntentProviderPort | (() => Promise<ConversationIntentProviderPort>),
 ): ConversationIntentResolver {
   return {
     async resolve(turn) {
+      const provider = typeof select === "function" ? await select() : select;
       let body = parseResolution(
         await provider.resolve({
           instruction,

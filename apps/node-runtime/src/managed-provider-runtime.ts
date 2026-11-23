@@ -11,6 +11,7 @@ import type { ProviderAdapter, ProviderLoginContext } from "@lervo/adapter-contr
 import type { NodeRuntimeConfig } from "./config-types.js";
 import type { NodeRemoteCommandPorts } from "./control-runtime.js";
 import { NodeRuntimeError } from "./errors.js";
+import { nodeRouteForProvider } from "./node-model-route.js";
 import type { ProviderOutputSchema } from "@lervo/schemas";
 
 export interface ManagedProviderRemoteCommandDependencies {
@@ -125,14 +126,16 @@ export function createManagedProviderRemoteCommandPorts(
                 : {
                     executable: providerHost.executables[provider as "codex" | "claude"],
                   }),
-              ...(providerHost.models?.[provider as "codex" | "claude"] === undefined
-                ? {}
-                : { model: providerHost.models[provider as "codex" | "claude"] }),
-              ...(providerHost.reasoningEfforts?.[provider as "codex" | "claude"] === undefined
-                ? {}
-                : {
-                    reasoningEffort: providerHost.reasoningEfforts[provider as "codex" | "claude"],
-                  }),
+              // ADR-0612: the signed command fixes the provider; the `routine` route for it sets
+              // the model and effort, and the configured ones stand while the role lists none.
+              ...nodeRouteForProvider({
+                role: "routine",
+                provider: provider as "codex" | "claude",
+                configured: {
+                  model: providerHost.models?.[provider as "codex" | "claude"],
+                  reasoningEffort: providerHost.reasoningEfforts?.[provider as "codex" | "claude"],
+                },
+              }),
             });
           },
         },

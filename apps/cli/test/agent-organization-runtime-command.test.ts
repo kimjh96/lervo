@@ -201,28 +201,21 @@ describe("agent organization runtime CLI", () => {
       memberships: [{ agentId, agentDisplayName: "Tarin", displayNameRevision: 2 }],
       deployments: [{ agentId, agentDisplayName: "Tarin", displayNameRevision: 2 }],
     });
+    const boundDeployment = JSON.parse(synchronized.join("")).deployments[0];
     const changedConfig = JSON.parse(await readFile(configPath, "utf8"));
+    // ADR-0612: the deployment no longer covers the response model, so changing it keeps the
+    // deployment and its channel membership; the model selection chooses models at call time.
     changedConfig.discordConversation.routing.response.model = "gpt-faster-response";
     await writeFile(configPath, JSON.stringify(changedConfig), { mode: 0o600 });
-    const rotated: string[] = [];
-    expect(await runCli(bind, io(root, rotated))).toBe(0);
-    const rotatedProjection = JSON.parse(rotated.join(""));
-    expect(rotatedProjection.deployments).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ retiredAt: expect.any(String) }),
-        expect.objectContaining({
-          agentId,
-          agentDisplayName: "Tarin",
-          retiredAt: null,
-        }),
-      ]),
-    );
-    expect(rotatedProjection.channelMemberships).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ status: "ended", revision: 2 }),
-        expect.objectContaining({ status: "active", revision: 1 }),
-      ]),
-    );
+    const modelChanged: string[] = [];
+    expect(await runCli(bind, io(root, modelChanged))).toBe(0);
+    const modelProjection = JSON.parse(modelChanged.join(""));
+    expect(modelProjection.deployments).toEqual([
+      expect.objectContaining({ deploymentId: boundDeployment.deploymentId, retiredAt: null }),
+    ]);
+    expect(modelProjection.channelMemberships).toEqual([
+      expect.objectContaining({ status: "active", revision: 1 }),
+    ]);
     changedConfig.discordConversation.speaker = {
       kind: "webhook",
       webhooks: [
@@ -237,16 +230,23 @@ describe("agent organization runtime CLI", () => {
     const webhookRotation: string[] = [];
     expect(await runCli(bind, io(root, webhookRotation))).toBe(0);
     const webhookProjection = JSON.parse(webhookRotation.join(""));
+    // A new speaker principal still rotates the deployment and ends its channel membership.
     expect(
       webhookProjection.deployments.filter(
         (item: { retiredAt: string | null }) => item.retiredAt === null,
       ),
-    ).toHaveLength(1);
+    ).toEqual([expect.objectContaining({ agentId, agentDisplayName: "Tarin" })]);
     expect(
       webhookProjection.deployments.filter(
         (item: { retiredAt: string | null }) => item.retiredAt !== null,
       ),
-    ).toHaveLength(2);
+    ).toHaveLength(1);
+    expect(webhookProjection.channelMemberships).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ status: "ended", revision: 2 }),
+        expect.objectContaining({ status: "active", revision: 1 }),
+      ]),
+    );
     expect(await runCli(bind, io(root))).toBe(0);
     expect(
       await runCli(
@@ -339,10 +339,6 @@ describe("agent organization runtime CLI", () => {
         "organization.external_agent.deployment.bound",
         "organization.channel.membership.changed",
         "organization.agent.identity.changed",
-        "organization.channel.membership.changed",
-        "organization.external_agent.deployment.retired",
-        "organization.external_agent.deployment.bound",
-        "organization.channel.membership.changed",
         "organization.channel.membership.changed",
         "organization.external_agent.deployment.retired",
         "organization.external_agent.deployment.bound",

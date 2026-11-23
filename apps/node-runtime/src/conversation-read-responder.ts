@@ -23,7 +23,8 @@ import {
   loadDocumentRegistry,
   resolveProjectPaths,
 } from "@lervo/project";
-import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
+import { createConversationReviewEvaluator } from "./conversation-review-evaluator.js";
+import { conversationResponseRoute, type ReadNodeModelSelection } from "./node-model-route.js";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   createCachedRepositorySnapshotCapture,
@@ -105,6 +106,10 @@ export async function openManagedConversationReadResponder(input: {
   projectCreatedAt: string;
   agentId: string | null;
   participationRoleId: string;
+  /** ADR-0612: the hired agent's provider policy; the routes it may use stay inside it. */
+  providerPolicy?: "codex" | "claude" | "any" | null;
+  /** Replaced only in tests. */
+  readModelSelection?: ReadNodeModelSelection;
   repositoryRoot: string;
   dataDirectory: string;
   artifactStore: ArtifactStore;
@@ -160,27 +165,29 @@ export async function openManagedConversationReadResponder(input: {
       events,
       artifacts: projectArtifacts,
     });
-    const responseRoute = (executionProfile?: NodeRepositoryWorkExecutionProfile) => {
-      const profile =
-        executionProfile === undefined
-          ? undefined
-          : input.providerExecutionProfiles?.[executionProfile];
-      const provider = profile?.preferredProvider ?? input.config.routing.response.provider;
-      const route = profile?.providers[provider];
-      return {
-        provider,
-        model: route?.model ?? input.config.routing.response.model,
-        reasoningEffort: route?.reasoningEffort ?? input.config.routing.response.reasoningEffort,
-        timeoutMs: route?.timeoutMs ?? input.config.routing.response.timeoutMs ?? 60_000,
-      };
-    };
+    const responseRoute = (executionProfile?: NodeRepositoryWorkExecutionProfile) =>
+      conversationResponseRoute({
+        response: input.config.routing.response,
+        ...(executionProfile === undefined ? {} : { executionProfile }),
+        ...(input.providerExecutionProfiles === undefined
+          ? {}
+          : { profiles: input.providerExecutionProfiles }),
+        providerPolicy: input.providerPolicy,
+        ...(input.providerExecutables === undefined
+          ? {}
+          : { executables: input.providerExecutables }),
+        ...(input.readModelSelection === undefined
+          ? {}
+          : { readSelection: input.readModelSelection }),
+      });
+    // The route is resolved once per reply, so the evidence names the route the adapter uses.
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
       structuredOutputSchema?: ProviderOutputSchema;
-      executionProfile?: NodeRepositoryWorkExecutionProfile;
+      route: ReturnType<typeof responseRoute>;
     }) => {
-      const route = responseRoute(adapterInput.executionProfile);
+      const { route } = adapterInput;
       return createNodeProviderAdapter({
         provider: route.provider,
         repositoryRoot: adapterInput.repositoryRoot,
@@ -207,27 +214,21 @@ export async function openManagedConversationReadResponder(input: {
         agentContextContract: 2,
       }),
     );
+    const evaluation = input.config.routing.evaluation;
     const semanticEvaluator =
-      input.config.routing.evaluation === undefined
+      evaluation === undefined
         ? undefined
-        : createLocalProviderWritingEvaluator({
-            provider: input.config.routing.evaluation.provider,
+        : createConversationReviewEvaluator({
+            configured: evaluation,
             projectId: input.projectId,
-            createAdapter: (adapterInput) =>
-              createNodeProviderAdapter({
-                ...adapterInput,
-                ...(input.providerExecutables?.[adapterInput.provider] === undefined
-                  ? {}
-                  : { executable: input.providerExecutables[adapterInput.provider] }),
-                ...(input.config.routing.evaluation?.model === undefined
-                  ? {}
-                  : { model: input.config.routing.evaluation.model }),
-                ...(input.config.routing.evaluation?.reasoningEffort === undefined
-                  ? {}
-                  : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
-              }),
+            providerPolicy: input.providerPolicy,
+            ...(input.providerExecutables === undefined
+              ? {}
+              : { providerExecutables: input.providerExecutables }),
+            ...(input.readModelSelection === undefined
+              ? {}
+              : { readModelSelection: input.readModelSelection }),
             createId: (prefix) => id(prefix),
-            now: () => new Date(),
           });
     const resolvePlan = async (
       request: {
@@ -281,7 +282,7 @@ export async function openManagedConversationReadResponder(input: {
           repositoryRoot: input.repositoryRoot,
           resolveArtifact: (uri) => input.artifactStore.get(uri),
           ...(structuredOutputSchema === undefined ? {} : { structuredOutputSchema }),
-          ...(executionProfile === undefined ? {} : { executionProfile }),
+          route,
         }),
         executionIdentity: {
           agentId: input.agentId,

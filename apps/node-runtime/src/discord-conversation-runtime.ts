@@ -197,6 +197,7 @@ export async function openNodeDiscordConversationRuntime(
     resultRuntime = createDiscordConversationResultRuntime({
       config,
       projectId: options.project.projectId,
+      providerPolicy: agentParticipation.providerPolicy ?? null,
       repositoryRoot: options.repositoryRoot,
       ...(options.providerExecutables === undefined
         ? {}

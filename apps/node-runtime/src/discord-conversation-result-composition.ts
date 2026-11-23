@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 
 import type { DiscordConversationAdapter } from "@lervo/adapter-discord";
-import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
+import { createConversationReviewEvaluator } from "./conversation-review-evaluator.js";
+import type { ReadNodeModelSelection } from "./node-model-route.js";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
@@ -9,7 +10,6 @@ import { conversationResultEvaluationSelection } from "./conversation-result-eva
 import { ConversationResultRuntime } from "./conversation-result-runtime.js";
 import { RepositoryConversationResultSource } from "./conversation-result-source.js";
 import type { SQLiteConversationResultStore } from "./conversation-result-store.js";
-import { createNodeProviderAdapter } from "./managed-provider-runtime.js";
 
 export function createDiscordConversationResultRuntime(input: {
   config: NodeDiscordConversationConfig;
@@ -19,6 +19,10 @@ export function createDiscordConversationResultRuntime(input: {
   store: SQLiteConversationResultStore;
   artifacts: ArtifactStore;
   adapter: DiscordConversationAdapter;
+  /** ADR-0612: the hired agent's provider policy, which bounds the review routes. */
+  providerPolicy?: "codex" | "claude" | "any" | null;
+  /** Replaced only in tests. */
+  readModelSelection?: ReadNodeModelSelection;
 }): ConversationResultRuntime {
   const { config } = input;
   const evaluation = conversationResultEvaluationSelection(config);
@@ -27,22 +31,17 @@ export function createDiscordConversationResultRuntime(input: {
     store: input.store,
     artifacts: input.artifacts,
     adapter: input.adapter,
-    semanticEvaluator: createLocalProviderWritingEvaluator({
-      provider: evaluation.provider,
+    semanticEvaluator: createConversationReviewEvaluator({
+      configured: evaluation,
       projectId: input.projectId,
-      createAdapter: (adapterInput) =>
-        createNodeProviderAdapter({
-          ...adapterInput,
-          ...(input.providerExecutables?.[adapterInput.provider] === undefined
-            ? {}
-            : { executable: input.providerExecutables[adapterInput.provider] }),
-          ...(evaluation.model === undefined ? {} : { model: evaluation.model }),
-          ...(evaluation.reasoningEffort === undefined
-            ? {}
-            : { reasoningEffort: evaluation.reasoningEffort }),
-        }),
+      providerPolicy: input.providerPolicy,
+      ...(input.providerExecutables === undefined
+        ? {}
+        : { providerExecutables: input.providerExecutables }),
+      ...(input.readModelSelection === undefined
+        ? {}
+        : { readModelSelection: input.readModelSelection }),
       createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
-      now: () => new Date(),
     }),
     source: new RepositoryConversationResultSource(input.repositoryRoot),
   });

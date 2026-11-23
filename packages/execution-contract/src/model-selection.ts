@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { lstatSync, readFileSync, type Stats } from "node:fs";
 import { chmod, lstat, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
@@ -191,34 +192,78 @@ const cache = new Map<string, { key: string; read: ModelSelectionRead }>();
  */
 export async function readModelSelection(stateDirectory: string): Promise<ModelSelectionRead> {
   const path = modelSelectionPath(stateDirectory);
-  let metadata;
+  let metadata: Stats;
   try {
     // Never follow a link: the record must be this user's own regular file.
     metadata = await lstat(path);
   } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "ENOENT"
-      ? { selection: DEFAULT_MODEL_SELECTION, issue: null }
-      : { selection: DEFAULT_MODEL_SELECTION, issue: "model_selection_unreadable" };
+    return missingOrUnreadable(error);
   }
-  const key = `${metadata.ino}:${metadata.size}:${metadata.mtimeMs}`;
+  const cached = cachedRead(path, metadata);
+  if (cached !== undefined) return cached;
+  let text: string | null = null;
+  if (usableFile(metadata)) text = await readFile(path, "utf8").catch(() => null);
+  return remember(path, metadata, text);
+}
+
+/**
+ * The same read for a caller that cannot wait, such as a provider adapter factory. An unchanged
+ * file costs one `lstat`, so a long-running Node can call it before every provider call.
+ */
+export function readModelSelectionSync(stateDirectory: string): ModelSelectionRead {
+  const path = modelSelectionPath(stateDirectory);
+  let metadata: Stats;
+  try {
+    metadata = lstatSync(path);
+  } catch (error) {
+    return missingOrUnreadable(error);
+  }
+  const cached = cachedRead(path, metadata);
+  if (cached !== undefined) return cached;
+  let text: string | null = null;
+  if (usableFile(metadata)) {
+    try {
+      text = readFileSync(path, "utf8");
+    } catch {
+      text = null;
+    }
+  }
+  return remember(path, metadata, text);
+}
+
+function missingOrUnreadable(error: unknown): ModelSelectionRead {
+  return (error as NodeJS.ErrnoException).code === "ENOENT"
+    ? { selection: DEFAULT_MODEL_SELECTION, issue: null }
+    : { selection: DEFAULT_MODEL_SELECTION, issue: "model_selection_unreadable" };
+}
+
+function cacheKey(metadata: Stats): string {
+  return `${metadata.ino}:${metadata.size}:${metadata.mtimeMs}:${metadata.ctimeMs}`;
+}
+
+function cachedRead(path: string, metadata: Stats): ModelSelectionRead | undefined {
   const cached = cache.get(path);
-  if (cached !== undefined && cached.key === key) return cached.read;
+  return cached !== undefined && cached.key === cacheKey(metadata) ? cached.read : undefined;
+}
+
+function usableFile(metadata: Stats): boolean {
+  return (
+    metadata.isFile() &&
+    metadata.size <= MAXIMUM_FILE_BYTES &&
+    (typeof process.getuid !== "function" || metadata.uid === process.getuid())
+  );
+}
+
+/** Parses the file text read for `metadata`; null text means not this user's usable file. */
+function remember(path: string, metadata: Stats, text: string | null): ModelSelectionRead {
   let read: ModelSelectionRead;
   try {
-    if (
-      !metadata.isFile() ||
-      metadata.size > MAXIMUM_FILE_BYTES ||
-      (typeof process.getuid === "function" && metadata.uid !== process.getuid())
-    )
-      invalid("Not a selection file of this user.");
-    read = {
-      selection: parseModelSelection(JSON.parse(await readFile(path, "utf8"))),
-      issue: null,
-    };
+    if (text === null) invalid("Not a selection file of this user.");
+    read = { selection: parseModelSelection(JSON.parse(text)), issue: null };
   } catch {
     read = { selection: DEFAULT_MODEL_SELECTION, issue: "model_selection_invalid" };
   }
-  cache.set(path, { key, read });
+  cache.set(path, { key: cacheKey(metadata), read });
   return read;
 }
 
