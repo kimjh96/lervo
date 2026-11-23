@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fa4ef6a5923edd2292a3e19a"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Canonical integration's integrator verification runs with the login-shell PATH like every other convergence suite, so it no longer fails on spawnSync pnpm ENOENT under a service manager."
