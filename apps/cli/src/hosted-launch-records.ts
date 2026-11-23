@@ -77,6 +77,14 @@ export async function hostedLaunchOfSession(
   );
 }
 
+/** The newest record of a session, whatever its provider, or null. */
+export async function latestHostedLaunchOfSession(
+  path: string,
+  sessionId: string,
+): Promise<HostedLaunchRecord | null> {
+  return (await readRecords(path)).findLast((record) => record.sessionId === sessionId) ?? null;
+}
+
 /** The sessions of every kept record. */
 export async function hostedLaunchSessions(path: string): Promise<Set<string>> {
   return new Set((await readRecords(path)).map((record) => record.sessionId));

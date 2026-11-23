@@ -1,4 +1,5 @@
 import {
+  advertisedCoreRequestNames,
   applicationCommandNames,
   applicationResultSchemas,
   coreLinkProtocolDocument,
@@ -65,6 +66,9 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
         complete: true,
       };
     },
+    recordSessionExit: async (sessionId, exitCode) => ({
+      status: sessionId === started.sessionId && exitCode === null ? "recorded" : "unknown_session",
+    }),
   };
 }
 
@@ -139,7 +143,14 @@ describe("the core-link server", () => {
         result: { repositories: [{ projectId: "prj_1", name: "app" }] },
       },
       // The workspace list names every command this core answers.
-      { kind: "core.result", id: 2, result: { workspaces: [], commands: applicationCommandNames } },
+      {
+        kind: "core.result",
+        id: 2,
+        result: {
+          workspaces: [],
+          commands: [...applicationCommandNames, ...advertisedCoreRequestNames],
+        },
+      },
     ]);
     const providers = written[2]?.result as { providers: { provider: string }[] };
     expect(providers.providers.map((entry) => entry.provider)).toEqual(["claude", "codex"]);
@@ -151,6 +162,16 @@ describe("the core-link server", () => {
       const valid = validResult(command);
       expect(valid(response?.result), JSON.stringify(valid.errors)).toBe(true);
     }
+  });
+
+  it("answers the session host's exit report", async () => {
+    const { written } = await serve([
+      { kind: "session.exited", id: 1, sessionId: started.sessionId, exitCode: null },
+      { kind: "session.exited", id: 2, sessionId: started.sessionId, exitCode: 300 },
+    ]);
+    expect(written[0]).toEqual({ kind: "core.result", id: 1, result: { status: "recorded" } });
+    // A malformed report ends the link like any malformed line.
+    expect(written).toHaveLength(1);
   });
 
   it("answers decoder requests while a command still runs", async () => {
