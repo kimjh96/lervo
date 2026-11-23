@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0e7d9eb631a6e4f6008c2483"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "The session-host protocol adds the request failure codes application_timeout, session_start_failed, and session_stop_timeout; the CLI's core link is unchanged."
