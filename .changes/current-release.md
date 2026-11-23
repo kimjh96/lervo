@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.46.2" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.46.3" schema="1" -->
 
 ## What's changed
 
-- Accept released knowledge integration attempts and the released source's return to its integration queue, without writing either yet, so the Hub and every host can read them before a writer ships.
+- Release knowledge integration attempts whose effect never reached the target and requeue their sealed sources, so a failed verification no longer blocks integration. Requires the reader release on the Hub and every host first.
