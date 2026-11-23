@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_a3433fc98ab62e270cb884d0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Owner-turn capture budgets every allowed daily assessment and keeps a turn its budget skipped until a day past the next reset, so a busy day never loses an owner turn."

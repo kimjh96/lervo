@@ -16,7 +16,14 @@ export const INSTRUCTION_CAPTURE_STATE_PATH = `${INSTRUCTION_CAPTURE_ROOT}/state
 export const MAXIMUM_ASSESSMENTS_PER_CYCLE = 4;
 export const MAXIMUM_ASSESSMENTS_PER_HOUR = 12;
 export const MAXIMUM_ASSESSMENTS_PER_DAY = 60;
-export const MAXIMUM_CAPTURE_TOKENS_PER_DAY = 200_000;
+/**
+ * One assessment with its cross-check spends about 32k tokens. The daily token budget covers every
+ * assessment the daily count allows, so the count, not the tokens, bounds a busy day; a flat
+ * 200k stopped capture after about 13 turns.
+ */
+export const MAXIMUM_CAPTURE_TOKENS_PER_ASSESSMENT = 32_000;
+export const MAXIMUM_CAPTURE_TOKENS_PER_DAY =
+  MAXIMUM_ASSESSMENTS_PER_DAY * MAXIMUM_CAPTURE_TOKENS_PER_ASSESSMENT;
 const MAXIMUM_TOMBSTONES = 256;
 const TOMBSTONE_RETENTION_MILLISECONDS = 7 * 86_400_000;
 const MAXIMUM_HELD_ITEMS = 16;

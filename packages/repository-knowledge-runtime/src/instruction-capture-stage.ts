@@ -22,6 +22,7 @@ import {
 import {
   listQueuedInstructionCaptures,
   pruneInstructionCaptureQueue,
+  renewQueuedInstructionCapture,
   recordInstructionCaptureAttempt,
   removeQueuedInstructionCapture,
 } from "./instruction-capture-queue.js";
@@ -121,6 +122,8 @@ export async function runInstructionCaptureCycle(
       continue;
     if (attempted >= MAXIMUM_ASSESSMENTS_PER_CYCLE || !captureBudgetAvailable(state.budget)) {
       counts.skippedForBudget += 1;
+      // A budget only delays a turn; it never lets the turn expire unassessed.
+      await renewQueuedInstructionCapture(root, capture, now);
       continue;
     }
     if (deferred !== null) break;

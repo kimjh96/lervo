@@ -492,10 +492,13 @@ it("keeps a lapsed lease that no other holder took (ADR-0577)", async () => {
     leaseMilliseconds: 300,
   });
   blockEventLoop(600);
+  // The renewal is judged against the clock before it, not after it: a slow runner can take longer
+  // than the 300 ms lease between the renewal and a later clock read.
+  const beforeRenewal = Date.now();
   expect(await holder.confirm()).toBe("held");
   const db = new DatabaseSync(resolve(admission, "full-cycle-admission.sqlite"));
   const row = db.prepare("SELECT expires_at FROM holder").get() as { expires_at: number };
-  expect(row.expires_at).toBeGreaterThan(Date.now());
+  expect(row.expires_at).toBeGreaterThan(beforeRenewal);
   db.close();
   await holder.release();
   expect(await holder.confirm()).toBe("lost");
