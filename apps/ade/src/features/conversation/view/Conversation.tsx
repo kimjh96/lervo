@@ -14,8 +14,8 @@ import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
 
 const NEAR_EDGE_PX = 48;
-/** How close to the bottom counts as the live end again. */
-const LIVE_END_PX = 2;
+/** How close to the bottom counts as the live end, so a bounce at the bottom stays there. */
+const LIVE_END_PX = 4;
 /** How long after a wheel, key, or drag a scroll counts as the user's. */
 const USER_SCROLL_MS = 300;
 const SCROLL_KEYS = new Set(["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "]);
@@ -49,6 +49,8 @@ export function Conversation(props: {
   const items = useRef(window.items);
   items.current = window.items;
   const anchor = useRef<Anchor | null>(null);
+  /** The position the view last scrolled to itself, whose scroll event is not the user's. */
+  const selfScrolled = useRef<number | null>(null);
   const handlers = useRef(props);
   handlers.current = props;
   const [following, setFollowing] = useState(true);
@@ -83,7 +85,9 @@ export function Conversation(props: {
   // While following, the newest text stays in view as items arrive and heights are measured.
   useLayoutEffect(() => {
     const element = scroller.current;
-    if (live && element !== null) element.scrollTop = element.scrollHeight;
+    if (!live || element === null) return;
+    element.scrollTop = element.scrollHeight;
+    selfScrolled.current = element.scrollTop;
   }, [live, window.items.length, lastLength, totalSize, dockHeight]);
 
   // When items are added or dropped above the reader, the item they read stays where it was. Only
@@ -96,7 +100,9 @@ export function Conversation(props: {
     if (previous === firstItemId || liveNow.current || element === null || reading === null) return;
     const index = items.current.findIndex((item) => item.itemId === reading.itemId);
     const start = virtualizer.measurementsCache[index]?.start;
-    if (start !== undefined) element.scrollTop = start + reading.offset;
+    if (start === undefined) return;
+    element.scrollTop = start + reading.offset;
+    selfScrolled.current = element.scrollTop;
   }, [firstItemId, virtualizer]);
 
   useEffect(() => {
@@ -131,10 +137,13 @@ export function Conversation(props: {
       const top = element.scrollTop;
       const movedUp = top < previousTop;
       previousTop = top;
-      const byUser = dragging || performance.now() - userAt < USER_SCROLL_MS;
+      const own = selfScrolled.current !== null && Math.abs(top - selfScrolled.current) < 1;
+      selfScrolled.current = null;
+      const byUser = !own && (dragging || performance.now() - userAt < USER_SCROLL_MS);
       const bottom = element.scrollHeight - top - element.clientHeight;
-      if (byUser && movedUp) setFollowing(false);
-      else if (bottom <= LIVE_END_PX) setFollowing(true);
+      // At the bottom the view is at the live end, whatever moved it there.
+      if (bottom <= LIVE_END_PX) setFollowing(true);
+      else if (byUser && movedUp) setFollowing(false);
       if (bottom < NEAR_EDGE_PX) handlers.current.onLoadLater();
       if (top < NEAR_EDGE_PX) handlers.current.onLoadEarlier();
     };
