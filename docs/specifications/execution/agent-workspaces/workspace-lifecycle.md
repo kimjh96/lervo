@@ -38,6 +38,7 @@ The event chain is transactionally serialized with the workforce transition it p
 | `integration_pending` | `integrating` | Exclusive target-generation lease and exact plan | Rejection leaves target unchanged |
 | `integrating` | `integrated` | Target result and required verification | Failure records no successful integration event |
 | `integrating` | `integration_conflict` | Cleanly aborted exact Git conflict | Worker result stays sealed |
+| `integrating` | `integration_pending` | Released target attempt, no unreleased attempt naming the source, same queue entry and sealed head | Refusal leaves the source `integrating` |
 | `integration_conflict` | `integration_pending` | New sealed generation or explicit resolution plan | Failed attempt grants no authority |
 | `integrated` | `cleanup_eligible` | Current removal predicates | Diagnostic only |
 | `cleanup_eligible` | `removing` | Exact plan and last-moment recheck | Stale plan deletes nothing |

@@ -28,7 +28,7 @@ const transitions: Readonly<Record<WorkspaceState, readonly WorkspaceState[]>> =
   sealing: ["sealed", "recovery_required"],
   sealed: ["integration_pending", "integrated", "recovery_required"],
   integration_pending: ["integrating", "integration_conflict", "recovery_required"],
-  integrating: ["integrated", "integration_conflict", "recovery_required"],
+  integrating: ["integrated", "integration_conflict", "integration_pending", "recovery_required"],
   integration_conflict: ["integration_pending", "recovery_required"],
   integrated: ["cleanup_eligible", "recovery_required"],
   cleanup_eligible: ["removing", "recovery_required"],
@@ -212,6 +212,12 @@ function validateTransitionEvidence(input: {
     requireEvidence(evidence, ["queueEntryCommitted"]);
     if (!/^inq_[a-f0-9]{24}$/u.test(input.integrationQueueEntryId ?? ""))
       fail("workspace_transition_conflict", "Workspace queue evidence is missing.");
+    // A released attempt returns its source to the same committed queue entry.
+    if (input.current.state === "integrating") {
+      requireEvidence(evidence, ["integrationReleased"]);
+      if (input.integrationQueueEntryId !== input.current.integrationQueueEntryId)
+        fail("workspace_transition_conflict", "A released source must keep its queue entry.");
+    }
   }
   if (nextState === "integrating") requireEvidence(evidence, ["integrationLeaseHeld"]);
   if (nextState === "integrated") {
