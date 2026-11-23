@@ -6,6 +6,7 @@ import {
   bindWorkspaces,
   groupByRepository,
   notificationFor,
+  reloadWorkspaces,
   switchConversationMode,
   useWorkspaceStore,
   visibleStatus,
@@ -172,6 +173,19 @@ describe("the workspace binding", () => {
     status("idle", 4);
     expect(notified).toHaveLength(1);
     expect(useWorkspaceStore.getState().statuses).toEqual({ "session-a": "idle" });
+  });
+});
+
+describe("reloading the lists", () => {
+  it("keeps the last lists and records the failure when the core cannot answer", async () => {
+    const host = await connected({});
+    const kept = [workspace("a", "web", "2026-11-23T01:00:00Z")];
+    useWorkspaceStore.setState({ workspaces: kept, listFailure: null });
+    await expect(reloadWorkspaces(host.commands)).rejects.toEqual(
+      new RequestFailure("application_failed"),
+    );
+    expect(useWorkspaceStore.getState().workspaces).toEqual(kept);
+    expect(useWorkspaceStore.getState().listFailure).toBe("application_failed");
   });
 });
 

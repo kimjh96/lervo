@@ -9,6 +9,8 @@ interface WorkspaceStore {
   readonly loaded: boolean;
   /** Workspaces that appeared after the first load, while the user watched. */
   readonly arrived: ReadonlySet<string>;
+  /** The code of the last failed reload, until a reload succeeds. */
+  readonly listFailure: string | null;
   /** Live status by session ID, from the session host's watch. */
   readonly statuses: Readonly<Record<string, SessionStatus>>;
   readonly selected: string | null;
@@ -24,6 +26,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   workspaces: [],
   loaded: false,
   arrived: new Set(),
+  listFailure: null,
   statuses: {},
   selected: null,
   newWorkRequests: 0,

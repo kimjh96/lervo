@@ -1,7 +1,11 @@
 import type { HostMessage } from "@lervo/session-host-contract";
 
 import type { Notifier } from "../../../platform/notifications";
-import type { ApplicationCommands, SessionHostClient } from "../../../platform/session-host";
+import {
+  type ApplicationCommands,
+  RequestFailure,
+  type SessionHostClient,
+} from "../../../platform/session-host";
 import { arrivals, type NotificationKind, notificationFor } from "./decisions";
 import { useWorkspaceStore } from "./store";
 import type { Repository, SessionStatus, Workspace } from "./types";
@@ -12,12 +16,24 @@ export type NotificationText = (
   title: string,
 ) => { title: string; body: string };
 
-/** Reloads the workspace and repository lists from the core. */
+/**
+ * Reloads the workspace and repository lists from the core. A failure keeps the last lists and
+ * records its code, so an unreachable core never looks like an empty one.
+ */
 export async function reloadWorkspaces(commands: ApplicationCommands): Promise<void> {
-  const [workspaces, repositories] = await Promise.all([
-    commands.run("workspace.list"),
-    commands.run("repository.list"),
-  ]);
+  let workspaces: Record<string, unknown>;
+  let repositories: Record<string, unknown>;
+  try {
+    [workspaces, repositories] = await Promise.all([
+      commands.run("workspace.list"),
+      commands.run("repository.list"),
+    ]);
+  } catch (failure) {
+    useWorkspaceStore.setState({
+      listFailure: failure instanceof RequestFailure ? failure.code : "session_host_unavailable",
+    });
+    throw failure;
+  }
   const store = useWorkspaceStore.getState();
   const next = (workspaces.workspaces as Workspace[] | undefined) ?? [];
   const arrived = arrivals(store.loaded ? store.workspaces : null, next);
@@ -25,6 +41,7 @@ export async function reloadWorkspaces(commands: ApplicationCommands): Promise<v
     workspaces: next,
     repositories: (repositories.repositories as Repository[] | undefined) ?? [],
     loaded: true,
+    listFailure: null,
     arrived: new Set([...store.arrived, ...arrived]),
   });
 }
@@ -42,6 +59,8 @@ export function bindWorkspaces(input: {
   isFocused: () => boolean;
 }): () => void {
   const { client, commands } = input;
+  // Both run again on the next connection; the list shows a reload failure itself, and a watch
+  // the connection cannot carry ends with it.
   const connected = () => {
     void client.send({ kind: "sessions.watch" }).catch(() => undefined);
     void reloadWorkspaces(commands).catch(() => undefined);

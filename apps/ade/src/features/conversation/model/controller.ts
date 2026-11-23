@@ -1,11 +1,6 @@
 import type { ConversationItem, HostMessage } from "@lervo/session-host-contract";
 
-import {
-  ask,
-  RequestFailure,
-  requestId,
-  type SessionHostClient,
-} from "../../../platform/session-host";
+import { RequestFailure, type SessionHostClient } from "../../../platform/session-host";
 import { DeltaBuffer } from "./deltas";
 import { useConversationStore } from "./store";
 import {
@@ -112,15 +107,9 @@ export class ConversationController {
       .catch(() => undefined);
   }
 
+  /** Sends a reply; it resolves once the provider received it and rejects with the failure. */
   async send(text: string): Promise<void> {
-    await ask(this.client, {
-      kind: "session.send",
-      requestId: requestId(),
-      sessionId: this.sessionId,
-      text,
-    }).catch((failure: unknown) => {
-      if (!(failure instanceof RequestFailure && failure.code === "request_timeout")) throw failure;
-    });
+    await this.client.request({ kind: "session.send", sessionId: this.sessionId, text });
   }
 
   async loadEarlier(): Promise<void> {
@@ -173,9 +162,8 @@ export class ConversationController {
         return;
       }
       try {
-        const opened = await ask(this.client, {
+        const opened = await this.client.request({
           kind: "session.open",
-          requestId: requestId(),
           workspaceId: this.target.workspaceId,
         });
         if (opened.kind === "session.opened") this.sessionId = opened.sessionId;
@@ -189,12 +177,7 @@ export class ConversationController {
   }
 
   private async attachAndLoad(): Promise<void> {
-    await this.client.send({
-      kind: "session.attach",
-      requestId: requestId(),
-      sessionId: this.sessionId,
-      afterSequence: 0,
-    });
+    await this.client.post({ kind: "session.attach", sessionId: this.sessionId, afterSequence: 0 });
     const page = await this.range("latest");
     const current = useConversationStore.getState().window;
     // Until the session reports the first message, the stand-in stays.
@@ -207,9 +190,8 @@ export class ConversationController {
   }
 
   private async range(side: "latest" | "before" | "after", anchor?: string) {
-    const answer = await ask(this.client, {
+    const answer = await this.client.request({
       kind: "conversation.range",
-      requestId: requestId(),
       sessionId: this.sessionId,
       // The newest page and each earlier page both read toward the start.
       direction: side === "after" ? "after" : "before",
@@ -222,6 +204,11 @@ export class ConversationController {
 
   private receive(message: HostMessage): void {
     if (!("sessionId" in message) || message.sessionId !== this.sessionId) return;
+    // This client fell behind and the session host dropped its queue: attach and load again.
+    if (message.kind === "session.resync_required") {
+      void this.load();
+      return;
+    }
     if (message.kind === "conversation.delta") {
       this.deltas.add(message.itemId, message.append);
       return;

@@ -119,7 +119,14 @@ export function StartScreen() {
         </p>
         {error === null ? null : (
           <p className={styles.error} role="alert">
-            <FormattedMessage id={`start.error.${error}`} />
+            <FormattedMessage
+              id={
+                `start.error.${error.code}` in intl.messages
+                  ? `start.error.${error.code}`
+                  : "start.error.other"
+              }
+              values={{ code: error.code, stage: error.stage ?? "none" }}
+            />
           </p>
         )}
       </div>

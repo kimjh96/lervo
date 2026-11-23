@@ -1,9 +1,4 @@
-import {
-  type ApplicationCommands,
-  ask,
-  requestId,
-  type SessionHostClient,
-} from "../../../platform/session-host";
+import type { ApplicationCommands, SessionHostClient } from "../../../platform/session-host";
 import { reloadWorkspaces } from "./controller";
 import { useWorkspaceStore } from "./store";
 
@@ -19,9 +14,8 @@ export async function switchConversationMode(input: {
   workspaceId: string;
   mode: "native" | "cli";
 }): Promise<void> {
-  const opened = await ask(input.client, {
+  const opened = await input.client.request({
     kind: "session.open",
-    requestId: requestId(),
     workspaceId: input.workspaceId,
     conversationMode: input.mode,
   });

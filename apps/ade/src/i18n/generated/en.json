@@ -50,7 +50,15 @@
   "conversation.reply.failed": [
     {
       "type": 0,
-      "value": "The reply did not reach the agent. It is back in the input."
+      "value": "The reply did not reach the agent ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": "). It is back in the input."
     }
   ],
   "conversation.reply.label": [
@@ -203,6 +211,20 @@
       "value": "This agent cannot run here yet."
     }
   ],
+  "start.error.other": [
+    {
+      "type": 0,
+      "value": "Lervo could not start the work ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "start.error.provider_cli_unavailable": [
     {
       "type": 0,
@@ -218,7 +240,36 @@
   "start.error.workspace_start_failed": [
     {
       "type": 0,
-      "value": "Lervo could not create the workspace. Nothing was left behind."
+      "value": "Lervo could not create the workspace"
+    },
+    {
+      "type": 5,
+      "value": "stage",
+      "options": {
+        "none": {
+          "value": []
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": " at the "
+            },
+            {
+              "type": 1,
+              "value": "stage"
+            },
+            {
+              "type": 0,
+              "value": " stage"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": 0,
+      "value": "."
     }
   ],
   "start.explain": [
@@ -301,10 +352,38 @@
       "value": "Start"
     }
   ],
+  "terminal.failed": [
+    {
+      "type": 0,
+      "value": "The terminal lost its session ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
   "workspace.mode.cli": [
     {
       "type": 0,
       "value": "Terminal"
+    }
+  ],
+  "workspace.mode.failed": [
+    {
+      "type": 0,
+      "value": "The switch did not happen ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
     }
   ],
   "workspace.mode.label": [
@@ -341,6 +420,20 @@
     {
       "type": 0,
       "value": "Working"
+    }
+  ],
+  "workspaces.unavailable": [
+    {
+      "type": 0,
+      "value": "Lervo could not load the workspaces ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": "). It tries again on the next connection."
     }
   ]
 }

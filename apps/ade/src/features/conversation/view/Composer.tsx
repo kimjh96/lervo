@@ -1,6 +1,7 @@
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import { RequestFailure } from "../../../platform/session-host";
 import { ArrowUpIcon } from "../../../ui/icons";
 import styles from "./Composer.module.css";
 
@@ -19,7 +20,7 @@ export function Composer(props: {
   const intl = useIntl();
   const input = useRef<HTMLTextAreaElement>(null);
   const [text, setText] = useState("");
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState<string | null>(null);
   useLayoutEffect(() => {
     const element = input.current;
     if (element === null) return;
@@ -31,10 +32,10 @@ export function Composer(props: {
     const value = text.trim();
     if (value.length === 0) return;
     setText("");
-    setFailed(false);
-    props.onSend(value).catch(() => {
+    setFailure(null);
+    props.onSend(value).catch((error: unknown) => {
       setText(value);
-      setFailed(true);
+      setFailure(error instanceof RequestFailure ? error.code : "session_host_unavailable");
     });
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -73,11 +74,11 @@ export function Composer(props: {
           <ArrowUpIcon size={16} />
         </button>
       </form>
-      {failed ? (
+      {failure === null ? null : (
         <p className={styles.error} role="alert">
-          <FormattedMessage id="conversation.reply.failed" />
+          <FormattedMessage id="conversation.reply.failed" values={{ code: failure }} />
         </p>
-      ) : null}
+      )}
     </div>
   );
 }

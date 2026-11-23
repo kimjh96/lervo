@@ -32,8 +32,8 @@
     "description": "Returns the conversation to its newest messages."
   },
   "conversation.reply.failed": {
-    "defaultMessage": "The reply did not reach the agent. It is back in the input.",
-    "description": "session.send failed."
+    "defaultMessage": "The reply did not reach the agent ({code}). It is back in the input.",
+    "description": "A reply failed; {code} is the protocol code."
   },
   "conversation.reply.label": {
     "defaultMessage": "Reply",
@@ -99,6 +99,10 @@
     "defaultMessage": "This agent cannot run here yet.",
     "description": "The core refused the conversation mode for the chosen agent."
   },
+  "start.error.other": {
+    "defaultMessage": "Lervo could not start the work ({code}).",
+    "description": "A start failure without its own message; {code} is the protocol code."
+  },
   "start.error.provider_cli_unavailable": {
     "defaultMessage": "The agent's CLI was not found on this computer.",
     "description": "The provider CLI is missing."
@@ -108,8 +112,8 @@
     "description": "The interface is not connected to the session host."
   },
   "start.error.workspace_start_failed": {
-    "defaultMessage": "Lervo could not create the workspace. Nothing was left behind.",
-    "description": "workspace.start failed; its stages were rolled back."
+    "defaultMessage": "Lervo could not create the workspace{stage, select, none {} other { at the {stage} stage}}.",
+    "description": "The core could not create the workspace; {stage} is the core stage that failed, or none."
   },
   "start.explain": {
     "defaultMessage": "Lervo opens a workspace and its workstream for this, then starts {provider} there. You follow and steer it in the conversation.",
@@ -159,9 +163,17 @@
     "defaultMessage": "Start",
     "description": "Accessible name of the button that starts work."
   },
+  "terminal.failed": {
+    "defaultMessage": "The terminal lost its session ({code}).",
+    "description": "A terminal request failed; {code} is the protocol code."
+  },
   "workspace.mode.cli": {
     "defaultMessage": "Terminal",
     "description": "Switches the workspace to the CLI conversation."
+  },
+  "workspace.mode.failed": {
+    "defaultMessage": "The switch did not happen ({code}).",
+    "description": "Switching the conversation mode failed; {code} is the protocol code."
   },
   "workspace.mode.label": {
     "defaultMessage": "Show as",
@@ -186,5 +198,9 @@
   "workspaces.status.working": {
     "defaultMessage": "Working",
     "description": "Status text for assistive technology: the agent is working."
+  },
+  "workspaces.unavailable": {
+    "defaultMessage": "Lervo could not load the workspaces ({code}). It tries again on the next connection.",
+    "description": "The workspace list could not reload; {code} is the protocol code."
   }
 }
