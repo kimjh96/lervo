@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { startWork, useStartStore } from "../src/features/start";
+import { startWork } from "../src/features/start/model/start";
+import { useStartStore } from "../src/features/start/model/store";
 import { useWorkspaceStore } from "../src/features/workspaces";
-import { type ApplicationCommands, RequestFailure } from "../src/platform/session-host";
+import { type ApplicationCommands, RequestFailure } from "../src/ports";
 
 /** Commands whose `workspace.start` waits until `finish` resolves or rejects it. */
 function commands() {

@@ -47,3 +47,10 @@ export const terminalThemes = {
     "selectionBackground": "rgba(122,162,247,0.30)"
   }
 } as const;
+
+/** The CLI conversation's face, size in pixels, and line height, from `type.mono`. */
+export const terminalFont = {
+  "fontFamily": "\"JetBrains Mono\", ui-monospace, monospace",
+  "fontSize": 13,
+  "lineHeight": 1.75
+} as const;

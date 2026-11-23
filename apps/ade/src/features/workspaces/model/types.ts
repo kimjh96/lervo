@@ -1,3 +1,5 @@
+import type { ConversationMode, SessionStatusMessage } from "@lervo/session-host-contract";
+
 /** A repository the host registered, as `repository.list` returns it. */
 export interface Repository {
   readonly projectId: string;
@@ -12,9 +14,10 @@ export interface Workspace {
   readonly branch: string;
   readonly title: string | null;
   readonly provider: string;
-  readonly conversationMode: "native" | "cli";
+  readonly conversationMode: ConversationMode;
   readonly sessionId: string;
   readonly preparedAt: string;
 }
 
-export type SessionStatus = "starting" | "working" | "needs_user" | "idle" | "ended";
+/** A session's live status, as the session host reports it. */
+export type SessionStatus = SessionStatusMessage["status"];

@@ -1,8 +1,8 @@
 import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
-import { useApplicationCommands } from "../../../app/session-host-context";
 import { transition } from "../../../platform/transition";
+import { useApplicationCommands } from "../../../ports";
 import { ArrowUpIcon, ChevronDownIcon } from "../../../ui/icons";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
@@ -37,6 +37,15 @@ function Chip(props: {
 }
 
 /** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
+/** The text of each start failure the interface explains; other codes show with their code. */
+const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
+  application_unavailable: { id: "start.error.application_unavailable" },
+  conversation_mode_unsupported: { id: "start.error.conversation_mode_unsupported" },
+  provider_cli_unavailable: { id: "start.error.provider_cli_unavailable" },
+  session_host_unavailable: { id: "start.error.session_host_unavailable" },
+  workspace_start_failed: { id: "start.error.workspace_start_failed" },
+};
+
 export function StartScreen() {
   const intl = useIntl();
   const commands = useApplicationCommands();
@@ -120,11 +129,9 @@ export function StartScreen() {
         {error === null ? null : (
           <p className={styles.error} role="alert">
             <FormattedMessage
-              id={
-                `start.error.${error.code}` in intl.messages
-                  ? `start.error.${error.code}`
-                  : "start.error.other"
-              }
+              {...(Object.hasOwn(errorMessages, error.code)
+                ? errorMessages[error.code]
+                : { id: "start.error.other" })}
               values={{ code: error.code, stage: error.stage ?? "none" }}
             />
           </p>

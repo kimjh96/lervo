@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { ConnectionState, SessionHostClient } from "../../../platform/session-host";
+import type { ConnectionState, SessionHost } from "../../../ports";
 
 interface ConnectionStore {
   readonly state: ConnectionState;
@@ -10,7 +10,7 @@ interface ConnectionStore {
 export const useConnectionStore = create<ConnectionStore>(() => ({ state: "connecting" }));
 
 /** Mirrors `client`'s connection state into the store; returns the unsubscribe function. */
-export function bindConnection(client: SessionHostClient): () => void {
+export function bindConnection(client: Pick<SessionHost, "connection" | "onState">): () => void {
   useConnectionStore.setState({ state: client.connection });
   return client.onState((state) => useConnectionStore.setState({ state }));
 }

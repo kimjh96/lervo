@@ -1,11 +1,11 @@
+import { type ApplicationCommands, RequestFailure } from "../../ports/session-host";
 import type { SessionHostClient } from "./client";
-import { RequestFailure } from "./requests";
 
 /** Application commands do core work, such as creating a worktree, so they may take long. */
 const DEADLINE_MS = 130_000;
 
 /** Runs Lervo application commands through the session host and returns their results. */
-export class ApplicationCommands {
+export class SessionHostCommands implements ApplicationCommands {
   constructor(private readonly client: SessionHostClient) {}
 
   async run(

@@ -1,20 +1,6 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 
-/** A request the session host or the core refused, with the protocol's code and parameters. */
-export class RequestFailure extends Error {
-  constructor(
-    readonly code: string,
-    readonly parameters: Readonly<Record<string, string | number | boolean>> = {},
-  ) {
-    super(code);
-    this.name = "RequestFailure";
-  }
-}
-
-type DistributiveOmit<T, K extends PropertyKey> = T extends unknown ? Omit<T, K> : never;
-
-/** A client message that carries a request ID, without it: the requester assigns one. */
-export type Request = DistributiveOmit<Extract<ClientMessage, { requestId: string }>, "requestId">;
+import { type Request, RequestFailure } from "../../ports/session-host";
 
 /** How long a request waits for its answer by default. */
 const DEADLINE_MS = 30_000;

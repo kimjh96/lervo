@@ -31,8 +31,9 @@ interface Anchor {
 /**
  * The native conversation, virtualized: only items near the viewport mount, and their heights
  * are measured once per item. It follows the live end until the user scrolls up, by however
- * little, and then offers "Jump to latest" (ADE motion, "Following the stream"). Pages load at either edge of the window,
- * and the item the user is reading stays in place when items are added or dropped above it.
+ * little, and then offers "Jump to latest" (ADE motion, "Following the stream"). Pages load at
+ * either edge of the window, and the item the user is reading stays in place when items are
+ * added or dropped above it.
  *
  * The conversation runs to the bottom of the window, and `dock`, such as the reply card, floats
  * over it on glass; the list keeps room for the dock below its last item.

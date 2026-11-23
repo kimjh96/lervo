@@ -1,36 +1,35 @@
-import { useEffect, useMemo } from "react";
-import { createIntl, IntlProvider } from "react-intl";
+import { useEffect } from "react";
+import { createIntl, RawIntlProvider } from "react-intl";
 
 import { bindConnection } from "../features/connection";
-import { bindWorkspaces, useWorkspaceStore } from "../features/workspaces";
+import { bindStart, bindStartDraft } from "../features/start";
+import { bindWorkspaces, notificationMessages, useWorkspaceStore } from "../features/workspaces";
 import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
 import { isCommandKey } from "../platform/keyboard";
-import type { Notifier } from "../platform/notifications";
 import { transition } from "../platform/transition";
-import { ApplicationCommands, type SessionHostClient } from "../platform/session-host";
+import { type Adapters, AdaptersProvider, type Notifier } from "../ports";
 import { Frame } from "./Frame";
-import { SessionHostProvider } from "./session-host-context";
 
 const locale = chooseLocale(navigator.languages);
-const messages = messagesFor(locale);
-const intl = createIntl({ locale, defaultLocale, messages });
+const intl = createIntl({ locale, defaultLocale, messages: messagesFor(locale) });
 
-/** The application root: the catalog, the session-host client, and the frame. */
-export function App(props: { client: SessionHostClient; notifier: Notifier }) {
-  const { client, notifier } = props;
-  const commands = useMemo(() => new ApplicationCommands(client), [client]);
+/** The application root: it binds the models to the adapters and renders the frame. */
+export function App(props: { adapters: Adapters; notifier: Notifier }) {
+  const { adapters, notifier } = props;
   useEffect(() => {
-    const unbindConnection = bindConnection(client);
-    const unbindWorkspaces = bindWorkspaces({
-      client,
-      commands,
-      notifier,
-      isFocused: () => document.hasFocus(),
-      text: (kind, title) => ({
-        title,
-        body: intl.formatMessage({ id: `notifications.${kind}` }),
+    const { host, commands, drafts } = adapters;
+    const unbind = [
+      bindConnection(host),
+      bindWorkspaces({
+        client: host,
+        commands,
+        notifier,
+        isFocused: () => document.hasFocus(),
+        text: (kind, title) => ({ title, body: intl.formatMessage(notificationMessages[kind]) }),
       }),
-    });
+      bindStart(),
+      bindStartDraft(drafts),
+    ];
     // ⌘N (Ctrl+N elsewhere) opens the start screen, as the "New work" row shows.
     const shortcut = (event: KeyboardEvent) => {
       if (!isCommandKey(event, "n")) return;
@@ -38,18 +37,16 @@ export function App(props: { client: SessionHostClient; notifier: Notifier }) {
       transition(() => useWorkspaceStore.getState().newWork());
     };
     window.addEventListener("keydown", shortcut);
-    client.start();
     return () => {
       window.removeEventListener("keydown", shortcut);
-      unbindConnection();
-      unbindWorkspaces();
+      for (const release of unbind) release();
     };
-  }, [client, commands, notifier]);
+  }, [adapters, notifier]);
   return (
-    <IntlProvider locale={locale} defaultLocale={defaultLocale} messages={messages}>
-      <SessionHostProvider client={client} commands={commands}>
+    <RawIntlProvider value={intl}>
+      <AdaptersProvider adapters={adapters}>
         <Frame />
-      </SessionHostProvider>
-    </IntlProvider>
+      </AdaptersProvider>
+    </RawIntlProvider>
   );
 }

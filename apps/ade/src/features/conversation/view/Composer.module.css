@@ -3,7 +3,7 @@
   flex: none;
   box-sizing: border-box;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
-  padding: 0 0 var(--space-24);
+  padding-block-end: var(--space-24);
 }
 
 /* The card floats over the conversation, which shows through it blurred. */
@@ -11,7 +11,8 @@
   display: flex;
   gap: var(--space-8);
   align-items: flex-end;
-  padding: var(--space-10) var(--space-10) var(--space-10) var(--space-16);
+  padding-block: var(--space-10);
+  padding-inline: var(--space-16) var(--space-10);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-xl);
   background: var(--color-surface-floating);
@@ -38,8 +39,13 @@
   resize: none;
 }
 
+/* The card shows the focus of its input, which draws no ring of its own. */
 .input:focus {
   outline: none;
+}
+
+.card:has(.input:focus-visible) {
+  border-color: var(--color-accent);
 }
 
 .input::placeholder {
@@ -71,8 +77,9 @@
 }
 
 .error {
-  margin: var(--space-6) 0 0;
-  padding: 0 var(--space-4);
+  margin: 0;
+  margin-block-start: var(--space-6);
+  padding-inline: var(--space-4);
   color: var(--color-status-failed);
   font-size: var(--type-meta-size);
 }

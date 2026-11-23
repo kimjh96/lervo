@@ -1,25 +1,28 @@
 import { type KeyboardEvent, useLayoutEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { RequestFailure } from "../../../platform/session-host";
+import { failureCode } from "../../../ports";
 import { ArrowUpIcon } from "../../../ui/icons";
 import styles from "./Composer.module.css";
+import { useDraft } from "./draft";
 
 /** Lines the input grows to before it scrolls. */
 const MAX_LINES = 8;
 
 /**
  * The reply card (approved mockup "2a"). Enter sends; Shift+Enter starts a new line; composition
- * is respected. The input grows with its text, and a failed send puts the text back.
+ * is respected. The input grows with its text, keeps it as a draft under `draftKey`, and a failed
+ * send puts the text back.
  */
 export function Composer(props: {
   onSend: (text: string) => Promise<void>;
+  draftKey?: string | undefined;
   /** Shown in place of the placeholder while replies cannot be sent yet. */
-  waiting?: string;
+  waiting?: string | undefined;
 }) {
   const intl = useIntl();
   const input = useRef<HTMLTextAreaElement>(null);
-  const [text, setText] = useState("");
+  const [text, setText] = useDraft(props.draftKey);
   const [failure, setFailure] = useState<string | null>(null);
   useLayoutEffect(() => {
     const element = input.current;
@@ -35,7 +38,7 @@ export function Composer(props: {
     setFailure(null);
     props.onSend(value).catch((error: unknown) => {
       setText(value);
-      setFailure(error instanceof RequestFailure ? error.code : "session_host_unavailable");
+      setFailure(failureCode(error));
     });
   };
   const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {

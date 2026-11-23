@@ -1,24 +1,23 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { beforeEach, describe, expect, it } from "vitest";
 
+import { bindWorkspaces, reloadWorkspaces } from "../src/features/workspaces/model/controller";
 import {
   arrivals,
-  bindWorkspaces,
   groupByRepository,
   notificationFor,
-  reloadWorkspaces,
-  switchConversationMode,
-  useWorkspaceStore,
   visibleStatus,
-  type Workspace,
-} from "../src/features/workspaces";
+} from "../src/features/workspaces/model/decisions";
+import { switchConversationMode } from "../src/features/workspaces/model/mode";
+import { useWorkspaceStore } from "../src/features/workspaces/model/store";
+import type { Workspace } from "../src/features/workspaces/model/types";
 import {
-  ApplicationCommands,
   type HostTransport,
-  RequestFailure,
   SessionHostClient,
+  SessionHostCommands,
   type ShellMessage,
 } from "../src/platform/session-host";
+import { RequestFailure } from "../src/ports";
 
 function workspace(id: string, repositoryName: string, preparedAt: string): Workspace {
   return {
@@ -79,7 +78,7 @@ async function connected(answers: Record<string, Record<string, unknown>>) {
     transport,
     () => 0 as unknown as ReturnType<typeof setTimeout>,
   );
-  const commands = new ApplicationCommands(client);
+  const commands = new SessionHostCommands(client);
   client.start();
   await new Promise((resolve) => setTimeout(resolve, 0));
   return { client, commands, sent, emit: (message: HostMessage) => emit(message) };
@@ -206,5 +205,18 @@ describe("switching the conversation mode", () => {
       conversationMode: "cli",
     });
     expect(useWorkspaceStore.getState().workspaces[0]?.conversationMode).toBe("cli");
+  });
+});
+
+describe("selecting a workspace", () => {
+  it("changes nothing when the workspace is already selected", () => {
+    useWorkspaceStore.setState({ selected: "wks_1" });
+    let notified = 0;
+    const unsubscribe = useWorkspaceStore.subscribe(() => (notified += 1));
+    useWorkspaceStore.getState().select("wks_1");
+    expect(notified).toBe(0);
+    useWorkspaceStore.getState().select("wks_2");
+    expect(notified).toBe(1);
+    unsubscribe();
   });
 });

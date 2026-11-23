@@ -1,11 +1,12 @@
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { shortcutLabel } from "../../../platform/keyboard";
+import { commandModifier } from "../../../platform/keyboard";
 import { transition } from "../../../platform/transition";
 import { PlusIcon } from "../../../ui/icons";
 import { StatusDot } from "../../../ui/StatusDot";
 import { groupByRepository, visibleStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
+import { statusMessages } from "./messages";
 import styles from "./WorkspaceList.module.css";
 
 /**
@@ -36,7 +37,15 @@ export function WorkspaceList() {
         <span className={styles.name}>
           <FormattedMessage id="workspaces.new" />
         </span>
-        <kbd className={styles.shortcut}>{shortcutLabel("N")}</kbd>
+        <kbd className={styles.shortcut}>
+          <FormattedMessage
+            id="keyboard.command"
+            values={{
+              modifier: commandModifier,
+              key: intl.formatMessage({ id: "workspaces.new.key" }),
+            }}
+          />
+        </kbd>
       </button>
       {listFailure === null ? null : (
         <p className={styles.failure} role="alert">
@@ -66,7 +75,7 @@ export function WorkspaceList() {
                     {status === null ? null : (
                       <StatusDot
                         tone={status === "working" ? "working" : "attention"}
-                        label={intl.formatMessage({ id: `workspaces.status.${status}` })}
+                        label={intl.formatMessage(statusMessages[status])}
                       />
                     )}
                   </button>

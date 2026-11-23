@@ -1,4 +1,4 @@
-.conversation {
+.pane {
   display: flex;
   flex: 1;
   flex-direction: column;
@@ -6,7 +6,8 @@
 }
 
 .error {
-  margin: var(--space-12) auto 0;
+  margin-block: var(--space-12) 0;
+  margin-inline: auto;
   color: var(--color-status-failed);
   font-size: var(--type-meta-size);
 }
@@ -15,5 +16,5 @@
 .working {
   box-sizing: border-box;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
-  padding: 0 0 var(--space-12);
+  padding-block-end: var(--space-12);
 }

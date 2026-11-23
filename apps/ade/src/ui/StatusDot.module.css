@@ -15,7 +15,7 @@
   width: 7px;
   height: 7px;
   background: var(--color-status-needs-you);
-  animation: enter var(--motion-duration-enter) var(--motion-easing-standard);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 @keyframes breathe {
@@ -25,12 +25,6 @@
 
   to {
     opacity: 1;
-  }
-}
-
-@keyframes enter {
-  from {
-    opacity: 0;
   }
 }
 

@@ -1,9 +1,7 @@
 import { useEffect, useState } from "react";
 
+import { prefersReducedMotion } from "../../../platform/environment";
 import { nextShown, PACE_MS } from "../model/pacing";
-
-const reducedMotion =
-  typeof matchMedia === "function" ? matchMedia("(prefers-reduced-motion: reduce)") : null;
 
 /**
  * The part of a streaming `text` to show now (ADE motion, "A reply streams"). Text present when
@@ -13,7 +11,7 @@ const reducedMotion =
  */
 export function usePacedText(text: string): string {
   const [shown, setShown] = useState(text.length);
-  const behind = shown < text.length && reducedMotion?.matches !== true;
+  const behind = shown < text.length && !prefersReducedMotion();
 
   useEffect(() => {
     if (!behind) return;

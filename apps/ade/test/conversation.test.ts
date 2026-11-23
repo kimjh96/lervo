@@ -1,14 +1,14 @@
 import type { ConversationItem } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
+import { DeltaBuffer } from "../src/features/conversation/model/deltas";
 import {
   applyAppended,
   applyDelta,
   applyPage,
-  DeltaBuffer,
   emptyWindow,
   MAX_WINDOW_ITEMS,
-} from "../src/features/conversation";
+} from "../src/features/conversation/model/window";
 
 function agent(
   position: number,

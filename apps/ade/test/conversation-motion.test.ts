@@ -1,7 +1,8 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
-import { ConversationController, useConversationStore } from "../src/features/conversation";
+import { ConversationController } from "../src/features/conversation/model/controller";
+import { useConversationStore } from "../src/features/conversation/model/store";
 import { activityOf } from "../src/features/conversation/model/activity";
 import { nextShown } from "../src/features/conversation/model/pacing";
 import {

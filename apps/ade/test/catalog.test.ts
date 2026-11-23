@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -9,6 +9,17 @@ import { compileCatalog } from "../scripts/build-catalog.mjs";
 import { chooseLocale, messagesFor } from "../src/i18n/catalog";
 
 const root = join(import.meta.dirname, "..");
+
+/** Every interface source file's text. */
+async function sources(directory = join(root, "src")): Promise<string[]> {
+  const texts: string[] = [];
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if (entry.isDirectory()) texts.push(...(await sources(path)));
+    else if (/\.tsx?$/u.test(entry.name)) texts.push(await readFile(path, "utf8"));
+  }
+  return texts;
+}
 
 describe("the message catalog", () => {
   it("keeps the compiled English catalog current", async () => {
@@ -23,6 +34,24 @@ describe("the message catalog", () => {
     } finally {
       await rm(directory, { recursive: true, force: true });
     }
+  });
+
+  it("names every message with a static ID that the catalog defines and uses every entry", async () => {
+    const catalog = Object.keys(
+      JSON.parse(await readFile(join(root, "src/i18n/messages.en.json"), "utf8")),
+    );
+    const text = (await sources()).join("\n");
+    const used = new Set(
+      [...text.matchAll(/\bid(?:=|: )"([a-z][\w.]*)"/gu)].map((match) => match[1] as string),
+    );
+    // S4 replaces the provider names with the core's provider registry.
+    const built = [...text.matchAll(/\bid(?:=\{|: )`([^`]*)`/gu)].map((match) => match[1]);
+    expect(built).toEqual(["start.provider.${draft.provider}", "start.provider.${value}"]);
+    const providers = catalog.filter(
+      (id) => id.startsWith("start.provider.") && id !== "start.provider.label",
+    );
+    expect([...used].filter((id) => !catalog.includes(id))).toEqual([]);
+    expect(catalog.filter((id) => !used.has(id) && !providers.includes(id))).toEqual([]);
   });
 
   it("falls back to English for a locale without a catalog", () => {

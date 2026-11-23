@@ -6,19 +6,21 @@
   align-items: center;
   justify-content: center;
   min-height: 0;
-  padding: var(--space-48) var(--space-32) 96px;
+  padding-block: var(--space-48) calc(2 * var(--space-48));
+  padding-inline: var(--space-32);
 }
 
 .column {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: var(--space-16);
   width: 100%;
   max-width: 640px;
 }
 
 .question {
-  margin: 0 0 var(--space-6);
+  margin: 0;
+  margin-block-end: var(--space-6);
   color: var(--color-text-primary);
   font-size: var(--type-display-size);
   font-weight: var(--type-display-weight);
@@ -30,7 +32,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
-  padding: var(--space-14) var(--space-14) var(--space-10) 18px;
+  padding-block: var(--space-14) var(--space-10);
+  padding-inline: var(--space-16) var(--space-14);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-xl);
   background: var(--color-surface-input);
@@ -48,8 +51,13 @@
   resize: none;
 }
 
+/* The card shows the focus of its input, which draws no ring of its own. */
 .instruction:focus {
   outline: none;
+}
+
+.card:has(.instruction:focus-visible) {
+  border-color: var(--color-accent);
 }
 
 .instruction::placeholder {
@@ -71,9 +79,9 @@
 
 .chip select {
   height: 28px;
-  padding: 0 22px 0 var(--space-8);
+  padding-inline: var(--space-8) var(--space-20);
   border: 0;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   color: inherit;
   font: inherit;
   font-size: var(--type-meta-size);
@@ -89,7 +97,7 @@
 
 .chip svg {
   position: absolute;
-  right: 6px;
+  inset-inline-end: var(--space-6);
   pointer-events: none;
 }
 
@@ -99,7 +107,7 @@
   justify-content: center;
   width: 34px;
   height: 34px;
-  margin-left: auto;
+  margin-inline-start: auto;
   border: 0;
   border-radius: var(--radius-md);
   color: var(--color-on-accent);
@@ -121,9 +129,9 @@
 .explain,
 .error {
   margin: 0;
-  padding: 0 var(--space-4);
-  font-size: 13px;
-  line-height: 1.6;
+  padding-inline: var(--space-4);
+  font-size: var(--type-note-size);
+  line-height: var(--type-note-line-height);
 }
 
 .explain {
@@ -132,13 +140,7 @@
 
 .error {
   color: var(--color-status-failed);
-  animation: appear var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-@keyframes appear {
-  from {
-    opacity: 0;
-  }
+  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {

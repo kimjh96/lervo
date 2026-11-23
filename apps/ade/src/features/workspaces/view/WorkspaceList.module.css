@@ -4,12 +4,14 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  padding: 0 var(--space-10) var(--space-16);
+  padding-block: 0 var(--space-16);
+  padding-inline: var(--space-10);
   overflow-y: auto;
 }
 
 .repository {
-  margin: 22px var(--space-10) var(--space-6);
+  margin-block: var(--space-20) var(--space-6);
+  margin-inline: var(--space-10);
   color: var(--color-text-tertiary);
   font-size: var(--type-caption-size);
   font-weight: 400;
@@ -17,7 +19,8 @@
 }
 
 .failure {
-  margin: var(--space-12) var(--space-10) 0;
+  margin-block: var(--space-12) 0;
+  margin-inline: var(--space-10);
   color: var(--color-status-failed);
   font-size: var(--type-caption-size);
   line-height: var(--type-caption-line-height);
@@ -37,14 +40,15 @@
   gap: var(--space-10);
   align-items: center;
   width: 100%;
-  padding: var(--space-8) var(--space-10);
+  padding-block: var(--space-8);
+  padding-inline: var(--space-10);
   border: 0;
   border-radius: var(--radius-sm);
   color: var(--color-text-primary);
   font: inherit;
   font-size: var(--type-list-size);
   line-height: var(--type-list-line-height);
-  text-align: left;
+  text-align: start;
   background: transparent;
   cursor: pointer;
   transition: background-color var(--motion-duration-change) var(--motion-easing-standard);
@@ -79,20 +83,13 @@
 .shortcut {
   color: var(--color-text-tertiary);
   font: inherit;
-  font-size: 11px;
+  font-size: var(--type-caption-size);
 }
 
 /* A workspace that starts while the user watches enters like a live message (ADE motion,
    "Starting work from the start screen"). */
 li[data-arrived="true"] {
-  animation: arrive var(--motion-duration-enter) var(--motion-easing-standard);
-}
-
-@keyframes arrive {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,7 +1,8 @@
 import type { ConversationItem } from "@lervo/session-host-contract";
 import type { ComponentType } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { FormattedMessage, type MessageDescriptor } from "react-intl";
 
+import { toolMessages } from "./messages";
 import { usePacedText } from "./paced";
 import styles from "./renderers.module.css";
 
@@ -39,26 +40,34 @@ function ToolActivity({ item }: { item: Extract<ConversationItem, { kind: "tool_
   return (
     <p className={styles.tool} data-status={item.tool.status}>
       <FormattedMessage
-        id={`conversation.tool.${item.tool.status}`}
+        {...toolMessages[item.tool.status]}
         values={{ name: item.tool.name, calls: item.tool.calls }}
       />
     </p>
   );
 }
 
+/**
+ * The text of each Lervo notice code the interface knows. The core's codes are an open set, so
+ * an unknown code shows the generic notice with the code.
+ */
+const noticeMessages: Readonly<Record<string, MessageDescriptor>> = {
+  conversation_item_invalid: { id: "notice.conversation_item_invalid" },
+  core_decoding_failed: { id: "notice.core_decoding_failed" },
+  core_link_unavailable: { id: "notice.core_link_unavailable" },
+  provider_turn_failed: { id: "notice.provider_turn_failed" },
+};
+
 function LervoNotice({ item }: { item: Extract<ConversationItem, { kind: "lervo_notice" }> }) {
-  const intl = useIntl();
-  const id = `notice.${item.code}`;
-  const known = id in intl.messages;
+  const message = Object.hasOwn(noticeMessages, item.code)
+    ? noticeMessages[item.code]
+    : { id: "notice.unknown" };
   return (
     <p className={styles.notice}>
       <span className={styles.source}>
         <FormattedMessage id="app.name" />
       </span>
-      <FormattedMessage
-        id={known ? id : "notice.unknown"}
-        values={{ ...item.parameters, code: item.code }}
-      />
+      <FormattedMessage {...message} values={{ ...item.parameters, code: item.code }} />
     </p>
   );
 }

@@ -2,12 +2,12 @@ import type { ClientMessage } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
 import {
-  type ConnectionState,
   type HostTransport,
-  parseTerminalFrame,
   SessionHostClient,
   type ShellMessage,
 } from "../src/platform/session-host";
+import { parseTerminalFrame } from "../src/platform/session-host/client";
+import type { ConnectionState } from "../src/ports";
 
 function fakeTransport(failures: number) {
   let attempts = 0;

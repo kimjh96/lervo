@@ -98,6 +98,7 @@ The CLI conversation uses these colors over the `color.surface.terminal` glass, 
 | `type.input`   | 15 px   | 400    | 1.55        | The instruction input            |
 | `type.body`    | 14.5 px | 400    | 1.7         | Conversation text                |
 | `type.list`    | 13.5 px | 400    | 1.4         | The workspace list               |
+| `type.note`    | 13 px   | 400    | 1.6         | Explanations and inline errors   |
 | `type.meta`    | 12.5 px | 400    | 1.4         | Activity lines and Lervo notices |
 | `type.caption` | 11.5 px | 400    | 1.4         | Repository labels and hints      |
 | `type.mono`    | 13 px   | 400    | 1.75        | The CLI conversation             |

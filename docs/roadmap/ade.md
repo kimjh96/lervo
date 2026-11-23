@@ -106,14 +106,32 @@ On 2026-11-23 the owner ran the app and found that it did not look like the appr
 
 ### Convention check after S1.5e
 
-On 2026-11-23 the owner asked for a convention check before S1.6b. An independent review of `apps/ade` against the ADE convention and the code convention found four groups of problems, which land as four pull requests:
+On 2026-11-23 the owner asked for a convention check before S1.6b. An independent review of `apps/ade` against the ADE convention and the code convention found four groups of problems. With the design system the owner asked for the same day, they land as five groups, in this order:
 
 1. **Correctness and failure visibility.** A reply had no answer, so the interface waited 30 seconds and took the timeout for success; `session.resync_required` had no handler; several failures were dropped or collapsed into one message; the window waited for the login shell before opening; and terminal output had no per-frame limit. The first pull request adds `session.sent`, resynchronizes both conversations, shows each failure's code, resolves the login `PATH` in the background, and writes terminal output once per frame.
 2. **Interface structure.** Models reach adapters directly instead of through ports, the frame holds view decisions, the pending workspace copies the conversation's layout and first message, collections lack byte limits, nothing reacts to a hidden window, styles use physical properties and literal sizes, and the composer's draft is lost when the view changes.
 3. **Session host internals.** Index and process work runs under the registry lock and on async workers, `host.rs` mixes dispatch with the session lifecycle, a mode switch polls and can open a second provider process, terminal output is copied more than once, and the shell bypasses the transport adapter.
-4. **Providers and modes from registries.** The start screen lists providers by name and the header offers both modes regardless of capability; the core adds a provider list with capabilities, and the interface and the session host read registries.
+4. **Design system.** The owner asked on 2026-11-23 for a design system that keeps the interface consistent and its components reusable and extensible, because documentation and an introduction site are planned. It covers everything such a system holds, from the design language and every foundation to components, patterns, content, accessibility, and governance; the [design system plan](ade/design-system.md) lists its scope, order, and completion. It comes after the session-host internals, which are correctness work, and before the registries, whose provider choice and mode switch build on its components. It lands in several pull requests.
+5. **Providers and modes from registries.** The start screen lists providers by name and the header offers both modes regardless of capability; the core adds a provider list with capabilities, and the interface and the session host read registries.
 
 The owner also removed the 150-line component signal and stated that the design principles apply to every change, beyond any checklist; the ADE convention records both.
+
+The second pull request resolves the interface structure and one motion problem the owner found:
+
+- **Ports and composition.** Models and views reach the session host, application commands, notifications, and drafts through `ports/`. `main.tsx` builds the adapters, `app/` only binds and mounts, and the main area's view comes from a selector in the start feature.
+- **One conversation pane.** The pending workspace renders through the conversation feature with a stand-in strategy, so its first message and layout have one owner. Both headers share one primitive.
+- **Bounds and drafts.**
+  - Live arrivals and workspace arrivals stay within the window and the list.
+  - Recently closed conversations are an LRU cache by bytes.
+  - The reply card and the start screen keep their drafts across reloads, with coalesced writes in local storage.
+- **Presentation.**
+  - A hidden window pauses every animation, and the shared keyframes are defined once.
+  - Stylesheets use logical properties and tokens.
+  - Every message has a static ID that a test checks against the catalog, and inputs show their focus.
+  - Import-boundary lint rules enforce the layers.
+- **What stays, stays still.** A conversation mode switch faded the whole view, title included, because the view's key held the mode. The key now names only the workspace, a header decides its arrival when it mounts, and selecting the selected workspace changes nothing. The ADE motion principles record the rule.
+
+Three findings move to later groups. The provider names on the start screen and the result schemas of application commands go with the provider registry (group 5). The terminal input encoding and the duplicated mode translation in Rust go with the session-host internals (group 3).
 
 ### S1.6b progress
 

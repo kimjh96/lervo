@@ -1,0 +1,28 @@
+/* The keyframes every view shares (ADE motion, "Pattern catalog"). Modules name them with
+   `global(...)`, so each motion is defined once. */
+@keyframes lervo-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+@keyframes lervo-appear {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes lervo-leave {
+  to {
+    opacity: 0;
+  }
+}
+
+/* A hidden, minimized, or occluded window runs no animation (ADE performance, "Work only for
+   what the user sees"); `platform/visibility` sets the attribute. */
+:root[data-visibility="hidden"] *,
+:root[data-visibility="hidden"] *::before,
+:root[data-visibility="hidden"] *::after {
+  animation-play-state: paused !important;
+}

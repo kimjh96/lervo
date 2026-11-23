@@ -1,14 +1,14 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
-import { ConversationController } from "../src/features/conversation";
+import { ConversationController } from "../src/features/conversation/model/controller";
 import { TerminalController } from "../src/features/terminal/model/controller";
 import {
   type HostTransport,
-  RequestFailure,
   SessionHostClient,
   type ShellMessage,
 } from "../src/platform/session-host";
+import { RequestFailure } from "../src/ports";
 
 type Answer = (message: ClientMessage & { requestId: string }) => HostMessage | undefined;
 

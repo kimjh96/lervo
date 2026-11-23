@@ -6,36 +6,36 @@ import { Terminal as XTerm } from "@xterm/xterm";
 import { useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 
-import { useSessionHostClient } from "../../../app/session-host-context";
-import { terminalThemes } from "../../../design/generated/terminal-theme";
+import { terminalFont, terminalThemes } from "../../../design/generated/terminal-theme";
+import { useSessionHost } from "../../../ports";
 import { TerminalController } from "../model/controller";
 import { FrameBoundWriter } from "../model/frames";
 import styles from "./Terminal.module.css";
 
 const dark = window.matchMedia("(prefers-color-scheme: dark)");
 
+/** No background of its own: the surface token behind the terminal draws it on the glass. */
+const SEE_THROUGH = "rgba(0, 0, 0, 0)";
+
 /** The terminal palette of the current mode, over a transparent background. */
 function themed() {
   return {
     ...(dark.matches ? terminalThemes.dark : terminalThemes.light),
-    background: "rgba(0, 0, 0, 0)",
+    background: SEE_THROUGH,
   };
 }
 
 /** The CLI conversation: the provider's own terminal interface, in the terminal theme. */
 export function Terminal(props: { workspaceId: string }) {
-  const client = useSessionHostClient();
+  const host = useSessionHost();
   const container = useRef<HTMLDivElement>(null);
   const [failure, setFailure] = useState<string | null>(null);
 
   useEffect(() => {
     const element = container.current;
     if (element === null) return;
-    const styles = getComputedStyle(document.documentElement);
     const terminal = new XTerm({
-      fontFamily: styles.getPropertyValue("--font-family-mono"),
-      fontSize: Number.parseFloat(styles.getPropertyValue("--type-mono-size")) || 13,
-      lineHeight: Number.parseFloat(styles.getPropertyValue("--type-mono-line-height")) || 1.4,
+      ...terminalFont,
       theme: themed(),
       // The terminal sits on the window glass (approved mockup "2b"), so its own background is
       // transparent and the surface token behind it draws the tint.
@@ -55,7 +55,7 @@ export function Terminal(props: { workspaceId: string }) {
       (bytes) => terminal.write(bytes),
       (run) => requestAnimationFrame(run),
     );
-    const controller = new TerminalController(client, props.workspaceId, {
+    const controller = new TerminalController(host, props.workspaceId, {
       write: (bytes) => {
         setFailure(null);
         output.add(bytes);
@@ -80,7 +80,7 @@ export function Terminal(props: { workspaceId: string }) {
       controller.close();
       terminal.dispose();
     };
-  }, [client, props.workspaceId]);
+  }, [host, props.workspaceId]);
 
   return (
     <div className={styles.frame}>
