@@ -8,6 +8,7 @@ mod host_link;
 mod host_program;
 mod login_path;
 mod material;
+mod window;
 
 use std::process::ExitCode;
 
@@ -26,10 +27,12 @@ fn main() -> ExitCode {
         .plugin(tauri_plugin_notification::init())
         .plugin(material::plugin())
         .manage(relay)
+        .on_page_load(window::on_page_load)
         .invoke_handler(tauri::generate_handler![
             commands::host_connect,
             commands::host_send,
-            commands::host_input
+            commands::host_input,
+            window::window_ready
         ])
         .run(tauri::generate_context!());
     match result {
