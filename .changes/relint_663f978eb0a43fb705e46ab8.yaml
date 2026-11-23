@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_663f978eb0a43fb705e46ab8"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Add Lervo's session hooks to the ADE's Claude Code sessions through a session-scoped settings file, record the hosted session events in the registered repository once it selects event schema 10, and name the activation target in event writer upgrade blockers."
