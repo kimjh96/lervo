@@ -9,6 +9,7 @@ import {
 } from "react";
 import { FormattedMessage } from "react-intl";
 
+import { FloatingButton } from "../../../ui/FloatingButton";
 import { useConversationStore } from "../model/store";
 import styles from "./Conversation.module.css";
 import { ConversationItemView } from "./renderers";
@@ -241,9 +242,9 @@ export function Conversation(props: {
       </div>
       <div ref={dock} className={styles.dock}>
         {live ? null : (
-          <button type="button" className={styles.jump} onClick={jump}>
+          <FloatingButton className={styles.jump} onClick={jump}>
             <FormattedMessage id="conversation.jumpToLatest" />
-          </button>
+          </FloatingButton>
         )}
         {props.dock}
       </div>

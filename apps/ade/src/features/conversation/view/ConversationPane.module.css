@@ -8,8 +8,6 @@
 .error {
   margin-block: var(--space-12) 0;
   margin-inline: auto;
-  color: var(--color-status-failed);
-  font-size: var(--type-meta-size);
 }
 
 /* The agent's work in progress, at the end of the conversation above the reply card. */

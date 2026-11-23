@@ -1,0 +1,6 @@
+/* A shortcut label: caption text, quiet, never a key cap. */
+.kbd {
+  color: var(--color-text-tertiary);
+  font: inherit;
+  font-size: var(--type-caption-size);
+}

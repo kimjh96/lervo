@@ -8,6 +8,7 @@ import { FormattedMessage } from "react-intl";
 
 import { terminalFont, terminalThemes } from "../../../design/generated/terminal-theme";
 import { useSessionHost } from "../../../ports";
+import { InlineAlert } from "../../../ui/InlineAlert";
 import { TerminalController } from "../model/controller";
 import { FrameBoundWriter } from "../model/frames";
 import styles from "./Terminal.module.css";
@@ -85,9 +86,9 @@ export function Terminal(props: { workspaceId: string }) {
   return (
     <div className={styles.frame}>
       {failure === null ? null : (
-        <p className={styles.failure} role="alert">
+        <InlineAlert size="meta" className={styles.failure}>
           <FormattedMessage id="terminal.failed" values={{ code: failure }} />
-        </p>
+        </InlineAlert>
       )}
       <div ref={container} className={styles.terminal} />
     </div>

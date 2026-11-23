@@ -3,7 +3,9 @@ import { useState } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { failureCode, useApplicationCommands, useSessionHost } from "../../../ports";
+import { InlineAlert } from "../../../ui/InlineAlert";
 import { PaneHeader } from "../../../ui/PaneHeader";
+import { SegmentedControl } from "../../../ui/SegmentedControl";
 import { switchConversationMode, useWorkspaceStore } from "../../workspaces";
 import styles from "./WorkspaceHeader.module.css";
 
@@ -33,7 +35,6 @@ export function WorkspaceHeader(props: {
   );
   if (workspace === undefined) return null;
   const toggle = (mode: ConversationMode) => {
-    if (mode === workspace.conversationMode) return;
     setSwitching(true);
     setFailure(null);
     void switchConversationMode({
@@ -52,27 +53,20 @@ export function WorkspaceHeader(props: {
       arrive={!props.continues}
     >
       {failure === null ? null : (
-        <span className={styles.failure} role="alert">
+        <InlineAlert size="caption" className={styles.failure}>
           <FormattedMessage id="workspace.mode.failed" values={{ code: failure }} />
-        </span>
+        </InlineAlert>
       )}
-      <div
-        className={styles.modes}
-        role="group"
-        aria-label={intl.formatMessage({ id: "workspace.mode.label" })}
-      >
-        {MODES.map((mode) => (
-          <button
-            key={mode}
-            type="button"
-            aria-pressed={workspace.conversationMode === mode}
-            disabled={switching}
-            onClick={() => toggle(mode)}
-          >
-            <FormattedMessage {...modeMessages[mode]} />
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        label={intl.formatMessage({ id: "workspace.mode.label" })}
+        options={MODES.map((mode) => ({
+          value: mode,
+          text: intl.formatMessage(modeMessages[mode]),
+        }))}
+        value={workspace.conversationMode}
+        onChange={toggle}
+        disabled={switching}
+      />
     </PaneHeader>
   );
 }

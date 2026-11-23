@@ -7,6 +7,7 @@ import { tauriNotifier } from "./platform/notifications";
 import { SessionHostClient, SessionHostCommands, tauriTransport } from "./platform/session-host";
 import { localDrafts } from "./platform/storage";
 import { bindVisibility } from "./platform/visibility";
+import "./ui/base.css";
 import "./ui/motion.css";
 import "./app/global.css";
 

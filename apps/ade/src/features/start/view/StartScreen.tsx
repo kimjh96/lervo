@@ -1,9 +1,13 @@
-import { type FormEvent, type KeyboardEvent, useEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
 import { transition } from "../../../platform/transition";
 import { useApplicationCommands } from "../../../ports";
-import { ArrowUpIcon, ChevronDownIcon } from "../../../ui/icons";
+import { IconButton } from "../../../ui/IconButton";
+import { ArrowUpIcon } from "../../../ui/icons";
+import { InlineAlert } from "../../../ui/InlineAlert";
+import { InputCard, InputField } from "../../../ui/InputCard";
+import { Select } from "../../../ui/Select";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
 import { useStartStore } from "../model/store";
@@ -11,32 +15,6 @@ import styles from "./StartScreen.module.css";
 
 const PROVIDERS = ["claude", "codex"] as const;
 
-/** A compact chooser inside the instruction card: a native select drawn as a chip. */
-function Chip(props: {
-  label: string;
-  value: string;
-  options: readonly { value: string; text: string }[];
-  onChange: (value: string) => void;
-}) {
-  return (
-    <span className={styles.chip}>
-      <select
-        aria-label={props.label}
-        value={props.value}
-        onChange={(event) => props.onChange(event.target.value)}
-      >
-        {props.options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.text}
-          </option>
-        ))}
-      </select>
-      <ChevronDownIcon size="sm" />
-    </span>
-  );
-}
-
-/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
 /** The text of each start failure the interface explains; other codes show with their code. */
 const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   application_unavailable: { id: "start.error.application_unavailable" },
@@ -46,6 +24,7 @@ const errorMessages: Readonly<Record<string, MessageDescriptor>> = {
   workspace_start_failed: { id: "start.error.workspace_start_failed" },
 };
 
+/** The start screen: one instruction, the repository, and the agent; Lervo does the rest. */
 export function StartScreen() {
   const intl = useIntl();
   const commands = useApplicationCommands();
@@ -62,16 +41,10 @@ export function StartScreen() {
   // The input takes focus when the screen opens and on each "New work".
   useEffect(() => input.current?.focus(), [newWork]);
 
-  const submit = (event?: FormEvent) => {
-    event?.preventDefault();
+  const submit = () => {
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
     transition(() => void startWork(commands, { ...draft, repository }, name));
-  };
-  const keyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey || event.nativeEvent.isComposing) return;
-    event.preventDefault();
-    submit();
   };
 
   return (
@@ -80,27 +53,27 @@ export function StartScreen() {
         <h1 className={styles.question}>
           <FormattedMessage id="start.question" />
         </h1>
-        <form className={styles.card} onSubmit={submit}>
-          <textarea
+        <InputCard surface="input" layout="stacked" onSubmit={submit}>
+          <InputField
             ref={input}
-            className={styles.instruction}
-            aria-label={intl.formatMessage({ id: "start.instruction.label" })}
+            size="input"
+            rows={3}
+            label={intl.formatMessage({ id: "start.instruction.label" })}
             placeholder={intl.formatMessage({ id: "start.instruction.placeholder" })}
             value={draft.instruction}
-            rows={3}
-            onChange={(event) => setDraft({ ...draft, instruction: event.target.value })}
-            onKeyDown={keyDown}
+            onChange={(instruction) => setDraft({ ...draft, instruction })}
+            onSubmit={submit}
           />
           <div className={styles.bar}>
             {repositories.length === 0 ? null : (
-              <Chip
+              <Select
                 label={intl.formatMessage({ id: "start.repository.label" })}
                 value={repository}
                 options={repositories.map((item) => ({ value: item.projectId, text: item.name }))}
                 onChange={(value) => setDraft({ ...draft, repository: value })}
               />
             )}
-            <Chip
+            <Select
               label={intl.formatMessage({ id: "start.provider.label" })}
               value={draft.provider}
               options={PROVIDERS.map((value) => ({
@@ -109,16 +82,15 @@ export function StartScreen() {
               }))}
               onChange={(value) => setDraft({ ...draft, provider: value })}
             />
-            <button
+            <IconButton
               type="submit"
               className={styles.submit}
               disabled={!ready}
-              aria-label={intl.formatMessage({ id: "start.submit" })}
-            >
-              <ArrowUpIcon size="lg" />
-            </button>
+              label={intl.formatMessage({ id: "start.submit" })}
+              icon={<ArrowUpIcon size="lg" />}
+            />
           </div>
-        </form>
+        </InputCard>
         <p className={styles.explain}>
           {repositories.length === 0 ? (
             <FormattedMessage id="start.repository.none" />
@@ -127,14 +99,14 @@ export function StartScreen() {
           )}
         </p>
         {error === null ? null : (
-          <p className={styles.error} role="alert">
+          <InlineAlert size="note" className={styles.error}>
             <FormattedMessage
               {...(Object.hasOwn(errorMessages, error.code)
                 ? errorMessages[error.code]
                 : { id: "start.error.other" })}
               values={{ code: error.code, stage: error.stage ?? "none" }}
             />
-          </p>
+          </InlineAlert>
         )}
       </div>
     </div>
