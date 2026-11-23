@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-16
-Amends: [ADR-0415](../../coordination/sync/0415-bounded-replica-transport-and-service-completion.md) (peer transport), [ADR-0461](0461-drive-resident-runtime-service-work-from-changes-not-timers.md) (replica recovery back-off)
+Amends: [ADR-0628](../../coordination/sync/0628-bounded-replica-transport-and-service-completion.md) (peer transport), [ADR-0461](0461-drive-resident-runtime-service-work-from-changes-not-timers.md) (replica recovery back-off)
 Related: [ADR-0468](../../coordination/sync/0468-propagate-knowledge-supersession-across-replicated-checkouts.md), [ADR-0483](../../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md)
 
 ## Context
@@ -39,7 +39,7 @@ The coordinator composes its SSH arguments through `repository-replica-ssh-conne
 - Lervo also adds `ConnectTimeout=15`, `ServerAliveInterval=15`, and `ServerAliveCountMax=3` when they are not configured. A master on a dead link exits within 45 seconds, so the next step connects afresh instead of waiting on the dead master until its deadline.
 - Other clients, such as a test double, receive no options (`client_not_openssh`). Windows OpenSSH has no multiplexing, including `ssh.exe` run from WSL through interop, and receives only the keepalive options (`windows_client`). A disabled reuse mode other than `client_not_openssh` is logged once at startup.
 
-Each step remains a bounded process with its own 512 MiB output bound, its 60-second default deadline, exit code, and structured failure. ADR-0415 is otherwise unchanged.
+Each step remains a bounded process with its own 512 MiB output bound, its 60-second default deadline, exit code, and structured failure. ADR-0628 is otherwise unchanged.
 
 **Rejected for now: a persistent peer session.** In that design, one long-lived `ssh` child would run a framed peer server over stdio. It would also remove the per-step remote `node` start, but it requires:
 

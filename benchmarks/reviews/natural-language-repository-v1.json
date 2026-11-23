@@ -8,11 +8,11 @@
   "subjects": {
     "koreanRetrieval": {
       "suiteId": "spbench_korean_repository_retrieval.v1",
-      "suiteDigest": "sha256:f657d6ed400d9e4503358b84ee4056bd702e62f3cb9034ae0f5fe018a4dd29b9"
+      "suiteDigest": "sha256:45d834433f53e64349170732dc6f530a5a8c31228d08630bb8d8a9c2cd0eecd7"
     },
     "englishControl": {
       "suiteId": "spbench_korean_repository_retrieval_control.v1",
-      "suiteDigest": "sha256:9ca1bd8694696de1ca934bd0f6a7888fd4ddb4818a969e72366f60e91d74ce86"
+      "suiteDigest": "sha256:50cc2afbd3adbdf98b71514a08cd150fe229b8f08cf1f90933c80b59a98f2d8a"
     },
     "grounding": {
       "suiteId": "ngsuite_repository_natural_language.v1",

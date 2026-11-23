@@ -1,4 +1,4 @@
-# ADR-0222: Bounded role-based document layout and rewrite ownership
+# ADR-0620: Bounded role-based document layout and rewrite ownership
 
 - Status: accepted
 - Decision date: 2026-08-26

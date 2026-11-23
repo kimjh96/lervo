@@ -1,4 +1,4 @@
-# ADR-0353: Bound full runtime verification on busy hosts
+# ADR-0621: Bound full runtime verification on busy hosts
 
 - Status: `accepted`
 - Decision date: 2026-09-28

@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 4784
     contentHash: sha256:a8f1e07125f019686c75e3a4a4a7305857c3538e92ad400c1e49e09f27ab5b91
-    path: docs/decisions/coordination/sync/0415-bounded-replica-transport-and-service-completion.md
+    path: docs/decisions/coordination/sync/0628-bounded-replica-transport-and-service-completion.md
     userRegionHash: sha256:a8f1e07125f019686c75e3a4a4a7305857c3538e92ad400c1e49e09f27ab5b91
 profile: decision_record
 recordId: knormdoc_a47b21227ee7be0abddcf47b
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:2f5becb40f0af3240213206dfbd8a004e7526444a6baccc669fc6b47e1cb0d12
-sourcePath: docs/decisions/coordination/sync/0415-bounded-replica-transport-and-service-completion.md
+sourcePath: docs/decisions/coordination/sync/0628-bounded-replica-transport-and-service-completion.md
 sourceUnitVersionIds:
   - uv_193f04b76db3791c6191ead0
   - uv_703f45ad5a8f5a063e567d5c

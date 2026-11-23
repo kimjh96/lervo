@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-10-06
-Amends: [ADR-0199](../repository/0199-structured-workstream-continuation-state.md) (continuation discovery), [ADR-0192](../repository/0192-repository-scoped-decision-taxonomy.md) (route selection), [ADR-0193](../repository/0193-semantic-repository-and-agent-surface-migration.md) (document candidacy), [ADR-0222](../repository/0222-bounded-role-based-document-layout.md)
+Amends: [ADR-0199](../repository/0199-structured-workstream-continuation-state.md) (continuation discovery), [ADR-0192](../repository/0192-repository-scoped-decision-taxonomy.md) (route selection), [ADR-0193](../repository/0193-semantic-repository-and-agent-surface-migration.md) (document candidacy), [ADR-0620](../repository/0620-bounded-role-based-document-layout.md)
 
 ## Context
 

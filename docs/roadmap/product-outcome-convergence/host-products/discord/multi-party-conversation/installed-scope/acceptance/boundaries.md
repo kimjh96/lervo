@@ -4,7 +4,7 @@ Webhook replies remain canonical rather than native. Natural product-owner hirin
 
 Cross-Node natural discussion uses ADR-0421's authenticated receiver-owned protocol. Repository-local co-resident formal participants are a separate policy-seat capability. Remote repository-agent formal execution is not claimed without formal-route evidence.
 
-Webhook task results are presentation-only on Discord; the co-resident router carries authenticated results to the coordinator. Remote task delegation over Discord nonce transport is limited to two application-bot speakers until an authenticated receiver-owned webhook control envelope exists. ADR-0425 records the unaddressed webhook observation correction and its pre-send limits. Acceptance must show both the webhook worker's visible result and the coordinator's exact task-ID continuation occur once, including after restart. Adapter tests and healthy services are insufficient.
+Webhook task results are presentation-only on Discord; the co-resident router carries authenticated results to the coordinator. Remote task delegation over Discord nonce transport is limited to two application-bot speakers until an authenticated receiver-owned webhook control envelope exists. ADR-0629 records the unaddressed webhook observation correction and its pre-send limits. Acceptance must show both the webhook worker's visible result and the coordinator's exact task-ID continuation occur once, including after restart. Adapter tests and healthy services are insufficient.
 
 Each agent requiring native member presence, its own typing indicator, or native mentionability needs a separate installed bot application. Exact Lervo `@DisplayName` addressing remains available to webhook identities.
 

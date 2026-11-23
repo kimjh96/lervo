@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 2937
     contentHash: sha256:933a18db8d204ab89f6a380c5b2d6ba0686d85a5499e6e7056655c1dceb1c939
-    path: docs/decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md
+    path: docs/decisions/execution/verification/0627-renew-assignment-leases-during-long-verification.md
     userRegionHash: sha256:933a18db8d204ab89f6a380c5b2d6ba0686d85a5499e6e7056655c1dceb1c939
 profile: decision_record
 recordId: knormdoc_52bcc7f0352645492c5018fd
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:dcfc3f8f3975b6058f90fd1ad05a5b7a446ce995603c8ad252dd08d666728432
-sourcePath: docs/decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md
+sourcePath: docs/decisions/execution/verification/0627-renew-assignment-leases-during-long-verification.md
 sourceUnitVersionIds:
   - uv_0f21ff383b72fa548fbd62a8
   - uv_179962600a334f2a7b10083d

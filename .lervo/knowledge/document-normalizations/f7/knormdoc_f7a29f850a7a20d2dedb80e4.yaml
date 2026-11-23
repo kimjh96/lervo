@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 2424
     contentHash: sha256:b3fa93d060332054008e7c58fe20a6019a1085f0050e751cde358b4261da4e81
-    path: docs/decisions/execution/verification/0355-use-fork-backed-runtime-shards.md
+    path: docs/decisions/execution/verification/0623-use-fork-backed-runtime-shards.md
     userRegionHash: sha256:b3fa93d060332054008e7c58fe20a6019a1085f0050e751cde358b4261da4e81
 profile: decision_record
 recordId: knormdoc_f7a29f850a7a20d2dedb80e4
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:3bcc9043b8c12613c6f25cd8eb7d15717c131072bdbdc42450ecf83db3f8571b
-sourcePath: docs/decisions/execution/verification/0355-use-fork-backed-runtime-shards.md
+sourcePath: docs/decisions/execution/verification/0623-use-fork-backed-runtime-shards.md
 sourceUnitVersionIds:
   - uv_13012dc46ceff8011463ccb1
   - uv_5d48437219195bdbf0f7dbd8

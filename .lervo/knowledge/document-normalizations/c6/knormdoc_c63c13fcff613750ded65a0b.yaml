@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 5149
     contentHash: sha256:4b3d7c61b58ca49443f61f1d7fb673fbc0b48b130ff06f516b4e15e0f6cad61c
-    path: docs/decisions/execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md
+    path: docs/decisions/execution/verification/0625-prepare-isolated-candidate-verification-workspaces.md
     userRegionHash: sha256:4b3d7c61b58ca49443f61f1d7fb673fbc0b48b130ff06f516b4e15e0f6cad61c
 profile: decision_record
 recordId: knormdoc_c63c13fcff613750ded65a0b
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:027a2dc556f89dcdddebfe780a956e5685e390fc63c7d62e848f896f80972078
-sourcePath: docs/decisions/execution/verification/0357-prepare-isolated-candidate-verification-workspaces.md
+sourcePath: docs/decisions/execution/verification/0625-prepare-isolated-candidate-verification-workspaces.md
 sourceUnitVersionIds:
   - uv_0647ec6b37dcc4da7b8ff116
   - uv_10ef770122d97b2e1158c58b

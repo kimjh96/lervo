@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 3972
     contentHash: sha256:320a47769c3ce4f592d18df55d6e08d99cee084548a309f3d59b603c406f3e8f
-    path: docs/decisions/execution/verification/0358-cover-busy-host-verification-stage-leases.md
+    path: docs/decisions/execution/verification/0626-cover-busy-host-verification-stage-leases.md
     userRegionHash: sha256:320a47769c3ce4f592d18df55d6e08d99cee084548a309f3d59b603c406f3e8f
 profile: decision_record
 recordId: knormdoc_5338350dd05879ca31837a72
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:1ec2bc5ae6ae37eb7bd58ee7fc4a81b45272ccb06348cf8360c4a3a58475993c
-sourcePath: docs/decisions/execution/verification/0358-cover-busy-host-verification-stage-leases.md
+sourcePath: docs/decisions/execution/verification/0626-cover-busy-host-verification-stage-leases.md
 sourceUnitVersionIds:
   - uv_24e957958a693255af8d5537
   - uv_317e69196936a13887799be9

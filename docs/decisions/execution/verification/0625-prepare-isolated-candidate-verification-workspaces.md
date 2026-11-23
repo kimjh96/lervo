@@ -1,4 +1,4 @@
-# ADR-0357: Prepare isolated candidate verification workspaces
+# ADR-0625: Prepare isolated candidate verification workspaces
 
 - Status: `accepted`
 - Decision date: 2026-09-28
@@ -64,5 +64,5 @@ The supplied file contains no execution receipt. It does not test malformed mark
 
 ## References
 
-- [ADR-0356](0356-bound-test-deadlines-for-busy-host-shards.md)
+- [ADR-0624](0624-bound-test-deadlines-for-busy-host-shards.md)
 - [Agent workspace specification](../../../specifications/execution/agent-workspaces.md)

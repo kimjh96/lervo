@@ -1,4 +1,4 @@
-# ADR-0358: Cover busy-host verification with a bounded stage lease
+# ADR-0626: Cover busy-host verification with a bounded stage lease
 
 - Status: `accepted`
 - Decision date: 2026-09-28
@@ -35,5 +35,5 @@ The convergence owner controls only durable stage admission and settlement. Each
 
 ## References
 
-- [ADR-0357](0357-prepare-isolated-candidate-verification-workspaces.md)
+- [ADR-0625](0625-prepare-isolated-candidate-verification-workspaces.md)
 - [Background convergence roadmap](../../../roadmap/knowledge/autonomous-background-convergence.md)
