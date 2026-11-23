@@ -4,6 +4,11 @@
  * make the local file deep, large, or ambiguous to order.
  */
 const MAXIMUM_OPAQUE_ROUTES = 4;
+/**
+ * How far ahead of a host's clock a change time may be. A WSL clock drifts after the Windows host
+ * sleeps; a peer change stamped further ahead is refused, and a local stamp that far ahead is reset.
+ */
+export const MAXIMUM_CHANGE_TIME_LEAD_MS = 10 * 60 * 1000;
 const SELECTION_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
 
 /** A strict UTC ISO-8601 change time, as `Date.prototype.toISOString` writes it. */
@@ -11,6 +16,7 @@ export function isSelectionTimestamp(value: unknown): value is string {
   return (
     typeof value === "string" &&
     SELECTION_TIMESTAMP.test(value) &&
+    Number.isFinite(Date.parse(value)) &&
     new Date(value).toISOString() === value
   );
 }
@@ -41,5 +47,8 @@ export function isOpaqueRouteList(value: unknown): boolean {
  */
 export function nextChangeTime(current: { changedAt: string | null }, now: Date): string {
   const previous = current.changedAt === null ? -Infinity : Date.parse(current.changedAt);
+  // A stamp this host wrote while its clock ran far ahead would hold every later change in the
+  // future, where peers refuse it; past the allowed lead, the current clock stamps the change.
+  if (previous > now.getTime() + MAXIMUM_CHANGE_TIME_LEAD_MS) return now.toISOString();
   return new Date(Math.max(now.getTime(), previous + 1)).toISOString();
 }

@@ -1,4 +1,5 @@
-import { chmod, mkdir, rename, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { chmod, mkdir, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 
 import {
@@ -8,13 +9,7 @@ import {
   serializedModelSelection,
   type ModelSelection,
 } from "./model-selection.js";
-
-/**
- * How far ahead of this host's clock a peer's change time may be. A WSL clock drifts after the
- * Windows host sleeps; a change stamped further ahead is refused, so a skewed or forged stamp can
- * never win over every later local change.
- */
-export const MAXIMUM_PEER_CLOCK_LEAD_MS = 10 * 60 * 1000;
+import { MAXIMUM_CHANGE_TIME_LEAD_MS } from "./model-selection-shape.js";
 
 export const MODEL_SELECTION_NOTICE_FILE = "model-selection-notice.json";
 
@@ -80,7 +75,7 @@ export async function adoptModelSelection(input: {
   if (
     candidate.revision === 0 ||
     candidate.changedAt === null ||
-    Date.parse(candidate.changedAt) > now.getTime() + MAXIMUM_PEER_CLOCK_LEAD_MS
+    Date.parse(candidate.changedAt) > now.getTime() + MAXIMUM_CHANGE_TIME_LEAD_MS
   )
     return { status: "rejected" };
   const current = await readModelSelection(input.stateDirectory);
@@ -108,10 +103,15 @@ async function writeAdoptionNotice(
 ): Promise<void> {
   await mkdir(stateDirectory, { recursive: true, mode: 0o700 });
   const path = resolve(stateDirectory, MODEL_SELECTION_NOTICE_FILE);
-  const temporary = `${path}.${process.pid}.tmp`;
-  await writeFile(temporary, `${JSON.stringify({ schemaVersion: 1, ...notice }, null, 2)}\n`, {
-    mode: 0o600,
-  });
-  await rename(temporary, path);
-  await chmod(path, 0o600);
+  const temporary = `${path}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, `${JSON.stringify({ schemaVersion: 1, ...notice }, null, 2)}\n`, {
+      mode: 0o600,
+      flag: "wx",
+    });
+    await rename(temporary, path);
+    await chmod(path, 0o600);
+  } finally {
+    await rm(temporary, { force: true });
+  }
 }

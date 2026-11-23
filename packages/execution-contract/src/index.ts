@@ -12,4 +12,4 @@ export * from "./budget-tokens.js";
 export * from "./retry-policy.js";
 export * from "./model-selection.js";
 export * from "./model-selection-exchange.js";
-export { isSelectionTimestamp } from "./model-selection-shape.js";
+export { isSelectionTimestamp, MAXIMUM_CHANGE_TIME_LEAD_MS } from "./model-selection-shape.js";

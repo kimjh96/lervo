@@ -97,6 +97,7 @@ No document names a current model as a contract. Historical evidence keeps the m
   - The checked-in fleet policy and its reconcile script are removed, and configuration documents stop naming models.
   - Readers: every host record a host publishes for a repository through the Hub may carry its selection. Hub, host and peer validators accept the field, and listing a repository's host records adopts the newest peer selection. An adopted selection keeps its revision and change time, so hosts never adopt each other's copy back. The later change wins, then the higher revision, then the content.
   - Clock safety: a local change is stamped after the selection it replaces, and a peer change stamped more than ten minutes ahead of this host's clock is refused. Change times are strict UTC, and a role a newer Lervo defines travels only in the flat route shape.
+  - Host clocks still order changes inside the allowed lead, so two changes less than ten minutes apart on hosts whose clocks disagree may order the wrong way. Ordering by the Hub's accept time is the writer release's choice to make.
   - The whole selection is the unit: two hosts that change different roles before either sees the other keep the later change only. `lervo model show` names the last adoption.
   - Writers: once every host and the Hub run the reader release, each host publishes its selection in its host records and republishes when it changes. A record the Hub rejects is published again without it.
 
@@ -108,7 +109,7 @@ No document names a current model as a contract. Historical evidence keeps the m
   - Roles written by a newer Lervo are kept unchanged when an older one writes another role.
   - A write is a compare-and-swap on the revision, and a concurrent change fails it with `model_selection_changed`.
 - **No event per call.** Choosing a route is not an event. The provider call records the requested model, as it does today (`requestedModel`).
-- **Change notice (M3).** A changed selection is recorded once, as an `application.model_selection.changed` notice with the revision and the roles changed. An unusable file becomes attention. Neither carries credentials or prompt text.
+- **Change notice (M3).** An adoption from another host leaves a host-local notice with the revisions and change times, and `lervo model show` prints it. It carries no credentials or prompt text. An event for the notice is a later change; it needs an event schema version.
 - **Failure meaning.** `provider_not_admitted` from a role means no listed route could run on this host now. It is not a provider failure and never rolls back an upgrade.
 
 ## Consequences

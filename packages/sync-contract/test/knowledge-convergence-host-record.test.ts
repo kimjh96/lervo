@@ -189,3 +189,18 @@ describe("the transported model selection (ADR-0612 M3)", () => {
       );
   });
 });
+
+it("rejects an impossible transported change time without throwing", () => {
+  expect(() =>
+    isKnowledgeConvergenceHostRecord(
+      hostRecord({
+        modelSelection: {
+          schemaVersion: 1,
+          revision: 1,
+          changedAt: "2026-13-45T99:99:99.999Z",
+          roles: {},
+        },
+      }),
+    ),
+  ).not.toThrow();
+});

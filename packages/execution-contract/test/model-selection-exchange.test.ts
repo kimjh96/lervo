@@ -166,3 +166,27 @@ describe("model selection exchange safety (ADR-0612 M3)", () => {
     ).toThrow();
   });
 });
+
+it("resets a local stamp written while the clock ran far ahead, and rejects impossible dates", async () => {
+  await writeModelSelectionRole({
+    stateDirectory: directory,
+    role: "routine",
+    routes: [{ provider: "claude", model: "skewed", reasoningEffort: null }],
+    now: new Date("2099-01-01T00:00:00.000Z"),
+  });
+  const fixed = await writeModelSelectionRole({
+    stateDirectory: directory,
+    role: "routine",
+    routes: [{ provider: "claude", model: "fixed", reasoningEffort: null }],
+    now: new Date("2026-11-23T05:00:00.000Z"),
+  });
+  expect(fixed.changedAt).toBe("2026-11-23T05:00:00.000Z");
+  expect(() =>
+    parseModelSelection({
+      schemaVersion: 1,
+      revision: 1,
+      changedAt: "2026-13-45T99:99:99.999Z",
+      roles: {},
+    }),
+  ).toThrow();
+});

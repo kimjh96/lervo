@@ -88,6 +88,7 @@ export function isKnowledgeConvergenceHostModelSelection(
     (value.revision as number) > 0 &&
     typeof value.changedAt === "string" &&
     STRICT_TIMESTAMP.test(value.changedAt) &&
+    Number.isFinite(Date.parse(value.changedAt)) &&
     new Date(value.changedAt).toISOString() === value.changedAt &&
     record(roles) &&
     Object.keys(roles).length <= MAXIMUM_TRANSPORTED_ROLES &&
