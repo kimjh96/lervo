@@ -8,7 +8,7 @@ use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{Content, Input, NoticeValue, ToolStatus};
 use lervo_session_protocol::core_link::{
     ConversationMode as WireMode, CoreLaunch, DecodedContent, DecodedEvent, DecodedStatusEvent,
-    ParametersValue, ToolActivityContentStatus,
+    ParametersValue, ToolActivityContentStatus, TranscriptPageResponseItemsItem,
 };
 
 pub fn decoded(event: DecodedEvent) -> Decoded {
@@ -86,5 +86,19 @@ pub fn launch(launch: CoreLaunch) -> Launch {
             .collect(),
         working_directory: PathBuf::from(launch.working_directory.to_string()),
         initial_input: launch.initial_input.map(|text| text.to_string()),
+        environment_remove: launch
+            .environment_remove
+            .into_iter()
+            .map(|name| name.to_string())
+            .collect(),
+        transcript: launch.transcript.unwrap_or(false),
+    }
+}
+
+/// A complete transcript item as the input the session host's transcript applies.
+pub fn transcript_item(item: TranscriptPageResponseItemsItem) -> Input {
+    Input::Item {
+        content: content(item.content),
+        created_at_ms: item.created_at_ms.0,
     }
 }

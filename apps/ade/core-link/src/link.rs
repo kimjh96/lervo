@@ -172,6 +172,7 @@ fn response_id(response: &CoreLinkResponse) -> u64 {
         CoreLinkResponse::CoreResultResponse(response) => response.id.get(),
         CoreLinkResponse::CoreFailedResponse(response) => response.id.get(),
         CoreLinkResponse::DecoderDecodedResponse(response) => response.id.get(),
+        CoreLinkResponse::TranscriptPageResponse(response) => response.id.get(),
     }
 }
 

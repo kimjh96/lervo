@@ -13,6 +13,7 @@ fn shell(script: &str) -> StreamCommand {
         program: "/bin/sh".to_owned(),
         arguments: vec!["-c".to_owned(), script.to_owned()],
         environment: vec![("LERVO_STREAM_TEST".to_owned(), "set".to_owned())],
+        environment_remove: Vec::new(),
         working_directory: std::env::temp_dir(),
     }
 }
@@ -53,4 +54,12 @@ async fn stops_a_running_process() {
     let mut process = StreamProcess::spawn(&shell("sleep 30")).unwrap();
     process.kill().await.unwrap();
     assert!(!process.wait().await.unwrap().success);
+}
+
+#[tokio::test]
+async fn keeps_named_variables_of_its_own_environment_from_the_child() {
+    let mut command = shell("printf \"home:${HOME:-unset}\"");
+    command.environment_remove = vec!["HOME".to_owned()];
+    let mut process = StreamProcess::spawn(&command).unwrap();
+    assert_eq!(all_output(&mut process).await, "home:unset");
 }

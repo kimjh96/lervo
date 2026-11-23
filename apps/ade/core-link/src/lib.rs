@@ -17,6 +17,7 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use lervo_session_core::ports::{
     CommandOutcome, ConversationMode, Core, Decoded, Failure, FailureCode, Launch, StreamDecoder,
+    TranscriptPage,
 };
 use lervo_session_core::transcript::{Content, Input};
 use lervo_session_protocol::codec::CodecError;
@@ -69,7 +70,8 @@ impl CoreLink {
                 &response.code,
                 response.stage.map(|stage| stage.to_string()),
             )),
-            CoreLinkResponse::DecoderDecodedResponse(_) => {
+            CoreLinkResponse::DecoderDecodedResponse(_)
+            | CoreLinkResponse::TranscriptPageResponse(_) => {
                 Err(Failure::new(FailureCode::ApplicationFailed))
             }
         }
@@ -112,6 +114,37 @@ impl Core for CoreLink {
         self.launch(json!({"kind": "core.command", "command": command, "arguments": arguments}))
             .await
     }
+
+    async fn transcript(
+        &self,
+        workspace_id: &str,
+        offset: u64,
+        limit: u64,
+    ) -> Result<TranscriptPage, Failure> {
+        let request = json!({
+            "kind": "transcript.read",
+            "workspaceId": workspace_id,
+            "offset": offset,
+            "limit": limit,
+        });
+        match self.ask(request, COMMAND_DEADLINE).await? {
+            CoreLinkResponse::TranscriptPageResponse(page) => Ok(TranscriptPage {
+                items: page
+                    .items
+                    .into_iter()
+                    .map(events::transcript_item)
+                    .collect(),
+                complete: page.complete,
+            }),
+            CoreLinkResponse::CoreFailedResponse(response) => {
+                Err(failures::from_core(&response.code, None))
+            }
+            CoreLinkResponse::CoreResultResponse(_)
+            | CoreLinkResponse::DecoderDecodedResponse(_) => {
+                Err(Failure::new(FailureCode::ApplicationFailed))
+            }
+        }
+    }
 }
 
 /// One native session's decoder in the resident process. It opens there on first use and again
@@ -139,7 +172,8 @@ impl LinkDecoder {
                     CoreLinkResponse::CoreFailedResponse(response) => {
                         return Err(failures::from_core(&response.code, None));
                     }
-                    CoreLinkResponse::CoreResultResponse(_) => {
+                    CoreLinkResponse::CoreResultResponse(_)
+                    | CoreLinkResponse::TranscriptPageResponse(_) => {
                         return Err(Failure::new(FailureCode::ApplicationFailed));
                     }
                 }
@@ -157,7 +191,8 @@ impl LinkDecoder {
                 CoreLinkResponse::CoreFailedResponse(response) => {
                     return Err(failures::from_core(&response.code, None));
                 }
-                CoreLinkResponse::CoreResultResponse(_) => {
+                CoreLinkResponse::CoreResultResponse(_)
+                | CoreLinkResponse::TranscriptPageResponse(_) => {
                     return Err(Failure::new(FailureCode::ApplicationFailed));
                 }
             }

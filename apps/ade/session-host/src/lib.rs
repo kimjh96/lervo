@@ -10,6 +10,7 @@ mod items;
 mod lifecycle;
 mod messages;
 mod native;
+mod rebuild;
 mod registry;
 pub mod serve;
 mod session;
