@@ -6,7 +6,7 @@ import {
   completeWorkspaceIntegration,
 } from "@lervo/orchestrator";
 import { GitWorkspaceIntegrationAdapter } from "@lervo/workspace-host-git";
-import { loadVerificationSuite, runVerificationSuite } from "@lervo/verification";
+import { loadVerificationSuite } from "@lervo/verification";
 import { canonicalJson, type KnowledgeConvergenceInput } from "@lervo/repository-knowledge";
 import { provisionCanonicalWorkspace } from "./canonical-workspace.js";
 import { convergenceEffectCheckpoint } from "./effect-checkpoint.js";
@@ -20,6 +20,10 @@ import type { ConvergenceRuntimeContext } from "./stage-context.js";
 import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import { closeIntegratedConvergenceWorkspace } from "./integrator-workspace-closure.js";
 import { nextConvergenceIntegrationGeneration } from "./integration-target-generation.js";
+import {
+  runConvergenceVerificationSuite,
+  verificationEnvironment,
+} from "./verification-environment.js";
 
 export async function prepareCanonicalGitIntegration(
   context: ConvergenceRuntimeContext,
@@ -68,6 +72,9 @@ export async function prepareCanonicalGitIntegration(
     prepare: () => applyWorkspaceIntegrationCandidate({ plan, integrationHost }),
   });
   context.sourceObservation?.noteChange();
+  // The integrator's suite runs with the same login-shell PATH as every other convergence suite
+  // (ADR-0536): under a service manager's minimal PATH, `pnpm` is missing.
+  const environment = await verificationEnvironment();
   const verificationReceipt = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -85,14 +92,17 @@ export async function prepareCanonicalGitIntegration(
               context.storage.artifacts,
               observedRepositorySnapshot,
               (captureRepositoryRevision) =>
-                runVerificationSuite({
-                  suite: input.suite,
-                  repositoryRoot: input.repositoryRoot,
-                  repositoryRevision: input.repositoryRevision,
-                  captureRepositoryRevision,
-                  artifactStore: context.storage.artifacts,
-                  ...(input.signal === undefined ? {} : { signal: input.signal }),
-                }),
+                runConvergenceVerificationSuite(
+                  {
+                    suite: input.suite,
+                    repositoryRoot: input.repositoryRoot,
+                    repositoryRevision: input.repositoryRevision,
+                    captureRepositoryRevision,
+                    artifactStore: context.storage.artifacts,
+                    ...(input.signal === undefined ? {} : { signal: input.signal }),
+                  },
+                  environment,
+                ),
             ),
         },
         append: (specs) => {

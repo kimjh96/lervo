@@ -23,3 +23,17 @@ it("keeps the service PATH when the login-shell lookup fails", async () => {
   });
   expect(thrown.PATH).toBe(process.env.PATH);
 });
+
+it("runs every convergence suite through the environment helper", async () => {
+  const { readdir, readFile } = await import("node:fs/promises");
+  const { resolve } = await import("node:path");
+  const source = resolve(import.meta.dirname, "../src");
+  const direct: string[] = [];
+  for (const name of await readdir(source)) {
+    if (!name.endsWith(".ts") || name === "verification-environment.ts") continue;
+    if (/\brunVerificationSuite\s*\(/u.test(await readFile(resolve(source, name), "utf8")))
+      direct.push(name);
+  }
+  // A direct call would run under the service manager's PATH, where `pnpm` is missing.
+  expect(direct).toEqual([]);
+});
