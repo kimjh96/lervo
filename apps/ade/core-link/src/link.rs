@@ -25,10 +25,15 @@ pub enum LinkError {
     Unavailable,
     #[error("core_link_timeout")]
     Timeout,
+    /// The resident process a request was meant for has ended, so a newer one would receive it.
+    #[error("core_link_replaced")]
+    Replaced,
 }
 
 /// One running resident process.
 struct Connection {
+    /// Which start of the resident process this is, counting from 1.
+    generation: u64,
     requests: mpsc::Sender<String>,
     pending: Pending,
     /// Cleared by the reader when the process ends, before it fails the waiting requests.
@@ -49,6 +54,7 @@ pub struct Link {
     codec: CoreLinkCodec,
     connection: tokio::sync::Mutex<Option<Connection>>,
     next_id: AtomicU64,
+    started: AtomicU64,
 }
 
 impl Link {
@@ -59,25 +65,42 @@ impl Link {
             codec,
             connection: tokio::sync::Mutex::new(None),
             next_id: AtomicU64::new(1),
+            started: AtomicU64::new(0),
         }
     }
 
-    /// Sends `request` with a fresh `id` and waits up to `deadline` for its answer.
+    /// The codec that validates the resident process's responses.
+    pub fn codec(&self) -> &CoreLinkCodec {
+        &self.codec
+    }
+
+    /// Sends `request` with a fresh `id` and waits up to `deadline` for its answer, with the
+    /// generation of the resident process that answered. With `generation`, it sends only to that
+    /// process and fails with `Replaced` once another one runs or would have to start.
     pub async fn request(
         self: &Arc<Self>,
         mut request: serde_json::Map<String, Value>,
         deadline: Duration,
-    ) -> Result<CoreLinkResponse, LinkError> {
+        generation: Option<u64>,
+    ) -> Result<(CoreLinkResponse, u64), LinkError> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         request.insert("id".to_owned(), Value::from(id));
         let line = Value::Object(request).to_string();
         let (sender, answer) = oneshot::channel();
+        let answered_by;
         {
             let mut guard = self.connection.lock().await;
             if !guard.as_ref().is_some_and(Connection::is_alive) {
+                if generation.is_some() {
+                    return Err(LinkError::Replaced);
+                }
                 *guard = Some(self.start()?);
             }
             let connection = guard.as_ref().ok_or(LinkError::Unavailable)?;
+            if generation.is_some_and(|wanted| wanted != connection.generation) {
+                return Err(LinkError::Replaced);
+            }
+            answered_by = connection.generation;
             lock(&connection.pending).insert(id, sender);
             // The reader may have ended between the check above and the insert.
             if !connection.is_alive() || connection.requests.send(line).await.is_err() {
@@ -86,7 +109,7 @@ impl Link {
             }
         }
         match tokio::time::timeout(deadline, answer).await {
-            Ok(Ok(response)) => Ok(response),
+            Ok(Ok(response)) => Ok((response, answered_by)),
             Ok(Err(_)) => Err(LinkError::Unavailable),
             Err(_) => {
                 // A late answer finds no entry and is dropped, so the table stays as large as the
@@ -159,6 +182,7 @@ impl Link {
             lock(&routes).clear();
         });
         Ok(Connection {
+            generation: self.started.fetch_add(1, Ordering::Relaxed) + 1,
             requests,
             pending,
             alive,

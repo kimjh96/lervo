@@ -9,8 +9,9 @@ mod events;
 mod failures;
 mod link;
 
-use std::sync::Arc;
+use std::collections::BTreeSet;
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::{Arc, Mutex, PoisonError};
 use std::time::Duration;
 
 use base64::Engine;
@@ -33,12 +34,23 @@ const COMMAND_DEADLINE: Duration = Duration::from_secs(120);
 const DECODE_DEADLINE: Duration = Duration::from_secs(30);
 /// Bytes of provider output in one `decoder.output` request.
 const OUTPUT_CHUNK_BYTES: usize = 1024 * 1024;
+/// Commands every resident process answers: those from before the core advertised its commands
+/// (the contract's `baseApplicationCommandNames`). Any other command goes only to a process that
+/// advertised it, because an older one ends the link on a request it cannot validate.
+const BASE_COMMANDS: [&str; 3] = ["workspace.start", "workspace.list", "repository.list"];
+
+/// The commands a resident process named in its last workspace list.
+struct Advertised {
+    generation: u64,
+    commands: BTreeSet<String>,
+}
 
 /// The Lervo core through the resident process.
 #[derive(Clone)]
 pub struct CoreLink {
     link: Arc<Link>,
     next_decoder: Arc<AtomicU64>,
+    advertised: Arc<Mutex<Option<Advertised>>>,
 }
 
 impl CoreLink {
@@ -47,25 +59,53 @@ impl CoreLink {
         Ok(Self {
             link: Arc::new(Link::new(program, arguments, CoreLinkCodec::new()?)),
             next_decoder: Arc::new(AtomicU64::new(1)),
+            advertised: Arc::new(Mutex::new(None)),
         })
     }
 
     async fn ask(&self, request: Value, deadline: Duration) -> Result<CoreLinkResponse, Failure> {
+        self.ask_on(request, deadline, None)
+            .await
+            .map(|(response, _)| response)
+    }
+
+    /// Sends `request`, only to the resident process of `generation` when one is given, and
+    /// answers with the generation that answered.
+    async fn ask_on(
+        &self,
+        request: Value,
+        deadline: Duration,
+        generation: Option<u64>,
+    ) -> Result<(CoreLinkResponse, u64), Failure> {
         let Value::Object(request) = request else {
             return Err(Failure::new(FailureCode::ApplicationFailed));
         };
         self.link
-            .request(request, deadline)
+            .request(request, deadline, generation)
             .await
             .map_err(|error| failures::from_link(&error))
     }
 
     async fn launch(&self, request: Value) -> Result<CommandOutcome, Failure> {
-        match self.ask(request, COMMAND_DEADLINE).await? {
-            CoreLinkResponse::CoreResultResponse(response) => Ok(CommandOutcome {
-                result: response.result,
-                launch: response.launch.map(events::launch),
-            }),
+        self.launch_on(request, None)
+            .await
+            .map(|(outcome, _)| outcome)
+    }
+
+    async fn launch_on(
+        &self,
+        request: Value,
+        generation: Option<u64>,
+    ) -> Result<(CommandOutcome, u64), Failure> {
+        let (response, answered_by) = self.ask_on(request, COMMAND_DEADLINE, generation).await?;
+        match response {
+            CoreLinkResponse::CoreResultResponse(response) => Ok((
+                CommandOutcome {
+                    result: response.result,
+                    launch: response.launch.map(events::launch),
+                },
+                answered_by,
+            )),
             CoreLinkResponse::CoreFailedResponse(response) => Err(failures::from_core(
                 &response.code,
                 response.stage.map(|stage| stage.to_string()),
@@ -75,6 +115,42 @@ impl CoreLink {
                 Err(Failure::new(FailureCode::ApplicationFailed))
             }
         }
+    }
+}
+
+impl CoreLink {
+    /// The generation of the resident process that advertised `command`, if any did.
+    fn advertiser_of(&self, command: &str) -> Option<u64> {
+        let advertised = self
+            .advertised
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner);
+        advertised
+            .as_ref()
+            .filter(|advertised| advertised.commands.contains(command))
+            .map(|advertised| advertised.generation)
+    }
+
+    /// Records the commands a workspace list named. An older core names none.
+    fn record_advertised(&self, generation: u64, result: &Map<String, Value>) {
+        let commands = result
+            .get("commands")
+            .and_then(Value::as_array)
+            .map(|commands| {
+                commands
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::to_owned)
+                    .collect()
+            })
+            .unwrap_or_default();
+        *self
+            .advertised
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner) = Some(Advertised {
+            generation,
+            commands,
+        });
     }
 }
 
@@ -106,13 +182,34 @@ impl Core for CoreLink {
             .ok_or_else(|| Failure::new(FailureCode::ApplicationFailed))
     }
 
+    /// Sends a base command to any resident process and any other command only to the process
+    /// that advertised it, and checks the result against the command's schema.
     async fn command(
         &self,
         command: &str,
         arguments: Map<String, Value>,
     ) -> Result<CommandOutcome, Failure> {
-        self.launch(json!({"kind": "core.command", "command": command, "arguments": arguments}))
-            .await
+        let codec = self.link.codec();
+        if !codec.knows_command(command) {
+            return Err(failures::unsupported());
+        }
+        let generation = if BASE_COMMANDS.contains(&command) {
+            None
+        } else {
+            Some(
+                self.advertiser_of(command)
+                    .ok_or_else(failures::unsupported)?,
+            )
+        };
+        let request = json!({"kind": "core.command", "command": command, "arguments": arguments});
+        let (outcome, answered_by) = self.launch_on(request, generation).await?;
+        codec
+            .validate_result(command, &outcome.result)
+            .map_err(|_| failures::result_invalid())?;
+        if command == "workspace.list" {
+            self.record_advertised(answered_by, &outcome.result);
+        }
+        Ok(outcome)
     }
 
     async fn transcript(

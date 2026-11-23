@@ -22,16 +22,29 @@ pub(crate) fn from_core(core_code: &str, stage: Option<String>) -> Failure {
         code,
         core_code: Some(core_code.to_owned()),
         stage,
+        reason: None,
     }
 }
 
 /// The failure for a request the link could not complete: an unreachable process and one that
 /// did not answer in time stay distinct.
 pub(crate) fn from_link(error: &LinkError) -> Failure {
-    Failure::new(match error {
-        LinkError::Unavailable => FailureCode::ApplicationUnavailable,
-        LinkError::Timeout => FailureCode::ApplicationTimeout,
-    })
+    match error {
+        LinkError::Unavailable => Failure::new(FailureCode::ApplicationUnavailable),
+        LinkError::Timeout => Failure::new(FailureCode::ApplicationTimeout),
+        // The process that advertised the command is gone, so its successor may not know it.
+        LinkError::Replaced => unsupported(),
+    }
+}
+
+/// The failure for a command the running resident process has not advertised.
+pub(crate) fn unsupported() -> Failure {
+    Failure::new(FailureCode::ApplicationUnavailable).because("command_unsupported")
+}
+
+/// The failure for a command result that does not match the command's schema.
+pub(crate) fn result_invalid() -> Failure {
+    Failure::new(FailureCode::ApplicationFailed).because("result_invalid")
 }
 
 #[cfg(test)]
