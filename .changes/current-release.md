@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.46.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.46.1" schema="1" -->
 
 ## What's changed
 
-- Answer the ADE session host's session.exited report, advertised in workspace.list, by recording a hosted session's end with process_exited and its exit code when the provider's SessionEnd hook did not.
+- Canonical integration's integrator verification runs with the login-shell PATH like every other convergence suite, so it no longer fails on spawnSync pnpm ENOENT under a service manager.
