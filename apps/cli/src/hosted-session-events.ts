@@ -49,6 +49,11 @@ function suffix(digest: string): string {
   return digest.slice("sha256:".length, "sha256:".length + 24);
 }
 
+/** The envelope run ID that groups one workspace's hosted session events. */
+export function hostedSessionRunId(workspaceId: string): string {
+  return `run_hosted_${suffix(sha256(workspaceId))}`;
+}
+
 /** The digest of a launch descriptor record, which `launch_prepared` and `launched` share. */
 export function launchDescriptorDigest(record: HostedLaunchRecord): string {
   return sha256(JSON.stringify(record));
@@ -148,7 +153,7 @@ export function appendHostedSessionEvents(
     storage.events.append({
       eventId,
       projectId: storage.manifest.projectId,
-      runId: `run_hosted_${suffix(sha256(event.workspaceId))}`,
+      runId: hostedSessionRunId(event.workspaceId),
       sessionId: `ses_hosted_${suffix(String(event.payload.providerSessionDigest))}`,
       type: event.type,
       schemaVersion: hostedSessionEventSchemaVersion,

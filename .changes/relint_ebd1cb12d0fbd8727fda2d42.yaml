@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_ebd1cb12d0fbd8727fda2d42"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Answer the ADE session host's session.exited report, advertised in workspace.list, by recording a hosted session's end with process_exited and its exit code when the provider's SessionEnd hook did not."
