@@ -15,7 +15,7 @@
   flex-direction: column;
   gap: var(--space-16);
   width: 100%;
-  max-width: 640px;
+  max-width: var(--layout-start-max-width);
 }
 
 .question {
@@ -25,7 +25,7 @@
   font-size: var(--type-display-size);
   font-weight: var(--type-display-weight);
   line-height: var(--type-display-line-height);
-  letter-spacing: -0.01em;
+  letter-spacing: var(--type-display-letter-spacing);
 }
 
 .card {
@@ -78,7 +78,7 @@
 }
 
 .chip select {
-  height: 28px;
+  height: var(--size-control-md);
   padding-inline: var(--space-8) var(--space-20);
   border: 0;
   border-radius: var(--radius-sm);
@@ -105,8 +105,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
+  width: var(--size-control-lg);
+  height: var(--size-control-lg);
   margin-inline-start: auto;
   border: 0;
   border-radius: var(--radius-md);
@@ -116,14 +116,14 @@
 }
 
 .submit:disabled {
-  opacity: 0.45;
+  opacity: var(--opacity-disabled);
   cursor: default;
 }
 
 .chip select:focus-visible,
 .submit:focus-visible {
-  outline: 2px solid var(--color-accent);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
 }
 
 .explain,

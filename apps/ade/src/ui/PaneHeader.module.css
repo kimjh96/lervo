@@ -15,7 +15,7 @@
   overflow: hidden;
   color: var(--color-text-primary);
   font-size: var(--type-body-size);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   white-space: nowrap;
   text-overflow: ellipsis;
 }

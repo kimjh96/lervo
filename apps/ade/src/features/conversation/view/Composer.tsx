@@ -74,7 +74,7 @@ export function Composer(props: {
           disabled={text.trim().length === 0}
           aria-label={intl.formatMessage({ id: "conversation.reply.send" })}
         >
-          <ArrowUpIcon size={16} />
+          <ArrowUpIcon size="lg" />
         </button>
       </form>
       {failure === null ? null : (

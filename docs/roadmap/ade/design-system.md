@@ -122,6 +122,8 @@ Each step lands as its own pull request:
 
 ## Audit on 2026-11-23
 
+Step 2 resolved every item marked step 2 below: the palette tier and the semantic size, state, focus, weight, and layout tokens exist, every literal value moved to a token, icon sizes are token names, and `scripts/check-literals.mjs` keeps it so. `type.title` stays reserved for dialogs and sections.
+
 Step 1 wrote the design language and the foundations in the [ADE design system specification](../../specifications/execution/product-surfaces/ade-design-system.md) and measured the interface against them. Each divergence names the step that resolves it.
 
 - **Literal values** (step 2):

@@ -65,7 +65,7 @@ The interface is Lervo's, whichever agent runs.
 
 ### Sources and outputs
 
-The DTCG token file is the one source. `scripts/build-tokens.mjs` generates the CSS custom properties, the terminal theme and typography, and the motion durations for script. The site will read another generated output from the same file. Components read only generated outputs, and a test fails when a committed output is stale.
+The DTCG token file is the one source. `scripts/build-tokens.mjs` resolves its aliases and generates the CSS custom properties, the terminal theme and typography, the motion durations, and the sizes script needs, such as icon sizes. The site will read another generated output from the same file. Components read only generated outputs, and a test fails when a committed output is stale.
 
 ### Tiers
 
@@ -78,6 +78,8 @@ The DTCG token file is the one source. `scripts/build-tokens.mjs` generates the 
 - A component never reads a primitive. A feature never reads another component's tokens.
 - A component token exists only when a semantic role does not describe the value. Most components need none.
 - Modes, such as light and dark, live in the semantic tier through `dev.lervo.modes`. Primitives have one value.
+- Semantic colors alias the palette with DTCG references, such as `{palette.blue.600}`. A translucent layer, such as `color.surface.sidebar`, keeps its own value, because it is a composite over glass that no solid primitive describes. Primitives never reach the stylesheet, so a component cannot read one.
+- The semantic tier also names sizes and states that recur: `size.control.*`, `size.dot.*`, `size.icon.*`, `opacity.disabled`, `focus.ring.*`, `border.width.strong`, `font.weight.*`, and `motion.rise`.
 
 ### Naming
 
@@ -85,8 +87,8 @@ The DTCG token file is the one source. `scripts/build-tokens.mjs` generates the 
 
 ### Rules for values
 
-- Every color, size, radius, font size, weight, line height, shadow, opacity, duration, and easing in a component comes from a token. A stylesheet check enforces this, as the motion check does for motion.
-- Allowed without a token: `0`, `1px` hairlines, `100%`, `auto`, `transparent`, `currentColor`, and alpha-only mask colors.
+- Every color, size, radius, font size, weight, line height, shadow, opacity, duration, and easing in a component comes from a token. `scripts/check-literals.mjs` enforces this in every stylesheet and component, and the interface tests run it, as they run the motion check.
+- Allowed without a token: `0`, `1px` hairlines, `100%` and `0%`, `auto`, `transparent`, `currentColor`, alpha-only mask colors, and the collapse breakpoint in a media query, which CSS cannot read from a custom property. Components pass sizes, such as an icon's, as token names, never as numbers.
 - A new token states its role in its `$description` and joins this specification's usage tables.
 
 ## Color
@@ -152,7 +154,8 @@ Inter sets the interface and JetBrains Mono sets code, terminals, and identifier
 
 - **Radii.** `radius.sm` for rows and chips, `radius.md` for buttons, `radius.lg` for messages and the window, `radius.xl` for input cards, and `radius.full` for dots and pills.
 - **Concentric corners.** A rounded element inside another has the outer radius minus the padding between them, such as a segment inside its group.
-- **Lines.** Hairlines are 1 px in a border token. Focus rings and the question bar are 2 px.
+- **Lines.** Hairlines are 1 px in a border color token. Focus rings (`focus.ring.width`) and the question bar (`border.width.strong`) are 2 px.
+- **Focus rings.** A free-standing control draws its ring outside, at `focus.ring.offset`. A row, a segment, or a scrolling region draws it inside, at `focus.ring.inset`, so its container never clips it and it never overlaps a neighbor.
 
 ## Elevation and material
 
