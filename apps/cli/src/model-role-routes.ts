@@ -92,6 +92,12 @@ export class ProviderRouteStartError extends Error {
   }
 }
 
+/** The underlying reason a provider could not start, for the failure the owner reads. */
+export function startFailureCause(error: unknown): string {
+  const cause = error instanceof Error ? error.cause : undefined;
+  return cause instanceof Error ? cause.message : String(cause ?? error);
+}
+
 /** Opens a session, marking a failure to start so callers can tell it from a failed call. */
 export async function startRoute<T>(
   route: ProviderCallRoute,

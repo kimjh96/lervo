@@ -10,6 +10,7 @@ import {
   modelCallOptions,
   ProviderRouteStartError,
   readHostSelection,
+  startFailureCause,
   reviewCallRoutes,
   startRoute,
   type ReadModelSelection,
@@ -166,14 +167,23 @@ export async function strongerCapabilityCrossCheck(input: {
       ...(input.executable === undefined ? {} : { executable: input.executable }),
       selection,
     });
+  // A configured executable belongs to one provider, so it never falls through to another.
+  const candidates = input.executable === undefined ? routes : routes.slice(0, 1);
+  const unstartable = new Set<"codex" | "claude">();
   let first: { provider: "codex" | "claude"; verdict: CapabilityCrossCheckVerdict } | undefined;
-  for (const [index, route] of routes.entries()) {
+  for (const [index, route] of candidates.entries()) {
     try {
       first = { provider: route.provider, verdict: await session(route.provider) };
       break;
     } catch (error) {
       // Only a provider that could not start gives way to the next listed one.
-      if (!(error instanceof ProviderRouteStartError) || index === routes.length - 1) throw error;
+      if (!(error instanceof ProviderRouteStartError)) throw error;
+      if (index === candidates.length - 1)
+        throw new CommandFailure(
+          "capability_cross_check_unavailable",
+          `No provider the review role allows could start the independent cross-check, so nothing was installed: ${startFailureCause(error)}`,
+        );
+      unstartable.add(route.provider);
     }
   }
   const verdicts = [first!.verdict];
@@ -183,7 +193,8 @@ export async function strongerCapabilityCrossCheck(input: {
     input.executable !== undefined
       ? first!.provider
       : listed.length > 0
-        ? (listed.find((provider) => provider !== first!.provider) ?? first!.provider)
+        ? (listed.find((provider) => provider !== first!.provider && !unstartable.has(provider)) ??
+          first!.provider)
         : otherProvider[first!.provider];
   let verdict: CapabilityCrossCheckVerdict;
   try {

@@ -9,6 +9,7 @@ import {
   openFirstRoute,
   readHostSelection,
   reviewCallRoutes,
+  startFailureCause,
   type ReadModelSelection,
 } from "./model-role-routes.js";
 
@@ -62,10 +63,10 @@ export async function crossCheckPlan(input: PlanCrossCheckInput): Promise<PlanCr
       systemPrompt: prepared.systemPrompt,
       timeoutMs: CROSS_CHECK_TIMEOUT_MS,
     }),
-  ).catch(() => {
+  ).catch((error: unknown) => {
     throw new CommandFailure(
       "knowledge_cross_check_unavailable",
-      `No provider the review role allows could start an independent cross-check (${routes.map((route) => route.provider).join(", ")}), so nothing was applied.`,
+      `No provider the review role allows could start an independent cross-check (${routes.map((route) => route.provider).join(", ")}), so nothing was applied: ${startFailureCause(error)}`,
     );
   });
   const answer = await runner.resolve(prepared.request);
