@@ -6,12 +6,14 @@
   min-height: 0;
 }
 
+/* The conversation runs under the dock and fades out at the bottom edge of the window. */
 .scroller {
   height: 100%;
-  padding: var(--space-24) 0 var(--space-12);
+  padding: var(--space-24) 0 calc(var(--dock-height) + var(--space-12));
   overflow-y: auto;
   overscroll-behavior: contain;
   box-sizing: border-box;
+  mask-image: linear-gradient(to top, transparent 0, #000 var(--space-24));
 }
 
 .scroller:focus {
@@ -54,21 +56,46 @@
   }
 }
 
+/* The reply card and "Jump to latest" float over the conversation on glass (visual language,
+   "Floating controls"). Only the controls take pointer input; the gaps scroll the conversation. */
+.dock {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+}
+
+.dock > * {
+  pointer-events: auto;
+}
+
 .jump {
   position: absolute;
-  bottom: var(--space-12);
+  bottom: calc(100% + var(--space-8));
   left: 50%;
-  padding: var(--space-6) var(--space-12);
+  padding: var(--space-6) var(--space-14);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-full);
   color: var(--color-text-secondary);
   font: inherit;
   font-size: var(--type-meta-size);
-  background: var(--color-surface-opaque);
+  background: var(--color-surface-floating);
   box-shadow: var(--shadow-raised);
   transform: translateX(-50%);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
   cursor: pointer;
   animation: appear var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .jump {
+    background: var(--color-surface-opaque);
+    backdrop-filter: none;
+  }
 }
 
 @keyframes appear {

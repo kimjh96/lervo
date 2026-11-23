@@ -1,5 +1,12 @@
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  type CSSProperties,
+  type ReactNode,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { FormattedMessage } from "react-intl";
 
 import { useConversationStore } from "../model/store";
@@ -20,15 +27,21 @@ interface Anchor {
  * are measured once per item. It follows the live end until the user scrolls up, and then offers
  * "Jump to latest" (ADE motion, "Following the stream"). Pages load at either edge of the window,
  * and the item the user is reading stays in place when items are added or dropped above it.
+ *
+ * The conversation runs to the bottom of the window, and `dock`, such as the reply card, floats
+ * over it on glass; the list keeps room for the dock below its last item.
  */
 export function Conversation(props: {
   onLoadEarlier: () => void;
   onLoadLater: () => void;
   onJumpToLatest: () => void;
+  dock: ReactNode;
 }) {
   const window = useConversationStore((store) => store.window);
   const arrived = useConversationStore((store) => store.arrived);
   const scroller = useRef<HTMLDivElement>(null);
+  const dock = useRef<HTMLDivElement>(null);
+  const [dockHeight, setDockHeight] = useState(0);
   const items = useRef(window.items);
   items.current = window.items;
   const anchor = useRef<Anchor | null>(null);
@@ -51,11 +64,20 @@ export function Conversation(props: {
   const totalSize = virtualizer.getTotalSize();
   const firstItemId = window.items[0]?.itemId;
 
+  // The list keeps room below its last item for the dock, whose height follows the reply's text.
+  useLayoutEffect(() => {
+    const element = dock.current;
+    if (element === null) return;
+    const observer = new ResizeObserver(() => setDockHeight(element.offsetHeight));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
   // While following, the newest text stays in view as items arrive and heights are measured.
   useLayoutEffect(() => {
     const element = scroller.current;
     if (live && element !== null) element.scrollTop = element.scrollHeight;
-  }, [live, window.items.length, lastLength, totalSize]);
+  }, [live, window.items.length, lastLength, totalSize, dockHeight]);
 
   // When items are added or dropped above the reader, the item they read stays where it was.
   useLayoutEffect(() => {
@@ -119,7 +141,7 @@ export function Conversation(props: {
   };
 
   return (
-    <div className={styles.frame}>
+    <div className={styles.frame} style={{ "--dock-height": `${dockHeight}px` } as CSSProperties}>
       {/* The log scrolls, so it takes keyboard focus for the arrow and page keys. */}
       {/* eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex */}
       <div ref={scroller} className={styles.scroller} role="log" aria-live="polite" tabIndex={0}>
@@ -143,11 +165,14 @@ export function Conversation(props: {
           })}
         </div>
       </div>
-      {live ? null : (
-        <button type="button" className={styles.jump} onClick={jump}>
-          <FormattedMessage id="conversation.jumpToLatest" />
-        </button>
-      )}
+      <div ref={dock} className={styles.dock}>
+        {live ? null : (
+          <button type="button" className={styles.jump} onClick={jump}>
+            <FormattedMessage id="conversation.jumpToLatest" />
+          </button>
+        )}
+        {props.dock}
+      </div>
     </div>
   );
 }

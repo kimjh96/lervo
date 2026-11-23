@@ -38,17 +38,21 @@ export function WorkspaceConversation(props: { target: ConversationTarget }) {
         onLoadEarlier={() => void controller.loadEarlier()}
         onLoadLater={() => void controller.loadLater()}
         onJumpToLatest={() => void controller.showLatest()}
+        dock={
+          <>
+            {working ? (
+              <p className={styles.working}>
+                <StatusDot
+                  tone="working"
+                  label={intl.formatMessage({ id: "workspaces.status.working" })}
+                />
+                <FormattedMessage id="workspaces.status.working" />
+              </p>
+            ) : null}
+            <Composer onSend={(text) => controller.send(text)} />
+          </>
+        }
       />
-      {working ? (
-        <p className={styles.working}>
-          <StatusDot
-            tone="working"
-            label={intl.formatMessage({ id: "workspaces.status.working" })}
-          />
-          <FormattedMessage id="workspaces.status.working" />
-        </p>
-      ) : null}
-      <Composer onSend={(text) => controller.send(text)} />
     </div>
   );
 }

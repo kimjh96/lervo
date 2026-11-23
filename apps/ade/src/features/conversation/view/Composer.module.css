@@ -1,11 +1,12 @@
 /* The reply card (approved mockup "2a"). */
 .composer {
   flex: none;
+  box-sizing: border-box;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));
-  margin: 0 auto;
-  padding: var(--space-4) 0 var(--space-24);
+  padding: 0 0 var(--space-24);
 }
 
+/* The card floats over the conversation, which shows through it blurred. */
 .card {
   display: flex;
   gap: var(--space-8);
@@ -13,8 +14,16 @@
   padding: var(--space-10) var(--space-10) var(--space-10) var(--space-16);
   border: 1px solid var(--color-border-default);
   border-radius: var(--radius-xl);
-  background: var(--color-surface-input);
+  background: var(--color-surface-floating);
   box-shadow: var(--shadow-raised);
+  backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .card {
+    background: var(--color-surface-opaque);
+    backdrop-filter: none;
+  }
 }
 
 .input {

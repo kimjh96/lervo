@@ -11,6 +11,7 @@
   --color-surface-user-message: rgba(20,30,50,0.06);
   --color-surface-terminal: rgba(247,248,250,0.72);
   --color-surface-workspace: rgba(255,255,255,0.35);
+  --color-surface-floating: rgba(255,255,255,0.62);
   --color-border-subtle: rgba(20,30,50,0.07);
   --color-border-default: rgba(20,30,50,0.10);
   --color-border-window: rgba(255,255,255,0.75);
@@ -100,6 +101,7 @@
     --color-surface-user-message: rgba(255,255,255,0.08);
     --color-surface-terminal: rgba(6,7,11,0.45);
     --color-surface-workspace: rgba(255,255,255,0);
+    --color-surface-floating: rgba(30,32,40,0.62);
     --color-border-subtle: rgba(255,255,255,0.06);
     --color-border-default: rgba(255,255,255,0.12);
     --color-border-window: rgba(255,255,255,0.10);
@@ -132,6 +134,7 @@
   --color-surface-user-message: rgba(255,255,255,0.08);
   --color-surface-terminal: rgba(6,7,11,0.45);
   --color-surface-workspace: rgba(255,255,255,0);
+  --color-surface-floating: rgba(30,32,40,0.62);
   --color-border-subtle: rgba(255,255,255,0.06);
   --color-border-default: rgba(255,255,255,0.12);
   --color-border-window: rgba(255,255,255,0.10);
