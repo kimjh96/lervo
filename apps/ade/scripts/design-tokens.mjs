@@ -104,7 +104,37 @@ ${declarations(tokens, "dark")}
     --glass-tint-opacity: 1;
   }
 }
+
+/* Increased contrast: opaque surfaces, secondary text a step darker or lighter, stronger borders. */
+@media (prefers-contrast: more) {
+  :root {
+${indent(contrastDeclarations(tokens, "light"))}
+  }
+}
+
+@media (prefers-contrast: more) and (prefers-color-scheme: dark) {
+  :root {
+${indent(contrastDeclarations(tokens, "dark"))}
+  }
+}
+
+@media (prefers-contrast: more) {
+  :root[data-theme="dark"] {
+${indent(contrastDeclarations(tokens, "dark"))}
+  }
+}
 `;
+}
+
+/** The overrides of tokens that name a value for increased contrast. */
+function contrastDeclarations(tokens, mode) {
+  const lines = [];
+  for (const [path, token] of leaves(tokens)) {
+    const contrast = token.$extensions?.["dev.lervo.contrast"];
+    if (contrast === undefined) continue;
+    lines.push(`  ${property(path)}: ${cssValue(token, resolve(tokens, contrast[mode]))};`);
+  }
+  return lines.join("\n");
 }
 
 /** The terminal themes for xterm.js, one per mode, and the terminal's typography. */
