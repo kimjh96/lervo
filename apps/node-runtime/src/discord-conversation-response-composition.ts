@@ -10,7 +10,7 @@ import {
 import { fixedConversationStatusWritingContract } from "@lervo/core";
 import type { ConversationResponder } from "@lervo/interaction";
 
-import { createProviderConversationIntentResolver } from "./conversation-intent-resolver.js";
+import { createProviderConversationIntentResolver } from "./conversation-intent-provider.js";
 import { conversationPublicationWritingContract } from "./conversation-publication-writing-contract.js";
 import { SQLiteConversationHistory } from "./conversation-history.js";
 import { SQLiteConversationIntentResolutionStore } from "./conversation-intent-store.js";
@@ -263,6 +263,7 @@ export async function openDiscordConversationResponseComposition(input: {
         projectCreatedAt: options.project.createdAt,
         agentId: participation.agentId,
         participationRoleId: participation.roleId,
+        providerPolicy: participation.providerPolicy ?? null,
         repositoryRoot: options.repositoryRoot,
         dataDirectory: options.dataDirectory,
         artifactStore: artifacts,
@@ -281,9 +282,10 @@ export async function openDiscordConversationResponseComposition(input: {
       (readRuntime === null && config.routing.intent !== undefined
         ? await createProviderConversationIntentResolver({
             provider: config.routing.intent.provider,
-            ...(options.providerExecutables?.[config.routing.intent.provider] === undefined
+            ...(options.providerExecutables === undefined
               ? {}
-              : { executable: options.providerExecutables[config.routing.intent.provider] }),
+              : { executables: options.providerExecutables }),
+            providerPolicy: participation.providerPolicy ?? null,
             ...(config.routing.intent.model === undefined
               ? {}
               : { model: config.routing.intent.model }),

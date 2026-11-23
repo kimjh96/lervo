@@ -10,6 +10,8 @@ export interface DiscordAgentParticipation {
   agentId: string | null;
   displayName: string | null;
   roleId: string;
+  /** ADR-0612: the hired agent's provider policy, which bounds the routes it may use. */
+  providerPolicy?: "codex" | "claude" | "any" | null;
   agentBinding?: ConversationAgentBinding;
 }
 
@@ -86,6 +88,7 @@ export async function resolveDiscordAgentParticipation(input: {
     agentId: participantAgent?.agentId ?? null,
     displayName: participantAgent?.displayName ?? null,
     roleId: participantAgent?.roleId ?? input.config.command.roleId,
+    providerPolicy: participantAgent?.provider ?? null,
     ...(participantAgent === null
       ? {}
       : {

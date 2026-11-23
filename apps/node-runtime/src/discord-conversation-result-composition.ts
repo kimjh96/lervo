@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import type { DiscordConversationAdapter } from "@lervo/adapter-discord";
 import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
+import { nodeRoleRoute, optionalRouteFields } from "./node-model-route.js";
 import type { ArtifactStore } from "@lervo/storage-contract";
 
 import type { NodeDiscordConversationConfig } from "./config-types.js";
@@ -22,25 +23,31 @@ export function createDiscordConversationResultRuntime(input: {
 }): ConversationResultRuntime {
   const { config } = input;
   const evaluation = conversationResultEvaluationSelection(config);
+  // ADR-0612: result evaluation is the `review` role, chosen at each evaluation; the configured
+  // evaluation route stands while the role is unset.
+  const evaluationRoute = () =>
+    nodeRoleRoute({
+      role: "review",
+      configured: { provider: evaluation.provider, ...optionalRouteFields(evaluation) },
+    });
   return new ConversationResultRuntime({
     workerId: `${config.workerId}:result`,
     store: input.store,
     artifacts: input.artifacts,
     adapter: input.adapter,
     semanticEvaluator: createLocalProviderWritingEvaluator({
-      provider: evaluation.provider,
+      provider: () => evaluationRoute().provider,
       projectId: input.projectId,
-      createAdapter: (adapterInput) =>
-        createNodeProviderAdapter({
+      createAdapter: (adapterInput) => {
+        const route = evaluationRoute();
+        return createNodeProviderAdapter({
           ...adapterInput,
           ...(input.providerExecutables?.[adapterInput.provider] === undefined
             ? {}
             : { executable: input.providerExecutables[adapterInput.provider] }),
-          ...(evaluation.model === undefined ? {} : { model: evaluation.model }),
-          ...(evaluation.reasoningEffort === undefined
-            ? {}
-            : { reasoningEffort: evaluation.reasoningEffort }),
-        }),
+          ...(route.provider === adapterInput.provider ? optionalRouteFields(route) : {}),
+        });
+      },
       createId: (prefix) => `${prefix}_${randomUUID().replaceAll("-", "")}`,
       now: () => new Date(),
     }),

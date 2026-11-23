@@ -1,5 +1,4 @@
 import {
-  externalAgentDeploymentConfigHash,
   externalAgentPrincipalHash,
   externalConversationKeyHash,
   workforceProviderPolicyHash,
@@ -13,6 +12,7 @@ import {
   projectOrganization,
 } from "./agent-organization-event-mutation.js";
 import type { NodeDiscordConversationConfig } from "./config-types.js";
+import { discordDeploymentConfigHashes } from "./discord-agent-organization.js";
 import { discordSpeakerPrincipalId } from "./discord-conversation-speaker.js";
 
 function conversationIdentity(config: NodeDiscordConversationConfig) {
@@ -189,19 +189,11 @@ export function bindDiscordAgentDeployment(input: {
 }): void {
   const { membership, role, replacedDeploymentId } = synchronizeMembership(input);
   const conversations = conversationIdentity(input.config);
-  const deploymentConfigHash = externalAgentDeploymentConfigHash({
-    platform: "discord",
-    integrationId: input.config.integrationId,
-    agentId: input.agent.agentId,
-    participantId: input.config.agentParticipantId,
-    response: {
-      provider: input.config.routing?.response.provider ?? input.config.command.provider,
-      model: input.config.routing?.response.model ?? null,
-    },
-    command: {
-      provider: input.config.command.provider,
-      roleId: input.config.command.roleId,
-    },
+  // ADR-0612: binding writes the hash without the response model; a deployment that still
+  // carries the earlier hash of this configuration is replaced by one with the new hash.
+  const { deploymentConfigHash } = discordDeploymentConfigHashes({
+    config: input.config,
+    agent: input.agent,
     conversations,
   });
   const externalPrincipalHash = externalAgentPrincipalHash(

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_3570f8a1051981dff9dc8f4d"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Node conversations, intent resolution, result and writing evaluation, and remote commands use the model selection roles at each call; deployment binding no longer covers the response model."

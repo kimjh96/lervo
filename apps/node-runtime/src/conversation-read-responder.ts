@@ -24,6 +24,12 @@ import {
   resolveProjectPaths,
 } from "@lervo/project";
 import { createLocalProviderWritingEvaluator } from "@lervo/provider-writing-evaluator";
+import {
+  conversationResponseRoute,
+  nodeRoleRoute,
+  optionalRouteFields,
+  type ReadNodeModelSelection,
+} from "./node-model-route.js";
 import type { ArtifactStore } from "@lervo/storage-contract";
 import {
   createCachedRepositorySnapshotCapture,
@@ -105,6 +111,10 @@ export async function openManagedConversationReadResponder(input: {
   projectCreatedAt: string;
   agentId: string | null;
   participationRoleId: string;
+  /** ADR-0612: the hired agent's provider policy; the routes it may use stay inside it. */
+  providerPolicy?: "codex" | "claude" | "any" | null;
+  /** Replaced only in tests. */
+  readModelSelection?: ReadNodeModelSelection;
   repositoryRoot: string;
   dataDirectory: string;
   artifactStore: ArtifactStore;
@@ -160,20 +170,18 @@ export async function openManagedConversationReadResponder(input: {
       events,
       artifacts: projectArtifacts,
     });
-    const responseRoute = (executionProfile?: NodeRepositoryWorkExecutionProfile) => {
-      const profile =
-        executionProfile === undefined
-          ? undefined
-          : input.providerExecutionProfiles?.[executionProfile];
-      const provider = profile?.preferredProvider ?? input.config.routing.response.provider;
-      const route = profile?.providers[provider];
-      return {
-        provider,
-        model: route?.model ?? input.config.routing.response.model,
-        reasoningEffort: route?.reasoningEffort ?? input.config.routing.response.reasoningEffort,
-        timeoutMs: route?.timeoutMs ?? input.config.routing.response.timeoutMs ?? 60_000,
-      };
-    };
+    const responseRoute = (executionProfile?: NodeRepositoryWorkExecutionProfile) =>
+      conversationResponseRoute({
+        response: input.config.routing.response,
+        ...(executionProfile === undefined ? {} : { executionProfile }),
+        ...(input.providerExecutionProfiles === undefined
+          ? {}
+          : { profiles: input.providerExecutionProfiles }),
+        providerPolicy: input.providerPolicy,
+        ...(input.readModelSelection === undefined
+          ? {}
+          : { readSelection: input.readModelSelection }),
+      });
     const createAdapter = (adapterInput: {
       repositoryRoot: string;
       resolveArtifact: (uri: string) => Promise<Uint8Array>;
@@ -207,25 +215,32 @@ export async function openManagedConversationReadResponder(input: {
         agentContextContract: 2,
       }),
     );
+    const evaluation = input.config.routing.evaluation;
+    const evaluationRoute = () =>
+      nodeRoleRoute({
+        role: "review",
+        configured: { provider: evaluation!.provider, ...optionalRouteFields(evaluation!) },
+        ...(input.readModelSelection === undefined
+          ? {}
+          : { readSelection: input.readModelSelection }),
+      });
     const semanticEvaluator =
-      input.config.routing.evaluation === undefined
+      evaluation === undefined
         ? undefined
         : createLocalProviderWritingEvaluator({
-            provider: input.config.routing.evaluation.provider,
+            // ADR-0612: writing evaluation is the `review` role, chosen at each evaluation.
+            provider: () => evaluationRoute().provider,
             projectId: input.projectId,
-            createAdapter: (adapterInput) =>
-              createNodeProviderAdapter({
+            createAdapter: (adapterInput) => {
+              const route = evaluationRoute();
+              return createNodeProviderAdapter({
                 ...adapterInput,
                 ...(input.providerExecutables?.[adapterInput.provider] === undefined
                   ? {}
                   : { executable: input.providerExecutables[adapterInput.provider] }),
-                ...(input.config.routing.evaluation?.model === undefined
-                  ? {}
-                  : { model: input.config.routing.evaluation.model }),
-                ...(input.config.routing.evaluation?.reasoningEffort === undefined
-                  ? {}
-                  : { reasoningEffort: input.config.routing.evaluation.reasoningEffort }),
-              }),
+                ...(route.provider !== adapterInput.provider ? {} : optionalRouteFields(route)),
+              });
+            },
             createId: (prefix) => id(prefix),
             now: () => new Date(),
           });

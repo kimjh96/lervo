@@ -110,7 +110,8 @@ async function waitForTerminal(
 }
 
 export interface LocalProviderWritingEvaluatorOptions {
-  provider: "codex" | "claude";
+  /** The provider, or how to choose it at each evaluation (ADR-0612: the `review` role). */
+  provider: "codex" | "claude" | (() => "codex" | "claude");
   projectId: string;
   createAdapter(input: {
     provider: "codex" | "claude";
@@ -127,13 +128,14 @@ export function createLocalProviderWritingEvaluator(
 ): WritingSemanticEvaluator {
   return {
     evaluate: async (request) => {
+      const provider = typeof input.provider === "function" ? input.provider() : input.provider;
       const evaluatorRoot = await mkdtemp(resolve(tmpdir(), "lervo-writing-evaluator-"));
       const runId = input.createId("run");
       const sessionId = input.createId("ses");
       const targetTurnId = input.createId("turn");
       const instructions = evaluationInstructions(request);
       const adapter = input.createAdapter({
-        provider: input.provider,
+        provider,
         repositoryRoot: evaluatorRoot,
         resolveArtifact: async () => {
           throw new Error("The writing evaluator does not accept CAS context documents.");
@@ -235,7 +237,7 @@ export function createLocalProviderWritingEvaluator(
         return parseProviderSemanticEvaluation(
           managedContextPublicationContent(result.content, envelope.documents),
           request,
-          input.provider,
+          provider,
         );
       } finally {
         let cleanupFailure: unknown;
