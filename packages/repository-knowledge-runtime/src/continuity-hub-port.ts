@@ -9,6 +9,26 @@ import type {
   ConvergenceHostRecordTransport,
 } from "./convergence-continuity.js";
 import type { ConvergenceOwnerHost } from "./convergence-owner-host.js";
+import { adoptPeerModelSelection } from "./model-selection-host.js";
+
+/**
+ * ADR-0612 M3: every listing of this repository's host records also adopts a newer model
+ * selection another host published, so the hosts converge on one selection. Adoption never fails
+ * the listing, and this host's own record is skipped.
+ */
+function withModelSelectionAdoption(
+  port: ConvergenceHostRecordPort,
+  hostHash: string,
+): ConvergenceHostRecordPort {
+  return {
+    ...port,
+    list: async (signal) => {
+      const listed = await port.list(signal);
+      await adoptPeerModelSelection(listed, hostHash).catch(() => undefined);
+      return listed;
+    },
+  };
+}
 
 /** The Hub port for this checkout's host records, or the failure that kept it from opening. */
 export async function continuityHostPort(
@@ -19,14 +39,12 @@ export async function continuityHostPort(
   if (host?.config.coordination.mode !== "hub" || transport === undefined)
     return { port: null, failureCode: null };
   try {
-    return {
-      port: await transport({
-        ...host.config.coordination.hub,
-        projectId: storage.manifest.projectId,
-        repositoryIdentityHash: calculateProjectIdentityHash(storage.manifest),
-      }),
-      failureCode: null,
-    };
+    const port = await transport({
+      ...host.config.coordination.hub,
+      projectId: storage.manifest.projectId,
+      repositoryIdentityHash: calculateProjectIdentityHash(storage.manifest),
+    });
+    return { port: withModelSelectionAdoption(port, host.hostHash), failureCode: null };
   } catch (error) {
     return { port: null, failureCode: knowledgeConvergenceOwnerFailureOf(error).failureCode };
   }

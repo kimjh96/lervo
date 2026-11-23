@@ -153,3 +153,54 @@ it("exchanges detected and admitted provider versions while rejecting paths and 
     }),
   ).toBe(false);
 });
+
+describe("the transported model selection (ADR-0612 M3)", () => {
+  const modelSelection = {
+    schemaVersion: 1 as const,
+    revision: 3,
+    changedAt: "2026-11-23T05:00:00.000Z",
+    roles: {
+      routine: [{ provider: "claude", model: "claude-sonnet-5-5", reasoningEffort: null }],
+      future_role: [{ provider: "claude", model: null, reasoningEffort: "high" }],
+    },
+  };
+
+  it("accepts a record carrying a bounded selection, including roles a newer Lervo defines", () => {
+    expect(isKnowledgeConvergenceHostRecord(hostRecord({ modelSelection }))).toBe(true);
+  });
+
+  it("rejects a selection with no revision, a bad role name, or too many routes", () => {
+    for (const bad of [
+      { ...modelSelection, revision: 0 },
+      { ...modelSelection, changedAt: "yesterday" },
+      { ...modelSelection, roles: { "Bad Role": modelSelection.roles.routine } },
+      { ...modelSelection, roles: { routine: [] } },
+      { ...modelSelection, roles: { routine: Array.from({ length: 5 }, () => ({})) } },
+      { ...modelSelection, extra: true },
+      { ...modelSelection, changedAt: "+275760-09-13T00:00:00.000Z" },
+      {
+        ...modelSelection,
+        roles: { routine: [{ provider: "claude", model: { deep: 1 }, reasoningEffort: null }] },
+      },
+      { ...modelSelection, roles: { routine: [{ provider: "claude" }] } },
+    ])
+      expect(isKnowledgeConvergenceHostRecord(hostRecord({ modelSelection: bad as never }))).toBe(
+        false,
+      );
+  });
+});
+
+it("rejects an impossible transported change time without throwing", () => {
+  expect(() =>
+    isKnowledgeConvergenceHostRecord(
+      hostRecord({
+        modelSelection: {
+          schemaVersion: 1,
+          revision: 1,
+          changedAt: "2026-13-45T99:99:99.999Z",
+          roles: {},
+        },
+      }),
+    ),
+  ).not.toThrow();
+});

@@ -52,6 +52,63 @@ export interface KnowledgeConvergenceHostRecord {
   /** Closed continuity finding codes this host currently reports. */
   findings: string[];
   providerAdmission?: ProviderCliAdmissionProjection;
+  /**
+   * ADR-0612 M3: this host's model selection, so another host can adopt a newer one. Present only
+   * when the host has chosen; the importing host validates it again before adopting it.
+   */
+  modelSelection?: KnowledgeConvergenceHostModelSelection;
+}
+
+/** The transported model selection: its revision, change time, and routes by role. */
+export interface KnowledgeConvergenceHostModelSelection {
+  schemaVersion: 1;
+  revision: number;
+  changedAt: string;
+  roles: Record<string, unknown[]>;
+}
+
+const MAXIMUM_TRANSPORTED_ROLES = 16;
+const STRICT_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u;
+const MAXIMUM_TRANSPORTED_ROUTES = 4;
+
+/**
+ * Structural check only: a bounded `{schemaVersion, revision, changedAt, roles}` whose roles are
+ * short route lists. The importing host parses it with the model selection contract before use,
+ * so a role a newer Lervo defines passes through here unchanged.
+ */
+export function isKnowledgeConvergenceHostModelSelection(
+  value: unknown,
+): value is KnowledgeConvergenceHostModelSelection {
+  if (!record(value) || !exactKeys(value, ["schemaVersion", "revision", "changedAt", "roles"]))
+    return false;
+  const { roles } = value;
+  return (
+    value.schemaVersion === 1 &&
+    Number.isSafeInteger(value.revision) &&
+    (value.revision as number) > 0 &&
+    typeof value.changedAt === "string" &&
+    STRICT_TIMESTAMP.test(value.changedAt) &&
+    Number.isFinite(Date.parse(value.changedAt)) &&
+    new Date(value.changedAt).toISOString() === value.changedAt &&
+    record(roles) &&
+    Object.keys(roles).length <= MAXIMUM_TRANSPORTED_ROLES &&
+    Object.entries(roles).every(
+      ([role, routes]) =>
+        CODE.test(role) &&
+        Array.isArray(routes) &&
+        routes.length > 0 &&
+        routes.length <= MAXIMUM_TRANSPORTED_ROUTES &&
+        routes.every(
+          (route) =>
+            record(route) &&
+            exactKeys(route, ["provider", "model", "reasoningEffort"]) &&
+            typeof route.provider === "string" &&
+            Object.values(route).every(
+              (item) => item === null || (typeof item === "string" && item.length <= 128),
+            ),
+        ),
+    )
+  );
 }
 
 /**
@@ -156,6 +213,7 @@ export function isKnowledgeConvergenceHostRecord(
     !record(value) ||
     !exactKeys(value, [
       ...(value.providerAdmission === undefined ? [] : ["providerAdmission"]),
+      ...(value.modelSelection === undefined ? [] : ["modelSelection"]),
       "schemaVersion",
       "projectId",
       "repositoryIdentityHash",
@@ -175,6 +233,8 @@ export function isKnowledgeConvergenceHostRecord(
   return (
     (value.providerAdmission === undefined ||
       isProviderCliAdmissionProjection(value.providerAdmission)) &&
+    (value.modelSelection === undefined ||
+      isKnowledgeConvergenceHostModelSelection(value.modelSelection)) &&
     value.schemaVersion === 1 &&
     typeof value.projectId === "string" &&
     PROJECT_ID.test(value.projectId) &&

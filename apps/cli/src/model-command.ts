@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 
 import {
@@ -5,6 +7,7 @@ import {
   MODEL_PROVIDERS,
   MODEL_REASONING_EFFORTS,
   MODEL_ROLES,
+  MODEL_SELECTION_NOTICE_FILE,
   ModelSelectionError,
   readModelSelection,
   validateModelRoute,
@@ -12,6 +15,7 @@ import {
   type ModelRole,
   type ModelRoute,
   type ModelSelection,
+  type ModelSelectionAdoptionNotice,
 } from "@lervo/execution-contract";
 import { hostModelSelectionDirectory } from "@lervo/repository-knowledge-runtime";
 
@@ -67,6 +71,27 @@ function formatSelection(selection: ModelSelection, path: string, issue: string 
 }
 
 /**
+ * ADR-0612 M3: the last adoption from another host, when the current selection is the one it
+ * adopted; a later local change makes it history, and an unreadable notice is no notice.
+ */
+async function readAdoptionNotice(
+  directory: string,
+  selection: ModelSelection,
+): Promise<ModelSelectionAdoptionNotice | null> {
+  try {
+    const notice = JSON.parse(
+      await readFile(resolve(directory, MODEL_SELECTION_NOTICE_FILE), "utf8"),
+    ) as ModelSelectionAdoptionNotice;
+    return notice.adopted?.revision === selection.revision &&
+      notice.adopted.changedAt === selection.changedAt
+      ? notice
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * ADR-0612: the one place a model is chosen. A role names an ordered list of routes; every caller
  * of that role resolves it at its next provider call, so no configuration, restart, rebind, or
  * re-review follows a change.
@@ -94,10 +119,11 @@ export async function runModelCommand(
   try {
     if (action === "show" && role === undefined) {
       const read = await readModelSelection(directory);
+      const adoption = await readAdoptionNotice(directory, read.selection);
       io.stdout(
         json
-          ? `${JSON.stringify({ schemaVersion: 1, path: `${directory}/model-selection.json`, issue: read.issue, selection: read.selection }, null, 2)}\n`
-          : `${formatSelection(read.selection, `${directory}/model-selection.json`, read.issue)}\n`,
+          ? `${JSON.stringify({ schemaVersion: 1, path: `${directory}/model-selection.json`, issue: read.issue, selection: read.selection, adoption }, null, 2)}\n`
+          : `${formatSelection(read.selection, `${directory}/model-selection.json`, read.issue)}\n${adoption === null ? "" : `Adopted from another host at ${adoption.adoptedAt} (revision ${adoption.previous.revision} to ${adoption.adopted.revision}).\n`}`,
       );
       return 0;
     }
