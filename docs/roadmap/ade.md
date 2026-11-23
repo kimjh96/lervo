@@ -186,7 +186,7 @@ On 2026-11-23 three parsers were measured: each one's parse entry bundled and mi
 
 ### ADE versions
 
-On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's. [ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md) gives the ADE its own version line, with `ade-v` tags and intents that name `target: ade`, prepared apart from the CLI and with no GitHub Release before S3. The work is complete when:
+On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's. [ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md) gives the ADE its own version line, with `ade-v` tags and intents in `.changes/ade/`, prepared apart from the CLI and with no GitHub Release before S3. The work is complete when:
 
 - the release tooling accepts ADE intents and every test under `scripts/release` passes, intents without a target included;
 - CLI preparation ignores ADE intents;
