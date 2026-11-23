@@ -1,6 +1,6 @@
 [package]
 name = "lervo-session-host"
-version = "0.1.0"
+version.workspace = true
 description = "The Lervo session host: it owns PTYs and provider processes for the ADE."
 edition.workspace = true
 rust-version.workspace = true

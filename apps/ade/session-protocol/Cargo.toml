@@ -1,6 +1,6 @@
 [package]
 name = "lervo-session-protocol"
-version = "0.1.0"
+version.workspace = true
 description = "The ADE session-host protocol: generated message types and the frame codec."
 edition.workspace = true
 rust-version.workspace = true

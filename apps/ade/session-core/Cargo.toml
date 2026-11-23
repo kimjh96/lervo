@@ -1,6 +1,6 @@
 [package]
 name = "lervo-session-core"
-version = "0.1.0"
+version.workspace = true
 description = "The ADE session host's domain: session status, sequences, scrollback, and conversation paging, without I/O."
 edition.workspace = true
 rust-version.workspace = true
