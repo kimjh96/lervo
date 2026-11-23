@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2ed5253498d86ecf6f21b184"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Show streamed text within 120 ms of its own arrival even while more keeps coming, instead of restarting the pace at each growth."
