@@ -4,7 +4,7 @@
 
 A reviewed repository delegation binds project identity, active agent ancestry, role version and hashes, permitted canonical roots and normalization scopes, capability and verification contracts, integration target, expiration or revocation, and resource ceilings. Empty or legacy delegations permit inspection only. This design creates no delegation for an installed project.
 
-Long convergence stages retain their exact assignment lease through bounded renewal under [ADR-0359](../../../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md). Renewal preserves claim generation, requires the current stage lease, and stops before assignment settlement. The generic 30-minute maximum remains unchanged.
+Long convergence stages retain their exact assignment lease through bounded renewal under [ADR-0627](../../../../decisions/execution/verification/0627-renew-assignment-leases-during-long-verification.md). Renewal preserves claim generation, requires the current stage lease, and stops before assignment settlement. The generic 30-minute maximum remains unchanged.
 
 The coordinator registers each worker with its parent and claims a scoped assignment. Semantic reviewers have read-only authority, no exclusive write-path lease, and a physically isolated no-capability process. Writers receive a separate narrow assignment and the ordinary workspace lease. Recommendations and role templates grant neither assignment nor write authority.
 

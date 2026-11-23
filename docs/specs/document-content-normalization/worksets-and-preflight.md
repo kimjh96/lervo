@@ -37,4 +37,4 @@ Records bind output and resource hashes plus a user-region hash excluding manage
 
 ## Repository layout
 
-Repository document layout follows [ADR-0222](../../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md). One tree evaluator serves planning, lint, and durable permits. Tracked roles locate human documents; only provider adapters locate provider entrypoints. Bounded rewrite descriptors reconcile byte owners; unobserved rewrites remain unmanaged.
+Repository document layout follows [ADR-0620](../../decisions/knowledge/repository/0620-bounded-role-based-document-layout.md). One tree evaluator serves planning, lint, and durable permits. Tracked roles locate human documents; only provider adapters locate provider entrypoints. Bounded rewrite descriptors reconcile byte owners; unobserved rewrites remain unmanaged.

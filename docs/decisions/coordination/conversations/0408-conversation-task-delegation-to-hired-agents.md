@@ -35,7 +35,7 @@ Delegation reuses the inbound conversation contract, adding two coordination kin
 
 On Discord, the outbound nonce authenticates assignment or result kind and opaque task ID. An assignment derives its coordinator from the authenticated author and target from the exact leading peer address. A result derives its coordinator from the referenced authenticated bot message. Missing, unmapped, malformed, or conflicting coordinates are ignored before ordinary semantic participation. Only the coordinator owns a valid result. It reconciles the result against the complete original human outcome retained in prior turns, then advances the concrete authorized next action or gives one concise terminal synthesis. Ordinary agent acknowledgement replies still create neither an address nor a reply loop.
 
-For webhook-backed co-resident speakers, [ADR-0425](delivery/0425-separate-webhook-publication-from-task-control.md) separates visible result publication from the router's authenticated task-result event. Webhook text cannot carry the bot nonce, so remote delegation requires bot identities at both ends and otherwise fails before publication. Exact co-resident hired-agent routing remains intact.
+For webhook-backed co-resident speakers, [ADR-0629](delivery/0629-separate-webhook-publication-from-task-control.md) separates visible result publication from the router's authenticated task-result event. Webhook text cannot carry the bot nonce, so remote delegation requires bot identities at both ends and otherwise fails before publication. Exact co-resident hired-agent routing remains intact.
 
 The natural-discussion ownership evaluator is not a global coordination gate. It abstains from `task.assignment` and `task.result` so delegated-task rules can run. Protocols remain independently extensible: adding one authenticated coordination kind must not cause another protocol to classify it as `turn_not_owned`.
 
@@ -71,4 +71,4 @@ Delegation grants no new authority. The delegated agent answers under its own pa
 - [Deterministic multi-agent turn ownership](0391-deterministic-multi-agent-turn-ownership.md)
 - [Webhook-backed Discord agent identities](0394-webhook-backed-discord-agent-identities.md)
 - [Resumable native repository work turns](0395-resumable-native-repository-work-turns.md)
-- [Separate webhook publication from task control](delivery/0425-separate-webhook-publication-from-task-control.md)
+- [Separate webhook publication from task control](delivery/0629-separate-webhook-publication-from-task-control.md)

@@ -1,4 +1,4 @@
-# ADR-0425: Separate webhook publication from task control
+# ADR-0629: Separate webhook publication from task control
 
 - Status: accepted
 - Decision date: 2026-09-23

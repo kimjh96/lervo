@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 2797
     contentHash: sha256:5d829d626a76343dec1b564339e03b1c4dab45e1d22c44e68d4d75f1a3aeb51a
-    path: docs/decisions/execution/verification/0354-shard-full-runtime-verification-on-busy-hosts.md
+    path: docs/decisions/execution/verification/0622-shard-full-runtime-verification-on-busy-hosts.md
     userRegionHash: sha256:5d829d626a76343dec1b564339e03b1c4dab45e1d22c44e68d4d75f1a3aeb51a
 profile: decision_record
 recordId: knormdoc_4f270eccfe2a3db4c291e6f3
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:cff8413f3392fce62cbd2c9266889ce3e51be0c799207a8c9a25487a0d2bd765
-sourcePath: docs/decisions/execution/verification/0354-shard-full-runtime-verification-on-busy-hosts.md
+sourcePath: docs/decisions/execution/verification/0622-shard-full-runtime-verification-on-busy-hosts.md
 sourceUnitVersionIds:
   - uv_1eb7856111e58142605b93f7
   - uv_285c0564fb6378a5c43a1c47

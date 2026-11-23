@@ -17,7 +17,7 @@ Checked gates have implementation evidence and focused tests. Shared provider co
 - [Installed execution evidence](../../../evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md)
 - [ADR-0437: Recent execution evidence](../../../decisions/knowledge/repository/0437-stream-validated-recent-execution-evidence.md)
 - [ADR-0443: Linked canonical contracts](../../../decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md)
-- [ADR-0359: Verification lease renewal](../../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md)
+- [ADR-0627: Verification lease renewal](../../../decisions/execution/verification/0627-renew-assignment-leases-during-long-verification.md)
 - [ADR-0441: Resident knowledge isolation](../../../decisions/knowledge/repository/canonicalization/0441-isolate-resident-knowledge-from-node-conversations.md)
 - [ADR-0442: Conversation snapshot isolation](../../../decisions/knowledge/repository/canonicalization/0442-isolate-conversation-repository-snapshots.md)
 - [ADR-0444: Managed-run materialization serialization](../../../decisions/knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md)
@@ -30,7 +30,7 @@ The source records these exact targets; the links above resolve them from this d
 - `../../evidence/quality/background-knowledge-convergence-implementation/complete-execution-evidence.md`
 - `../../decisions/knowledge/repository/0437-stream-validated-recent-execution-evidence.md`
 - `../../decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md`
-- `../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md`
+- `../../decisions/execution/verification/0627-renew-assignment-leases-during-long-verification.md`
 - `../../decisions/knowledge/repository/canonicalization/0441-isolate-resident-knowledge-from-node-conversations.md`
 - `../../decisions/knowledge/repository/canonicalization/0442-isolate-conversation-repository-snapshots.md`
 - `../../decisions/knowledge/repository/canonicalization/0444-serialize-knowledge-materialization-with-managed-runs.md`

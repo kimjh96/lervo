@@ -18,6 +18,6 @@ Keep baseline discovery, semantic source capture, canonical assessment, normaliz
 
 ## References
 
-- [ADR-0359: Renew assignment leases during long verification](../../../decisions/execution/verification/0359-renew-assignment-leases-during-long-verification.md)
+- [ADR-0627: Renew assignment leases during long verification](../../../decisions/execution/verification/0627-renew-assignment-leases-during-long-verification.md)
 - [ADR-0443: Load linked child contracts for canonical review](../../../decisions/knowledge/repository/canonicalization/0443-load-linked-child-contracts-for-canonical-review.md)
 - [ADR-0438: Bind bounded asset manifests to delegation](../../../decisions/knowledge/repository/canonicalization/0438-bind-bounded-asset-manifests-to-delegation.md)

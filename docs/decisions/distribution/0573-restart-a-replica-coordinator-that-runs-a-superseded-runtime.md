@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-11-17
-Amends: [ADR-0483](../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (replica service stage), [ADR-0415](../coordination/sync/0415-bounded-replica-transport-and-service-completion.md) (terminal service inspection)
+Amends: [ADR-0483](../coordination/sync/0483-run-replica-commands-through-one-current-runtime.md) (replica service stage), [ADR-0628](../coordination/sync/0628-bounded-replica-transport-and-service-completion.md) (terminal service inspection)
 Related: [ADR-0470](../operations/services/0470-admit-every-knowledge-resident-and-run-one-host-resident-service.md), [ADR-0570](../operations/services/0570-reuse-one-replica-peer-connection-and-back-off-an-unreachable-peer.md)
 
 ## Context
@@ -72,7 +72,7 @@ Lervo never signals the process itself. The service manager stops only the job i
 
 ### Terminal inspection reports a stale coordinator on every host
 
-The terminal lifecycle inspection from ADR-0415 now runs on macOS and Linux. It finds the installed definition at the path the service renderer owns: `~/Library/LaunchAgents/dev.lervo.repository-replica.plist` or `~/.config/systemd/user/lervo-repository-replica.service`. It makes one manager call: `launchctl print` on macOS, or the same `systemctl --user show --property=MainPID --value` on Linux. It parses the answer with the parsers the service manager uses. It does not import the whole service manager or the Node runtime, so the terminal hook bundle stays within its size budget.
+The terminal lifecycle inspection from ADR-0628 now runs on macOS and Linux. It finds the installed definition at the path the service renderer owns: `~/Library/LaunchAgents/dev.lervo.repository-replica.plist` or `~/.config/systemd/user/lervo-repository-replica.service`. It makes one manager call: `launchctl print` on macOS, or the same `systemctl --user show --property=MainPID --value` on Linux. It parses the answer with the parsers the service manager uses. It does not import the whole service manager or the Node runtime, so the terminal hook bundle stays within its size budget.
 
 - Unsafe definition: `repository_replica_service_definition_unsafe`, unchanged.
 - An unknown user id on macOS, an unreadable definition path, or a failed observation: `repository_replica_service_inspection_failed`. The Stop hook labels this a `lifecycle_inspection_failed` turn, not `knowledge_inspection_failed`, because no knowledge check was skipped. The issue keeps its own code.
@@ -95,7 +95,7 @@ launchd and systemd hosts use the same binding proof, stage reasons, manager act
 - No canonical event is added.
 - No host state is added. The binding records already exist, and the check only reads them.
 - New upgrade stage reason `replica_service_stale_runtime` with action `restart`. The plan carries no process id, path, or identity. It keeps hashes and the `<hash16>` runtime name only.
-- New terminal issue code `repository_replica_service_stale_runtime`. Like the other ADR-0415 codes, it holds no path, command output, process id, or identity. Its meaning: the coordinator process runs, but Lervo could not prove that it loaded the runtime `current` names. It does not mean the coordinator is broken.
+- New terminal issue code `repository_replica_service_stale_runtime`. Like the other ADR-0628 codes, it holds no path, command output, process id, or identity. Its meaning: the coordinator process runs, but Lervo could not prove that it loaded the runtime `current` names. It does not mean the coordinator is broken.
 - The manager `status` result adds `processId`, a local integer that never leaves the host.
 - The manager `restart` result reports `change: "restarted"`.
 - New terminal advisory `repository_replica_service_manager_unreachable`, in the new optional lifecycle field `serviceAdvisories`. It holds no path or command output. Its meaning: this shell could not ask the user manager, so nothing is known about the coordinator. It does not mean the coordinator is down.

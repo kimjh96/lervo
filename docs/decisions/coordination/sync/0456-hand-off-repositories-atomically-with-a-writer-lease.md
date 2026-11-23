@@ -130,6 +130,6 @@ Hub artifact transport for bundles, concurrent multi-writer repositories, and au
 
 - [ADR-0396](0396-conflict-safe-repository-replica-continuation.md)
 - [ADR-0201](0201-repository-scoped-workstream-replication.md)
-- [ADR-0415](0415-bounded-replica-transport-and-service-completion.md)
+- [ADR-0628](0628-bounded-replica-transport-and-service-completion.md)
 - [Mac-offline source handoff roadmap](../../../roadmap/product-outcome-convergence/host-products/discord/source-handoff.md)
 - [Replica divergence and merge specification](../../../specifications/coordination/node-change-driven-work/repository-replicas/divergence-and-merge.md)

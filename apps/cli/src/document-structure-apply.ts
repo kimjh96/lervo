@@ -13,7 +13,7 @@ import { preserveDocumentBeforeDeletion } from "./document-deletion-preimage.js"
 import type { CrossCheckPlan } from "./plan-cross-check.js";
 import type { CliIo } from "./types.js";
 
-/** The fields every document structure plan shares (ADR-0353 move, merge, split, delete). */
+/** The fields every document structure plan shares (ADR-0181 delete, ADR-0182 move, ADR-0183 split, ADR-0184 merge). */
 export interface DocumentStructurePlan {
   planId: string;
   operationId: string;

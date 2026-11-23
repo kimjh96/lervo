@@ -17,7 +17,7 @@ The capability remains deployed; technical acceptance is open. Healthy services 
 ## Decisions
 
 - [ADR-0421: real-agent discussion versus policy coverage](../../../../../decisions/coordination/conversations/agent-organization/0421-separate-real-agent-discussion-from-policy-coverage.md).
-- [ADR-0425: webhook publication versus task control](../../../../../decisions/coordination/conversations/delivery/0425-separate-webhook-publication-from-task-control.md).
+- [ADR-0629: webhook publication versus task control](../../../../../decisions/coordination/conversations/delivery/0629-separate-webhook-publication-from-task-control.md).
 - [ADR-0424: delivery uncertainty and reconciliation](../../../../../decisions/coordination/conversations/delivery/0424-bound-delivery-uncertainty-and-reconciliation.md).
 - [ADR-0422: supervision budget across model migration](../../../../../decisions/execution/orchestration/governed-work/resource-accounting/0422-preserve-supervision-budget-across-model-migration.md).
 - [ADR-0405: standing-supervision lineage](../../../../../decisions/execution/orchestration/governed-work/0405-standing-supervision-lineage.md).

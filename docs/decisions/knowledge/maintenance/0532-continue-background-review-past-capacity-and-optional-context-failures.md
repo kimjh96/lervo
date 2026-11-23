@@ -3,7 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0530](0530-keep-background-knowledge-moving-past-divergent-targets.md), [ADR-0436](../repository/canonicalization/0436-reviewed-source-capture-and-bounded-canonical-worksets.md), and [ADR-0486](../semantics/0486-regenerate-stale-semantic-candidates-and-reuse-repository-observation.md)
-Amended by: [ADR-0546](../repository/source-intake/0546-capture-in-repository-links-without-a-reviewed-declaration.md) (capture also derives undeclared in-repository link descriptors) and the ADR-0547 amendment recorded in [ADR-0222](../repository/0222-bounded-role-based-document-layout.md) (only overflow a write creates or grows blocks it).
+Amended by: [ADR-0546](../repository/source-intake/0546-capture-in-repository-links-without-a-reviewed-declaration.md) (capture also derives undeclared in-repository link descriptors) and the ADR-0547 amendment recorded in [ADR-0620](../repository/0620-bounded-role-based-document-layout.md) (only overflow a write creates or grows blocks it).
 
 ## Context
 
@@ -29,9 +29,9 @@ The disposition ledger retains independently approved noncandidate decisions fro
 
 Each capacity parking binds a hash of the observed counts, capacity policy, routes, and roles. Changed source bytes or a changed layout hash readmit the source in a later obligation. Editing unrelated document bodies does not release capacity. Existing stalls receive one evaluation under the new contract.
 
-Routing guidance alone cannot repair an already oversized folder. Under the ADR-0547 amendment recorded in ADR-0222, only overflow a write creates or grows blocks it; existing overflow stays a lint error. Existing unrelated overflow therefore does not by itself block a write elsewhere. Adding documents to a full directory still creates or grows overflow and is blocked. The layout lifecycle retains documents already in canonical trees such as `docs/specs`; it does not automatically subdivide them. It classifies legacy documents and validates grouped decision leaves. This change moves no user documents. Repairing an existing canonical folder requires a separate exact reviewed layout change. Normalization remains subject to the amended write-capacity rule, and existing overflow remains visible to lint.
+Routing guidance alone cannot repair an already oversized folder. Under the ADR-0547 amendment recorded in ADR-0620, only overflow a write creates or grows blocks it; existing overflow stays a lint error. Existing unrelated overflow therefore does not by itself block a write elsewhere. Adding documents to a full directory still creates or grows overflow and is blocked. The layout lifecycle retains documents already in canonical trees such as `docs/specs`; it does not automatically subdivide them. It classifies legacy documents and validates grouped decision leaves. This change moves no user documents. Repairing an existing canonical folder requires a separate exact reviewed layout change. Normalization remains subject to the amended write-capacity rule, and existing overflow remains visible to lint.
 
-The complete ADR-0547 text was not supplied for this correction. This paragraph applies only the explicit amendment recorded in ADR-0222; it does not establish additional evaluator mechanics, deployment status, or completed acceptance.
+The complete ADR-0547 text was not supplied for this correction. This paragraph applies only the explicit amendment recorded in ADR-0620; it does not establish additional evaluator mechanics, deployment status, or completed acceptance.
 
 ### Exclude owned projections at every assessment entry
 

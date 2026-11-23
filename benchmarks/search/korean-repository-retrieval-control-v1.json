@@ -101,7 +101,7 @@
       "provenance": "verification_authored",
       "query": "Why did we choose the bounded role-based document layout?",
       "expectedPaths": [
-        "docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md"
+        "docs/decisions/knowledge/repository/0620-bounded-role-based-document-layout.md"
       ],
       "maximumRank": 10
     },

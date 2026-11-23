@@ -10,7 +10,7 @@ Full Mac build, quality, 478-document lifecycle, manifest/SBOM, and task-base re
 
 That Lervo apply passed three shards but failed the fourth. `ver_f0beec358b13e3cb`, result `sha256:e8c394bf40ecde59eca8dbca87124790d6b1fee795afce45a270a90bfc2a77c7`, records shard durations of 361.96/785.86/435.85/359.44 seconds. Shard four had 973 passing tests and `canonical-workset-convergence` timing out at 90 seconds, followed by `ENOTEMPTY`. Writer `asn_6b4e307ff9d6658b520487dd`, claimed at 15:07:28 UTC, expired at 15:37:28 UTC before shard four ended. Failure bookkeeping could not settle the expired exact claim; outbox retained `knowledge_job_transient_failure`, not an applied receipt.
 
-ADR-0359 adds bounded exact assignment renewal under the current 60-minute stage lease. The complete-workset test now permits 240 seconds with unchanged assertions. Focused Mac lease/workset tests passed three cases; no installed pass was observed. Private fixes share patch intent `relint_e364b459072d83d6fc29803a` because pending release intent reached its 128-item bound.
+ADR-0627 adds bounded exact assignment renewal under the current 60-minute stage lease. The complete-workset test now permits 240 seconds with unchanged assertions. Focused Mac lease/workset tests passed three cases; no installed pass was observed. Private fixes share patch intent `relint_e364b459072d83d6fc29803a` because pending release intent reached its 128-item bound.
 
 Exact SHA-256 copies of 15 source/documentation files advanced WSL's private ref to `42e327645cd91ba9e82d4490a134100f1767f681` without changing its working branch. Linux full build, manifest, and SBOM checks passed. Lease/workset tests passed 3/3; busy-host workset time was 88.51 seconds, near the old 90-second deadline.
 

@@ -1,4 +1,4 @@
-# ADR-0359: Renew assignment leases during long verification
+# ADR-0627: Renew assignment leases during long verification
 
 Status: `accepted`
 Decision date: 2026-09-29
@@ -25,5 +25,5 @@ The convergence workforce module composes registration, exact assignment authori
 
 ## References
 
-- [ADR-0358](0358-cover-busy-host-verification-stage-leases.md)
+- [ADR-0626](0626-cover-busy-host-verification-stage-leases.md)
 - [Background convergence runtime](../../../specs/background-knowledge-convergence/runtime.md)

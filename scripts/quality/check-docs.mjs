@@ -107,6 +107,19 @@ for (const document of adrDocuments.filter((path) => /(?:^|\/)\d{4}-.+\.md$/u.te
     failures.push(`${document}: decision parent is not an allowed taxonomy route.`);
   decisionLeafCounts.set(parent, (decisionLeafCounts.get(parent) ?? 0) + 1);
 }
+// ADR-0562: an `ADR-NNNN` reference names exactly one decision, so no two decisions share a number.
+const decisionsByNumber = new Map();
+for (const document of adrDocuments) {
+  const number = /(?:^|\/)(\d{4})-.+\.md$/u.exec(document)?.[1];
+  if (number !== undefined)
+    decisionsByNumber.set(number, [...(decisionsByNumber.get(number) ?? []), document]);
+}
+for (const [number, documents] of decisionsByNumber) {
+  if (documents.length > 1)
+    failures.push(
+      `ADR-${number} names ${documents.length} decisions: ${documents.sort().join(", ")}; renumber the later one.`,
+    );
+}
 for (const [directory, count] of decisionLeafCounts) {
   if (count > decisionTaxonomy.maxLeafDocuments)
     failures.push(

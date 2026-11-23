@@ -14,14 +14,14 @@ outputLanguage: en
 outputs:
   - byteCount: 15627
     contentHash: sha256:f629339dca6f56ce64798bd6d8fd0572541f30556e00683d03285fc92398f752
-    path: docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md
+    path: docs/decisions/knowledge/repository/0620-bounded-role-based-document-layout.md
     userRegionHash: sha256:f629339dca6f56ce64798bd6d8fd0572541f30556e00683d03285fc92398f752
 profile: decision_record
 recordId: knormdoc_3b7a85752e3983cf870e5803
 resourceBindings: []
 schemaVersion: 2
 sourceContentHash: sha256:f629339dca6f56ce64798bd6d8fd0572541f30556e00683d03285fc92398f752
-sourcePath: docs/decisions/knowledge/repository/0222-bounded-role-based-document-layout.md
+sourcePath: docs/decisions/knowledge/repository/0620-bounded-role-based-document-layout.md
 sourceUnitVersionIds:
   - uv_13f9f5d1276df0e0b2824773
   - uv_2f84079c0e1d49b6dc8d40ec

@@ -17,4 +17,4 @@ The [background convergence runtime](background-knowledge-convergence/runtime.md
 - [Bound document normalization worksets and preflight](../decisions/knowledge/documents/0358-bound-document-normalization-worksets-and-preflight.md)
 - [Observed document normalization resources](../decisions/knowledge/documents/0359-observe-document-normalization-resources.md)
 - [Explicit document normalization selection](../decisions/knowledge/documents/0360-bind-explicit-document-normalization-selection.md)
-- [Bounded role-based document layout](../decisions/knowledge/repository/0222-bounded-role-based-document-layout.md)
+- [Bounded role-based document layout](../decisions/knowledge/repository/0620-bounded-role-based-document-layout.md)

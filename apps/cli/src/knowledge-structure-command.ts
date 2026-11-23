@@ -165,7 +165,7 @@ async function planStructureOperation(
 }
 
 /**
- * `lervo knowledge structure delete|move|merge|split` (ADR-0353). ADR-0561: `--apply` runs an
+ * `lervo knowledge structure delete|move|merge|split` (ADR-0181 to ADR-0184). ADR-0561: `--apply` runs an
  * independent cross-check of the exact plan, applies it, and commits it as the undo point.
  */
 export async function runKnowledgeStructure(
