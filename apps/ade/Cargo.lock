@@ -2309,6 +2309,7 @@ dependencies = [
 name = "lervo-session-stream"
 version = "0.1.0"
 dependencies = [
+ "nix",
  "thiserror 2.0.21",
  "tokio",
 ]

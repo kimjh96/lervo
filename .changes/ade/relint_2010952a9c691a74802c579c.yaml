@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2010952a9c691a74802c579c"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "End a native session's provider with SIGTERM before SIGKILL, so Claude Code runs its SessionEnd hook, and report each provider exit to a Lervo core that records the ends hooks miss."
