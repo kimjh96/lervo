@@ -1,3 +1,4 @@
+import type { ModelReasoningEffort, ModelSelection } from "@lervo/execution-contract";
 import type { ProviderAdapter } from "@lervo/adapter-contract";
 import type { SupervisedManagedInvocation } from "@lervo/node-runtime";
 import type {
@@ -72,7 +73,12 @@ export interface ManagedRunDependencies {
     resolveArtifact: (uri: string) => Promise<Uint8Array>;
     structuredOutputSchema?: ProviderOutputSchema;
     executable?: string;
+    /** ADR-0612: the `routine` route for the provider; absent keeps the provider default. */
+    model?: string;
+    reasoningEffort?: ModelReasoningEffort;
   }): ProviderAdapter;
+  /** Reads the host model selection; replaced only in tests. */
+  readModelSelection?: () => Promise<ModelSelection>;
   createId(prefix: "run" | "ses" | "evt" | "ctx" | "envelope" | "turn"): string;
   userSkillRoot?: string;
   userCapabilityRoot?: string;

@@ -1,11 +1,13 @@
 import { beforeEach, expect, it, vi } from "vitest";
 
 import type { VerifiedCapabilityPackage } from "@lervo/capabilities";
+import { DEFAULT_MODEL_SELECTION } from "@lervo/execution-contract";
 
 import {
   crossCheckCapability,
   strongerCapabilityCrossCheck,
 } from "../src/capability-install-cross-check.js";
+import { ProviderRouteStartError } from "../src/model-role-routes.js";
 
 const mocks = vi.hoisted(() => ({ resolve: vi.fn(), requests: [] as unknown[] }));
 vi.mock("@lervo/repository-knowledge-compiler", () => ({
@@ -68,4 +70,107 @@ it("reports a malformed answer as unavailable, never as a disagreement", async (
       crossCheck: crossCheckCapability,
     }),
   ).rejects.toMatchObject({ code: "capability_cross_check_unavailable" });
+});
+
+it("takes both sessions from the review role and never tries a provider it leaves out (ADR-0612)", async () => {
+  const sessions: Array<"codex" | "claude"> = [];
+  const result = await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    crossCheck: async (input) => {
+      sessions.push(input.provider);
+      return { verdict: "agree", rationale, reviewer: "fixture", provider: input.provider };
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: { review: [{ provider: "claude", model: null, reasoningEffort: "high" }] },
+    }),
+  });
+  expect(result.agreed).toBe(true);
+  expect(sessions).toEqual(["claude", "claude"]);
+});
+
+it("keeps a different second provider from the role when the caller names the first", async () => {
+  const sessions: Array<"codex" | "claude"> = [];
+  await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    provider: "codex",
+    crossCheck: async (input) => {
+      sessions.push(input.provider);
+      return { verdict: "agree", rationale, reviewer: "fixture", provider: input.provider };
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: {
+        review: [
+          { provider: "codex", model: null, reasoningEffort: "high" },
+          { provider: "claude", model: null, reasoningEffort: "high" },
+        ],
+      },
+    }),
+  });
+  expect(sessions).toEqual(["codex", "claude"]);
+});
+
+it("passes over a listed provider whose CLI cannot start", async () => {
+  const sessions: Array<"codex" | "claude"> = [];
+  const attempts: Array<"codex" | "claude"> = [];
+  const result = await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    crossCheck: async (input) => {
+      attempts.push(input.provider);
+      if (input.provider === "codex")
+        throw new ProviderRouteStartError("codex", { cause: new Error("not installed") });
+      sessions.push(input.provider);
+      return { verdict: "agree", rationale, reviewer: "fixture", provider: input.provider };
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: {
+        review: [
+          { provider: "codex", model: null, reasoningEffort: "high" },
+          { provider: "claude", model: null, reasoningEffort: "high" },
+        ],
+      },
+    }),
+  });
+  // Codex could not start, so it is never tried again as the second session.
+  expect(result.agreed).toBe(true);
+  expect(sessions).toEqual(["claude", "claude"]);
+  expect(attempts).toEqual(["codex", "claude", "claude"]);
+});
+
+it("binds a configured executable to one provider and reports why nothing could start", async () => {
+  const attempts: Array<"codex" | "claude"> = [];
+  const failure = await strongerCapabilityCrossCheck({
+    repositoryRoot: "/repo",
+    package: verified,
+    executable: "/opt/provider",
+    crossCheck: async (input) => {
+      attempts.push(input.provider);
+      throw new ProviderRouteStartError(input.provider, {
+        cause: new Error("The provider version could not be determined."),
+      });
+    },
+    readSelection: async () => ({
+      ...DEFAULT_MODEL_SELECTION,
+      revision: 1,
+      roles: {
+        review: [
+          { provider: "codex", model: null, reasoningEffort: "high" },
+          { provider: "claude", model: null, reasoningEffort: "high" },
+        ],
+      },
+    }),
+  }).catch((error: unknown) => error);
+  expect(attempts).toEqual(["codex"]);
+  expect(failure).toMatchObject({
+    code: "capability_cross_check_unavailable",
+    message: expect.stringContaining("The provider version could not be determined."),
+  });
 });

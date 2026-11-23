@@ -56,6 +56,7 @@ import {
   type ManagedRunOutcome,
 } from "./managed-run-types.js";
 import { defaultDependencies } from "./managed-run-composition.js";
+import { modelCallOptions, readHostSelection } from "./model-role-routes.js";
 
 function digest(value: string): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
@@ -268,7 +269,13 @@ export function createManagedRunExecutor(
         documentRegistry:
           request.supervisedInvocation === undefined ? registry : repositoryRegistry,
       });
+      // ADR-0612: managed repository work is the `routine` role; the explicit provider stands.
       const primaryAdapter = dependencies.createAdapter({
+        ...modelCallOptions(
+          await (dependencies.readModelSelection ?? readHostSelection)(),
+          "routine",
+          request.provider,
+        ),
         provider: request.provider,
         ...(request.providerExecutable === undefined
           ? {}
