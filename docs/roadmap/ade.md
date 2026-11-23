@@ -162,6 +162,7 @@ On 2026-11-23 the owner tried the app built from `main` and found two problems.
 - **Messages did not carry over between the modes.** Messages sent in the CLI conversation did not appear in the native conversation. The native index held only what its own stream decoded, though the sessions specification makes the provider's transcript the canonical conversation.
   - The fix reads the transcript through the new `transcript.read` request whenever a native session opens. It rebuilds the index when the transcript holds a different number of items. The same path heals a damaged index.
   - The test also showed the app's provider inheriting an enclosing Claude Code session's markers: it stopped saving its transcript and could reach that session's messaging channel. Launches now name the variables the session host must not pass on, and the Claude adapter lists the markers.
+  - The fix shipped in v0.42.0. On 2026-11-23 the owner ran the app against it on the Mac and confirmed that turns from the CLI conversation appear in the native conversation.
 - **The CLI conversation was hard to use in Korean.** The owner asked to improve it later, as one bounded follow-up:
   - Hangul renders with gaps, because JetBrains Mono has no Hangul glyphs and the fallback is narrower than two cells;
   - Hangul input through the IME is unreliable in xterm.js on WKWebView;
