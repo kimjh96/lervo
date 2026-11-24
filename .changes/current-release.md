@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.46.9" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.47.0" schema="1" -->
 
 ## What's changed
 
-- Write the missing Amended by and Superseded in part by lines of decision records through the freshness apply path as insert-only edits, with no provider call, inside the delegation's canonical roots (ADR-0631).
+- Add lervo workspace retire and the ADE core command workspace.retire, which remove a hosted workspace without discarding work: they refuse a worktree in use or with changes, and keep a branch whose commits the default branch lacks.

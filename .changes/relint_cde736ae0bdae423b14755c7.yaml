@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_cde736ae0bdae423b14755c7"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Add lervo workspace retire and the ADE core command workspace.retire, which remove a hosted workspace without discarding work: they refuse a worktree in use or with changes, and keep a branch whose commits the default branch lacks."
