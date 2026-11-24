@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_36a748066bcc2611e1dfeffb"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Remove a workspace from its header: a trash button asks first, stops the session, and removes the workspace, which the core refuses while it holds changes."
