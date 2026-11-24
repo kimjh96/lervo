@@ -278,11 +278,14 @@ On 2026-11-23 three parsers were measured: each one's parse entry bundled and mi
 
 ### ADE versions
 
-On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's. [ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md) gives the ADE its own version line, with `ade-v` tags and intents in `.changes/ade/`, prepared apart from the CLI and with no GitHub Release before S3. The work is complete when:
+On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's. [ADR-0615](../decisions/release/packaging/0615-version-the-ade-apart-from-the-cli.md) gives the ADE its own version line, with `ade-v` tags and intents in `.changes/ade/`, prepared apart from the CLI. The work is complete when:
 
 - the release tooling accepts ADE intents and every test under `scripts/release` passes, intents without a target included;
 - CLI preparation ignores ADE intents;
 - one ADE preparation has written `0.2.0` to every ADE manifest with its release notes and tagged `ade-v0.2.0`.
+- each ADE tag has a GitHub Release `@lervo/ade v<version>` with its notes, never marked "Latest" ([ADR-0630](../decisions/release/packaging/0630-publish-ade-release-notes-before-s3.md)), 0.2.0 and 0.2.1 included.
+
+On 2026-11-24 the owner asked why the ADE had no release notes: ADR-0615 had deferred GitHub Releases to S3, so the notes lived only in Git history. ADR-0630 publishes them now, after the host follower's release list widens past ADE releases.
 
 ### S1.4c progress
 

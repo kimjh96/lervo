@@ -35,6 +35,25 @@ describe("chooseFollowTarget", () => {
     ).toEqual({ kind: "install", tag: "v1.2.10", version: "1.2.10" });
   });
 
+  it("never installs an ADE release, however new (ADR-0615)", () => {
+    expect(
+      chooseFollowTarget({
+        releases: [release("ade-v9.0.0"), release("ade-v0.3.0"), ...releases],
+        activeVersion: "1.2.1",
+        failedTags: [],
+        pinnedTag: null,
+      }),
+    ).toEqual({ kind: "install", tag: "v1.2.10", version: "1.2.10" });
+    expect(
+      chooseFollowTarget({
+        releases: [release("ade-v0.3.0")],
+        activeVersion: "1.2.1",
+        failedTags: [],
+        pinnedTag: null,
+      }),
+    ).toMatchObject({ kind: "idle", reason: "no_published_release" });
+  });
+
   it("stays idle when current, never downgrades, and never falls back past a failed release", () => {
     expect(
       chooseFollowTarget({ releases, activeVersion: "1.2.10", failedTags: [], pinnedTag: null }),

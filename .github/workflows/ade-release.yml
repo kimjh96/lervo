@@ -1,8 +1,9 @@
 name: ADE release
 
-# Tags a prepared ADE release on main as `ade-v<version>` (ADR-0615). It runs only when the ADE's
-# release notes change, which only ADE release preparation does, and it has its own concurrency
-# group, so it never cancels or delays a CLI run. The ADE creates no GitHub Release before S3.
+# Tags a prepared ADE release on main as `ade-v<version>` (ADR-0615) and publishes its notes as a
+# GitHub Release that is never marked "Latest" (ADR-0630). It runs only when the ADE's release
+# notes change, which only ADE release preparation does, and it has its own concurrency group, so
+# it never cancels or delays a CLI run.
 on:
   push:
     branches: [main]
@@ -41,3 +42,10 @@ jobs:
           git config user.name 'lervo-release[bot]'
           git config user.email 'lervo-release[bot]@users.noreply.github.com'
           node scripts/release/commands/tag-ade-release.mjs --push
+      - name: Publish the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(node -p 'require("./apps/ade/package.json").version')"
+          git ls-remote --exit-code --tags origin "refs/tags/ade-v${version}" >/dev/null
+          bash scripts/release/lib/publish-ade-release.sh "ade-v${version}" .changes/ade/current-release.md

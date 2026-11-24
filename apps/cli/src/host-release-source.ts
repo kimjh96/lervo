@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 
 import { CommandFailure } from "./command-error-output.js";
+import { publishedReleases } from "./host-follow-policy.js";
 
 /** What a host reads about one published release before it downloads anything. */
 export interface PublishedReleaseListing {
@@ -31,7 +32,10 @@ export interface ReleaseListEntry {
  */
 export interface HostReleaseSource {
   readonly repository: string;
-  /** ADR-0575: the newest releases of the repository, drafts and prereleases included. */
+  /**
+   * ADR-0575: the newest releases of the repository, drafts and prereleases included, enough of
+   * them to reach the newest published CLI release when one exists (ADR-0615).
+   */
   listReleases(): Promise<ReleaseListEntry[]>;
   readRelease(tag: string): Promise<PublishedReleaseListing>;
   /** The commit and tree the tag points at, following an annotated tag to its commit. */
@@ -49,6 +53,11 @@ const ghTimeoutMilliseconds = 5 * 60_000;
 const objectIdPattern = /^[a-f0-9]{40}$/u;
 /** Enough to see past a burst of releases; the follower installs only the newest one. */
 const releaseListLimit = 30;
+/**
+ * ADR-0615: the ADE publishes its own releases in the same repository. When they fill the newest
+ * page, the list widens to this many, so they never hide the newest published CLI release.
+ */
+const widenedReleaseListLimit = 300;
 
 export const runGh: GhRunner = (args) =>
   new Promise((resolvePromise, reject) => {
@@ -100,6 +109,49 @@ export function createGhReleaseSource(
       throw unavailable(repository, what);
     }
   };
+  const listNewest = async (limit: number): Promise<ReleaseListEntry[]> => {
+    const what = "the release list";
+    let entries: unknown;
+    try {
+      entries = JSON.parse(
+        (
+          await read(
+            [
+              "release",
+              "list",
+              "--repo",
+              repository,
+              "--limit",
+              String(limit),
+              "--json",
+              "tagName,isDraft,isPrerelease",
+            ],
+            what,
+          )
+        ).toString("utf8"),
+      ) as unknown;
+    } catch (error) {
+      if (error instanceof CommandFailure) throw error;
+      throw unavailable(repository, what);
+    }
+    if (
+      !Array.isArray(entries) ||
+      !entries.every((entry: unknown) => {
+        const value = entry as Record<string, unknown> | null;
+        return (
+          value !== null &&
+          typeof value === "object" &&
+          typeof value.tagName === "string" &&
+          typeof value.isDraft === "boolean" &&
+          typeof value.isPrerelease === "boolean"
+        );
+      })
+    )
+      throw unavailable(repository, what);
+    return (entries as { tagName: string; isDraft: boolean; isPrerelease: boolean }[]).map(
+      (entry) => ({ tag: entry.tagName, draft: entry.isDraft, prerelease: entry.isPrerelease }),
+    );
+  };
   const readObject = async (path: string, what: string): Promise<Record<string, unknown>> => {
     const value = parseObject(await read(["api", path], what));
     if (value === null) throw unavailable(repository, what);
@@ -108,47 +160,10 @@ export function createGhReleaseSource(
   return {
     repository,
     async listReleases() {
-      const what = "the release list";
-      let entries: unknown;
-      try {
-        entries = JSON.parse(
-          (
-            await read(
-              [
-                "release",
-                "list",
-                "--repo",
-                repository,
-                "--limit",
-                String(releaseListLimit),
-                "--json",
-                "tagName,isDraft,isPrerelease",
-              ],
-              what,
-            )
-          ).toString("utf8"),
-        ) as unknown;
-      } catch (error) {
-        if (error instanceof CommandFailure) throw error;
-        throw unavailable(repository, what);
-      }
-      if (
-        !Array.isArray(entries) ||
-        !entries.every((entry: unknown) => {
-          const value = entry as Record<string, unknown> | null;
-          return (
-            value !== null &&
-            typeof value === "object" &&
-            typeof value.tagName === "string" &&
-            typeof value.isDraft === "boolean" &&
-            typeof value.isPrerelease === "boolean"
-          );
-        })
-      )
-        throw unavailable(repository, what);
-      return (entries as { tagName: string; isDraft: boolean; isPrerelease: boolean }[]).map(
-        (entry) => ({ tag: entry.tagName, draft: entry.isDraft, prerelease: entry.isPrerelease }),
-      );
+      const newest = await listNewest(releaseListLimit);
+      return newest.length < releaseListLimit || publishedReleases(newest).length > 0
+        ? newest
+        : listNewest(widenedReleaseListLimit);
     },
     async readRelease(tag) {
       const what = `release ${tag}`;
