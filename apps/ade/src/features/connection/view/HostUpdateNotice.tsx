@@ -28,7 +28,7 @@ export function HostUpdateNotice() {
   const shown =
     update.kind === "restarting" ? "wait" : update.kind === "restarted" ? "done" : "offer";
   return (
-    <Presence contentKey={shown}>
+    <Presence contentKey={shown} align="end">
       {update.kind === "none" ? null : <Notice update={update} />}
     </Presence>
   );

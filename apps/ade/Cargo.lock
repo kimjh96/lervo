@@ -2227,7 +2227,7 @@ dependencies = [
  "lervo-session-protocol",
  "lervo-session-transport",
  "nix",
- "objc2-app-kit",
+ "objc2-core-graphics",
  "serde_json",
  "tauri",
  "tauri-build",

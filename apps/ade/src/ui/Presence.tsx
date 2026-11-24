@@ -17,7 +17,7 @@ interface Layer {
 /**
  * The motion of anything a view shows only sometimes, or changes in one place (ADE motion,
  * "Coming and going" and "Changing in place"). Content fades in over `motion.duration.change`.
- * When `children` becomes empty, the last content fades out over `motion.duration.exit` before it
+ * When `children` becomes empty, the last content fades out over `motion.duration.leave` before it
  * unmounts. When `contentKey` changes, the old content fades out and then the new fades in, in
  * the same space, so a button can become its wait and then its result without anything jumping
  * and without two texts overlapping. Leaving content takes no clicks and is hidden from assistive technology. The ADE's
@@ -31,6 +31,11 @@ export function Presence(props: {
   as?: "div" | "span";
   /** False when the content brings its own arrival, such as the needs-you dot. */
   enter?: boolean;
+  /**
+   * Which edge content keeps while the space changes size. `end` suits a place pinned to the
+   * bottom, such as the sidebar footer, so the new content never moves when the old leaves.
+   */
+  align?: "start" | "end";
   className?: string | undefined;
 }) {
   const present = shownOf(props.children);
@@ -59,7 +64,7 @@ export function Presence(props: {
     if (leaving === "") return;
     const timer = setTimeout(
       () => setLayers((all) => all.filter((layer) => !layer.leaving)),
-      motion.exitMs,
+      motion.leaveMs,
     );
     return () => clearTimeout(timer);
   }, [leaving]);
@@ -69,6 +74,7 @@ export function Presence(props: {
     <Element
       className={[styles.presence, props.className].filter(Boolean).join(" ")}
       data-inline={Element === "span" ? "" : undefined}
+      data-align={props.align}
     >
       {layers.map((layer) => (
         <Element

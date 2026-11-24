@@ -319,7 +319,7 @@ export const entries: readonly Entry[] = [
     module: "Presence",
     name: "Presence",
     purpose:
-      "The motion of anything a view shows only sometimes: it fades in over motion.duration.change and out over motion.duration.exit, so nothing pops in or vanishes.",
+      "The motion of anything a view shows only sometimes: it fades in over motion.duration.enter and out over motion.duration.leave, so nothing pops in or vanishes.",
     use: [
       "A notice, an inline error, the working line, a wait, or a control the core enables",
       "Every element that comes and goes, unless a motion comment names another catalog row",

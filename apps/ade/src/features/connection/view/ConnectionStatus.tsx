@@ -26,7 +26,7 @@ export function ConnectionStatus() {
     state === "connected" || (restarting && state !== "unavailable") ? null : (
       <Status state={state} />
     );
-  return <Presence>{content}</Presence>;
+  return <Presence align="end">{content}</Presence>;
 }
 
 function Status(props: { state: Exclude<ConnectionState, "connected"> }) {
