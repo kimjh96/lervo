@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_44af53ea1828db39f54239f1"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "The session host accepts the account of a workspace's base that Lervo CLI 0.47.7 and later report when a workspace starts."
