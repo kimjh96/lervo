@@ -13,42 +13,40 @@ function artifactUri(contentHash: string): string {
   return `lervo-cas://sha256/${contentHash.slice("sha256:".length)}`;
 }
 
-function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
+const WORKSTREAM_SNAPSHOT_TYPES = ["workstream.snapshot.recorded"] as const;
+
+/**
+ * Workstream snapshot events in sequence order, read through the store's type index. Every prompt
+ * resolves the current workstream, so decoding the whole event history here made each prompt slower
+ * as the history grew.
+ */
+export function* workstreamSnapshotEvents(storage: Pick<ProjectStorage, "events">) {
   let afterSeq = 0;
-  let latest: ReturnType<ProjectStorage["events"]["list"]>[number] | null = null;
   while (true) {
-    const events = storage.events.list({ afterSeq, limit: 1000 });
-    if (events.length === 0) break;
+    const events = storage.events.list({ afterSeq, limit: 1000, types: WORKSTREAM_SNAPSHOT_TYPES });
     for (const event of events) {
       afterSeq = event.seq;
-      if (
-        event.type === "workstream.snapshot.recorded" &&
-        (workstreamId === undefined || event.payload.workstreamId === workstreamId)
-      )
-        latest = event;
+      // The store applies `types`; the check keeps a store that ignores it from answering wrongly.
+      if (event.type === WORKSTREAM_SNAPSHOT_TYPES[0]) yield event;
     }
-    if (events.length < 1000) break;
+    if (events.length < 1000) return;
   }
+}
+
+function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
+  let latest: ReturnType<ProjectStorage["events"]["list"]>[number] | null = null;
+  for (const event of workstreamSnapshotEvents(storage))
+    if (workstreamId === undefined || event.payload.workstreamId === workstreamId) latest = event;
   return latest;
 }
 
 function hasReplicatedWorkstreamOrigin(storage: ProjectStorage, workstreamId: string): boolean {
-  let afterSeq = 0;
-  while (true) {
-    const events = storage.events.list({ afterSeq, limit: 1000 });
-    if (events.length === 0) return false;
-    for (const event of events) {
-      afterSeq = event.seq;
-      const payload = event.payload as Record<string, unknown>;
-      if (
-        event.type === "workstream.snapshot.recorded" &&
-        payload.workstreamId === workstreamId &&
-        payload.changeKind === "hub_replication_import"
-      )
-        return true;
-    }
-    if (events.length < 1000) return false;
+  for (const event of workstreamSnapshotEvents(storage)) {
+    const payload = event.payload as Record<string, unknown>;
+    if (payload.workstreamId === workstreamId && payload.changeKind === "hub_replication_import")
+      return true;
   }
+  return false;
 }
 
 async function restoreRecordedWorkstream(

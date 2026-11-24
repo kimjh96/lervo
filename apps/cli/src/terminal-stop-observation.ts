@@ -28,7 +28,10 @@ import {
 } from "./terminal-repository-change.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 
-import { findLatestPreparedContext } from "./terminal-prepared-context-query.js";
+import {
+  findLatestPreparedContext,
+  preparedContextHint,
+} from "./terminal-prepared-context-query.js";
 import { selectedTerminalDocuments } from "./terminal-turn-selection.js";
 import { observedTerminalReferences } from "./terminal-output-references.js";
 import {
@@ -55,10 +58,16 @@ export async function recordObservedTerminalTurn(input: {
   /** Documents this turn selected or loaded, for the ADR-0552 governance check. */
   consultedPaths: string[];
 }> {
+  const hint = await preparedContextHint(input.root, input.coordinates, new Date(input.occurredAt));
   const storage = await openProjectStorage(input.root);
   let contextEventId: string | null = null;
   try {
-    const context = findLatestPreparedContext(storage.events, input.coordinates, input.provider);
+    const context = findLatestPreparedContext(
+      storage.events,
+      input.coordinates,
+      input.provider,
+      hint,
+    );
     if (context === null)
       throw new Error("No matching prepared terminal context exists for this provider turn.");
     contextEventId = context.eventId;
