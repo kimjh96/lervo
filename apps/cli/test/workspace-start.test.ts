@@ -1,11 +1,12 @@
 import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
+import { workspaceStartBaseSchema } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
 import { CommandFailure } from "../src/command-error-output.js";
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
 import type { HostedSessionEvent } from "../src/hosted-session-events.js";
-import type { WorkspaceBase } from "../src/workspace-base.js";
+import { WORKSPACE_BASE_NOTICES, type WorkspaceBase } from "../src/workspace-base.js";
 import {
   branchFor,
   objectiveFor,
@@ -223,6 +224,15 @@ describe("workspace start", () => {
     });
     expect(fake.records[0]?.base?.notice).toBe("replay_incomplete");
     expect(result.base).toMatchObject({ notice: "replay_incomplete", replayed: 0, skipped: 2 });
+  });
+});
+
+describe("the base's notices", () => {
+  it("all fit the session-host contract, which stays open to notices a later CLI adds", () => {
+    const [string] = workspaceStartBaseSchema.properties.notice.anyOf;
+    const pattern = new RegExp(string.pattern, "u");
+    for (const notice of [...WORKSPACE_BASE_NOTICES, "replay_incomplete"])
+      expect(pattern.test(notice), notice).toBe(true);
   });
 });
 

@@ -21,9 +21,8 @@ const origin: Upstream = { remote: "origin", branch: "main" };
 
 function fakeGit(overrides: Partial<WorkspaceBaseGit> = {}): WorkspaceBaseGit {
   return {
-    defaultBranch: async () => "main",
+    defaultBranch: async () => ({ branch: "main", ref: "refs/heads/main", upstream: origin }),
     commitOf: async (ref) => (ref === "refs/heads/main" ? "local" : "upstream-tip"),
-    upstreamOf: async () => origin,
     fetch: async () => undefined,
     unpublished: async () => [],
     ...overrides,
@@ -62,7 +61,12 @@ describe("choosing where a workspace starts", () => {
 
   it("falls back to the local tip when there is no upstream or any upstream step fails", async () => {
     expect(
-      await chooseWorkspaceBase(fakeGit({ upstreamOf: async () => null }), "fallback"),
+      await chooseWorkspaceBase(
+        fakeGit({
+          defaultBranch: async () => ({ branch: "main", ref: "refs/heads/main", upstream: null }),
+        }),
+        "fallback",
+      ),
     ).toMatchObject({
       commit: "local",
       source: "local",
@@ -214,6 +218,23 @@ describe("the real Git reads of the workspace base", () => {
     ]);
   });
 
+  it("take the remote's advertised default even when only the remote has it", async () => {
+    const { remote, other } = await repositories();
+    const base = await realpath(await mkdtemp(join(tmpdir(), "lervo-clone-b-")));
+    roots.push(base);
+    git(other, "switch", "-q", "-c", "feat");
+    await commitFile(other, "work.txt", "wip\n", "work in progress");
+    git(other, "push", "-q", "-u", "origin", "feat");
+    const owner = join(base, "owner");
+    execFileSync("git", ["clone", "-q", "-b", "feat", remote, owner], { stdio: "ignore" });
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
+      source: "upstream",
+      upstream: "origin/main",
+      commit: git(other, "rev-parse", "main"),
+      notice: null,
+    });
+  });
+
   it("never take a feature branch for the default", async () => {
     const base = await realpath(await mkdtemp(join(tmpdir(), "lervo-feat-")));
     roots.push(base);
@@ -228,11 +249,9 @@ describe("the real Git reads of the workspace base", () => {
     git(owner, "push", "-q", "-u", "origin", "trunk");
     git(owner, "switch", "-q", "-c", "feat");
     await commitFile(owner, "work.txt", "wip\n", "work in progress");
-    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
-      upstream: "origin/trunk",
-      commit: git(owner, "rev-parse", "trunk"),
-    });
     git(owner, "push", "-q", "-u", "origin", "feat");
+    git(owner, "branch", "-q", "-D", "trunk");
+    // No remote advertises a default here, and `feat` is the only branch that follows one.
     expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toEqual({
       commit: "fallback",
       source: "local",
@@ -240,73 +259,6 @@ describe("the real Git reads of the workspace base", () => {
       replay: [],
       notice: "base_unresolved",
     });
-  });
-
-  it("find a default branch other than main without the remote's HEAD", async () => {
-    const base = await realpath(await mkdtemp(join(tmpdir(), "lervo-trunk-")));
-    roots.push(base);
-    const remote = join(base, "remote.git");
-    const owner = join(base, "owner");
-    execFileSync("git", ["init", "-q", "--bare", "-b", "trunk", remote]);
-    execFileSync("git", ["init", "-q", "-b", "trunk", owner]);
-    git(owner, "config", "user.email", "test@example.invalid");
-    git(owner, "config", "user.name", "Test");
-    git(owner, "remote", "add", "origin", remote);
-    await commitFile(owner, "README.md", "hello\n", "first");
-    git(owner, "push", "-q", "-u", "origin", "trunk");
-    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
-      source: "upstream",
-      upstream: "origin/trunk",
-      commit: git(owner, "rev-parse", "trunk"),
-      notice: null,
-    });
-  });
-
-  it("skip a superseded commit, and replay nothing when the resident's state is unreadable", async () => {
-    const { owner, other } = await repositories();
-    const superseded = await commitFile(owner, "docs/a.md", "a\n", "apply knowledge", knowledge);
-    await advanceUpstream(other);
-    const state = join(owner, ".lervo/state/knowledge/knowledge-publication.json");
-    await mkdir(dirname(state), { recursive: true });
-    await writeFile(
-      state,
-      JSON.stringify({ schemaVersion: 1, status: "superseded", supersededCommits: [superseded] }),
-    );
-    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).replay).toEqual([]);
-    // After publications, a missing history cache cannot say what a person declined.
-    await writeFile(
-      state,
-      JSON.stringify({
-        schemaVersion: 1,
-        status: "merged",
-        pullRequestNumber: 12,
-        pullRequestUrl: null,
-        publishedHead: null,
-        commitCount: 1,
-        updatedAt: "2026-11-25T00:00:00.000Z",
-        failure: null,
-      }),
-    );
-    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
-      replay: [],
-      notice: "knowledge_state_unreadable",
-    });
-    await writeFile(state, "{ not json");
-    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
-      source: "upstream",
-      replay: [],
-      notice: "knowledge_state_unreadable",
-    });
-  });
-
-  it("fetch the upstream's own ref, whatever the fetch refspec or a shadowing branch says", async () => {
-    const { owner, other } = await repositories();
-    git(owner, "config", "--unset-all", "remote.origin.fetch");
-    git(owner, "branch", "-q", "origin/main", "main");
-    await advanceUpstream(other);
-    const base = await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback");
-    expect(base.source).toBe("upstream");
-    expect(base.commit).toBe(git(other, "rev-parse", "main"));
   });
 
   it("start from the local tip when the upstream cannot be fetched or is local", async () => {

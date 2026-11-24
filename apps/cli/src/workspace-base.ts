@@ -22,8 +22,25 @@ export const trackingRef = (upstream: Upstream) =>
   `refs/remotes/${upstream.remote}/${upstream.branch}`;
 
 /** Why a workspace starts without something; see `WorkspaceBase.notice`. */
-export type WorkspaceBaseNotice =
-  "base_unresolved" | "no_upstream" | "fetch_failed" | "knowledge_state_unreadable";
+export const WORKSPACE_BASE_NOTICES = [
+  "base_unresolved",
+  "no_upstream",
+  "fetch_failed",
+  "knowledge_state_unreadable",
+] as const;
+export type WorkspaceBaseNotice = (typeof WORKSPACE_BASE_NOTICES)[number];
+
+/** The repository's default branch, and where its local tip and upstream are. */
+export interface DefaultBranch {
+  readonly branch: string;
+  /**
+   * The ref of the local tip: `refs/heads/<branch>`, or the remote-tracking ref when the branch
+   * exists only on the remote, as after `git clone -b <other>`.
+   */
+  readonly ref: string;
+  /** The branch's upstream, or null when it follows none. */
+  readonly upstream: Upstream | null;
+}
 
 /** Where a workspace starts, and why. */
 export interface WorkspaceBase {
@@ -45,18 +62,16 @@ export interface WorkspaceBase {
 
 /** The Git reads `chooseWorkspaceBase` needs, behind a port so the decision is testable. */
 export interface WorkspaceBaseGit {
-  /** The default branch's name; throws when the repository names none. */
-  defaultBranch(): Promise<string>;
+  /** The default branch; throws when the repository names none. */
+  defaultBranch(): Promise<DefaultBranch>;
   commitOf(ref: string): Promise<string>;
-  /** The branch's upstream, or null; a branch that follows a local branch has none. */
-  upstreamOf(branch: string): Promise<Upstream | null>;
   /** Fetches the upstream into its remote-tracking ref; throws when it fails or times out. */
   fetch(upstream: Upstream): Promise<void>;
   /**
-   * The resident's unpublished knowledge commits on the default branch `branch`; null when it
-   * cannot say which commits a person declined or a merge published.
+   * The resident's unpublished knowledge commits on the default branch's local tip `ref`; null
+   * when it cannot say which commits a person declined or a merge published.
    */
-  unpublished(upstream: Upstream, branch: string): Promise<readonly string[] | null>;
+  unpublished(upstream: Upstream, ref: string): Promise<readonly string[] | null>;
 }
 
 /**
@@ -71,11 +86,11 @@ export async function chooseWorkspaceBase(
   git: WorkspaceBaseGit,
   fallback: string,
 ): Promise<WorkspaceBase> {
-  let branch: string;
+  let branch: DefaultBranch;
   let local: string;
   try {
     branch = await git.defaultBranch();
-    local = await git.commitOf(`refs/heads/${branch}`);
+    local = await git.commitOf(branch.ref);
   } catch {
     return {
       commit: fallback,
@@ -85,14 +100,14 @@ export async function chooseWorkspaceBase(
       notice: "base_unresolved",
     };
   }
-  const upstream = await git.upstreamOf(branch).catch(() => null);
+  const { upstream } = branch;
   if (upstream === null)
     return { commit: local, source: "local", upstream: null, replay: [], notice: "no_upstream" };
   const name = `${upstream.remote}/${upstream.branch}`;
   try {
     await git.fetch(upstream);
     const tip = await git.commitOf(trackingRef(upstream));
-    const unpublished = await git.unpublished(upstream, branch);
+    const unpublished = await git.unpublished(upstream, branch.ref);
     return unpublished === null
       ? {
           commit: tip,
@@ -125,34 +140,37 @@ const exists = (root: string, ref: string) =>
 
 /**
  * The repository's default branch, never a guess: the default a remote advertises (`origin`
- * first), else a local `main` or `master`, else the only local branch that follows a remote
- * branch. Anything else, such as a feature branch beside an unknown default, names none, and the
- * workspace starts from the checked-out commit instead.
+ * first), even when only the remote has it, else a local `main` or `master`. Anything else, such
+ * as a feature branch beside an unknown default, names none, and the workspace starts from the
+ * checked-out commit instead.
  */
-export async function defaultBranchOf(root: string): Promise<string> {
+export async function defaultBranchOf(root: string): Promise<DefaultBranch> {
   const remotes = (await runGit(root, ["remote"]).catch(() => ""))
     .split("\n")
     .filter((remote) => remote !== "");
-  for (const remote of [...remotes.filter((name) => name === "origin"), ...remotes]) {
+  const ordered = [...new Set([...remotes.filter((name) => name === "origin"), ...remotes])];
+  for (const remote of ordered) {
     const head = await runGit(root, [
       "symbolic-ref",
       "--quiet",
       "--short",
       `refs/remotes/${remote}/HEAD`,
     ]).catch(() => "");
-    const branch = head.startsWith(`${remote}/`) ? head.slice(remote.length + 1) : "";
-    if (branch !== "" && (await exists(root, `refs/heads/${branch}`))) return branch;
+    if (!head.startsWith(`${remote}/`)) continue;
+    const branch = head.slice(remote.length + 1);
+    const advertised: Upstream = { remote, branch };
+    if (await exists(root, `refs/heads/${branch}`))
+      return {
+        branch,
+        ref: `refs/heads/${branch}`,
+        upstream: (await upstreamOf(root, branch)) ?? advertised,
+      };
+    if (await exists(root, trackingRef(advertised)))
+      return { branch, ref: trackingRef(advertised), upstream: advertised };
   }
-  for (const candidate of ["main", "master"])
-    if (await exists(root, `refs/heads/${candidate}`)) return candidate;
-  const tracking = (
-    await runGit(root, ["for-each-ref", "--format=%(refname:short)%09%(upstream)", "refs/heads"])
-  )
-    .split("\n")
-    .map((line) => line.split("\t"))
-    .filter(([, upstream]) => upstream !== undefined && upstream !== "")
-    .map(([branch]) => branch!);
-  if (tracking.length === 1) return tracking[0]!;
+  for (const branch of ["main", "master"])
+    if (await exists(root, `refs/heads/${branch}`))
+      return { branch, ref: `refs/heads/${branch}`, upstream: await upstreamOf(root, branch) };
   throw new Error("The repository names no default branch.");
 }
 
@@ -161,7 +179,6 @@ export function gitWorkspaceBase(root: string): WorkspaceBaseGit {
   return {
     defaultBranch: () => defaultBranchOf(root),
     commitOf: (ref) => runGit(root, ["rev-parse", "--verify", `${ref}^{commit}`]),
-    upstreamOf: (branch) => upstreamOf(root, branch),
     async fetch(upstream) {
       // An explicit refspec updates only the remote-tracking ref, whatever `remote.*.fetch` says;
       // the local branch stays where it is, and Git starts no maintenance in the owner's checkout.
@@ -180,7 +197,6 @@ export function gitWorkspaceBase(root: string): WorkspaceBaseGit {
         { timeout: FETCH_TIMEOUT_MS },
       );
     },
-    unpublished: (upstream, branch) =>
-      unpublishedKnowledgeCommits(root, upstream, `refs/heads/${branch}`),
+    unpublished: (upstream, ref) => unpublishedKnowledgeCommits(root, upstream, ref),
   };
 }

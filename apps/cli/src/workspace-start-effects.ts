@@ -1,7 +1,7 @@
 // The real effects of `lervo workspace start` and `open`: Git and the workstream service.
 import { execFile } from "node:child_process";
 import { randomBytes } from "node:crypto";
-import { mkdir } from "node:fs/promises";
+import { mkdir, rm } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { promisify } from "node:util";
 
@@ -16,9 +16,10 @@ import type { WorkspaceOwnershipMarker } from "@lervo/workspace-host";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 
 import { CommandFailure } from "./command-error-output.js";
-import { bindCheckedOutBranch, resolveDefaultBranch } from "./workstream-branch-selection.js";
+import { bindCheckedOutBranch } from "./workstream-branch-selection.js";
 import { workstreamSnapshotRecorder } from "./workstream-recording.js";
 import { observeRepositoryHead } from "./workstream-repository-head.js";
+import { defaultBranchOf } from "./workspace-base.js";
 import { runGit } from "./workspace-base-git.js";
 import type { EffectReplay, WorkspacePlacement } from "./workspace-start.js";
 
@@ -33,10 +34,13 @@ async function git(root: string, arguments_: string[]): Promise<string> {
   return stdout.trim();
 }
 
-/** The tip of the repository's default branch, where new work starts. */
+/**
+ * The tip of the repository's default branch, resolved as the workspace's base resolves it, or the
+ * checked-out commit when the repository names none.
+ */
 export async function defaultBranchCommit(root: string): Promise<string> {
-  const branch = await resolveDefaultBranch(root, "HEAD");
-  return git(root, ["rev-parse", "--verify", `${branch}^{commit}`]);
+  const resolved = await defaultBranchOf(root).catch(() => null);
+  return git(root, ["rev-parse", "--verify", `${resolved?.ref ?? "HEAD"}^{commit}`]);
 }
 
 function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) {
@@ -109,14 +113,19 @@ async function pick(at: string, commit: string, started: number): Promise<"repla
 
 /**
  * Drops a stopped pick and every pick before it: the branch returns to its base. When Git cannot
- * abort, as with a stale `index.lock`, the pick is quit before the reset; a reset that fails
- * throws, so the start fails and its rollback removes the branch.
+ * abort, the pick is quit before the reset; a reset that fails throws, so the start fails and its
+ * rollback removes the branch.
  */
 async function returnToBase(at: string, base: string): Promise<void> {
-  await runGit(at, ["cherry-pick", "--abort"]).catch(() =>
-    runGit(at, ["cherry-pick", "--quit"]).catch(() => undefined),
+  const quick = { timeout: 10_000 };
+  await runGit(at, ["cherry-pick", "--abort"], quick).catch(() =>
+    runGit(at, ["cherry-pick", "--quit"], quick).catch(() => undefined),
   );
-  await runGit(at, ["reset", "--hard", "--quiet", base]);
+  // A pick stopped at its deadline can leave the index lock. The worktree is the one this start
+  // created moments ago and nothing else works in it, so a lock there is the stopped pick's own.
+  const lock = await runGit(at, ["rev-parse", "--git-path", "index.lock"], quick).catch(() => "");
+  if (lock !== "") await rm(resolve(at, lock), { force: true });
+  await runGit(at, ["reset", "--hard", "--quiet", base], quick);
 }
 
 /** The Git effects of the workspace stage and their reversal. */

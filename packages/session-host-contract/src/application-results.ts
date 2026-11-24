@@ -118,16 +118,10 @@ export const workspaceStartBaseSchema = {
   properties: {
     source: { enum: ["upstream", "local"] },
     upstream: { anyOf: [nameSchema, { type: "null" }] },
-    notice: {
-      enum: [
-        "base_unresolved",
-        "no_upstream",
-        "fetch_failed",
-        "knowledge_state_unreadable",
-        "replay_incomplete",
-        null,
-      ],
-    },
+    // Open, so a newer CLI's notice never fails an older ADE's start. The CLI documents the known
+    // ones: base_unresolved, no_upstream, fetch_failed, knowledge_state_unreadable, and
+    // replay_incomplete.
+    notice: { anyOf: [{ type: "string", pattern: "^[a-z_]{1,64}$" }, { type: "null" }] },
     replayed: { type: "integer", minimum: 0, maximum: 100_000 },
     skipped: { type: "integer", minimum: 0, maximum: 100_000 },
     carried: { type: "integer", minimum: 0, maximum: 100_000 },

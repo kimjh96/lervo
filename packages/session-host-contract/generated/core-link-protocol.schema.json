@@ -408,13 +408,14 @@
               ]
             },
             "notice": {
-              "enum": [
-                "base_unresolved",
-                "no_upstream",
-                "fetch_failed",
-                "knowledge_state_unreadable",
-                "replay_incomplete",
-                null
+              "anyOf": [
+                {
+                  "type": "string",
+                  "pattern": "^[a-z_]{1,64}$"
+                },
+                {
+                  "type": "null"
+                }
               ]
             },
             "replayed": {
