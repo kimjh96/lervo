@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { App } from "./app/App";
 import { restoreWorkspaces } from "./features/workspaces";
 import { webClipboard } from "./platform/clipboard";
+import { bindFirstClick } from "./platform/first-click";
 import { tauriNotifier } from "./platform/notifications";
 import { SessionHostClient, SessionHostCommands, tauriTransport } from "./platform/session-host";
 import { localDrafts, localLists } from "./platform/storage";
@@ -22,6 +23,7 @@ const container = document.getElementById("root");
 if (container === null) throw new Error("index.html has no #root element.");
 
 bindVisibility();
+bindFirstClick();
 
 const notifier = tauriNotifier();
 const host = new SessionHostClient(tauriTransport());

@@ -70,6 +70,7 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 
 ### Navigation and selection
 
+- **The first click acts.** A click on the Lervo window while another app is in front presses what it lands on. WebKit spends such a click on bringing the window forward and never shows it to the page, so the shell reports a click that activated the window, with the left button still down, and the page presses the control there or focuses the field. If the click reached the page by itself, nothing is pressed twice; a click on empty space or the title bar does nothing. Command-Tab and the Dock press nothing.
 - **The workspace list** is the one navigation. Selecting a row opens that workspace at once; selecting the open one changes nothing.
 - **The header** names the workspace by its title. The branch is a detail the person rarely needs, so it sits behind a quiet branch icon: hovering or focusing names it, and pressing copies it.
 - **What stays, stays still.** The workspace list, the header, and the reply card keep their places through every change, as the motion principles require.
