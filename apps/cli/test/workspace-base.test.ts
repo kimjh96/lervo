@@ -56,7 +56,7 @@ describe("choosing where a workspace starts", () => {
       source: "local",
       upstream: null,
       replay: [],
-      notice: "default_branch_unresolved",
+      notice: "base_unresolved",
     });
   });
 
@@ -212,6 +212,34 @@ describe("the real Git reads of the workspace base", () => {
     expect((await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).replay).toEqual([
       onMain,
     ]);
+  });
+
+  it("never take a feature branch for the default", async () => {
+    const base = await realpath(await mkdtemp(join(tmpdir(), "lervo-feat-")));
+    roots.push(base);
+    const remote = join(base, "remote.git");
+    const owner = join(base, "owner");
+    execFileSync("git", ["init", "-q", "--bare", "-b", "trunk", remote]);
+    execFileSync("git", ["init", "-q", "-b", "trunk", owner]);
+    git(owner, "config", "user.email", "test@example.invalid");
+    git(owner, "config", "user.name", "Test");
+    git(owner, "remote", "add", "origin", remote);
+    await commitFile(owner, "README.md", "hello\n", "first");
+    git(owner, "push", "-q", "-u", "origin", "trunk");
+    git(owner, "switch", "-q", "-c", "feat");
+    await commitFile(owner, "work.txt", "wip\n", "work in progress");
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
+      upstream: "origin/trunk",
+      commit: git(owner, "rev-parse", "trunk"),
+    });
+    git(owner, "push", "-q", "-u", "origin", "feat");
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toEqual({
+      commit: "fallback",
+      source: "local",
+      upstream: null,
+      replay: [],
+      notice: "base_unresolved",
+    });
   });
 
   it("find a default branch other than main without the remote's HEAD", async () => {

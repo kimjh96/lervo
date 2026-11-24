@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, realpath, rm, stat, writeFile } from "node:fs/pr
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { gitWorkspaceEffects } from "../src/workspace-start-effects.js";
 import type { WorkspacePlacement } from "../src/workspace-start.js";
@@ -71,7 +71,7 @@ describe("replaying knowledge commits on a new workspace branch", () => {
     git(root, "config", "commit.gpgSign", "true");
     git(root, "config", "gpg.program", "false");
     const replay = await gitWorkspaceEffects().replayEffects(placement([rule]));
-    expect(replay).toEqual({ replayed: [rule], skipped: [], carried: [] });
+    expect(replay).toEqual({ replayed: [rule], skipped: [], carried: [], complete: true });
     expect(git(workspacePath, "rev-parse", "HEAD^")).toBe(start);
     expect(git(workspacePath, "log", "-1", "--format=%an <%ae>|%cn <%ce>|%s")).toBe(
       "Lervo Knowledge <knowledge@lervo.invalid>|Lervo Knowledge <knowledge@lervo.invalid>|apply a reviewed owner rule",
@@ -79,17 +79,51 @@ describe("replaying knowledge commits on a new workspace branch", () => {
     await expect(stat(marker)).rejects.toThrow();
   });
 
-  it("carries a commit the branch already holds and skips one that conflicts", async () => {
+  it("carries a commit the branch already holds", async () => {
     const { root, workspacePath, placement } = await workspace();
     const held = await commitFile(root, "docs/held.md", "held\n", "apply knowledge");
-    const conflicting = await commitFile(root, "README.md", "theirs\n", "rewrite the readme");
-    await commitFile(workspacePath, "docs/held.md", "held\n", "the same change");
-    await commitFile(workspacePath, "README.md", "ours\n", "another readme");
-    const before = git(workspacePath, "rev-parse", "HEAD");
-    const replay = await gitWorkspaceEffects().replayEffects(placement([held, conflicting]));
-    expect(replay).toEqual({ replayed: [], skipped: [conflicting], carried: [held] });
-    expect(git(workspacePath, "rev-parse", "HEAD")).toBe(before);
+    // The upstream tip the workspace starts from already holds the same change.
+    const base = await commitFile(workspacePath, "docs/held.md", "held\n", "the same change");
+    const replay = await gitWorkspaceEffects().replayEffects({
+      ...placement([held]),
+      baseCommit: base,
+    });
+    expect(replay).toEqual({ replayed: [], skipped: [], carried: [held], complete: true });
+    expect(git(workspacePath, "rev-parse", "HEAD")).toBe(base);
+  });
+
+  it("drops the whole replay when one pick conflicts, keeping no partial set", async () => {
+    const { root, workspacePath, placement } = await workspace();
+    const page = await commitFile(root, "docs/page.md", "page\n", "apply knowledge");
+    const conflicting = await commitFile(root, "README.md", "theirs\n", "restore paths");
+    const base = await commitFile(workspacePath, "README.md", "ours\n", "upstream change");
+    const replay = await gitWorkspaceEffects().replayEffects({
+      ...placement([page, conflicting]),
+      baseCommit: base,
+    });
+    expect(replay).toEqual({
+      replayed: [],
+      skipped: [page, conflicting],
+      carried: [],
+      complete: false,
+    });
+    expect(git(workspacePath, "rev-parse", "HEAD")).toBe(base);
     expect(git(workspacePath, "status", "--porcelain")).toBe("");
+  });
+
+  it("drops the whole replay when it passes its budget", async () => {
+    const { root, start, workspacePath, placement } = await workspace();
+    const change = await commitFile(root, "tool.json", "{}\n", "apply knowledge");
+    const repair = await commitFile(root, "docs/page.md", "page\n", "restore paths");
+    const clock = vi.spyOn(Date, "now");
+    clock.mockReturnValueOnce(0).mockReturnValueOnce(0).mockReturnValue(60_000);
+    try {
+      const replay = await gitWorkspaceEffects().replayEffects(placement([change, repair]));
+      expect(replay).toMatchObject({ replayed: [], skipped: [change, repair], complete: false });
+    } finally {
+      clock.mockRestore();
+    }
+    expect(git(workspacePath, "rev-parse", "HEAD")).toBe(start);
   });
 
   it("keeps a later repair's undo, because every commit is picked in order", async () => {
@@ -108,7 +142,12 @@ describe("replaying knowledge commits on a new workspace branch", () => {
     });
     const repair = git(root, "rev-parse", "HEAD");
     const replay = await gitWorkspaceEffects().replayEffects(placement([change, repair]));
-    expect(replay).toEqual({ replayed: [change, repair], skipped: [], carried: [] });
+    expect(replay).toEqual({
+      replayed: [change, repair],
+      skipped: [],
+      carried: [],
+      complete: true,
+    });
     expect(git(workspacePath, "ls-files")).toBe("README.md\ndocs/page.md");
   });
 

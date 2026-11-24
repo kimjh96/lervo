@@ -6,7 +6,6 @@
 import { unpublishedKnowledgeCommits } from "@lervo/repository-knowledge-runtime";
 
 import { runGit } from "./workspace-base-git.js";
-import { observeCheckedOutBranch, resolveDefaultBranch } from "./workstream-branch-selection.js";
 
 /** How long a fetch may take before the workspace starts from the local tip instead. */
 const FETCH_TIMEOUT_MS = 20_000;
@@ -24,7 +23,7 @@ export const trackingRef = (upstream: Upstream) =>
 
 /** Why a workspace starts without something; see `WorkspaceBase.notice`. */
 export type WorkspaceBaseNotice =
-  "default_branch_unresolved" | "no_upstream" | "fetch_failed" | "knowledge_state_unreadable";
+  "base_unresolved" | "no_upstream" | "fetch_failed" | "knowledge_state_unreadable";
 
 /** Where a workspace starts, and why. */
 export interface WorkspaceBase {
@@ -37,8 +36,8 @@ export interface WorkspaceBase {
   /** Unpublished knowledge commits to replay on the workspace branch, in their order. */
   readonly replay: readonly string[];
   /**
-   * Why the workspace starts without something. `default_branch_unresolved` starts from the
-   * caller's fallback commit; `no_upstream` and `fetch_failed` start from the local tip;
+   * Why the workspace starts without something. `base_unresolved` starts from the caller's
+   * fallback commit; `no_upstream` and `fetch_failed` start from the local tip;
    * `knowledge_state_unreadable` starts from the upstream tip and replays nothing.
    */
   readonly notice: WorkspaceBaseNotice | null;
@@ -83,7 +82,7 @@ export async function chooseWorkspaceBase(
       source: "local",
       upstream: null,
       replay: [],
-      notice: "default_branch_unresolved",
+      notice: "base_unresolved",
     };
   }
   const upstream = await git.upstreamOf(branch).catch(() => null);
@@ -118,15 +117,43 @@ export async function upstreamOf(root: string, branch: string): Promise<Upstream
   return { remote, branch: merge.slice("refs/heads/".length) };
 }
 
+const exists = (root: string, ref: string) =>
+  runGit(root, ["rev-parse", "--verify", "--quiet", ref]).then(
+    () => true,
+    () => false,
+  );
+
 /**
- * The repository's default branch: the remote's default, else `main` or `master`, else the
- * checked-out branch. A detached checkout with none of them names no default branch.
+ * The repository's default branch, never a guess: the default a remote advertises (`origin`
+ * first), else a local `main` or `master`, else the only local branch that follows a remote
+ * branch. Anything else, such as a feature branch beside an unknown default, names none, and the
+ * workspace starts from the checked-out commit instead.
  */
 export async function defaultBranchOf(root: string): Promise<string> {
-  const checkedOut = await observeCheckedOutBranch(root);
-  const branch = await resolveDefaultBranch(root, checkedOut ?? "HEAD");
-  if (branch === "HEAD") throw new Error("The repository names no default branch.");
-  return branch;
+  const remotes = (await runGit(root, ["remote"]).catch(() => ""))
+    .split("\n")
+    .filter((remote) => remote !== "");
+  for (const remote of [...remotes.filter((name) => name === "origin"), ...remotes]) {
+    const head = await runGit(root, [
+      "symbolic-ref",
+      "--quiet",
+      "--short",
+      `refs/remotes/${remote}/HEAD`,
+    ]).catch(() => "");
+    const branch = head.startsWith(`${remote}/`) ? head.slice(remote.length + 1) : "";
+    if (branch !== "" && (await exists(root, `refs/heads/${branch}`))) return branch;
+  }
+  for (const candidate of ["main", "master"])
+    if (await exists(root, `refs/heads/${candidate}`)) return candidate;
+  const tracking = (
+    await runGit(root, ["for-each-ref", "--format=%(refname:short)%09%(upstream)", "refs/heads"])
+  )
+    .split("\n")
+    .map((line) => line.split("\t"))
+    .filter(([, upstream]) => upstream !== undefined && upstream !== "")
+    .map(([branch]) => branch!);
+  if (tracking.length === 1) return tracking[0]!;
+  throw new Error("The repository names no default branch.");
 }
 
 /** The Git reads of `chooseWorkspaceBase` in the repository at `root`. */

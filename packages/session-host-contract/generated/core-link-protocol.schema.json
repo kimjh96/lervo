@@ -376,6 +376,63 @@
         "provider": {
           "type": "string",
           "pattern": "^[a-z][a-z0-9-]{0,31}$"
+        },
+        "base": {
+          "title": "WorkspaceStartBase",
+          "type": "object",
+          "required": [
+            "source",
+            "upstream",
+            "notice",
+            "replayed",
+            "skipped",
+            "carried"
+          ],
+          "properties": {
+            "source": {
+              "enum": [
+                "upstream",
+                "local"
+              ]
+            },
+            "upstream": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 256
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "notice": {
+              "enum": [
+                "base_unresolved",
+                "no_upstream",
+                "fetch_failed",
+                "knowledge_state_unreadable",
+                "replay_incomplete",
+                null
+              ]
+            },
+            "replayed": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "skipped": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            },
+            "carried": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 100000
+            }
+          }
         }
       }
     },

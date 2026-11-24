@@ -72,22 +72,34 @@ describe("the knowledge commits the resident has not published", () => {
   it("leave out what a merged publication carried and what a person declined", async () => {
     const { root, commits } = await checkout();
     const [a, b, c] = commits as [string, string, string];
-    expect(await unpublishedKnowledgeCommits(root, { remote: "origin", branch: "main" })).toEqual(
-      commits,
-    );
+    expect(
+      await unpublishedKnowledgeCommits(
+        root,
+        { remote: "origin", branch: "main" },
+        "refs/heads/main",
+      ),
+    ).toEqual(commits);
     const host = await loadOrCreateConvergenceOwnerHost(root);
     await writeCache(root, host.hostHash, [a], [b]);
-    expect(await unpublishedKnowledgeCommits(root, { remote: "origin", branch: "main" })).toEqual([
-      c,
-    ]);
+    expect(
+      await unpublishedKnowledgeCommits(
+        root,
+        { remote: "origin", branch: "main" },
+        "refs/heads/main",
+      ),
+    ).toEqual([c]);
   });
 
   it("trust the cache only for the host that derived it", async () => {
     const { root, commits } = await checkout();
     await loadOrCreateConvergenceOwnerHost(root);
     await writeCache(root, `sha256:${"0".repeat(64)}`, [commits[0]!], [commits[1]!]);
-    expect(await unpublishedKnowledgeCommits(root, { remote: "origin", branch: "main" })).toEqual(
-      commits,
-    );
+    expect(
+      await unpublishedKnowledgeCommits(
+        root,
+        { remote: "origin", branch: "main" },
+        "refs/heads/main",
+      ),
+    ).toEqual(commits);
   });
 });

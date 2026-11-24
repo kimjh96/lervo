@@ -61,8 +61,9 @@ function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) 
 /** Replay never runs the owner's hooks or signing, whatever the repository configures. */
 const REPLAY_CONFIG = ["-c", "core.hooksPath=/dev/null", "-c", "commit.gpgSign=false"];
 /**
- * The whole replay's budget. With the 20-second fetch, it keeps a start within the ADE's
- * 120-second command deadline; commits past it are skipped and the workspace still starts.
+ * The whole replay's budget, which bounds each pick's deadline too. With the 20-second fetch, it
+ * keeps a start within the ADE's 120-second command deadline; past it, the replay is dropped and
+ * the workspace still starts.
  */
 const REPLAY_BUDGET_MS = 45_000;
 /** Each pick commits as `Lervo Knowledge` and ends within the ADE's command deadline. */
@@ -89,17 +90,33 @@ async function emptyPick(at: string): Promise<boolean> {
 }
 
 /**
- * Undoes a pick that did not apply. When Git cannot abort, as with a stale `index.lock`, the pick
- * is dropped and the branch returns to its last good commit; when that fails too, the start fails
- * and its rollback removes the branch.
+ * Picks one commit within the replay's budget: `replayed` when it applied, `carried` when the
+ * branch already held its change. Throws when it conflicts, times out, or comes past the budget.
  */
-async function abandonPick(at: string, lastGood: string): Promise<void> {
+async function pick(at: string, commit: string, started: number): Promise<"replayed" | "carried"> {
+  const left = REPLAY_BUDGET_MS - (Date.now() - started);
+  if (left <= 0) throw new Error("The replay passed its budget.");
+  const options = { ...REPLAY_OPTIONS, timeout: Math.min(REPLAY_OPTIONS.timeout, left) };
   try {
-    await runGit(at, ["cherry-pick", "--abort"]);
-  } catch {
-    await runGit(at, ["cherry-pick", "--quit"]).catch(() => undefined);
-    await runGit(at, ["reset", "--hard", "--quiet", lastGood]);
+    await runGit(at, [...REPLAY_CONFIG, "cherry-pick", commit], options);
+    return "replayed";
+  } catch (error) {
+    if (!(await emptyPick(at))) throw error;
+    await runGit(at, [...REPLAY_CONFIG, "cherry-pick", "--skip"], options);
+    return "carried";
   }
+}
+
+/**
+ * Drops a stopped pick and every pick before it: the branch returns to its base. When Git cannot
+ * abort, as with a stale `index.lock`, the pick is quit before the reset; a reset that fails
+ * throws, so the start fails and its rollback removes the branch.
+ */
+async function returnToBase(at: string, base: string): Promise<void> {
+  await runGit(at, ["cherry-pick", "--abort"]).catch(() =>
+    runGit(at, ["cherry-pick", "--quit"]).catch(() => undefined),
+  );
+  await runGit(at, ["reset", "--hard", "--quiet", base]);
 }
 
 /** The Git effects of the workspace stage and their reversal. */
@@ -120,41 +137,33 @@ export function gitWorkspaceEffects() {
       });
     },
     /**
-     * Replays the unpublished knowledge commits on the new branch, committed by `Lervo Knowledge`
-     * like the originals, so the resident still recognizes them. The owner's hooks and signing
-     * never run, and each pick has a deadline. A commit whose change the branch already holds is
-     * carried, one that does not apply cleanly or comes after the replay's budget is skipped, and
-     * the workspace still starts. When a
-     * failed pick cannot be undone, the branch returns to its last good commit, or the start fails
-     * and rolls back.
+     * Replays the unpublished knowledge commits on the new branch, all or none, committed by
+     * `Lervo Knowledge` like the originals, so the resident still recognizes them. A later commit
+     * may undo part of an earlier one, as the resident's repair does, so a partial set could keep
+     * bytes the set as a whole removes; the resident never publishes a partial set either. When a
+     * pick conflicts, runs past its deadline, or the replay passes its budget, the branch returns
+     * to its base and every commit counts as skipped. A pick that adds nothing counts as carried.
+     * The owner's hooks and signing never run. When the branch cannot return to its base, the
+     * start fails and rolls back.
      */
     async replayEffects(placement: WorkspacePlacement): Promise<EffectReplay> {
+      const commits = placement.replay ?? [];
       const replayed: string[] = [];
-      const skipped: string[] = [];
       const carried: string[] = [];
       const at = placement.workspacePath;
       tip = await runGit(at, ["rev-parse", "HEAD"]);
       const started = Date.now();
-      for (const commit of placement.replay ?? []) {
-        if (Date.now() - started > REPLAY_BUDGET_MS) {
-          skipped.push(commit);
-          continue;
+      for (const commit of commits) {
+        const picked = await pick(at, commit, started).catch(() => "failed" as const);
+        tip = await runGit(at, ["rev-parse", "HEAD"]).catch(() => tip);
+        if (picked === "failed") {
+          await returnToBase(at, placement.baseCommit);
+          tip = placement.baseCommit;
+          return { replayed: [], skipped: [...commits], carried: [], complete: false };
         }
-        try {
-          await runGit(at, [...REPLAY_CONFIG, "cherry-pick", commit], REPLAY_OPTIONS);
-          replayed.push(commit);
-        } catch {
-          if (await emptyPick(at)) {
-            await runGit(at, [...REPLAY_CONFIG, "cherry-pick", "--skip"], REPLAY_OPTIONS);
-            carried.push(commit);
-          } else {
-            await abandonPick(at, tip);
-            skipped.push(commit);
-          }
-        }
-        tip = await runGit(at, ["rev-parse", "HEAD"]);
+        (picked === "replayed" ? replayed : carried).push(commit);
       }
-      return { replayed, skipped, carried };
+      return { replayed, skipped: [], carried, complete: true };
     },
     async removeWorkspace(placement: WorkspacePlacement): Promise<void> {
       // Right after creation the checkout holds only Lervo's own state, so discarding is safe.

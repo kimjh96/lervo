@@ -176,12 +176,17 @@ describe("workspace start", () => {
   it("starts from the chosen base, replays its commits, and records what happened", async () => {
     const fake = ports();
     const placements: WorkspacePlacement[] = [];
-    await startWorkspace(request, {
+    const result = await startWorkspace(request, {
       ...fake.value,
       chooseBase: async () => base,
       async replayEffects(placement) {
         placements.push(placement);
-        return { replayed: ["e".repeat(40)], skipped: ["f".repeat(40)], carried: [] };
+        return {
+          replayed: ["e".repeat(40), "f".repeat(40)],
+          skipped: [],
+          carried: [],
+          complete: true,
+        };
       },
     });
     expect(placements[0]).toMatchObject({ baseCommit: base.commit, replay: base.replay });
@@ -189,11 +194,35 @@ describe("workspace start", () => {
       commit: base.commit,
       source: "upstream",
       upstream: "origin/main",
-      replayed: ["e".repeat(40)],
-      skipped: ["f".repeat(40)],
+      replayed: ["e".repeat(40), "f".repeat(40)],
+      skipped: [],
       carried: [],
       notice: null,
     });
+    expect(result.base).toEqual({
+      source: "upstream",
+      upstream: "origin/main",
+      notice: null,
+      replayed: 2,
+      skipped: 0,
+      carried: 0,
+    });
+  });
+
+  it("says when it dropped the replay", async () => {
+    const fake = ports();
+    const result = await startWorkspace(request, {
+      ...fake.value,
+      chooseBase: async () => base,
+      replayEffects: async () => ({
+        replayed: [],
+        skipped: [...base.replay],
+        carried: [],
+        complete: false,
+      }),
+    });
+    expect(fake.records[0]?.base?.notice).toBe("replay_incomplete");
+    expect(result.base).toMatchObject({ notice: "replay_incomplete", replayed: 0, skipped: 2 });
   });
 });
 
@@ -207,7 +236,7 @@ describe("a base that cannot be chosen", () => {
     expect(fake.records[0]?.base).toMatchObject({
       commit: request.baseCommit,
       source: "local",
-      notice: "default_branch_unresolved",
+      notice: "base_unresolved",
     });
   });
 });

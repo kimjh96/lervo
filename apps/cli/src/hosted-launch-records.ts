@@ -41,13 +41,14 @@ export interface HostedWorkspaceBase {
   source: "upstream" | "local";
   upstream: string | null;
   /**
-   * Unpublished knowledge commits replayed on the branch, those that did not apply or ran past
-   * the replay's budget, and those whose change the branch already held.
+   * Unpublished knowledge commits replayed on the branch, those whose change the branch already
+   * held, and, when the replay was dropped, all of them as skipped.
    */
   replayed: string[];
   skipped: string[];
   carried: string[];
-  notice: WorkspaceBaseNotice | null;
+  /** Why the workspace started without something; `replay_incomplete` dropped the replay. */
+  notice: WorkspaceBaseNotice | "replay_incomplete" | null;
 }
 
 /** The host's record file, next to the repository registry in the user state directory. */

@@ -107,6 +107,33 @@ export const repositoryListResultSchema = {
   },
 } as const;
 
+/**
+ * Where a started workspace branched from (Lervo ADE sessions, "The workspace's base"), so the
+ * interface can tell the user after the fact. Counts only; the commits stay on the host.
+ */
+export const workspaceStartBaseSchema = {
+  title: "WorkspaceStartBase",
+  type: "object",
+  required: ["source", "upstream", "notice", "replayed", "skipped", "carried"],
+  properties: {
+    source: { enum: ["upstream", "local"] },
+    upstream: { anyOf: [nameSchema, { type: "null" }] },
+    notice: {
+      enum: [
+        "base_unresolved",
+        "no_upstream",
+        "fetch_failed",
+        "knowledge_state_unreadable",
+        "replay_incomplete",
+        null,
+      ],
+    },
+    replayed: { type: "integer", minimum: 0, maximum: 100_000 },
+    skipped: { type: "integer", minimum: 0, maximum: 100_000 },
+    carried: { type: "integer", minimum: 0, maximum: 100_000 },
+  },
+} as const;
+
 /** `workspace.start`: the created workspace. The session host starts its session separately. */
 export const workspaceStartResultSchema = {
   title: "WorkspaceStartResult",
@@ -119,6 +146,7 @@ export const workspaceStartResultSchema = {
     branch: nameSchema,
     sessionId: identifierSchema,
     provider: providerIdSchema,
+    base: workspaceStartBaseSchema,
   },
 } as const;
 
