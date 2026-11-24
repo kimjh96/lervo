@@ -36,7 +36,8 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 - **Say nothing for short waits.** A wait shows only after `motion.duration.wait` (300 ms). Most local actions end sooner, and a line that flashes for a few frames reads as a fault. The first connection waits `motion.duration.waitLaunch` (1,000 ms), because the kept lists show meanwhile.
 - **One look.** The words are tertiary, and a band of `color.text.highlight` sweeps across them over `motion.duration.shimmer`: brighter words in dark mode, lighter words in light mode, so it reads as light passing in both. A darker band in light mode barely showed (2026-11-24). Under reduced motion the words stay still. Lervo has no spinner, no progress ring, and no placeholder that looks like data.
 - **Steps, not a stalled line.** An action with several steps names each one as it begins, in the same place: "Stopping the session", then "Removing the workspace".
-- **The control gives way.** Once an action starts, its control is replaced by its wait. A disabled control is never left beside it.
+- **The control gives way.** Once an action starts, its control is replaced by its wait, and the text around it stays. A disabled control is never left beside it.
+- **One wait per place.** Two waits never stack in one place: while a session host restart runs, its line stands for the connection status, which hides until the restart ends.
 - **The result is the confirmation.** A wait ends in the result itself, such as the row leaving the list, never a "Done" message. When the screen shows no sign of the result, such as a restarted session host, a past-tense line states it in place for `motion.duration.settle` and then leaves: "Restarted the session host". A failure ends the wait with the failure where it happened, as "Failures" defines.
 - **Nothing pops in or vanishes.** A notice, a line, or a wait that comes or goes while the person watches fades in and out (motion, "Coming and going").
 
@@ -69,6 +70,7 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 
 ### Navigation and selection
 
+- **The first click acts.** A click on the Lervo window while another app is in front acts at once; it is never spent on bringing the window forward (`acceptFirstMouse` on macOS).
 - **The workspace list** is the one navigation. Selecting a row opens that workspace at once; selecting the open one changes nothing.
 - **The header** names the workspace by its title. The branch is a detail the person rarely needs, so it sits behind a quiet branch icon: hovering or focusing names it, and pressing copies it.
 - **What stays, stays still.** The workspace list, the header, and the reply card keep their places through every change, as the motion principles require.

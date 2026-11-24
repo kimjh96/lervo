@@ -20,7 +20,13 @@ const waitingMessages = {
  */
 export function ConnectionStatus() {
   const state = useConnectionStore((store) => store.state);
-  return <Presence>{state === "connected" ? null : <Status state={state} />}</Presence>;
+  // A restart's own line already says why the connection drops, so the footer shows one wait.
+  const restarting = useConnectionStore((store) => store.update.kind === "restarting");
+  const content =
+    state === "connected" || (restarting && state !== "unavailable") ? null : (
+      <Status state={state} />
+    );
+  return <Presence>{content}</Presence>;
 }
 
 function Status(props: { state: Exclude<ConnectionState, "connected"> }) {

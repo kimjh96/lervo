@@ -12,9 +12,9 @@ import styles from "./HostUpdateNotice.module.css";
 
 /**
  * Offers to restart a session host that an older Lervo started, under the connection status. It
- * says what restarting ends before the user chooses it, then what Lervo is doing in place of the
- * button, and finally that the restart is done, since nothing else on screen shows it. Each
- * state replaces the last in place, and the notice fades out when it ends.
+ * says what restarting ends before the user chooses it. Once chosen, the offer stays and its
+ * button gives way to the wait; then one line says the restart is done, since nothing else on
+ * screen shows it, and the notice fades out.
  */
 export function HostUpdateNotice() {
   const update = useConnectionStore((store) => store.update);
@@ -30,12 +30,6 @@ function Notice(props: { update: Exclude<HostUpdate, { kind: "none" }> }) {
   const intl = useIntl();
   const replacement = useHostReplacement();
   const { update } = props;
-  if (update.kind === "restarting")
-    return (
-      <div className={styles.notice}>
-        <Waiting label={intl.formatMessage({ id: "connection.update.restarting" })} />
-      </div>
-    );
   if (update.kind === "restarted")
     return (
       <div className={styles.notice} role="status">
@@ -44,18 +38,23 @@ function Notice(props: { update: Exclude<HostUpdate, { kind: "none" }> }) {
         </p>
       </div>
     );
+  // While the restart runs, the offer stays and only its button gives way to the wait.
   return (
     <div className={styles.notice} role="status">
       <p className={styles.text}>
-        {update.kind === "available" ? (
-          <FormattedMessage id="connection.update.available" />
-        ) : (
+        {update.kind === "failed" ? (
           <FormattedMessage id="connection.update.failed" values={{ code: update.code }} />
+        ) : (
+          <FormattedMessage id="connection.update.available" />
         )}
       </p>
-      <Button variant="outlined" onClick={() => void restartHost(replacement)}>
-        <FormattedMessage id="connection.update.restart" />
-      </Button>
+      {update.kind === "restarting" ? (
+        <Waiting label={intl.formatMessage({ id: "connection.update.restarting" })} />
+      ) : (
+        <Button variant="outlined" onClick={() => void restartHost(replacement)}>
+          <FormattedMessage id="connection.update.restart" />
+        </Button>
+      )}
     </div>
   );
 }
