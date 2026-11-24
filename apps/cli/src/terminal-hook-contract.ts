@@ -18,6 +18,16 @@ export interface ParsedTerminalHookInput {
   transcriptPath?: string;
 }
 
+/**
+ * A provider `SessionStart` (ADR-0562 section 4): a session started, resumed, cleared, or
+ * compacted. It carries no prompt or turn, and it answers with the epoch's base block.
+ */
+export interface ParsedSessionStartInput {
+  event: "SessionStart";
+  providerSessionId: string;
+  source: "startup" | "resume" | "clear" | "compact";
+}
+
 export interface UnmanagedTerminalCoordinates {
   runId: string;
   sessionId: string;

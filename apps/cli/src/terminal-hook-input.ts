@@ -1,10 +1,23 @@
-import type { ParsedTerminalHookInput } from "./terminal-hook-contract.js";
+import type { ParsedSessionStartInput, ParsedTerminalHookInput } from "./terminal-hook-contract.js";
 
+const SESSION_START_SOURCES = new Set(["startup", "resume", "clear", "compact"]);
+
+/** A prompt or Stop hook input; a `SessionStart` input is refused here. */
 export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
+  const input = parseTerminalHookIngress(value);
+  if (input.event === "SessionStart") throw new Error("Unsupported provider hook event.");
+  return input;
+}
+
+/** Any hook input the terminal runtime answers, including a provider `SessionStart`. */
+export function parseTerminalHookIngress(
+  value: string,
+): ParsedTerminalHookInput | ParsedSessionStartInput {
   if (Buffer.byteLength(value) > 256 * 1024)
     throw new Error("Hook input exceeds the bounded input limit.");
   const parsed = JSON.parse(value) as {
     hook_event_name?: unknown;
+    source?: unknown;
     session_id?: unknown;
     turn_id?: unknown;
     prompt?: unknown;
@@ -12,7 +25,11 @@ export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
     last_assistant_message?: unknown;
     transcript_path?: unknown;
   };
-  if (parsed?.hook_event_name !== "UserPromptSubmit" && parsed?.hook_event_name !== "Stop")
+  if (
+    parsed?.hook_event_name !== "UserPromptSubmit" &&
+    parsed?.hook_event_name !== "Stop" &&
+    parsed?.hook_event_name !== "SessionStart"
+  )
     throw new Error("Unsupported provider hook event.");
   if (
     typeof parsed.session_id !== "string" ||
@@ -20,6 +37,16 @@ export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
     parsed.session_id.length > 512
   )
     throw new Error("The provider session coordinate is missing or invalid.");
+  if (parsed.hook_event_name === "SessionStart")
+    return {
+      event: "SessionStart",
+      providerSessionId: parsed.session_id,
+      // An unknown or missing source still starts an epoch, as a new session.
+      source:
+        typeof parsed.source === "string" && SESSION_START_SOURCES.has(parsed.source)
+          ? (parsed.source as ParsedSessionStartInput["source"])
+          : "startup",
+    };
   if (
     parsed.turn_id !== undefined &&
     (typeof parsed.turn_id !== "string" ||
