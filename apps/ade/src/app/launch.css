@@ -11,7 +11,7 @@
 
 /* `ui/motion.css` defines the keyframes; the interface loads it before the view leaves. */
 .launch[data-leaving] {
-  animation: lervo-leave var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+  animation: lervo-leave var(--motion-duration-leave) var(--motion-easing-standard) forwards;
 }
 
 .launch-mark {

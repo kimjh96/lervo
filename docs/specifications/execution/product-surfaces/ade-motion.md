@@ -10,7 +10,7 @@ The same day, the owner used the real app and found it choppy: views swapped wit
 ## Principles
 
 1. **Motion explains a change.** An animation shows that something appeared, left, or changed state, or where focus went. Decorative motion is not allowed.
-2. **Motion is short.** Entries take 200 ms, changes take 120 ms, and exits take 100 ms. Nothing else lasts longer than 200 ms, except the working status, which loops while the work lasts.
+2. **Motion is short.** Entries and leavings take 200 ms, control color changes take 120 ms, and the launch view's first frame and other exits take 100 ms. Nothing else lasts longer than 200 ms, except the working status, which loops while the work lasts.
 3. **Only opacity and transform move.** Translations move at most 4 px, and scale stays between 0.98 and 1. Width, height, position, margin, padding, blur, `backdrop-filter`, shadows, and the colors of large surfaces never animate. The one exception is the working line's highlight, which moves its background across the words. Nothing morphs from one shape into another: two versions of an element never overlap.
 4. **Stillness is the default.** With no agent working and no input, nothing on screen moves. The working status is the only looping animation: the working line's highlight in the open conversation and the working dot in the workspace list. Both stop when the window is hidden, when nothing is working, and under reduced motion.
 5. **Work answers at once.** An action that starts work shows its result immediately, even while the work completes, and what arrives later continues it in place instead of replacing it.
@@ -19,6 +19,8 @@ The same day, the owner used the real app and found it choppy: views swapped wit
 8. **Live changes move; loaded content does not.** Only changes that happen while the user watches animate. History loaded by scrolling, a reopened workspace, and restored sessions appear without motion.
 9. **Reduced motion means no movement.** When the OS asks for reduced motion, translations, scaling, crossfades, and the working dot's breathing all stop. Changes happen at once. Only color changes on controls remain.
 10. **Every motion uses a token.** Components take durations and easing from the tokens below and never hard-code them; motion that script drives reads them from the generated `motion` module. A new pattern joins the catalog below, with a demo, before it ships. The three patterns that changed on 2026-11-23 shipped to the owner's running app as their demo.
+
+11. **Nothing pops in or drops out.** Every element that appears fades in over `motion.duration.enter`, and every element that leaves fades out over `motion.duration.leave`, both on the decelerating `motion.easing.standard`, so no fade starts or ends in a frame and none accelerates into its end. Content that changes in one place waits for the old to leave and keeps its edge, so nothing jumps. The motion check rejects an arrival or a leaving on any other duration or easing, and the ESLint rule requires `Presence`, or a named row of this catalog, for every element a view shows only sometimes. On 2026-11-24 the owner asked for this after a restart's result line dropped into place; the audit then found the working dot appearing in a frame, a wait's words fading in over `change`, and the launch view leaving on the accelerating exit easing, and all three now follow it.
 
 ## Tokens
 

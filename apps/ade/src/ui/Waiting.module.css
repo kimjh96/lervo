@@ -10,7 +10,7 @@
 }
 
 .appear {
-  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 .label {

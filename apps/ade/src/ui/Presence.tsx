@@ -29,8 +29,6 @@ export function Presence(props: {
   contentKey?: string;
   /** `span` inside a line of controls, such as a header; `div` elsewhere. */
   as?: "div" | "span";
-  /** False when the content brings its own arrival, such as the needs-you dot. */
-  enter?: boolean;
   /**
    * Which edge content keeps while the space changes size. `end` suits a place pinned to the
    * bottom, such as the sidebar footer, so the new content never moves when the old leaves.
@@ -81,7 +79,7 @@ export function Presence(props: {
           key={layer.key}
           className={styles.layer}
           data-leaving={layer.leaving ? "" : undefined}
-          data-enter={props.enter === false ? undefined : ""}
+          data-enter=""
           data-after={layer.after ? "" : undefined}
           aria-hidden={layer.leaving ? true : undefined}
           inert={layer.leaving}

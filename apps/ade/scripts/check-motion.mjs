@@ -11,6 +11,24 @@ const KEYFRAMED = new Set(["opacity", "transform", "background-position"]);
 const LITERAL_TIME = /(?<![\w-])\d*\.?\d+m?s\b/u;
 const LITERAL_EASING = /(?<![\w-])(?:ease(?:-in|-out|-in-out)?|linear|cubic-bezier\(|steps\()/u;
 
+/**
+ * Nothing appears or leaves in a frame (ADE motion, principle 11): every arrival runs over `enter`
+ * and every leaving over `leave`, both on the decelerating standard easing, so no fade starts or
+ * ends abruptly.
+ */
+const ARRIVALS = /\blervo-(?:appear|arrive)\b/u;
+const LEAVINGS = /\blervo-leave\b/u;
+
+function fadeViolations(property, value, file) {
+  if (property !== "animation") return [];
+  const easing = value.includes("--motion-easing-standard");
+  if (ARRIVALS.test(value) && (!value.includes("--motion-duration-enter") || !easing))
+    return [`${file}: an arrival runs over something other than enter on the standard easing`];
+  if (LEAVINGS.test(value) && (!value.includes("--motion-duration-leave") || !easing))
+    return [`${file}: a leaving runs over something other than leave on the standard easing`];
+  return [];
+}
+
 /** The violations in one stylesheet's text. */
 export function motionViolations(css, file) {
   const violations = [];
@@ -19,6 +37,7 @@ export function motionViolations(css, file) {
     /(?:^|[;{\s])(transition(?:-[a-z]+)?|animation(?:-[a-z]+)?)\s*:\s*([^;}]+)/gmu,
   )) {
     const [, property, value] = match;
+    violations.push(...fadeViolations(property, value, file));
     const plain = value.replaceAll(/var\([^)]*\)/gu, "");
     if (LITERAL_TIME.test(plain))
       violations.push(`${file}: ${property} uses a duration that is not a motion token`);

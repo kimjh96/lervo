@@ -69,8 +69,7 @@ export function WorkspaceList() {
                     onClick={() => select(workspace.workspaceId)}
                     label={workspace.title ?? workspace.branch}
                     trailing={
-                      // The dot brings its own arrival (motion, "Needs-you status").
-                      <Presence as="span" enter={false}>
+                      <Presence as="span">
                         {status === null ? null : (
                           <StatusDot
                             tone={status === "working" ? "working" : "attention"}

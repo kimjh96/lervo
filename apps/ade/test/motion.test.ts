@@ -11,6 +11,19 @@ describe("the motion check", () => {
     expect(await checkMotion(join(import.meta.dirname, ".."))).toEqual([]);
   });
 
+  it("rejects an arrival or a leaving that could pop in or drop out", () => {
+    const css = `
+      .a { animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard); }
+      .b { animation: lervo-leave var(--motion-duration-exit) var(--motion-easing-exit) forwards; }
+      .c { animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard); }
+      .d { animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-standard) forwards; }
+    `;
+    expect(motionViolations(css, "x.css")).toEqual([
+      "x.css: an arrival runs over something other than enter on the standard easing",
+      "x.css: a leaving runs over something other than leave on the standard easing",
+    ]);
+  });
+
   it("rejects literal durations and easings, layout transitions, and layout keyframes", () => {
     const css = `
       .a { transition: width 200ms ease; }
