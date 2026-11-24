@@ -1,9 +1,9 @@
-<!-- lervo-release package="@lervo/ade" version="0.4.0" schema="1" -->
+<!-- lervo-release package="@lervo/ade" version="0.4.1" schema="1" -->
 
 Needs the Lervo CLI 0.43.0 or later.
 
 ## What's changed
 
-- A newer app offers to restart the session host an older one started, and says first that working agents stop and conversations continue when opened.
-- Every wait names its activity where it happens and shows only after a short delay; the header keeps the branch behind a copy icon; removing a just-started workspace no longer shows it being created.
-- The application bundle carries the session host, so an installed app no longer needs a session host built beside it.
+- A click on the Lervo window while another app is in front presses what it lands on, instead of only bringing the window forward.
+- A quick click on the Lervo window while another app is in front now acts, and content fading out settles instead of dropping away at the end.
+- Everything that comes and goes fades in and out, which a lint rule now requires of every view, and a restart of the session host says that it finished.

@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_792d68655f09829688c6c86e"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "A quick click on the Lervo window while another app is in front now acts, and content fading out settles instead of dropping away at the end."
