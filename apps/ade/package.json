@@ -11,6 +11,7 @@
     "check": "pnpm build && node scripts/check-bundle-size.mjs && pnpm test && cargo fmt --all --check && cargo clippy --workspace --all-targets --locked -- -D warnings && cargo test --workspace --locked && cargo deny check",
     "dev": "vite",
     "tauri": "tauri",
+    "bundle": "node scripts/bundle-app.mjs",
     "generate": "node scripts/build-tokens.mjs && node scripts/build-catalog.mjs",
     "test": "vitest run --root ../.. apps/ade",
     "catalog": "vite --config vite.catalog.config.ts"
