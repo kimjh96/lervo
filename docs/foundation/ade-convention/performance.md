@@ -23,6 +23,7 @@ Every resource the ADE uses must be at its best: CPU, memory, GPU, disk, energy,
 - Input-driven work, such as search and resize, is debounced or throttled.
 - React renders follow the data they read. Stores expose fine-grained selectors with stable references, and no context change re-renders a whole feature.
 - Animations use compositor-only properties (`transform` and `opacity`). They stop when the window is hidden, when the user prefers reduced motion, and when nothing is working. `platform/visibility` marks a hidden, minimized, or occluded window, and `ui/motion.css` pauses every animation while the mark is set.
+- The start screen opens with its input card focused, so a person can type at once. The window then redraws the field each time its caret blinks. That redraw is not the ADE's own work, so the visible idle budget applies with no field focused. With the input card focused, the ADE must run no animation and change no DOM while idle.
 
 ## Memory
 
@@ -77,7 +78,7 @@ A conversation can grow without limit. No layer may hold or render all of it.
 
 A performance harness runs fixed scenarios on the owner's Mac and in WSL:
 
-- idle with the window visible, and idle with the window hidden;
+- idle with the window visible, with and without a focused text field, and idle with the window hidden;
 - twenty idle workspaces;
 - a conversation with 100,000 items, opened and scrolled;
 - streaming at the provider's fastest rate;
@@ -89,23 +90,40 @@ It records CPU, resident memory, JavaScript heap, frame times, long tasks, input
 
 These are the ADE's budgets, including S1's initial targets. Until S1 records a measured baseline, they are targets.
 
-| Measure                                                               | Target                            |
-| --------------------------------------------------------------------- | --------------------------------- |
-| Cold start to the start screen                                        | 500 ms                            |
-| Keystroke to echo, p95                                                | 16 ms                             |
-| UI idle memory                                                        | 150 MB                            |
-| Session host idle memory                                              | 30 MB                             |
-| Installed size, excluding provider CLIs                               | 20 MB                             |
-| Interface JavaScript that the start screen loads, gzip                | 120 KB                            |
-| Any interface chunk that loads on first use, gzip                     | 160 KB                            |
-| UI CPU, idle with the window visible                                  | under 0.5% of one core            |
-| UI CPU, idle with the window hidden                                   | under 0.1% of one core            |
-| Session host CPU with twenty idle sessions                            | under 0.2% of one core            |
-| Session host memory per idle session                                  | at most 5 MB                      |
-| First paint after opening a workspace with 100,000 conversation items | 100 ms                            |
-| Scrolling that conversation                                           | 60 fps; no task longer than 50 ms |
-| UI memory with that conversation open                                 | at most 50 MB above idle          |
-| Streamed delta to screen, p95                                         | 33 ms                             |
+| Measure                                                               | Target                             |
+| --------------------------------------------------------------------- | ---------------------------------- |
+| Cold start to the start screen                                        | 500 ms                             |
+| Keystroke to echo, p95                                                | The next frame (25 ms at most)     |
+| UI idle memory                                                        | 150 MB                             |
+| Session host idle memory                                              | 30 MB                              |
+| Installed size, excluding provider CLIs                               | 20 MB                              |
+| Interface JavaScript that the start screen loads, gzip                | 120 KB                             |
+| Any interface chunk that loads on first use, gzip                     | 160 KB                             |
+| UI CPU, idle with the window visible and no text field focused        | under 0.5% of one core             |
+| UI CPU, idle with the window hidden                                   | under 0.1% of one core             |
+| Session host CPU with twenty idle sessions                            | under 0.2% of one core             |
+| Session host memory per idle session                                  | at most 5 MB                       |
+| First paint after opening a workspace with 100,000 conversation items | 100 ms                             |
+| Scrolling that conversation                                           | 60 fps; no task longer than 50 ms  |
+| UI memory with that conversation open                                 | at most 50 MB above idle           |
+| Streamed delta to the page, p95                                       | 33 ms                              |
+| Streamed delta to screen, p95                                         | 33 ms plus `motion.duration.pace`  |
+| Memory after the soak run                                             | within 5% of the starting baseline |
 
 The launch view counts toward the cold-start budget. It waits for the first lists so the start screen does not fill in after it appears, but it leaves no later than 500 ms after the window's navigation start, whether the lists have loaded or not.
-| Memory after the soak run | within 5% of the starting baseline |
+
+### Revisions after the first baseline
+
+On 2026-11-24 the S1.6b harness showed that three targets measured something besides the interface's own work, so they were revised. The S1.6b section of the [ADE roadmap](../../roadmap/ade.md) holds the measurements. The owner's Mac was busy with other work during those runs, so their CPU and latency figures may read high.
+
+- **Idle CPU with the window visible.** The start screen opens with its input card focused, by design, and a focused field redraws each time its caret blinks.
+  - The start screen measured 1.53–1.83% of one core with the focus and 0.03% without it.
+  - One focused text field alone in the same window measured 1.57%.
+  - A transparent caret, and removing the input card's `backdrop-filter`, left the cost unchanged.
+
+  The target now applies with no field focused. With the input card focused, the ADE must run no animation and change no DOM. Whether the native window material adds to the caret's cost is not measured yet; the next run compares the lone field in an opaque window. Dropping the focus when idle and restoring it on the first keystroke was rejected: it hides the caret that invites typing, and it risks losing the first jamo of Korean input.
+
+- **Streamed delta to screen.** The [motion specification](../../specifications/execution/product-surfaces/ade-motion.md) lets streamed text trail its arrival by up to `motion.duration.pace` (120 ms). The 33 ms target now applies to the page, and the screen's target adds the pace: 153 ms. The harness also checks each delta's trail against the pace plus one frame.
+- **Keystroke to echo.** The harness types each key right after a frame, so whenever the interface's work fits in a frame it reads one frame interval, 16.7 ms at 60 Hz, and a 16 ms target could never pass. The target is now the next frame. The harness counts an echo of 25 ms or less, one and a half intervals, as the next frame, because a missed frame reads two.
+  - That check misses a slowdown that still fits in a frame, so the harness also reports the interface's work per keystroke.
+  - Keystrokes come from the page, so IME composition, such as Korean input, is not measured.
