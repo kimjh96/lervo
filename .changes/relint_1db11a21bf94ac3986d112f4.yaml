@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1db11a21bf94ac3986d112f4"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Run knowledge publication's gh calls with the owner's login-shell PATH, so a resident started by launchd finds Homebrew's gh and publishes settled knowledge commits again."
