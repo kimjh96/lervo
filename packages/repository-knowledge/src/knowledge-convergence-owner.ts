@@ -6,6 +6,7 @@ import {
   MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS,
   normalizedConvergenceFailure,
   UNCLASSIFIED_STAGE_REEVALUATION_MS,
+  reevaluatedConvergenceFailure,
   unclassifiedFailureCause,
 } from "./knowledge-convergence-failure.js";
 import type { KnowledgeConvergenceStage } from "@lervo/schemas";
@@ -262,13 +263,16 @@ export async function processKnowledgeConvergence(
           )
             ? (error as { dependencyHash: string }).dependencyHash
             : null,
-          ...(code === "knowledge_stage_failure_unclassified"
+          // A failure that may have been the host's own holds only until its reevaluation time.
+          ...(reevaluatedConvergenceFailure(code)
             ? {
                 reevaluateAt: new Date(
                   now().getTime() + UNCLASSIFIED_STAGE_REEVALUATION_MS,
                 ).toISOString(),
-                cause: unclassifiedFailureCause(error),
               }
+            : {}),
+          ...(code === "knowledge_stage_failure_unclassified"
+            ? { cause: unclassifiedFailureCause(error) }
             : {}),
         }),
       );

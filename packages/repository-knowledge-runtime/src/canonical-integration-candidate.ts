@@ -21,6 +21,7 @@ import type { ConvergenceAssignmentAuthority } from "./workforce.js";
 import { closeIntegratedConvergenceWorkspace } from "./integrator-workspace-closure.js";
 import { nextConvergenceIntegrationGeneration } from "./integration-target-generation.js";
 import { releaseConvergenceIntegrationAttempt } from "./integration-attempt-release.js";
+import { integrationVerificationFailure } from "./integration-verification-failure.js";
 import {
   runConvergenceVerificationSuite,
   verificationEnvironment,
@@ -97,6 +98,7 @@ export async function prepareCanonicalGitIntegration(
   // The integrator's suite runs with the same login-shell PATH as every other convergence suite
   // (ADR-0536): under a service manager's minimal PATH, `pnpm` is missing.
   const environment = await verificationEnvironment();
+  const verificationFailure = integrationVerificationFailure(suites.length);
   const verificationReceipt = await convergenceEffectCheckpoint({
     storage: context.storage,
     assignment: authority.assignment,
@@ -109,8 +111,8 @@ export async function prepareCanonicalGitIntegration(
         captureSnapshot: captureGitKeptSnapshot,
         artifactStore: context.storage.artifacts,
         verifier: {
-          verify: async (input) =>
-            withVerificationSourceChanges(
+          verify: async (input) => {
+            const observed = await withVerificationSourceChanges(
               context.storage.artifacts,
               observedRepositorySnapshot,
               (captureRepositoryRevision) =>
@@ -125,9 +127,13 @@ export async function prepareCanonicalGitIntegration(
                   },
                   environment,
                 ),
-            ),
+            );
+            verificationFailure.observe(observed.result, observed.resultArtifact.contentHash);
+            return observed;
+          },
         },
         append: (specs) => {
+          verificationFailure.accept(specs);
           context.storage.events.transact((transaction) => {
             for (const spec of specs) {
               const id = randomUUID().replaceAll("-", "");
@@ -145,7 +151,9 @@ export async function prepareCanonicalGitIntegration(
         },
         signal: context.signal,
       }),
-  }).catch((error: unknown) => releaseFailedCandidate(root, plan, authority, error));
+  }).catch((error: unknown) =>
+    releaseFailedCandidate(root, plan, authority, verificationFailure.classify(error)),
+  );
   await authority.assertCurrent();
   context.assertSourceExact(state);
   const integration = await convergenceEffectCheckpoint({

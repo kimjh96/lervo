@@ -47,7 +47,7 @@ export async function verifyConvergenceEffect(
         ),
     );
     assertConvergenceVerificationPassed(
-      verification.result.status,
+      verification.result,
       verification.resultArtifact.contentHash,
     );
     receipts.push(verification.resultArtifact.contentHash);

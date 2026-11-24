@@ -2,7 +2,9 @@ import { expect, it } from "vitest";
 import {
   convergenceRetryLimit,
   normalizedConvergenceFailure,
+  reevaluatedConvergenceFailure,
   unclassifiedFailureCause,
+  VERIFICATION_FAILURE_CODES,
 } from "../src/knowledge-convergence-failure.js";
 
 it("normalizes managed verification cancellation without retrying it as a transient error", () => {
@@ -36,6 +38,32 @@ it("bounds untyped failures more tightly than typed transient failures", () => {
   expect(convergenceRetryLimit("knowledge_materialization_busy")).toBe(16);
   expect(convergenceRetryLimit("knowledge_stage_failure_unclassified")).toBe(4);
   expect(convergenceRetryLimit("knowledge_integration_target_unavailable")).toBeNull();
+});
+
+it("retries a verification the host could not run, never one that ran and failed", () => {
+  expect(normalizedConvergenceFailure({ code: "knowledge_verification_environment_failed" })).toBe(
+    "knowledge_verification_environment_failed",
+  );
+  expect(convergenceRetryLimit("knowledge_verification_environment_failed")).toBe(4);
+  expect(normalizedConvergenceFailure({ code: "knowledge_verification_timed_out" })).toBe(
+    "knowledge_verification_timed_out",
+  );
+  expect(convergenceRetryLimit("knowledge_verification_timed_out")).toBeNull();
+  expect(convergenceRetryLimit("knowledge_verification_failed")).toBeNull();
+  // Each failure the host may have caused is reevaluated later; a source failure is not.
+  for (const code of [
+    "knowledge_stage_failure_unclassified",
+    "knowledge_verification_environment_failed",
+    "knowledge_verification_timed_out",
+  ])
+    expect(reevaluatedConvergenceFailure(code)).toBe(true);
+  expect(reevaluatedConvergenceFailure("knowledge_verification_failed")).toBe(false);
+  // Every verification code names its failed command in the status.
+  expect([...VERIFICATION_FAILURE_CODES].sort()).toEqual([
+    "knowledge_verification_environment_failed",
+    "knowledge_verification_failed",
+    "knowledge_verification_timed_out",
+  ]);
 });
 
 it("retries a typed normalizer timeout while retaining other compile failures", () => {
