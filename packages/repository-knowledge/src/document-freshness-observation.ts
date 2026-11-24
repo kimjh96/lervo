@@ -32,6 +32,9 @@ import { observeToolGeneratedDocuments } from "./document-tool-ownership-observa
 import { sha256 } from "./integrity.js";
 import { lintRepositoryKnowledge } from "./lint-query.js";
 import { loadRepositoryKnowledgePolicy } from "./policy.js";
+import { buildRepositoryRelationWeb } from "./relation-web-refresh.js";
+import { readRelationWebStore, RELATION_WEB_STATE_PATH } from "./relation-web-store.js";
+import { relationWebSuccessors } from "./relation-web-supersession.js";
 import type { KnowledgeLintResult } from "./types.js";
 
 const execute = promisify(execFile);
@@ -136,25 +139,22 @@ async function connectedPathChanges(input: {
   return [...changes.values()];
 }
 
-/** Maps every superseded document to the current document that names it as superseded. */
-async function supersededDocuments(root: string): Promise<Map<string, string>> {
-  const successors = new Map<string, string>();
-  let output: string;
+/**
+ * Superseded documents and their successors, from the relation web that describes HEAD: the
+ * stored web when it does, otherwise one built without writing. A web that cannot be read or built
+ * gives none, as the drift findings still stand without them.
+ */
+async function supersededDocuments(root: string, head: string): Promise<Map<string, string>> {
   try {
-    output = await git(root, ["grep", "-n", "-I", "-i", "-E", "supersede[sd]?", "--", "*.md"]);
+    const stored = readRelationWebStore(resolve(root, RELATION_WEB_STATE_PATH));
+    const web =
+      stored !== null && stored.observedRevision === head
+        ? stored
+        : (await buildRepositoryRelationWeb(root, { commands: "stored" })).web;
+    return relationWebSuccessors(web);
   } catch {
-    return successors;
+    return new Map();
   }
-  for (const line of output.split("\n").slice(0, 4096)) {
-    const match = /^([^:]+):\d+:(.*)$/u.exec(line);
-    if (match === null || !/\bsupersedes\b/iu.test(match[2]!)) continue;
-    const source = match[1]!;
-    for (const link of match[2]!.matchAll(/\]\(([^)\s#?]+)/gu)) {
-      const target = resolve("/", source, "..", link[1]!).slice(1);
-      if (target !== source && !successors.has(target)) successors.set(target, source);
-    }
-  }
-  return successors;
 }
 
 /** Whole-document ownership resolver for one repository, loaded once per observation. */
@@ -227,7 +227,7 @@ export async function observeDocumentFreshnessFindings(input: {
   const scopes = archiveScopes(taxonomy);
   const rolePaths = new Set((taxonomy?.documentPolicy.roles ?? []).map((role) => role.path));
   const oracle = filesystemDocumentFreshnessOracle(root);
-  const successors = await supersededDocuments(root);
+  const successors = await supersededDocuments(root, head);
   // ADR-0473: a repository tool owns these bytes, so no refresh is ever proposed for them.
   const toolGenerated = await observeToolGeneratedDocuments({
     repositoryRoot: root,
