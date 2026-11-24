@@ -68,6 +68,23 @@ describe("settling the pending start", () => {
     expect(useStartStore.getState().pending).toBeNull();
     unbind();
   });
+
+  it("settles it when its workspace is left, as removing it does, so creating never shows again", () => {
+    const unbind = bindStart();
+    useWorkspaceStore.getState().select("wks_1");
+    useWorkspaceStore.getState().select(null);
+    expect(useStartStore.getState().pending).toBeNull();
+    expect(surfaceOf(undefined, useStartStore.getState().pending).kind).toBe("start");
+    unbind();
+  });
+
+  it("keeps it while the core is still creating the workspace", () => {
+    useStartStore.setState({ pending: pending(null) });
+    const unbind = bindStart();
+    useWorkspaceStore.getState().select(null);
+    expect(useStartStore.getState().pending).not.toBeNull();
+    unbind();
+  });
 });
 
 describe("the start screen's draft", () => {

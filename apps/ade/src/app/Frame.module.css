@@ -10,9 +10,8 @@
   animation-delay: calc(var(--motion-duration-exit) / 2);
 }
 
-/* The sidebar keeps its place in view transitions; its changes show at once. */
+/* The sidebar keeps its place when the main area changes views; its changes show at once. */
 .sidebar {
-  view-transition-name: lervo-sidebar;
   display: flex;
   flex-direction: column;
   min-height: 0;

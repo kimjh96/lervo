@@ -31,7 +31,7 @@ Each side has four layers. Dependencies point inward only.
 | Composition | the `session-host` binary wires adapters to the domain                                 | `main.tsx` builds the adapters; `app/` binds models to them and mounts features           | all layers above       |
 
 - Domain code performs no I/O. It does not import process, filesystem, network, PTY, Tauri, or DOM APIs. Effects enter through ports (Rust traits and TypeScript interfaces) that adapters implement.
-- In the UI, `ports/` holds those interfaces, the request failure type, and the hooks that give views their adapters. Views and models depend on `ports/`, never on an I/O adapter. Views may use presentation helpers from `platform/`, such as keyboard shortcuts and view transitions.
+- In the UI, `ports/` holds those interfaces, the request failure type, and the hooks that give views their adapters. Views and models depend on `ports/`, never on an I/O adapter. Views may use presentation helpers from `platform/`, such as keyboard shortcuts.
 - Composition code only wires. It holds no decisions. A decision the frame needs, such as which view the main area shows, is a selector in a feature's model.
 - Each adapter owns one external system.
 

@@ -276,6 +276,7 @@ export {
 export * from "./relation-web-suspects.js";
 export * from "./relation-web-stats.js";
 export * from "./relation-web-store.js";
+export { relationWebSuccessors } from "./relation-web-supersession.js";
 export {
   refreshRelationWeb,
   repositoryTrackedFiles,

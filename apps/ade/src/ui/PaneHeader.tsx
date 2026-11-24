@@ -10,7 +10,8 @@ import styles from "./PaneHeader.module.css";
  */
 export function PaneHeader(props: {
   title: string;
-  detail: string;
+  /** A short fact beside the title in the mono face, such as the repository of work starting. */
+  detail?: string;
   arrive: boolean;
   children?: ReactNode;
 }) {
@@ -24,9 +25,11 @@ export function PaneHeader(props: {
       <h1 className={styles.title} data-tauri-drag-region>
         {props.title}
       </h1>
-      <span className={styles.detail} data-tauri-drag-region>
-        {props.detail}
-      </span>
+      {props.detail === undefined ? null : (
+        <span className={styles.detail} data-tauri-drag-region>
+          {props.detail}
+        </span>
+      )}
       <span className={styles.spacer} data-tauri-drag-region />
       {props.children}
     </header>

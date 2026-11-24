@@ -56,4 +56,14 @@ describe("the message catalog", () => {
     expect(chooseLocale(["ko-KR"])).toBe("en");
     expect(Object.keys(messagesFor("ko"))).toContain("start.question");
   });
+
+  it("names each wait by its activity, never with an ellipsis, Loading, or Please wait", async () => {
+    const messages = JSON.parse(
+      await readFile(join(root, "src/i18n/messages.en.json"), "utf8"),
+    ) as Record<string, { defaultMessage: string }>;
+    const vague = Object.entries(messages)
+      .filter(([, message]) => /…|\.{3}|\bloading\b|\bplease wait\b/iu.test(message.defaultMessage))
+      .map(([id]) => id);
+    expect(vague, 'ADE design patterns, "Waiting": name the activity instead.').toEqual([]);
+  });
 });

@@ -1,0 +1,15 @@
+/* The sidebar footer's offer to restart an older session host, under the connection status. */
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-8);
+  align-items: flex-start;
+  padding: var(--space-8) var(--space-12);
+}
+
+.text {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}

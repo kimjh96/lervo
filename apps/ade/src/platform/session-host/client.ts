@@ -1,6 +1,12 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 
-import type { ConnectionState, Request, SessionHost } from "../../ports/session-host";
+import type {
+  ConnectionState,
+  HostIdentity,
+  HostReplacement,
+  Request,
+  SessionHost,
+} from "../../ports/session-host";
 import { Requests } from "./requests";
 import type { HostTransport, ShellMessage } from "./transport";
 
@@ -18,8 +24,9 @@ type Listener<T> = (value: T) => void;
  * `host.disconnected`, are ignored; otherwise the end of a replaced connection would start
  * another, which would replace the current one, without end.
  */
-export class SessionHostClient implements SessionHost {
+export class SessionHostClient implements SessionHost, HostReplacement {
   private state: ConnectionState = "connecting";
+  private hostIdentity: HostIdentity | null = null;
   private connectedOnce = false;
   private started = false;
   private generation = 0;
@@ -29,6 +36,7 @@ export class SessionHostClient implements SessionHost {
   private timer: ReturnType<typeof setTimeout> | undefined;
   private readonly messageListeners = new Set<Listener<HostMessage>>();
   private readonly stateListeners = new Set<Listener<ConnectionState>>();
+  private readonly identityListeners = new Set<Listener<HostIdentity>>();
   private readonly requests: Requests;
 
   constructor(
@@ -52,6 +60,10 @@ export class SessionHostClient implements SessionHost {
 
   get connection(): ConnectionState {
     return this.state;
+  }
+
+  get identity(): HostIdentity | null {
+    return this.hostIdentity;
   }
 
   /** Connects once; later calls do nothing, so a remounted root does not open a second link. */
@@ -99,6 +111,15 @@ export class SessionHostClient implements SessionHost {
     return this.subscribe(this.stateListeners, listener);
   }
 
+  onIdentity(listener: Listener<HostIdentity>): () => void {
+    return this.subscribe(this.identityListeners, listener);
+  }
+
+  /** Asks the shell to end the reached session host; the connection's end then reconnects. */
+  replace(): Promise<void> {
+    return this.transport.replace();
+  }
+
   private subscribe<T>(listeners: Set<Listener<T>>, listener: Listener<T>): () => void {
     listeners.add(listener);
     return () => listeners.delete(listener);
@@ -128,6 +149,12 @@ export class SessionHostClient implements SessionHost {
       this.requests.abandon();
       this.change("reconnecting");
       this.retry();
+      return;
+    }
+    if (message.kind === "host.identified") {
+      const { hostVersion, appVersion, replaceable } = message;
+      this.hostIdentity = { hostVersion, appVersion, replaceable };
+      for (const listener of this.identityListeners) listener(this.hostIdentity);
       return;
     }
     this.requests.receive(message);
