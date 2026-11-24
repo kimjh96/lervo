@@ -48,6 +48,50 @@ describe("starting work", () => {
     expect(useWorkspaceStore.getState().selected).toBe("wks_1");
   });
 
+  it("keeps the core's notice when the work started without something", async () => {
+    const host = commands();
+    const started = startWork(host.fake, draft, "web");
+    host.finish()?.resolve({
+      workspaceId: "wks_1",
+      base: {
+        source: "local",
+        upstream: "origin/main",
+        notice: "fetch_failed",
+        replayed: 0,
+        skipped: 0,
+        carried: 0,
+      },
+    });
+    await started;
+    expect(useStartStore.getState().pending?.baseNotice).toEqual({
+      code: "fetch_failed",
+      upstream: "origin/main",
+    });
+  });
+
+  it("has no notice when the work started as it should, or from an older core", async () => {
+    for (const result of [
+      { workspaceId: "wks_1" },
+      {
+        workspaceId: "wks_1",
+        base: {
+          source: "upstream",
+          upstream: "origin/main",
+          notice: null,
+          replayed: 2,
+          skipped: 0,
+          carried: 0,
+        },
+      },
+    ]) {
+      const host = commands();
+      const started = startWork(host.fake, draft, "web");
+      host.finish()?.resolve(result);
+      await started;
+      expect(useStartStore.getState().pending?.baseNotice).toBeNull();
+    }
+  });
+
   it("returns to the start screen with the instruction and the failure", async () => {
     const host = commands();
     const started = startWork(host.fake, draft, "web");

@@ -8,6 +8,17 @@ export interface StartFailure {
   readonly stage: string | null;
 }
 
+/**
+ * Why the core started the work without something, such as from the local branch because the
+ * upstream could not be fetched (Lervo ADE sessions, "The workspace's base").
+ */
+export interface BaseNotice {
+  /** The core's notice, an open set; the conversation names the ones it knows. */
+  readonly code: string;
+  /** The upstream the core meant to start from, such as `origin/main`. */
+  readonly upstream: string | null;
+}
+
 /** Work that was sent and whose workspace the core is still creating, or has just created. */
 export interface PendingStart {
   /** Tells this start apart from a later one. */
@@ -16,6 +27,8 @@ export interface PendingStart {
   readonly repositoryName: string;
   /** The created workspace, once the core answered. */
   readonly workspaceId: string | null;
+  /** What the created workspace started without, when the core said so. */
+  readonly baseNotice: BaseNotice | null;
 }
 
 interface StartStore {

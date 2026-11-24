@@ -8,6 +8,7 @@ import { activityOf } from "../model/activity";
 import { ConversationController } from "../model/controller";
 import { StandInConversation } from "../model/stand-in-conversation";
 import { useConversationStore } from "../model/store";
+import { BaseNotice } from "./BaseNotice";
 import { ConversationPane } from "./ConversationPane";
 import { activityMessages } from "./messages";
 
@@ -26,6 +27,8 @@ export function WorkspaceConversation(props: {
   firstMessage?: string | undefined;
   /** Whether the session last ran in another mode and must reopen in the native conversation. */
   reopenNatively?: boolean;
+  /** What the work just started without, when the core said so. */
+  baseNotice?: { code: string; upstream: string | null } | null;
 }) {
   const intl = useIntl();
   const host = useSessionHost();
@@ -58,6 +61,12 @@ export function WorkspaceConversation(props: {
       draftKey={workspaceId === null ? undefined : `reply:${workspaceId}`}
       waiting={starting ? intl.formatMessage({ id: "conversation.reply.starting" }) : undefined}
       continues={firstMessage !== undefined}
+      notice={
+        /* motion: Lervo notices in the conversation */
+        props.baseNotice === undefined || props.baseNotice === null ? null : (
+          <BaseNotice code={props.baseNotice.code} upstream={props.baseNotice.upstream} />
+        )
+      }
     />
   );
 }

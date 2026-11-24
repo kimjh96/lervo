@@ -39,6 +39,7 @@ function Main(props: { surface: Surface }) {
         sessionId={workspace?.sessionId ?? null}
         firstMessage={starting?.instruction}
         reopenNatively={workspace !== null && workspace.conversationMode !== "native"}
+        baseNotice={starting?.baseNotice ?? null}
       />
     </div>
   );

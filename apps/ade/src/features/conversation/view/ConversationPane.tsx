@@ -1,4 +1,4 @@
-import { useLayoutEffect } from "react";
+import { type ReactNode, useLayoutEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { InlineAlert } from "../../../ui/InlineAlert";
@@ -26,6 +26,8 @@ export function ConversationPane(props: {
   waiting?: string | undefined;
   /** Shows the first items at once, when the view continues one already on screen. */
   continues: boolean;
+  /** A Lervo notice above the working line, such as what the work started without. */
+  notice?: ReactNode;
 }) {
   const intl = useIntl();
   const { source } = props;
@@ -57,6 +59,7 @@ export function ConversationPane(props: {
         continues={props.continues}
         dock={
           <>
+            <Presence className={styles.notice}>{props.notice ?? null}</Presence>
             <Presence className={styles.working}>
               {props.working === null ? null : <WorkingLine label={props.working} />}
             </Presence>

@@ -269,6 +269,58 @@
       "value": "code"
     }
   ],
+  "notice.workspace_base.base_unresolved": [
+    {
+      "type": 0,
+      "value": "This work started from the checked-out commit, because the repository names no default branch."
+    }
+  ],
+  "notice.workspace_base.fetch_failed": [
+    {
+      "type": 0,
+      "value": "This work started from your local default branch, which may be behind, because "
+    },
+    {
+      "type": 1,
+      "value": "upstream"
+    },
+    {
+      "type": 0,
+      "value": " could not be fetched."
+    }
+  ],
+  "notice.workspace_base.knowledge_state_unreadable": [
+    {
+      "type": 0,
+      "value": "This work started without Lervo's unpublished knowledge commits, because their publication state could not be read."
+    }
+  ],
+  "notice.workspace_base.no_upstream": [
+    {
+      "type": 0,
+      "value": "This work started from your local default branch, which follows no remote branch."
+    }
+  ],
+  "notice.workspace_base.replay_incomplete": [
+    {
+      "type": 0,
+      "value": "This work started without Lervo's unpublished knowledge commits, because they did not apply cleanly."
+    }
+  ],
+  "notice.workspace_base.unknown": [
+    {
+      "type": 0,
+      "value": "This work started with the notice "
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": "."
+    }
+  ],
   "notifications.finished": [
     {
       "type": 0,
