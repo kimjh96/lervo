@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Date: 2026-09-04
+- Amended by: [ADR-0462](0462-own-workstream-bookkeeping-and-stale-attention.md), [ADR-0535](0535-project-core-health-with-actor-owned-attention.md)
 
 Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the product-host discovery part is removed. Lervo no longer ships the product-host protocol or its `operating_attention.inspect` route. `OperatingAttentionReportV1`, direct terminal preparation, and `lervo application attention` stay.
 
