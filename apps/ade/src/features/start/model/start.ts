@@ -23,7 +23,8 @@ let starts = 0;
 /**
  * Starts work: Lervo creates the worktree, branch, and workstream, and the session host launches
  * the agent with the instruction. The pending workspace shows at once, while the core works, and
- * the new workspace takes its place when it exists. A failure returns to the start screen with
+ * the new workspace takes its place when it exists, with the core's notice when it started without
+ * something, such as the upstream it could not fetch. A failure returns to the start screen with
  * the instruction and the failure's code and stage, unchanged. Nothing is selected if the user
  * moved on meanwhile.
  */
@@ -37,7 +38,7 @@ export async function startWork(
   const instruction = draft.instruction.trim();
   const current = () => useStartStore.getState().pending?.id === id;
   useStartStore.setState({
-    pending: { id, instruction, repositoryName, workspaceId: null },
+    pending: { id, instruction, repositoryName, workspaceId: null, baseNotice: null },
     draft: { ...draft, instruction: "" },
     error: null,
   });
@@ -48,9 +49,12 @@ export async function startWork(
       ...(draft.provider === "" ? {} : { provider: draft.provider }),
     });
     const { workspaceId } = result;
+    const notice = result.base?.notice ?? null;
+    const baseNotice =
+      notice === null ? null : { code: notice, upstream: result.base?.upstream ?? null };
     if (current())
       useStartStore.setState((store) => ({
-        pending: store.pending === null ? null : { ...store.pending, workspaceId },
+        pending: store.pending === null ? null : { ...store.pending, workspaceId, baseNotice },
       }));
     await reloadWorkspaces(commands);
     if (workspaceId !== null && current()) useWorkspaceStore.getState().select(workspaceId);

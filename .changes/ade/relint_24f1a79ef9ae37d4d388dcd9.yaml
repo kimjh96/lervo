@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_24f1a79ef9ae37d4d388dcd9"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "When Lervo starts work without something, such as from the local branch because the upstream could not be fetched, the started workspace says so above its working line."

@@ -111,6 +111,30 @@
     "defaultMessage": "The agent's turn ended without finishing ({subtype}).",
     "description": "Claude Code's result did not succeed."
   },
+  "notice.workspace_base.base_unresolved": {
+    "defaultMessage": "This work started from the checked-out commit, because the repository names no default branch.",
+    "description": "A Lervo notice above the working line after a start: the core found no default branch."
+  },
+  "notice.workspace_base.fetch_failed": {
+    "defaultMessage": "This work started from your local default branch, which may be behind, because {upstream} could not be fetched.",
+    "description": "A Lervo notice above the working line after a start: the upstream fetch failed. {upstream} is a ref such as origin/main."
+  },
+  "notice.workspace_base.knowledge_state_unreadable": {
+    "defaultMessage": "This work started without Lervo's unpublished knowledge commits, because their publication state could not be read.",
+    "description": "A Lervo notice above the working line after a start: the core could not tell which knowledge commits to carry."
+  },
+  "notice.workspace_base.no_upstream": {
+    "defaultMessage": "This work started from your local default branch, which follows no remote branch.",
+    "description": "A Lervo notice above the working line after a start: the default branch has no upstream."
+  },
+  "notice.workspace_base.replay_incomplete": {
+    "defaultMessage": "This work started without Lervo's unpublished knowledge commits, because they did not apply cleanly.",
+    "description": "A Lervo notice above the working line after a start: the core dropped the replay of its knowledge commits."
+  },
+  "notice.workspace_base.unknown": {
+    "defaultMessage": "This work started with the notice {code}.",
+    "description": "A Lervo notice above the working line after a start, for a notice code the interface does not know."
+  },
   "notice.unknown": {
     "defaultMessage": "Lervo notice: {code}",
     "description": "A Lervo notice without a catalog message."
