@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.46.8" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.46.9" schema="1" -->
 
 ## What's changed
 
-- Keep finding the newest CLI release when ADE releases fill the newest 30 entries of the repository's release list, so host upgrades never miss a CLI release.
+- Write the missing Amended by and Superseded in part by lines of decision records through the freshness apply path as insert-only edits, with no provider call, inside the delegation's canonical roots (ADR-0631).
