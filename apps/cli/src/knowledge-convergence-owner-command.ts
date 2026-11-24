@@ -5,6 +5,7 @@ import {
   readConvergenceOwnerFence,
   readConvergenceOwnerHost,
   readKnowledgePublicationState,
+  requestKnowledgeResidentCycle,
 } from "@lervo/repository-knowledge-runtime";
 
 import { convergenceOwnerRemediation } from "./knowledge-convergence-owner-remediation.js";
@@ -22,9 +23,10 @@ const ACTIONS = new Set(["status", "release", "publish", "acknowledge"]);
  * `status` reports this host's identity, latest ownership verdict, and publication state without
  * contacting the Hub or GitHub. `release` hands a held Hub lease to a peer: this host yields for
  * one lease lifetime. `publish` runs one knowledge publication now, as the owner's resident does
- * after each cycle. `acknowledge` keeps the owner decisions the publisher reports, a base change
- * of the last merged publication and pull requests closed without merge, without their attention
- * (ADR-0603); Lervo still never publishes those commits.
+ * after each cycle, and asks the resident to take over any retry it left. `acknowledge` keeps the
+ * owner decisions the publisher reports, a base change of the last merged publication and pull
+ * requests closed without merge, without their attention (ADR-0603); Lervo still never publishes
+ * those commits.
  */
 export async function runKnowledgeConvergenceOwnerCommand(
   args: readonly string[],
@@ -85,7 +87,13 @@ export async function runKnowledgeConvergenceOwnerCommand(
     const storage = await openProjectStorage(io.cwd);
     try {
       if (action === "publish") {
-        print(await createKnowledgePublisher(io.cwd)({ events: storage }));
+        const result = await createKnowledgePublisher(io.cwd)({ events: storage });
+        // ADR-0606: a retry this publication asks for (checks still running, a review or merge
+        // gate, a transient failure) is armed only from the resident's own publish result, so a
+        // publication run here asks the resident to publish once and take the retry over.
+        if (result.status === "published" && result.retryAfterMs !== null)
+          await requestKnowledgeResidentCycle(io.cwd);
+        print(result);
         return 0;
       }
       const { verdict, hubReleased } = await createKnowledgeConvergenceOwnership(storage).release();
