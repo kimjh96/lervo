@@ -29,6 +29,38 @@
       "value": "Lervo could not start its session host"
     }
   ],
+  "connection.update.available": [
+    {
+      "type": 0,
+      "value": "Lervo was updated. Restart its session host to finish: working agents stop, and each conversation continues when you open it."
+    }
+  ],
+  "connection.update.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not restart its session host ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "connection.update.restart": [
+    {
+      "type": 0,
+      "value": "Restart"
+    }
+  ],
+  "connection.update.restarting": [
+    {
+      "type": 0,
+      "value": "Restarting the session host"
+    }
+  ],
   "conversation.activity.starting": [
     {
       "type": 0,

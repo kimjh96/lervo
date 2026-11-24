@@ -2,11 +2,12 @@ import { createContext, type ReactNode, useContext } from "react";
 
 import type { Drafts } from "./drafts";
 import type { ListCache } from "./lists";
-import type { ApplicationCommands, SessionHost } from "./session-host";
+import type { ApplicationCommands, HostReplacement, SessionHost } from "./session-host";
 
 /** The adapters the composition root gives the views. */
 export interface Adapters {
   readonly host: SessionHost;
+  readonly replacement: HostReplacement;
   readonly commands: ApplicationCommands;
   readonly drafts: Drafts;
   readonly lists: ListCache;
@@ -28,6 +29,11 @@ function useAdapters(): Adapters {
 /** The interface's one session-host connection. Views receive it, never create one. */
 export function useSessionHost(): SessionHost {
   return useAdapters().host;
+}
+
+/** The reached session host's identity, and its replacement by the shell's own. */
+export function useHostReplacement(): HostReplacement {
+  return useAdapters().replacement;
 }
 
 /** Application commands through the session host and the Lervo core. */

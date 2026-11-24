@@ -47,3 +47,45 @@ impl HostProgram {
         command.spawn().map(drop).map_err(TransportError::Io)
     }
 }
+
+/// Asks a running session host to end with SIGTERM, so it ends its sessions' providers as on any
+/// shutdown and removes its socket. The next connection then starts the session host beside the
+/// shell. `process` must name one process: zero and negative IDs would signal process groups.
+pub fn terminate(process: i32) -> std::io::Result<()> {
+    if process <= 1 || u32::try_from(process).ok() == Some(std::process::id()) {
+        return Err(std::io::Error::from(std::io::ErrorKind::InvalidInput));
+    }
+    #[cfg(unix)]
+    return nix::sys::signal::kill(
+        nix::unistd::Pid::from_raw(process),
+        nix::sys::signal::Signal::SIGTERM,
+    )
+    .map_err(std::io::Error::from);
+    #[cfg(not(unix))]
+    Err(std::io::Error::from(std::io::ErrorKind::Unsupported))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::terminate;
+
+    #[test]
+    fn refuses_process_groups_and_itself() {
+        for process in [-1, 0, 1] {
+            assert!(terminate(process).is_err());
+        }
+        let own = i32::try_from(std::process::id()).unwrap_or(0);
+        assert!(terminate(own).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn ends_a_process_with_sigterm() -> std::io::Result<()> {
+        use std::os::unix::process::ExitStatusExt;
+        let mut child = std::process::Command::new("sleep").arg("30").spawn()?;
+        let process = i32::try_from(child.id()).map_err(std::io::Error::other)?;
+        terminate(process)?;
+        assert_eq!(child.wait()?.signal(), Some(15));
+        Ok(())
+    }
+}

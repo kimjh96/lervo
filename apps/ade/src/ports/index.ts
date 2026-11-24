@@ -3,6 +3,7 @@ export {
   AdaptersProvider,
   useApplicationCommands,
   useDrafts,
+  useHostReplacement,
   useListCache,
   useSessionHost,
 } from "./context";
@@ -13,6 +14,8 @@ export {
   type ApplicationCommands,
   type ConnectionState,
   failureCode,
+  type HostIdentity,
+  type HostReplacement,
   type Request,
   RequestFailure,
   type SessionHost,

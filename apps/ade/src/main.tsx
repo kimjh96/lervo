@@ -26,6 +26,7 @@ const notifier = tauriNotifier();
 const host = new SessionHostClient(tauriTransport());
 const adapters = {
   host,
+  replacement: host,
   commands: new SessionHostCommands(host),
   drafts: localDrafts(),
   lists: localLists(),

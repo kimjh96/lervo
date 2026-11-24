@@ -19,6 +19,22 @@
     "defaultMessage": "Lervo could not start its session host",
     "description": "The shell could not find or start the session host."
   },
+  "connection.update.available": {
+    "defaultMessage": "Lervo was updated. Restart its session host to finish: working agents stop, and each conversation continues when you open it.",
+    "description": "The session host that an older Lervo started is still running; restarting it ends its sessions."
+  },
+  "connection.update.failed": {
+    "defaultMessage": "Lervo could not restart its session host ({code}).",
+    "description": "Ending the older session host failed; code names why."
+  },
+  "connection.update.restart": {
+    "defaultMessage": "Restart",
+    "description": "Restarts the session host: ends the older one and starts the one this Lervo carries."
+  },
+  "connection.update.restarting": {
+    "defaultMessage": "Restarting the session host",
+    "description": "The older session host was asked to end, and the interface waits for the new one."
+  },
   "conversation.activity.starting": {
     "defaultMessage": "Creating the workspace",
     "description": "The working line while the core creates the workspace for work just sent."
