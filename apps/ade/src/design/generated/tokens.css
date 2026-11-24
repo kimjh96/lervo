@@ -109,6 +109,8 @@
   --motion-duration-breathe: 2400ms;
   --motion-duration-shimmer: 1800ms;
   --motion-duration-pace: 120ms;
+  --motion-duration-wait: 300ms;
+  --motion-duration-wait-launch: 1000ms;
   --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-easing-breathe: cubic-bezier(0.42, 0, 0.58, 1);

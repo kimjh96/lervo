@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 
 import { App } from "./app/App";
 import { restoreWorkspaces } from "./features/workspaces";
+import { webClipboard } from "./platform/clipboard";
 import { tauriNotifier } from "./platform/notifications";
 import { SessionHostClient, SessionHostCommands, tauriTransport } from "./platform/session-host";
 import { localDrafts, localLists } from "./platform/storage";
@@ -30,6 +31,7 @@ const adapters = {
   commands: new SessionHostCommands(host),
   drafts: localDrafts(),
   lists: localLists(),
+  clipboard: webClipboard(),
 };
 host.start();
 // The lists kept from the last launch show at once; the core's answer replaces them.

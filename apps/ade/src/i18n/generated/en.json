@@ -5,12 +5,6 @@
       "value": "Lervo"
     }
   ],
-  "connection.connected": [
-    {
-      "type": 0,
-      "value": "Connected"
-    }
-  ],
   "connection.connecting": [
     {
       "type": 0,
@@ -83,6 +77,12 @@
     {
       "type": 0,
       "value": "Jump to latest"
+    }
+  ],
+  "conversation.opening": [
+    {
+      "type": 0,
+      "value": "Opening the conversation"
     }
   ],
   "conversation.reply.failed": [
@@ -426,6 +426,30 @@
       "value": "Start"
     }
   ],
+  "workspace.branch.action": [
+    {
+      "type": 0,
+      "value": "Branch "
+    },
+    {
+      "type": 1,
+      "value": "branch"
+    },
+    {
+      "type": 0,
+      "value": ". Copy"
+    }
+  ],
+  "workspace.branch.copied": [
+    {
+      "type": 0,
+      "value": "Copied "
+    },
+    {
+      "type": 1,
+      "value": "branch"
+    }
+  ],
   "workspace.retire.action": [
     {
       "type": 0,
@@ -485,7 +509,13 @@
   "workspace.retire.removing": [
     {
       "type": 0,
-      "value": "Removing…"
+      "value": "Removing the workspace"
+    }
+  ],
+  "workspace.retire.stopping": [
+    {
+      "type": 0,
+      "value": "Stopping the session"
     }
   ],
   "workspaces.label": [

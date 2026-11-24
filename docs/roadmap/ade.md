@@ -299,6 +299,15 @@ On 2026-11-24 the owner's Lervo app still ran from a development worktree: its b
 
 A newer app still met the session host that an older one started, because the session host outlives the window and the shell connects to whatever answers. Now the shell reports the session host's version from `welcome`, with its own, after each handshake. When the session host is older, the sidebar offers to restart it and says what stops ([protocol](../specifications/execution/product-surfaces/ade-session-host-protocol.md), "Replacing an older session host"). The shell finds the session host's process from the socket's peer, which works with every session host already installed, and ends it with SIGTERM. The interface never restarts on its own: `sessions.watch` gives no sign that every running session's status has arrived, so it cannot know that no agent is working. On the owner's Mac, tests showed that the socket reports the session host's process and that SIGTERM ends a process. The first real handover is the owner's 0.3.0 session host meeting the next ADE release.
 
+### The owner's review of the installed app
+
+On 2026-11-24 the owner used the installed app and asked for four changes:
+
+- **Removing a workspace that was just started showed "Creating the workspace".** Removing deselects the workspace, and the pending start that created it stayed, so the main area showed the pending workspace again. Leaving the workspace a start created now settles that start.
+- **The branch beside the title.** The header no longer prints the branch. A quiet branch icon names it on hover or focus and copies it when pressed, through a new clipboard port.
+- **Waiting.** "Removing…" looked like a test. Every wait now follows one system ([patterns](../specifications/execution/product-surfaces/ade-design-patterns.md), "Waiting"): it names the activity where it happens and shows only after `motion.duration.wait`. It carries the working line's highlight, and no control is left disabled beside it. `Waiting` joins `WorkingLine` in the design system. Removing a workspace names its steps, and the connection status, the session host restart, and an opening conversation use it. The message catalog test rejects an ellipsis, "Loading", and "Please wait".
+- **A new conversation appeared without a fade.** The owner has not yet said which change it was, so it stays open.
+
 ### S1.4c progress
 
 S1.4c lands in three pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.

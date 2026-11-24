@@ -28,21 +28,47 @@ This specification is the patterns and content chapter of the [design system](ad
 
 ### Waiting
 
-| Situation                | What the ADE shows                                                                                                                                    |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Launching                | The window opens with the Lervo mark until the first lists load, the session host is unavailable, or the cold-start budget passes (motion, "Launch"). |
-| Loading a list           | The last list stays. A first load shows nothing until it arrives, never a placeholder that looks like data.                                           |
-| Starting work            | The pending workspace at once, with the instruction as its first message and "Creating the workspace" as its working line.                            |
-| A reply streaming        | The text flows in at the pace the motion principles set. The working line names the activity.                                                         |
-| Reconnecting             | The connection status in the workspace list footer says so. Open views stay, and nothing claims the connection has returned until it has.             |
-| Session host unavailable | The connection status names it. Commands that need the session host fail with their code where they were made.                                        |
-| An older installed Lervo | The start screen starts the core's default agent and says that updating Lervo adds the choice. Nothing else changes.                                  |
+Every wait in Lervo follows one system, so the person always reads a wait the same way. It applies to every new feature: a wait that fits none of the kinds below changes this section before it ships.
+
+**Principles**
+
+- **Name the activity, where it happens.** A wait says what Lervo is doing, in the place the person is looking: "Stopping the session" in place of the control they pressed, "Opening the conversation" where the conversation will appear. The rest of the window stays usable. No modal, overlay, or full-window cover.
+- **Say nothing for short waits.** A wait shows only after `motion.duration.wait` (300 ms). Most local actions end sooner, and a line that flashes for a few frames reads as a fault. The first connection waits `motion.duration.waitLaunch` (1,000 ms), because the kept lists show meanwhile.
+- **One look.** The words are tertiary, and the working line's highlight sweeps across them over `motion.duration.shimmer`. Under reduced motion the words stay still. Lervo has no spinner, no progress ring, and no placeholder that looks like data.
+- **Steps, not a stalled line.** An action with several steps names each one as it begins, in the same place: "Stopping the session", then "Removing the workspace".
+- **The control gives way.** Once an action starts, its control is replaced by its wait. A disabled control is never left beside it.
+- **The result is the confirmation.** A wait ends in the result itself, such as the row leaving the list, never a "Done" message. A failure ends it with the failure where it happened, as "Failures" defines.
+
+**Kinds and components**
+
+| Kind                      | What the ADE shows                                                                                                                 | Component     |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| The agent works           | The working line at the end of the conversation names the activity, with the working dot: "Writing a reply", "Read is running".    | `WorkingLine` |
+| The core creates work     | The pending workspace at once, with the instruction as its first message and "Creating the workspace" as its working line.         | `WorkingLine` |
+| The person's action       | The wait replaces the control the action came from and names each step: removing a workspace, restarting the session host.         | `Waiting`     |
+| A view opens              | Where the content will appear: "Opening the conversation". A conversation seen recently shows its last window at once instead.     | `Waiting`     |
+| Reaching the session host | The connection status in the workspace list footer: "Connecting to this computer", "Reconnecting". Open views stay.                | `Waiting`     |
+| Paging within a view      | Nothing: the view keeps its place, and the page joins when it arrives.                                                             | None          |
+| Loading a list            | The last list stays. A first load shows nothing until it arrives, never a placeholder that looks like data.                        | None          |
+| Known progress            | Determinate progress that animates `transform: scaleX`, with the count or size in words. It ships with its first use.              | Not yet       |
+| Launching                 | The window opens with the Lervo mark until the first lists load, the session host is unavailable, or the cold-start budget passes. | Launch view   |
+
+**Other situations**
+
+| Situation                | What the ADE shows                                                                                                                                          |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A reply streaming        | The text flows in at the pace the motion principles set. The working line names the activity.                                                               |
+| Session host unavailable | The connection status names it and stays still: it is a failure, not a wait. Commands that need the session host fail with their code where they were made. |
+| An older installed Lervo | The start screen starts the core's default agent and says that updating Lervo adds the choice. Nothing else changes.                                        |
+
+**Copy.** A wait is a present participle and its object, in sentence case, without a period: "Opening the conversation". It never uses an ellipsis, "Loading", or "Please wait". The message catalog test rejects all three.
 
 - **Empty is a fact, not a failure.** An empty list says what is missing and how to add it, such as registering a repository. An unknown state never reads as empty.
 
 ### Navigation and selection
 
 - **The workspace list** is the one navigation. Selecting a row opens that workspace at once; selecting the open one changes nothing.
+- **The header** names the workspace by its title. The branch is a detail the person rarely needs, so it sits behind a quiet branch icon: hovering or focusing names it, and pressing copies it.
 - **What stays, stays still.** The workspace list, the header, and the reply card keep their places through every change, as the motion principles require.
 - **New work.** "New work" and its shortcut open the start screen with the instruction focused.
 - **Narrow and zoomed windows.** Below the breakpoint, the workspace list narrows to `layout.sidebarMinWidth` instead of hiding, so no navigation disappears. The macOS window controls keep the list's strip. Titles truncate before controls do.
@@ -83,7 +109,7 @@ These patterns are defined with the features that need them:
 
 - **Voice.** Plain, concrete, and calm. Lervo states what happened and what it verified, in the person's terms, without celebration or alarm.
 - **Success** states the result and its limit: "3 checks passed", "1 file changed, not committed".
-- **Waiting** names the activity: "Writing a reply", "Creating the workspace".
+- **Waiting** names the activity: "Writing a reply", "Creating the workspace", "Stopping the session". "Waiting" in the patterns defines where it shows.
 - **Failure** states what failed, its code, and the next step.
 - **A notice** states the condition and what continues.
 

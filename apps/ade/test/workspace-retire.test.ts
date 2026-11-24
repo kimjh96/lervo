@@ -90,7 +90,21 @@ describe("retiring a workspace from the interface", () => {
       worktree: "removed",
       branch: "deleted",
     }));
-    await retireWorkspace({ host: session.fake, commands: core, lists, workspaceId: "wsp_a" });
+    const steps: string[] = [];
+    let left = false;
+    await retireWorkspace({
+      host: session.fake,
+      commands: core,
+      lists,
+      workspaceId: "wsp_a",
+      onStep: (step) => steps.push(step),
+      leave: (update) => {
+        left = true;
+        update();
+      },
+    });
+    expect(steps).toEqual(["stopping", "removing"]);
+    expect(left).toBe(true);
     expect(session.posted).toEqual(["session.stop"]);
     expect(core.ran).toEqual(["workspace.retire", "workspace.list", "repository.list"]);
     expect(useWorkspaceStore.getState()).toMatchObject({ selected: null, workspaces: [] });

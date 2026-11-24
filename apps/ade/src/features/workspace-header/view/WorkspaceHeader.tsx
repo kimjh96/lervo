@@ -1,11 +1,12 @@
 import { PaneHeader } from "../../../ui/PaneHeader";
 import { useWorkspaceStore } from "../../workspaces";
+import { BranchControl } from "./BranchControl";
 import { RetireControl } from "./RetireControl";
 
 /**
- * The selected workspace's title and branch (approved mockup "2a"). The workspace list and the
- * working line show the live status, so the header does not repeat it. Its control removes the
- * workspace, when the core answers `workspace.retire`.
+ * The selected workspace's title (approved mockup "2a"), with its branch behind an icon. The
+ * workspace list and the working line show the live status, so the header does not repeat it.
+ * Its other control removes the workspace, when the core answers `workspace.retire`.
  */
 export function WorkspaceHeader(props: {
   workspaceId: string;
@@ -20,11 +21,8 @@ export function WorkspaceHeader(props: {
   );
   if (workspace === undefined) return null;
   return (
-    <PaneHeader
-      title={workspace.title ?? workspace.branch}
-      detail={workspace.branch}
-      arrive={!props.continues}
-    >
+    <PaneHeader title={workspace.title ?? workspace.branch} arrive={!props.continues}>
+      <BranchControl branch={workspace.branch} />
       {retirable ? (
         <RetireControl key={workspace.workspaceId} workspaceId={workspace.workspaceId} />
       ) : null}

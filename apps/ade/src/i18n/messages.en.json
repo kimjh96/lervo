@@ -3,10 +3,6 @@
     "defaultMessage": "Lervo",
     "description": "The product name, shown beside the logo."
   },
-  "connection.connected": {
-    "defaultMessage": "Connected",
-    "description": "The interface reached the session host."
-  },
   "connection.connecting": {
     "defaultMessage": "Connecting to this computer",
     "description": "The interface is reaching the session host."
@@ -50,6 +46,10 @@
   "conversation.jumpToLatest": {
     "defaultMessage": "Jump to latest",
     "description": "Returns the conversation to its newest messages."
+  },
+  "conversation.opening": {
+    "defaultMessage": "Opening the conversation",
+    "description": "Where the conversation will appear, while the session host attaches and loads its newest page, or starts the session again."
   },
   "conversation.reply.failed": {
     "defaultMessage": "The reply did not reach the agent ({code}). It is back in the input.",
@@ -187,6 +187,14 @@
     "defaultMessage": "Start",
     "description": "Accessible name of the button that starts work."
   },
+  "workspace.branch.action": {
+    "defaultMessage": "Branch {branch}. Copy",
+    "description": "The accessible name and tooltip of the header's branch icon: names the workspace's branch; pressing copies it."
+  },
+  "workspace.branch.copied": {
+    "defaultMessage": "Copied {branch}",
+    "description": "The branch icon's name for a moment after pressing it copied the branch name."
+  },
   "workspace.retire.action": {
     "defaultMessage": "Remove workspace",
     "description": "The accessible name of the header's trash button, which removes the selected workspace."
@@ -220,8 +228,12 @@
     "description": "The question in the header after the trash button; the worktree and, when merged, its branch leave."
   },
   "workspace.retire.removing": {
-    "defaultMessage": "Removing…",
-    "description": "Shown in place of the question while the workspace is being removed."
+    "defaultMessage": "Removing the workspace",
+    "description": "In place of the remove question: the core is removing the worktree and its branch."
+  },
+  "workspace.retire.stopping": {
+    "defaultMessage": "Stopping the session",
+    "description": "In place of the remove question: the workspace's agent session is ending before the workspace is removed."
   },
   "workspaces.label": {
     "defaultMessage": "Workspaces",

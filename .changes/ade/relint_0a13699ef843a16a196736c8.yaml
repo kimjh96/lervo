@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0a13699ef843a16a196736c8"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Every wait names its activity where it happens and shows only after a short delay; the header keeps the branch behind a copy icon; removing a just-started workspace no longer shows it being created."

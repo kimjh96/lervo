@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useContext } from "react";
 
+import type { Clipboard } from "./clipboard";
 import type { Drafts } from "./drafts";
 import type { ListCache } from "./lists";
 import type { ApplicationCommands, HostReplacement, SessionHost } from "./session-host";
@@ -11,6 +12,7 @@ export interface Adapters {
   readonly commands: ApplicationCommands;
   readonly drafts: Drafts;
   readonly lists: ListCache;
+  readonly clipboard: Clipboard;
 }
 
 const AdaptersContext = createContext<Adapters | null>(null);
@@ -39,6 +41,11 @@ export function useHostReplacement(): HostReplacement {
 /** Application commands through the session host and the Lervo core. */
 export function useApplicationCommands(): ApplicationCommands {
   return useAdapters().commands;
+}
+
+/** The system clipboard. */
+export function useClipboard(): Clipboard {
+  return useAdapters().clipboard;
 }
 
 /** Where unsent text survives reloads. */

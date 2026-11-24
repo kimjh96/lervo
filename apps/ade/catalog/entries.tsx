@@ -16,6 +16,7 @@ import { PaneHeader } from "../src/ui/PaneHeader";
 import { SegmentedControl } from "../src/ui/SegmentedControl";
 import { Select } from "../src/ui/Select";
 import { StatusDot } from "../src/ui/StatusDot";
+import { Waiting } from "../src/ui/Waiting";
 import { WorkingLine } from "../src/ui/WorkingLine";
 
 export interface Variant {
@@ -293,9 +294,34 @@ export const entries: readonly Entry[] = [
     module: "WorkingLine",
     name: "Working line",
     purpose: "What the agent is doing right now, at the end of the conversation.",
-    use: ["The open conversation while its agent works"],
-    avoid: ["Status of a workspace that is not open", "Progress with a known end"],
+    use: ["The open conversation while its agent works, or while the core creates its workspace"],
+    avoid: [
+      "Status of a workspace that is not open",
+      "Progress with a known end",
+      "A wait for the person's own action: use Waiting",
+    ],
     variants: [{ name: "Default", render: () => <WorkingLine label="Writing a reply" /> }],
+  },
+  {
+    module: "Waiting",
+    name: "Waiting",
+    purpose:
+      "What Lervo is doing, where the wait happens: in place of the control an action came from, where a view's content will appear, or in the connection status. It shows after motion.duration.wait.",
+    use: [
+      "An action the person took, named step by step, such as removing a workspace",
+      "A view whose content is opening, such as a conversation",
+      "Reaching the session host",
+    ],
+    avoid: [
+      "An agent's work: use WorkingLine",
+      "Paging within a view: the view keeps its place and the page joins when it arrives",
+      "Text with an ellipsis, Loading, or Please wait",
+      "A spinner, a placeholder that looks like data, or a control left disabled beside it",
+    ],
+    variants: [
+      { name: "An action's step", render: () => <Waiting label="Stopping the session" /> },
+      { name: "A view opening", render: () => <Waiting label="Opening the conversation" /> },
+    ],
   },
   {
     module: "PaneHeader",

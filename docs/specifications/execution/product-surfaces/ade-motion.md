@@ -22,17 +22,19 @@ The same day, the owner used the real app and found it choppy: views swapped wit
 
 ## Tokens
 
-| Token                     | Value                                      | Use                                                             |
-| ------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
-| `motion.duration.change`  | 120 ms                                     | Crossfades, reveals, and control color changes                  |
-| `motion.duration.enter`   | 200 ms                                     | Elements entering the screen                                    |
-| `motion.duration.exit`    | 100 ms                                     | Elements leaving the screen                                     |
-| `motion.easing.standard`  | `cubic-bezier(0.2, 0, 0, 1)`               | Entries and changes                                             |
-| `motion.rise`             | 4 px                                       | How far an arriving element rises; no translation moves farther |
-| `motion.easing.exit`      | `cubic-bezier(0.4, 0, 1, 1)`               | Exits                                                           |
-| `motion.breathe`          | 2,400 ms, opacity 45% to 100%, ease-in-out | The working dot in the workspace list                           |
-| `motion.duration.shimmer` | 1,800 ms, with `motion.easing.shimmer`     | One sweep of the working line's highlight                       |
-| `motion.duration.pace`    | 120 ms                                     | The most that streamed text trails its arrival                  |
+| Token                        | Value                                      | Use                                                             |
+| ---------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `motion.duration.change`     | 120 ms                                     | Crossfades, reveals, and control color changes                  |
+| `motion.duration.enter`      | 200 ms                                     | Elements entering the screen                                    |
+| `motion.duration.exit`       | 100 ms                                     | Elements leaving the screen                                     |
+| `motion.easing.standard`     | `cubic-bezier(0.2, 0, 0, 1)`               | Entries and changes                                             |
+| `motion.rise`                | 4 px                                       | How far an arriving element rises; no translation moves farther |
+| `motion.easing.exit`         | `cubic-bezier(0.4, 0, 1, 1)`               | Exits                                                           |
+| `motion.breathe`             | 2,400 ms, opacity 45% to 100%, ease-in-out | The working dot in the workspace list                           |
+| `motion.duration.shimmer`    | 1,800 ms, with `motion.easing.shimmer`     | One sweep of the working line's highlight                       |
+| `motion.duration.pace`       | 120 ms                                     | The most that streamed text trails its arrival                  |
+| `motion.duration.wait`       | 300 ms                                     | How long an action or an opening view waits before it says so   |
+| `motion.duration.waitLaunch` | 1,000 ms                                   | How long the first connection waits before the frame says so    |
 
 The ADE uses no springs, bounces, or overshoot.
 
@@ -54,6 +56,7 @@ The ADE uses no springs, bounces, or overshoot.
 | Finished status                            | The status dot disappears at once.                                                                                                                                                                                                                                                                                                                                                                                                                    | Same                        |
 | Overlays: command palette, menus, popovers | Opening fades in and scales from 0.98 over `change`, from the trigger. Closing fades out over `exit`. Focus moves on open without waiting.                                                                                                                                                                                                                                                                                                            | Open and close at once      |
 | Disclosure: tool activity, details         | Expands and collapses at once. Revealed content fades in over `change`. Height never animates.                                                                                                                                                                                                                                                                                                                                                        | Expands at once             |
+| Waiting                                    | Nothing shows until `motion.duration.wait` passes. The words then fade in over `change`, and the working line's highlight sweeps across them over `motion.duration.shimmer`. A step that follows replaces the words in place, without another fade.                                                                                                                                                                                                   | Words appear still          |
 | Lervo notices in the conversation          | Fade in over `change`. No slide.                                                                                                                                                                                                                                                                                                                                                                                                                      | Appear at once              |
 | Inline errors                              | Fade in over `change`. No shake.                                                                                                                                                                                                                                                                                                                                                                                                                      | Appear at once              |
 | Determinate progress                       | Animates `transform: scaleX`, never width.                                                                                                                                                                                                                                                                                                                                                                                                            | Jumps to each value         |
