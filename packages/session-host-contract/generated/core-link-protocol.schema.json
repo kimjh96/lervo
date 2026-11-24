@@ -474,6 +474,35 @@
         }
       }
     },
+    "WorkspaceRetireResult": {
+      "title": "WorkspaceRetireResult",
+      "type": "object",
+      "required": [
+        "workspaceId",
+        "worktree",
+        "branch"
+      ],
+      "properties": {
+        "workspaceId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "worktree": {
+          "type": "string",
+          "enum": [
+            "removed",
+            "absent"
+          ]
+        },
+        "branch": {
+          "type": "string",
+          "enum": [
+            "deleted",
+            "kept",
+            "absent"
+          ]
+        }
+      }
+    },
     "CoreCommandRequest": {
       "title": "CoreCommandRequest",
       "type": "object",
@@ -501,7 +530,8 @@
             "workspace.start",
             "workspace.list",
             "repository.list",
-            "provider.list"
+            "provider.list",
+            "workspace.retire"
           ]
         },
         "arguments": {

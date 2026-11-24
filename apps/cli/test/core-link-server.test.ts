@@ -66,6 +66,11 @@ function handlers(release?: Promise<void>): CoreLinkHandlers {
         complete: true,
       };
     },
+    async retireWorkspace(workspaceId) {
+      if (workspaceId !== started.workspaceId)
+        throw new CommandFailure("workspace_has_changes", "changed");
+      return { workspaceId, worktree: "removed", branch: "deleted" };
+    },
     recordSessionExit: async (sessionId, exitCode) => ({
       status: sessionId === started.sessionId && exitCode === null ? "recorded" : "unknown_session",
     }),
@@ -126,6 +131,45 @@ describe("the core-link server", () => {
     expect(written.find((response) => response.id === 3)).toEqual({
       kind: "core.failed",
       id: 3,
+      code: "workspace_not_found",
+    });
+  });
+
+  it("answers workspace.retire with the result and passes on its failure", async () => {
+    const { written } = await serve([
+      {
+        kind: "core.command",
+        id: 1,
+        command: "workspace.retire",
+        arguments: { workspaceId: started.workspaceId },
+      },
+      {
+        kind: "core.command",
+        id: 2,
+        command: "workspace.retire",
+        arguments: { workspaceId: "wsp_other" },
+      },
+      {
+        kind: "core.command",
+        id: 3,
+        command: "workspace.retire",
+        arguments: { workspaceId: "../x" },
+      },
+    ]);
+    const result = written.find((response) => response.id === 1);
+    expect(result).toEqual({
+      kind: "core.result",
+      id: 1,
+      result: { workspaceId: started.workspaceId, worktree: "removed", branch: "deleted" },
+    });
+    const valid = validResult("workspace.retire");
+    expect(valid(result?.result), JSON.stringify(valid.errors)).toBe(true);
+    expect(written.find((response) => response.id === 2)).toMatchObject({
+      kind: "core.failed",
+      code: "workspace_has_changes",
+    });
+    expect(written.find((response) => response.id === 3)).toMatchObject({
+      kind: "core.failed",
       code: "workspace_not_found",
     });
   });
