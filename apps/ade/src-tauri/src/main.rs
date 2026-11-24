@@ -37,7 +37,8 @@ fn main() -> ExitCode {
             commands::host_send,
             window::window_ready,
             measure::measure_report,
-            measure::measure_hide
+            measure::measure_hide,
+            measure::measure_opaque
         ])
         .run(tauri::generate_context!());
     match result {

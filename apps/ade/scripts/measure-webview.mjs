@@ -21,23 +21,40 @@ const scriptedCore = join(root, "target/release/examples/interface");
 const scenarios = [
   "cold-start",
   "idle-visible",
+  "idle-unfocused",
+  "idle-lone-field",
+  "idle-lone-field-opaque",
   "idle-hidden",
   "conversation",
   "streaming",
   "keystroke",
 ];
-const IDLE_SETTLE_MS = 10_000;
+// The page settles and observes an idle window before it reports, so sampling starts at once.
 const IDLE_SAMPLE_MS = 30_000;
+// `ps` counts CPU time in hundredths of a second, so 30 seconds resolve 0.03% per process. The
+// hidden budget of 0.1% across three processes needs a longer sample.
+const IDLE_HIDDEN_SAMPLE_MS = 120_000;
 
-/** The budgets of `docs/foundation/ade-convention/performance.md` that the scenarios measure. */
+const FRAME_MS = 1000 / 60;
+const PACE_MS = 120;
+
+/**
+ * The budgets of `docs/foundation/ade-convention/performance.md` that the scenarios measure, and
+ * the motion specification's pace. Each is a maximum.
+ */
 const budgets = {
   coldStartMs: 500,
+  // With no text field focused; a focused field's caret redraws the window.
   idleVisibleCpuPercent: 0.5,
+  idleFocusedChanges: 0,
   idleHiddenCpuPercent: 0.1,
   firstPaintMs: 100,
   frameMaxMs: 50,
-  deltaToScreenP95Ms: 33,
-  echoP95Ms: 16,
+  deltaToPageP95Ms: 33,
+  deltaToScreenP95Ms: 33 + PACE_MS,
+  trailMaxMs: Math.round(PACE_MS + FRAME_MS),
+  // The next frame: within one and a half frame intervals, since a missed frame reads two.
+  echoP95Ms: Math.round(1.5 * FRAME_MS),
 };
 
 const sleep = (milliseconds) => new Promise((done) => setTimeout(done, milliseconds));
@@ -124,15 +141,16 @@ async function measure(scenario) {
       await waitForFile(report, 90_000);
       const page = JSON.parse(readFileSync(report, "utf8"));
       const result = { ...page };
+      if (page.error !== undefined) return result;
       if (scenario === "cold-start")
         result.coldStartMs =
           Math.round((page.timeOriginEpochMs - launchedEpochMs + page.startScreenMs) * 100) / 100;
       if (scenario.startsWith("idle-")) {
-        await sleep(IDLE_SETTLE_MS);
+        const sampleMs = scenario === "idle-hidden" ? IDLE_HIDDEN_SAMPLE_MS : IDLE_SAMPLE_MS;
         const before = windowProcesses(window.pid, webkitBefore);
-        await sleep(IDLE_SAMPLE_MS);
+        await sleep(sampleMs);
         const after = windowProcesses(window.pid, webkitBefore);
-        const percent = (seconds) => Math.round((seconds / (IDLE_SAMPLE_MS / 1000)) * 10000) / 100;
+        const percent = (seconds) => Math.round((seconds / (sampleMs / 1000)) * 100000) / 1000;
         const byRole = {};
         for (const process of after) {
           const spent = process.cpu - (before.find((old) => old.pid === process.pid)?.cpu ?? 0);
@@ -162,14 +180,26 @@ async function measure(scenario) {
   }
 }
 
+/** An idle result, only when its window was in front and the expected element held focus. */
+function idleResult(by, scenario, focused) {
+  const result = by[scenario];
+  return result?.windowFocused === true && result.focused === focused ? result : undefined;
+}
+
 function verdicts(results) {
   const by = Object.fromEntries(results.map((result) => [result.scenario, result]));
+  const focusedIdle = idleResult(by, "idle-visible", "textarea");
   const checks = [
     ["Cold start to the start screen", by["cold-start"]?.coldStartMs, budgets.coldStartMs],
     [
-      "UI CPU, idle, window visible (%)",
-      by["idle-visible"]?.cpuPercent,
+      "UI CPU, idle, window visible, no field focused (%)",
+      idleResult(by, "idle-unfocused", "body")?.cpuPercent,
       budgets.idleVisibleCpuPercent,
+    ],
+    [
+      "Idle with the input card focused: DOM changes and running animations",
+      focusedIdle && focusedIdle.domChangesIn10s + focusedIdle.runningAnimations,
+      budgets.idleFocusedChanges,
     ],
     [
       "UI CPU, idle, window hidden (%)",
@@ -178,7 +208,9 @@ function verdicts(results) {
     ],
     ["First paint of 100,000 items", by.conversation?.firstPaintMs, budgets.firstPaintMs],
     ["Longest frame while scrolling", by.conversation?.frameMaxMs, budgets.frameMaxMs],
+    ["Streamed delta to the page, p95", by.streaming?.deltaToPageP95Ms, budgets.deltaToPageP95Ms],
     ["Streamed delta to screen, p95", by.streaming?.deltaToScreenP95Ms, budgets.deltaToScreenP95Ms],
+    ["Streamed text trailing its arrival, max", by.streaming?.trailMaxMs, budgets.trailMaxMs],
     ["Keystroke to echo, p95 (page events)", by.keystroke?.echoP95Ms, budgets.echoP95Ms],
   ];
   return checks.map(([measure, value, budget]) => ({
@@ -187,6 +219,17 @@ function verdicts(results) {
     budget,
     within: typeof value === "number" ? value <= budget : null,
   }));
+}
+
+/** Figures with no budget that explain the idle ones: the caret's cost and the material's share. */
+function comparisons(results) {
+  const by = Object.fromEntries(results.map((result) => [result.scenario, result]));
+  const cpu = (scenario) => idleResult(by, scenario, "textarea")?.cpuPercent ?? null;
+  return {
+    focusedStartScreenCpuPercent: cpu("idle-visible"),
+    loneFieldCpuPercent: cpu("idle-lone-field"),
+    loneFieldOpaqueCpuPercent: cpu("idle-lone-field-opaque"),
+  };
 }
 
 if (!existsSync(shell) || !existsSync(scriptedCore)) {
@@ -201,4 +244,6 @@ for (const scenario of chosen) {
   process.stderr.write(`measuring ${scenario}\n`);
   results.push(await measure(scenario));
 }
-process.stdout.write(`${JSON.stringify({ results, verdicts: verdicts(results) }, null, 2)}\n`);
+process.stdout.write(
+  `${JSON.stringify({ results, verdicts: verdicts(results), comparisons: comparisons(results) }, null, 2)}\n`,
+);

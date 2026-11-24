@@ -65,14 +65,23 @@ async function openWorkspace(title: string): Promise<void> {
   row.click();
 }
 
-/** Types `text` into the focused input card the way React reads it, then waits for its paint. */
-async function type(field: HTMLTextAreaElement, text: string): Promise<number> {
+/**
+ * Types `text` into the focused input card the way React reads it, then waits for its paint.
+ * `workMs` is the interface's own work: React flushes an input event's update in a microtask
+ * queued during the dispatch, which runs before this function continues.
+ */
+async function type(
+  field: HTMLTextAreaElement,
+  text: string,
+): Promise<{ echoMs: number; workMs: number }> {
   const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set;
   const started = performance.now();
   setter?.call(field, text);
   field.dispatchEvent(new Event("input", { bubbles: true }));
+  await Promise.resolve();
+  const worked = performance.now();
   const painted = await nextPaint();
-  return painted - started;
+  return { echoMs: painted - started, workMs: worked - started };
 }
 
 async function coldStart(): Promise<Report> {
@@ -81,10 +90,76 @@ async function coldStart(): Promise<Report> {
   return { startScreenMs: rounded(painted), timeOriginEpochMs: rounded(performance.timeOrigin) };
 }
 
-async function idle(hidden: boolean): Promise<Report> {
+const IDLE_SETTLE_MS = 5_000;
+const IDLE_OBSERVE_MS = 10_000;
+
+/**
+ * What an idle window shows. `field` is the start screen with its input card focused, as it opens;
+ * `unfocused` drops that focus, so no caret blinks; `lone-field` replaces the page with one focused
+ * text field, the caret's cost on its own; `lone-field-opaque` does the same in an opaque window,
+ * which tells the native material's share apart.
+ */
+type IdleView = "field" | "unfocused" | "lone-field" | "lone-field-opaque" | "hidden";
+
+async function prepareIdle(view: IdleView): Promise<void> {
+  const { invoke } = await import("@tauri-apps/api/core");
+  if (view === "hidden") await invoke("measure_hide");
+  if (view === "unfocused" && document.activeElement instanceof HTMLElement)
+    document.activeElement.blur();
+  if (view === "lone-field-opaque") {
+    await invoke("measure_opaque");
+    document.documentElement.dataset.material = "opaque";
+  }
+  if (view === "lone-field" || view === "lone-field-opaque") {
+    const field = document.createElement("textarea");
+    document.body.replaceChildren(field);
+    field.focus();
+  }
+}
+
+/**
+ * The window left alone. After `IDLE_SETTLE_MS` it counts, for `IDLE_OBSERVE_MS`, what could keep
+ * the window drawing: DOM changes, the session host's messages, and, at the end, the animations
+ * still running, which motion principle 4 allows only for working status. The driver samples CPU
+ * right after this report.
+ */
+async function idle(view: IdleView, host: HostMessages): Promise<Report> {
   const painted = await startScreen();
-  if (hidden) await (await import("@tauri-apps/api/core")).invoke("measure_hide");
-  return { startScreenMs: rounded(painted), hidden };
+  await prepareIdle(view);
+  await new Promise((resolve) => setTimeout(resolve, IDLE_SETTLE_MS));
+  let changes = 0;
+  let messages = 0;
+  const observer = new MutationObserver((records) => {
+    changes += records.length;
+  });
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    characterData: true,
+  });
+  const stop = host.onMessage(() => {
+    messages += 1;
+  });
+  await new Promise((resolve) => setTimeout(resolve, IDLE_OBSERVE_MS));
+  observer.disconnect();
+  stop();
+  const running = document
+    .getAnimations()
+    .filter((animation) => animation.playState === "running")
+    .map((animation) =>
+      animation instanceof CSSAnimation ? animation.animationName : "script animation",
+    );
+  return {
+    startScreenMs: rounded(painted),
+    focused: document.activeElement?.tagName.toLowerCase() ?? "none",
+    // A window in the background stops its caret, so idle figures compare only with focus.
+    windowFocused: document.hasFocus(),
+    domChangesIn10s: changes,
+    hostMessagesIn10s: messages,
+    runningAnimations: running.length,
+    runningAnimationNames: running.join(", "),
+  };
 }
 
 /** Opens the 100,000-item conversation, then scrolls it toward its oldest items. */
@@ -123,10 +198,14 @@ async function conversation(): Promise<Report> {
 async function streaming(host: HostMessages): Promise<Report> {
   // When each delta reached the page, before the store, the render, and the pacer.
   const received: number[] = [];
+  const arrivals = new Map<number, number>();
   const stop = host.onMessage((message) => {
     if (message.kind !== "conversation.delta" || typeof message.append !== "string") return;
     const now = performance.timeOrigin + performance.now();
-    for (const stamp of stamps(message.append)) received.push(now - stamp);
+    for (const stamp of stamps(message.append)) {
+      received.push(now - stamp);
+      arrivals.set(stamp, now);
+    }
   });
   await startScreen();
   await openWorkspace("Stream a long reply");
@@ -136,6 +215,8 @@ async function streaming(host: HostMessages): Promise<Report> {
   field.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
   const log = await waitFor(() => document.querySelector<HTMLElement>(LOG));
   const samples: number[] = [];
+  // How long the newest text on screen trailed its arrival at the page: the pacer's share.
+  const trails: number[] = [];
   let newest = 0;
   const deadline = performance.now() + 20_000;
   while (performance.now() < deadline && samples.length < SAMPLE_LIMIT) {
@@ -148,6 +229,8 @@ async function streaming(host: HostMessages): Promise<Report> {
     }
     newest = stamp;
     samples.push(performance.timeOrigin + painted - stamp);
+    const arrived = arrivals.get(stamp);
+    if (arrived !== undefined) trails.push(performance.timeOrigin + painted - arrived);
   }
   stop();
   return {
@@ -158,6 +241,8 @@ async function streaming(host: HostMessages): Promise<Report> {
     deltaToScreenP50Ms: rounded(quantile(samples, 0.5)),
     deltaToScreenP95Ms: rounded(quantile(samples, 0.95)),
     deltaToScreenMaxMs: rounded(Math.max(...samples)),
+    trailP95Ms: rounded(quantile(trails, 0.95)),
+    trailMaxMs: rounded(Math.max(...trails)),
   };
 }
 
@@ -171,24 +256,32 @@ async function keystroke(): Promise<Report> {
   await openWorkspace("Stream a long reply");
   const field = await waitFor(() => document.querySelector<HTMLTextAreaElement>("main textarea"));
   field.focus();
-  const samples: number[] = [];
+  const echoes: number[] = [];
+  const work: number[] = [];
   let text = "";
   for (let key = 0; key < 200; key += 1) {
     text += "abcdefghij"[key % 10] ?? "a";
-    samples.push(await type(field, text));
+    const { echoMs, workMs } = await type(field, text);
+    echoes.push(echoMs);
+    work.push(workMs);
   }
   return {
-    keystrokes: samples.length,
-    echoP50Ms: rounded(quantile(samples, 0.5)),
-    echoP95Ms: rounded(quantile(samples, 0.95)),
-    echoMaxMs: rounded(Math.max(...samples)),
+    keystrokes: echoes.length,
+    echoP50Ms: rounded(quantile(echoes, 0.5)),
+    echoP95Ms: rounded(quantile(echoes, 0.95)),
+    echoMaxMs: rounded(Math.max(...echoes)),
+    workP95Ms: rounded(quantile(work, 0.95)),
+    workMaxMs: rounded(Math.max(...work)),
   };
 }
 
 const scenarios: Record<string, (host: HostMessages) => Promise<Report>> = {
   "cold-start": coldStart,
-  "idle-visible": () => idle(false),
-  "idle-hidden": () => idle(true),
+  "idle-visible": (host) => idle("field", host),
+  "idle-unfocused": (host) => idle("unfocused", host),
+  "idle-lone-field": (host) => idle("lone-field", host),
+  "idle-lone-field-opaque": (host) => idle("lone-field-opaque", host),
+  "idle-hidden": (host) => idle("hidden", host),
   conversation,
   streaming,
   keystroke,
