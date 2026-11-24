@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_fdc0ee13cfb10d934251d693"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Show the workspace list from the last launch as soon as the window opens, and replace it when the core answers, instead of waiting for the session host and the core first."

@@ -7,6 +7,8 @@ interface WorkspaceStore {
   readonly workspaces: readonly Workspace[];
   /** Whether the lists loaded once. */
   readonly loaded: boolean;
+  /** Whether the lists shown are the ones kept from the last launch, until the core answers. */
+  readonly cached: boolean;
   /** Workspaces that appeared after the first load, while the user watched. */
   readonly arrived: ReadonlySet<string>;
   /** The code of the last failed reload, until a reload succeeds. */
@@ -30,6 +32,7 @@ export const useWorkspaceStore = create<WorkspaceStore>((set) => ({
   repositories: [],
   workspaces: [],
   loaded: false,
+  cached: false,
   arrived: new Set(),
   listFailure: null,
   advertisedCommands: null,
