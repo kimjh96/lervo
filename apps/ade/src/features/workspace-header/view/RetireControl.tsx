@@ -74,7 +74,7 @@ export function RetireControl(props: { workspaceId: string }) {
   return (
     <Presence as="span" contentKey={key}>
       {step.kind === "waiting" ? (
-        <Waiting immediate label={intl.formatMessage(stepMessages[step.step])} />
+        <Waiting label={intl.formatMessage(stepMessages[step.step])} />
       ) : step.kind === "asking" ? (
         // The question's answers are buttons; Escape on either cancels.
         // eslint-disable-next-line jsx-a11y/no-static-element-interactions
