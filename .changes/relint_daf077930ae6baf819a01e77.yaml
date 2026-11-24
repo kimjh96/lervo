@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_daf077930ae6baf819a01e77"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Make a knowledge publication run from the CLI ask the resident to take over its retry, so a pull request waiting on checks merges when they pass instead of stalling."
