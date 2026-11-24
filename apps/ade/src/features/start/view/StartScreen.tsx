@@ -7,6 +7,7 @@ import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
 import { Select } from "../../../ui/Select";
+import { Presence } from "../../../ui/Presence";
 import { chooseProvider, useProviderStore } from "../../providers";
 import { useWorkspaceStore } from "../../workspaces";
 import { canStart, type StartDraft, startWork } from "../model/start";
@@ -67,31 +68,35 @@ export function StartScreen() {
             onSubmit={submit}
           />
           <div className={styles.bar}>
-            {repositories.length === 0 ? null : (
-              <Select
-                label={intl.formatMessage({ id: "start.repository.label" })}
-                value={repository}
-                options={repositories.map((item) => ({ value: item.projectId, text: item.name }))}
-                onChange={(value) => setDraft({ ...draft, repository: value })}
-              />
-            )}
-            {offered.length < 2 || provider === null ? null : (
-              <Select
-                label={intl.formatMessage({ id: "start.provider.label" })}
-                value={provider.provider}
-                options={offered.map((item) => ({
-                  value: item.provider,
-                  text: item.installed
-                    ? item.displayName
-                    : intl.formatMessage(
-                        { id: "start.provider.missing" },
-                        { name: item.displayName },
-                      ),
-                  disabled: !item.installed,
-                }))}
-                onChange={(value) => setDraft({ ...draft, provider: value })}
-              />
-            )}
+            <Presence as="span">
+              {repositories.length === 0 ? null : (
+                <Select
+                  label={intl.formatMessage({ id: "start.repository.label" })}
+                  value={repository}
+                  options={repositories.map((item) => ({ value: item.projectId, text: item.name }))}
+                  onChange={(value) => setDraft({ ...draft, repository: value })}
+                />
+              )}
+            </Presence>
+            <Presence as="span">
+              {offered.length < 2 || provider === null ? null : (
+                <Select
+                  label={intl.formatMessage({ id: "start.provider.label" })}
+                  value={provider.provider}
+                  options={offered.map((item) => ({
+                    value: item.provider,
+                    text: item.installed
+                      ? item.displayName
+                      : intl.formatMessage(
+                          { id: "start.provider.missing" },
+                          { name: item.displayName },
+                        ),
+                    disabled: !item.installed,
+                  }))}
+                  onChange={(value) => setDraft({ ...draft, provider: value })}
+                />
+              )}
+            </Presence>
             <IconButton
               type="submit"
               className={styles.submit}
@@ -101,26 +106,32 @@ export function StartScreen() {
             />
           </div>
         </InputCard>
-        {repositories.length === 0 ? (
-          <p className={styles.explain}>
-            <FormattedMessage id="start.repository.none" />
-          </p>
-        ) : null}
-        {registry.status === "older" ? (
-          <p className={styles.explain}>
-            <FormattedMessage id="start.provider.older" />
-          </p>
-        ) : null}
-        {error === null ? null : (
-          <InlineAlert size="note" className={styles.error}>
-            <FormattedMessage
-              {...(Object.hasOwn(errorMessages, error.code)
-                ? errorMessages[error.code]
-                : { id: "start.error.other" })}
-              values={{ code: error.code, stage: error.stage ?? "none" }}
-            />
-          </InlineAlert>
-        )}
+        <Presence>
+          {repositories.length === 0 ? (
+            <p className={styles.explain}>
+              <FormattedMessage id="start.repository.none" />
+            </p>
+          ) : null}
+        </Presence>
+        <Presence>
+          {registry.status === "older" ? (
+            <p className={styles.explain}>
+              <FormattedMessage id="start.provider.older" />
+            </p>
+          ) : null}
+        </Presence>
+        <Presence className={styles.error}>
+          {error === null ? null : (
+            <InlineAlert size="note">
+              <FormattedMessage
+                {...(Object.hasOwn(errorMessages, error.code)
+                  ? errorMessages[error.code]
+                  : { id: "start.error.other" })}
+                values={{ code: error.code, stage: error.stage ?? "none" }}
+              />
+            </InlineAlert>
+          )}
+        </Presence>
       </div>
     </div>
   );

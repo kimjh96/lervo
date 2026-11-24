@@ -105,6 +105,21 @@ describe("the session-host client", () => {
     expect(fake.replaced()).toBe(1);
   });
 
+  it("reconnects at once after a restart it asked for, and with backoff otherwise", async () => {
+    const fake = fakeTransport(0);
+    const scheduler = manualScheduler();
+    const client = new SessionHostClient(fake.transport, scheduler.schedule);
+    client.start();
+    await flush();
+    await client.replace();
+    fake.emit({ kind: "host.disconnected" });
+    expect(scheduler.delays).toEqual([0]);
+    scheduler.fire();
+    await flush();
+    fake.emit({ kind: "host.disconnected" });
+    expect(scheduler.delays).toEqual([0, 500]);
+  });
+
   it("connects once however often it starts, and ignores a replaced connection's end", async () => {
     const fake = fakeTransport(0);
     const scheduler = manualScheduler();

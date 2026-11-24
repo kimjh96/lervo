@@ -6,6 +6,7 @@ import { IconButton } from "../../../ui/IconButton";
 import { ArrowUpIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { InputCard, InputField } from "../../../ui/InputCard";
+import { Presence } from "../../../ui/Presence";
 import styles from "./Composer.module.css";
 import { useDraft } from "./draft";
 
@@ -59,11 +60,13 @@ export function Composer(props: {
           icon={<ArrowUpIcon size="lg" />}
         />
       </InputCard>
-      {failure === null ? null : (
-        <InlineAlert size="meta" className={styles.error}>
-          <FormattedMessage id="conversation.reply.failed" values={{ code: failure }} />
-        </InlineAlert>
-      )}
+      <Presence className={styles.error}>
+        {failure === null ? null : (
+          <InlineAlert size="meta">
+            <FormattedMessage id="conversation.reply.failed" values={{ code: failure }} />
+          </InlineAlert>
+        )}
+      </Presence>
     </div>
   );
 }

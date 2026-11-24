@@ -49,6 +49,12 @@
       "value": "Restart"
     }
   ],
+  "connection.update.restarted": [
+    {
+      "type": 0,
+      "value": "Restarted the session host"
+    }
+  ],
   "connection.update.restarting": [
     {
       "type": 0,

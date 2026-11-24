@@ -49,6 +49,7 @@ function block(token: Token, key: number): ReactNode {
       const items = list.items.map((item, index) => (
         // List items have no identity beyond their order within one immutable message.
         <li key={index}>
+          {/* motion: A reply streams */}
           {item.task ? <span aria-hidden="true">{item.checked ? "☑ " : "☐ "}</span> : null}
           {listItem(item)}
         </li>

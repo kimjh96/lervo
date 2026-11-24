@@ -4,6 +4,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Waiting } from "../../../ui/Waiting";
 import { WorkingLine } from "../../../ui/WorkingLine";
+import { Presence } from "../../../ui/Presence";
 import type { ConversationSource } from "../model/source";
 import { useConversationStore } from "../model/store";
 import { Composer } from "./Composer";
@@ -39,16 +40,16 @@ export function ConversationPane(props: {
   }, [source]);
   return (
     <div className={styles.pane}>
-      {opening ? (
-        <div className={styles.opening}>
-          <Waiting label={intl.formatMessage({ id: "conversation.opening" })} />
-        </div>
-      ) : null}
-      {error === null ? null : (
-        <InlineAlert size="meta" className={styles.error}>
-          <FormattedMessage id="conversation.unavailable" values={{ code: error }} />
-        </InlineAlert>
-      )}
+      <Presence className={styles.opening}>
+        {opening ? <Waiting label={intl.formatMessage({ id: "conversation.opening" })} /> : null}
+      </Presence>
+      <Presence className={styles.error}>
+        {error === null ? null : (
+          <InlineAlert size="meta">
+            <FormattedMessage id="conversation.unavailable" values={{ code: error }} />
+          </InlineAlert>
+        )}
+      </Presence>
       <Conversation
         onLoadEarlier={() => void source.loadEarlier()}
         onLoadLater={() => void source.loadLater()}
@@ -56,9 +57,9 @@ export function ConversationPane(props: {
         continues={props.continues}
         dock={
           <>
-            {props.working === null ? null : (
-              <WorkingLine className={styles.working} label={props.working} />
-            )}
+            <Presence className={styles.working}>
+              {props.working === null ? null : <WorkingLine label={props.working} />}
+            </Presence>
             <Composer
               draftKey={props.draftKey}
               onSend={(text) => source.send(text)}

@@ -6,6 +6,7 @@ import { InlineAlert } from "../../../ui/InlineAlert";
 import { Kbd } from "../../../ui/Kbd";
 import { ListRow } from "../../../ui/ListRow";
 import { StatusDot } from "../../../ui/StatusDot";
+import { Presence } from "../../../ui/Presence";
 import { groupByRepository, visibleStatus } from "../model/decisions";
 import { useWorkspaceStore } from "../model/store";
 import { statusMessages } from "./messages";
@@ -43,11 +44,13 @@ export function WorkspaceList() {
           </Kbd>
         }
       />
-      {listFailure === null ? null : (
-        <InlineAlert size="caption" className={styles.failure}>
-          <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
-        </InlineAlert>
-      )}
+      <Presence className={styles.failure}>
+        {listFailure === null ? null : (
+          <InlineAlert size="caption">
+            <FormattedMessage id="workspaces.unavailable" values={{ code: listFailure }} />
+          </InlineAlert>
+        )}
+      </Presence>
       {groups.map((group) => (
         <div key={group.repositoryName}>
           <h3 className={styles.repository}>{group.repositoryName}</h3>
@@ -66,12 +69,15 @@ export function WorkspaceList() {
                     onClick={() => select(workspace.workspaceId)}
                     label={workspace.title ?? workspace.branch}
                     trailing={
-                      status === null ? null : (
-                        <StatusDot
-                          tone={status === "working" ? "working" : "attention"}
-                          label={intl.formatMessage(statusMessages[status])}
-                        />
-                      )
+                      // The dot brings its own arrival (motion, "Needs-you status").
+                      <Presence as="span" enter={false}>
+                        {status === null ? null : (
+                          <StatusDot
+                            tone={status === "working" ? "working" : "attention"}
+                            label={intl.formatMessage(statusMessages[status])}
+                          />
+                        )}
+                      </Presence>
                     }
                   />
                 </li>

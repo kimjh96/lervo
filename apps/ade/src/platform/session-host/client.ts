@@ -27,6 +27,8 @@ type Listener<T> = (value: T) => void;
 export class SessionHostClient implements SessionHost, HostReplacement {
   private state: ConnectionState = "connecting";
   private hostIdentity: HostIdentity | null = null;
+  /** The end of this connection was asked for, so the next one starts at once. */
+  private restartRequested = false;
   private connectedOnce = false;
   private started = false;
   private generation = 0;
@@ -115,9 +117,18 @@ export class SessionHostClient implements SessionHost, HostReplacement {
     return this.subscribe(this.identityListeners, listener);
   }
 
-  /** Asks the shell to end the reached session host; the connection's end then reconnects. */
-  replace(): Promise<void> {
-    return this.transport.replace();
+  /**
+   * Asks the shell to end the reached session host. The connection's end then reconnects at once,
+   * without the backoff a failure gets, so the restart takes no longer than the new host's start.
+   */
+  async replace(): Promise<void> {
+    this.restartRequested = true;
+    try {
+      await this.transport.replace();
+    } catch (failure) {
+      this.restartRequested = false;
+      throw failure;
+    }
   }
 
   private subscribe<T>(listeners: Set<Listener<T>>, listener: Listener<T>): () => void {
@@ -148,6 +159,12 @@ export class SessionHostClient implements SessionHost, HostReplacement {
     if (message.kind === "host.disconnected") {
       this.requests.abandon();
       this.change("reconnecting");
+      if (this.restartRequested) {
+        this.restartRequested = false;
+        this.retryMs = FIRST_RETRY_MS;
+        if (this.timer === undefined) this.timer = this.schedule(() => void this.connect(), 0);
+        return;
+      }
       this.retry();
       return;
     }
