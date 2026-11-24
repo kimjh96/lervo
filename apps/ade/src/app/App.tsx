@@ -23,12 +23,13 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
   const { adapters, notifier } = props;
   const launched = useLaunched();
   useEffect(() => {
-    const { host, commands, drafts } = adapters;
+    const { host, commands, drafts, lists } = adapters;
     const unbind = [
       bindConnection(host),
       bindWorkspaces({
         client: host,
         commands,
+        lists,
         notifier,
         isFocused: () => document.hasFocus(),
         text: (kind, title) => ({ title, body: intl.formatMessage(notificationMessages[kind]) }),

@@ -2,9 +2,10 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { App } from "./app/App";
+import { restoreWorkspaces } from "./features/workspaces";
 import { tauriNotifier } from "./platform/notifications";
 import { SessionHostClient, SessionHostCommands, tauriTransport } from "./platform/session-host";
-import { localDrafts } from "./platform/storage";
+import { localDrafts, localLists } from "./platform/storage";
 import { bindVisibility } from "./platform/visibility";
 // `index.html` links the document's styles (`ui/base.css`, `app/global.css`, `app/launch.css`),
 // so they apply before this script runs.
@@ -23,8 +24,15 @@ bindVisibility();
 
 const notifier = tauriNotifier();
 const host = new SessionHostClient(tauriTransport());
-const adapters = { host, commands: new SessionHostCommands(host), drafts: localDrafts() };
+const adapters = {
+  host,
+  commands: new SessionHostCommands(host),
+  drafts: localDrafts(),
+  lists: localLists(),
+};
 host.start();
+// The lists kept from the last launch show at once; the core's answer replaces them.
+restoreWorkspaces(adapters.lists);
 
 createRoot(container).render(
   <StrictMode>

@@ -1,7 +1,7 @@
-<!-- lervo-release package="@lervo/ade" version="0.2.2" schema="1" -->
+<!-- lervo-release package="@lervo/ade" version="0.2.3" schema="1" -->
 
 Needs the Lervo CLI 0.43.0 or later.
 
 ## What's changed
 
-- Start connecting to the session host as soon as the interface script runs, instead of first loading two more scripts and waiting for the notification permission check.
+- Show the workspace list from the last launch as soon as the window opens, and replace it when the core answers, instead of waiting for the session host and the core first.
