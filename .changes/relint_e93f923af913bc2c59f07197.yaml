@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_e93f923af913bc2c59f07197"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Keep finding the newest CLI release when ADE releases fill the newest 30 entries of the repository's release list, so host upgrades never miss a CLI release."
