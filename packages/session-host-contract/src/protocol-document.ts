@@ -5,6 +5,7 @@ import {
   repositoryListResultSchema,
   repositorySummarySchema,
   workspaceListResultSchema,
+  workspaceRetireResultSchema,
   workspaceStartResultSchema,
   workspaceSummarySchema,
 } from "./application-results.js";
@@ -75,6 +76,7 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     providerCapabilitiesSchema,
     providerSummarySchema,
     providerListResultSchema,
+    workspaceRetireResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[
     ...coreLinkRequestSchemas,

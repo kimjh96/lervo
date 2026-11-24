@@ -5,7 +5,7 @@ import {
   validateCoreLinkRequest,
 } from "@lervo/session-host-contract";
 
-import { errorCode } from "./command-error-output.js";
+import { CommandFailure, errorCode } from "./command-error-output.js";
 import type { HostedProviderSummary } from "./hosted-session-adapters.js";
 import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-service.js";
 import type { WorkspaceStartResult } from "./workspace-start.js";
@@ -32,6 +32,8 @@ export interface CoreLinkHandlers {
     offset: number,
     limit: number,
   ): Promise<{ items: HostedTranscriptItem[]; complete: boolean }>;
+  /** Retires a hosted workspace without discarding work. */
+  retireWorkspace(workspaceId: string): Promise<object>;
   /** Records a hosted session's process exit unless its own hook recorded the end. */
   recordSessionExit(sessionId: string, exitCode: number | null): Promise<{ status: string }>;
 }
@@ -128,6 +130,12 @@ export class CoreLinkServer {
         return;
       case "provider.list":
         this.respond(request.id, () => this.handlers.listProviders());
+        return;
+      case "workspace.retire":
+        // An invalid ID fails this request alone, never the link.
+        this.respond(request.id, async () =>
+          this.handlers.retireWorkspace(workspaceIdArgument(request.arguments)),
+        );
         return;
       default:
         this.track(request.id, () =>
@@ -275,4 +283,11 @@ async function* lines(input: AsyncIterable<Uint8Array | string>): AsyncGenerator
       return;
     }
   }
+}
+
+/** The `workspaceId` argument of a workspace command, or a failure the session host can show. */
+function workspaceIdArgument(arguments_: unknown): string {
+  const value = (arguments_ as Record<string, unknown> | undefined)?.workspaceId;
+  if (typeof value === "string" && /^[A-Za-z0-9_-]{1,64}$/u.test(value)) return value;
+  throw new CommandFailure("workspace_not_found", "The workspace ID is invalid.");
 }

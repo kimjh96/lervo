@@ -9,6 +9,8 @@ import {
 } from "./workspace-launch-service.js";
 import { WorkspaceTranscripts } from "./workspace-transcript-service.js";
 import { recordHostedSessionExit } from "./hosted-session-exit.js";
+import { retireHostedWorkspace } from "./hosted-workspace-retire.js";
+import { hostedWorkspaceRetireEffects } from "./hosted-workspace-retire-effects.js";
 
 const transcripts = new WorkspaceTranscripts();
 
@@ -44,6 +46,8 @@ export const coreLinkHandlers: CoreLinkHandlers = {
   openWorkspace: (workspaceId, mode) => openWorkspace(workspaceId, mode),
   createDecoder: createHostedStreamDecoder,
   readTranscript: (workspaceId, offset, limit) => transcripts.read(workspaceId, offset, limit),
+  retireWorkspace: (workspaceId) =>
+    retireHostedWorkspace(workspaceId, hostedWorkspaceRetireEffects()),
   recordSessionExit: (sessionId, exitCode) => recordHostedSessionExit(sessionId, exitCode),
 };
 
