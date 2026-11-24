@@ -1,9 +1,7 @@
-<!-- lervo-release package="@lervo/ade" version="0.4.1" schema="1" -->
+<!-- lervo-release package="@lervo/ade" version="0.4.2" schema="1" -->
 
 Needs the Lervo CLI 0.43.0 or later.
 
 ## What's changed
 
-- A click on the Lervo window while another app is in front presses what it lands on, instead of only bringing the window forward.
-- A quick click on the Lervo window while another app is in front now acts, and content fading out settles instead of dropping away at the end.
-- Everything that comes and goes fades in and out, which a lint rule now requires of every view, and a restart of the session host says that it finished.
+- The first click on the Lervo window acts even when macOS hands its release in before its press, and nothing pops in or drops out: views, the starting workspace, removed rows, and the remove question crossfade over the motion tokens, which the motion check enforces.
