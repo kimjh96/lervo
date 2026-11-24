@@ -127,8 +127,9 @@ export interface KnowledgeConvergenceStatus {
    */
   verificationChanges?: { changedPathCount: number; paths: string[] };
   /**
-   * Present only for `knowledge_verification_failed` (ADR-0562 section 3): the first command of the
-   * failed suite that did not pass, read from the suite's private result.
+   * Present only for `knowledge_verification_failed`, `knowledge_verification_environment_failed`,
+   * and `knowledge_verification_timed_out` (ADR-0562 section 3): the first command of the failed
+   * suite that did not pass, read from the suite's private result.
    */
   verificationFailure?: {
     suiteId: string;

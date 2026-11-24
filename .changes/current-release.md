@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.46.5" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.46.6" schema="1" -->
 
 ## What's changed
 
-- Requeue a knowledge integration stage that an orphaned target attempt had stalled, once that attempt is released, so the stage integrates the next generation.
+- Retry knowledge convergence verification failures the host caused: a command that could not start or was not found retries with backoff, a timeout is reevaluated after six hours, and the integrator's failed candidate suite names its failed command instead of failing unclassified.

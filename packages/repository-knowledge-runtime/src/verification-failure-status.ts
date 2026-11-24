@@ -1,6 +1,7 @@
 import type { ProjectStorage } from "@lervo/project-storage";
 import {
   replayKnowledgeConvergence,
+  VERIFICATION_FAILURE_CODES,
   type KnowledgeConvergenceStatus,
 } from "@lervo/repository-knowledge";
 
@@ -57,13 +58,13 @@ export async function verificationFailureFromEvidence(
 /**
  * ADR-0562 section 3: a verification stop names its cause. The status gains the first command of
  * the failed suite that did not pass, so the health line says what to fix instead of only that
- * verification failed.
+ * verification failed. A command the host could not run or finish names its cause the same way.
  */
 export async function withVerificationFailureStatus(
   storage: Pick<ProjectStorage, "artifacts" | "events">,
   status: KnowledgeConvergenceStatus,
 ): Promise<KnowledgeConvergenceStatus> {
-  if (status.reason !== VERIFICATION_FAILED) return status;
+  if (status.reason === null || !VERIFICATION_FAILURE_CODES.has(status.reason)) return status;
   const active = replayKnowledgeConvergence(storage.events).find((row) => row.outcome === null);
   const failure = await verificationFailureFromEvidence(
     storage.artifacts,

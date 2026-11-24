@@ -5,6 +5,34 @@ export const MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS = 16;
  * absorb a passing host condition before the stage records attention with private evidence.
  */
 export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
+/**
+ * A verification command that could not start or whose program was not found (ADR-0562 section 3)
+ * says more about the host than about the sources. It fails in moments, so a few backoff attempts
+ * absorb a briefly broken host before the stage records attention.
+ */
+export const MAXIMUM_VERIFICATION_ENVIRONMENT_ATTEMPTS = 4;
+export const VERIFICATION_ENVIRONMENT_FAILED = "knowledge_verification_environment_failed";
+/**
+ * A verification command that ran out of time may have met a busy host or a hanging check. Each
+ * attempt costs the whole timeout and a busy host outlasts a short backoff, so it is not retried
+ * at once: it settles and is reevaluated later.
+ */
+export const VERIFICATION_TIMED_OUT = "knowledge_verification_timed_out";
+/** Failure codes whose evidence is a verification suite result that names the failed command. */
+export const VERIFICATION_FAILURE_CODES: ReadonlySet<string> = new Set([
+  "knowledge_verification_failed",
+  VERIFICATION_ENVIRONMENT_FAILED,
+  VERIFICATION_TIMED_OUT,
+]);
+
+/** Settled failures that may have been the host's own: each holds until its reevaluation time. */
+export function reevaluatedConvergenceFailure(code: string): boolean {
+  return (
+    code === "knowledge_stage_failure_unclassified" ||
+    code === VERIFICATION_ENVIRONMENT_FAILED ||
+    code === VERIFICATION_TIMED_OUT
+  );
+}
 
 /**
  * The reviewed name of the evaluation contract (ADR-0479, ADR-0481, ADR-0485). A host adds the
@@ -12,7 +40,7 @@ export const MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS = 4;
  */
 export const KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT = "adr-0532";
 
-/** How long an unclassified attention stays settled before the owner reevaluates the stage. */
+/** How long a failure the host may have caused stays settled before the owner reevaluates it. */
 export const UNCLASSIFIED_STAGE_REEVALUATION_MS = 6 * 60 * 60_000;
 
 /** Failure codes the owner reschedules instead of settling, with their logical attempt budgets. */
@@ -24,6 +52,7 @@ export function convergenceRetryLimit(code: string): number | null {
   )
     return MAXIMUM_CONVERGENCE_STAGE_ATTEMPTS;
   if (code === "knowledge_stage_failure_unclassified") return MAXIMUM_UNCLASSIFIED_STAGE_ATTEMPTS;
+  if (code === VERIFICATION_ENVIRONMENT_FAILED) return MAXIMUM_VERIFICATION_ENVIRONMENT_ATTEMPTS;
   return null;
 }
 
@@ -67,6 +96,8 @@ export function normalizedConvergenceFailure(error: unknown): string {
     "knowledge_project_unavailable",
     "knowledge_cancelled",
     "knowledge_verification_failed",
+    VERIFICATION_ENVIRONMENT_FAILED,
+    VERIFICATION_TIMED_OUT,
     "knowledge_lifecycle_blocked",
     "knowledge_lifecycle_incomplete",
     "knowledge_lint_invalid",

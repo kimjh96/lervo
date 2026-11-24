@@ -287,6 +287,92 @@ it("escalates a repeated untyped stage failure from a visible retry schedule to 
   }
 });
 
+it("retries a host-environment verification failure, then settles it with a reevaluation time", async () => {
+  const f = await fixture();
+  let clock = Date.parse("2026-11-24T01:00:00.000Z");
+  const evidence = sha256("verification result");
+  f.host.runStage = async () => {
+    throw Object.assign(new Error("verification"), {
+      code: "knowledge_verification_environment_failed",
+      dependencyHash: evidence,
+    });
+  };
+  const cycle = () => f.cycle(1, 4, () => new Date(clock));
+  try {
+    expect(await cycle()).toMatchObject({
+      state: "retry_scheduled",
+      reason: "knowledge_verification_environment_failed",
+      retry: { attemptCount: 1, attemptLimit: 4, nextAttemptAt: "2026-11-24T01:01:00.000Z" },
+    });
+    for (const [delay, attemptCount] of [
+      [60_000, 2],
+      [120_000, 3],
+    ] as const) {
+      clock += delay;
+      expect(await cycle()).toMatchObject({ retry: { attemptCount } });
+    }
+    clock += 240_000;
+    expect(await cycle()).toMatchObject({
+      state: "attention_required",
+      reason: "knowledge_verification_environment_failed",
+    });
+    const stage = f.events
+      .list({ limit: 100 })
+      .findLast((event) => event.type === "repository.knowledge.stage.recorded")!;
+    const dependency = JSON.parse(
+      Buffer.from(
+        await f.artifacts.get(
+          `lervo-cas://sha256/${(stage.payload.dependencyHash as string).slice(7)}`,
+        ),
+      ).toString("utf8"),
+    );
+    expect(dependency).toMatchObject({
+      code: "knowledge_verification_environment_failed",
+      evidenceHash: evidence,
+      reevaluateAt: new Date(clock + 6 * 60 * 60_000).toISOString(),
+    });
+    expect(dependency.cause).toBeUndefined();
+  } finally {
+    f.events.close();
+  }
+});
+
+it("settles a verification timeout at once with a reevaluation time", async () => {
+  const f = await fixture();
+  const clock = Date.parse("2026-11-24T01:00:00.000Z");
+  f.host.runStage = async () => {
+    throw Object.assign(new Error("verification"), {
+      code: "knowledge_verification_timed_out",
+      dependencyHash: sha256("verification result"),
+    });
+  };
+  try {
+    const settled = await f.cycle(1, 4, () => new Date(clock));
+    expect(settled).toMatchObject({
+      state: "attention_required",
+      reason: "knowledge_verification_timed_out",
+    });
+    expect(settled.retry).toBeUndefined();
+    const stage = f.events
+      .list({ limit: 100 })
+      .findLast((event) => event.type === "repository.knowledge.stage.recorded")!;
+    expect(
+      JSON.parse(
+        Buffer.from(
+          await f.artifacts.get(
+            `lervo-cas://sha256/${(stage.payload.dependencyHash as string).slice(7)}`,
+          ),
+        ).toString("utf8"),
+      ),
+    ).toMatchObject({
+      code: "knowledge_verification_timed_out",
+      reevaluateAt: new Date(clock + 6 * 60 * 60_000).toISOString(),
+    });
+  } finally {
+    f.events.close();
+  }
+});
+
 it("stores an owned dependency without busy retrying when write authority is unavailable", async () => {
   const f = await fixture();
   f.host.runStage = async (_stage, input) => ({

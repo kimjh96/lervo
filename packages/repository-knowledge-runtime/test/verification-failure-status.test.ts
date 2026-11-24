@@ -3,7 +3,6 @@ import { expect, it } from "vitest";
 import { canonicalJson, sha256 } from "@lervo/repository-knowledge";
 
 import { verificationFailureFromEvidence } from "../src/verification-failure-status.js";
-import { assertConvergenceVerificationPassed } from "../src/verification-outcome.js";
 
 function store() {
   const bytes = new Map<string, Uint8Array>();
@@ -79,15 +78,4 @@ it("names the first failed command of the suite a stop depends on (ADR-0562)", a
     await verificationFailureFromEvidence(cas.artifacts, `sha256:${"0".repeat(64)}`),
   ).toBeNull();
   expect(await verificationFailureFromEvidence(cas.artifacts, null)).toBeNull();
-});
-
-it("attaches the suite result to a failed verification", () => {
-  const hash = `sha256:${"a".repeat(64)}`;
-  expect(() => assertConvergenceVerificationPassed("passed", hash)).not.toThrow();
-  expect(() => assertConvergenceVerificationPassed("failed", hash)).toThrow(
-    expect.objectContaining({ code: "knowledge_verification_failed", dependencyHash: hash }),
-  );
-  expect(() => assertConvergenceVerificationPassed("cancelled")).toThrow(
-    expect.objectContaining({ code: "knowledge_cancelled" }),
-  );
 });

@@ -230,7 +230,13 @@ export type { WorkstreamChange } from "./workstream-revision.js";
 export * from "./workstream-revision-plan.js";
 export * from "./knowledge-convergence-contract.js";
 export * from "./knowledge-convergence-owner.js";
-export { KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT } from "./knowledge-convergence-failure.js";
+export {
+  KNOWLEDGE_STAGE_FAILURE_EVALUATION_CONTRACT,
+  reevaluatedConvergenceFailure,
+  VERIFICATION_ENVIRONMENT_FAILED,
+  VERIFICATION_FAILURE_CODES,
+  VERIFICATION_TIMED_OUT,
+} from "./knowledge-convergence-failure.js";
 export { replayKnowledgeConvergence } from "./knowledge-convergence-replay.js";
 export { createStoredDocumentNormalizationSubsetCandidate } from "./document-normalization-subset.js";
 export * from "./knowledge-stage-lint.js";
