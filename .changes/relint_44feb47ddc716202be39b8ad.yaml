@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_44feb47ddc716202be39b8ad"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Derive the governing index that the Stop check and Find preference read from the relation web, and keep a strong mention's evidence when a weak mention of the same path came first (relation web extractor version 2)."
