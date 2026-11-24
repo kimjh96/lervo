@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_1173dd5e2a4860931d8adf81"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Read freshness supersession from the relation web's ADR header edges, so a superseded part or prose no longer counts as a full supersession and bare ADR numbers resolve."
