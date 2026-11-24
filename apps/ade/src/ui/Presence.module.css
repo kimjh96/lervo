@@ -1,5 +1,5 @@
 /* Content that comes and goes, or changes in one place: layers share one grid cell, so the space
-   holds while the old content fades out over `exit` and then the new fades in over `change` (ADE
+   holds while the old content fades out over `leave` and then the new fades in over `change` (ADE
    motion, "Coming and going" and "Changing in place"). */
 .presence {
   display: grid;
@@ -19,14 +19,16 @@
   animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
 }
 
+/* Leaving decelerates: most of the fade happens early and the tail settles, so the content never
+   drops out at the end of its fade. */
 .layer[data-leaving] {
   pointer-events: none;
-  animation: global(lervo-leave) var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-standard) forwards;
 }
 
 /* In one place, the new content waits until the old has left, so two texts never overlap. */
 .layer[data-after][data-enter]:not([data-leaving]) {
-  animation-delay: var(--motion-duration-exit);
+  animation-delay: var(--motion-duration-leave);
   animation-fill-mode: backwards;
 }
 

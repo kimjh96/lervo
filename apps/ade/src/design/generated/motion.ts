@@ -8,5 +8,6 @@ export const motion = {
   "paceMs": 120,
   "waitMs": 300,
   "waitLaunchMs": 1000,
+  "leaveMs": 200,
   "settleMs": 3000
 } as const;

@@ -112,6 +112,7 @@
   --motion-duration-pace: 120ms;
   --motion-duration-wait: 300ms;
   --motion-duration-wait-launch: 1000ms;
+  --motion-duration-leave: 200ms;
   --motion-duration-settle: 3000ms;
   --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
