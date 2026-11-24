@@ -3,6 +3,7 @@
 - Status: accepted (amended 2026-09-16)
 - Decision date: 2026-09-16
 - Amended by: [ADR-0570](../../operations/services/0570-reuse-one-replica-peer-connection-and-back-off-an-unreachable-peer.md) (one reused peer connection and a shared back-off for an unreachable peer), [ADR-0573](../../distribution/0573-restart-a-replica-coordinator-that-runs-a-superseded-runtime.md) (service inspection on macOS and Linux, and `repository_replica_service_stale_runtime`)
+- Amended by: [ADR-0461](../../operations/services/0461-drive-resident-runtime-service-work-from-changes-not-timers.md)
 
 ## Context
 
