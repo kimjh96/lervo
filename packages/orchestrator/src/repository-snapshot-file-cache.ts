@@ -1,4 +1,5 @@
-import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
 import {
@@ -55,13 +56,16 @@ export async function capturePersistentRepositorySnapshot(
     policy,
     ...(previous === undefined ? {} : { previous }),
   });
+  // Unique per write: two captures in one process, such as a resident's health refresh and its
+  // detached knowledge scan, must not interleave into one temporary file.
+  const temporary = `${cachePath}.${process.pid}.${randomUUID()}.tmp`;
   try {
     await mkdir(dirname(cachePath), { recursive: true, mode: 0o700 });
-    const temporary = `${cachePath}.${process.pid}.tmp`;
     await writeFile(temporary, JSON.stringify(cache), { mode: 0o600 });
     await rename(temporary, cachePath);
   } catch {
     // The cache is an optimization; failing to persist it never fails the capture.
+    await rm(temporary, { force: true }).catch(() => undefined);
   }
   return snapshot;
 }

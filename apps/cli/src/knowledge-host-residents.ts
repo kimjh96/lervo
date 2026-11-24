@@ -39,7 +39,7 @@ import {
   hostResidentCandidates,
   type ResidentProvider,
 } from "./knowledge-host-resident-candidates.js";
-import { prefetchRepositoryHealth } from "./repository-health-prefetch.js";
+import { prefetchResidentProjections } from "./resident-projection-prefetch.js";
 import { hostResidentStatusWriter } from "./knowledge-host-status-writer.js";
 import { watchStandbyHolder } from "./knowledge-host-standby-watch.js";
 import { activationRetryAt } from "./knowledge-host-activation-retry.js";
@@ -142,7 +142,7 @@ export function startHostKnowledgeResidents(input: {
           now: () => new Date(),
         }),
       publish: createKnowledgePublisher(storage.paths.repositoryRoot),
-      refreshHealth: () => prefetchRepositoryHealth(root),
+      refreshHealth: () => prefetchResidentProjections(root),
       onCycle: (result, cost) => input.onCycle?.(root, result, cost),
       onFailure: (error) => input.onFailure(root, error),
     });

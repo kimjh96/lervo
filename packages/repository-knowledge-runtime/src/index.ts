@@ -20,6 +20,7 @@ export {
   type TranscriptPosition,
 } from "./terminal-skill-queue.js";
 export { absentTerminalTranscript, newTranscriptStart } from "./terminal-transcript-position.js";
+export { repositoryHeadIdentity } from "./repository-head-identity.js";
 export {
   convergenceDelegationPlanHash,
   loadConvergenceDelegation,
