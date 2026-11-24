@@ -18,6 +18,7 @@ export const applicationCommandNames = [
   "workspace.list",
   "repository.list",
   "provider.list",
+  "workspace.retire",
 ] as const;
 
 /** Commands every core answers. Any other command is sent only to a core that advertises it. */
@@ -177,12 +178,30 @@ export const providerListResultSchema = {
   },
 } as const;
 
+/**
+ * `workspace.retire`: what retiring a workspace removed. The core removes a clean worktree, and
+ * the branch only when its commits are already on the default branch; it keeps everything else.
+ */
+export const workspaceRetireResultSchema = {
+  title: "WorkspaceRetireResult",
+  type: "object",
+  required: ["workspaceId", "worktree", "branch"],
+  properties: {
+    workspaceId: identifierSchema,
+    /** `absent` when the worktree was already gone. */
+    worktree: { type: "string", enum: ["removed", "absent"] },
+    /** `kept` when the branch holds commits the default branch lacks. */
+    branch: { type: "string", enum: ["deleted", "kept", "absent"] },
+  },
+} as const;
+
 /** Each command's result schema. */
 export const applicationResultSchemas = {
   "workspace.start": workspaceStartResultSchema,
   "workspace.list": workspaceListResultSchema,
   "repository.list": repositoryListResultSchema,
   "provider.list": providerListResultSchema,
+  "workspace.retire": workspaceRetireResultSchema,
 } as const;
 
 export type ApplicationCommandName = (typeof applicationCommandNames)[number];
@@ -194,6 +213,7 @@ export type WorkspaceStartResult = FromSchema<typeof workspaceStartResultSchema>
 export type ProviderCapabilities = FromSchema<typeof providerCapabilitiesSchema>;
 export type ProviderSummary = FromSchema<typeof providerSummarySchema>;
 export type ProviderListResult = FromSchema<typeof providerListResultSchema>;
+export type WorkspaceRetireResult = FromSchema<typeof workspaceRetireResultSchema>;
 
 /** Each command's result type. */
 export interface ApplicationResults {
@@ -201,4 +221,5 @@ export interface ApplicationResults {
   "workspace.list": WorkspaceListResult;
   "repository.list": RepositoryListResult;
   "provider.list": ProviderListResult;
+  "workspace.retire": WorkspaceRetireResult;
 }

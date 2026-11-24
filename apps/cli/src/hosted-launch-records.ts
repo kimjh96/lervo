@@ -98,3 +98,17 @@ export async function latestHostedLaunch(
   const records = await readRecords(path);
   return records.findLast((record) => record.workspaceId === workspaceId) ?? null;
 }
+
+/** Every session the kept records name for `workspaceId`, oldest first. */
+export async function hostedSessionsOfWorkspace(
+  path: string,
+  workspaceId: string,
+): Promise<string[]> {
+  return [
+    ...new Set(
+      (await readRecords(path))
+        .filter((record) => record.workspaceId === workspaceId)
+        .map((record) => record.sessionId),
+    ),
+  ];
+}
