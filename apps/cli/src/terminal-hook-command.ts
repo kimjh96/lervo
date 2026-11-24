@@ -11,7 +11,7 @@ import {
   unmanagedTerminalCoordinates,
 } from "./terminal-event-coordinates.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
-import { parseTerminalHookInput } from "./terminal-hook-input.js";
+import { parseTerminalHookIngress } from "./terminal-hook-input.js";
 import { prepareAndRecordTerminalPrompt } from "./terminal-prompt-hook.js";
 import { completeTerminalHookTurn } from "./terminal-stop-hook.js";
 import {
@@ -21,6 +21,7 @@ import {
   withinTerminalDeadline,
 } from "./terminal-hook-budget.js";
 import { prepareTerminalBaseContext } from "./terminal-degraded-context.js";
+import { prepareTerminalSessionStart } from "./terminal-session-start.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 import { recordTerminalStageObservation } from "./terminal-stage-persistence.js";
 import { preparedTerminalTurnExpectation } from "./terminal-turn-observation.js";
@@ -72,9 +73,30 @@ async function executeTerminalHookCommand(
           parsed.values.contract === "2"
             ? ("lervo_terminal_hooks_v2" as const)
             : ("lervo_terminal_hooks_v1" as const),
-        input: parseTerminalHookInput(await io.stdin()),
+        input: parseTerminalHookIngress(await io.stdin()),
       };
     });
+    if (input.event === "SessionStart") {
+      // ADR-0562 section 4: the epoch's base block. Without it the next prompt still delivers the
+      // full context, so a failure answers with nothing instead of blocking the session.
+      const additionalContext = await withinTerminalDeadline(
+        startedAt + TERMINAL_HOOK_BUDGET_MS,
+        async () =>
+          prepareTerminalSessionStart({
+            root: await resolveTerminalRepositoryRoot(io.cwd),
+            provider,
+            session: input,
+            deadline: startedAt + TERMINAL_HOOK_BUDGET_MS,
+            now: new Date(),
+          }),
+      ).catch(() => null);
+      io.stdout(
+        additionalContext === null
+          ? "{}\n"
+          : `${JSON.stringify({ hookSpecificOutput: { hookEventName: "SessionStart", additionalContext } })}\n`,
+      );
+      return 0;
+    }
     if (input.event === "Stop" && input.stopHookActive) {
       io.stdout("{}\n");
       return 0;
