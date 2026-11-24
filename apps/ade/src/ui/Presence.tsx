@@ -10,18 +10,19 @@ interface Layer {
   readonly key: string;
   readonly node: ReactNode;
   readonly leaving: boolean;
-  /** Arrived while other content was leaving, so it waits for that content to go first. */
+  /** Arrived while other content was leaving, so it starts halfway through that leaving. */
   readonly after: boolean;
 }
 
 /**
  * The motion of anything a view shows only sometimes, or changes in one place (ADE motion,
- * "Coming and going" and "Changing in place"). Content fades in over `motion.duration.change`.
+ * "Coming and going" and "Changing in place"). Content fades in over `motion.duration.enter`.
  * When `children` becomes empty, the last content fades out over `motion.duration.leave` before it
- * unmounts. When `contentKey` changes, the old content fades out and then the new fades in, in
- * the same space, so a button can become its wait and then its result without anything jumping
- * and without two texts overlapping. Leaving content takes no clicks and is hidden from assistive technology. The ADE's
- * lint rule requires this, or a named motion pattern, for every element that comes and goes.
+ * unmounts. When `contentKey` changes, the old content fades out and the new fades in halfway
+ * through, in the same space, so a button can become its wait and then its result without
+ * anything jumping and without two texts reading over each other. Leaving content takes no clicks
+ * and is hidden from assistive technology. The ADE's lint rule requires this, or a named motion
+ * pattern, for every element that comes and goes. Whole views use `ViewPresence`.
  */
 export function Presence(props: {
   children: ReactNode;
@@ -29,13 +30,13 @@ export function Presence(props: {
   contentKey?: string;
   /** `span` inside a line of controls, such as a header; `div` elsewhere. */
   as?: "div" | "span";
-  /** False when the content brings its own arrival, such as the needs-you dot. */
-  enter?: boolean;
   /**
    * Which edge content keeps while the space changes size. `end` suits a place pinned to the
    * bottom, such as the sidebar footer, so the new content never moves when the old leaves.
    */
   align?: "start" | "end";
+  /** Which side content keeps while the space changes width; `end` suits a header's controls. */
+  justify?: "start" | "end";
   className?: string | undefined;
 }) {
   const present = shownOf(props.children);
@@ -75,13 +76,14 @@ export function Presence(props: {
       className={[styles.presence, props.className].filter(Boolean).join(" ")}
       data-inline={Element === "span" ? "" : undefined}
       data-align={props.align}
+      data-justify={props.justify}
     >
       {layers.map((layer) => (
         <Element
           key={layer.key}
           className={styles.layer}
           data-leaving={layer.leaving ? "" : undefined}
-          data-enter={props.enter === false ? undefined : ""}
+          data-enter=""
           data-after={layer.after ? "" : undefined}
           aria-hidden={layer.leaving ? true : undefined}
           inert={layer.leaving}

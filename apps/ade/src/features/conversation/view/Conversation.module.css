@@ -50,7 +50,7 @@
 /* The conversation arrives with its view once placed; the reply card stays where it is (ADE
    motion, "Switching workspaces"). */
 .list[data-placed="arrive"] {
-  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 .row {
@@ -73,7 +73,7 @@
 
 /* Only items that arrive while the user watches move (ADE motion, "A message arrives live"). */
 .row[data-arrived="true"] > * {
-  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
 }
 
 /* The reply card and "Jump to latest" float over the conversation on glass (visual language,

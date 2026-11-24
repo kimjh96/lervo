@@ -1,5 +1,5 @@
 /* Content that comes and goes, or changes in one place: layers share one grid cell, so the space
-   holds while the old content fades out over `leave` and then the new fades in over `change` (ADE
+   holds while the old content fades out over `leave` and the new fades in over `enter` (ADE
    motion, "Coming and going" and "Changing in place"). */
 .presence {
   display: grid;
@@ -21,20 +21,27 @@
   align-self: end;
 }
 
-.layer[data-enter]:not([data-leaving]) {
-  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard);
+/* In a row of controls, layers keep the right edge, so neighbours never move as content changes
+   width. */
+.presence[data-justify="end"] > .layer {
+  justify-self: end;
 }
 
-/* Leaving decelerates: most of the fade happens early and the tail settles, so the content never
-   drops out at the end of its fade. */
+.layer[data-enter]:not([data-leaving]) {
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+/* Leaving eases in and out, so the content never drops out at the end of its fade. */
 .layer[data-leaving] {
   pointer-events: none;
-  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-standard) forwards;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
-/* In one place, the new content waits until the old has left, so two texts never overlap. */
+/* In one place, the new content starts halfway through the old content's leaving, as views do:
+   the two cross while both are faint, so two texts never read over each other, and no blank gap
+   blinks. */
 .layer[data-after][data-enter]:not([data-leaving]) {
-  animation-delay: var(--motion-duration-leave);
+  animation-delay: calc(var(--motion-duration-leave) / 2);
   animation-fill-mode: backwards;
 }
 

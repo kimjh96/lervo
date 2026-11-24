@@ -1,35 +1,31 @@
-import { type ReactNode, useState } from "react";
+import type { ReactNode } from "react";
 
 import styles from "./PaneHeader.module.css";
+import { Presence } from "./Presence";
 
 /**
  * The header bar of the main area (approved mockup "2a"): a title, a detail in the mono face, and
- * trailing controls. It also moves the window. It arrives with its view unless it replaces a
- * header that looked the same; that is decided when it mounts, so a later change of `arrive`
- * never replays the arrival over a header the user already sees.
+ * trailing controls. It also moves the window. It arrives and leaves with its view; a detail that
+ * comes or goes while it shows fades in place.
  */
 export function PaneHeader(props: {
   title: string;
   /** A short fact beside the title in the mono face, such as the repository of work starting. */
-  detail?: string;
-  arrive: boolean;
+  detail?: string | undefined;
   children?: ReactNode;
 }) {
-  const [arrive] = useState(props.arrive);
   return (
-    <header
-      className={styles.header}
-      data-arrive={arrive ? "true" : undefined}
-      data-tauri-drag-region
-    >
+    <header className={styles.header} data-tauri-drag-region>
       <h1 className={styles.title} data-tauri-drag-region>
         {props.title}
       </h1>
-      {props.detail === undefined ? null : (
-        <span className={styles.detail} data-tauri-drag-region>
-          {props.detail}
-        </span>
-      )}
+      <Presence as="span">
+        {props.detail === undefined ? null : (
+          <span className={styles.detail} data-tauri-drag-region>
+            {props.detail}
+          </span>
+        )}
+      </Presence>
       <span className={styles.spacer} data-tauri-drag-region />
       {props.children}
     </header>

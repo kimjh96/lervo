@@ -15,7 +15,6 @@
   width: var(--size-dot-attention);
   height: var(--size-dot-attention);
   background: var(--color-status-needs-you);
-  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 @keyframes breathe {

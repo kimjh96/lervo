@@ -1,0 +1,12 @@
+/* The branch icon, and the line that says what pressing it copied. */
+.branch {
+  display: inline-flex;
+  gap: var(--space-6);
+  align-items: center;
+}
+
+.copied {
+  color: var(--color-text-secondary);
+  font-size: var(--type-meta-size);
+  white-space: nowrap;
+}

@@ -1,5 +1,5 @@
-/* A wait in place of the control that started it: it fades in once, and the working line's
-   highlight sweeps across its words. */
+/* A wait in place of the control that started it: its words fade in through `Presence`, a new
+   step crossfades in place, and the working line's highlight sweeps across the words. */
 /* It holds its line's height before the words show, so nothing below it moves when they do. */
 .waiting {
   display: inline-flex;
@@ -9,16 +9,6 @@
   line-height: var(--type-meta-line-height);
 }
 
-.appear {
-  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
-}
-
 .label {
   composes: label from "./WorkingLine.module.css";
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .appear {
-    animation: none;
-  }
 }

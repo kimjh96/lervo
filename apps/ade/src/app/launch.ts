@@ -59,5 +59,5 @@ function leaveLaunchView(): void {
   if (view === null || view.dataset.leaving !== undefined) return;
   performance.mark("lervo:launched");
   view.dataset.leaving = "";
-  setTimeout(() => view.remove(), prefersReducedMotion() ? 0 : motion.exitMs);
+  setTimeout(() => view.remove(), prefersReducedMotion() ? 0 : motion.leaveMs);
 }

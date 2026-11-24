@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_422710ef69ad5750607cef72"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "The first click on the Lervo window acts even when macOS hands its release in before its press, and nothing pops in or drops out: views, the starting workspace, removed rows, and the remove question crossfade over the motion tokens, which the motion check enforces."

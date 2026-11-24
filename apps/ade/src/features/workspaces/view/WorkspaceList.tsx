@@ -5,6 +5,7 @@ import { PlusIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Kbd } from "../../../ui/Kbd";
 import { ListRow } from "../../../ui/ListRow";
+import { useDeparting } from "../../../ui/departing";
 import { StatusDot } from "../../../ui/StatusDot";
 import { Presence } from "../../../ui/Presence";
 import { groupByRepository, visibleStatus } from "../model/decisions";
@@ -12,10 +13,13 @@ import { useWorkspaceStore } from "../model/store";
 import { statusMessages } from "./messages";
 import styles from "./WorkspaceList.module.css";
 
+const workspaceKey = (workspace: { workspaceId: string }) => workspace.workspaceId;
+
 /**
  * "New work" and the workspaces, grouped by repository, with each workspace's live status. A row
  * that arrived after the first load enters with the arrival motion once, when it mounts; loaded
- * rows stay still.
+ * rows stay still. A removed row fades out where it was. A repository's name arrives with its
+ * first row and leaves with its last.
  */
 export function WorkspaceList() {
   const intl = useIntl();
@@ -26,7 +30,9 @@ export function WorkspaceList() {
   const selected = useWorkspaceStore((store) => store.selected);
   const select = useWorkspaceStore((store) => store.select);
   const newWork = useWorkspaceStore((store) => store.newWork);
-  const groups = groupByRepository(workspaces);
+  const departed = useDeparting(workspaces, workspaceKey);
+  const leaving = new Set(departed.map(workspaceKey));
+  const groups = groupByRepository([...workspaces, ...departed]);
 
   return (
     <section className={styles.list} aria-label={intl.formatMessage({ id: "workspaces.label" })}>
@@ -53,15 +59,33 @@ export function WorkspaceList() {
       </Presence>
       {groups.map((group) => (
         <div key={group.repositoryName}>
-          <h3 className={styles.repository}>{group.repositoryName}</h3>
+          <h3
+            className={styles.repository}
+            data-arrived={
+              group.workspaces.every((workspace) => arrived.has(workspace.workspaceId))
+                ? "true"
+                : undefined
+            }
+            data-leaving={
+              group.workspaces.every((workspace) => leaving.has(workspace.workspaceId))
+                ? ""
+                : undefined
+            }
+          >
+            {group.repositoryName}
+          </h3>
           <ul className={styles.rows}>
             {group.workspaces.map((workspace) => {
               const status = visibleStatus(statuses[workspace.sessionId]);
               const current = selected === workspace.workspaceId;
+              const gone = leaving.has(workspace.workspaceId);
               return (
                 <li
                   key={workspace.workspaceId}
                   data-arrived={arrived.has(workspace.workspaceId) ? "true" : undefined}
+                  data-leaving={gone ? "" : undefined}
+                  aria-hidden={gone ? true : undefined}
+                  inert={gone}
                 >
                   <ListRow
                     current={current}
@@ -69,8 +93,7 @@ export function WorkspaceList() {
                     onClick={() => select(workspace.workspaceId)}
                     label={workspace.title ?? workspace.branch}
                     trailing={
-                      // The dot brings its own arrival (motion, "Needs-you status").
-                      <Presence as="span" enter={false}>
+                      <Presence as="span">
                         {status === null ? null : (
                           <StatusDot
                             tone={status === "working" ? "working" : "attention"}

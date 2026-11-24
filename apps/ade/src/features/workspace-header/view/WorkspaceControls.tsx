@@ -13,7 +13,8 @@ import { InlineAlert } from "../../../ui/InlineAlert";
 import { Waiting } from "../../../ui/Waiting";
 import { Presence } from "../../../ui/Presence";
 import { type RetireStep, retireWorkspace } from "../../workspaces";
-import styles from "./RetireControl.module.css";
+import { BranchControl } from "./BranchControl";
+import styles from "./WorkspaceControls.module.css";
 
 type Step =
   | { kind: "idle" }
@@ -42,12 +43,18 @@ function refusal(failure: unknown): string {
 }
 
 /**
- * Removes the workspace from its header (Lervo ADE sessions, "Retiring a workspace"): a quiet
- * trash button asks in place, Cancel holds the focus, and Escape cancels. Once answered, the
- * question gives way to what Lervo is doing, step by step. The core refuses a workspace with
+ * The header's controls (Lervo ADE sessions, "Retiring a workspace"): the branch icon and, when
+ * the core answers `workspace.retire`, a quiet trash button. Pressing the trash button turns the
+ * whole group into the question in place, with Cancel focused and Escape cancelling, and once
+ * answered into what Lervo is doing, step by step. The group keeps its right edge while it changes,
+ * so nothing beside it moves (ADE motion, "Changing in place"). The core refuses a workspace with
  * changes, so removing never discards work.
  */
-export function RetireControl(props: { workspaceId: string }) {
+export function WorkspaceControls(props: {
+  workspaceId: string;
+  branch: string;
+  retirable: boolean;
+}) {
   const intl = useIntl();
   const host = useSessionHost();
   const commands = useApplicationCommands();
@@ -68,17 +75,15 @@ export function RetireControl(props: { workspaceId: string }) {
     if (event.key === "Escape") setStep({ kind: "idle" });
   };
 
-  // The trash button, its question, and the wait crossfade in one place (motion, "Changing in
-  // place"), so the header never jumps.
   const key = step.kind === "failed" ? "idle" : step.kind;
   return (
-    <Presence as="span" contentKey={key}>
+    <Presence as="span" contentKey={key} justify="end">
       {step.kind === "waiting" ? (
         <Waiting label={intl.formatMessage(stepMessages[step.step])} />
       ) : step.kind === "asking" ? (
         // The question's answers are buttons; Escape on either cancels.
         // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-        <span className={styles.question} onKeyDown={cancelOnEscape}>
+        <span className={styles.group} onKeyDown={cancelOnEscape}>
           <span className={styles.text}>
             <FormattedMessage id="workspace.retire.question" />
           </span>
@@ -95,7 +100,7 @@ export function RetireControl(props: { workspaceId: string }) {
           </Button>
         </span>
       ) : (
-        <span className={styles.question}>
+        <span className={styles.group}>
           <Presence as="span">
             {step.kind === "failed" ? (
               <InlineAlert size="meta">
@@ -106,13 +111,18 @@ export function RetireControl(props: { workspaceId: string }) {
               </InlineAlert>
             ) : null}
           </Presence>
-          <Button
-            variant="quiet"
-            label={intl.formatMessage({ id: "workspace.retire.action" })}
-            onClick={() => setStep({ kind: "asking" })}
-          >
-            <TrashIcon size="md" />
-          </Button>
+          <BranchControl branch={props.branch} />
+          <Presence as="span">
+            {props.retirable ? (
+              <Button
+                variant="quiet"
+                label={intl.formatMessage({ id: "workspace.retire.action" })}
+                onClick={() => setStep({ kind: "asking" })}
+              >
+                <TrashIcon size="md" />
+              </Button>
+            ) : null}
+          </Presence>
         </span>
       )}
     </Presence>

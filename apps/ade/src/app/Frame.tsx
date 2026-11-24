@@ -1,35 +1,46 @@
 import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { WorkspaceConversation } from "../features/conversation";
-import { PendingWorkspace, StartScreen, type Surface, useSurface } from "../features/start";
+import { StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
 import { WorkspaceList } from "../features/workspaces";
+import { ViewPresence } from "../ui/ViewPresence";
 import styles from "./Frame.module.css";
 
 function Main(props: { surface: Surface }) {
   const { surface } = props;
   if (surface.kind === "start")
     return (
-      <>
+      <div className={styles.view} data-background={surface.background}>
         <div className={styles.titlebar} data-tauri-drag-region />
         <StartScreen />
-      </>
+      </div>
     );
-  if (surface.kind === "pending") return <PendingWorkspace pending={surface.pending} />;
+  // Work just sent and the workspace it creates are one view, so only what differs changes, in
+  // place (ADE motion, "Starting work from the start screen").
+  const workspace = surface.kind === "workspace" ? surface.workspace : null;
+  const starting = surface.kind === "pending" ? surface.pending : surface.continuing;
   return (
-    <>
+    <div className={styles.view} data-background={surface.background}>
       <WorkspaceHeader
-        workspaceId={surface.workspace.workspaceId}
-        continues={surface.continuing !== null}
+        workspaceId={workspace?.workspaceId ?? null}
+        starting={
+          starting === null
+            ? null
+            : {
+                title: starting.instruction.split("\n")[0] ?? "",
+                repositoryName: starting.repositoryName,
+              }
+        }
       />
       {/* The ADE shows the native conversation only (ADR-0617). A workspace last opened in the
           provider's terminal reopens its session in the native conversation. */}
       <WorkspaceConversation
-        workspaceId={surface.workspace.workspaceId}
-        sessionId={surface.workspace.sessionId}
-        firstMessage={surface.continuing?.instruction}
-        reopenNatively={surface.workspace.conversationMode !== "native"}
+        workspaceId={workspace?.workspaceId ?? null}
+        sessionId={workspace?.sessionId ?? null}
+        firstMessage={starting?.instruction}
+        reopenNatively={workspace !== null && workspace.conversationMode !== "native"}
       />
-    </>
+    </div>
   );
 }
 
@@ -50,8 +61,10 @@ export function Frame() {
           <HostUpdateNotice />
         </div>
       </nav>
-      <main key={surface.key} className={styles.content} data-background={surface.background}>
-        <Main surface={surface} />
+      <main className={styles.content}>
+        <ViewPresence view={surface.key}>
+          <Main surface={surface} />
+        </ViewPresence>
       </main>
     </div>
   );

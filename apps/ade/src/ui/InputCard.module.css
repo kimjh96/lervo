@@ -41,7 +41,16 @@
   border-color: var(--color-accent);
 }
 
+/* The field and the placeholder drawn over it. */
+.box {
+  position: relative;
+  display: flex;
+  min-width: 0;
+}
+
 .field {
+  flex: 1;
+  min-width: 0;
   border: 0;
   color: var(--color-text-primary);
   font: inherit;
@@ -53,23 +62,38 @@
   outline: none;
 }
 
+/* The native placeholder stays for assistive technology; the one drawn over the field shows. */
 .field::placeholder {
-  color: var(--color-text-tertiary);
+  color: transparent;
 }
 
-.field[data-size="input"] {
+.placeholder {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  color: var(--color-text-tertiary);
+  pointer-events: none;
+}
+
+.placeholder[hidden] {
+  display: none;
+}
+
+.field[data-size="input"],
+.placeholder[data-size="input"] {
   padding: 0;
   font-size: var(--type-input-size);
   line-height: var(--type-input-line-height);
 }
 
-.field[data-size="body"] {
+.field[data-size="body"],
+.placeholder[data-size="body"] {
   padding-block: var(--space-6);
   padding-inline: 0;
   font-size: var(--type-body-size);
   line-height: var(--type-input-line-height);
 }
 
-.card[data-layout="inline"] > .field {
+.card[data-layout="inline"] > .box {
   flex: 1;
 }
