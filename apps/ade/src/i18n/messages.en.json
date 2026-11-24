@@ -189,7 +189,7 @@
   },
   "workspace.branch.copied": {
     "defaultMessage": "Copied {branch}",
-    "description": "The branch icon's name for a moment after pressing it copied the branch name."
+    "description": "The line beside the header's branch icon for a few seconds after pressing it copied the branch name."
   },
   "workspace.retire.action": {
     "defaultMessage": "Remove workspace",
