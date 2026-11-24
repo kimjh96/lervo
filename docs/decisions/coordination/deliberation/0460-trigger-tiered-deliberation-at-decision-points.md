@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-04
 Amends: [ADR-0019](0019-provider-neutral-deliberation.md), [ADR-0133](0133-cli-two-provider-deliberation.md), [ADR-0418](../../execution/applications/0418-retain-deliberation-as-bounded-decision-workflow.md), [ADR-0415](../conversations/0415-natural-deliberation-and-consistent-failure-evidence.md), [ADR-0454](../conversations/agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md)
+Amended by: [ADR-0463](../../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md)
 Part of: [ADR-0452 open collaboration platform](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
 
 ## Context
