@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 use std::process::Stdio;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
@@ -11,6 +11,8 @@ use serde_json::Value;
 use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
 use tokio::process::{Child, Command};
 use tokio::sync::{mpsc, oneshot};
+
+use crate::program::{ProgramIdentity, identify};
 
 /// Bytes in one response line. A response carries at most 4,096 events or 1 MiB of input.
 const MAX_RESPONSE_LINE_BYTES: usize = 16 * 1024 * 1024;
@@ -38,6 +40,8 @@ struct Connection {
     pending: Pending,
     /// Cleared by the reader when the process ends, before it fails the waiting requests.
     alive: Arc<AtomicBool>,
+    /// The executable the process was started from.
+    identity: Option<ProgramIdentity>,
     _child: Child,
 }
 
@@ -47,7 +51,9 @@ impl Connection {
     }
 }
 
-/// The resident Lervo process, started on the first request and again after it exits.
+/// The resident Lervo process, started on the first request and again after it exits. When the
+/// installed `lervo` changes, it is replaced at the next request that allows it, so the session
+/// host always reaches the CLI its host runs.
 pub struct Link {
     program: String,
     arguments: Vec<String>,
@@ -55,6 +61,8 @@ pub struct Link {
     connection: tokio::sync::Mutex<Option<Connection>>,
     next_id: AtomicU64,
     started: AtomicU64,
+    /// Stream decoders in the middle of a turn or a line, whose state a new process would lack.
+    busy: AtomicUsize,
 }
 
 impl Link {
@@ -66,7 +74,31 @@ impl Link {
             connection: tokio::sync::Mutex::new(None),
             next_id: AtomicU64::new(1),
             started: AtomicU64::new(0),
+            busy: AtomicUsize::new(0),
         }
+    }
+
+    /// A stream decoder entered a turn or a partial line; the process must stay until it settles.
+    pub fn hold(&self) {
+        self.busy.fetch_add(1, Ordering::AcqRel);
+    }
+
+    /// A stream decoder settled, or ended while it held the process.
+    pub fn release(&self) {
+        let _ = self
+            .busy
+            .try_update(Ordering::AcqRel, Ordering::Acquire, |busy| {
+                busy.checked_sub(1)
+            });
+    }
+
+    /// Whether `connection` runs an executable other than the installed one and may be replaced
+    /// now: no request waits on it and no stream decoder holds it.
+    fn outdated(&self, connection: &Connection) -> bool {
+        connection.is_alive()
+            && self.busy.load(Ordering::Acquire) == 0
+            && lock(&connection.pending).is_empty()
+            && identify(&self.program).is_some_and(|now| connection.identity.as_ref() != Some(&now))
     }
 
     /// The codec that validates the resident process's responses.
@@ -76,12 +108,15 @@ impl Link {
 
     /// Sends `request` with a fresh `id` and waits up to `deadline` for its answer, with the
     /// generation of the resident process that answered. With `generation`, it sends only to that
-    /// process and fails with `Replaced` once another one runs or would have to start.
+    /// process and fails with `Replaced` once another one runs or would have to start. With
+    /// `refresh`, an outdated process is first replaced by one from the installed executable;
+    /// when that one cannot start, the old process answers.
     pub async fn request(
         self: &Arc<Self>,
         mut request: serde_json::Map<String, Value>,
         deadline: Duration,
         generation: Option<u64>,
+        refresh: bool,
     ) -> Result<(CoreLinkResponse, u64), LinkError> {
         let id = self.next_id.fetch_add(1, Ordering::Relaxed);
         request.insert("id".to_owned(), Value::from(id));
@@ -90,6 +125,14 @@ impl Link {
         let answered_by;
         {
             let mut guard = self.connection.lock().await;
+            // Dropping the old connection ends its process.
+            if refresh
+                && generation.is_none()
+                && guard.as_ref().is_some_and(|c| self.outdated(c))
+                && let Ok(fresh) = self.start()
+            {
+                *guard = Some(fresh);
+            }
             if !guard.as_ref().is_some_and(Connection::is_alive) {
                 if generation.is_some() {
                     return Err(LinkError::Replaced);
@@ -123,6 +166,7 @@ impl Link {
     }
 
     fn start(self: &Arc<Self>) -> Result<Connection, LinkError> {
+        let identity = identify(&self.program);
         let mut child = Command::new(&self.program)
             .args(&self.arguments)
             .stdin(Stdio::piped())
@@ -186,6 +230,7 @@ impl Link {
             requests,
             pending,
             alive,
+            identity,
             _child: child,
         })
     }
