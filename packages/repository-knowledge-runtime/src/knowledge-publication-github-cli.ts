@@ -5,6 +5,7 @@ import {
   type KnowledgePublicationForgeFailureClass,
   type KnowledgePublicationForgeOperation,
 } from "./knowledge-publication-forge.js";
+import { rememberedToolEnvironment } from "./tool-environment.js";
 
 /**
  * The `gh` CLI boundary of the GitHub publication forge: running it, and reducing each failure to
@@ -12,9 +13,18 @@ import {
  */
 export type Runner = (args: string[], input?: string) => Promise<string>;
 
-export function ghRunner(root: string, executable: string): Runner {
-  return (args, input) =>
-    new Promise((resolveRun, reject) => {
+/**
+ * Runs `gh` with the owner's login-shell PATH: under the resident's service manager the minimal
+ * PATH lacks Homebrew's `gh`, and every publication failed `not_installed` (2026-11-22 onward).
+ */
+export function ghRunner(
+  root: string,
+  executable: string,
+  environment: () => Promise<NodeJS.ProcessEnv> = rememberedToolEnvironment(),
+): Runner {
+  return async (args, input) => {
+    const env = { ...(await environment()), GH_PROMPT_DISABLED: "1" };
+    return new Promise((resolveRun, reject) => {
       const child = execFile(
         executable,
         args,
@@ -23,13 +33,14 @@ export function ghRunner(root: string, executable: string): Runner {
           // The paginated publication history is the largest output; its records are bounded.
           maxBuffer: 64 * 1024 * 1024,
           timeout: 60_000,
-          env: { ...process.env, GH_PROMPT_DISABLED: "1" },
+          env,
         },
         (error, stdout, stderr) =>
           error === null ? resolveRun(stdout) : reject(Object.assign(error, { stderr })),
       );
       if (input !== undefined) child.stdin?.end(input);
     });
+  };
 }
 
 export class InvalidResponse extends Error {}

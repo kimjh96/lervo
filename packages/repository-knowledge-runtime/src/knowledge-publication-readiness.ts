@@ -4,27 +4,27 @@ import {
   parseKnowledgePublicationSettings,
   type KnowledgePublicationSettings,
 } from "./knowledge-publication-settings.js";
+import { rememberedToolEnvironment } from "./tool-environment.js";
 
 /** The rolling publication branch ADR-0466 names as its default. */
 export const DEFAULT_KNOWLEDGE_PUBLICATION_BRANCH = "lervo/knowledge-outputs";
 
 type Run = (executable: string, args: string[]) => Promise<string | null>;
 
+/** Runs `git` and `gh` with the owner's login-shell PATH, where the service PATH lacks `gh`. */
 function run(root: string): Run {
-  return (executable, args) =>
-    new Promise((resolveRun) => {
+  const environment = rememberedToolEnvironment();
+  return async (executable, args) => {
+    const env = { ...(await environment()), GH_PROMPT_DISABLED: "1", GIT_TERMINAL_PROMPT: "0" };
+    return new Promise((resolveRun) => {
       execFile(
         executable,
         args,
-        {
-          cwd: root,
-          timeout: 15_000,
-          maxBuffer: 64 * 1024,
-          env: { ...process.env, GH_PROMPT_DISABLED: "1", GIT_TERMINAL_PROMPT: "0" },
-        },
+        { cwd: root, timeout: 15_000, maxBuffer: 64 * 1024, env },
         (error, stdout) => resolveRun(error === null ? stdout : null),
       );
     });
+  };
 }
 
 /**
