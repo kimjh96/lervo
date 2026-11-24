@@ -6,7 +6,7 @@ members = ["src-tauri", "session-host", "session-protocol", "session-core", "ses
 [workspace.package]
 # The ADE's one version (ADR-0615): ADE release preparation writes it here, to package.json, and to
 # tauri.conf.json.
-version = "0.4.2"
+version = "0.4.3"
 edition = "2024"
 rust-version = "1.99"
 publish = false
