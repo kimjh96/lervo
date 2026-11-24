@@ -17,6 +17,7 @@ import {
   type HostedSessionEventOutcome,
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
+import type { WorkspaceBase } from "./workspace-base.js";
 
 const TITLE_CHARACTERS = 80;
 const OBJECTIVE_CHARACTERS = 8192;
@@ -33,12 +34,23 @@ export interface WorkspacePlacement {
   readonly branch: string;
   readonly workspacePath: string;
   readonly baseCommit: string;
+  /** Unpublished Lervo effect commits to replay on the new branch, oldest first. */
+  readonly replay?: readonly string[];
+}
+
+/** What replaying effect commits on a new branch did. */
+export interface EffectReplay {
+  readonly replayed: readonly string[];
+  /** Commits that did not apply cleanly; the workspace starts without them. */
+  readonly skipped: readonly string[];
 }
 
 /** The effects `startWorkspace` composes. Each is undone by a later stage's failure. */
 export interface WorkspaceStartPorts {
   readonly adapter: HostedSessionAdapter;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
+  /** Replays the placement's effect commits on its new branch; absent where none can exist. */
+  replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
   /** Removes the worktree and its branch. Throws when either remains. */
   removeWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Starts the workstream in the new worktree and returns its ID. */
@@ -62,6 +74,8 @@ export interface WorkspaceStartRequest {
   readonly repositoryRoot: string;
   readonly projectId: string;
   readonly baseCommit: string;
+  /** How the base was chosen; absent when the caller chose `baseCommit` itself. */
+  readonly base?: WorkspaceBase;
   readonly workspaceId: string;
   readonly sessionId: string;
   /** A short random suffix that keeps branch names unique. */
@@ -159,6 +173,7 @@ export async function startWorkspace(
     branch,
     workspacePath: workspacePathFor(request.repositoryRoot, branch),
     baseCommit: request.baseCommit,
+    replay: request.base?.replay ?? [],
   };
   const intent = {
     sessionId: request.sessionId,
@@ -176,8 +191,11 @@ export async function startWorkspace(
     throw error;
   }
 
+  let replay: EffectReplay = { replayed: [], skipped: [] };
   try {
     await ports.provisionWorkspace(placement);
+    if ((placement.replay?.length ?? 0) > 0 && ports.replayEffects !== undefined)
+      replay = await ports.replayEffects(placement);
   } catch (error) {
     throw stageFailure("workspace", error, await undo(ports, placement));
   }
@@ -203,6 +221,18 @@ export async function startWorkspace(
       settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
+      ...(request.base === undefined
+        ? {}
+        : {
+            base: {
+              commit: request.base.commit,
+              source: request.base.source,
+              upstream: request.base.upstream,
+              replayed: [...replay.replayed],
+              skipped: [...replay.skipped],
+              notice: request.base.notice,
+            },
+          }),
     };
     await ports.recordLaunch(record);
     const hostedEvents = await ports.recordEvents([

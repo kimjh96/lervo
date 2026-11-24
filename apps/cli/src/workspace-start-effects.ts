@@ -18,7 +18,8 @@ import { CommandFailure } from "./command-error-output.js";
 import { bindCheckedOutBranch, resolveDefaultBranch } from "./workstream-branch-selection.js";
 import { workstreamSnapshotRecorder } from "./workstream-recording.js";
 import { observeRepositoryHead } from "./workstream-repository-head.js";
-import type { WorkspacePlacement } from "./workspace-start.js";
+import { LERVO_EFFECT_AUTHOR as LERVO_EFFECT_COMMITTER } from "./workspace-base.js";
+import type { EffectReplay, WorkspacePlacement } from "./workspace-start.js";
 
 const execute = promisify(execFile);
 
@@ -60,6 +61,8 @@ function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) 
 export function gitWorkspaceEffects() {
   const host = new GitWorkspaceHostAdapter();
   let owned: ReturnType<typeof ownership> | null = null;
+  // The branch's tip after replayed effect commits, so a rollback removes the branch it made.
+  let tip: string | null = null;
   return {
     async provisionWorkspace(placement: WorkspacePlacement): Promise<void> {
       const home = await resolveRepositoryCoordinationHome(placement.repositoryRoot);
@@ -71,6 +74,26 @@ export function gitWorkspaceEffects() {
         idempotencyKey: `idk_${hex(12)}`,
       });
     },
+    /**
+     * Replays unpublished Lervo effect commits on the new branch, committed as Lervo like the
+     * originals. A commit that does not apply cleanly is skipped, so the workspace still starts.
+     */
+    async replayEffects(placement: WorkspacePlacement): Promise<EffectReplay> {
+      const replayed: string[] = [];
+      const skipped: string[] = [];
+      const asLervo = ["-c", "user.name=Lervo", "-c", `user.email=${LERVO_EFFECT_COMMITTER}`];
+      for (const commit of placement.replay ?? []) {
+        try {
+          await git(placement.workspacePath, [...asLervo, "cherry-pick", "--allow-empty", commit]);
+          replayed.push(commit);
+        } catch {
+          await git(placement.workspacePath, ["cherry-pick", "--abort"]).catch(() => undefined);
+          skipped.push(commit);
+        }
+      }
+      tip = await git(placement.workspacePath, ["rev-parse", "HEAD"]);
+      return { replayed, skipped };
+    },
     async removeWorkspace(placement: WorkspacePlacement): Promise<void> {
       // Right after creation the checkout holds only Lervo's own state, so discarding is safe.
       if (owned !== null)
@@ -78,7 +101,7 @@ export function gitWorkspaceEffects() {
       await host.removeBranch({
         repositoryRoot: placement.repositoryRoot,
         branch: placement.branch,
-        expectedCommit: placement.baseCommit,
+        expectedCommit: tip ?? placement.baseCommit,
       });
     },
   };

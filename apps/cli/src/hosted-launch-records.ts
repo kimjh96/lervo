@@ -26,6 +26,22 @@ export interface HostedLaunchRecord {
   settingsDigest: string | null;
   mcpConfigDigest: string | null;
   preparedAt: string;
+  /** Where the workspace started; records from before Lervo 0.47.6 have none. */
+  base?: HostedWorkspaceBase;
+}
+
+/**
+ * The commit a workspace branched from and why (Lervo ADE sessions, "The workspace's base"):
+ * identifiers and ref names only.
+ */
+export interface HostedWorkspaceBase {
+  commit: string;
+  source: "upstream" | "local";
+  upstream: string | null;
+  /** Unpublished Lervo effect commits replayed on the branch, and those that did not apply. */
+  replayed: string[];
+  skipped: string[];
+  notice: "no_upstream" | "fetch_failed" | null;
 }
 
 /** The host's record file, next to the repository registry in the user state directory. */

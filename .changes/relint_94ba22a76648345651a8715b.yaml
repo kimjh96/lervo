@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_94ba22a76648345651a8715b"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "ADE workspaces start from the fetched upstream tip of the default branch, with Lervo's unpublished effect commits replayed, instead of a possibly stale local checkout; retiring treats effect-only branches as merged."
