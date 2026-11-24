@@ -161,6 +161,17 @@ describe("reverse header edit plan", () => {
     );
   });
 
+  it("leaves a header whose paragraph goes on after the insertion point", () => {
+    expect(
+      planReverseHeaderEdit({
+        path: "docs/decisions/0620-layout.md",
+        content:
+          "# ADR-0620\n\n- Status: accepted\n\nAmended by: [ADR-0533](0533-removed.md).\nPattern intake is retired.\n\n## Context\n",
+        declarations: [declare("amended", "docs/decisions/0476-route.md", "0476")],
+      }),
+    ).toEqual({ status: "skipped", reason: "self_check_failed" });
+  });
+
   it("names a superseded part, keeps CRLF and front matter, and links across directories", () => {
     expect(
       planned(

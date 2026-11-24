@@ -165,6 +165,16 @@ export function planReverseHeaderEdit(input: {
   // item straight after a plain line would join its paragraph.
   const marker = listMarkerPattern.exec(lines[start + status]!)?.[1] ?? "";
   const separated = continuationPattern.test(lines[anchor]!) !== (marker !== "");
+  // A paragraph that goes on after the insertion point would be split, its rest read as the new
+  // item's continuation; such a header is left for a person.
+  const following = lines[anchor + 1];
+  if (
+    separated &&
+    following !== undefined &&
+    following.trim() !== "" &&
+    !headingPattern.test(following)
+  )
+    return { status: "skipped", reason: "self_check_failed" };
   const replacement =
     (separated ? eol : "") +
     reverseLines(input.path, input.declarations)
