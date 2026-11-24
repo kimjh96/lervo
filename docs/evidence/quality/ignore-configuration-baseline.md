@@ -21,8 +21,11 @@ After the managed region, it excludes Lervo ADE build outputs:
 ```gitignore
 apps/ade/target/
 apps/ade/src-tauri/gen/
+apps/ade/src-tauri/binaries/
 apps/ade/dist-catalog/
 ```
+
+`apps/ade/src-tauri/binaries/` holds the session host binary that the application bundle build stages for Tauri as an external binary.
 
 Ignore rules do not remove already tracked files from Git. These patterns do not prove that matching directories exist or that their contents are safe to delete.
 
