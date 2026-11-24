@@ -109,6 +109,62 @@ describe("createGhReleaseSource", () => {
     expect(String((failure as Error).message)).not.toContain("ghp_secret");
   });
 
+  it("widens the list when ADE releases fill the newest page, so the newest CLI release stays", async () => {
+    const ade = Array.from({ length: 30 }, (_, index) => ({
+      tagName: `ade-v0.${30 - index}.0`,
+      isDraft: false,
+      isPrerelease: false,
+    }));
+    const cli = { tagName: "v1.2.3", isDraft: false, isPrerelease: false };
+    const calls: string[][] = [];
+    const source = createGhReleaseSource(
+      "owner/lervo",
+      runner({ "--limit 30 ": ade, "--limit 300 ": [...ade, cli] }, calls),
+    );
+    const releases = await source.listReleases();
+    expect(releases).toHaveLength(31);
+    expect(releases.at(-1)).toEqual({ tag: "v1.2.3", draft: false, prerelease: false });
+    expect(calls.map((call) => call[5])).toEqual(["30", "300"]);
+  });
+
+  it("keeps the newest page when it holds a published CLI release or is the whole list", async () => {
+    const page = [
+      ...Array.from({ length: 29 }, (_, index) => ({
+        tagName: `ade-v0.${29 - index}.0`,
+        isDraft: false,
+        isPrerelease: false,
+      })),
+      { tagName: "v1.2.3", isDraft: false, isPrerelease: false },
+    ];
+    const calls: string[][] = [];
+    const full = createGhReleaseSource("owner/lervo", runner({ "release list": page }, calls));
+    await expect(full.listReleases()).resolves.toHaveLength(30);
+    const short = createGhReleaseSource(
+      "owner/lervo",
+      runner({ "release list": page.slice(0, 5) }, calls),
+    );
+    await expect(short.listReleases()).resolves.toHaveLength(5);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("widens past a newest page whose only CLI release is a draft", async () => {
+    const page = [
+      { tagName: "v1.2.4", isDraft: true, isPrerelease: false },
+      ...Array.from({ length: 29 }, (_, index) => ({
+        tagName: `ade-v0.${29 - index}.0`,
+        isDraft: false,
+        isPrerelease: false,
+      })),
+    ];
+    const calls: string[][] = [];
+    const source = createGhReleaseSource(
+      "owner/lervo",
+      runner({ "--limit 30 ": page, "--limit 300 ": page }, calls),
+    );
+    await source.listReleases();
+    expect(calls.map((call) => call[5])).toEqual(["30", "300"]);
+  });
+
   it("translates a gh failure without its output, which can name credentials", async () => {
     const source = createGhReleaseSource("owner/lervo", runner({}));
     const failure = await source.resolveTag("v1.2.3").catch((error: unknown) => error);
