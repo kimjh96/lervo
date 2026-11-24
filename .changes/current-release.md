@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.47.7" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.47.8" schema="1" -->
 
 ## What's changed
 
-- ADE workspaces start from the fetched upstream tip of the default branch and carry the knowledge commits the resident has not published, never a possibly stale local checkout; retiring deletes a branch only when every commit beyond upstream copies a held patch.
+- Refresh the next prompt's knowledge snapshot after each resident refresh, so a resident commit no longer costs the next prompt a full knowledge scan past the hook budget.

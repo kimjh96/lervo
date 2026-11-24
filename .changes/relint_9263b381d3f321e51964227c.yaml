@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9263b381d3f321e51964227c"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Refresh the next prompt's knowledge snapshot after each resident refresh, so a resident commit no longer costs the next prompt a full knowledge scan past the hook budget."
