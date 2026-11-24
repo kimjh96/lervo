@@ -5,11 +5,13 @@ import { describe, expect, it } from "vitest";
 import { CommandFailure } from "../src/command-error-output.js";
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
 import type { HostedSessionEvent } from "../src/hosted-session-events.js";
+import type { WorkspaceBase } from "../src/workspace-base.js";
 import {
   branchFor,
   objectiveFor,
   startWorkspace,
   titleFor,
+  type WorkspacePlacement,
   type WorkspaceStartPorts,
   workspacePathFor,
 } from "../src/workspace-start.js";
@@ -156,9 +158,49 @@ describe("workspace start", () => {
 
   it("refuses a conversation mode the provider lacks before changing anything", async () => {
     const fake = ports();
-    const codex = { ...fake.value, adapter: createCodexHostedSessionAdapter("/opt/codex") };
+    let chosen = false;
+    const codex = {
+      ...fake.value,
+      adapter: createCodexHostedSessionAdapter("/opt/codex"),
+      chooseBase: async () => {
+        chosen = true;
+        return base;
+      },
+    };
     const error = await failure(startWorkspace(request, codex));
     expect(error.code).toBe("conversation_mode_unsupported");
     expect(fake.effects).toEqual([]);
+    expect(chosen).toBe(false);
+  });
+
+  it("starts from the chosen base, replays its commits, and records what happened", async () => {
+    const fake = ports();
+    const placements: WorkspacePlacement[] = [];
+    await startWorkspace(request, {
+      ...fake.value,
+      chooseBase: async () => base,
+      async replayEffects(placement) {
+        placements.push(placement);
+        return { replayed: ["e".repeat(40)], skipped: ["f".repeat(40)], carried: [] };
+      },
+    });
+    expect(placements[0]).toMatchObject({ baseCommit: base.commit, replay: base.replay });
+    expect(fake.records[0]?.base).toEqual({
+      commit: base.commit,
+      source: "upstream",
+      upstream: "origin/main",
+      replayed: ["e".repeat(40)],
+      skipped: ["f".repeat(40)],
+      carried: [],
+      notice: null,
+    });
   });
 });
+
+const base: WorkspaceBase = {
+  commit: "b".repeat(40),
+  source: "upstream",
+  upstream: "origin/main",
+  replay: ["e".repeat(40), "f".repeat(40)],
+  notice: null,
+};

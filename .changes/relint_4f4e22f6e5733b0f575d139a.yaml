@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_4f4e22f6e5733b0f575d139a"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "ADE workspaces start from the fetched upstream tip of the default branch and carry the knowledge commits the resident has not published, never a possibly stale local checkout; retiring deletes a branch only when every commit beyond upstream copies a held patch."

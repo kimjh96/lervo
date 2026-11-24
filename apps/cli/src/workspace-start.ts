@@ -34,20 +34,27 @@ export interface WorkspacePlacement {
   readonly branch: string;
   readonly workspacePath: string;
   readonly baseCommit: string;
-  /** Unpublished Lervo effect commits to replay on the new branch, oldest first. */
+  /** Unpublished knowledge commits to replay on the new branch, oldest first. */
   readonly replay?: readonly string[];
 }
 
-/** What replaying effect commits on a new branch did. */
+/** What replaying knowledge commits on a new branch did. */
 export interface EffectReplay {
   readonly replayed: readonly string[];
   /** Commits that did not apply cleanly; the workspace starts without them. */
   readonly skipped: readonly string[];
+  /** Commits whose change the branch already held, so the pick added nothing. */
+  readonly carried: readonly string[];
 }
 
 /** The effects `startWorkspace` composes. Each is undone by a later stage's failure. */
 export interface WorkspaceStartPorts {
   readonly adapter: HostedSessionAdapter;
+  /**
+   * Chooses where the workspace starts, once the provider accepted the launch intent; absent,
+   * the request's `baseCommit` is the base. It fetches, so a refused intent never waits for it.
+   */
+  chooseBase?(): Promise<WorkspaceBase>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Replays the placement's effect commits on its new branch; absent where none can exist. */
   replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
@@ -73,9 +80,8 @@ export interface WorkspaceStartRequest {
   readonly mode: HostedConversationMode;
   readonly repositoryRoot: string;
   readonly projectId: string;
+  /** The base when the ports do not choose one. */
   readonly baseCommit: string;
-  /** How the base was chosen; absent when the caller chose `baseCommit` itself. */
-  readonly base?: WorkspaceBase;
   readonly workspaceId: string;
   readonly sessionId: string;
   /** A short random suffix that keeps branch names unique. */
@@ -166,19 +172,11 @@ export async function startWorkspace(
 ): Promise<WorkspaceStartResult> {
   const title = titleFor(request.instruction);
   const branch = branchFor(title, request.suffix);
-  const placement: WorkspacePlacement = {
-    repositoryRoot: request.repositoryRoot,
-    projectId: request.projectId,
-    workspaceId: request.workspaceId,
-    branch,
-    workspacePath: workspacePathFor(request.repositoryRoot, branch),
-    baseCommit: request.baseCommit,
-    replay: request.base?.replay ?? [],
-  };
+  const workspacePath = workspacePathFor(request.repositoryRoot, branch);
   const intent = {
     sessionId: request.sessionId,
     mode: request.mode,
-    workingDirectory: placement.workspacePath,
+    workingDirectory: workspacePath,
     start: { kind: "new" as const, instruction: request.instruction },
     ...(request.model === undefined ? {} : { model: request.model }),
     ...(request.hooks === undefined ? {} : { hooks: request.hooks }),
@@ -191,7 +189,17 @@ export async function startWorkspace(
     throw error;
   }
 
-  let replay: EffectReplay = { replayed: [], skipped: [] };
+  const base = ports.chooseBase === undefined ? undefined : await ports.chooseBase();
+  const placement: WorkspacePlacement = {
+    repositoryRoot: request.repositoryRoot,
+    projectId: request.projectId,
+    workspaceId: request.workspaceId,
+    branch,
+    workspacePath,
+    baseCommit: base?.commit ?? request.baseCommit,
+    replay: base?.replay ?? [],
+  };
+  let replay: EffectReplay = { replayed: [], skipped: [], carried: [] };
   try {
     await ports.provisionWorkspace(placement);
     if ((placement.replay?.length ?? 0) > 0 && ports.replayEffects !== undefined)
@@ -221,16 +229,17 @@ export async function startWorkspace(
       settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
-      ...(request.base === undefined
+      ...(base === undefined
         ? {}
         : {
             base: {
-              commit: request.base.commit,
-              source: request.base.source,
-              upstream: request.base.upstream,
+              commit: base.commit,
+              source: base.source,
+              upstream: base.upstream,
               replayed: [...replay.replayed],
               skipped: [...replay.skipped],
-              notice: request.base.notice,
+              carried: [...replay.carried],
+              notice: base.notice,
             },
           }),
     };

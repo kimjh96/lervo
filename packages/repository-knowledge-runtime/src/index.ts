@@ -106,6 +106,11 @@ export { createGitHubKnowledgePublicationForge } from "./knowledge-publication-g
 export type { KnowledgePublicationForge } from "./knowledge-publication-forge.js";
 export { readKnowledgePublicationState } from "./knowledge-publication-state.js";
 export {
+  unpublishedKnowledgeCommits,
+  type KnowledgePublicationBase,
+} from "./knowledge-publication-unpublished.js";
+export { KNOWLEDGE_OUTPUT_COMMIT_AUTHOR } from "./knowledge-output-commit.js";
+export {
   acknowledgeKnowledgePublicationAttention,
   readKnowledgePublicationAcknowledged,
   type KnowledgePublicationAcknowledged,

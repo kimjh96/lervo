@@ -38,10 +38,14 @@ export interface HostedWorkspaceBase {
   commit: string;
   source: "upstream" | "local";
   upstream: string | null;
-  /** Unpublished Lervo effect commits replayed on the branch, and those that did not apply. */
+  /**
+   * Unpublished knowledge commits replayed on the branch, those that did not apply, and those
+   * whose change the branch already held. Records from before Lervo 0.47.7 have no `carried`.
+   */
   replayed: string[];
   skipped: string[];
-  notice: "no_upstream" | "fetch_failed" | null;
+  carried?: string[];
+  notice: "no_upstream" | "fetch_failed" | "knowledge_state_unreadable" | null;
 }
 
 /** The host's record file, next to the repository registry in the user state directory. */

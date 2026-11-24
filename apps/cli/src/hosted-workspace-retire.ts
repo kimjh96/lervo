@@ -1,7 +1,7 @@
 // `workspace.retire` and `lervo workspace retire`: removes a hosted workspace its user is done
 // with (Lervo ADE sessions, "Retiring a workspace"). Retiring never discards work: it refuses a
 // worktree that a process still uses or that holds changes, and it deletes the branch only when
-// Lervo created it and the default branch already holds its commits.
+// Lervo created it and the default branch or its upstream already holds its changes.
 import type { WorkspaceRetireResult } from "@lervo/session-host-contract";
 
 import { CommandFailure } from "./command-error-output.js";
@@ -22,7 +22,10 @@ export interface WorkspaceRetireEffects {
   hasChanges(worktree: string): Promise<boolean>;
   removeWorktree(root: string, worktree: string): Promise<void>;
   branchExists(root: string, branch: string): Promise<boolean>;
-  /** Whether the default branch already holds every commit of `branch`. */
+  /**
+   * Whether the default branch, or its upstream, already holds every change of `branch`: the tip
+   * is in one of them, or every commit beyond the upstream copies a patch one of them holds.
+   */
   branchMerged(root: string, branch: string): Promise<boolean>;
   deleteBranch(root: string, branch: string): Promise<void>;
   removeSessionSettings(sessionIds: readonly string[]): Promise<void>;

@@ -18,8 +18,8 @@ import {
 } from "./hosted-launch-records.js";
 import { hostedSessionSettingsDirectory } from "./hosted-session-settings.js";
 import type { WorkspaceRetireEffects } from "./hosted-workspace-retire.js";
-import { gitWorkspaceBase, isEffectCommit } from "./workspace-base.js";
-import { defaultBranchCommit, worktreeOfBranch } from "./workspace-start-effects.js";
+import { branchMergedIntoDefault } from "./hosted-branch-merged.js";
+import { worktreeOfBranch } from "./workspace-start-effects.js";
 
 const execute = promisify(execFile);
 /** Enough for the working directories of every process on a busy host. */
@@ -108,19 +108,7 @@ export function hostedWorkspaceRetireEffects(): WorkspaceRetireEffects {
     },
     branchExists: (root, branch) =>
       succeeds(git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`])),
-    async branchMerged(root, branch) {
-      const tip = `refs/heads/${branch}`;
-      const reads = gitWorkspaceBase(root);
-      const local = await defaultBranchCommit(root);
-      const upstream = await reads.upstreamOf(await reads.defaultBranch());
-      for (const base of upstream === null ? [local] : [local, upstream]) {
-        // A branch holding only Lervo effect commits beyond the base carries no work to keep:
-        // a new workspace replays the effect commits its upstream base lacks.
-        const ahead = await reads.commitsBetween(base, tip).catch(() => null);
-        if (ahead !== null && ahead.every(isEffectCommit)) return true;
-      }
-      return false;
-    },
+    branchMerged: (root, branch) => branchMergedIntoDefault(root, branch).catch(() => false),
     async deleteBranch(root, branch) {
       await git(root, ["branch", "-D", branch]);
     },

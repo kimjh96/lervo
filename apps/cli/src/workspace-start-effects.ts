@@ -11,6 +11,7 @@ import {
   resolveRepositoryCoordinationHome,
 } from "@lervo/project-storage";
 import { applyWorkstreamStartPlan, createWorkstreamStartPlan } from "@lervo/repository-knowledge";
+import { KNOWLEDGE_OUTPUT_COMMIT_AUTHOR } from "@lervo/repository-knowledge-runtime";
 import type { WorkspaceOwnershipMarker } from "@lervo/workspace-host";
 import { GitWorkspaceHostAdapter } from "@lervo/workspace-host-git";
 
@@ -18,7 +19,7 @@ import { CommandFailure } from "./command-error-output.js";
 import { bindCheckedOutBranch, resolveDefaultBranch } from "./workstream-branch-selection.js";
 import { workstreamSnapshotRecorder } from "./workstream-recording.js";
 import { observeRepositoryHead } from "./workstream-repository-head.js";
-import { LERVO_EFFECT_AUTHOR as LERVO_EFFECT_COMMITTER } from "./workspace-base.js";
+import { runGit } from "./workspace-base-git.js";
 import type { EffectReplay, WorkspacePlacement } from "./workspace-start.js";
 
 const execute = promisify(execFile);
@@ -57,11 +58,50 @@ function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) 
   };
 }
 
+/** Replay never runs the owner's hooks or signing, whatever the repository configures. */
+const REPLAY_CONFIG = ["-c", "core.hooksPath=/dev/null", "-c", "commit.gpgSign=false"];
+/** Each pick commits as `Lervo Knowledge` and ends within the ADE's command deadline. */
+const REPLAY_OPTIONS = {
+  timeout: 20_000,
+  env: {
+    GIT_COMMITTER_NAME: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.name,
+    GIT_COMMITTER_EMAIL: KNOWLEDGE_OUTPUT_COMMIT_AUTHOR.email,
+  },
+};
+
+/** Whether a stopped pick stopped only because its change is already on the branch. */
+async function emptyPick(at: string): Promise<boolean> {
+  const conflicted = await runGit(at, ["ls-files", "--unmerged"]).catch(() => "conflicted");
+  if (conflicted !== "") return false;
+  return runGit(at, ["diff", "--cached", "--quiet"]).then(
+    () =>
+      runGit(at, ["rev-parse", "--verify", "--quiet", "CHERRY_PICK_HEAD"]).then(
+        () => true,
+        () => false,
+      ),
+    () => false,
+  );
+}
+
+/**
+ * Undoes a pick that did not apply. When Git cannot abort, as with a stale `index.lock`, the pick
+ * is dropped and the branch returns to its last good commit; when that fails too, the start fails
+ * and its rollback removes the branch.
+ */
+async function abandonPick(at: string, lastGood: string): Promise<void> {
+  try {
+    await runGit(at, ["cherry-pick", "--abort"]);
+  } catch {
+    await runGit(at, ["cherry-pick", "--quit"]).catch(() => undefined);
+    await runGit(at, ["reset", "--hard", "--quiet", lastGood]);
+  }
+}
+
 /** The Git effects of the workspace stage and their reversal. */
 export function gitWorkspaceEffects() {
   const host = new GitWorkspaceHostAdapter();
   let owned: ReturnType<typeof ownership> | null = null;
-  // The branch's tip after replayed effect commits, so a rollback removes the branch it made.
+  // The branch's tip after each replayed commit, so a rollback removes the branch it made.
   let tip: string | null = null;
   return {
     async provisionWorkspace(placement: WorkspacePlacement): Promise<void> {
@@ -75,24 +115,35 @@ export function gitWorkspaceEffects() {
       });
     },
     /**
-     * Replays unpublished Lervo effect commits on the new branch, committed as Lervo like the
-     * originals. A commit that does not apply cleanly is skipped, so the workspace still starts.
+     * Replays the unpublished knowledge commits on the new branch, committed by `Lervo Knowledge`
+     * like the originals, so the resident still recognizes them. The owner's hooks and signing
+     * never run, and each pick has a deadline. A commit whose change the branch already holds is
+     * carried, one that does not apply cleanly is skipped, and the workspace still starts. When a
+     * failed pick cannot be undone, the branch returns to its last good commit, or the start fails
+     * and rolls back.
      */
     async replayEffects(placement: WorkspacePlacement): Promise<EffectReplay> {
       const replayed: string[] = [];
       const skipped: string[] = [];
-      const asLervo = ["-c", "user.name=Lervo", "-c", `user.email=${LERVO_EFFECT_COMMITTER}`];
+      const carried: string[] = [];
+      const at = placement.workspacePath;
+      tip = await runGit(at, ["rev-parse", "HEAD"]);
       for (const commit of placement.replay ?? []) {
         try {
-          await git(placement.workspacePath, [...asLervo, "cherry-pick", "--allow-empty", commit]);
+          await runGit(at, [...REPLAY_CONFIG, "cherry-pick", commit], REPLAY_OPTIONS);
           replayed.push(commit);
         } catch {
-          await git(placement.workspacePath, ["cherry-pick", "--abort"]).catch(() => undefined);
-          skipped.push(commit);
+          if (await emptyPick(at)) {
+            await runGit(at, [...REPLAY_CONFIG, "cherry-pick", "--skip"], REPLAY_OPTIONS);
+            carried.push(commit);
+          } else {
+            await abandonPick(at, tip);
+            skipped.push(commit);
+          }
         }
+        tip = await runGit(at, ["rev-parse", "HEAD"]);
       }
-      tip = await git(placement.workspacePath, ["rev-parse", "HEAD"]);
-      return { replayed, skipped };
+      return { replayed, skipped, carried };
     },
     async removeWorkspace(placement: WorkspacePlacement): Promise<void> {
       // Right after creation the checkout holds only Lervo's own state, so discarding is safe.

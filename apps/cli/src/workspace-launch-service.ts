@@ -39,6 +39,7 @@ import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-ses
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
+  defaultBranchCommit,
   gitWorkspaceEffects,
   startWorkstreamIn,
   worktreeOfBranch,
@@ -94,8 +95,6 @@ export async function startWorkspaceFromInstruction(
 ): Promise<WorkspaceStartResult> {
   const repository = await registeredRepository(options.repository);
   const adapter = await resolveHostedSessionAdapter(options.provider ?? defaultHostedProvider);
-  // New work starts from the fetched upstream tip, never the owner's possibly stale checkout.
-  const base = await chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot));
   const sessionId = randomUUID();
   const hooks = hostedSessionHooks(adapter, sessionId);
   return startWorkspace(
@@ -104,8 +103,7 @@ export async function startWorkspaceFromInstruction(
       mode: options.mode ?? preferredConversationMode(adapter.capabilities),
       repositoryRoot: repository.repositoryRoot,
       projectId: repository.projectId,
-      baseCommit: base.commit,
-      base,
+      baseCommit: await defaultBranchCommit(repository.repositoryRoot),
       workspaceId: `wsp_${hex(12)}`,
       sessionId,
       suffix: hex(3),
@@ -114,6 +112,8 @@ export async function startWorkspaceFromInstruction(
     },
     {
       adapter,
+      // New work starts from the fetched upstream tip, never the owner's possibly stale checkout.
+      chooseBase: () => chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot)),
       ...gitWorkspaceEffects(),
       startWorkstream: startWorkstreamIn,
       recordLaunch,
