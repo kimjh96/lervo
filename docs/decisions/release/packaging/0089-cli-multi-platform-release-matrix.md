@@ -2,7 +2,7 @@
 
 Status: `accepted`
 Decision date: 2026-08-20
-Amended by: [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the matrix runs before merge, and a tag run can publish without rebuilding)
+Amended by: [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) (the matrix runs before merge, and a tag run can publish without rebuilding), [ADR-0581](0581-build-darwin-native-files-with-one-pinned-xcode.md) (the macOS legs run on `macos-15` with a pinned Xcode), [ADR-0614](0614-sign-the-verified-release-subjects.md) (`attested-cli` signs the verified subjects instead of a rebuild)
 
 ## Context
 
@@ -28,25 +28,26 @@ The current local platform and each completed matrix job provide separate eviden
 
 ### Triggers and concurrency
 
-The supplied `.github/workflows/cli-release-matrix.yml` declares pull requests, pushes of `v*` tags, and manual dispatch, with no main-branch push trigger. The `packed-cli` job runs for non-pull-request events or when the pull-request head branch is exactly `lervo/release-cli`; ordinary pull requests do not execute it. Concurrency groups by workflow and ref and cancels replaced in-progress runs.
+The supplied `.github/workflows/cli-release-matrix.yml` declares pull requests, pushes of `v*` tags, and manual dispatch with an optional `expected_sha` input, with no main-branch push trigger. The first job, `plan`, runs for non-pull-request events or when the pull-request head branch is exactly `lervo/release-cli`; ordinary pull requests run no job. `plan` outputs the tree and an optional reusable run ID ([ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md)). Concurrency groups by workflow and ref and cancels replaced in-progress runs.
 
 ### Packed verification
 
-The packed job retains Ubuntu, macOS, Windows, `fail-fast: false`, a 20-minute timeout, `contents: read`, and checkout without persisted credentials. It uses SHA-pinned actions, Node 22.13.0 with package-manager caching disabled, pnpm setup, and frozen installation. The YAML specifies no pnpm version, so this source alone cannot verify the original 11.18.0 coordinate.
+The `native-runtime` and `packed-cli` jobs run only when `plan` chose no reusable run. The packed job retains Ubuntu, macOS (`macos-15`), Windows, `fail-fast: false`, a 20-minute timeout, `contents: read`, and checkout without persisted credentials. It uses SHA-pinned actions, Node 22.13.0 with package-manager caching disabled, pnpm setup, and frozen installation. The YAML specifies no pnpm version, so this source alone cannot verify the original 11.18.0 coordinate.
 
 The supplied workflow pins:
 
 - `actions/checkout`: `de0fac2e4500dabe0009e67214ff5f5447ce83dd` (v6.0.2).
 - `actions/setup-node`: `820762786026740c76f36085b0efc47a31fe5020` (v7.0.0).
 - `pnpm/action-setup`: `d15e628ca66d93ee5f352c71671a7bc6a97af5c9` (v6.0.8).
+- `actions/download-artifact`: `634f93cb2916e3fdff6788551b99b062d0335ce0` (v5), used by `packed-cli`, `attested-cli`, and `github-release`.
 
-These are exact configuration identities, not evidence that a remote job ran. After building, the job checks the release manifest, SBOM, and local attestation statement, runs packed-consumer smoke, and tests publication and installation through an isolated registry.
+These are exact configuration identities, not evidence that a remote job ran. After building, the job checks the release manifest, SBOM, and local attestation statement, runs packed-consumer smoke, and tests publication and installation through an isolated registry. The Ubuntu leg binds and keeps the exact release subjects as `lervo-cli-release-<tree>`.
 
 ### Attestations and release artifacts
 
-The `attested-cli` job depends on the packed job and runs only for `v*` tag refs where the repository is not both private and personally owned. It uses Ubuntu, a 20-minute timeout, and `contents: read`, `id-token: write`, `attestations: write`, and `artifact-metadata: write`.
+The `attested-cli` job needs `plan` and `packed-cli` and runs under `!cancelled()` only for `v*` tag refs where the repository is not both private and personally owned, when `plan` succeeded and either a reusable run was chosen or `packed-cli` succeeded. It uses Ubuntu, a 20-minute timeout, and `contents: read`, `actions: read`, `id-token: write`, `attestations: write`, and `artifact-metadata: write`.
 
-The job rebuilds and verifies release metadata, prepares subjects against the expected tag, attests build provenance and the tarball SBOM, collects signed bundles, and verifies them against the repository, tag, and source digest.
+The job never rebuilds or repacks the CLI ([ADR-0614](0614-sign-the-verified-release-subjects.md)). It builds only `@lervo/runtime-security`, downloads `lervo-cli-release-<tree>` from the reusable run or its own run, verifies the subjects against the tagged tree with `cli-release-subjects.mjs verify`, and stages the tarball, manifest, and SBOM for signing. It attests build provenance and the tarball SBOM, collects signed bundles, and verifies them against the repository, tag, and source digest.
 
 - Build-provenance attestation names three subjects: the `*.tgz` tarball, `release-artifact-manifest.json`, and `release-sbom.cdx.json`.
 - The separate SBOM attestation names the tarball as subject and the CycloneDX file as `sbom-path`.
@@ -57,9 +58,9 @@ The job then generates exact publication-authorization coordinates for the `late
 
 ### GitHub Release
 
-The `github-release` job requires a `v*` tag, successful packed verification, and attestation success or skip; attestation failure blocks it. It uses Ubuntu, a ten-minute timeout, and `contents: write`.
+The `github-release` job needs `plan`, `packed-cli`, and `attested-cli` and runs under `!cancelled()` for a `v*` tag when `plan` succeeded, either a reusable run was chosen or `packed-cli` succeeded, and attestation succeeded or was skipped; attestation failure blocks it. On the reuse path it publishes even though `packed-cli` was skipped. It uses Ubuntu, a ten-minute timeout, `contents: write`, and `actions: read`.
 
-The job validates the current release note against the expected tag, then edits an existing GitHub Release or creates one with `--verify-tag`, using `.changes/current-release.md` and the title `@lervo/cli <tag>`. [ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md) adds a `plan` job and an `expected_sha` dispatch input, keeps the Ubuntu leg's exact release subjects, and has this job publish them as release assets. A tag run whose tree a pre-merge run already verified publishes that run's subjects without rebuilding.
+The job validates the current release note against the expected tag, downloads `lervo-cli-release-<tree>` from the chosen run, and verifies it against the tagged tree. When attestation succeeded, it requires the attested files to equal the verified subjects. `publish-github-release.sh` then creates or reconciles the release, titled `@lervo/cli <tag>` with its notes, and attaches the tarball, manifest, SBOM, and binding as assets ([ADR-0569](0569-verify-the-release-matrix-before-merge-and-publish-its-exact-subjects.md)).
 
 ### Evidence boundaries
 
