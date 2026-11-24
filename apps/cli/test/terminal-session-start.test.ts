@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, stat, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
@@ -71,6 +71,19 @@ it("answers a compaction with the base block and starts a new epoch (ADR-0562)",
   // A later start of the same session replaces its epoch rather than adding one.
   await sessionStart("resume");
   expect(await readdir(directory)).toEqual([file]);
+});
+
+it("still answers with the base block when the epoch cannot be written safely", async () => {
+  // A link in the state path is refused, and the session still gets its base block.
+  await mkdir(join(root, ".lervo"), { recursive: true });
+  const elsewhere = await mkdtemp(join(tmpdir(), "lervo-session-elsewhere-"));
+  await symlink(elsewhere, join(root, ".lervo/state"));
+  const { output } = await sessionStart("startup");
+  expect((output.hookSpecificOutput as { additionalContext: string }).additionalContext).toContain(
+    "Lervo base context for this session start.",
+  );
+  expect(await readdir(elsewhere)).toEqual([]);
+  await rm(elsewhere, { recursive: true, force: true });
 });
 
 it("answers nothing, never a blocking failure, when the repository cannot be read", async () => {

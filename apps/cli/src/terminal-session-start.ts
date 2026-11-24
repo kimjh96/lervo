@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
-import { lstat, mkdir, open, rename, rm } from "node:fs/promises";
-import { resolve } from "node:path";
+import { lstat, mkdir, open, readdir, rename, rm } from "node:fs/promises";
+import { basename, resolve } from "node:path";
 
 import { sha256, type TerminalIntegrationProvider } from "@lervo/repository-knowledge";
 
@@ -38,11 +38,41 @@ export function terminalEpochPath(
   return resolve(root, EPOCH_DIRECTORY, `${digest.slice(0, 32)}.json`);
 }
 
-async function ownerOnlyDirectory(path: string): Promise<void> {
-  await mkdir(path, { recursive: true, mode: 0o700 });
-  const stats = await lstat(path);
-  if (!stats.isDirectory() || stats.isSymbolicLink())
-    throw new Error("Unsafe terminal epoch state directory.");
+/** Epoch files kept per checkout; the oldest go first, so a long-lived host never grows them. */
+const MAXIMUM_EPOCHS = 256;
+
+/** Creates each level owner-only and refuses any level that is a link, as open-turn state does. */
+async function epochDirectory(root: string): Promise<string> {
+  let directory = root;
+  for (const segment of [".lervo", "state", "terminal-integration", "epochs"]) {
+    directory = resolve(directory, segment);
+    await mkdir(directory, { mode: 0o700 }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code !== "EEXIST") throw error;
+    });
+    const stats = await lstat(directory);
+    if (!stats.isDirectory() || stats.isSymbolicLink())
+      throw new Error("Unsafe terminal epoch state directory.");
+  }
+  return directory;
+}
+
+async function pruneEpochs(directory: string, keep: string): Promise<void> {
+  const entries = await Promise.all(
+    (await readdir(directory, { withFileTypes: true }))
+      .filter((entry) => entry.isFile() && /^[a-f0-9]{32}\.json$/u.test(entry.name))
+      .map(async (entry) => ({
+        name: entry.name,
+        modifiedAt: (await lstat(resolve(directory, entry.name))).mtimeMs,
+      })),
+  );
+  entries.sort(
+    (left, right) =>
+      Number(left.name === keep) - Number(right.name === keep) ||
+      left.modifiedAt - right.modifiedAt ||
+      left.name.localeCompare(right.name),
+  );
+  for (const entry of entries.slice(0, Math.max(0, entries.length - MAXIMUM_EPOCHS)))
+    await rm(resolve(directory, entry.name), { force: true });
 }
 
 /** Replaces the session's epoch file atomically, owner-only and never through a link. */
@@ -51,8 +81,7 @@ export async function writeTerminalContextEpoch(
   providerSessionId: string,
   epoch: TerminalContextEpoch,
 ): Promise<void> {
-  const directory = resolve(root, EPOCH_DIRECTORY);
-  await ownerOnlyDirectory(directory);
+  const directory = await epochDirectory(root);
   const target = terminalEpochPath(root, epoch.provider, providerSessionId);
   const temporary = resolve(directory, `.epoch-${randomUUID()}.tmp`);
   let handle;
@@ -70,6 +99,7 @@ export async function writeTerminalContextEpoch(
     await handle?.close();
     await rm(temporary, { force: true });
   }
+  await pruneEpochs(directory, basename(target));
 }
 
 const CAUSE_LABELS: Record<TerminalEpochCause, string> = {
@@ -83,7 +113,8 @@ const CAUSE_LABELS: Record<TerminalEpochCause, string> = {
  * The base block for a provider `SessionStart` (ADR-0562 section 4): the repository pointer, the
  * publication policy, the applied owner rules, and the workstream headline, from independent local
  * reads with no repository snapshot. A compaction or clear starts a new epoch, so the model gets
- * the base back after it lost the earlier turns. The epoch is recorded even when a read fails.
+ * the base back after it lost the earlier turns. The epoch is recorded even when a read fails, and
+ * a failed epoch write still answers with the base block.
  */
 export async function prepareTerminalSessionStart(input: {
   root: string;
@@ -93,6 +124,7 @@ export async function prepareTerminalSessionStart(input: {
   now: Date;
 }): Promise<string> {
   const lines = await prepareTerminalBaseContext(input.root, input.deadline);
+  // A lost epoch only means the next prompt delivers everything; the base block still goes out.
   await writeTerminalContextEpoch(input.root, input.session.providerSessionId, {
     schemaVersion: 1,
     epochId: `tepoch_${randomUUID().replaceAll("-", "").slice(0, 24)}`,
@@ -100,7 +132,7 @@ export async function prepareTerminalSessionStart(input: {
     cause: input.session.source,
     startedAt: input.now.toISOString(),
     delivered: {},
-  });
+  }).catch(() => undefined);
   return capContextBytes(
     [
       lines[0] ?? TERMINAL_AGENTS_POINTER,
