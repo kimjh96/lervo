@@ -176,6 +176,17 @@ export {
   type DocumentFreshnessEvidenceItem,
 } from "./document-freshness-candidate.js";
 export {
+  planReverseHeaderEdit,
+  reverseHeaderDeclarations,
+  type ReverseHeaderDeclaration,
+  type ReverseHeaderPlan,
+} from "./document-reverse-headers.js";
+export {
+  reverseHeaderCandidate,
+  reverseHeaderFindingDigest,
+  type DocumentFreshnessMechanicalEdit,
+} from "./document-reverse-header-candidate.js";
+export {
   buildDocumentFreshnessCrossCheckInput,
   documentFreshnessCandidateNeedsCrossCheck,
   documentFreshnessCrossCheckContract,

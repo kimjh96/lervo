@@ -72,7 +72,7 @@ A suspect's reasons are the suspect reasons above plus `cadence_due` (the sweep 
   - a lineage move of a removed target;
   - a supersession it already names;
   - a removal that every line naming the removed part already records.
-- `mechanical`: a missing reverse header line (`Amended by`, `Superseded in part by`, or a superseded status). This is a deterministic edit, never a provider call.
+- `mechanical`: a missing reverse header line (`Amended by`, `Superseded in part by`, or a superseded status). This is a deterministic edit, never a provider call. [ADR-0631](../../decisions/knowledge/documents/links/0631-write-reverse-adr-header-lines-as-insert-only-freshness-edits.md) writes the `Amended by` and `Superseded in part by` lines through the freshness apply path; a superseded status changes the owner's line, so it stays for a person.
 - `provider`: the remainder, which goes to the freshness path of ADR-0463 and ADR-0561.
 - `cadence`: the document is waiting for the sweep.
 
@@ -107,7 +107,7 @@ The lifecycle runs in shadow, only in the two callers that record the staleness 
 
 The staleness findings that lint, freshness and health act on still come from the ADR-0023 connected-path evaluator. Repository health reads the recorded summary and never evaluates the lifecycle. When the summary was recorded at the current HEAD, health adds `freshness.lifecycle` to its projection: counts per state, suspects by what settles them, and cadence coverage. Its text line is unchanged.
 
-Switching the findings to the lifecycle is roadmap item 8, after the shadow counts are measured on installed hosts. That switch also replaces the ADR-0023 review interval (`reviewIntervalDays`, ADR-0464), so it needs its own decision. No new event is recorded, and the lifecycle changes no repository bytes.
+Switching the findings to the lifecycle is roadmap item 8, after the shadow counts are measured on installed hosts. That switch also replaces the ADR-0023 review interval (`reviewIntervalDays`, ADR-0464), so it needs its own decision. No new event is recorded, and the lifecycle itself changes no repository bytes. The freshness cycle reads the stored web to write reverse header lines (ADR-0631).
 
 ## Inspection
 

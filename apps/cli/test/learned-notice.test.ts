@@ -249,6 +249,42 @@ describe("learned notice", () => {
     );
   });
 
+  it("reports a reverse header commit as a refresh of its record (ADR-0631)", async () => {
+    const { root, base } = await repository();
+    const candidate = "kfresh_76543210fedcba9876543210";
+    await mkdir(join(root, "docs/decisions"), { recursive: true });
+    await writeFile(join(root, "docs/decisions/0001-base.md"), "# ADR-0001\n");
+    git(root, ["add", "-A"], lervo);
+    git(
+      root,
+      [
+        "commit",
+        "-q",
+        "-m",
+        "docs: add reverse header lines to ADR-0001",
+        "-m",
+        [
+          `Lervo-Freshness-Candidate: ${candidate}`,
+          "Lervo-Freshness-Reason: reverse_header",
+          "Lervo-Freshness-Cross-Check: not_required",
+        ].join("\n"),
+      ],
+      lervo,
+    );
+    const notice = await projectLearnedNotice({ root, shownThrough: base, now: new Date() });
+    expect(notice!.entries).toMatchObject([
+      {
+        kind: "freshness",
+        path: "docs/decisions/0001-base.md",
+        freshness: {
+          effect: "refresh",
+          reason: "reverse_header",
+          undo: `lervo knowledge freshness revert ${candidate}`,
+        },
+      },
+    ]);
+  });
+
   it("reports a cross-checked layout commit with its reason, reviewer, and undo (ADR-0561)", async () => {
     const { root, base } = await repository();
     await mkdir(join(root, "docs/operations"), { recursive: true });

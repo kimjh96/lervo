@@ -287,6 +287,11 @@ export interface DocumentFreshnessCandidateV1 {
   detectedAt: string;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Additive (ADR-0631): present only on a reverse header candidate, which inserts the missing
+   * reverse lines of a decision record without a provider call.
+   */
+  mechanical?: import("./document-reverse-header-candidate.js").DocumentFreshnessMechanicalEdit;
 }
 
 /**
