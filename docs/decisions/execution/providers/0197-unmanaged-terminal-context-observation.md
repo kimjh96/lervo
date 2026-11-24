@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-08-24
+- Amended by: [ADR-0613](../applications/0613-host-provider-clis-in-a-first-party-development-environment.md)
 
 ## Context
 
