@@ -84,10 +84,40 @@ async function type(
   return { echoMs: painted - started, workMs: worked - started };
 }
 
+/** When the page's own steps happened, from navigation: the `lervo:` marks and its scripts. */
+function startupPhases(): string {
+  const navigation = performance.getEntriesByType("navigation")[0] as
+    PerformanceNavigationTiming | undefined;
+  const phases: [string, number][] = [];
+  if (navigation !== undefined)
+    phases.push(
+      ["document", navigation.responseEnd],
+      ["DOM interactive", navigation.domInteractive],
+      ["DOM content loaded", navigation.domContentLoadedEventEnd],
+    );
+  for (const script of performance.getEntriesByType("resource") as PerformanceResourceTiming[])
+    if (script.name.endsWith(".js"))
+      phases.push([`${script.name.split("/").at(-1) ?? "script"} loaded`, script.responseEnd]);
+  for (const mark of performance.getEntriesByType("mark"))
+    if (mark.name.startsWith("lervo:")) phases.push([mark.name.slice(6), mark.startTime]);
+  return phases
+    .sort((left, right) => left[1] - right[1])
+    .map(([phase, at]) => `${phase}@${Math.round(at)}`)
+    .join(" ");
+}
+
 async function coldStart(): Promise<Report> {
-  // The page's clock starts at navigation; the harness adds the time from launch to navigation.
+  // The page's clock starts at navigation; the harness adds the time from launch to navigation,
+  // split at the moment the shell's `main` began.
   const painted = await startScreen();
-  return { startScreenMs: rounded(painted), timeOriginEpochMs: rounded(performance.timeOrigin) };
+  const injected = (globalThis as { __LERVO_MEASURE__?: { mainEpochMs?: number } })
+    .__LERVO_MEASURE__;
+  return {
+    startScreenMs: rounded(painted),
+    timeOriginEpochMs: rounded(performance.timeOrigin),
+    mainEpochMs: injected?.mainEpochMs ?? Number.NaN,
+    phases: startupPhases(),
+  };
 }
 
 const IDLE_SETTLE_MS = 5_000;

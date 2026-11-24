@@ -20,6 +20,7 @@ type Listener<T> = (value: T) => void;
  */
 export class SessionHostClient implements SessionHost {
   private state: ConnectionState = "connecting";
+  private connectedOnce = false;
   private started = false;
   private generation = 0;
   /** The last message handed to the shell; each waits for the one before it. */
@@ -142,6 +143,11 @@ export class SessionHostClient implements SessionHost {
   private change(state: ConnectionState): void {
     if (this.state === state) return;
     this.state = state;
+    // Only the first connection times the cold start; later ones would add a mark per reconnect.
+    if (state === "connected" && !this.connectedOnce) {
+      this.connectedOnce = true;
+      performance.mark("lervo:host-connected");
+    }
     for (const listener of this.stateListeners) listener(state);
   }
 }

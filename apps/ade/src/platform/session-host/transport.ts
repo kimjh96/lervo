@@ -1,4 +1,5 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
+import { Channel, invoke } from "@tauri-apps/api/core";
 
 /** A control message from the shell: a host message, or the end of the connection. */
 export type ShellMessage = HostMessage | { readonly kind: "host.disconnected" };
@@ -11,8 +12,7 @@ export interface HostTransport {
 }
 
 /** The transport through the Tauri shell's commands and channels. */
-export async function tauriTransport(): Promise<HostTransport> {
-  const { Channel, invoke } = await import("@tauri-apps/api/core");
+export function tauriTransport(): HostTransport {
   return {
     async connect(onControl) {
       const control = new Channel<ShellMessage>();

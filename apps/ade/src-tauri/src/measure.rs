@@ -5,6 +5,7 @@
 //! measures.
 
 use std::path::PathBuf;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use tauri::plugin::{Builder, TauriPlugin};
 use tauri::window::Color;
@@ -22,14 +23,21 @@ fn scenario_name(value: &str) -> bool {
 pub struct Measurement {
     scenario: String,
     out: PathBuf,
+    /// When `main` began, in Unix milliseconds, so the harness splits the time before navigation.
+    main_epoch_ms: u128,
 }
 
 impl Measurement {
     /// Reads the harness's variables; any missing or malformed one turns measurement off.
-    pub fn from_environment() -> Option<Self> {
+    pub fn from_environment(main_started: SystemTime) -> Option<Self> {
         let scenario = std::env::var("LERVO_ADE_MEASURE").ok()?;
         let out = PathBuf::from(std::env::var_os("LERVO_ADE_MEASURE_OUT")?);
-        (scenario_name(&scenario) && out.is_absolute()).then_some(Self { scenario, out })
+        let main_epoch_ms = main_started.duration_since(UNIX_EPOCH).ok()?.as_millis();
+        (scenario_name(&scenario) && out.is_absolute()).then_some(Self {
+            scenario,
+            out,
+            main_epoch_ms,
+        })
     }
 }
 
@@ -39,8 +47,8 @@ pub fn plugin<R: Runtime>(measurement: Option<&Measurement>) -> TauriPlugin<R> {
     match measurement {
         Some(measurement) => builder
             .js_init_script(format!(
-                "globalThis.__LERVO_MEASURE__ = {{ scenario: \"{}\" }};",
-                measurement.scenario
+                "globalThis.__LERVO_MEASURE__ = {{ scenario: \"{}\", mainEpochMs: {} }};",
+                measurement.scenario, measurement.main_epoch_ms
             ))
             .build(),
         None => builder.build(),

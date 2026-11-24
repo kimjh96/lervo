@@ -55,6 +55,7 @@ export function useLaunched(): boolean {
 function leaveLaunchView(): void {
   const view = document.getElementById("launch");
   if (view === null || view.dataset.leaving !== undefined) return;
+  performance.mark("lervo:launched");
   view.dataset.leaving = "";
   setTimeout(() => view.remove(), prefersReducedMotion() ? 0 : motion.exitMs);
 }

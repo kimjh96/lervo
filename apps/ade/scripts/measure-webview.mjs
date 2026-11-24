@@ -142,9 +142,14 @@ async function measure(scenario) {
       const page = JSON.parse(readFileSync(report, "utf8"));
       const result = { ...page };
       if (page.error !== undefined) return result;
-      if (scenario === "cold-start")
-        result.coldStartMs =
-          Math.round((page.timeOriginEpochMs - launchedEpochMs + page.startScreenMs) * 100) / 100;
+      if (scenario === "cold-start") {
+        const round = (value) => Math.round(value * 100) / 100;
+        result.coldStartMs = round(page.timeOriginEpochMs - launchedEpochMs + page.startScreenMs);
+        // Launch to the shell's `main` is the process start; `main` to navigation is the shell
+        // creating its window and webview.
+        result.launchToMainMs = round(page.mainEpochMs - launchedEpochMs);
+        result.mainToNavigationMs = round(page.timeOriginEpochMs - page.mainEpochMs);
+      }
       if (scenario.startsWith("idle-")) {
         const sampleMs = scenario === "idle-hidden" ? IDLE_HIDDEN_SAMPLE_MS : IDLE_SAMPLE_MS;
         const before = windowProcesses(window.pid, webkitBefore);
