@@ -7,6 +7,7 @@
 use std::path::PathBuf;
 
 use tauri::plugin::{Builder, TauriPlugin};
+use tauri::window::Color;
 use tauri::{Runtime, WebviewWindow};
 
 /// A scenario name the page understands, such as `cold-start` or `idle-hidden`.
@@ -67,6 +68,20 @@ pub fn measure_hide(
 ) -> Result<(), String> {
     state.inner().as_ref().ok_or("measurement_off")?;
     window.hide().map_err(|_| "measure_hide_failed".to_owned())
+}
+
+/// Draws the window opaque, without the native material, for the idle scenario that tells the
+/// material's share of a caret's redraw apart.
+#[tauri::command]
+pub fn measure_opaque(
+    state: tauri::State<'_, Option<Measurement>>,
+    window: WebviewWindow,
+) -> Result<(), String> {
+    state.inner().as_ref().ok_or("measurement_off")?;
+    window
+        .set_effects(None::<tauri::utils::config::WindowEffectsConfig>)
+        .and_then(|()| window.set_background_color(Some(Color(255, 255, 255, 255))))
+        .map_err(|_| "measure_opaque_failed".to_owned())
 }
 
 #[cfg(test)]
