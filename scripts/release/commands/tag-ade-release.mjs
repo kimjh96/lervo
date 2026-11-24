@@ -1,5 +1,5 @@
 // Tags a prepared ADE release on main as `ade-v<version>` (ADR-0615). No CLI workflow matches
-// the tag, and the ADE creates no GitHub Release before S3. Without --push it only reports.
+// the tag; the workflow then publishes its notes (ADR-0630). Without --push it only reports.
 import { execFile as execFileCallback } from "node:child_process";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";

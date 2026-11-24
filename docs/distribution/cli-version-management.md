@@ -6,7 +6,7 @@ The Lervo ADE keeps a separate version line with `ade-v` tags, and its intents l
 
 - **Intents.** A pull request that changes the ADE's behavior adds one with `pnpm release:intent:create --target ade --impact <impact> --summary "<summary>"`.
 - **Preparation.** Before merging, `pnpm release:ade:prepare` consumes the ADE intents, writes the next version to every ADE manifest, and replaces `.changes/ade/current-release.md`. Commit the result as `chore(ade): prepare release`.
-- **Checks and tags.** ADE CI runs `pnpm release:ade:check`. After the merge, the ADE release workflow tags the revision `ade-v<version>`.
+- **Checks, tags, and notes.** ADE CI runs `pnpm release:ade:check`. After the merge, the ADE release workflow tags the revision `ade-v<version>` and publishes the GitHub Release `@lervo/ade v<version>` with its notes, never marked "Latest" ([ADR-0630](../decisions/release/packaging/0630-publish-ade-release-notes-before-s3.md)).
 
 ## Contributor intent
 

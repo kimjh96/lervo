@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-23
 Amends: [ADR-0221](0221-reviewed-cli-release-preparation.md) (ADE intents in `.changes/ade/`), [ADR-0613](../../execution/applications/0613-host-provider-clis-in-a-first-party-development-environment.md) (the ADE keeps versions and release notes before S3 distributes it)
+Amended by: [ADR-0630](0630-publish-ade-release-notes-before-s3.md) (ADE releases publish their notes on GitHub before S3)
 
 ## Context
 
