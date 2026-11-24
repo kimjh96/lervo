@@ -68,48 +68,53 @@ export function RetireControl(props: { workspaceId: string }) {
     if (event.key === "Escape") setStep({ kind: "idle" });
   };
 
-  if (step.kind === "waiting")
-    return <Waiting label={intl.formatMessage(stepMessages[step.step])} />;
-  if (step.kind === "asking")
-    return (
-      // The question's answers are buttons; Escape on either cancels.
-      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-      <span className={styles.question} onKeyDown={cancelOnEscape}>
-        <span className={styles.text}>
-          <FormattedMessage id="workspace.retire.question" />
-        </span>
-        <Button variant="outlined" onClick={retire}>
-          <FormattedMessage id="workspace.retire.confirm" />
-        </Button>
-        <Button
-          variant="quiet"
-          // The safe answer holds the focus, so Return never removes by accident.
-          takesFocus
-          onClick={() => setStep({ kind: "idle" })}
-        >
-          <FormattedMessage id="workspace.retire.cancel" />
-        </Button>
-      </span>
-    );
+  // The trash button, its question, and the wait crossfade in one place (motion, "Changing in
+  // place"), so the header never jumps.
+  const key = step.kind === "failed" ? "idle" : step.kind;
   return (
-    <span className={styles.question}>
-      <Presence as="span">
-        {step.kind === "failed" ? (
-          <InlineAlert size="meta">
-            <FormattedMessage
-              {...(failureMessages[step.code] ?? { id: "workspace.retire.failed.other" })}
-              values={{ code: step.code }}
-            />
-          </InlineAlert>
-        ) : null}
-      </Presence>
-      <Button
-        variant="quiet"
-        label={intl.formatMessage({ id: "workspace.retire.action" })}
-        onClick={() => setStep({ kind: "asking" })}
-      >
-        <TrashIcon size="md" />
-      </Button>
-    </span>
+    <Presence as="span" contentKey={key}>
+      {step.kind === "waiting" ? (
+        <Waiting immediate label={intl.formatMessage(stepMessages[step.step])} />
+      ) : step.kind === "asking" ? (
+        // The question's answers are buttons; Escape on either cancels.
+        // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+        <span className={styles.question} onKeyDown={cancelOnEscape}>
+          <span className={styles.text}>
+            <FormattedMessage id="workspace.retire.question" />
+          </span>
+          <Button variant="outlined" onClick={retire}>
+            <FormattedMessage id="workspace.retire.confirm" />
+          </Button>
+          <Button
+            variant="quiet"
+            // The safe answer holds the focus, so Return never removes by accident.
+            takesFocus
+            onClick={() => setStep({ kind: "idle" })}
+          >
+            <FormattedMessage id="workspace.retire.cancel" />
+          </Button>
+        </span>
+      ) : (
+        <span className={styles.question}>
+          <Presence as="span">
+            {step.kind === "failed" ? (
+              <InlineAlert size="meta">
+                <FormattedMessage
+                  {...(failureMessages[step.code] ?? { id: "workspace.retire.failed.other" })}
+                  values={{ code: step.code }}
+                />
+              </InlineAlert>
+            ) : null}
+          </Presence>
+          <Button
+            variant="quiet"
+            label={intl.formatMessage({ id: "workspace.retire.action" })}
+            onClick={() => setStep({ kind: "asking" })}
+          >
+            <TrashIcon size="md" />
+          </Button>
+        </span>
+      )}
+    </Presence>
   );
 }
