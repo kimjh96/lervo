@@ -7,6 +7,8 @@ Partially superseded by [ADR-0560](../../../foundation/0560-remove-unused-subsys
 
 Amended by: [ADR-0533](../../../knowledge/repository/canonicalization/patterns/0533-remove-the-development-pattern-pipeline.md). Pattern-specific intake and command behavior is retired; shared contracts remain.
 
+- Amended by: [ADR-0459](0459-measure-context-hits-and-usage-on-every-channel.md)
+
 ## Context
 
 The verified-improvement contract could bind adapter-verified baseline and treatment rates, but no production adapter could derive them. Accepting caller-provided counts unchanged would make the verification port ceremonial. Inferring source recall, rework, correction, or repeated failure from loosely related events would produce measurements without defined units or ground truth.
