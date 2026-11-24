@@ -44,6 +44,12 @@ Every document has one lifecycle state in the web: `current`, `suspect` (with re
 - Only the current lease holder reports a convergence stop as live. A host that finds an obligation from an earlier lease generation marks it transferred or closed and stops repeating it.
 - Every failure code maps to one action in an exhaustive table checked at compile time: retry with backoff for transient codes (source bytes changed, snapshot races, ignored-path timeouts), which never surface before a threshold; regenerate once and then hold as Lervo debt (ADR-0561); or park as debt and continue the queue.
 - A stop without progress for 24 hours raises one Lervo debt line naming the owner host, the cause, and the exact next command.
+- A failed verification suite is judged by its first command that did not pass, the same way in every convergence stage, including the integrator's candidate suite.
+  - If that command could not start or exited 126 or 127 (found but not executable, or not found), the host caused the failure. The stage fails with `knowledge_verification_environment_failed`. Such a failure costs moments, so the owner gives it four attempts with backoff, then settles attention that it reevaluates after six hours or after a source or Lervo change.
+  - If that command ran out of time, the host may have been busy or the check may hang. Each attempt costs the whole timeout and a busy host outlasts a short backoff, so `knowledge_verification_timed_out` settles at once and is reevaluated the same way.
+  - Any other failure, including output over the limit, stays `knowledge_verification_failed` and reruns only after a source or Lervo change.
+  - The integrator's orchestrator reports every failed suite as `verification_failed`, the code it also uses when a stored result cannot be read back intact. Its failure is named by command only when the orchestrator accepted every suite's result; any other `verification_failed` keeps its own cause.
+  - All three codes keep the suite result as evidence, so the health line names the command.
 
 ### 4. One context assembler in the resident host
 

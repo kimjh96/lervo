@@ -113,6 +113,27 @@ it("reevaluates a dependency settled by earlier logic once, then keeps the new s
       await settled({ ...stall, evaluationContract: convergenceEvaluationContract() }),
     ),
   ).toBe(true);
+  // A verification command the host could not run holds only until its reevaluation time.
+  const environment = {
+    ...stall,
+    code: "knowledge_verification_environment_failed",
+    evaluationContract: convergenceEvaluationContract(),
+  };
+  for (const code of [
+    "knowledge_verification_environment_failed",
+    "knowledge_verification_timed_out",
+  ]) {
+    expect(await host.dependencyCurrent(await settled({ ...environment, code }))).toBe(true);
+    expect(
+      await host.dependencyCurrent(
+        await settled({
+          ...environment,
+          code,
+          reevaluateAt: new Date(Date.now() - 1).toISOString(),
+        }),
+      ),
+    ).toBe(false);
+  }
   // An uncertain effect keeps its own inspection instead of a blind requeue.
   expect(
     await host.dependencyCurrent(

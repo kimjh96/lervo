@@ -9,6 +9,7 @@ import {
   sha256,
   canonicalJson,
   assertNoKnowledgeMaterializationTransaction,
+  reevaluatedConvergenceFailure,
   type KnowledgeConvergenceHost,
   type KnowledgeConvergenceInput,
   type KnowledgeConvergenceStageResult,
@@ -294,8 +295,9 @@ export function createConvergenceRuntimeHost(
           return true;
         }
       }
-      // An untyped host failure may have been external; it holds only until its reevaluation time.
-      if (dependency.code === "knowledge_stage_failure_unclassified")
+      // An untyped host failure, or a verification command the host could not run or finish, may
+      // have been external; it holds only until its reevaluation time.
+      if (reevaluatedConvergenceFailure(dependency.code ?? ""))
         return Date.parse(dependency.reevaluateAt ?? "") > Date.now();
       // Semantic refusals and unknown provider resets remain content-bound until explicit reviewed change.
       if (dependency.code === "assignment_path_conflict")

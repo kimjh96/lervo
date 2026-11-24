@@ -1,17 +1,32 @@
 import { execFileSync } from "node:child_process";
-import { readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { resolve } from "node:path";
 import { afterEach, expect, it, vi } from "vitest";
 import * as workforce from "@lervo/agent-workforce";
 import * as orchestrator from "@lervo/orchestrator";
 import { RepositoryCoordinationRecords } from "@lervo/project-storage";
 import { nextConvergenceIntegrationGeneration } from "../src/integration-target-generation.js";
+import { captureGitKeptSnapshot } from "../src/verification-source-changes.js";
 import {
   CANONICAL_TARGET,
   INTEGRATED_REQUIREMENT,
   canonicalIntegrationFixture,
 } from "./canonical-integration-fixture.js";
 import { canonicalProviderCalls } from "./canonical-integration-provider.js";
+
+const candidateEnvironment = vi.hoisted(() => ({ path: null as string | null }));
+vi.mock("../src/verification-environment.js", async (original) => {
+  const actual = await original<typeof import("../src/verification-environment.js")>();
+  return {
+    ...actual,
+    verificationEnvironment: async () => {
+      const path = candidateEnvironment.path;
+      candidateEnvironment.path = null;
+      return path === null ? actual.verificationEnvironment() : { ...process.env, PATH: path };
+    },
+  };
+});
 
 // `reviewKnowledgeJson` is replaced; see `canonicalIntegrationFixture().converge`.
 vi.mock("../src/provider-call.js", async () => ({
@@ -20,7 +35,11 @@ vi.mock("../src/provider-call.js", async () => ({
 
 const TARGET_REF = "refs/heads/knowledge-integration";
 const harnesses: Awaited<ReturnType<typeof canonicalIntegrationFixture>>[] = [];
+const pathDirectories: string[] = [];
 afterEach(async () => {
+  candidateEnvironment.path = null;
+  for (const directory of pathDirectories.splice(0))
+    await rm(directory, { recursive: true, force: true });
   vi.useRealTimers();
   vi.restoreAllMocks();
   canonicalProviderCalls.length = 0;
@@ -261,5 +280,99 @@ it(
     const status = await converge();
     expect(planned).toEqual([1, 2]);
     await expectCompletedRetry(f, first, status);
+  },
+);
+
+/**
+ * Gives the integrator's candidate suite, and only it, a PATH holding just `bin`: planning the
+ * candidate arms it, and the next verification environment uses it. The real verifier and
+ * orchestrator then judge the suite, as the observed launchd PATH that lacked `pnpm` did.
+ */
+async function candidatePath(bin: string) {
+  pathDirectories.push(bin);
+  const created = await canonicalIntegrationFixture();
+  harnesses.push(created);
+  const plan = orchestrator.planWorkspaceIntegrationCandidate;
+  vi.spyOn(orchestrator, "planWorkspaceIntegrationCandidate").mockImplementationOnce(
+    async (input) => {
+      candidateEnvironment.path = bin;
+      return plan(input);
+    },
+  );
+  return created;
+}
+
+it(
+  "retries a candidate whose verification command the host could not run, then integrates",
+  { timeout: 60_000 },
+  async () => {
+    // The suite's program is missing from PATH; the orchestrator reports only
+    // `verification_failed`, as it does for any failed suite.
+    const created = await candidatePath(await mkdtemp(resolve(tmpdir(), "lervo-empty-path-")));
+    expect(await created.converge()).toMatchObject({
+      state: "retry_scheduled",
+      reason: "knowledge_verification_environment_failed",
+      retry: { attemptCount: 1, attemptLimit: 4 },
+    });
+    const [first] = await workforce.listWorkspaceIntegrationAttempts(created.f.root);
+    expect(first).toMatchObject({ targetGeneration: 1, state: "released" });
+    await expectCompletedRetry(created.f, first!, await retry(created.converge));
+  },
+);
+
+it(
+  "settles a candidate whose verification command ran and failed, without a retry",
+  { timeout: 60_000 },
+  async () => {
+    // A `node` that runs and exits 1 stands for a check the candidate's sources fail.
+    const bin = await mkdtemp(resolve(tmpdir(), "lervo-failing-node-"));
+    await writeFile(resolve(bin, "node"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+    const created = await candidatePath(bin);
+    const status = await created.converge();
+    expect(status).toMatchObject({
+      state: "attention_required",
+      reason: "knowledge_verification_failed",
+    });
+    expect(status.retry).toBeUndefined();
+    const [first] = await workforce.listWorkspaceIntegrationAttempts(created.f.root);
+    expect(first).toMatchObject({ targetGeneration: 1, state: "released" });
+  },
+);
+
+it(
+  "keeps a verification_failed the orchestrator raised before accepting every result",
+  { timeout: 60_000 },
+  async () => {
+    const created = await canonicalIntegrationFixture();
+    harnesses.push(created);
+    // The verifier saw a failed suite, but the orchestrator refused its stored result: the
+    // integrity failure must not turn into a failed command that waits for a source change.
+    vi.spyOn(orchestrator, "verifyWorkspaceIntegrationCandidate").mockImplementationOnce(
+      async (input) => {
+        const [suite] = input.suites;
+        await input.verifier.verify({
+          suite: {
+            ...suite!,
+            commands: suite!.commands.map((command) => ({
+              ...command,
+              executable: "lervo-missing-verification-program",
+            })),
+          },
+          repositoryRoot: input.plan.integrationWorkspacePath,
+          repositoryRevision: (await captureGitKeptSnapshot(input.plan.integrationWorkspacePath))
+            .revision,
+        });
+        throw Object.assign(
+          new Error("Could not read the project verification result CAS source."),
+          {
+            code: "verification_failed",
+          },
+        );
+      },
+    );
+    expect(await created.converge()).toMatchObject({
+      state: "retry_scheduled",
+      reason: "knowledge_stage_failure_unclassified",
+    });
   },
 );
