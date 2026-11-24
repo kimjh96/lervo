@@ -1,6 +1,6 @@
 # Relation Web
 
-[ADR-0562](../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md) gives each checkout one relation web. This page defines extractor version 2. The governing index is a view of the web (roadmap item 8, slice 1). The link web, staleness, freshness, and reference lint still compute their own relations until later slices move them onto the web.
+[ADR-0562](../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md) gives each checkout one relation web. This page defines extractor version 2. The governing index is a view of the web (roadmap item 8, slice 1), and freshness reads supersession from its header edges (slice 2). The link web, staleness, freshness references, and reference lint still compute their own relations until later slices move them onto the web.
 
 ## State
 
