@@ -39,3 +39,8 @@ export function useApplicationCommands(): ApplicationCommands {
 export function useDrafts(): Drafts {
   return useAdapters().drafts;
 }
+
+/** The lists kept from the last launch, which the workspace models refresh. */
+export function useListCache(): ListCache {
+  return useAdapters().lists;
+}

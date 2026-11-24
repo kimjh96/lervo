@@ -1,0 +1,42 @@
+/* A secondary button in a bar (approved mockup "2a"): quiet until hovered, or outlined. */
+.button {
+  display: inline-flex;
+  flex: none;
+  gap: var(--space-6);
+  align-items: center;
+  justify-content: center;
+  height: var(--size-control-md);
+  padding-inline: var(--space-10);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  font: inherit;
+  font-size: var(--type-meta-size);
+  background: transparent;
+  cursor: pointer;
+}
+
+.button[data-icon-only] {
+  width: var(--size-control-md);
+  padding-inline: 0;
+}
+
+.button[data-variant="outlined"] {
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+
+.button:hover:not(:disabled) {
+  color: var(--color-text-primary);
+  background: var(--color-surface-hover);
+}
+
+.button:disabled {
+  opacity: var(--opacity-disabled);
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: var(--focus-ring-width) solid var(--color-accent);
+  outline-offset: var(--focus-ring-offset);
+}

@@ -171,6 +171,42 @@
     "defaultMessage": "Start",
     "description": "Accessible name of the button that starts work."
   },
+  "workspace.retire.action": {
+    "defaultMessage": "Remove workspace",
+    "description": "The accessible name of the header's trash button, which removes the selected workspace."
+  },
+  "workspace.retire.cancel": {
+    "defaultMessage": "Cancel",
+    "description": "Answers the remove question: keeps the workspace."
+  },
+  "workspace.retire.confirm": {
+    "defaultMessage": "Remove",
+    "description": "Answers the remove question: stops the session and removes the workspace."
+  },
+  "workspace.retire.failed.other": {
+    "defaultMessage": "The workspace could not be removed ({code}).",
+    "description": "Removing failed for a reason without its own text; code names it."
+  },
+  "workspace.retire.failed.session_stop_timeout": {
+    "defaultMessage": "The session did not stop in time. Try again.",
+    "description": "Removing stopped the session, but it did not end within 15 seconds."
+  },
+  "workspace.retire.failed.workspace_has_changes": {
+    "defaultMessage": "This workspace has changes. Commit or remove them first.",
+    "description": "Removing refused because the workspace holds uncommitted changes or new files."
+  },
+  "workspace.retire.failed.workspace_in_use": {
+    "defaultMessage": "A process still runs in this workspace. Stop it and try again.",
+    "description": "Removing refused because a process works in the workspace's folder."
+  },
+  "workspace.retire.question": {
+    "defaultMessage": "Remove this workspace?",
+    "description": "The question in the header after the trash button; the worktree and, when merged, its branch leave."
+  },
+  "workspace.retire.removing": {
+    "defaultMessage": "Removing…",
+    "description": "Shown in place of the question while the workspace is being removed."
+  },
   "workspaces.label": {
     "defaultMessage": "Workspaces",
     "description": "Accessible name of the workspace list."

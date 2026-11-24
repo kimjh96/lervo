@@ -4,9 +4,10 @@
 import type { ReactNode } from "react";
 import { useState } from "react";
 
+import { Button } from "../src/ui/Button";
 import { FloatingButton } from "../src/ui/FloatingButton";
 import { IconButton } from "../src/ui/IconButton";
-import { ArrowUpIcon, ChevronDownIcon, PlusIcon } from "../src/ui/icons";
+import { ArrowUpIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "../src/ui/icons";
 import { InlineAlert } from "../src/ui/InlineAlert";
 import { InputCard, InputField } from "../src/ui/InputCard";
 import { Kbd } from "../src/ui/Kbd";
@@ -137,6 +138,50 @@ export const entries: readonly Entry[] = [
             />
             <ListRow current={false} quiet label="Tidy the docs" onClick={() => undefined} />
           </div>
+        ),
+      },
+    ],
+  },
+  {
+    module: "Button",
+    name: "Button",
+    purpose: "A secondary action in a bar: quiet text or a quiet icon, or an outlined answer.",
+    use: [
+      "A header control, such as removing the workspace, as a quiet icon with a name",
+      "The answers to a question in a bar: the action outlined, the safe answer quiet and focused",
+    ],
+    avoid: [
+      "The one primary action of an input card, which is an icon button",
+      "The failure color for an action that deletes something",
+    ],
+    variants: [
+      {
+        name: "Quiet icon",
+        render: () => (
+          <Button variant="quiet" label="Remove workspace" onClick={() => undefined}>
+            <TrashIcon size="md" />
+          </Button>
+        ),
+      },
+      {
+        name: "Question answers",
+        render: () => (
+          <span style={{ display: "inline-flex", gap: "var(--space-6)" }}>
+            <Button variant="outlined" onClick={() => undefined}>
+              Remove
+            </Button>
+            <Button variant="quiet" onClick={() => undefined}>
+              Cancel
+            </Button>
+          </span>
+        ),
+      },
+      {
+        name: "Disabled",
+        render: () => (
+          <Button variant="outlined" disabled onClick={() => undefined}>
+            Remove
+          </Button>
         ),
       },
     ],
@@ -283,6 +328,7 @@ export const entries: readonly Entry[] = [
             <ChevronDownIcon size="sm" />
             <PlusIcon size="md" />
             <ArrowUpIcon size="lg" />
+            <TrashIcon size="md" />
           </span>
         ),
       },

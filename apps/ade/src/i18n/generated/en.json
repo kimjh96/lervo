@@ -394,6 +394,68 @@
       "value": "Start"
     }
   ],
+  "workspace.retire.action": [
+    {
+      "type": 0,
+      "value": "Remove workspace"
+    }
+  ],
+  "workspace.retire.cancel": [
+    {
+      "type": 0,
+      "value": "Cancel"
+    }
+  ],
+  "workspace.retire.confirm": [
+    {
+      "type": 0,
+      "value": "Remove"
+    }
+  ],
+  "workspace.retire.failed.other": [
+    {
+      "type": 0,
+      "value": "The workspace could not be removed ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "workspace.retire.failed.session_stop_timeout": [
+    {
+      "type": 0,
+      "value": "The session did not stop in time. Try again."
+    }
+  ],
+  "workspace.retire.failed.workspace_has_changes": [
+    {
+      "type": 0,
+      "value": "This workspace has changes. Commit or remove them first."
+    }
+  ],
+  "workspace.retire.failed.workspace_in_use": [
+    {
+      "type": 0,
+      "value": "A process still runs in this workspace. Stop it and try again."
+    }
+  ],
+  "workspace.retire.question": [
+    {
+      "type": 0,
+      "value": "Remove this workspace?"
+    }
+  ],
+  "workspace.retire.removing": [
+    {
+      "type": 0,
+      "value": "Removing…"
+    }
+  ],
   "workspaces.label": [
     {
       "type": 0,
