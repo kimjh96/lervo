@@ -3,9 +3,13 @@
 # with a fixed response, and exits when a command's instruction is "crash". Its first argument
 # picks a release: "older" advertises no commands and ends on `provider.list`, as a release from
 # before the provider list does, and "invalid" answers `provider.list` with a malformed result.
-# Its second argument, when given, is a file that collects every `session.exited` it receives.
+# Its second argument, when given, is a file that collects every `session.exited` it receives,
+# and its third, a file that gets one line each time the process starts. Output "finish\n"
+# (`ZmluaXNoCg==`) finishes the turn.
 release="${1:-current}"
 reports="${2:-}"
+starts="${3:-}"
+[ -n "$starts" ] && printf 'started\n' >> "$starts"
 launch='{"sessionId":"0b5f7d8e-4a1c-4c2e-9f3a-1d2e3f4a5b6c","workspaceId":"wsp_1","conversationMode":"native","provider":"claude","program":"/opt/claude","arguments":["--print"],"environment":{"LERVO_TEST":"1"},"workingDirectory":"/work/app-wt/fix","initialInput":"Fix it."}'
 while IFS= read -r line; do
   id=$(printf '%s' "$line" | sed -n 's/.*"id":\([0-9]*\).*/\1/p')
@@ -35,7 +39,11 @@ while IFS= read -r line; do
         *) printf '{"kind":"transcript.page","id":%s,"items":[],"complete":true}\n' "$id" ;;
       esac ;;
     decoder.send) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"item","content":{"kind":"user_message","text":"hi"},"createdAtMs":1},{"kind":"status","event":"turn_started"}],"input":"aGkK"}\n' "$id" ;;
-    decoder.output) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"start","content":{"kind":"agent_message","text":""},"createdAtMs":2},{"kind":"delta","text":"ok"},{"kind":"finish"}]}\n' "$id" ;;
+    decoder.output)
+      case "$line" in
+        *ZmluaXNoCg==*) printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"status","event":"turn_finished"}]}\n' "$id"; continue ;;
+      esac
+      printf '{"kind":"decoder.decoded","id":%s,"events":[{"kind":"start","content":{"kind":"agent_message","text":""},"createdAtMs":2},{"kind":"delta","text":"ok"},{"kind":"finish"}]}\n' "$id" ;;
     *) printf '{"kind":"decoder.decoded","id":%s,"events":[]}\n' "$id" ;;
   esac
 done

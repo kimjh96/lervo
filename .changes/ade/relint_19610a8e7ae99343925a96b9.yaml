@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_19610a8e7ae99343925a96b9"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "The session host follows a CLI upgrade: before its next workspace start or list, it replaces its resident Lervo process with one from the newly installed CLI, never during a turn."
