@@ -118,6 +118,16 @@ export const FORMAT = {
 } as const;
 export const PROVIDERS = ["codex", "claude"] as const;
 export const EVENTS = ["UserPromptSubmit", "Stop"] as const;
+/**
+ * The hook events registered per provider. Claude also gets `SessionStart` (ADR-0562 section 4),
+ * which answers each session epoch's start, resume, clear, or compaction with the base block.
+ * Codex keeps the two events until its session-start support is confirmed.
+ */
+export function terminalIntegrationEvents(
+  provider: (typeof PROVIDERS)[number],
+): readonly ("SessionStart" | (typeof EVENTS)[number])[] {
+  return provider === "claude" ? ["SessionStart", ...EVENTS] : EVENTS;
+}
 export const CONTRACT_ID = "lervo_terminal_hooks_v2" as const;
 export const RUNTIME_PATH = ".lervo/generated/terminal-hooks/runtime-v2.mjs" as const;
 export const RUNTIME_MANIFEST_PATH = ".lervo/generated/terminal-hooks/runtime-v2.json" as const;

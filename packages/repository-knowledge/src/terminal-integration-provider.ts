@@ -3,7 +3,7 @@ import { sha256 } from "./integrity.js";
 import { isObject } from "./terminal-integration-files.js";
 import {
   FORMAT,
-  EVENTS,
+  terminalIntegrationEvents,
   RUNTIME_PATH,
   type TerminalIntegrationProvider,
   type TerminalIntegrationTarget,
@@ -112,7 +112,7 @@ export function mergeTarget(
   }
 
   let output = original;
-  for (const event of EVENTS) {
+  for (const event of terminalIntegrationEvents(provider)) {
     const current = parse(output, [], {
       allowTrailingComma: true,
       disallowComments: false,

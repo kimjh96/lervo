@@ -1,5 +1,6 @@
 import {
   ContextPreparationError,
+  type PackedInstructionSection,
   generatedInstructionPaths,
   normalizeRepositoryPath,
   packInstructionSources,
@@ -16,7 +17,12 @@ export async function prepareAppliedInstructionContext(input: {
   expectedPaths: readonly string[] | null;
   maximumBytes: number;
   targets?: InstructionTargets;
-}): Promise<{ context: string; report: InstructionPreparationReport; preparedPaths: string[] }> {
+}): Promise<{
+  context: string;
+  report: InstructionPreparationReport;
+  preparedPaths: string[];
+  sections: PackedInstructionSection[];
+}> {
   const targets =
     input.expectedPaths === null || input.expectedPaths.length === 0
       ? null
@@ -58,6 +64,7 @@ export async function prepareAppliedInstructionContext(input: {
     return {
       context: "",
       preparedPaths: [],
+      sections: [],
       report: {
         schemaVersion: 1,
         scope: "applied_owner_rules",

@@ -10,7 +10,7 @@ import { DisabledTerminalStageObservation } from "../src/terminal-stage-observat
 const ports = vi.hoisted(() => ({ base: vi.fn(), root: vi.fn() }));
 vi.mock("../src/terminal-degraded-context.js", async (original) => ({
   ...(await original<typeof import("../src/terminal-degraded-context.js")>()),
-  prepareTerminalBaseContext: ports.base,
+  prepareTerminalBaseParts: ports.base,
 }));
 vi.mock("../src/terminal-repository-root.js", () => ({
   resolveTerminalRepositoryRoot: ports.root,
@@ -21,12 +21,16 @@ beforeEach(async () => {
   vi.resetAllMocks();
   root = await mkdtemp(join(tmpdir(), "lervo-session-start-"));
   ports.root.mockResolvedValue(root);
-  ports.base.mockResolvedValue([
-    "AGENTS.md pointer",
-    "publication.language=en",
-    "Applied owner rule: full clause",
-    "Lervo workstream: recorded title (revision 3).",
-  ]);
+  ports.base.mockResolvedValue({
+    lines: [
+      "AGENTS.md pointer",
+      "publication.language=en",
+      "Applied owner rule: full clause",
+      "Lervo workstream: recorded title (revision 3).",
+      "If this turn changes repository-authored bytes, record the next bounded revision.",
+    ],
+    rules: [],
+  });
 });
 afterEach(async () => rm(root, { recursive: true, force: true }));
 
@@ -56,17 +60,22 @@ it("answers a compaction with the base block and starts a new epoch (ADR-0562)",
   expect(code).toBe(0);
   const hook = output.hookSpecificOutput as { hookEventName: string; additionalContext: string };
   expect(hook.hookEventName).toBe("SessionStart");
-  expect(hook.additionalContext).toContain("Lervo base context for this context compaction.");
+  expect(hook.additionalContext).toContain(
+    "Lervo base context for this context compaction (epoch tepoch_",
+  );
   expect(hook.additionalContext).toContain("Applied owner rule: full clause");
   expect(hook.additionalContext).toContain("Lervo workstream: recorded title (revision 3).");
+  // Worker workspaces get a different bookkeeping line, so the base leaves it to each prompt.
+  expect(hook.additionalContext).not.toContain("If this turn changes repository-authored bytes");
   const directory = join(root, ".lervo/state/terminal-integration/epochs");
   const [file] = await readdir(directory);
   expect((await stat(join(directory, file!))).mode & 0o777).toBe(0o600);
   expect(JSON.parse(await readFile(join(directory, file!), "utf8"))).toMatchObject({
-    schemaVersion: 1,
+    schemaVersion: 2,
     provider: "claude",
     cause: "compact",
-    delivered: {},
+    baseRules: {},
+    transcriptOffset: 0,
   });
   // A later start of the same session replaces its epoch rather than adding one.
   await sessionStart("resume");
@@ -80,10 +89,20 @@ it("still answers with the base block when the epoch cannot be written safely", 
   await symlink(elsewhere, join(root, ".lervo/state"));
   const { output } = await sessionStart("startup");
   expect((output.hookSpecificOutput as { additionalContext: string }).additionalContext).toContain(
-    "Lervo base context for this session start.",
+    "Lervo base context for this session start (epoch tepoch_",
   );
   expect(await readdir(elsewhere)).toEqual([]);
   await rm(elsewhere, { recursive: true, force: true });
+});
+
+it("removes the previous epoch before a start that then fails", async () => {
+  await sessionStart("startup");
+  const directory = join(root, ".lervo/state/terminal-integration/epochs");
+  expect(await readdir(directory)).toHaveLength(1);
+  ports.base.mockRejectedValue(new Error("base unavailable"));
+  expect(await sessionStart("compact")).toEqual({ code: 0, output: {} });
+  // No epoch from before the compaction survives, so the next prompt delivers everything.
+  expect(await readdir(directory)).toEqual([]);
 });
 
 it("answers nothing, never a blocking failure, when the repository cannot be read", async () => {

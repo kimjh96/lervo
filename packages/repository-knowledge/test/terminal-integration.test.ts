@@ -71,6 +71,17 @@ describe("terminal integration migration", () => {
       JSON.parse(await readFile(resolve(root, ".claude/settings.json"), "utf8")).hooks.Stop[0]
         .hooks[0].command,
     ).toBe(terminalHookCommand("claude"));
+    // ADR-0562 section 4: Claude also answers each session epoch's start; Codex does not yet.
+    const claudeHooks = JSON.parse(
+      await readFile(resolve(root, ".claude/settings.json"), "utf8"),
+    ).hooks;
+    expect(Object.keys(claudeHooks).sort()).toEqual(["SessionStart", "Stop", "UserPromptSubmit"]);
+    expect(claudeHooks.SessionStart[0].hooks[0].command).toBe(terminalHookCommand("claude"));
+    expect(
+      Object.keys(
+        JSON.parse(await readFile(resolve(root, ".codex/hooks.json"), "utf8")).hooks,
+      ).sort(),
+    ).toEqual(["Stop", "UserPromptSubmit"]);
     expect(
       await readFile(resolve(root, ".lervo/generated/terminal-hooks/runtime-v2.mjs"), "utf8"),
     ).toBe(runtimeContent);
