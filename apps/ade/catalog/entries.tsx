@@ -17,6 +17,7 @@ import { Presence } from "../src/ui/Presence";
 import { SegmentedControl } from "../src/ui/SegmentedControl";
 import { Select } from "../src/ui/Select";
 import { StatusDot } from "../src/ui/StatusDot";
+import { ViewPresence } from "../src/ui/ViewPresence";
 import { Waiting } from "../src/ui/Waiting";
 import { WorkingLine } from "../src/ui/WorkingLine";
 
@@ -44,6 +45,22 @@ function PresenceDemo() {
       </Button>
       <Presence as="span">{shown ? "Restarted the session host" : null}</Presence>
     </span>
+  );
+}
+
+function ViewPresenceDemo() {
+  const [view, setView] = useState<"start" | "workspace">("start");
+  return (
+    <div style={{ display: "grid", gap: "var(--space-12)", justifyItems: "start" }}>
+      <Button variant="outlined" onClick={() => setView(view === "start" ? "workspace" : "start")}>
+        Change the view
+      </Button>
+      <div style={{ display: "flex", width: "320px", height: "96px" }}>
+        <ViewPresence view={view}>
+          {view === "start" ? <p>What should Lervo do?</p> : <p>Fix the flaky test</p>}
+        </ViewPresence>
+      </div>
+    </div>
   );
 }
 
@@ -325,10 +342,22 @@ export const entries: readonly Entry[] = [
       "Every element that comes and goes, unless a motion comment names another catalog row",
     ],
     avoid: [
-      "Whole views: the main area changes at once, and the arriving view fades in",
-      "Rows that leave a list with their own motion",
+      "Whole views: use ViewPresence",
+      "Rows that leave a list: keep them with useDeparting, so they fade out where they were",
     ],
     variants: [{ name: "Leaving", render: () => <PresenceDemo /> }],
+  },
+  {
+    module: "ViewPresence",
+    name: "View presence",
+    purpose:
+      "The main area's change of views: the old view fades out over motion.duration.leave as a still copy of how it last looked, and the new view fades in over motion.duration.enter, starting halfway through.",
+    use: ["The main area, between the start screen and a workspace, and between workspaces"],
+    avoid: [
+      "A change within one view, such as a button that becomes its wait: use Presence",
+      "Content whose leaving copy must stay interactive: the copy takes no clicks",
+    ],
+    variants: [{ name: "Changing views", render: () => <ViewPresenceDemo /> }],
   },
   {
     module: "Waiting",
@@ -361,7 +390,7 @@ export const entries: readonly Entry[] = [
       {
         name: "With controls",
         render: () => (
-          <PaneHeader title="Fix the flaky test" detail="lervo/fix-flaky" arrive={false}>
+          <PaneHeader title="Fix the flaky test" detail="lervo/fix-flaky">
             <SegmentedDemo />
           </PaneHeader>
         ),

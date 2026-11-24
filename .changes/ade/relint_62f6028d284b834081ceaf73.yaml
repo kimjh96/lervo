@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_62f6028d284b834081ceaf73"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "The first click on the Lervo window acts even when macOS hands its release in before its press, and nothing pops in: every arrival and leaving fades over its token, which the motion check now enforces."

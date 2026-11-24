@@ -1,0 +1,40 @@
+/* The main area's views share one grid cell, so the arriving view and the still copy of the
+   leaving one overlap while they cross (ADE motion, "Changing views"). */
+.views {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+}
+
+.view {
+  display: flex;
+  flex-direction: column;
+  grid-area: 1 / 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.view[data-enter]:not([data-leaving]) {
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+.view[data-after][data-enter]:not([data-leaving]) {
+  animation-delay: calc(var(--motion-duration-leave) / 2);
+  animation-fill-mode: backwards;
+}
+
+.view[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view[data-enter]:not([data-leaving]) {
+    animation: none;
+  }
+
+  .view[data-leaving] {
+    visibility: hidden;
+    animation: none;
+  }
+}

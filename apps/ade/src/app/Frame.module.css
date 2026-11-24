@@ -5,8 +5,7 @@
   display: grid;
   grid-template-columns: var(--layout-sidebar-width) 1fr;
   height: 100vh;
-  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard)
-    backwards;
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-fade) backwards;
   animation-delay: calc(var(--motion-duration-exit) / 2);
 }
 
@@ -36,7 +35,16 @@
   overflow: hidden;
 }
 
-.content[data-background="native"] {
+/* Each view paints its own surface, so the surface crosses with the views when they change. */
+.view {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.view[data-background="native"] {
   background: var(--color-surface-workspace);
 }
 

@@ -13,19 +13,19 @@ const LITERAL_EASING = /(?<![\w-])(?:ease(?:-in|-out|-in-out)?|linear|cubic-bezi
 
 /**
  * Nothing appears or leaves in a frame (ADE motion, principle 11): every arrival runs over `enter`
- * and every leaving over `leave`, both on the decelerating standard easing, so no fade starts or
- * ends abruptly.
+ * and every leaving over `leave`, both on the fade easing, which starts and ends slowly, so no
+ * fade pops in during its first frames or drops out in its last.
  */
 const ARRIVALS = /\blervo-(?:appear|arrive)\b/u;
 const LEAVINGS = /\blervo-leave\b/u;
 
 function fadeViolations(property, value, file) {
   if (property !== "animation") return [];
-  const easing = value.includes("--motion-easing-standard");
+  const easing = value.includes("--motion-easing-fade");
   if (ARRIVALS.test(value) && (!value.includes("--motion-duration-enter") || !easing))
-    return [`${file}: an arrival runs over something other than enter on the standard easing`];
+    return [`${file}: an arrival runs over something other than enter on the fade easing`];
   if (LEAVINGS.test(value) && (!value.includes("--motion-duration-leave") || !easing))
-    return [`${file}: a leaving runs over something other than leave on the standard easing`];
+    return [`${file}: a leaving runs over something other than leave on the fade easing`];
   return [];
 }
 

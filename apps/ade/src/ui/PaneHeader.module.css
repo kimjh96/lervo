@@ -31,14 +31,3 @@
   flex: 1;
   align-self: stretch;
 }
-
-/* The header arrives with its view (ADE motion, "Switching workspaces"). */
-.header[data-arrive="true"] {
-  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .header[data-arrive="true"] {
-    animation: none;
-  }
-}

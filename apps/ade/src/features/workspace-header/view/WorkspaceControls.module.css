@@ -1,5 +1,6 @@
-/* The header's remove control and its question, in place of the trash button. */
-.question {
+/* The header's controls: the branch icon and the trash button, or the remove question in their
+   place. */
+.group {
   display: inline-flex;
   flex: none;
   gap: var(--space-6);

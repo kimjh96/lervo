@@ -118,6 +118,7 @@
   --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-easing-breathe: cubic-bezier(0.42, 0, 0.58, 1);
   --motion-easing-shimmer: cubic-bezier(0.45, 0, 0.55, 1);
+  --motion-easing-fade: cubic-bezier(0.33, 0, 0.67, 1);
   --motion-breathe-min-opacity: 0.45;
   --motion-rise: 4px;
 }

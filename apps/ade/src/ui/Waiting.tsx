@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { motion } from "../design/generated/motion";
+import { Presence } from "./Presence";
 import styles from "./Waiting.module.css";
 
 /**
@@ -10,7 +11,7 @@ import styles from "./Waiting.module.css";
  * ellipsis and carries the working line's highlight, so every wait looks alike. It shows nothing
  * until `motion.duration.wait` passes, because most waits end sooner and a line that flashes for
  * a few frames reads as a fault; the first connection waits `motion.duration.waitLaunch`. A new
- * label replaces the old one in place, so the steps of one action read as one line.
+ * label crossfades with the old one in place, so the steps of one action read as one line.
  */
 export function Waiting(props: {
   label: string;
@@ -26,11 +27,9 @@ export function Waiting(props: {
   }, [delay]);
   return (
     <span className={[styles.waiting, props.className].filter(Boolean).join(" ")} role="status">
-      {shown ? (
-        <span className={styles.appear}>
-          <span className={styles.label}>{props.label}</span>
-        </span>
-      ) : null}
+      <Presence as="span" contentKey={props.label}>
+        {shown ? <span className={styles.label}>{props.label}</span> : null}
+      </Presence>
     </span>
   );
 }

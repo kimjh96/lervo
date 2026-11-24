@@ -15,12 +15,12 @@ describe("the motion check", () => {
     const css = `
       .a { animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard); }
       .b { animation: lervo-leave var(--motion-duration-exit) var(--motion-easing-exit) forwards; }
-      .c { animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard); }
-      .d { animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-standard) forwards; }
+      .c { animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade); }
+      .d { animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards; }
     `;
     expect(motionViolations(css, "x.css")).toEqual([
-      "x.css: an arrival runs over something other than enter on the standard easing",
-      "x.css: a leaving runs over something other than leave on the standard easing",
+      "x.css: an arrival runs over something other than enter on the fade easing",
+      "x.css: a leaving runs over something other than leave on the fade easing",
     ]);
   });
 

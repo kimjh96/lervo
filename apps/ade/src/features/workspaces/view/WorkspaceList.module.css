@@ -32,14 +32,30 @@
   list-style: none;
 }
 
-/* A workspace that starts while the user watches enters like a live message (ADE motion,
-   "Starting work from the start screen"). */
-li[data-arrived="true"] {
-  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard);
+/* A workspace that starts while the user watches enters like a live message, and its repository's
+   name with it (ADE motion, "Starting work from the start screen"). */
+li[data-arrived="true"],
+.repository[data-arrived="true"] {
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-fade);
+}
+
+/* A removed workspace fades out where it was, and its repository's name with its last row (ADE
+   motion, "Coming and going"). */
+li[data-leaving],
+.repository[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-leave) var(--motion-easing-fade) forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  li[data-arrived="true"] {
+  li[data-arrived="true"],
+  .repository[data-arrived="true"] {
+    animation: none;
+  }
+
+  li[data-leaving],
+  .repository[data-leaving] {
+    visibility: hidden;
     animation: none;
   }
 }

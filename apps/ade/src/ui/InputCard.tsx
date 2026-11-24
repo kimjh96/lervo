@@ -1,6 +1,7 @@
 import { type KeyboardEvent, type ReactNode, type Ref, useLayoutEffect, useRef } from "react";
 
 import styles from "./InputCard.module.css";
+import { Presence } from "./Presence";
 
 /**
  * A card that holds a text field and its actions, such as the instruction card of the start
@@ -32,7 +33,8 @@ export function InputCard(props: {
 /**
  * The text field of an input card. Enter submits and Shift+Enter starts a new line, and an input
  * method's composition is respected. With `maxLines`, the field grows with its text up to that
- * many lines and then scrolls.
+ * many lines and then scrolls. The placeholder is drawn over the empty field, so a change of its
+ * words crossfades in place; it shows and hides with the text at once, as native fields do.
  */
 export function InputField(props: {
   label: string;
@@ -69,17 +71,29 @@ export function InputField(props: {
     else if (ref !== null && ref !== undefined) ref.current = element;
   };
   return (
-    <textarea
-      ref={attach}
-      className={styles.field}
-      data-size={props.size}
-      aria-label={props.label}
-      placeholder={props.placeholder}
-      disabled={props.disabled}
-      rows={props.rows}
-      value={value}
-      onChange={(event) => props.onChange(event.target.value)}
-      onKeyDown={keyDown}
-    />
+    <span className={styles.box}>
+      <textarea
+        ref={attach}
+        className={styles.field}
+        data-size={props.size}
+        aria-label={props.label}
+        placeholder={props.placeholder}
+        disabled={props.disabled}
+        rows={props.rows}
+        value={value}
+        onChange={(event) => props.onChange(event.target.value)}
+        onKeyDown={keyDown}
+      />
+      <span
+        className={styles.placeholder}
+        data-size={props.size}
+        aria-hidden="true"
+        hidden={value !== ""}
+      >
+        <Presence as="span" contentKey={props.placeholder}>
+          {props.placeholder}
+        </Presence>
+      </span>
+    </span>
   );
 }
