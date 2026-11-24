@@ -10,11 +10,4 @@
   margin-inline-end: var(--space-4);
   color: var(--color-text-secondary);
   font-size: var(--type-meta-size);
-  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .text {
-    animation: none;
-  }
 }

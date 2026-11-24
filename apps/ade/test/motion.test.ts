@@ -1,3 +1,4 @@
+import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -24,5 +25,26 @@ describe("the motion check", () => {
       "x.css: animation uses an easing that is not a motion token",
       "x.css: @keyframes grow animates height",
     ]);
+  });
+
+  it("names only patterns of the motion catalog in motion comments", async () => {
+    const root = join(import.meta.dirname, "..");
+    const catalog = await readFile(
+      join(root, "../../docs/specifications/execution/product-surfaces/ade-motion.md"),
+      "utf8",
+    );
+    const patterns = new Set(
+      [...catalog.matchAll(/^\| ([A-Z][^|]*?) +\|/gmu)].map((match) => match[1]),
+    );
+    const named: string[] = [];
+    for (const directory of ["src/features", "src/app"])
+      for (const entry of await readdir(join(root, directory), { recursive: true }))
+        if (String(entry).endsWith(".tsx")) {
+          const text = await readFile(join(root, directory, String(entry)), "utf8");
+          for (const match of text.matchAll(/motion:\s*([^*]+?)\s*\*\//gu))
+            named.push(match[1] ?? "");
+        }
+    expect(named.length).toBeGreaterThan(0);
+    expect(named.filter((name) => !patterns.has(name))).toEqual([]);
   });
 });

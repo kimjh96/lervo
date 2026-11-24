@@ -7,6 +7,7 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 
 import { errorCausePlugin } from "./scripts/quality/lib/eslint-error-cause-rule.mjs";
+import { adeMotionPlugin } from "./scripts/quality/lib/eslint-ade-motion-rule.mjs";
 import { jsxLiteralPlugin } from "./scripts/quality/lib/eslint-jsx-literal-rule.mjs";
 import { providerSchemaPlugin } from "./scripts/quality/lib/eslint-provider-schema-any-rule.mjs";
 
@@ -335,6 +336,13 @@ export default defineConfig(
     name: "lervo/ade-catalog",
     files: ["apps/ade/catalog/**/*.tsx"],
     rules: { "lervo-jsx/no-jsx-literals": "off" },
+  },
+  {
+    // ADE motion, "Coming and going": every element a view shows sometimes has a decided motion.
+    name: "lervo/ade-motion",
+    files: ["apps/ade/src/features/**/view/**/*.tsx", "apps/ade/src/app/**/*.tsx"],
+    plugins: { "lervo-ade-motion": adeMotionPlugin },
+    rules: { "lervo-ade-motion/declared-motion": "error" },
   },
   {
     name: "lervo/ade-build-config",

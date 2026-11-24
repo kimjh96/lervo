@@ -27,6 +27,10 @@
     "defaultMessage": "Restart",
     "description": "Restarts the session host: ends the older one and starts the one this Lervo carries."
   },
+  "connection.update.restarted": {
+    "defaultMessage": "Restarted the session host",
+    "description": "The new session host answered after a restart; the line stays a few seconds, since nothing else on screen shows it."
+  },
   "connection.update.restarting": {
     "defaultMessage": "Restarting the session host",
     "description": "The older session host was asked to end, and the interface waits for the new one."

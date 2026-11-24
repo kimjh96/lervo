@@ -1,8 +1,10 @@
 /* A wait in place of the control that started it: it fades in once, and the working line's
    highlight sweeps across its words. */
+/* It holds its line's height before the words show, so nothing below it moves when they do. */
 .waiting {
   display: inline-flex;
   align-items: center;
+  min-height: var(--type-meta-line-height);
   font-size: var(--type-meta-size);
   line-height: var(--type-meta-line-height);
 }

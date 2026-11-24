@@ -52,7 +52,10 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
   }, [adapters, notifier]);
   return (
     <RawIntlProvider value={intl}>
-      <AdaptersProvider adapters={adapters}>{launched ? <Frame /> : null}</AdaptersProvider>
+      <AdaptersProvider adapters={adapters}>
+        {/* motion: Launch */}
+        {launched ? <Frame /> : null}
+      </AdaptersProvider>
     </RawIntlProvider>
   );
 }

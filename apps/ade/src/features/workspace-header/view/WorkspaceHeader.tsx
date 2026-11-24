@@ -1,4 +1,5 @@
 import { PaneHeader } from "../../../ui/PaneHeader";
+import { Presence } from "../../../ui/Presence";
 import { useWorkspaceStore } from "../../workspaces";
 import { BranchControl } from "./BranchControl";
 import { RetireControl } from "./RetireControl";
@@ -23,9 +24,11 @@ export function WorkspaceHeader(props: {
   return (
     <PaneHeader title={workspace.title ?? workspace.branch} arrive={!props.continues}>
       <BranchControl branch={workspace.branch} />
-      {retirable ? (
-        <RetireControl key={workspace.workspaceId} workspaceId={workspace.workspaceId} />
-      ) : null}
+      <Presence as="span">
+        {retirable ? (
+          <RetireControl key={workspace.workspaceId} workspaceId={workspace.workspaceId} />
+        ) : null}
+      </Presence>
     </PaneHeader>
   );
 }
