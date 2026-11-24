@@ -25,6 +25,7 @@ A reverse header candidate inserts new header lines into a decision record and c
 - One `Amended by:` line lists the amending records in ADR order. One `Superseded in part by:` line per superseded part carries its part label in parentheses.
 - Each target is a relative Markdown link to the declaring record, labeled `ADR-NNNN`, with no added prose.
 - The lines go after the last `Status`, `Decision date`, supersession or amendment line, including any list under it, and before `Part of` or `Related`. An existing `Amended by` line is never edited; a new line follows it.
+- The lines follow the header's own style. When the `Status:` line is a list item, they are list items too. Where the style changes, a blank line comes first, so a plain line never reads as the continuation of a list item and a list item never joins a paragraph. The publisher does not format a normalized record, so the lines must already be in their formatted shape; the first 8 records Lervo wrote on 2026-11-24 lacked this rule.
 - A full supersession that the record's `Status:` line does not declare is never written, because changing the status would overwrite the owner's line.
 - The plan is checked against the header grammar. The output must keep every earlier header target and the status, and add exactly the declared lines. Otherwise nothing is written: for example, when the record has no `Status:` line or no header room is left within 80 lines.
 - A line that would push the record past the documentation bound, 16,384 bytes or 240 lines, is not written either, so a long record never fails the documentation check that publication waits on. Its reason stays open until the record is split.
@@ -47,7 +48,7 @@ The candidate carries a `mechanical` marker with the declarations and the declar
 - One cycle writes at most 8 records. When more remain, or when the stored web is behind HEAD only by Lervo's own knowledge commits, the stage stays open, so the next cycle continues.
 - A record with uncommitted edits waits, and so does a record whose declaring record has uncommitted edits, because the relation web reads working bytes.
 - Nothing is written unless this host may commit knowledge outputs now (ADR-0466, ADR-0610). A write whose commit did not land ends the cycle.
-- The after-the-fact notice reports the commit as a refresh of the record, with `lervo knowledge freshness revert <candidate>` as its undo. A line an earlier candidate proposed is never proposed again, so a reverted line stays out while that candidate's record lasts, even when a later declaration gives the record another line.
+- The after-the-fact notice reports the commit as a refresh of the record, with `lervo knowledge freshness revert <candidate>` as its undo. A reverted line stays out while its revert hold lasts, even when a later declaration gives the record another line. After the hold it may be written again, as any reverted freshness edit may be regenerated.
 
 ## State, events, privacy, and failure meaning
 
@@ -63,7 +64,7 @@ The candidate carries a `mechanical` marker with the declarations and the declar
 ## Consequences
 
 - 72 of the 81 records get their reverse lines over about 9 cycles, one commit each, with no provider tokens. The other 9 are already near the documentation bound and keep their reasons until they are split.
-- An owner who reverts a reverse line keeps it out while the candidate record lasts. If the declaring record still says `Amends` after the record is pruned, Lervo writes the line again.
+- An owner who reverts a reverse line keeps it out for the revert hold. If the declaring record still says `Amends` after the hold, Lervo writes the line again; removing the `Amends` line, or changing it, settles it for good.
 - A full supersession that a status does not declare remains a mechanical reason that only a person settles.
 
 ## Verification

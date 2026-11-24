@@ -77,7 +77,7 @@ describe("reverse header lines through the freshness apply path (ADR-0631)", () 
   );
 
   it(
-    "waits for uncommitted edits and keeps a reverted line out",
+    "waits for uncommitted edits and keeps a reverted line out during its hold",
     { timeout: 120_000 },
     async () => {
       const { f, run } = await setup();
@@ -105,6 +105,10 @@ describe("reverse header lines through the freshness apply path (ADR-0631)", () 
       expect(await run()).toEqual({ appliedCount: 1, remaining: false });
       expect(await f.read(BASE)).toContain("Amended by: [ADR-0006](0006-later.md)\n");
       expect(await f.read(BASE)).not.toContain("[ADR-0002]");
+      // After the revert hold, the reverted line may be written again, as any reverted edit may.
+      const later = new Date(Date.now() + 8 * 24 * 3_600_000);
+      expect(await run(later)).toEqual({ appliedCount: 1, remaining: false });
+      expect(await f.read(BASE)).toContain("Amended by: [ADR-0002](0002-amend.md)\n");
     },
   );
 

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_2aeb6904712b302832ee3186"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Write reverse ADR header lines in the header's own list or plain style, with a blank line where the style changes, and let a reverted line return after its revert hold."
