@@ -19,6 +19,21 @@ function autoApplicable(hunk: DocumentFreshnessHunk, crossCheck: DocumentFreshne
 }
 
 /**
+ * ADR-0631: a reverse header candidate only inserts header lines, so it overwrites no byte of the
+ * user-owned record. Its insert-only hunks apply like Lervo-managed ones.
+ */
+function insertOnlyReverseHeader(
+  candidate: Pick<DocumentFreshnessCandidateV1, "mechanical">,
+  hunk: DocumentFreshnessHunk,
+): boolean {
+  return (
+    candidate.mechanical?.kind === "reverse_header" &&
+    hunk.range.startByte === hunk.range.endByte &&
+    !hunk.crossCheckRequired
+  );
+}
+
+/**
  * AGENTS.md invariant 5 under ADR-0561: whether a candidate's remaining change would write
  * user-owned bytes only. An archive of a user-owned document, or one that rewrites links in other
  * documents, counts; so does an edit whose pending hunks are all user-owned. Lervo keeps such a
@@ -26,7 +41,10 @@ function autoApplicable(hunk: DocumentFreshnessHunk, crossCheck: DocumentFreshne
  * user-owned hunks applies the managed hunks and leaves the user-owned ones as the suggestion.
  */
 export function documentFreshnessUserOwnedChange(
-  candidate: Pick<DocumentFreshnessCandidateV1, "operation" | "hunks" | "archive"> & {
+  candidate: Pick<
+    DocumentFreshnessCandidateV1,
+    "operation" | "hunks" | "archive" | "mechanical"
+  > & {
     pendingHunkIds?: readonly string[];
   },
 ): boolean {
@@ -39,16 +57,26 @@ export function documentFreshnessUserOwnedChange(
   if (candidate.operation !== "edit") return false;
   const pending = candidate.pendingHunkIds === undefined ? null : new Set(candidate.pendingHunkIds);
   const remaining = candidate.hunks.filter((hunk) => pending === null || pending.has(hunk.hunkId));
-  return remaining.length > 0 && remaining.every((hunk) => hunk.ownership === "user_owned");
+  return (
+    remaining.length > 0 &&
+    remaining.every(
+      (hunk) => hunk.ownership === "user_owned" && !insertOnlyReverseHeader(candidate, hunk),
+    )
+  );
 }
 
 /** Pending hunks that may apply now: no cross-check required, or the required agreement recorded. */
 export function documentFreshnessAutoApplicableHunks(
-  candidate: Pick<DocumentFreshnessCandidateV1, "hunks" | "crossCheck" | "pendingHunkIds">,
+  candidate: Pick<
+    DocumentFreshnessCandidateV1,
+    "hunks" | "crossCheck" | "pendingHunkIds" | "mechanical"
+  >,
 ): DocumentFreshnessHunk[] {
   const pending = new Set(candidate.pendingHunkIds);
   return candidate.hunks.filter(
-    (hunk) => pending.has(hunk.hunkId) && autoApplicable(hunk, candidate.crossCheck),
+    (hunk) =>
+      pending.has(hunk.hunkId) &&
+      (autoApplicable(hunk, candidate.crossCheck) || insertOnlyReverseHeader(candidate, hunk)),
   );
 }
 

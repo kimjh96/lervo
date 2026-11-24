@@ -282,8 +282,9 @@ export async function runDocumentFreshnessCycle(input: {
     autoApply: input.effects !== "prepare",
   });
   const { candidateCount, deferred, recovery } = findingWork;
+  const backlinks = await applyReverseHeaderEdits({ context, policy, effects: input.effects });
   const verifiedCount = findingWork.verifiedCount + crossChecks.verifiedCount;
-  const appliedCount = findingWork.appliedCount + crossChecks.appliedCount;
+  const appliedCount = findingWork.appliedCount + crossChecks.appliedCount + backlinks.appliedCount;
   const tokensObserved = findingWork.tokensObserved + crossChecks.tokensObserved;
   const findingsDigest = documentFreshnessFindingsDigest(observation.findings);
   const finalCandidates = await listFreshnessCandidates(root);
@@ -356,6 +357,7 @@ export async function runDocumentFreshnessCycle(input: {
   next.observationKey =
     deferred === null &&
     admission.skippedForCycleLimit === 0 &&
+    !backlinks.remaining &&
     !crossChecks.pending &&
     crossChecks.disagreements + findingWork.disagreements === 0
       ? await observationKey(root, {
@@ -394,3 +396,4 @@ import {
 } from "./freshness-cycle-observation.js";
 
 import { freshnessRecoveryKey, processFreshnessFindings } from "./freshness-finding-work.js";
+import { applyReverseHeaderEdits } from "./freshness-reverse-headers.js";
