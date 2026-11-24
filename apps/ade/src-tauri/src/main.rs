@@ -29,6 +29,7 @@ fn main() -> ExitCode {
         .manage(relay)
         .manage(measurement)
         .on_page_load(window::on_page_load)
+        .on_window_event(window::on_window_event)
         .invoke_handler(tauri::generate_handler![
             commands::host_connect,
             commands::host_send,

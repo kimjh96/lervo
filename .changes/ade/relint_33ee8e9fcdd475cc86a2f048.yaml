@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_33ee8e9fcdd475cc86a2f048"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "A click on the Lervo window while another app is in front presses what it lands on, instead of only bringing the window forward."
