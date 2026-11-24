@@ -18,7 +18,8 @@ import {
 } from "./hosted-launch-records.js";
 import { hostedSessionSettingsDirectory } from "./hosted-session-settings.js";
 import type { WorkspaceRetireEffects } from "./hosted-workspace-retire.js";
-import { defaultBranchCommit, worktreeOfBranch } from "./workspace-start-effects.js";
+import { branchMergedIntoDefault } from "./hosted-branch-merged.js";
+import { worktreeOfBranch } from "./workspace-start-effects.js";
 
 const execute = promisify(execFile);
 /** Enough for the working directories of every process on a busy host. */
@@ -107,10 +108,7 @@ export function hostedWorkspaceRetireEffects(): WorkspaceRetireEffects {
     },
     branchExists: (root, branch) =>
       succeeds(git(root, ["rev-parse", "--verify", "--quiet", `refs/heads/${branch}`])),
-    async branchMerged(root, branch) {
-      const base = await defaultBranchCommit(root);
-      return succeeds(git(root, ["merge-base", "--is-ancestor", `refs/heads/${branch}`, base]));
-    },
+    branchMerged: (root, branch) => branchMergedIntoDefault(root, branch).catch(() => false),
     async deleteBranch(root, branch) {
       await git(root, ["branch", "-D", branch]);
     },

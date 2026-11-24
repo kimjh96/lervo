@@ -1,15 +1,18 @@
 import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
+import { workspaceStartBaseSchema } from "@lervo/session-host-contract";
 import { describe, expect, it } from "vitest";
 
 import { CommandFailure } from "../src/command-error-output.js";
 import type { HostedLaunchRecord } from "../src/hosted-launch-records.js";
 import type { HostedSessionEvent } from "../src/hosted-session-events.js";
+import { WORKSPACE_BASE_NOTICES, type WorkspaceBase } from "../src/workspace-base.js";
 import {
   branchFor,
   objectiveFor,
   startWorkspace,
   titleFor,
+  type WorkspacePlacement,
   type WorkspaceStartPorts,
   workspacePathFor,
 } from "../src/workspace-start.js";
@@ -156,9 +159,102 @@ describe("workspace start", () => {
 
   it("refuses a conversation mode the provider lacks before changing anything", async () => {
     const fake = ports();
-    const codex = { ...fake.value, adapter: createCodexHostedSessionAdapter("/opt/codex") };
+    let chosen = false;
+    const codex = {
+      ...fake.value,
+      adapter: createCodexHostedSessionAdapter("/opt/codex"),
+      chooseBase: async () => {
+        chosen = true;
+        return base;
+      },
+    };
     const error = await failure(startWorkspace(request, codex));
     expect(error.code).toBe("conversation_mode_unsupported");
     expect(fake.effects).toEqual([]);
+    expect(chosen).toBe(false);
+  });
+
+  it("starts from the chosen base, replays its commits, and records what happened", async () => {
+    const fake = ports();
+    const placements: WorkspacePlacement[] = [];
+    const result = await startWorkspace(request, {
+      ...fake.value,
+      chooseBase: async () => base,
+      async replayEffects(placement) {
+        placements.push(placement);
+        return {
+          replayed: ["e".repeat(40), "f".repeat(40)],
+          skipped: [],
+          carried: [],
+          complete: true,
+        };
+      },
+    });
+    expect(placements[0]).toMatchObject({ baseCommit: base.commit, replay: base.replay });
+    expect(fake.records[0]?.base).toEqual({
+      commit: base.commit,
+      source: "upstream",
+      upstream: "origin/main",
+      replayed: ["e".repeat(40), "f".repeat(40)],
+      skipped: [],
+      carried: [],
+      notice: null,
+    });
+    expect(result.base).toEqual({
+      source: "upstream",
+      upstream: "origin/main",
+      notice: null,
+      replayed: 2,
+      skipped: 0,
+      carried: 0,
+    });
+  });
+
+  it("says when it dropped the replay", async () => {
+    const fake = ports();
+    const result = await startWorkspace(request, {
+      ...fake.value,
+      chooseBase: async () => base,
+      replayEffects: async () => ({
+        replayed: [],
+        skipped: [...base.replay],
+        carried: [],
+        complete: false,
+      }),
+    });
+    expect(fake.records[0]?.base?.notice).toBe("replay_incomplete");
+    expect(result.base).toMatchObject({ notice: "replay_incomplete", replayed: 0, skipped: 2 });
   });
 });
+
+describe("the base's notices", () => {
+  it("all fit the session-host contract, which stays open to notices a later CLI adds", () => {
+    const [string] = workspaceStartBaseSchema.properties.notice.anyOf;
+    const pattern = new RegExp(string.pattern, "u");
+    for (const notice of [...WORKSPACE_BASE_NOTICES, "replay_incomplete"])
+      expect(pattern.test(notice), notice).toBe(true);
+  });
+});
+
+describe("a base that cannot be chosen", () => {
+  it("starts from the request's base commit and says why", async () => {
+    const fake = ports();
+    await startWorkspace(request, {
+      ...fake.value,
+      chooseBase: (fallback) => Promise.reject(new Error(`no default branch for ${fallback}`)),
+    });
+    expect(fake.records[0]?.base).toMatchObject({
+      commit: request.baseCommit,
+      source: "local",
+      notice: "base_unresolved",
+    });
+  });
+});
+
+const base: WorkspaceBase = {
+  commit: "b".repeat(40),
+  source: "upstream",
+  upstream: "origin/main",
+  replay: ["e".repeat(40), "f".repeat(40)],
+  notice: null,
+};

@@ -36,6 +36,7 @@ import {
   writeHostedSessionSettings,
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
+import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
   defaultBranchCommit,
@@ -111,6 +112,9 @@ export async function startWorkspaceFromInstruction(
     },
     {
       adapter,
+      // New work starts from the fetched upstream tip, never the owner's possibly stale checkout.
+      chooseBase: (fallback) =>
+        chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot), fallback),
       ...gitWorkspaceEffects(),
       startWorkstream: startWorkstreamIn,
       recordLaunch,

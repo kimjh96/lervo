@@ -17,6 +17,7 @@ import {
   type HostedSessionEventOutcome,
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
+import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 
 const TITLE_CHARACTERS = 80;
 const OBJECTIVE_CHARACTERS = 8192;
@@ -33,12 +34,33 @@ export interface WorkspacePlacement {
   readonly branch: string;
   readonly workspacePath: string;
   readonly baseCommit: string;
+  /** Unpublished knowledge commits to replay on the new branch, oldest first. */
+  readonly replay?: readonly string[];
+}
+
+/** What replaying knowledge commits on a new branch did: all of them, or none. */
+export interface EffectReplay {
+  readonly replayed: readonly string[];
+  /** Every commit, when the replay was dropped; the workspace starts without them. */
+  readonly skipped: readonly string[];
+  /** Commits whose change the branch already held, so the pick added nothing. */
+  readonly carried: readonly string[];
+  /** False when the replay was dropped and the branch returned to its base. */
+  readonly complete: boolean;
 }
 
 /** The effects `startWorkspace` composes. Each is undone by a later stage's failure. */
 export interface WorkspaceStartPorts {
   readonly adapter: HostedSessionAdapter;
+  /**
+   * Chooses where the workspace starts, once the provider accepted the launch intent; absent,
+   * the request's `baseCommit` is the base. It fetches, so a refused intent never waits for it.
+   * `fallback` is the request's `baseCommit`, for a repository that names no default branch.
+   */
+  chooseBase?(fallback: string): Promise<WorkspaceBase>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
+  /** Replays the placement's effect commits on its new branch; absent where none can exist. */
+  replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
   /** Removes the worktree and its branch. Throws when either remains. */
   removeWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Starts the workstream in the new worktree and returns its ID. */
@@ -61,6 +83,7 @@ export interface WorkspaceStartRequest {
   readonly mode: HostedConversationMode;
   readonly repositoryRoot: string;
   readonly projectId: string;
+  /** The base when the ports do not choose one. */
   readonly baseCommit: string;
   readonly workspaceId: string;
   readonly sessionId: string;
@@ -83,6 +106,21 @@ export interface WorkspaceStartResult {
   launch: HostedLaunch;
   /** Whether the repository took the hosted session events (`hosted_events_inactive` otherwise). */
   hostedEvents: HostedSessionEventOutcome | "unavailable";
+  /**
+   * Where the workspace started, for the interface to tell the user after the fact; absent when
+   * the caller chose the base itself. Counts only: the commits stay in the launch record.
+   */
+  base?: WorkspaceStartBase;
+}
+
+/** The start result's account of the base (Lervo ADE sessions, "The workspace's base"). */
+export interface WorkspaceStartBase {
+  source: "upstream" | "local";
+  upstream: string | null;
+  notice: WorkspaceBaseNotice | "replay_incomplete" | null;
+  replayed: number;
+  skipped: number;
+  carried: number;
 }
 
 /** The workstream title: the instruction's first line, shortened at a word. */
@@ -152,18 +190,11 @@ export async function startWorkspace(
 ): Promise<WorkspaceStartResult> {
   const title = titleFor(request.instruction);
   const branch = branchFor(title, request.suffix);
-  const placement: WorkspacePlacement = {
-    repositoryRoot: request.repositoryRoot,
-    projectId: request.projectId,
-    workspaceId: request.workspaceId,
-    branch,
-    workspacePath: workspacePathFor(request.repositoryRoot, branch),
-    baseCommit: request.baseCommit,
-  };
+  const workspacePath = workspacePathFor(request.repositoryRoot, branch);
   const intent = {
     sessionId: request.sessionId,
     mode: request.mode,
-    workingDirectory: placement.workspacePath,
+    workingDirectory: workspacePath,
     start: { kind: "new" as const, instruction: request.instruction },
     ...(request.model === undefined ? {} : { model: request.model }),
     ...(request.hooks === undefined ? {} : { hooks: request.hooks }),
@@ -176,8 +207,30 @@ export async function startWorkspace(
     throw error;
   }
 
+  const base =
+    ports.chooseBase === undefined
+      ? undefined
+      : await ports.chooseBase(request.baseCommit).catch((): WorkspaceBase => ({
+          commit: request.baseCommit,
+          source: "local",
+          upstream: null,
+          replay: [],
+          notice: "base_unresolved",
+        }));
+  const placement: WorkspacePlacement = {
+    repositoryRoot: request.repositoryRoot,
+    projectId: request.projectId,
+    workspaceId: request.workspaceId,
+    branch,
+    workspacePath,
+    baseCommit: base?.commit ?? request.baseCommit,
+    replay: base?.replay ?? [],
+  };
+  let replay: EffectReplay = { replayed: [], skipped: [], carried: [], complete: true };
   try {
     await ports.provisionWorkspace(placement);
+    if ((placement.replay?.length ?? 0) > 0 && ports.replayEffects !== undefined)
+      replay = await ports.replayEffects(placement);
   } catch (error) {
     throw stageFailure("workspace", error, await undo(ports, placement));
   }
@@ -203,6 +256,19 @@ export async function startWorkspace(
       settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
+      ...(base === undefined
+        ? {}
+        : {
+            base: {
+              commit: base.commit,
+              source: base.source,
+              upstream: base.upstream,
+              replayed: [...replay.replayed],
+              skipped: [...replay.skipped],
+              carried: [...replay.carried],
+              notice: replay.complete ? base.notice : "replay_incomplete",
+            },
+          }),
     };
     await ports.recordLaunch(record);
     const hostedEvents = await ports.recordEvents([
@@ -220,6 +286,18 @@ export async function startWorkspace(
       provider: ports.adapter.provider,
       launch,
       hostedEvents,
+      ...(record.base === undefined
+        ? {}
+        : {
+            base: {
+              source: record.base.source,
+              upstream: record.base.upstream,
+              notice: record.base.notice,
+              replayed: record.base.replayed.length,
+              skipped: record.base.skipped.length,
+              carried: record.base.carried.length,
+            },
+          }),
     };
   } catch (error) {
     throw stageFailure(stage, error, await undo(ports, placement));

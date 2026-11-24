@@ -5,6 +5,8 @@ import type { HostedConversationMode, HostedLaunch } from "@lervo/adapter-contra
 import { readPrivateJsonFile, writePrivateJsonFile } from "@lervo/repository-knowledge-runtime";
 import { defaultRepositoryRegistryPath } from "@lervo/repository-registry";
 
+import type { WorkspaceBaseNotice } from "./workspace-base.js";
+
 /** Records kept per host. The oldest records leave first. */
 export const HOSTED_LAUNCH_RECORD_LIMIT = 256;
 const MAX_FILE_BYTES = 1024 * 1024;
@@ -26,6 +28,27 @@ export interface HostedLaunchRecord {
   settingsDigest: string | null;
   mcpConfigDigest: string | null;
   preparedAt: string;
+  /** Where the workspace started; records from before Lervo 0.47.7 have none. */
+  base?: HostedWorkspaceBase;
+}
+
+/**
+ * The commit a workspace branched from and why (Lervo ADE sessions, "The workspace's base"):
+ * identifiers and ref names only.
+ */
+export interface HostedWorkspaceBase {
+  commit: string;
+  source: "upstream" | "local";
+  upstream: string | null;
+  /**
+   * Unpublished knowledge commits replayed on the branch, those whose change the branch already
+   * held, and, when the replay was dropped, all of them as skipped.
+   */
+  replayed: string[];
+  skipped: string[];
+  carried: string[];
+  /** Why the workspace started without something; `replay_incomplete` dropped the replay. */
+  notice: WorkspaceBaseNotice | "replay_incomplete" | null;
 }
 
 /** The host's record file, next to the repository registry in the user state directory. */
