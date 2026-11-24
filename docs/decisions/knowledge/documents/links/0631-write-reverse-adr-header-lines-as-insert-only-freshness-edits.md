@@ -42,6 +42,7 @@ The candidate carries a `mechanical` marker with the declarations and the declar
 ### Same apply path, commit, notice and revert
 
 - The freshness cycle writes reverse lines after its regular finding work, from the relation web the observation stored, and only when that web describes HEAD.
+- The freshness stage's fence includes the identity of the runtime's evaluation logic (ADR-0485), the hash of the installed runtime bundle, so a release that changes those bytes runs the stage once. Until 2026-11-24 the fence held HEAD, status and inputs only, and new freshness behavior waited for the next repository change or UTC day.
 - Each record is one candidate and one Lervo commit, `docs: add reverse header lines to ADR-NNNN`. The subject names the record's ADR, because a full decision path would exceed the 100-character commit header. The commit carries the trailers `Lervo-Freshness-Reason: reverse_header` and `Lervo-Freshness-Cross-Check: not_required`.
 - One cycle writes at most 8 records. When more remain, or when the stored web is behind HEAD only by Lervo's own knowledge commits, the stage stays open, so the next cycle continues.
 - A record with uncommitted edits waits, and so does a record whose declaring record has uncommitted edits, because the relation web reads working bytes.

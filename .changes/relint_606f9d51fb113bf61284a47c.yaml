@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_606f9d51fb113bf61284a47c"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Reopen the document freshness stage once after a Lervo release, so new freshness behavior such as reverse ADR header lines starts at the release instead of the next repository change or UTC day."
