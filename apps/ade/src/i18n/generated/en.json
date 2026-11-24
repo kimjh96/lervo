@@ -429,15 +429,11 @@
   "workspace.branch.action": [
     {
       "type": 0,
-      "value": "Branch "
+      "value": "Copy branch "
     },
     {
       "type": 1,
       "value": "branch"
-    },
-    {
-      "type": 0,
-      "value": ". Copy"
     }
   ],
   "workspace.branch.copied": [

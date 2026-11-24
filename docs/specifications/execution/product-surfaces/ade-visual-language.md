@@ -44,6 +44,7 @@ Each token is semantic. Components use tokens, never raw values.
 | `color.text.primary`        | `#ECEEF3`                | `#161B26`                | Body text and titles                                        |
 | `color.text.secondary`      | `#B4BAC7`                | `#454D5C`                | Supporting text                                             |
 | `color.text.tertiary`       | `#A3AAB7`                | `#4C5361`                | Labels, hints, and timestamps                               |
+| `color.text.highlight`      | `#ECEEF3`                | `#B4BAC7`                | The band of light that sweeps across a wait's words         |
 | `color.text.link`           | `#A9C1FF`                | `#2848AA`                | Inline actions such as "View diff"                          |
 | `color.accent`              | `#7AA2F7`                | `#3A64D8`                | The brand blue: primary buttons, focus, the logo's last bar |
 | `color.onAccent`            | `#0B1020`                | `#FFFFFF`                | Text and icons on the accent                                |

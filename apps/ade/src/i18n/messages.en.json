@@ -188,8 +188,8 @@
     "description": "Accessible name of the button that starts work."
   },
   "workspace.branch.action": {
-    "defaultMessage": "Branch {branch}. Copy",
-    "description": "The accessible name and tooltip of the header's branch icon: names the workspace's branch; pressing copies it."
+    "defaultMessage": "Copy branch {branch}",
+    "description": "The accessible name and tooltip of the header's branch icon: names the workspace's branch, which pressing copies."
   },
   "workspace.branch.copied": {
     "defaultMessage": "Copied {branch}",
