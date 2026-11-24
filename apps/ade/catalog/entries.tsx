@@ -13,6 +13,7 @@ import { InputCard, InputField } from "../src/ui/InputCard";
 import { Kbd } from "../src/ui/Kbd";
 import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
+import { Presence } from "../src/ui/Presence";
 import { SegmentedControl } from "../src/ui/SegmentedControl";
 import { Select } from "../src/ui/Select";
 import { StatusDot } from "../src/ui/StatusDot";
@@ -32,6 +33,18 @@ export interface Entry {
   readonly use: readonly string[];
   readonly avoid: readonly string[];
   readonly variants: readonly Variant[];
+}
+
+function PresenceDemo() {
+  const [shown, setShown] = useState(true);
+  return (
+    <span style={{ display: "inline-flex", gap: "var(--space-12)", alignItems: "center" }}>
+      <Button variant="outlined" onClick={() => setShown(!shown)}>
+        {shown ? "Hide" : "Show"}
+      </Button>
+      <Presence as="span">{shown ? "Restarted the session host" : null}</Presence>
+    </span>
+  );
 }
 
 function SegmentedDemo(props: { disabled?: boolean }) {
@@ -301,6 +314,21 @@ export const entries: readonly Entry[] = [
       "A wait for the person's own action: use Waiting",
     ],
     variants: [{ name: "Default", render: () => <WorkingLine label="Writing a reply" /> }],
+  },
+  {
+    module: "Presence",
+    name: "Presence",
+    purpose:
+      "The motion of anything a view shows only sometimes: it fades in over motion.duration.change and out over motion.duration.exit, so nothing pops in or vanishes.",
+    use: [
+      "A notice, an inline error, the working line, a wait, or a control the core enables",
+      "Every element that comes and goes, unless a motion comment names another catalog row",
+    ],
+    avoid: [
+      "Whole views: the main area changes at once, and the arriving view fades in",
+      "Rows that leave a list with their own motion",
+    ],
+    variants: [{ name: "Leaving", render: () => <PresenceDemo /> }],
   },
   {
     module: "Waiting",

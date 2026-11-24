@@ -11,6 +11,7 @@ import { Button } from "../../../ui/Button";
 import { TrashIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Waiting } from "../../../ui/Waiting";
+import { Presence } from "../../../ui/Presence";
 import { type RetireStep, retireWorkspace } from "../../workspaces";
 import styles from "./RetireControl.module.css";
 
@@ -92,14 +93,16 @@ export function RetireControl(props: { workspaceId: string }) {
     );
   return (
     <span className={styles.question}>
-      {step.kind === "failed" ? (
-        <InlineAlert size="meta">
-          <FormattedMessage
-            {...(failureMessages[step.code] ?? { id: "workspace.retire.failed.other" })}
-            values={{ code: step.code }}
-          />
-        </InlineAlert>
-      ) : null}
+      <Presence as="span">
+        {step.kind === "failed" ? (
+          <InlineAlert size="meta">
+            <FormattedMessage
+              {...(failureMessages[step.code] ?? { id: "workspace.retire.failed.other" })}
+              values={{ code: step.code }}
+            />
+          </InlineAlert>
+        ) : null}
+      </Presence>
       <Button
         variant="quiet"
         label={intl.formatMessage({ id: "workspace.retire.action" })}

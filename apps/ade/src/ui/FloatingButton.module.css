@@ -1,4 +1,5 @@
-/* A floating pill (visual language, "Floating controls"): glass over content, fading in. */
+/* A floating pill (visual language, "Floating controls"): glass over content. `Presence` around
+   it brings its arrival and its leaving. */
 .pill {
   padding-block: var(--space-6);
   padding-inline: var(--space-14);
@@ -11,7 +12,6 @@
   box-shadow: var(--shadow-raised);
   backdrop-filter: blur(var(--glass-overlay-blur)) saturate(var(--glass-overlay-saturate));
   cursor: pointer;
-  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
 }
 
 .pill:focus-visible {
@@ -23,11 +23,5 @@
   .pill {
     background: var(--color-surface-opaque);
     backdrop-filter: none;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .pill {
-    animation: none;
   }
 }

@@ -1,0 +1,21 @@
+/* Content that comes and goes: it fades in over `change` and out over `exit`, so nothing pops in
+   or vanishes in a frame (ADE motion, "Coming and going"). */
+.presence[data-enter]:not([data-leaving]) {
+  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.presence[data-leaving] {
+  pointer-events: none;
+  animation: global(lervo-leave) var(--motion-duration-exit) var(--motion-easing-exit) forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .presence[data-enter]:not([data-leaving]) {
+    animation: none;
+  }
+
+  .presence[data-leaving] {
+    visibility: hidden;
+    animation: none;
+  }
+}

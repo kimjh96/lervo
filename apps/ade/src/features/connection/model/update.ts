@@ -18,13 +18,24 @@ export function updateFor(identity: HostIdentity): HostUpdate {
 }
 
 /**
+ * The update after a connection reaches a session host with `identity`. While a restart runs, an
+ * older session host still shutting down keeps the restart going, and the first session host
+ * that is not older ends it as `restarted`, because nothing else on screen shows the result.
+ */
+export function nextUpdate(current: HostUpdate, identity: HostIdentity): HostUpdate {
+  const next = updateFor(identity);
+  if (current.kind !== "restarting") return next;
+  return next.kind === "available" ? current : { kind: "restarted" };
+}
+
+/**
  * Offers to replace a session host older than the application, on each connection. Nothing is
  * replaced without the user: the session host's sessions end with it, and the interface cannot
  * tell when it has heard every running session's status. Returns the unsubscribe function.
  */
 export function bindHostUpdate(replacement: HostReplacement): () => void {
   const apply = (identity: HostIdentity) =>
-    useConnectionStore.setState({ update: updateFor(identity) });
+    useConnectionStore.setState((store) => ({ update: nextUpdate(store.update, identity) }));
   if (replacement.identity !== null) apply(replacement.identity);
   return replacement.onIdentity(apply);
 }
@@ -40,4 +51,10 @@ export async function restartHost(replacement: HostReplacement): Promise<void> {
   } catch (failure) {
     useConnectionStore.setState({ update: { kind: "failed", code: failureCode(failure) } });
   }
+}
+
+/** Clears the line that stated the restart, once it has stayed `motion.duration.settle`. */
+export function settleHostUpdate(): void {
+  if (useConnectionStore.getState().update.kind === "restarted")
+    useConnectionStore.setState({ update: { kind: "none" } });
 }

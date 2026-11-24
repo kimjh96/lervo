@@ -11,6 +11,8 @@ export type HostUpdate =
   | { readonly kind: "none" }
   | { readonly kind: "available" }
   | { readonly kind: "restarting" }
+  /** The new session host answered; the screen shows no other sign of it. */
+  | { readonly kind: "restarted" }
   | { readonly kind: "failed"; readonly code: string };
 
 interface ConnectionStore {

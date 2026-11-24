@@ -2,8 +2,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   bindHostUpdate,
+  nextUpdate,
   olderVersion,
   restartHost,
+  settleHostUpdate,
   updateFor,
   useConnectionStore,
 } from "../src/features/connection";
@@ -67,5 +69,19 @@ describe("the session host update", () => {
       kind: "failed",
       code: "host_replace_unavailable",
     });
+  });
+
+  it("ends a restart only when a session host that is not older answers, and says so", () => {
+    const restarting = { kind: "restarting" } as const;
+    expect(nextUpdate(restarting, older)).toEqual(restarting);
+    expect(nextUpdate(restarting, { ...older, hostVersion: "0.3.1" })).toEqual({
+      kind: "restarted",
+    });
+    expect(nextUpdate({ kind: "none" }, { ...older, hostVersion: "0.3.1" })).toEqual({
+      kind: "none",
+    });
+    useConnectionStore.setState({ update: { kind: "restarted" } });
+    settleHostUpdate();
+    expect(useConnectionStore.getState().update).toEqual({ kind: "none" });
   });
 });

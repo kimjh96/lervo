@@ -7,5 +7,6 @@ export const motion = {
   "shimmerMs": 1800,
   "paceMs": 120,
   "waitMs": 300,
-  "waitLaunchMs": 1000
+  "waitLaunchMs": 1000,
+  "settleMs": 3000
 } as const;
