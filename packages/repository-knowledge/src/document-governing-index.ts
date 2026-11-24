@@ -1,5 +1,5 @@
-import { extractDocumentReferences, MAXIMUM_DOCUMENT_REFERENCES } from "./document-references.js";
-import { historicalDocumentMarker } from "./historical-documents.js";
+import { relationNodeParts } from "./relation-web-model.js";
+import type { RelationWeb } from "./relation-web.js";
 
 /** Repository paths (files or directories) named by current canonical documents. */
 export interface GoverningIndex {
@@ -11,38 +11,36 @@ export interface GoverningIndex {
 }
 
 const MAXIMUM_DOCUMENTS_PER_PATH = 16;
+const GOVERNING_ROLES = new Set(["instructions", "canonical_documents"]);
 
 /**
- * ADR-0552: a canonical document governs the code and configuration paths it names. Only strong
- * references count: Markdown links, fenced file names, and inline code paths with an extension or
- * a trailing slash. Historical documents govern nothing.
+ * ADR-0552 as a view of the relation web (ADR-0562, roadmap item 8): a current canonical document
+ * governs the code and configuration paths it names. Only strong references count: Markdown links,
+ * fenced file names, and inline code paths with an extension or a trailing slash. Historical
+ * documents and roadmaps, which name paths as delivery evidence, govern nothing.
  */
-export function buildGoverningIndex(input: {
-  documents: readonly { path: string; content: string }[];
-  canonical: (path: string) => boolean;
-  archiveScopes: readonly string[];
-}): GoverningIndex {
-  const documents = input.documents
+export function governingIndexFromRelationWeb(web: RelationWeb): GoverningIndex {
+  const documents = [...web.documents.values()]
     .filter(
       (document) =>
-        input.canonical(document.path) &&
-        historicalDocumentMarker({
-          path: document.path,
-          content: document.content,
-          archiveScopes: input.archiveScopes,
-        }) === null,
+        GOVERNING_ROLES.has(document.role) &&
+        !document.historical &&
+        !document.path.split("/").includes("roadmap"),
     )
     .sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
   const entries: Record<string, number[]> = {};
   const truncated: string[] = [];
   documents.forEach((document, index) => {
-    const references = extractDocumentReferences({
-      ...document,
-      accept: (reference) => reference.weak !== true && !/\.mdx?$/iu.test(reference.target),
-    });
-    if (references.length >= MAXIMUM_DOCUMENT_REFERENCES) truncated.push(document.path);
-    for (const reference of references) {
-      const list = (entries[reference.target] ??= []);
+    if (document.truncated) truncated.push(document.path);
+    for (const edge of document.edges) {
+      if (
+        edge.kind !== "links_to" &&
+        !(edge.kind === "names_path" && edge.evidence.strength === "strong")
+      )
+        continue;
+      const { kind, key } = relationNodeParts(edge.to);
+      if (kind !== "path" || /\.mdx?$/iu.test(key)) continue;
+      const list = (entries[key] ??= []);
       if (list.at(-1) !== index && list.length < MAXIMUM_DOCUMENTS_PER_PATH) list.push(index);
     }
   });

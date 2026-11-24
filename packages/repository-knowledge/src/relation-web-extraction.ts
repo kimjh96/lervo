@@ -68,7 +68,13 @@ export function extractRelationDocument(input: {
   ) => {
     if (from === to) return;
     const key = `${kind}\u0000${from}\u0000${to}`;
-    if (edges.has(key)) return;
+    const existing = edges.get(key);
+    if (existing !== undefined) {
+      // A strong mention after a weak one of the same target keeps the strong evidence.
+      if (existing.evidence.strength === "weak" && strength === "strong")
+        edges.set(key, { ...existing, evidence: { ...existing.evidence, line, strength } });
+      return;
+    }
     if (edges.size >= MAXIMUM_DOCUMENT_RELATION_EDGES) {
       truncated = true;
       return;

@@ -1,6 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.47.1" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.47.2" schema="1" -->
 
 ## What's changed
 
-- Reopen the document freshness stage once after a Lervo release, so new freshness behavior such as reverse ADR header lines starts at the release instead of the next repository change or UTC day.
-- Write reverse ADR header lines in the header's own list or plain style, with a blank line where the style changes, and let a reverted line return after its revert hold.
+- Derive the governing index that the Stop check and Find preference read from the relation web, and keep a strong mention's evidence when a weak mention of the same path came first (relation web extractor version 2).

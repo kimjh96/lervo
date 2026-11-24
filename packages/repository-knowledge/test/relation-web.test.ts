@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { extractRelationDocument } from "../src/relation-web-extraction.js";
+import { RELATION_WEB_EXTRACTOR_VERSION } from "../src/relation-web-model.js";
 import { extractRelationMentions } from "../src/relation-web-mentions.js";
 import { buildRelationWeb, type RelationWebInput } from "../src/relation-web.js";
 import { relationWebStats } from "../src/relation-web-stats.js";
@@ -103,7 +104,7 @@ describe("relation web extraction", () => {
       "names_adr path:docs/decisions/0010-example.md -> adr:0008 @9 weak",
     ]);
     expect(extraction.edges[0]!.evidence).toEqual({
-      extractorVersion: 1,
+      extractorVersion: RELATION_WEB_EXTRACTOR_VERSION,
       sourceDocument: "docs/decisions/0010-example.md",
       line: 4,
       strength: "strong",

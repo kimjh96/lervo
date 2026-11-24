@@ -6,7 +6,8 @@ import { loadDecisionTaxonomy } from "@lervo/project";
 import {
   archiveScopes,
   buildDocumentLinkWeb,
-  buildGoverningIndex,
+  governingIndexFromRelationWeb,
+  refreshRelationWeb,
   repositoryScanPriority,
   repositoryTrackedFiles,
 } from "@lervo/repository-knowledge";
@@ -97,18 +98,12 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
     for (let index = 1; index < segments.length; index += 1)
       trackedPaths.add(segments.slice(0, index).join("/"));
   }
-  // ADR-0552: the same documents give the governing index the Stop check reads.
-  await writeGoverningIndex(
-    root,
-    buildGoverningIndex({
-      documents,
-      // Roadmaps track delivery; they name code paths as evidence, not as rules over them.
-      canonical: (path) =>
-        !path.split("/").includes("roadmap") &&
-        ["instructions", "canonical_documents"].includes(repositoryScanPriority(path, taxonomy)),
-      archiveScopes: archiveScopes(taxonomy),
-    }),
-  );
+  // ADR-0552, roadmap item 8: the governing index the Stop check reads is a view of the relation
+  // web, refreshed here from the same documents. A web that cannot be refreshed keeps the last
+  // index, so the next changed input tries again.
+  const relation = await refreshRelationWeb(root, { commands: "stored", now });
+  if (relation.status === "current")
+    await writeGoverningIndex(root, governingIndexFromRelationWeb(relation.web));
   const web = buildDocumentLinkWeb({
     documents,
     trackedPaths,
@@ -119,7 +114,9 @@ export async function refreshLinkWeb(root: string, now: Date): Promise<LinkWebSu
   const summary: LinkWebSummary = {
     schemaVersion: 1,
     observedAt: now.toISOString(),
-    inputDigest,
+    // A governing index left behind by a failed web refresh must not look current: without the
+    // digest the next call rebuilds instead of reusing.
+    inputDigest: relation.status === "current" ? inputDigest : "sha256:unrecorded",
     documentCount: web.documentCount,
     linkCount: web.linkCount,
     brokenCount: web.broken.length,
