@@ -8,4 +8,5 @@ docs/knowledge/
 # lervo:end rebuildable-knowledge
 apps/ade/target/
 apps/ade/src-tauri/gen/
+apps/ade/src-tauri/binaries/
 apps/ade/dist-catalog/

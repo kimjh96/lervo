@@ -12,7 +12,7 @@ This specification defines version 1 of the protocol between the ADE interface (
 - The client is the Tauri shell. The webview cannot open the socket, so the shell relays messages to it over Tauri's IPC:
   - The shell decodes and validates each control message and passes it to the webview as JSON. The webview therefore never parses MessagePack and never sees an unvalidated message, and it ships no validator.
   - Terminal frames reach the webview unchanged as `[channel: u32][sequence: u64][bytes]` over a binary IPC channel.
-  - When the socket does not answer, the shell starts `lervo-session-host serve` detached, so it outlives the window, and connects again. It looks for the session host in `LERVO_SESSION_HOST` or beside its own executable, and passes on the login shell's `PATH`, because an application opened from the Dock inherits a minimal one.
+  - When the socket does not answer, the shell starts `lervo-session-host serve` detached, so it outlives the window, and connects again. It looks for the session host in `LERVO_SESSION_HOST` or beside its own executable, where a bundle built with `pnpm --filter @lervo/ade bundle` carries it, and passes on the login shell's `PATH`, because an application opened from the Dock inherits a minimal one.
   - The webview reconnects after each disconnection, waiting 0.5 s and then twice as long after each failure, up to 10 s. While connected, no timer runs.
 
 ## Contract and validation
