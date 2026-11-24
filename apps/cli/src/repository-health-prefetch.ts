@@ -49,8 +49,11 @@ async function state<T>(root: string, path: string): Promise<T | null> {
   }
 }
 
-/** Called only by detached prefetch or after a resident cycle. No provider, lint or mutation authority. */
-export async function prefetchRepositoryHealth(root: string): Promise<void> {
+/**
+ * Called only by detached prefetch or after a resident cycle. No provider, lint or mutation
+ * authority. Returns the repository revision it captured, so a caller reuses that one walk.
+ */
+export async function prefetchRepositoryHealth(root: string): Promise<string> {
   const generation = await beginRepositoryHealthProjection(root);
   const now = new Date();
   const snapshot = await captureTerminalRepositorySnapshot(root);
@@ -60,7 +63,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
       unknownRepositoryHealth(snapshot.revision, now, "event_store_missing"),
       generation,
     );
-    return;
+    return snapshot.revision;
   }
   const storage = await openReadOnlyProjectStorage(root);
   try {
@@ -168,6 +171,7 @@ export async function prefetchRepositoryHealth(root: string): Promise<void> {
   } finally {
     await storage.close();
   }
+  return snapshot.revision;
 }
 
 async function refreshLearnedNotice(root: string, now: Date): Promise<void> {

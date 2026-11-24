@@ -134,6 +134,11 @@ export async function terminalKnowledgeSnapshotId(
   return scan.snapshotId;
 }
 
+/** Whether this checkout has a prompt knowledge snapshot cached, and for which revision. */
+export async function cachedKnowledgeSnapshotRevision(root: string): Promise<string | null> {
+  return (await readKnowledgeSnapshotCache(root))?.repositoryRevision ?? null;
+}
+
 /**
  * Stop runs this detached so the next prompt finds the post-turn knowledge snapshot ready. The core
  * health projection is computed by resident cycles, not here, so the hook bundle only reads it.
