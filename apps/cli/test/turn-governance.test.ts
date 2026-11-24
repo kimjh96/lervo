@@ -3,7 +3,11 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { buildGoverningIndex, governingDocumentsFor } from "@lervo/repository-knowledge";
+import {
+  buildRelationWeb,
+  governingDocumentsFor,
+  governingIndexFromRelationWeb,
+} from "@lervo/repository-knowledge";
 
 import {
   markTurnGovernanceShown,
@@ -14,23 +18,43 @@ import {
   writeGoverningIndex,
 } from "../src/turn-governance.js";
 
-const index = buildGoverningIndex({
-  documents: [
+function webOf(documents: { path: string; content: string; role: string }[]) {
+  return buildRelationWeb({
+    documents,
+    trackedFiles: [...documents.map((document) => document.path), "apps/cli/src/upgrade.ts"],
+    packages: [],
+    commands: [],
+    lineage: [],
+    archiveScopes: [],
+    observedRevision: null,
+  }).web;
+}
+
+const index = governingIndexFromRelationWeb(
+  webOf([
     {
       path: "docs/decisions/0001-upgrade.md",
       content: "# Upgrade\n\nThe policy lives in `apps/cli/src/upgrade.ts`.\n",
+      role: "canonical_documents",
     },
-    { path: "docs/specifications/cli.md", content: "# CLI\n\nEverything under `apps/cli/`.\n" },
+    {
+      path: "docs/specifications/cli.md",
+      content: "# CLI\n\nEverything under `apps/cli/`.\n",
+      role: "canonical_documents",
+    },
     {
       path: "docs/decisions/0000-old.md",
       content: "---\nstatus: superseded\n---\n# Old\n\n`apps/cli/src/upgrade.ts`\n",
+      role: "canonical_documents",
     },
-    { path: "docs/evidence/run.md", content: "`apps/cli/src/upgrade.ts`\n" },
-  ],
-  canonical: (path) =>
-    path.startsWith("docs/decisions/") || path.startsWith("docs/specifications/"),
-  archiveScopes: [],
-});
+    { path: "docs/evidence/run.md", content: "`apps/cli/src/upgrade.ts`\n", role: "evidence" },
+    {
+      path: "docs/roadmap/plan.md",
+      content: "Delivered in `apps/cli/src/upgrade.ts`.\n",
+      role: "canonical_documents",
+    },
+  ]),
+);
 
 describe("governing index", () => {
   it("maps named files and directories to current canonical documents", () => {
@@ -43,18 +67,39 @@ describe("governing index", () => {
     ]);
     expect(governingDocumentsFor(index, "packages/x/src/a.ts")).toEqual([]);
   });
+
+  it("keeps a weak mention from hiding a later strong one of the same path", () => {
+    const later = governingIndexFromRelationWeb(
+      webOf([
+        {
+          path: "docs/decisions/0002-later.md",
+          content: "The CLI lives in `apps/cli`.\n\nEverything under `apps/cli/` follows it.\n",
+          role: "canonical_documents",
+        },
+      ]),
+    );
+    // `apps/cli` alone is a weak mention; the later `apps/cli/` is strong and must win.
+    expect(governingDocumentsFor(later, "apps/cli/src/upgrade.ts")).toEqual([
+      "docs/decisions/0002-later.md",
+    ]);
+  });
 });
 
 describe("governing index bound", () => {
-  it("lets excluded Markdown references not displace code paths", () => {
-    const links = Array.from({ length: 600 }, (_, index) => `[d${index}](d${index}.md)`).join(" ");
-    const big = buildGoverningIndex({
-      documents: [{ path: "docs/decisions/0009-big.md", content: `${links}\n\n\`src/late.ts\`\n` }],
-      canonical: () => true,
-      archiveScopes: [],
-    });
-    expect(governingDocumentsFor(big, "src/late.ts")).toEqual(["docs/decisions/0009-big.md"]);
-    expect(big.truncated).toEqual([]);
+  it("marks a document past the reference bound as truncated", () => {
+    // References are bounded in document order, so a code path after 600 links is not recorded;
+    // the truncated mark records that the document may govern more than the index lists.
+    const links = Array.from({ length: 600 }, (_, item) => `[d${item}](d${item}.md)`).join(" ");
+    const big = governingIndexFromRelationWeb(
+      webOf([
+        {
+          path: "docs/decisions/0009-big.md",
+          content: `${links}\n\n\`src/late.ts\`\n`,
+          role: "canonical_documents",
+        },
+      ]),
+    );
+    expect(big.truncated).toEqual(["docs/decisions/0009-big.md"]);
   });
 });
 

@@ -1,6 +1,6 @@
 # Relation Web
 
-[ADR-0562](../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md) gives each checkout one relation web. This page defines version 1. The link web, governing index, staleness, freshness, and reference lint still compute their own relations until a later slice moves them onto the web.
+[ADR-0562](../../decisions/foundation/0562-one-relation-web-one-context-assembler-and-a-stop-ledger.md) gives each checkout one relation web. This page defines extractor version 2. The governing index is a view of the web (roadmap item 8, slice 1). The link web, staleness, freshness, and reference lint still compute their own relations until later slices move them onto the web.
 
 ## State
 
@@ -16,7 +16,7 @@ If the build or the write fails, the previous web stays in place and the refresh
 
 Node identities are `path:<path>` (a file, directory, or document), `adr:<NNNN>`, `package:<name>`, and `command:<words>`. An ADR number resolves to the one document whose `# ADR-NNNN` title or `NNNN-` decision file name carries it. A number that several documents carry resolves to none of them.
 
-Every edge has evidence: extractor version, source document, line, strength, and observed revision.
+Every edge has evidence: extractor version, source document, line, strength, and observed revision. One document declares each edge kind to each target once. A strong mention after a weak one of the same target keeps the strong evidence, both within one reference kind (the shared reference extractor upgrades it in place) and across kinds; that is extractor version 2, and version 1 kept the first mention.
 
 | Edge                                                            | Source                                                                                                                                                                    | Strength                          |
 | --------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------- |
@@ -31,6 +31,10 @@ Every edge has evidence: extractor version, source document, line, strength, and
 The ADR header is every line before the first `##` heading, at most 80 lines. Header keys are `Status`, `Supersedes` (targets after `in the named part:` are `supersedes_part`), `Supersedes in part`, `Superseded by`, `Superseded in part by`, `Amends`, `Amended by`, `Part of`, and `Related`, optionally as list items. Targets are Markdown links or bare `ADR-NNNN` numbers. A key line without targets continues through the bulleted list below it. A `Status: superseded by <target>` line declares an incoming `supersedes` edge.
 
 A document has at most 1,024 edges; a document at the bound is marked truncated.
+
+## Governing index
+
+The governing index the ADR-0552 Stop check and the ADR-0556 preference read is derived from the web whenever the link web projection sees changed Markdown. Its documents are the current `instructions` and `canonical_documents` documents outside any `roadmap` directory, and each governs the targets of its `links_to` edges and strong `names_path` edges, Markdown targets excluded, at most 16 documents per path. A document at the reference bound is listed as truncated: references are bounded in document order, so a code path after 512 references is not recorded. The index file stays as a view, so its readers did not change. A web that cannot be refreshed keeps the last index and records no input digest, so the next refresh tries again.
 
 ## Suspects
 
