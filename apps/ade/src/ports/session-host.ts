@@ -50,6 +50,29 @@ export interface SessionHost {
   onState(listener: (state: ConnectionState) => void): () => void;
 }
 
+/** The session host a connection reached, as the shell reports it after each handshake. */
+export interface HostIdentity {
+  readonly hostVersion: string;
+  readonly appVersion: string;
+  /** Whether the shell can end this session host, so that the next connection starts its own. */
+  readonly replaceable: boolean;
+}
+
+/**
+ * The reached session host's identity, and its replacement. The session host outlives the window,
+ * so a newer application can meet the session host an older one started.
+ */
+export interface HostReplacement {
+  /** The identity of the last connection's session host; `onIdentity` reports each new one. */
+  readonly identity: HostIdentity | null;
+  onIdentity(listener: (identity: HostIdentity) => void): () => void;
+  /**
+   * Ends the session host and its sessions; the next connection starts the shell's own. Rejects
+   * with a `RequestFailure` when the shell cannot.
+   */
+  replace(): Promise<void>;
+}
+
 /**
  * Lervo application commands, which the session host forwards to the resident Lervo process. The
  * session host checks each result against its command's schema, so results arrive typed.

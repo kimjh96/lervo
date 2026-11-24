@@ -20,11 +20,7 @@ use crate::commands::Relay;
 fn main() -> ExitCode {
     let started = std::time::SystemTime::now();
     let path = login_path::LoginPath::resolve();
-    let relay = Relay {
-        program: host_program::HostProgram::locate(path),
-        layout: Layout::for_user(),
-        outgoing: tokio::sync::Mutex::new(None),
-    };
+    let relay = Relay::new(host_program::HostProgram::locate(path), Layout::for_user());
     let measurement = measure::Measurement::from_environment(started);
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
@@ -36,6 +32,7 @@ fn main() -> ExitCode {
         .invoke_handler(tauri::generate_handler![
             commands::host_connect,
             commands::host_send,
+            commands::host_replace,
             window::window_ready,
             measure::measure_report,
             measure::measure_hide,

@@ -1,8 +1,18 @@
 /* The frame already draws the workspace surface, so this view adds none of its own and the glass
-   looks the same before and after the workspace exists. */
+   looks the same before and after the workspace exists. It arrives over the live window when
+   sending leaves the start screen (ADE motion, "Changing views"); the created workspace then
+   continues in the same view without another arrival. */
 .workspace {
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+  animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard)
+    backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace {
+    animation: none;
+  }
 }

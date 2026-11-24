@@ -19,6 +19,7 @@
   --color-text-primary: #161B26;
   --color-text-secondary: #454D5C;
   --color-text-tertiary: #4C5361;
+  --color-text-highlight: #B4BAC7;
   --color-text-link: #2848AA;
   --color-accent: #3A64D8;
   --color-on-accent: #FFFFFF;
@@ -109,6 +110,8 @@
   --motion-duration-breathe: 2400ms;
   --motion-duration-shimmer: 1800ms;
   --motion-duration-pace: 120ms;
+  --motion-duration-wait: 300ms;
+  --motion-duration-wait-launch: 1000ms;
   --motion-easing-standard: cubic-bezier(0.2, 0, 0, 1);
   --motion-easing-exit: cubic-bezier(0.4, 0, 1, 1);
   --motion-easing-breathe: cubic-bezier(0.42, 0, 0.58, 1);
@@ -138,6 +141,7 @@
     --color-text-primary: #ECEEF3;
     --color-text-secondary: #B4BAC7;
     --color-text-tertiary: #A3AAB7;
+    --color-text-highlight: #ECEEF3;
     --color-text-link: #A9C1FF;
     --color-accent: #7AA2F7;
     --color-on-accent: #0B1020;
@@ -172,6 +176,7 @@
   --color-text-primary: #ECEEF3;
   --color-text-secondary: #B4BAC7;
   --color-text-tertiary: #A3AAB7;
+  --color-text-highlight: #ECEEF3;
   --color-text-link: #A9C1FF;
   --color-accent: #7AA2F7;
   --color-on-accent: #0B1020;

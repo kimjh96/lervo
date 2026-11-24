@@ -13,6 +13,7 @@ function fakeTransport(failures: number) {
   let control: ((message: ShellMessage) => void) | undefined;
   const controls: ((message: ShellMessage) => void)[] = [];
   const sent: ClientMessage[] = [];
+  let replaced = 0;
   const transport: HostTransport = {
     async connect(onControl) {
       attempts += 1;
@@ -23,12 +24,16 @@ function fakeTransport(failures: number) {
     async send(message) {
       sent.push(message);
     },
+    replace: async () => {
+      replaced += 1;
+    },
   };
   return {
     transport,
     sent,
     controls,
     attempts: () => attempts,
+    replaced: () => replaced,
     emit: (message: ShellMessage) => control?.(message),
   };
 }
@@ -81,6 +86,25 @@ describe("the session-host client", () => {
     expect(received).toEqual(["session.resync_required"]);
   });
 
+  it("keeps the reached session host's identity apart from host messages", async () => {
+    const fake = fakeTransport(0);
+    const client = new SessionHostClient(fake.transport, manualScheduler().schedule);
+    const received: string[] = [];
+    const identities: unknown[] = [];
+    client.onMessage((host) => received.push(host.kind));
+    client.onIdentity((identity) => identities.push(identity));
+    client.start();
+    await flush();
+    expect(client.identity).toBeNull();
+    const identity = { hostVersion: "0.3.0", appVersion: "0.3.1", replaceable: true };
+    fake.emit({ kind: "host.identified", ...identity });
+    expect(client.identity).toEqual(identity);
+    expect(identities).toEqual([identity]);
+    expect(received).toEqual([]);
+    await client.replace();
+    expect(fake.replaced()).toBe(1);
+  });
+
   it("connects once however often it starts, and ignores a replaced connection's end", async () => {
     const fake = fakeTransport(0);
     const scheduler = manualScheduler();
@@ -106,6 +130,7 @@ describe("the session-host client", () => {
     const finish: (() => void)[] = [];
     const transport: HostTransport = {
       async connect() {},
+      replace: async () => undefined,
       send: (message) =>
         new Promise<void>((resolve) => {
           started.push(message.kind);

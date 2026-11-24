@@ -2226,6 +2226,7 @@ version = "0.3.0"
 dependencies = [
  "lervo-session-protocol",
  "lervo-session-transport",
+ "nix",
  "serde_json",
  "tauri",
  "tauri-build",

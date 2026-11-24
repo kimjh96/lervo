@@ -48,23 +48,30 @@ async function stopSession(host: SessionHost, sessionId: string): Promise<void> 
   await wait.done;
 }
 
+/** The step a retirement is on, so the interface can name what Lervo is doing. */
+export type RetireStep = "stopping" | "removing";
+
 /**
  * Retires a workspace (Lervo ADE sessions, "Retiring a workspace"): it stops the session, asks
  * the core to remove the workspace, which refuses one with changes, and returns to the start
- * screen. A failure rejects with the `RequestFailure`, whose `coreCode` parameter names the
- * core's refusal.
+ * screen. `onStep` hears each step as it begins. A failure rejects with the `RequestFailure`,
+ * whose `coreCode` parameter names the core's refusal.
  */
 export async function retireWorkspace(input: {
   host: SessionHost;
   commands: ApplicationCommands;
   lists: ListCache;
   workspaceId: string;
+  onStep?: (step: RetireStep) => void;
 }): Promise<void> {
   const workspace = useWorkspaceStore
     .getState()
     .workspaces.find((item) => item.workspaceId === input.workspaceId);
   if (workspace === undefined) return;
+  const status = useWorkspaceStore.getState().statuses[workspace.sessionId];
+  if (status !== undefined && status !== "ended") input.onStep?.("stopping");
   await stopSession(input.host, workspace.sessionId);
+  input.onStep?.("removing");
   await input.commands.run("workspace.retire", { workspaceId: input.workspaceId });
   const store = useWorkspaceStore.getState();
   if (store.selected === input.workspaceId) store.select(null);

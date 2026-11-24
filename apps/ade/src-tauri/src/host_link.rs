@@ -32,7 +32,18 @@ pub enum Outgoing {
 /// What the interface receives. When `run` returns, the connection ended, and the interface
 /// reconnects, which starts the session host again.
 pub enum Event {
+    /// The handshake completed; it comes before any control message.
+    Identified(HostFacts),
     Control(HostMessage),
+}
+
+/// What the shell learned about the session host it reached.
+pub struct HostFacts {
+    /// The version the session host's `welcome` names.
+    pub version: String,
+    /// The session host's process, as the socket reports its peer. The socket's directory is
+    /// owner-only, so the peer is a process of the same user.
+    pub process: Option<i32>,
 }
 
 /// Connects to the session host, starting it if needed, and relays until the connection ends.
@@ -44,11 +55,16 @@ pub async fn run(
     events: impl Fn(Event) + Send + 'static,
 ) -> Result<(), TransportError> {
     let stream = connect(&program, &layout).await?;
+    let process = peer_process(&stream);
     let codec = MessageCodec::new()?;
     let (read, write) = stream.into_split();
     let (mut reader, mut writer) = (FrameReader::new(read), FrameWriter::new(write));
     let token = token::read(&layout.token)?;
-    hello(&mut reader, &mut writer, &codec, &token, &identity).await?;
+    let welcome = hello(&mut reader, &mut writer, &codec, &token, &identity).await?;
+    events(Event::Identified(HostFacts {
+        version: String::from(welcome.host.version),
+        process,
+    }));
 
     let writing = tokio::spawn(async move {
         while let Some(item) = outgoing.recv().await {
@@ -75,6 +91,11 @@ pub async fn run(
     result
 }
 
+/// The process at the other end of `stream`, as the socket reports it.
+fn peer_process(stream: &Stream) -> Option<i32> {
+    stream.peer_cred().ok().and_then(|peer| peer.pid())
+}
+
 /// The connected socket, after starting the session host when nothing answers.
 async fn connect(program: &HostProgram, layout: &Layout) -> Result<Stream, TransportError> {
     if let Ok(stream) = socket::connect(&layout.socket).await {
@@ -95,4 +116,22 @@ async fn connect(program: &HostProgram, layout: &Layout) -> Result<Stream, Trans
 /// A sender the interface's commands use, replaced on each connection.
 pub fn outgoing_queue() -> (mpsc::Sender<Outgoing>, mpsc::Receiver<Outgoing>) {
     mpsc::channel(OUTGOING_QUEUE)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::peer_process;
+
+    #[test]
+    fn the_socket_names_the_process_at_its_other_end() -> std::io::Result<()> {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_io()
+            .build()?;
+        runtime.block_on(async {
+            let (ours, _theirs) = tokio::net::UnixStream::pair()?;
+            let own = i32::try_from(std::process::id()).ok();
+            assert_eq!(peer_process(&ours), own);
+            Ok(())
+        })
+    }
 }

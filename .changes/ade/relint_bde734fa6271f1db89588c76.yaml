@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_bde734fa6271f1db89588c76"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "A newer app offers to restart the session host an older one started, and says first that working agents stop and conversations continue when opened."

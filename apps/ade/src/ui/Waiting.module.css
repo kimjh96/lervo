@@ -1,0 +1,22 @@
+/* A wait in place of the control that started it: it fades in once, and the working line's
+   highlight sweeps across its words. */
+.waiting {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--type-meta-size);
+  line-height: var(--type-meta-line-height);
+}
+
+.appear {
+  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
+}
+
+.label {
+  composes: label from "./WorkingLine.module.css";
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .appear {
+    animation: none;
+  }
+}

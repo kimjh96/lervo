@@ -1,8 +1,18 @@
 .pane {
+  position: relative;
   display: flex;
   flex: 1;
   flex-direction: column;
   min-height: 0;
+}
+
+/* Where the conversation will appear, while it opens; it never takes a click. */
+.opening {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
 }
 
 .error {

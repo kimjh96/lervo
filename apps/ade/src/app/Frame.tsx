@@ -1,4 +1,4 @@
-import { ConnectionStatus } from "../features/connection";
+import { ConnectionStatus, HostUpdateNotice } from "../features/connection";
 import { WorkspaceConversation } from "../features/conversation";
 import { PendingWorkspace, StartScreen, type Surface, useSurface } from "../features/start";
 import { WorkspaceHeader } from "../features/workspace-header";
@@ -47,6 +47,7 @@ export function Frame() {
         <WorkspaceList />
         <div className={styles.footer}>
           <ConnectionStatus />
+          <HostUpdateNotice />
         </div>
       </nav>
       <main key={surface.key} className={styles.content} data-background={surface.background}>

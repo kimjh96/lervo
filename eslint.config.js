@@ -42,6 +42,7 @@ function adeLayerRules() {
     [
       "**/platform/session-host",
       "**/platform/session-host/**",
+      "**/platform/clipboard",
       "**/platform/notifications",
       "**/platform/storage",
       "**/platform/visibility",

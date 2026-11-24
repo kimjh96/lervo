@@ -53,7 +53,8 @@ export function useSurface(): Surface {
 
 /**
  * Settles the pending start when the user turns to new work or to a workspace other than the one
- * the start created. Returns the unsubscribe function.
+ * the start created, or leaves that workspace, as removing it does. Otherwise the main area would
+ * show the pending workspace again. Returns the unsubscribe function.
  */
 export function bindStart(): () => void {
   return useWorkspaceStore.subscribe((state, previous) => {
@@ -64,6 +65,10 @@ export function bindStart(): () => void {
       state.selected !== previous.selected &&
       state.selected !== null &&
       state.selected !== pending.workspaceId;
-    if (newWork || elsewhere) settleStart();
+    const left =
+      pending.workspaceId !== null &&
+      previous.selected === pending.workspaceId &&
+      state.selected !== pending.workspaceId;
+    if (newWork || elsewhere || left) settleStart();
   });
 }

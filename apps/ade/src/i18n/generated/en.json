@@ -5,12 +5,6 @@
       "value": "Lervo"
     }
   ],
-  "connection.connected": [
-    {
-      "type": 0,
-      "value": "Connected"
-    }
-  ],
   "connection.connecting": [
     {
       "type": 0,
@@ -27,6 +21,38 @@
     {
       "type": 0,
       "value": "Lervo could not start its session host"
+    }
+  ],
+  "connection.update.available": [
+    {
+      "type": 0,
+      "value": "Lervo was updated. Restart its session host to finish: working agents stop, and each conversation continues when you open it."
+    }
+  ],
+  "connection.update.failed": [
+    {
+      "type": 0,
+      "value": "Lervo could not restart its session host ("
+    },
+    {
+      "type": 1,
+      "value": "code"
+    },
+    {
+      "type": 0,
+      "value": ")."
+    }
+  ],
+  "connection.update.restart": [
+    {
+      "type": 0,
+      "value": "Restart"
+    }
+  ],
+  "connection.update.restarting": [
+    {
+      "type": 0,
+      "value": "Restarting the session host"
     }
   ],
   "conversation.activity.starting": [
@@ -51,6 +77,12 @@
     {
       "type": 0,
       "value": "Jump to latest"
+    }
+  ],
+  "conversation.opening": [
+    {
+      "type": 0,
+      "value": "Opening the conversation"
     }
   ],
   "conversation.reply.failed": [
@@ -316,26 +348,6 @@
       "value": "."
     }
   ],
-  "start.explain": [
-    {
-      "type": 0,
-      "value": "Lervo opens a workspace and its workstream for this, then starts "
-    },
-    {
-      "type": 1,
-      "value": "provider"
-    },
-    {
-      "type": 0,
-      "value": " there. You follow and steer it in the conversation."
-    }
-  ],
-  "start.explain.default": [
-    {
-      "type": 0,
-      "value": "Lervo opens a workspace and its workstream for this, then starts the agent there. You follow and steer it in the conversation."
-    }
-  ],
   "start.instruction.label": [
     {
       "type": 0,
@@ -392,6 +404,26 @@
     {
       "type": 0,
       "value": "Start"
+    }
+  ],
+  "workspace.branch.action": [
+    {
+      "type": 0,
+      "value": "Copy branch "
+    },
+    {
+      "type": 1,
+      "value": "branch"
+    }
+  ],
+  "workspace.branch.copied": [
+    {
+      "type": 0,
+      "value": "Copied "
+    },
+    {
+      "type": 1,
+      "value": "branch"
     }
   ],
   "workspace.retire.action": [
@@ -453,7 +485,13 @@
   "workspace.retire.removing": [
     {
       "type": 0,
-      "value": "Removing…"
+      "value": "Removing the workspace"
+    }
+  ],
+  "workspace.retire.stopping": [
+    {
+      "type": 0,
+      "value": "Stopping the session"
     }
   ],
   "workspaces.label": [
