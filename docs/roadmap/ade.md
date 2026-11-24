@@ -293,6 +293,12 @@ On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's.
 
 On 2026-11-24 the owner asked why the ADE had no release notes: ADR-0615 had deferred GitHub Releases to S3, so the notes lived only in Git history. ADR-0630 publishes them now, after the host follower's release list widens past ADE releases. The widening shipped in v0.46.8 (#376) and passed its canary on both hosts. `@lervo/ade v0.2.0` and `v0.2.1` were then published from the notes at their tags. After that, `releases/latest` stayed `v0.46.8`, and a follower plan on both hosts selected no ADE release.
 
+### The session host in the application bundle
+
+On 2026-11-24 the owner's Lervo app still ran from a development worktree: its bundle was built there, and the session host it started was that worktree's build. `pnpm --filter @lervo/ade bundle` now builds the session host and passes Tauri a configuration that adds it as an external binary. The bundle therefore carries `lervo-session-host` beside the shell, where the shell looks for it. Only that build stages the binary, so `cargo build`, Clippy, and the tests never need it. The owner's app now runs from `/Applications/Lervo.app` with its own session host.
+
+A newer app still meets the session host that an older one started, because the session host outlives the window and the shell connects to whatever answers. The `welcome` message carries the session host's version, but the shell does not compare it with its own yet. Replacing an older session host ends its sessions, so the next increment decides when the shell may replace it and how the interface asks first.
+
 ### S1.4c progress
 
 S1.4c lands in three pull requests, because its events need event schema 10, and every reader must read a version before a writer selects it.

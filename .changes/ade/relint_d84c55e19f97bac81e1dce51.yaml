@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d84c55e19f97bac81e1dce51"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "The application bundle carries the session host, so an installed app no longer needs a session host built beside it."
