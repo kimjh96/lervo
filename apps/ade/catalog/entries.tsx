@@ -2,24 +2,19 @@
 // is the owner's review surface and the source of the site's live examples (ADE design system,
 // "Components"). A new component or variant joins here before it ships.
 import type { ReactNode } from "react";
-import { useState } from "react";
 
 import { Button } from "../src/ui/Button";
 import { FloatingButton } from "../src/ui/FloatingButton";
 import { IconButton } from "../src/ui/IconButton";
 import { ArrowUpIcon, ChevronDownIcon, PlusIcon, TrashIcon } from "../src/ui/icons";
 import { InlineAlert } from "../src/ui/InlineAlert";
-import { InputCard, InputField } from "../src/ui/InputCard";
 import { Kbd } from "../src/ui/Kbd";
 import { ListRow } from "../src/ui/ListRow";
 import { PaneHeader } from "../src/ui/PaneHeader";
-import { Presence } from "../src/ui/Presence";
-import { SegmentedControl } from "../src/ui/SegmentedControl";
-import { Select } from "../src/ui/Select";
 import { StatusDot } from "../src/ui/StatusDot";
-import { ViewPresence } from "../src/ui/ViewPresence";
 import { Waiting } from "../src/ui/Waiting";
 import { WorkingLine } from "../src/ui/WorkingLine";
+import { CardDemo, PresenceDemo, SegmentedDemo, SelectDemo, ViewPresenceDemo } from "./demos";
 
 export interface Variant {
   readonly name: string;
@@ -34,96 +29,6 @@ export interface Entry {
   readonly use: readonly string[];
   readonly avoid: readonly string[];
   readonly variants: readonly Variant[];
-}
-
-function PresenceDemo() {
-  const [shown, setShown] = useState(true);
-  return (
-    <span style={{ display: "inline-flex", gap: "var(--space-12)", alignItems: "center" }}>
-      <Button variant="outlined" onClick={() => setShown(!shown)}>
-        {shown ? "Hide" : "Show"}
-      </Button>
-      <Presence as="span">{shown ? "Restarted the session host" : null}</Presence>
-    </span>
-  );
-}
-
-function ViewPresenceDemo() {
-  const [view, setView] = useState<"start" | "workspace">("start");
-  return (
-    <div style={{ display: "grid", gap: "var(--space-12)", justifyItems: "start" }}>
-      <Button variant="outlined" onClick={() => setView(view === "start" ? "workspace" : "start")}>
-        Change the view
-      </Button>
-      <div style={{ display: "flex", width: "320px", height: "96px" }}>
-        <ViewPresence view={view}>
-          {view === "start" ? <p>What should Lervo do?</p> : <p>Fix the flaky test</p>}
-        </ViewPresence>
-      </div>
-    </div>
-  );
-}
-
-function SegmentedDemo(props: { disabled?: boolean }) {
-  const [value, setValue] = useState<"native" | "cli">("native");
-  return (
-    <SegmentedControl
-      label="Show as"
-      options={[
-        { value: "native", text: "Conversation" },
-        { value: "cli", text: "Terminal" },
-      ]}
-      value={value}
-      onChange={setValue}
-      disabled={props.disabled ?? false}
-    />
-  );
-}
-
-function CardDemo(props: { surface: "input" | "floating"; layout: "stacked" | "inline" }) {
-  const [text, setText] = useState("");
-  const stacked = props.layout === "stacked";
-  return (
-    <div style={{ width: "var(--layout-start-max-width)" }}>
-      <InputCard surface={props.surface} layout={props.layout} onSubmit={() => setText("")}>
-        <InputField
-          size={stacked ? "input" : "body"}
-          rows={stacked ? 3 : 1}
-          maxLines={stacked ? undefined : 8}
-          label="Instruction"
-          placeholder={
-            stacked
-              ? "Describe the work, as you would to a colleague"
-              : "Reply or give a new instruction"
-          }
-          value={text}
-          onChange={setText}
-          onSubmit={() => setText("")}
-        />
-        <IconButton
-          type="submit"
-          label="Send"
-          icon={<ArrowUpIcon size="lg" />}
-          disabled={text.length === 0}
-        />
-      </InputCard>
-    </div>
-  );
-}
-
-function SelectDemo() {
-  const [value, setValue] = useState("claude");
-  return (
-    <Select
-      label="Agent"
-      value={value}
-      options={[
-        { value: "claude", text: "Claude Code" },
-        { value: "codex", text: "Codex (not installed)", disabled: true },
-      ]}
-      onChange={setValue}
-    />
-  );
 }
 
 export const entries: readonly Entry[] = [
