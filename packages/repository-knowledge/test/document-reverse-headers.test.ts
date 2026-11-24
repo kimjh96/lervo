@@ -129,8 +129,47 @@ describe("reverse header edit plan", () => {
         [declare("amended", "docs/decisions/0008-later.md", "0008")],
       ),
     ).toBe(
-      "# ADR-0001: Base\n\nStatus: `accepted`\nAmends:\n\n- [ADR-0000](0000-root.md)\n- [ADR-0009](0009-other.md)\nAmended by: [ADR-0008](0008-later.md)\n\nPart of: [ADR-0010](0010-whole.md)\n",
+      // A plain line straight after a list item would join it, so a blank line comes first.
+      "# ADR-0001: Base\n\nStatus: `accepted`\nAmends:\n\n- [ADR-0000](0000-root.md)\n- [ADR-0009](0009-other.md)\n\nAmended by: [ADR-0008](0008-later.md)\n\nPart of: [ADR-0010](0010-whole.md)\n",
     );
+  });
+
+  it("writes list items into a header written as a list", () => {
+    expect(
+      planned(
+        "docs/decisions/0386-teams.md",
+        "# ADR-0386: Teams\n\n- Status: accepted\n- Decision date: 2026-09-08\n\n## Context\n",
+        [
+          declare("amended", "docs/decisions/0452-open.md", "0452"),
+          declare("superseded_in_part", "docs/decisions/0454-rooms.md", "0454", "single owner"),
+        ],
+      ),
+    ).toBe(
+      "# ADR-0386: Teams\n\n- Status: accepted\n- Decision date: 2026-09-08\n- Amended by: [ADR-0452](0452-open.md)\n- Superseded in part by: [ADR-0454](0454-rooms.md) (single owner)\n\n## Context\n",
+    );
+  });
+
+  it("separates a list item from a plain amendment paragraph in a list header", () => {
+    expect(
+      planned(
+        "docs/decisions/0620-layout.md",
+        "# ADR-0620: Layout\n\n- Status: accepted\n- Decision date: 2026-08-26\n\nAmended by: [ADR-0533](0533-removed.md). Pattern intake is retired.\n\n## Context\n",
+        [declare("amended", "docs/decisions/0476-route.md", "0476")],
+      ),
+    ).toBe(
+      "# ADR-0620: Layout\n\n- Status: accepted\n- Decision date: 2026-08-26\n\nAmended by: [ADR-0533](0533-removed.md). Pattern intake is retired.\n\n- Amended by: [ADR-0476](0476-route.md)\n\n## Context\n",
+    );
+  });
+
+  it("leaves a header whose paragraph goes on after the insertion point", () => {
+    expect(
+      planReverseHeaderEdit({
+        path: "docs/decisions/0620-layout.md",
+        content:
+          "# ADR-0620\n\n- Status: accepted\n\nAmended by: [ADR-0533](0533-removed.md).\nPattern intake is retired.\n\n## Context\n",
+        declarations: [declare("amended", "docs/decisions/0476-route.md", "0476")],
+      }),
+    ).toEqual({ status: "skipped", reason: "self_check_failed" });
   });
 
   it("names a superseded part, keeps CRLF and front matter, and links across directories", () => {

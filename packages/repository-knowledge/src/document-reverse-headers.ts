@@ -49,6 +49,7 @@ const statusPattern = /^\s{0,8}(?:[-*]\s+)?(?:\*\*)?Status(?:\*\*)?\s*:/u;
 const slotPattern =
   /^\s{0,8}(?:[-*]\s+)?(?:\*\*)?(?:Status|Decision date|Supersedes|Superseded|Amends|Amended by)\b/u;
 const continuationPattern = /^(?:\s+\S|\s{0,8}[-*]\s+)/u;
+const listMarkerPattern = /^(\s{0,8}[-*]\s+)/u;
 
 /**
  * The reverse lines the web says this decision record lacks, in ADR order. Only a record that the
@@ -159,9 +160,26 @@ export function planReverseHeaderEdit(input: {
     else listing = false;
   }
   const insertAt = lineStarts[anchor]! + lines[anchor]!.length;
-  const replacement = reverseLines(input.path, input.declarations)
-    .map((line) => `${eol}${line}`)
-    .join("");
+  // A header written as a list gets list items. Where the style changes, a blank line comes first:
+  // a plain line straight after a list item would read as that item's continuation, and a list
+  // item straight after a plain line would join its paragraph.
+  const marker = listMarkerPattern.exec(lines[start + status]!)?.[1] ?? "";
+  const separated = continuationPattern.test(lines[anchor]!) !== (marker !== "");
+  // A paragraph that goes on after the insertion point would be split, its rest read as the new
+  // item's continuation; such a header is left for a person.
+  const following = lines[anchor + 1];
+  if (
+    separated &&
+    following !== undefined &&
+    following.trim() !== "" &&
+    !headingPattern.test(following)
+  )
+    return { status: "skipped", reason: "self_check_failed" };
+  const replacement =
+    (separated ? eol : "") +
+    reverseLines(input.path, input.declarations)
+      .map((line) => `${eol}${marker}${line}`)
+      .join("");
   const output = content.slice(0, insertAt) + replacement + content.slice(insertAt);
   if (
     Buffer.byteLength(output, "utf8") > REVERSE_HEADER_DOCUMENT_BOUND.bytes ||

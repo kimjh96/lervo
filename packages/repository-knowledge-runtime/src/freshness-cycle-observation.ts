@@ -12,10 +12,17 @@ import {
   type PrioritizedDocumentFreshnessFinding,
 } from "@lervo/repository-knowledge";
 
+import { convergenceEvaluationContract } from "./evaluation-contract.js";
 import type { FreshnessCycleState } from "./freshness-state-store.js";
 
 const execute = promisify(execFile);
 const RECENT_APPLY_MILLISECONDS = 24 * 3_600_000;
+/**
+ * The freshness stage's fence: HEAD, the working-tree status, the caller's inputs, and the identity
+ * of this runtime's evaluation logic (ADR-0485), the hash of the installed runtime bundle. A
+ * release that changes those bytes runs the stage once, so new behavior such as ADR-0631's reverse
+ * header lines starts at the release instead of the next repository change or UTC day.
+ */
 export async function observationKey(root: string, input: unknown): Promise<string | null> {
   try {
     const [head, status] = await Promise.all(
@@ -31,7 +38,14 @@ export async function observationKey(root: string, input: unknown): Promise<stri
           ).stdout,
       ),
     );
-    return sha256(canonicalJson({ head: head!.trim(), status: sha256(status!), input }));
+    return sha256(
+      canonicalJson({
+        head: head!.trim(),
+        status: sha256(status!),
+        logic: convergenceEvaluationContract(),
+        input,
+      }),
+    );
   } catch {
     return null;
   }

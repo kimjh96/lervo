@@ -1,5 +1,6 @@
-<!-- lervo-release package="@lervo/cli" version="0.47.0" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.47.1" schema="1" -->
 
 ## What's changed
 
-- Add lervo workspace retire and the ADE core command workspace.retire, which remove a hosted workspace without discarding work: they refuse a worktree in use or with changes, and keep a branch whose commits the default branch lacks.
+- Reopen the document freshness stage once after a Lervo release, so new freshness behavior such as reverse ADR header lines starts at the release instead of the next repository change or UTC day.
+- Write reverse ADR header lines in the header's own list or plain style, with a blank line where the style changes, and let a reverted line return after its revert hold.

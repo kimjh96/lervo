@@ -11,6 +11,7 @@ import {
   sha256,
   RELATION_WEB_STATE_PATH,
   type DocumentFreshnessCandidateV1,
+  type DocumentFreshnessHold,
   type DocumentFreshnessPolicy,
   type ReverseHeaderDeclaration,
 } from "@lervo/repository-knowledge";
@@ -22,7 +23,11 @@ import { committedBlob } from "./freshness-commit.js";
 import { workingBytes } from "./freshness-cycle-observation.js";
 import type { FreshnessStorage } from "./freshness-document-io.js";
 import { recordFreshnessCandidateOutcome } from "./freshness-events.js";
-import { listFreshnessCandidates, writeFreshnessCandidate } from "./freshness-state-store.js";
+import {
+  listFreshnessCandidates,
+  listFreshnessHolds,
+  writeFreshnessCandidate,
+} from "./freshness-state-store.js";
 import {
   KNOWLEDGE_OUTPUT_COMMIT_AUTHOR,
   knowledgeOutputCommitSafe,
@@ -70,15 +75,25 @@ function declarationKey(path: string, declaration: ReverseHeaderDeclaration): st
 }
 
 /**
- * Every reverse line an earlier candidate proposed, whatever became of it. A line that was applied
- * and then reverted therefore stays out while that candidate's record lasts, even when a later
- * declaration gives the same record a new line to write.
+ * Reverse lines an earlier candidate already settles: every line of a candidate that was not
+ * reverted, and the lines of a reverted one while its hold lasts. A reverted line is therefore not
+ * written again during the hold, even when a later declaration gives the record another line, and
+ * after the hold it may be written again, as any reverted freshness edit may be regenerated.
  */
-function proposedLines(candidates: readonly DocumentFreshnessCandidateV1[]): Set<string> {
+function proposedLines(
+  candidates: readonly DocumentFreshnessCandidateV1[],
+  holds: readonly DocumentFreshnessHold[],
+  now: Date,
+): Set<string> {
+  const held = new Set(
+    holds.filter((hold) => Date.parse(hold.until) > now.getTime()).map((hold) => hold.candidateId),
+  );
   const keys = new Set<string>();
-  for (const candidate of candidates)
+  for (const candidate of candidates) {
+    if (candidate.state === "reverted" && !held.has(candidate.candidateId)) continue;
     for (const declaration of candidate.mechanical?.declarations ?? [])
       keys.add(declarationKey(candidate.documentPath, declaration));
+  }
   return keys;
 }
 
@@ -99,7 +114,7 @@ async function settledBytes(root: string, path: string): Promise<Buffer | null> 
  *
  * A record qualifies inside the delegation's canonical roots when it and every record declaring
  * its lines have committed bytes that nobody is editing, since the web reads working bytes. A line
- * an earlier candidate proposed is never proposed again. Nothing is written unless this host may
+ * an earlier candidate settles is not proposed again. Nothing is written unless this host may
  * commit knowledge outputs now, and a write whose commit did not land ends the cycle. Each record
  * is one verified candidate, applied and committed at once, at most `maximumDocuments` per cycle.
  */
@@ -125,7 +140,11 @@ export async function applyReverseHeaderEdits(input: {
   const roots = delegation?.delegation.canonicalRoots ?? [];
   if (delegation === null || delegation.delegation.state !== "active" || roots.length === 0)
     return none;
-  const proposed = proposedLines(await listFreshnessCandidates(root));
+  const proposed = proposedLines(
+    await listFreshnessCandidates(root),
+    await listFreshnessHolds(root),
+    input.context.now(),
+  );
   const ownershipOf = await documentFreshnessOwnershipResolver(root);
   const oracle = filesystemDocumentFreshnessOracle(root);
   const limit = input.maximumDocuments ?? MAXIMUM_REVERSE_HEADER_DOCUMENTS_PER_CYCLE;

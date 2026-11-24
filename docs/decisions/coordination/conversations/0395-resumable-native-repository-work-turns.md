@@ -2,7 +2,7 @@
 
 - Status: accepted (amended 2026-09-23)
 - Decision date: 2026-09-10
-Amended by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0454](agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md)
+- Amended by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0454](agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md)
 
 ## Context
 

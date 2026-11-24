@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-16
-Amended by: [ADR-0452](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0453](0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0454](0454-open-multi-responder-rooms-and-natural-staffing.md), [ADR-0458](../../../execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md)
+- Amended by: [ADR-0452](../../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0453](0453-act-for-the-owner-through-a-principal-mandate.md), [ADR-0454](0454-open-multi-responder-rooms-and-natural-staffing.md), [ADR-0458](../../../execution/orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md)
 
 ## Context
 

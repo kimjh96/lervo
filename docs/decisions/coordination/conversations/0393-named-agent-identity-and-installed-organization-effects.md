@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-09
-Amended by: [ADR-0612](../../execution/providers/admission/0612-choose-models-by-role-from-one-selection.md)
+- Amended by: [ADR-0612](../../execution/providers/admission/0612-choose-models-by-role-from-one-selection.md)
 
 Partially superseded by [ADR-0560](../../foundation/0560-remove-unused-subsystems-to-harden-the-core.md): the organization effects part is removed. Lervo no longer ships the organization execution boundary, its replay store, or the Discord executive adapter. Named identity, team classification, deployment rotation, surface-neutral work, natural Discord channel and thread creation in the Node runtime, and uncertain-deliberation reconciliation stay.
 

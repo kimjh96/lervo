@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-16
-Amended by: [ADR-0454](agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md)
+- Amended by: [ADR-0454](agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md)
 
 ## Context
 
