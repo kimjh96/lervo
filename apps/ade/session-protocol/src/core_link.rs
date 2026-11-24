@@ -122,6 +122,9 @@ mod tests {
         assert_eq!(result_title("provider.list"), "ProviderListResult");
         assert_eq!(result_title("workspace.start"), "WorkspaceStartResult");
         let codec = CoreLinkCodec::new();
-        assert!(codec.is_ok_and(|codec| codec.knows_command("provider.list")));
+        assert_eq!(result_title("workspace.retire"), "WorkspaceRetireResult");
+        let codec = codec.expect("the contract document compiles");
+        assert!(codec.knows_command("provider.list"));
+        assert!(codec.knows_command("workspace.retire"));
     }
 }
