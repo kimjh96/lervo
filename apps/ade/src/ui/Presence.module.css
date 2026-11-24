@@ -15,8 +15,14 @@
   min-width: 0;
 }
 
+/* In a place pinned to the bottom, layers keep the bottom edge, so new content stays where it
+   first shows while the space shrinks around it. */
+.presence[data-align="end"] > .layer {
+  align-self: end;
+}
+
 .layer[data-enter]:not([data-leaving]) {
-  animation: global(lervo-appear) var(--motion-duration-change) var(--motion-easing-standard);
+  animation: global(lervo-appear) var(--motion-duration-enter) var(--motion-easing-standard);
 }
 
 /* Leaving decelerates: most of the fade happens early and the tail settles, so the content never

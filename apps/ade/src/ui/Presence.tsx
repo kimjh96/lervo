@@ -31,6 +31,11 @@ export function Presence(props: {
   as?: "div" | "span";
   /** False when the content brings its own arrival, such as the needs-you dot. */
   enter?: boolean;
+  /**
+   * Which edge content keeps while the space changes size. `end` suits a place pinned to the
+   * bottom, such as the sidebar footer, so the new content never moves when the old leaves.
+   */
+  align?: "start" | "end";
   className?: string | undefined;
 }) {
   const present = shownOf(props.children);
@@ -69,6 +74,7 @@ export function Presence(props: {
     <Element
       className={[styles.presence, props.className].filter(Boolean).join(" ")}
       data-inline={Element === "span" ? "" : undefined}
+      data-align={props.align}
     >
       {layers.map((layer) => (
         <Element
