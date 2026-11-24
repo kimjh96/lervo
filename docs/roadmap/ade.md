@@ -263,7 +263,7 @@ That run timed each page figure at the second frame after the change, so first p
 - the Tauri API and the notification plugin loaded as separate chunks after the main script;
 - the page waited for the system's notification permission before it started React or the session host connection.
 
-The page now bundles both modules with the main script and checks the permission at the first notification. The harness now splits the cold start into three parts: launch to the shell's `main`, `main` to navigation, and the page's own steps. The page's steps are its script loads and the marks `main`, `host-connected`, and `launched`. No run has measured the effect yet.
+The page now bundles both modules with the main script and checks the permission at the first notification. The start screen then waited for the session host connection, its handshake, and the core's first `workspace.list`, although the performance rules say it renders from cached workspace state. It now shows the lists the core answered last, kept in the webview's local storage, and the core's answer replaces them. The kept copy holds workspace titles, branches, and repository names, at most 512 Ki code units. While the first connection takes under a second, the frame no longer says it is connecting. The harness now splits the cold start into three parts: launch to the shell's `main`, `main` to navigation, and the page's own steps. The page's steps are its script loads and the marks `main`, `host-connected`, and `launched`. No run has measured the effect yet.
 
 **Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. The order is:
 

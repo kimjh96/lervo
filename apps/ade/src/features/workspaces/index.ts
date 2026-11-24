@@ -1,4 +1,4 @@
-export { bindWorkspaces, reloadWorkspaces } from "./model/controller";
+export { bindWorkspaces, reloadWorkspaces, restoreWorkspaces } from "./model/controller";
 export { visibleStatus } from "./model/decisions";
 export { useWorkspaceStore } from "./model/store";
 export type { Repository, Workspace } from "./model/types";

@@ -1,7 +1,11 @@
 import type { ClientMessage, HostMessage } from "@lervo/session-host-contract";
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { bindWorkspaces, reloadWorkspaces } from "../src/features/workspaces/model/controller";
+import {
+  bindWorkspaces,
+  reloadWorkspaces,
+  restoreWorkspaces,
+} from "../src/features/workspaces/model/controller";
 import {
   arrivals,
   groupByRepository,
@@ -16,7 +20,7 @@ import {
   SessionHostCommands,
   type ShellMessage,
 } from "../src/platform/session-host";
-import { RequestFailure } from "../src/ports";
+import { type ListCache, type Lists, RequestFailure } from "../src/ports";
 
 function workspace(id: string, repositoryName: string, preparedAt: string): Workspace {
   return {
@@ -85,8 +89,31 @@ async function connected(answers: Record<string, Record<string, unknown>>) {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+/** A list cache in memory that records what was saved. */
+function keptLists(initial: Lists | null = null): ListCache & { saved: Lists[] } {
+  let kept = initial;
+  const saved: Lists[] = [];
+  return {
+    saved,
+    load: () => kept,
+    save: (lists) => {
+      saved.push(lists);
+      kept = lists;
+    },
+  };
+}
+
 beforeEach(() => {
-  useWorkspaceStore.setState({ repositories: [], workspaces: [], statuses: {}, selected: null });
+  useWorkspaceStore.setState({
+    repositories: [],
+    workspaces: [],
+    statuses: {},
+    selected: null,
+    loaded: false,
+    cached: false,
+    arrived: new Set(),
+    listFailure: null,
+  });
 });
 
 describe("workspace decisions", () => {
@@ -150,6 +177,7 @@ describe("the workspace binding", () => {
     bindWorkspaces({
       client: host.client,
       commands: host.commands,
+      lists: keptLists(),
       notifier: { notify: (title, body) => notified.push(`${title}: ${body}`) },
       text: (kind, title) => ({ title, body: kind }),
       isFocused: () => true,
@@ -184,6 +212,58 @@ describe("reloading the lists", () => {
     );
     expect(useWorkspaceStore.getState().workspaces).toEqual(kept);
     expect(useWorkspaceStore.getState().listFailure).toBe("application_failed");
+  });
+});
+
+describe("the lists kept from the last launch", () => {
+  const repositories = [{ projectId: "prj_1", name: "web" }];
+
+  it("show at once, then the core's answer replaces them, is kept, and arrives nothing", async () => {
+    const kept = [workspace("a", "web", "2026-11-23T01:00:00Z")];
+    const cache = keptLists({ workspaces: kept, repositories });
+    restoreWorkspaces(cache);
+    expect(useWorkspaceStore.getState()).toMatchObject({
+      workspaces: kept,
+      repositories,
+      cached: true,
+      loaded: false,
+    });
+
+    const answered = [workspace("b", "web", "2026-11-24T01:00:00Z"), ...kept];
+    const host = await connected({
+      "workspace.list": { workspaces: answered },
+      "repository.list": { repositories },
+    });
+    await reloadWorkspaces(host.commands, cache);
+    const store = useWorkspaceStore.getState();
+    expect(store).toMatchObject({ workspaces: answered, cached: false, loaded: true });
+    // "b" appeared while the app was closed, not while the user watched.
+    expect(store.arrived.size).toBe(0);
+    expect(cache.saved).toEqual([{ workspaces: answered, repositories }]);
+  });
+
+  it("never replace lists the core already answered, and show nothing when none are kept", () => {
+    const answered = [workspace("a", "web", "2026-11-23T01:00:00Z")];
+    useWorkspaceStore.setState({ workspaces: answered, loaded: true });
+    restoreWorkspaces(keptLists({ workspaces: [], repositories: [] }));
+    expect(useWorkspaceStore.getState()).toMatchObject({ workspaces: answered, cached: false });
+    useWorkspaceStore.setState({ workspaces: [], loaded: false });
+    restoreWorkspaces(keptLists(null));
+    expect(useWorkspaceStore.getState()).toMatchObject({ workspaces: [], cached: false });
+  });
+
+  it("stay with the failure when the core cannot answer", async () => {
+    const kept = [workspace("a", "web", "2026-11-23T01:00:00Z")];
+    const cache = keptLists({ workspaces: kept, repositories });
+    restoreWorkspaces(cache);
+    const host = await connected({});
+    await expect(reloadWorkspaces(host.commands, cache)).rejects.toBeInstanceOf(RequestFailure);
+    expect(useWorkspaceStore.getState()).toMatchObject({
+      workspaces: kept,
+      cached: true,
+      listFailure: "application_failed",
+    });
+    expect(cache.saved).toEqual([]);
   });
 });
 

@@ -1,6 +1,7 @@
 import { createContext, type ReactNode, useContext } from "react";
 
 import type { Drafts } from "./drafts";
+import type { ListCache } from "./lists";
 import type { ApplicationCommands, SessionHost } from "./session-host";
 
 /** The adapters the composition root gives the views. */
@@ -8,6 +9,7 @@ export interface Adapters {
   readonly host: SessionHost;
   readonly commands: ApplicationCommands;
   readonly drafts: Drafts;
+  readonly lists: ListCache;
 }
 
 const AdaptersContext = createContext<Adapters | null>(null);
