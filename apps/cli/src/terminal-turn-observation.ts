@@ -1,4 +1,7 @@
-import { findLatestPreparedContext } from "./terminal-prepared-context-query.js";
+import {
+  findLatestPreparedContext,
+  preparedContextHint,
+} from "./terminal-prepared-context-query.js";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
   validateSchema,
@@ -175,9 +178,10 @@ export async function preparedTerminalTurnExpectation(
   provider: TerminalIntegrationProvider,
   providerSessionId: string,
 ): Promise<PreparedTerminalTurnExpectation | null> {
+  const hint = await preparedContextHint(root, coordinates);
   const storage = await openProjectStorage(root);
   try {
-    const context = findLatestPreparedContext(storage.events, coordinates, provider);
+    const context = findLatestPreparedContext(storage.events, coordinates, provider, hint);
     if (context === null) return null;
     const payload = context.payload as Record<string, unknown>;
     const workstreamId = payload.workstreamId;
