@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-21
 Amends: [ADR-0199](../../../../knowledge/repository/0199-structured-workstream-continuation-state.md) (selection), [ADR-0423](0423-parallel-bound-workstreams.md) (selected projection), [ADR-0462](../../../applications/0462-own-workstream-bookkeeping-and-stale-attention.md) (staleness across branches), [ADR-0201](../../../../coordination/sync/0201-repository-scoped-workstream-replication.md) (replicated lineage)
+Amended by: [ADR-0527](../../../../coordination/sync/workstreams/0527-replicate-workstreams-by-lineage.md)
 
 ## Context
 
