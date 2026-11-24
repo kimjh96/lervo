@@ -340,7 +340,19 @@ The core had no resident application endpoint, no hosted launch path, and no wor
 
 ## S2 and S3
 
-ADR-0613 defines S2 (hosted evidence and Lervo tools) and S3 (distribution). Their increments are defined when S1 completes, from what S1 measured.
+On 2026-11-24 the owner made the ADE the platform that combines the strengths of Hermes, Prime Agent, Buzz, and Paperclip. The owner also ruled that core work must work in the ADE; showing it in the window is optional. [ADR-0632](../decisions/execution/applications/0632-build-the-ade-as-the-platform-where-the-core-works.md) sets six foundations and orders S2 now:
+
+| Increment                     | Done when                                                                                                                                             |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S2a Lervo sessions everywhere | A hosted session in a worktree without project hooks receives the Lervo context, and one with them receives each block once.                          |
+| S2b Usage records             | The session host reports each turn's usage, and a session's records sum to the totals the provider reported.                                          |
+| S2c Agent identity            | Two hosted sessions with different agents run in one workspace, each with its own identity and lease.                                                 |
+| S2d Lervo tools               | The Lervo MCP server reaches hosted sessions with memory capture, recall, and messaging through the core.                                             |
+| S2e Hosted observations       | A hosted session reports `tool_observed` and `instructions_loaded`, and `lervo terminal coverage` lists it apart from unmanaged and managed sessions. |
+
+The same day a hosted session in print mode received the `UserPromptSubmit` context through the project hooks, which every registered repository tracks. Each core release that changes the hook or context path gets the same check, starting with the context assembler's `SessionStart` block (core-loop item 9).
+
+S3 (distribution) is defined when S2 completes.
 
 ## Open items
 
