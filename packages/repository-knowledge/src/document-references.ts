@@ -116,8 +116,9 @@ function fenceReference(info: string): string | null {
 }
 
 /**
- * Extracts bounded, deduplicated references in first-occurrence order. `markdownLinksOnly` keeps
- * code references from spending the bound, so link checks see every link.
+ * Extracts bounded, deduplicated references in first-occurrence order; a target mentioned weakly
+ * and later strongly is strong. `markdownLinksOnly` keeps code references from spending the bound,
+ * so link checks see every link.
  */
 export function extractDocumentReferences(input: {
   path: string;
@@ -130,9 +131,15 @@ export function extractDocumentReferences(input: {
   const add = (reference: DocumentReference): void => {
     if (input.markdownLinksOnly && reference.kind !== "markdown_link") return;
     if (input.accept !== undefined && !input.accept(reference)) return;
-    if (references.size >= MAXIMUM_DOCUMENT_REFERENCES) return;
     const key = `${reference.kind}\u0000${reference.target}\u0000${reference.symbol ?? ""}`;
-    if (!references.has(key)) references.set(key, reference);
+    const existing = references.get(key);
+    // A strong mention after a weak one of the same target keeps its place and becomes strong.
+    if (existing !== undefined) {
+      if (existing.weak === true && reference.weak !== true) references.set(key, reference);
+      return;
+    }
+    if (references.size >= MAXIMUM_DOCUMENT_REFERENCES) return;
+    references.set(key, reference);
   };
   let fence: string | null = null;
   const lines = input.content.split(/\r?\n/u);

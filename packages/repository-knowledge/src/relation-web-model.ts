@@ -61,8 +61,11 @@ export interface RelationEdge {
   part?: string;
 }
 
-/** Version 1: references, ADR header grammar, package, command, and ADR name mentions. */
-export const RELATION_WEB_EXTRACTOR_VERSION = 1;
+/**
+ * Version 1: references, ADR header grammar, package, command, and ADR name mentions. Version 2: a
+ * strong mention after a weak one of the same target keeps the strong evidence.
+ */
+export const RELATION_WEB_EXTRACTOR_VERSION = 2;
 
 /** Edges one document may declare; a document at the bound is recorded as truncated. */
 export const MAXIMUM_DOCUMENT_RELATION_EDGES = 1024;
