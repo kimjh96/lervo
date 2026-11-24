@@ -11,6 +11,11 @@ This specification defines the core link: the protocol between the ADE session h
 - Requests travel on the child's standard input and responses on its standard output, one JSON message per line. Nothing else writes to the child's standard output. Its standard error is discarded.
 - The link needs no socket or token: only the session host holds the child's pipes, and the child ends with the session host or when its input closes.
 - The `--lervo` option of `lervo-session-host serve` names the `lervo` executable. Without it, the session host looks for `lervo` on its `PATH`.
+- **The resident process follows the installed CLI.** Hosts upgrade the CLI on their own, without restarting the session host, so the session host notes which executable each resident process started from: its path with links resolved, its size, and its modification time.
+  - Before a base command, it compares that with the executable `lervo` names now. When they differ, it starts a process from the new executable, the base command goes to it, and the old process ends. A `workspace.list` then advertises the new process's commands at once, and a `workspace.start` runs the new CLI.
+  - It never replaces a process while a request waits on it or while a stream decoder is between a turn's start and its finish or inside a line. A replacement then waits for the next base command after they settle, so no decoder loses its state. Decoders open on the old process open again on the new one, as after a restart.
+  - When the new executable cannot start, the old process keeps answering, and the next base command tries again.
+  - On Windows, where `PATHEXT` decides what `lervo` names, the session host cannot identify the executable and keeps the running process until it exits.
 
 ## Contract and validation
 

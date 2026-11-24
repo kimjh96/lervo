@@ -228,3 +228,89 @@ async fn reports_an_exit_only_to_a_process_that_advertised_it() {
         let _ = std::fs::remove_file(&reports);
     }
 }
+
+/// A copy of the stand-in that a test may upgrade, and the file its starts are counted in.
+fn installed(name: &str) -> (std::path::PathBuf, std::path::PathBuf) {
+    let directory =
+        std::env::temp_dir().join(format!("lervo-core-link-{name}-{}", std::process::id()));
+    std::fs::create_dir_all(&directory).unwrap();
+    let program = directory.join("lervo");
+    std::fs::copy(
+        format!("{}/tests/fake-resident.sh", env!("CARGO_MANIFEST_DIR")),
+        &program,
+    )
+    .unwrap();
+    let starts = directory.join("starts");
+    let _ = std::fs::remove_file(&starts);
+    (program, starts)
+}
+
+fn following(program: &std::path::Path, starts: &std::path::Path) -> CoreLink {
+    CoreLink::new(
+        program.display().to_string(),
+        vec![
+            "current".to_owned(),
+            String::new(),
+            starts.display().to_string(),
+        ],
+    )
+    .unwrap()
+}
+
+/// Installs a new version over `program`, as an upgrade rewrites the file the link points to.
+fn upgrade(program: &std::path::Path) {
+    let mut text = std::fs::read_to_string(program).unwrap();
+    text.push_str("# upgraded\n");
+    std::fs::write(program, text).unwrap();
+}
+
+fn started(starts: &std::path::Path) -> usize {
+    std::fs::read_to_string(starts).map_or(0, |text| text.lines().count())
+}
+
+#[tokio::test]
+async fn follows_an_upgraded_executable_at_the_next_base_command() {
+    let (program, starts) = installed("upgrade");
+    let core = following(&program, &starts);
+    core.command("workspace.list", none()).await.unwrap();
+    core.command("workspace.list", none()).await.unwrap();
+    assert_eq!(started(&starts), 1);
+    upgrade(&program);
+    core.command("workspace.list", none()).await.unwrap();
+    assert_eq!(started(&starts), 2);
+    // The new process advertised its commands at once, so newer commands still reach it.
+    assert!(core.command("provider.list", none()).await.is_ok());
+    assert_eq!(started(&starts), 2);
+}
+
+#[tokio::test]
+async fn keeps_the_process_while_a_turn_is_decoded() {
+    let (program, starts) = installed("turn");
+    let core = following(&program, &starts);
+    let launch = core
+        .command("workspace.start", arguments("go"))
+        .await
+        .unwrap()
+        .launch
+        .unwrap();
+    let mut decoder = core.decoder(&launch);
+    decoder.send("hi").await;
+    upgrade(&program);
+    core.command("workspace.list", none()).await.unwrap();
+    assert_eq!(started(&starts), 1, "a turn in progress keeps the process");
+    decoder.output(b"finish\n").await;
+    core.command("workspace.list", none()).await.unwrap();
+    assert_eq!(started(&starts), 2, "a finished turn lets it go");
+}
+
+#[tokio::test]
+async fn keeps_the_old_process_when_the_new_executable_cannot_start() {
+    use std::os::unix::fs::PermissionsExt;
+    let (program, starts) = installed("broken");
+    let core = following(&program, &starts);
+    core.command("workspace.list", none()).await.unwrap();
+    upgrade(&program);
+    std::fs::set_permissions(&program, std::fs::Permissions::from_mode(0o644)).unwrap();
+    assert!(core.command("workspace.list", none()).await.is_ok());
+    assert_eq!(started(&starts), 1);
+}
