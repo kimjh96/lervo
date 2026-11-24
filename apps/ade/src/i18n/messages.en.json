@@ -143,14 +143,6 @@
     "defaultMessage": "Lervo could not create the workspace{stage, select, none {} other { at the {stage} stage}}.",
     "description": "The core could not create the workspace; {stage} is the core stage that failed, or none."
   },
-  "start.explain": {
-    "defaultMessage": "Lervo opens a workspace and its workstream for this, then starts {provider} there. You follow and steer it in the conversation.",
-    "description": "What starting work does, under the instruction input. {provider} is the chosen agent."
-  },
-  "start.explain.default": {
-    "defaultMessage": "Lervo opens a workspace and its workstream for this, then starts the agent there. You follow and steer it in the conversation.",
-    "description": "What starting work does, when the core chooses the agent."
-  },
   "start.instruction.label": {
     "defaultMessage": "Instruction",
     "description": "The accessible label of the instruction input."

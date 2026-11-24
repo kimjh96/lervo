@@ -1,5 +1,5 @@
-/* The start screen (approved mockup "1 · Start new work"): a centered column with the question,
-   the instruction card, and what starting does. It arrives over the live window when the main
+/* The start screen (approved mockup "1 · Start new work"): a centered column with the question
+   and the instruction card, and a note only when something is missing. It arrives over the live window when the main
    area changes to it (ADE motion, "Changing views"). */
 .start {
   animation: global(lervo-arrive) var(--motion-duration-enter) var(--motion-easing-standard)

@@ -63,6 +63,7 @@ Every wait in Lervo follows one system, so the person always reads a wait the sa
 
 **Copy.** A wait is a present participle and its object, in sentence case, without a period: "Opening the conversation". It never uses an ellipsis, "Loading", or "Please wait". The message catalog test rejects all three.
 
+- **No standing explanations.** A screen the person sees every time says nothing they already know. The start screen shows the question and the instruction card; it adds a note only when something is missing, such as a registered repository, or when an older Lervo limits the choice. Sending shows what Lervo does: the pending workspace names it.
 - **Empty is a fact, not a failure.** An empty list says what is missing and how to add it, such as registering a repository. An unknown state never reads as empty.
 
 ### Navigation and selection

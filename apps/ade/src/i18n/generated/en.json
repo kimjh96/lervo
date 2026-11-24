@@ -348,26 +348,6 @@
       "value": "."
     }
   ],
-  "start.explain": [
-    {
-      "type": 0,
-      "value": "Lervo opens a workspace and its workstream for this, then starts "
-    },
-    {
-      "type": 1,
-      "value": "provider"
-    },
-    {
-      "type": 0,
-      "value": " there. You follow and steer it in the conversation."
-    }
-  ],
-  "start.explain.default": [
-    {
-      "type": 0,
-      "value": "Lervo opens a workspace and its workstream for this, then starts the agent there. You follow and steer it in the conversation."
-    }
-  ],
   "start.instruction.label": [
     {
       "type": 0,

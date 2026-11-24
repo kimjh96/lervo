@@ -101,15 +101,11 @@ export function StartScreen() {
             />
           </div>
         </InputCard>
-        <p className={styles.explain}>
-          {repositories.length === 0 ? (
+        {repositories.length === 0 ? (
+          <p className={styles.explain}>
             <FormattedMessage id="start.repository.none" />
-          ) : provider === null ? (
-            <FormattedMessage id="start.explain.default" />
-          ) : (
-            <FormattedMessage id="start.explain" values={{ provider: provider.displayName }} />
-          )}
-        </p>
+          </p>
+        ) : null}
         {registry.status === "older" ? (
           <p className={styles.explain}>
             <FormattedMessage id="start.provider.older" />
