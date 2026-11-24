@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-08
-Amended by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0453](agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md)
+- Amended by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0453](agent-organization/0453-act-for-the-owner-through-a-principal-mandate.md)
 
 ## Context
 

@@ -2,7 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-16
-Amended by: [ADR-0460](../deliberation/0460-trigger-tiered-deliberation-at-decision-points.md)
+- Amended by: [ADR-0460](../deliberation/0460-trigger-tiered-deliberation-at-decision-points.md)
 
 ## Context
 

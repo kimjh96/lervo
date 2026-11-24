@@ -2,8 +2,8 @@
 
 - Status: accepted
 - Decision date: 2026-09-18
-Superseded in part by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
-Superseded in part by: [ADR-0454](agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md) (acceptance item 3)
+- Superseded in part by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md)
+- Superseded in part by: [ADR-0454](agent-organization/0454-open-multi-responder-rooms-and-natural-staffing.md) (acceptance item 3)
 
 ## Context
 
