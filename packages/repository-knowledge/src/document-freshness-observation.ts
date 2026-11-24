@@ -35,6 +35,7 @@ import { loadRepositoryKnowledgePolicy } from "./policy.js";
 import { buildRepositoryRelationWeb } from "./relation-web-refresh.js";
 import { readRelationWebStore, RELATION_WEB_STATE_PATH } from "./relation-web-store.js";
 import { relationWebSuccessors } from "./relation-web-supersession.js";
+import { RELATION_WEB_EXTRACTOR_VERSION } from "./relation-web-model.js";
 import type { KnowledgeLintResult } from "./types.js";
 
 const execute = promisify(execFile);
@@ -141,14 +142,18 @@ async function connectedPathChanges(input: {
 
 /**
  * Superseded documents and their successors, from the relation web that describes HEAD: the
- * stored web when it does, otherwise one built without writing. A web that cannot be read or built
+ * stored web when it does under this extractor version, otherwise one built without writing. A web that cannot be read or built
  * gives none, as the drift findings still stand without them.
  */
 async function supersededDocuments(root: string, head: string): Promise<Map<string, string>> {
   try {
     const stored = readRelationWebStore(resolve(root, RELATION_WEB_STATE_PATH));
     const web =
-      stored !== null && stored.observedRevision === head
+      stored !== null &&
+      stored.observedRevision === head &&
+      [...stored.documents.values()].every(
+        (document) => document.extractorVersion === RELATION_WEB_EXTRACTOR_VERSION,
+      )
         ? stored
         : (await buildRepositoryRelationWeb(root, { commands: "stored" })).web;
     return relationWebSuccessors(web);
