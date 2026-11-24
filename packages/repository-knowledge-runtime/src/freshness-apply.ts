@@ -19,17 +19,28 @@ import { appendFreshnessEvent, recordFreshnessRejection } from "./freshness-even
 import { writeFreshnessCandidate } from "./freshness-state-store.js";
 import { freshnessDependenciesCurrent } from "./freshness-dependencies.js";
 
+/** ADR-0631: every record a reverse header candidate cites still has the bytes it was built from. */
+async function declaringRecordsCurrent(
+  root: string,
+  candidate: DocumentFreshnessCandidateV1,
+): Promise<boolean> {
+  for (const [path, hash] of Object.entries(candidate.mechanical?.declaringHashes ?? {})) {
+    const bytes = await committedBlob(root, path);
+    if (bytes === null || sha256(bytes) !== hash) return false;
+  }
+  return true;
+}
+
 async function assertFreshnessDependencies(input: {
   storage: FreshnessStorage;
   candidate: DocumentFreshnessCandidateV1;
   now: Date;
 }): Promise<void> {
+  const root = input.storage.paths.repositoryRoot;
   if (
-    input.candidate.dependencyWitness === undefined ||
-    (await freshnessDependenciesCurrent(
-      input.storage.paths.repositoryRoot,
-      input.candidate.dependencyWitness,
-    ))
+    (input.candidate.dependencyWitness === undefined ||
+      (await freshnessDependenciesCurrent(root, input.candidate.dependencyWitness))) &&
+    (await declaringRecordsCurrent(root, input.candidate))
   )
     return;
   await supersedeFreshnessCandidate(input);
@@ -86,7 +97,12 @@ async function settleFreshnessApply(input: {
     subject: input.subject,
     trailer: { key: "Lervo-Freshness-Candidate", candidateId: input.candidate.candidateId },
     extraTrailers: [
-      ["Lervo-Freshness-Reason", input.candidate.reasonsAddressed.join(", ") || "none"],
+      [
+        "Lervo-Freshness-Reason",
+        input.candidate.mechanical?.kind === "reverse_header"
+          ? "reverse_header"
+          : input.candidate.reasonsAddressed.join(", ") || "none",
+      ],
       ["Lervo-Freshness-Cross-Check", documentFreshnessCrossCheckNotice(input.candidate)],
     ],
   });
@@ -186,7 +202,10 @@ async function applyEdit(input: {
     storage: input.storage,
     candidate,
     paths: [candidate.documentPath],
-    subject: `docs: refresh ${candidate.documentPath} from evidence`,
+    subject:
+      candidate.mechanical?.kind === "reverse_header"
+        ? `docs: add reverse header lines to ADR-${candidate.mechanical.adr}`
+        : `docs: refresh ${candidate.documentPath} from evidence`,
     beforeHash: expected,
     appliedHunkCount: input.hunkIds.size,
     next: {

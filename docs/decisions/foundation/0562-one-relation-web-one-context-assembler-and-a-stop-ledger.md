@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-11-02
 Amends: [ADR-0551 document link web](../knowledge/documents/links/0551-measure-the-document-link-web-deterministically.md), [ADR-0552 governing canon](../execution/grounding/0552-check-changes-against-the-canon-that-names-them.md), [ADR-0463 document freshness](../knowledge/documents/0463-refresh-stale-documents-with-evidence-bound-minimal-edits.md), [ADR-0550 Find measurement](../execution/grounding/0550-measure-find-on-terminal-turns-and-replay-past-changes.md), [ADR-0556 governing preference](../execution/grounding/0556-rank-canonical-documents-that-name-the-task-paths-first.md)
+Amended by: [ADR-0631](../knowledge/documents/links/0631-write-reverse-adr-header-lines-as-insert-only-freshness-edits.md)
 Related: [ADR-0560 core hardening](0560-remove-unused-subsystems-to-harden-the-core.md), [ADR-0561 decide without the owner](0561-decide-without-the-owner-cross-check-reversible-effect-notice.md), [ADR-0052 knowledge graph](../knowledge/semantics/0052-rebuildable-explicit-knowledge-graph.md)
 
 ## Context
@@ -36,7 +37,7 @@ Every document has one lifecycle state in the web: `current`, `suspect` (with re
 - Resolution is deterministic first: if the change touched nothing the document names, the document returns to `current` with an assessed revision and no provider spend. Only the remainder goes to the freshness provider path of ADR-0463 and ADR-0561.
 - A `Status:` line of `superseded` makes a document historical: it leaves the governing index, default Find, and orphan counts. `partially_superseded` stays current with its superseded part noted.
 - ADR headers use one grammar (`Status`, `Supersedes`, `Superseded by`, `Amends`, `Amended by`, each with links). Lint reports a bare `ADR-NNNN` in a header.
-- Missing reverse header lines (backlinks and `Superseded by`) are a mechanical edit class. Lervo writes them through the freshness apply path under ADR-0561: Tier 0 cross-check, a Lervo commit, and a notice with the revert command.
+- Missing reverse header lines (backlinks and `Superseded by`) are a mechanical edit class. [ADR-0631](../knowledge/documents/links/0631-write-reverse-adr-header-lines-as-insert-only-freshness-edits.md) writes the `Amended by` and `Superseded in part by` lines through the freshness apply path as insert-only edits with no provider call: a Lervo commit and a notice with the revert command. An undeclared full supersession changes the owner's `Status:` line, so a person settles it.
 
 ### 3. Every stop has an owner host and a next action
 

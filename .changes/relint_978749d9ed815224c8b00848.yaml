@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_978749d9ed815224c8b00848"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Write the missing Amended by and Superseded in part by lines of decision records through the freshness apply path as insert-only edits, with no provider call, inside the delegation's canonical roots (ADR-0631)."

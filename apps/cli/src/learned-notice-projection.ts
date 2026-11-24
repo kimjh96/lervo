@@ -60,7 +60,9 @@ function freshnessEntry(
 ): LearnedNoticeEntry | null {
   const refresh = /^docs: refresh (.+) from evidence$/u.exec(subject);
   const archive = /^docs: archive (.+) as historical$/u.exec(subject);
-  const path = refresh?.[1] ?? archive?.[1];
+  // ADR-0631: a reverse header commit names the record's ADR; its one target is the record.
+  const reverse = /^docs: add reverse header lines to ADR-\d{3,5}$/u.test(subject);
+  const path = refresh?.[1] ?? archive?.[1] ?? (reverse ? targets[0] : undefined);
   if (path === undefined || !/^kfresh_[a-f0-9]{24}$/u.test(trailers.candidate)) return null;
   return {
     kind: "freshness",
