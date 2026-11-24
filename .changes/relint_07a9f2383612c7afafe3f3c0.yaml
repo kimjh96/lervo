@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_07a9f2383612c7afafe3f3c0"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Register the Claude SessionStart hook, so the base context (pointer, publication policy, owner rules, workstream) returns at every session start, resume, clear, and compaction."

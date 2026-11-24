@@ -26,6 +26,8 @@ export interface ParsedSessionStartInput {
   event: "SessionStart";
   providerSessionId: string;
   source: "startup" | "resume" | "clear" | "compact";
+  /** The provider transcript, whose size marks where this start's base block will appear. */
+  transcriptPath?: string;
 }
 
 export interface UnmanagedTerminalCoordinates {

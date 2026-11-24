@@ -1,3 +1,4 @@
+import type { PackedInstructionSection } from "@lervo/context";
 import { prepareAppliedInstructionContext } from "@lervo/repository-context";
 import { openProjectStorage } from "@lervo/project-storage";
 import { loadRepositoryKnowledgePolicy } from "@lervo/repository-knowledge";
@@ -13,6 +14,15 @@ export async function prepareTerminalBaseContext(
   root: string,
   remainingBudgetDeadline = performance.now() + TERMINAL_HOOK_BUDGET_MS,
 ): Promise<string[]> {
+  return (await prepareTerminalBaseParts(root, remainingBudgetDeadline, 2048)).lines;
+}
+
+/** The base lines and the owner-rule sections packed into them, within `ruleBytes`. */
+export async function prepareTerminalBaseParts(
+  root: string,
+  remainingBudgetDeadline: number,
+  ruleBytes: number,
+): Promise<{ lines: string[]; rules: PackedInstructionSection[] }> {
   const deadline = Math.min(
     remainingBudgetDeadline,
     performance.now() + TERMINAL_HOOK_BUDGET_MS / 6,
@@ -27,7 +37,7 @@ export async function prepareTerminalBaseContext(
       prepareAppliedInstructionContext({
         repositoryRoot: root,
         expectedPaths: null,
-        maximumBytes: 2048,
+        maximumBytes: ruleBytes,
       }),
     ),
     withinTerminalDeadline(deadline, async () => {
@@ -40,9 +50,11 @@ export async function prepareTerminalBaseContext(
     }),
   ]);
   const lines = [TERMINAL_AGENTS_POINTER];
+  let rules: PackedInstructionSection[] = [];
   if (publication.status === "fulfilled") lines.push(publication.value);
   if (instructions.status === "fulfilled") {
-    const { report, context } = instructions.value;
+    const { report, context, sections } = instructions.value;
+    rules = sections;
     lines.push(
       `Applied owner rules: ${report.status}; ${report.preparedCount} complete clauses prepared; provider delivery unobserved.`,
     );
@@ -56,5 +68,5 @@ export async function prepareTerminalBaseContext(
       "If this turn changes repository-authored bytes, record the next bounded revision with `lervo workstream update --actor agent --provider <current-provider> --patch <json> --apply-now`; never ask the user to run bookkeeping.",
     );
   }
-  return lines;
+  return { lines, rules };
 }

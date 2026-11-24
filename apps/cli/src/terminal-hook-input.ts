@@ -46,6 +46,9 @@ export function parseTerminalHookIngress(
         typeof parsed.source === "string" && SESSION_START_SOURCES.has(parsed.source)
           ? (parsed.source as ParsedSessionStartInput["source"])
           : "startup",
+      ...(typeof parsed.transcript_path === "string" && parsed.transcript_path.length <= 4096
+        ? { transcriptPath: parsed.transcript_path }
+        : {}),
     };
   if (
     parsed.turn_id !== undefined &&
