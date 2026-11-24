@@ -34,6 +34,7 @@ fn show<R: Runtime>(window: Window<R>) {
 pub const ACTIVATED_BY_CLICK: &str = "lervo:activated-by-click";
 
 /// How recent the last left mouse press must be for an activation to count as a click.
+#[cfg(target_os = "macos")]
 const CLICK_WINDOW_SECONDS: f64 = 0.5;
 
 /// Reports a click that brought the window forward. WebKit spends that click on activating the
