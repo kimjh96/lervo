@@ -258,11 +258,17 @@ That run timed each page figure at the second frame after the change, so first p
 - The driver skips the CPU sample when the page reports an error.
 - New figures: each delta's trail behind its arrival, each keystroke's work, and the lone field in an opaque window.
 
+**Cold start.** Before the first screen, the page waited on two steps it did not need:
+
+- the Tauri API and the notification plugin loaded as separate chunks after the main script;
+- the page waited for the system's notification permission before it started React or the session host connection.
+
+The page now bundles both modules with the main script and checks the permission at the first notification. The harness now splits the cold start into three parts: launch to the shell's `main`, `main` to navigation, and the page's own steps. The page's steps are its script loads and the marks `main`, `host-connected`, and `launched`. No run has measured the effect yet.
+
 **Remaining work.** S1.6b completes when each budget meets its target or carries a reviewed revision. The order is:
 
-1. the conversation's first paint;
-2. cold start;
-3. a full run of the harness on an otherwise idle Mac, with the new figures and the hidden window sampled for 120 seconds.
+1. a full run of the harness on an otherwise idle Mac, with the new figures, the cold-start split, the first-paint change on branch `ade-first-paint`, and the hidden window sampled for 120 seconds;
+2. the first paint and cold start, by what that run shows.
 
 ### S1.6c measurements
 
@@ -285,7 +291,7 @@ On 2026-11-23 the owner asked for ADE versions and release notes like the CLI's.
 - one ADE preparation has written `0.2.0` to every ADE manifest with its release notes and tagged `ade-v0.2.0`.
 - each ADE tag has a GitHub Release `@lervo/ade v<version>` with its notes, never marked "Latest" ([ADR-0630](../decisions/release/packaging/0630-publish-ade-release-notes-before-s3.md)), 0.2.0 and 0.2.1 included.
 
-On 2026-11-24 the owner asked why the ADE had no release notes: ADR-0615 had deferred GitHub Releases to S3, so the notes lived only in Git history. ADR-0630 publishes them now, after the host follower's release list widens past ADE releases.
+On 2026-11-24 the owner asked why the ADE had no release notes: ADR-0615 had deferred GitHub Releases to S3, so the notes lived only in Git history. ADR-0630 publishes them now, after the host follower's release list widens past ADE releases. The widening shipped in v0.46.8 (#376) and passed its canary on both hosts. `@lervo/ade v0.2.0` and `v0.2.1` were then published from the notes at their tags. After that, `releases/latest` stayed `v0.46.8`, and a follower plan on both hosts selected no ADE release.
 
 ### S1.4c progress
 

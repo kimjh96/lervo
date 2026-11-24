@@ -10,15 +10,19 @@ import { bindVisibility } from "./platform/visibility";
 // so they apply before this script runs.
 import "./ui/motion.css";
 
-// The composition root: it builds each adapter once and hands them to the application.
+// The composition root: it builds each adapter once and hands them to the application. Nothing
+// here waits, so the session host connection starts as soon as the script runs (ADE performance,
+// cold start); `lervo:` marks time each step for the interface harness.
+
+performance.mark("lervo:main");
 
 const container = document.getElementById("root");
 if (container === null) throw new Error("index.html has no #root element.");
 
 bindVisibility();
 
-const [transport, notifier] = await Promise.all([tauriTransport(), tauriNotifier()]);
-const host = new SessionHostClient(transport);
+const notifier = tauriNotifier();
+const host = new SessionHostClient(tauriTransport());
 const adapters = { host, commands: new SessionHostCommands(host), drafts: localDrafts() };
 host.start();
 

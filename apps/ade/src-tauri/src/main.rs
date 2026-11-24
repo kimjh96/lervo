@@ -18,13 +18,14 @@ use lervo_session_transport::paths::Layout;
 use crate::commands::Relay;
 
 fn main() -> ExitCode {
+    let started = std::time::SystemTime::now();
     let path = login_path::LoginPath::resolve();
     let relay = Relay {
         program: host_program::HostProgram::locate(path),
         layout: Layout::for_user(),
         outgoing: tokio::sync::Mutex::new(None),
     };
-    let measurement = measure::Measurement::from_environment();
+    let measurement = measure::Measurement::from_environment(started);
     let result = tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .plugin(material::plugin())

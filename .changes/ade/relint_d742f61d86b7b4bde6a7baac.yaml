@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_d742f61d86b7b4bde6a7baac"
+"package": "@lervo/ade"
+"impact": "patch"
+"summary": "Start connecting to the session host as soon as the interface script runs, instead of first loading two more scripts and waiting for the notification permission check."
