@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_74488907bbbf1f591b2343ff"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Retry knowledge convergence verification failures the host caused: a command that could not start or was not found retries with backoff, a timeout is reevaluated after six hours, and the integrator's failed candidate suite names its failed command instead of failing unclassified."
