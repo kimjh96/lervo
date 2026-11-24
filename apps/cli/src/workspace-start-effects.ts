@@ -60,6 +60,11 @@ function ownership(placement: WorkspacePlacement, repositoryInstanceId: string) 
 
 /** Replay never runs the owner's hooks or signing, whatever the repository configures. */
 const REPLAY_CONFIG = ["-c", "core.hooksPath=/dev/null", "-c", "commit.gpgSign=false"];
+/**
+ * The whole replay's budget. With the 20-second fetch, it keeps a start within the ADE's
+ * 120-second command deadline; commits past it are skipped and the workspace still starts.
+ */
+const REPLAY_BUDGET_MS = 45_000;
 /** Each pick commits as `Lervo Knowledge` and ends within the ADE's command deadline. */
 const REPLAY_OPTIONS = {
   timeout: 20_000,
@@ -118,7 +123,8 @@ export function gitWorkspaceEffects() {
      * Replays the unpublished knowledge commits on the new branch, committed by `Lervo Knowledge`
      * like the originals, so the resident still recognizes them. The owner's hooks and signing
      * never run, and each pick has a deadline. A commit whose change the branch already holds is
-     * carried, one that does not apply cleanly is skipped, and the workspace still starts. When a
+     * carried, one that does not apply cleanly or comes after the replay's budget is skipped, and
+     * the workspace still starts. When a
      * failed pick cannot be undone, the branch returns to its last good commit, or the start fails
      * and rolls back.
      */
@@ -128,7 +134,12 @@ export function gitWorkspaceEffects() {
       const carried: string[] = [];
       const at = placement.workspacePath;
       tip = await runGit(at, ["rev-parse", "HEAD"]);
+      const started = Date.now();
       for (const commit of placement.replay ?? []) {
+        if (Date.now() - started > REPLAY_BUDGET_MS) {
+          skipped.push(commit);
+          continue;
+        }
         try {
           await runGit(at, [...REPLAY_CONFIG, "cherry-pick", commit], REPLAY_OPTIONS);
           replayed.push(commit);

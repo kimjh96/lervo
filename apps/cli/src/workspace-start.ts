@@ -53,8 +53,9 @@ export interface WorkspaceStartPorts {
   /**
    * Chooses where the workspace starts, once the provider accepted the launch intent; absent,
    * the request's `baseCommit` is the base. It fetches, so a refused intent never waits for it.
+   * `fallback` is the request's `baseCommit`, for a repository that names no default branch.
    */
-  chooseBase?(): Promise<WorkspaceBase>;
+  chooseBase?(fallback: string): Promise<WorkspaceBase>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Replays the placement's effect commits on its new branch; absent where none can exist. */
   replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
@@ -189,7 +190,16 @@ export async function startWorkspace(
     throw error;
   }
 
-  const base = ports.chooseBase === undefined ? undefined : await ports.chooseBase();
+  const base =
+    ports.chooseBase === undefined
+      ? undefined
+      : await ports.chooseBase(request.baseCommit).catch((): WorkspaceBase => ({
+          commit: request.baseCommit,
+          source: "local",
+          upstream: null,
+          replay: [],
+          notice: "default_branch_unresolved",
+        }));
   const placement: WorkspacePlacement = {
     repositoryRoot: request.repositoryRoot,
     projectId: request.projectId,

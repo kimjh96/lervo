@@ -1,8 +1,7 @@
 // Whether retiring may delete a hosted workspace's branch (Lervo ADE sessions, "Retiring a
 // workspace"): only when nothing on it is missing from the owner's default branch or its upstream.
-import { resolveDefaultBranch } from "./workstream-branch-selection.js";
 import { runGit } from "./workspace-base-git.js";
-import { trackingRef, upstreamOf } from "./workspace-base.js";
+import { defaultBranchOf, trackingRef, upstreamOf } from "./workspace-base.js";
 
 const isAncestor = (root: string, commit: string, of: string) =>
   runGit(root, ["merge-base", "--is-ancestor", commit, of]).then(
@@ -25,7 +24,7 @@ async function copiesIn(root: string, against: string, tip: string, limit: strin
  */
 export async function branchMergedIntoDefault(root: string, branch: string): Promise<boolean> {
   const tip = `refs/heads/${branch}`;
-  const defaultBranch = await resolveDefaultBranch(root, "HEAD");
+  const defaultBranch = await defaultBranchOf(root);
   const local = `refs/heads/${defaultBranch}`;
   if (await isAncestor(root, tip, local)) return true;
   const upstream = await upstreamOf(root, defaultBranch);

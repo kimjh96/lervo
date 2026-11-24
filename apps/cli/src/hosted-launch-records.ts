@@ -5,6 +5,8 @@ import type { HostedConversationMode, HostedLaunch } from "@lervo/adapter-contra
 import { readPrivateJsonFile, writePrivateJsonFile } from "@lervo/repository-knowledge-runtime";
 import { defaultRepositoryRegistryPath } from "@lervo/repository-registry";
 
+import type { WorkspaceBaseNotice } from "./workspace-base.js";
+
 /** Records kept per host. The oldest records leave first. */
 export const HOSTED_LAUNCH_RECORD_LIMIT = 256;
 const MAX_FILE_BYTES = 1024 * 1024;
@@ -26,7 +28,7 @@ export interface HostedLaunchRecord {
   settingsDigest: string | null;
   mcpConfigDigest: string | null;
   preparedAt: string;
-  /** Where the workspace started; records from before Lervo 0.47.6 have none. */
+  /** Where the workspace started; records from before Lervo 0.47.7 have none. */
   base?: HostedWorkspaceBase;
 }
 
@@ -39,13 +41,13 @@ export interface HostedWorkspaceBase {
   source: "upstream" | "local";
   upstream: string | null;
   /**
-   * Unpublished knowledge commits replayed on the branch, those that did not apply, and those
-   * whose change the branch already held. Records from before Lervo 0.47.7 have no `carried`.
+   * Unpublished knowledge commits replayed on the branch, those that did not apply or ran past
+   * the replay's budget, and those whose change the branch already held.
    */
   replayed: string[];
   skipped: string[];
-  carried?: string[];
-  notice: "no_upstream" | "fetch_failed" | "knowledge_state_unreadable" | null;
+  carried: string[];
+  notice: WorkspaceBaseNotice | null;
 }
 
 /** The host's record file, next to the repository registry in the user state directory. */

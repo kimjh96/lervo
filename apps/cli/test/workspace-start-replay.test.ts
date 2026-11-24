@@ -92,6 +92,26 @@ describe("replaying knowledge commits on a new workspace branch", () => {
     expect(git(workspacePath, "status", "--porcelain")).toBe("");
   });
 
+  it("keeps a later repair's undo, because every commit is picked in order", async () => {
+    const { root, workspacePath, placement } = await workspace();
+    await mkdir(join(root, "docs"), { recursive: true });
+    await writeFile(join(root, "docs/page.md"), "page\n");
+    await writeFile(join(root, "tool.json"), "{}\n");
+    git(root, "add", "docs/page.md", "tool.json");
+    execFileSync("git", ["-C", root, "commit", "-q", "-m", "apply knowledge"], {
+      env: { ...process.env, ...knowledge },
+    });
+    const change = git(root, "rev-parse", "HEAD");
+    git(root, "rm", "-q", "tool.json");
+    execFileSync("git", ["-C", root, "commit", "-q", "-m", "restore paths"], {
+      env: { ...process.env, ...knowledge },
+    });
+    const repair = git(root, "rev-parse", "HEAD");
+    const replay = await gitWorkspaceEffects().replayEffects(placement([change, repair]));
+    expect(replay).toEqual({ replayed: [change, repair], skipped: [], carried: [] });
+    expect(git(workspacePath, "ls-files")).toBe("README.md\ndocs/page.md");
+  });
+
   it("rolls back the branch at its tip after the replay", async () => {
     const { root, branch, workspacePath, placement } = await workspace();
     const rule = await commitFile(root, "docs/rule.md", "rule\n", "apply knowledge");

@@ -113,7 +113,8 @@ export async function startWorkspaceFromInstruction(
     {
       adapter,
       // New work starts from the fetched upstream tip, never the owner's possibly stale checkout.
-      chooseBase: () => chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot)),
+      chooseBase: (fallback) =>
+        chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot), fallback),
       ...gitWorkspaceEffects(),
       startWorkstream: startWorkstreamIn,
       recordLaunch,

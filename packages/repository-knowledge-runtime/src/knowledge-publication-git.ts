@@ -152,7 +152,7 @@ export interface KnowledgePublicationInventory {
 }
 
 /**
- * Lists `base..HEAD`. A knowledge commit is a non-merge commit whose author and committer are
+ * Lists `base..tip`, where `tip` is `HEAD` unless the caller names another. A knowledge commit is a non-merge commit whose author and committer are
  * both the `Lervo Knowledge` identity; nothing else is ever published. Superseded commits, which
  * an earlier replay conflict excluded, and declined commits, whose pull request a person closed
  * without merge, stay local and are never selected again. ADR-0603: a
@@ -165,10 +165,12 @@ export async function inventoryKnowledgePublication(
   settings: KnowledgePublicationSettings,
   superseded: ReadonlySet<string> = new Set(),
   published: ReadonlySet<string> = new Set(),
+  /** The tip to list up to; the resident publishes from the checkout's `HEAD`. */
+  tip = "HEAD",
 ): Promise<KnowledgePublicationInventory | null> {
   const base = await remoteTrackingHead(root, settings, settings.baseBranch);
   if (base === null) return null;
-  const head = (await git(root, ["rev-parse", "HEAD"], "inspect")).trim();
+  const head = (await git(root, ["rev-parse", "--verify", `${tip}^{commit}`], "inspect")).trim();
   const range = `${base}..${head}`;
   const upstream = new Set(
     (await git(root, ["cherry", base, head], "inspect"))

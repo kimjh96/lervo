@@ -26,30 +26,44 @@ function fakeGit(overrides: Partial<WorkspaceBaseGit> = {}): WorkspaceBaseGit {
     upstreamOf: async () => origin,
     fetch: async () => undefined,
     unpublished: async () => [],
-    carriedBy: async () => false,
     ...overrides,
   };
 }
 
 describe("choosing where a workspace starts", () => {
-  it("starts from the fetched upstream tip with the unpublished commits it lacks", async () => {
+  it("starts from the fetched upstream tip with every unpublished commit, in order", async () => {
     const base = await chooseWorkspaceBase(
-      fakeGit({
-        unpublished: async () => ["carried", "unpublished"],
-        carriedBy: async (_, commit) => commit === "carried",
-      }),
+      fakeGit({ unpublished: async () => ["change", "repair"] }),
+      "fallback",
     );
     expect(base).toEqual({
       commit: "upstream-tip",
       source: "upstream",
       upstream: "origin/main",
-      replay: ["unpublished"],
+      replay: ["change", "repair"],
       notice: null,
     });
   });
 
+  it("starts from the fallback when the repository names no default branch", async () => {
+    expect(
+      await chooseWorkspaceBase(
+        fakeGit({ defaultBranch: () => Promise.reject(new Error("none")) }),
+        "fallback",
+      ),
+    ).toEqual({
+      commit: "fallback",
+      source: "local",
+      upstream: null,
+      replay: [],
+      notice: "default_branch_unresolved",
+    });
+  });
+
   it("falls back to the local tip when there is no upstream or any upstream step fails", async () => {
-    expect(await chooseWorkspaceBase(fakeGit({ upstreamOf: async () => null }))).toMatchObject({
+    expect(
+      await chooseWorkspaceBase(fakeGit({ upstreamOf: async () => null }), "fallback"),
+    ).toMatchObject({
       commit: "local",
       source: "local",
       notice: "no_upstream",
@@ -58,11 +72,8 @@ describe("choosing where a workspace starts", () => {
     for (const overrides of [
       { fetch: () => Promise.reject(failing) },
       { unpublished: () => Promise.reject(failing) },
-      { carriedBy: () => Promise.reject(failing) },
     ])
-      expect(
-        await chooseWorkspaceBase(fakeGit({ unpublished: async () => ["x"], ...overrides })),
-      ).toMatchObject({
+      expect(await chooseWorkspaceBase(fakeGit(overrides), "fallback")).toMatchObject({
         commit: "local",
         source: "local",
         upstream: "origin/main",
@@ -71,7 +82,9 @@ describe("choosing where a workspace starts", () => {
   });
 
   it("replays nothing, with a notice, when the resident's state cannot be read", async () => {
-    expect(await chooseWorkspaceBase(fakeGit({ unpublished: async () => null }))).toEqual({
+    expect(
+      await chooseWorkspaceBase(fakeGit({ unpublished: async () => null }), "fallback"),
+    ).toEqual({
       commit: "upstream-tip",
       source: "upstream",
       upstream: "origin/main",
@@ -149,7 +162,7 @@ describe("the real Git reads of the workspace base", () => {
       knowledge,
     );
     await advanceUpstream(other);
-    const base = await chooseWorkspaceBase(gitWorkspaceBase(owner));
+    const base = await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback");
     expect(base).toMatchObject({ source: "upstream", upstream: "origin/main", notice: null });
     expect(base.commit).toBe(git(owner, "rev-parse", "refs/remotes/origin/main"));
     expect(base.replay).toEqual([rule]);
@@ -166,17 +179,59 @@ describe("the real Git reads of the workspace base", () => {
     });
     const mode = git(owner, "rev-parse", "HEAD");
     await advanceUpstream(other);
-    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner))).replay).toEqual([named, mode]);
+    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).replay).toEqual([
+      named,
+      mode,
+    ]);
   });
 
-  it("skip developer work, an author-only Lervo commit, and a change upstream already holds", async () => {
+  it("skip developer work and an author-only Lervo commit, and keep a later repair", async () => {
     const { owner, other } = await repositories();
     await commitFile(owner, "work.txt", "mine\n", "my work");
     await commitFile(owner, "squashed.md", "x\n", "rebased into Lervo's name", authorOnly);
-    await commitFile(owner, "docs/held.md", "held\n", "apply knowledge", knowledge);
-    await commitFile(other, "docs/held.md", "held\n", "publish knowledge");
-    git(other, "push", "-q", "origin", "main");
-    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner))).replay).toEqual([]);
+    const change = await commitFile(owner, "tool.json", "{}\n", "apply knowledge", knowledge);
+    // The resident's repair restores a tool-owned path; dropping it would bring the path back.
+    git(owner, "rm", "-q", "tool.json");
+    execFileSync("git", ["-C", owner, "commit", "-q", "-m", "restore paths"], {
+      env: { ...process.env, ...knowledge },
+    });
+    const repair = git(owner, "rev-parse", "HEAD");
+    await advanceUpstream(other);
+    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).replay).toEqual([
+      change,
+      repair,
+    ]);
+  });
+
+  it("count only the default branch's commits, whatever the owner has checked out", async () => {
+    const { owner, other } = await repositories();
+    const onMain = await commitFile(owner, "docs/main.md", "m\n", "apply knowledge", knowledge);
+    git(owner, "switch", "-q", "-c", "feat");
+    await commitFile(owner, "docs/feat.md", "f\n", "apply knowledge on feat", knowledge);
+    await advanceUpstream(other);
+    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).replay).toEqual([
+      onMain,
+    ]);
+  });
+
+  it("find a default branch other than main without the remote's HEAD", async () => {
+    const base = await realpath(await mkdtemp(join(tmpdir(), "lervo-trunk-")));
+    roots.push(base);
+    const remote = join(base, "remote.git");
+    const owner = join(base, "owner");
+    execFileSync("git", ["init", "-q", "--bare", "-b", "trunk", remote]);
+    execFileSync("git", ["init", "-q", "-b", "trunk", owner]);
+    git(owner, "config", "user.email", "test@example.invalid");
+    git(owner, "config", "user.name", "Test");
+    git(owner, "remote", "add", "origin", remote);
+    await commitFile(owner, "README.md", "hello\n", "first");
+    git(owner, "push", "-q", "-u", "origin", "trunk");
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
+      source: "upstream",
+      upstream: "origin/trunk",
+      commit: git(owner, "rev-parse", "trunk"),
+      notice: null,
+    });
   });
 
   it("skip a superseded commit, and replay nothing when the resident's state is unreadable", async () => {
@@ -189,9 +244,27 @@ describe("the real Git reads of the workspace base", () => {
       state,
       JSON.stringify({ schemaVersion: 1, status: "superseded", supersededCommits: [superseded] }),
     );
-    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner))).replay).toEqual([]);
+    expect((await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).replay).toEqual([]);
+    // After publications, a missing history cache cannot say what a person declined.
+    await writeFile(
+      state,
+      JSON.stringify({
+        schemaVersion: 1,
+        status: "merged",
+        pullRequestNumber: 12,
+        pullRequestUrl: null,
+        publishedHead: null,
+        commitCount: 1,
+        updatedAt: "2026-11-25T00:00:00.000Z",
+        failure: null,
+      }),
+    );
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
+      replay: [],
+      notice: "knowledge_state_unreadable",
+    });
     await writeFile(state, "{ not json");
-    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner))).toMatchObject({
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
       source: "upstream",
       replay: [],
       notice: "knowledge_state_unreadable",
@@ -203,7 +276,7 @@ describe("the real Git reads of the workspace base", () => {
     git(owner, "config", "--unset-all", "remote.origin.fetch");
     git(owner, "branch", "-q", "origin/main", "main");
     await advanceUpstream(other);
-    const base = await chooseWorkspaceBase(gitWorkspaceBase(owner));
+    const base = await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback");
     expect(base.source).toBe("upstream");
     expect(base.commit).toBe(git(other, "rev-parse", "main"));
   });
@@ -211,11 +284,11 @@ describe("the real Git reads of the workspace base", () => {
   it("start from the local tip when the upstream cannot be fetched or is local", async () => {
     const { owner } = await repositories();
     git(owner, "remote", "set-url", "origin", join(owner, "missing.git"));
-    const failed = await chooseWorkspaceBase(gitWorkspaceBase(owner));
+    const failed = await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback");
     expect(failed).toMatchObject({ source: "local", notice: "fetch_failed" });
     expect(failed.commit).toBe(git(owner, "rev-parse", "main"));
     git(owner, "config", "branch.main.remote", ".");
-    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner))).toMatchObject({
+    expect(await chooseWorkspaceBase(gitWorkspaceBase(owner), "fallback")).toMatchObject({
       source: "local",
       notice: "no_upstream",
     });

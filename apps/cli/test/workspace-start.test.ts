@@ -197,6 +197,21 @@ describe("workspace start", () => {
   });
 });
 
+describe("a base that cannot be chosen", () => {
+  it("starts from the request's base commit and says why", async () => {
+    const fake = ports();
+    await startWorkspace(request, {
+      ...fake.value,
+      chooseBase: (fallback) => Promise.reject(new Error(`no default branch for ${fallback}`)),
+    });
+    expect(fake.records[0]?.base).toMatchObject({
+      commit: request.baseCommit,
+      source: "local",
+      notice: "default_branch_unresolved",
+    });
+  });
+});
+
 const base: WorkspaceBase = {
   commit: "b".repeat(40),
   source: "upstream",

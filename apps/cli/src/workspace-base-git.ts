@@ -46,10 +46,13 @@ export function runGit(
 ): Promise<string> {
   return new Promise((resolve, reject) => {
     const environment = nonInteractiveGitEnvironment({ ...process.env, ...options.env });
+    // A process group exists only on POSIX; Windows gets no console window either way.
+    const grouped = process.platform !== "win32";
     const child = spawn("git", ["-C", root, ...arguments_], {
       env: environment,
       stdio: ["ignore", "pipe", "pipe"],
-      detached: true,
+      detached: grouped,
+      windowsHide: true,
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -58,7 +61,8 @@ export function runGit(
     const stop = () => {
       stopped = true;
       try {
-        if (child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+        if (grouped && child.pid !== undefined) process.kill(-child.pid, "SIGKILL");
+        else child.kill("SIGKILL");
       } catch {
         child.kill("SIGKILL");
       }
