@@ -1,7 +1,6 @@
 import { useEffect, useRef } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
-import { transition } from "../../../platform/transition";
 import { useApplicationCommands } from "../../../ports";
 import { IconButton } from "../../../ui/IconButton";
 import { ArrowUpIcon } from "../../../ui/icons";
@@ -47,7 +46,7 @@ export function StartScreen() {
     if (!ready) return;
     const name = repositories.find((item) => item.projectId === repository)?.name ?? "";
     const chosen = { ...draft, repository, provider: provider?.provider ?? "" };
-    transition(() => void startWork(commands, chosen, name));
+    void startWork(commands, chosen, name);
   };
 
   return (

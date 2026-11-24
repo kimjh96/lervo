@@ -1,7 +1,6 @@
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { commandModifier } from "../../../platform/keyboard";
-import { transition } from "../../../platform/transition";
 import { PlusIcon } from "../../../ui/icons";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Kbd } from "../../../ui/Kbd";
@@ -32,7 +31,7 @@ export function WorkspaceList() {
     <section className={styles.list} aria-label={intl.formatMessage({ id: "workspaces.label" })}>
       <ListRow
         current={selected === null}
-        onClick={() => transition(newWork)}
+        onClick={newWork}
         leading={<PlusIcon size="md" />}
         label={<FormattedMessage id="workspaces.new" />}
         trailing={

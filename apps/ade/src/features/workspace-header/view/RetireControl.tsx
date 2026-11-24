@@ -1,7 +1,6 @@
 import { type KeyboardEvent, useState } from "react";
 import { FormattedMessage, type MessageDescriptor, useIntl } from "react-intl";
 
-import { transition } from "../../../platform/transition";
 import {
   RequestFailure,
   useApplicationCommands,
@@ -62,7 +61,6 @@ export function RetireControl(props: { workspaceId: string }) {
       lists,
       workspaceId: props.workspaceId,
       onStep: (step) => setStep({ kind: "waiting", step }),
-      leave: transition,
     }).catch((failure: unknown) => setStep({ kind: "failed", code: refusal(failure) }));
   };
   const cancelOnEscape = (event: KeyboardEvent) => {

@@ -7,7 +7,6 @@ import { bindStart, bindStartDraft } from "../features/start";
 import { bindWorkspaces, notificationMessages, useWorkspaceStore } from "../features/workspaces";
 import { chooseLocale, defaultLocale, messagesFor } from "../i18n/catalog";
 import { isCommandKey } from "../platform/keyboard";
-import { transition } from "../platform/transition";
 import { type Adapters, AdaptersProvider, type Notifier } from "../ports";
 import { Frame } from "./Frame";
 import { useLaunched } from "./launch";
@@ -43,7 +42,7 @@ export function App(props: { adapters: Adapters; notifier: Notifier }) {
     const shortcut = (event: KeyboardEvent) => {
       if (!isCommandKey(event, "n")) return;
       event.preventDefault();
-      transition(() => useWorkspaceStore.getState().newWork());
+      useWorkspaceStore.getState().newWork();
     };
     window.addEventListener("keydown", shortcut);
     return () => {

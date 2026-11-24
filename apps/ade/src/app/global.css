@@ -1,5 +1,5 @@
-/* The app window: full height, the native material, and view transitions. `ui/base.css` holds
-   the tokens and the default text. */
+/* The app window: full height and the native material. `ui/base.css` holds the tokens and the
+   default text. */
 html,
 body,
 #root {
@@ -32,33 +32,5 @@ body {
   :root[data-material="native"] body {
     background:
       linear-gradient(var(--window-tint), var(--window-tint)), var(--color-surface-opaque);
-  }
-}
-
-/* View transitions (ADE motion, "Changing views"): the leaving view fades out over `exit`, and the
-   arriving view fades in and rises 4 px over `enter`, starting halfway through the exit. Nothing
-   morphs, so no two versions of an element ever overlap. The workspace list keeps its place. */
-::view-transition-old(root) {
-  animation: lervo-leave var(--motion-duration-exit) var(--motion-easing-exit) both;
-}
-
-::view-transition-new(root) {
-  animation: lervo-arrive var(--motion-duration-enter) var(--motion-easing-standard) both;
-  animation-delay: calc(var(--motion-duration-exit) / 2);
-}
-
-::view-transition-old(lervo-sidebar) {
-  display: none;
-}
-
-::view-transition-new(lervo-sidebar) {
-  animation: none;
-}
-
-/* `ui/motion.css` defines the keyframes. */
-@media (prefers-reduced-motion: reduce) {
-  ::view-transition-old(root),
-  ::view-transition-new(root) {
-    animation: none;
   }
 }
