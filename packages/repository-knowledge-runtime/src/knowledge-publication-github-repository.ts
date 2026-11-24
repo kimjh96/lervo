@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 
 import { readConvergenceOwnerHost } from "./convergence-owner-host.js";
+import { toolEnvironment } from "./tool-environment.js";
 
 const execute = promisify(execFile);
 
@@ -63,9 +64,10 @@ const GH_TIMEOUT_MS = 15_000;
 
 /** Whether gh is logged in to `host`, so that `--hostname host` can work. */
 async function ghKnowsHost(host: string, executable = "gh"): Promise<boolean> {
+  const { environment } = await toolEnvironment();
   return execute(executable, ["auth", "status", "--hostname", host], {
     timeout: GH_TIMEOUT_MS,
-    env: { ...process.env, GH_PROMPT_DISABLED: "1" },
+    env: { ...environment, GH_PROMPT_DISABLED: "1" },
   }).then(
     () => true,
     () => false,
