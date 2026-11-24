@@ -2,6 +2,7 @@
 
 - Status: accepted
 - Decision date: 2026-09-16
+- Amended by: [ADR-0452](../../foundation/0452-open-collaboration-by-default-with-authority-at-consequential-effects.md), [ADR-0455](0455-ratchet-the-platform-adapter-boundary-on-neutral-seams.md), [ADR-0458](../orchestration/improvement/0458-learn-from-single-observations-and-run-standing-autonomy.md), [ADR-0613](0613-host-provider-clis-in-a-first-party-development-environment.md)
 
 ## Context
 
