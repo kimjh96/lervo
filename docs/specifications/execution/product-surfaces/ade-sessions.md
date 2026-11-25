@@ -91,6 +91,14 @@ Hosted Claude sessions run with Claude Code's auto memory off: the Claude adapte
 - **Scope.** Only hosted processes get the variable. The launch writes no user or project settings, so the owner's terminal sessions keep whatever they set. The setting lives in one place, `CLAUDE_HOSTED_ENVIRONMENT` in the Claude adapter.
 - **Exit.** It stays off until S2d's Lervo memory tools reach hosted sessions. Then hosted agents remember through Lervo, and this section records whether provider memory returns.
 
+## Permission mode
+
+Native hosted Claude sessions run with `--permission-mode bypassPermissions`, as the owner's terminal sessions run. The CLI conversation passes no permission flag and keeps the owner's own settings, because the owner answers its prompts in the terminal.
+
+- **Why.** Claude Code holds a cross-session message from a session in another permission mode until someone approves it, and a hosted session has no one to approve it. While hosted sessions ran in `auto`, a message from the owner's bypass sessions never reached them: on 2026-11-26 a hosted session listed by `ListAgents` stayed silent, while a bypass session answered the same message at once. The owner chose bypass that day.
+- **Scope.** Only native hosted launches pass the flag. The setting lives in one place, `CLAUDE_HOSTED_PERMISSION_MODE` in the Claude adapter, and the launch writes no user or project settings.
+- **Next.** The ADE's settings will let the owner choose the mode; until then every hosted session uses bypass.
+
 ## Hosted observations
 
 Hosted sessions record their own observations. They are never E1–E4 and never satisfy a managed context or write gate (invariant 3). Hosting removes one of ADR-0197's four reasons, because Lervo starts the provider. The other three reasons still hold.

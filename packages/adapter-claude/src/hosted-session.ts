@@ -59,6 +59,15 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
 const HOOK_TIMEOUT_SECONDS = 10;
 
 /**
+ * The permission mode of a native hosted session, which has no one to answer a permission prompt.
+ * The owner chose on 2026-11-26 to run it as their terminal sessions run, without prompts: Claude
+ * Code holds a message from a session in another permission mode, so `auto` kept the owner's
+ * bypass sessions from reaching hosted ones (Lervo ADE sessions, "Permission mode"). The CLI
+ * conversation keeps the owner's own settings, since the owner answers its prompts.
+ */
+export const CLAUDE_HOSTED_PERMISSION_MODE = "bypassPermissions";
+
+/**
  * The environment of every hosted session. Auto memory is off: Claude Code would otherwise write
  * the owner's rules and corrections into its own memory, which every worktree of the repository
  * shares with the owner's terminal sessions, while Lervo captures them (AGENTS.md; Lervo ADE
@@ -125,7 +134,7 @@ export function createClaudeHostedSessionAdapter(
               "stream-json",
               "--include-partial-messages",
               "--permission-mode",
-              "auto",
+              CLAUDE_HOSTED_PERMISSION_MODE,
               ...session,
               ...model,
               ...settings,
