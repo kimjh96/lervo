@@ -59,6 +59,10 @@
     "defaultMessage": "{command} failed",
     "description": "A Lervo command the agent ran failed; {command} is the command in the mono face, such as lervo workstream update."
   },
+  "conversation.lervo.found": {
+    "defaultMessage": "{count} found",
+    "description": "How many documents a Lervo knowledge search found, at the end of its line."
+  },
   "conversation.lervo.help": {
     "defaultMessage": "Looked up the help for {command}",
     "description": "The agent read a Lervo command's help; {command} is the command in the mono face."
@@ -66,6 +70,14 @@
   "conversation.lervo.help.root": {
     "defaultMessage": "Looked up Lervo's commands",
     "description": "The agent read the Lervo CLI's overall help."
+  },
+  "conversation.lervo.more": {
+    "defaultMessage": "{count} more",
+    "description": "Documents a Lervo knowledge search found beyond those its opened line lists."
+  },
+  "conversation.lervo.stale": {
+    "defaultMessage": "stale",
+    "description": "Beside a document a Lervo search found that Lervo marks stale: its content may be out of date."
   },
   "conversation.lervo.unknown": {
     "defaultMessage": "Ran {command}",
