@@ -56,6 +56,25 @@ function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+/** Files a capture reads at once; stats and directory reads are not limited. */
+const SNAPSHOT_READ_CONCURRENCY = 64;
+
+/** Runs at most `limit` of the given operations at a time, in the order they were asked for. */
+function boundedConcurrency(limit: number) {
+  let running = 0;
+  const waiting: (() => void)[] = [];
+  return async <T>(operation: () => Promise<T>): Promise<T> => {
+    if (running >= limit) await new Promise<void>((proceed) => waiting.push(proceed));
+    running += 1;
+    try {
+      return await operation();
+    } finally {
+      running -= 1;
+      waiting.shift()?.();
+    }
+  };
+}
+
 function portablePath(root: string, absolutePath: string): string {
   return relative(root, absolutePath).split(sep).join("/");
 }
@@ -125,34 +144,49 @@ async function captureRepositorySnapshotWithCache(input: {
   } catch {
     throw new RepositorySnapshotError("The repository snapshot root is not a safe real directory.");
   }
-  const files: Record<string, string> = Object.create(null) as Record<string, string>;
   let fileCount = 0;
   let byteCount = 0;
-
-  async function visit(directory: string): Promise<void> {
+  // The first failure stops the whole walk: no branch starts another stat or read after it, and
+  // the capture waits for every branch to settle, so no work outlives the capture.
+  let failure: { error: unknown } | null = null;
+  const live = () => {
+    if (failure !== null) throw failure.error;
     checkDeadline();
+  };
+  // Reading a changed file holds a handle across awaits; a cold capture of thousands of files
+  // must not open them all at once. A read that waited for a slot checks again before it starts.
+  const limit = boundedConcurrency(SNAPSHOT_READ_CONCURRENCY);
+  const reads = <T>(operation: () => Promise<T>) =>
+    limit(async () => {
+      live();
+      return operation();
+    });
+
+  /**
+   * Visits a directory's entries and subdirectories concurrently, and returns its files in the
+   * order a depth-first walk in sorted name order records them, so a capture's result does not
+   * depend on which stat finished first.
+   */
+  async function visit(directory: string): Promise<[string, string][]> {
+    live();
     let entries;
     try {
       entries = await readdir(directory, { withFileTypes: true });
     } catch {
       throw new RepositorySnapshotError("Could not read the repository snapshot.");
     }
-    checkDeadline();
+    live();
     // A nested `.git` marks another checkout, such as a linked worktree, with its own snapshot.
-    if (directory !== root && entries.some((entry) => entry.name === ".git")) return;
+    if (directory !== root && entries.some((entry) => entry.name === ".git")) return [];
     entries.sort((left, right) => left.name.localeCompare(right.name));
-    for (const entry of entries) {
-      checkDeadline();
+    const visitEntry = async (entry: (typeof entries)[number]): Promise<[string, string][]> => {
+      live();
       const absolutePath = resolve(directory, entry.name);
       const path = portablePath(root, absolutePath);
       if (excludedPaths.has(path) || ignoredPaths.has(path) || ignoredPaths.has(`${path}/`))
-        continue;
-      if (entry.isDirectory()) {
-        if (!excludedDirectories.has(entry.name)) {
-          await visit(absolutePath);
-        }
-        continue;
-      }
+        return [];
+      if (entry.isDirectory())
+        return excludedDirectories.has(entry.name) ? [] : visit(absolutePath);
       fileCount += 1;
       if (fileCount > resolvedPolicy.maxEntries) {
         throw new RepositorySnapshotError(
@@ -162,6 +196,7 @@ async function captureRepositorySnapshotWithCache(input: {
         );
       }
       if (entry.isSymbolicLink()) {
+        live();
         const before = await lstat(absolutePath, { bigint: true });
         const identity = entryIdentity(before);
         const cached = previousEntries.get(path);
@@ -169,21 +204,18 @@ async function captureRepositorySnapshotWithCache(input: {
         if (cached?.kind === "symlink" && cached.identity === identity) {
           hash = cached.hash;
         } else {
-          const target = await readlink(absolutePath);
+          const target = await reads(() => readlink(absolutePath));
           if (identity !== entryIdentity(await lstat(absolutePath, { bigint: true }))) {
             throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
           }
           hash = sha256(`symlink\0${target}`);
         }
-        files[path] = hash;
         nextEntries.set(path, { kind: "symlink", identity, hash, byteLength: 0 });
-        continue;
+        return [[path, hash]];
       }
-      if (!entry.isFile()) {
-        files[path] = sha256("unsupported-entry");
-        continue;
-      }
+      if (!entry.isFile()) return [[path, sha256("unsupported-entry")]];
       try {
+        live();
         const before = await lstat(absolutePath, { bigint: true });
         const identity = entryIdentity(before);
         const cached = previousEntries.get(path);
@@ -193,8 +225,8 @@ async function captureRepositorySnapshotWithCache(input: {
           hash = cached.hash;
           contentByteLength = cached.byteLength;
         } else {
-          const bytes = await input.readFile(root, path);
-          checkDeadline();
+          const bytes = await reads(() => input.readFile(root, path));
+          live();
           const after = await lstat(absolutePath, { bigint: true });
           if (identity !== entryIdentity(after)) {
             throw new Error("changed while reading");
@@ -210,24 +242,35 @@ async function captureRepositorySnapshotWithCache(input: {
             "repository_snapshot_limit_exceeded",
           );
         }
-        files[path] = hash;
         nextEntries.set(path, {
           kind: "file",
           identity,
           hash,
           byteLength: contentByteLength,
         });
+        return [[path, hash]];
       } catch (error) {
         if (error instanceof RepositorySnapshotError) throw error;
         throw new RepositorySnapshotError("Could not snapshot the repository file safely.", {
           cause: error,
         });
       }
-    }
+    };
+    const visited = await Promise.allSettled(
+      entries.map((entry) =>
+        visitEntry(entry).catch((error: unknown) => {
+          failure ??= { error };
+          throw failure.error;
+        }),
+      ),
+    );
+    if (failure !== null) throw failure.error;
+    return visited.flatMap((result) => (result.status === "fulfilled" ? result.value : []));
   }
 
+  const files: Record<string, string> = Object.create(null) as Record<string, string>;
   try {
-    await visit(root);
+    for (const [path, hash] of await visit(root)) files[path] = hash;
   } catch (error) {
     if (
       error instanceof RepositorySnapshotError &&
