@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c49e0a591cf964243f80d98e"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Repository upgrades activate event schema 12, which records how a terminal turn ended when no Stop hook ran, once every configured reader reads it."
