@@ -64,6 +64,14 @@ export const decoderOpenRequestSchema = request(
   ["decoderId", "provider"],
 );
 
+/** Asks the decoder for the bytes that stop the provider's running turn, as `input`. */
+export const decoderInterruptRequestSchema = request(
+  "DecoderInterruptRequest",
+  "decoder.interrupt",
+  { decoderId: identifierSchema },
+  ["decoderId"],
+);
+
 export const decoderSendRequestSchema = request(
   "DecoderSendRequest",
   "decoder.send",
@@ -123,7 +131,11 @@ export const sessionExitedRequestSchema = request(
  * `workspace.list`'s `commands`, beside its application commands, so a session host sends them
  * only to a core that answers them. `decoder.session` names `decoder.open`'s `sessionId`.
  */
-export const advertisedCoreRequestNames = ["session.exited", "decoder.session"] as const;
+export const advertisedCoreRequestNames = [
+  "session.exited",
+  "decoder.session",
+  "decoder.interrupt",
+] as const;
 
 export const coreLinkRequestSchemas = [
   coreCommandRequestSchema,
@@ -132,6 +144,7 @@ export const coreLinkRequestSchemas = [
   sessionExitedRequestSchema,
   decoderOpenRequestSchema,
   decoderSendRequestSchema,
+  decoderInterruptRequestSchema,
   decoderOutputRequestSchema,
   decoderCloseRequestSchema,
 ] as const;

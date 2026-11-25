@@ -79,6 +79,9 @@
           "$ref": "#/$defs/SessionSendMessage"
         },
         {
+          "$ref": "#/$defs/SessionInterruptMessage"
+        },
+        {
           "$ref": "#/$defs/SessionResizeMessage"
         },
         {
@@ -115,6 +118,9 @@
         },
         {
           "$ref": "#/$defs/SessionSentMessage"
+        },
+        {
+          "$ref": "#/$defs/SessionInterruptedMessage"
         },
         {
           "$ref": "#/$defs/SessionResyncRequiredMessage"
@@ -356,6 +362,30 @@
         }
       }
     },
+    "SessionInterruptMessage": {
+      "title": "SessionInterruptMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.interrupt"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
     "SessionResizeMessage": {
       "title": "SessionResizeMessage",
       "type": "object",
@@ -582,7 +612,8 @@
             "application_unavailable",
             "application_timeout",
             "session_start_failed",
-            "session_stop_timeout"
+            "session_stop_timeout",
+            "interrupt_unsupported"
           ]
         },
         "parameters": {
@@ -708,6 +739,30 @@
           "type": "string",
           "enum": [
             "session.sent"
+          ]
+        },
+        "requestId": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "sessionId": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "SessionInterruptedMessage": {
+      "title": "SessionInterruptedMessage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "requestId",
+        "sessionId"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "session.interrupted"
           ]
         },
         "requestId": {
