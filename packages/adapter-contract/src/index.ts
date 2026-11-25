@@ -19,3 +19,4 @@ export * from "./login-inspection.js";
 export * from "./hosted-session.js";
 export * from "./hosted-session-hooks.js";
 export * from "./hosted-turn-usage.js";
+export * from "./hosted-turn-interrupt.js";
