@@ -14,6 +14,7 @@ import type {
   TerminalLifecycleInspection,
   UnmanagedTerminalCoordinates,
 } from "./terminal-hook-contract.js";
+import { lifecycleRepositorySnapshot } from "./terminal-lifecycle-inspection.js";
 import { readPreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
 
 /**
@@ -41,8 +42,11 @@ export async function plannedTerminalRepositoryChange(input: {
   );
   if (before === null || before.revision !== input.lifecycle.repositoryChange.beforeRevision)
     return null;
-  const after = await captureTerminalRepositorySnapshot(input.root);
-  // A change after lifecycle inspection belongs to the next observed turn.
+  // The snapshot lifecycle inspection just captured; walking again cost about 200 ms per Stop. A
+  // change after that inspection belongs to the next observed turn.
+  const after =
+    lifecycleRepositorySnapshot(input.lifecycle, input.root) ??
+    (await captureTerminalRepositorySnapshot(input.root));
   if (after.revision !== input.lifecycle.repositoryChange.afterRevision) return null;
   const planned = await planRepositoryChangeInRepository({
     repositoryRoot: input.root,

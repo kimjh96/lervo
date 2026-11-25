@@ -185,10 +185,13 @@ export async function planRepositoryChangeInRepository(
   input: Parameters<typeof planRepositoryChange>[0] & { repositoryRoot: string },
 ): Promise<PlannedRepositoryChange | null> {
   const { repositoryRoot, ...change } = input;
+  // Only changed paths reach the manifest, so only they need Git's ignore rules. Feeding every
+  // path cost about 700 ms per Stop in a 9,000-file repository.
+  const changed = [
+    ...new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)]),
+  ].filter((path) => change.before.files[path] !== change.after.files[path]);
   const [ignored, intake] = await Promise.all([
-    gitIgnoredPaths(repositoryRoot, [
-      ...new Set([...Object.keys(change.before.files), ...Object.keys(change.after.files)]),
-    ]),
+    gitIgnoredPaths(repositoryRoot, changed),
     loadKnowledgeIntakePolicy(repositoryRoot),
   ]);
   const kept = (files: Readonly<Record<string, string>>) =>

@@ -41,6 +41,35 @@ export async function terminalTurnDeclarationRequired(root: string): Promise<boo
  * receipts; `checkoutRoot`, a linked worktree when it differs, holds the files, branch, and
  * integration the turn worked on.
  */
+/**
+ * The repository snapshot each inspection captured, kept beside its result rather than in it: the
+ * result is printed as JSON, and the snapshot holds every file hash. A Stop records the turn's
+ * change from it instead of walking the repository a second time.
+ */
+const capturedSnapshots = new WeakMap<
+  TerminalLifecycleInspection,
+  { root: string; snapshot: Awaited<ReturnType<typeof captureTerminalRepositorySnapshot>> }
+>();
+
+/** Records the snapshot `inspection` captured of `root`. */
+export function rememberLifecycleRepositorySnapshot(
+  inspection: TerminalLifecycleInspection,
+  root: string,
+  snapshot: Awaited<ReturnType<typeof captureTerminalRepositorySnapshot>>,
+): TerminalLifecycleInspection {
+  capturedSnapshots.set(inspection, { root, snapshot });
+  return inspection;
+}
+
+/** The snapshot `inspection` captured of `root`, or undefined for another root. */
+export function lifecycleRepositorySnapshot(
+  inspection: TerminalLifecycleInspection,
+  root: string,
+): Awaited<ReturnType<typeof captureTerminalRepositorySnapshot>> | undefined {
+  const captured = capturedSnapshots.get(inspection);
+  return captured?.root === root ? captured.snapshot : undefined;
+}
+
 export async function inspectTerminalLifecycle(
   root: string,
   expected?: PreparedTerminalTurnExpectation,
@@ -54,6 +83,8 @@ export async function inspectTerminalLifecycle(
     afterRevision: currentRepository.revision,
     changed: expected !== undefined && expected.repositoryRevision !== currentRepository.revision,
   };
+  const remember = (inspection: TerminalLifecycleInspection) =>
+    rememberLifecycleRepositorySnapshot(inspection, checkoutRoot, currentRepository);
   const issues: TerminalLifecycleInspection["issues"] = [];
   let repositoryKnowledgeInspectionRequired = expected === undefined;
   let workspace: TerminalLifecycleInspection["workspace"] = null;
@@ -71,7 +102,7 @@ export async function inspectTerminalLifecycle(
     if (expected.workspaceBinding.executionKind === "worker") {
       const activation = await readTerminalActivationReceipts(root);
       const runtimeActivation = await inspectTerminalRuntimeActivation(root, activation);
-      return {
+      return remember({
         schemaVersion: 1,
         status: issues.length === 0 ? "current" : "action_required",
         repositoryRoot: root,
@@ -81,7 +112,7 @@ export async function inspectTerminalLifecycle(
         activationReadiness: terminalActivationReadiness(runtimeActivation),
         repositoryChange,
         workspace,
-      };
+      });
     }
   }
   try {
@@ -201,7 +232,7 @@ export async function inspectTerminalLifecycle(
   }
   const activation = await readTerminalActivationReceipts(root);
   const runtimeActivation = await inspectTerminalRuntimeActivation(root, activation);
-  return {
+  return remember({
     schemaVersion: 1,
     status: issues.length === 0 ? "current" : "action_required",
     repositoryRoot: root,
@@ -213,5 +244,5 @@ export async function inspectTerminalLifecycle(
     activationReadiness: terminalActivationReadiness(runtimeActivation),
     repositoryChange,
     workspace,
-  };
+  });
 }
