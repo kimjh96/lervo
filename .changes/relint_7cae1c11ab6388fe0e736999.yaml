@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_7cae1c11ab6388fe0e736999"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Decode what each hosted tool call acted on and showed, as a bounded tool detail in the native conversation."

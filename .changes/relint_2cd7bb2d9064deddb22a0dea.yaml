@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_2cd7bb2d9064deddb22a0dea"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Prompt hooks are answered by a context server the host resident service keeps running, so a prompt no longer starts Node and loads the hook runtime; any failure falls back to the in-process hook. About half the end-to-end time on a large repository."
