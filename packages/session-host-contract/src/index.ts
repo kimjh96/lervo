@@ -9,4 +9,5 @@ export * from "./primitives.js";
 export * from "./protocol-document.js";
 export * from "./session.js";
 export * from "./tool-detail.js";
+export * from "./workspace-title.js";
 export { validateCoreLinkRequest } from "../generated/core-link-request-validator.js";

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_127ffbfea74da1c6045030c2"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Share the workspace title rule with the ADE, so it shows the same title while a workspace starts."

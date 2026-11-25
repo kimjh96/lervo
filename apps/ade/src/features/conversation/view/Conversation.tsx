@@ -21,6 +21,8 @@ import { useShowsTurnSummaries } from "./TurnSummariesProvider";
 import { TurnSummaryLine } from "./TurnSummaryLine";
 
 const NEAR_EDGE_PX = 48;
+/** The key of the conversation's first row. */
+const FIRST_ROW = "first-row";
 /** The most frames a list stays hidden while its measured height settles. */
 const PLACE_FRAMES = 12;
 /** How close to the bottom counts as the live end, so a bounce at the bottom stays there. */
@@ -91,7 +93,10 @@ export function Conversation(props: {
     count: window.items.length,
     getScrollElement: () => scroller.current,
     estimateSize: () => 72,
-    getItemKey: (index) => window.items[index]?.itemId ?? index,
+    // The conversation's first item keeps one key, so the session's copy of the first message
+    // replaces the stand-in of work just sent in place instead of mounting its row again.
+    getItemKey: (index) =>
+      index === 0 && !window.hasEarlier ? FIRST_ROW : (window.items[index]?.itemId ?? index),
     overscan: 8,
   });
   const last = window.items.at(-1);

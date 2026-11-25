@@ -1,4 +1,4 @@
-/* The header bar of the main area (approved mockup "2a"): title, detail, and controls. */
+/* The header bar of the main area (approved mockup "2a"): title and controls. */
 .header {
   display: flex;
   flex: none;
@@ -18,13 +18,6 @@
   font-weight: var(--font-weight-medium);
   white-space: nowrap;
   text-overflow: ellipsis;
-}
-
-.detail {
-  flex: none;
-  color: var(--color-text-tertiary);
-  font-family: var(--font-family-mono);
-  font-size: var(--type-meta-size);
 }
 
 .spacer {
