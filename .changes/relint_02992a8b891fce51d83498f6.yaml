@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_02992a8b891fce51d83498f6"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "Show a message another session sent a hosted session as that session's message, live and in rebuilt conversations."
