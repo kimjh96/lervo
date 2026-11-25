@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_9716300df509e1f79091e4d3"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Paste images and screenshots into the reply card; each message bubble lists the images it carried with their size."

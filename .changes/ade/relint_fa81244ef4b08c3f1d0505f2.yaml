@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_fa81244ef4b08c3f1d0505f2"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Show messages from other agent sessions framed and named in the conversation."
