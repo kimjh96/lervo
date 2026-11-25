@@ -20,6 +20,19 @@ afterEach(async () => {
 const cachedPaths = async (cache: string) =>
   (JSON.parse(await readFile(cache, "utf8")) as { entries: [string, unknown][] }).entries.length;
 
+/** A disk that serves one read at a time, each taking 50 ms, however many a capture asks for. */
+function slowDisk(): typeof readRepositoryFile {
+  let queue: Promise<unknown> = Promise.resolve();
+  return (base, path, maximum) => {
+    const read = queue.then(async () => {
+      await new Promise((done) => setTimeout(done, 50));
+      return readRepositoryFile(base, path, maximum);
+    });
+    queue = read.catch(() => undefined);
+    return read;
+  };
+}
+
 it("keeps the hashes of a capture that ran out of time, so the cache warms across captures", async () => {
   const root = await mkdtemp(resolve(tmpdir(), "lervo-snapshot-partial-"));
   roots.push(root);
@@ -27,10 +40,7 @@ it("keeps the hashes of a capture that ran out of time, so the cache warms acros
     await writeFile(resolve(root, `file-${String(index).padStart(2, "0")}.txt`), `${index}\n`);
   const cache = resolve(root, ".lervo/state/cache/snapshot.json");
   // Each uncached read takes 50 ms, so a 1-second deadline hashes only part of 40 files per capture.
-  const slowRead: typeof readRepositoryFile = async (base, path, maximum) => {
-    await new Promise((done) => setTimeout(done, 50));
-    return readRepositoryFile(base, path, maximum);
-  };
+  const slowRead = slowDisk();
   const capture = () =>
     capturePersistentRepositorySnapshot(
       root,
@@ -66,10 +76,7 @@ it("keys partial entries by the same stat identity as a completed capture", asyn
     await writeFile(resolve(root, `file-${String(index).padStart(2, "0")}.txt`), `${index}\n`);
   const partialCache = resolve(root, ".lervo/state/cache/partial.json");
   const fullCache = resolve(root, ".lervo/state/cache/full.json");
-  const slowRead: typeof readRepositoryFile = async (base, path, maximum) => {
-    await new Promise((done) => setTimeout(done, 50));
-    return readRepositoryFile(base, path, maximum);
-  };
+  const slowRead = slowDisk();
   await expect(
     capturePersistentRepositorySnapshot(
       root,

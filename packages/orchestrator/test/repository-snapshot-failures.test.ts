@@ -46,7 +46,7 @@ describe("snapshot failure boundaries", () => {
     expect(reads).toBe(0);
   });
 
-  it("stops before reading the first file beyond the entry bound", async () => {
+  it("never reads a file beyond the entry bound", async () => {
     const root = await repository();
     for (const name of ["a", "b", "c"]) await writeFile(resolve(root, name), name);
     const paths: string[] = [];
@@ -59,7 +59,9 @@ describe("snapshot failure boundaries", () => {
     await expect(
       capture(root, { ...defaultRepositorySnapshotPolicy, maxEntries: 1 }),
     ).rejects.toMatchObject({ code: "repository_snapshot_limit_exceeded" });
-    expect(paths).toEqual(["a"]);
+    // Files are counted in walk order before any read, so the walk may stop before reading `a`,
+    // but it never reads `b` or `c`.
+    expect(paths.filter((path) => path !== "a")).toEqual([]);
   });
 
   it("rejects an expired deadline before Git or filesystem traversal", async () => {
@@ -71,7 +73,7 @@ describe("snapshot failure boundaries", () => {
     ).rejects.toMatchObject({ code: "repository_snapshot_deadline_exceeded" });
   });
 
-  it("checks the deadline after a file read and leaves later files unread", async () => {
+  it("starts no read after the deadline passes", async () => {
     const root = await repository();
     await writeFile(resolve(root, "a"), "a");
     await writeFile(resolve(root, "b"), "b");
@@ -80,10 +82,10 @@ describe("snapshot failure boundaries", () => {
     const capture = createCachedRepositorySnapshotCapture({
       readFile: async (directory, path) => {
         paths.push(path);
-        const bytes = await readRepositoryFile(directory, path);
-        // Capture resolves the policy before the read; advance its monotonic clock instead.
+        // Capture resolves the policy before the read; advance its monotonic clock instead. The
+        // other file's read is still waiting for its stat, so it must not start.
         clock.mockReturnValue(policy.deadlineMs + 1);
-        return bytes;
+        return readRepositoryFile(directory, path);
       },
     });
     const { vi } = await import("vitest");
@@ -92,7 +94,7 @@ describe("snapshot failure boundaries", () => {
       await expect(capture(root, policy)).rejects.toMatchObject({
         code: "repository_snapshot_deadline_exceeded",
       });
-      expect(paths).toEqual(["a"]);
+      expect(paths).toHaveLength(1);
     } finally {
       clock.mockRestore();
     }
