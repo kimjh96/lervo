@@ -58,6 +58,17 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
  */
 const HOOK_TIMEOUT_SECONDS = 10;
 
+/**
+ * The environment of every hosted session. Auto memory is off: Claude Code would otherwise write
+ * the owner's rules and corrections into its own memory, which every worktree of the repository
+ * shares with the owner's terminal sessions, while Lervo captures them (AGENTS.md; Lervo ADE
+ * sessions, "Provider memory"). It stays off until the Lervo memory tools reach hosted sessions
+ * (S2d). Only hosted processes get it; the owner's own settings are untouched.
+ */
+export const CLAUDE_HOSTED_ENVIRONMENT: Readonly<Record<string, string>> = {
+  CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1",
+};
+
 /** Seconds a terminal hook may take, as the project's own terminal hooks allow. */
 const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
 
@@ -120,7 +131,7 @@ export function createClaudeHostedSessionAdapter(
               ...settings,
             ]
           : [...session, ...model, ...settings, ...(instruction === null ? [] : [instruction])],
-        environment: {},
+        environment: { ...CLAUDE_HOSTED_ENVIRONMENT },
         workingDirectory: intent.workingDirectory,
         mode: intent.mode,
         initialInput: native ? instruction : null,

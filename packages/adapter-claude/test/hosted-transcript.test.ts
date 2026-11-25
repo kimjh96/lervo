@@ -116,4 +116,20 @@ describe("Claude Code transcripts", () => {
     expect(launch.environmentRemove).toContain("CLAUDE_CODE_CHILD_SESSION");
     expect(launch.environmentRemove).not.toContain("CLAUDE_CODE_USE_BEDROCK");
   });
+
+  it("turns auto memory off in hosted sessions only, so owner rules reach Lervo", () => {
+    const adapter = createClaudeHostedSessionAdapter("/opt/claude");
+    for (const mode of ["native", "cli"] as const) {
+      const launch = adapter.prepareLaunch({
+        sessionId: session.sessionId,
+        mode,
+        workingDirectory: session.workingDirectory,
+        start: { kind: "resume" },
+      });
+      expect(launch.environment).toEqual({ CLAUDE_CODE_DISABLE_AUTO_MEMORY: "1" });
+      // The launch never rewrites the owner's settings: only the session's own hooks file.
+      expect(launch.settingsFile).toBeNull();
+      expect(launch.environmentRemove).not.toContain("CLAUDE_CODE_DISABLE_AUTO_MEMORY");
+    }
+  });
 });
