@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f130ad01fadce0b7e29a13f5"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Keep the header title and the first message steady while started work's workspace arrives."

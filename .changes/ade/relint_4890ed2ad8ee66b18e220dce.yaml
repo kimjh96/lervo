@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_4890ed2ad8ee66b18e220dce"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Show sent images in the conversation and at full size, and paste images into the instruction of new work."
