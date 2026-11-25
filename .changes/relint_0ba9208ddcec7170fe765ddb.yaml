@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_0ba9208ddcec7170fe765ddb"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Report how many documents a hosted agent's knowledge search found and which, for the ADE's search line."

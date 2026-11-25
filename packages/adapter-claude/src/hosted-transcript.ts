@@ -5,7 +5,7 @@ import { createInterface } from "node:readline";
 
 import type { HostedDecodedContent, HostedTranscriptItem } from "@lervo/adapter-contract";
 
-import { claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
+import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is skipped, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -95,15 +95,16 @@ export class ClaudeTranscriptDecoder {
       this.tools.delete(id);
       const failed = block.is_error === true;
       // The structured result belongs to the line's only result.
-      const detail = claudeToolDetail(
-        call,
-        {
-          content: block.content,
-          failed,
-          structured: results === 1 ? context.structured : undefined,
-        },
-        { workingDirectory: context.workingDirectory, home: this.home },
-      );
+      const result = {
+        content: block.content,
+        failed,
+        structured: results === 1 ? context.structured : undefined,
+      };
+      const detail = claudeToolDetail(call, result, {
+        workingDirectory: context.workingDirectory,
+        home: this.home,
+      });
+      const output = claudeShellOutput(detail, result);
       items.push(
         item(
           {
@@ -112,6 +113,7 @@ export class ClaudeTranscriptDecoder {
             status: failed ? "failed" : "succeeded",
             calls: 1,
             ...(detail === undefined ? {} : { detail }),
+            ...(output === undefined ? {} : { output }),
           },
           createdAtMs,
         ),

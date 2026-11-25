@@ -22,13 +22,15 @@ export interface TranscriptPage {
   complete: boolean;
 }
 
-/** The bytes an item adds to a page: its text, or its tool detail. */
+/** The bytes an item holds in a page: its text, or its tool detail and shell output. */
 function textBytes(item: HostedTranscriptItem): number {
   const content = item.content;
   if ("text" in content) return Buffer.byteLength(content.text);
-  return content.kind === "tool_activity" && content.detail !== undefined
-    ? Buffer.byteLength(JSON.stringify(content.detail))
-    : 0;
+  if (content.kind !== "tool_activity") return 0;
+  return (
+    (content.detail === undefined ? 0 : Buffer.byteLength(JSON.stringify(content.detail))) +
+    (content.output === undefined ? 0 : Buffer.byteLength(content.output))
+  );
 }
 
 /**

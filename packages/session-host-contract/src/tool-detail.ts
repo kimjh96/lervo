@@ -50,6 +50,22 @@ export const toolDetailSchema = {
         },
         flag: { enum: ["help", "version"] },
         subject: { type: "string", minLength: 1, maxLength: 512 },
+        /** For a knowledge search: how many documents it found, and the first of them in rank order. */
+        found: { type: "integer", minimum: 0 },
+        hits: {
+          type: "array",
+          maxItems: 10,
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["title", "path", "freshness"],
+            properties: {
+              title: { type: "string", minLength: 1, maxLength: 120 },
+              path: { type: "string", minLength: 1, maxLength: 240 },
+              freshness: { enum: ["current", "stale", "unknown"] },
+            },
+          },
+        },
       },
     },
     /**

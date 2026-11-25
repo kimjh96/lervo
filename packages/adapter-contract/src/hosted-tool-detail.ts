@@ -10,6 +10,11 @@ export const MAX_TOOL_PREVIEW_LINES = 24;
 export const MAX_TOOL_PREVIEW_LINE_CHARACTERS = 240;
 /** Characters of all preview lines together at most. */
 export const MAX_TOOL_PREVIEW_CHARACTERS = 1536;
+/**
+ * Characters of a shell call's output an adapter passes to the core within its process, so the
+ * core can read what a Lervo command printed. It never reaches the session host.
+ */
+export const MAX_TOOL_OUTPUT_CHARACTERS = 65_536;
 
 const ELLIPSIS = "…";
 /** Lines a long output keeps from its start; the rest of the budget goes to its end. */
@@ -41,6 +46,12 @@ export interface HostedToolDetail {
     readonly command: string;
     readonly flag?: "help" | "version";
     readonly subject?: string;
+    readonly found?: number;
+    readonly hits?: readonly {
+      readonly title: string;
+      readonly path: string;
+      readonly freshness: "current" | "stale" | "unknown";
+    }[];
   };
   readonly preview?: HostedToolPreview;
 }

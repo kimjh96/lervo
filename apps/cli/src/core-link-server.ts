@@ -16,6 +16,7 @@ import {
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
 import { TurnUsageQueue } from "./core-link-usage-queue.js";
+import { withoutShellOutput } from "./lervo-command-detail.js";
 import type { HostedProviderSummary } from "./hosted-session-adapters.js";
 import type { HostedTurnUsageOutcome } from "./hosted-turn-usage-events.js";
 import type { RepositorySummary, WorkspaceSummary } from "./workspace-list-service.js";
@@ -356,8 +357,9 @@ export class CoreLinkServer {
     );
   }
 
+  /** The item as the session host receives it: annotated, and never with a shell output. */
   private annotated(content: HostedDecodedContent): HostedDecodedContent {
-    return this.handlers.annotate?.(content) ?? content;
+    return withoutShellOutput(this.handlers.annotate?.(content) ?? content);
   }
 }
 
