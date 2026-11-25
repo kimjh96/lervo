@@ -1,5 +1,6 @@
 // The native conversation's decoding contract (Lervo ADE sessions, "Native conversation"): what a
 // provider adapter decodes from its structured stream and reads from its own transcript.
+import type { HostedImageMark } from "./hosted-images.js";
 import type { HostedSessionAdapter } from "./hosted-session.js";
 import type { HostedToolDetail } from "./hosted-tool-detail.js";
 
@@ -8,7 +9,12 @@ import type { HostedToolDetail } from "./hosted-tool-detail.js";
  * and showed; the provider's transcript keeps the full input and output.
  */
 export type HostedDecodedContent =
-  | { readonly kind: "user_message" | "agent_message" | "question"; readonly text: string }
+  | {
+      readonly kind: "user_message" | "agent_message" | "question";
+      readonly text: string;
+      /** What the conversation keeps of the images a user message carried. */
+      readonly images?: readonly HostedImageMark[];
+    }
   | {
       readonly kind: "tool_activity";
       readonly name: string;

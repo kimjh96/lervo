@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_9b040a8f553db612e82e29b3"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Carry images in a hosted Claude session's messages: the core link takes them for decoder.send, advertises decoder.images, and Claude transcripts read back image marks."

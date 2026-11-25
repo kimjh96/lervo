@@ -18,12 +18,14 @@ import {
   coreLinkRequestSchemas,
   coreLinkResponseSchema,
   coreLinkResponseSchemas,
+} from "./core-link.js";
+import {
   decodedContentSchema,
   decodedContentSchemas,
   decodedEventSchema,
   decodedEventSchemas,
-} from "./core-link.js";
-import { conversationModeSchema } from "./session.js";
+} from "./core-link-decoded.js";
+import { imageMarkSchema, sentImageSchema } from "./image.js";
 import {
   clientMessageSchema,
   clientMessageSchemas,
@@ -37,6 +39,7 @@ import {
   parametersSchema,
   sequenceSchema,
 } from "./primitives.js";
+import { conversationModeSchema } from "./session.js";
 
 type JsonValue = string | number | boolean | null | readonly JsonValue[] | JsonObject;
 type JsonObject = { readonly [key: string]: JsonValue };
@@ -48,6 +51,8 @@ const primitives: readonly (readonly [string, object])[] = [
   ["Code", codeSchema],
   ["Parameters", parametersSchema],
   ["ConversationMode", conversationModeSchema],
+  ["SentImage", sentImageSchema],
+  ["ImageMark", imageMarkSchema],
 ];
 
 /** The session-host protocol's named definitions, in the order the document lists them. */

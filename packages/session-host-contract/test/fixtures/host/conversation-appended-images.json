@@ -1,0 +1,24 @@
+{
+  "kind": "conversation.appended",
+  "sessionId": "ses_1",
+  "sequence": 5,
+  "items": [
+    {
+      "kind": "user_message",
+      "itemId": "itm_9",
+      "createdAtMs": 1795356090000,
+      "state": "complete",
+      "text": "이 화면에서 뭐가 잘못됐어?",
+      "images": [
+        {
+          "mediaType": "image/png",
+          "width": 1568,
+          "height": 980
+        },
+        {
+          "mediaType": "image/jpeg"
+        }
+      ]
+    }
+  ]
+}

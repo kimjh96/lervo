@@ -17,6 +17,7 @@ pub(crate) fn from_core(core_code: &str, stage: Option<String>) -> Failure {
         "provider_login_unavailable" => FailureCode::ProviderLoginUnavailable,
         "conversation_mode_unsupported" => FailureCode::ConversationModeUnsupported,
         "interrupt_unsupported" => FailureCode::InterruptUnsupported,
+        "images_unsupported" => FailureCode::ImagesUnsupported,
         _ => FailureCode::ApplicationFailed,
     };
     Failure {

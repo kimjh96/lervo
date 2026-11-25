@@ -1,4 +1,4 @@
-import type { ConversationItem, HostMessage } from "@lervo/session-host-contract";
+import type { ConversationItem, HostMessage, SentImage } from "@lervo/session-host-contract";
 
 import { RequestFailure, type SessionHost } from "../../../ports";
 import { DeltaBuffer } from "./deltas";
@@ -82,8 +82,13 @@ export class ConversationController implements ConversationSource {
   }
 
   /** Sends a reply; it resolves once the provider received it and rejects with the failure. */
-  async send(text: string): Promise<void> {
-    await this.client.request({ kind: "session.send", sessionId: this.sessionId, text });
+  async send(text: string, images: readonly SentImage[] = []): Promise<void> {
+    await this.client.request({
+      kind: "session.send",
+      sessionId: this.sessionId,
+      text,
+      ...(images.length === 0 ? {} : { images: [...images] }),
+    });
   }
 
   async interrupt(): Promise<void> {

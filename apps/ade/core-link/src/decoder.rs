@@ -2,15 +2,15 @@
 
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
-use lervo_session_core::ports::{Decoded, Failure, FailureCode, StreamDecoder};
+use lervo_session_core::ports::{Decoded, Failure, FailureCode, SentImage, StreamDecoder};
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{Content, Input};
 use lervo_session_protocol::core_link::CoreLinkResponse;
 use serde_json::{Value, json};
 
 use crate::{
-    CoreLink, DECODE_DEADLINE, DECODER_INTERRUPT, DECODER_SESSION, OUTPUT_CHUNK_BYTES, events,
-    failures,
+    CoreLink, DECODE_DEADLINE, DECODER_IMAGES, DECODER_INTERRUPT, DECODER_SESSION,
+    OUTPUT_CHUNK_BYTES, events, failures,
 };
 
 /// One native session's decoder in the resident process. It opens there on first use and again
@@ -175,8 +175,9 @@ fn now_ms() -> u64 {
         })
 }
 
-impl StreamDecoder for LinkDecoder {
-    async fn send(&mut self, text: &str) -> (Vec<u8>, Vec<Decoded>) {
+impl LinkDecoder {
+    /// The bytes for the user's message, asked of the resident process, with what to show.
+    async fn message(&mut self, request: Value) -> (Vec<u8>, Vec<Decoded>) {
         // Between turns the decoder holds no partial state, so one opened before its process
         // advertised `decoder.session` opens again, named, and this turn's usage is recorded.
         if self.open
@@ -187,7 +188,6 @@ impl StreamDecoder for LinkDecoder {
         {
             self.open = false;
         }
-        let request = json!({"kind": "decoder.send", "decoderId": self.decoder_id, "text": text});
         let answer = self.decode(request).await;
         if let Ok((decoded, _)) = &answer {
             self.track(decoded, None);
@@ -203,6 +203,35 @@ impl StreamDecoder for LinkDecoder {
             Ok((decoded, None)) => (Vec::new(), decoded),
             Err(failure) => (Vec::new(), vec![unavailable(&failure)]),
         }
+    }
+}
+
+impl StreamDecoder for LinkDecoder {
+    async fn send(&mut self, text: &str) -> (Vec<u8>, Vec<Decoded>) {
+        let request = json!({"kind": "decoder.send", "decoderId": self.decoder_id, "text": text});
+        self.message(request).await
+    }
+
+    /// Only a resident process that advertised `decoder.images` hears images.
+    async fn send_with_images(
+        &mut self,
+        text: &str,
+        images: &[SentImage],
+    ) -> Result<(Vec<u8>, Vec<Decoded>), Failure> {
+        if self.core.advertiser_of(DECODER_IMAGES).is_none() {
+            return Err(Failure::new(FailureCode::ImagesUnsupported));
+        }
+        let images: Vec<Value> = images
+            .iter()
+            .map(|image| json!({"mediaType": image.media_type, "data": image.data}))
+            .collect();
+        let request = json!({
+            "kind": "decoder.send",
+            "decoderId": self.decoder_id,
+            "text": text,
+            "images": images,
+        });
+        Ok(self.message(request).await)
     }
 
     /// Asks the resident process that advertised `decoder.interrupt` for the bytes that stop

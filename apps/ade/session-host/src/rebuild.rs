@@ -64,7 +64,10 @@ mod tests {
 
     fn said(text: &str, at: u64) -> Input {
         Input::Item {
-            content: Content::UserMessage(text.to_owned()),
+            content: Content::UserMessage {
+                text: text.to_owned(),
+                images: None,
+            },
             created_at_ms: at,
         }
     }

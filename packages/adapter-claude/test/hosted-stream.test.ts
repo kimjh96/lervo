@@ -245,4 +245,48 @@ describe("Claude Code stream decoding", () => {
       },
     ]);
   });
+
+  it("sends images after the text in one user line and shows what the conversation keeps", () => {
+    const decoder = new ClaudeHostedStreamDecoder(() => 7);
+    const png = Buffer.from(
+      "89504e470d0a1a0a0000000d494844520000062000000 3d40806000000".replaceAll(" ", ""),
+      "hex",
+    ).toString("base64");
+    const sent = decoder.sendWithImages("What is wrong here?", [
+      { mediaType: "image/png", data: png },
+    ]);
+    expect(JSON.parse(new TextDecoder().decode(sent.input))).toEqual({
+      type: "user",
+      message: {
+        role: "user",
+        content: [
+          { type: "text", text: "What is wrong here?" },
+          { type: "image", source: { type: "base64", media_type: "image/png", data: png } },
+        ],
+      },
+    });
+    expect(sent.events[0]).toEqual({
+      kind: "item",
+      content: {
+        kind: "user_message",
+        text: "What is wrong here?",
+        images: [{ mediaType: "image/png", width: 1568, height: 980 }],
+      },
+      createdAtMs: 7,
+    });
+    // Images alone carry Claude Code's placeholders, so prompt hooks read a prompt.
+    const alone = decoder.sendWithImages("", [
+      { mediaType: "image/png", data: png },
+      { mediaType: "image/png", data: png },
+    ]);
+    expect(JSON.parse(new TextDecoder().decode(alone.input)).message.content[0]).toEqual({
+      type: "text",
+      text: "[Image #1] [Image #2]",
+    });
+    expect(alone.events[0]).toMatchObject({ content: { kind: "user_message", text: "" } });
+    // Text alone keeps its plain line.
+    expect(
+      JSON.parse(new TextDecoder().decode(decoder.send("Thanks").input)).message.content,
+    ).toEqual([{ type: "text", text: "Thanks" }]);
+  });
 });

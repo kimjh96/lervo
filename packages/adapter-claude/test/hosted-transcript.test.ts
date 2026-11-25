@@ -100,6 +100,42 @@ const lines = [
     timestamp: at(12),
     message: { content: "<local-command-stdout>Compacted </local-command-stdout>" },
   },
+  // A message with an image keeps the image's mark, never its bytes.
+  {
+    type: "user",
+    timestamp: at(13),
+    message: {
+      content: [
+        { type: "text", text: "이 화면 봐줘" },
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: "image/png",
+            data: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAAfFcSJ",
+          },
+        },
+      ],
+    },
+  },
+  // Images sent alone carry Claude Code's placeholders as their text.
+  {
+    type: "user",
+    timestamp: at(14),
+    message: {
+      content: [
+        { type: "text", text: "[Image #1]" },
+        {
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: "image/png",
+            data: "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAAfFcSJ",
+          },
+        },
+      ],
+    },
+  },
   {
     type: "user",
     timestamp: at(10),
@@ -172,6 +208,22 @@ describe("Claude Code transcripts", () => {
           createdAtMs: Date.parse(at(11)),
         },
         { content: { kind: "user_message", text: "/compact" }, createdAtMs: Date.parse(at(12)) },
+        {
+          content: {
+            kind: "user_message",
+            text: "이 화면 봐줘",
+            images: [{ mediaType: "image/png", width: 2, height: 1 }],
+          },
+          createdAtMs: Date.parse(at(13)),
+        },
+        {
+          content: {
+            kind: "user_message",
+            text: "",
+            images: [{ mediaType: "image/png", width: 2, height: 1 }],
+          },
+          createdAtMs: Date.parse(at(14)),
+        },
       ]);
     } finally {
       await rm(configuration, { recursive: true, force: true });

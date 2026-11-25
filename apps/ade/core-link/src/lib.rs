@@ -46,6 +46,9 @@ const DECODER_SESSION: &str = "decoder.session";
 /// `decoder.interrupt`, which stops a native session's running turn. An older resident process
 /// ends the link on a request it cannot validate, so only one that advertised it hears it.
 const DECODER_INTERRUPT: &str = "decoder.interrupt";
+/// `decoder.send`'s `images`, which carry pictures in the user's message. An older resident
+/// process rejects the request, so only one that advertised it hears it.
+const DECODER_IMAGES: &str = "decoder.images";
 
 /// The commands a resident process named in its last workspace list.
 struct Advertised {

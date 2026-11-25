@@ -85,6 +85,116 @@
       "value": "Writing a reply"
     }
   ],
+  "conversation.images.attached": [
+    {
+      "type": 0,
+      "value": "Image "
+    },
+    {
+      "type": 1,
+      "value": "number"
+    },
+    {
+      "type": 0,
+      "value": " · "
+    },
+    {
+      "type": 1,
+      "value": "width"
+    },
+    {
+      "type": 0,
+      "value": " × "
+    },
+    {
+      "type": 1,
+      "value": "height"
+    }
+  ],
+  "conversation.images.preparing": [
+    {
+      "type": 0,
+      "value": "Preparing the image"
+    }
+  ],
+  "conversation.images.remove": [
+    {
+      "type": 0,
+      "value": "Remove image "
+    },
+    {
+      "type": 1,
+      "value": "number"
+    }
+  ],
+  "conversation.images.sent": [
+    {
+      "type": 5,
+      "value": "sized",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Image · "
+            },
+            {
+              "type": 1,
+              "value": "width"
+            },
+            {
+              "type": 0,
+              "value": " × "
+            },
+            {
+              "type": 1,
+              "value": "height"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Image"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "conversation.images.tooLarge": [
+    {
+      "type": 0,
+      "value": "The pasted image stays too large to send, even scaled down."
+    }
+  ],
+  "conversation.images.tooMany": [
+    {
+      "type": 0,
+      "value": "A reply takes up to "
+    },
+    {
+      "type": 1,
+      "value": "count"
+    },
+    {
+      "type": 0,
+      "value": " images."
+    }
+  ],
+  "conversation.images.unreadable": [
+    {
+      "type": 0,
+      "value": "The pasted image could not be read."
+    }
+  ],
+  "conversation.images.unsupported": [
+    {
+      "type": 0,
+      "value": "This session cannot take images yet. Update Lervo to send them."
+    }
+  ],
   "conversation.jumpToLatest": [
     {
       "type": 0,

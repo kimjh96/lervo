@@ -2,10 +2,12 @@ import type { TurnSummary } from "@lervo/session-host-contract";
 import { type ReactNode, useLayoutEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import type { PreparedImage } from "../../../ports";
 import { InlineAlert } from "../../../ui/InlineAlert";
 import { Waiting } from "../../../ui/Waiting";
 import { WorkingLine } from "../../../ui/WorkingLine";
 import { Presence } from "../../../ui/Presence";
+import { sentImages } from "../model/images";
 import type { ConversationSource } from "../model/source";
 import { useConversationStore } from "../model/store";
 import { Composer } from "./Composer";
@@ -34,7 +36,9 @@ export function ConversationPane(props: {
   /** A Lervo notice under the first message, such as what the work started without. */
   notice?: ReactNode;
   /** Sends a reply; the source's own send when absent. */
-  onSend?: ((text: string) => Promise<void>) | undefined;
+  onSend?: ((text: string, images: readonly PreparedImage[]) => Promise<void>) | undefined;
+  /** Whether the session host and the core carry images in a reply. */
+  acceptsImages?: boolean | undefined;
   /** When a reply was sent while the agent worked, so it waits for the agent's next step. */
   queuedSince?: number | null | undefined;
   /** Asks the core what it recorded about a turn; without it, no turn summary shows. */
@@ -84,7 +88,8 @@ export function ConversationPane(props: {
                 </div>
                 <Composer
                   draftKey={props.draftKey}
-                  onSend={props.onSend ?? ((text) => source.send(text))}
+                  onSend={props.onSend ?? ((text, images) => source.send(text, sentImages(images)))}
+                  acceptsImages={props.acceptsImages}
                   onStop={props.onStop}
                   waiting={props.waiting}
                 />

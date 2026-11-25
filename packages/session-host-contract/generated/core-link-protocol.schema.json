@@ -54,6 +54,60 @@
         "cli"
       ]
     },
+    "SentImage": {
+      "title": "SentImage",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mediaType",
+        "data"
+      ],
+      "properties": {
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp"
+          ]
+        },
+        "data": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 240000
+        }
+      }
+    },
+    "ImageMark": {
+      "title": "ImageMark",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mediaType"
+      ],
+      "properties": {
+        "mediaType": {
+          "type": "string",
+          "enum": [
+            "image/png",
+            "image/jpeg",
+            "image/gif",
+            "image/webp"
+          ]
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
     "CoreLinkRequest": {
       "title": "CoreLinkRequest",
       "oneOf": [
@@ -897,6 +951,14 @@
         "text": {
           "type": "string",
           "maxLength": 262144
+        },
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/SentImage"
+          }
         }
       }
     },
@@ -1249,6 +1311,14 @@
         "text": {
           "type": "string",
           "maxLength": 262144
+        },
+        "images": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": {
+            "$ref": "#/$defs/ImageMark"
+          }
         }
       }
     },

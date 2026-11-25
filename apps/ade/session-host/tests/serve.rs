@@ -48,7 +48,10 @@ struct LineDecoder {
 impl StreamDecoder for LineDecoder {
     async fn send(&mut self, text: &str) -> (Vec<u8>, Vec<Decoded>) {
         let shown = Decoded::Conversation(Input::Item {
-            content: Content::UserMessage(text.to_owned()),
+            content: Content::UserMessage {
+                text: text.to_owned(),
+                images: None,
+            },
             created_at_ms: 1,
         });
         (format!("{text}\n").into_bytes(), vec![shown])
@@ -215,7 +218,10 @@ impl Core for FakeCore {
             return Ok(TranscriptPage::empty());
         }
         let items = [
-            Content::UserMessage("from the terminal".to_owned()),
+            Content::UserMessage {
+                text: "from the terminal".to_owned(),
+                images: None,
+            },
             Content::AgentMessage("answered there".to_owned()),
         ];
         let at = usize::try_from(offset).unwrap();
@@ -444,6 +450,52 @@ fn texts(items: &[ConversationItem]) -> Vec<String> {
             other => format!("other:{other:?}"),
         })
         .collect()
+}
+
+/// The code of the `request.failed` that answers `request`, skipping other messages.
+async fn failure_for(client: &mut Client, request: &str) -> Value {
+    loop {
+        if let HostMessage::RequestFailedMessage(failed) = client.next_message().await
+            && failed.request_id.as_str() == request
+        {
+            return serde_json::to_value(failed.code).unwrap();
+        }
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn refuses_an_empty_message_and_images_a_decoder_cannot_carry() {
+    let directory = tempfile::tempdir().unwrap();
+    let (layout, stop, serving) = started(directory.path().join("host")).await;
+    let mut client = Client::connect(&layout).await;
+    client
+        .send(json!({"kind": "session.open", "requestId": "req_1", "workspaceId": "wks_native"}))
+        .await;
+    let HostMessage::SessionOpenedMessage(_) = client.next_message().await else {
+        panic!("expected session.opened")
+    };
+    client
+        .send(json!({"kind": "session.send", "requestId": "req_2", "sessionId": "ses_native", "text": ""}))
+        .await;
+    assert_eq!(
+        failure_for(&mut client, "req_2").await,
+        json!("message_empty")
+    );
+    client
+        .send(json!({
+            "kind": "session.send",
+            "requestId": "req_3",
+            "sessionId": "ses_native",
+            "text": "See this",
+            "images": [{"mediaType": "image/png", "data": "iVBORw0KGgo="}],
+        }))
+        .await;
+    assert_eq!(
+        failure_for(&mut client, "req_3").await,
+        json!("images_unsupported")
+    );
+    stop.send(()).unwrap();
+    serving.await.unwrap().unwrap();
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

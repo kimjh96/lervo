@@ -2,6 +2,7 @@ import { createContext, type ReactNode, useContext } from "react";
 
 import type { Clipboard } from "./clipboard";
 import type { Drafts } from "./drafts";
+import type { Images } from "./images";
 import type { ListCache } from "./lists";
 import type { ApplicationCommands, HostReplacement, SessionHost } from "./session-host";
 
@@ -13,6 +14,7 @@ export interface Adapters {
   readonly drafts: Drafts;
   readonly lists: ListCache;
   readonly clipboard: Clipboard;
+  readonly images: Images;
 }
 
 const AdaptersContext = createContext<Adapters | null>(null);
@@ -46,6 +48,11 @@ export function useApplicationCommands(): ApplicationCommands {
 /** The system clipboard. */
 export function useClipboard(): Clipboard {
   return useAdapters().clipboard;
+}
+
+/** Prepares pasted images for a message. */
+export function useImages(): Images {
+  return useAdapters().images;
 }
 
 /** Where unsent text survives reloads. */

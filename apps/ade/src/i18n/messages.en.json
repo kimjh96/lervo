@@ -51,6 +51,38 @@
     "defaultMessage": "Writing a reply",
     "description": "The working line while the agent streams a reply."
   },
+  "conversation.images.attached": {
+    "defaultMessage": "Image {number} · {width} × {height}",
+    "description": "A pasted image waiting above the reply card for the next reply: its place in the reply and the size it goes at."
+  },
+  "conversation.images.preparing": {
+    "defaultMessage": "Preparing the image",
+    "description": "A pasted image is being scaled down to send; it shows above the reply card until the image is ready."
+  },
+  "conversation.images.remove": {
+    "defaultMessage": "Remove image {number}",
+    "description": "The accessible name of the button that takes a pasted image out of the next reply."
+  },
+  "conversation.images.sent": {
+    "defaultMessage": "{sized, select, yes {Image · {width} × {height}} other {Image}}",
+    "description": "In the user's message bubble, one line per image it carried: the image's size when known. The conversation keeps no image bytes."
+  },
+  "conversation.images.tooLarge": {
+    "defaultMessage": "The pasted image stays too large to send, even scaled down.",
+    "description": "Under the reply card when a pasted image does not fit the message's bound at any size Lervo tries."
+  },
+  "conversation.images.tooMany": {
+    "defaultMessage": "A reply takes up to {count} images.",
+    "description": "Under the reply card when more images were pasted than one reply carries; {count} is the limit."
+  },
+  "conversation.images.unreadable": {
+    "defaultMessage": "The pasted image could not be read.",
+    "description": "Under the reply card when the system could not read a pasted image."
+  },
+  "conversation.images.unsupported": {
+    "defaultMessage": "This session cannot take images yet. Update Lervo to send them.",
+    "description": "Under the reply card when an image was pasted but the session host or the Lervo core does not carry images."
+  },
   "conversation.jumpToLatest": {
     "defaultMessage": "Jump to latest",
     "description": "Returns the conversation to its newest messages."
@@ -835,6 +867,10 @@
     "defaultMessage": "You stopped the agent's turn. Send a message to continue.",
     "description": "The person stopped the agent's turn; the conversation goes on."
   },
+  "notice.unknown": {
+    "defaultMessage": "Lervo notice: {code}",
+    "description": "A Lervo notice without a catalog message."
+  },
   "notice.workspace_base.base_unresolved": {
     "defaultMessage": "This work started from the checked-out commit, because the repository names no default branch.",
     "description": "A Lervo notice above the working line after a start: the core found no default branch."
@@ -858,10 +894,6 @@
   "notice.workspace_base.unknown": {
     "defaultMessage": "This work started with the notice {code}.",
     "description": "A Lervo notice above the working line after a start, for a notice code the interface does not know."
-  },
-  "notice.unknown": {
-    "defaultMessage": "Lervo notice: {code}",
-    "description": "A Lervo notice without a catalog message."
   },
   "notifications.finished": {
     "defaultMessage": "Finished its turn",
