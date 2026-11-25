@@ -83,6 +83,14 @@ The ADE runs each provider CLI under that provider's terms. For Claude Code, Ant
 
 The Codex CLI ships in a distributed build only after OpenAI's terms are checked against the same conditions. A provider adapter that cannot meet its provider's terms is not admitted (ADR-0536).
 
+## Provider memory
+
+Hosted Claude sessions run with Claude Code's auto memory off: the Claude adapter adds `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1` to every hosted launch's environment.
+
+- **Why.** In the ADE 0.5.0 canary on 2026-11-25, an ADE agent given an owner rule wrote it into Claude Code's auto memory as well as `AGENTS.md`. Claude Code shares one memory directory across every worktree of a repository, so that note would reach the owner's terminal sessions outside Lervo. Owner rules and corrections belong to Lervo, which captures them from the conversation (AGENTS.md); provider-private memory must not hold them. Turning auto memory off enforces that rule for the sessions Lervo launches.
+- **Scope.** Only hosted processes get the variable. The launch writes no user or project settings, so the owner's terminal sessions keep whatever they set. The setting lives in one place, `CLAUDE_HOSTED_ENVIRONMENT` in the Claude adapter.
+- **Exit.** It stays off until S2d's Lervo memory tools reach hosted sessions. Then hosted agents remember through Lervo, and this section records whether provider memory returns.
+
 ## Hosted observations
 
 Hosted sessions record their own observations. They are never E1–E4 and never satisfy a managed context or write gate (invariant 3). Hosting removes one of ADR-0197's four reasons, because Lervo starts the provider. The other three reasons still hold.

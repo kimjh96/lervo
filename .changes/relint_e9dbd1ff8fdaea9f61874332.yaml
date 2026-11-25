@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e9dbd1ff8fdaea9f61874332"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Hosted Claude sessions in the ADE run with Claude Code's auto memory off, so owner rules reach Lervo instead of a memory every worktree shares; the owner's own settings are unchanged."
