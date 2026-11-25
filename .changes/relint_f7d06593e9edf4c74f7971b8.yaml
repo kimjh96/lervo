@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_f7d06593e9edf4c74f7971b8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Never drop a prompt over hook input Lervo cannot read: empty prompts are accepted, long prompts are cut to 64 KiB, and rejected input exits 0 with a recorded failure."

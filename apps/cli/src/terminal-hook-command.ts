@@ -257,8 +257,11 @@ async function executeTerminalHookCommand(
         policyVersion: TERMINAL_OBSERVATION_POLICY_VERSION,
       });
     }).catch(() => undefined);
+    // ADR-0635: an input Lervo cannot read never blocks the owner's prompt or forces a Stop to
+    // continue, which a nonzero exit does in both providers. The failure is recorded above.
     io.stderr(`Lervo terminal integration failed (${failureReason}).\n`);
-    return 2;
+    io.stdout("{}\n");
+    return 0;
   }
 }
 

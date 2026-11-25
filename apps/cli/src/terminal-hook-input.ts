@@ -1,6 +1,18 @@
 import type { ParsedSessionStartInput, ParsedTerminalHookInput } from "./terminal-hook-contract.js";
 
 const SESSION_START_SOURCES = new Set(["startup", "resume", "clear", "compact"]);
+const PROMPT_MAXIMUM_LENGTH = 64 * 1024;
+
+/**
+ * ADR-0635: a prompt is never refused for its text. An image-only message has empty text, and a
+ * long paste is cut to the bound the hook reads, never split inside a surrogate pair.
+ */
+function boundedPrompt(prompt: string): string {
+  if (prompt.length <= PROMPT_MAXIMUM_LENGTH) return prompt;
+  const cut = prompt.slice(0, PROMPT_MAXIMUM_LENGTH);
+  const last = cut.charCodeAt(cut.length - 1);
+  return last >= 0xd800 && last <= 0xdbff ? cut.slice(0, -1) : cut;
+}
 
 /** A prompt or Stop hook input; a `SessionStart` input is refused here. */
 export function parseTerminalHookInput(value: string): ParsedTerminalHookInput {
@@ -57,13 +69,8 @@ export function parseTerminalHookIngress(
       parsed.turn_id.length > 512)
   )
     throw new Error("The provider turn coordinate is invalid.");
-  if (
-    parsed.hook_event_name === "UserPromptSubmit" &&
-    (typeof parsed.prompt !== "string" ||
-      parsed.prompt.trim() === "" ||
-      parsed.prompt.length > 64 * 1024)
-  )
-    throw new Error("The prompt is missing or exceeds the bounded prompt limit.");
+  if (parsed.hook_event_name === "UserPromptSubmit" && typeof parsed.prompt !== "string")
+    throw new Error("The prompt is missing.");
   if (
     parsed.hook_event_name === "Stop" &&
     parsed.stop_hook_active !== undefined &&
@@ -87,7 +94,7 @@ export function parseTerminalHookIngress(
     !parsed.transcript_path.includes("\0")
       ? { transcriptPath: parsed.transcript_path }
       : {}),
-    ...(typeof parsed.prompt === "string" ? { prompt: parsed.prompt } : {}),
+    ...(typeof parsed.prompt === "string" ? { prompt: boundedPrompt(parsed.prompt) } : {}),
     ...(parsed.last_assistant_message === null || typeof parsed.last_assistant_message === "string"
       ? { lastAssistantMessage: parsed.last_assistant_message }
       : {}),
