@@ -5,6 +5,7 @@ import {
   type HostedLaunchIntent,
   type HostedSessionAdapter,
   type HostedSessionCapabilities,
+  type HostedTerminalHooks,
   type HostedTranscriptReading,
 } from "@lervo/adapter-contract";
 
@@ -57,13 +58,27 @@ export const claudeHostedCapabilities: HostedSessionCapabilities = {
  */
 const HOOK_TIMEOUT_SECONDS = 10;
 
+/** Seconds a terminal hook may take, as the project's own terminal hooks allow. */
+const TERMINAL_HOOK_TIMEOUT_SECONDS = 30;
+
 /**
- * The session-scoped settings: Lervo's handler for the session's start and end. Claude Code adds
- * a `SessionStart` handler's output to the model's context, so the handler prints nothing.
+ * The session-scoped settings: Lervo's handler for the session's start and end, which prints
+ * nothing because Claude Code adds a `SessionStart` handler's output to the model's context. With
+ * `terminal`, Lervo's terminal hooks join for the events the project's settings lack, and their
+ * output is the Lervo context the model should receive.
  */
-export function claudeSessionSettings(command: string): string {
-  const handler = [{ hooks: [{ type: "command", command, timeout: HOOK_TIMEOUT_SECONDS }] }];
-  return `${JSON.stringify({ hooks: { SessionStart: handler, SessionEnd: handler } }, null, 2)}\n`;
+export function claudeSessionSettings(command: string, terminal?: HostedTerminalHooks): string {
+  const recording = { hooks: [{ type: "command", command, timeout: HOOK_TIMEOUT_SECONDS }] };
+  const hooks: Record<string, unknown[]> = { SessionStart: [recording], SessionEnd: [recording] };
+  if (terminal !== undefined) {
+    const handler = {
+      hooks: [
+        { type: "command", command: terminal.command, timeout: TERMINAL_HOOK_TIMEOUT_SECONDS },
+      ],
+    };
+    for (const event of terminal.events) hooks[event] = [...(hooks[event] ?? []), handler];
+  }
+  return `${JSON.stringify({ hooks }, null, 2)}\n`;
 }
 
 export function createClaudeHostedSessionAdapter(
@@ -113,7 +128,7 @@ export function createClaudeHostedSessionAdapter(
             ? null
             : {
                 path: intent.hooks.settingsPath,
-                content: claudeSessionSettings(intent.hooks.command),
+                content: claudeSessionSettings(intent.hooks.command, intent.hooks.terminal),
               },
       };
     },

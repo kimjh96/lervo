@@ -6,6 +6,7 @@ import {
   type HostedLaunch,
   type HostedSessionAdapter,
   type HostedSessionHooks,
+  type HostedTerminalHooks,
 } from "@lervo/adapter-contract";
 
 import { CommandFailure, errorCode } from "./command-error-output.js";
@@ -59,6 +60,11 @@ export interface WorkspaceStartPorts {
    * `fallback` is the request's `baseCommit`, for a repository that names no default branch.
    */
   chooseBase?(fallback: string): Promise<WorkspaceBase>;
+  /**
+   * Lervo's terminal hooks for the events the new worktree's project settings lack, read once the
+   * worktree exists; absent, the launch carries only the request's hooks.
+   */
+  terminalHooks?(workspacePath: string): Promise<HostedTerminalHooks | undefined>;
   provisionWorkspace(placement: WorkspacePlacement): Promise<void>;
   /** Replays the placement's effect commits on its new branch; absent where none can exist. */
   replayEffects?(placement: WorkspacePlacement): Promise<EffectReplay>;
@@ -247,7 +253,15 @@ export async function startWorkspace(
       objective: objectiveFor(request.instruction),
     });
     stage = "launch";
-    const launch = ports.adapter.prepareLaunch(intent);
+    const terminal =
+      intent.hooks === undefined || ports.terminalHooks === undefined
+        ? undefined
+        : await ports.terminalHooks(placement.workspacePath);
+    const launch = ports.adapter.prepareLaunch(
+      terminal === undefined || intent.hooks === undefined
+        ? intent
+        : { ...intent, hooks: { ...intent.hooks, terminal } },
+    );
     if (launch.settingsFile !== null) await ports.writeSettings(launch.settingsFile);
     const record: HostedLaunchRecord = {
       schemaVersion: 1,

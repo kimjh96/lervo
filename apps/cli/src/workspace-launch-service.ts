@@ -37,6 +37,7 @@ import {
   writeHostedSessionSettings,
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
+import { hostedTerminalHooks } from "./hosted-terminal-hooks.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
@@ -124,6 +125,8 @@ export async function startWorkspaceFromInstruction(
       // New work starts from the fetched upstream tip, never the owner's possibly stale checkout.
       chooseBase: (fallback) =>
         chooseWorkspaceBase(gitWorkspaceBase(repository.repositoryRoot), fallback),
+      // Every hosted session is a Lervo session, even in a worktree without project hooks.
+      terminalHooks: (workspacePath) => hostedTerminalHooks(adapter, workspacePath),
       ...gitWorkspaceEffects(),
       startWorkstream: startWorkstreamIn,
       recordLaunch,
@@ -175,7 +178,13 @@ export async function openWorkspace(
   const mode = requestedMode ?? previous.conversationMode;
   const resume = adapter.capabilities.resume;
   const sessionId = resume ? previous.sessionId : randomUUID();
-  const hooks = hostedSessionHooks(adapter, sessionId);
+  const sessionHooks = hostedSessionHooks(adapter, sessionId);
+  const terminal =
+    sessionHooks === undefined ? undefined : await hostedTerminalHooks(adapter, workingDirectory);
+  const hooks =
+    sessionHooks === undefined || terminal === undefined
+      ? sessionHooks
+      : { ...sessionHooks, terminal };
   const launch = adapter.prepareLaunch({
     sessionId,
     mode,

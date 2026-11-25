@@ -40,6 +40,8 @@ export type {
 export {
   TERMINAL_HOOK_RUNTIME_MAXIMUM_BYTES,
   TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES,
+  RUNTIME_PATH as TERMINAL_HOOK_RUNTIME_PATH,
+  terminalIntegrationEvents,
 } from "./terminal-integration-contract.js";
 export {
   terminalHookCommand,

@@ -292,7 +292,16 @@ describe("lervo workspace start and open", () => {
     const hooks = JSON.parse(await readFile(settings, "utf8")) as {
       hooks: Record<string, { hooks: { command: string }[] }[]>;
     };
-    expect(Object.keys(hooks.hooks)).toEqual(["SessionStart", "SessionEnd"]);
+    // The fixture commits no project hooks, so Lervo's terminal hooks join for every event.
+    expect(Object.keys(hooks.hooks)).toEqual([
+      "SessionStart",
+      "SessionEnd",
+      "UserPromptSubmit",
+      "Stop",
+    ]);
+    expect(hooks.hooks.UserPromptSubmit?.[0]?.hooks[0]?.command).toBe(
+      "lervo terminal hook --provider claude --contract 2",
+    );
     expect(hooks.hooks.SessionStart?.[0]?.hooks[0]?.command).toBe(
       "lervo workspace hook --provider claude",
     );

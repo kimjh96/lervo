@@ -233,6 +233,26 @@ describe("workspace start", () => {
   });
 });
 
+describe("a worktree without project hooks", () => {
+  it("launches with Lervo's terminal hooks for the events its project lacks", async () => {
+    const fake = ports();
+    const asked: string[] = [];
+    await startWorkspace(request, {
+      ...fake.value,
+      async terminalHooks(workspacePath) {
+        asked.push(workspacePath);
+        return { command: "lervo terminal hook --provider claude --contract 2", events: ["Stop"] };
+      },
+    });
+    expect(asked).toHaveLength(1);
+    expect(asked[0]?.endsWith("/fix-the-flaky-login-test-1a2b3c")).toBe(true);
+    const settings = JSON.parse(fake.settings[0]?.content ?? "{}") as {
+      hooks: Record<string, unknown[]>;
+    };
+    expect(Object.keys(settings.hooks)).toEqual(["SessionStart", "SessionEnd", "Stop"]);
+  });
+});
+
 describe("the base's notices", () => {
   it("all fit the session-host contract, which stays open to notices a later CLI adds", () => {
     const [string] = workspaceStartBaseSchema.properties.notice.anyOf;

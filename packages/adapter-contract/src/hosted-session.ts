@@ -56,6 +56,18 @@ export interface HostedSessionHooks {
   readonly settingsPath: string;
   /** The command line the provider runs at each session event, such as the session's start. */
   readonly command: string;
+  /**
+   * Lervo's terminal hooks for the provider events the worktree's project settings lack, so
+   * every hosted session is a Lervo session (ADR-0632). Events the project already hooks are
+   * left out, so no event runs Lervo twice. An adapter without these events ignores them.
+   */
+  readonly terminal?: HostedTerminalHooks;
+}
+
+/** The terminal hook command and the provider events it answers, such as `UserPromptSubmit`. */
+export interface HostedTerminalHooks {
+  readonly command: string;
+  readonly events: readonly string[];
 }
 
 /** What Lervo asks for. The session ID is a lowercase UUID that Lervo generated. */
