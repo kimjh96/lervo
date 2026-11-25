@@ -7,6 +7,7 @@ import {
   parametersSchema,
   sequenceSchema,
 } from "./primitives.js";
+import { toolDetailSchema } from "./tool-detail.js";
 
 const itemStateSchema = { enum: ["streaming", "complete"] } as const;
 const conversationTextSchema = { type: "string", maxLength: 262144 } as const;
@@ -31,7 +32,10 @@ export const userMessageItemSchema = textItemSchema("UserMessageItem", "user_mes
 export const agentMessageItemSchema = textItemSchema("AgentMessageItem", "agent_message");
 export const questionItemSchema = textItemSchema("QuestionItem", "question");
 
-/** Tool activity carries the tool name and counts, never tool inputs or outputs. */
+/**
+ * One tool call: its name and status, and a bounded detail of what it acted on and showed. The
+ * full input and output stay in the provider's transcript.
+ */
 export const toolActivityItemSchema = {
   title: "ToolActivityItem",
   type: "object",
@@ -50,6 +54,7 @@ export const toolActivityItemSchema = {
         name: { type: "string", minLength: 1, maxLength: 64 },
         status: { enum: ["running", "succeeded", "failed"] },
         calls: { type: "integer", minimum: 1 },
+        detail: toolDetailSchema,
       },
     },
   },

@@ -56,6 +56,19 @@ describe("workspace transcripts in pages", () => {
     const transcripts = new WorkspaceTranscripts(fake.open);
     expect((await transcripts.read("wsp_1", 0, 500)).items).toHaveLength(1);
     expect((await transcripts.read("wsp_1", 1, 500)).items).toHaveLength(2);
+    // A tool line's detail counts toward the bound as its text does.
+    const tool = (at: number): HostedTranscriptItem => ({
+      content: {
+        kind: "tool_activity",
+        name: "Bash",
+        status: "succeeded",
+        calls: 1,
+        detail: { subject: { kind: "command", text: large } },
+      },
+      createdAtMs: at,
+    });
+    const tools = new WorkspaceTranscripts(source([tool(1), tool(2), tool(3)]).open);
+    expect((await tools.read("wsp_1", 0, 500)).items).toHaveLength(1);
     const none = new WorkspaceTranscripts(async () => null);
     expect(await none.read("wsp_1", 0, 500)).toEqual({ items: [], complete: true });
   });

@@ -5,7 +5,9 @@ use std::path::PathBuf;
 
 use lervo_session_core::ports::{ConversationMode, Decoded, Launch};
 use lervo_session_core::status::SessionEvent;
-use lervo_session_core::transcript::{Content, Input, NoticeValue, ToolStatus};
+use lervo_session_core::transcript::{
+    Content, Input, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
+};
 use lervo_session_protocol::core_link::{
     ConversationMode as WireMode, CoreLaunch, DecodedContent, DecodedEvent, DecodedStatusEvent,
     ParametersValue, ToolActivityContentStatus, TranscriptPageResponseItemsItem,
@@ -44,6 +46,11 @@ fn content(content: DecodedContent) -> Content {
                 ToolActivityContentStatus::Failed => ToolStatus::Failed,
             },
             calls: item.calls.get(),
+            // A detail that cannot be written, or is too large, is dropped; the line stays.
+            detail: item
+                .detail
+                .and_then(|detail| serde_json::to_string(&detail).ok())
+                .filter(|json| json.len() <= MAX_TOOL_DETAIL_BYTES),
         },
         DecodedContent::LervoNoticeContent(item) => Content::LervoNotice {
             code: item.code.to_string(),
@@ -100,5 +107,54 @@ pub fn transcript_item(item: TranscriptPageResponseItemsItem) -> Input {
     Input::Item {
         content: content(item.content),
         created_at_ms: item.created_at_ms.0,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use lervo_session_core::transcript::{Content, Input};
+    use lervo_session_protocol::core_link::DecodedEvent;
+    use serde_json::json;
+
+    use super::decoded;
+    use lervo_session_core::ports::Decoded;
+
+    fn detail_of(detail: serde_json::Value) -> Option<String> {
+        let event: DecodedEvent = serde_json::from_value(json!({
+            "kind": "item",
+            "createdAtMs": 1,
+            "content": {
+                "kind": "tool_activity", "name": "Bash", "status": "succeeded", "calls": 1,
+                "detail": detail,
+            },
+        }))
+        .unwrap();
+        let Decoded::Conversation(Input::Item {
+            content: Content::ToolActivity { detail, .. },
+            ..
+        }) = decoded(event)
+        else {
+            panic!("expected a tool item");
+        };
+        detail
+    }
+
+    #[test]
+    fn keeps_a_tool_detail_as_json_and_drops_one_beyond_its_bound() {
+        let kept = detail_of(json!({ "subject": { "kind": "command", "text": "pnpm test" } }));
+        assert_eq!(
+            serde_json::from_str::<serde_json::Value>(&kept.unwrap()).unwrap()["subject"]["text"],
+            "pnpm test"
+        );
+        // 24 lines of 240 three-byte characters exceed `MAX_TOOL_DETAIL_BYTES`, which the
+        // adapters keep far within.
+        let line = "가".repeat(240);
+        let large = detail_of(json!({
+            "subject": { "kind": "command", "text": "cat wide.log" },
+            "preview": {
+                "format": "output", "lines": vec![line; 24], "omittedLines": 0, "omittedAt": 24,
+            },
+        }));
+        assert!(large.is_none());
     }
 }

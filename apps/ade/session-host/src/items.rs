@@ -74,6 +74,7 @@ fn convert(item: &Item, id: &str) -> Option<ConversationItem> {
             name,
             status,
             calls,
+            detail,
         } => ConversationItem::from(ToolActivityItem {
             created_at_ms,
             item_id,
@@ -85,6 +86,10 @@ fn convert(item: &Item, id: &str) -> Option<ConversationItem> {
             },
             tool: ToolActivityItemTool {
                 calls: std::num::NonZeroU64::new(*calls)?,
+                // A detail outside the protocol is dropped; the line still shows the call.
+                detail: detail
+                    .as_deref()
+                    .and_then(|json| serde_json::from_str(json).ok()),
                 name: ToolActivityItemToolName::try_from(name.as_str()).ok()?,
                 status: match status {
                     ToolStatus::Running => ToolActivityItemToolStatus::Running,
@@ -164,6 +169,7 @@ mod tests {
             name: "Edit".to_owned(),
             status: ToolStatus::Succeeded,
             calls: 3,
+            detail: None,
         };
         assert!(matches!(
             to_wire(&item(tool, false)),
@@ -172,11 +178,42 @@ mod tests {
     }
 
     #[test]
+    fn sends_a_tool_detail_within_the_protocol_and_drops_one_outside_it() {
+        let tool = |detail: &str| Content::ToolActivity {
+            name: "Edit".to_owned(),
+            status: ToolStatus::Succeeded,
+            calls: 1,
+            detail: Some(detail.to_owned()),
+        };
+        let valid = r#"{"subject":{"kind":"path","text":"src/login.ts"},"counts":{"added":1,"removed":1},"preview":{"format":"diff","lines":["-a","+b"],"omittedLines":0,"omittedAt":2}}"#;
+        let Some(ConversationItem::ToolActivityItem(sent)) = to_wire(&item(tool(valid), false))
+        else {
+            panic!("expected a tool line");
+        };
+        let detail = serde_json::to_value(sent.tool.detail).unwrap();
+        assert_eq!(detail["subject"]["text"], "src/login.ts");
+        assert_eq!(detail["preview"]["lines"][1], "+b");
+        for invalid in [
+            r#"{"subject":{"kind":"path","text":""}}"#,
+            r#"{"counts":{}}"#,
+            "not json",
+        ] {
+            let Some(ConversationItem::ToolActivityItem(sent)) =
+                to_wire(&item(tool(invalid), false))
+            else {
+                panic!("expected a tool line");
+            };
+            assert!(sent.tool.detail.is_none(), "{invalid}");
+        }
+    }
+
+    #[test]
     fn replaces_an_item_outside_the_protocol_limits_with_a_notice() {
         let unnamed = Content::ToolActivity {
             name: String::new(),
             status: ToolStatus::Running,
             calls: 1,
+            detail: None,
         };
         let Some(ConversationItem::LervoNoticeItem(notice)) = to_wire(&item(unnamed, false)) else {
             panic!("expected the replacement notice");

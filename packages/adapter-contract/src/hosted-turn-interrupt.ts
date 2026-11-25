@@ -1,6 +1,6 @@
 // Stopping a hosted native conversation's running turn while keeping its session: the provider
 // ends the turn where it is and waits for the next message.
-import type { HostedDecodedEvent } from "./hosted-session.js";
+import type { HostedDecodedEvent } from "./hosted-conversation.js";
 
 /** A stream decoder that can stop the provider's running turn. */
 export interface HostedTurnInterrupting {

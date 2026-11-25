@@ -5,7 +5,7 @@ import { ClaudeHostedStreamDecoder, createClaudeHostedSessionAdapter } from "../
 // The shape Claude Code 2.x prints with --verbose --output-format stream-json
 // --include-partial-messages, reduced to the fields the decoder reads.
 const toolTurn = [
-  { type: "system", subtype: "init", session_id: "s" },
+  { type: "system", subtype: "init", session_id: "s", cwd: "/work/repo" },
   { type: "stream_event", event: { type: "message_start" } },
   {
     type: "stream_event",
@@ -27,7 +27,12 @@ const toolTurn = [
     type: "assistant",
     message: {
       content: [
-        { type: "tool_use", id: "toolu_1", name: "Read", input: { file_path: "/secret/a.txt" } },
+        {
+          type: "tool_use",
+          id: "toolu_1",
+          name: "Read",
+          input: { file_path: "/work/repo/notes/a.txt" },
+        },
       ],
     },
     parent_tool_use_id: null,
@@ -85,7 +90,7 @@ function bytes(lines: readonly object[]): Uint8Array {
 }
 
 describe("Claude Code stream decoding", () => {
-  it("turns a streamed turn into items, deltas, and status without tool inputs or outputs", () => {
+  it("turns a streamed turn into items, deltas, and status, with tool paths in the workspace", () => {
     const decoder = new ClaudeHostedStreamDecoder(() => 7);
     const sent = decoder.send("Read a.txt");
     expect(JSON.parse(new TextDecoder().decode(sent.input))).toEqual({
@@ -100,7 +105,13 @@ describe("Claude Code stream decoding", () => {
     expect(events).toEqual([
       {
         kind: "item",
-        content: { kind: "tool_activity", name: "Read", status: "succeeded", calls: 1 },
+        content: {
+          kind: "tool_activity",
+          name: "Read",
+          status: "succeeded",
+          calls: 1,
+          detail: { subject: { kind: "path", text: "notes/a.txt" }, counts: { lines: 1 } },
+        },
         createdAtMs: 7,
       },
       { kind: "start", content: { kind: "agent_message", text: "" }, createdAtMs: 7 },
@@ -109,7 +120,8 @@ describe("Claude Code stream decoding", () => {
       { kind: "finish" },
       { kind: "status", event: "turn_finished" },
     ]);
-    expect(JSON.stringify(events)).not.toContain("secret");
+    // A read shows what it read, not the file's text, and never the workspace's absolute path.
+    expect(JSON.stringify(events)).not.toContain("/work/repo");
     expect(JSON.stringify(events)).not.toContain("banana split");
   });
 

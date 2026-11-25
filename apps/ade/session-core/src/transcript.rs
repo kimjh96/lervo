@@ -9,6 +9,9 @@ use std::collections::BTreeMap;
 pub const MAX_ITEM_TEXT_BYTES: usize = 256 * 1024;
 /// Bytes of text in one delta. The protocol allows 65,536 characters.
 pub const MAX_DELTA_BYTES: usize = 64 * 1024;
+/// Bytes of one tool call's serialized detail. Adapters keep a detail far smaller; a larger one
+/// is dropped, so a page of tool lines stays well within one frame.
+pub const MAX_TOOL_DETAIL_BYTES: usize = 6 * 1024;
 
 /// A tool call's status.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,7 +29,8 @@ pub enum NoticeValue {
     Flag(bool),
 }
 
-/// What an item holds. Tool activity never holds tool inputs or outputs.
+/// What an item holds. Tool activity holds its bounded detail as the protocol's JSON, which the
+/// session host checks against the protocol when it sends the item.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Content {
     UserMessage(String),
@@ -36,6 +40,7 @@ pub enum Content {
         name: String,
         status: ToolStatus,
         calls: u64,
+        detail: Option<String>,
     },
     LervoNotice {
         code: String,

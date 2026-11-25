@@ -4,7 +4,7 @@ import { hasTranscriptReader, type HostedTranscriptItem } from "@lervo/adapter-c
 
 import { locateWorkspaceSession } from "./workspace-launch-service.js";
 
-/** Bytes of item text in one page at most, so a page stays far below a core-link line's bound. */
+/** Bytes of item text and tool detail in one page at most, far below a core-link line's bound. */
 export const MAX_PAGE_TEXT_BYTES = 4 * 1024 * 1024;
 /** Readers kept between pages; a session host reads one transcript at a time. */
 const MAX_CURSORS = 4;
@@ -22,8 +22,13 @@ export interface TranscriptPage {
   complete: boolean;
 }
 
+/** The bytes an item adds to a page: its text, or its tool detail. */
 function textBytes(item: HostedTranscriptItem): number {
-  return "text" in item.content ? Buffer.byteLength(item.content.text) : 0;
+  const content = item.content;
+  if ("text" in content) return Buffer.byteLength(content.text);
+  return content.kind === "tool_activity" && content.detail !== undefined
+    ? Buffer.byteLength(JSON.stringify(content.detail))
+    : 0;
 }
 
 /**

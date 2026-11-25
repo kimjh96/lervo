@@ -8,6 +8,9 @@ import {
   usageModelName,
 } from "@lervo/adapter-contract";
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
+import { homedir } from "node:os";
+
+import { claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
 
 /** A line longer than this is dropped up to its end, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -38,12 +41,13 @@ function blocks(line: Line): Line[] {
  *
  * - Text blocks stream: `content_block_start` starts an agent message, `text_delta` extends it,
  *   and `content_block_stop` completes it.
- * - A tool call becomes one tool-activity item when its result arrives, succeeded or failed. Tool
- *   inputs and outputs never leave the decoder.
+ * - A tool call becomes one tool-activity item when its result arrives, succeeded or failed, with
+ *   a bounded detail of what it acted on and showed. Paths show relative to the session's working
+ *   directory, which the `system` `init` line names.
  * - `result` ends the turn. A turn the user stopped adds the `turn_stopped` notice, and any other
  *   turn that did not succeed adds the `provider_turn_failed` notice.
  *   Its per-model usage since the previous result is kept for `takeUsage`, never shown.
- * - Subagent messages, thinking, hooks, and system lines are not part of the conversation.
+ * - Subagent messages, thinking, hooks, and other system lines are not part of the conversation.
  */
 export class ClaudeHostedStreamDecoder
   implements HostedStreamDecoder, HostedUsageReporting, HostedTurnInterrupting
@@ -56,7 +60,10 @@ export class ClaudeHostedStreamDecoder
   private streamingBlock: number | null = null;
   /** Whether the current assistant message streamed its text, so the full copy is a repeat. */
   private streamedText = false;
-  private readonly toolNames = new Map<string, string>();
+  /** Calls whose result has not arrived, by tool use ID. */
+  private readonly tools = new Map<string, ClaudeToolCall>();
+  /** The session's working directory, from the `system` `init` line. */
+  private workingDirectory: string | undefined;
   /** Whether the user asked to stop the running turn, so its end says it was stopped. */
   private interrupting = false;
   private interruptions = 0;
@@ -65,7 +72,10 @@ export class ClaudeHostedStreamDecoder
   /** The model of the turn's last assistant message, for a result without per-model usage. */
   private lastModel: string | undefined;
 
-  constructor(private readonly now: () => number = Date.now) {}
+  constructor(
+    private readonly now: () => number = Date.now,
+    private readonly home: string | undefined = homedir(),
+  ) {}
 
   send(value: string): { input: Uint8Array; events: HostedDecodedEvent[] } {
     const line = JSON.stringify({
@@ -122,6 +132,10 @@ export class ClaudeHostedStreamDecoder
         return this.toolResults(line);
       case "result":
         return this.result(line);
+      case "system":
+        if (line.subtype === "init")
+          this.workingDirectory = text(line.cwd) ?? this.workingDirectory;
+        return [];
       default:
         return [];
     }
@@ -145,7 +159,9 @@ export class ClaudeHostedStreamDecoder
         if (block?.type === "tool_use") {
           const id = text(block.id);
           const name = text(block.name);
-          if (id !== undefined && name !== undefined) this.toolNames.set(id, name);
+          // The input streams in; the full assistant message that follows carries it whole.
+          if (id !== undefined && name !== undefined && !this.tools.has(id))
+            this.tools.set(id, { name, input: {} });
           return [];
         }
         if (block?.type !== "text" || index === null) return [];
@@ -175,7 +191,8 @@ export class ClaudeHostedStreamDecoder
       if (block.type === "tool_use") {
         const id = text(block.id);
         const name = text(block.name);
-        if (id !== undefined && name !== undefined) this.toolNames.set(id, name);
+        if (id !== undefined && name !== undefined)
+          this.tools.set(id, { name, input: block.input });
       }
       const value = text(block.text);
       if (block.type === "text" && !this.streamedText && value)
@@ -186,18 +203,30 @@ export class ClaudeHostedStreamDecoder
 
   private toolResults(line: Line): HostedDecodedEvent[] {
     const events: HostedDecodedEvent[] = [];
-    for (const block of blocks(line)) {
-      if (block.type !== "tool_result") continue;
+    const results = blocks(line).filter((block) => block.type === "tool_result");
+    for (const block of results) {
       const id = text(block.tool_use_id);
-      const name = id === undefined ? undefined : this.toolNames.get(id);
-      if (id === undefined || name === undefined) continue;
-      this.toolNames.delete(id);
+      const call = id === undefined ? undefined : this.tools.get(id);
+      if (id === undefined || call === undefined) continue;
+      this.tools.delete(id);
+      const failed = block.is_error === true;
+      // The structured result belongs to the line's only result.
+      const detail = claudeToolDetail(
+        call,
+        {
+          content: block.content,
+          failed,
+          structured: results.length === 1 ? line.tool_use_result : undefined,
+        },
+        { workingDirectory: this.workingDirectory, home: this.home },
+      );
       events.push(
         this.item({
           kind: "tool_activity",
-          name: name.slice(0, MAX_TOOL_NAME_CHARACTERS),
-          status: block.is_error === true ? "failed" : "succeeded",
+          name: call.name.slice(0, MAX_TOOL_NAME_CHARACTERS),
+          status: failed ? "failed" : "succeeded",
           calls: 1,
+          ...(detail === undefined ? {} : { detail }),
         }),
       );
     }
@@ -229,7 +258,7 @@ export class ClaudeHostedStreamDecoder
         }),
       );
     this.inTurn = false;
-    this.toolNames.clear();
+    this.tools.clear();
     this.usage.push(...turnUsage(line, this.lastModel));
     events.push({ kind: "status", event: "turn_finished" });
     return events;
