@@ -73,6 +73,16 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
 - A `runtime_mismatch` that persists means the host still runs the previous build and did not restart.
 - Socket stage outcomes are recorded with the existing stage observations, and the host records the client's `elapsed` with its own, so `lervo terminal budget` reports end-to-end time, how often prompts fell back, and why.
 
+## Slice 0 results
+
+Measured on the Mac on 2026-11-25 (load average 7 to 9), in one long-lived process against this repository:
+
+- Today's snapshot capture, which reads and rewrites a 2.3 MB stat cache on disk, took 365 to 493 milliseconds.
+- An in-memory snapshot took 3.8 seconds the first time. Warm, it still took 184 to 376 milliseconds, because it stats every file.
+- Opening the project storage took 2 to 17 milliseconds, and the current workstream read on open storage took 37 to 44 milliseconds.
+
+A long-lived process therefore saves the Node startup (about 0.25 seconds), the stat cache input and output (about 0.1 seconds), and repeated module loading. The stat walk itself remains. The 200 millisecond target needs a snapshot the host keeps current from repository watch events without walking every file, and slice 2 must settle how a request knows that no change is still pending in the watch.
+
 ## Slices
 
 0. **Measure the gain.** In one long-lived process on the Mac and WSL hosts, time repeated prompt preparation against this repository, cold and warm, and with an in-memory repository snapshot that a watch keeps current. Record which stages remain. Build the channel only if the warm path is well under the in-process path.
