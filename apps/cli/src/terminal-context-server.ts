@@ -276,8 +276,8 @@ export function startTerminalContextServer(input: {
     }
   };
   const ready = (async () => {
-    // Only the lock holder's service starts a server, and one whose host died exits when its
-    // parent disconnects, so a socket left here belongs to no live server.
+    // Only the follower that holds the host lock starts a server, and one whose follower died
+    // exits when its parent disconnects, so a socket left here belongs to no live server.
     await rm(input.socketPath, { force: true });
     await new Promise<void>((resolveListen, reject) => {
       server.once("error", reject);

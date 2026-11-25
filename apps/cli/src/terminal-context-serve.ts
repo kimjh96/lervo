@@ -112,11 +112,6 @@ export async function runServedTerminalPrompt(
 }
 
 /**
- * Serves prompts until the process is stopped. The host supervises it: it starts one while it
- * holds the host resident lock, restarts it when it exits, and replaces it when the installed
- * runtime changes.
- */
-/**
  * The server's counts since it started, kept beside its socket so a canary can tell whether
  * prompts were served, and why any were declined. It holds counts and times only.
  */
@@ -150,6 +145,11 @@ function contextStats(runtime: string) {
   };
 }
 
+/**
+ * Serves prompts until the process is stopped. The host's release follower supervises it: it
+ * starts one while it holds the follower lock, restarts it when it exits, and replaces it when the
+ * installed runtime changes.
+ */
 export async function serveTerminalContext(entry: string): Promise<void> {
   // The runtime lives at `<store>/<runtime directory>/runtime-v2.mjs`. Listening on a name
   // relative to the store keeps the socket path within the platform's limit (about a hundred

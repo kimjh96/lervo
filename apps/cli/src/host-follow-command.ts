@@ -41,6 +41,11 @@ import {
 import type { HostUpgradeDependencies } from "./host-upgrade.js";
 import type { HostUpgradeLayout } from "./host-upgrade-layout.js";
 import { keepServiceLogBounded } from "./service-log-bound.js";
+import { terminalHookRuntimeStorePath } from "@lervo/repository-knowledge";
+import {
+  superviseTerminalContextServer,
+  type TerminalContextSupervisor,
+} from "./terminal-context-supervisor.js";
 import type { CliIo } from "./types.js";
 
 /** Test seam for the follower's process, service, and timing effects. */
@@ -55,6 +60,8 @@ export interface HostFollowOverrides {
   log?: (line: string) => void;
   /** Receives the PATH a service configuration restores; the default sets `process.env.PATH`. */
   restoreSearchPath?: (searchPath: string) => void;
+  /** Test seam: starts supervising the context server in the given runtime store. */
+  superviseContextServer?: (store: string) => TerminalContextSupervisor;
 }
 
 export interface HostFollowContext {
@@ -181,10 +188,37 @@ export async function runHostFollowCommand(
     context.platform === "darwin" && follow.log === undefined
       ? keepServiceLogBounded(hostFollowLogPath(context.homeDirectory))
       : () => undefined;
+  // Resident context socket: every host runs one follower service, so the service (the run with
+  // `--config`) supervises the host's context server, whatever serves the host's repositories.
+  const contextServer =
+    config === null || context.platform === "win32"
+      ? null
+      : (follow.superviseContextServer ?? ((store) => superviseTerminalContextServer({ store })))(
+          terminalHookRuntimeStorePath(process.env, context.platform, context.homeDirectory),
+        );
+  const ensureContextServer = () => void contextServer?.ensure().catch(() => undefined);
   try {
     return await runFollowLoop({
       layout,
-      runCycle: () => runFollowCycle(cycle),
+      // Only the lock holder serves: a second follower that loses the lock must never start a
+      // server, which would take the socket from the one already serving.
+      whileLocked: () => {
+        ensureContextServer();
+        // A runtime installed outside a follower cycle is picked up within a minute.
+        const watchRuntime = setInterval(ensureContextServer, 60_000);
+        watchRuntime.unref();
+        return async () => {
+          clearInterval(watchRuntime);
+          await contextServer?.stop();
+        };
+      },
+      runCycle: async () => {
+        try {
+          return await runFollowCycle(cycle);
+        } finally {
+          ensureContextServer();
+        }
+      },
       random: follow.random ?? Math.random,
       sleep: follow.sleep ?? abortableSleep,
       log: follow.log ?? ((line) => io.stdout(`${line}\n`)),

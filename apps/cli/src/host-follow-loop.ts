@@ -35,6 +35,12 @@ export function withFollowLock<T>(
 export interface HostFollowLoopDependencies {
   layout: HostUpgradeLayout;
   runCycle: () => Promise<HostFollowCycleResult>;
+  /**
+   * Runs once the follower holds the host lock and before the first cycle, so work that must have
+   * one owner per host never starts in a follower that loses the lock. Returns its cleanup, which
+   * runs before the lock is released.
+   */
+  whileLocked?: () => () => Promise<void>;
   random: () => number;
   /** Resolves after `milliseconds`, or as soon as `signal` aborts. */
   sleep: (milliseconds: number, signal: AbortSignal) => Promise<void>;
@@ -69,40 +75,49 @@ export function abortableSleep(milliseconds: number, signal: AbortSignal): Promi
  */
 export async function runFollowLoop(dependencies: HostFollowLoopDependencies): Promise<number> {
   return withFollowLock(dependencies.layout, async () => {
-    let failedCycles = 0;
-    while (!dependencies.signal.aborted) {
-      let backoff = 0;
-      try {
-        const result = await dependencies.runCycle();
-        failedCycles = 0;
-        backoff = result.backoff;
-        dependencies.log(
-          JSON.stringify({
-            at: dependencies.now().toISOString(),
-            outcome: result.outcome,
-            tag: result.tag,
-            code: result.code,
-            activationId: result.activationId,
-            repositories: result.pass?.repositories.length ?? null,
-            ...(result.precededBy === null ? {} : { precededBy: result.precededBy }),
-          }),
-        );
-        if (result.handover) return HOST_FOLLOW_HANDOVER_EXIT_CODE;
-      } catch (error) {
-        failedCycles += 1;
-        dependencies.log(
-          JSON.stringify({
-            at: dependencies.now().toISOString(),
-            outcome: "cycle_failed",
-            code: errorCode(error),
-          }),
-        );
-      }
-      await dependencies.sleep(
-        followPollDelay(Math.max(backoff, failedCycles), dependencies.random),
-        dependencies.signal,
+    const release = dependencies.whileLocked?.();
+    try {
+      return await followUntilStopped(dependencies);
+    } finally {
+      await release?.();
+    }
+  });
+}
+
+async function followUntilStopped(dependencies: HostFollowLoopDependencies): Promise<number> {
+  let failedCycles = 0;
+  while (!dependencies.signal.aborted) {
+    let backoff = 0;
+    try {
+      const result = await dependencies.runCycle();
+      failedCycles = 0;
+      backoff = result.backoff;
+      dependencies.log(
+        JSON.stringify({
+          at: dependencies.now().toISOString(),
+          outcome: result.outcome,
+          tag: result.tag,
+          code: result.code,
+          activationId: result.activationId,
+          repositories: result.pass?.repositories.length ?? null,
+          ...(result.precededBy === null ? {} : { precededBy: result.precededBy }),
+        }),
+      );
+      if (result.handover) return HOST_FOLLOW_HANDOVER_EXIT_CODE;
+    } catch (error) {
+      failedCycles += 1;
+      dependencies.log(
+        JSON.stringify({
+          at: dependencies.now().toISOString(),
+          outcome: "cycle_failed",
+          code: errorCode(error),
+        }),
       );
     }
-    return 0;
-  });
+    await dependencies.sleep(
+      followPollDelay(Math.max(backoff, failedCycles), dependencies.random),
+      dependencies.signal,
+    );
+  }
+  return 0;
 }

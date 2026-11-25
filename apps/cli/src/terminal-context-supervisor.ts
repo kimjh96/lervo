@@ -1,6 +1,6 @@
-// The host resident supervises the context server (resident-context-socket.md): it runs one while
-// it holds the host resident lock, restarts it when it exits, and replaces it when the installed
-// terminal hook runtime changes, so a server never outlives an upgrade.
+// The host's release follower supervises the context server (resident-context-socket.md): it runs
+// one per host, restarts it when it exits, and replaces it when the installed terminal hook runtime
+// changes, so a server never outlives an upgrade.
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
@@ -124,22 +124,32 @@ export function superviseTerminalContextServer(input: {
     });
   };
 
+  const check = async () => {
+    if (stopped || process.platform === "win32") return;
+    const runtime = await currentTerminalContextRuntime(input.store);
+    if (child !== null && runtime?.contentHash === child.runtime.contentHash) return;
+    await terminate();
+    if (runtime === null || stopped || restart !== null) return;
+    if (!supported.has(runtime.contentHash))
+      supported.set(runtime.contentHash, await supports(runtime));
+    if (supported.get(runtime.contentHash) !== true || stopped) return;
+    launch(runtime);
+  };
+  // Checks run one at a time: the follower's timer, its cycles, and a restart can overlap, and two
+  // checks that both saw no server would start two.
+  let checking: Promise<void> = Promise.resolve();
+
   const supervisor: TerminalContextSupervisor = {
-    async ensure() {
-      if (stopped || process.platform === "win32") return;
-      const runtime = await currentTerminalContextRuntime(input.store);
-      if (child !== null && runtime?.contentHash === child.runtime.contentHash) return;
-      await terminate();
-      if (runtime === null || stopped || restart !== null) return;
-      if (!supported.has(runtime.contentHash))
-        supported.set(runtime.contentHash, await supports(runtime));
-      if (supported.get(runtime.contentHash) !== true) return;
-      launch(runtime);
+    ensure() {
+      const next = checking.then(check);
+      checking = next.catch(() => undefined);
+      return next;
     },
     async stop() {
       stopped = true;
       if (restart !== null) clearTimeout(restart);
       restart = null;
+      await checking;
       await terminate();
     },
   };

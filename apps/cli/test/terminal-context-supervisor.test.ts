@@ -74,6 +74,38 @@ it("runs one server from the store's runtime and replaces it when the runtime ch
   expect(started[1]!.child.exitCode).toBe(0);
 });
 
+it("starts one server when checks overlap", async () => {
+  const store = await storeWith("a");
+  const { start, started } = fakeStart();
+  const supervisor = superviseTerminalContextServer({ store, start, supports: async () => true });
+  await Promise.all([supervisor.ensure(), supervisor.ensure(), supervisor.ensure()]);
+  expect(started).toHaveLength(1);
+  await supervisor.stop();
+});
+
+it("starts no server once stopped, even from a check already running", async () => {
+  const store = await storeWith("a");
+  const { start, started } = fakeStart();
+  let answer!: (supported: boolean) => void;
+  let asked!: () => void;
+  const askedSupport = new Promise<void>((done) => (asked = done));
+  const supervisor = superviseTerminalContextServer({
+    store,
+    start,
+    // The check is inside its last await when the follower stops.
+    supports: () => {
+      asked();
+      return new Promise<boolean>((done) => (answer = done));
+    },
+  });
+  const running = supervisor.ensure();
+  await askedSupport;
+  const stopping = supervisor.stop();
+  answer(true);
+  await Promise.all([running, stopping]);
+  expect(started).toHaveLength(0);
+});
+
 it("restarts a server that exits, backing off while it keeps failing", async () => {
   vi.useFakeTimers();
   const store = await storeWith("a");
