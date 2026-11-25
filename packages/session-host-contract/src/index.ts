@@ -3,6 +3,7 @@ export * from "./application-results.js";
 export * from "./conversation.js";
 export * from "./core-link.js";
 export * from "./handshake.js";
+export * from "./lervo-commands.js";
 export * from "./messages.js";
 export * from "./primitives.js";
 export * from "./protocol-document.js";

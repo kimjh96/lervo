@@ -101,4 +101,5 @@ Every request carries a positive integer `id`, and the resident process answers 
 ## Privacy
 
 - Conversation text crosses only the pipes between the session host and its child. Neither side logs message bodies.
+- Before the session host receives a decoded item or a transcript page, the core adds the Lervo command a shell call ran, from its own command catalog (session-host protocol, "Tool detail").
 - Decoded tool activity carries the tool's name, status, and call count, and a bounded [tool detail](ade-session-host-protocol.md#tool-detail), never a full input or output. The session host drops a detail beyond 6 KiB and keeps the line. Lervo's event store receives no tool input or output from a decoder.

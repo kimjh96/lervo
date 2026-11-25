@@ -1,4 +1,4 @@
-import type { ConversationItem } from "@lervo/session-host-contract";
+import { type ConversationItem, lervoCommandIds } from "@lervo/session-host-contract";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { IntlProvider } from "react-intl";
@@ -94,6 +94,70 @@ describe("tool lines", () => {
     );
     expect(failed).toContain("failed");
     expect(failed).toContain("pnpm test");
+  });
+
+  it("shows a Lervo command as what Lervo did, opening to the exact command", () => {
+    const call = (text: string, lervo: object, status: "succeeded" | "failed" = "succeeded") =>
+      tool({
+        name: "Bash",
+        status,
+        detail: { subject: { kind: "command", text }, lervo } as ToolItem["tool"]["detail"],
+      });
+    const search = call('lervo knowledge query "password limit login"', {
+      command: "knowledge query",
+      subject: "password limit login",
+    });
+    expect(render(search)).toContain("Searched for “password limit login”");
+    expect(render(search)).not.toContain("Bash");
+    const update = call("lervo workstream update --apply-now", { command: "workstream update" });
+    expect(render(update)).toContain("Updated the workstream");
+    expect(render(update)).toContain('aria-expanded="false"');
+    expect(render(update, ["i1"])).toContain("lervo workstream update --apply-now");
+    expect(
+      render(call("lervo workstream update", { command: "workstream update" }, "failed")),
+    ).toMatch(/lervo workstream update<\/span> failed/u);
+    expect(
+      render(
+        call("lervo workstream update --help", { command: "workstream update", flag: "help" }),
+      ),
+    ).toMatch(/Looked up the help for <span[^>]*>lervo workstream update/u);
+    expect(render(call("lervo --version", { command: "", flag: "version" }))).toContain(
+      "Checked Lervo&#x27;s version",
+    );
+    expect(render(call("lervo garden prune", { command: "garden" }))).toMatch(
+      /Ran <span[^>]*>lervo garden/u,
+    );
+  });
+
+  it("has a sentence for every Lervo command", () => {
+    const missing: string[] = [];
+    for (const command of lervoCommandIds) {
+      const html = renderToStaticMarkup(
+        createElement(
+          IntlProvider,
+          {
+            locale: "en",
+            messages: messagesFor("en"),
+            onError: () => missing.push(command),
+          },
+          createElement(
+            ToolLinesProvider,
+            { conversation: {} },
+            createElement(ToolLine, {
+              item: tool({
+                name: "Bash",
+                detail: {
+                  subject: { kind: "command", text: `lervo ${command}` },
+                  lervo: { command },
+                },
+              }),
+            }),
+          ),
+        ),
+      );
+      expect(html, command).not.toContain("lervo.command.");
+    }
+    expect(missing).toEqual([]);
   });
 
   it("shows a line stored before details existed by its tool and status", () => {

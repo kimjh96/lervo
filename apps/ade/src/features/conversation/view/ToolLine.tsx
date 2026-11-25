@@ -3,6 +3,7 @@ import { Fragment } from "react";
 import { FormattedMessage } from "react-intl";
 
 import { ChevronDownIcon } from "../../../ui/icons";
+import { LervoSentence } from "./LervoSentence";
 import { toolCountMessages, toolMessages } from "./messages";
 import styles from "./ToolLine.module.css";
 import { useToolLine } from "./ToolLinesProvider";
@@ -81,10 +82,16 @@ function Omitted({ count }: { count: number }) {
   );
 }
 
-function PreviewLines({ preview }: { preview: Preview }) {
+/** What an opened line shows: the Lervo command it ran, if any, then its output or change. */
+function PreviewLines(props: { command: string | undefined; preview: Preview | undefined }) {
+  const preview = props.preview ?? { format: "output", lines: [], omittedLines: 0, omittedAt: 0 };
   const omitted = preview.omittedLines > 0;
   return (
     <div className={styles.preview}>
+      {/* motion: Disclosure: tool activity, details */}
+      {props.command === undefined ? null : (
+        <div className={styles.commandLine}>{props.command}</div>
+      )}
       {preview.lines.map((line, index) => (
         // Lines have no identity beyond their order within one immutable item.
         <Fragment key={index}>
@@ -122,14 +129,19 @@ export function ToolLine({ item }: { item: ToolItem }) {
         />
       </p>
     );
-  const summary = (
-    <>
-      <span className={styles.name}>{tool.name}</span>
-      <Subject subject={detail.subject} />
-      <Result tool={tool} />
-    </>
-  );
-  if (detail.preview === undefined)
+  const lervo = detail.lervo;
+  // A Lervo command reads as what Lervo did, and opens to the exact command it ran.
+  const summary =
+    lervo === undefined ? (
+      <>
+        <span className={styles.name}>{tool.name}</span>
+        <Subject subject={detail.subject} />
+        <Result tool={tool} />
+      </>
+    ) : (
+      <LervoSentence lervo={lervo} failed={tool.status === "failed"} />
+    );
+  if (detail.preview === undefined && lervo === undefined)
     return (
       <div className={styles.tool}>
         <p className={styles.summary}>
@@ -147,7 +159,12 @@ export function ToolLine({ item }: { item: ToolItem }) {
         {summary}
       </button>
       {/* motion: Disclosure: tool activity, details */}
-      {opened ? <PreviewLines preview={detail.preview} /> : null}
+      {opened ? (
+        <PreviewLines
+          command={lervo === undefined ? undefined : detail.subject.text}
+          preview={detail.preview}
+        />
+      ) : null}
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { cliCommandCatalog } from "./cli-command-catalog.js";
 import { CommandFailure } from "./command-error-output.js";
 import { type CoreLinkHandlers, CoreLinkServer } from "./core-link-server.js";
 import { createHostedStreamDecoder, listHostedProviders } from "./hosted-session-adapters.js";
@@ -12,6 +13,7 @@ import { recordHostedTurnUsage } from "./hosted-turn-usage-events.js";
 import { recordHostedSessionExit } from "./hosted-session-exit.js";
 import { retireHostedWorkspace } from "./hosted-workspace-retire.js";
 import { hostedWorkspaceRetireEffects } from "./hosted-workspace-retire-effects.js";
+import { withLervoCall } from "./lervo-command-detail.js";
 
 const transcripts = new WorkspaceTranscripts();
 
@@ -60,7 +62,16 @@ export const coreLinkHandlers: CoreLinkHandlers = {
  * session host closes its input, and nothing else writes to its standard output.
  */
 export async function serveCoreLinkOverStandardStreams(): Promise<number> {
-  const server = new CoreLinkServer(coreLinkHandlers, (line) => {
+  // The usage text lives in the entrypoint, which is fully loaded once a command runs.
+  const { cliUsage } = await import("./main.js");
+  const commands = new Set(
+    cliCommandCatalog(cliUsage).map((command) => command.slice("lervo ".length)),
+  );
+  const handlers: CoreLinkHandlers = {
+    ...coreLinkHandlers,
+    annotate: (content) => withLervoCall(content, commands),
+  };
+  const server = new CoreLinkServer(handlers, (line) => {
     process.stdout.write(`${line}\n`);
   });
   const end = await server.serve(process.stdin);

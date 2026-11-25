@@ -1,6 +1,8 @@
 import {
   interruptsTurns,
   reportsUsage,
+  type HostedDecodedContent,
+  type HostedDecodedEvent,
   type HostedStreamDecoder,
   type HostedTranscriptItem,
   type HostedTurnUsage,
@@ -50,6 +52,11 @@ export interface CoreLinkHandlers {
   retireWorkspace(workspaceId: string): Promise<object>;
   /** Records a hosted session's process exit unless its own hook recorded the end. */
   recordSessionExit(sessionId: string, exitCode: number | null): Promise<{ status: string }>;
+  /**
+   * What the core adds to a decoded or transcript item before the session host receives it, such
+   * as the Lervo command a shell call ran.
+   */
+  annotate?(content: HostedDecodedContent): HostedDecodedContent;
   /** Records the usage a hosted session's decoder reported for its finished turns. */
   recordTurnUsage(
     sessionId: string,
@@ -182,7 +189,15 @@ export class CoreLinkServer {
         request.limit as number,
       )
       .then(
-        (page) => this.write(JSON.stringify({ kind: "transcript.page", id: request.id, ...page })),
+        (page) =>
+          this.write(
+            JSON.stringify({
+              kind: "transcript.page",
+              id: request.id,
+              complete: page.complete,
+              items: page.items.map((item) => ({ ...item, content: this.annotated(item.content) })),
+            }),
+          ),
         (error: unknown) => this.fail(request.id, error),
       );
     this.pending.add(task);
@@ -326,15 +341,23 @@ export class CoreLinkServer {
     this.pendingUsage.set(decoderId, pending.slice(overflow));
   }
 
-  private decoded(id: number, events: readonly unknown[], input?: string): void {
+  private decoded(id: number, events: readonly HostedDecodedEvent[], input?: string): void {
     this.write(
       JSON.stringify({
         kind: "decoder.decoded",
         id,
-        events,
+        events: events.map((event) =>
+          event.kind === "item" || event.kind === "start"
+            ? { ...event, content: this.annotated(event.content) }
+            : event,
+        ),
         ...(input === undefined ? {} : { input }),
       }),
     );
+  }
+
+  private annotated(content: HostedDecodedContent): HostedDecodedContent {
+    return this.handlers.annotate?.(content) ?? content;
   }
 }
 

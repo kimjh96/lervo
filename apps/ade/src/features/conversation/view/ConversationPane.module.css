@@ -20,9 +20,7 @@
   margin-inline: auto;
 }
 
-/* A Lervo notice about how the work started, and the agent's work in progress, at the end of the
-   conversation above the reply card. */
-.notice,
+/* The agent's work in progress, at the end of the conversation above the reply card. */
 .working {
   box-sizing: border-box;
   width: min(var(--layout-content-max-width), calc(100% - 2 * var(--space-32)));

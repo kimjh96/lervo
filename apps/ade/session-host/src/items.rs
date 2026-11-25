@@ -185,7 +185,7 @@ mod tests {
             calls: 1,
             detail: Some(detail.to_owned()),
         };
-        let valid = r#"{"subject":{"kind":"path","text":"src/login.ts"},"counts":{"added":1,"removed":1},"preview":{"format":"diff","lines":["-a","+b"],"omittedLines":0,"omittedAt":2}}"#;
+        let valid = r#"{"subject":{"kind":"path","text":"src/login.ts"},"counts":{"added":1,"removed":1},"lervo":{"command":"knowledge query","subject":"limits"},"preview":{"format":"diff","lines":["-a","+b"],"omittedLines":0,"omittedAt":2}}"#;
         let Some(ConversationItem::ToolActivityItem(sent)) = to_wire(&item(tool(valid), false))
         else {
             panic!("expected a tool line");
@@ -193,9 +193,11 @@ mod tests {
         let detail = serde_json::to_value(sent.tool.detail).unwrap();
         assert_eq!(detail["subject"]["text"], "src/login.ts");
         assert_eq!(detail["preview"]["lines"][1], "+b");
+        assert_eq!(detail["lervo"]["command"], "knowledge query");
         for invalid in [
             r#"{"subject":{"kind":"path","text":""}}"#,
             r#"{"counts":{}}"#,
+            r#"{"subject":{"kind":"command","text":"lervo x"},"lervo":{"command":"Knowledge Query"}}"#,
             "not json",
         ] {
             let Some(ConversationItem::ToolActivityItem(sent)) =

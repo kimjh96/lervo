@@ -67,6 +67,11 @@
   padding-block-end: var(--space-6);
 }
 
+/* A Lervo notice about how the work started sits under the first message. */
+.lead {
+  padding-block-start: var(--space-14);
+}
+
 /* Consecutive tool lines read as one run of steps. */
 .row[data-kind="tool_activity"][data-follows="tool_activity"] {
   padding-block-start: var(--space-2);

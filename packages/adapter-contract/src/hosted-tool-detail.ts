@@ -36,6 +36,12 @@ export interface HostedToolPreview {
 export interface HostedToolDetail {
   readonly subject: { readonly kind: HostedToolSubjectKind; readonly text: string };
   readonly counts?: HostedToolCounts;
+  /** The Lervo command a shell call ran. The core adds it; provider adapters never do. */
+  readonly lervo?: {
+    readonly command: string;
+    readonly flag?: "help" | "version";
+    readonly subject?: string;
+  };
   readonly preview?: HostedToolPreview;
 }
 
