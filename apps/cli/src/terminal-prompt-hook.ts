@@ -22,6 +22,7 @@ import { convergenceStopLine } from "./repository-health-format.js";
 import { writeLearnedNoticeCursor } from "./learned-notice-state.js";
 import { markTurnGovernanceShown } from "./turn-governance.js";
 import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
+import { launchTerminalTurnSettlements } from "./terminal-turn-settlement.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-contract.js";
@@ -99,6 +100,7 @@ export async function prepareAndRecordTerminalPrompt({
         storage: observationStorage,
         transcript,
         transcriptAbsent,
+        providerSessionId,
       });
       await writeTerminalActivationReceipt(root, {
         schemaVersion: 1,
@@ -152,6 +154,8 @@ export async function prepareAndRecordTerminalPrompt({
   const learned = context.learnedNotice;
   if (learned !== undefined && context.additionalContext.includes(learned.line))
     await writeLearnedNoticeCursor(root, learned, occurredAt).catch(() => undefined);
+  // A turn this prompt replaced without a Stop, or one an earlier worker never settled.
+  await launchTerminalTurnSettlements(root, executionRoot ?? root).catch(() => false);
   return context.additionalContext;
 }
 

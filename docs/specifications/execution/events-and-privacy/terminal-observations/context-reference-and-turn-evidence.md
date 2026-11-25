@@ -32,10 +32,20 @@ Claude runs no Stop hook for an interrupted turn, in the terminal (Esc) or in th
 
 The Stop gate checks completion only at a Stop hook. Every other ending therefore records `completionResult: not_checked`, and a Stop-hook ending never does. The event screen refuses any other pairing, so no reader can count a turn the gate never saw as `allowed`. Below schema 12, the envelope refuses `ending` and `not_checked`, so older readers never receive them. The terminal coverage report shows such a turn's completion as `not_checked`.
 
-This release only reads these fields; no writer records them yet. The writer that settles interrupted turns must:
+The writer settles a turn that no Stop hook closed while the writer selects schema 12:
 
-- settle only the same session's open turn, matched on the session digest and the execution root;
-- attribute the turn's repository change as the difference between its prompt-time snapshot and the snapshot taken when it is settled. Files edited by hand between the interrupt and that moment are attributed to the interrupted turn, and no attempt is made to split them.
+- **Request.** A hook that finds the same session's open-turn marker still open writes a settlement request under the repository's `.lervo/state/terminal-integration/turn-settlements/`. The marker must also name the same checkout, by `executionRootDigest`; a marker from before that field counts for any checkout. The next prompt writes one with `ending: next_prompt` before its marker replaces the old one, and a session start writes one with `ending: session_start`. The hook does nothing else, so a prompt pays only a directory check.
+  - Requests are idempotent by the turn's context event.
+  - They are bounded as markers are: 128 entries, each expiring after six hours.
+- **Worker.** The hook starts a detached worker from the hook runtime (`settle-turns`). A prompt, a session start, and a Stop each start it while any request waits, so a request whose worker never ran is picked up by the session's next hook.
+- **Record.** The worker first looks for a `terminal.turn.observed` that already cites the context event, through the type index. If one exists, as when a Stop recorded but failed to remove its marker, the request settles to nothing. Otherwise it records the turn:
+  - The event ID derives from the context event, so two settlements record once.
+  - `ending` is the request's, and `completionResult` is `not_checked`.
+  - Selections are counted, and `referenceTelemetry` is `unavailable`, because no Stop hook passed the turn's last message.
+- **Repository change.** The change is the difference between the turn's prompt-time snapshot and the snapshot of the moment it is settled: the next prompt's prepared snapshot, or a snapshot the worker takes for a session start. So it does not move with what the next turn does meanwhile. Files edited by hand between the interrupt and that moment are attributed to the interrupted turn, and no attempt is made to split them. In a main checkout the change is recorded as `repository.change.completed`, so knowledge jobs see it; a linked worktree records none (ADR-0633).
+- **Lifecycle.** `lifecycleStatus` is the lifecycle observed when the turn was settled: the worker inspects it against the turn's prepared expectation. It is the only part that reads live state, so it may reflect the next turn's early edits.
+- **Assessment.** The turn is queued for its skill assessment, as a Stop-observed turn is, so the practice-usage projection counts it.
+- Below writer schema 12, no request is written, and the next prompt replaces the marker as before.
 
 `terminal.turn.declared` retains an opaque declaration and context ID, exact repository revision, task mode, canonicalization and knowledge dispositions, deliberation disposition, optional completed-deliberation ID, and time.
 

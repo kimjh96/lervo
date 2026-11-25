@@ -23,6 +23,7 @@ import {
   checkpointTerminalWorkspace,
   pauseTerminalWorkspace,
 } from "./terminal-workspace-lifecycle.js";
+import { launchTerminalTurnSettlements } from "./terminal-turn-settlement.js";
 
 /**
  * Knowledge inspections own every `*_inspection_failed` code except the replica service's, which
@@ -183,6 +184,10 @@ export async function completeTerminalHookTurn({
         args: ["prefetch-context"],
       }),
     ).catch(() => false);
+  // A turn an earlier worker never settled: the session's next hook picks it up.
+  await withinTerminalDeadline(timing.observationDeadlineMs ?? performance.now() + 1000, () =>
+    launchTerminalTurnSettlements(root, executionRoot),
+  ).catch(() => false);
   if (
     expectation.workspaceBinding?.executionKind === "worker" &&
     lifecycle.status === "action_required"

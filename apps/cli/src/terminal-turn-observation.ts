@@ -2,6 +2,7 @@ import {
   findLatestPreparedContext,
   preparedContextHint,
 } from "./terminal-prepared-context-query.js";
+import { turnEndingEventSchemaVersion } from "@lervo/event-contract";
 import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage";
 import {
   validateSchema,
@@ -23,6 +24,10 @@ import type {
 import type { PreparedTerminalPromptContext } from "./terminal-prompt-context.js";
 import { writePreparedRepositorySnapshot } from "./terminal-prepared-snapshot.js";
 import { openTerminalTurn } from "./terminal-open-turns.js";
+import {
+  requestOpenTerminalTurnSettlement,
+  terminalExecutionRootDigest,
+} from "./terminal-turn-settlement.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-lifecycle.js";
 
 export function latestTerminalTurnDeclaration(
@@ -78,6 +83,8 @@ export async function recordPreparedTerminalContext(input: {
   storage?: ProjectStorage;
   transcript?: TranscriptPosition | null;
   transcriptAbsent?: string | null;
+  /** The provider's session ID; with it, a turn of this session that no Stop closed settles. */
+  providerSessionId?: string;
 }): Promise<string> {
   input.context.documents.forEach((document) =>
     assertTerminalRepositoryRelativePath(document.path),
@@ -159,6 +166,23 @@ export async function recordPreparedTerminalContext(input: {
         payload,
       }),
     );
+    // Schema 12: the session's previous turn is still open when no Stop hook ran for it, as
+    // when the owner interrupted it. This prompt's snapshot settles it, before its marker goes.
+    if (
+      input.providerSessionId !== undefined &&
+      (storage.writableEventSchemaVersion ?? 1) >= turnEndingEventSchemaVersion
+    )
+      await requestOpenTerminalTurnSettlement({
+        root: input.root,
+        executionRoot: input.executionRoot ?? input.root,
+        provider: input.provider,
+        providerSessionId: input.providerSessionId,
+        providerSessionDigest: input.coordinates.providerSessionDigest,
+        ending: "next_prompt",
+        afterObservationId: input.observationId,
+        transcriptEnd: input.transcript ?? null,
+        now: new Date(input.occurredAt),
+      }).catch(() => false);
     await openTerminalTurn(input.root, {
       provider: input.provider,
       providerSessionDigest: input.coordinates.providerSessionDigest,
@@ -167,6 +191,7 @@ export async function recordPreparedTerminalContext(input: {
       openedAt: input.occurredAt,
       transcript: input.transcript ?? null,
       ...(input.transcriptAbsent ? { transcriptAbsent: input.transcriptAbsent } : {}),
+      executionRootDigest: terminalExecutionRootDigest(input.executionRoot ?? input.root),
     });
     return result.event.eventId;
   } finally {
@@ -185,74 +210,79 @@ export async function preparedTerminalTurnExpectation(
   try {
     const context = findLatestPreparedContext(storage.events, coordinates, provider, hint);
     if (context === null) return null;
-    const payload = context.payload as Record<string, unknown>;
-    const workstreamId = payload.workstreamId;
-    const revision = payload.workstreamRevision;
-    const repositoryRevision = payload.repositoryRevision;
-    const workspaceExecutionKind = payload.workspaceExecutionKind;
-    const workspaceId = payload.workspaceId;
-    const workspaceGeneration = payload.workspaceGeneration;
-    const workspaceRevision = payload.workspaceRevision;
-    const assignmentId = payload.assignmentId;
-    const leaseGeneration = payload.leaseGeneration;
-    const writerSessionId = payload.writerSessionId;
-    const bothNull = workstreamId === null && revision === null;
-    const bothPresent =
-      typeof workstreamId === "string" && Number.isSafeInteger(revision) && Number(revision) >= 1;
-    if (!bothNull && !bothPresent)
-      throw new Error("Prepared workstream coordinates are incomplete.");
-    if (
-      typeof repositoryRevision !== "string" ||
-      !/^sha256:[a-f0-9]{64}$/u.test(repositoryRevision)
-    )
-      throw new Error("Prepared repository revision is invalid.");
-    if (typeof payload.observationId !== "string")
-      throw new Error("Prepared terminal observation coordinate is invalid.");
-    const workspaceNull =
-      workspaceExecutionKind == null &&
-      workspaceId == null &&
-      workspaceGeneration == null &&
-      workspaceRevision == null &&
-      assignmentId == null &&
-      leaseGeneration == null &&
-      writerSessionId == null;
-    const workspacePresent =
-      (workspaceExecutionKind === "worker" || workspaceExecutionKind === "integrator") &&
-      typeof workspaceId === "string" &&
-      Number.isSafeInteger(workspaceGeneration) &&
-      Number(workspaceGeneration) >= 1 &&
-      Number.isSafeInteger(workspaceRevision) &&
-      Number(workspaceRevision) >= 1 &&
-      typeof assignmentId === "string" &&
-      Number.isSafeInteger(leaseGeneration) &&
-      Number(leaseGeneration) >= 1 &&
-      typeof writerSessionId === "string";
-    if (!workspaceNull && !workspacePresent)
-      throw new Error("Prepared workspace coordinates are incomplete.");
-    return {
-      contextEventId: context.eventId,
-      observationId: payload.observationId,
-      provider,
-      providerSessionId,
-      workstreamId: bothPresent ? workstreamId : null,
-      revision: bothPresent ? Number(revision) : null,
-      repositoryRevision,
-      preparedAt: context.occurredAt,
-      workspaceBinding: workspacePresent
-        ? {
-            executionKind: workspaceExecutionKind,
-            workspaceId,
-            workspaceGeneration: Number(workspaceGeneration),
-            workspaceRevision: Number(workspaceRevision),
-            assignmentId,
-            leaseGeneration: Number(leaseGeneration),
-            writerSessionId,
-          }
-        : null,
-    };
+    return preparedTurnExpectationFromContext(context, provider, providerSessionId);
   } finally {
     await storage.close();
   }
+}
+
+/** What a turn's prepared context expected, read from its `terminal.context.prepared` event. */
+export function preparedTurnExpectationFromContext(
+  context: EventEnvelope,
+  provider: TerminalIntegrationProvider,
+  providerSessionId: string,
+): PreparedTerminalTurnExpectation {
+  const payload = context.payload as Record<string, unknown>;
+  const workstreamId = payload.workstreamId;
+  const revision = payload.workstreamRevision;
+  const repositoryRevision = payload.repositoryRevision;
+  const workspaceExecutionKind = payload.workspaceExecutionKind;
+  const workspaceId = payload.workspaceId;
+  const workspaceGeneration = payload.workspaceGeneration;
+  const workspaceRevision = payload.workspaceRevision;
+  const assignmentId = payload.assignmentId;
+  const leaseGeneration = payload.leaseGeneration;
+  const writerSessionId = payload.writerSessionId;
+  const bothNull = workstreamId === null && revision === null;
+  const bothPresent =
+    typeof workstreamId === "string" && Number.isSafeInteger(revision) && Number(revision) >= 1;
+  if (!bothNull && !bothPresent) throw new Error("Prepared workstream coordinates are incomplete.");
+  if (typeof repositoryRevision !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(repositoryRevision))
+    throw new Error("Prepared repository revision is invalid.");
+  if (typeof payload.observationId !== "string")
+    throw new Error("Prepared terminal observation coordinate is invalid.");
+  const workspaceNull =
+    workspaceExecutionKind == null &&
+    workspaceId == null &&
+    workspaceGeneration == null &&
+    workspaceRevision == null &&
+    assignmentId == null &&
+    leaseGeneration == null &&
+    writerSessionId == null;
+  const workspacePresent =
+    (workspaceExecutionKind === "worker" || workspaceExecutionKind === "integrator") &&
+    typeof workspaceId === "string" &&
+    Number.isSafeInteger(workspaceGeneration) &&
+    Number(workspaceGeneration) >= 1 &&
+    Number.isSafeInteger(workspaceRevision) &&
+    Number(workspaceRevision) >= 1 &&
+    typeof assignmentId === "string" &&
+    Number.isSafeInteger(leaseGeneration) &&
+    Number(leaseGeneration) >= 1 &&
+    typeof writerSessionId === "string";
+  if (!workspaceNull && !workspacePresent)
+    throw new Error("Prepared workspace coordinates are incomplete.");
+  return {
+    contextEventId: context.eventId,
+    observationId: payload.observationId,
+    provider,
+    providerSessionId,
+    workstreamId: bothPresent ? workstreamId : null,
+    revision: bothPresent ? Number(revision) : null,
+    repositoryRevision,
+    preparedAt: context.occurredAt,
+    workspaceBinding: workspacePresent
+      ? {
+          executionKind: workspaceExecutionKind,
+          workspaceId,
+          workspaceGeneration: Number(workspaceGeneration),
+          workspaceRevision: Number(workspaceRevision),
+          assignmentId,
+          leaseGeneration: Number(leaseGeneration),
+          writerSessionId,
+        }
+      : null,
+  };
 }
 
 export { recordObservedTerminalTurn } from "./terminal-stop-observation.js";

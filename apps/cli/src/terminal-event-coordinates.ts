@@ -44,11 +44,19 @@ function digestSuffix(digest: string): string {
   return digest.slice("sha256:".length, "sha256:".length + 24);
 }
 
+/** The digest that names a provider session in events and markers; never the raw ID. */
+export function terminalProviderSessionDigest(
+  provider: TerminalIntegrationProvider,
+  providerSessionId: string,
+): string {
+  return sha256(`${provider}\0${providerSessionId}`);
+}
+
 export function unmanagedTerminalCoordinates(
   provider: TerminalIntegrationProvider,
   input: ParsedTerminalHookInput,
 ): UnmanagedTerminalCoordinates {
-  const providerSessionDigest = sha256(`${provider}\0${input.providerSessionId}`);
+  const providerSessionDigest = terminalProviderSessionDigest(provider, input.providerSessionId);
   const providerTurnDigest =
     input.providerTurnId === null
       ? null
