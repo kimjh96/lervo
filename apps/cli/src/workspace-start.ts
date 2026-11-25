@@ -1,4 +1,4 @@
-import { basename, dirname, resolve } from "node:path";
+import { basename, resolve } from "node:path";
 
 import {
   HostedLaunchError,
@@ -18,6 +18,7 @@ import {
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
+import { workspacesHome } from "./workspaces-home.js";
 
 const TITLE_CHARACTERS = 80;
 const OBJECTIVE_CHARACTERS = 8192;
@@ -160,10 +161,14 @@ export function branchFor(title: string, suffix: string): string {
   return `lervo/${slug.length === 0 ? "work" : slug}-${suffix}`;
 }
 
-/** The worktree path: beside the repository, in `<name>-wt/`, named after the branch. */
-export function workspacePathFor(repositoryRoot: string, branch: string): string {
+/** The worktree path: `<workspaces home>/<repository name>/<branch leaf>`. */
+export function workspacePathFor(
+  repositoryRoot: string,
+  branch: string,
+  home: string = workspacesHome(),
+): string {
   const leaf = branch.slice(branch.lastIndexOf("/") + 1);
-  return resolve(dirname(repositoryRoot), `${basename(repositoryRoot)}-wt`, leaf);
+  return resolve(home, basename(repositoryRoot), leaf);
 }
 
 function stageFailure(
