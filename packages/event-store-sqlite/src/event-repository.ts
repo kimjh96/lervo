@@ -25,6 +25,18 @@ import { preparedStatement } from "./statement-cache.js";
 const maximumListedTypes = 64;
 
 /** Adjacent sequences in one result must form the stored predecessor chain. */
+/**
+ * One page of events of several types as a single statement, so the page comes from one read
+ * snapshot: separate queries would let a writer commit between them and a later page skip an
+ * event. Each branch reads one type through the type index. Parameters per branch are the project,
+ * the type, the sequence bound, and the limit, then the overall limit.
+ */
+export function typeFilteredPageSql(typeCount: number, side: "after" | "before"): string {
+  const [bound, order] = side === "after" ? [">", "ASC"] : ["<", "DESC"];
+  const branch = `SELECT * FROM (SELECT * FROM events WHERE project_id = ? AND type = ? AND seq ${bound} ? ORDER BY seq ${order} LIMIT ?)`;
+  return `${Array.from({ length: typeCount }, () => branch).join(" UNION ALL ")} ORDER BY seq ${order} LIMIT ?`;
+}
+
 function linkedEvents(events: EventEnvelope[]): EventEnvelope[] {
   for (let index = 1; index < events.length; index++) {
     const previous = events[index - 1]!,
@@ -293,17 +305,56 @@ export class SQLiteEventRepository {
     }
     conditions.push("seq > ?");
     parameters.push(afterSeq, limit);
-    const rows = sqliteRows(
-      this.database
-        .prepare(`SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`)
-        .all(...parameters),
-    );
+    // SQLite answers `type IN (two or more)` through the (project, seq) index and filters every
+    // later row, a scan of the whole history; one branch per type uses the type index instead.
+    const rows =
+      types !== undefined && types.length > 1 && options.runId === undefined
+        ? sqliteRows(
+            preparedStatement(this.database, typeFilteredPageSql(types.length, "after")).all(
+              ...types.flatMap((type) => [this.projectId, type, afterSeq, limit]),
+              limit,
+            ),
+          )
+        : sqliteRows(
+            this.database
+              .prepare(
+                `SELECT * FROM events WHERE ${conditions.join(" AND ")} ORDER BY seq LIMIT ?`,
+              )
+              .all(...parameters),
+          );
     const events = linkedEvents(rows.map(rowToEvent));
     // A filtered page skips sequences, so each returned run of adjacent events is checked at its
     // edges; an unfiltered page is one run.
     if (events.length > 0 && options.runId === undefined && types === undefined)
       this.linkedToNeighbours(events[0]!, events.at(-1)!);
     else for (const event of events) this.linkedToNeighbours(event);
+    return events;
+  }
+
+  listNewestFirst(options: {
+    types: readonly string[];
+    beforeSeq?: number;
+    limit?: number;
+  }): EventEnvelope[] {
+    const types = [...new Set(options.types)];
+    const limit = options.limit ?? 100;
+    const beforeSeq = options.beforeSeq ?? Number.MAX_SAFE_INTEGER;
+    if (types.length < 1 || types.length > maximumListedTypes || types.some((type) => !type))
+      throw new RangeError(
+        `types must name between 1 and ${maximumListedTypes} non-empty event types.`,
+      );
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 1000)
+      throw new RangeError("limit must be a safe integer between 1 and 1000.");
+    if (!Number.isSafeInteger(beforeSeq) || beforeSeq < 1)
+      throw new RangeError("beforeSeq must be a safe integer of at least 1.");
+    const rows = sqliteRows(
+      preparedStatement(this.database, typeFilteredPageSql(types.length, "before")).all(
+        ...types.flatMap((type) => [this.projectId, type, beforeSeq, limit]),
+        limit,
+      ),
+    );
+    const events = rows.map(rowToEvent);
+    for (const event of events) this.linkedToNeighbours(event);
     return events;
   }
 

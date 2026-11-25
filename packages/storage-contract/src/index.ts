@@ -152,6 +152,16 @@ export interface EventStore<TTransaction extends EventStoreTransaction = EventSt
    */
   latestHashExcluding?(types: readonly string[]): string | null;
   list(options?: ListEventsOptions): EventEnvelope[];
+  /**
+   * Events of `types`, newest first, below `beforeSeq` when given. A reader that wants the latest
+   * matching event stops at the first match instead of decoding the whole history. Each returned
+   * event is proven like a `list` result. Optional: without it, a reader pages `list` forward.
+   */
+  listNewestFirst?(options: {
+    types: readonly string[];
+    beforeSeq?: number;
+    limit?: number;
+  }): EventEnvelope[];
   /** Complete structural, outbox and chain verification; proportional to history size. */
   verifyIntegrity(): EventChainReport;
   close(): void;

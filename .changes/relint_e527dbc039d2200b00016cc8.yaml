@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_e527dbc039d2200b00016cc8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "Read event types through their index and the current workstream newest first, so a prompt hook no longer scans or decodes the whole event history."

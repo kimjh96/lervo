@@ -33,11 +33,32 @@ export function* workstreamSnapshotEvents(storage: Pick<ProjectStorage, "events"
   }
 }
 
+/**
+ * The newest snapshot event of the workstream, or of any workstream. Every prompt asks, so it reads
+ * newest first and stops at the first match instead of decoding the whole snapshot history.
+ */
 function latestWorkstreamEvent(storage: ProjectStorage, workstreamId?: string) {
-  let latest: ReturnType<ProjectStorage["events"]["list"]>[number] | null = null;
-  for (const event of workstreamSnapshotEvents(storage))
-    if (workstreamId === undefined || event.payload.workstreamId === workstreamId) latest = event;
-  return latest;
+  const matches = (event: ReturnType<ProjectStorage["events"]["list"]>[number]) =>
+    event.type === WORKSTREAM_SNAPSHOT_TYPES[0] &&
+    (workstreamId === undefined || event.payload.workstreamId === workstreamId);
+  const newestFirst = storage.events.listNewestFirst?.bind(storage.events);
+  if (newestFirst === undefined) {
+    let latest: ReturnType<ProjectStorage["events"]["list"]>[number] | null = null;
+    for (const event of workstreamSnapshotEvents(storage)) if (matches(event)) latest = event;
+    return latest;
+  }
+  let beforeSeq: number | undefined;
+  for (;;) {
+    const page = newestFirst({
+      types: WORKSTREAM_SNAPSHOT_TYPES,
+      limit: 100,
+      ...(beforeSeq === undefined ? {} : { beforeSeq }),
+    });
+    const match = page.find(matches);
+    if (match !== undefined) return match;
+    if (page.length < 100) return null;
+    beforeSeq = page.at(-1)!.seq;
+  }
 }
 
 function hasReplicatedWorkstreamOrigin(storage: ProjectStorage, workstreamId: string): boolean {

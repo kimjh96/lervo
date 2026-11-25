@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import { type EventDraft, SQLiteEventStore } from "../src/index.js";
+import { typeFilteredPageSql } from "../src/event-repository.js";
 import { sqliteRow, sqliteRows } from "../src/sqlite-row.js";
 
 const projectId = "prj_01234567";
@@ -236,5 +237,69 @@ describe("SQLite type-filtered event pages", () => {
     const readOnly = await SQLiteEventStore.openReadOnly({ path, projectId });
     expect(readOnly.list({ types: ["run.requested"] })).toEqual([event]);
     readOnly.close();
+  });
+});
+
+describe("SQLite newest-first type pages", () => {
+  it("returns the filtered walk in reverse, page by page, for every page size", async () => {
+    const store = await SQLiteEventStore.open({
+      path: await databasePath(),
+      projectId,
+      writableEventSchemaVersion: 2,
+    });
+    for (let index = 1; index <= 40; index += 1)
+      store.append(index % 3 === 0 ? causal(index) : requested(index));
+    for (const types of [
+      ["work.causality.recorded"],
+      ["run.requested", "work.causality.recorded"],
+      ["absent.type"],
+    ]) {
+      const expected = filteredWalk(store, types).reverse();
+      for (const limit of [1, 5, 1000]) {
+        const all: EventEnvelope[] = [];
+        let beforeSeq: number | undefined;
+        for (;;) {
+          const page = store.listNewestFirst({
+            types,
+            limit,
+            ...(beforeSeq === undefined ? {} : { beforeSeq }),
+          });
+          all.push(...page);
+          if (page.length < limit) break;
+          beforeSeq = page.at(-1)!.seq;
+        }
+        expect(all).toEqual(expected);
+      }
+    }
+    expect(() => store.listNewestFirst({ types: [] })).toThrow(RangeError);
+    expect(() => store.listNewestFirst({ types: ["run.requested"], limit: 0 })).toThrow(RangeError);
+    expect(() => store.listNewestFirst({ types: ["run.requested"], beforeSeq: 0 })).toThrow(
+      RangeError,
+    );
+    store.close();
+  });
+});
+
+describe("SQLite multi-type pages", () => {
+  it("reads every type through the type index in one statement, in both directions", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId, writableEventSchemaVersion: 2 });
+    store.append(requested(1));
+    store.close();
+    const raw = new DatabaseSync(path);
+    for (const side of ["after", "before"] as const) {
+      const plan = sqliteRows(
+        raw
+          .prepare(`EXPLAIN QUERY PLAN ${typeFilteredPageSql(3, side)}`)
+          .all(
+            ...["a", "b", "c"].flatMap((type) => [projectId, type, side === "after" ? 0 : 99, 10]),
+            10,
+          ),
+      ).map((row) => String(row.detail));
+      const searches = plan.filter((detail) => detail.startsWith("SEARCH events"));
+      expect(searches).toHaveLength(3);
+      expect(searches.every((detail) => detail.includes("events_type_seq"))).toBe(true);
+    }
+    raw.close();
   });
 });
