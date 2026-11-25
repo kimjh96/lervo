@@ -1,8 +1,12 @@
-import type {
-  HostedDecodedContent,
-  HostedDecodedEvent,
-  HostedStreamDecoder,
+import {
+  type HostedDecodedContent,
+  type HostedDecodedEvent,
+  type HostedStreamDecoder,
+  type HostedTurnUsage,
+  type HostedUsageReporting,
+  usageModelName,
 } from "@lervo/adapter-contract";
+import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 
 /** A line longer than this is dropped up to its end, so one bad line cannot grow memory. */
 const MAX_LINE_CHARACTERS = 16 * 1024 * 1024;
@@ -36,9 +40,10 @@ function blocks(line: Line): Line[] {
  * - A tool call becomes one tool-activity item when its result arrives, succeeded or failed. Tool
  *   inputs and outputs never leave the decoder.
  * - `result` ends the turn. A turn that did not succeed adds the `provider_turn_failed` notice.
+ *   Its per-model usage since the previous result is kept for `takeUsage`, never shown.
  * - Subagent messages, thinking, hooks, and system lines are not part of the conversation.
  */
-export class ClaudeHostedStreamDecoder implements HostedStreamDecoder {
+export class ClaudeHostedStreamDecoder implements HostedStreamDecoder, HostedUsageReporting {
   private readonly decoder = new TextDecoder();
   private partial = "";
   private dropping = false;
@@ -48,6 +53,10 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder {
   /** Whether the current assistant message streamed its text, so the full copy is a repeat. */
   private streamedText = false;
   private readonly toolNames = new Map<string, string>();
+  /** Finished turns' usage that the caller has not taken yet. */
+  private usage: HostedTurnUsage[] = [];
+  /** The model of the turn's last assistant message, for a result without per-model usage. */
+  private lastModel: string | undefined;
 
   constructor(private readonly now: () => number = Date.now) {}
 
@@ -100,6 +109,7 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder {
       case "stream_event":
         return this.streamEvent(record(line.event));
       case "assistant":
+        this.lastModel = text(record(line.message)?.model) ?? this.lastModel;
         return this.assistant(line);
       case "user":
         return this.toolResults(line);
@@ -205,8 +215,19 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder {
       );
     this.inTurn = false;
     this.toolNames.clear();
+    this.usage.push(...turnUsage(line, this.lastModel));
     events.push({ kind: "status", event: "turn_finished" });
     return events;
+  }
+
+  usageAccounting(): ResourceAccountingDescriptor {
+    return CLAUDE_HOSTED_USAGE_ACCOUNTING;
+  }
+
+  takeUsage(): HostedTurnUsage[] {
+    const taken = this.usage;
+    this.usage = [];
+    return taken;
   }
 
   private item(content: HostedDecodedContent): HostedDecodedEvent {
@@ -216,4 +237,86 @@ export class ClaudeHostedStreamDecoder implements HostedStreamDecoder {
   private started(content: HostedDecodedContent): HostedDecodedEvent {
     return { kind: "start", content, createdAtMs: this.now() };
   }
+}
+
+const count = (value: unknown): number =>
+  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : 0;
+const optionalCount = (value: unknown): number | null =>
+  typeof value === "number" && Number.isSafeInteger(value) && value >= 0 ? value : null;
+const positiveCount = (value: unknown): number | null =>
+  typeof value === "number" && Number.isSafeInteger(value) && value > 0 ? value : null;
+
+/**
+ * How Claude Code counts the usage this decoder reports: each result's per-model delta since the
+ * previous result, from `model_usage_since_last_result`, or the turn's own `usage` from an older
+ * Claude Code. The core stores this descriptor once before the first record citing it.
+ */
+export const CLAUDE_HOSTED_USAGE_ACCOUNTING: ResourceAccountingDescriptor = {
+  kind: "resource_accounting_descriptor",
+  schemaVersion: 2,
+  provider: "claude",
+  adapterId: "claude/hosted-session",
+  adapterVersion: "1",
+  accountingMode: "operation_delta",
+  observationSupport: "supported",
+  unavailableReason: null,
+  normalizationId: "claude.hosted.result-usage.v1",
+  nativeCounterSemanticsId: "claude.stream-json.model-usage-since-last-result.v1",
+  requestedModel: null,
+  serviceTier: null,
+};
+
+/**
+ * A result's usage: one record per model from `model_usage_since_last_result`, whose amounts sum
+ * to the process's cumulative totals, or, from an older Claude Code, one record from the turn's
+ * `usage` without a cost. A result without a UUID, or without either, reports nothing.
+ */
+function turnUsage(line: Line, lastModel: string | undefined): HostedTurnUsage[] {
+  const turnKey = text(line.uuid);
+  if (turnKey === undefined) return [];
+  const resultIndex = count(line.result_index);
+  const perModel = record(line.model_usage_since_last_result);
+  if (perModel !== undefined)
+    return Object.entries(perModel).flatMap(([key, value]) => {
+      const stats = record(value);
+      if (stats === undefined) return [];
+      const cost =
+        typeof stats.costUSD === "number" && Number.isFinite(stats.costUSD) && stats.costUSD >= 0
+          ? stats.costUSD
+          : null;
+      return [
+        {
+          turnKey,
+          resultIndex,
+          modelKey: key,
+          model: usageModelName(text(stats.canonicalModel) ?? key),
+          uncachedInputTokens: count(stats.inputTokens),
+          cacheReadInputTokens: count(stats.cacheReadInputTokens),
+          cacheCreationInputTokens: count(stats.cacheCreationInputTokens),
+          outputTokens: count(stats.outputTokens),
+          reasoningOutputTokens: optionalCount(stats.thinkingTokens),
+          contextWindow: positiveCount(stats.contextWindow),
+          costUsd: cost,
+          costBasis: cost === null ? ("unreported" as const) : ("list" as const),
+        },
+      ];
+    });
+  const usage = record(line.usage);
+  if (usage === undefined) return [];
+  return [
+    {
+      turnKey,
+      resultIndex,
+      modelKey: lastModel ?? "",
+      model: usageModelName(lastModel),
+      uncachedInputTokens: count(usage.input_tokens),
+      cacheReadInputTokens: count(usage.cache_read_input_tokens),
+      cacheCreationInputTokens: count(usage.cache_creation_input_tokens),
+      outputTokens: count(usage.output_tokens),
+      reasoningOutputTokens: optionalCount(record(usage.output_tokens_details)?.thinking_tokens),
+      contextWindow: null,
+      costUsd: null,
+      costBasis: "unreported",
+    },
+  ];
 }
