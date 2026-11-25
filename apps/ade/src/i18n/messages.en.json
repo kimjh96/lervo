@@ -55,6 +55,26 @@
     "defaultMessage": "Jump to latest",
     "description": "Returns the conversation to its newest messages."
   },
+  "conversation.lervo.failed": {
+    "defaultMessage": "{command} failed",
+    "description": "A Lervo command the agent ran failed; {command} is the command in the mono face, such as lervo workstream update."
+  },
+  "conversation.lervo.help": {
+    "defaultMessage": "Looked up the help for {command}",
+    "description": "The agent read a Lervo command's help; {command} is the command in the mono face."
+  },
+  "conversation.lervo.help.root": {
+    "defaultMessage": "Looked up Lervo's commands",
+    "description": "The agent read the Lervo CLI's overall help."
+  },
+  "conversation.lervo.unknown": {
+    "defaultMessage": "Ran {command}",
+    "description": "The agent ran a Lervo command this version of the app has no sentence for, such as a newer CLI's; {command} is the command in the mono face."
+  },
+  "conversation.lervo.version": {
+    "defaultMessage": "Checked Lervo's version",
+    "description": "The agent ran lervo --version."
+  },
   "conversation.opening": {
     "defaultMessage": "Opening the conversation",
     "description": "Where the conversation will appear, while the session host attaches and loads its newest page, or starts the session again."
@@ -134,6 +154,534 @@
   "keyboard.command": {
     "defaultMessage": "{modifier, select, command {⌘{key}} other {Ctrl+{key}}}",
     "description": "A shortcut with the command modifier: Command on macOS, Control elsewhere. {key} is the key."
+  },
+  "lervo.command.agent.context.handoff": {
+    "defaultMessage": "Handed off an agent's context",
+    "description": "What Lervo did when the agent ran `lervo agent context handoff`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.context.inspect": {
+    "defaultMessage": "Inspected an agent's context",
+    "description": "What Lervo did when the agent ran `lervo agent context inspect`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.context.promote": {
+    "defaultMessage": "Promoted an agent's context",
+    "description": "What Lervo did when the agent ran `lervo agent context promote`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.heartbeat": {
+    "defaultMessage": "Reported an agent's heartbeat",
+    "description": "What Lervo did when the agent ran `lervo agent heartbeat`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.hire": {
+    "defaultMessage": "Hired an agent",
+    "description": "What Lervo did when the agent ran `lervo agent hire`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.inspect": {
+    "defaultMessage": "Inspected an agent",
+    "description": "What Lervo did when the agent ran `lervo agent inspect`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.list": {
+    "defaultMessage": "Listed the agents",
+    "description": "What Lervo did when the agent ran `lervo agent list`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.host": {
+    "defaultMessage": "Set the host of an agent's mandate",
+    "description": "What Lervo did when the agent ran `lervo agent mandate host`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.inspect": {
+    "defaultMessage": "Inspected an agent's mandate",
+    "description": "What Lervo did when the agent ran `lervo agent mandate inspect`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.install": {
+    "defaultMessage": "Installed an agent's mandate",
+    "description": "What Lervo did when the agent ran `lervo agent mandate install`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.plan": {
+    "defaultMessage": "Planned an agent's mandate",
+    "description": "What Lervo did when the agent ran `lervo agent mandate plan`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.resolve_preflight": {
+    "defaultMessage": "Checked an agent's mandate before resolving it",
+    "description": "What Lervo did when the agent ran `lervo agent mandate resolve-preflight`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.revoke": {
+    "defaultMessage": "Revoked an agent's mandate",
+    "description": "What Lervo did when the agent ran `lervo agent mandate revoke`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.mandate.scope": {
+    "defaultMessage": "Set the scope of an agent's mandate",
+    "description": "What Lervo did when the agent ran `lervo agent mandate scope`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.rename": {
+    "defaultMessage": "Renamed an agent",
+    "description": "What Lervo did when the agent ran `lervo agent rename`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.role": {
+    "defaultMessage": "Changed an agent's role",
+    "description": "What Lervo did when the agent ran `lervo agent role`, as a quiet line in the conversation."
+  },
+  "lervo.command.agent.status": {
+    "defaultMessage": "Checked the agents' status",
+    "description": "What Lervo did when the agent ran `lervo agent status`, as a quiet line in the conversation."
+  },
+  "lervo.command.application.attention": {
+    "defaultMessage": "Checked what needs attention",
+    "description": "What Lervo did when the agent ran `lervo application attention`, as a quiet line in the conversation."
+  },
+  "lervo.command.application.serve": {
+    "defaultMessage": "Started the Lervo application",
+    "description": "What Lervo did when the agent ran `lervo application serve`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.acknowledge": {
+    "defaultMessage": "Acknowledged an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment acknowledge`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.cancel": {
+    "defaultMessage": "Canceled an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment cancel`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.claim": {
+    "defaultMessage": "Claimed an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment claim`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.complete": {
+    "defaultMessage": "Completed an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment complete`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.create": {
+    "defaultMessage": "Created an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment create`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.handoff": {
+    "defaultMessage": "Handed off an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment handoff`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.list": {
+    "defaultMessage": "Listed the assignments",
+    "description": "What Lervo did when the agent ran `lervo assignment list`, as a quiet line in the conversation."
+  },
+  "lervo.command.assignment.renew": {
+    "defaultMessage": "Renewed an assignment",
+    "description": "What Lervo did when the agent ran `lervo assignment renew`, as a quiet line in the conversation."
+  },
+  "lervo.command.capability.authorize_skill": {
+    "defaultMessage": "Authorized a skill",
+    "description": "What Lervo did when the agent ran `lervo capability authorize-skill`, as a quiet line in the conversation."
+  },
+  "lervo.command.capability.install": {
+    "defaultMessage": "Installed a capability",
+    "description": "What Lervo did when the agent ran `lervo capability install`, as a quiet line in the conversation."
+  },
+  "lervo.command.capability.list": {
+    "defaultMessage": "Listed the capabilities",
+    "description": "What Lervo did when the agent ran `lervo capability list`, as a quiet line in the conversation."
+  },
+  "lervo.command.capability.migrate": {
+    "defaultMessage": "Migrated the capabilities",
+    "description": "What Lervo did when the agent ran `lervo capability migrate`, as a quiet line in the conversation."
+  },
+  "lervo.command.capability.resolve": {
+    "defaultMessage": "Resolved a capability",
+    "description": "What Lervo did when the agent ran `lervo capability resolve`, as a quiet line in the conversation."
+  },
+  "lervo.command.capability.validate": {
+    "defaultMessage": "Validated a capability",
+    "description": "What Lervo did when the agent ran `lervo capability validate`, as a quiet line in the conversation."
+  },
+  "lervo.command.deliberate": {
+    "defaultMessage": "Started a deliberation",
+    "description": "What Lervo did when the agent ran `lervo deliberate`, as a quiet line in the conversation."
+  },
+  "lervo.command.deliberate.artifact": {
+    "defaultMessage": "Read a deliberation's result",
+    "description": "What Lervo did when the agent ran `lervo deliberate artifact`, as a quiet line in the conversation."
+  },
+  "lervo.command.deliberate.status": {
+    "defaultMessage": "Checked a deliberation",
+    "description": "What Lervo did when the agent ran `lervo deliberate status`, as a quiet line in the conversation."
+  },
+  "lervo.command.doctor": {
+    "defaultMessage": "Checked Lervo's health",
+    "description": "What Lervo did when the agent ran `lervo doctor`, as a quiet line in the conversation."
+  },
+  "lervo.command.environment.query": {
+    "defaultMessage": "Checked a connection target",
+    "description": "What Lervo did when the agent ran `lervo environment query`, as a quiet line in the conversation."
+  },
+  "lervo.command.environment.resolve": {
+    "defaultMessage": "Resolved a connection target",
+    "description": "What Lervo did when the agent ran `lervo environment resolve`, as a quiet line in the conversation."
+  },
+  "lervo.command.event_contract.activate": {
+    "defaultMessage": "Activated an event schema",
+    "description": "What Lervo did when the agent ran `lervo event-contract activate`, as a quiet line in the conversation."
+  },
+  "lervo.command.event_contract.evidence": {
+    "defaultMessage": "Gathered event schema evidence",
+    "description": "What Lervo did when the agent ran `lervo event-contract evidence`, as a quiet line in the conversation."
+  },
+  "lervo.command.event_contract.recover": {
+    "defaultMessage": "Recovered the event schema",
+    "description": "What Lervo did when the agent ran `lervo event-contract recover`, as a quiet line in the conversation."
+  },
+  "lervo.command.event_contract.rollback": {
+    "defaultMessage": "Rolled back the event schema",
+    "description": "What Lervo did when the agent ran `lervo event-contract rollback`, as a quiet line in the conversation."
+  },
+  "lervo.command.event_contract.status": {
+    "defaultMessage": "Checked the event schema",
+    "description": "What Lervo did when the agent ran `lervo event-contract status`, as a quiet line in the conversation."
+  },
+  "lervo.command.host.upgrade": {
+    "defaultMessage": "Upgraded Lervo on this computer",
+    "description": "What Lervo did when the agent ran `lervo host upgrade`, as a quiet line in the conversation."
+  },
+  "lervo.command.init": {
+    "defaultMessage": "Set up Lervo in the repository",
+    "description": "What Lervo did when the agent ran `lervo init`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.canonicalization.reopen": {
+    "defaultMessage": "Reopened a knowledge canonicalization",
+    "description": "What Lervo did when the agent ran `lervo knowledge canonicalization reopen`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.canonicalization.status": {
+    "defaultMessage": "Checked knowledge canonicalization",
+    "description": "What Lervo did when the agent ran `lervo knowledge canonicalization status`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.convergence": {
+    "defaultMessage": "Checked knowledge upkeep",
+    "description": "What Lervo did when the agent ran `lervo knowledge convergence`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.convergence.delegation": {
+    "defaultMessage": "Changed who keeps the knowledge up to date",
+    "description": "What Lervo did when the agent ran `lervo knowledge convergence delegation`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.convergence.owner": {
+    "defaultMessage": "Changed which computer keeps the knowledge up to date",
+    "description": "What Lervo did when the agent ran `lervo knowledge convergence owner`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.convergence.provider_probe": {
+    "defaultMessage": "Tested the provider for knowledge upkeep",
+    "description": "What Lervo did when the agent ran `lervo knowledge convergence provider-probe`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.freshness.acknowledge": {
+    "defaultMessage": "Acknowledged a freshness review",
+    "description": "What Lervo did when the agent ran `lervo knowledge freshness acknowledge`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.freshness.revert": {
+    "defaultMessage": "Reverted a freshness edit",
+    "description": "What Lervo did when the agent ran `lervo knowledge freshness revert`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.freshness.review": {
+    "defaultMessage": "Reviewed document freshness",
+    "description": "What Lervo did when the agent ran `lervo knowledge freshness review`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.freshness.status": {
+    "defaultMessage": "Checked document freshness",
+    "description": "What Lervo did when the agent ran `lervo knowledge freshness status`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.instruction.bridge": {
+    "defaultMessage": "Connected the instruction files",
+    "description": "What Lervo did when the agent ran `lervo knowledge instruction bridge`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.instruction.capture": {
+    "defaultMessage": "Captured owner rules from the conversation",
+    "description": "What Lervo did when the agent ran `lervo knowledge instruction capture`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.instruction.intake": {
+    "defaultMessage": "Recorded an owner rule",
+    "description": "What Lervo did when the agent ran `lervo knowledge instruction intake`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.instruction.retire": {
+    "defaultMessage": "Retired an owner rule",
+    "description": "What Lervo did when the agent ran `lervo knowledge instruction retire`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.instruction.status": {
+    "defaultMessage": "Checked the owner rules",
+    "description": "What Lervo did when the agent ran `lervo knowledge instruction status`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.lint": {
+    "defaultMessage": "Checked the repository's knowledge",
+    "description": "What Lervo did when the agent ran `lervo knowledge lint`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.materialize": {
+    "defaultMessage": "Wrote out the knowledge files",
+    "description": "What Lervo did when the agent ran `lervo knowledge materialize`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.normalize": {
+    "defaultMessage": "Normalized the documents",
+    "description": "What Lervo did when the agent ran `lervo knowledge normalize`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.query": {
+    "defaultMessage": "{hasSubject, select, yes {Searched for “{subject}”} other {Searched the repository's knowledge}}",
+    "description": "What Lervo did when the agent ran `lervo knowledge query`, as a quiet line in the conversation. {subject} is the call's first quoted argument; {hasSubject} is yes when it has one."
+  },
+  "lervo.command.knowledge.refresh": {
+    "defaultMessage": "Refreshed the knowledge",
+    "description": "What Lervo did when the agent ran `lervo knowledge refresh`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.revert": {
+    "defaultMessage": "Reverted a knowledge change",
+    "description": "What Lervo did when the agent ran `lervo knowledge revert`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.structure.delete": {
+    "defaultMessage": "Deleted a document",
+    "description": "What Lervo did when the agent ran `lervo knowledge structure delete`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.structure.merge": {
+    "defaultMessage": "Merged documents",
+    "description": "What Lervo did when the agent ran `lervo knowledge structure merge`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.structure.move": {
+    "defaultMessage": "Moved a document",
+    "description": "What Lervo did when the agent ran `lervo knowledge structure move`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.structure.split": {
+    "defaultMessage": "Split a document",
+    "description": "What Lervo did when the agent ran `lervo knowledge structure split`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.web.stats": {
+    "defaultMessage": "Measured the relation web",
+    "description": "What Lervo did when the agent ran `lervo knowledge web stats`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.web.suspects": {
+    "defaultMessage": "Listed documents to recheck",
+    "description": "What Lervo did when the agent ran `lervo knowledge web suspects`, as a quiet line in the conversation."
+  },
+  "lervo.command.knowledge.worker": {
+    "defaultMessage": "Ran a knowledge worker",
+    "description": "What Lervo did when the agent ran `lervo knowledge worker`, as a quiet line in the conversation."
+  },
+  "lervo.command.migrate.knowledge": {
+    "defaultMessage": "Migrated the repository's knowledge",
+    "description": "What Lervo did when the agent ran `lervo migrate knowledge`, as a quiet line in the conversation."
+  },
+  "lervo.command.model.set": {
+    "defaultMessage": "Set the model",
+    "description": "What Lervo did when the agent ran `lervo model set`, as a quiet line in the conversation."
+  },
+  "lervo.command.model.show": {
+    "defaultMessage": "Checked the model",
+    "description": "What Lervo did when the agent ran `lervo model show`, as a quiet line in the conversation."
+  },
+  "lervo.command.model.unset": {
+    "defaultMessage": "Cleared the model",
+    "description": "What Lervo did when the agent ran `lervo model unset`, as a quiet line in the conversation."
+  },
+  "lervo.command.organization.bind_runtime": {
+    "defaultMessage": "Bound a runtime to the organization",
+    "description": "What Lervo did when the agent ran `lervo organization bind-runtime`, as a quiet line in the conversation."
+  },
+  "lervo.command.organization.bind_team": {
+    "defaultMessage": "Bound a team to the organization",
+    "description": "What Lervo did when the agent ran `lervo organization bind-team`, as a quiet line in the conversation."
+  },
+  "lervo.command.organization.inspect": {
+    "defaultMessage": "Inspected the organization",
+    "description": "What Lervo did when the agent ran `lervo organization inspect`, as a quiet line in the conversation."
+  },
+  "lervo.command.organization.set_team_kind": {
+    "defaultMessage": "Set a team's kind",
+    "description": "What Lervo did when the agent ran `lervo organization set-team-kind`, as a quiet line in the conversation."
+  },
+  "lervo.command.plan.add": {
+    "defaultMessage": "{hasSubject, select, yes {Added “{subject}” to the plan} other {Added a plan item}}",
+    "description": "What Lervo did when the agent ran `lervo plan add`, as a quiet line in the conversation. {subject} is the call's first quoted argument; {hasSubject} is yes when it has one."
+  },
+  "lervo.command.plan.cancel": {
+    "defaultMessage": "Canceled a plan item",
+    "description": "What Lervo did when the agent ran `lervo plan cancel`, as a quiet line in the conversation."
+  },
+  "lervo.command.plan.done": {
+    "defaultMessage": "Marked a plan item done",
+    "description": "What Lervo did when the agent ran `lervo plan done`, as a quiet line in the conversation."
+  },
+  "lervo.command.plan.list": {
+    "defaultMessage": "Read the plan",
+    "description": "What Lervo did when the agent ran `lervo plan list`, as a quiet line in the conversation."
+  },
+  "lervo.command.plan.move": {
+    "defaultMessage": "Moved a plan item",
+    "description": "What Lervo did when the agent ran `lervo plan move`, as a quiet line in the conversation."
+  },
+  "lervo.command.plan.start": {
+    "defaultMessage": "Started a plan item",
+    "description": "What Lervo did when the agent ran `lervo plan start`, as a quiet line in the conversation."
+  },
+  "lervo.command.plan.supersede": {
+    "defaultMessage": "Superseded a plan item",
+    "description": "What Lervo did when the agent ran `lervo plan supersede`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.hold": {
+    "defaultMessage": "Put a hold on the repository",
+    "description": "What Lervo did when the agent ran `lervo repository hold`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.holds": {
+    "defaultMessage": "Listed the repository's holds",
+    "description": "What Lervo did when the agent ran `lervo repository holds`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.list": {
+    "defaultMessage": "Listed the repositories",
+    "description": "What Lervo did when the agent ran `lervo repository list`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.node.apply": {
+    "defaultMessage": "Applied a repository node change",
+    "description": "What Lervo did when the agent ran `lervo repository node apply`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.node.plan": {
+    "defaultMessage": "Planned a repository node change",
+    "description": "What Lervo did when the agent ran `lervo repository node plan`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.node.status": {
+    "defaultMessage": "Checked the repository's nodes",
+    "description": "What Lervo did when the agent ran `lervo repository node status`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.register": {
+    "defaultMessage": "Registered the repository",
+    "description": "What Lervo did when the agent ran `lervo repository register`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.release": {
+    "defaultMessage": "Released a hold on the repository",
+    "description": "What Lervo did when the agent ran `lervo repository release`, as a quiet line in the conversation."
+  },
+  "lervo.command.repository.resolve": {
+    "defaultMessage": "Resolved the repository",
+    "description": "What Lervo did when the agent ran `lervo repository resolve`, as a quiet line in the conversation."
+  },
+  "lervo.command.research.verify": {
+    "defaultMessage": "Verified a research result",
+    "description": "What Lervo did when the agent ran `lervo research verify`, as a quiet line in the conversation."
+  },
+  "lervo.command.role.list": {
+    "defaultMessage": "Listed the roles",
+    "description": "What Lervo did when the agent ran `lervo role list`, as a quiet line in the conversation."
+  },
+  "lervo.command.role.show": {
+    "defaultMessage": "Read a role",
+    "description": "What Lervo did when the agent ran `lervo role show`, as a quiet line in the conversation."
+  },
+  "lervo.command.role.validate": {
+    "defaultMessage": "Validated a role",
+    "description": "What Lervo did when the agent ran `lervo role validate`, as a quiet line in the conversation."
+  },
+  "lervo.command.run": {
+    "defaultMessage": "{hasSubject, select, yes {Ran a managed task: “{subject}”} other {Ran a managed task}}",
+    "description": "What Lervo did when the agent ran `lervo run`, as a quiet line in the conversation. {subject} is the call's first quoted argument; {hasSubject} is yes when it has one."
+  },
+  "lervo.command.search": {
+    "defaultMessage": "{hasSubject, select, yes {Searched for “{subject}”} other {Searched}}",
+    "description": "What Lervo did when the agent ran `lervo search`, as a quiet line in the conversation. {subject} is the call's first quoted argument; {hasSubject} is yes when it has one."
+  },
+  "lervo.command.search.plan.activate": {
+    "defaultMessage": "Activated a search plan",
+    "description": "What Lervo did when the agent ran `lervo search plan activate`, as a quiet line in the conversation."
+  },
+  "lervo.command.search.plan.rollback": {
+    "defaultMessage": "Rolled back a search plan",
+    "description": "What Lervo did when the agent ran `lervo search plan rollback`, as a quiet line in the conversation."
+  },
+  "lervo.command.search.plan.status": {
+    "defaultMessage": "Checked the search plan",
+    "description": "What Lervo did when the agent ran `lervo search plan status`, as a quiet line in the conversation."
+  },
+  "lervo.command.state.cas_retention": {
+    "defaultMessage": "Checked stored content retention",
+    "description": "What Lervo did when the agent ran `lervo state cas-retention`, as a quiet line in the conversation."
+  },
+  "lervo.command.state.prune": {
+    "defaultMessage": "Pruned Lervo's state",
+    "description": "What Lervo did when the agent ran `lervo state prune`, as a quiet line in the conversation."
+  },
+  "lervo.command.state.reset": {
+    "defaultMessage": "Reset Lervo's state",
+    "description": "What Lervo did when the agent ran `lervo state reset`, as a quiet line in the conversation."
+  },
+  "lervo.command.state.restore": {
+    "defaultMessage": "Restored Lervo's state",
+    "description": "What Lervo did when the agent ran `lervo state restore`, as a quiet line in the conversation."
+  },
+  "lervo.command.state.status": {
+    "defaultMessage": "Checked Lervo's state",
+    "description": "What Lervo did when the agent ran `lervo state status`, as a quiet line in the conversation."
+  },
+  "lervo.command.terminal.budget": {
+    "defaultMessage": "Checked the context budget",
+    "description": "What Lervo did when the agent ran `lervo terminal budget`, as a quiet line in the conversation."
+  },
+  "lervo.command.terminal.coverage": {
+    "defaultMessage": "Checked terminal coverage",
+    "description": "What Lervo did when the agent ran `lervo terminal coverage`, as a quiet line in the conversation."
+  },
+  "lervo.command.terminal.declare": {
+    "defaultMessage": "Declared the turn",
+    "description": "What Lervo did when the agent ran `lervo terminal declare`, as a quiet line in the conversation."
+  },
+  "lervo.command.terminal.hook": {
+    "defaultMessage": "Ran a terminal hook",
+    "description": "What Lervo did when the agent ran `lervo terminal hook`, as a quiet line in the conversation."
+  },
+  "lervo.command.terminal.status": {
+    "defaultMessage": "Checked the terminal integration",
+    "description": "What Lervo did when the agent ran `lervo terminal status`, as a quiet line in the conversation."
+  },
+  "lervo.command.trace": {
+    "defaultMessage": "Traced a run",
+    "description": "What Lervo did when the agent ran `lervo trace`, as a quiet line in the conversation."
+  },
+  "lervo.command.upgrade": {
+    "defaultMessage": "Upgraded the repository's Lervo files",
+    "description": "What Lervo did when the agent ran `lervo upgrade`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.cleanup": {
+    "defaultMessage": "Cleaned up workspaces",
+    "description": "What Lervo did when the agent ran `lervo workspace cleanup`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.hook": {
+    "defaultMessage": "Ran a workspace hook",
+    "description": "What Lervo did when the agent ran `lervo workspace hook`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.inspect": {
+    "defaultMessage": "Inspected a workspace",
+    "description": "What Lervo did when the agent ran `lervo workspace inspect`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.open": {
+    "defaultMessage": "Opened a workspace",
+    "description": "What Lervo did when the agent ran `lervo workspace open`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.recover": {
+    "defaultMessage": "Recovered a workspace",
+    "description": "What Lervo did when the agent ran `lervo workspace recover`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.retire": {
+    "defaultMessage": "Retired a workspace",
+    "description": "What Lervo did when the agent ran `lervo workspace retire`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.retire_unstarted": {
+    "defaultMessage": "Retired unstarted workspaces",
+    "description": "What Lervo did when the agent ran `lervo workspace retire-unstarted`, as a quiet line in the conversation."
+  },
+  "lervo.command.workspace.start": {
+    "defaultMessage": "Started a workspace",
+    "description": "What Lervo did when the agent ran `lervo workspace start`, as a quiet line in the conversation."
+  },
+  "lervo.command.workstream.current": {
+    "defaultMessage": "Read the workstream",
+    "description": "What Lervo did when the agent ran `lervo workstream current`, as a quiet line in the conversation."
+  },
+  "lervo.command.workstream.reconcile": {
+    "defaultMessage": "Reconciled the workstream",
+    "description": "What Lervo did when the agent ran `lervo workstream reconcile`, as a quiet line in the conversation."
+  },
+  "lervo.command.workstream.start": {
+    "defaultMessage": "Started the workstream",
+    "description": "What Lervo did when the agent ran `lervo workstream start`, as a quiet line in the conversation."
+  },
+  "lervo.command.workstream.sync": {
+    "defaultMessage": "Synced the workstream",
+    "description": "What Lervo did when the agent ran `lervo workstream sync`, as a quiet line in the conversation."
+  },
+  "lervo.command.workstream.update": {
+    "defaultMessage": "Updated the workstream",
+    "description": "What Lervo did when the agent ran `lervo workstream update`, as a quiet line in the conversation."
   },
   "notice.conversation_item_invalid": {
     "defaultMessage": "A message from the agent could not be shown.",

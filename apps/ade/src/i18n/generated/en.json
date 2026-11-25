@@ -91,6 +91,48 @@
       "value": "Jump to latest"
     }
   ],
+  "conversation.lervo.failed": [
+    {
+      "type": 1,
+      "value": "command"
+    },
+    {
+      "type": 0,
+      "value": " failed"
+    }
+  ],
+  "conversation.lervo.help": [
+    {
+      "type": 0,
+      "value": "Looked up the help for "
+    },
+    {
+      "type": 1,
+      "value": "command"
+    }
+  ],
+  "conversation.lervo.help.root": [
+    {
+      "type": 0,
+      "value": "Looked up Lervo's commands"
+    }
+  ],
+  "conversation.lervo.unknown": [
+    {
+      "type": 0,
+      "value": "Ran "
+    },
+    {
+      "type": 1,
+      "value": "command"
+    }
+  ],
+  "conversation.lervo.version": [
+    {
+      "type": 0,
+      "value": "Checked Lervo's version"
+    }
+  ],
   "conversation.opening": [
     {
       "type": 0,
@@ -405,6 +447,902 @@
           ]
         }
       }
+    }
+  ],
+  "lervo.command.agent.context.handoff": [
+    {
+      "type": 0,
+      "value": "Handed off an agent's context"
+    }
+  ],
+  "lervo.command.agent.context.inspect": [
+    {
+      "type": 0,
+      "value": "Inspected an agent's context"
+    }
+  ],
+  "lervo.command.agent.context.promote": [
+    {
+      "type": 0,
+      "value": "Promoted an agent's context"
+    }
+  ],
+  "lervo.command.agent.heartbeat": [
+    {
+      "type": 0,
+      "value": "Reported an agent's heartbeat"
+    }
+  ],
+  "lervo.command.agent.hire": [
+    {
+      "type": 0,
+      "value": "Hired an agent"
+    }
+  ],
+  "lervo.command.agent.inspect": [
+    {
+      "type": 0,
+      "value": "Inspected an agent"
+    }
+  ],
+  "lervo.command.agent.list": [
+    {
+      "type": 0,
+      "value": "Listed the agents"
+    }
+  ],
+  "lervo.command.agent.mandate.host": [
+    {
+      "type": 0,
+      "value": "Set the host of an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.mandate.inspect": [
+    {
+      "type": 0,
+      "value": "Inspected an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.mandate.install": [
+    {
+      "type": 0,
+      "value": "Installed an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.mandate.plan": [
+    {
+      "type": 0,
+      "value": "Planned an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.mandate.resolve_preflight": [
+    {
+      "type": 0,
+      "value": "Checked an agent's mandate before resolving it"
+    }
+  ],
+  "lervo.command.agent.mandate.revoke": [
+    {
+      "type": 0,
+      "value": "Revoked an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.mandate.scope": [
+    {
+      "type": 0,
+      "value": "Set the scope of an agent's mandate"
+    }
+  ],
+  "lervo.command.agent.rename": [
+    {
+      "type": 0,
+      "value": "Renamed an agent"
+    }
+  ],
+  "lervo.command.agent.role": [
+    {
+      "type": 0,
+      "value": "Changed an agent's role"
+    }
+  ],
+  "lervo.command.agent.status": [
+    {
+      "type": 0,
+      "value": "Checked the agents' status"
+    }
+  ],
+  "lervo.command.application.attention": [
+    {
+      "type": 0,
+      "value": "Checked what needs attention"
+    }
+  ],
+  "lervo.command.application.serve": [
+    {
+      "type": 0,
+      "value": "Started the Lervo application"
+    }
+  ],
+  "lervo.command.assignment.acknowledge": [
+    {
+      "type": 0,
+      "value": "Acknowledged an assignment"
+    }
+  ],
+  "lervo.command.assignment.cancel": [
+    {
+      "type": 0,
+      "value": "Canceled an assignment"
+    }
+  ],
+  "lervo.command.assignment.claim": [
+    {
+      "type": 0,
+      "value": "Claimed an assignment"
+    }
+  ],
+  "lervo.command.assignment.complete": [
+    {
+      "type": 0,
+      "value": "Completed an assignment"
+    }
+  ],
+  "lervo.command.assignment.create": [
+    {
+      "type": 0,
+      "value": "Created an assignment"
+    }
+  ],
+  "lervo.command.assignment.handoff": [
+    {
+      "type": 0,
+      "value": "Handed off an assignment"
+    }
+  ],
+  "lervo.command.assignment.list": [
+    {
+      "type": 0,
+      "value": "Listed the assignments"
+    }
+  ],
+  "lervo.command.assignment.renew": [
+    {
+      "type": 0,
+      "value": "Renewed an assignment"
+    }
+  ],
+  "lervo.command.capability.authorize_skill": [
+    {
+      "type": 0,
+      "value": "Authorized a skill"
+    }
+  ],
+  "lervo.command.capability.install": [
+    {
+      "type": 0,
+      "value": "Installed a capability"
+    }
+  ],
+  "lervo.command.capability.list": [
+    {
+      "type": 0,
+      "value": "Listed the capabilities"
+    }
+  ],
+  "lervo.command.capability.migrate": [
+    {
+      "type": 0,
+      "value": "Migrated the capabilities"
+    }
+  ],
+  "lervo.command.capability.resolve": [
+    {
+      "type": 0,
+      "value": "Resolved a capability"
+    }
+  ],
+  "lervo.command.capability.validate": [
+    {
+      "type": 0,
+      "value": "Validated a capability"
+    }
+  ],
+  "lervo.command.deliberate": [
+    {
+      "type": 0,
+      "value": "Started a deliberation"
+    }
+  ],
+  "lervo.command.deliberate.artifact": [
+    {
+      "type": 0,
+      "value": "Read a deliberation's result"
+    }
+  ],
+  "lervo.command.deliberate.status": [
+    {
+      "type": 0,
+      "value": "Checked a deliberation"
+    }
+  ],
+  "lervo.command.doctor": [
+    {
+      "type": 0,
+      "value": "Checked Lervo's health"
+    }
+  ],
+  "lervo.command.environment.query": [
+    {
+      "type": 0,
+      "value": "Checked a connection target"
+    }
+  ],
+  "lervo.command.environment.resolve": [
+    {
+      "type": 0,
+      "value": "Resolved a connection target"
+    }
+  ],
+  "lervo.command.event_contract.activate": [
+    {
+      "type": 0,
+      "value": "Activated an event schema"
+    }
+  ],
+  "lervo.command.event_contract.evidence": [
+    {
+      "type": 0,
+      "value": "Gathered event schema evidence"
+    }
+  ],
+  "lervo.command.event_contract.recover": [
+    {
+      "type": 0,
+      "value": "Recovered the event schema"
+    }
+  ],
+  "lervo.command.event_contract.rollback": [
+    {
+      "type": 0,
+      "value": "Rolled back the event schema"
+    }
+  ],
+  "lervo.command.event_contract.status": [
+    {
+      "type": 0,
+      "value": "Checked the event schema"
+    }
+  ],
+  "lervo.command.host.upgrade": [
+    {
+      "type": 0,
+      "value": "Upgraded Lervo on this computer"
+    }
+  ],
+  "lervo.command.init": [
+    {
+      "type": 0,
+      "value": "Set up Lervo in the repository"
+    }
+  ],
+  "lervo.command.knowledge.canonicalization.reopen": [
+    {
+      "type": 0,
+      "value": "Reopened a knowledge canonicalization"
+    }
+  ],
+  "lervo.command.knowledge.canonicalization.status": [
+    {
+      "type": 0,
+      "value": "Checked knowledge canonicalization"
+    }
+  ],
+  "lervo.command.knowledge.convergence": [
+    {
+      "type": 0,
+      "value": "Checked knowledge upkeep"
+    }
+  ],
+  "lervo.command.knowledge.convergence.delegation": [
+    {
+      "type": 0,
+      "value": "Changed who keeps the knowledge up to date"
+    }
+  ],
+  "lervo.command.knowledge.convergence.owner": [
+    {
+      "type": 0,
+      "value": "Changed which computer keeps the knowledge up to date"
+    }
+  ],
+  "lervo.command.knowledge.convergence.provider_probe": [
+    {
+      "type": 0,
+      "value": "Tested the provider for knowledge upkeep"
+    }
+  ],
+  "lervo.command.knowledge.freshness.acknowledge": [
+    {
+      "type": 0,
+      "value": "Acknowledged a freshness review"
+    }
+  ],
+  "lervo.command.knowledge.freshness.revert": [
+    {
+      "type": 0,
+      "value": "Reverted a freshness edit"
+    }
+  ],
+  "lervo.command.knowledge.freshness.review": [
+    {
+      "type": 0,
+      "value": "Reviewed document freshness"
+    }
+  ],
+  "lervo.command.knowledge.freshness.status": [
+    {
+      "type": 0,
+      "value": "Checked document freshness"
+    }
+  ],
+  "lervo.command.knowledge.instruction.bridge": [
+    {
+      "type": 0,
+      "value": "Connected the instruction files"
+    }
+  ],
+  "lervo.command.knowledge.instruction.capture": [
+    {
+      "type": 0,
+      "value": "Captured owner rules from the conversation"
+    }
+  ],
+  "lervo.command.knowledge.instruction.intake": [
+    {
+      "type": 0,
+      "value": "Recorded an owner rule"
+    }
+  ],
+  "lervo.command.knowledge.instruction.retire": [
+    {
+      "type": 0,
+      "value": "Retired an owner rule"
+    }
+  ],
+  "lervo.command.knowledge.instruction.status": [
+    {
+      "type": 0,
+      "value": "Checked the owner rules"
+    }
+  ],
+  "lervo.command.knowledge.lint": [
+    {
+      "type": 0,
+      "value": "Checked the repository's knowledge"
+    }
+  ],
+  "lervo.command.knowledge.materialize": [
+    {
+      "type": 0,
+      "value": "Wrote out the knowledge files"
+    }
+  ],
+  "lervo.command.knowledge.normalize": [
+    {
+      "type": 0,
+      "value": "Normalized the documents"
+    }
+  ],
+  "lervo.command.knowledge.query": [
+    {
+      "type": 5,
+      "value": "hasSubject",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Searched for “"
+            },
+            {
+              "type": 1,
+              "value": "subject"
+            },
+            {
+              "type": 0,
+              "value": "”"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Searched the repository's knowledge"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "lervo.command.knowledge.refresh": [
+    {
+      "type": 0,
+      "value": "Refreshed the knowledge"
+    }
+  ],
+  "lervo.command.knowledge.revert": [
+    {
+      "type": 0,
+      "value": "Reverted a knowledge change"
+    }
+  ],
+  "lervo.command.knowledge.structure.delete": [
+    {
+      "type": 0,
+      "value": "Deleted a document"
+    }
+  ],
+  "lervo.command.knowledge.structure.merge": [
+    {
+      "type": 0,
+      "value": "Merged documents"
+    }
+  ],
+  "lervo.command.knowledge.structure.move": [
+    {
+      "type": 0,
+      "value": "Moved a document"
+    }
+  ],
+  "lervo.command.knowledge.structure.split": [
+    {
+      "type": 0,
+      "value": "Split a document"
+    }
+  ],
+  "lervo.command.knowledge.web.stats": [
+    {
+      "type": 0,
+      "value": "Measured the relation web"
+    }
+  ],
+  "lervo.command.knowledge.web.suspects": [
+    {
+      "type": 0,
+      "value": "Listed documents to recheck"
+    }
+  ],
+  "lervo.command.knowledge.worker": [
+    {
+      "type": 0,
+      "value": "Ran a knowledge worker"
+    }
+  ],
+  "lervo.command.migrate.knowledge": [
+    {
+      "type": 0,
+      "value": "Migrated the repository's knowledge"
+    }
+  ],
+  "lervo.command.model.set": [
+    {
+      "type": 0,
+      "value": "Set the model"
+    }
+  ],
+  "lervo.command.model.show": [
+    {
+      "type": 0,
+      "value": "Checked the model"
+    }
+  ],
+  "lervo.command.model.unset": [
+    {
+      "type": 0,
+      "value": "Cleared the model"
+    }
+  ],
+  "lervo.command.organization.bind_runtime": [
+    {
+      "type": 0,
+      "value": "Bound a runtime to the organization"
+    }
+  ],
+  "lervo.command.organization.bind_team": [
+    {
+      "type": 0,
+      "value": "Bound a team to the organization"
+    }
+  ],
+  "lervo.command.organization.inspect": [
+    {
+      "type": 0,
+      "value": "Inspected the organization"
+    }
+  ],
+  "lervo.command.organization.set_team_kind": [
+    {
+      "type": 0,
+      "value": "Set a team's kind"
+    }
+  ],
+  "lervo.command.plan.add": [
+    {
+      "type": 5,
+      "value": "hasSubject",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Added “"
+            },
+            {
+              "type": 1,
+              "value": "subject"
+            },
+            {
+              "type": 0,
+              "value": "” to the plan"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Added a plan item"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "lervo.command.plan.cancel": [
+    {
+      "type": 0,
+      "value": "Canceled a plan item"
+    }
+  ],
+  "lervo.command.plan.done": [
+    {
+      "type": 0,
+      "value": "Marked a plan item done"
+    }
+  ],
+  "lervo.command.plan.list": [
+    {
+      "type": 0,
+      "value": "Read the plan"
+    }
+  ],
+  "lervo.command.plan.move": [
+    {
+      "type": 0,
+      "value": "Moved a plan item"
+    }
+  ],
+  "lervo.command.plan.start": [
+    {
+      "type": 0,
+      "value": "Started a plan item"
+    }
+  ],
+  "lervo.command.plan.supersede": [
+    {
+      "type": 0,
+      "value": "Superseded a plan item"
+    }
+  ],
+  "lervo.command.repository.hold": [
+    {
+      "type": 0,
+      "value": "Put a hold on the repository"
+    }
+  ],
+  "lervo.command.repository.holds": [
+    {
+      "type": 0,
+      "value": "Listed the repository's holds"
+    }
+  ],
+  "lervo.command.repository.list": [
+    {
+      "type": 0,
+      "value": "Listed the repositories"
+    }
+  ],
+  "lervo.command.repository.node.apply": [
+    {
+      "type": 0,
+      "value": "Applied a repository node change"
+    }
+  ],
+  "lervo.command.repository.node.plan": [
+    {
+      "type": 0,
+      "value": "Planned a repository node change"
+    }
+  ],
+  "lervo.command.repository.node.status": [
+    {
+      "type": 0,
+      "value": "Checked the repository's nodes"
+    }
+  ],
+  "lervo.command.repository.register": [
+    {
+      "type": 0,
+      "value": "Registered the repository"
+    }
+  ],
+  "lervo.command.repository.release": [
+    {
+      "type": 0,
+      "value": "Released a hold on the repository"
+    }
+  ],
+  "lervo.command.repository.resolve": [
+    {
+      "type": 0,
+      "value": "Resolved the repository"
+    }
+  ],
+  "lervo.command.research.verify": [
+    {
+      "type": 0,
+      "value": "Verified a research result"
+    }
+  ],
+  "lervo.command.role.list": [
+    {
+      "type": 0,
+      "value": "Listed the roles"
+    }
+  ],
+  "lervo.command.role.show": [
+    {
+      "type": 0,
+      "value": "Read a role"
+    }
+  ],
+  "lervo.command.role.validate": [
+    {
+      "type": 0,
+      "value": "Validated a role"
+    }
+  ],
+  "lervo.command.run": [
+    {
+      "type": 5,
+      "value": "hasSubject",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Ran a managed task: “"
+            },
+            {
+              "type": 1,
+              "value": "subject"
+            },
+            {
+              "type": 0,
+              "value": "”"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Ran a managed task"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "lervo.command.search": [
+    {
+      "type": 5,
+      "value": "hasSubject",
+      "options": {
+        "yes": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Searched for “"
+            },
+            {
+              "type": 1,
+              "value": "subject"
+            },
+            {
+              "type": 0,
+              "value": "”"
+            }
+          ]
+        },
+        "other": {
+          "value": [
+            {
+              "type": 0,
+              "value": "Searched"
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "lervo.command.search.plan.activate": [
+    {
+      "type": 0,
+      "value": "Activated a search plan"
+    }
+  ],
+  "lervo.command.search.plan.rollback": [
+    {
+      "type": 0,
+      "value": "Rolled back a search plan"
+    }
+  ],
+  "lervo.command.search.plan.status": [
+    {
+      "type": 0,
+      "value": "Checked the search plan"
+    }
+  ],
+  "lervo.command.state.cas_retention": [
+    {
+      "type": 0,
+      "value": "Checked stored content retention"
+    }
+  ],
+  "lervo.command.state.prune": [
+    {
+      "type": 0,
+      "value": "Pruned Lervo's state"
+    }
+  ],
+  "lervo.command.state.reset": [
+    {
+      "type": 0,
+      "value": "Reset Lervo's state"
+    }
+  ],
+  "lervo.command.state.restore": [
+    {
+      "type": 0,
+      "value": "Restored Lervo's state"
+    }
+  ],
+  "lervo.command.state.status": [
+    {
+      "type": 0,
+      "value": "Checked Lervo's state"
+    }
+  ],
+  "lervo.command.terminal.budget": [
+    {
+      "type": 0,
+      "value": "Checked the context budget"
+    }
+  ],
+  "lervo.command.terminal.coverage": [
+    {
+      "type": 0,
+      "value": "Checked terminal coverage"
+    }
+  ],
+  "lervo.command.terminal.declare": [
+    {
+      "type": 0,
+      "value": "Declared the turn"
+    }
+  ],
+  "lervo.command.terminal.hook": [
+    {
+      "type": 0,
+      "value": "Ran a terminal hook"
+    }
+  ],
+  "lervo.command.terminal.status": [
+    {
+      "type": 0,
+      "value": "Checked the terminal integration"
+    }
+  ],
+  "lervo.command.trace": [
+    {
+      "type": 0,
+      "value": "Traced a run"
+    }
+  ],
+  "lervo.command.upgrade": [
+    {
+      "type": 0,
+      "value": "Upgraded the repository's Lervo files"
+    }
+  ],
+  "lervo.command.workspace.cleanup": [
+    {
+      "type": 0,
+      "value": "Cleaned up workspaces"
+    }
+  ],
+  "lervo.command.workspace.hook": [
+    {
+      "type": 0,
+      "value": "Ran a workspace hook"
+    }
+  ],
+  "lervo.command.workspace.inspect": [
+    {
+      "type": 0,
+      "value": "Inspected a workspace"
+    }
+  ],
+  "lervo.command.workspace.open": [
+    {
+      "type": 0,
+      "value": "Opened a workspace"
+    }
+  ],
+  "lervo.command.workspace.recover": [
+    {
+      "type": 0,
+      "value": "Recovered a workspace"
+    }
+  ],
+  "lervo.command.workspace.retire": [
+    {
+      "type": 0,
+      "value": "Retired a workspace"
+    }
+  ],
+  "lervo.command.workspace.retire_unstarted": [
+    {
+      "type": 0,
+      "value": "Retired unstarted workspaces"
+    }
+  ],
+  "lervo.command.workspace.start": [
+    {
+      "type": 0,
+      "value": "Started a workspace"
+    }
+  ],
+  "lervo.command.workstream.current": [
+    {
+      "type": 0,
+      "value": "Read the workstream"
+    }
+  ],
+  "lervo.command.workstream.reconcile": [
+    {
+      "type": 0,
+      "value": "Reconciled the workstream"
+    }
+  ],
+  "lervo.command.workstream.start": [
+    {
+      "type": 0,
+      "value": "Started the workstream"
+    }
+  ],
+  "lervo.command.workstream.sync": [
+    {
+      "type": 0,
+      "value": "Synced the workstream"
+    }
+  ],
+  "lervo.command.workstream.update": [
+    {
+      "type": 0,
+      "value": "Updated the workstream"
     }
   ],
   "notice.conversation_item_invalid": [

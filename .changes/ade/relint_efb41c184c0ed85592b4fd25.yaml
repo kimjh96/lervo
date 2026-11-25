@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_efb41c184c0ed85592b4fd25"
+"package": "@lervo/ade"
+"impact": "minor"
+"summary": "Show each Lervo command the agent runs as a plain sentence of what Lervo did, opening to the exact command."

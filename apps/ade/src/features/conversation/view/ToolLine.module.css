@@ -85,6 +85,28 @@ button.summary:focus-visible {
   font-size: var(--type-mono-size);
 }
 
+/* What Lervo did reads as a plain sentence in the regular weight, a step quieter than the
+   agent's tools; a command it names keeps the mono face. */
+.said {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.said[data-status="failed"] {
+  color: var(--color-status-failed);
+}
+
+.inlineCommand {
+  font-family: var(--font-family-mono);
+  font-size: var(--type-mono-size);
+}
+
+.commandLine {
+  color: var(--color-text-tertiary);
+}
+
 .result {
   display: inline-flex;
   flex: none;
