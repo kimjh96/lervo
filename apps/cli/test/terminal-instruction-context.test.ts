@@ -63,3 +63,18 @@ it("adds no omission line when every owner rule body fits", async () => {
   expect(prepared.preamble).not.toContain("Owner rules omitted for space");
   expect(prepared.preamble).toContain("Respond to the owner in Korean.");
 });
+
+it("prepares owner rules for a prompt with no text without recording a contract failure (ADR-0635)", async () => {
+  const root = await repositoryWithRules(rules);
+  for (const prompt of ["", "  \n"]) {
+    const prepared = await prepareTerminalInstructionPreamble({
+      root,
+      preamble: "Lervo compact terminal context.",
+      maximumBytes: 4096,
+      prompt,
+      sourceSnapshotId: "ksnap_fixture",
+    });
+    expect(JSON.stringify(prepared.quality)).not.toContain("context_contract_invalid");
+    expect(prepared.preamble).toContain("Respond to the owner in Korean.");
+  }
+});

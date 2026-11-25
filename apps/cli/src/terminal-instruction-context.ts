@@ -10,6 +10,11 @@ import {
 import { capContextBytes } from "./terminal-context-budget.js";
 
 const NOTICE_RESERVE_BYTES = 256;
+/**
+ * ADR-0635: the intent for a prompt with no text, such as an image-only message. The quality
+ * request requires a non-empty intent; without one, every such prompt recorded a contract failure.
+ */
+const PROMPT_WITHOUT_TEXT_INTENT = "(prompt without text)";
 const MAXIMUM_OMITTED_TITLES_BYTES = 600;
 
 /**
@@ -50,7 +55,7 @@ export async function prepareTerminalInstructionPreamble(input: {
     repositoryRoot: input.root,
     origin: "terminal",
     task: {
-      intent: input.prompt,
+      intent: input.prompt.trim() === "" ? PROMPT_WITHOUT_TEXT_INTENT : input.prompt,
       continuation: "",
       targetPaths: [],
       artifactKinds: [],
