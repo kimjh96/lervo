@@ -252,7 +252,8 @@ function reportForContext(context: EventEnvelope, events: EventEnvelope[]): Term
       turnPayload === null
         ? { result: "not_observed", lifecycleStatus: "not_observed" }
         : {
-            result: string(turnPayload.completionResult) as "allowed" | "blocked",
+            // A turn that ended without a Stop hook (schema 12) stays `not_checked`, never `allowed`.
+            result: string(turnPayload.completionResult) as "allowed" | "blocked" | "not_checked",
             lifecycleStatus: string(turnPayload.lifecycleStatus) as "current" | "action_required",
           },
     resources: {

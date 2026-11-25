@@ -81,7 +81,7 @@
     },
     {
       "path": "packages/event-contract/src/redaction.ts",
-      "contentHash": "sha256:75bddc4cd1b49e63d1df97eb801636f2552d8199ddf7509858ae3476cc017d83",
+      "contentHash": "sha256:04982e7d4d8b550bb9a8283d3607d726aad07442e8c54ea7c4af7c4a0603eb34",
       "responsibility": "Canonical event payload privacy enforcement",
       "rationale": "The module owns the common event privacy boundary and its declarative allowlist and payload-schema registries. Feature registrations, such as native-skill, practice, plan-ledger, and hosted-session payloads, add only declarative entries from dedicated payload modules. Provider output interpretation, executable identity, transcript parsing, persistence, reference detection, and scheduling stay in their owning adapters.",
       "disposition": "cohesive"
@@ -228,7 +228,7 @@
     },
     {
       "path": "packages/schemas/src/event.ts",
-      "contentHash": "sha256:162b0552abc7998add4139f579ead05f806e4e1ceb462054765a81bd37d914e4",
+      "contentHash": "sha256:7bde9079900979bba87e5d043f33ec86d1774575954bcf8b929bb1d308e7ab85",
       "responsibility": "Versioned event envelope schema and types",
       "rationale": "The module defines the event envelope schema once and the cumulative event type list of every schema version, with one discriminated branch and one envelope type per version. Each new version adds one list, one branch, and one type. Cross-version invariants, such as the schema-11 resource usage boundary, are defined in their payload modules and only listed here. Validation, redaction, persistence, and reader capabilities stay outside it.",
       "disposition": "cohesive"
@@ -249,7 +249,7 @@
     },
     {
       "path": "packages/schemas/src/terminal-observation-event.ts",
-      "contentHash": "sha256:8529ed8ec746aa5d1961dff64b9177fba1cbdd1df562991596969a44210a30f1",
+      "contentHash": "sha256:efb9bed4ef2283445cdf79a6514dc8409cf9a19dcaa2a30eb9faee6f0db4034e",
       "responsibility": "Declarative terminal observation event schemas",
       "rationale": "The module declares one terminal evidence lifecycle. Pointer fields, identities, reference kinds, and paired counts are additive. Equivalent nullable scalar schemas keep compiled validation within the measured hook bundle budget. Detection, persistence, privacy enforcement, and reporting remain separate.",
       "disposition": "cohesive"

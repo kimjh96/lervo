@@ -388,6 +388,20 @@ export const terminalReferenceObservedEventPayloadSchema = {
   additionalProperties: false,
 } as const;
 
+/**
+ * How a turn ended (schema 12). Claude runs no Stop hook for an interrupted turn, so Lervo settles
+ * it at the next prompt, at session end or the next session start, or from the provider's own
+ * interrupt signal.
+ */
+export const terminalTurnEndingsWithoutStop = [
+  "next_prompt",
+  "session_end",
+  "session_start",
+  "provider_interrupt",
+] as const;
+export const terminalTurnEndings = ["stop_hook", ...terminalTurnEndingsWithoutStop] as const;
+export type TerminalTurnEnding = (typeof terminalTurnEndings)[number];
+
 export const terminalTurnObservedEventPayloadSchema = {
   $schema: "https://json-schema.org/draft/2020-12/schema",
   $id: "https://schemas.lervo.dev/v0/terminal-turn-observed-event-payload.schema.json",
@@ -401,7 +415,11 @@ export const terminalTurnObservedEventPayloadSchema = {
     pathMentionCount: { type: "integer", minimum: 0 },
     referenceTelemetry: { type: "string", enum: ["observed", "unavailable"] },
     lifecycleStatus: { type: "string", enum: ["current", "action_required"] },
-    completionResult: { type: "string", enum: ["allowed", "blocked"] },
+    /**
+     * The Stop gate's verdict, or `not_checked` for a turn that ended without a Stop hook
+     * (schema 12), which the gate never saw.
+     */
+    completionResult: { type: "string", enum: ["allowed", "blocked", "not_checked"] },
     repositoryRevisionBefore: sha256Schema,
     repositoryRevisionAfter: sha256Schema,
     repositoryChanged: { type: "boolean" },
@@ -420,6 +438,8 @@ export const terminalTurnObservedEventPayloadSchema = {
     leaseGeneration: optionalPositiveIntegerSchema,
     writerSessionId: optionalWriterSessionIdSchema,
     workspaceCheckpointEventId: { anyOf: [eventIdSchema, { type: "null" }] },
+    /** Schema 12. How the turn ended; absent means the Stop hook ran. */
+    ending: { type: "string", enum: terminalTurnEndings },
   },
   required: [
     "observationId",
@@ -478,7 +498,39 @@ export const terminalTurnObservedEventPayloadSchema = {
       "finalWorkstreamRevision",
     ],
   },
+  // Only the Stop hook checks completion: any other ending is `not_checked`, and a Stop-hook
+  // ending is never `not_checked`.
+  if: {
+    properties: { ending: { type: "string", enum: terminalTurnEndingsWithoutStop } },
+    required: ["ending"],
+  },
+  then: { properties: { completionResult: { const: "not_checked" } } },
+  else: { properties: { completionResult: { type: "string", enum: ["allowed", "blocked"] } } },
   additionalProperties: false,
+} as const;
+
+/**
+ * An envelope invariant: below schema 12, `terminal.turn.observed` keeps the shape older readers
+ * accept, with no `ending` and a Stop-gate verdict. The payload schema ignores the envelope
+ * version.
+ */
+export const terminalTurnObservedBeforeV12 = {
+  if: {
+    properties: {
+      type: { const: "terminal.turn.observed" },
+      schemaVersion: { type: "integer", maximum: 11 },
+    },
+    required: ["type", "schemaVersion"],
+  },
+  then: {
+    properties: {
+      payload: {
+        type: "object",
+        properties: { completionResult: { type: "string", enum: ["allowed", "blocked"] } },
+        propertyNames: { not: { const: "ending" } },
+      },
+    },
+  },
 } as const;
 
 export type TerminalContextPreparedEventPayload = FromSchema<

@@ -21,7 +21,7 @@ function coordinate(version: number) {
                 capabilities: {
                   schemaVersion: 1,
                   capability: "event_reader",
-                  readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+                  readableEventSchemaVersions: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
                 },
               },
             ],
@@ -53,7 +53,7 @@ function mutations(value: unknown): unknown[] {
 }
 
 describe("owned coordinate JSON parsing", () => {
-  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11])(
+  it.each([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])(
     "preserves version %i and malformed nested data verdicts",
     (version) => {
       const value = coordinate(version);
