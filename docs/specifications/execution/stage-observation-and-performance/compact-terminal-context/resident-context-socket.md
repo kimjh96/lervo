@@ -52,6 +52,16 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
   - `busy`: the server is already running a request. It serves one at a time; a later slice may run more than one.
   - `request_too_large` and `invalid_request`.
 
+## Launcher delegation
+
+A repository commits a copy of the launcher, and the host keeps its own at `~/.lervo/terminal-hooks/launcher.mjs`, which every CLI install replaces with its bundled launcher. The committed copy hands the hook to the host's launcher, in the same process, when:
+
+- the host's launcher is this user's regular file, and neither it nor the store grants any permission to group or others;
+- its `launcherVersion` is at least the copy's own. An older host install never runs a repository's hooks with an older launcher, and the runtime both launchers load is the same store runtime;
+- `LERVO_TERMINAL_HOOK_DELEGATION` is not `0`, and the platform is not Windows.
+
+Otherwise the copy runs itself, exactly as before, so a clone without Lervo, a CI runner, or a host whose store is unreadable behaves as it did. The host's launcher never hands the hook off again. A launcher change therefore reaches every repository through the CLI install; a repository's copy needs rewriting only when the delegation rule itself changes. Each served request names the launcher that sent it, and `context-stats.json` counts served prompts by launcher.
+
 ## Client behavior
 
 - The client runs in the hook launcher, before it loads the 6.9 MB runtime bundle; otherwise the bundle load alone exceeds the 200 millisecond target. It touches nothing unless the store holds a socket, so a host without a server behaves exactly as before, and a newer launcher pulled onto a host with an older CLI keeps working.
@@ -66,7 +76,7 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
 
 - The server runs `runTerminalHookCommand` for one request at a time, with the request's working directory, input, and arguments, and with the hook's start moved back by the client's `elapsed`. The hook path reads its working directory only from that input, never from the process.
 - Session identity comes only from the input, never from the host's environment.
-- The in-process hook relies on its process exit to drop work a deadline abandoned. A stage that fails or reaches its deadline settles its measurement, and the hook answers, possibly degraded, while sibling stages' work may still run. After answering, the server therefore waits for every stage's own work to settle and serves no other request meanwhile; a prompt that arrives then is declined as `busy` and prepared in process. When that work does not settle within the rest of the hook budget, or the request ran past half the budget, the server exits and the host starts a fresh one, so abandoned work never runs into the next request. A request that never settles makes the server exit after the hook budget plus five seconds. On SIGTERM the server exits at once, without waiting for a request in flight.
+- The in-process hook relies on its process exit to drop work a deadline abandoned. A stage that fails or reaches its deadline settles its measurement, and the hook answers, possibly degraded, while sibling stages' work may still run. After answering, the server therefore waits for every stage's own work to settle and serves no other request meanwhile; a prompt that arrives then is declined as `busy` and prepared in process. When that work does not settle within 250 milliseconds, or the request ran past half the budget, the server exits and the host starts a fresh one, which it does within a fraction of a second, so abandoned work never runs into the next request. A request that never settles makes the server exit after the hook budget plus five seconds. On SIGTERM the server exits at once, without waiting for a request in flight.
 - Request failures are reported by closed code only. No request body, parse excerpt, or provider input reaches a log.
 
 ## Privacy

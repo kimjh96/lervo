@@ -51,6 +51,8 @@ export interface TerminalContextRequest {
   elapsed: number;
   /** The provider's hook input, exactly as read from standard input. */
   input: string;
+  /** Which launcher sent it: the host's, or a repository's committed copy. Older clients omit it. */
+  launcher?: "host" | "committed";
 }
 
 export interface TerminalContextAnswer {
@@ -91,6 +93,7 @@ export function parseTerminalContextRequest(line: string): TerminalContextReques
     !Number.isFinite(item.elapsed) ||
     item.elapsed < 0 ||
     typeof item.input !== "string" ||
+    (item.launcher !== undefined && item.launcher !== "host" && item.launcher !== "committed") ||
     environment === null ||
     typeof environment !== "object" ||
     Object.keys(environment).sort().join(",") !== [...TERMINAL_CONTEXT_ENVIRONMENT].join(",") ||
@@ -159,7 +162,10 @@ export function startTerminalContextServer(input: {
   onOverrun?: () => void;
   runLimitMs?: number;
   /** Notes each request's outcome, so a canary can read whether prompts were served. */
-  onOutcome?: (outcome: "served" | TerminalContextDecline) => void;
+  onOutcome?: (
+    outcome: "served" | TerminalContextDecline,
+    launcher?: TerminalContextRequest["launcher"],
+  ) => void;
 }): TerminalContextServer {
   let bound: { dev: number; ino: number } | null = null;
   const own = effectiveTerminalContextEnvironment(terminalContextEnvironment(input.environment));
@@ -224,7 +230,7 @@ export function startTerminalContextServer(input: {
       if (chunk[0] !== 0x47 /* G */) return socket.destroy();
       committed = true;
       if (commitTimer !== undefined) clearTimeout(commitTimer);
-      input.onOutcome?.("served");
+      input.onOutcome?.("served", request?.launcher);
       const current = request!;
       // A run that never settles would keep the server busy forever; the caller exits instead.
       const watchdog = setTimeout(() => input.onOverrun?.(), input.runLimitMs ?? 30_000);
