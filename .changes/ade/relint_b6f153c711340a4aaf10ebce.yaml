@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_b6f153c711340a4aaf10ebce"
-"package": "@lervo/ade"
-"impact": "patch"
-"summary": "Place the notice about how the work started under the first message, so it scrolls with the conversation."

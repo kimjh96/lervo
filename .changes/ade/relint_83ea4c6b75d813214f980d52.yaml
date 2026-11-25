@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_83ea4c6b75d813214f980d52"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "Show each tool run as a quiet line that opens to its output or change, and keep an opened line in place."
