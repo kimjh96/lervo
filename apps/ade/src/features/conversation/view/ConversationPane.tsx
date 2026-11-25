@@ -10,6 +10,7 @@ import { useConversationStore } from "../model/store";
 import { Composer } from "./Composer";
 import { Conversation } from "./Conversation";
 import styles from "./ConversationPane.module.css";
+import { ToolLinesProvider } from "./ToolLinesProvider";
 
 /**
  * The conversation with its dock: the working line while the agent works, and the reply card.
@@ -54,30 +55,32 @@ export function ConversationPane(props: {
           </InlineAlert>
         )}
       </Presence>
-      <Conversation
-        onLoadEarlier={() => void source.loadEarlier()}
-        onLoadLater={() => void source.loadLater()}
-        onJumpToLatest={() => void source.showLatest()}
-        continues={props.continues}
-        dock={
-          <>
-            <Presence className={styles.notice}>{props.notice ?? null}</Presence>
-            {/* The working line keeps its row, so the conversation never moves as work starts
+      <ToolLinesProvider conversation={source}>
+        <Conversation
+          onLoadEarlier={() => void source.loadEarlier()}
+          onLoadLater={() => void source.loadLater()}
+          onJumpToLatest={() => void source.showLatest()}
+          continues={props.continues}
+          dock={
+            <>
+              <Presence className={styles.notice}>{props.notice ?? null}</Presence>
+              {/* The working line keeps its row, so the conversation never moves as work starts
                 or ends. */}
-            <div className={styles.working}>
-              <Presence>
-                {props.working === null ? null : <WorkingLine label={props.working} />}
-              </Presence>
-            </div>
-            <Composer
-              draftKey={props.draftKey}
-              onSend={(text) => source.send(text)}
-              onStop={props.onStop}
-              waiting={props.waiting}
-            />
-          </>
-        }
-      />
+              <div className={styles.working}>
+                <Presence>
+                  {props.working === null ? null : <WorkingLine label={props.working} />}
+                </Presence>
+              </div>
+              <Composer
+                draftKey={props.draftKey}
+                onSend={(text) => source.send(text)}
+                onStop={props.onStop}
+                waiting={props.waiting}
+              />
+            </>
+          }
+        />
+      </ToolLinesProvider>
     </div>
   );
 }

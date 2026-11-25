@@ -87,9 +87,37 @@
     "defaultMessage": "The agent did not stop ({code}). It keeps working.",
     "description": "Stopping the agent's turn failed; {code} is the protocol code."
   },
+  "conversation.tool.added": {
+    "defaultMessage": "+{count}",
+    "description": "Lines a tool call added to a file, at the end of its line; {count} is the number."
+  },
   "conversation.tool.failed": {
     "defaultMessage": "{name} failed",
     "description": "A tool call that failed."
+  },
+  "conversation.tool.files": {
+    "defaultMessage": "{count, plural, one {# file} other {# files}}",
+    "description": "Files a search tool call found, at the end of its line."
+  },
+  "conversation.tool.lines": {
+    "defaultMessage": "{count, plural, one {# line} other {# lines}}",
+    "description": "Lines a tool call read from a file, at the end of its line."
+  },
+  "conversation.tool.matches": {
+    "defaultMessage": "{count, plural, one {# match} other {# matches}}",
+    "description": "Matching lines a search tool call found, at the end of its line."
+  },
+  "conversation.tool.omitted": {
+    "defaultMessage": "{count, plural, one {# more line} other {# more lines}}",
+    "description": "Lines of a tool call's output or change left out of its preview; the full output stays in the provider's transcript."
+  },
+  "conversation.tool.removed": {
+    "defaultMessage": "−{count}",
+    "description": "Lines a tool call removed from a file, beside the lines it added."
+  },
+  "conversation.tool.result.failed": {
+    "defaultMessage": "failed",
+    "description": "The end of a tool line whose call failed; its preview shows the error."
   },
   "conversation.tool.running": {
     "defaultMessage": "{name} is running",
