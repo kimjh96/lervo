@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { EventEnvelope } from "@lervo/schemas";
 
 import { type EventDraft, SQLiteEventStore } from "../src/index.js";
+import { typeFilteredPageSql } from "../src/event-repository.js";
 import { sqliteRow, sqliteRows } from "../src/sqlite-row.js";
 
 const projectId = "prj_01234567";
@@ -276,5 +277,29 @@ describe("SQLite newest-first type pages", () => {
       RangeError,
     );
     store.close();
+  });
+});
+
+describe("SQLite multi-type pages", () => {
+  it("reads every type through the type index in one statement, in both directions", async () => {
+    const path = await databasePath();
+    const store = await SQLiteEventStore.open({ path, projectId, writableEventSchemaVersion: 2 });
+    store.append(requested(1));
+    store.close();
+    const raw = new DatabaseSync(path);
+    for (const side of ["after", "before"] as const) {
+      const plan = sqliteRows(
+        raw
+          .prepare(`EXPLAIN QUERY PLAN ${typeFilteredPageSql(3, side)}`)
+          .all(
+            ...["a", "b", "c"].flatMap((type) => [projectId, type, side === "after" ? 0 : 99, 10]),
+            10,
+          ),
+      ).map((row) => String(row.detail));
+      const searches = plan.filter((detail) => detail.startsWith("SEARCH events"));
+      expect(searches).toHaveLength(3);
+      expect(searches.every((detail) => detail.includes("events_type_seq"))).toBe(true);
+    }
+    raw.close();
   });
 });

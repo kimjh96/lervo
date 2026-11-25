@@ -83,8 +83,14 @@ function boundedConcurrency(limit: number) {
   };
 }
 
-/** `localeCompare`'s order, from one collator instead of one per comparison (ECMA-402). */
-const nameOrder = new Intl.Collator();
+/**
+ * `localeCompare`'s order, from one collator instead of one per comparison (ECMA-402). A Node built
+ * without `Intl` keeps `localeCompare` itself.
+ */
+const nameOrder: { compare(left: string, right: string): number } =
+  typeof Intl === "object"
+    ? new Intl.Collator()
+    : { compare: (left, right) => left.localeCompare(right) };
 
 export async function captureRepositorySnapshot(
   repositoryRoot: string,

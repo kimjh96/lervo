@@ -30,6 +30,24 @@ describe("Git ignored-path availability", () => {
     });
   });
 
+  it("starts the listing with the probe and stops it when the probe rules it out", async () => {
+    let listingSignal: AbortSignal | undefined;
+    let releaseProbe!: (value: unknown) => void;
+    ports.execute.mockImplementation(
+      (_command: string, args: string[], options: { signal?: AbortSignal }) => {
+        if (args.includes("rev-parse")) return new Promise((done) => (releaseProbe = done));
+        listingSignal = options.signal;
+        return new Promise(() => undefined);
+      },
+    );
+    const result = repositorySnapshotGitIgnoredPaths("/repository");
+    // The listing is already running while the probe is still out.
+    expect(listingSignal?.aborted).toBe(false);
+    releaseProbe({ stdout: "false\n" });
+    expect(await result).toEqual({ status: "unavailable" });
+    expect(listingSignal?.aborted).toBe(true);
+  });
+
   it("retains an empty successful listing as available", async () => {
     answer({ stdout: "true\n" }, { stdout: "" });
     expect(await repositorySnapshotGitIgnoredPaths("/repository")).toEqual({

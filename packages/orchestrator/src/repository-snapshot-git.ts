@@ -37,10 +37,16 @@ export async function repositorySnapshotGitIgnoredPaths(
 ): Promise<RepositorySnapshotIgnoredPaths> {
   // Both start at once: the listing is only used once the probe confirmed a work tree, and a
   // listing that fails outside one is ignored. Sequential, the probe added its whole run time.
+  // A listing whose result will not be used is stopped, so it never outlives the snapshot.
+  const unused = new AbortController();
   const listing = execute(
     "git",
     ["-C", root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory"],
-    { timeout: gitTimeout(10_000, deadlineMs), maxBuffer: 64 * 1024 * 1024 },
+    {
+      timeout: gitTimeout(10_000, deadlineMs),
+      maxBuffer: 64 * 1024 * 1024,
+      signal: unused.signal,
+    },
   );
   listing.catch(() => undefined);
   try {
@@ -61,14 +67,21 @@ export async function repositorySnapshotGitIgnoredPaths(
         return null;
       throw error;
     });
-    if (probe === null) return { status: "available", paths: new Set() };
-    if (probe.stdout.trim() !== "true") return { status: "unavailable" };
+    if (probe === null) {
+      unused.abort();
+      return { status: "available", paths: new Set() };
+    }
+    if (probe.stdout.trim() !== "true") {
+      unused.abort();
+      return { status: "unavailable" };
+    }
     const { stdout } = await listing;
     return {
       status: "available",
       paths: new Set(stdout.split("\0").filter((path) => path.length > 0)),
     };
   } catch {
+    unused.abort();
     return { status: "unavailable" };
   }
 }
