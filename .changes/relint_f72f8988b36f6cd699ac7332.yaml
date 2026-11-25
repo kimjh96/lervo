@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_f72f8988b36f6cd699ac7332"
-"package": "@lervo/cli"
-"impact": "patch"
-"summary": "Walk the repository snapshot concurrently, keeping file order, the entry and deadline bounds, and stopping every read at the first failure, so prompt hooks spend less time capturing."

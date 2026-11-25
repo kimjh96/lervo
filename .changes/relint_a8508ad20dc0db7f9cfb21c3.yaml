@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_a8508ad20dc0db7f9cfb21c3"
-"package": "@lervo/cli"
-"impact": "minor"
-"summary": "A repository's committed hook launcher hands each hook to the host's launcher when it is trusted and at least as new, so launcher changes reach every repository through the CLI install; served prompts are counted by launcher."
