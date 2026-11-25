@@ -18,6 +18,9 @@ import {
   type TerminalStageObservationPort,
 } from "./terminal-stage-observation.js";
 
+/** How long the server waits for work a prompt left running before it restarts instead. */
+const DRAIN_MILLISECONDS = 250;
+
 /** Past this share of the budget, the hook's deadlines fired and abandoned work may still run. */
 const OVERRUN_MILLISECONDS = TERMINAL_HOOK_BUDGET_MS / 2;
 
@@ -101,10 +104,10 @@ export async function runServedTerminalPrompt(
     stderr,
     exitCode,
     overran: performance.now() - startedAt > OVERRUN_MILLISECONDS,
-    // Work a failed or late stage left running settles before the next request, within the rest
-    // of the hook's budget; otherwise the server exits.
-    drain: () =>
-      observation.drain(Math.max(0, startedAt + TERMINAL_HOOK_BUDGET_MS - performance.now())),
+    // Work a failed or late stage left running gets a moment to settle. A server held busy for
+    // longer would turn later prompts away; exiting instead lets the host start a fresh one,
+    // which it does within a fraction of a second.
+    drain: () => observation.drain(DRAIN_MILLISECONDS),
   };
 }
 
@@ -124,13 +127,17 @@ function contextStats(runtime: string) {
     pid: process.pid,
     startedAt: new Date().toISOString(),
     served: 0,
+    /** Served prompts by the launcher that sent them: the host's or a repository's copy. */
+    servedBy: {} as Record<string, number>,
     declined: {} as Record<string, number>,
     lastServedAt: null as string | null,
   };
   let writing = Promise.resolve();
-  return (outcome: string) => {
+  return (outcome: string, launcher?: string) => {
     if (outcome === "served") {
       stats.served += 1;
+      const by = launcher ?? "unknown";
+      stats.servedBy[by] = (stats.servedBy[by] ?? 0) + 1;
       stats.lastServedAt = new Date().toISOString();
     } else stats.declined[outcome] = (stats.declined[outcome] ?? 0) + 1;
     const bytes = `${JSON.stringify(stats)}\n`;
