@@ -1,5 +1,5 @@
-<!-- lervo-release package="@lervo/cli" version="0.47.8" schema="1" -->
+<!-- lervo-release package="@lervo/cli" version="0.47.9" schema="1" -->
 
 ## What's changed
 
-- Refresh the next prompt's knowledge snapshot after each resident refresh, so a resident commit no longer costs the next prompt a full knowledge scan past the hook budget.
+- ADE workspaces start under ~/.lervo/workspaces/<repository>/<branch>, never in a <repository>-wt folder beside the project, and a workspaces home inside a repository is refused; earlier workspaces keep opening and retiring where they are.
