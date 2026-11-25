@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_97c9c6662d27ee460a6eff70"
+"package": "@lervo/cli"
+"impact": "minor"
+"summary": "Read event schema 11 in the CLI, the Node, and the Hub. resource.usage.recorded can carry a hosted ADE session's usage, with cache-creation tokens and a list-price cost; older envelopes refuse that shape. Writer activation stays at schema 10 until every reader has it."

@@ -10,10 +10,8 @@ import {
   sha256Schema,
   timestampSchema,
 } from "./common.js";
-import {
-  executionStageObservationSchema,
-  resourceUsageSchema,
-} from "./execution-observability-event.js";
+import { executionStageObservationSchema } from "./execution-observability-event.js";
+import { resourceUsageSchema } from "./resource-usage-event.js";
 import { repositoryPerformanceProfileSchema } from "./execution-environment-profile.js";
 
 const resourceObservationSchema = {

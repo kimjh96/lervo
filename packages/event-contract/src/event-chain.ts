@@ -12,6 +12,7 @@ import {
   type EventEnvelopeV8,
   type EventEnvelopeV9,
   type EventEnvelopeV10,
+  type EventEnvelopeV11,
 } from "@lervo/schemas";
 
 import { canonicalJson } from "./canonical-json.js";
@@ -30,6 +31,7 @@ export type EventDraftV7 = EventDraftFor<EventEnvelopeV7>;
 export type EventDraftV8 = EventDraftFor<EventEnvelopeV8>;
 export type EventDraftV9 = EventDraftFor<EventEnvelopeV9>;
 export type EventDraftV10 = EventDraftFor<EventEnvelopeV10>;
+export type EventDraftV11 = EventDraftFor<EventEnvelopeV11>;
 export type EventDraft =
   | EventDraftV1
   | EventDraftV2
@@ -40,7 +42,8 @@ export type EventDraft =
   | EventDraftV7
   | EventDraftV8
   | EventDraftV9
-  | EventDraftV10;
+  | EventDraftV10
+  | EventDraftV11;
 
 export type EventHashInput = Omit<EventEnvelope, "eventHash">;
 

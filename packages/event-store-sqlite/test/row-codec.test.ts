@@ -71,7 +71,7 @@ describe("SQLite event row compatibility", () => {
   });
 
   it("reports an unsupported stored version distinctly", () => {
-    expect(() => rowToEvent(row(11))).toThrowError(
+    expect(() => rowToEvent(row(12))).toThrowError(
       expect.objectContaining({ code: "event_schema_unsupported" }),
     );
   });
