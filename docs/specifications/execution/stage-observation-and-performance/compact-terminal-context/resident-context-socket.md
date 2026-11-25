@@ -43,7 +43,7 @@ ADR-0562 sets the target: a prompt hook p95 under 200 milliseconds end to end. A
   - `runtime`: the content hash of the verified hook runtime the launcher loaded (its manifest `contentHash`). The server declines a request whose hash differs from its own.
   - `root`: the realpath of the repository root the hook resolved. For a linked worktree this is the worktree, not its main checkout.
   - `provider` and `contract`.
-  - `environment`: the values of every variable the hook path reads: `LERVO_TERMINAL_HOOK_RUNTIME`, `LERVO_TERMINAL_CONTEXT`, `CODEX_HOME`, `LERVO_USER_STATE_DIRECTORY`, and `XDG_STATE_HOME`. The list is closed and checked by a contract test that fails when the hook path reads a variable not on it.
+  - `environment`: the values of every variable the hook path reads: `LERVO_TERMINAL_HOOK_RUNTIME`, `CODEX_HOME`, `LERVO_USER_STATE_DIRECTORY`, and `XDG_STATE_HOME`. The list is closed and checked by a contract test that fails when the hook path reads a variable not on it.
   - `deadline`: the remaining hook budget in milliseconds, and `elapsed`: the client's time spent so far.
   - `input`: the provider's hook input exactly as read from standard input.
 - **Response** (`terminal.context.response`, version 1):

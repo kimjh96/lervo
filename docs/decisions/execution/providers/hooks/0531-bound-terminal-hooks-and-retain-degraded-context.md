@@ -3,6 +3,7 @@
 Status: `accepted`
 Decision date: 2026-10-25
 Amends: [ADR-0327](0327-availability-safe-unmanaged-terminal-hooks.md), [ADR-0451](../../../knowledge/repository/canonicalization/0451-keep-terminal-hooks-off-the-developer-critical-path.md)
+Amended by: [ADR-0634](0634-remove-the-retrieval-terminal-context-mode.md) (retrieval mode and its Stop prefetch exception are removed)
 
 ## Context
 

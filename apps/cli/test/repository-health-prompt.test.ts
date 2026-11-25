@@ -31,7 +31,6 @@ afterEach(async () => {
 it.each(["codex", "claude"] as const)(
   "%s compact turns read cached health without provider, projection or lint work",
   async (provider) => {
-    vi.stubEnv("LERVO_TERMINAL_CONTEXT", "compact");
     root = await mkdtemp(resolve(tmpdir(), "lervo-health-prompt-"));
     await applyInitPlan(await createInitPlan({ root, projectId: "prj_healthprompt" }));
     const snapshot = await captureTerminalRepositorySnapshot(root);
@@ -54,16 +53,12 @@ it.each(["codex", "claude"] as const)(
     projection.measures.freshness.status = "gap";
     projection.measures.freshness.value!.stale = 1;
     await publishRepositoryHealth(root, projection);
-    const projector = vi.fn(async () => {
-      throw new Error("Provider called on compact path");
-    });
     const result = await prepareTerminalPromptContext({
       root,
       provider,
       prompt: "Continue",
       observationId: "tobs_healthprompt",
       workspaceBinding: null,
-      services: { projectSearchQueries: projector },
       timing: {
         measure: async (_id, run) => run(),
         measureChild: async (_id, _parent, run) => run(),
@@ -81,7 +76,6 @@ it.each(["codex", "claude"] as const)(
         ".lervo/state/knowledge/freshness-cycle.json",
       ],
     });
-    expect(projector).not.toHaveBeenCalled();
     expect(prefetchRepositoryHealth).not.toHaveBeenCalled();
     expect(lintRepositoryKnowledge).not.toHaveBeenCalled();
   },

@@ -175,7 +175,7 @@ export async function completeTerminalHookTurn({
       }),
     ).catch(() => false);
   // Prepare the next compact prompt's knowledge snapshot after this turn's final bytes.
-  if (hookRuntime !== undefined && process.env.LERVO_TERMINAL_CONTEXT !== "retrieval")
+  if (hookRuntime !== undefined)
     await withinTerminalDeadline(timing.observationDeadlineMs ?? performance.now() + 1000, () =>
       launchDetachedKnowledgeWorker({
         root: executionRoot,

@@ -25,7 +25,6 @@ import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-contract.js";
-import type { CliServices } from "./types.js";
 
 export async function prepareAndRecordTerminalPrompt({
   root,
@@ -41,7 +40,6 @@ export async function prepareAndRecordTerminalPrompt({
   contractId,
   occurredAt,
   deadlineMs,
-  services,
 }: {
   /** The repository the turn's evidence, queues, and shared state belong to. */
   root: string;
@@ -58,7 +56,6 @@ export async function prepareAndRecordTerminalPrompt({
   contractId: "lervo_terminal_hooks_v1" | "lervo_terminal_hooks_v2";
   occurredAt: string;
   deadlineMs: number;
-  services: Pick<CliServices, "projectSearchQueries">;
 }): Promise<string> {
   // ADR-0542: record only the transcript position; the resident reads the turn later.
   const transcript = await terminalTranscriptPosition(provider, transcriptPath);
@@ -73,7 +70,6 @@ export async function prepareAndRecordTerminalPrompt({
       workspaceBinding,
       timing,
       observationId,
-      services,
     }),
   );
   // A fresh clone has no generated knowledge; say so instead of implying no matches.

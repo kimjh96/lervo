@@ -7,7 +7,6 @@ import { fileURLToPath } from "node:url";
 
 import { runKnowledgeBootstrap } from "./knowledge-bootstrap.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
-import { projectProductionSearchQueries } from "./provider-query-projector.js";
 import { createTerminalStageObservation } from "./terminal-stage-observation.js";
 import { prefetchTerminalPromptContext } from "./terminal-compact-context.js";
 
@@ -38,10 +37,7 @@ if (
         return Buffer.concat(chunks).toString("utf8");
       },
     },
-    {
-      projectSearchQueries: projectProductionSearchQueries,
-      createTerminalStageObservation,
-    },
+    { createTerminalStageObservation },
   );
   // Deadline races cannot cancel every filesystem or child-process handle. Flush the response
   // before ending this short-lived hook process; detached maintenance has its own process.

@@ -35,10 +35,6 @@ import type { CliIo, CliServiceOverrides, CliServices } from "./types.js";
 import { groundProductionRequest } from "./semantic-grounding.js";
 import { crossCheckDurableInstruction } from "./durable-instruction-cross-check.js";
 import { crossCheckPlan } from "./plan-cross-check.js";
-import {
-  prepareProductionSearchQueries,
-  projectProductionSearchQueries,
-} from "./provider-query-projector.js";
 import { runUpgradeCommand, upgradeUsage } from "./upgrade-command.js";
 import { hostUsage, runHostCommand } from "./host-command.js";
 import { runVersionCommand, versionUsage } from "./version-command.js";
@@ -88,10 +84,8 @@ const defaultServices: CliServices = {
   groundProductionRequest,
   crossCheckDurableInstruction,
   crossCheckPlan,
-  projectSearchQueries: projectProductionSearchQueries,
   createTerminalStageObservation,
   inspectOperatingAttention,
-  prepareSearchQueries: prepareProductionSearchQueries,
 };
 
 export async function runCli(
