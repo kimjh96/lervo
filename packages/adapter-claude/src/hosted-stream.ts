@@ -1,10 +1,13 @@
 import {
   type HostedDecodedContent,
   type HostedDecodedEvent,
+  type HostedImageSending,
+  type HostedSentImage,
   type HostedStreamDecoder,
   type HostedTurnInterrupting,
   type HostedTurnUsage,
   type HostedUsageReporting,
+  imageMark,
 } from "@lervo/adapter-contract";
 import type { ResourceAccountingDescriptor } from "@lervo/schemas";
 import { homedir } from "node:os";
@@ -53,8 +56,13 @@ function blocks(line: Line): Line[] {
  *   `context_compacted` notice. Subagent messages, thinking, hooks, and other system lines are not
  *   part of the conversation.
  */
+/** Claude Code's placeholders for `count` images, as its terminal writes them into a prompt. */
+export function imagePlaceholders(count: number): string {
+  return Array.from({ length: count }, (_, index) => `[Image #${index + 1}]`).join(" ");
+}
+
 export class ClaudeHostedStreamDecoder
-  implements HostedStreamDecoder, HostedUsageReporting, HostedTurnInterrupting
+  implements HostedStreamDecoder, HostedUsageReporting, HostedTurnInterrupting, HostedImageSending
 {
   private readonly decoder = new TextDecoder();
   private partial = "";
@@ -82,12 +90,39 @@ export class ClaudeHostedStreamDecoder
   ) {}
 
   send(value: string): { input: Uint8Array; events: HostedDecodedEvent[] } {
-    const line = JSON.stringify({
-      type: "user",
-      message: { role: "user", content: [{ type: "text", text: value }] },
-    });
+    return this.sendWithImages(value, []);
+  }
+
+  /**
+   * The message as one stream-json user line: the text, then each image as Base64. Images alone
+   * carry Claude Code's own placeholders, "[Image #1]", as their text, as its terminal does, so
+   * prompt hooks and Lervo's retrieval read a prompt. The conversation still shows the images
+   * alone.
+   */
+  sendWithImages(
+    value: string,
+    images: readonly HostedSentImage[],
+  ): { input: Uint8Array; events: HostedDecodedEvent[] } {
+    const said = value.length > 0 ? value : imagePlaceholders(images.length);
+    const content = [
+      ...(said.length === 0 ? [] : [{ type: "text", text: said }]),
+      ...images.map((image) => ({
+        type: "image",
+        source: { type: "base64", media_type: image.mediaType, data: image.data },
+      })),
+    ];
+    const line = JSON.stringify({ type: "user", message: { role: "user", content } });
+    const marks = images.map(imageMark);
     const events: HostedDecodedEvent[] = [
-      { kind: "item", content: { kind: "user_message", text: value }, createdAtMs: this.now() },
+      {
+        kind: "item",
+        content: {
+          kind: "user_message",
+          text: value,
+          ...(marks.length === 0 ? {} : { images: marks }),
+        },
+        createdAtMs: this.now(),
+      },
     ];
     events.push(...this.startTurn());
     return { input: new TextEncoder().encode(`${line}\n`), events };

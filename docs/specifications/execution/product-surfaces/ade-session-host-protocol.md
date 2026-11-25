@@ -70,19 +70,19 @@ The session host removes the socket and the token when it shuts down. Its sessio
 
 ## Messages from the client
 
-| Message               | Purpose                                                                                                                   |
-| --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `hello`               | Opens the connection.                                                                                                     |
-| `application.command` | Forwards a Lervo application command, such as `workspace.start`, to the resident Lervo process.                           |
-| `session.open`        | Starts or returns the agent session of an existing workspace, optionally in a conversation mode.                          |
-| `session.attach`      | Subscribes to a session from a sequence.                                                                                  |
-| `session.detach`      | Ends the subscription. The session keeps running.                                                                         |
-| `sessions.watch`      | Subscribes to the status of every session, without output.                                                                |
-| `session.send`        | Sends the user's text to the native conversation; `session.sent` or `request.failed` answers it.                          |
-| `session.interrupt`   | Stops the native conversation's running turn and keeps the session; `session.interrupted` or `request.failed` answers it. |
-| `session.resize`      | Sets the CLI conversation's terminal size.                                                                                |
-| `session.stop`        | Stops the agent session.                                                                                                  |
-| `conversation.range`  | Requests older or newer conversation items, at most 200 per request.                                                      |
+| Message               | Purpose                                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `hello`               | Opens the connection.                                                                                                             |
+| `application.command` | Forwards a Lervo application command, such as `workspace.start`, to the resident Lervo process.                                   |
+| `session.open`        | Starts or returns the agent session of an existing workspace, optionally in a conversation mode.                                  |
+| `session.attach`      | Subscribes to a session from a sequence.                                                                                          |
+| `session.detach`      | Ends the subscription. The session keeps running.                                                                                 |
+| `sessions.watch`      | Subscribes to the status of every session, without output.                                                                        |
+| `session.send`        | Sends the user's message, text and up to three images, to the native conversation; `session.sent` or `request.failed` answers it. |
+| `session.interrupt`   | Stops the native conversation's running turn and keeps the session; `session.interrupted` or `request.failed` answers it.         |
+| `session.resize`      | Sets the CLI conversation's terminal size.                                                                                        |
+| `session.stop`        | Stops the agent session.                                                                                                          |
+| `conversation.range`  | Requests older or newer conversation items, at most 200 per request.                                                              |
 
 A session host from before `session.interrupt` closes the connection on it, so the interface sends it only to a session host at least as new as itself, and only while the core advertises `decoder.interrupt` ([core link](ade-core-link.md)).
 
@@ -109,14 +109,14 @@ The interface never names a path or a launch descriptor. `workspace.start` and `
 
 A conversation item has an opaque `itemId`, a `kind`, a creation time, and a `state` of `streaming` or `complete`. A streaming item becomes complete when `conversation.appended` repeats it with the state `complete`.
 
-| Kind            | Content                                                                               |
-| --------------- | ------------------------------------------------------------------------------------- |
-| `user_message`  | The user's text                                                                       |
-| `agent_message` | The agent's text, streamed through `conversation.delta`                               |
-| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail                |
-| `question`      | The agent's question to the user                                                      |
-| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`                         |
-| `peer_message`  | A message another agent session sent this one: the sender's session name and the text |
+| Kind            | Content                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `user_message`  | The user's text, and a mark for each image it carried: its format and size, never its bytes |
+| `agent_message` | The agent's text, streamed through `conversation.delta`                                     |
+| `tool_activity` | The tool name, a status, a count of calls, and an optional tool detail                      |
+| `question`      | The agent's question to the user                                                            |
+| `lervo_notice`  | A Lervo code with parameters, such as `knowledge_lint_passed`                               |
+| `peer_message`  | A message another agent session sent this one: the sender's session name and the text       |
 
 A Lervo notice carries a code, never a sentence, and the interface renders it from its message catalog. Conversation text from the user and the agent passes through unchanged.
 
@@ -168,5 +168,7 @@ A tool call's `detail` says what the call acted on and what it showed, bounded s
   - `application_timeout`: the resident Lervo process did not answer within the request's deadline;
   - `session_start_failed`: the provider's CLI exists, but its process could not start, for example because the system refused a PTY or a process. The `reason` parameter names the error kind;
   - `session_stop_timeout`: a conversation mode switch could not stop the running provider process in time. The session keeps running in its current mode.
+  - `message_empty`: a `session.send` carried neither text nor images;
+  - `images_unsupported`: the session cannot carry images. A resident process may not advertise `decoder.images`, and a provider's decoder may not offer it. Nothing was sent;
   - `interrupt_unsupported`: the session cannot stop a turn and keep running. The CLI conversation stops a turn in its terminal, a provider's decoder may not offer it, and a resident process may not advertise `decoder.interrupt`. The turn goes on.
 - A failure that the core reported carries the core's own code in the `coreCode` parameter and, for `workspace.start`, the failed stage in the `stage` parameter. The [core link](ade-core-link.md) defines how the session host reaches the core.

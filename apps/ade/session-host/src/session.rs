@@ -14,7 +14,7 @@ use tokio::sync::{mpsc, watch};
 
 use crate::messages;
 use crate::subscriber::{Output, Subscriber, encoded};
-use lervo_session_core::ports::ConversationMode;
+use lervo_session_core::ports::{ConversationMode, SentImage};
 
 /// How long an ended session still answers attaches and ranges before its actor exits. After
 /// that, `session.open` starts the session again.
@@ -67,6 +67,8 @@ pub(crate) enum Command {
     Send {
         request: Identifier,
         text: String,
+        /// The images the message carries, as the protocol checked them.
+        images: Vec<SentImage>,
         reply: Reply,
     },
     /// Stops the native conversation's running turn and keeps the session.

@@ -1,5 +1,6 @@
 import type { FromSchema } from "json-schema-to-ts";
 
+import { sentImagesSchema } from "./image.js";
 import { identifierSchema, sequenceSchema } from "./primitives.js";
 
 export const conversationModeSchema = { enum: ["native", "cli"] } as const;
@@ -57,7 +58,12 @@ export const sessionsWatchMessageSchema = {
   },
 } as const;
 
-/** The user's text for the native conversation. */
+/**
+ * The user's message for the native conversation: text, images, or both. Text may be empty only
+ * when the message carries images; a message with neither is answered `message_empty`. The
+ * interface sends images only to a session host as current as itself and a core that advertises
+ * `decoder.images`; otherwise the session host answers `images_unsupported`.
+ */
 export const sessionSendMessageSchema = {
   title: "SessionSendMessage",
   type: "object",
@@ -67,7 +73,8 @@ export const sessionSendMessageSchema = {
     kind: { type: "string", enum: ["session.send"] },
     requestId: identifierSchema,
     sessionId: identifierSchema,
-    text: { type: "string", minLength: 1, maxLength: 262144 },
+    text: { type: "string", maxLength: 262144 },
+    images: sentImagesSchema,
   },
 } as const;
 

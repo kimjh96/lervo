@@ -85,6 +85,8 @@ pub enum FailureCode {
     ApplicationTimeout,
     /// The provider or the running core cannot stop a turn and keep the session.
     InterruptUnsupported,
+    /// The provider or the running core cannot carry images in a message.
+    ImagesUnsupported,
 }
 
 /// A failure that the session host reports with `request.failed`.
@@ -134,6 +136,14 @@ pub enum Decoded {
     Conversation(Input),
 }
 
+/// An image the user sent with a message: its media type and its bytes as Base64, as the
+/// protocol checked them.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SentImage {
+    pub media_type: String,
+    pub data: String,
+}
+
 /// Translates between the session host and one provider's structured stream. Provider formats
 /// stay behind this port, so the session host never branches on a provider (invariant 2).
 pub trait StreamDecoder: Send + 'static {
@@ -143,6 +153,16 @@ pub trait StreamDecoder: Send + 'static {
     /// Decodes a chunk of standard output. Chunks split anywhere, so the decoder keeps partial
     /// records until their end arrives.
     fn output(&mut self, bytes: &[u8]) -> impl Future<Output = Vec<Decoded>> + Send;
+
+    /// Encodes the user's text and images for the provider's standard input, with what to show
+    /// for them. A decoder that cannot carry images fails with `ImagesUnsupported`.
+    fn send_with_images(
+        &mut self,
+        _text: &str,
+        _images: &[SentImage],
+    ) -> impl Future<Output = Result<(Vec<u8>, Vec<Decoded>), Failure>> + Send {
+        std::future::ready(Err(Failure::new(FailureCode::ImagesUnsupported)))
+    }
 
     /// Encodes the request that stops the provider's running turn and keeps its session, with
     /// what to show for it. The bytes are empty when no turn is running. A decoder that cannot

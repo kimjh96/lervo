@@ -99,7 +99,10 @@ async fn reads_transcript_pages_through_the_resident_process() {
     assert_eq!(
         first.items,
         [Input::Item {
-            content: Content::UserMessage("from the terminal".to_owned()),
+            content: Content::UserMessage {
+                text: "from the terminal".to_owned(),
+                images: None,
+            },
             created_at_ms: 5,
         }]
     );

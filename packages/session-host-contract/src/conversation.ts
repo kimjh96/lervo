@@ -7,6 +7,7 @@ import {
   parametersSchema,
   sequenceSchema,
 } from "./primitives.js";
+import { imageMarksSchema } from "./image.js";
 import { toolDetailSchema } from "./tool-detail.js";
 
 const itemStateSchema = { enum: ["streaming", "complete"] } as const;
@@ -28,7 +29,21 @@ function textItemSchema<Title extends string, Kind extends string>(title: Title,
   } as const;
 }
 
-export const userMessageItemSchema = textItemSchema("UserMessageItem", "user_message");
+/** The user's message, with what the conversation keeps of the images it carried. */
+export const userMessageItemSchema = {
+  title: "UserMessageItem",
+  type: "object",
+  additionalProperties: false,
+  required: ["kind", "itemId", "createdAtMs", "state", "text"],
+  properties: {
+    kind: { type: "string", enum: ["user_message"] },
+    itemId: identifierSchema,
+    createdAtMs: epochMillisecondsSchema,
+    state: itemStateSchema,
+    text: conversationTextSchema,
+    images: imageMarksSchema,
+  },
+} as const;
 export const agentMessageItemSchema = textItemSchema("AgentMessageItem", "agent_message");
 export const questionItemSchema = textItemSchema("QuestionItem", "question");
 

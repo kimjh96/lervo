@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use lervo_session_core::ports::{ConversationMode, Decoded, Launch};
 use lervo_session_core::status::SessionEvent;
 use lervo_session_core::transcript::{
-    Content, Input, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
+    Content, Input, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
 };
 use lervo_session_protocol::core_link::{
     ConversationMode as WireMode, CoreLaunch, DecodedContent, DecodedEvent, DecodedStatusEvent,
@@ -35,7 +35,14 @@ pub fn decoded(event: DecodedEvent) -> Decoded {
 
 fn content(content: DecodedContent) -> Content {
     match content {
-        DecodedContent::UserMessageContent(item) => Content::UserMessage(item.text.to_string()),
+        DecodedContent::UserMessageContent(item) => Content::UserMessage {
+            text: item.text.to_string(),
+            // Marks that cannot be written, or are too large, are dropped; the message stays.
+            images: Some(item.images)
+                .filter(|images| !images.is_empty())
+                .and_then(|images| serde_json::to_string(&images).ok())
+                .filter(|json| json.len() <= MAX_IMAGE_MARKS_BYTES),
+        },
         DecodedContent::AgentMessageContent(item) => Content::AgentMessage(item.text.to_string()),
         DecodedContent::QuestionContent(item) => Content::Question(item.text.to_string()),
         DecodedContent::PeerMessageContent(item) => Content::PeerMessage {

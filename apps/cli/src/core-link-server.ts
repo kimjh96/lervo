@@ -1,8 +1,10 @@
 import {
   interruptsTurns,
   reportsUsage,
+  sendsImages,
   type HostedDecodedContent,
   type HostedDecodedEvent,
+  type HostedSentImage,
   type HostedStreamDecoder,
   type HostedTranscriptItem,
   type HostedTurnUsage,
@@ -322,7 +324,15 @@ export class CoreLinkServer {
       return;
     }
     if (request.kind === "decoder.send") {
-      const sent = decoder.send(request.text as string);
+      const text = request.text as string;
+      const images = request.images as readonly HostedSentImage[] | undefined;
+      let sent: ReturnType<HostedStreamDecoder["send"]>;
+      if (images === undefined) sent = decoder.send(text);
+      else if (sendsImages(decoder)) sent = decoder.sendWithImages(text, images);
+      else {
+        this.fail(request.id, { code: "images_unsupported" });
+        return;
+      }
       this.decoded(request.id, sent.events, Buffer.from(sent.input).toString("base64"));
       return;
     }

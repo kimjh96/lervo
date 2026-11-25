@@ -142,6 +142,7 @@ pub fn core_failed(request: &Identifier, failure: &Failure) -> HostMessage {
         FailureCode::ApplicationUnavailable => RequestFailedMessageCode::ApplicationUnavailable,
         FailureCode::ApplicationTimeout => RequestFailedMessageCode::ApplicationTimeout,
         FailureCode::InterruptUnsupported => RequestFailedMessageCode::InterruptUnsupported,
+        FailureCode::ImagesUnsupported => RequestFailedMessageCode::ImagesUnsupported,
     };
     failed_with(
         request,

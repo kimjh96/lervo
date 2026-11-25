@@ -3,6 +3,7 @@
 
 pub mod budget;
 pub mod cache;
+pub mod content;
 pub mod paging;
 pub mod ports;
 pub mod retention;

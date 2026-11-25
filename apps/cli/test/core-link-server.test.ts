@@ -312,6 +312,69 @@ describe("the core-link server", () => {
     expect(refused[1]).toMatchObject({ kind: "core.failed", id: 2, code: "interrupt_unsupported" });
   });
 
+  it("writes images into the user's message, or answers images_unsupported", async () => {
+    // A 2×1 PNG header is enough for the mark's size.
+    const png = Buffer.from(
+      "89504e470d0a1a0a0000000d49484452000000020000000108060000001f15c489",
+      "hex",
+    ).toString("base64");
+    const { written } = await serve([
+      { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+      {
+        kind: "decoder.send",
+        id: 2,
+        decoderId: "dec_1",
+        text: "",
+        images: [{ mediaType: "image/png", data: png }],
+      },
+    ]);
+    const answer = written.find((response) => response.id === 2) as {
+      input: string;
+      events: { content?: unknown }[];
+    };
+    expect(JSON.parse(Buffer.from(answer.input, "base64").toString("utf8"))).toEqual({
+      type: "user",
+      message: {
+        role: "user",
+        content: [
+          // Images alone carry Claude Code's placeholder, so prompt hooks read a prompt.
+          { type: "text", text: "[Image #1]" },
+          { type: "image", source: { type: "base64", media_type: "image/png", data: png } },
+        ],
+      },
+    });
+    expect(answer.events[0]?.content).toEqual({
+      kind: "user_message",
+      text: "",
+      images: [{ mediaType: "image/png", width: 2, height: 1 }],
+    });
+
+    // A provider whose decoder cannot carry images says so.
+    const refused: Record<string, unknown>[] = [];
+    await new CoreLinkServer(
+      {
+        ...handlers(),
+        createDecoder: () => ({
+          send: () => ({ input: new Uint8Array(), events: [] }),
+          output: () => [],
+        }),
+      },
+      (line) => refused.push(JSON.parse(line) as Record<string, unknown>),
+    ).serve(
+      input([
+        { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
+        {
+          kind: "decoder.send",
+          id: 2,
+          decoderId: "dec_1",
+          text: "See",
+          images: [{ mediaType: "image/png", data: png }],
+        },
+      ]),
+    );
+    expect(refused[1]).toMatchObject({ kind: "core.failed", id: 2, code: "images_unsupported" });
+  });
+
   it("ends the link on a line that breaks the protocol", async () => {
     const { end, written } = await serve([
       { kind: "decoder.open", id: 1, decoderId: "dec_1", provider: "claude" },
@@ -446,6 +509,7 @@ describe("the core-link server", () => {
     const list = written.find((response) => response.id === 1)?.result as { commands: string[] };
     expect(list.commands).toContain("decoder.session");
     expect(list.commands).toContain("decoder.interrupt");
+    expect(list.commands).toContain("decoder.images");
     expect(written.find((response) => response.id === 3)).toMatchObject({
       kind: "decoder.decoded",
     });

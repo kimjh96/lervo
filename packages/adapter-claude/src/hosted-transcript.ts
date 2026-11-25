@@ -3,7 +3,13 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 
-import type { HostedDecodedContent, HostedTranscriptItem } from "@lervo/adapter-contract";
+import {
+  type HostedDecodedContent,
+  type HostedImageMark,
+  type HostedImageMediaType,
+  type HostedTranscriptItem,
+  imageMark,
+} from "@lervo/adapter-contract";
 
 import { compacted, peerMessage } from "./hosted-stream.js";
 import { claudeShellOutput, claudeToolDetail, type ClaudeToolCall } from "./hosted-tool-detail.js";
@@ -26,6 +32,21 @@ export function typedText(value: string): string | undefined {
   if (name === undefined) return value;
   const args = COMMAND_ARGS.exec(value)?.[1]?.trim() ?? "";
   return args.length === 0 ? `/${name}` : `/${name} ${args}`;
+}
+
+const MAX_IMAGES = 3;
+/** A prompt of Claude Code's image placeholders alone, which images alone carry as their text. */
+const PLACEHOLDERS_ONLY = /^\s*(?:\[Image #\d+\]\s*)+$/u;
+const IMAGE_MEDIA_TYPES: readonly string[] = ["image/png", "image/jpeg", "image/gif", "image/webp"];
+
+/** The mark of an image block the person sent, or undefined for one the reader cannot tell. */
+function transcriptImage(block: Line): HostedImageMark | undefined {
+  const source = record(block.source);
+  const mediaType = text(source?.media_type);
+  const data = text(source?.data);
+  if (source?.type !== "base64" || data === undefined || mediaType === undefined) return undefined;
+  if (!IMAGE_MEDIA_TYPES.includes(mediaType)) return undefined;
+  return imageMark({ mediaType: mediaType as HostedImageMediaType, data });
 }
 
 type Line = Record<string, unknown>;
@@ -119,12 +140,17 @@ export class ClaudeTranscriptDecoder {
     if (!Array.isArray(content)) return [];
     const items: HostedTranscriptItem[] = [];
     const words: string[] = [];
+    const marks: HostedImageMark[] = [];
     const blocks = content.map(record).filter((block): block is Line => block !== undefined);
     const results = blocks.filter((block) => block.type === "tool_result").length;
     for (const block of blocks) {
       const value = text(block.text);
       const typed = value === undefined ? undefined : typedText(value);
       if (block.type === "text" && typed !== undefined) words.push(typed);
+      if (block.type === "image" && marks.length < MAX_IMAGES) {
+        const mark = transcriptImage(block);
+        if (mark !== undefined) marks.push(mark);
+      }
       if (block.type !== "tool_result") continue;
       const id = text(block.tool_use_id);
       const call = id === undefined ? undefined : this.tools.get(id);
@@ -156,9 +182,16 @@ export class ClaudeTranscriptDecoder {
         ),
       );
     }
-    const said = words.join("\n\n");
-    if (said.trim().length > 0)
-      items.unshift(item({ kind: "user_message", text: said }, createdAtMs));
+    const joined = words.join("\n\n");
+    // Images sent alone read as images alone, as the live conversation shows them.
+    const said = marks.length > 0 && PLACEHOLDERS_ONLY.test(joined) ? "" : joined;
+    if (said.trim().length > 0 || marks.length > 0)
+      items.unshift(
+        item(
+          { kind: "user_message", text: said, ...(marks.length === 0 ? {} : { images: marks }) },
+          createdAtMs,
+        ),
+      );
     return items;
   }
 

@@ -1,0 +1,12 @@
+{
+  "kind": "session.send",
+  "requestId": "req_5",
+  "sessionId": "ses_1",
+  "text": "",
+  "images": [
+    {
+      "mediaType": "image/png",
+      "data": "iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAYAAAAfFcSJ"
+    }
+  ]
+}

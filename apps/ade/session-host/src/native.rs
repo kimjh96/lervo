@@ -167,13 +167,26 @@ impl<D: StreamDecoder> Native<D> {
                         stopped = true;
                         ask_to_end(&mut process, kill.as_mut(), &mut kill_armed).await;
                     }
-                    Some(Command::Send { request, text, reply }) => {
-                        let (bytes, decoded) = self.decoder.send(&text).await;
-                        if process.input(&bytes).await.is_ok() {
-                            self.apply(decoded);
-                            reply.send(messages::sent(&request, self.fanout.session()));
+                    Some(Command::Send { request, text, images, reply }) => {
+                        let encoded = if images.is_empty() {
+                            if text.is_empty() {
+                                reply.send(messages::failed(&request, RequestFailedMessageCode::MessageEmpty));
+                                continue;
+                            }
+                            Ok(self.decoder.send(&text).await)
                         } else {
-                            reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
+                            self.decoder.send_with_images(&text, &images).await
+                        };
+                        match encoded {
+                            Ok((bytes, decoded)) => {
+                                if process.input(&bytes).await.is_ok() {
+                                    self.apply(decoded);
+                                    reply.send(messages::sent(&request, self.fanout.session()));
+                                } else {
+                                    reply.send(messages::failed(&request, RequestFailedMessageCode::SessionEnded));
+                                }
+                            }
+                            Err(failure) => reply.send(messages::core_failed(&request, &failure)),
                         }
                     }
                     Some(Command::Interrupt { request, reply }) => {

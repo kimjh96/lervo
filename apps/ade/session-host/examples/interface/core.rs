@@ -221,7 +221,10 @@ impl StreamDecoder for ScriptDecoder {
             vec![
                 Decoded::Status(SessionEvent::TurnStarted),
                 Decoded::Conversation(Input::Item {
-                    content: Content::UserMessage(text.to_owned()),
+                    content: Content::UserMessage {
+                        text: text.to_owned(),
+                        images: None,
+                    },
                     created_at_ms: now,
                 }),
                 Decoded::Conversation(Input::Start {

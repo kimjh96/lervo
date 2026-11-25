@@ -3,73 +3,14 @@
 //! Stored items are immutable. At most one item streams at a time; it stays in memory until it
 //! completes and is then stored at the position it was given when it started.
 
-use std::collections::BTreeMap;
+pub use crate::content::{
+    Content, MAX_IMAGE_MARKS_BYTES, MAX_TOOL_DETAIL_BYTES, NoticeValue, ToolStatus,
+};
 
 /// Bytes of text in one item. The protocol allows 262,144 characters; bytes bound characters.
 pub const MAX_ITEM_TEXT_BYTES: usize = 256 * 1024;
 /// Bytes of text in one delta. The protocol allows 65,536 characters.
 pub const MAX_DELTA_BYTES: usize = 64 * 1024;
-/// Bytes of one tool call's serialized detail. Adapters keep a detail far smaller; a larger one
-/// is dropped, so a page of tool lines stays well within one frame.
-pub const MAX_TOOL_DETAIL_BYTES: usize = 6 * 1024;
-
-/// A tool call's status.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ToolStatus {
-    Running,
-    Succeeded,
-    Failed,
-}
-
-/// A Lervo notice parameter.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum NoticeValue {
-    Text(String),
-    Integer(i64),
-    Flag(bool),
-}
-
-/// What an item holds. Tool activity holds its bounded detail as the protocol's JSON, which the
-/// session host checks against the protocol when it sends the item.
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub enum Content {
-    UserMessage(String),
-    AgentMessage(String),
-    Question(String),
-    /// A message another agent session sent: the sender's name and the text.
-    PeerMessage {
-        from: String,
-        text: String,
-    },
-    ToolActivity {
-        name: String,
-        status: ToolStatus,
-        calls: u64,
-        detail: Option<String>,
-    },
-    LervoNotice {
-        code: String,
-        parameters: BTreeMap<String, NoticeValue>,
-    },
-}
-
-impl Content {
-    fn text_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Self::UserMessage(text) | Self::AgentMessage(text) | Self::Question(text) => Some(text),
-            Self::ToolActivity { .. } | Self::LervoNotice { .. } | Self::PeerMessage { .. } => None,
-        }
-    }
-
-    fn with_text(&self, text: String) -> Self {
-        match self {
-            Self::UserMessage(_) => Self::UserMessage(text),
-            Self::Question(_) => Self::Question(text),
-            _ => Self::AgentMessage(text),
-        }
-    }
-}
-
 /// A conversation item at its position.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Item {

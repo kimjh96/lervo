@@ -38,8 +38,13 @@ fn convert(item: &Item, id: &str) -> Option<ConversationItem> {
     let created_at_ms = EpochMilliseconds(item.created_at_ms);
     let streaming = item.streaming;
     Some(match &item.content {
-        Content::UserMessage(text) => ConversationItem::from(UserMessageItem {
+        Content::UserMessage { text, images } => ConversationItem::from(UserMessageItem {
             created_at_ms,
+            // Marks outside the protocol are dropped; the message still shows.
+            images: images
+                .as_deref()
+                .and_then(|json| serde_json::from_str(json).ok())
+                .unwrap_or_default(),
             item_id,
             kind: UserMessageItemKind::UserMessage,
             state: if streaming {
@@ -189,6 +194,31 @@ mod tests {
             to_wire(&item(tool, false)),
             Some(ConversationItem::ToolActivityItem(_))
         ));
+    }
+
+    #[test]
+    fn sends_image_marks_within_the_protocol_and_drops_ones_outside_it() {
+        let said = |images: &str| Content::UserMessage {
+            text: "See this".to_owned(),
+            images: Some(images.to_owned()),
+        };
+        let valid =
+            r#"[{"mediaType":"image/png","width":1568,"height":980},{"mediaType":"image/jpeg"}]"#;
+        let Some(ConversationItem::UserMessageItem(sent)) = to_wire(&item(said(valid), false))
+        else {
+            panic!("expected a user message");
+        };
+        let images = serde_json::to_value(sent.images).unwrap();
+        assert_eq!(images[0]["width"], 1568);
+        assert_eq!(images[1]["mediaType"], "image/jpeg");
+        for invalid in [r#"[]"#, r#"[{"mediaType":"image/tiff"}]"#, "not json"] {
+            let Some(ConversationItem::UserMessageItem(sent)) =
+                to_wire(&item(said(invalid), false))
+            else {
+                panic!("expected a user message");
+            };
+            assert!(sent.images.is_empty(), "{invalid}");
+        }
     }
 
     #[test]

@@ -12,7 +12,7 @@ use crate::host::Host;
 use crate::messages;
 use crate::session::{Command, Range, Reply};
 use crate::subscriber::{Output, Subscriber};
-use lervo_session_core::ports::Core;
+use lervo_session_core::ports::{Core, SentImage};
 
 impl<C: Core> Host<C> {
     /// Handles one validated message from the connection behind `output`. Requests that wait on
@@ -69,6 +69,14 @@ impl<C: Core> Host<C> {
                 let command = Command::Send {
                     request: send.request_id.clone(),
                     text: send.text.to_string(),
+                    images: send
+                        .images
+                        .iter()
+                        .map(|image| SentImage {
+                            media_type: image.media_type.to_string(),
+                            data: image.data.to_string(),
+                        })
+                        .collect(),
                     reply: Reply::new(output),
                 };
                 self.request(&send.session_id, &send.request_id, command, &reply)
