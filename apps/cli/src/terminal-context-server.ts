@@ -209,12 +209,13 @@ export function startTerminalContextServer(input: {
   let busy = false;
   let idle: (() => void) | null = null;
   const connections = new Set<Socket>();
-  const committedConnections = new Set<Socket>();
+  /** Connections the server answered with `A`: their client may already count as committed. */
+  const acceptedConnections = new Set<Socket>();
   const server: Server = createServer((socket) => {
     connections.add(socket);
     socket.once("close", () => {
       connections.delete(socket);
-      committedConnections.delete(socket);
+      acceptedConnections.delete(socket);
     });
     serve(socket);
   });
@@ -263,6 +264,7 @@ export function startTerminalContextServer(input: {
         if (busy) return decline(socket, "busy");
         busy = true;
         request = parsed;
+        acceptedConnections.add(socket);
         socket.write("A");
         commitTimer = setTimeout(() => socket.destroy(), COMMIT_WAIT_MILLISECONDS);
         if (rest.length > 0) commit(socket, rest);
@@ -274,7 +276,6 @@ export function startTerminalContextServer(input: {
     function commit(socket: Socket, chunk: Buffer) {
       if (chunk[0] !== 0x47 /* G */) return socket.destroy();
       committed = true;
-      committedConnections.add(socket);
       if (commitTimer !== undefined) clearTimeout(commitTimer);
       input.onOutcome?.("served", request ?? undefined);
       const current = request!;
@@ -349,8 +350,9 @@ export function startTerminalContextServer(input: {
     finish: () => {
       server.close();
       releaseSocket();
-      // Connections that never committed have nothing to finish.
-      for (const socket of connections) if (!committedConnections.has(socket)) socket.destroy();
+      // A client counts itself committed once it read `A`, before its `G` arrives, so an accepted
+      // connection is kept until it commits or its commit wait ends; any other has nothing to finish.
+      for (const socket of connections) if (!acceptedConnections.has(socket)) socket.destroy();
       return busy ? new Promise<void>((resolveIdle) => (idle = resolveIdle)) : Promise.resolve();
     },
     // Closing never waits on a request in flight: its client prints an empty context.

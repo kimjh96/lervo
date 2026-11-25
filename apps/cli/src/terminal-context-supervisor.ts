@@ -12,10 +12,10 @@ const LAST_RESTART_MILLISECONDS = 60_000;
 const STABLE_MILLISECONDS = 60_000;
 /**
  * A server that has not exited this long after SIGTERM is killed. On SIGTERM it stops accepting at
- * once and finishes the hook in flight, which its own watchdog ends at the hook budget plus five
- * seconds (terminal-context-serve.ts), so this waits that long.
+ * once and finishes the hook in flight, which ends within the hook budget unless the hook overran.
+ * This stays below launchd's default 20-second exit timeout for the follower service.
  */
-const TERMINATE_MILLISECONDS = 20_000;
+const TERMINATE_MILLISECONDS = 15_000;
 
 export interface TerminalContextRuntime {
   entry: string;

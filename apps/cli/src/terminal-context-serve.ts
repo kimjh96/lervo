@@ -91,7 +91,16 @@ export async function runServedTerminalHook(
   const restoreEnvironment = applyTerminalContextSessionEnvironment(request.session);
   // The server's own mask keeps its socket private; the hook's files get the session's mode.
   const ownMask = request.umask === undefined ? null : process.umask(request.umask);
-  handOffDetachedLaunches((launch) => launches.push(launch));
+  // Only a client that sends its session starts launches; an older one ignores them, so its
+  // hook starts them here, as before. A launch asked for after the answer went out cannot reach
+  // the client and fails, as a failed launch does; its queued work waits for the next hook.
+  let answered = false;
+  if (request.session !== undefined)
+    handOffDetachedLaunches((launch) => {
+      if (answered) return false;
+      launches.push(launch);
+      return true;
+    });
   const settle = () => {
     handOffDetachedLaunches(null);
     if (ownMask !== null) process.umask(ownMask);
@@ -118,13 +127,12 @@ export async function runServedTerminalHook(
     settle();
     throw error;
   }
+  answered = true;
   return {
     stdout,
     stderr,
     exitCode,
     overran: performance.now() - startedAt > OVERRUN_MILLISECONDS,
-    // Launches asked for before the answer go out with it; one a leftover stage asks for later is
-    // dropped, as a failed launch is, and the next hook or resident cycle does that work.
     launches: [...launches],
     // Work a failed or late stage left running gets a moment to settle. A server held busy for
     // longer would turn later hooks away; exiting instead lets the host start a fresh one, which it
@@ -170,7 +178,8 @@ function contextStats(runtime: string) {
     const bytes = `${JSON.stringify(stats)}\n`;
     writing = writing
       .then(async () => {
-        await writeFile(`context-stats.json.${process.pid}.tmp`, bytes);
+        // Owner-only whatever mask a served hook applied meanwhile.
+        await writeFile(`context-stats.json.${process.pid}.tmp`, bytes, { mode: 0o600 });
         await rename(`context-stats.json.${process.pid}.tmp`, "context-stats.json");
       })
       .catch(() => undefined);
@@ -209,11 +218,16 @@ export async function serveTerminalContext(entry: string): Promise<void> {
   release = () => server.releaseSocket();
   // Stop accepting at once, and exit once the hook in flight answered and drained; the watchdog
   // above still bounds a hook that never settles.
+  // A service manager signals the server and its follower together, and the follower then signals
+  // it again: every later signal must leave the first one's finish running, never kill the hook.
+  let stopping = false;
   const stop = () => {
+    if (stopping) return;
+    stopping = true;
     void server.finish().then(() => process.exit(0));
   };
-  process.once("SIGTERM", stop);
-  process.once("SIGINT", stop);
+  process.on("SIGTERM", stop);
+  process.on("SIGINT", stop);
   // A server whose host died must not outlive it and serve beside the next host's server.
   if (process.send !== undefined) process.once("disconnect", stop);
   // Keep serving: the listening socket holds the event loop open.

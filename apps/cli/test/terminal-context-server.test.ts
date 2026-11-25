@@ -345,3 +345,26 @@ it("finishes at once when nothing is in flight", async () => {
   await serverWith(vi.fn(async () => answer));
   await current.finish();
 });
+
+it("still runs a hook whose client read A but had not sent G when the server began to stop", async () => {
+  const run = vi.fn(async () => answer);
+  const socketPath = await serverWith(run);
+  const received = await new Promise<string>((done) => {
+    const socket = connect(socketPath);
+    let text = "";
+    socket.on("connect", () =>
+      socket.write(`${JSON.stringify(request({ kind: "stop", input: stopInput }))}\n`),
+    );
+    socket.on("data", (chunk) => {
+      text += chunk.toString();
+      if (text === "A") {
+        // The client already counts as committed and will never fall back.
+        void current.finish();
+        setTimeout(() => socket.write("G"), 20);
+      }
+    });
+    socket.on("close", () => done(text));
+  });
+  expect(JSON.parse(received.slice(1))).toMatchObject({ ok: true, stdout: answer.stdout });
+  expect(run).toHaveBeenCalledTimes(1);
+});

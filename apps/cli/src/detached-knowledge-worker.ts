@@ -9,7 +9,10 @@ export interface DetachedLaunch {
   env: Record<string, string>;
 }
 
-let handOff: ((launch: DetachedLaunch) => void) | null = null;
+/** Takes a launch for the hook's client; false when it can no longer reach the client. */
+type DetachedLaunchHandOff = (launch: DetachedLaunch) => boolean;
+
+let handOff: DetachedLaunchHandOff | null = null;
 
 /**
  * While set, launches are handed to `collect` instead of started here. The context server sets it
@@ -17,7 +20,7 @@ let handOff: ((launch: DetachedLaunch) => void) | null = null;
  * session's Node, environment, and umask, and outside the service's process tree, which a service
  * manager stops with the service.
  */
-export function handOffDetachedLaunches(collect: ((launch: DetachedLaunch) => void) | null): void {
+export function handOffDetachedLaunches(collect: DetachedLaunchHandOff | null): void {
   handOff = collect;
 }
 
@@ -32,13 +35,12 @@ export async function launchDetachedKnowledgeWorker(input: {
 }): Promise<boolean> {
   if (handOff !== null) {
     const runtime = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-    handOff({
+    return handOff({
       entry: input.entry,
       args: [...input.args],
       cwd: input.root,
       env: runtime === undefined ? {} : { LERVO_TERMINAL_HOOK_RUNTIME: runtime },
     });
-    return true;
   }
   try {
     const child = spawn(process.execPath, [input.entry, ...input.args], {
