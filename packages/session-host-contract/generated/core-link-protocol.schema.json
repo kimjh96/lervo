@@ -564,6 +564,136 @@
         }
       }
     },
+    "TurnSummary": {
+      "title": "TurnSummary",
+      "type": "object",
+      "required": [
+        "given",
+        "searched",
+        "cited",
+        "outcome"
+      ],
+      "properties": {
+        "given": {
+          "type": "object",
+          "required": [
+            "documents"
+          ],
+          "properties": {
+            "documents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "workstreamRevision": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "searched": {
+          "type": "object",
+          "required": [
+            "documents",
+            "paths"
+          ],
+          "properties": {
+            "documents": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "paths": {
+              "type": "array",
+              "maxItems": 10,
+              "items": {
+                "type": "string",
+                "maxLength": 512
+              }
+            }
+          }
+        },
+        "cited": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outcome": {
+          "type": "object",
+          "required": [
+            "repositoryChanged",
+            "completion"
+          ],
+          "properties": {
+            "repositoryChanged": {
+              "type": "boolean"
+            },
+            "changedPaths": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "workstreamRevision": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "completion": {
+              "type": "string",
+              "maxLength": 32
+            },
+            "ending": {
+              "type": "string",
+              "maxLength": 32
+            }
+          }
+        },
+        "usage": {
+          "type": "object",
+          "required": [
+            "inputTokens",
+            "cachedInputTokens",
+            "outputTokens"
+          ],
+          "properties": {
+            "inputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "cachedInputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "outputTokens": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "costUsd": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        }
+      }
+    },
+    "TurnSummaryResult": {
+      "title": "TurnSummaryResult",
+      "type": "object",
+      "required": [
+        "turns"
+      ],
+      "properties": {
+        "turns": {
+          "type": "array",
+          "maxItems": 20,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/TurnSummary"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        }
+      }
+    },
     "CoreCommandRequest": {
       "title": "CoreCommandRequest",
       "type": "object",
@@ -592,7 +722,8 @@
             "workspace.list",
             "repository.list",
             "provider.list",
-            "workspace.retire"
+            "workspace.retire",
+            "turn.summary"
           ]
         },
         "arguments": {

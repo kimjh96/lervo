@@ -4,6 +4,8 @@ import {
   providerSummarySchema,
   repositoryListResultSchema,
   repositorySummarySchema,
+  turnSummaryResultSchema,
+  turnSummarySchema,
   workspaceListResultSchema,
   workspaceRetireResultSchema,
   workspaceStartResultSchema,
@@ -77,6 +79,8 @@ const coreLinkDefinitions: readonly (readonly [string, object])[] = [
     providerSummarySchema,
     providerListResultSchema,
     workspaceRetireResultSchema,
+    turnSummarySchema,
+    turnSummaryResultSchema,
   ].map((schema) => [schema.title, schema] as const),
   ...[
     ...coreLinkRequestSchemas,
