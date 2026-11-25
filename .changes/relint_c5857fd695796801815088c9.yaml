@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_c5857fd695796801815088c9"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "ADE workspaces start under ~/.lervo/workspaces/<repository>/<branch>, never in a <repository>-wt folder beside the project, and a workspaces home inside a repository is refused; earlier workspaces keep opening and retiring where they are."

@@ -224,6 +224,19 @@ describe("lervo workspace start and open", () => {
     expect((await git(app.repository, "worktree", "list")).split("\n")).toHaveLength(1);
   });
 
+  it("refuses a workspaces home inside a repository without changing anything", async () => {
+    const app = await fixture();
+    vi.stubEnv("LERVO_WORKSPACES_HOME", resolve(app.repository, "workspaces"));
+    const started = io(app.root, instruction);
+    expect(
+      await runCli(["workspace", "start", "--repository", app.projectId, "--json"], started.io),
+    ).toBe(1);
+    const failure = JSON.parse(started.stdout.join("")) as { error: { code: string } };
+    expect(failure.error.code).toBe("workspace_home_invalid");
+    expect(await git(app.repository, "branch", "--list", "lervo/*")).toBe("");
+    expect((await git(app.repository, "worktree", "list")).split("\n")).toHaveLength(1);
+  });
+
   it("reports a missing provider CLI without changing anything", async () => {
     const app = await fixture();
     vi.stubEnv("PATH", "/nonexistent");

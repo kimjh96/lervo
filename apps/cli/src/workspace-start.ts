@@ -1,5 +1,4 @@
-import { homedir } from "node:os";
-import { basename, isAbsolute, resolve } from "node:path";
+import { basename, resolve } from "node:path";
 
 import {
   HostedLaunchError,
@@ -19,6 +18,7 @@ import {
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
+import { workspacesHome } from "./workspaces-home.js";
 
 const TITLE_CHARACTERS = 80;
 const OBJECTIVE_CHARACTERS = 8192;
@@ -159,17 +159,6 @@ export function branchFor(title: string, suffix: string): string {
     slug = next;
   }
   return `lervo/${slug.length === 0 ? "work" : slug}-${suffix}`;
-}
-
-/**
- * Where hosted workspaces live: `~/lervo/workspaces`, apart from the owner's projects, so starting
- * work never adds a folder beside a repository. `LERVO_WORKSPACES_HOME` moves it, as tests do.
- */
-export function workspacesHome(environment: NodeJS.ProcessEnv = process.env): string {
-  const override = environment.LERVO_WORKSPACES_HOME;
-  if (override !== undefined && isAbsolute(override) && !/[\0\r\n]/u.test(override))
-    return resolve(override);
-  return resolve(homedir(), "lervo", "workspaces");
 }
 
 /** The worktree path: `<workspaces home>/<repository name>/<branch leaf>`. */

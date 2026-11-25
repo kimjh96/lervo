@@ -37,6 +37,7 @@ import {
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
+import { insideRepository, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
 import {
   defaultBranchCommit,
@@ -95,6 +96,12 @@ export async function startWorkspaceFromInstruction(
 ): Promise<WorkspaceStartResult> {
   const repository = await registeredRepository(options.repository);
   const adapter = await resolveHostedSessionAdapter(options.provider ?? defaultHostedProvider);
+  const home = workspacesHome();
+  if (await insideRepository(home))
+    throw new CommandFailure(
+      "workspace_home_invalid",
+      "The workspaces home is inside a Git repository. Set LERVO_WORKSPACES_HOME to a folder outside every repository.",
+    );
   const sessionId = randomUUID();
   const hooks = hostedSessionHooks(adapter, sessionId);
   return startWorkspace(
