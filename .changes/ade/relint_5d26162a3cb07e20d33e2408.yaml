@@ -1,5 +1,0 @@
-"schemaVersion": 1
-"intentId": "relint_5d26162a3cb07e20d33e2408"
-"package": "@lervo/ade"
-"impact": "minor"
-"summary": "The session host names each native session when it opens the session's decoder in a resident Lervo process that advertises decoder.session, so Lervo can record what each turn used."

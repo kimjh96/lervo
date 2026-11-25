@@ -1,9 +1,8 @@
-<!-- lervo-release package="@lervo/ade" version="0.4.3" schema="1" -->
+<!-- lervo-release package="@lervo/ade" version="0.5.0" schema="1" -->
 
 Needs the Lervo CLI 0.43.0 or later.
 
 ## What's changed
 
-- The session host accepts the account of a workspace's base that Lervo CLI 0.47.7 and later report when a workspace starts.
-- The session host follows a CLI upgrade: before its next workspace start or list, it replaces its resident Lervo process with one from the newly installed CLI, never during a turn.
-- When Lervo starts work without something, such as from the local branch because the upstream could not be fetched, the started workspace says so above its working line.
+- Stop the agent's running turn without ending the session: while the agent works, the empty reply card's button is Stop and Escape stops too, shown only when the Lervo core advertises decoder.interrupt.
+- The session host names each native session when it opens the session's decoder in a resident Lervo process that advertises decoder.session, so Lervo can record what each turn used.
