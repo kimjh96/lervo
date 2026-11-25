@@ -23,7 +23,7 @@ import {
   checkpointTerminalWorkspace,
   pauseTerminalWorkspace,
 } from "./terminal-workspace-lifecycle.js";
-import { launchTerminalTurnSettlements } from "./terminal-turn-settlement.js";
+import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 
 /**
  * Knowledge inspections own every `*_inspection_failed` code except the replica service's, which

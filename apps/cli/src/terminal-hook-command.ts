@@ -35,10 +35,8 @@ import {
 } from "./terminal-workspace-lifecycle.js";
 import type { CliIo, CliServices } from "./types.js";
 import { resolveTerminalRoots } from "./terminal-roots.js";
-import {
-  launchTerminalTurnSettlements,
-  requestOpenTerminalTurnSettlement,
-} from "./terminal-turn-settlement.js";
+import { requestOpenTerminalTurnSettlement } from "./terminal-turn-settlement.js";
+import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 
 export function runTerminalHookCommand(
   args: string[],

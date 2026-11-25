@@ -23,14 +23,16 @@ import { captureTerminalRepositorySnapshot } from "./terminal-repository-snapsho
 import { resolveCommandRoots } from "./terminal-roots.js";
 import { preparedTurnExpectationFromContext } from "./terminal-turn-observation.js";
 import {
-  acquireTerminalTurnSettlementLease,
-  countTerminalTurnSettlementDrops,
   listTerminalTurnSettlements,
-  recordTerminalTurnSettlementFailure,
   removeTerminalTurnSettlement,
   settledTerminalTurnEventId,
   type TerminalTurnSettlementRequest,
 } from "./terminal-turn-settlement.js";
+import {
+  acquireTerminalTurnSettlementLease,
+  countTerminalTurnSettlementDrops,
+  recordTerminalTurnSettlementFailure,
+} from "./terminal-turn-settlement-lease.js";
 import { selectedTerminalDocuments } from "./terminal-turn-selection.js";
 import { verifiedCurrentWorkstream } from "./workstream-services.js";
 

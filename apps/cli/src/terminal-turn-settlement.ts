@@ -2,10 +2,10 @@
 // "Turns that end without a Stop hook"). Claude runs no Stop hook for an interrupted turn, so a
 // hook that finds the same session's open turn still open writes a settlement request here, and a
 // detached worker records the turn. Requests are idempotent by the turn's context event, bounded as
-// open-turn markers are, and hold the session only as its digest. One worker runs at a time under a
-// lease, and a request that keeps failing is dropped and counted.
+// open-turn markers are, and hold the session only as its digest. The worker's lease and drop counts
+// live in `terminal-turn-settlement-lease.ts`.
 import { constants } from "node:fs";
-import { lstat, mkdir, open, opendir, readFile, rename, rm } from "node:fs/promises";
+import { lstat, mkdir, open, opendir, rename, rm } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { isAbsolute, resolve } from "node:path";
 
@@ -15,7 +15,6 @@ import {
   type TranscriptPosition,
 } from "@lervo/repository-knowledge-runtime";
 
-import { launchDetachedKnowledgeWorker } from "./detached-knowledge-worker.js";
 import { sessionOpenTerminalTurn } from "./terminal-open-turns.js";
 
 const MAXIMUM_REQUESTS = 128;
@@ -25,15 +24,8 @@ const EVENT = /^evt_[A-Za-z0-9][A-Za-z0-9_-]{7,63}$/u;
 const HASH = /^sha256:[a-f0-9]{64}$/u;
 const OBSERVATION = /^tobs_[a-f0-9]{32}$/u;
 const NAME = /^set_[a-f0-9]{64}\.json$/u;
-const LEASE = ".worker-lease.json";
-const DROPS = ".drops.json";
-/** A lease older than this belongs to a worker that died without releasing it. */
-const LEASE_MAXIMUM_AGE_MS = 10 * 60 * 1000;
 /** Failed attempts after which a request is dropped and counted instead of retried. */
 export const MAXIMUM_SETTLEMENT_ATTEMPTS = 3;
-
-/** Why a request was dropped without a record, as `.drops.json` counts them. */
-export type TerminalTurnSettlementDrop = "writer_below_schema_12" | "attempts_exhausted";
 
 /** How a settled turn ended, as `terminal.turn.observed` names it at schema 12. */
 export type TerminalTurnSettlementEnding = "next_prompt" | "session_start";
@@ -69,7 +61,10 @@ function requestName(contextEventId: string): string {
   return `set_${sha256(contextEventId).slice("sha256:".length)}.json`;
 }
 
-async function requestDirectory(root: string, create: boolean): Promise<string> {
+export async function terminalTurnSettlementDirectory(
+  root: string,
+  create: boolean,
+): Promise<string> {
   let directory = root;
   for (const segment of [".lervo", "state", "terminal-integration", "turn-settlements"]) {
     directory = resolve(directory, segment);
@@ -117,7 +112,7 @@ export async function listTerminalTurnSettlements(
   now = new Date(),
 ): Promise<TerminalTurnSettlementRequest[]> {
   try {
-    const directory = await requestDirectory(root, false);
+    const directory = await terminalTurnSettlementDirectory(root, false);
     const requests: TerminalTurnSettlementRequest[] = [];
     let count = 0;
     for await (const entry of await opendir(directory)) {
@@ -155,7 +150,7 @@ export async function listTerminalTurnSettlements(
 /** Whether any request waits, without reading them: a hook checks this before launching a worker. */
 export async function hasTerminalTurnSettlements(root: string): Promise<boolean> {
   try {
-    const directory = await requestDirectory(root, false);
+    const directory = await terminalTurnSettlementDirectory(root, false);
     for await (const entry of await opendir(directory)) if (NAME.test(entry.name)) return true;
     return false;
   } catch {
@@ -174,7 +169,7 @@ export async function writeTerminalTurnSettlement(
   if (!isRequest(request)) return false;
   let temporary: string | undefined;
   try {
-    const directory = await requestDirectory(root, true);
+    const directory = await terminalTurnSettlementDirectory(root, true);
     const target = resolve(directory, requestName(request.contextEventId));
     let count = 0;
     for await (const entry of await opendir(directory)) {
@@ -208,7 +203,7 @@ export async function removeTerminalTurnSettlement(
   contextEventId: string,
 ): Promise<void> {
   try {
-    const directory = await requestDirectory(root, false);
+    const directory = await terminalTurnSettlementDirectory(root, false);
     await rm(resolve(directory, requestName(contextEventId)), { force: true });
   } catch {
     /* A request that stays is retried and then expires. */
@@ -253,108 +248,15 @@ export async function requestOpenTerminalTurnSettlement(input: {
   });
 }
 
-/**
- * Starts the detached worker when any request waits, from the hook runtime only. A prompt, a
- * session start, and a Stop each call it, so a request whose worker never ran is picked up later.
- */
-export async function launchTerminalTurnSettlements(
-  root: string,
-  executionRoot: string,
-): Promise<boolean> {
-  const entry = process.env.LERVO_TERMINAL_HOOK_RUNTIME;
-  if (entry === undefined || !(await hasTerminalTurnSettlements(root))) return false;
-  if (await liveSettlementLease(root, new Date())) return false;
-  return launchDetachedKnowledgeWorker({ root: executionRoot, entry, args: ["settle-turns"] });
-}
-
-interface SettlementLease {
-  pid: number;
-  startedAt: string;
-}
-
-function processAlive(pid: number): boolean {
-  try {
-    process.kill(pid, 0);
-    return true;
-  } catch (error) {
-    return (error as NodeJS.ErrnoException).code === "EPERM";
-  }
-}
-
-async function readLease(directory: string): Promise<SettlementLease | null> {
-  try {
-    const value = JSON.parse(await readFile(resolve(directory, LEASE), "utf8")) as SettlementLease;
-    return Number.isSafeInteger(value.pid) && Number.isFinite(Date.parse(value.startedAt))
-      ? value
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-/** Whether a worker holds the lease: its process runs and the lease is not too old. */
-async function liveSettlementLease(root: string, now: Date): Promise<boolean> {
-  try {
-    const lease = await readLease(await requestDirectory(root, false));
-    return (
-      lease !== null &&
-      now.getTime() - Date.parse(lease.startedAt) < LEASE_MAXIMUM_AGE_MS &&
-      processAlive(lease.pid)
-    );
-  } catch {
-    return false;
-  }
-}
-
-/**
- * Takes the single-flight lease for this process, or returns null when a live worker holds it. A
- * stale lease is replaced; of two workers replacing it at once, the exclusive create admits one.
- * The returned function releases the lease if it is still this process's.
- */
-export async function acquireTerminalTurnSettlementLease(
-  root: string,
-  now = new Date(),
-): Promise<(() => Promise<void>) | null> {
-  try {
-    const directory = await requestDirectory(root, true);
-    const path = resolve(directory, LEASE);
-    if (await liveSettlementLease(root, now)) return null;
-    const stale = await readLease(directory);
-    if (stale !== null) await rm(path, { force: true });
-    const handle = await open(
-      path,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
-      0o600,
-    );
-    try {
-      await handle.writeFile(
-        `${JSON.stringify({ pid: process.pid, startedAt: now.toISOString() })}\n`,
-      );
-    } finally {
-      await handle.close();
-    }
-    return async () => {
-      if ((await readLease(directory))?.pid === process.pid) await rm(path, { force: true });
-    };
-  } catch {
-    return null;
-  }
-}
-
-/** Replaces `request` with one more failed attempt, or drops and counts it at the limit. */
-export async function recordTerminalTurnSettlementFailure(
+/** Replaces the stored request for the same turn, as a failed attempt does. */
+export async function rewriteTerminalTurnSettlement(
   root: string,
   request: TerminalTurnSettlementRequest,
 ): Promise<void> {
-  const attempts = request.attempts + 1;
-  if (attempts >= MAXIMUM_SETTLEMENT_ATTEMPTS) {
-    await removeTerminalTurnSettlement(root, request.contextEventId);
-    await countTerminalTurnSettlementDrops(root, "attempts_exhausted", 1);
-    return;
-  }
+  if (!isRequest(request)) return;
   let temporary: string | undefined;
   try {
-    const directory = await requestDirectory(root, false);
+    const directory = await terminalTurnSettlementDirectory(root, false);
     temporary = resolve(directory, `.settlement-${randomUUID()}.tmp`);
     const handle = await open(
       temporary,
@@ -362,7 +264,7 @@ export async function recordTerminalTurnSettlementFailure(
       0o600,
     );
     try {
-      await handle.writeFile(`${JSON.stringify({ ...request, attempts })}\n`);
+      await handle.writeFile(`${JSON.stringify(request)}\n`);
     } finally {
       await handle.close();
     }
@@ -370,60 +272,6 @@ export async function recordTerminalTurnSettlementFailure(
     temporary = undefined;
   } catch {
     /* The request stays as it was; it still expires. */
-  } finally {
-    if (temporary !== undefined) await rm(temporary, { force: true }).catch(() => undefined);
-  }
-}
-
-/** Requests dropped without a record, by reason, since the directory was created. */
-export async function readTerminalTurnSettlementDrops(
-  root: string,
-): Promise<Record<TerminalTurnSettlementDrop, number>> {
-  const empty = { writer_below_schema_12: 0, attempts_exhausted: 0 };
-  try {
-    const value = JSON.parse(
-      await readFile(resolve(await requestDirectory(root, false), DROPS), "utf8"),
-    ) as Partial<Record<TerminalTurnSettlementDrop, unknown>>;
-    return {
-      writer_below_schema_12: Number.isSafeInteger(value.writer_below_schema_12)
-        ? Number(value.writer_below_schema_12)
-        : 0,
-      attempts_exhausted: Number.isSafeInteger(value.attempts_exhausted)
-        ? Number(value.attempts_exhausted)
-        : 0,
-    };
-  } catch {
-    return empty;
-  }
-}
-
-/** Adds `count` drops for `reason`. Only the lease holder writes, so updates do not race. */
-export async function countTerminalTurnSettlementDrops(
-  root: string,
-  reason: TerminalTurnSettlementDrop,
-  count: number,
-): Promise<void> {
-  if (count <= 0) return;
-  let temporary: string | undefined;
-  try {
-    const directory = await requestDirectory(root, true);
-    const drops = await readTerminalTurnSettlementDrops(root);
-    drops[reason] += count;
-    temporary = resolve(directory, `.drops-${randomUUID()}.tmp`);
-    const handle = await open(
-      temporary,
-      constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | (constants.O_NOFOLLOW ?? 0),
-      0o600,
-    );
-    try {
-      await handle.writeFile(`${JSON.stringify(drops)}\n`);
-    } finally {
-      await handle.close();
-    }
-    await rename(temporary, resolve(directory, DROPS));
-    temporary = undefined;
-  } catch {
-    /* A count is diagnostic only. */
   } finally {
     if (temporary !== undefined) await rm(temporary, { force: true }).catch(() => undefined);
   }

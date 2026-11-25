@@ -22,7 +22,7 @@ import { convergenceStopLine } from "./repository-health-format.js";
 import { writeLearnedNoticeCursor } from "./learned-notice-state.js";
 import { markTurnGovernanceShown } from "./turn-governance.js";
 import { recordPreparedTerminalContext } from "./terminal-turn-observation.js";
-import { launchTerminalTurnSettlements } from "./terminal-turn-settlement.js";
+import { launchTerminalTurnSettlements } from "./terminal-turn-settlement-lease.js";
 import type { UnmanagedTerminalCoordinates } from "./terminal-hook-contract.js";
 import type { TerminalStageObservationPort } from "./terminal-stage-observation.js";
 import type { TerminalWorkspaceBinding } from "./terminal-workspace-contract.js";

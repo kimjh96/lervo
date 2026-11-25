@@ -18,13 +18,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { runCli } from "../src/main.js";
 import { prefetchTerminalPromptContext } from "../src/terminal-knowledge-snapshot.js";
 import {
-  acquireTerminalTurnSettlementLease,
   listTerminalTurnSettlements,
-  readTerminalTurnSettlementDrops,
   settledTerminalTurnEventId,
   type TerminalTurnSettlementRequest,
   writeTerminalTurnSettlement,
 } from "../src/terminal-turn-settlement.js";
+import {
+  acquireTerminalTurnSettlementLease,
+  readTerminalTurnSettlementDrops,
+} from "../src/terminal-turn-settlement-lease.js";
 import { settleTerminalTurns } from "../src/terminal-turn-settlement-worker.js";
 
 const run = promisify(execFile);
