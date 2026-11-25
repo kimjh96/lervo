@@ -11,6 +11,7 @@ import { openProjectStorage, type ProjectStorage } from "@lervo/project-storage"
 import { formatTerminalBudgetReport } from "./terminal-budget-format.js";
 import { terminalUsage } from "./terminal-command-usage.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 import type { CliIo } from "./types.js";
 
 function boundedInteger(value: string | undefined, fallback: number, maximum: number): number {
@@ -56,7 +57,12 @@ export async function runTerminalBudgetCommand(args: string[], io: CliIo): Promi
       parsed.values["max-query-tokens"] === undefined
         ? null
         : boundedInteger(parsed.values["max-query-tokens"], 1, Number.MAX_SAFE_INTEGER);
-    const root = await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? "."));
+    // A linked worktree's turns are recorded in its registered repository (ADR-0633).
+    const root = (
+      await resolveCommandRoots(
+        await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? ".")),
+      )
+    ).evidenceRoot;
     storage = await openProjectStorage(root);
     const coverage = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,

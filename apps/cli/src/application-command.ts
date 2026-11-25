@@ -4,6 +4,7 @@ import { parseArgs } from "node:util";
 import { serveCoreLinkOverStandardStreams } from "./application-serve-command.js";
 import { formatOperatingAttention } from "./operating-attention-format.js";
 import { inspectOperatingAttention } from "./operating-attention-inspection.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 import type { CliIo, CliServices } from "./types.js";
 
 export const applicationUsage = `  lervo application attention [--root <path>] [--json]
@@ -39,8 +40,11 @@ export async function runApplicationCommand(
     if (parsed.positionals.length !== 1 || parsed.positionals[0] !== "attention") {
       throw new Error("The application action is invalid.");
     }
+    // The repository's attention, with this checkout's workstream (ADR-0633).
+    const roots = await resolveCommandRoots(resolve(io.cwd, parsed.values.root ?? "."));
     const report = await services.inspectOperatingAttention({
-      repositoryRoot: resolve(io.cwd, parsed.values.root ?? "."),
+      repositoryRoot: roots.evidenceRoot,
+      checkoutRoot: roots.executionRoot,
     });
     io.stdout(
       parsed.values.json

@@ -1,0 +1,5 @@
+"schemaVersion": 1
+"intentId": "relint_5a6752b8cae1c89b38b840d8"
+"package": "@lervo/cli"
+"impact": "patch"
+"summary": "In a linked worktree, lervo terminal status, coverage, and budget, lervo knowledge instruction capture, and lervo application attention report the registered repository's evidence, and a status read no longer clears the checkout's workstream."

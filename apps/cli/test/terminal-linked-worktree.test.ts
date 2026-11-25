@@ -18,6 +18,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { runCli } from "../src/main.js";
 import { inspectTerminalLifecycle } from "../src/terminal-lifecycle-inspection.js";
+import { verifiedCurrentWorkstream } from "../src/workstream-services.js";
 
 const run = promisify(execFile);
 const roots: string[] = [];
@@ -40,7 +41,7 @@ async function cli(cwd: string, args: string[], stdin?: string): Promise<string>
     stderr: (message) => err.push(message),
     ...(stdin === undefined ? {} : { stdin: async () => stdin }),
   });
-  expect(code, err.join("")).toBe(0);
+  expect(code, `${args.join(" ")}: ${err.join("")}`).toBe(0);
   return out.join("");
 }
 
@@ -220,9 +221,11 @@ describe("a linked worktree of a registered repository", () => {
     expect(lifecycle.issues.map((issue) => issue.code)).not.toEqual(
       expect.arrayContaining([expect.stringMatching(/^workstream_/u)]),
     );
-    // Before this change the checkout's own store held no workstream for it.
+    // Read as its own repository, the checkout has no history for its workstream.
     const local = await inspectTerminalLifecycle(worktree);
-    expect(local.issues.map((issue) => issue.code)).toContain("workstream_missing");
+    expect(local.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([expect.stringMatching(/^workstream_/u)]),
+    );
     // Branch changes are not the repository's, so no knowledge job sees them.
     expect(await events(main, ["repository.change.completed"])).toHaveLength(0);
 
@@ -234,5 +237,104 @@ describe("a linked worktree of a registered repository", () => {
         "workstream.snapshot.recorded",
       ]),
     ).toHaveLength(0);
+  }, 60_000);
+
+  it("reads the repository's evidence in status commands and never unbinds the checkout", async () => {
+    const { main, worktree } = await linkedWorktree();
+    await cli(
+      worktree,
+      ["workstream", "start", "--stdin", "--apply-now", "--json"],
+      JSON.stringify({
+        schemaVersion: 1,
+        title: "Fix the login form",
+        objective: "Make the login form accept a long password.",
+        status: "active",
+        blockers: [],
+        nextActions: [],
+        notes: [],
+        references: [],
+        pendingApprovals: [],
+        pendingDecisions: [],
+      }),
+    );
+    await hook(worktree, {
+      hook_event_name: "UserPromptSubmit",
+      session_id: "status-session",
+      turn_id: "turn-1",
+      prompt: "From now on, never truncate passwords.",
+    });
+    const projection = resolve(worktree, ".lervo/state/workstreams/current.json");
+    expect(await exists(projection)).toBe(true);
+
+    // An agent checks its work from the checkout, as one did in the ADE 0.5.0 canary.
+    const capture = JSON.parse(
+      await cli(worktree, ["knowledge", "instruction", "capture", "--json"]),
+    ) as { queuedCount: number };
+    expect(capture.queuedCount).toBe(1);
+    // Status exits 1 while the lifecycle needs action; its report is what counts here.
+    const out: string[] = [];
+    await runCli(["terminal", "status", "--json"], {
+      cwd: worktree,
+      stdout: (message) => out.push(message),
+      stderr: () => undefined,
+    });
+    const status = JSON.parse(out.join("")) as { issues: { code: string }[] };
+    expect(status.issues.map((issue) => issue.code)).not.toEqual(
+      expect.arrayContaining([expect.stringMatching(/^workstream_/u)]),
+    );
+    await cli(worktree, ["terminal", "coverage", "--json"]);
+    await cli(worktree, ["application", "attention", "--json"]);
+
+    // The checkout keeps its projection and holds no bindings of its own; the repository keeps
+    // the workspace branch's binding.
+    expect(await exists(projection)).toBe(true);
+    expect(await exists(resolve(worktree, ".lervo/state/workstreams/bindings.json"))).toBe(false);
+    const bindings = JSON.parse(
+      await readFile(resolve(main, ".lervo/state/workstreams/bindings.json"), "utf8"),
+    ) as { bindings: Record<string, string> };
+    expect(Object.keys(bindings.bindings)).toEqual(["work"]);
+    expect(await events(worktree, ["terminal.context.prepared"])).toHaveLength(0);
+  }, 60_000);
+
+  it("binds a checkout's own branch first, so a single-root read keeps its projection", async () => {
+    const { worktree } = await linkedWorktree();
+    await cli(
+      worktree,
+      ["workstream", "start", "--stdin", "--apply-now", "--json"],
+      JSON.stringify({
+        schemaVersion: 1,
+        title: "Fix the login form",
+        objective: "Make the login form accept a long password.",
+        status: "active",
+        blockers: [],
+        nextActions: [],
+        notes: [],
+        references: [],
+        pendingApprovals: [],
+        pendingDecisions: [],
+      }),
+    );
+    // A read that treats the checkout as its own repository, as unrouted commands did: before,
+    // it bound the workstream to main, found the checkout's branch unbound, and cleared the
+    // projection. Now it binds the checkout's branch and fails on the history this store lacks,
+    // leaving the projection in place.
+    const storage = await openProjectStorage(worktree);
+    try {
+      await expect(verifiedCurrentWorkstream(storage)).rejects.toThrow(
+        "no committed snapshot event",
+      );
+    } finally {
+      await storage.close();
+    }
+    const projection = JSON.parse(
+      await readFile(resolve(worktree, ".lervo/state/workstreams/current.json"), "utf8"),
+    ) as { workstreamId: string };
+    const local = JSON.parse(
+      await readFile(resolve(worktree, ".lervo/state/workstreams/bindings.json"), "utf8"),
+    ) as { defaultBranch: string; bindings: Record<string, string> };
+    expect(local).toMatchObject({
+      defaultBranch: "main",
+      bindings: { work: projection.workstreamId },
+    });
   }, 60_000);
 });

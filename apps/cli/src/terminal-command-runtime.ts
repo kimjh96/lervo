@@ -13,6 +13,7 @@ import { terminalUsage } from "./terminal-command-usage.js";
 import { runTerminalDeclareCommand } from "./terminal-declaration-command.js";
 import { runTerminalHookCommand } from "./terminal-hook-command.js";
 import { inspectTerminalLifecycle } from "./terminal-lifecycle-inspection.js";
+import { resolveCommandRoots } from "./terminal-roots.js";
 import { resolveTerminalRepositoryRoot } from "./terminal-repository-root.js";
 import type { CliIo, CliServices } from "./types.js";
 
@@ -40,7 +41,12 @@ async function runCoverage(args: string[], io: CliIo): Promise<number> {
     const limit = parsed.values.limit === undefined ? 20 : Number(parsed.values.limit);
     if (!Number.isSafeInteger(limit) || limit < 1 || limit > 100)
       throw new Error("--limit must be an integer between 1 and 100.");
-    const root = await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? "."));
+    // A linked worktree's turns are recorded in its registered repository (ADR-0633).
+    const root = (
+      await resolveCommandRoots(
+        await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? ".")),
+      )
+    ).evidenceRoot;
     storage = await openProjectStorage(root);
     const report = createTerminalCoverageReport({
       projectId: storage.manifest.projectId,
@@ -85,11 +91,16 @@ export async function runTerminalCommand(
       return 1;
     }
     try {
-      const root = await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? "."));
+      // The repository's evidence, and this checkout's files and workstream (ADR-0633).
+      const roots = await resolveCommandRoots(
+        await resolveTerminalRepositoryRoot(resolve(io.cwd, parsed.values.root ?? ".")),
+      );
+      const root = roots.evidenceRoot;
       const result = await inspectTerminalLifecycle(
         root,
         undefined,
         foregroundKnowledgeMaterializationSettlement({ repositoryRoot: root, io }),
+        roots.executionRoot,
       );
       const skillUsage = await readTerminalSkillUsage(root);
       io.stdout(
