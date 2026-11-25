@@ -94,6 +94,13 @@
       "disposition": "cohesive"
     },
     {
+      "path": "packages/event-store-sqlite/src/event-store.ts",
+      "contentHash": "sha256:da536356163e1cf129bc65878a7a2ee2aff9572135a61167178e75a3fbcab2c3",
+      "responsibility": "SQLite event store facade implementing the EventStore and outbox contracts",
+      "rationale": "One class owns opening, binding verification, transactions, appends, and the closed-state guard; every read delegates in a few lines to the event and outbox repositories, which hold the queries. Splitting the delegation out would duplicate the open-and-transaction guard each method shares.",
+      "disposition": "cohesive"
+    },
+    {
       "path": "packages/hub-sync-sqlite/src/migrations.ts",
       "contentHash": "sha256:b6e2c45b33f134e8417dfdc3290c6329f8cf95e06f0395a44140179d5e1dfaa0",
       "responsibility": "Hub synchronization SQLite schema migration",
