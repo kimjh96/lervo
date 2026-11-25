@@ -46,6 +46,7 @@ export {
 } from "./terminal-integration-contract.js";
 export {
   missingTerminalHookEvents,
+  terminalHookEventsRunning,
   providerHookSettingsFiles,
   terminalHookCommand,
   terminalHookWindowsCommand,

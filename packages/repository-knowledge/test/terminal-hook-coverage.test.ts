@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   missingTerminalHookEvents,
   providerHookSettingsFiles,
+  terminalHookEventsRunning,
 } from "../src/terminal-integration-provider.js";
 
 const launcherCommand =
@@ -65,5 +66,39 @@ describe("which terminal events Lervo's hooks already cover", () => {
         true,
       )[0],
     ).toEqual({ name: "SessionStart", matcher: "resume|clear|compact" });
+  });
+
+  it("counts nothing from a file the provider cannot parse", () => {
+    const broken = `${hooked("Stop", "lervo terminal hook --provider claude --contract 2")} garbage }}`;
+    expect(missingTerminalHookEvents("claude", [broken], true)).toHaveLength(3);
+  });
+
+  it("tests a SessionStart matcher as a regular expression against each source", () => {
+    const sessionStart = (matcher: string) =>
+      missingTerminalHookEvents(
+        "claude",
+        [hooked("SessionStart", launcherCommand, matcher)],
+        true,
+      ).filter((event) => event.name === "SessionStart");
+    expect(sessionStart(".*")).toEqual([]);
+    expect(sessionStart("^startup$")).toEqual([
+      { name: "SessionStart", matcher: "resume|clear|compact" },
+    ]);
+    // A matcher that is no valid expression counts as covering everything, so Lervo never runs twice.
+    expect(sessionStart("(")).toEqual([]);
+  });
+
+  it("reads which events a written settings file runs a command for, with their matchers", () => {
+    const command = "lervo terminal hook --provider claude --contract 2";
+    const content = JSON.stringify({
+      hooks: {
+        SessionStart: [{ matcher: "resume", hooks: [{ command }] }],
+        Stop: [{ hooks: [{ command: "other" }] }],
+      },
+    });
+    expect(terminalHookEventsRunning(content, command)).toEqual([
+      { name: "SessionStart", matcher: "resume" },
+    ]);
+    expect(terminalHookEventsRunning("{ broken", command)).toEqual([]);
   });
 });

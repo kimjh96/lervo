@@ -292,17 +292,24 @@ function hookViolations(
       violations.push(`${where}: the settings file does not run the hook command`);
     if (!launch.arguments.includes(hooks.settingsPath))
       violations.push(`${where}: the launch does not pass the settings file`);
-    // Terminal hooks: a handler for every listed event, or none at all.
+    // Terminal hooks: a handler for every listed event, with its matcher, or none at all.
     const terminal = {
       command: "lervo terminal",
-      events: [{ name: "UserPromptSubmit" as const }, { name: "Stop" as const }],
+      events: [
+        { name: "SessionStart" as const, matcher: "resume|compact" },
+        { name: "Stop" as const },
+      ],
     };
     const content =
       adapter.prepareLaunch({ ...intent, mode, hooks: { ...hooks, terminal } }).settingsFile
         ?.content ?? "";
     if (
       content.includes(JSON.stringify(terminal.command)) &&
-      !terminal.events.every((event) => content.includes(JSON.stringify(event.name)))
+      !terminal.events.every(
+        (event) =>
+          content.includes(JSON.stringify(event.name)) &&
+          ("matcher" in event ? content.includes(JSON.stringify(event.matcher)) : true),
+      )
     )
       violations.push(`${where}: the settings file answers only some terminal hook events`);
   }

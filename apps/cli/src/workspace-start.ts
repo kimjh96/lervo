@@ -17,7 +17,7 @@ import {
   type HostedSessionEventOutcome,
 } from "./hosted-session-events.js";
 import { settingsFileDigest } from "./hosted-session-settings.js";
-import type { HostedTerminalHookPlan } from "./hosted-terminal-hooks.js";
+import { type HostedTerminalHookPlan, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import type { WorkspaceBase, WorkspaceBaseNotice } from "./workspace-base.js";
 import { workspacesHome } from "./workspaces-home.js";
 
@@ -263,6 +263,8 @@ export async function startWorkspace(
         : { ...intent, hooks: { ...intent.hooks, terminal } },
     );
     if (launch.settingsFile !== null) await ports.writeSettings(launch.settingsFile);
+    const written =
+      terminal === undefined ? undefined : writtenTerminalHooks(terminal, launch.settingsFile);
     const record: HostedLaunchRecord = {
       schemaVersion: 1,
       workspaceId: placement.workspaceId,
@@ -275,14 +277,7 @@ export async function startWorkspace(
       settingsDigest: launch.settingsFile === null ? null : settingsFileDigest(launch.settingsFile),
       mcpConfigDigest: null,
       preparedAt: ports.now().toISOString(),
-      ...(terminal === undefined
-        ? {}
-        : {
-            terminalHooks: {
-              events: terminal.events.map((event) => event.name),
-              via: terminal.via,
-            },
-          }),
+      ...(written === undefined ? {} : { terminalHooks: written }),
       ...(base === undefined
         ? {}
         : {

@@ -10,10 +10,11 @@ import {
   PROVIDERS,
   providerHookSettingsFiles,
   TERMINAL_HOOK_RUNTIME_PATH,
+  terminalHookEventsRunning,
   type TerminalIntegrationProvider,
 } from "@lervo/repository-knowledge";
 
-import { hostTerminalLauncherPath } from "./terminal-runtime.js";
+import { hostTerminalLauncherPath, trustedHostTerminalLauncher } from "./terminal-runtime.js";
 
 /** A settings file larger than this is not a settings file Lervo reads. */
 const MAXIMUM_SETTINGS_BYTES = 1024 * 1024;
@@ -21,6 +22,15 @@ const MAXIMUM_SETTINGS_BYTES = 1024 * 1024;
 /** The terminal hooks of a hosted launch, and whether they run the host launcher or the CLI. */
 export interface HostedTerminalHookPlan extends HostedTerminalHooks {
   readonly via: "launcher" | "cli";
+}
+
+/**
+ * A path as one POSIX shell word, which is how the provider runs hook commands, Git Bash on
+ * Windows included: single-quoted so nothing in it expands, with forward slashes on Windows.
+ */
+function shellWord(path: string, platform: NodeJS.Platform): string {
+  const portable = platform === "win32" ? path.replaceAll("\\", "/") : path;
+  return `'${portable.replaceAll("'", `'"'"'`)}'`;
 }
 
 /** Whether `path` names a file, following links as the provider and Node do. */
@@ -48,20 +58,52 @@ function terminalProvider(provider: string): TerminalIntegrationProvider | null 
 }
 
 /**
+ * What a hosted launch's settings file proves it added: the plan's events whose handlers in the
+ * written `settings` run the plan's command. Nothing, when the adapter wrote none of them.
+ */
+export function writtenTerminalHooks(
+  plan: HostedTerminalHookPlan,
+  settings: { readonly content: string } | null,
+): { events: string[]; via: HostedTerminalHookPlan["via"] } | undefined {
+  if (settings === null) return undefined;
+  const running = new Set(
+    terminalHookEventsRunning(settings.content, plan.command).map(
+      (event) => `${event.name}\0${event.matcher ?? ""}`,
+    ),
+  );
+  const events = plan.events
+    .filter((event) => running.has(`${event.name}\0${event.matcher ?? ""}`))
+    .map((event) => event.name);
+  return events.length === 0 ? undefined : { events, via: plan.via };
+}
+
+/**
  * The terminal hooks a hosted session in `worktree` needs: a handler for each event no merged
  * settings file covers with Lervo's hook, or undefined when every event is covered or the
  * adapter takes no hooks. They run the host launcher beside the runtime store, the path every
- * Lervo session takes; a host whose install predates that launcher runs the CLI's terminal hook
- * instead, and the plan says which.
+ * Lervo session takes, when it is exactly this CLI's launcher and only the user can change it;
+ * otherwise they run the CLI's terminal hook, and the plan says which.
  */
 export async function hostedTerminalHooks(
   adapter: HostedSessionAdapter,
   worktree: string,
-  options: { launcher?: string; environment?: NodeJS.ProcessEnv; home?: string } = {},
+  options: {
+    launcher?: string;
+    environment?: NodeJS.ProcessEnv;
+    home?: string;
+    platform?: NodeJS.Platform;
+  } = {},
 ): Promise<HostedTerminalHookPlan | undefined> {
   const provider = terminalProvider(adapter.provider);
   if (!adapter.capabilities.hooks || provider === null) return undefined;
-  const files = providerHookSettingsFiles(provider, worktree, options.environment, options.home);
+  const platform = options.platform ?? process.platform;
+  const files = providerHookSettingsFiles(
+    provider,
+    worktree,
+    options.environment,
+    options.home,
+    platform,
+  );
   const settings = (await Promise.all(files.map(settingsText))).filter(
     (text): text is string => text !== null,
   );
@@ -73,9 +115,9 @@ export async function hostedTerminalHooks(
     ...(event.matcher === undefined ? {} : { matcher: event.matcher }),
   }));
   const launcher = options.launcher ?? hostTerminalLauncherPath();
-  return (await isFile(launcher))
+  return (await trustedHostTerminalLauncher(launcher))
     ? {
-        command: `node ${JSON.stringify(launcher)} --provider ${provider} --contract 2`,
+        command: `node ${shellWord(launcher, platform)} --provider ${provider} --contract 2`,
         events,
         via: "launcher",
       }

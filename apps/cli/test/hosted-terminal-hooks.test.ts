@@ -6,7 +6,8 @@ import { createClaudeHostedSessionAdapter } from "@lervo/adapter-claude";
 import { createCodexHostedSessionAdapter } from "@lervo/adapter-codex";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { hostedTerminalHooks } from "../src/hosted-terminal-hooks.js";
+import { hostedTerminalHooks, writtenTerminalHooks } from "../src/hosted-terminal-hooks.js";
+import { loadTerminalHookLauncher } from "../src/terminal-runtime.js";
 
 const roots: string[] = [];
 afterEach(async () => {
@@ -35,13 +36,26 @@ const settings = (events: string[], command = projectCommand) =>
   });
 
 /** A user home without Claude settings, and no host launcher, unless a test says otherwise. */
-async function plan(worktree: string, options: { home?: string; launcher?: string } = {}) {
+async function plan(
+  worktree: string,
+  options: { home?: string; launcher?: string; platform?: NodeJS.Platform } = {},
+) {
   const home = options.home ?? (await folder({}));
   return hostedTerminalHooks(claude, worktree, {
     home,
     environment: {},
     launcher: options.launcher ?? join(home, "missing-launcher.mjs"),
+    ...(options.platform === undefined ? {} : { platform: options.platform }),
   });
+}
+
+/** A store folder, whose name needs quoting, holding this CLI's launcher as `ensure` writes it. */
+async function hostLauncher(content?: string): Promise<string> {
+  const store = await folder({});
+  const path = join(store, "it's $HOME `x`", "launcher.mjs");
+  await mkdir(dirname(path));
+  await writeFile(path, content ?? (await loadTerminalHookLauncher()), { mode: 0o600 });
+  return path;
 }
 
 describe("the terminal hooks a hosted session adds", () => {
@@ -53,13 +67,41 @@ describe("the terminal hooks a hosted session adds", () => {
     });
   });
 
-  it("runs the host launcher when the install has one", async () => {
-    const store = await folder({ "launcher.mjs": "// host launcher\n" });
-    const launcherPath = join(store, "launcher.mjs");
+  it("runs the host launcher, quoted as one shell word, only when it is this CLI's launcher", async () => {
+    const launcherPath = await hostLauncher();
+    const quoted = `'${launcherPath.replaceAll("'", `'"'"'`)}'`;
     expect(await plan(await folder({}), { launcher: launcherPath })).toMatchObject({
-      command: `node ${JSON.stringify(launcherPath)} --provider claude --contract 2`,
+      command: `node ${quoted} --provider claude --contract 2`,
       via: "launcher",
     });
+    const tampered = await hostLauncher("process.exit(0);\n");
+    expect((await plan(await folder({}), { launcher: tampered }))?.via).toBe("cli");
+  });
+
+  it("writes the launcher path with forward slashes on Windows", async () => {
+    const launcherPath = await hostLauncher();
+    const windows = await plan(await folder({}), { launcher: launcherPath, platform: "win32" });
+    expect(windows?.command).not.toContain("\\");
+  });
+
+  it("records only the planned events the written settings run", () => {
+    const hooks = {
+      command: "lervo terminal hook --provider claude --contract 2",
+      events: [{ name: "SessionStart" as const, matcher: "resume" }, { name: "Stop" as const }],
+      via: "cli" as const,
+    };
+    const written = (entries: object) => ({ content: JSON.stringify({ hooks: entries }) });
+    const handler = (matcher?: string) => [
+      { ...(matcher === undefined ? {} : { matcher }), hooks: [{ command: hooks.command }] },
+    ];
+    expect(
+      writtenTerminalHooks(hooks, written({ SessionStart: handler("resume"), Stop: handler() })),
+    ).toEqual({ events: ["SessionStart", "Stop"], via: "cli" });
+    expect(
+      writtenTerminalHooks(hooks, written({ SessionStart: handler(), Stop: handler() })),
+    ).toEqual({ events: ["Stop"], via: "cli" });
+    expect(writtenTerminalHooks(hooks, written({}))).toBeUndefined();
+    expect(writtenTerminalHooks(hooks, null)).toBeUndefined();
   });
 
   it("adds nothing where the project, with comments and a symlinked file, hooks every event", async () => {

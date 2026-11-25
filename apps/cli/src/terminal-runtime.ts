@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import {
   loadTerminalHookNativeAssets,
+  TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES,
   type TerminalRuntimeAsset,
   hostTerminalRuntimeNeedsMaterialization,
   materializeHostTerminalRuntime,
@@ -61,27 +63,50 @@ export function hostTerminalLauncherPath(store: string = terminalHookRuntimeStor
   return resolve(store, "launcher.mjs");
 }
 
-/**
- * Writes the host launcher when it is missing, or with `refresh` after the runtime changed, as
- * an owner-only file replaced atomically. A failure only leaves hosted sessions on the CLI's
- * terminal hook.
- */
-export async function ensureHostTerminalLauncher(store: string, refresh: boolean): Promise<void> {
-  const path = hostTerminalLauncherPath(store);
-  if (
-    !refresh &&
-    (await lstat(path).then(
-      (stat) => stat.isFile(),
-      () => false,
-    ))
-  )
-    return;
-  const temporary = resolve(store, `.launcher-${process.pid}.tmp`);
+/** The file's bytes when it is a regular file, not a link, within the launcher bound; else null. */
+async function launcherBytes(path: string): Promise<Buffer | null> {
   try {
-    await writeFile(temporary, await loadTerminalHookLauncher(), { mode: 0o600 });
+    const found = await lstat(path);
+    if (!found.isFile() || found.size > TERMINAL_HOOK_LAUNCHER_MAXIMUM_BYTES) return null;
+    return await readFile(path);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Makes the host launcher the bundled one: when the file is missing, is no regular file, or
+ * differs from this CLI's launcher, it is replaced atomically with an owner-only copy. A failure
+ * only leaves hosted sessions on the CLI's terminal hook.
+ */
+export async function ensureHostTerminalLauncher(store: string): Promise<void> {
+  const path = hostTerminalLauncherPath(store);
+  const bundled = await loadTerminalHookLauncher();
+  if ((await launcherBytes(path))?.equals(Buffer.from(bundled)) === true) return;
+  const temporary = resolve(store, `.launcher-${randomUUID()}.tmp`);
+  try {
+    await writeFile(temporary, bundled, { mode: 0o600 });
     await rename(temporary, path);
   } finally {
     await rm(temporary, { force: true });
+  }
+}
+
+/**
+ * Whether a hosted session may run the host launcher at `path`: a regular file, not a link, that
+ * holds exactly this CLI's launcher and, where the platform has owners, belongs to the user and
+ * is writable by no one else. Anything else leaves the session on the CLI's terminal hook.
+ */
+export async function trustedHostTerminalLauncher(path: string): Promise<boolean> {
+  try {
+    const found = await lstat(path);
+    if (!found.isFile()) return false;
+    const uid = process.getuid?.();
+    if (uid !== undefined && (found.uid !== uid || (found.mode & 0o022) !== 0)) return false;
+    const bytes = await launcherBytes(path);
+    return bytes?.equals(Buffer.from(await loadTerminalHookLauncher())) === true;
+  } catch {
+    return false;
   }
 }
 
@@ -104,7 +129,7 @@ export async function ensureHostTerminalRuntime(
       input.authority,
     ))
   ) {
-    await ensureHostTerminalLauncher(store, false).catch(() => undefined);
+    await ensureHostTerminalLauncher(store).catch(() => undefined);
     return "current";
   }
   const runtimeContent = await loadTerminalHookRuntime();
@@ -119,8 +144,7 @@ export async function ensureHostTerminalRuntime(
     ),
     authority: input.authority ?? "publish",
   });
-  if (result !== "busy")
-    await ensureHostTerminalLauncher(store, result === "materialized").catch(() => undefined);
+  if (result !== "busy") await ensureHostTerminalLauncher(store).catch(() => undefined);
   return result;
 }
 

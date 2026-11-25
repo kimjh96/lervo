@@ -37,7 +37,7 @@ import {
   writeHostedSessionSettings,
 } from "./hosted-session-settings.js";
 import { defaultHostedProvider, resolveHostedSessionAdapter } from "./hosted-session-adapters.js";
-import { hostedTerminalHooks } from "./hosted-terminal-hooks.js";
+import { hostedTerminalHooks, writtenTerminalHooks } from "./hosted-terminal-hooks.js";
 import { chooseWorkspaceBase, gitWorkspaceBase } from "./workspace-base.js";
 import { insideRepository, invalidWorkspacesHome, workspacesHome } from "./workspaces-home.js";
 import { startWorkspace, type WorkspaceStartResult } from "./workspace-start.js";
@@ -193,17 +193,12 @@ export async function openWorkspace(
     ...(hooks === undefined ? {} : { hooks }),
   });
   if (launch.settingsFile !== null) await writeHostedSessionSettings(launch.settingsFile);
+  const written =
+    terminal === undefined ? undefined : writtenTerminalHooks(terminal, launch.settingsFile);
   const { terminalHooks: _previousTerminal, ...kept } = previous;
   const record: HostedLaunchRecord = {
     ...kept,
-    ...(terminal === undefined
-      ? {}
-      : {
-          terminalHooks: {
-            events: terminal.events.map((event) => event.name),
-            via: terminal.via,
-          },
-        }),
+    ...(written === undefined ? {} : { terminalHooks: written }),
     sessionId,
     conversationMode: mode,
     argumentDigest: launchArgumentDigest(launch),
