@@ -81,6 +81,60 @@ async function hook(provider: "codex" | "claude", event = "UserPromptSubmit") {
   return { code, output: JSON.parse(output.join("")) };
 }
 
+describe("rejected hook input (ADR-0635)", () => {
+  it.each([
+    ["unreadable JSON", "{not json"],
+    ["a missing session", JSON.stringify({ hook_event_name: "UserPromptSubmit", prompt: "x" })],
+    ["an unknown event", JSON.stringify({ hook_event_name: "Other", session_id: "s" })],
+  ])("never blocks the prompt or forces a Stop to continue for %s", async (_name, input) => {
+    const stderr: string[] = [];
+    const output: string[] = [];
+    const code = await runTerminalHookCommand(
+      ["--provider", "claude", "--contract", "2"],
+      {
+        cwd: "/repository",
+        stdout: (value) => output.push(value),
+        stderr: (value) => stderr.push(value),
+        stdin: async () => input,
+      },
+      { createTerminalStageObservation: () => new DisabledTerminalStageObservation() },
+    );
+    expect(code).toBe(0);
+    expect(output.join("")).toBe("{}\n");
+    expect(stderr.join("")).toBe("Lervo terminal integration failed (hook_input_invalid).\n");
+    // The failure is still recorded, unattributed.
+    expect(ports.record).toHaveBeenCalledWith(
+      expect.objectContaining({ outcome: "failed", failureReason: "hook_input_invalid" }),
+    );
+  });
+
+  it("answers an image-only prompt instead of refusing it", async () => {
+    ports.prepare.mockResolvedValue({
+      additionalContext: "Prepared context",
+      documents: [],
+      grounding: { queryProjectionReceipt: { receiptId: "qpr_1" } },
+      sourceSnapshotId: "snap",
+      preparationQuality: "complete",
+      recommendationCount: 0,
+      repositoryRevision: "rev",
+    });
+    const output: string[] = [];
+    const code = await runTerminalHookCommand(
+      ["--provider", "claude", "--contract", "2"],
+      {
+        cwd: "/repository",
+        stdout: (value) => output.push(value),
+        stderr: () => undefined,
+        stdin: async () =>
+          JSON.stringify({ hook_event_name: "UserPromptSubmit", session_id: "s", prompt: "" }),
+      },
+      { createTerminalStageObservation: () => new DisabledTerminalStageObservation() },
+    );
+    expect(code).toBe(0);
+    expect(JSON.parse(output.join("")).hookSpecificOutput.hookEventName).toBe("UserPromptSubmit");
+  });
+});
+
 describe.each(["codex", "claude"] as const)("%s hook failures", (provider) => {
   it.each([
     "repository_snapshot_limit_exceeded",
