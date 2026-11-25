@@ -56,21 +56,29 @@ function sha256(value: string | Uint8Array): string {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
-/** Files a capture reads at once; stats and directory reads are not limited. */
-const SNAPSHOT_READ_CONCURRENCY = 64;
+/**
+ * Files a capture reads at once. A read that is running when the deadline passes still finishes,
+ * so this also bounds how long a rejection can lag the deadline on a slow disk.
+ */
+const SNAPSHOT_READ_CONCURRENCY = 8;
+/** Stats, link reads, and directory reads a capture runs at once. */
+const SNAPSHOT_STAT_CONCURRENCY = 64;
 
 /** Runs at most `limit` of the given operations at a time, in the order they were asked for. */
 function boundedConcurrency(limit: number) {
   let running = 0;
   const waiting: (() => void)[] = [];
   return async <T>(operation: () => Promise<T>): Promise<T> => {
+    // A finishing operation hands its slot straight to the next waiter, so a new caller arriving
+    // in between never finds a slot that is already promised.
     if (running >= limit) await new Promise<void>((proceed) => waiting.push(proceed));
-    running += 1;
+    else running += 1;
     try {
       return await operation();
     } finally {
-      running -= 1;
-      waiting.shift()?.();
+      const next = waiting.shift();
+      if (next === undefined) running -= 1;
+      else next();
     }
   };
 }
@@ -153,14 +161,18 @@ async function captureRepositorySnapshotWithCache(input: {
     if (failure !== null) throw failure.error;
     checkDeadline();
   };
-  // Reading a changed file holds a handle across awaits; a cold capture of thousands of files
-  // must not open them all at once. A read that waited for a slot checks again before it starts.
-  const limit = boundedConcurrency(SNAPSHOT_READ_CONCURRENCY);
-  const reads = <T>(operation: () => Promise<T>) =>
-    limit(async () => {
-      live();
-      return operation();
-    });
+  // Reading a changed file holds a handle and the whole file across awaits; a cold capture of
+  // thousands of files must not open them all at once. An operation that waited for a slot checks
+  // again before it starts.
+  const limited =
+    (limit: ReturnType<typeof boundedConcurrency>) =>
+    <T>(operation: () => Promise<T>) =>
+      limit(async () => {
+        live();
+        return operation();
+      });
+  const reads = limited(boundedConcurrency(SNAPSHOT_READ_CONCURRENCY));
+  const stats = limited(boundedConcurrency(SNAPSHOT_STAT_CONCURRENCY));
 
   /**
    * Visits a directory's entries and subdirectories concurrently, and returns its files in the
@@ -171,8 +183,9 @@ async function captureRepositorySnapshotWithCache(input: {
     live();
     let entries;
     try {
-      entries = await readdir(directory, { withFileTypes: true });
-    } catch {
+      entries = await stats(() => readdir(directory, { withFileTypes: true }));
+    } catch (error) {
+      if (error instanceof RepositorySnapshotError) throw error;
       throw new RepositorySnapshotError("Could not read the repository snapshot.");
     }
     live();
@@ -196,15 +209,14 @@ async function captureRepositorySnapshotWithCache(input: {
         );
       }
       if (entry.isSymbolicLink()) {
-        live();
-        const before = await lstat(absolutePath, { bigint: true });
+        const before = await stats(() => lstat(absolutePath, { bigint: true }));
         const identity = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash: string;
         if (cached?.kind === "symlink" && cached.identity === identity) {
           hash = cached.hash;
         } else {
-          const target = await reads(() => readlink(absolutePath));
+          const target = await stats(() => readlink(absolutePath));
           if (identity !== entryIdentity(await lstat(absolutePath, { bigint: true }))) {
             throw new RepositorySnapshotError("Could not snapshot the repository file safely.");
           }
@@ -215,8 +227,7 @@ async function captureRepositorySnapshotWithCache(input: {
       }
       if (!entry.isFile()) return [[path, sha256("unsupported-entry")]];
       try {
-        live();
-        const before = await lstat(absolutePath, { bigint: true });
+        const before = await stats(() => lstat(absolutePath, { bigint: true }));
         const identity = entryIdentity(before);
         const cached = previousEntries.get(path);
         let hash: string;
@@ -225,8 +236,9 @@ async function captureRepositorySnapshotWithCache(input: {
           hash = cached.hash;
           contentByteLength = cached.byteLength;
         } else {
+          // A read that started before the deadline finishes its identity check and keeps its
+          // hash, so a capture that runs out of time still warms the cache with it.
           const bytes = await reads(() => input.readFile(root, path));
-          live();
           const after = await lstat(absolutePath, { bigint: true });
           if (identity !== entryIdentity(after)) {
             throw new Error("changed while reading");
@@ -248,6 +260,7 @@ async function captureRepositorySnapshotWithCache(input: {
           hash,
           byteLength: contentByteLength,
         });
+        live();
         return [[path, hash]];
       } catch (error) {
         if (error instanceof RepositorySnapshotError) throw error;
